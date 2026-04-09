@@ -273,8 +273,8 @@ stylex_test!(
     "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_attrs_named_import_resolves_in_inline_objects,
   |tr| {
     let mut env = IndexMap::new();
 
@@ -284,11 +284,10 @@ test!(
     );
 
     StyleXTransform::test(tr.comments.clone())
-      .with_options(&mut env_config(env))
+      .with_env(env)
       .with_runtime_injection()
       .into_pass()
   },
-  stylex_attrs_named_import_resolves_in_inline_objects,
   r#"
     import { attrs, create, env } from 'stylex';
     const styles = create({

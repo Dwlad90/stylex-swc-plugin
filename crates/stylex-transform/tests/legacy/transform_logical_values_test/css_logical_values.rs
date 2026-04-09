@@ -1,21 +1,7 @@
-use stylex_enums::style_resolution::StyleResolution;
-use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   value_inline_end_for_clear_property,
   r#"
         import stylex from 'stylex';
@@ -24,16 +10,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   value_inline_start_for_clear_property,
   r#"
         import stylex from 'stylex';
@@ -42,16 +19,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   value_inline_end_for_float_property,
   r#"
         import stylex from 'stylex';
@@ -60,16 +28,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   value_inline_start_for_float_property,
   r#"
         import stylex from 'stylex';
@@ -78,16 +37,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   value_end_for_text_align_property,
   r#"
         import stylex from 'stylex';
@@ -96,16 +46,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   value_start_for_text_align_property,
   r#"
         import stylex from 'stylex';
@@ -114,20 +55,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_e_resize_for_cursor_property,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { cursor: 'e-resize' } });
@@ -135,20 +68,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_w_resize_for_cursor_property,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { cursor: 'w-resize' } });
@@ -156,20 +81,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_ne_resize_for_cursor_property,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { cursor: 'ne-resize' } });
@@ -177,20 +94,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_nw_resize_for_cursor_property,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { cursor: 'nw-resize' } });
@@ -198,20 +107,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_se_resize_for_cursor_property,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { cursor: 'se-resize' } });
@@ -219,20 +120,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_sw_resize_for_cursor_property,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { cursor: 'sw-resize' } });
@@ -240,16 +133,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   legacy_value_of_animation_name_property,
   r#"
         import stylex from 'stylex';
@@ -258,16 +142,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   legacy_value_of_background_position_property_top_end,
   r#"
         import stylex from 'stylex';
@@ -276,16 +151,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   legacy_value_of_background_position_property_top_start,
   r#"
         import stylex from 'stylex';
@@ -294,21 +160,13 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_logical_styles_polyfill: Some(true),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_padding_inline_property_with_polyfill,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_logical_styles_polyfill(true)
+    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -327,21 +185,13 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_logical_styles_polyfill: Some(false),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_padding_inline_property_without_polyfill,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_logical_styles_polyfill(false)
+    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -360,20 +210,12 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_box_shadow_property_none,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: 'none' } });
@@ -381,21 +223,13 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_box_shadow_property,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -414,20 +248,12 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_box_shadow_property_1px_1px_hash000,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: '1px 1px #000' } });
@@ -435,20 +261,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_box_shadow_property_negative_1px_negative_1px_hash000,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: '-1px -1px #000' } });
@@ -456,20 +274,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_box_shadow_property_inset_1px_1px_hash000,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: 'inset 1px 1px #000' } });
@@ -477,20 +287,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_box_shadow_property_1px_1px_1px_1px_hash000,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: '1px 1px 1px 1px #000' } });
@@ -498,20 +300,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_box_shadow_property_inset_1px_1px_1px_1px_hash000,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: 'inset 1px 1px 1px 1px #000' } });
@@ -519,20 +313,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_box_shadow_property_complex,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: '2px 2px 2px 2px red, inset 1px 1px 1px 1px #000' } });
@@ -540,20 +326,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_text_shadow_property_none,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { textShadow: 'none' } });
@@ -561,20 +339,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_text_shadow_property_1px_1px_hash000,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { textShadow: '1px 1px #000' } });
@@ -582,20 +352,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_text_shadow_property_negative_1px_negative_1px_hash000,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { textShadow: '-1px -1px #000' } });
@@ -603,20 +365,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_legacy_value_flipping: Some(true),
-      ..StyleXOptionsParams::default()
-    }),
-  ),
+stylex_test!(
   legacy_value_of_text_shadow_property_1px_1px_1px_hash000,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_legacy_value_flipping(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { textShadow: '1px 1px 1px #000' } });

@@ -1,28 +1,13 @@
-use stylex_structures::{
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      treeshake_compensation: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   when_ancestor_function,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_treeshake_compensation(true)
+    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import { when, create } from '@stylexjs/stylex';
 
@@ -39,21 +24,13 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      treeshake_compensation: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   when_sibling_before_function,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_treeshake_compensation(true)
+    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import { when, create } from '@stylexjs/stylex';
 
@@ -70,21 +47,13 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      treeshake_compensation: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   when_functions_namespace_imports,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_treeshake_compensation(true)
+    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -105,21 +74,13 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      treeshake_compensation: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   when_functions_aliased_imports,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_treeshake_compensation(true)
+    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import { when as w, create } from '@stylexjs/stylex';
 

@@ -1,50 +1,19 @@
+use crate::utils::prelude::*;
 use insta::assert_snapshot;
-use stylex_structures::{
-  named_import_source::RuntimeInjection,
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::{
-  common::FileName,
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::testing::test,
-  },
-};
+use swc_core::{common::FileName, ecma::transforms::testing::test};
 
 use crate::utils::transform::stringify_js;
 
-fn get_default_opts() -> StyleXOptionsParams {
-  StyleXOptionsParams {
-    unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-    class_name_prefix: Some("x".to_string()),
-    ..StyleXOptionsParams::default()
-  }
-}
-
 fn transform(input: &str) -> String {
-  stringify_js(
-    input,
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    |tr| {
-      StyleXTransform::new_test_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          cwd: None,
-          filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-        },
-        Some(&mut StyleXOptionsParams {
-          runtime_injection: Some(RuntimeInjection::Boolean(false)),
-          dev: Some(true),
-          ..get_default_opts()
-        }),
-      )
-    },
-  )
+  stringify_js(input, ts_syntax(), |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_filename(FileName::Real(
+        "/stylex/packages/TestTheme.stylex.js".into(),
+      ))
+      .with_runtime_injection_option(RuntimeInjection::Boolean(false))
+      .with_dev(true)
+      .into_pass()
+  })
 }
 
 static OUTPUT_OF_STYLEX_DEFINE_VARS: &str = r#"
@@ -113,23 +82,14 @@ fn variables_order_does_not_change_the_class_name_hash() {
   assert_eq!(output_v1, output_v2);
 }
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(false)),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   transforms_variables_object,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
+    .into_pass(),
   format!(
     r#"
     {}
@@ -140,23 +100,14 @@ test!(
   .as_str()
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   transforms_variables_object_and_add_stylex_inject_in_dev_mode,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_dev(true)
+    .into_pass(),
   format!(
     r#"
     {}
@@ -167,24 +118,15 @@ test!(
   .as_str()
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(false)),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   transforms_variables_object_in_non_haste_env,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .into_pass(),
   format!(
     r#"
     {}
@@ -195,24 +137,15 @@ test!(
   .as_str()
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(None)),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   transforms_variables_object_in_non_haste_dev_env,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_dev(true)
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .into_pass(),
   format!(
     r#"
     {}
@@ -223,23 +156,14 @@ test!(
   .as_str()
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(false)),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   transforms_multiple_variables_objects_in_a_single_file,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
+    .into_pass(),
   format!(
     r#"
     {}
@@ -254,23 +178,14 @@ test!(
   .as_str()
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   transforms_multiple_variables_objects_in_a_single_file_in_dev_mode,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_dev(true)
+    .into_pass(),
   format!(
     r#"
     {}
@@ -287,23 +202,14 @@ test!(
   .as_str()
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   transforms_variables_objects_with_references_to_local_variables,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_dev(true)
+    .into_pass(),
   format!(
     r#"
       {}
@@ -327,23 +233,14 @@ test!(
   .as_str()
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   allows_references_to_local_variables_with_static_values,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_dev(true)
+    .into_pass(),
   format!(
     r#"
       {}
@@ -367,23 +264,14 @@ test!(
   .as_str()
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   allows_template_literal_references,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_dev(true)
+    .into_pass(),
   format!(
     r#"
       {}
@@ -407,23 +295,14 @@ test!(
   .as_str()
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   allows_pure_complex_expressions,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_dev(true)
+    .into_pass(),
   format!(
     r#"
       {}
@@ -447,26 +326,17 @@ test!(
   .as_str()
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/utils/vars.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   transforms_variables_object_in_common_js_with_nested_file_path,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/utils/vars.stylex.js".into()
+    ))
+    .with_dev(true)
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   format!(
     r#"
       {}
@@ -477,23 +347,14 @@ test!(
   .as_str()
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   transforms_typed_object_overrides,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_dev(true)
+    .into_pass(),
   format!(
     r#"
       {}

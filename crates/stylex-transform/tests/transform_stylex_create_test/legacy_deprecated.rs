@@ -1,31 +1,14 @@
-use stylex_enums::style_resolution::StyleResolution;
-use stylex_structures::{
-  named_import_source::RuntimeInjection, plugin_pass::PluginPass,
-  stylex_options::StyleXOptionsParams,
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   transforms_nested_pseudo_class_to_css,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -39,23 +22,14 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   transforms_invalid_pseudo_class,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
               import stylex from 'stylex';
               const styles = stylex.create({
@@ -69,23 +43,14 @@ test!(
             "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   transforms_valid_pseudo_classes_in_order,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
               import stylex from 'stylex';
               const styles = stylex.create({
@@ -107,23 +72,14 @@ test!(
             "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   transforms_pseudo_class_with_array_value_as_fallbacks,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
               import stylex from 'stylex';
               const styles = stylex.create({
@@ -136,23 +92,14 @@ test!(
             "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   transforms_legacy_pseudo_class_within_a_pseudo_element,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
             import stylex from 'stylex';
             export const styles = stylex.create({
@@ -168,23 +115,14 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   transforms_pseudo_elements_within_legacy_pseudo_class,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
             import stylex from 'stylex';
             export const styles = stylex.create({
@@ -202,23 +140,14 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   transforms_pseudo_elements_sandwiched_within_pseudo_classes,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
             import stylex from 'stylex';
             export const styles = stylex.create({
@@ -240,23 +169,14 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   transforms_media_queries,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -273,23 +193,14 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   transforms_supports_queries,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -306,24 +217,15 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   transforms_dynamic_shorthands_in_legacy_expand_shorthands_mode,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
             import stylex from 'stylex';
             export const styles = stylex.create({

@@ -1,45 +1,24 @@
-use stylex_enums::style_resolution::StyleResolution;
-use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   empty_stylex_call,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       stylex();
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   basic_stylex_call,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -51,20 +30,12 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_with_number,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -79,20 +50,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_with_computed_number,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -107,20 +70,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_with_computed_number_without_declaration,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -135,20 +90,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_with_multiple_namespaces,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -165,20 +112,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_within_variable_declarations,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -191,20 +130,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_with_styles_variable_assignment,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -221,20 +152,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_with_short_form_properties,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -246,20 +169,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_with_exported_short_form_properties,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -271,20 +186,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_keeps_only_the_styles_that_are_needed,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -306,20 +213,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_keeps_all_null_when_applied_after_unknown,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -341,20 +240,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_keeps_only_the_nulls_that_are_needed,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -376,20 +267,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_keeps_only_the_nulls_that_are_needed_second,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -411,20 +294,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_using_styles_with_pseudo_selectors,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -439,20 +314,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_using_styles_with_pseudo_selectors_within_property,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -467,20 +334,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_using_styles_with_media_queries,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -498,20 +357,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_using_styles_with_media_queries_within_property,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({

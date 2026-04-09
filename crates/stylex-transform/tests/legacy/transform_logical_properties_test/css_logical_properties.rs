@@ -1,22 +1,7 @@
-use stylex_structures::plugin_pass::PluginPass;
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_block_color,
   r#"
         import stylex from 'stylex';
@@ -25,18 +10,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_block_start_color,
   r#"
         import stylex from 'stylex';
@@ -45,18 +19,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_block_end_color,
   r#"
         import stylex from 'stylex';
@@ -65,18 +28,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_inline_color,
   r#"
         import stylex from 'stylex';
@@ -85,18 +37,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_inline_start_color,
   r#"
         import stylex from 'stylex';
@@ -105,18 +46,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_inline_end_color,
   r#"
         import stylex from 'stylex';
@@ -125,18 +55,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_block_style,
   r#"
         import stylex from 'stylex';
@@ -145,18 +64,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_block_start_style,
   r#"
         import stylex from 'stylex';
@@ -165,18 +73,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_block_end_style,
   r#"
         import stylex from 'stylex';
@@ -185,18 +82,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_inline_style,
   r#"
         import stylex from 'stylex';
@@ -205,18 +91,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_inline_start_style,
   r#"
         import stylex from 'stylex';
@@ -225,18 +100,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_inline_end_style,
   r#"
         import stylex from 'stylex';
@@ -245,18 +109,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_block_width,
   r#"
         import stylex from 'stylex';
@@ -265,18 +118,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_block_start_width,
   r#"
         import stylex from 'stylex';
@@ -285,18 +127,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_block_end_width,
   r#"
         import stylex from 'stylex';
@@ -305,18 +136,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_inline_width,
   r#"
         import stylex from 'stylex';
@@ -325,18 +145,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_inline_start_width,
   r#"
         import stylex from 'stylex';
@@ -345,18 +154,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_inline_end_width,
   r#"
         import stylex from 'stylex';
@@ -365,18 +163,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_top_start_radius,
   r#"
         import stylex from 'stylex';
@@ -385,18 +172,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_bottom_start_radius,
   r#"
         import stylex from 'stylex';
@@ -405,18 +181,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_top_end_radius,
   r#"
         import stylex from 'stylex';
@@ -425,18 +190,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   border_bottom_end_radius,
   r#"
         import stylex from 'stylex';
@@ -445,18 +199,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   inset_block,
   r#"
         import stylex from 'stylex';
@@ -465,18 +208,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   inset_block_end,
   r#"
         import stylex from 'stylex';
@@ -485,18 +217,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   inset_block_start,
   r#"
         import stylex from 'stylex';
@@ -505,18 +226,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   inset_inline,
   r#"
         import stylex from 'stylex';
@@ -525,18 +235,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   inset_inline_end,
   r#"
         import stylex from 'stylex';
@@ -545,18 +244,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   inset_inline_start,
   r#"
         import stylex from 'stylex';
@@ -565,18 +253,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   margin_block,
   r#"
         import stylex from 'stylex';
@@ -585,18 +262,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   margin_block_end,
   r#"
         import stylex from 'stylex';
@@ -605,18 +271,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   margin_block_start,
   r#"
         import stylex from 'stylex';
@@ -625,18 +280,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   margin_inline,
   r#"
         import stylex from 'stylex';
@@ -645,18 +289,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   margin_inline_end,
   r#"
         import stylex from 'stylex';
@@ -665,18 +298,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   margin_inline_start,
   r#"
         import stylex from 'stylex';
@@ -685,18 +307,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   padding_block,
   r#"
         import stylex from 'stylex';
@@ -705,18 +316,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   padding_block_end,
   r#"
         import stylex from 'stylex';
@@ -725,18 +325,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   padding_block_start,
   r#"
         import stylex from 'stylex';
@@ -745,18 +334,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   padding_inline,
   r#"
         import stylex from 'stylex';
@@ -765,18 +343,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   padding_inline_end,
   r#"
         import stylex from 'stylex';
@@ -785,18 +352,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   padding_inline_start,
   r#"
         import stylex from 'stylex';
@@ -806,18 +362,7 @@ test!(
 );
 
 // Corner shape tests
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   corner_shape,
   r#"
         import stylex from 'stylex';
@@ -826,18 +371,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   corner_start_start_shape,
   r#"
         import stylex from 'stylex';
@@ -846,18 +380,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   corner_top_left_shape,
   r#"
         import stylex from 'stylex';
@@ -866,18 +389,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   legacy_short_form_property_value_flipping,
   r#"
         import stylex from 'stylex';

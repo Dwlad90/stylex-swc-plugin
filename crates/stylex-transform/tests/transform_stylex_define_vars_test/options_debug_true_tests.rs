@@ -1,37 +1,16 @@
-use stylex_structures::{
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::{
-  common::FileName,
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::testing::test,
-  },
-};
+use crate::utils::prelude::*;
+use swc_core::{common::FileName, ecma::transforms::testing::test};
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      debug: Some(true),
-      enable_debug_class_names: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   tokens_object_includes_debug_data,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
+    .with_debug(true)
+    .with_enable_debug_class_names(true)
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const vars = stylex.defineVars({
@@ -47,27 +26,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      debug: Some(true),
-      enable_debug_class_names: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   tokens_object_includes_debug_data_keys_with_special_characters,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
+    .with_debug(true)
+    .with_enable_debug_class_names(true)
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const vars = stylex.defineVars({

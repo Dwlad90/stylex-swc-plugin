@@ -1,24 +1,12 @@
-use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   using_stylex_in_a_for_loop,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_dev(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
       import * as stylex from '@stylexjs/stylex';
       function test(colors, obj) {
@@ -29,20 +17,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   using_stylex_props_in_a_loop,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_dev(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
       import * as stylex from '@stylexjs/stylex';
       function test(colors, obj) {
@@ -53,21 +33,13 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      enable_debug_class_names: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   trying_to_use_an_unknown_style_in_stylex,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_dev(true)
+    .with_enable_debug_class_names(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
       import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
@@ -79,21 +51,13 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      enable_debug_class_names: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   trying_to_use_an_unknown_style_in_stylex_props,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_dev(true)
+    .with_enable_debug_class_names(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
       import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({

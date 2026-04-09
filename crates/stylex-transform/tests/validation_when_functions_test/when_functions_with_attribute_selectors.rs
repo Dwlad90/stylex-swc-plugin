@@ -1,20 +1,7 @@
-use stylex_structures::plugin_pass::PluginPass;
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None,
-  ),
+stylex_test!(
   when_ancestor_with_attribute_selector,
   r#"
     import { when, create } from '@stylexjs/stylex';
@@ -32,16 +19,7 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None,
-  ),
+stylex_test!(
   when_descendant_with_attribute_selector,
   r#"
     import { when, create } from '@stylexjs/stylex';

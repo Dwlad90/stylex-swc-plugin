@@ -1,37 +1,15 @@
-use stylex_structures::{
-  named_import_source::RuntimeInjection,
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::{
-  common::FileName,
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::testing::test,
-  },
-};
+use crate::utils::prelude::*;
+use swc_core::{common::FileName, ecma::transforms::testing::test};
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   tokens_object,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const vars = stylex.defineVars({

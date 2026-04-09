@@ -1,17 +1,12 @@
-use stylex_transform::StyleXTransform;
-use stylex_structures::plugin_pass::PluginPass;
+use crate::utils::prelude::*;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
 };
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   default_marker_named_import,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import { defaultMarker, props } from '@stylexjs/stylex';
 
@@ -19,13 +14,9 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   default_marker_namespace_import,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
 

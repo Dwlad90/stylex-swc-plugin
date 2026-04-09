@@ -1,104 +1,44 @@
-use stylex_structures::plugin_pass::PluginPass;
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::{test, test_transform},
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::{test, test_transform};
 
-#[test]
-#[should_panic(expected = "Referenced constant is not defined.")]
-fn invalid_key_non_static() {
-  test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    Option::None,
-    |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
-    },
-    r#"
+stylex_test_panic!(
+  invalid_key_non_static,
+  "Referenced constant is not defined.",
+  r#"
           import * as stylex from '@stylexjs/stylex';
           export const styles = stylex.create({
             [root]: {
               backgroundColor: 'red',
             }
           });
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "A StyleX namespace must be an object.")]
-fn invalid_rule_non_object() {
-  test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    Option::None,
-    |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
-    },
-    r#"
+stylex_test_panic!(
+  invalid_rule_non_object,
+  "A StyleX namespace must be an object.",
+  r#"
           import * as stylex from '@stylexjs/stylex';
           const styles = stylex.create({
             namespace: false,
           });
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "Object spreads are not allowed in create() calls.")]
-fn invalid_rule_spread() {
-  test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    Option::None,
-    |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
-    },
-    r#"
+stylex_test_panic!(
+  invalid_rule_spread,
+  "Object spreads are not allowed in create() calls.",
+  r#"
           import * as stylex from '@stylexjs/stylex';
           const shared = { foo: { color: 'red' } };
           const styles = stylex.create({
             ...shared,
             bar: { color: 'blue' }
           });
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   valid_rule_object,
   r#"
           const styles = stylex.create({
@@ -113,17 +53,12 @@ test!(
 )]
 fn invalid_dynamic_rule_default_object_value() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
           import * as stylex from '@stylexjs/stylex';
@@ -143,17 +78,12 @@ fn invalid_dynamic_rule_default_object_value() {
 )]
 fn invalid_dynamic_rule_default_string_value() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
           import * as stylex from '@stylexjs/stylex';
@@ -173,17 +103,12 @@ fn invalid_dynamic_rule_default_string_value() {
 )]
 fn invalid_dynamic_rule_destructuring() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
           import * as stylex from '@stylexjs/stylex';
@@ -203,17 +128,12 @@ fn invalid_dynamic_rule_destructuring() {
 )]
 fn invalid_dynamic_rule_rest_param() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
           import * as stylex from '@stylexjs/stylex';
@@ -227,18 +147,7 @@ fn invalid_dynamic_rule_rest_param() {
   )
 }
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
-  },
+stylex_test!(
   valid_dynamic_rule,
   r#"
           import * as stylex from '@stylexjs/stylex';
@@ -250,23 +159,10 @@ test!(
         "#
 );
 
-#[test]
-#[should_panic(expected = "Block statement is not allowed in Dynamic Style functions")]
-fn invalid_dynamic_rule_with_block_body() {
-  test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    Option::None,
-    |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
-    },
-    r#"
+stylex_test_panic!(
+  invalid_dynamic_rule_with_block_body,
+  "Block statement is not allowed in Dynamic Style functions",
+  r#"
           import * as stylex from '@stylexjs/stylex';
 
           export const styles = stylex.create({
@@ -276,7 +172,5 @@ fn invalid_dynamic_rule_with_block_body() {
               };
             },
           });
-        "#,
-    r#""#,
-  )
-}
+        "#
+);

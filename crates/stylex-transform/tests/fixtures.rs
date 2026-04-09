@@ -1,10 +1,6 @@
 use std::path::PathBuf;
 
-use stylex_structures::{
-  named_import_source::RuntimeInjection,
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
+use stylex_structures::{named_import_source::RuntimeInjection, stylex_options::StyleXOptions};
 use stylex_transform::StyleXTransform;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -22,21 +18,13 @@ fn fixture(input: PathBuf) {
       ..Default::default()
     }),
     &|tr| {
-      let mut config = StyleXOptionsParams {
-        dev: Some(true),
-        treeshake_compensation: Some(true),
-        unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-        enable_minified_keys: Some(false),
-        enable_debug_class_names: Some(true),
-        ..StyleXOptionsParams::default()
-      };
-
       StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass {
-          cwd: None,
-          filename: input.clone().into(),
-        })
-        .with_options(&mut config)
+        .with_filename(input.clone().into())
+        .with_dev(true)
+        .with_treeshake_compensation(true)
+        .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+        .with_enable_minified_keys(false)
+        .with_enable_debug_class_names(true)
         .with_runtime_injection()
         .into_pass()
     },
@@ -51,20 +39,12 @@ fn fixture(input: PathBuf) {
       ..Default::default()
     }),
     &|tr| {
-      let mut config = StyleXOptionsParams {
-        dev: Some(false),
-        treeshake_compensation: Some(true),
-        unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-        runtime_injection: Some(RuntimeInjection::Boolean(false)),
-        ..StyleXOptionsParams::default()
-      };
-
       StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass {
-          cwd: None,
-          filename: input.clone().into(),
-        })
-        .with_options(&mut config)
+        .with_filename(input.clone().into())
+        .with_dev(false)
+        .with_treeshake_compensation(true)
+        .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+        .with_runtime_injection_option(RuntimeInjection::Boolean(false))
         .into_pass()
     },
     &input,

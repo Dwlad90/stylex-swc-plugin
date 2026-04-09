@@ -1,35 +1,15 @@
-use stylex_structures::{
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::{
-  common::FileName,
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::testing::test,
-  },
-};
+use crate::utils::prelude::*;
+use swc_core::{common::FileName, ecma::transforms::testing::test};
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestFile.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   all_local_styles,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/stylex/packages/TestFile.js".into()))
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
           import * as stylex from '@stylexjs/stylex';
           const styles = stylex.create({
@@ -49,26 +29,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestFile.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      enable_minified_keys: Some(false),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   local_array_styles,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/stylex/packages/TestFile.js".into()))
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .with_enable_minified_keys(false)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
           import * as stylex from '@stylexjs/stylex';
           const styles = stylex.create({
@@ -89,25 +59,15 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestFile.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   regular_style_import,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/stylex/packages/TestFile.js".into()))
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
           import * as stylex from '@stylexjs/stylex';
           import {someStyle} from './otherFile';
@@ -120,32 +80,21 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+stylex_test!(
+  default_import_from_stylex_js_file,
   |tr| {
     let cwd_path = std::env::current_dir().unwrap();
 
     let fixture_path = cwd_path.join("tests/fixture");
     let filename = fixture_path.join("consts/constants.stylex");
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass {
-        cwd: None,
-        filename: FileName::Real(filename.clone()),
-      },
-      Some(&mut StyleXOptionsParams {
-        unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-          fixture_path.to_string_lossy().to_string(),
-        ))),
-        ..StyleXOptionsParams::default()
-      }),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_filename(FileName::Real(filename.clone()))
+      .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+        fixture_path.to_string_lossy().to_string(),
+      )))
+      .with_runtime_injection()
+      .into_pass()
   },
-  default_import_from_stylex_js_file,
   r#"
           import * as stylex from '@stylexjs/stylex';
           import {someStyle, vars} from './constants.stylex.js';
@@ -159,32 +108,21 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+stylex_test!(
+  object_import_from_stylex_js_file,
   |tr| {
     let cwd_path = std::env::current_dir().unwrap();
 
     let fixture_path = cwd_path.join("tests/fixture");
     let filename = fixture_path.join("consts/constants.stylex");
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass {
-        cwd: None,
-        filename: FileName::Real(filename.clone()),
-      },
-      Some(&mut StyleXOptionsParams {
-        unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-          fixture_path.to_string_lossy().to_string(),
-        ))),
-        ..StyleXOptionsParams::default()
-      }),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_filename(FileName::Real(filename.clone()))
+      .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+        fixture_path.to_string_lossy().to_string(),
+      )))
+      .with_runtime_injection()
+      .into_pass()
   },
-  object_import_from_stylex_js_file,
   r#"
           import * as stylex from '@stylexjs/stylex';
           import {someStyle} from './constants.stylex.js';

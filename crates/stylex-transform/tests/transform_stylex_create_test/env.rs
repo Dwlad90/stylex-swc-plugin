@@ -1,38 +1,29 @@
-use indexmap::IndexMap;
+use crate::utils::prelude::*;
 use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
-use stylex_structures::{
-  plugin_pass::PluginPass,
-  stylex_env::{EnvEntry, JSFunction},
+use stylex_structures::stylex_env::JSFunction;
+use stylex_transform::shared::utils::ast::{
+  convertors::{create_null_expr, create_number_expr, create_string_expr},
+  helpers::get_property_by_key,
 };
-use stylex_transform::{
-  StyleXTransform,
-  shared::utils::ast::{
-    convertors::{create_null_expr, create_number_expr, create_string_expr},
-    helpers::get_property_by_key,
-  },
-};
-use swc_core::ecma::{ast::Expr, transforms::testing::test};
+use swc_core::ecma::ast::Expr;
 
-use crate::utils::{
-  ast::{convert_expr_to_bool_wrapper, convert_expr_to_num_wrapper, convert_expr_to_str_wrapper},
-  transform::{env_config, ts_syntax},
+use crate::utils::ast::{
+  convert_expr_to_bool_wrapper, convert_expr_to_num_wrapper, convert_expr_to_str_wrapper,
 };
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_resolves_compile_time_constants,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
       "brandPrimary".to_string(),
       EnvEntry::Expr(create_string_expr("#123456")),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_resolves_compile_time_constants,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -43,21 +34,19 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_named_import_resolves_compile_time_constants,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
       "brandPrimary".to_string(),
       EnvEntry::Expr(create_string_expr("#654321")),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_named_import_resolves_compile_time_constants,
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { env } from '@stylexjs/stylex';
@@ -69,21 +58,19 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_destructured_import_resolves_compile_time_constants,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
       "brandPrimary".to_string(),
       EnvEntry::Expr(create_string_expr("#123456")),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_destructured_import_resolves_compile_time_constants,
   r#"
     import {create, env} from '@stylexjs/stylex';
     export const styles = create({
@@ -94,8 +81,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_call_resolves_at_compile_time,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -116,13 +103,11 @@ test!(
         create_string_expr(&format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_call_resolves_at_compile_time,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -133,8 +118,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_named_import_function_call,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -155,13 +140,11 @@ test!(
         create_string_expr(&format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_named_import_function_call,
   r#"
     import { create, env } from '@stylexjs/stylex';
     export const styles = create({
@@ -172,8 +155,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_using_template_literals,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -194,13 +177,11 @@ test!(
         ))
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_using_template_literals,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -211,8 +192,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_with_multiple_properties,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -233,13 +214,11 @@ test!(
         ))
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_with_multiple_properties,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -251,8 +230,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_returns_object,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -272,13 +251,11 @@ test!(
         ])
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_returns_object,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -287,8 +264,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_named_import_function_returns_object,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -308,13 +285,11 @@ test!(
         ])
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_named_import_function_returns_object,
   r#"
     import { create, env } from '@stylexjs/stylex';
     export const styles = create({
@@ -323,8 +298,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_returns_object_multiple_props,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -345,13 +320,11 @@ test!(
         ])
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_returns_object_multiple_props,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -360,8 +333,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_mixed_string_and_object_functions,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -391,13 +364,11 @@ test!(
         ])
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_mixed_string_and_object_functions,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -409,21 +380,19 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_returns_number,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
       "getLineHeight".to_string(),
       EnvEntry::Function(JSFunction::new(|_args: Vec<Expr>| create_number_expr(1.5))),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_returns_number,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -434,8 +403,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_accepts_bool_param,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -448,13 +417,11 @@ test!(
         create_string_expr(if is_rtl { "rtl" } else { "ltr" })
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_accepts_bool_param,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -465,21 +432,19 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_returns_null,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
       "getOptional".to_string(),
       EnvEntry::Function(JSFunction::new(|_args: Vec<Expr>| create_null_expr())),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_returns_null,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -490,8 +455,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_with_all_primitive_params,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -521,13 +486,11 @@ test!(
         ])
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_with_all_primitive_params,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -536,8 +499,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_returns_object_with_mixed_primitives,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -557,13 +520,11 @@ test!(
         ])
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_returns_object_with_mixed_primitives,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -572,8 +533,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_accepts_object_param,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -593,13 +554,11 @@ test!(
         ])
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_accepts_object_param,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -613,8 +572,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_accepts_object_param_with_mixed_primitives,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -638,13 +597,11 @@ test!(
         ])
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_accepts_object_param_with_mixed_primitives,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -659,8 +616,8 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_function_object_param_with_scalar_params,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
@@ -687,13 +644,11 @@ test!(
         ])
       })),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_function_object_param_with_scalar_params,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -724,21 +679,19 @@ fn pick_default(args: &[Expr]) -> Expr {
     .unwrap_or_else(create_null_expr)
 }
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_generic_branch_selector_with_object_branches,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
       "select".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| select_branch(&args))),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_generic_branch_selector_with_object_branches,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -750,21 +703,19 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_generic_branch_selector_returns_string,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
       "select".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| select_branch(&args))),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_generic_branch_selector_returns_string,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -775,21 +726,19 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_generic_selector_passes_through_array_value,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
       "pick".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| select_branch(&args))),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_generic_selector_passes_through_array_value,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -800,21 +749,19 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_generic_selector_passes_through_nested_object,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
       "select".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| select_branch(&args))),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_generic_selector_passes_through_nested_object,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -829,21 +776,19 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_branch_selector_always_picks_default,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
       "branch".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| pick_default(&args))),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_branch_selector_always_picks_default,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -855,21 +800,19 @@ test!(
   "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_branch_selector_with_nested_expression_values,
   |tr| {
     let mut env = IndexMap::new();
     env.insert(
       "branch".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| pick_default(&args))),
     );
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_env(env)
+      .with_runtime_injection()
+      .into_pass()
   },
-  stylex_env_branch_selector_with_nested_expression_values,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({

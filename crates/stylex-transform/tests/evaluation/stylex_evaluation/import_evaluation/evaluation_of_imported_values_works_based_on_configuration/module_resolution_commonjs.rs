@@ -1,48 +1,26 @@
+use crate::utils::prelude::*;
 use insta::assert_snapshot;
-use stylex_structures::{
-  named_import_source::RuntimeInjection,
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use swc_core::ecma::transforms::testing::test;
 
 use crate::utils::transform::stringify_js;
 
 fn tranform(input: &str) -> String {
-  stringify_js(
-    input,
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    |tr| {
-      let cwd_path = std::env::current_dir().unwrap();
+  stringify_js(input, ts_syntax(), |tr| {
+    let cwd_path = std::env::current_dir().unwrap();
 
-      let fixture_path = cwd_path.join("tests/fixture/consts");
+    let fixture_path = cwd_path.join("tests/fixture/consts");
 
-      let mut config = StyleXOptionsParams {
-        runtime_injection: Some(RuntimeInjection::Boolean(true)),
-        treeshake_compensation: Some(true),
-        unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-          fixture_path.to_string_lossy().to_string(),
-        ))),
-        ..Default::default()
-      };
-
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          cwd: Some(fixture_path.clone()),
-          filename: fixture_path.clone().join("input.stylex.js").into(),
-        },
-        Some(&mut config),
-      )
-    },
-  )
+    StyleXTransform::test(tr.comments.clone())
+      .with_cwd(fixture_path.clone())
+      .with_filename(fixture_path.clone().join("input.stylex.js").into())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_treeshake_compensation(true)
+      .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+        fixture_path.to_string_lossy().to_string(),
+      )))
+      .with_runtime_injection()
+      .into_pass()
+  })
 }
 
 #[test]

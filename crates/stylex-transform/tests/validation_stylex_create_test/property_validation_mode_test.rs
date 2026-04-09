@@ -1,10 +1,6 @@
+use crate::utils::prelude::*;
 use stylex_enums::property_validation_mode::PropertyValidationMode;
-use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::{test, test_transform},
-};
+use swc_core::ecma::transforms::testing::{test, test_transform};
 
 // Test default behavior (silent mode)
 #[test]
@@ -13,17 +9,12 @@ fn does_not_throw_by_default_for_disallowed_properties_silent_mode() {
   // disallowed properties, resulting in an empty styles object
   let result = std::panic::catch_unwind(|| {
     test_transform(
-      Syntax::Typescript(TsSyntax {
-        tsx: true,
-        ..Default::default()
-      }),
+      ts_syntax(),
       Option::None,
       |tr| {
-        StyleXTransform::new_test_force_runtime_injection_with_pass(
-          tr.comments.clone(),
-          PluginPass::default(),
-          None,
-        )
+        StyleXTransform::test(tr.comments.clone())
+          .with_runtime_injection()
+          .into_pass()
       },
       r#"
         import * as stylex from '@stylexjs/stylex';
@@ -47,22 +38,13 @@ fn does_not_throw_by_default_for_disallowed_properties_silent_mode() {
 #[should_panic(expected = "is not supported")]
 fn throws_error_when_property_validation_mode_is_throw() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      let mut config = StyleXOptionsParams {
-        property_validation_mode: Some(PropertyValidationMode::Throw),
-        ..StyleXOptionsParams::default()
-      };
-
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Some(&mut config),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_property_validation_mode(PropertyValidationMode::Throw)
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
       import * as stylex from '@stylexjs/stylex';
@@ -82,22 +64,13 @@ fn does_not_throw_when_property_validation_mode_is_warn() {
   // This test ensures no panic occurs and warnings are printed
   let result = std::panic::catch_unwind(|| {
     test_transform(
-      Syntax::Typescript(TsSyntax {
-        tsx: true,
-        ..Default::default()
-      }),
+      ts_syntax(),
       Option::None,
       |tr| {
-        let mut config = StyleXOptionsParams {
-          property_validation_mode: Some(PropertyValidationMode::Warn),
-          ..StyleXOptionsParams::default()
-        };
-
-        StyleXTransform::new_test_force_runtime_injection_with_pass(
-          tr.comments.clone(),
-          PluginPass::default(),
-          Some(&mut config),
-        )
+        StyleXTransform::test(tr.comments.clone())
+          .with_property_validation_mode(PropertyValidationMode::Warn)
+          .with_runtime_injection()
+          .into_pass()
       },
       r#"
         import * as stylex from '@stylexjs/stylex';
@@ -121,22 +94,13 @@ fn does_not_throw_when_property_validation_mode_is_warn() {
 fn does_not_throw_when_property_validation_mode_is_silent() {
   let result = std::panic::catch_unwind(|| {
     test_transform(
-      Syntax::Typescript(TsSyntax {
-        tsx: true,
-        ..Default::default()
-      }),
+      ts_syntax(),
       Option::None,
       |tr| {
-        let mut config = StyleXOptionsParams {
-          property_validation_mode: Some(PropertyValidationMode::Silent),
-          ..StyleXOptionsParams::default()
-        };
-
-        StyleXTransform::new_test_force_runtime_injection_with_pass(
-          tr.comments.clone(),
-          PluginPass::default(),
-          Some(&mut config),
-        )
+        StyleXTransform::test(tr.comments.clone())
+          .with_property_validation_mode(PropertyValidationMode::Silent)
+          .with_runtime_injection()
+          .into_pass()
       },
       r#"
         import * as stylex from '@stylexjs/stylex';
@@ -160,22 +124,13 @@ fn does_not_throw_when_property_validation_mode_is_silent() {
 fn works_with_background_property() {
   let result = std::panic::catch_unwind(|| {
     test_transform(
-      Syntax::Typescript(TsSyntax {
-        tsx: true,
-        ..Default::default()
-      }),
+      ts_syntax(),
       Option::None,
       |tr| {
-        let mut config = StyleXOptionsParams {
-          property_validation_mode: Some(PropertyValidationMode::Silent),
-          ..StyleXOptionsParams::default()
-        };
-
-        StyleXTransform::new_test_force_runtime_injection_with_pass(
-          tr.comments.clone(),
-          PluginPass::default(),
-          Some(&mut config),
-        )
+        StyleXTransform::test(tr.comments.clone())
+          .with_property_validation_mode(PropertyValidationMode::Silent)
+          .with_runtime_injection()
+          .into_pass()
       },
       r#"
         import * as stylex from '@stylexjs/stylex';
@@ -202,22 +157,13 @@ fn works_with_background_property() {
 fn works_with_animation_property() {
   let result = std::panic::catch_unwind(|| {
     test_transform(
-      Syntax::Typescript(TsSyntax {
-        tsx: true,
-        ..Default::default()
-      }),
+      ts_syntax(),
       Option::None,
       |tr| {
-        let mut config = StyleXOptionsParams {
-          property_validation_mode: Some(PropertyValidationMode::Silent),
-          ..StyleXOptionsParams::default()
-        };
-
-        StyleXTransform::new_test_force_runtime_injection_with_pass(
-          tr.comments.clone(),
-          PluginPass::default(),
-          Some(&mut config),
-        )
+        StyleXTransform::test(tr.comments.clone())
+          .with_property_validation_mode(PropertyValidationMode::Silent)
+          .with_runtime_injection()
+          .into_pass()
       },
       r#"
         import * as stylex from '@stylexjs/stylex';
@@ -244,22 +190,13 @@ fn works_with_animation_property() {
 #[should_panic(expected = "is not supported")]
 fn throws_for_background_in_throw_mode() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      let mut config = StyleXOptionsParams {
-        property_validation_mode: Some(PropertyValidationMode::Throw),
-        ..StyleXOptionsParams::default()
-      };
-
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Some(&mut config),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_property_validation_mode(PropertyValidationMode::Throw)
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
       import * as stylex from '@stylexjs/stylex';
@@ -278,22 +215,13 @@ fn throws_for_background_in_throw_mode() {
 #[should_panic(expected = "is not supported")]
 fn throws_for_animation_in_throw_mode() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      let mut config = StyleXOptionsParams {
-        property_validation_mode: Some(PropertyValidationMode::Throw),
-        ..StyleXOptionsParams::default()
-      };
-
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Some(&mut config),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_property_validation_mode(PropertyValidationMode::Throw)
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
       import * as stylex from '@stylexjs/stylex';

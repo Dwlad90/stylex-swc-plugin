@@ -1,28 +1,12 @@
-use stylex_structures::{
-  named_import_source::RuntimeInjection, plugin_pass::PluginPass,
-  stylex_options::StyleXOptionsParams,
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   normalize_whitespace_in_css_values_transform,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -33,42 +17,24 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   normalize_whitespace_in_css_values_color,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({ x: { color: 'rgba( 1, 222,  33 , 0.5)' } });
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   no_dimensions_for_zero_values,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({ x: {
@@ -78,42 +44,24 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   zero_timings_are_all_zero_s,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({ x: { transitionDuration: '500ms' } });
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   zero_angles_are_all_zero_deg,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -124,42 +72,24 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   calc_preserves_spaces_around_plus_and_minus,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({ x: { width: 'calc((100% + 3% -   100px) / 7)' } });
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   calc_preserves_spaces_around_minus_and_var,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       export const styles = stylex.create({ x: { width: 'calc(0 - var(--someVar))' } });
@@ -167,21 +97,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   strip_leading_zeros,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({ x: {
@@ -191,42 +112,24 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   use_double_quotes_in_empty_strings,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({ x: { quotes: "''" } });
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   timing_values_are_converted_to_seconds_unless_than_ten_ms,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -237,21 +140,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   transforms_non_unitless_property_values,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -270,42 +164,24 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   number_values_rounded_down_to_four_decimal_points,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({ x: { height: 100 / 3 } });
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   content_property_values_are_wrapped_in_quotes,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -322,21 +198,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   legacy_no_space_before_bang_important,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({ x: { color: 'red !important' } });

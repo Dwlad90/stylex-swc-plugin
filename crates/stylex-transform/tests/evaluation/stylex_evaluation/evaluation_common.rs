@@ -1,5 +1,5 @@
+use crate::utils::prelude::*;
 use rustc_hash::FxHashMap;
-use stylex_structures::named_import_source::ImportSources;
 use stylex_transform::shared::{
   structures::{
     functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
@@ -14,7 +14,6 @@ use swc_core::{
     ast::{
       ArrayLit, Expr, ExprOrSpread, KeyValueProp, NewExpr, ObjectLit, Prop, PropName, PropOrSpread,
     },
-    parser::{Syntax, TsSyntax},
     transforms::testing::{test, test_transform},
     utils::quote_ident,
     visit::fold_pass,
@@ -26,10 +25,7 @@ use crate::evaluation::evaluation_module_transform::EvaluationStyleXFirstStateme
 #[test]
 fn evaluates_primitive_value_expressions() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -80,10 +76,7 @@ fn evaluates_primitive_value_expressions() {
 #[test]
 fn evaluates_simple_arrays_and_objects() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -106,10 +99,7 @@ fn evaluates_simple_arrays_and_objects() {
 #[test]
 fn evaluates_objects_with_spreads() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -129,10 +119,7 @@ fn evaluates_objects_with_spreads() {
 #[should_panic(expected = "Evaluation built-in functions not supported")]
 fn evaluates_built_in_functions() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -145,10 +132,7 @@ fn evaluates_built_in_functions() {
 #[test]
 fn evaluates_customs_functions() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| {
       let mut identifiers = FxHashMap::default();
@@ -208,10 +192,7 @@ fn evaluates_customs_functions() {
 #[test]
 fn evaluates_custom_functions_that_return_non_static_values() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| {
       let mut identifiers = FxHashMap::default();
@@ -260,10 +241,7 @@ fn evaluates_custom_functions_that_return_non_static_values() {
 #[test]
 fn evaluates_custom_functions_used_as_spread_values() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| {
       let mut identifiers = FxHashMap::default();
@@ -309,10 +287,7 @@ fn evaluates_custom_functions_used_as_spread_values() {
 #[test]
 fn evaluates_custom_functions_that_take_paths() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| {
       let mut identifiers = FxHashMap::default();
@@ -364,10 +339,7 @@ fn evaluates_custom_functions_that_take_paths() {
 #[test]
 fn evaluates_unary_value_expressions() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -415,10 +387,7 @@ fn evaluates_unary_value_expressions() {
 #[should_panic(expected = "Failed to evaluate expression")]
 fn evaluates_void_unary_value_expressions() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -433,10 +402,7 @@ fn evaluates_void_unary_value_expressions() {
 #[should_panic(expected = "Failed to evaluate expression")]
 fn evaluates_delete_unary_value_expressions() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -450,10 +416,7 @@ fn evaluates_delete_unary_value_expressions() {
 #[test]
 fn evaluates_sequence_value_expressions() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -478,10 +441,7 @@ fn evaluates_sequence_value_expressions() {
 #[test]
 fn evaluates_ts_as_value_expressions() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -496,10 +456,7 @@ fn evaluates_ts_as_value_expressions() {
 #[test]
 fn evaluates_ts_satisfies_value_expressions() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -514,10 +471,7 @@ fn evaluates_ts_satisfies_value_expressions() {
 #[test]
 fn evaluates_condition_value_expressions() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"

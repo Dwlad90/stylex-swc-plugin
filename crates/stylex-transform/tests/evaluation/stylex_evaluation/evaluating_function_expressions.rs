@@ -1,17 +1,11 @@
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test_transform,
-};
+use crate::utils::prelude::*;
 
 use crate::evaluation::evaluation_module_transform::EvaluationStyleXFirstStatementTransform;
 
 #[test]
 fn function_with_a_single_params() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -26,10 +20,7 @@ fn function_with_a_single_params() {
 #[test]
 fn function_with_a_two_params() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -44,10 +35,7 @@ fn function_with_a_two_params() {
 #[test]
 fn array_map() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -62,10 +50,7 @@ fn array_map() {
 #[test]
 fn array_filter() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -80,10 +65,7 @@ fn array_filter() {
 #[test]
 fn array_join() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -100,10 +82,7 @@ fn array_join() {
 #[test]
 fn array_map_and_filter() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -122,10 +101,7 @@ fn array_map_and_filter() {
 #[test]
 fn array_methods() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -144,10 +120,7 @@ fn array_methods() {
 #[test]
 fn object_methods() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -172,10 +145,7 @@ fn object_methods() {
 #[test]
 fn object_keys_with_illegal_non_object_args() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -202,10 +172,7 @@ fn object_keys_with_illegal_non_object_args() {
 #[test]
 fn object_keys_with_legal_non_object_args() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -229,10 +196,7 @@ fn object_keys_with_legal_non_object_args() {
 #[test]
 fn object_values_with_illegal_non_object_args() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -259,10 +223,7 @@ fn object_values_with_illegal_non_object_args() {
 #[test]
 fn object_values_with_legal_non_object_args() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -286,10 +247,7 @@ fn object_values_with_legal_non_object_args() {
 #[test]
 fn object_entries_with_illegal_non_object_args() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -316,10 +274,7 @@ fn object_entries_with_illegal_non_object_args() {
 #[test]
 fn object_entries_with_legal_non_object_args() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -343,10 +298,7 @@ fn object_entries_with_legal_non_object_args() {
 #[test]
 fn object_entries() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -370,10 +322,7 @@ fn object_entries() {
 #[test]
 fn methods_called_by_string_should_be_bind() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -393,10 +342,7 @@ fn methods_called_by_string_should_be_bind() {
 #[test]
 fn math_pow() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -413,10 +359,7 @@ fn math_pow() {
 #[test]
 fn math_round() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -437,10 +380,7 @@ fn math_round() {
 #[test]
 fn math_ceil() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -461,10 +401,7 @@ fn math_ceil() {
 #[test]
 fn math_floor() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -489,10 +426,7 @@ fn math_floor() {
 #[test]
 fn math_min() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -513,10 +447,7 @@ fn math_min() {
 #[test]
 fn math_max() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -537,10 +468,7 @@ fn math_max() {
 #[test]
 fn math_abs() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"
@@ -565,10 +493,7 @@ fn math_abs() {
 #[test]
 fn math_complicated() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXFirstStatementTransform::default_with_pass(),
     r#"

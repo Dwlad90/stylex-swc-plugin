@@ -1,17 +1,11 @@
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test_transform,
-};
+use crate::utils::prelude::*;
 
 use crate::evaluation::args_module_transform::ArgsStyleXTransform;
 
 #[test]
 fn evaluates_empty_object() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| ArgsStyleXTransform::default_with_pass(),
     r#"
@@ -26,10 +20,7 @@ fn evaluates_empty_object() {
 #[test]
 fn evaluates_static_style_object() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| ArgsStyleXTransform::default_with_pass(),
     r#"
@@ -56,10 +47,7 @@ fn evaluates_static_style_object() {
 #[test]
 fn evaluates_object_with_function_styles_identifier() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| ArgsStyleXTransform::default_with_pass(),
     r#"
@@ -86,10 +74,7 @@ fn evaluates_object_with_function_styles_identifier() {
 #[test]
 fn evaluates_object_with_function_styles_binary_expression() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| ArgsStyleXTransform::default_with_pass(),
     r#"

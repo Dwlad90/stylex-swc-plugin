@@ -1,42 +1,13 @@
-use stylex_structures::{
-  named_import_source::RuntimeInjection,
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::{
-  common::FileName,
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::testing::test,
-  },
-};
+use crate::utils::prelude::*;
+use swc_core::{common::FileName, ecma::transforms::testing::test};
 
-fn get_default_opts() -> StyleXOptionsParams {
-  StyleXOptionsParams {
-    unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-    class_name_prefix: Some("x".to_string()),
-    ..StyleXOptionsParams::default()
-  }
-}
-
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(false)),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   test_one_output_of_stylex_define_vars,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("TestTheme.stylex.js".into()))
+    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
+    .into_pass(),
   r#"
     import * as stylex from 'stylex';
     export const buttonTheme = stylex.defineVars({
@@ -48,23 +19,15 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(false)),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   output_of_stylex_define_vars,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     export const buttonTheme = stylex.defineVars({
@@ -85,23 +48,15 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(false)),
-      ..get_default_opts()
-    })
-  ),
+stylex_test!(
   output_of_stylex_define_vars_with_literals,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     export const buttonTheme = stylex.defineVars({

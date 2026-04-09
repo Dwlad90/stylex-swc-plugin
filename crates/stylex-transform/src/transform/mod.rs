@@ -1,4 +1,5 @@
-use rustc_hash::FxHashSet;
+use indexmap::IndexMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
   common::{Mark, comments::Comments},
@@ -11,11 +12,15 @@ use swc_core::{
 };
 
 use crate::shared::{structures::state_manager::StateManager, utils::common::increase_ident_count};
-use stylex_enums::core::TransformationCycle;
+use stylex_enums::{
+  core::TransformationCycle, property_validation_mode::PropertyValidationMode,
+  style_resolution::StyleResolution, sx_prop_name_param::SxPropNameParam,
+};
 use stylex_structures::{
   named_import_source::{ImportSources, RuntimeInjection},
   plugin_pass::PluginPass,
-  stylex_options::{CheckModuleResolution, StyleXOptions, StyleXOptionsParams},
+  stylex_env::EnvEntry,
+  stylex_options::{ModuleResolution, StyleXOptions, StyleXOptionsParams},
 };
 
 mod fold;
@@ -67,6 +72,16 @@ where
     self
   }
 
+  pub fn with_filename(mut self, filename: swc_core::common::FileName) -> Self {
+    self.plugin_pass.filename = filename;
+    self
+  }
+
+  pub fn with_cwd(mut self, cwd: impl Into<std::path::PathBuf>) -> Self {
+    self.plugin_pass.cwd = Some(cwd.into());
+    self
+  }
+
   pub fn with_options(mut self, config: &mut StyleXOptionsParams) -> Self {
     self.config = Some(config.clone());
     self
@@ -77,37 +92,144 @@ where
     self
   }
 
-  pub fn build(self) -> StyleXTransform<C> {
-    let stylex_imports = match &self.config {
-      Some(config) => fill_stylex_imports_from_params(config),
-      None => fill_stylex_imports_default(),
-    };
+  fn ensure_config(&mut self) -> &mut StyleXOptionsParams {
+    self.config.get_or_insert_with(StyleXOptionsParams::default)
+  }
 
-    let mut state = match self.config {
-      Some(mut config) => {
-        if self.runtime_injection {
-          config.runtime_injection = Some(RuntimeInjection::Boolean(true));
-          config.treeshake_compensation = Some(true);
-        }
-        StateManager::new(config.into())
-      },
-      None => {
-        let config = StyleXOptions {
-          runtime_injection: if self.runtime_injection {
-            RuntimeInjection::Boolean(true)
-          } else {
-            RuntimeInjection::Boolean(false)
-          },
-          treeshake_compensation: true,
-          class_name_prefix: "x".to_string(),
-          unstable_module_resolution: CheckModuleResolution::Haste(
-            StyleXOptions::get_haste_module_resolution(None),
-          ),
-          ..Default::default()
-        };
-        StateManager::new(config)
-      },
-    };
+  pub fn with_style_resolution(mut self, val: StyleResolution) -> Self {
+    self.ensure_config().style_resolution = Some(val);
+    self
+  }
+
+  pub fn with_dev(mut self, val: bool) -> Self {
+    self.ensure_config().dev = Some(val);
+    self
+  }
+
+  pub fn with_debug(mut self, val: bool) -> Self {
+    self.ensure_config().debug = Some(val);
+    self
+  }
+
+  pub fn with_enable_debug_class_names(mut self, val: bool) -> Self {
+    self.ensure_config().enable_debug_class_names = Some(val);
+    self
+  }
+
+  pub fn with_enable_dev_class_names(mut self, val: bool) -> Self {
+    self.ensure_config().enable_dev_class_names = Some(val);
+    self
+  }
+
+  pub fn with_enable_debug_data_prop(mut self, val: bool) -> Self {
+    self.ensure_config().enable_debug_data_prop = Some(val);
+    self
+  }
+
+  pub fn with_class_name_prefix(mut self, val: impl Into<String>) -> Self {
+    self.ensure_config().class_name_prefix = Some(val.into());
+    self
+  }
+
+  pub fn with_unstable_module_resolution(mut self, val: ModuleResolution) -> Self {
+    self.ensure_config().unstable_module_resolution = Some(val);
+    self
+  }
+
+  pub fn with_treeshake_compensation(mut self, val: bool) -> Self {
+    self.ensure_config().treeshake_compensation = Some(val);
+    self
+  }
+
+  pub fn with_runtime_injection_option(mut self, val: RuntimeInjection) -> Self {
+    self.ensure_config().runtime_injection = Some(val);
+    self
+  }
+
+  pub fn with_enable_logical_styles_polyfill(mut self, val: bool) -> Self {
+    self.ensure_config().enable_logical_styles_polyfill = Some(val);
+    self
+  }
+
+  pub fn with_enable_legacy_value_flipping(mut self, val: bool) -> Self {
+    self.ensure_config().enable_legacy_value_flipping = Some(val);
+    self
+  }
+
+  pub fn with_enable_font_size_px_to_rem(mut self, val: bool) -> Self {
+    self.ensure_config().enable_font_size_px_to_rem = Some(val);
+    self
+  }
+
+  pub fn with_enable_inlined_conditional_merge(mut self, val: bool) -> Self {
+    self.ensure_config().enable_inlined_conditional_merge = Some(val);
+    self
+  }
+
+  pub fn with_enable_media_query_order(mut self, val: bool) -> Self {
+    self.ensure_config().enable_media_query_order = Some(val);
+    self
+  }
+
+  pub fn with_enable_minified_keys(mut self, val: bool) -> Self {
+    self.ensure_config().enable_minified_keys = Some(val);
+    self
+  }
+
+  pub fn with_inject_stylex_side_effects(mut self, val: bool) -> Self {
+    self.ensure_config().inject_stylex_side_effects = Some(val);
+    self
+  }
+
+  pub fn with_property_validation_mode(mut self, val: PropertyValidationMode) -> Self {
+    self.ensure_config().property_validation_mode = Some(val);
+    self
+  }
+
+  pub fn with_import_sources(mut self, val: Vec<ImportSources>) -> Self {
+    self.ensure_config().import_sources = Some(val);
+    self
+  }
+
+  pub fn with_aliases(mut self, val: FxHashMap<String, Vec<String>>) -> Self {
+    self.ensure_config().aliases = Some(val);
+    self
+  }
+
+  pub fn with_defined_stylex_css_variables(mut self, val: FxHashMap<String, String>) -> Self {
+    self.ensure_config().defined_stylex_css_variables = Some(val);
+    self
+  }
+
+  pub fn with_env(mut self, val: IndexMap<String, EnvEntry>) -> Self {
+    self.ensure_config().env = Some(val);
+    self
+  }
+
+  pub fn with_sx_prop_name(mut self, val: SxPropNameParam) -> Self {
+    self.ensure_config().sx_prop_name = Some(val);
+    self
+  }
+
+  pub fn build(self) -> StyleXTransform<C> {
+    let had_config = self.config.is_some();
+    let mut config = self.config.unwrap_or_default();
+
+    if self.runtime_injection {
+      config.runtime_injection = Some(RuntimeInjection::Boolean(true));
+      config.treeshake_compensation = Some(true);
+    }
+
+    // Apply test defaults only when no explicit config was provided
+    if !had_config {
+      if config.unstable_module_resolution.is_none() {
+        config.unstable_module_resolution = Some(StyleXOptions::get_haste_module_resolution(None));
+      }
+    }
+
+    let stylex_imports = fill_stylex_imports_from_params(&config);
+
+    let mut state = StateManager::new(config.into());
 
     state.options.import_sources = stylex_imports.into_iter().collect();
     state._state = self.plugin_pass;
@@ -166,7 +288,9 @@ where
     plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
   ) -> Self {
-    let mut builder = Self::test(comments).with_pass(plugin_pass).with_runtime_injection();
+    let mut builder = Self::test(comments)
+      .with_pass(plugin_pass)
+      .with_runtime_injection();
 
     if let Some(config) = config {
       builder = builder.with_options(config);
@@ -175,15 +299,15 @@ where
     builder.build()
   }
 
-  #[deprecated(
-    note = "Use StyleXTransform::test(comments).with_runtime_injection().into_pass()"
-  )]
+  #[deprecated(note = "Use StyleXTransform::test(comments).with_runtime_injection().into_pass()")]
   pub fn new_test_force_runtime_injection_with_pass(
     comments: C,
     plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
   ) -> impl Pass + use<C> {
-    let mut builder = Self::test(comments).with_pass(plugin_pass).with_runtime_injection();
+    let mut builder = Self::test(comments)
+      .with_pass(plugin_pass)
+      .with_runtime_injection();
 
     if let Some(config) = config {
       builder = builder.with_options(config);

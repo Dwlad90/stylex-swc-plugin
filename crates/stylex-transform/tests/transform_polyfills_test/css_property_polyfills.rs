@@ -1,25 +1,16 @@
-use stylex_structures::plugin_pass::PluginPass;
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::{test, test_transform},
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::{test, test_transform};
 
 #[test]
 #[ignore]
 fn line_clamp() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
             import * as stylex from '@stylexjs/stylex';
@@ -33,17 +24,12 @@ fn line_clamp() {
 #[ignore]
 fn pointer_events() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
             import * as stylex from '@stylexjs/stylex';
@@ -62,17 +48,12 @@ fn pointer_events() {
 #[ignore]
 fn scrollbar_width() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
             import * as stylex from '@stylexjs/stylex';

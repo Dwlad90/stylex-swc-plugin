@@ -1,17 +1,9 @@
-use stylex_structures::plugin_pass::PluginPass;
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| { StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None) },
+stylex_test!(
   stylex_metadata_is_correctly_set,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
         import stylex from 'stylex';
         export const styles = stylex.create({

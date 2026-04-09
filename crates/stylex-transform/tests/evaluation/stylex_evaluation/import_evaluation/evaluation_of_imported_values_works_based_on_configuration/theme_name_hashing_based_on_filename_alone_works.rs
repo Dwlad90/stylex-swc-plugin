@@ -1,18 +1,10 @@
+use crate::utils::prelude::*;
 use std::env;
 
 use insta::assert_snapshot;
-use stylex_structures::{
-  named_import_source::RuntimeInjection,
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
 use stylex_transform::shared::utils::common::create_hash;
 use swc_core::common::FileName;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use swc_core::ecma::transforms::testing::test;
 
 use crate::utils::transform::stringify_js;
 
@@ -25,33 +17,18 @@ static OPTIONS: Options = Options {
 };
 
 fn tranform(input: &str) -> String {
-  stringify_js(
-    input,
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    |tr| {
-      let mut config = StyleXOptionsParams {
-        class_name_prefix: Some("__hashed_var__".to_string()),
-        runtime_injection: Some(RuntimeInjection::Boolean(true)),
-        treeshake_compensation: Some(true),
-        unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-        ..Default::default()
-      };
-
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          filename: FileName::Real(
-            format!("{}/test.skip.js", env::current_dir().unwrap().display()).into(),
-          ),
-          ..Default::default()
-        },
-        Some(&mut config),
-      )
-    },
-  )
+  stringify_js(input, ts_syntax(), |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_filename(FileName::Real(
+        format!("{}/test.skip.js", env::current_dir().unwrap().display()).into(),
+      ))
+      .with_class_name_prefix("__hashed_var__".to_string())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_treeshake_compensation(true)
+      .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+      .with_runtime_injection()
+      .into_pass()
+  })
 }
 
 #[test]

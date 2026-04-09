@@ -1,25 +1,17 @@
-use stylex_structures::plugin_pass::PluginPass;
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::{test, test_transform},
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::{test, test_transform};
 
 #[test]
 #[should_panic(expected = "create() calls must be bound to a bare variable.")]
 fn invalid_use_not_bound() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::new(None, None),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_pass(PluginPass::test_default())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
           import * as stylex from '@stylexjs/stylex';
@@ -33,17 +25,13 @@ fn invalid_use_not_bound() {
 #[should_panic(expected = "create() should have 1 argument.")]
 fn invalid_argument_none() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::new(None, None),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_pass(PluginPass::test_default())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
           import * as stylex from '@stylexjs/stylex';
@@ -57,17 +45,13 @@ fn invalid_argument_none() {
 #[should_panic(expected = "create() should have 1 argument.")]
 fn invalid_argument_too_many() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::new(None, None),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_pass(PluginPass::test_default())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
           import * as stylex from '@stylexjs/stylex';
@@ -81,17 +65,13 @@ fn invalid_argument_too_many() {
 #[should_panic(expected = "create() can only accept an object.")]
 fn invalid_argument_non_static() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::new(None, None),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_pass(PluginPass::test_default())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
           import * as stylex from '@stylexjs/stylex';
@@ -101,19 +81,12 @@ fn invalid_argument_non_static() {
   )
 }
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::new(None, None),
-      None,
-    )
-  },
+stylex_test!(
   valid_argument_object,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
   r#"
           import * as stylex from '@stylexjs/stylex';
           export const styles = stylex.create({});

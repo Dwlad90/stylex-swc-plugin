@@ -1,34 +1,16 @@
-use stylex_enums::style_resolution::StyleResolution;
-use stylex_structures::{
-  named_import_source::RuntimeInjection, plugin_pass::PluginPass,
-  stylex_options::StyleXOptionsParams,
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(false),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   padding_with_longhand_property_collisions,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(false)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -46,26 +28,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(false),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   padding_with_null_longhand_property_collisions,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(false)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -83,26 +55,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(false),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   border_color_basic_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(false)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -114,26 +76,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(false),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   border_width_basic_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(false)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({

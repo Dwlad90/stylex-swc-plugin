@@ -1,33 +1,14 @@
-use stylex_structures::{
-  named_import_source::RuntimeInjection,
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::{
-  common::FileName,
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::testing::test,
-  },
-};
+use crate::utils::prelude::*;
+use swc_core::{common::FileName, ecma::transforms::testing::test};
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::new(None, None),
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   theme_object,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -52,20 +33,12 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::new(None, None),
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   theme_object_haste,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -90,27 +63,17 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::new(
-      None,
-      Some(FileName::Real(
-        "/stylex/packages/src/css/vars.stylex.js".into()
-      ))
-    ),
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   theme_object_deep_in_file_tree,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_filename(FileName::Real(
+      "/stylex/packages/src/css/vars.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -135,22 +98,14 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::new(None, None),
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   literal_tokens_theme_object,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -168,22 +123,14 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::new(None, None),
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   local_variable_theme_object,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -209,22 +156,14 @@ export const theme = stylex.createTheme(vars, themeObj);
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::new(None, None),
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   local_variables_used_in_theme_objects,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -241,22 +180,14 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::new(None, None),
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   template_literals_used_in_theme_objects,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -273,22 +204,14 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::new(None, None),
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   expressions_used_in_theme_objects,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -305,22 +228,14 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::new(None, None),
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_types_used_in_theme_object,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -346,22 +261,14 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::new(None, None),
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   multiple_theme_objects_same_vars,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -390,27 +297,17 @@ export const otherTheme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::new(
-      None,
-      Some(FileName::Real(
-        "/stylex/packages/otherVars.stylex.js".into()
-      ))
-    ),
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   multiple_theme_objects_different_vars,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_filename(FileName::Real(
+      "/stylex/packages/otherVars.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -435,22 +332,14 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::new(None, None),
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   themes_are_indifferent_to_order_of_keys,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -475,26 +364,16 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      debug: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   debug_adds_debug_data,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+    .with_debug(true)
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -510,26 +389,18 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/js/node_modules/npm-package/dist/components/Foo.react.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      debug: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   debug_adds_debug_data_for_npm_packages,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_filename(FileName::Real(
+      "/js/node_modules/npm-package/dist/components/Foo.react.js".into()
+    ))
+    .with_debug(true)
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -545,24 +416,14 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      debug: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   debug_adds_debug_data_haste,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+    .with_debug(true)
+    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -578,24 +439,16 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/node_modules/npm-package/dist/components/Foo.react.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      debug: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   debug_adds_debug_data_for_npm_packages_haste,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_filename(FileName::Real(
+      "/node_modules/npm-package/dist/components/Foo.react.js".into()
+    ))
+    .with_debug(true)
+    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -611,26 +464,16 @@ export const theme = stylex.createTheme(vars, {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   adds_dev_data,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+    .with_dev(true)
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const vars = {
@@ -646,26 +489,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   options_runtime_injection_true,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const vars = {

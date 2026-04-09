@@ -1,34 +1,18 @@
-use stylex_structures::{
-  plugin_pass::PluginPass,
-  stylex_options::{ModuleResolution, StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      debug: Some(true),
-      enable_debug_class_names: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass {
-        filename: swc_core::common::FileName::Real("/html/js/components/Foo.react.js".into()),
-        ..PluginPass::default()
-      },
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   adds_debug_data,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_filename(swc_core::common::FileName::Real(
+        "/html/js/components/Foo.react.js".into(),
+      ))
+      .with_debug(true)
+      .with_enable_debug_class_names(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
             import * as stylex from '@stylexjs/stylex';
           export const styles = stylex.create({
@@ -45,32 +29,21 @@ test!(
         "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      debug: Some(true),
-      enable_debug_class_names: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/js".to_string(),
-      ))),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass {
-        filename: swc_core::common::FileName::Real(
-          "/js/node_modules/npm-package/dist/components/Foo.react.js".into(),
-        ),
-        ..PluginPass::default()
-      },
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   adds_debug_data_for_npm_packages,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_filename(swc_core::common::FileName::Real(
+        "/js/node_modules/npm-package/dist/components/Foo.react.js".into(),
+      ))
+      .with_debug(true)
+      .with_enable_debug_class_names(true)
+      .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+        "/js".to_string(),
+      )))
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
           import * as stylex from '@stylexjs/stylex';
           export const styles = stylex.create({
@@ -87,32 +60,23 @@ test!(
         "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      debug: Some(true),
-      enable_debug_class_names: Some(true),
-      unstable_module_resolution: Some(ModuleResolution {
-        r#type: "haste".to_string(),
-        root_dir: None,
-        theme_file_extension: None,
-      }),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass {
-        filename: swc_core::common::FileName::Real("/html/js/components/Foo.react.js".into()),
-        ..PluginPass::default()
-      },
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   adds_debug_data_haste,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_filename(swc_core::common::FileName::Real(
+        "/html/js/components/Foo.react.js".into(),
+      ))
+      .with_debug(true)
+      .with_enable_debug_class_names(true)
+      .with_unstable_module_resolution(ModuleResolution {
+        r#type: "haste".to_string(),
+        root_dir: None,
+        theme_file_extension: None,
+      })
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
           import * as stylex from '@stylexjs/stylex';
           export const styles = stylex.create({
@@ -129,34 +93,23 @@ test!(
         "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+stylex_test!(
+  adds_debug_data_for_npm_packages_haste,
   |tr| {
-    let mut config = StyleXOptionsParams {
-      debug: Some(true),
-      enable_debug_class_names: Some(true),
-      unstable_module_resolution: Some(ModuleResolution {
+    StyleXTransform::test(tr.comments.clone())
+      .with_filename(swc_core::common::FileName::Real(
+        "/node_modules/npm-package/dist/components/Foo.react.js".into(),
+      ))
+      .with_debug(true)
+      .with_enable_debug_class_names(true)
+      .with_unstable_module_resolution(ModuleResolution {
         r#type: "haste".to_string(),
         root_dir: None,
         theme_file_extension: None,
-      }),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass {
-        filename: swc_core::common::FileName::Real(
-          "/node_modules/npm-package/dist/components/Foo.react.js".into(),
-        ),
-        ..PluginPass::default()
-      },
-      Some(&mut config),
-    )
+      })
+      .with_runtime_injection()
+      .into_pass()
   },
-  adds_debug_data_for_npm_packages_haste,
   r#"
           import * as stylex from '@stylexjs/stylex';
           export const styles = stylex.create({

@@ -1,38 +1,20 @@
-use stylex_structures::{
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::{
-  common::FileName,
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::testing::test,
-  },
-};
+use crate::utils::prelude::*;
+use swc_core::{common::FileName, ecma::transforms::testing::test};
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/js/node_modules/npm-package/dist/components/Foo.react.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      debug: Some(true),
-      dev: Some(true),
-      enable_debug_class_names: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/js".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   local_static_styles,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/js/node_modules/npm-package/dist/components/Foo.react.js".into()
+    ))
+    .with_debug(true)
+    .with_dev(true)
+    .with_enable_debug_class_names(true)
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/js".to_string()
+    )))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
 import stylex from 'stylex';
 const styles = stylex.create({
@@ -52,28 +34,20 @@ function Foo() {
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/js/node_modules/npm-package/dist/components/Foo.react.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      debug: Some(true),
-      dev: Some(true),
-      enable_debug_class_names: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/js".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   local_dynamic_styles,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/js/node_modules/npm-package/dist/components/Foo.react.js".into()
+    ))
+    .with_debug(true)
+    .with_dev(true)
+    .with_enable_debug_class_names(true)
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/js".to_string()
+    )))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -94,28 +68,20 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/js/node_modules/npm-package/dist/components/Foo.react.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      debug: Some(true),
-      dev: Some(true),
-      enable_debug_class_names: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/js".to_string()
-      ))),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   non_local_styles,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real(
+      "/js/node_modules/npm-package/dist/components/Foo.react.js".into()
+    ))
+    .with_debug(true)
+    .with_dev(true)
+    .with_enable_debug_class_names(true)
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/js".to_string()
+    )))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
 import stylex from 'stylex';
 const styles = stylex.create({

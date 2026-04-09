@@ -1,35 +1,17 @@
-use stylex_structures::{
-  named_import_source::{ImportSources, RuntimeInjection},
-  plugin_pass::PluginPass,
-  stylex_options::StyleXOptionsParams,
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      import_sources: Some(vec![ImportSources::Regular(
-        "custom-stylex-path".to_string(),
-      )]),
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   basic_stylex_call,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_import_sources(vec![ImportSources::Regular(
+        "custom-stylex-path".to_string(),
+      )])
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
         import stylex from 'custom-stylex-path';
         const styles = stylex.create({

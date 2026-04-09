@@ -1,9 +1,5 @@
 use std::{rc::Rc, sync::Arc};
 
-use indexmap::IndexMap;
-use stylex_structures::{
-  plugin_pass::PluginPass, stylex_env::EnvEntry, stylex_options::StyleXOptionsParams,
-};
 use stylex_transform::StyleXTransform;
 
 use swc_core::{
@@ -62,7 +58,6 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
       // Do something with the parsed module.
       module.fold_with(
         &mut StyleXTransform::test(Rc::new(SingleThreadedComments::default()))
-          .with_pass(PluginPass::new(None, None))
           .with_runtime_injection()
           .build(),
       )
@@ -159,11 +154,4 @@ pub(crate) fn ts_syntax() -> Syntax {
     tsx: true,
     ..Default::default()
   })
-}
-
-pub(crate) fn env_config(env: IndexMap<String, EnvEntry>) -> StyleXOptionsParams {
-  StyleXOptionsParams {
-    env: Some(env),
-    ..StyleXOptionsParams::default()
-  }
 }

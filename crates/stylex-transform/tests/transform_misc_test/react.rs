@@ -1,21 +1,7 @@
-use stylex_enums::style_resolution::StyleResolution;
-use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_using_styles_inside_use_memo,
   r#"
     import stylex from 'stylex';
@@ -39,20 +25,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_inlined_conditional_merge: Some(false),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_using_styles_inside_use_memo_skip_conditional,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_inlined_conditional_merge(false)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import stylex from 'stylex';
     import { useMemo } from 'react';
@@ -75,32 +53,21 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_inlined_conditional_merge: Some(true),
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   transform_style_extend_prop_with_stylex_class,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_inlined_conditional_merge(true)
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .into_pass(),
   r#"
     import * as sx from '@stylexjs/stylex';
     import * as React from 'react';
-
 
     const c = sx.create({
       descriptionTextLink: {
         color: "red",
       },
     });
-
 
     export default function CommentField() {
       const isBold = false;
@@ -114,25 +81,15 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_inlined_conditional_merge: Some(true),
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   transform_style_extend_with_dynamic_stylex_class,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_inlined_conditional_merge(true)
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .into_pass(),
   r#"
     import * as sx from '@stylexjs/stylex';
     import * as React from 'react';
-
 
     const c = sx.create({
       base: {
@@ -145,7 +102,6 @@ test!(
         display: 'grid',
       },
     });
-
 
     export default function CommentField({ type }) {
       let gridType = 'regular';
@@ -163,32 +119,21 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_inlined_conditional_merge: Some(true),
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   transform_style_extend_with_optional_chaining,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_inlined_conditional_merge(true)
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .into_pass(),
   r#"
     import * as sx from '@stylexjs/stylex';
     import * as React from 'react';
-
 
     const c = sx.create({
       base: {
         display: 'grid',
       },
     });
-
 
     export default function CommentField({ type }) {
       const result = useHook();
@@ -211,32 +156,21 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_inlined_conditional_merge: Some(true),
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   transform_style_extend_with_promise,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_inlined_conditional_merge(true)
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .into_pass(),
   r#"
     import * as sx from '@stylexjs/stylex';
     import * as React from 'react';
-
 
     const c = sx.create({
       base: {
         display: 'grid',
       },
     });
-
 
     export default async function CommentField({ type }) {
       const resultPromise = promise();
@@ -250,21 +184,12 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_inlined_conditional_merge: Some(true),
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   transform_style_extend_with_theme_record,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_inlined_conditional_merge(true)
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .into_pass(),
   r#"
     import { BUTTON_PRIMARY, BUTTON_SECONDARY } from 'styles/themes/button.stylex';
     import * as stylex from '@stylexjs/stylex';
@@ -287,21 +212,13 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_inlined_conditional_merge: Some(true),
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   transform_css_variable_with_zero_value,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_inlined_conditional_merge(true)
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -318,21 +235,13 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_inlined_conditional_merge: Some(true),
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   transform_math_round_with_dynamic_value,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_enable_inlined_conditional_merge(true)
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({

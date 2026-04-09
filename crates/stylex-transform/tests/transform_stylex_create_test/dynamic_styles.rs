@@ -1,23 +1,7 @@
-use stylex_structures::{
-  plugin_pass::PluginPass,
-  stylex_options::{ModuleResolution, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   style_function,
   r#"
           import * as stylex from '@stylexjs/stylex';
@@ -30,16 +14,7 @@ test!(
         "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   style_function_and_object,
   r#"
           import * as stylex from '@stylexjs/stylex';
@@ -54,16 +29,7 @@ test!(
         "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   style_function_with_custom_properties,
   r#"
           import * as stylex from '@stylexjs/stylex';
@@ -76,16 +42,7 @@ test!(
         "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   set_number_unit,
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -97,13 +54,9 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   set_mixed_values,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -116,30 +69,19 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+stylex_test!(
+  set_custom_property,
   |tr| {
-    let mut config = StyleXOptionsParams {
-      unstable_module_resolution: Some(ModuleResolution {
+    StyleXTransform::test(tr.comments.clone())
+      .with_filename(swc_core::common::FileName::Real("MyComponent.js".into()))
+      .with_unstable_module_resolution(ModuleResolution {
         r#type: "haste".to_string(),
         root_dir: None,
         theme_file_extension: None,
-      }),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass {
-        filename: swc_core::common::FileName::Real("MyComponent.js".into()),
-        ..PluginPass::default()
-      },
-      Some(&mut config),
-    )
+      })
+      .with_runtime_injection()
+      .into_pass()
   },
-  set_custom_property,
   r#"
             import * as stylex from '@stylexjs/stylex';
             import {vars} from 'vars.stylex.js';
@@ -152,16 +94,7 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   valid_pseudo_class,
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -178,16 +111,7 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   pseudo_class_generated_order,
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -204,16 +128,7 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   before_and_after,
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -230,16 +145,7 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   placeholder,
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -253,16 +159,7 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   thumb,
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -276,16 +173,7 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   before_containing_pseudo_classes,
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -302,16 +190,7 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   dynamic_style_in_after_generates_valid_at_property_with_inherits,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -325,16 +204,7 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   media_queries,
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -350,16 +220,7 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   media_query_values_with_nullish_coalescing,
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -376,16 +237,7 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   supports_queries,
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -401,16 +253,7 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   media_query_with_pseudo_classes,
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -428,13 +271,9 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   template_literal_expressions,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -446,13 +285,9 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   binary_expressions,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -466,13 +301,9 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   unary_expressions,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -484,13 +315,9 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   logical_expressions_safe_left_side,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -502,13 +329,9 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   logical_expressions_safe_right_side,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -520,13 +343,9 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   nullish_coalescing_safe_left_side,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -538,13 +357,9 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   conditional_expressions_safe_branches,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -556,13 +371,9 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   conditional_expressions_safe_branches_parenthesized,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -573,13 +384,9 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   complex_nested_safe_expressions,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -593,13 +400,9 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   complex_safe_ternary_expressions,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -618,13 +421,9 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   nullish_coalescing_with_object_type,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -636,13 +435,9 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   nullish_coalescing_with_object_type_and_array,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -659,13 +454,9 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(tr.comments.clone(), PluginPass::default(), None),
+stylex_test!(
   nullish_coalescing_with_boolean_type,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
 

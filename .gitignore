@@ -53,12 +53,15 @@ yarn-error.log*
 !crates/stylex-path-resolver/fixtures/**/dist
 
 
-#Dev containers
+# Dev containers
 .pnpm-store
 
-#Playwright
+# Playwright
 playwright-report/
 test-results/
 
-#TypeScript
+# TypeScript
 *.tsbuildinfo
+
+# Python
+__pycache__/

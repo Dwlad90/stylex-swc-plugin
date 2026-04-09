@@ -1,109 +1,71 @@
-use stylex_transform::StyleXTransform;
-use stylex_enums::style_resolution::StyleResolution;
-use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
+use crate::utils::prelude::*;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
 };
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   non_standard_value_end_aka_inline_end_for_clear_property,
+  |tr| {
+StyleXTransform::test(tr.comments.clone())
+    
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+    .with_enable_logical_styles_polyfill(true)
+    .with_runtime_injection()
+    .into_pass()
+  },
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { clear: 'end' } });
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   non_standard_value_start_aka_inline_start_for_clear_property,
+  |tr| {
+StyleXTransform::test(tr.comments.clone())
+    
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+    .with_enable_logical_styles_polyfill(true)
+    .with_runtime_injection()
+    .into_pass()
+  },
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { clear: 'start' } });
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   non_standard_value_end_aka_inline_end_for_float_property,
+  |tr| {
+StyleXTransform::test(tr.comments.clone())
+    
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+    .with_enable_logical_styles_polyfill(true)
+    .with_runtime_injection()
+    .into_pass()
+  },
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { float: 'end' } });
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   non_standard_value_start_aka_inline_start_for_float_property,
+  |tr| {
+StyleXTransform::test(tr.comments.clone())
+    
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+    .with_enable_logical_styles_polyfill(true)
+    .with_runtime_injection()
+    .into_pass()
+  },
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { float: 'start' } });

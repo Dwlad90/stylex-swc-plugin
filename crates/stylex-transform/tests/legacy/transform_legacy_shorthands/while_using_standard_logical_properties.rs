@@ -1,35 +1,17 @@
+use crate::utils::prelude::*;
 use stylex_enums::property_validation_mode::PropertyValidationMode;
-use stylex_enums::style_resolution::StyleResolution;
-use stylex_structures::{
-  named_import_source::RuntimeInjection, plugin_pass::PluginPass,
-  stylex_options::StyleXOptionsParams,
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::{test, test_transform},
-};
+use swc_core::ecma::transforms::testing::{test, test_transform};
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   padding_basic_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -41,26 +23,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   margin_basic_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -72,26 +44,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   stylex_call_with_exported_short_form_properties,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
       import stylex from 'stylex';
       export const styles = stylex.create({
@@ -103,26 +65,16 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   padding_inline_basic_multivalue_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -134,26 +86,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   stylex_call_with_short_form_property_collisions,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -171,27 +113,16 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   stylex_call_with_short_form_property_collisions_with_null,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -209,26 +140,16 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   margin_inline_basic_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -240,26 +161,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   margin_inline_basic_multivalue_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -271,26 +182,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   margin_block_basic_multivalue_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -302,26 +203,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   margin_with_longhand_property_collisions,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -339,26 +230,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   margin_with_null_longhand_property_collisions,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -376,26 +257,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   border_basic_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -407,26 +278,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   border_inline_color_basic_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -438,26 +299,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   border_inline_width_basic_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -469,25 +320,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   inset_basic_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -499,25 +341,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   inset_multivalue_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -529,25 +362,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   inset_inline_basic_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -559,25 +383,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   inset_inline_multivalue_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -589,25 +404,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   inset_block_basic_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -619,25 +425,16 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   inset_block_multivalue_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -649,28 +446,19 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      debug: Some(true),
-      enable_debug_class_names: Some(true),
-      enable_dev_class_names: Some(false),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   list_style_basic_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_debug(true)
+      .with_enable_debug_class_names(true)
+      .with_enable_dev_class_names(false)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -693,28 +481,19 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      debug: Some(true),
-      enable_debug_class_names: Some(true),
-      enable_dev_class_names: Some(false),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   list_style_multi_value_shorthand,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_debug(true)
+      .with_enable_debug_class_names(true)
+      .with_enable_dev_class_names(false)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -734,28 +513,19 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    let mut config = StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      enable_logical_styles_polyfill: Some(true),
-      debug: Some(true),
-      enable_debug_class_names: Some(true),
-      enable_dev_class_names: Some(false),
-      ..StyleXOptionsParams::default()
-    };
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut config),
-    )
-  },
+stylex_test!(
   list_style_with_longhand_collisions,
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_debug(true)
+      .with_enable_debug_class_names(true)
+      .with_enable_dev_class_names(false)
+      .with_runtime_injection()
+      .into_pass()
+  },
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -785,24 +555,16 @@ test!(
 #[should_panic(expected = "Invalid listStyle value: 'none inherit'")]
 fn list_style_invalid_values_none_inherit() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      let mut config = StyleXOptionsParams {
-        runtime_injection: Some(RuntimeInjection::Boolean(true)),
-        style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-        enable_logical_styles_polyfill: Some(true),
-        property_validation_mode: Some(PropertyValidationMode::Throw),
-        ..StyleXOptionsParams::default()
-      };
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Some(&mut config),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+        .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+        .with_enable_logical_styles_polyfill(true)
+        .with_property_validation_mode(PropertyValidationMode::Throw)
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
       import stylex from 'stylex';
@@ -820,24 +582,16 @@ fn list_style_invalid_values_none_inherit() {
 #[should_panic(expected = "Invalid listStyle value: 'none var(--image)'")]
 fn list_style_invalid_values_none_var() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      let mut config = StyleXOptionsParams {
-        runtime_injection: Some(RuntimeInjection::Boolean(true)),
-        style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-        enable_logical_styles_polyfill: Some(true),
-        property_validation_mode: Some(PropertyValidationMode::Throw),
-        ..StyleXOptionsParams::default()
-      };
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Some(&mut config),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+        .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+        .with_enable_logical_styles_polyfill(true)
+        .with_property_validation_mode(PropertyValidationMode::Throw)
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
       import stylex from 'stylex';

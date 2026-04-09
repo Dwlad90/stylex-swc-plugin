@@ -1,17 +1,11 @@
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test_transform,
-};
+use crate::utils::prelude::*;
 
 use crate::evaluation::evaluation_module_transform::EvaluationStyleXLastStatementTransform;
 
 #[test]
 fn evaluates_constant_array_correctly() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXLastStatementTransform::default_with_pass(),
     r#"
@@ -31,10 +25,7 @@ fn evaluates_constant_array_correctly() {
 #[should_panic(expected = "Referenced value is not a constant")]
 fn should_bail_out_when_array_is_mutated_via_push() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXLastStatementTransform::default_with_pass(),
     r#"
@@ -51,10 +42,7 @@ fn should_bail_out_when_array_is_mutated_via_push() {
 #[should_panic(expected = "Referenced value is not a constant")]
 fn should_bail_out_when_array_is_mutated_via_assignment() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXLastStatementTransform::default_with_pass(),
     r#"
@@ -71,10 +59,7 @@ fn should_bail_out_when_array_is_mutated_via_assignment() {
 #[should_panic(expected = "Referenced value is not a constant")]
 fn should_bail_out_when_object_is_mutated_via_object_assign() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXLastStatementTransform::default_with_pass(),
     r#"
@@ -95,10 +80,7 @@ fn should_bail_out_when_object_is_mutated_via_object_assign() {
 #[should_panic(expected = "Referenced value is not a constant")]
 fn should_bail_out_when_array_is_mutated_via_update() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXLastStatementTransform::default_with_pass(),
     r#"
@@ -115,10 +97,7 @@ fn should_bail_out_when_array_is_mutated_via_update() {
 #[should_panic(expected = "Referenced value is not a constant")]
 fn should_bail_out_when_primitive_is_mutated_via_delete() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |_| EvaluationStyleXLastStatementTransform::default_with_pass(),
     r#"

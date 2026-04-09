@@ -1,5 +1,4 @@
 use crate::utils::prelude::*;
-use stylex_enums::style_resolution::StyleResolution;
 
 stylex_test!(
   empty_stylex_props_call,
@@ -377,15 +376,15 @@ stylex_test!(
 
 stylex_test!(
   transform_props_with_null,
-  &mut StyleXOptionsParams {
-    style_resolution: Some(StyleResolution::ApplicationOrder),
-    dev: Some(true),
-    treeshake_compensation: Some(true),
-    unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-    enable_minified_keys: Some(false),
-    enable_debug_class_names: Some(true),
-    ..StyleXOptionsParams::default()
-  },
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_style_resolution(StyleResolution::ApplicationOrder)
+    .with_dev(true)
+    .with_treeshake_compensation(true)
+    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_enable_minified_keys(false)
+    .with_enable_debug_class_names(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
   import * as stylex from '@stylexjs/stylex';
   import { useState } from 'react';
@@ -446,8 +445,8 @@ stylex_test!(
 "#
 );
 
-test!(
-  ts_syntax(),
+stylex_test!(
+  stylex_env_resolves_in_inline_objects,
   |tr| {
     let mut env = IndexMap::new();
 
@@ -457,11 +456,10 @@ test!(
     );
 
     StyleXTransform::test(tr.comments.clone())
-      .with_options(&mut env_config(env))
+      .with_env(env)
       .with_runtime_injection()
       .into_pass()
   },
-  stylex_env_resolves_in_inline_objects,
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({

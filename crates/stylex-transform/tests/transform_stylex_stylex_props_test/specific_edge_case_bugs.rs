@@ -1,28 +1,13 @@
-use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
-use stylex_transform::StyleXTransform;
-use swc_core::{
-  common::FileName,
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::testing::test,
-  },
-};
+use crate::utils::prelude::*;
+use swc_core::{common::FileName, ecma::transforms::testing::test};
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      enable_debug_class_names: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   basic_stylex_call,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_dev(true)
+    .with_enable_debug_class_names(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
       import * as stylex from '@stylexjs/stylex';
       export const styles = stylex.create({
@@ -59,21 +44,13 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      enable_debug_class_names: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   basic_stylex_call_exported,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_dev(true)
+    .with_enable_debug_class_names(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
@@ -112,25 +89,15 @@ test!(
 "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/html/js/FooBar.react.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      debug: Some(true),
-      enable_debug_class_names: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_with_debug_on,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
+    .with_dev(true)
+    .with_debug(true)
+    .with_enable_debug_class_names(true)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({
@@ -169,25 +136,15 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/html/js/FooBar.react.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      dev: Some(true),
-      debug: Some(true),
-      enable_debug_class_names: Some(false),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   stylex_call_with_debug_on_and_debug_classnames_off,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
+    .with_dev(true)
+    .with_debug(true)
+    .with_enable_debug_class_names(false)
+    .with_runtime_injection()
+    .into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -226,16 +183,7 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   hoisting_correctly_with_duplicate_names,
   r#"
     import * as stylex from "@stylexjs/stylex";

@@ -1,39 +1,19 @@
-use stylex_structures::{
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::{
-  common::FileName,
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::testing::test_transform,
-  },
-};
+use crate::utils::prelude::*;
+use swc_core::{common::FileName, ecma::transforms::testing::test_transform};
 
 #[test]
 #[should_panic(expected = "The return value of defineMarker() must be bound to a named export.")]
 fn must_be_bound_to_a_named_export() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     None,
     |tr| {
-      StyleXTransform::new_test_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          cwd: None,
-          filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
-        },
-        Some(&mut StyleXOptionsParams {
-          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-            "/stylex/packages/".to_string(),
-          ))),
-          ..StyleXOptionsParams::default()
-        }),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
+        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+          "/stylex/packages/".to_string(),
+        )))
+        .into_pass()
     },
     r#"
       import * as stylex from '@stylexjs/stylex';
@@ -47,25 +27,15 @@ fn must_be_bound_to_a_named_export() {
 #[should_panic(expected = "defineMarker() should have 0 arguments.")]
 fn no_arguments_allowed() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          cwd: None,
-          filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
-        },
-        Some(&mut StyleXOptionsParams {
-          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-            "/stylex/packages/".to_string(),
-          ))),
-          ..StyleXOptionsParams::default()
-        }),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
+        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+          "/stylex/packages/".to_string(),
+        )))
+        .into_pass()
     },
     r#"
         import * as stylex from '@stylexjs/stylex';
@@ -78,25 +48,15 @@ fn no_arguments_allowed() {
 #[test]
 fn valid_export_direct_named_export() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          cwd: None,
-          filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
-        },
-        Some(&mut StyleXOptionsParams {
-          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-            "/stylex/packages/".to_string(),
-          ))),
-          ..StyleXOptionsParams::default()
-        }),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
+        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+          "/stylex/packages/".to_string(),
+        )))
+        .into_pass()
     },
     r#"
         import * as stylex from '@stylexjs/stylex';
@@ -115,25 +75,15 @@ fn valid_export_direct_named_export() {
 #[test]
 fn valid_export_separate_const_and_export_statement() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          cwd: None,
-          filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
-        },
-        Some(&mut StyleXOptionsParams {
-          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-            "/stylex/packages/".to_string(),
-          ))),
-          ..StyleXOptionsParams::default()
-        }),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
+        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+          "/stylex/packages/".to_string(),
+        )))
+        .into_pass()
     },
     r#"
         import * as stylex from '@stylexjs/stylex';
@@ -155,25 +105,15 @@ fn valid_export_separate_const_and_export_statement() {
 #[should_panic(expected = "The return value of defineMarker() must be bound to a named export.")]
 fn invalid_export_re_export_from_another_file_does_not_count() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          cwd: None,
-          filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
-        },
-        Some(&mut StyleXOptionsParams {
-          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-            "/stylex/packages/".to_string(),
-          ))),
-          ..StyleXOptionsParams::default()
-        }),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
+        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+          "/stylex/packages/".to_string(),
+        )))
+        .into_pass()
     },
     r#"
         import * as stylex from '@stylexjs/stylex';
@@ -188,25 +128,15 @@ fn invalid_export_re_export_from_another_file_does_not_count() {
 #[should_panic(expected = "The return value of defineMarker() must be bound to a named export.")]
 fn invalid_export_renamed_re_export_from_another_file_does_not_count() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          cwd: None,
-          filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
-        },
-        Some(&mut StyleXOptionsParams {
-          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-            "/stylex/packages/".to_string(),
-          ))),
-          ..StyleXOptionsParams::default()
-        }),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
+        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+          "/stylex/packages/".to_string(),
+        )))
+        .into_pass()
     },
     r#"
         import * as stylex from '@stylexjs/stylex';
@@ -221,25 +151,15 @@ fn invalid_export_renamed_re_export_from_another_file_does_not_count() {
 #[should_panic(expected = "The return value of defineMarker() must be bound to a named export.")]
 fn invalid_export_default_export_does_not_count() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          cwd: None,
-          filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
-        },
-        Some(&mut StyleXOptionsParams {
-          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-            "/stylex/packages/".to_string(),
-          ))),
-          ..StyleXOptionsParams::default()
-        }),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
+        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+          "/stylex/packages/".to_string(),
+        )))
+        .into_pass()
     },
     r#"
         import * as stylex from '@stylexjs/stylex';
@@ -254,25 +174,15 @@ fn invalid_export_default_export_does_not_count() {
 #[should_panic(expected = "The return value of defineMarker() must be bound to a named export.")]
 fn invalid_export_renamed_export_with_as_syntax() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          cwd: None,
-          filename: FileName::Real("/stylex/packages/vars.stylex.js".into()),
-        },
-        Some(&mut StyleXOptionsParams {
-          unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-            "/stylex/packages/".to_string(),
-          ))),
-          ..StyleXOptionsParams::default()
-        }),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
+        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+          "/stylex/packages/".to_string(),
+        )))
+        .into_pass()
     },
     r#"
         import * as stylex from '@stylexjs/stylex';

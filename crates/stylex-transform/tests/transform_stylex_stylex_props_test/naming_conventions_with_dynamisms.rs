@@ -1,23 +1,7 @@
-use stylex_structures::plugin_pass::PluginPass;
-use stylex_transform::StyleXTransform;
-use swc_core::{
-  common::FileName,
-  ecma::{
-    parser::{Syntax, TsSyntax},
-    transforms::testing::test,
-  },
-};
+use crate::utils::prelude::*;
+use swc_core::{common::FileName, ecma::transforms::testing::test};
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_props_with_camel_case_key,
   r#"
         import stylex from 'stylex';
@@ -46,16 +30,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_props_with_pascal_case_key,
   r#"
         import stylex from 'stylex';
@@ -84,16 +59,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_props_with_snake_case_key,
   r#"
         import stylex from 'stylex';
@@ -122,16 +88,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_props_with_kebab_case_key,
   r#"
         import stylex from 'stylex';
@@ -160,16 +117,7 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_props_with_override_dynamic_styles,
   r#"
         import stylex from 'stylex';
@@ -191,20 +139,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
-    },
-    None
-  ),
+stylex_test!(
   stylex_call_props_with_renaming_dynamic_styles_prop,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         import { fonts as f } from '@stylexjs/open-props/lib/fonts.stylex';
@@ -231,20 +171,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
-    },
-    None
-  ),
+stylex_test!(
   stylex_call_props_with_renaming_dynamic_styles_prop_and_conflict_import_name,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         import { fonts as foo } from '@stylexjs/open-props/lib/fonts.stylex';
@@ -270,20 +202,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
-    },
-    None
-  ),
+stylex_test!(
   stylex_call_props_with_varians_dynamic_key,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
 
@@ -292,7 +216,6 @@ test!(
             color: 'hotpink',
           },
         });
-
 
         export function Text({ children, variant}) {
           const variants = {
@@ -304,20 +227,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
-    },
-    None
-  ),
+stylex_test!(
   stylex_call_props_with_varians_dynamic_key_directly,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
 
@@ -331,27 +246,18 @@ test!(
           title: [styles.title],
         };
 
-
         export function Text({ children, variant}) {
           return <div {...stylex.props(...variant.title)}>{children}</div>;
         }
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: None,
-      filename: FileName::Real("/html/js/components/Foo.react.js".into()),
-    },
-    None
-  ),
+stylex_test!(
   stylex_call_props_with_varians_dynamic_key_directly_v2,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
 

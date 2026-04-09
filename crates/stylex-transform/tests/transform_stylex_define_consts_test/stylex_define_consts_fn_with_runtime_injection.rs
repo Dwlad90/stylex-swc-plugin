@@ -1,36 +1,21 @@
+use crate::utils::prelude::*;
 use std::path::PathBuf;
-use stylex_structures::{
-  named_import_source::RuntimeInjection,
-  plugin_pass::PluginPass,
-  stylex_options::{ModuleResolution, StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
 use swc_core::common::FileName;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: Some(PathBuf::from("/stylex/packages/")),
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..Default::default()
-    })
-  ),
+stylex_test!(
   constants_object_with_runtime_injection_true,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_cwd(PathBuf::from("/stylex/packages/"))
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const breakpoints = stylex.defineConsts({
@@ -41,27 +26,20 @@ test!(
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: Some(PathBuf::from("/stylex/packages/")),
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(ModuleResolution {
-        r#type: "commonJS".to_string(),
-        root_dir: Some("/stylex/packages/".to_string()),
-        theme_file_extension: None,
-      }),
-      ..Default::default()
-    })
-  ),
+stylex_test!(
   numeric_constants_with_runtime_injection_true,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_cwd(PathBuf::from("/stylex/packages/"))
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(ModuleResolution {
+      r#type: "commonJS".to_string(),
+      root_dir: Some("/stylex/packages/".to_string()),
+      theme_file_extension: None,
+    })
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const sizes = stylex.defineConsts({
@@ -72,27 +50,20 @@ test!(
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: Some(PathBuf::from("/stylex/packages/")),
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(ModuleResolution {
-        r#type: "commonJS".to_string(),
-        root_dir: Some("/stylex/packages/".to_string()),
-        theme_file_extension: None,
-      }),
-      ..Default::default()
-    })
-  ),
+stylex_test!(
   string_constants_with_runtime_injection_true,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_cwd(PathBuf::from("/stylex/packages/"))
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(ModuleResolution {
+      r#type: "commonJS".to_string(),
+      root_dir: Some("/stylex/packages/".to_string()),
+      theme_file_extension: None,
+    })
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const colors = stylex.defineConsts({
@@ -103,27 +74,20 @@ test!(
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: Some(PathBuf::from("/stylex/packages/")),
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(ModuleResolution {
-        r#type: "commonJS".to_string(),
-        root_dir: Some("/stylex/packages/".to_string()),
-        theme_file_extension: None,
-      }),
-      ..Default::default()
-    })
-  ),
+stylex_test!(
   mixed_string_and_numeric_constants_with_runtime_injection_true,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_cwd(PathBuf::from("/stylex/packages/"))
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(ModuleResolution {
+      r#type: "commonJS".to_string(),
+      root_dir: Some("/stylex/packages/".to_string()),
+      theme_file_extension: None,
+    })
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const theme = stylex.defineConsts({
@@ -134,27 +98,20 @@ test!(
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: Some(PathBuf::from("/stylex/packages/")),
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(ModuleResolution {
-        r#type: "commonJS".to_string(),
-        root_dir: Some("/stylex/packages/".to_string()),
-        theme_file_extension: None,
-      }),
-      ..Default::default()
-    })
-  ),
+stylex_test!(
   constants_with_special_characters_with_runtime_injection_true,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_cwd(PathBuf::from("/stylex/packages/"))
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(ModuleResolution {
+      r#type: "commonJS".to_string(),
+      root_dir: Some("/stylex/packages/".to_string()),
+      theme_file_extension: None,
+    })
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const urls = stylex.defineConsts({
@@ -163,28 +120,20 @@ test!(
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: Some(PathBuf::from("/stylex/packages/")),
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(ModuleResolution {
-        r#type: "commonJS".to_string(),
-        root_dir: Some("/stylex/packages/".to_string()),
-        theme_file_extension: None,
-      }),
-      runtime_injection: Some(RuntimeInjection::Regular("@custom/inject-path".to_string())),
-      ..Default::default()
-    })
-  ),
+stylex_test!(
   constants_with_custom_inject_path_with_runtime_injection,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_cwd(PathBuf::from("/stylex/packages/"))
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(ModuleResolution {
+      r#type: "commonJS".to_string(),
+      root_dir: Some("/stylex/packages/".to_string()),
+      theme_file_extension: None,
+    })
+    .with_runtime_injection_option(RuntimeInjection::Regular("@custom/inject-path".to_string()))
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const breakpoints = stylex.defineConsts({
@@ -193,27 +142,20 @@ test!(
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: Some(PathBuf::from("/stylex/packages/")),
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(ModuleResolution {
-        r#type: "haste".to_string(),
-        root_dir: None,
-        theme_file_extension: None,
-      }),
-      ..Default::default()
-    })
-  ),
+stylex_test!(
   haste_module_with_runtime_injection_true,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_cwd(PathBuf::from("/stylex/packages/"))
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(ModuleResolution {
+      r#type: "haste".to_string(),
+      root_dir: None,
+      theme_file_extension: None,
+    })
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const breakpoints = stylex.defineConsts({
@@ -223,26 +165,19 @@ test!(
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: Some(PathBuf::from("/stylex/packages/")),
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(Some(
-        "/stylex/packages/".to_string()
-      ))),
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      ..Default::default()
-    })
-  ),
+stylex_test!(
   constants_with_numeric_keys_with_runtime_injection_true,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_cwd(PathBuf::from("/stylex/packages/"))
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(Some(
+      "/stylex/packages/".to_string()
+    )))
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const levels = stylex.defineConsts({
@@ -253,27 +188,20 @@ test!(
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass {
-      cwd: Some(PathBuf::from("/stylex/packages/")),
-      filename: FileName::Real("/stylex/packages/TestTheme.stylex.js".into()),
-    },
-    Some(&mut StyleXOptionsParams {
-      unstable_module_resolution: Some(ModuleResolution {
-        r#type: "commonJS".to_string(),
-        root_dir: Some("/stylex/packages/".to_string()),
-        theme_file_extension: None,
-      }),
-      ..Default::default()
-    })
-  ),
+stylex_test!(
   multiple_define_consts_calls_with_runtime_injection_true,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_cwd(PathBuf::from("/stylex/packages/"))
+    .with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(ModuleResolution {
+      r#type: "commonJS".to_string(),
+      root_dir: Some("/stylex/packages/".to_string()),
+      theme_file_extension: None,
+    })
+    .with_runtime_injection()
+    .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const breakpoints = stylex.defineConsts({

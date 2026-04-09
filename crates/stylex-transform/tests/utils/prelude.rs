@@ -1,16 +1,25 @@
 // Common re-exports for test files.
 // Usage: `use crate::utils::prelude::*;`
 
+#[allow(unused_imports)]
 pub(crate) use indexmap::IndexMap;
+#[allow(unused_imports)]
 pub(crate) use stylex_ast::ast::convertors::create_string_expr;
-pub(crate) use stylex_enums::style_resolution::StyleResolution;
+#[allow(unused_imports)]
+pub(crate) use stylex_enums::{
+  style_resolution::StyleResolution, sx_prop_name_param::SxPropNameParam,
+};
+#[allow(unused_imports)]
 pub(crate) use stylex_structures::{
   named_import_source::{ImportSources, RuntimeInjection},
   plugin_pass::PluginPass,
   stylex_env::EnvEntry,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
+  stylex_options::{ModuleResolution, StyleXOptions},
 };
+#[allow(unused_imports)]
 pub(crate) use stylex_transform::StyleXTransform;
-pub(crate) use swc_core::ecma::transforms::testing::test;
+#[allow(unused_imports)]
+pub(crate) use swc_core::ecma::transforms::testing::{test, test_transform};
 
-pub(crate) use crate::utils::transform::{env_config, ts_syntax};
+#[allow(unused_imports)]
+pub(crate) use crate::utils::transform::ts_syntax;

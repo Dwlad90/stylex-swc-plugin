@@ -1,20 +1,10 @@
-use stylex_structures::plugin_pass::PluginPass;
-use stylex_transform::StyleXTransform;
+use crate::utils::prelude::*;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test,
 };
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   non_standard_value_end_aka_inline_end_for_clear_property,
   r#"
         import * as stylex from '@stylexjs/stylex';
@@ -22,16 +12,7 @@ test!(
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   non_standard_value_start_aka_inline_start_for_clear_property,
   r#"
         import * as stylex from '@stylexjs/stylex';
@@ -39,16 +20,7 @@ test!(
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   non_standard_value_end_aka_inline_end_for_float_property,
   r#"
         import * as stylex from '@stylexjs/stylex';
@@ -56,21 +28,9 @@ test!(
       "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      enable_logical_styles_polyfill: Some(true),
-      style_resolution: Some(StyleResolution::LegacyExpandShorthands),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   non_standard_value_start_aka_inline_start_for_float_property,
+  |tr| StyleXTransform::test(tr.comments.clone()).with_enable_logical_styles_polyfill(true).with_style_resolution(StyleResolution::LegacyExpandShorthands).with_runtime_injection().into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { float: 'start' } });

@@ -1,42 +1,22 @@
+use crate::utils::prelude::*;
 use crate::utils::transform::stringify_js;
-use stylex_structures::{
-  plugin_pass::PluginPass,
-  stylex_options::{ModuleResolution, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use swc_core::ecma::transforms::testing::test;
 
 fn transform_with_inline_consts(input: &str) -> String {
-  stringify_js(
-    input,
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    |tr| {
-      let cwd_path = std::env::current_dir().unwrap();
-      let fixture_path = cwd_path.join("tests/fixture/consts");
+  stringify_js(input, ts_syntax(), |tr| {
+    let cwd_path = std::env::current_dir().unwrap();
+    let fixture_path = cwd_path.join("tests/fixture/consts");
 
-      StyleXTransform::new_test_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          cwd: Some(fixture_path.clone()),
-          filename: fixture_path.clone().join("constants.stylex.js").into(),
-        },
-        Some(&mut StyleXOptionsParams {
-          unstable_module_resolution: Some(ModuleResolution {
-            r#type: "commonJS".to_string(),
-            root_dir: Some(fixture_path.to_string_lossy().to_string()),
-            theme_file_extension: None,
-          }),
-          ..Default::default()
-        }),
-      )
-    },
-  )
+    StyleXTransform::test(tr.comments.clone())
+      .with_cwd(fixture_path.clone())
+      .with_filename(fixture_path.clone().join("constants.stylex.js").into())
+      .with_unstable_module_resolution(ModuleResolution {
+        r#type: "commonJS".to_string(),
+        root_dir: Some(fixture_path.to_string_lossy().to_string()),
+        theme_file_extension: None,
+      })
+      .into_pass()
+  })
 }
 
 #[test]

@@ -1,17 +1,10 @@
-use stylex_structures::plugin_pass::PluginPass;
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+#[macro_use]
+#[path = "utils/mod.rs"]
+mod utils;
 
-test!(
-  Default::default(),
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection()
-      .into_pass()
-  },
+use utils::prelude::*;
+
+stylex_test!(
   transform_simple_css_class,
   r#"
       import s from "@stylexjs/stylex";
@@ -25,13 +18,7 @@ test!(
     "#
 );
 
-test!(
-  Default::default(),
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection()
-      .into_pass()
-  },
+stylex_test!(
   transform_multiple_simple_css_classes,
   r#"
     import s from "@stylexjs/stylex";
@@ -57,16 +44,7 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection()
-      .into_pass()
-  },
+stylex_test!(
   transform_multiple_simple_css_classes_and_inject_to_react_component,
   r#"
     import s from "@stylexjs/stylex";

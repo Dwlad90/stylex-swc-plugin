@@ -1,29 +1,18 @@
+use crate::utils::prelude::*;
 use rustc_hash::FxHashMap;
-use stylex_structures::{
-  named_import_source::RuntimeInjection, plugin_pass::PluginPass,
-  stylex_options::StyleXOptionsParams,
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::{test, test_transform},
-};
+use swc_core::ecma::transforms::testing::{test, test_transform};
 
 #[test]
 #[should_panic(expected = "keyframes() can only accept an object.")]
 fn local_variable_keyframes_object() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::new(None, None),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_pass(PluginPass::test_default())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
         import * as stylex from '@stylexjs/stylex';
@@ -45,17 +34,13 @@ fn local_variable_keyframes_object() {
 #[should_panic(expected = "keyframes() can only accept an object.")]
 fn only_argument_must_be_an_object_of_objects_null() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::new(None, None),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_pass(PluginPass::test_default())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
           import stylex from 'stylex';
@@ -69,17 +54,13 @@ fn only_argument_must_be_an_object_of_objects_null() {
 #[should_panic(expected = "Every frame within a keyframes() call must be an object.")]
 fn only_argument_must_be_an_object_of_objects_false() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
     |tr| {
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass::new(None, None),
-        None,
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_pass(PluginPass::test_default())
+        .with_runtime_injection()
+        .into_pass()
     },
     r#"
           import stylex from 'stylex';
@@ -91,19 +72,12 @@ fn only_argument_must_be_an_object_of_objects_false() {
   )
 }
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::new(None, None),
-      None,
-    )
-  },
+stylex_test!(
   only_argument_must_be_an_object_of_objects_valid_percentage,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
   r#"
           import stylex from 'stylex';
           const name = stylex.keyframes({
@@ -117,19 +91,12 @@ test!(
         "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::new(None, None),
-      None,
-    )
-  },
+stylex_test!(
   only_argument_must_be_an_object_of_objects_valid_from_to,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
   r#"
           import stylex from 'stylex';
           const name = stylex.keyframes({
@@ -139,25 +106,18 @@ test!(
         "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+stylex_test!(
+  allow_defined_css_variables_in_keyframes,
   |tr| {
-    let mut config = StyleXOptionsParams::default();
     let mut defined_stylex_css_variables = FxHashMap::default();
     defined_stylex_css_variables.insert("bar".to_string(), "1".to_string());
-    config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
-    config.runtime_injection = Some(RuntimeInjection::Boolean(true));
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::new(None, None),
-      Some(&mut config),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_pass(PluginPass::test_default())
+      .with_defined_stylex_css_variables(defined_stylex_css_variables)
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+      .into_pass()
   },
-  allow_defined_css_variables_in_keyframes,
   r#"
             import stylex from 'stylex';
             const styles = stylex.keyframes({
@@ -168,25 +128,18 @@ test!(
           "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+stylex_test!(
+  allow_undefined_css_variables_in_keyframes,
   |tr| {
-    let mut config = StyleXOptionsParams::default();
     let mut defined_stylex_css_variables = FxHashMap::default();
     defined_stylex_css_variables.insert("bar".to_string(), "1".to_string());
-    config.defined_stylex_css_variables = Some(defined_stylex_css_variables);
-    config.runtime_injection = Some(RuntimeInjection::Boolean(true));
-
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::new(None, None),
-      Some(&mut config),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_pass(PluginPass::test_default())
+      .with_defined_stylex_css_variables(defined_stylex_css_variables)
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+      .into_pass()
   },
-  allow_undefined_css_variables_in_keyframes,
   r#"
             import stylex from 'stylex';
             const styles = stylex.keyframes({

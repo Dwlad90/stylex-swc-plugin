@@ -25,4 +25,18 @@ impl PluginPass {
         .unwrap_or_else(|| FileName::Real("/stylex/packages/TestTheme.stylex.js".into())),
     }
   }
+
+  pub fn test_default() -> Self {
+    Self::new(None, None)
+  }
+
+  pub fn with_cwd(mut self, cwd: impl Into<PathBuf>) -> Self {
+    self.cwd = Some(cwd.into());
+    self
+  }
+
+  pub fn with_filename(mut self, filename: FileName) -> Self {
+    self.filename = filename;
+    self
+  }
 }

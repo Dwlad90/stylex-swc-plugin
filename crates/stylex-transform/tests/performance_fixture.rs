@@ -3,26 +3,12 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use stylex_structures::{
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
+use stylex_structures::stylex_options::StyleXOptions;
 use stylex_transform::StyleXTransform;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
   transforms::testing::test_fixture,
 };
-
-// Using the same options as the fixtures test
-fn default_transform_options() -> StyleXOptionsParams {
-  StyleXOptionsParams {
-    dev: Some(true),
-    treeshake_compensation: Some(true),
-    unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-    enable_minified_keys: Some(false),
-    ..StyleXOptionsParams::default()
-  }
-}
 
 // Helper function to measure transform performance
 fn measure_transform_time(input_path: &Path) -> (String, f64) {
@@ -40,16 +26,14 @@ fn measure_transform_time(input_path: &Path) -> (String, f64) {
       ..Default::default()
     }),
     &|tr| {
-      let mut config = default_transform_options();
-
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass {
-          cwd: None,
-          filename: input_path.to_path_buf().into(),
-        },
-        Some(&mut config),
-      )
+      StyleXTransform::test(tr.comments.clone())
+        .with_filename(input_path.to_path_buf().into())
+        .with_dev(true)
+        .with_treeshake_compensation(true)
+        .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+        .with_enable_minified_keys(false)
+        .with_runtime_injection()
+        .into_pass()
     },
     input_path,
     &output_path,

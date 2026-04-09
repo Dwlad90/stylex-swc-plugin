@@ -1,21 +1,9 @@
-use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams::default())
-  ),
+stylex_test!(
   position_try_object,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const name = stylex.positionTry({
@@ -28,17 +16,9 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams::default())
-  ),
+stylex_test!(
   local_constants_used_in_position_try_object,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const SIZE = '100px';
@@ -52,17 +32,9 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams::default())
-  ),
+stylex_test!(
   position_try_value_used_within_create,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const SIZE = '100px';
@@ -80,17 +52,9 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams::default())
-  ),
+stylex_test!(
   position_try_object_used_inline,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({

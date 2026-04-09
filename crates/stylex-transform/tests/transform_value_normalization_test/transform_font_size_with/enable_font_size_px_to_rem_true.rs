@@ -1,28 +1,12 @@
-use stylex_structures::{
-  named_import_source::RuntimeInjection, plugin_pass::PluginPass,
-  stylex_options::StyleXOptionsParams,
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::test;
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   transforms_font_size_from_px_to_rem,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -42,21 +26,12 @@ test!(
     "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      runtime_injection: Some(RuntimeInjection::Boolean(true)),
-      enable_font_size_px_to_rem: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   transforms_font_size_from_px_to_rem_even_with_calc,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+    .with_enable_font_size_px_to_rem(true)
+    .into_pass(),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({

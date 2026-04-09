@@ -1,21 +1,9 @@
-use stylex_structures::{plugin_pass::PluginPass, stylex_options::StyleXOptionsParams};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::{test, test_transform},
-};
+use crate::utils::prelude::*;
+use swc_core::ecma::transforms::testing::{test, test_transform};
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams::default())
-  ),
+stylex_test!(
   basic_object,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const cls = stylex.viewTransitionClass({
@@ -35,17 +23,9 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams::default())
-  ),
+stylex_test!(
   local_variables_used_in_view_transition_class,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const animationDuration = '1s';
@@ -58,17 +38,9 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams::default())
-  ),
+stylex_test!(
   using_keyframes,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const fadeIn = stylex.keyframes({
@@ -92,17 +64,9 @@ test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
-  |tr| StyleXTransform::new_test_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams::default())
-  ),
+stylex_test!(
   using_inline_keyframes,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const cls = stylex.viewTransitionClass({
@@ -128,18 +92,9 @@ test!(
 #[ignore]
 fn using_contextual_styles() {
   test_transform(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
+    ts_syntax(),
     Option::None,
-    |tr| {
-      StyleXTransform::new_test_with_pass(
-        tr.comments.clone(),
-        PluginPass::default(),
-        Some(&mut StyleXOptionsParams::default()),
-      )
-    },
+    |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
     r#"
       import * as stylex from 'stylex';
       export const cls = stylex.viewTransitionClass({

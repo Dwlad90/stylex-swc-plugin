@@ -291,20 +291,14 @@ mod tests {
 
   #[test]
   fn test_with_custom_options() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "custom".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("custom");
     let result = ancestor(":hover", Some(&options)).unwrap();
     assert_eq!(result, ":where(.custom-default-marker:hover *)");
   }
 
   #[test]
   fn test_with_empty_prefix() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("");
     let result = ancestor(":hover", Some(&options)).unwrap();
     assert_eq!(result, ":where(.default-marker:hover *)");
   }

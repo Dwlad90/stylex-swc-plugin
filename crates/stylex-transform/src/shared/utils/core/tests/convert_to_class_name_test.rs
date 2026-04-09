@@ -38,15 +38,13 @@ mod convert_style_to_class_name {
       &mut [],
       &mut [],
       &mut StateManager {
-        options: StyleXStateOptions {
-          class_name_prefix: 'x'.to_string(),
-          style_resolution: StyleResolution::PropertySpecificity,
-          dev: false,
-          test: false,
-          debug: true,
-          enable_debug_class_names: true,
-          ..Default::default()
-        },
+        options: StyleXStateOptions::default()
+          .with_class_name_prefix("x")
+          .with_style_resolution(StyleResolution::PropertySpecificity)
+          .with_dev(false)
+          .with_test(false)
+          .with_debug(true)
+          .with_enable_debug_class_names(true),
         ..Default::default()
       },
     );
@@ -61,15 +59,13 @@ mod convert_style_to_class_name {
       &mut [],
       &mut [],
       &mut StateManager {
-        options: StyleXStateOptions {
-          class_name_prefix: 'x'.to_string(),
-          style_resolution: StyleResolution::PropertySpecificity,
-          dev: false,
-          test: false,
-          debug: true,
-          enable_debug_class_names: false,
-          ..Default::default()
-        },
+        options: StyleXStateOptions::default()
+          .with_class_name_prefix("x")
+          .with_style_resolution(StyleResolution::PropertySpecificity)
+          .with_dev(false)
+          .with_test(false)
+          .with_debug(true)
+          .with_enable_debug_class_names(false),
         ..Default::default()
       },
     );
@@ -85,14 +81,12 @@ mod convert_style_to_class_name {
       &mut [],
       &mut [],
       &mut StateManager {
-        options: StyleXStateOptions {
-          class_name_prefix: 'x'.to_string(),
-          style_resolution: StyleResolution::PropertySpecificity,
-          dev: false,
-          test: false,
-          debug: false,
-          ..Default::default()
-        },
+        options: StyleXStateOptions::default()
+          .with_class_name_prefix("x")
+          .with_style_resolution(StyleResolution::PropertySpecificity)
+          .with_dev(false)
+          .with_test(false)
+          .with_debug(false),
         ..Default::default()
       },
     );

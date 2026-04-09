@@ -831,10 +831,8 @@ fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicSty
         PreRuleValue::String(format!("p{}", i)),
       );
 
-      let options = StyleXStateOptions {
-        style_resolution: StyleResolution::LegacyExpandShorthands,
-        ..Default::default()
-      };
+      let options = StyleXStateOptions::default()
+        .with_style_resolution(StyleResolution::LegacyExpandShorthands);
 
       flat_map_expanded_shorthands(obj_entry, &options)
     })

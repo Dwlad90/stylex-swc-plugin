@@ -58,12 +58,13 @@ mod get_canonical_file_path {
 
     let mut stage_manager = StateManager::default();
 
-    stage_manager.options.unstable_module_resolution =
-      CheckModuleResolution::CommonJS(ModuleResolution {
+    stage_manager.options = stage_manager
+      .options
+      .with_unstable_module_resolution(CheckModuleResolution::CommonJS(ModuleResolution {
         r#type: "commonjs".to_string(),
         root_dir: Some(fixture_path.parent().unwrap().to_string_lossy().into()),
         theme_file_extension: None,
-      });
+      }));
 
     let canonical_path = stage_manager
       .get_canonical_file_path(fixture_path.to_str().unwrap(), &mut FxHashMap::default());
@@ -79,12 +80,13 @@ mod get_canonical_file_path {
 
     let mut stage_manager = StateManager::default();
 
-    stage_manager.options.unstable_module_resolution =
-      CheckModuleResolution::CommonJS(ModuleResolution {
+    stage_manager.options = stage_manager
+      .options
+      .with_unstable_module_resolution(CheckModuleResolution::CommonJS(ModuleResolution {
         r#type: "commonjs".to_string(),
         root_dir: Some(root_dir.to_string_lossy().into()),
         theme_file_extension: None,
-      });
+      }));
 
     let canonical_path = stage_manager.get_canonical_file_path(
       root_dir.join("src/components").to_str().unwrap(),

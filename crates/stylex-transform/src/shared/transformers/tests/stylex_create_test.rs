@@ -266,12 +266,9 @@ mod stylex_create {
       &EvaluateResultValue::Map(style_object),
       &mut EvaluationState::default(),
       &mut StateManager {
-        options: StyleXStateOptions {
-          debug: true,
-          enable_debug_class_names: true,
-
-          ..Default::default()
-        },
+        options: StyleXStateOptions::default()
+          .with_debug(true)
+          .with_enable_debug_class_names(true),
         ..Default::default()
       },
       &FunctionMap::default(),

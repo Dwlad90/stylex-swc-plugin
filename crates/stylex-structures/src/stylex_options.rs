@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -8,6 +10,7 @@ use stylex_enums::style_resolution::StyleResolution;
 use stylex_enums::sx_prop_name_param::SxPropNameParam;
 
 use crate::{
+  core_stylex_options::CoreStyleXOptions,
   named_import_source::{ImportSources, RuntimeInjection},
   stylex_env::{EnvEntry, JSFunction},
 };
@@ -97,35 +100,29 @@ pub enum CheckModuleResolution {
   CrossFileParsing(ModuleResolution),
 }
 
+impl Default for CheckModuleResolution {
+  fn default() -> Self {
+    CheckModuleResolution::CommonJS(StyleXOptions::get_common_js_module_resolution(None))
+  }
+}
+
 #[derive(Clone, Debug)]
 pub struct StyleXOptions {
-  pub dev: bool,
-  pub test: bool,
-  pub debug: bool,
-  pub property_validation_mode: PropertyValidationMode,
-  pub enable_debug_class_names: bool,
-  pub enable_debug_data_prop: bool,
-  pub enable_dev_class_names: bool,
-  pub enable_inlined_conditional_merge: bool,
-  pub enable_media_query_order: bool,
-  pub enable_logical_styles_polyfill: bool,
-  pub enable_legacy_value_flipping: bool,
-  pub enable_ltr_rtl_comments: bool,
-  pub enable_minified_keys: bool,
-  pub enable_font_size_px_to_rem: bool,
-  pub use_real_file_for_source: bool,
-  pub class_name_prefix: String,
-  // pub defined_stylex_css_variables: FxHashMap<String, String>,
-  pub style_resolution: StyleResolution,
+  pub core: CoreStyleXOptions,
   pub runtime_injection: RuntimeInjection,
-  pub import_sources: Vec<ImportSources>,
-  pub treeshake_compensation: bool,
-  pub inject_stylex_side_effects: bool,
-  pub aliases: Option<FxHashMap<String, Vec<String>>>,
-  pub unstable_module_resolution: CheckModuleResolution,
-  pub sx_prop_name: Option<String>,
-  pub env: IndexMap<String, EnvEntry>,
-  pub debug_file_path: Option<JSFunction>,
+}
+
+impl Deref for StyleXOptions {
+  type Target = CoreStyleXOptions;
+  fn deref(&self) -> &Self::Target {
+    &self.core
+  }
+}
+
+impl DerefMut for StyleXOptions {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.core
+  }
 }
 
 impl StyleXOptions {
@@ -144,40 +141,81 @@ impl StyleXOptions {
       theme_file_extension: None,
     }
   }
+
+  pub fn with_class_name_prefix(mut self, prefix: impl Into<String>) -> Self {
+    self.core.class_name_prefix = prefix.into();
+    self
+  }
+
+  pub fn with_style_resolution(mut self, resolution: StyleResolution) -> Self {
+    self.core.style_resolution = resolution;
+    self
+  }
+
+  pub fn with_debug(mut self, debug: bool) -> Self {
+    self.core.debug = debug;
+    self
+  }
+
+  pub fn with_dev(mut self, dev: bool) -> Self {
+    self.core.dev = dev;
+    self
+  }
+
+  pub fn with_test(mut self, test: bool) -> Self {
+    self.core.test = test;
+    self
+  }
+
+  pub fn with_enable_debug_class_names(mut self, enabled: bool) -> Self {
+    self.core.enable_debug_class_names = enabled;
+    self
+  }
+
+  pub fn with_enable_debug_data_prop(mut self, enabled: bool) -> Self {
+    self.core.enable_debug_data_prop = enabled;
+    self
+  }
+
+  pub fn with_enable_dev_class_names(mut self, enabled: bool) -> Self {
+    self.core.enable_dev_class_names = enabled;
+    self
+  }
+
+  pub fn with_enable_font_size_px_to_rem(mut self, enabled: bool) -> Self {
+    self.core.enable_font_size_px_to_rem = enabled;
+    self
+  }
+
+  pub fn with_enable_logical_styles_polyfill(mut self, enabled: bool) -> Self {
+    self.core.enable_logical_styles_polyfill = enabled;
+    self
+  }
+
+  pub fn with_enable_minified_keys(mut self, enabled: bool) -> Self {
+    self.core.enable_minified_keys = enabled;
+    self
+  }
+
+  pub fn with_runtime_injection(mut self, injection: RuntimeInjection) -> Self {
+    self.runtime_injection = injection;
+    self
+  }
+
+  pub fn with_unstable_module_resolution(
+    mut self,
+    resolution: CheckModuleResolution,
+  ) -> Self {
+    self.core.unstable_module_resolution = resolution;
+    self
+  }
 }
 
 impl Default for StyleXOptions {
   fn default() -> Self {
     StyleXOptions {
-      style_resolution: StyleResolution::PropertySpecificity,
-      property_validation_mode: PropertyValidationMode::Silent,
-      enable_font_size_px_to_rem: false,
+      core: CoreStyleXOptions::default(),
       runtime_injection: RuntimeInjection::Boolean(false),
-      class_name_prefix: "x".to_string(),
-      // defined_stylex_css_variables: FxHashMap::default(),
-      import_sources: vec![],
-      dev: false,
-      test: false,
-      debug: false,
-      enable_debug_class_names: false,
-      enable_debug_data_prop: true,
-      enable_dev_class_names: false,
-      enable_inlined_conditional_merge: true,
-      enable_media_query_order: true,
-      enable_logical_styles_polyfill: false,
-      enable_legacy_value_flipping: false,
-      enable_ltr_rtl_comments: false,
-      enable_minified_keys: true,
-      inject_stylex_side_effects: false,
-      use_real_file_for_source: true,
-      treeshake_compensation: false,
-      aliases: None,
-      unstable_module_resolution: CheckModuleResolution::CommonJS(
-        StyleXOptions::get_common_js_module_resolution(None),
-      ),
-      sx_prop_name: Some("sx".to_string()),
-      env: IndexMap::new(),
-      debug_file_path: None,
     }
   }
 }
@@ -207,46 +245,47 @@ impl From<StyleXOptionsParams> for StyleXOptions {
     };
 
     StyleXOptions {
-      style_resolution: options
-        .style_resolution
-        .unwrap_or(StyleResolution::PropertySpecificity),
-      property_validation_mode: options
-        .property_validation_mode
-        .unwrap_or(PropertyValidationMode::Silent),
-      enable_font_size_px_to_rem: options.enable_font_size_px_to_rem.unwrap_or(false),
-      runtime_injection,
-      class_name_prefix: options.class_name_prefix.unwrap_or("x".to_string()),
-      // defined_stylex_css_variables: options.defined_stylex_css_variables.unwrap_or_default(),
-      import_sources: options.import_sources.unwrap_or_else(|| {
-        vec![
-          ImportSources::Regular("stylex".to_string()),
-          ImportSources::Regular("@stylexjs/stylex".to_string()),
-        ]
-      }),
-      dev: options.dev.unwrap_or(false),
-      test: options.test.unwrap_or(false),
-      debug: options.debug.or(options.dev).unwrap_or(false),
-      enable_debug_class_names: options.enable_debug_class_names.unwrap_or(false),
-      enable_debug_data_prop: options.enable_debug_data_prop.unwrap_or(true),
-      enable_dev_class_names: options.enable_dev_class_names.unwrap_or(false),
-      enable_minified_keys: options.enable_minified_keys.unwrap_or(true),
-      inject_stylex_side_effects: options.inject_stylex_side_effects.unwrap_or(false),
-      treeshake_compensation: options.treeshake_compensation.unwrap_or(false),
-      enable_inlined_conditional_merge: options.enable_inlined_conditional_merge.unwrap_or(true),
-      enable_media_query_order: options.enable_media_query_order.unwrap_or(true),
-      enable_logical_styles_polyfill: options.enable_logical_styles_polyfill.unwrap_or(false),
-      enable_legacy_value_flipping: options.enable_legacy_value_flipping.unwrap_or(false),
-      enable_ltr_rtl_comments: options.enable_ltr_rtl_comments.unwrap_or(false),
-      use_real_file_for_source: options.use_real_file_for_source.unwrap_or(true),
-      aliases: options.aliases,
-      unstable_module_resolution,
-      sx_prop_name: match options.sx_prop_name {
-        None => Some("sx".to_string()),
-        Some(SxPropNameParam::Disabled) => None,
-        Some(SxPropNameParam::Enabled(name)) => Some(name),
+      core: CoreStyleXOptions {
+        style_resolution: options
+          .style_resolution
+          .unwrap_or(StyleResolution::PropertySpecificity),
+        property_validation_mode: options
+          .property_validation_mode
+          .unwrap_or(PropertyValidationMode::Silent),
+        enable_font_size_px_to_rem: options.enable_font_size_px_to_rem.unwrap_or(false),
+        class_name_prefix: options.class_name_prefix.unwrap_or("x".to_string()),
+        import_sources: options.import_sources.unwrap_or_else(|| {
+          vec![
+            ImportSources::Regular("stylex".to_string()),
+            ImportSources::Regular("@stylexjs/stylex".to_string()),
+          ]
+        }),
+        dev: options.dev.unwrap_or(false),
+        test: options.test.unwrap_or(false),
+        debug: options.debug.or(options.dev).unwrap_or(false),
+        enable_debug_class_names: options.enable_debug_class_names.unwrap_or(false),
+        enable_debug_data_prop: options.enable_debug_data_prop.unwrap_or(true),
+        enable_dev_class_names: options.enable_dev_class_names.unwrap_or(false),
+        enable_minified_keys: options.enable_minified_keys.unwrap_or(true),
+        inject_stylex_side_effects: options.inject_stylex_side_effects.unwrap_or(false),
+        treeshake_compensation: options.treeshake_compensation.unwrap_or(false),
+        enable_inlined_conditional_merge: options.enable_inlined_conditional_merge.unwrap_or(true),
+        enable_media_query_order: options.enable_media_query_order.unwrap_or(true),
+        enable_logical_styles_polyfill: options.enable_logical_styles_polyfill.unwrap_or(false),
+        enable_legacy_value_flipping: options.enable_legacy_value_flipping.unwrap_or(false),
+        enable_ltr_rtl_comments: options.enable_ltr_rtl_comments.unwrap_or(false),
+        use_real_file_for_source: options.use_real_file_for_source.unwrap_or(true),
+        aliases: options.aliases,
+        unstable_module_resolution,
+        sx_prop_name: match options.sx_prop_name {
+          None => Some("sx".to_string()),
+          Some(SxPropNameParam::Disabled) => None,
+          Some(SxPropNameParam::Enabled(name)) => Some(name),
+        },
+        env: options.env.unwrap_or_default(),
+        debug_file_path: options.debug_file_path,
       },
-      env: options.env.unwrap_or_default(),
-      debug_file_path: options.debug_file_path,
+      runtime_injection,
     }
   }
 }

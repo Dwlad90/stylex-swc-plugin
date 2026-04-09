@@ -1,3 +1,4 @@
+pub mod core_stylex_options;
 pub mod dynamic_style;
 pub mod inline_style;
 pub mod named_import_source;

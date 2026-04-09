@@ -12,12 +12,12 @@ mod stylex_define_consts {
   use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 
   fn create_test_state_manager(export_id: &str) -> StateManager {
-    let mut state = StateManager::new(StyleXOptions {
-      class_name_prefix: "x".to_string(),
-      debug: false,
-      enable_debug_class_names: false,
-      ..Default::default()
-    });
+    let options = StyleXOptions::default()
+      .with_class_name_prefix("x")
+      .with_debug(false)
+      .with_enable_debug_class_names(false);
+
+    let mut state = StateManager::new(options);
     state.export_id = Some(export_id.to_string());
     state
   }

@@ -13,17 +13,19 @@ mod converting_pre_rule_to_css {
   pub(super) fn get_state() -> StateManager {
     let mut state_manager = StateManager::default();
 
-    state_manager.options.class_name_prefix = "x".to_string();
-    state_manager.options.dev = false;
-    state_manager.options.debug = false;
-    state_manager.options.enable_debug_class_names = true;
-    state_manager.options.enable_dev_class_names = false;
-    state_manager.options.enable_debug_data_prop = true;
-    state_manager.options.enable_font_size_px_to_rem = false;
-    state_manager.options.enable_logical_styles_polyfill = false;
-    state_manager.options.enable_minified_keys = true;
-    state_manager.options.style_resolution = StyleResolution::LegacyExpandShorthands;
-    state_manager.options.test = false;
+    state_manager.options = state_manager
+      .options
+      .with_class_name_prefix("x")
+      .with_dev(false)
+      .with_debug(false)
+      .with_enable_debug_class_names(true)
+      .with_enable_dev_class_names(false)
+      .with_enable_debug_data_prop(true)
+      .with_enable_font_size_px_to_rem(false)
+      .with_enable_logical_styles_polyfill(false)
+      .with_enable_minified_keys(true)
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_test(false);
 
     state_manager
   }

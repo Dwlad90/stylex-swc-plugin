@@ -17,12 +17,14 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   pub(super) fn get_state() -> StateManager {
     let mut state_manager = StateManager::default();
 
-    state_manager.options.class_name_prefix = "x".to_string();
-    state_manager.options.style_resolution = StyleResolution::LegacyExpandShorthands;
-    state_manager.options.runtime_injection = None;
-    state_manager.options.dev = false;
-    state_manager.options.test = false;
-    state_manager.options.debug = false;
+    state_manager.options = state_manager
+      .options
+      .with_class_name_prefix("x")
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_runtime_injection(None)
+      .with_dev(false)
+      .with_test(false)
+      .with_debug(false);
 
     state_manager
   }

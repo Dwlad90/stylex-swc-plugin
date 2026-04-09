@@ -505,11 +505,9 @@ mod stylex_define_vars {
 
     let mut state = Box::new(StateManager {
       export_id: Some(export_id.to_string()),
-      options: StyleXStateOptions {
-        debug: true,
-        enable_debug_class_names: true,
-        ..StateManager::default().options
-      },
+      options: StyleXStateOptions::default()
+        .with_debug(true)
+        .with_enable_debug_class_names(true),
       ..StateManager::default()
     });
 
@@ -659,11 +657,9 @@ mod stylex_define_vars {
 
     let mut state = Box::new(StateManager {
       export_id: Some(export_id.to_string()),
-      options: StyleXStateOptions {
-        debug: false,
-        enable_debug_class_names: false,
-        ..StateManager::default().options
-      },
+      options: StyleXStateOptions::default()
+        .with_debug(false)
+        .with_enable_debug_class_names(false),
       ..StateManager::default()
     });
 
@@ -882,10 +878,10 @@ mod stylex_define_vars {
     let state = Box::<StateManager>::default();
     let mut state = Box::new(StateManager {
       export_id: Some(export_id.to_string()),
-      options: StyleXStateOptions {
-        class_name_prefix: class_name_prefix.to_string(),
-        ..state.options.clone()
-      },
+      options: state
+        .options
+        .clone()
+        .with_class_name_prefix(class_name_prefix),
       ..*state
     });
 
@@ -1125,10 +1121,10 @@ mod stylex_define_vars {
     let state = Box::<StateManager>::default();
     let mut state = Box::new(StateManager {
       export_id: Some(export_id.to_string()),
-      options: StyleXStateOptions {
-        class_name_prefix: class_name_prefix.to_string(),
-        ..state.options.clone()
-      },
+      options: state
+        .options
+        .clone()
+        .with_class_name_prefix(class_name_prefix),
       ..*state
     });
 

@@ -46,10 +46,7 @@ mod tests {
 
   #[test]
   fn test_default_marker_with_prefix() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "x".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("x");
 
     let result = stylex_default_marker(&options);
 
@@ -77,10 +74,7 @@ mod tests {
 
   #[test]
   fn test_default_marker_with_custom_prefix() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "custom".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("custom");
 
     let result = stylex_default_marker(&options);
 
@@ -101,10 +95,7 @@ mod tests {
 
   #[test]
   fn test_default_marker_with_empty_prefix() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("");
 
     let result = stylex_default_marker(&options);
 

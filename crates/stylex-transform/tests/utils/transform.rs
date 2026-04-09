@@ -155,3 +155,33 @@ pub(crate) fn ts_syntax() -> Syntax {
     ..Default::default()
   })
 }
+
+use stylex_transform::StyleXTransformBuilder;
+
+/// Type alias for the builder with standard test comments.
+pub(crate) type TestBuilder = StyleXTransformBuilder<Rc<SingleThreadedComments>>;
+
+/// Creates a test transform with the given customizations applied.
+///
+/// Takes `comments` (from `tr.comments.clone()`) and a closure that
+/// customizes the builder before finalization.
+///
+/// # Examples
+/// ```ignore
+/// // In a file-level function:
+/// fn my_transform(tr: &Tester) -> impl Pass {
+///   build_test_transform(tr.comments.clone(), |b| b.with_dev(true).with_runtime_injection())
+/// }
+///
+/// // Inline in a macro:
+/// stylex_test!(name, |tr| build_test_transform(tr.comments.clone(), |b| b), code);
+/// ```
+pub(crate) fn build_test_transform<F>(
+  comments: Rc<SingleThreadedComments>,
+  customize: F,
+) -> impl Pass
+where
+  F: FnOnce(TestBuilder) -> TestBuilder,
+{
+  customize(StyleXTransform::test(comments)).into_pass()
+}

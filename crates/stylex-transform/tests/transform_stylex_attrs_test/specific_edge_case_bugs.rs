@@ -1,12 +1,14 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
+
+fn file_transform(
+  comments: std::rc::Rc<swc_core::common::comments::SingleThreadedComments>,
+) -> impl swc_core::ecma::ast::Pass {
+  build_test_transform(comments, |b| b.with_dev(true).with_runtime_injection())
+}
 
 stylex_test!(
   basic_stylex_call,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_dev(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| file_transform(tr.comments.clone()),
   r#"
       import * as stylex from '@stylexjs/stylex';
       export const styles = stylex.create({
@@ -45,10 +47,7 @@ stylex_test!(
 
 stylex_test!(
   basic_stylex_call_exported,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_dev(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| file_transform(tr.comments.clone()),
   r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
@@ -89,11 +88,9 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_in_debug_mode,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_dev(true)
-    .with_debug(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_dev(true).with_debug(true).with_runtime_injection()
+  }),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({
@@ -134,12 +131,12 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_in_debug_mode_with_debug_classnames_disabled,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_dev(true)
-    .with_debug(true)
-    .with_enable_debug_class_names(false)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_dev(true)
+      .with_debug(true)
+      .with_enable_debug_class_names(false)
+      .with_runtime_injection()
+  }),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({

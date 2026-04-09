@@ -22,4 +22,7 @@ pub(crate) use stylex_transform::StyleXTransform;
 pub(crate) use swc_core::ecma::transforms::testing::{test, test_transform};
 
 #[allow(unused_imports)]
-pub(crate) use crate::utils::transform::ts_syntax;
+pub(crate) use stylex_transform::StyleXTransformBuilder;
+
+#[allow(unused_imports)]
+pub(crate) use crate::utils::transform::{TestBuilder, build_test_transform, ts_syntax};

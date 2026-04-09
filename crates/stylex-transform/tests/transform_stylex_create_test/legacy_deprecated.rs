@@ -1,14 +1,18 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
+
+/// File-level transform: legacy deprecated tests use explicit RuntimeInjection::Boolean(true)
+fn legacy_transform(
+  comments: std::rc::Rc<swc_core::common::comments::SingleThreadedComments>,
+) -> impl swc_core::ecma::ast::Pass {
+  build_test_transform(comments, |b| {
+    b.with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection()
+  })
+}
 
 stylex_test!(
   transforms_nested_pseudo_class_to_css,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| legacy_transform(tr.comments.clone()),
   r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -24,12 +28,7 @@ stylex_test!(
 
 stylex_test!(
   transforms_invalid_pseudo_class,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| legacy_transform(tr.comments.clone()),
   r#"
               import stylex from 'stylex';
               const styles = stylex.create({
@@ -45,12 +44,7 @@ stylex_test!(
 
 stylex_test!(
   transforms_valid_pseudo_classes_in_order,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| legacy_transform(tr.comments.clone()),
   r#"
               import stylex from 'stylex';
               const styles = stylex.create({
@@ -74,12 +68,7 @@ stylex_test!(
 
 stylex_test!(
   transforms_pseudo_class_with_array_value_as_fallbacks,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| legacy_transform(tr.comments.clone()),
   r#"
               import stylex from 'stylex';
               const styles = stylex.create({
@@ -94,12 +83,7 @@ stylex_test!(
 
 stylex_test!(
   transforms_legacy_pseudo_class_within_a_pseudo_element,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| legacy_transform(tr.comments.clone()),
   r#"
             import stylex from 'stylex';
             export const styles = stylex.create({
@@ -117,12 +101,7 @@ stylex_test!(
 
 stylex_test!(
   transforms_pseudo_elements_within_legacy_pseudo_class,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| legacy_transform(tr.comments.clone()),
   r#"
             import stylex from 'stylex';
             export const styles = stylex.create({
@@ -142,12 +121,7 @@ stylex_test!(
 
 stylex_test!(
   transforms_pseudo_elements_sandwiched_within_pseudo_classes,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| legacy_transform(tr.comments.clone()),
   r#"
             import stylex from 'stylex';
             export const styles = stylex.create({
@@ -171,12 +145,7 @@ stylex_test!(
 
 stylex_test!(
   transforms_media_queries,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| legacy_transform(tr.comments.clone()),
   r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -195,12 +164,7 @@ stylex_test!(
 
 stylex_test!(
   transforms_supports_queries,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| legacy_transform(tr.comments.clone()),
   r#"
             import stylex from 'stylex';
             const styles = stylex.create({
@@ -219,13 +183,11 @@ stylex_test!(
 
 stylex_test!(
   transforms_dynamic_shorthands_in_legacy_expand_shorthands_mode,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_runtime_injection_option(RuntimeInjection::Boolean(true))
       .with_style_resolution(StyleResolution::LegacyExpandShorthands)
       .with_runtime_injection()
-      .into_pass()
-  },
+  }),
   r#"
             import stylex from 'stylex';
             export const styles = stylex.create({

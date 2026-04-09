@@ -329,11 +329,15 @@ fn meta_only_import_default() {
   assert_snapshot!(output);
 }
 
+fn inject_side_effects_transform(
+  comments: std::rc::Rc<swc_core::common::comments::SingleThreadedComments>,
+) -> impl swc_core::ecma::ast::Pass {
+  build_test_transform(comments, |b| b.with_inject_stylex_side_effects(true))
+}
+
 stylex_test!(
   inject_stylex_side_effects,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_inject_stylex_side_effects(true)
-    .into_pass(),
+  |tr| inject_side_effects_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { constants } from './constants.consts';
@@ -342,9 +346,7 @@ stylex_test!(
 
 stylex_test!(
   inject_stylex_theme_side_effects,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_inject_stylex_side_effects(true)
-    .into_pass(),
+  |tr| inject_side_effects_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { theme } from './theme.stylex';
@@ -353,9 +355,7 @@ stylex_test!(
 
 stylex_test!(
   inject_stylex_side_effects_ts,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_inject_stylex_side_effects(true)
-    .into_pass(),
+  |tr| inject_side_effects_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { constants } from './constants.consts.ts';
@@ -364,9 +364,7 @@ stylex_test!(
 
 stylex_test!(
   inject_stylex_theme_side_effects_ts,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_inject_stylex_side_effects(true)
-    .into_pass(),
+  |tr| inject_side_effects_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { theme } from './theme.stylex.ts';

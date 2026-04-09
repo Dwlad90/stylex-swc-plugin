@@ -17,7 +17,8 @@ fn stylex_transform(
 
 stylex_test!(
   stylex_call_produces_dev_class_names_and_enable_inlined_conditional_merge_false,
-  |tr| stylex_transform(tr.comments.clone(), |b| b.with_enable_inlined_conditional_merge(false)),
+  |tr| stylex_transform(tr.comments.clone(), |b| b
+    .with_enable_inlined_conditional_merge(false)),
   // dev:true
   r#"
         import stylex from 'stylex';
@@ -52,7 +53,8 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_produces_dev_class_name_with_conditions_skip_conditional,
-  |tr| stylex_transform(tr.comments.clone(), |b| b.with_enable_inlined_conditional_merge(false)),
+  |tr| stylex_transform(tr.comments.clone(), |b| b
+    .with_enable_inlined_conditional_merge(false)),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({

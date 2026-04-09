@@ -57,7 +57,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_e_resize_for_cursor_property,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -69,7 +70,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_w_resize_for_cursor_property,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -81,7 +83,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_ne_resize_for_cursor_property,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -93,7 +96,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_nw_resize_for_cursor_property,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -105,7 +109,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_se_resize_for_cursor_property,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -117,7 +122,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_sw_resize_for_cursor_property,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -206,7 +212,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_of_box_shadow_property_none,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -243,7 +250,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_of_box_shadow_property_1px_1px_hash000,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -255,7 +263,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_of_box_shadow_property_negative_1px_negative_1px_hash000,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -267,7 +276,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_of_box_shadow_property_inset_1px_1px_hash000,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -279,7 +289,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_of_box_shadow_property_1px_1px_1px_1px_hash000,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -291,7 +302,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_of_box_shadow_property_inset_1px_1px_1px_1px_hash000,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -303,7 +315,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_of_box_shadow_property_complex,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -315,7 +328,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_of_text_shadow_property_none,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -327,7 +341,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_of_text_shadow_property_1px_1px_hash000,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -339,7 +354,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_of_text_shadow_property_negative_1px_negative_1px_hash000,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';
@@ -351,7 +367,8 @@ stylex_test!(
 stylex_test!(
   legacy_value_of_text_shadow_property_1px_1px_1px_hash000,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+    b.with_enable_legacy_value_flipping(true)
+      .with_runtime_injection()
   }),
   r#"
         import stylex from 'stylex';

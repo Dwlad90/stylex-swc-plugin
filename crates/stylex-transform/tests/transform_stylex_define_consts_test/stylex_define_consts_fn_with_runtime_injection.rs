@@ -2,7 +2,10 @@ use crate::utils::prelude::*;
 use std::path::PathBuf;
 use swc_core::common::FileName;
 
-fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
   build_test_transform(comments, |b| {
     customize(
       b.with_cwd(PathBuf::from("/stylex/packages/"))
@@ -17,7 +20,7 @@ stylex_test!(
   constants_object_with_runtime_injection_true,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
+      "/stylex/packages/".to_string(),
     )))
     .with_runtime_injection_option(RuntimeInjection::Boolean(true))
     .with_runtime_injection()
@@ -151,7 +154,7 @@ stylex_test!(
   constants_with_numeric_keys_with_runtime_injection_true,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_unstable_module_resolution(ModuleResolution::haste(Some(
-      "/stylex/packages/".to_string()
+      "/stylex/packages/".to_string(),
     )))
     .with_runtime_injection_option(RuntimeInjection::Boolean(true))
     .with_runtime_injection()

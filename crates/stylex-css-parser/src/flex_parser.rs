@@ -149,7 +149,7 @@ impl FlexCombinators {
 
         Ok(CssValue::function(name, args))
       },
-      &format!("function_{}", name),
+      format!("function_{}", name),
     )
   }
 

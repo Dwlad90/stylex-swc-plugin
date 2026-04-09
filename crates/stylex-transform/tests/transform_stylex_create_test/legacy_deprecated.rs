@@ -2,7 +2,10 @@ use crate::utils::prelude::*;
 
 /// File-level transform: legacy tests use explicit RuntimeInjection::Boolean(true).
 /// Accepts a closure for test-specific overrides on top of the file baseline.
-fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
   build_test_transform(comments, |b| {
     customize(
       b.with_runtime_injection_option(RuntimeInjection::Boolean(true))

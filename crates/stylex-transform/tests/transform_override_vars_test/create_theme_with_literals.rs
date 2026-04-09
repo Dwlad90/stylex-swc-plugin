@@ -12,7 +12,10 @@ export const buttonTheme = {
 };
 "#;
 
-fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
   build_test_transform(comments, |b| {
     customize(
       b.with_filename(FileName::Real(

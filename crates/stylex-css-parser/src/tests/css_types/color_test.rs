@@ -470,7 +470,7 @@ mod test_css_type_color {
 
       // Verify round-trip parsing for most cases
       // (some cases may have normalized output like hsl(120deg, 100%, 50%))
-      let reparsed = Color::parse().parse_to_end(&color.to_string());
+      let reparsed = Color::parse().parse_to_end(color.to_string());
       assert!(
         reparsed.is_ok(),
         "Should reparse successfully: {} -> {}",

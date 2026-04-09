@@ -1,8 +1,14 @@
 use crate::utils::prelude::*;
 
-fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
   build_test_transform(comments, |b| {
-    customize(b.with_pass(PluginPass::test_default()).with_runtime_injection())
+    customize(
+      b.with_pass(PluginPass::test_default())
+        .with_runtime_injection(),
+    )
   })
 }
 

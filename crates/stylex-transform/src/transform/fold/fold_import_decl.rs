@@ -51,7 +51,7 @@ where
             if import_sources.contains(&convert_atom_to_string(declaration))
               && self
                 .state
-                .import_as(&convert_atom_to_string(&import_decl.src.value))
+                .import_as(convert_atom_to_string(&import_decl.src.value))
                 .is_none()
             {
               let local_name = import_specifier.local.sym.to_string();
@@ -80,7 +80,7 @@ where
             if import_sources.contains(&convert_atom_to_string(declaration))
               && self
                 .state
-                .import_as(&convert_atom_to_string(&import_decl.src.value))
+                .import_as(convert_atom_to_string(&import_decl.src.value))
                 .is_none()
             {
               let local_name = import_specifier.local.sym.to_string();

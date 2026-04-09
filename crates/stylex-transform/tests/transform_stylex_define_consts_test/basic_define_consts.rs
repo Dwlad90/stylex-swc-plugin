@@ -3,7 +3,10 @@ use crate::utils::transform::stringify_js;
 use std::path::PathBuf;
 use swc_core::common::FileName;
 
-fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
   build_test_transform(comments, |b| {
     customize(
       b.with_cwd(PathBuf::from("/stylex/packages/"))
@@ -36,9 +39,15 @@ fn constants_are_unique() {
         export const breakpoints = stylex.defineConsts({ margin: '10px' });
       "#;
 
-  let output1 = stringify_js(input1, ts_syntax(), |tr| stylex_transform(tr.comments.clone(), |b| b));
-  let output2 = stringify_js(input2, ts_syntax(), |tr| stylex_transform(tr.comments.clone(), |b| b));
-  let output3 = stringify_js(input3, ts_syntax(), |tr| stylex_transform(tr.comments.clone(), |b| b));
+  let output1 = stringify_js(input1, ts_syntax(), |tr| {
+    stylex_transform(tr.comments.clone(), |b| b)
+  });
+  let output2 = stringify_js(input2, ts_syntax(), |tr| {
+    stylex_transform(tr.comments.clone(), |b| b)
+  });
+  let output3 = stringify_js(input3, ts_syntax(), |tr| {
+    stylex_transform(tr.comments.clone(), |b| b)
+  });
 
   // Assert the generated constants are consistent for the same inputs
   assert_eq!(output1, output2);

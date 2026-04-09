@@ -4,7 +4,8 @@ fn file_transform(
   comments: std::rc::Rc<swc_core::common::comments::SingleThreadedComments>,
 ) -> impl swc_core::ecma::ast::Pass {
   build_test_transform(comments, |b| {
-    b.with_pass(PluginPass::test_default()).with_runtime_injection()
+    b.with_pass(PluginPass::test_default())
+      .with_runtime_injection()
   })
 }
 

@@ -143,14 +143,12 @@ fn transform_with_options(
 ) -> String {
   let syntax = ts_syntax();
   stringify_js(input, syntax, |tr| {
-    let mut builder = stylex_transform::StyleXTransform::test(tr.comments.clone())
+    let mut builder = StyleXTransform::test(tr.comments.clone())
       .with_filename(filename.unwrap_or(FileName::Real("/stylex/packages/TestFile.js".into())))
       .with_unstable_module_resolution(
         unstable_module_resolution
           .unwrap_or_else(|| ModuleResolution::common_js(Some("/stylex/packages/".to_string()))),
-      )
-      .with_treeshake_compensation(true)
-      .with_enable_minified_keys(false);
+      );
 
     if let Some(sources) = import_sources {
       builder = builder.with_import_sources(sources);

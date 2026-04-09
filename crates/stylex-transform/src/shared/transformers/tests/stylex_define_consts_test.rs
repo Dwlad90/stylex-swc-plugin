@@ -35,7 +35,7 @@ mod stylex_define_consts {
     format!(
       "{}{}",
       class_name_prefix,
-      create_hash(&format!("{}.{}", export_id, key))
+      create_hash(format!("{}.{}", export_id, key))
     )
   }
 

@@ -1,7 +1,10 @@
 use crate::utils::prelude::*;
 use swc_core::common::FileName;
 
-fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
   build_test_transform(comments, |b| {
     customize(
       b.with_dev(true)
@@ -94,7 +97,8 @@ stylex_test!(
 
 stylex_test!(
   basic_stylex_call_skip_conditional,
-  |tr| stylex_transform(tr.comments.clone(), |b| b.with_enable_inlined_conditional_merge(false)),
+  |tr| stylex_transform(tr.comments.clone(), |b| b
+    .with_enable_inlined_conditional_merge(false)),
   r#"
       import * as stylex from '@stylexjs/stylex';
       export const styles = stylex.create({

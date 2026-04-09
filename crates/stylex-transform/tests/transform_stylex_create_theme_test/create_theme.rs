@@ -1,12 +1,15 @@
 use crate::utils::prelude::*;
 use swc_core::common::FileName;
 
-fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
   build_test_transform(comments, |b| {
     customize(
       b.with_pass(PluginPass::test_default())
         .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-          "/stylex/packages/".to_string()
+          "/stylex/packages/".to_string(),
         ))),
     )
   })
@@ -72,7 +75,7 @@ stylex_test!(
   theme_object_deep_in_file_tree,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real(
-      "/stylex/packages/src/css/vars.stylex.js".into()
+      "/stylex/packages/src/css/vars.stylex.js".into(),
     ))
   }),
   r#"
@@ -267,7 +270,7 @@ stylex_test!(
   multiple_theme_objects_different_vars,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real(
-      "/stylex/packages/otherVars.stylex.js".into()
+      "/stylex/packages/otherVars.stylex.js".into(),
     ))
   }),
   r#"
@@ -346,7 +349,7 @@ stylex_test!(
   debug_adds_debug_data_for_npm_packages,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real(
-      "/js/node_modules/npm-package/dist/components/Foo.react.js".into()
+      "/js/node_modules/npm-package/dist/components/Foo.react.js".into(),
     ))
     .with_debug(true)
   }),
@@ -391,7 +394,7 @@ stylex_test!(
   debug_adds_debug_data_for_npm_packages_haste,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real(
-      "/node_modules/npm-package/dist/components/Foo.react.js".into()
+      "/node_modules/npm-package/dist/components/Foo.react.js".into(),
     ))
     .with_debug(true)
     .with_unstable_module_resolution(ModuleResolution::haste(None))

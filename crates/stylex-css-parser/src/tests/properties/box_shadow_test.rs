@@ -444,7 +444,7 @@ mod test_css_property_box_shadow_list {
 
     // Verify round-trip parsing
     let reparsed = BoxShadowList::parser()
-      .parse_to_end(&shadow_list.to_string())
+      .parse_to_end(shadow_list.to_string())
       .unwrap();
     assert_eq!(shadow_list.shadows.len(), reparsed.shadows.len());
   }
@@ -500,7 +500,7 @@ mod test_css_property_box_shadow_list {
 
     // Test round-trip parsing
     let reparsed = BoxShadowList::parser()
-      .parse_to_end(&shadow_list.to_string())
+      .parse_to_end(shadow_list.to_string())
       .unwrap();
     assert!(reparsed.shadows.is_empty());
     assert_eq!(reparsed.to_string(), "none");

@@ -271,7 +271,7 @@ fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value
   }
 
   match val_type {
-    napi::sys::ValueType::napi_string => create_string_expr(&read_napi_string(raw_env, value)),
+    napi::sys::ValueType::napi_string => create_string_expr(read_napi_string(raw_env, value)),
     napi::sys::ValueType::napi_number => {
       let mut n: f64 = 0.0;
       unsafe {

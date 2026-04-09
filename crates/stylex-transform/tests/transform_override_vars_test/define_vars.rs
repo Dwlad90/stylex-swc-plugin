@@ -1,7 +1,10 @@
 use crate::utils::prelude::*;
 use swc_core::common::FileName;
 
-fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
   build_test_transform(comments, |b| {
     customize(
       b.with_unstable_module_resolution(ModuleResolution::haste(None))
@@ -30,7 +33,7 @@ stylex_test!(
   output_of_stylex_define_vars,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
+      "/stylex/packages/TestTheme.stylex.js".into(),
     ))
   }),
   r#"
@@ -57,7 +60,7 @@ stylex_test!(
   output_of_stylex_define_vars_with_literals,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
+      "/stylex/packages/TestTheme.stylex.js".into(),
     ))
   }),
   r#"

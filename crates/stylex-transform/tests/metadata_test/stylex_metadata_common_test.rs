@@ -1,7 +1,10 @@
 use crate::utils::prelude::*;
 
-fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
-  build_test_transform(comments, |b| customize(b))
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, customize)
 }
 
 stylex_test!(

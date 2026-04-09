@@ -56,7 +56,7 @@ pub(crate) fn stylex_create_set(
       .iter_mut()
       .map(|(key, value)| {
         let key = if traversal_state.options.enable_minified_keys && !key.starts_with("--") {
-          let hashed_key = create_short_hash(&format!("<>{}", key));
+          let hashed_key = create_short_hash(format!("<>{}", key));
           if traversal_state.options.debug {
             format!("{}-k{}", key, hashed_key)
           } else {

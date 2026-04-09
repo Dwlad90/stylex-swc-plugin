@@ -1,7 +1,10 @@
 use crate::utils::prelude::*;
 use crate::utils::transform::stringify_js;
 
-fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
   let cwd_path = std::env::current_dir().unwrap();
   let fixture_path = cwd_path.join("tests/fixture/consts");
 
@@ -19,7 +22,9 @@ fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) 
 }
 
 fn transform_with_inline_consts(input: &str) -> String {
-  stringify_js(input, ts_syntax(), |tr| stylex_transform(tr.comments.clone(), |b| b))
+  stringify_js(input, ts_syntax(), |tr| {
+    stylex_transform(tr.comments.clone(), |b| b)
+  })
 }
 
 #[test]

@@ -237,7 +237,7 @@ mod test_css_type_calc {
     assert!(!calc.to_string().is_empty());
 
     // Verify round-trip parsing
-    let reparsed = Calc::parser().parse_to_end(&calc.to_string()).unwrap();
+    let reparsed = Calc::parser().parse_to_end(calc.to_string()).unwrap();
     assert_eq!(calc.to_string(), reparsed.to_string());
   }
 
@@ -252,7 +252,7 @@ mod test_css_type_calc {
     assert!(calc.to_string().contains("(100% - 20px)"));
 
     // Verify round-trip parsing
-    let reparsed = Calc::parser().parse_to_end(&calc.to_string()).unwrap();
+    let reparsed = Calc::parser().parse_to_end(calc.to_string()).unwrap();
     assert_eq!(calc.to_string(), reparsed.to_string());
   }
 
@@ -267,7 +267,7 @@ mod test_css_type_calc {
     assert!(!calc.to_string().is_empty());
 
     // Verify round-trip parsing
-    let reparsed = Calc::parser().parse_to_end(&calc.to_string()).unwrap();
+    let reparsed = Calc::parser().parse_to_end(calc.to_string()).unwrap();
     assert_eq!(calc.to_string(), reparsed.to_string());
   }
 
@@ -287,7 +287,7 @@ mod test_css_type_calc {
       assert!(!calc.to_string().is_empty());
 
       // Verify round-trip parsing maintains precedence
-      let reparsed = Calc::parser().parse_to_end(&calc.to_string()).unwrap();
+      let reparsed = Calc::parser().parse_to_end(calc.to_string()).unwrap();
       assert_eq!(calc.to_string(), reparsed.to_string());
     }
   }

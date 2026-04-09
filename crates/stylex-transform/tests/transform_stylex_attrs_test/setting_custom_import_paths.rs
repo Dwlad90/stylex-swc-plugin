@@ -6,9 +6,11 @@ fn stylex_transform(
 ) -> impl Pass {
   build_test_transform(comments, |b| {
     customize(
-      b.with_import_sources(vec![ImportSources::Regular("custom-stylex-path".to_string())])
-        .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-        .with_runtime_injection(),
+      b.with_import_sources(vec![ImportSources::Regular(
+        "custom-stylex-path".to_string(),
+      )])
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_runtime_injection(),
     )
   })
 }

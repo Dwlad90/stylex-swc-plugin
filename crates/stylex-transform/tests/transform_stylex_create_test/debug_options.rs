@@ -5,7 +5,11 @@ fn stylex_transform(
   customize: impl FnOnce(TestBuilder) -> TestBuilder,
 ) -> impl Pass {
   build_test_transform(comments, |b| {
-    customize(b.with_debug(true).with_enable_debug_class_names(true).with_runtime_injection())
+    customize(
+      b.with_debug(true)
+        .with_enable_debug_class_names(true)
+        .with_runtime_injection(),
+    )
   })
 }
 

@@ -39,7 +39,7 @@ impl ThemeRef {
       let value = format!(
         "{}{}",
         state.options.class_name_prefix,
-        create_hash(&gen_file_based_identifier(
+        create_hash(gen_file_based_identifier(
           &self.file_name,
           &self.export_name,
           None

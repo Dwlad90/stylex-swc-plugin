@@ -4,13 +4,14 @@ use swc_core::common::FileName;
 
 use crate::utils::transform::stringify_js;
 
-fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
   build_test_transform(comments, |b| {
-    customize(
-      b.with_filename(FileName::Real(
-        "/stylex/packages/TestTheme.stylex.js".into(),
-      )),
-    )
+    customize(b.with_filename(FileName::Real(
+      "/stylex/packages/TestTheme.stylex.js".into(),
+    )))
   })
 }
 
@@ -298,11 +299,11 @@ stylex_test!(
   transforms_variables_object_in_common_js_with_nested_file_path,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(FileName::Real(
-      "/stylex/packages/utils/vars.stylex.js".into()
+      "/stylex/packages/utils/vars.stylex.js".into(),
     ))
     .with_dev(true)
     .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
+      "/stylex/packages/".to_string(),
     )))
   }),
   format!(

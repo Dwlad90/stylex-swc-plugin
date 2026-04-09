@@ -14,6 +14,7 @@ This implementation provides a complete parsing API with:
 - Static methods return specialized parser types
 */
 
+use log::debug;
 use stylex_macros::stylex_unreachable;
 
 use crate::{
@@ -410,19 +411,23 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
   /// Enhanced Rust-specific method for development and troubleshooting
   pub fn debug(&self, css: impl AsRef<str>) -> Result<T, CssParseError> {
     let css = css.as_ref();
-    println!("🔍 DEBUG: Parsing '{}' with parser '{}'", css, self.label);
+
+    debug!("Parsing '{}' with parser '{}'", css, self.label);
+
     let mut tokens = TokenList::new(css);
     let result = (self.run)(&mut tokens);
+
     match &result {
-      Ok(_value) => println!(
-        "✅ SUCCESS: Parser '{}' matched. Consumed {} tokens.",
+      Ok(_value) => debug!(
+        "SUCCESS: Parser '{}' matched. Consumed {} tokens.",
         self.label, tokens.current_index
       ),
-      Err(error) => println!(
-        "❌ FAILED: Parser '{}' failed at token {}. Error: {}",
+      Err(error) => debug!(
+        "FAILED: Parser '{}' failed at token {}. Error: {}",
         self.label, tokens.current_index, error
       ),
     }
+
     result
   }
 

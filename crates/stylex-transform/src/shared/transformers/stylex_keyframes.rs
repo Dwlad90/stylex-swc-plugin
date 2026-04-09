@@ -145,7 +145,7 @@ pub(crate) fn stylex_keyframes(
   let animation_name = format!(
     "{}{}-B",
     class_name_prefix,
-    create_hash(&format!("<>{}", stable_string))
+    create_hash(format!("<>{}", stable_string))
   );
 
   let ltr = format!("@keyframes {}{{{}}}", animation_name, ltr_string);

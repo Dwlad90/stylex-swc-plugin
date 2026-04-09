@@ -39,7 +39,8 @@ stylex_test!(
 stylex_test!(
   stylex_call_using_styles_inside_use_memo_skip_conditional,
   |tr| stylex_transform(tr.comments.clone(), |b| {
-    b.with_enable_inlined_conditional_merge(false).with_runtime_injection()
+    b.with_enable_inlined_conditional_merge(false)
+      .with_runtime_injection()
   }),
   r#"
     import stylex from 'stylex';

@@ -251,7 +251,8 @@ stylex_test!(
 stylex_test!(
   stylex_call_with_conditions_and_undefined_collisions_tranform_successfully_with_inlined,
   |tr| build_test_transform(tr.comments.clone(), |b| {
-    b.with_enable_inlined_conditional_merge(true).with_runtime_injection()
+    b.with_enable_inlined_conditional_merge(true)
+      .with_runtime_injection()
   }),
   r#"
         import * as stylex from 'stylex';

@@ -181,7 +181,7 @@ pub(crate) fn evaluate_obj_key(
         };
       }
     },
-    PropName::Str(strng) => create_string_expr(&convert_atom_to_string(&strng.value)),
+    PropName::Str(strng) => create_string_expr(convert_atom_to_string(&strng.value)),
     PropName::Num(num) => create_number_expr(num.value),
     PropName::BigInt(big_int) => create_big_int_expr(big_int.clone()),
   };
@@ -2368,7 +2368,7 @@ fn _evaluate(
       return deopt(
         normalized_path,
         state,
-        &unsupported_expression(&format!(
+        &unsupported_expression(format!(
           "{:?}",
           normalized_path.get_type(get_default_expr_ctx())
         )),
@@ -2423,7 +2423,7 @@ fn _evaluate(
       return deopt(
         normalized_path,
         state,
-        &unsupported_expression(&format!(
+        &unsupported_expression(format!(
           "{:?}",
           normalized_path.get_type(get_default_expr_ctx())
         )),
@@ -2557,7 +2557,7 @@ fn _evaluate(
     return deopt(
       normalized_path,
       state,
-      &unsupported_expression(&format!(
+      &unsupported_expression(format!(
         "{:?}",
         normalized_path.get_type(get_default_expr_ctx())
       )),
@@ -2576,7 +2576,7 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
           .chars()
           .enumerate()
           .map(|(i, c)| {
-            create_ident_key_value_prop(&i.to_string(), create_string_expr(&c.to_string()))
+            create_ident_key_value_prop(i.to_string(), create_string_expr(c.to_string()))
           })
           .collect::<Vec<PropOrSpread>>();
 
@@ -2598,7 +2598,7 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
               _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
             };
 
-            create_ident_key_value_prop(&index.to_string(), expr)
+            create_ident_key_value_prop(index.to_string(), expr)
           })
         })
         .collect();

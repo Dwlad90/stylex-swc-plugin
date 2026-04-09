@@ -333,14 +333,14 @@ fn evaluate_partial_object_recursively(
 
                     key_path.push(key_str.clone());
 
-                    format!("--x-{}", create_hash(&key_path.join("_")))
+                    format!("--x-{}", create_hash(key_path.join("_")))
                   } else {
                     format!("--x-{}", key_str)
                   };
 
                   let new_prop = create_key_value_prop(
                     &key_str,
-                    create_string_expr(&format!("var({})", var_name)),
+                    create_string_expr(format!("var({})", var_name)),
                   );
                   obj.push(new_prop);
 

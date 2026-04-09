@@ -155,9 +155,9 @@ pub(crate) fn generate_css_rule(
   };
 
   let priority = get_priority(key)
-    + pseudos.iter().map(|p| get_priority(p)).sum::<f64>()
-    + at_rules.iter().map(|a| get_priority(a)).sum::<f64>()
-    + const_rules.iter().map(|c| get_priority(c)).sum::<f64>();
+    + pseudos.iter().map(get_priority).sum::<f64>()
+    + at_rules.iter().map(get_priority).sum::<f64>()
+    + const_rules.iter().map(get_priority).sum::<f64>();
 
   InjectableStyle {
     priority: Some(priority),

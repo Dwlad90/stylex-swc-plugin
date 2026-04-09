@@ -4,7 +4,8 @@ use stylex_regex::regex::{
   WHITESPACE_NORMALIZER_EXTRA_SPACES_REGEX, WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX,
 };
 
-pub fn whitespace_normalizer(content: String) -> String {
+pub fn whitespace_normalizer(content: impl Into<String>) -> String {
+  let content = content.into();
   // Early return: If content is a URL, return it as-is
   if let Ok(Some(captures)) = CSS_URL_REGEX.captures(&content)
     && let Some(url) = captures.get(0)

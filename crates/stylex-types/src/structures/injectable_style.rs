@@ -61,9 +61,9 @@ impl InjectableStyle {
   /// let style = InjectableStyle::regular(css_string, Some(0.5));
   /// ```
   #[inline]
-  pub fn regular(ltr: String, priority: Option<f64>) -> Rc<InjectableStyleKind> {
+  pub fn regular(ltr: impl Into<String>, priority: Option<f64>) -> Rc<InjectableStyleKind> {
     Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-      ltr,
+      ltr: ltr.into(),
       rtl: None,
       priority,
     }))
@@ -76,10 +76,14 @@ impl InjectableStyle {
   /// let style = InjectableStyle::with_rtl(ltr_css, rtl_css, Some(0.5));
   /// ```
   #[inline]
-  pub fn with_rtl(ltr: String, rtl: String, priority: Option<f64>) -> Rc<InjectableStyleKind> {
+  pub fn with_rtl(
+    ltr: impl Into<String>,
+    rtl: impl Into<String>,
+    priority: Option<f64>,
+  ) -> Rc<InjectableStyleKind> {
     Rc::new(InjectableStyleKind::Regular(InjectableStyle {
-      ltr,
-      rtl: Some(rtl),
+      ltr: ltr.into(),
+      rtl: Some(rtl.into()),
       priority,
     }))
   }

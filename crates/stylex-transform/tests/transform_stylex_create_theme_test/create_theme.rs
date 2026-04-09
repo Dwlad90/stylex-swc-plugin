@@ -5,7 +5,7 @@ stylex_test!(
   theme_object,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -37,7 +37,7 @@ stylex_test!(
   theme_object_haste,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
@@ -70,7 +70,7 @@ stylex_test!(
     .with_filename(FileName::Real(
       "/stylex/packages/src/css/vars.stylex.js".into()
     ))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -102,7 +102,7 @@ stylex_test!(
   literal_tokens_theme_object,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -127,7 +127,7 @@ stylex_test!(
   local_variable_theme_object,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -160,7 +160,7 @@ stylex_test!(
   local_variables_used_in_theme_objects,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -184,7 +184,7 @@ stylex_test!(
   template_literals_used_in_theme_objects,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -208,7 +208,7 @@ stylex_test!(
   expressions_used_in_theme_objects,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -232,7 +232,7 @@ stylex_test!(
   stylex_types_used_in_theme_object,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -265,7 +265,7 @@ stylex_test!(
   multiple_theme_objects_same_vars,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -304,7 +304,7 @@ stylex_test!(
     .with_filename(FileName::Real(
       "/stylex/packages/otherVars.stylex.js".into()
     ))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -336,7 +336,7 @@ stylex_test!(
   themes_are_indifferent_to_order_of_keys,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -370,7 +370,7 @@ stylex_test!(
     .with_pass(PluginPass::test_default())
     .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
     .with_debug(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -397,7 +397,7 @@ stylex_test!(
       "/js/node_modules/npm-package/dist/components/Foo.react.js".into()
     ))
     .with_debug(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -422,7 +422,7 @@ stylex_test!(
     .with_pass(PluginPass::test_default())
     .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
     .with_debug(true)
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
@@ -447,7 +447,7 @@ stylex_test!(
       "/node_modules/npm-package/dist/components/Foo.react.js".into()
     ))
     .with_debug(true)
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .into_pass(),
   r#"
 import * as stylex from '@stylexjs/stylex';
@@ -470,7 +470,7 @@ stylex_test!(
     .with_pass(PluginPass::test_default())
     .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
     .with_dev(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -495,7 +495,7 @@ stylex_test!(
     .with_pass(PluginPass::test_default())
     .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
     .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),

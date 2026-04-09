@@ -5,7 +5,7 @@ stylex_test!(
   all_local_styles,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/TestFile.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .with_runtime_injection()
@@ -33,7 +33,7 @@ stylex_test!(
   local_array_styles,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/TestFile.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .with_enable_minified_keys(false)
@@ -63,7 +63,7 @@ stylex_test!(
   regular_style_import,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/TestFile.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .with_runtime_injection()
@@ -89,7 +89,7 @@ stylex_test!(
     let filename = fixture_path.join("consts/constants.stylex");
     StyleXTransform::test(tr.comments.clone())
       .with_filename(FileName::Real(filename.clone()))
-      .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      .with_unstable_module_resolution(ModuleResolution::common_js(Some(
         fixture_path.to_string_lossy().to_string(),
       )))
       .with_runtime_injection()
@@ -117,7 +117,7 @@ stylex_test!(
     let filename = fixture_path.join("consts/constants.stylex");
     StyleXTransform::test(tr.comments.clone())
       .with_filename(FileName::Real(filename.clone()))
-      .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      .with_unstable_module_resolution(ModuleResolution::common_js(Some(
         fixture_path.to_string_lossy().to_string(),
       )))
       .with_runtime_injection()

@@ -25,7 +25,7 @@ fn tranform(input: &str) -> String {
       .with_class_name_prefix("__hashed_var__".to_string())
       .with_runtime_injection_option(RuntimeInjection::Boolean(true))
       .with_treeshake_compensation(true)
-      .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
       .with_runtime_injection()
       .into_pass()
   })

@@ -10,7 +10,7 @@ fn must_be_bound_to_a_named_export() {
     |tr| {
       StyleXTransform::test(tr.comments.clone())
         .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
           "/stylex/packages/".to_string(),
         )))
         .into_pass()
@@ -32,7 +32,7 @@ fn no_arguments_allowed() {
     |tr| {
       StyleXTransform::test(tr.comments.clone())
         .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
           "/stylex/packages/".to_string(),
         )))
         .into_pass()
@@ -53,7 +53,7 @@ fn valid_export_direct_named_export() {
     |tr| {
       StyleXTransform::test(tr.comments.clone())
         .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
           "/stylex/packages/".to_string(),
         )))
         .into_pass()
@@ -80,7 +80,7 @@ fn valid_export_separate_const_and_export_statement() {
     |tr| {
       StyleXTransform::test(tr.comments.clone())
         .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
           "/stylex/packages/".to_string(),
         )))
         .into_pass()
@@ -110,7 +110,7 @@ fn invalid_export_re_export_from_another_file_does_not_count() {
     |tr| {
       StyleXTransform::test(tr.comments.clone())
         .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
           "/stylex/packages/".to_string(),
         )))
         .into_pass()
@@ -133,7 +133,7 @@ fn invalid_export_renamed_re_export_from_another_file_does_not_count() {
     |tr| {
       StyleXTransform::test(tr.comments.clone())
         .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
           "/stylex/packages/".to_string(),
         )))
         .into_pass()
@@ -156,7 +156,7 @@ fn invalid_export_default_export_does_not_count() {
     |tr| {
       StyleXTransform::test(tr.comments.clone())
         .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
           "/stylex/packages/".to_string(),
         )))
         .into_pass()
@@ -179,7 +179,7 @@ fn invalid_export_renamed_export_with_as_syntax() {
     |tr| {
       StyleXTransform::test(tr.comments.clone())
         .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-        .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
           "/stylex/packages/".to_string(),
         )))
         .into_pass()

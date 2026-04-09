@@ -11,9 +11,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -44,9 +42,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_sx_prop_name(SxPropNameParam::Enabled("css".to_string()))
     .with_runtime_injection()
     .into_pass(),
@@ -72,9 +68,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_sx_prop_name(SxPropNameParam::Disabled)
     .with_runtime_injection()
     .into_pass(),
@@ -100,9 +94,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -128,9 +120,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -159,9 +149,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -190,9 +178,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -224,9 +210,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -255,9 +239,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -292,9 +274,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -327,9 +307,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -367,9 +345,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -397,9 +373,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -436,9 +410,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -463,9 +435,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -490,9 +460,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -517,9 +485,7 @@ stylex_test!(
     .with_debug(true)
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/js".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"

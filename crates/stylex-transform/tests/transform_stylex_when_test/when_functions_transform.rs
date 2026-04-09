@@ -5,7 +5,7 @@ stylex_test!(
   when_ancestor_function,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_treeshake_compensation(true)
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -28,7 +28,7 @@ stylex_test!(
   when_sibling_before_function,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_treeshake_compensation(true)
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -51,7 +51,7 @@ stylex_test!(
   when_functions_namespace_imports,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_treeshake_compensation(true)
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -78,7 +78,7 @@ stylex_test!(
   when_functions_aliased_imports,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_treeshake_compensation(true)
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .with_runtime_injection()
     .into_pass(),
   r#"

@@ -380,7 +380,7 @@ stylex_test!(
     .with_style_resolution(StyleResolution::ApplicationOrder)
     .with_dev(true)
     .with_treeshake_compensation(true)
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .with_enable_minified_keys(false)
     .with_enable_debug_class_names(true)
     .with_runtime_injection()

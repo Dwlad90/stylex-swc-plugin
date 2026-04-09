@@ -5,7 +5,7 @@ stylex_test!(
   test_one_output_of_stylex_define_vars,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("TestTheme.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .with_runtime_injection_option(RuntimeInjection::Boolean(false))
     .into_pass(),
   r#"
@@ -25,7 +25,7 @@ stylex_test!(
     .with_filename(FileName::Real(
       "/stylex/packages/TestTheme.stylex.js".into()
     ))
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .with_runtime_injection_option(RuntimeInjection::Boolean(false))
     .into_pass(),
   r#"
@@ -54,7 +54,7 @@ stylex_test!(
     .with_filename(FileName::Real(
       "/stylex/packages/TestTheme.stylex.js".into()
     ))
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .with_runtime_injection_option(RuntimeInjection::Boolean(false))
     .into_pass(),
   r#"

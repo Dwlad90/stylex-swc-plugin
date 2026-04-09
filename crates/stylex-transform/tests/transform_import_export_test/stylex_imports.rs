@@ -65,7 +65,7 @@ export const vars = {}({{
 
   let define_consts_and_vars_output = transform_with_options(
     &define_consts_and_vars_input,
-    Some(StyleXOptions::get_common_js_module_resolution(Some(
+    Some(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string(),
     ))),
     Some(FileName::Real("/stylex/packages/vars.stylex.js".into())),
@@ -145,9 +145,10 @@ fn transform_with_options(
   stringify_js(input, syntax, |tr| {
     let mut builder = stylex_transform::StyleXTransform::test(tr.comments.clone())
       .with_filename(filename.unwrap_or(FileName::Real("/stylex/packages/TestFile.js".into())))
-      .with_unstable_module_resolution(unstable_module_resolution.unwrap_or_else(|| {
-        StyleXOptions::get_common_js_module_resolution(Some("/stylex/packages/".to_string()))
-      }))
+      .with_unstable_module_resolution(
+        unstable_module_resolution
+          .unwrap_or_else(|| ModuleResolution::common_js(Some("/stylex/packages/".to_string()))),
+      )
       .with_treeshake_compensation(true)
       .with_enable_minified_keys(false);
 

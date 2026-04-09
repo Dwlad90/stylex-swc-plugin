@@ -125,7 +125,7 @@ stylex_test!(
       "/stylex/packages/TestTheme.stylex.js".into()
     ))
     .with_runtime_injection_option(RuntimeInjection::Boolean(false))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::common_js(None))
     .into_pass(),
   format!(
     r#"
@@ -144,7 +144,7 @@ stylex_test!(
       "/stylex/packages/TestTheme.stylex.js".into()
     ))
     .with_dev(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::common_js(None))
     .into_pass(),
   format!(
     r#"
@@ -333,7 +333,7 @@ stylex_test!(
       "/stylex/packages/utils/vars.stylex.js".into()
     ))
     .with_dev(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),

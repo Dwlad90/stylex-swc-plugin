@@ -3,7 +3,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use stylex_structures::stylex_options::StyleXOptions;
+use stylex_structures::stylex_options::ModuleResolution;
 use stylex_transform::StyleXTransform;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -30,7 +30,7 @@ fn measure_transform_time(input_path: &Path) -> (String, f64) {
         .with_filename(input_path.to_path_buf().into())
         .with_dev(true)
         .with_treeshake_compensation(true)
-        .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+        .with_unstable_module_resolution(ModuleResolution::haste(None))
         .with_enable_minified_keys(false)
         .with_runtime_injection()
         .into_pass()

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use stylex_structures::{named_import_source::RuntimeInjection, stylex_options::StyleXOptions};
+use stylex_structures::{named_import_source::RuntimeInjection, stylex_options::ModuleResolution};
 use stylex_transform::StyleXTransform;
 use swc_core::ecma::{
   parser::{Syntax, TsSyntax},
@@ -22,7 +22,7 @@ fn fixture(input: PathBuf) {
         .with_filename(input.clone().into())
         .with_dev(true)
         .with_treeshake_compensation(true)
-        .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+        .with_unstable_module_resolution(ModuleResolution::haste(None))
         .with_enable_minified_keys(false)
         .with_enable_debug_class_names(true)
         .with_runtime_injection()
@@ -43,7 +43,7 @@ fn fixture(input: PathBuf) {
         .with_filename(input.clone().into())
         .with_dev(false)
         .with_treeshake_compensation(true)
-        .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+        .with_unstable_module_resolution(ModuleResolution::haste(None))
         .with_runtime_injection_option(RuntimeInjection::Boolean(false))
         .into_pass()
     },

@@ -7,7 +7,7 @@ stylex_test!(
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
     .with_debug(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -32,7 +32,7 @@ stylex_test!(
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
     .with_debug(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),

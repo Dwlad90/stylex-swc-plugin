@@ -23,7 +23,7 @@ use stylex_structures::{
   named_import_source::{ImportSources, RuntimeInjection},
   plugin_pass::PluginPass,
   stylex_env::EnvEntry,
-  stylex_options::{ModuleResolution, StyleXOptions, StyleXOptionsParams},
+  stylex_options::{ModuleResolution, StyleXOptionsParams},
 };
 
 mod fold;
@@ -226,7 +226,7 @@ where
     // Apply test defaults only when no explicit config was provided
     if !had_config {
       if config.unstable_module_resolution.is_none() {
-        config.unstable_module_resolution = Some(StyleXOptions::get_haste_module_resolution(None));
+        config.unstable_module_resolution = Some(ModuleResolution::haste(None));
       }
     }
 

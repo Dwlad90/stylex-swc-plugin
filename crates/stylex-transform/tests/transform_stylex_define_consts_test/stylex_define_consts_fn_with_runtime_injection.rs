@@ -10,7 +10,7 @@ stylex_test!(
     .with_filename(FileName::Real(
       "/stylex/packages/TestTheme.stylex.js".into()
     ))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .with_runtime_injection_option(RuntimeInjection::Boolean(true))
@@ -172,7 +172,7 @@ stylex_test!(
     .with_filename(FileName::Real(
       "/stylex/packages/TestTheme.stylex.js".into()
     ))
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::haste(Some(
       "/stylex/packages/".to_string()
     )))
     .with_runtime_injection_option(RuntimeInjection::Boolean(true))

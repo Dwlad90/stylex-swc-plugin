@@ -4,7 +4,7 @@ use swc_core::ecma::transforms::testing::test;
 stylex_test!(
   export_named_property,
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -22,7 +22,7 @@ stylex_test!(
 stylex_test!(
   export_named_declaration,
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -39,7 +39,7 @@ stylex_test!(
 stylex_test!(
   export_default,
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -56,7 +56,7 @@ stylex_test!(
 stylex_test!(
   module_export,
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),

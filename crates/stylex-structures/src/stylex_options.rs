@@ -92,6 +92,32 @@ pub struct ModuleResolution {
   pub theme_file_extension: Option<String>,
 }
 
+impl ModuleResolution {
+  pub fn haste(root_dir: Option<String>) -> Self {
+    ModuleResolution {
+      r#type: "haste".to_string(),
+      root_dir,
+      theme_file_extension: None,
+    }
+  }
+
+  pub fn common_js(root_dir: Option<String>) -> Self {
+    ModuleResolution {
+      r#type: "commonjs".to_string(),
+      root_dir,
+      theme_file_extension: None,
+    }
+  }
+
+  pub fn cross_file_parsing(root_dir: Option<String>) -> Self {
+    ModuleResolution {
+      r#type: "cross-file-parsing".to_string(),
+      root_dir,
+      theme_file_extension: None,
+    }
+  }
+}
+
 #[derive(Deserialize, Debug, Clone)]
 
 pub enum CheckModuleResolution {
@@ -102,7 +128,7 @@ pub enum CheckModuleResolution {
 
 impl Default for CheckModuleResolution {
   fn default() -> Self {
-    CheckModuleResolution::CommonJS(StyleXOptions::get_common_js_module_resolution(None))
+    CheckModuleResolution::CommonJS(ModuleResolution::common_js(None))
   }
 }
 
@@ -126,22 +152,6 @@ impl DerefMut for StyleXOptions {
 }
 
 impl StyleXOptions {
-  pub fn get_haste_module_resolution(root_dir: Option<String>) -> ModuleResolution {
-    ModuleResolution {
-      r#type: "haste".to_string(),
-      root_dir,
-      theme_file_extension: None,
-    }
-  }
-
-  pub fn get_common_js_module_resolution(root_dir: Option<String>) -> ModuleResolution {
-    ModuleResolution {
-      r#type: "commonjs".to_string(),
-      root_dir,
-      theme_file_extension: None,
-    }
-  }
-
   pub fn with_class_name_prefix(mut self, prefix: impl Into<String>) -> Self {
     self.core.class_name_prefix = prefix.into();
     self
@@ -202,10 +212,7 @@ impl StyleXOptions {
     self
   }
 
-  pub fn with_unstable_module_resolution(
-    mut self,
-    resolution: CheckModuleResolution,
-  ) -> Self {
+  pub fn with_unstable_module_resolution(mut self, resolution: CheckModuleResolution) -> Self {
     self.core.unstable_module_resolution = resolution;
     self
   }
@@ -224,7 +231,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
   fn from(options: StyleXOptionsParams) -> Self {
     let module_resolution = options
       .unstable_module_resolution
-      .unwrap_or_else(|| StyleXOptions::get_common_js_module_resolution(None));
+      .unwrap_or_else(|| ModuleResolution::common_js(None));
 
     let unstable_module_resolution = match module_resolution.r#type.to_lowercase().as_str() {
       "haste" => CheckModuleResolution::Haste(module_resolution),
@@ -233,58 +240,52 @@ impl From<StyleXOptionsParams> for StyleXOptions {
     };
 
     let runtime_injection = match options.runtime_injection {
-      Some(value) => match value {
-        RuntimeInjection::Boolean(true) => {
-          RuntimeInjection::Regular(DEFAULT_INJECT_PATH.to_string())
-        },
-        RuntimeInjection::Boolean(false) => RuntimeInjection::Boolean(false),
-        RuntimeInjection::Regular(path) => RuntimeInjection::Regular(path),
-        RuntimeInjection::Named(named) => RuntimeInjection::Named(named),
+      Some(RuntimeInjection::Boolean(true)) => {
+        RuntimeInjection::Regular(DEFAULT_INJECT_PATH.to_string())
       },
-      None => RuntimeInjection::Boolean(false),
+      Some(RuntimeInjection::Regular(path)) => RuntimeInjection::Regular(path),
+      Some(RuntimeInjection::Named(named)) => RuntimeInjection::Named(named),
+      Some(RuntimeInjection::Boolean(false)) | None => RuntimeInjection::Boolean(false),
     };
 
+    let core = CoreStyleXOptions::default()
+      .with_unstable_module_resolution(unstable_module_resolution)
+      .with_import_sources(options.import_sources.unwrap_or_else(|| {
+        vec![
+          ImportSources::Regular("stylex".to_string()),
+          ImportSources::Regular("@stylexjs/stylex".to_string()),
+        ]
+      }))
+      .with_debug(options.debug.or(options.dev).unwrap_or(false))
+      .with_aliases(options.aliases)
+      .with_sx_prop_name(match options.sx_prop_name {
+        None => Some("sx".to_string()),
+        Some(SxPropNameParam::Disabled) => None,
+        Some(SxPropNameParam::Enabled(name)) => Some(name),
+      })
+      .with_env(options.env.unwrap_or_default())
+      .with_debug_file_path(options.debug_file_path)
+      .maybe_style_resolution(options.style_resolution)
+      .maybe_property_validation_mode(options.property_validation_mode)
+      .maybe_enable_font_size_px_to_rem(options.enable_font_size_px_to_rem)
+      .maybe_class_name_prefix(options.class_name_prefix)
+      .maybe_dev(options.dev)
+      .maybe_test(options.test)
+      .maybe_enable_debug_class_names(options.enable_debug_class_names)
+      .maybe_enable_debug_data_prop(options.enable_debug_data_prop)
+      .maybe_enable_dev_class_names(options.enable_dev_class_names)
+      .maybe_enable_minified_keys(options.enable_minified_keys)
+      .maybe_inject_stylex_side_effects(options.inject_stylex_side_effects)
+      .maybe_treeshake_compensation(options.treeshake_compensation)
+      .maybe_enable_inlined_conditional_merge(options.enable_inlined_conditional_merge)
+      .maybe_enable_media_query_order(options.enable_media_query_order)
+      .maybe_enable_logical_styles_polyfill(options.enable_logical_styles_polyfill)
+      .maybe_enable_legacy_value_flipping(options.enable_legacy_value_flipping)
+      .maybe_enable_ltr_rtl_comments(options.enable_ltr_rtl_comments)
+      .maybe_use_real_file_for_source(options.use_real_file_for_source);
+
     StyleXOptions {
-      core: CoreStyleXOptions {
-        style_resolution: options
-          .style_resolution
-          .unwrap_or(StyleResolution::PropertySpecificity),
-        property_validation_mode: options
-          .property_validation_mode
-          .unwrap_or(PropertyValidationMode::Silent),
-        enable_font_size_px_to_rem: options.enable_font_size_px_to_rem.unwrap_or(false),
-        class_name_prefix: options.class_name_prefix.unwrap_or("x".to_string()),
-        import_sources: options.import_sources.unwrap_or_else(|| {
-          vec![
-            ImportSources::Regular("stylex".to_string()),
-            ImportSources::Regular("@stylexjs/stylex".to_string()),
-          ]
-        }),
-        dev: options.dev.unwrap_or(false),
-        test: options.test.unwrap_or(false),
-        debug: options.debug.or(options.dev).unwrap_or(false),
-        enable_debug_class_names: options.enable_debug_class_names.unwrap_or(false),
-        enable_debug_data_prop: options.enable_debug_data_prop.unwrap_or(true),
-        enable_dev_class_names: options.enable_dev_class_names.unwrap_or(false),
-        enable_minified_keys: options.enable_minified_keys.unwrap_or(true),
-        inject_stylex_side_effects: options.inject_stylex_side_effects.unwrap_or(false),
-        treeshake_compensation: options.treeshake_compensation.unwrap_or(false),
-        enable_inlined_conditional_merge: options.enable_inlined_conditional_merge.unwrap_or(true),
-        enable_media_query_order: options.enable_media_query_order.unwrap_or(true),
-        enable_logical_styles_polyfill: options.enable_logical_styles_polyfill.unwrap_or(false),
-        enable_legacy_value_flipping: options.enable_legacy_value_flipping.unwrap_or(false),
-        enable_ltr_rtl_comments: options.enable_ltr_rtl_comments.unwrap_or(false),
-        use_real_file_for_source: options.use_real_file_for_source.unwrap_or(true),
-        aliases: options.aliases,
-        unstable_module_resolution,
-        sx_prop_name: match options.sx_prop_name {
-          None => Some("sx".to_string()),
-          Some(SxPropNameParam::Disabled) => None,
-          Some(SxPropNameParam::Enabled(name)) => Some(name),
-        },
-        env: options.env.unwrap_or_default(),
-        debug_file_path: options.debug_file_path,
-      },
+      core,
       runtime_injection,
     }
   }

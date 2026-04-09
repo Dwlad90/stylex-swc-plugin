@@ -78,7 +78,7 @@ stylex_test!(
     .with_filename(FileName::Real(
       "/stylex/packages/TestTheme.stylex.js".into()
     ))
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .into_pass(),
   r#"
         import * as stylex from '@stylexjs/stylex';

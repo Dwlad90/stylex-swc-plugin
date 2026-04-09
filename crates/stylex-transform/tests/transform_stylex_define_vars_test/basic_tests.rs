@@ -5,7 +5,7 @@ stylex_test!(
   tokens_as_null,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -29,7 +29,7 @@ stylex_test!(
   tokens_object,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -53,7 +53,7 @@ stylex_test!(
   tokens_object_haste,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .into_pass(),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -77,7 +77,7 @@ stylex_test!(
     .with_filename(FileName::Real(
       "/stylex/packages/src/css/vars.stylex.js".into()
     ))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -93,7 +93,7 @@ stylex_test!(
   tokens_object_with_nested_at_rules,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -115,7 +115,7 @@ stylex_test!(
   literal_tokens_object,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -135,7 +135,7 @@ stylex_test!(
   local_variable_tokens_object,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -160,7 +160,7 @@ stylex_test!(
   local_variables_used_in_tokens_objects,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -177,7 +177,7 @@ stylex_test!(
   template_literals_used_in_tokens_objects,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -194,7 +194,7 @@ stylex_test!(
   expressions_used_in_tokens_objects,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -211,7 +211,7 @@ stylex_test!(
   stylex_types_used_in_tokens_object,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -231,7 +231,7 @@ stylex_test!(
   multiple_variables_objects_same_file,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -250,7 +250,7 @@ stylex_test!(
   multiple_variables_objects_dependency,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -269,7 +269,7 @@ stylex_test!(
   multiple_variables_objects_different_files_first,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),
@@ -285,7 +285,7 @@ stylex_test!(
   multiple_variables_objects_different_files_second,
   |tr| StyleXTransform::test(tr.comments.clone())
     .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
     .into_pass(),

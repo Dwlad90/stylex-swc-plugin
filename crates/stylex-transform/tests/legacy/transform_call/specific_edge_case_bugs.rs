@@ -7,9 +7,7 @@ stylex_test!(
     .with_filename(FileName::Real("src/js/components/Foo.react.js".into()))
     .with_dev(true)
     .with_enable_debug_class_names(true)
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
-      "/".to_string()
-    )))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some("/".to_string())))
     .with_runtime_injection()
     .into_pass(),
   r#"

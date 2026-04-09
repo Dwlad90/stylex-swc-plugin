@@ -7,7 +7,7 @@ stylex_test!(
     .with_dev(true)
     .with_enable_debug_class_names(true)
     .with_treeshake_compensation(true)
-    .with_unstable_module_resolution(StyleXOptions::get_haste_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))
     .with_runtime_injection_option(RuntimeInjection::Boolean(false))
     .with_runtime_injection()
     .into_pass(),

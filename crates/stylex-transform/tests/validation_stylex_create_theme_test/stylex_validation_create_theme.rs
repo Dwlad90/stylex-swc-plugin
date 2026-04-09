@@ -5,7 +5,7 @@ stylex_test_panic!(
   must_be_bound_to_a_variable,
   "createTheme() calls must be bound to a bare variable.",
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::common_js(None))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -18,7 +18,7 @@ stylex_test_panic!(
   it_must_have_two_arguments_no_args,
   "createTheme() should have 1 argument",
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::common_js(None))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -31,7 +31,7 @@ stylex_test_panic!(
   it_must_have_two_arguments_one_args,
   "createTheme() should have 1 argument.",
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::common_js(None))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -44,7 +44,7 @@ stylex_test_panic!(
   it_must_have_two_arguments_fn_args,
   "Only static values are allowed inside of a createTheme() call.",
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::common_js(None))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -57,7 +57,7 @@ stylex_test_panic!(
   it_must_have_two_arguments_empty_object_args,
   "Can only override variables theme created with defineVars().",
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::common_js(None))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -70,7 +70,7 @@ stylex_test!(
   it_must_have_two_arguments_valid,
   |tr| {
     StyleXTransform::test(tr.comments.clone())
-      .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+      .with_unstable_module_resolution(ModuleResolution::common_js(None))
       .with_runtime_injection()
       .into_pass()
   },
@@ -87,7 +87,7 @@ stylex_test_panic!(
   variable_keys_must_be_a_static_value,
   "Only static values are allowed inside of a createTheme() call.",
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::common_js(None))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -103,7 +103,7 @@ stylex_test!(
   values_must_be_static_number_or_string_in_stylex_create_theme_v1,
   |tr| {
     StyleXTransform::test(tr.comments.clone())
-      .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+      .with_unstable_module_resolution(ModuleResolution::common_js(None))
       .with_runtime_injection()
       .into_pass()
   },
@@ -120,7 +120,7 @@ stylex_test!(
   values_must_be_static_number_or_string_in_stylex_create_theme_v2,
   |tr| {
     StyleXTransform::test(tr.comments.clone())
-      .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+      .with_unstable_module_resolution(ModuleResolution::common_js(None))
       .with_runtime_injection()
       .into_pass()
   },
@@ -137,7 +137,7 @@ stylex_test_panic!(
   values_must_be_static_number_or_string_in_stylex_create_theme_var,
   "Only static values are allowed inside of a createTheme() call.",
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::common_js(None))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -153,7 +153,7 @@ stylex_test_panic!(
   values_must_be_static_number_or_string_in_stylex_create_theme_fn,
   "Only static values are allowed inside of a createTheme() call.",
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::common_js(None))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -169,7 +169,7 @@ stylex_test_panic!(
   second_arg_cant_be_imported_variable_in_stylex_create_theme_fn,
   "createTheme() can only accept an object as the second argument",
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::common_js(None))
     .with_runtime_injection()
     .into_pass(),
   r#"
@@ -183,7 +183,7 @@ stylex_test_panic!(
 stylex_test!(
   second_arg_can_be_local_variable_in_stylex_create_theme_fn,
   |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(None))
+    .with_unstable_module_resolution(ModuleResolution::common_js(None))
     .with_runtime_injection()
     .into_pass(),
   r#"

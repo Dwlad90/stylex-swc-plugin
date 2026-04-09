@@ -15,7 +15,7 @@ fn tranform(input: &str) -> String {
       .with_filename(fixture_path.clone().join("input.stylex.js").into())
       .with_runtime_injection_option(RuntimeInjection::Boolean(true))
       .with_treeshake_compensation(true)
-      .with_unstable_module_resolution(StyleXOptions::get_common_js_module_resolution(Some(
+      .with_unstable_module_resolution(ModuleResolution::common_js(Some(
         fixture_path.to_string_lossy().to_string(),
       )))
       .with_runtime_injection()

@@ -1,3 +1,6 @@
+#[macro_use]
+pub(crate) mod utils;
+
 mod evaluation;
 mod legacy;
 mod metadata_test;
@@ -17,7 +20,6 @@ mod transform_stylex_stylex_props_test;
 mod transform_stylex_view_transition_class_test;
 mod transform_stylex_when_test;
 mod transform_value_normalization_test;
-pub(crate) mod utils;
 mod validation_import_export_test;
 mod validation_regular_css;
 mod validation_stylex_create_test;

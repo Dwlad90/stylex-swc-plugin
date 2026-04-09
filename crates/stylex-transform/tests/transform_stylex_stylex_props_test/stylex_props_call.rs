@@ -1,245 +1,163 @@
-use indexmap::IndexMap;
-use stylex_ast::ast::convertors::create_string_expr;
+use crate::utils::prelude::*;
 use stylex_enums::style_resolution::StyleResolution;
-use stylex_structures::{
-  plugin_pass::PluginPass,
-  stylex_env::EnvEntry,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
-use stylex_transform::StyleXTransform;
-use swc_core::ecma::transforms::testing::test;
 
-use crate::utils::transform::{env_config, ts_syntax};
-
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   empty_stylex_props_call,
   r#"
-        import stylex from 'stylex';
-        stylex.props();
-    "#
+    import stylex from 'stylex';
+    stylex.props();
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   basic_stylex_call,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            red: {
-                color: 'red',
-            }
-        });
-        export default stylex.props(styles.red);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    export default stylex.props(styles.red);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_with_number,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            0: {
-                color: 'red',
-            },
-            1: {
-                backgroundColor: 'blue',
-            }
-        });
-        stylex.props([styles[0], styles[1]]);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      0: {
+        color: 'red',
+      },
+      1: {
+        backgroundColor: 'blue',
+      }
+    });
+    stylex.props([styles[0], styles[1]]);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_with_computed_number,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            [0]: {
-                color: 'red',
-            },
-            [1]: {
-                backgroundColor: 'blue',
-            }
-        });
-        stylex.props([styles[0], styles[1]]);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      [0]: {
+        color: 'red',
+      },
+      [1]: {
+        backgroundColor: 'blue',
+      }
+    });
+    stylex.props([styles[0], styles[1]]);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_with_computed_string,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            'default': {
-                color: 'red',
-            }
-        });
-        stylex.props(styles['default']);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      'default': {
+        color: 'red',
+      }
+    });
+    stylex.props(styles['default']);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_with_multiple_namespaces,
   r#"
-        import {create, props} from 'stylex';
-        const styles = create({
-            default: {
-                color: 'red',
-            },
-        });
-        const otherStyles = create({
-            default: {
-                backgroundColor: 'blue',
-            }
-        });
-        props([styles.default, otherStyles.default]);
-    "#
+    import {create, props} from 'stylex';
+    const styles = create({
+      default: {
+        color: 'red',
+      },
+    });
+    const otherStyles = create({
+      default: {
+        backgroundColor: 'blue',
+      }
+    });
+    props([styles.default, otherStyles.default]);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_within_variable_declarations,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            foo: { color: 'red' }
-        });
-        export const a = function() {
-            return stylex.props(styles.foo);
-        }
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: { color: 'red' }
+    });
+    export const a = function() {
+      return stylex.props(styles.foo);
+    }
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_with_styles_variable_assignment,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            foo: {
-                color: 'red',
-            },
-            bar: {
-                backgroundColor: 'blue',
-            }
-        });
-        stylex.props([styles.foo, styles.bar]);
-        export const foo = styles;
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        color: 'red',
+      },
+      bar: {
+        backgroundColor: 'blue',
+      }
+    });
+    stylex.props([styles.foo, styles.bar]);
+    export const foo = styles;
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_within_export_declarations,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            foo: { color: 'red' }
-        });
-        export default function MyExportDefault() {
-            return stylex.props(styles.foo);
-        }
-        export function MyExport() {
-            return stylex.props(styles.foo);
-        }
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: { color: 'red' }
+    });
+    export default function MyExportDefault() {
+      return stylex.props(styles.foo);
+    }
+    export function MyExport() {
+      return stylex.props(styles.foo);
+    }
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_with_short_form_properties,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            foo: {
-                padding: 5
-            }
-        });
-        stylex.props(styles.foo);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        padding: 5
+      }
+    });
+    stylex.props(styles.foo);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_with_exported_short_form_properties,
   r#"
-        import stylex from 'stylex';
-        export const styles = stylex.create({
-            foo: {
-                padding: 5
-            }
-        });
-        stylex.props([styles.foo]);
-    "#
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      foo: {
+        padding: 5
+      }
+    });
+    stylex.props([styles.foo]);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   last_property_wins_even_if_shorthand,
   r#"
     import stylex from 'stylex';
@@ -257,209 +175,155 @@ test!(
       }
     });
     export const result = stylex.props(styles.default, styles.override);
-    "#
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_using_styles_with_pseudo_selectors,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-        default: {
-            color: 'red',
-            ':hover': {
-                color: 'blue',
-            }
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        color: 'red',
+        ':hover': {
+          color: 'blue',
         }
-        });
-        stylex.props(styles.default);
-    "#
+      }
+    });
+    stylex.props(styles.default);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_using_styles_with_pseudo_selectors_within_property,
   r#"
-        import * as stylex from 'stylex';
-        const styles = stylex.create({
-            default: {
-                color: {
-                    default: 'red',
-                    ':hover': 'blue',
-                }
-            }
-        });
-        stylex.props(styles.default);
-    "#
+    import * as stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        color: {
+          default: 'red',
+          ':hover': 'blue',
+        }
+      }
+    });
+    stylex.props(styles.default);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_using_styles_with_media_queries,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            default: {
-                backgroundColor: 'red',
-                '@media (min-width: 1000px)': {
-                    backgroundColor: 'blue',
-                },
-                '@media (min-width: 2000px)': {
-                    backgroundColor: 'purple',
-                },
-            },
-        });
-        stylex.props(styles.default);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        backgroundColor: 'red',
+        '@media (min-width: 1000px)': {
+          backgroundColor: 'blue',
+        },
+        '@media (min-width: 2000px)': {
+          backgroundColor: 'purple',
+        },
+      },
+    });
+    stylex.props(styles.default);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_using_styles_with_media_queries_within_property,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            default: {
-                backgroundColor: {
-                    default:'red',
-                    '@media (min-width: 1000px)': 'blue',
-                    '@media (min-width: 2000px)': 'purple',
-                },
-            },
-        });
-        stylex.props(styles.default);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        backgroundColor: {
+          default:'red',
+          '@media (min-width: 1000px)': 'blue',
+          '@media (min-width: 2000px)': 'purple',
+        },
+      },
+    });
+    stylex.props(styles.default);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_using_styles_with_support_queries,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            default: {
-                backgroundColor: 'red',
-                '@supports (hover: hover)': {
-                    backgroundColor: 'blue',
-                },
-                '@supports not (hover: hover)': {
-                    backgroundColor: 'purple',
-                },
-            },
-        });
-        stylex.props(styles.default);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        backgroundColor: 'red',
+        '@supports (hover: hover)': {
+          backgroundColor: 'blue',
+        },
+        '@supports not (hover: hover)': {
+          backgroundColor: 'purple',
+        },
+      },
+    });
+    stylex.props(styles.default);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_using_styles_with_support_queries_within_property,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            default: {
-                backgroundColor: {
-                    default:'red',
-                    '@supports (hover: hover)': 'blue',
-                    '@supports not (hover: hover)': 'purple',
-                },
-            },
-        });
-        stylex.props(styles.default);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        backgroundColor: {
+          default:'red',
+          '@supports (hover: hover)': 'blue',
+          '@supports not (hover: hover)': 'purple',
+        },
+      },
+    });
+    stylex.props(styles.default);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_with_spread_operator,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            red: {
-                color: 'red',
-            },
-            blue: {
-                backgroundColor: 'blue',
-            },
-            green: {
-                color: 'green',
-            }
-        });
-        stylex.props(...[styles.red, styles.blue,...[styles.green]]);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      },
+      blue: {
+        backgroundColor: 'blue',
+      },
+      green: {
+        color: 'green',
+      }
+    });
+    stylex.props(...[styles.red, styles.blue,...[styles.green]]);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   stylex_call_with_spread_operator_of_variable,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            red: {
-                color: 'red',
-            },
-            blue: {
-                backgroundColor: 'blue',
-            },
-            green: {
-                color: 'green',
-            }
-        });
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      },
+      blue: {
+        backgroundColor: 'blue',
+      },
+      green: {
+        color: 'green',
+      }
+    });
 
-        const stylesArr = [styles.red, styles.blue,...[styles.green]]
+    const stylesArr = [styles.red, styles.blue,...[styles.green]]
 
-        stylex.props(...stylesArr);
-    "#
+    stylex.props(...stylesArr);
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   transform_props_with_conditional_array,
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -480,19 +344,13 @@ test!(
 
       return <button {...stylex.props(styles.base, ...isActive ? [styles.active]: [styles.inactive])} />
     };
-"#
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    None
-  ),
+stylex_test!(
   transform_props_with_regex,
   r#"
-  import * as stylex from '@stylexjs/stylex';
+    import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({
       base: {
         backgroundColor: 'blue',
@@ -514,25 +372,20 @@ test!(
       <div {...stylex.props(isActive && styles.active)}>Active</div>
       </>
     };
-"#
+  "#
 );
 
-test!(
-  ts_syntax(),
-  |tr| StyleXTransform::new_test_force_runtime_injection_with_pass(
-    tr.comments.clone(),
-    PluginPass::default(),
-    Some(&mut StyleXOptionsParams {
-      style_resolution: Some(StyleResolution::ApplicationOrder),
-      dev: Some(true),
-      treeshake_compensation: Some(true),
-      unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
-      enable_minified_keys: Some(false),
-      enable_debug_class_names: Some(true),
-      ..StyleXOptionsParams::default()
-    })
-  ),
+stylex_test!(
   transform_props_with_null,
+  &mut StyleXOptionsParams {
+    style_resolution: Some(StyleResolution::ApplicationOrder),
+    dev: Some(true),
+    treeshake_compensation: Some(true),
+    unstable_module_resolution: Some(StyleXOptions::get_haste_module_resolution(None)),
+    enable_minified_keys: Some(false),
+    enable_debug_class_names: Some(true),
+    ..StyleXOptionsParams::default()
+  },
   r#"
   import * as stylex from '@stylexjs/stylex';
   import { useState } from 'react';
@@ -603,11 +456,10 @@ test!(
       EnvEntry::Expr(create_string_expr("#ff0000")),
     );
 
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      Some(&mut env_config(env)),
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_options(&mut env_config(env))
+      .with_runtime_injection()
+      .into_pass()
   },
   stylex_env_resolves_in_inline_objects,
   r#"

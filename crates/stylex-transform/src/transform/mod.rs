@@ -31,6 +31,105 @@ where
   pub state: StateManager,
 }
 
+/// Builder for constructing test transforms with the `With` pattern.
+///
+/// # Examples
+/// ```ignore
+/// // Default test with runtime injection:
+/// StyleXTransform::test(tr.comments.clone()).with_runtime_injection().into_pass()
+///
+/// // With custom options:
+/// StyleXTransform::test(tr.comments.clone()).with_options(&mut cfg).into_pass()
+///
+/// // With custom PluginPass and options:
+/// StyleXTransform::test(tr.comments.clone())
+///     .with_pass(pass)
+///     .with_options(&mut cfg)
+///     .with_runtime_injection()
+///     .into_pass()
+/// ```
+pub struct StyleXTransformBuilder<C>
+where
+  C: Comments,
+{
+  comments: C,
+  plugin_pass: PluginPass,
+  config: Option<StyleXOptionsParams>,
+  runtime_injection: bool,
+}
+
+impl<C> StyleXTransformBuilder<C>
+where
+  C: Comments,
+{
+  pub fn with_pass(mut self, pass: PluginPass) -> Self {
+    self.plugin_pass = pass;
+    self
+  }
+
+  pub fn with_options(mut self, config: &mut StyleXOptionsParams) -> Self {
+    self.config = Some(config.clone());
+    self
+  }
+
+  pub fn with_runtime_injection(mut self) -> Self {
+    self.runtime_injection = true;
+    self
+  }
+
+  pub fn build(self) -> StyleXTransform<C> {
+    let stylex_imports = match &self.config {
+      Some(config) => fill_stylex_imports_from_params(config),
+      None => fill_stylex_imports_default(),
+    };
+
+    let mut state = match self.config {
+      Some(mut config) => {
+        if self.runtime_injection {
+          config.runtime_injection = Some(RuntimeInjection::Boolean(true));
+          config.treeshake_compensation = Some(true);
+        }
+        StateManager::new(config.into())
+      },
+      None => {
+        let config = StyleXOptions {
+          runtime_injection: if self.runtime_injection {
+            RuntimeInjection::Boolean(true)
+          } else {
+            RuntimeInjection::Boolean(false)
+          },
+          treeshake_compensation: true,
+          class_name_prefix: "x".to_string(),
+          unstable_module_resolution: CheckModuleResolution::Haste(
+            StyleXOptions::get_haste_module_resolution(None),
+          ),
+          ..Default::default()
+        };
+        StateManager::new(config)
+      },
+    };
+
+    state.options.import_sources = stylex_imports.into_iter().collect();
+    state._state = self.plugin_pass;
+
+    StyleXTransform {
+      comments: self.comments,
+      props_declaration: None,
+      state,
+    }
+  }
+
+  pub fn into_pass(self) -> impl Pass + use<C> {
+    let unresolved_mark = Mark::new();
+    let top_level_mark = Mark::new();
+
+    (
+      resolve_factory(unresolved_mark, top_level_mark),
+      fold_pass(self.build()),
+    )
+  }
+}
+
 impl<C> StyleXTransform<C>
 where
   C: Comments,
@@ -51,111 +150,76 @@ where
     }
   }
 
+  /// Start building a test transform using the builder / `With` pattern.
+  pub fn test(comments: C) -> StyleXTransformBuilder<C> {
+    StyleXTransformBuilder {
+      comments,
+      plugin_pass: PluginPass::default(),
+      config: None,
+      runtime_injection: false,
+    }
+  }
+
+  #[deprecated(note = "Use StyleXTransform::test(comments).with_runtime_injection().build()")]
   pub fn new_test_force_runtime_injection(
     comments: C,
     plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
   ) -> Self {
-    let stylex_imports = fill_stylex_imports(&config);
+    let mut builder = Self::test(comments).with_pass(plugin_pass).with_runtime_injection();
 
-    let mut state = match config {
-      Some(config) => {
-        config.runtime_injection = Some(RuntimeInjection::Boolean(true));
-        config.treeshake_compensation = Some(true);
-
-        StateManager::new(config.clone().into())
-      },
-      None => {
-        let config = StyleXOptions {
-          runtime_injection: RuntimeInjection::Boolean(true),
-          treeshake_compensation: true,
-          unstable_module_resolution: CheckModuleResolution::Haste(
-            StyleXOptions::get_haste_module_resolution(None),
-          ),
-          ..Default::default()
-        };
-
-        StateManager::new(config)
-      },
-    };
-
-    state.options.import_sources = stylex_imports.into_iter().collect();
-
-    state._state = plugin_pass;
-
-    StyleXTransform {
-      comments,
-      props_declaration: None,
-      state,
+    if let Some(config) = config {
+      builder = builder.with_options(config);
     }
+
+    builder.build()
   }
 
+  #[deprecated(
+    note = "Use StyleXTransform::test(comments).with_runtime_injection().into_pass()"
+  )]
   pub fn new_test_force_runtime_injection_with_pass(
     comments: C,
     plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
   ) -> impl Pass + use<C> {
-    let unresolved_mark = Mark::new();
-    let top_level_mark = Mark::new();
+    let mut builder = Self::test(comments).with_pass(plugin_pass).with_runtime_injection();
 
-    (
-      resolve_factory(unresolved_mark, top_level_mark),
-      // typescript_factory(unresolved_mark, top_level_mark),
-      fold_pass(Self::new_test_force_runtime_injection(
-        comments,
-        plugin_pass,
-        config,
-      )),
-    )
+    if let Some(config) = config {
+      builder = builder.with_options(config);
+    }
+
+    builder.into_pass()
   }
 
+  #[deprecated(note = "Use StyleXTransform::test(comments).build()")]
   pub fn new_test(
     comments: C,
     plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
   ) -> Self {
-    let stylex_imports = fill_stylex_imports(&config);
+    let mut builder = Self::test(comments).with_pass(plugin_pass);
 
-    let mut state = match config {
-      Some(config) => StateManager::new(config.clone().into()),
-      None => {
-        let config = StyleXOptions {
-          runtime_injection: RuntimeInjection::Boolean(false),
-          treeshake_compensation: true,
-          class_name_prefix: "x".to_string(),
-          unstable_module_resolution: CheckModuleResolution::Haste(
-            StyleXOptions::get_haste_module_resolution(None),
-          ),
-          ..Default::default()
-        };
-
-        StateManager::new(config)
-      },
-    };
-
-    state.options.import_sources = stylex_imports.into_iter().collect();
-
-    state._state = plugin_pass;
-
-    StyleXTransform {
-      comments,
-      props_declaration: None,
-      state,
+    if let Some(config) = config {
+      builder = builder.with_options(config);
     }
+
+    builder.build()
   }
+
+  #[deprecated(note = "Use StyleXTransform::test(comments).into_pass()")]
   pub fn new_test_with_pass(
     comments: C,
     plugin_pass: PluginPass,
     config: Option<&mut StyleXOptionsParams>,
   ) -> impl Pass + use<C> {
-    let unresolved_mark = Mark::new();
-    let top_level_mark = Mark::new();
+    let mut builder = Self::test(comments).with_pass(plugin_pass);
 
-    (
-      resolve_factory(unresolved_mark, top_level_mark),
-      // typescript_factory(unresolved_mark, top_level_mark),
-      fold_pass(Self::new_test(comments, plugin_pass, config)),
-    )
+    if let Some(config) = config {
+      builder = builder.with_options(config);
+    }
+
+    builder.into_pass()
   }
 
   fn is_stylex_import(&self, ident_sym: &str) -> bool {
@@ -261,16 +325,30 @@ where
 }
 
 fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> FxHashSet<ImportSources> {
-  let mut stylex_imports = FxHashSet::default();
-
-  stylex_imports.insert(ImportSources::Regular("stylex".to_string()));
-  stylex_imports.insert(ImportSources::Regular("@stylexjs/stylex".to_string()));
+  let mut stylex_imports = fill_stylex_imports_default();
 
   if let Some(stylex_imports_extends) = match config {
     Some(config) => config.import_sources.clone(),
     None => None,
   } {
     stylex_imports.extend(stylex_imports_extends)
+  }
+
+  stylex_imports
+}
+
+fn fill_stylex_imports_default() -> FxHashSet<ImportSources> {
+  let mut stylex_imports = FxHashSet::default();
+  stylex_imports.insert(ImportSources::Regular("stylex".to_string()));
+  stylex_imports.insert(ImportSources::Regular("@stylexjs/stylex".to_string()));
+  stylex_imports
+}
+
+fn fill_stylex_imports_from_params(config: &StyleXOptionsParams) -> FxHashSet<ImportSources> {
+  let mut stylex_imports = fill_stylex_imports_default();
+
+  if let Some(ref extends) = config.import_sources {
+    stylex_imports.extend(extends.clone());
   }
 
   stylex_imports

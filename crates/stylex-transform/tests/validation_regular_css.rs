@@ -8,11 +8,9 @@ use swc_core::ecma::{
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection()
+      .into_pass()
   },
   transform_simple_css_class,
   r#"
@@ -30,11 +28,9 @@ test!(
 test!(
   Default::default(),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection()
+      .into_pass()
   },
   transform_multiple_simple_css_classes,
   r#"
@@ -67,11 +63,9 @@ test!(
     ..Default::default()
   }),
   |tr| {
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass::default(),
-      None,
-    )
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection()
+      .into_pass()
   },
   transform_multiple_simple_css_classes_and_inject_to_react_component,
   r#"

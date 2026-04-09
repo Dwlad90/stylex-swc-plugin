@@ -31,14 +31,14 @@ fn fixture(input: PathBuf) {
         ..StyleXOptionsParams::default()
       };
 
-      StyleXTransform::new_test_force_runtime_injection_with_pass(
-        tr.comments.clone(),
-        PluginPass {
+      StyleXTransform::test(tr.comments.clone())
+        .with_pass(PluginPass {
           cwd: None,
           filename: input.clone().into(),
-        },
-        Some(&mut config),
-      )
+        })
+        .with_options(&mut config)
+        .with_runtime_injection()
+        .into_pass()
     },
     &input,
     &output,
@@ -59,14 +59,13 @@ fn fixture(input: PathBuf) {
         ..StyleXOptionsParams::default()
       };
 
-      StyleXTransform::new_test_with_pass(
-        tr.comments.clone(),
-        PluginPass {
+      StyleXTransform::test(tr.comments.clone())
+        .with_pass(PluginPass {
           cwd: None,
           filename: input.clone().into(),
-        },
-        Some(&mut config),
-      )
+        })
+        .with_options(&mut config)
+        .into_pass()
     },
     &input,
     &output_prod,

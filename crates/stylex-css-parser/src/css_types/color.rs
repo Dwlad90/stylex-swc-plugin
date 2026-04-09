@@ -552,8 +552,10 @@ pub struct NamedColor {
 }
 
 impl NamedColor {
-  pub fn new(value: String) -> Self {
-    Self { value }
+  pub fn new(value: impl Into<String>) -> Self {
+    Self {
+      value: value.into(),
+    }
   }
 
   /// Check if a string is a valid named color
@@ -595,8 +597,10 @@ pub struct HashColor {
 }
 
 impl HashColor {
-  pub fn new(value: String) -> Self {
-    Self { value }
+  pub fn new(value: impl Into<String>) -> Self {
+    Self {
+      value: value.into(),
+    }
   }
 
   /// Validate hex color format

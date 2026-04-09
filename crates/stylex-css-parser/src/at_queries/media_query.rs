@@ -77,10 +77,10 @@ pub struct MediaKeyword {
 }
 
 impl MediaKeyword {
-  pub fn new(key: String, not: bool, only: bool) -> Self {
+  pub fn new(key: impl Into<String>, not: bool, only: bool) -> Self {
     Self {
       r#type: "media-keyword".to_string(),
-      key,
+      key: key.into(),
       not,
       only,
     }
@@ -112,10 +112,10 @@ pub struct MediaWordRule {
 }
 
 impl MediaWordRule {
-  pub fn new(key_value: String) -> Self {
+  pub fn new(key_value: impl Into<String>) -> Self {
     Self {
       r#type: "word-rule".to_string(),
-      key_value,
+      key_value: key_value.into(),
     }
   }
 }
@@ -136,10 +136,10 @@ pub struct MediaRulePair {
 }
 
 impl MediaRulePair {
-  pub fn new(key: String, value: MediaRuleValue) -> Self {
+  pub fn new(key: impl Into<String>, value: MediaRuleValue) -> Self {
     Self {
       r#type: "pair".to_string(),
-      key,
+      key: key.into(),
       value,
     }
   }

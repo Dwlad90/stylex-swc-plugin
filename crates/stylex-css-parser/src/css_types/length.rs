@@ -30,8 +30,11 @@ pub struct Length {
 
 impl Length {
   /// Create a new Length value
-  pub fn new(value: f32, unit: String) -> Self {
-    Self { value, unit }
+  pub fn new(value: f32, unit: impl Into<String>) -> Self {
+    Self {
+      value,
+      unit: unit.into(),
+    }
   }
 
   /// All valid length units

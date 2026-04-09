@@ -37,30 +37,33 @@ where
         }
 
         if self.state.options.inject_stylex_side_effects {
-          let mut side_effect_imports = Vec::new();
-
-          for module_item in &transformed_module_items {
-            if let ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl)) = module_item {
-              let source_path = convert_atom_to_string(&import_decl.src.value);
-              if STYLEX_CONSTS_IMPORT_REGEX
-                .is_match(&source_path)
-                .unwrap_or(false)
-              {
-                side_effect_imports.push(ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
-                  span: DUMMY_SP,
-                  specifiers: vec![],
-                  src: Box::new(Str {
-                    span: DUMMY_SP,
-                    value: import_decl.src.value.clone(),
-                    raw: None,
-                  }),
-                  type_only: false,
-                  with: None,
-                  phase: Default::default(),
-                })));
+          let side_effect_imports: Vec<_> = transformed_module_items
+            .iter()
+            .filter_map(|module_item| {
+              if let ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl)) = module_item {
+                let source_path = convert_atom_to_string(&import_decl.src.value);
+                STYLEX_CONSTS_IMPORT_REGEX
+                  .is_match(&source_path)
+                  .unwrap_or(false)
+                  .then(|| {
+                    ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+                      span: DUMMY_SP,
+                      specifiers: vec![],
+                      src: Box::new(Str {
+                        span: DUMMY_SP,
+                        value: import_decl.src.value.clone(),
+                        raw: None,
+                      }),
+                      type_only: false,
+                      with: None,
+                      phase: Default::default(),
+                    }))
+                  })
+              } else {
+                None
               }
-            }
-          }
+            })
+            .collect();
 
           transformed_module_items.extend(side_effect_imports);
         }

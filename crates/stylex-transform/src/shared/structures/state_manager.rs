@@ -999,20 +999,22 @@ fn chain_collect_in_place<T: Clone + Eq>(target: &mut Vec<T>, source: &[T]) {
     }
 
     target.retain(|item| source.contains(item));
-    for item in source {
-      if !target.contains(item) {
-        target.push(item.clone());
-      }
-    }
+    let new_items: Vec<_> = source
+      .iter()
+      .filter(|item| !target.contains(item))
+      .cloned()
+      .collect();
+    target.extend(new_items);
     return;
   }
 
   target.retain(|item| !source.contains(item));
-  for item in source {
-    if !target.contains(item) {
-      target.push(item.clone());
-    }
-  }
+  let new_items: Vec<_> = source
+    .iter()
+    .filter(|item| !target.contains(item))
+    .cloned()
+    .collect();
+  target.extend(new_items);
 }
 
 /// Extend a FxHashMap in-place. Source values take precedence on key conflicts.

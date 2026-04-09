@@ -32,8 +32,10 @@ pub struct CustomIdentifier {
 
 impl CustomIdentifier {
   /// Create a new CustomIdentifier
-  pub fn new(value: String) -> Self {
-    Self { value }
+  pub fn new(value: impl Into<String>) -> Self {
+    Self {
+      value: value.into(),
+    }
   }
 
   /// Check if a string is a reserved keyword

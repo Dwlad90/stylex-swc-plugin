@@ -6,7 +6,10 @@ pub struct Pair {
 }
 
 impl Pair {
-  pub fn new(key: String, value: String) -> Self {
-    Self { key, value }
+  pub fn new(key: impl Into<String>, value: impl Into<String>) -> Self {
+    Self {
+      key: key.into(),
+      value: value.into(),
+    }
   }
 }

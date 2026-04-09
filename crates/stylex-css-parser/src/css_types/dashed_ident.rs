@@ -17,8 +17,10 @@ pub struct DashedIdentifier {
 
 impl DashedIdentifier {
   /// Create a new DashedIdentifier
-  pub fn new(value: String) -> Self {
-    Self { value }
+  pub fn new(value: impl Into<String>) -> Self {
+    Self {
+      value: value.into(),
+    }
   }
 
   /// Check if a string is a valid dashed identifier

@@ -483,10 +483,10 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 }
 
 pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {
-  let mut key_values = vec![];
-
-  for prop in object.props.iter() {
-    match prop {
+  object
+    .props
+    .iter()
+    .map(|prop| match prop {
       PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
       PropOrSpread::Prop(prop) => {
         let mut prop = prop.clone();
@@ -494,15 +494,12 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
         expand_shorthand_prop(&mut prop);
 
         match prop.as_ref() {
-          Prop::KeyValue(key_value) => {
-            key_values.push(key_value.clone());
-          },
+          Prop::KeyValue(key_value) => key_value.clone(),
           _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
         }
       },
-    }
-  }
-  key_values
+    })
+    .collect()
 }
 
 pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
@@ -577,46 +574,24 @@ pub fn fill_state_declarations(state: &mut StateManager, decl: &VarDeclarator) {
 fn _get_variable_names(name: &Pat) -> Vec<String> {
   match name {
     Pat::Ident(ident) => vec![ident.id.sym.to_string()],
-    Pat::Object(pat_object) => {
-      let mut names = vec![];
-
-      for prop in pat_object.props.iter() {
-        match prop {
-          ObjectPatProp::KeyValue(key_value_pat_prop) => {
-            names.append(&mut _get_variable_names(&key_value_pat_prop.value));
-          },
-          ObjectPatProp::Assign(assign_pat_prop) => {
-            names.append(&mut _get_variable_names(&Pat::Ident(
-              assign_pat_prop.key.clone(),
-            )));
-          },
-          ObjectPatProp::Rest(rest_pat) => {
-            names.append(&mut _get_variable_names(&rest_pat.arg));
-          },
-        }
-      }
-
-      names
-    },
-    Pat::Array(pat_array) => {
-      let mut names = vec![];
-
-      for elem in pat_array.elems.iter().flatten() {
-        names.append(&mut _get_variable_names(elem));
-      }
-
-      names
-    },
+    Pat::Object(pat_object) => pat_object
+      .props
+      .iter()
+      .flat_map(|prop| match prop {
+        ObjectPatProp::KeyValue(kv) => _get_variable_names(&kv.value),
+        ObjectPatProp::Assign(assign) => _get_variable_names(&Pat::Ident(assign.key.clone())),
+        ObjectPatProp::Rest(rest) => _get_variable_names(&rest.arg),
+      })
+      .collect(),
+    Pat::Array(pat_array) => pat_array
+      .elems
+      .iter()
+      .flatten()
+      .flat_map(_get_variable_names)
+      .collect(),
     Pat::Rest(rest_pat) => _get_variable_names(&rest_pat.arg),
-    Pat::Invalid(_) => vec![],
-    Pat::Expr(_) => vec![],
-    Pat::Assign(assign) => {
-      let mut names = vec![];
-
-      names.append(&mut _get_variable_names(&assign.left));
-
-      names
-    },
+    Pat::Invalid(_) | Pat::Expr(_) => vec![],
+    Pat::Assign(assign) => _get_variable_names(&assign.left),
   }
 }
 

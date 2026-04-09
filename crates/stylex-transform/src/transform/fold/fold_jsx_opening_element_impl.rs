@@ -306,7 +306,8 @@ fn build_stylex_props_call(
 }
 
 /// Find the index of the prop with key matching `sx_prop_name` in a props list.
-fn find_sx_prop_idx(props: &[PropOrSpread], sx_prop_name: &str) -> Option<usize> {
+fn find_sx_prop_idx(props: &[PropOrSpread], sx_prop_name: impl AsRef<str>) -> Option<usize> {
+  let sx_prop_name = sx_prop_name.as_ref();
   props.iter().position(|prop| {
     if let PropOrSpread::Prop(p) = prop
       && let Prop::KeyValue(kv) = p.as_ref()

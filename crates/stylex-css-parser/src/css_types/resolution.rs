@@ -34,7 +34,8 @@ impl Resolution {
   }
 
   /// Check if a unit is a valid resolution unit
-  pub fn is_valid_unit(unit: &str) -> bool {
+  pub fn is_valid_unit(unit: impl AsRef<str>) -> bool {
+    let unit = unit.as_ref();
     RESOLUTION_UNITS.contains(&unit)
   }
 

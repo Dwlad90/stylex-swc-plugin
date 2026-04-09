@@ -29,7 +29,8 @@ impl ThemeRef {
     }
   }
 
-  pub(crate) fn get(&mut self, key: &str, state: &StateManager) -> ThemeRefResult {
+  pub(crate) fn get(&mut self, key: impl AsRef<str>, state: &StateManager) -> ThemeRefResult {
+    let key = key.as_ref();
     if key == "__IS_PROXY" {
       return ThemeRefResult::Proxy;
     }

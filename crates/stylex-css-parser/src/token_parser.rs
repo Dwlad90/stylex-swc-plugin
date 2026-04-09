@@ -127,10 +127,11 @@ pub struct TokenParser<T: Clone + Debug> {
 
 impl<T: Clone + Debug + 'static> TokenParser<T> {
   /// Create a new TokenParser
-  pub fn new<F>(parser_fn: F, label: &str) -> Self
+  pub fn new<F>(parser_fn: F, label: impl AsRef<str>) -> Self
   where
     F: Fn(&mut TokenList) -> Result<T, CssParseError> + 'static,
   {
+    let label = label.as_ref();
     Self {
       run: Rc::new(parser_fn),
       label: label.to_string(),
@@ -138,13 +139,15 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
   }
 
   /// Parse a CSS string using this parser
-  pub fn parse(&self, css: &str) -> Result<T, CssParseError> {
+  pub fn parse(&self, css: impl AsRef<str>) -> Result<T, CssParseError> {
+    let css = css.as_ref();
     let mut tokens = TokenList::new(css);
     (self.run)(&mut tokens)
   }
 
   /// Parse a CSS string and ensure all input is consumed
-  pub fn parse_to_end(&self, css: &str) -> Result<T, CssParseError> {
+  pub fn parse_to_end(&self, css: impl AsRef<str>) -> Result<T, CssParseError> {
+    let css = css.as_ref();
     let mut tokens = TokenList::new(css);
     let initial_index = tokens.current_index;
 
@@ -405,7 +408,8 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
 
   /// Debug method that provides detailed parsing information
   /// Enhanced Rust-specific method for development and troubleshooting
-  pub fn debug(&self, css: &str) -> Result<T, CssParseError> {
+  pub fn debug(&self, css: impl AsRef<str>) -> Result<T, CssParseError> {
+    let css = css.as_ref();
     println!("🔍 DEBUG: Parsing '{}' with parser '{}'", css, self.label);
     let mut tokens = TokenList::new(css);
     let result = (self.run)(&mut tokens);
@@ -422,7 +426,8 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
     result
   }
 
-  pub fn parse_with_context(&self, css: &str) -> Result<T, CssParseError> {
+  pub fn parse_with_context(&self, css: impl AsRef<str>) -> Result<T, CssParseError> {
+    let css = css.as_ref();
     let mut tokens = TokenList::new(css);
     let _initial_index = tokens.current_index;
     let result = (self.run)(&mut tokens);
@@ -447,7 +452,8 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
   }
 
   /// Enhanced labeling method for better debugging
-  pub fn with_label(mut self, new_label: &str) -> Self {
+  pub fn with_label(mut self, new_label: impl AsRef<str>) -> Self {
+    let new_label = new_label.as_ref();
     self.label = new_label.to_string();
     self
   }
@@ -738,7 +744,8 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
   }
 
   /// Parse a specific string as an identifier
-  pub fn string(expected: &str) -> TokenParser<String> {
+  pub fn string(expected: impl AsRef<str>) -> TokenParser<String> {
+    let expected = expected.as_ref();
     let expected_clone = expected.to_string();
     Self::token(SimpleToken::Ident(String::new()), Some("Ident"))
       .map(
@@ -757,7 +764,8 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
       )
   }
 
-  pub fn fn_name(name: &str) -> TokenParser<String> {
+  pub fn fn_name(name: impl AsRef<str>) -> TokenParser<String> {
+    let name = name.as_ref();
     let name_owned = name.to_string();
     Self::token(SimpleToken::Function(String::new()), Some("Function"))
       .map(
@@ -1517,7 +1525,8 @@ impl<T: Clone + Debug + 'static> MixedSequenceBuilder<T> {
 
 /// Peek at what the next few tokens would be without consuming them
 /// Enhanced debugging utility function
-pub fn peek_tokens(css: &str, count: usize) -> Vec<SimpleToken> {
+pub fn peek_tokens(css: impl AsRef<str>, count: usize) -> Vec<SimpleToken> {
+  let css = css.as_ref();
   let mut tokens = TokenList::new(css);
   let mut result = Vec::new();
   for _ in 0..count {

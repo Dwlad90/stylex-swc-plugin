@@ -97,7 +97,7 @@ pub(crate) fn add_source_map_data(
                   let original_line_number = code_frame.get_span_line_number(span);
                   let filename = state.get_filename().to_string();
                   let raw_short_filename =
-                    create_short_filename(filename.as_ref(), state, package_json_seen);
+                    create_short_filename(&filename, state, package_json_seen);
                   let short_filename_expr = if let Some(ref f) = state.options.debug_file_path {
                     f.call(vec![create_string_expr(&raw_short_filename)])
                   } else {
@@ -168,7 +168,8 @@ pub(crate) fn add_source_map_data(
   result
 }
 
-fn get_package_prefix(absolute_path: &str) -> Option<String> {
+fn get_package_prefix(absolute_path: impl AsRef<str>) -> Option<String> {
+  let absolute_path = absolute_path.as_ref();
   const NODE_MODULES: &str = "node_modules";
 
   let node_modules_index = absolute_path.find(NODE_MODULES)?;
@@ -184,7 +185,8 @@ fn get_package_prefix(absolute_path: &str) -> Option<String> {
     .map(String::from)
 }
 
-fn get_short_path(relative_path: &str, state: &StateManager) -> String {
+fn get_short_path(relative_path: impl AsRef<str>, state: &StateManager) -> String {
+  let relative_path = relative_path.as_ref();
   // Check if commonJS module resolution with rootDir is configured
   if let CheckModuleResolution::CommonJS(ref config) = state.options.unstable_module_resolution
     && let Some(ref root_dir) = config.root_dir
@@ -210,10 +212,11 @@ fn get_short_path(relative_path: &str, state: &StateManager) -> String {
 }
 
 fn create_short_filename(
-  absolute_path: &str,
+  absolute_path: impl AsRef<str>,
   state: &StateManager,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> String {
+  let absolute_path = absolute_path.as_ref();
   let is_haste = matches!(
     state.options.unstable_module_resolution,
     CheckModuleResolution::Haste(_)

@@ -21,7 +21,8 @@ pub enum Dimension {
 impl Dimension {
   /// Check if a unit belongs to any dimension type
   #[allow(dead_code)]
-  fn is_valid_dimension_unit(unit: &str) -> bool {
+  fn is_valid_dimension_unit(unit: impl AsRef<str>) -> bool {
+    let unit = unit.as_ref();
     Length::is_valid_unit(unit)
       || Time::is_valid_unit(unit)
       || Frequency::is_valid_unit(unit)
@@ -29,7 +30,9 @@ impl Dimension {
   }
 
   /// Create a Dimension from value and unit
-  fn from_value_and_unit(value: f32, unit: String) -> Option<Dimension> {
+  fn from_value_and_unit(value: f32, unit: impl Into<String>) -> Option<Dimension> {
+    let unit = unit.into();
+
     if Length::is_valid_unit(&unit) {
       Some(Dimension::Length(Length::new(value, unit)))
     } else if Time::is_valid_unit(&unit) {

@@ -288,7 +288,8 @@ fn get_default_priority(key: &str) -> Option<f64> {
   None
 }
 
-pub(crate) fn get_priority(key: &str) -> f64 {
+pub(crate) fn get_priority(key: impl AsRef<str>) -> f64 {
+  let key = key.as_ref();
   if let Some(at_rule_priority) = get_at_rule_priority(key) {
     return at_rule_priority;
   }
@@ -312,7 +313,13 @@ pub(crate) fn get_priority(key: &str) -> f64 {
   3000.0
 }
 
-pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> String {
+pub(crate) fn transform_value(
+  key: impl AsRef<str>,
+  value: impl AsRef<str>,
+  state: &StateManager,
+) -> String {
+  let key = key.as_ref();
+  let value = value.as_ref();
   let css_property_value = value.trim();
 
   let value = match &css_property_value.parse::<f64>() {
@@ -346,7 +353,13 @@ pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> S
   normalize_css_property_value(key, value.as_ref(), &state.options)
 }
 
-pub(crate) fn transform_value_cached(key: &str, value: &str, state: &mut StateManager) -> String {
+pub(crate) fn transform_value_cached(
+  key: impl AsRef<str>,
+  value: impl AsRef<str>,
+  state: &mut StateManager,
+) -> String {
+  let key = key.as_ref();
+  let value = value.as_ref();
   let cache_key: String = format!("{}:{}", key, value);
 
   let cache = state.css_property_seen.get(&cache_key);
@@ -362,7 +375,8 @@ pub(crate) fn transform_value_cached(key: &str, value: &str, state: &mut StateMa
   result
 }
 
-pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
+pub fn swc_parse_css(source: impl AsRef<str>) -> (Result<Stylesheet, Error>, Vec<Error>) {
+  let source = source.as_ref();
   let config = ParserConfig {
     allow_wrong_line_comments: false,
     css_modules: false,
@@ -469,7 +483,8 @@ pub(crate) fn normalize_css_property_value(
 // type Normalizer = fn(Stylesheet, bool) -> Stylesheet;
 // type Validator = fn(Stylesheet);
 
-pub(crate) fn get_number_suffix(key: &str) -> String {
+pub(crate) fn get_number_suffix(key: impl AsRef<str>) -> String {
+  let key = key.as_ref();
   if UNITLESS_NUMBER_PROPERTIES.contains(key) || key.starts_with("--") {
     return String::default();
   }
@@ -541,7 +556,8 @@ pub fn stringify(node: &Stylesheet) -> String {
 /// Custom properties (`--*`) are returned as-is. Vendor-prefixed properties
 /// (e.g. `MsTransition`, `WebkitTapHighlightColor`) are converted to their
 /// standard hyphenated forms (`-ms-transition`, `-webkit-tap-highlight-color`).
-pub(crate) fn normalize_css_property_name(prop: &str) -> String {
+pub(crate) fn normalize_css_property_name(prop: impl AsRef<str>) -> String {
+  let prop = prop.as_ref();
   if prop.starts_with("--") {
     return prop.to_string();
   }

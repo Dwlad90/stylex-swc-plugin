@@ -3,14 +3,16 @@ use cssparser::{
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 
-pub fn format_ident(ident: &str) -> String {
+pub fn format_ident(ident: impl AsRef<str>) -> String {
+  let ident = ident.as_ref();
   let mut res: String = String::default();
   let _ = serialize_identifier(ident, &mut res);
   res = res.trim_end().to_string();
   res
 }
 
-pub fn _format_quoted_string(string: &str) -> String {
+pub fn _format_quoted_string(string: impl AsRef<str>) -> String {
+  let string = string.as_ref();
   let mut res: String = String::default();
   let _ = serialize_string(string, &mut res);
   res
@@ -46,9 +48,11 @@ pub fn _format_quoted_string(string: &str) -> String {
 
 pub fn parse_css_inner<'a>(
   parser: &mut Parser,
-  rule_name: &str,
-  prop_name: &str,
+  rule_name: impl AsRef<str>,
+  prop_name: impl AsRef<str>,
 ) -> Result<Vec<String>, ParseError<'a, Vec<String>>> {
+  let rule_name = rule_name.as_ref();
+  let prop_name = prop_name.as_ref();
   let mut result: Vec<String> = vec![];
 
   let mut curr_rule: String = rule_name.to_string();
@@ -375,7 +379,8 @@ pub fn parse_css_inner<'a>(
   Ok(result)
 }
 
-pub fn parse_css(css_string: &str) -> Vec<String> {
+pub fn parse_css(css_string: impl AsRef<str>) -> Vec<String> {
+  let css_string = css_string.as_ref();
   let mut input = ParserInput::new(css_string);
 
   let mut parser = Parser::new(&mut input);

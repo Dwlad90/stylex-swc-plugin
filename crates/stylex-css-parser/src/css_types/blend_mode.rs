@@ -54,7 +54,8 @@ impl BlendMode {
   }
 
   /// Convert from string representation
-  pub fn parse(s: &str) -> Option<BlendMode> {
+  pub fn parse(s: impl AsRef<str>) -> Option<BlendMode> {
+    let s = s.as_ref();
     match s {
       "normal" => Some(BlendMode::Normal),
       "multiply" => Some(BlendMode::Multiply),
@@ -99,7 +100,8 @@ impl BlendMode {
   }
 
   /// Check if a string is a valid blend mode
-  pub fn is_valid_blend_mode(s: &str) -> bool {
+  pub fn is_valid_blend_mode(s: impl AsRef<str>) -> bool {
+    let s = s.as_ref();
     Self::all_values().contains(&s)
   }
 

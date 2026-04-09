@@ -112,7 +112,7 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, String
 
 pub(crate) fn obj_map_keys_string(
   entries: &IndexMap<String, String>,
-  mapper: fn(&str) -> String,
+  mapper: impl Fn(&str) -> String,
 ) -> FlatCompiledStyles {
   let mut map = IndexMap::with_capacity(entries.len());
 

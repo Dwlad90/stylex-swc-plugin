@@ -104,7 +104,12 @@ impl StylesPreRule {
 
     sort_at_rules(&unsorted_const_rules)
   }
-  pub(crate) fn new(property: &str, value: PreRuleValue, key_path: Option<Vec<String>>) -> Self {
+  pub(crate) fn new(
+    property: impl AsRef<str>,
+    value: PreRuleValue,
+    key_path: Option<Vec<String>>,
+  ) -> Self {
+    let property = property.as_ref();
     let property_str = property.to_string();
 
     StylesPreRule {

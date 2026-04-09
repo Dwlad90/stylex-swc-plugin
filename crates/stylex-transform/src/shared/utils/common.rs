@@ -80,11 +80,13 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
   }
 }
 
-pub fn create_hash(value: &str) -> String {
+pub fn create_hash(value: impl AsRef<str>) -> String {
+  let value = value.as_ref();
   radix(murmur2::murmur2(value.as_bytes(), 1), 36).to_string()
 }
 
-pub(crate) fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> String {
+pub(crate) fn wrap_key_in_quotes(key: impl AsRef<str>, should_wrap_in_quotes: bool) -> String {
+  let key = key.as_ref();
   if should_wrap_in_quotes {
     format!("\"{}\"", key)
   } else {
@@ -422,7 +424,8 @@ pub(crate) fn sum_hash_map_values(
   sum_map
 }
 
-pub(crate) fn dashify(s: &str) -> String {
+pub(crate) fn dashify(s: impl AsRef<str>) -> String {
+  let s = s.as_ref();
   DASHIFY_REGEX.replace_all(s, "-$1").to_lowercase()
 }
 
@@ -613,7 +616,8 @@ pub(crate) fn round_f64(value: f64, decimal_places: u32) -> f64 {
   (value * multiplier).round() / multiplier
 }
 
-pub(crate) fn _resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
+pub(crate) fn _resolve_node_package_path(package_name: impl AsRef<str>) -> Result<PathBuf, String> {
+  let package_name = package_name.as_ref();
   match node_resolve::Resolver::default()
     .with_basedir(PathBuf::from("./cwd"))
     .preserve_symlinks(true)
@@ -643,7 +647,8 @@ pub(crate) fn sort_numbers_factory() -> impl FnMut(&f64, &f64) -> std::cmp::Orde
   |a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
 }
 
-pub(crate) fn char_code_at(s: &str, index: usize) -> Option<u32> {
+pub(crate) fn char_code_at(s: impl AsRef<str>, index: usize) -> Option<u32> {
+  let s = s.as_ref();
   s.chars().nth(index).map(|c| c as u32)
 }
 
@@ -663,7 +668,8 @@ where
     .map(|index| vec.swap_remove(index))
 }
 
-pub(crate) fn create_short_hash(value: &str) -> String {
+pub(crate) fn create_short_hash(value: impl AsRef<str>) -> String {
+  let value = value.as_ref();
   let hash = murmur2::murmur2(value.as_bytes(), 1) % (62u32.pow(5));
   base62::encode(hash)
 }
@@ -681,7 +687,8 @@ pub(crate) fn _md5_hash<T: serde::Serialize>(value: T, length: usize) -> String 
   }
 }
 
-pub(crate) fn remove_quotes(s: &str) -> String {
+pub(crate) fn remove_quotes(s: impl AsRef<str>) -> String {
+  let s = s.as_ref();
   s.trim_matches('"').to_string()
 }
 

@@ -482,13 +482,15 @@ impl MediaQuery {
   }
 
   /// Check if parentheses are balanced in a media query string
-  pub fn has_balanced_parens(input: &str) -> bool {
+  pub fn has_balanced_parens(input: impl AsRef<str>) -> bool {
+    let input = input.as_ref();
     has_balanced_parens(input)
   }
 }
 
 /// Validate media query string
-pub fn validate_media_query(input: &str) -> Result<MediaQuery, String> {
+pub fn validate_media_query(input: impl AsRef<str>) -> Result<MediaQuery, String> {
+  let input = input.as_ref();
   if !has_balanced_parens(input) {
     return Err(crate::at_queries::messages::MediaQueryErrors::UNBALANCED_PARENS.to_string());
   }
@@ -500,7 +502,8 @@ pub fn validate_media_query(input: &str) -> Result<MediaQuery, String> {
 }
 
 /// Check if parentheses are balanced
-fn has_balanced_parens(input: &str) -> bool {
+fn has_balanced_parens(input: impl AsRef<str>) -> bool {
+  let input = input.as_ref();
   let mut count = 0;
   for ch in input.chars() {
     match ch {
@@ -1961,7 +1964,7 @@ mod tests {
     }
 
     // All AND combinators are now implemented - test any remaining edge cases
-    let edge_case_queries = vec![
+    let edge_case_queries: Vec<&str> = vec![
       // Complex nested NOT expressions might still have issues
       // Add any edge cases here as they're discovered
     ];

@@ -212,7 +212,8 @@ pub fn create_big_int_expr(value: BigInt) -> Expr {
 }
 
 #[inline]
-pub fn create_string_expr(value: &str) -> Expr {
+pub fn create_string_expr(value: impl AsRef<str>) -> Expr {
+  let value = value.as_ref();
   Expr::Lit(create_string_lit(value))
 }
 
@@ -222,7 +223,8 @@ pub fn create_bool_expr(value: bool) -> Expr {
 }
 
 #[inline]
-pub fn create_ident_expr(value: &str) -> Expr {
+pub fn create_ident_expr(value: impl AsRef<str>) -> Expr {
+  let value = value.as_ref();
   Expr::Ident(create_ident(value))
 }
 
@@ -231,7 +233,8 @@ pub fn create_null_expr() -> Expr {
   Expr::Lit(create_null_lit())
 }
 
-fn should_wrap_prop_name_key_with_quotes(key: &str) -> bool {
+fn should_wrap_prop_name_key_with_quotes(key: impl AsRef<str>) -> bool {
+  let key = key.as_ref();
   Ident::verify_symbol(key).is_err() && {
     let ctx = Context::default();
 
@@ -239,7 +242,8 @@ fn should_wrap_prop_name_key_with_quotes(key: &str) -> bool {
   }
 }
 #[inline]
-pub fn convert_string_to_prop_name(value: &str) -> Option<PropName> {
+pub fn convert_string_to_prop_name(value: impl AsRef<str>) -> Option<PropName> {
+  let value = value.as_ref();
   if should_wrap_prop_name_key_with_quotes(value) {
     Some(PropName::Str(quote_str!(value)))
   } else {

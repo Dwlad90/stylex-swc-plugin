@@ -167,7 +167,8 @@ impl CssValue {
   }
 
   /// Check if has specific unit
-  pub fn has_unit(&self, unit: &str) -> bool {
+  pub fn has_unit(&self, unit: impl AsRef<str>) -> bool {
+    let unit = unit.as_ref();
     match self {
       CssValue::Dimension { unit: u, .. } => u == unit,
       _ => false,

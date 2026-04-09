@@ -70,7 +70,10 @@ impl Shorthands {
     ))
   }
 
-  pub fn get(name: &str) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
+  pub fn get(
+    name: impl AsRef<str>,
+  ) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
+    let name = name.as_ref();
     match name {
       "animation" => Some(Shorthands::animation),
       "background" => Some(Shorthands::background),
@@ -253,7 +256,10 @@ impl Aliases {
     Ok(vec![OrderPair("insetInlineEnd".to_string(), val)])
   }
 
-  pub fn get(name: &str) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
+  pub fn get(
+    name: impl AsRef<str>,
+  ) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
+    let name = name.as_ref();
     match name {
       // @Deprecated
       "borderHorizontal" => Shorthands::get("borderHorizontal"),

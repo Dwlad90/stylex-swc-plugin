@@ -25,7 +25,8 @@ impl DashedIdentifier {
 
   /// Check if a string is a valid dashed identifier
   /// Must start with '--' and have at least one character after
-  pub fn is_valid_dashed_ident(value: &str) -> bool {
+  pub fn is_valid_dashed_ident(value: impl AsRef<str>) -> bool {
+    let value = value.as_ref();
     value.starts_with("--") && value.len() > 2
   }
 

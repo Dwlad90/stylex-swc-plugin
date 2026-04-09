@@ -165,7 +165,9 @@ fn get_nitial_value_of_css_type(values: &IndexMap<String, ValueWithDefault>) -> 
     .unwrap_or_else(|| stylex_panic!("CSS type requires a default value but none was provided."))
 }
 
-pub(crate) fn wrap_with_at_rules(ltr: &str, at_rule: &str) -> String {
+pub(crate) fn wrap_with_at_rules(ltr: impl AsRef<str>, at_rule: impl AsRef<str>) -> String {
+  let ltr = ltr.as_ref();
+  let at_rule = at_rule.as_ref();
   at_rule
     .split(SPLIT_TOKEN)
     .fold(ltr.to_string(), |acc, at_rule| {
@@ -173,7 +175,8 @@ pub(crate) fn wrap_with_at_rules(ltr: &str, at_rule: &str) -> String {
     })
 }
 
-pub(crate) fn priority_for_at_rule(at_rule: &str) -> f64 {
+pub(crate) fn priority_for_at_rule(at_rule: impl AsRef<str>) -> f64 {
+  let at_rule = at_rule.as_ref();
   if at_rule == "default" {
     1.0
   } else {

@@ -38,7 +38,11 @@ pub(crate) fn _get_directory_path_recursive(path: &Path) -> Option<PathBuf> {
   }
 }
 
-pub(crate) fn find_closest_path(path: &Path, target_folder_name: &str) -> Option<PathBuf> {
+pub(crate) fn find_closest_path(
+  path: &Path,
+  target_folder_name: impl AsRef<str>,
+) -> Option<PathBuf> {
+  let target_folder_name = target_folder_name.as_ref();
   let node_modules_path: PathBuf = path.join(target_folder_name);
 
   if node_modules_path.exists() {

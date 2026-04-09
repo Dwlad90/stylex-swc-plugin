@@ -7,10 +7,11 @@ use std::path::Path;
 
 /// Determines whether a file should be transformed based on include/exclude patterns
 pub(crate) fn should_transform_file(
-  file_path: &str,
+  file_path: impl AsRef<str>,
   include: &Option<Vec<PathFilterUnion>>,
   exclude: &Option<Vec<PathFilterUnion>>,
 ) -> bool {
+  let file_path = file_path.as_ref();
   let cwd = env::current_dir().unwrap_or_default();
   let file_path_buf = Path::new(file_path);
 
@@ -49,7 +50,8 @@ pub(crate) fn should_transform_file(
 }
 
 /// Matches a file path against a pattern (glob or regex)
-fn match_pattern(file_path: &str, pattern: &PathFilterUnion) -> bool {
+fn match_pattern(file_path: impl AsRef<str>, pattern: &PathFilterUnion) -> bool {
+  let file_path = file_path.as_ref();
   match pattern {
     PathFilterUnion::Glob(glob) => GlobPattern::new(glob)
       .map(|p| p.matches(file_path))

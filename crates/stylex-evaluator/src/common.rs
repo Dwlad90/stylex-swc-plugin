@@ -9,11 +9,13 @@ use swc_core::ecma::{
   utils::drop_span,
 };
 
-pub fn create_hash(value: &str) -> String {
+pub fn create_hash(value: impl AsRef<str>) -> String {
+  let value = value.as_ref();
   radix(murmur2::murmur2(value.as_bytes(), 1), 36).to_string()
 }
 
-pub fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> String {
+pub fn wrap_key_in_quotes(key: impl AsRef<str>, should_wrap_in_quotes: bool) -> String {
+  let key = key.as_ref();
   if should_wrap_in_quotes {
     format!("\"{}\"", key)
   } else {
@@ -72,7 +74,8 @@ pub fn sort_numbers_factory() -> impl FnMut(&f64, &f64) -> std::cmp::Ordering {
   |a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
 }
 
-pub fn char_code_at(s: &str, index: usize) -> Option<u32> {
+pub fn char_code_at(s: impl AsRef<str>, index: usize) -> Option<u32> {
+  let s = s.as_ref();
   s.chars().nth(index).map(|c| c as u32)
 }
 
@@ -92,12 +95,14 @@ where
     .map(|index| vec.swap_remove(index))
 }
 
-pub fn create_short_hash(value: &str) -> String {
+pub fn create_short_hash(value: impl AsRef<str>) -> String {
+  let value = value.as_ref();
   let hash = murmur2::murmur2(value.as_bytes(), 1) % (62u32.pow(5));
   base62::encode(hash)
 }
 
-pub fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
+pub fn resolve_node_package_path(package_name: impl AsRef<str>) -> Result<PathBuf, String> {
+  let package_name = package_name.as_ref();
   match node_resolve::Resolver::default()
     .with_basedir(PathBuf::from("./cwd"))
     .preserve_symlinks(true)

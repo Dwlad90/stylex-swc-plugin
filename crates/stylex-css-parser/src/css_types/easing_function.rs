@@ -301,7 +301,8 @@ impl CubicBezierKeyword {
   }
 
   /// Create from string representation
-  pub fn from_string(value: &str) -> Result<Self, CssParseError> {
+  pub fn from_string(value: impl AsRef<str>) -> Result<Self, CssParseError> {
+    let value = value.as_ref();
     let keyword = match value {
       "ease" => CubicBezierKeywordType::Ease,
       "ease-in" => CubicBezierKeywordType::EaseIn,
@@ -490,7 +491,8 @@ impl StepsKeyword {
   }
 
   /// Create from string representation
-  pub fn from_string(value: &str) -> Result<Self, CssParseError> {
+  pub fn from_string(value: impl AsRef<str>) -> Result<Self, CssParseError> {
+    let value = value.as_ref();
     let keyword = match value {
       "step-start" => StepsKeywordType::StepStart,
       "step-end" => StepsKeywordType::StepEnd,

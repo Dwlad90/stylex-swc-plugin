@@ -224,10 +224,8 @@ where
     }
 
     // Apply test defaults only when no explicit config was provided
-    if !had_config {
-      if config.unstable_module_resolution.is_none() {
-        config.unstable_module_resolution = Some(ModuleResolution::haste(None));
-      }
+    if !had_config && config.unstable_module_resolution.is_none() {
+      config.unstable_module_resolution = Some(ModuleResolution::haste(None));
     }
 
     let stylex_imports = fill_stylex_imports_from_params(&config);

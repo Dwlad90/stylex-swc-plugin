@@ -112,7 +112,8 @@ impl Drop for SuppressPanicStderr {
 // ---------------------------------------------------------------------------
 
 /// Strip ANSI escape sequences from a string.
-fn strip_ansi(s: &str) -> String {
+fn strip_ansi(s: impl AsRef<str>) -> String {
+  let s = s.as_ref();
   let mut result = String::with_capacity(s.len());
   let mut chars = s.chars().peekable();
   while let Some(ch) = chars.next() {

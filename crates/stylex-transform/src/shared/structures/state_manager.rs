@@ -104,7 +104,8 @@ impl ImportKind {
     ImportKind::Env,
   ];
 
-  pub(crate) fn from_import_name(name: &str) -> Option<ImportKind> {
+  pub(crate) fn from_import_name(name: impl AsRef<str>) -> Option<ImportKind> {
+    let name = name.as_ref();
     match name {
       "create" => Some(ImportKind::Create),
       "props" => Some(ImportKind::Props),
@@ -313,7 +314,8 @@ impl StateManager {
     self.seen_module_source_code = Some(Box::new((Program::Module(module.clone()), source_code)));
   }
 
-  pub fn import_as(&self, import: &str) -> Option<String> {
+  pub fn import_as(&self, import: impl AsRef<str>) -> Option<String> {
+    let import = import.as_ref();
     for import_source in &self.options.import_sources {
       match import_source {
         ImportSources::Regular(_) => {},
@@ -524,7 +526,7 @@ impl StateManager {
     let is_consts_only_file = matches_file_suffix(&consts_file_extension, import_path);
 
     let is_valid_transformed_vars_file =
-      matches_file_suffix(&TRANSFORMED_VARS_FILE_EXTENSION, import_path);
+      matches_file_suffix(*TRANSFORMED_VARS_FILE_EXTENSION, import_path);
 
     if !is_theme_file && !is_valid_transformed_vars_file && !is_consts_only_file {
       return ImportPathResolution::False;
@@ -899,7 +901,8 @@ fn add_inject_default_import_expression(ident: &Ident, inject_path: Option<&str>
   }))
 }
 
-pub(crate) fn add_import_expression(path: &str) -> ModuleItem {
+pub(crate) fn add_import_expression(path: impl AsRef<str>) -> ModuleItem {
+  let path = path.as_ref();
   ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
     span: DUMMY_SP,
     specifiers: vec![],
@@ -949,7 +952,12 @@ fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> Mo
   }))))
 }
 
-pub(crate) fn matches_file_suffix(allowed_suffix: &str, filename: &str) -> bool {
+pub(crate) fn matches_file_suffix(
+  allowed_suffix: impl AsRef<str>,
+  filename: impl AsRef<str>,
+) -> bool {
+  let allowed_suffix = allowed_suffix.as_ref();
+  let filename = filename.as_ref();
   if filename.ends_with(allowed_suffix) {
     return true;
   }

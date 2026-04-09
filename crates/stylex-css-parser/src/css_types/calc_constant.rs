@@ -24,7 +24,8 @@ impl CalcConstant {
   }
 
   /// Convert from string representation
-  pub fn parse(s: &str) -> Option<CalcConstant> {
+  pub fn parse(s: impl AsRef<str>) -> Option<CalcConstant> {
+    let s = s.as_ref();
     match s {
       "pi" => Some(CalcConstant::Pi),
       "e" => Some(CalcConstant::E),
@@ -47,7 +48,8 @@ impl CalcConstant {
   }
 
   /// Check if a string is a valid calc constant
-  pub fn is_valid_constant(s: &str) -> bool {
+  pub fn is_valid_constant(s: impl AsRef<str>) -> bool {
+    let s = s.as_ref();
     Self::all_constants().contains(&s)
   }
 

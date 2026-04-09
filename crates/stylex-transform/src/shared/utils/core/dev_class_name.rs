@@ -65,10 +65,12 @@ pub(crate) fn convert_to_test_styles(
 }
 
 fn namespace_to_dev_class_name(
-  namespace: &str,
+  namespace: impl AsRef<str>,
   var_name: &Option<String>,
-  filename: &str,
+  filename: impl AsRef<str>,
 ) -> String {
+  let namespace = namespace.as_ref();
+  let filename = filename.as_ref();
   // Get the basename of the file without the extension
   let basename = Path::new(filename)
     .file_stem()
@@ -91,7 +93,12 @@ fn namespace_to_dev_class_name(
     .to_string()
 }
 
-fn convert_theme_to_base_styles(variable_name: &str, filename: &str) -> FlatCompiledStyles {
+fn convert_theme_to_base_styles(
+  variable_name: impl AsRef<str>,
+  filename: impl AsRef<str>,
+) -> FlatCompiledStyles {
+  let variable_name = variable_name.as_ref();
+  let filename = filename.as_ref();
   let mut overrides_obj_extended = IndexMap::new();
 
   // Get the basename of the file without the extension
@@ -117,8 +124,9 @@ fn convert_theme_to_base_styles(variable_name: &str, filename: &str) -> FlatComp
 pub(crate) fn convert_theme_to_dev_styles(
   variable_name: &Option<String>,
   overrides_obj: &FlatCompiledStyles,
-  filename: &str,
+  filename: impl AsRef<str>,
 ) -> FlatCompiledStyles {
+  let filename = filename.as_ref();
   let variable_name_str = match variable_name.as_ref() {
     Some(v) => v.as_str(),
     None => stylex_panic!("The variable name could not be determined."),
@@ -134,8 +142,9 @@ pub(crate) fn convert_theme_to_dev_styles(
 pub(crate) fn convert_theme_to_test_styles(
   variable_name: &Option<String>,
   overrides_obj: &FlatCompiledStyles,
-  filename: &str,
+  filename: impl AsRef<str>,
 ) -> FlatCompiledStyles {
+  let filename = filename.as_ref();
   let mut overrides_obj_extended =
     convert_theme_to_dev_styles(variable_name, overrides_obj, filename);
 

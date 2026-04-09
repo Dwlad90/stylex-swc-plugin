@@ -790,7 +790,12 @@ pub(crate) fn assert_valid_properties(
   }
 }
 
-fn assert_stylex_arg(value: &EvaluateResultValue, state: &mut StateManager, fn_name: &str) {
+fn assert_stylex_arg(
+  value: &EvaluateResultValue,
+  state: &mut StateManager,
+  fn_name: impl AsRef<str>,
+) {
+  let fn_name = fn_name.as_ref();
   if let EvaluateResultValue::Expr(expr) = value {
     if !expr.is_object() {
       build_code_frame_error_and_panic(expr, expr, &non_style_object(fn_name), state);

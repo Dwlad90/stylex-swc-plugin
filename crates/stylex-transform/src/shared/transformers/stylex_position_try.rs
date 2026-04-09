@@ -46,7 +46,7 @@ pub(crate) fn stylex_position_try(
   let extended_object = {
     let pipe_result = Pipe::create(styles.clone())
       .pipe(|styles| preprocess_object_properties(&Expr::Object(styles), state))
-      .pipe(|entries| obj_map_keys_string(&entries, dashify))
+      .pipe(|entries| obj_map_keys_string(&entries, |s: &str| dashify(s)))
       .pipe(|entries| {
         obj_map(
           ObjMapType::Map(entries),

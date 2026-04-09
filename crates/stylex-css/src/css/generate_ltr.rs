@@ -20,7 +20,8 @@ pub fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
   property_to_ltr(pair)
 }
 
-fn logical_to_physical_ltr(input: &str) -> Option<&str> {
+fn logical_to_physical_ltr(input: impl AsRef<str>) -> Option<&'static str> {
+  let input = input.as_ref();
   match input {
     "start" | "inline-start" => Some("left"),
     "end" | "inline-end" => Some("right"),

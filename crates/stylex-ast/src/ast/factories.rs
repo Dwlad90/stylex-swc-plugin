@@ -102,7 +102,8 @@ pub fn create_array_expression(elems: Vec<Option<ExprOrSpread>>) -> Expr {
 /// # Example
 /// ```ignore
 /// let prop_or_spread = create_key_value_prop("key", value);
-pub fn create_key_value_prop(key: &str, value: Expr) -> PropOrSpread {
+pub fn create_key_value_prop(key: impl AsRef<str>, value: Expr) -> PropOrSpread {
+  let key = key.as_ref();
   PropOrSpread::from(Prop::from(KeyValueProp {
     key: match convert_string_to_prop_name(key) {
       Some(k) => k,
@@ -134,7 +135,8 @@ pub fn create_binding_ident(ident: Ident) -> BindingIdent {
 /// ```ignore
 /// let lit_str = create_string_lit("value");
 /// ```
-pub fn create_string_lit(value: &str) -> Lit {
+pub fn create_string_lit(value: impl AsRef<str>) -> Lit {
+  let value = value.as_ref();
   Lit::from(value)
 }
 
@@ -194,11 +196,13 @@ pub fn create_null_lit() -> Lit {
 /// ```ignore
 /// let ident = create_ident("props");
 /// ```
-pub fn create_ident(name: &str) -> Ident {
+pub fn create_ident(name: impl AsRef<str>) -> Ident {
+  let name = name.as_ref();
   Ident::from(name)
 }
 
-pub fn create_nested_object_prop(key: &str, values: Vec<PropOrSpread>) -> PropOrSpread {
+pub fn create_nested_object_prop(key: impl AsRef<str>, values: Vec<PropOrSpread>) -> PropOrSpread {
+  let key = key.as_ref();
   let object = ObjectLit {
     span: DUMMY_SP,
     props: values,
@@ -227,7 +231,8 @@ pub fn create_prop_from_name(key: PropName, value: Expr) -> PropOrSpread {
 /// # Example
 /// ```ignore
 /// let key_value = create_key_value_prop_ident("props", value);
-pub fn create_key_value_prop_ident(key: &str, value: Expr) -> KeyValueProp {
+pub fn create_key_value_prop_ident(key: impl AsRef<str>, value: Expr) -> KeyValueProp {
+  let key = key.as_ref();
   KeyValueProp {
     key: PropName::Ident(IdentName::new(key.into(), DUMMY_SP)),
     value: Box::new(value),
@@ -239,7 +244,8 @@ pub fn create_key_value_prop_ident(key: &str, value: Expr) -> KeyValueProp {
 /// Unlike `create_key_value_prop`, this bypasses identifier validation,
 /// preserving keys that contain special characters (e.g. `@media …`) as ident nodes.
 /// Use this wherever downstream code calls `.as_ident()` on the resulting key.
-pub fn create_ident_key_value_prop(key: &str, value: Expr) -> PropOrSpread {
+pub fn create_ident_key_value_prop(key: impl AsRef<str>, value: Expr) -> PropOrSpread {
+  let key = key.as_ref();
   PropOrSpread::from(Prop::from(KeyValueProp {
     key: PropName::Ident(IdentName::new(key.into(), DUMMY_SP)),
     value: Box::new(value),
@@ -255,7 +261,9 @@ pub fn create_ident_key_value_prop(key: &str, value: Expr) -> PropOrSpread {
 /// # Example
 /// ```ignore
 /// let prop_or_spread = create_string_key_value_prop("key", "value");
-pub fn create_string_key_value_prop(key: &str, value: &str) -> PropOrSpread {
+pub fn create_string_key_value_prop(key: impl AsRef<str>, value: impl AsRef<str>) -> PropOrSpread {
+  let key = key.as_ref();
+  let value = value.as_ref();
   let value = create_string_expr(value);
 
   create_key_value_prop(key, value)
@@ -263,7 +271,8 @@ pub fn create_string_key_value_prop(key: &str, value: &str) -> PropOrSpread {
 
 // NOTE: Tests only using this function
 #[allow(dead_code)]
-pub fn create_string_array_prop(key: &str, value: &[&str]) -> PropOrSpread {
+pub fn create_string_array_prop(key: impl AsRef<str>, value: &[&str]) -> PropOrSpread {
+  let key = key.as_ref();
   let array = ArrayLit {
     span: DUMMY_SP,
     elems: value
@@ -284,7 +293,8 @@ pub fn create_string_array_prop(key: &str, value: &[&str]) -> PropOrSpread {
 /// # Example
 /// ```ignore
 /// let prop_or_spread = prop_or_spread_boolean_factory("key", true);
-pub fn create_boolean_prop(key: &str, value: Option<bool>) -> PropOrSpread {
+pub fn create_boolean_prop(key: impl AsRef<str>, value: Option<bool>) -> PropOrSpread {
+  let key = key.as_ref();
   match value {
     Some(value) => create_key_value_prop(key, create_bool_expr(value)),
     None => stylex_panic!("Value is not a boolean"),
@@ -310,7 +320,8 @@ pub fn create_expr_or_spread(expr: Expr) -> ExprOrSpread {
 /// ```ignore
 /// let expr_or_spread = create_string_expr_or_spread("value");
 /// ```
-pub fn create_string_expr_or_spread(value: &str) -> ExprOrSpread {
+pub fn create_string_expr_or_spread(value: impl AsRef<str>) -> ExprOrSpread {
+  let value = value.as_ref();
   create_expr_or_spread(create_string_expr(value))
 }
 
@@ -373,7 +384,8 @@ fn array_fabric(values: &[Expr], spread: Option<Span>) -> ArrayLit {
 /// let ident_name = create_ident_name("props");
 /// ```
 #[inline]
-pub fn create_ident_name(name: &str) -> IdentName {
+pub fn create_ident_name(name: impl AsRef<str>) -> IdentName {
+  let name = name.as_ref();
   IdentName::new(name.into(), DUMMY_SP)
 }
 
@@ -441,7 +453,8 @@ pub fn create_member_call_expr(callee_member: MemberExpr, args: Vec<ExprOrSpread
 /// let call = create_ident_call_expr("merge", vec![arg1]);
 /// ```
 #[inline]
-pub fn create_ident_call_expr(callee_ident: &str, args: Vec<ExprOrSpread>) -> CallExpr {
+pub fn create_ident_call_expr(callee_ident: impl AsRef<str>, args: Vec<ExprOrSpread>) -> CallExpr {
+  let callee_ident = callee_ident.as_ref();
   CallExpr {
     span: DUMMY_SP,
     callee: Callee::Expr(Box::new(Expr::Ident(create_ident(callee_ident)))),
@@ -515,7 +528,8 @@ pub fn create_jsx_attr_or_spread(attr: JSXAttr) -> JSXAttrOrSpread {
 /// let jsx_attr = create_jsx_attr("name", value);
 /// ```
 #[allow(dead_code)]
-pub fn create_jsx_attr(name: &str, value: JSXAttrValue) -> JSXAttr {
+pub fn create_jsx_attr(name: impl AsRef<str>, value: JSXAttrValue) -> JSXAttr {
+  let name = name.as_ref();
   JSXAttr {
     span: DUMMY_SP,
     name: JSXAttrName::Ident(IdentName::from(name)),
@@ -568,6 +582,7 @@ pub fn create_null_var_declarator(ident: Ident) -> VarDeclarator {
 /// ```ignore
 /// let decl = create_string_var_declarator(my_ident, "value");
 /// ```
-pub fn create_string_var_declarator(ident: Ident, value: &str) -> VarDeclarator {
+pub fn create_string_var_declarator(ident: Ident, value: impl AsRef<str>) -> VarDeclarator {
+  let value = value.as_ref();
   create_var_declarator(ident, create_string_expr(value))
 }

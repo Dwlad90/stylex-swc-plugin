@@ -37,7 +37,8 @@ use stylex_structures::inline_style::InlineStyle;
 
 /// Prepends a key name to an existing error reason to provide context
 /// about which property path triggered the evaluation failure.
-fn prepend_key_to_reason(key: &str, reason: Option<String>) -> Option<String> {
+fn prepend_key_to_reason(key: impl AsRef<str>, reason: Option<String>) -> Option<String> {
+  let key = key.as_ref();
   reason.map(|r| format!("{} > {}", key, r))
 }
 

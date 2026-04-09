@@ -32,7 +32,8 @@ impl Time {
   }
 
   /// Check if a unit is a valid time unit
-  pub fn is_valid_unit(unit: &str) -> bool {
+  pub fn is_valid_unit(unit: impl AsRef<str>) -> bool {
+    let unit = unit.as_ref();
     TIME_UNITS.contains(&unit)
   }
 

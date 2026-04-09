@@ -48,7 +48,8 @@ impl Length {
   }
 
   /// Check if a unit is a valid length unit
-  pub fn is_valid_unit(unit: &str) -> bool {
+  pub fn is_valid_unit(unit: impl AsRef<str>) -> bool {
+    let unit = unit.as_ref();
     Self::units().contains(&unit)
   }
 

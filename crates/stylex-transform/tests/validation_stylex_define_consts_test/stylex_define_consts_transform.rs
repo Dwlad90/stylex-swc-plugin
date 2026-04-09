@@ -1,145 +1,95 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::{test, test_transform};
 
-#[test]
-#[should_panic(expected = "The return value of defineConsts() must be bound to a named export.")]
-fn invalid_export_not_bound() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_export_not_bound,
+  "The return value of defineConsts() must be bound to a named export.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           const constants = stylex.defineConsts({});
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "defineConsts() calls must be bound to a bare variable.")]
-fn invalid_export_not_bound_unbound() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_export_not_bound_unbound,
+  "defineConsts() calls must be bound to a bare variable.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           stylex.defineConsts({});
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "defineConsts() should have 1 argument.")]
-fn invalid_argument_none() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_argument_none,
+  "defineConsts() should have 1 argument.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           export const constants = stylex.defineConsts();
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "defineConsts() should have 1 argument.")]
-fn invalid_argument_too_many() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_argument_too_many,
+  "defineConsts() should have 1 argument.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           export const constants = stylex.defineConsts({}, {});
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "defineConsts() can only accept an object.")]
-fn invalid_argument_number() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_argument_number,
+  "defineConsts() can only accept an object.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           export const constants = stylex.defineConsts(1);
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "defineConsts() can only accept an object.")]
-fn invalid_argument_string() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_argument_string,
+  "defineConsts() can only accept an object.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           export const constants = stylex.defineConsts('1');
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "Only static values are allowed inside of a defineConsts() call.")]
-fn invalid_argument_non_static() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_argument_non_static,
+  "Only static values are allowed inside of a defineConsts() call.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           export const constants = stylex.defineConsts(genStyles());
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
 stylex_test!(
   valid_argument_object,
@@ -166,89 +116,61 @@ stylex_test!(
         "#
 );
 
-#[test]
-#[should_panic(expected = "The return value of defineConsts() must be bound to a named export.")]
-fn invalid_export_re_export_from_another_file_does_not_count() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_export_re_export_from_another_file_does_not_count,
+  "The return value of defineConsts() must be bound to a named export.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           const constants = stylex.defineConsts({});
           export { constants } from './other.stylex.js';
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "The return value of defineConsts() must be bound to a named export.")]
-fn invalid_export_renamed_re_export_from_another_file_does_not_count() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_export_renamed_re_export_from_another_file_does_not_count,
+  "The return value of defineConsts() must be bound to a named export.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           const constants = stylex.defineConsts({});
           export { constants as otherConstants } from './other.stylex.js';
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "The return value of defineConsts() must be bound to a named export.")]
-fn invalid_export_default_export_does_not_count() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_export_default_export_does_not_count,
+  "The return value of defineConsts() must be bound to a named export.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           const constants = stylex.defineConsts({});
           export default constants;
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "The return value of defineConsts() must be bound to a named export.")]
-fn invalid_export_renamed_export_with_as_syntax() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_export_renamed_export_with_as_syntax,
+  "The return value of defineConsts() must be bound to a named export.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           const constants = stylex.defineConsts({});
           export { constants as themeConstants };
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
 /* Properties */
 
@@ -266,73 +188,52 @@ stylex_test!(
   "#
 );
 
-#[test]
-#[should_panic(expected = "Only static values are allowed inside of a defineConsts() call.")]
-fn invalid_key_non_static() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_key_non_static,
+  "Only static values are allowed inside of a defineConsts() call.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           export const constants = stylex.defineConsts({
             [labelColor]: 'red',
           });
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
 /* Values */
 
-#[test]
-#[should_panic(expected = "Only static values are allowed inside of a defineConsts() call.")]
-fn invalid_value_non_static_variable() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_value_non_static_variable,
+  "Only static values are allowed inside of a defineConsts() call.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           export const constants = stylex.defineConsts({
             labelColor: labelColor,
           });
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "Only static values are allowed inside of a defineConsts() call.")]
-fn invalid_value_non_static_function_call() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_value_non_static_function_call,
+  "Only static values are allowed inside of a defineConsts() call.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           export const constants = stylex.defineConsts({
             labelColor: labelColor(),
           });
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
 stylex_test!(
   valid_value_number,
@@ -362,19 +263,14 @@ stylex_test!(
         "#
 );
 
-#[test]
-#[ignore]
-fn valid_value_keyframes() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_transform!(
+  #[ignore],
+  valid_value_keyframes,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import * as stylex from '@stylexjs/stylex';
           export const constants = stylex.defineConsts({
             fadeIn: stylex.keyframes({
@@ -383,7 +279,7 @@ fn valid_value_keyframes() {
             }),
           });
         "#,
-    r#"
+  r#"
           import * as stylex from '@stylexjs/stylex';
           export const constants = stylex.defineConsts({
             fadeIn: stylex.keyframes({
@@ -391,6 +287,5 @@ fn valid_value_keyframes() {
               '100%': { opacity: 1}
             }),
           });
-        "#,
-  )
-}
+        "#
+);

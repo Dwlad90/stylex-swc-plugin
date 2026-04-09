@@ -1,22 +1,10 @@
 use crate::utils::prelude::*;
 use stylex_enums::property_validation_mode::PropertyValidationMode;
-use swc_core::ecma::transforms::testing::{test, test_transform};
 
 // Test default behavior (silent mode)
-#[test]
-fn does_not_throw_by_default_for_disallowed_properties_silent_mode() {
-  // This test just ensures no panic occurs - the transformation will remove the
-  // disallowed properties, resulting in an empty styles object
-  let result = std::panic::catch_unwind(|| {
-    test_transform(
-      ts_syntax(),
-      Option::None,
-      |tr| {
-        StyleXTransform::test(tr.comments.clone())
-          .with_runtime_injection()
-          .into_pass()
-      },
-      r#"
+stylex_test_transform!(
+  does_not_throw_by_default_for_disallowed_properties_silent_mode,
+  r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
           root: {
@@ -24,55 +12,37 @@ fn does_not_throw_by_default_for_disallowed_properties_silent_mode() {
           },
         });
       "#,
-      r#"
+  r#"
         import * as stylex from '@stylexjs/stylex';
-      "#,
-    )
-  });
-
-  assert!(result.is_ok(), "Test should not panic");
-}
+      "#
+);
 
 // Test throw mode
-#[test]
-#[should_panic(expected = "is not supported")]
-fn throws_error_when_property_validation_mode_is_throw() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_property_validation_mode(PropertyValidationMode::Throw)
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  throws_error_when_property_validation_mode_is_throw,
+  "is not supported",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_property_validation_mode(PropertyValidationMode::Throw)
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
       import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
         root: {
           border: '1px solid red',
         },
       });
-    "#,
-    r#""#,
-  )
-}
+    "#
+);
 
 // Test warn mode
-#[test]
-fn does_not_throw_when_property_validation_mode_is_warn() {
-  // This test ensures no panic occurs and warnings are printed
-  let result = std::panic::catch_unwind(|| {
-    test_transform(
-      ts_syntax(),
-      Option::None,
-      |tr| {
-        StyleXTransform::test(tr.comments.clone())
-          .with_property_validation_mode(PropertyValidationMode::Warn)
-          .with_runtime_injection()
-          .into_pass()
-      },
-      r#"
+stylex_test_transform!(
+  does_not_throw_when_property_validation_mode_is_warn,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_property_validation_mode(PropertyValidationMode::Warn)
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
           root: {
@@ -80,29 +50,19 @@ fn does_not_throw_when_property_validation_mode_is_warn() {
           },
         });
       "#,
-      r#"
+  r#"
         import * as stylex from '@stylexjs/stylex';
-      "#,
-    )
-  });
-
-  assert!(result.is_ok(), "Test should not panic in warn mode");
-}
+      "#
+);
 
 // Test silent mode explicitly
-#[test]
-fn does_not_throw_when_property_validation_mode_is_silent() {
-  let result = std::panic::catch_unwind(|| {
-    test_transform(
-      ts_syntax(),
-      Option::None,
-      |tr| {
-        StyleXTransform::test(tr.comments.clone())
-          .with_property_validation_mode(PropertyValidationMode::Silent)
-          .with_runtime_injection()
-          .into_pass()
-      },
-      r#"
+stylex_test_transform!(
+  does_not_throw_when_property_validation_mode_is_silent,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_property_validation_mode(PropertyValidationMode::Silent)
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
           root: {
@@ -110,29 +70,19 @@ fn does_not_throw_when_property_validation_mode_is_silent() {
           },
         });
       "#,
-      r#"
+  r#"
         import * as stylex from '@stylexjs/stylex';
-      "#,
-    )
-  });
-
-  assert!(result.is_ok(), "Test should not panic in silent mode");
-}
+      "#
+);
 
 // Test with background property
-#[test]
-fn works_with_background_property() {
-  let result = std::panic::catch_unwind(|| {
-    test_transform(
-      ts_syntax(),
-      Option::None,
-      |tr| {
-        StyleXTransform::test(tr.comments.clone())
-          .with_property_validation_mode(PropertyValidationMode::Silent)
-          .with_runtime_injection()
-          .into_pass()
-      },
-      r#"
+stylex_test_transform!(
+  works_with_background_property,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_property_validation_mode(PropertyValidationMode::Silent)
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
           root: {
@@ -140,32 +90,19 @@ fn works_with_background_property() {
           },
         });
       "#,
-      r#"
+  r#"
         import * as stylex from '@stylexjs/stylex';
-      "#,
-    )
-  });
-
-  assert!(
-    result.is_ok(),
-    "Test should not panic with background property"
-  );
-}
+      "#
+);
 
 // Test with animation property
-#[test]
-fn works_with_animation_property() {
-  let result = std::panic::catch_unwind(|| {
-    test_transform(
-      ts_syntax(),
-      Option::None,
-      |tr| {
-        StyleXTransform::test(tr.comments.clone())
-          .with_property_validation_mode(PropertyValidationMode::Silent)
-          .with_runtime_injection()
-          .into_pass()
-      },
-      r#"
+stylex_test_transform!(
+  works_with_animation_property,
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_property_validation_mode(PropertyValidationMode::Silent)
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
           root: {
@@ -173,64 +110,43 @@ fn works_with_animation_property() {
           },
         });
       "#,
-      r#"
+  r#"
         import * as stylex from '@stylexjs/stylex';
-      "#,
-    )
-  });
-
-  assert!(
-    result.is_ok(),
-    "Test should not panic with animation property"
-  );
-}
+      "#
+);
 
 // Test throw mode with background
-#[test]
-#[should_panic(expected = "is not supported")]
-fn throws_for_background_in_throw_mode() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_property_validation_mode(PropertyValidationMode::Throw)
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  throws_for_background_in_throw_mode,
+  "is not supported",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_property_validation_mode(PropertyValidationMode::Throw)
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
       import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
         root: {
           background: 'red',
         },
       });
-    "#,
-    r#""#,
-  )
-}
+    "#
+);
 
 // Test throw mode with animation
-#[test]
-#[should_panic(expected = "is not supported")]
-fn throws_for_animation_in_throw_mode() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_property_validation_mode(PropertyValidationMode::Throw)
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  throws_for_animation_in_throw_mode,
+  "is not supported",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_property_validation_mode(PropertyValidationMode::Throw)
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
       import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
         root: {
           animation: 'spin 1s',
         },
       });
-    "#,
-    r#""#,
-  )
-}
+    "#
+);

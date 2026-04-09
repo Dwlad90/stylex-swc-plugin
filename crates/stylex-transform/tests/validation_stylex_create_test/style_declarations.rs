@@ -1,6 +1,5 @@
 use crate::utils::prelude::*;
 use rustc_hash::FxHashMap;
-use swc_core::ecma::transforms::testing::{test, test_transform};
 
 stylex_test_panic!(
   invalid_property_non_static_value,
@@ -68,20 +67,10 @@ stylex_test_panic!(
           "#
 );
 
-#[test]
-#[should_panic(
-  expected = "Could not resolve the path to the imported file.\nPlease ensure that the theme file has a .stylex.js or .stylex.ts extension and follows the\nrules for defining variables"
-)]
-fn invalid_value_non_static_import_default() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_value_non_static_import_default,
+  "Could not resolve the path to the imported file.\nPlease ensure that the theme file has a .stylex.js or .stylex.ts extension and follows the\nrules for defining variables",
+  r#"
             import * as stylex from '@stylexjs/stylex';
             import generateBg from './other-file';
             const styles = stylex.create({
@@ -89,10 +78,8 @@ fn invalid_value_non_static_import_default() {
                 backgroundColor: generateBg(),
               }
             });
-          "#,
-    r#""#,
-  )
-}
+          "#
+);
 
 stylex_test_panic!(
   #[ignore],
@@ -326,57 +313,47 @@ stylex_test!(
           "#
 );
 
-#[test]
-#[should_panic(expected = "Rule contains an unclosed function, css rule: * { color: var(--foo }")]
-fn invalid_css_variable_unclosed_function() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      let mut defined_vars = FxHashMap::default();
-      defined_vars.insert("foo".to_string(), "1".to_string());
-      StyleXTransform::test(tr.comments.clone())
-        .with_defined_stylex_css_variables(defined_vars)
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_css_variable_unclosed_function,
+  "Rule contains an unclosed function, css rule: * { color: var(--foo }",
+  |tr| {
+    let mut defined_vars = FxHashMap::default();
+    defined_vars.insert("foo".to_string(), "1".to_string());
+    StyleXTransform::test(tr.comments.clone())
+      .with_defined_stylex_css_variables(defined_vars)
+      .with_runtime_injection()
+      .into_pass()
+  },
+  r#"
             import * as stylex from '@stylexjs/stylex';
             const styles = stylex.create({
               root: {
                 color: 'var(--foo'
               }
             });
-          "#,
-    r#""#,
-  )
-}
+          "#
+);
 
-#[test]
-#[should_panic]
-fn invalid_css_variable_unprefixed_custom_property() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      let mut defined_vars = FxHashMap::default();
-      defined_vars.insert("foo".to_string(), "1".to_string());
-      StyleXTransform::test(tr.comments.clone())
-        .with_defined_stylex_css_variables(defined_vars)
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_css_variable_unprefixed_custom_property,
+  "Rule contains an unclosed function",
+  |tr| {
+    let mut defined_vars = FxHashMap::default();
+    defined_vars.insert("foo".to_string(), "1".to_string());
+    StyleXTransform::test(tr.comments.clone())
+      .with_defined_stylex_css_variables(defined_vars)
+      .with_runtime_injection()
+      .into_pass()
+  },
+  r#"
             import * as stylex from '@stylexjs/stylex';
             const styles = stylex.create({
               root: {
                 color: 'var(foo'
               }
             });
-          "#,
-    r#""#,
-  )
-}
+          "#
+);
 
 stylex_test!(
   valid_css_variable_defined_custom_properties,

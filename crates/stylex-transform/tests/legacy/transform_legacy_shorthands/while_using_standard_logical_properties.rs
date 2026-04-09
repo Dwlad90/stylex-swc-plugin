@@ -1,6 +1,5 @@
 use crate::utils::prelude::*;
 use stylex_enums::property_validation_mode::PropertyValidationMode;
-use swc_core::ecma::transforms::testing::{test, test_transform};
 
 stylex_test!(
   padding_basic_shorthand,
@@ -551,56 +550,46 @@ stylex_test!(
   "#
 );
 
-#[test]
-#[should_panic(expected = "Invalid listStyle value: 'none inherit'")]
-fn list_style_invalid_values_none_inherit() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-        .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-        .with_enable_logical_styles_polyfill(true)
-        .with_property_validation_mode(PropertyValidationMode::Throw)
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  list_style_invalid_values_none_inherit,
+  "Invalid listStyle value: 'none inherit'",
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_property_validation_mode(PropertyValidationMode::Throw)
+      .with_runtime_injection()
+      .into_pass()
+  },
+  r#"
       import stylex from 'stylex';
       export const styles = stylex.create({
         none: {
           listStyle: 'none inherit'
         },
       });
-    "#,
-    r#""#,
-  )
-}
+    "#
+);
 
-#[test]
-#[should_panic(expected = "Invalid listStyle value: 'none var(--image)'")]
-fn list_style_invalid_values_none_var() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-        .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-        .with_enable_logical_styles_polyfill(true)
-        .with_property_validation_mode(PropertyValidationMode::Throw)
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  list_style_invalid_values_none_var,
+  "Invalid listStyle value: 'none var(--image)'",
+  |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_property_validation_mode(PropertyValidationMode::Throw)
+      .with_runtime_injection()
+      .into_pass()
+  },
+  r#"
       import stylex from 'stylex';
       export const styles = stylex.create({
         none: {
           listStyle: 'none var(--image)'
         },
       });
-    "#,
-    r#""#,
-  )
-}
+    "#
+);

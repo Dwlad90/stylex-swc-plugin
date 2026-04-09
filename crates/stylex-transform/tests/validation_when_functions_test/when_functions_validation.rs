@@ -1,5 +1,4 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test_transform;
 
 stylex_test_panic!(
   validates_pseudo_selector_format,
@@ -18,18 +17,10 @@ stylex_test_panic!(
     "#
 );
 
-#[test]
-#[should_panic(expected = "Attribute selector must end with \"]\"")]
-fn validates_attribute_selector_format() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  validates_attribute_selector_format,
+  "Attribute selector must end with \"]\"",
+  r#"
       import { when, create } from '@stylexjs/stylex';
 
       const styles = create({
@@ -40,10 +31,8 @@ fn validates_attribute_selector_format() {
           },
         },
       });
-    "#,
-    r#""#,
-  )
-}
+    "#
+);
 
 stylex_test_panic!(
   rejects_invalid_selector_format,

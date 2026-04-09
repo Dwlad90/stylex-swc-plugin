@@ -1,20 +1,14 @@
 use crate::utils::prelude::*;
 use rustc_hash::FxHashMap;
-use swc_core::ecma::transforms::testing::{test, test_transform};
 
-#[test]
-#[should_panic(expected = "keyframes() can only accept an object.")]
-fn local_variable_keyframes_object() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  local_variable_keyframes_object,
+  "keyframes() can only accept an object.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
         import * as stylex from '@stylexjs/stylex';
         const keyframes = {
           from: {
@@ -25,52 +19,36 @@ fn local_variable_keyframes_object() {
           }
         };
         export const name = stylex.keyframes(keyframes);
-      "#,
-    r#""#,
-  )
-}
+      "#
+);
 
-#[test]
-#[should_panic(expected = "keyframes() can only accept an object.")]
-fn only_argument_must_be_an_object_of_objects_null() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  only_argument_must_be_an_object_of_objects_null,
+  "keyframes() can only accept an object.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import stylex from 'stylex';
           const name = stylex.keyframes(null);
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(expected = "Every frame within a keyframes() call must be an object.")]
-fn only_argument_must_be_an_object_of_objects_false() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_pass(PluginPass::test_default())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  only_argument_must_be_an_object_of_objects_false,
+  "Every frame within a keyframes() call must be an object.",
+  |tr| StyleXTransform::test(tr.comments.clone())
+    .with_pass(PluginPass::test_default())
+    .with_runtime_injection()
+    .into_pass(),
+  r#"
           import stylex from 'stylex';
           const name = stylex.keyframes({
             from: false
           });
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
 stylex_test!(
   only_argument_must_be_an_object_of_objects_valid_percentage,

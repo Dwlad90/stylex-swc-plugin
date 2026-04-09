@@ -1,5 +1,4 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::{test, test_transform};
 
 stylex_test!(
   basic_object,
@@ -88,14 +87,11 @@ stylex_test!(
   "#
 );
 
-#[test]
-#[ignore]
-fn using_contextual_styles() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
-    r#"
+stylex_test_transform!(
+  #[ignore],
+  using_contextual_styles,
+  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  r#"
       import * as stylex from 'stylex';
       export const cls = stylex.viewTransitionClass({
         group: {
@@ -106,6 +102,5 @@ fn using_contextual_styles() {
         },
       });
     "#,
-    r#""#,
-  )
-}
+  r#""#
+);

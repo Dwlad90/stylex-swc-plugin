@@ -1,5 +1,4 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::{test, test_transform};
 
 stylex_test_panic!(
   invalid_key_non_static,
@@ -47,105 +46,57 @@ stylex_test!(
         "#
 );
 
-#[test]
-#[should_panic(
-  expected = "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed"
-)]
-fn invalid_dynamic_rule_default_object_value() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_dynamic_rule_default_object_value,
+  "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed",
+  r#"
           import * as stylex from '@stylexjs/stylex';
           const styles = stylex.create({
             dynamic: (props = {}) => ({
               color: props.color,
             }),
           });
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(
-  expected = "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed"
-)]
-fn invalid_dynamic_rule_default_string_value() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_dynamic_rule_default_string_value,
+  "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed",
+  r#"
           import * as stylex from '@stylexjs/stylex';
           const styles = stylex.create({
             dynamic: (color = 'red') => ({
               color,
             }),
           });
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(
-  expected = "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed"
-)]
-fn invalid_dynamic_rule_destructuring() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_dynamic_rule_destructuring,
+  "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed",
+  r#"
           import * as stylex from '@stylexjs/stylex';
           const styles = stylex.create({
             dynamic: ({ color }) => ({
               color,
             }),
           });
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
-#[test]
-#[should_panic(
-  expected = "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed"
-)]
-fn invalid_dynamic_rule_rest_param() {
-  test_transform(
-    ts_syntax(),
-    Option::None,
-    |tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_runtime_injection()
-        .into_pass()
-    },
-    r#"
+stylex_test_panic!(
+  invalid_dynamic_rule_rest_param,
+  "Only named parameters are allowed in Dynamic Style functions. Destructuring, spreading or default values are not allowed",
+  r#"
           import * as stylex from '@stylexjs/stylex';
           const styles = stylex.create({
             dynamic: (...rest) => ({
               color: rest[0],
             }),
           });
-        "#,
-    r#""#,
-  )
-}
+        "#
+);
 
 stylex_test!(
   valid_dynamic_rule,

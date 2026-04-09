@@ -30,7 +30,13 @@ use stylex_structures::order_pair::OrderPair;
 
 use super::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
 
-fn normalize_key_path(key_path: Vec<String>, key: &str, property: String) -> Vec<String> {
+fn normalize_key_path(
+  key_path: Vec<String>,
+  key: &str,
+  property: impl Into<String>,
+) -> Vec<String> {
+  let property = property.into();
+
   if key_path.contains(&key.to_string()) {
     key_path
       .into_iter()

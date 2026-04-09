@@ -2917,7 +2917,11 @@ pub(crate) fn evaluate_cached(
   }
 }
 
-fn evaluate_theme_ref(file_name: &str, export_name: String, state: &StateManager) -> ThemeRef {
+fn evaluate_theme_ref(
+  file_name: &str,
+  export_name: impl Into<String>,
+  state: &StateManager,
+) -> ThemeRef {
   ThemeRef::new(
     file_name,
     export_name,

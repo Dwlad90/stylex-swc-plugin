@@ -55,11 +55,12 @@ const THUMB_VARIANTS: [&str; 3] = [
 
 pub(crate) fn build_nested_css_rule(
   class_name: &str,
-  decls: String,
+  decls: impl AsRef<str>,
   pseudos: &mut [String],
   at_rules: &mut [String],
   const_rules: &mut [String],
 ) -> String {
+  let decls = decls.as_ref();
   let pseudo = pseudos
     .iter()
     .filter(|&p| p != "::thumb")

@@ -1,15 +1,15 @@
 use crate::utils::prelude::*;
-use swc_core::{common::FileName, ecma::transforms::testing::test};
+use swc_core::common::FileName;
 
 stylex_test!(
   stylex_call_produces_dev_class_names_and_enable_inlined_conditional_merge_false,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
-    .with_dev(true)
-    .with_enable_debug_class_names(true)
-    .with_enable_inlined_conditional_merge(false)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
+      .with_dev(true)
+      .with_enable_debug_class_names(true)
+      .with_enable_inlined_conditional_merge(false)
+      .with_runtime_injection()
+  }),
   // dev:true
   r#"
       import stylex from 'stylex';
@@ -25,12 +25,12 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_produces_dev_class_name_with_conditions,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
-    .with_dev(true)
-    .with_enable_debug_class_names(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
+      .with_dev(true)
+      .with_enable_debug_class_names(true)
+      .with_runtime_injection()
+  }),
   // dev:true and enable_inlined_conditional_merge:true
   r#"
       import stylex from 'stylex';
@@ -50,13 +50,13 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_produces_dev_class_name_with_conditions_skip_conditional,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
-    .with_dev(true)
-    .with_enable_debug_class_names(true)
-    .with_enable_inlined_conditional_merge(false)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
+      .with_dev(true)
+      .with_enable_debug_class_names(true)
+      .with_enable_inlined_conditional_merge(false)
+      .with_runtime_injection()
+  }),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -75,12 +75,12 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_produces_dev_class_name_with_collisions,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
-    .with_dev(true)
-    .with_enable_debug_class_names(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
+      .with_dev(true)
+      .with_enable_debug_class_names(true)
+      .with_runtime_injection()
+  }),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -97,13 +97,13 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_produces_dev_class_name_with_collisions_skip_conditional,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
-    .with_dev(true)
-    .with_enable_inlined_conditional_merge(false)
-    .with_enable_debug_class_names(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("/html/js/FooBar.react.js".into()))
+      .with_dev(true)
+      .with_enable_inlined_conditional_merge(false)
+      .with_enable_debug_class_names(true)
+      .with_runtime_injection()
+  }),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({

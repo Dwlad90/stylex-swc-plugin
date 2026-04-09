@@ -2,21 +2,20 @@ use crate::utils::prelude::*;
 use crate::utils::transform::stringify_js;
 use std::path::PathBuf;
 use swc_core::common::FileName;
-use swc_core::ecma::transforms::testing::test;
 
-fn transform(input: &str) -> String {
-  stringify_js(input, ts_syntax(), |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_cwd(PathBuf::from("/stylex/packages/"))
-      .with_filename(FileName::Real(
-        "/stylex/packages/TestTheme.stylex.js".into(),
-      ))
-      .with_unstable_module_resolution(ModuleResolution {
-        r#type: "commonJS".to_string(),
-        root_dir: Some("/stylex/packages/".to_string()),
-        theme_file_extension: None,
-      })
-      .into_pass()
+fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(
+      b.with_cwd(PathBuf::from("/stylex/packages/"))
+        .with_filename(FileName::Real(
+          "/stylex/packages/TestTheme.stylex.js".into(),
+        ))
+        .with_unstable_module_resolution(ModuleResolution {
+          r#type: "commonJS".to_string(),
+          root_dir: Some("/stylex/packages/".to_string()),
+          theme_file_extension: None,
+        }),
+    )
   })
 }
 
@@ -37,9 +36,9 @@ fn constants_are_unique() {
         export const breakpoints = stylex.defineConsts({ margin: '10px' });
       "#;
 
-  let output1 = transform(input1);
-  let output2 = transform(input2);
-  let output3 = transform(input3);
+  let output1 = stringify_js(input1, ts_syntax(), |tr| stylex_transform(tr.comments.clone(), |b| b));
+  let output2 = stringify_js(input2, ts_syntax(), |tr| stylex_transform(tr.comments.clone(), |b| b));
+  let output3 = stringify_js(input3, ts_syntax(), |tr| stylex_transform(tr.comments.clone(), |b| b));
 
   // Assert the generated constants are consistent for the same inputs
   assert_eq!(output1, output2);
@@ -50,17 +49,7 @@ fn constants_are_unique() {
 
 stylex_test!(
   constants_object,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_cwd(PathBuf::from("/stylex/packages/"))
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_unstable_module_resolution(ModuleResolution {
-      r#type: "commonJS".to_string(),
-      root_dir: Some("/stylex/packages/".to_string()),
-      theme_file_extension: None,
-    })
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const breakpoints = stylex.defineConsts({
@@ -73,13 +62,9 @@ stylex_test!(
 
 stylex_test!(
   constants_object_haste,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_cwd(PathBuf::from("/stylex/packages/"))
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_unstable_module_resolution(ModuleResolution::haste(None))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_unstable_module_resolution(ModuleResolution::haste(None))
+  }),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const breakpoints = stylex.defineConsts({
@@ -92,17 +77,7 @@ stylex_test!(
 
 stylex_test!(
   constant_names_special_characters,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_cwd(PathBuf::from("/stylex/packages/"))
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_unstable_module_resolution(ModuleResolution {
-      r#type: "commonJS".to_string(),
-      root_dir: Some("/stylex/packages/".to_string()),
-      theme_file_extension: None,
-    })
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const sizes = stylex.defineConsts({
@@ -113,17 +88,7 @@ stylex_test!(
 
 stylex_test!(
   constant_names_number,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_cwd(PathBuf::from("/stylex/packages/"))
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_unstable_module_resolution(ModuleResolution {
-      r#type: "commonJS".to_string(),
-      root_dir: Some("/stylex/packages/".to_string()),
-      theme_file_extension: None,
-    })
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const levels = stylex.defineConsts({
@@ -134,17 +99,7 @@ stylex_test!(
 
 stylex_test!(
   constant_names_double_dash_prefix,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_cwd(PathBuf::from("/stylex/packages/"))
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_unstable_module_resolution(ModuleResolution {
-      r#type: "commonJS".to_string(),
-      root_dir: Some("/stylex/packages/".to_string()),
-      theme_file_extension: None,
-    })
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const sizes = stylex.defineConsts({

@@ -1,13 +1,20 @@
 use crate::utils::prelude::*;
-use swc_core::{common::FileName, ecma::transforms::testing::test};
+use swc_core::common::FileName;
+
+fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(
+      b.with_unstable_module_resolution(ModuleResolution::haste(None))
+        .with_runtime_injection_option(RuntimeInjection::Boolean(false)),
+    )
+  })
+}
 
 stylex_test!(
   test_one_output_of_stylex_define_vars,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("TestTheme.stylex.js".into()))
-    .with_unstable_module_resolution(ModuleResolution::haste(None))
-    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("TestTheme.stylex.js".into()))
+  }),
   r#"
     import * as stylex from 'stylex';
     export const buttonTheme = stylex.defineVars({
@@ -21,13 +28,11 @@ stylex_test!(
 
 stylex_test!(
   output_of_stylex_define_vars,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real(
       "/stylex/packages/TestTheme.stylex.js".into()
     ))
-    .with_unstable_module_resolution(ModuleResolution::haste(None))
-    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
-    .into_pass(),
+  }),
   r#"
     import stylex from 'stylex';
     export const buttonTheme = stylex.defineVars({
@@ -50,13 +55,11 @@ stylex_test!(
 
 stylex_test!(
   output_of_stylex_define_vars_with_literals,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real(
       "/stylex/packages/TestTheme.stylex.js".into()
     ))
-    .with_unstable_module_resolution(ModuleResolution::haste(None))
-    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
-    .into_pass(),
+  }),
   r#"
     import stylex from 'stylex';
     export const buttonTheme = stylex.defineVars({

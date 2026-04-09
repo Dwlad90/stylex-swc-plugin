@@ -1,6 +1,10 @@
 use crate::utils::prelude::*;
 use rustc_hash::FxHashMap;
 
+fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+  build_test_transform(comments, |b| customize(b))
+}
+
 stylex_test_panic!(
   invalid_property_non_static_value,
   "Referenced constant is not defined.",
@@ -243,7 +247,7 @@ stylex_test_panic!(
   #[ignore = "This should throw an error but doesn't"],
   invalid_object_value_contains_invalid_media_query_syntax,
   "Invalid media query syntax",
-  |tr| StyleXTransform::test(tr.comments.clone()).with_enable_media_query_order(true).with_runtime_injection().into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_enable_media_query_order(true).with_runtime_injection()),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -319,10 +323,10 @@ stylex_test_panic!(
   |tr| {
     let mut defined_vars = FxHashMap::default();
     defined_vars.insert("foo".to_string(), "1".to_string());
-    StyleXTransform::test(tr.comments.clone())
-      .with_defined_stylex_css_variables(defined_vars)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| {
+      b.with_defined_stylex_css_variables(defined_vars)
+        .with_runtime_injection()
+    })
   },
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -340,10 +344,10 @@ stylex_test_panic!(
   |tr| {
     let mut defined_vars = FxHashMap::default();
     defined_vars.insert("foo".to_string(), "1".to_string());
-    StyleXTransform::test(tr.comments.clone())
-      .with_defined_stylex_css_variables(defined_vars)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| {
+      b.with_defined_stylex_css_variables(defined_vars)
+        .with_runtime_injection()
+    })
   },
   r#"
             import * as stylex from '@stylexjs/stylex';
@@ -361,10 +365,10 @@ stylex_test!(
     let mut defined_vars = FxHashMap::default();
     defined_vars.insert("foo".to_string(), "1".to_string());
     defined_vars.insert("bar".to_string(), "1".to_string());
-    StyleXTransform::test(tr.comments.clone())
-      .with_defined_stylex_css_variables(defined_vars)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| {
+      b.with_defined_stylex_css_variables(defined_vars)
+        .with_runtime_injection()
+    })
   },
   r#"
             import * as stylex from '@stylexjs/stylex';

@@ -1,7 +1,7 @@
 use crate::utils::prelude::*;
 use insta::assert_snapshot;
 use stylex_structures::named_import_source::{ImportSources, NamedImportSource};
-use swc_core::{common::FileName, ecma::transforms::testing::test};
+use swc_core::common::FileName;
 
 use crate::utils::transform::stringify_js;
 
@@ -373,7 +373,7 @@ stylex_test!(
 
 stylex_test!(
   no_inject_stylex_side_effects_ts,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { constants } from './constants.stylex';
@@ -382,7 +382,7 @@ stylex_test!(
 
 stylex_test!(
   no_inject_stylex_side_effects,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { constants } from './constants.consts.ts';

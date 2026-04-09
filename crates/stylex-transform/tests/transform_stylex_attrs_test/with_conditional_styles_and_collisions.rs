@@ -1,11 +1,15 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
+
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| customize(b.with_runtime_injection()))
+}
 
 stylex_test!(
   stylex_call_with_conditions,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -110,9 +114,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_conditions_and_collisions,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -145,9 +147,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_conditions_and_null_collisions,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({

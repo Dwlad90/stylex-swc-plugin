@@ -25,4 +25,8 @@ pub(crate) use swc_core::ecma::transforms::testing::{test, test_transform};
 pub(crate) use stylex_transform::StyleXTransformBuilder;
 
 #[allow(unused_imports)]
-pub(crate) use crate::utils::transform::{TestBuilder, build_test_transform, ts_syntax};
+pub(crate) use crate::utils::transform::{TestBuilder, TestComments, build_test_transform, ts_syntax};
+
+// Re-export Pass trait for file-level transform return types
+#[allow(unused_imports)]
+pub(crate) use swc_core::ecma::ast::Pass;

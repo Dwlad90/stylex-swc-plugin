@@ -1,16 +1,22 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
+
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(
+      b.with_runtime_injection_option(RuntimeInjection::Boolean(true))
+        .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+        .with_enable_logical_styles_polyfill(false)
+        .with_runtime_injection(),
+    )
+  })
+}
 
 stylex_test!(
   padding_with_longhand_property_collisions,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-      .with_enable_logical_styles_polyfill(false)
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -30,14 +36,7 @@ stylex_test!(
 
 stylex_test!(
   padding_with_null_longhand_property_collisions,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-      .with_enable_logical_styles_polyfill(false)
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -57,14 +56,7 @@ stylex_test!(
 
 stylex_test!(
   border_color_basic_shorthand,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-      .with_enable_logical_styles_polyfill(false)
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -78,14 +70,7 @@ stylex_test!(
 
 stylex_test!(
   border_width_basic_shorthand,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-      .with_enable_logical_styles_polyfill(false)
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({

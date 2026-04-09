@@ -158,8 +158,11 @@ pub(crate) fn ts_syntax() -> Syntax {
 
 use stylex_transform::StyleXTransformBuilder;
 
+/// Type alias for test comments (used in file-level transform functions).
+pub(crate) type TestComments = Rc<SingleThreadedComments>;
+
 /// Type alias for the builder with standard test comments.
-pub(crate) type TestBuilder = StyleXTransformBuilder<Rc<SingleThreadedComments>>;
+pub(crate) type TestBuilder = StyleXTransformBuilder<TestComments>;
 
 /// Creates a test transform with the given customizations applied.
 ///

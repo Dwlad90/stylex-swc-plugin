@@ -1,13 +1,18 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
+
+fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(
+      b.with_unstable_module_resolution(ModuleResolution::common_js(Some(
+        "/stylex/packages/".to_string(),
+      ))),
+    )
+  })
+}
 
 stylex_test!(
   export_named_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
@@ -21,11 +26,7 @@ stylex_test!(
 
 stylex_test!(
   export_named_declaration,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({
@@ -38,11 +39,7 @@ stylex_test!(
 
 stylex_test!(
   export_default,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export default (stylex.create({
@@ -55,11 +52,7 @@ stylex_test!(
 
 stylex_test!(
   module_export,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({

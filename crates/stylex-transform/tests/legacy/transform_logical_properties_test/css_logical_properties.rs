@@ -1,5 +1,4 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
 
 stylex_test!(
   border_block_color,

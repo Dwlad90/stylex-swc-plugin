@@ -1,8 +1,15 @@
 use crate::utils::prelude::*;
 
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| customize(b))
+}
+
 stylex_test!(
   basic_object,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const cls = stylex.viewTransitionClass({
@@ -24,7 +31,7 @@ stylex_test!(
 
 stylex_test!(
   local_variables_used_in_view_transition_class,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const animationDuration = '1s';
@@ -39,7 +46,7 @@ stylex_test!(
 
 stylex_test!(
   using_keyframes,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const fadeIn = stylex.keyframes({
@@ -65,7 +72,7 @@ stylex_test!(
 
 stylex_test!(
   using_inline_keyframes,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const cls = stylex.viewTransitionClass({
@@ -90,7 +97,7 @@ stylex_test!(
 stylex_test_transform!(
   #[ignore],
   using_contextual_styles,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
       import * as stylex from 'stylex';
       export const cls = stylex.viewTransitionClass({

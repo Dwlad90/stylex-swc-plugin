@@ -1,9 +1,15 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
+
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| customize(b))
+}
 
 stylex_test!(
   default_marker_named_import,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import { defaultMarker, props } from '@stylexjs/stylex';
 
@@ -13,7 +19,7 @@ stylex_test!(
 
 stylex_test!(
   default_marker_namespace_import,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
 

@@ -1,9 +1,15 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
+
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| customize(b))
+}
 
 stylex_test!(
   position_try_object,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const name = stylex.positionTry({
@@ -18,7 +24,7 @@ stylex_test!(
 
 stylex_test!(
   local_constants_used_in_position_try_object,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const SIZE = '100px';
@@ -34,7 +40,7 @@ stylex_test!(
 
 stylex_test!(
   position_try_value_used_within_create,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const SIZE = '100px';
@@ -54,7 +60,7 @@ stylex_test!(
 
 stylex_test!(
   position_try_object_used_inline,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({

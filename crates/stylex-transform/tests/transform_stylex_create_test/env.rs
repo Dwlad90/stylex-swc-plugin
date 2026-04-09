@@ -11,6 +11,13 @@ use crate::utils::ast::{
   convert_expr_to_bool_wrapper, convert_expr_to_num_wrapper, convert_expr_to_str_wrapper,
 };
 
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| customize(b).with_runtime_injection())
+}
+
 stylex_test!(
   stylex_env_resolves_compile_time_constants,
   |tr| {
@@ -19,10 +26,7 @@ stylex_test!(
       "brandPrimary".to_string(),
       EnvEntry::Expr(create_string_expr("#123456")),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -42,10 +46,7 @@ stylex_test!(
       "brandPrimary".to_string(),
       EnvEntry::Expr(create_string_expr("#654321")),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -66,10 +67,7 @@ stylex_test!(
       "brandPrimary".to_string(),
       EnvEntry::Expr(create_string_expr("#123456")),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import {create, env} from '@stylexjs/stylex';
@@ -103,10 +101,7 @@ stylex_test!(
         create_string_expr(&format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -140,10 +135,7 @@ stylex_test!(
         create_string_expr(&format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import { create, env } from '@stylexjs/stylex';
@@ -177,10 +169,7 @@ stylex_test!(
         ))
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -214,10 +203,7 @@ stylex_test!(
         ))
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -251,10 +237,7 @@ stylex_test!(
         ])
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -285,10 +268,7 @@ stylex_test!(
         ])
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import { create, env } from '@stylexjs/stylex';
@@ -320,10 +300,7 @@ stylex_test!(
         ])
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -364,10 +341,7 @@ stylex_test!(
         ])
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -388,10 +362,7 @@ stylex_test!(
       "getLineHeight".to_string(),
       EnvEntry::Function(JSFunction::new(|_args: Vec<Expr>| create_number_expr(1.5))),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -417,10 +388,7 @@ stylex_test!(
         create_string_expr(if is_rtl { "rtl" } else { "ltr" })
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -440,10 +408,7 @@ stylex_test!(
       "getOptional".to_string(),
       EnvEntry::Function(JSFunction::new(|_args: Vec<Expr>| create_null_expr())),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -486,10 +451,7 @@ stylex_test!(
         ])
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -520,10 +482,7 @@ stylex_test!(
         ])
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -554,10 +513,7 @@ stylex_test!(
         ])
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -597,10 +553,7 @@ stylex_test!(
         ])
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -644,10 +597,7 @@ stylex_test!(
         ])
       })),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -687,10 +637,7 @@ stylex_test!(
       "select".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| select_branch(&args))),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -711,10 +658,7 @@ stylex_test!(
       "select".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| select_branch(&args))),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -734,10 +678,7 @@ stylex_test!(
       "pick".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| select_branch(&args))),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -757,10 +698,7 @@ stylex_test!(
       "select".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| select_branch(&args))),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -784,10 +722,7 @@ stylex_test!(
       "branch".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| pick_default(&args))),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -808,10 +743,7 @@ stylex_test!(
       "branch".to_string(),
       EnvEntry::Function(JSFunction::new(|args: Vec<Expr>| pick_default(&args))),
     );
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import * as stylex from '@stylexjs/stylex';

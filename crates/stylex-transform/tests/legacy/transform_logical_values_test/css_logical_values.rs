@@ -1,5 +1,4 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
 
 stylex_test!(
   value_inline_end_for_clear_property,
@@ -57,10 +56,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_e_resize_for_cursor_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { cursor: 'e-resize' } });
@@ -70,10 +68,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_w_resize_for_cursor_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { cursor: 'w-resize' } });
@@ -83,10 +80,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_ne_resize_for_cursor_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { cursor: 'ne-resize' } });
@@ -96,10 +92,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_nw_resize_for_cursor_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { cursor: 'nw-resize' } });
@@ -109,10 +104,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_se_resize_for_cursor_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { cursor: 'se-resize' } });
@@ -122,10 +116,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_sw_resize_for_cursor_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { cursor: 'sw-resize' } });
@@ -162,11 +155,11 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_padding_inline_property_with_polyfill,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_logical_styles_polyfill(true)
-    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_logical_styles_polyfill(true)
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_runtime_injection()
+  }),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -187,11 +180,11 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_padding_inline_property_without_polyfill,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_logical_styles_polyfill(false)
-    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_logical_styles_polyfill(false)
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_runtime_injection()
+  }),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -212,10 +205,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_box_shadow_property_none,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: 'none' } });
@@ -225,11 +217,11 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_box_shadow_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true)
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_runtime_injection()
+  }),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -250,10 +242,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_box_shadow_property_1px_1px_hash000,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: '1px 1px #000' } });
@@ -263,10 +254,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_box_shadow_property_negative_1px_negative_1px_hash000,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: '-1px -1px #000' } });
@@ -276,10 +266,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_box_shadow_property_inset_1px_1px_hash000,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: 'inset 1px 1px #000' } });
@@ -289,10 +278,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_box_shadow_property_1px_1px_1px_1px_hash000,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: '1px 1px 1px 1px #000' } });
@@ -302,10 +290,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_box_shadow_property_inset_1px_1px_1px_1px_hash000,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: 'inset 1px 1px 1px 1px #000' } });
@@ -315,10 +302,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_box_shadow_property_complex,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { boxShadow: '2px 2px 2px 2px red, inset 1px 1px 1px 1px #000' } });
@@ -328,10 +314,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_text_shadow_property_none,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { textShadow: 'none' } });
@@ -341,10 +326,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_text_shadow_property_1px_1px_hash000,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { textShadow: '1px 1px #000' } });
@@ -354,10 +338,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_text_shadow_property_negative_1px_negative_1px_hash000,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { textShadow: '-1px -1px #000' } });
@@ -367,10 +350,9 @@ stylex_test!(
 
 stylex_test!(
   legacy_value_of_text_shadow_property_1px_1px_1px_hash000,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_legacy_value_flipping(true)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_legacy_value_flipping(true).with_runtime_injection()
+  }),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({ x: { textShadow: '1px 1px 1px #000' } });

@@ -1,14 +1,20 @@
 use crate::utils::prelude::*;
-use swc_core::{common::FileName, ecma::transforms::testing::test};
+use swc_core::common::FileName;
+
+fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(
+      b.with_pass(PluginPass::test_default())
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
+          "/stylex/packages/".to_string()
+        ))),
+    )
+  })
+}
 
 stylex_test!(
   theme_object,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -35,10 +41,9 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   theme_object_haste,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(ModuleResolution::haste(None))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_unstable_module_resolution(ModuleResolution::haste(None))
+  }),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -65,15 +70,11 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   theme_object_deep_in_file_tree,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_filename(FileName::Real(
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real(
       "/stylex/packages/src/css/vars.stylex.js".into()
     ))
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  }),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -100,12 +101,7 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   literal_tokens_theme_object,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -125,12 +121,7 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   local_variable_theme_object,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -158,12 +149,7 @@ export const theme = stylex.createTheme(vars, themeObj);
 
 stylex_test!(
   local_variables_used_in_theme_objects,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -182,12 +168,7 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   template_literals_used_in_theme_objects,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -206,12 +187,7 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   expressions_used_in_theme_objects,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -230,12 +206,7 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   stylex_types_used_in_theme_object,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -263,12 +234,7 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   multiple_theme_objects_same_vars,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -299,15 +265,11 @@ export const otherTheme = stylex.createTheme(vars, {
 
 stylex_test!(
   multiple_theme_objects_different_vars,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_filename(FileName::Real(
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real(
       "/stylex/packages/otherVars.stylex.js".into()
     ))
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  }),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -334,12 +296,7 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   themes_are_indifferent_to_order_of_keys,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -366,14 +323,10 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   debug_adds_debug_data,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
-    .with_debug(true)
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+      .with_debug(true)
+  }),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -391,16 +344,12 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   debug_adds_debug_data_for_npm_packages,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_filename(FileName::Real(
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real(
       "/js/node_modules/npm-package/dist/components/Foo.react.js".into()
     ))
     .with_debug(true)
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  }),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -418,12 +367,11 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   debug_adds_debug_data_haste,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
-    .with_debug(true)
-    .with_unstable_module_resolution(ModuleResolution::haste(None))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+      .with_debug(true)
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+  }),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -441,14 +389,13 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   debug_adds_debug_data_for_npm_packages_haste,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_filename(FileName::Real(
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real(
       "/node_modules/npm-package/dist/components/Foo.react.js".into()
     ))
     .with_debug(true)
     .with_unstable_module_resolution(ModuleResolution::haste(None))
-    .into_pass(),
+  }),
   r#"
 import * as stylex from '@stylexjs/stylex';
 export const vars = {
@@ -466,14 +413,10 @@ export const theme = stylex.createTheme(vars, {
 
 stylex_test!(
   adds_dev_data,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
-    .with_dev(true)
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+      .with_dev(true)
+  }),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const vars = {
@@ -491,14 +434,10 @@ stylex_test!(
 
 stylex_test!(
   options_runtime_injection_true,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_pass(PluginPass::test_default())
-    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
-    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+  }),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const vars = {

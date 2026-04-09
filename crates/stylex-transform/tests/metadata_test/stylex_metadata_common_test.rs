@@ -1,9 +1,12 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
+
+fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+  build_test_transform(comments, |b| customize(b))
+}
 
 stylex_test!(
   stylex_metadata_is_correctly_set,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         export const styles = stylex.create({

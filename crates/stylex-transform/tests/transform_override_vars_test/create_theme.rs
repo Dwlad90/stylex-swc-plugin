@@ -1,8 +1,18 @@
 use crate::utils::prelude::*;
 use insta::assert_snapshot;
-use swc_core::{common::FileName, ecma::transforms::testing::test};
+use swc_core::common::FileName;
 
 use crate::utils::transform::stringify_js;
+
+fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(
+      b.with_filename(FileName::Real(
+        "/stylex/packages/TestTheme.stylex.js".into(),
+      )),
+    )
+  })
+}
 
 fn transform(input: &str) -> String {
   stringify_js(input, ts_syntax(), |tr| {
@@ -84,12 +94,9 @@ fn variables_order_does_not_change_the_class_name_hash() {
 
 stylex_test!(
   transforms_variables_object,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_runtime_injection_option(RuntimeInjection::Boolean(false))
+  }),
   format!(
     r#"
     {}
@@ -102,12 +109,7 @@ stylex_test!(
 
 stylex_test!(
   transforms_variables_object_and_add_stylex_inject_in_dev_mode,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_dev(true)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   format!(
     r#"
     {}
@@ -120,13 +122,10 @@ stylex_test!(
 
 stylex_test!(
   transforms_variables_object_in_non_haste_env,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
-    .with_unstable_module_resolution(ModuleResolution::common_js(None))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_runtime_injection_option(RuntimeInjection::Boolean(false))
+      .with_unstable_module_resolution(ModuleResolution::common_js(None))
+  }),
   format!(
     r#"
     {}
@@ -139,13 +138,10 @@ stylex_test!(
 
 stylex_test!(
   transforms_variables_object_in_non_haste_dev_env,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_dev(true)
-    .with_unstable_module_resolution(ModuleResolution::common_js(None))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_dev(true)
+      .with_unstable_module_resolution(ModuleResolution::common_js(None))
+  }),
   format!(
     r#"
     {}
@@ -158,12 +154,9 @@ stylex_test!(
 
 stylex_test!(
   transforms_multiple_variables_objects_in_a_single_file,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_runtime_injection_option(RuntimeInjection::Boolean(false))
+  }),
   format!(
     r#"
     {}
@@ -180,12 +173,7 @@ stylex_test!(
 
 stylex_test!(
   transforms_multiple_variables_objects_in_a_single_file_in_dev_mode,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_dev(true)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   format!(
     r#"
     {}
@@ -204,12 +192,7 @@ stylex_test!(
 
 stylex_test!(
   transforms_variables_objects_with_references_to_local_variables,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_dev(true)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   format!(
     r#"
       {}
@@ -235,12 +218,7 @@ stylex_test!(
 
 stylex_test!(
   allows_references_to_local_variables_with_static_values,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_dev(true)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   format!(
     r#"
       {}
@@ -266,12 +244,7 @@ stylex_test!(
 
 stylex_test!(
   allows_template_literal_references,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_dev(true)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   format!(
     r#"
       {}
@@ -297,12 +270,7 @@ stylex_test!(
 
 stylex_test!(
   allows_pure_complex_expressions,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_dev(true)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   format!(
     r#"
       {}
@@ -328,15 +296,15 @@ stylex_test!(
 
 stylex_test!(
   transforms_variables_object_in_common_js_with_nested_file_path,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(FileName::Real(
       "/stylex/packages/utils/vars.stylex.js".into()
     ))
     .with_dev(true)
     .with_unstable_module_resolution(ModuleResolution::common_js(Some(
       "/stylex/packages/".to_string()
     )))
-    .into_pass(),
+  }),
   format!(
     r#"
       {}
@@ -349,12 +317,7 @@ stylex_test!(
 
 stylex_test!(
   transforms_typed_object_overrides,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_dev(true)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   format!(
     r#"
       {}

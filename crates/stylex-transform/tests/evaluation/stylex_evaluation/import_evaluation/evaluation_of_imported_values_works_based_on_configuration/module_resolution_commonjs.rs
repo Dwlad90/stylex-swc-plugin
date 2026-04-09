@@ -1,6 +1,5 @@
 use crate::utils::prelude::*;
 use insta::assert_snapshot;
-use swc_core::ecma::transforms::testing::test;
 
 use crate::utils::transform::stringify_js;
 

@@ -1,5 +1,11 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
+
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| customize(b))
+}
 
 stylex_test!(
   style_function,
@@ -56,7 +62,7 @@ stylex_test!(
 
 stylex_test!(
   set_mixed_values,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -71,17 +77,15 @@ stylex_test!(
 
 stylex_test!(
   set_custom_property,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_filename(swc_core::common::FileName::Real("MyComponent.js".into()))
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_filename(swc_core::common::FileName::Real("MyComponent.js".into()))
       .with_unstable_module_resolution(ModuleResolution {
         r#type: "haste".to_string(),
         root_dir: None,
         theme_file_extension: None,
       })
       .with_runtime_injection()
-      .into_pass()
-  },
+  }),
   r#"
             import * as stylex from '@stylexjs/stylex';
             import {vars} from 'vars.stylex.js';
@@ -273,7 +277,7 @@ stylex_test!(
 
 stylex_test!(
   template_literal_expressions,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -287,7 +291,7 @@ stylex_test!(
 
 stylex_test!(
   binary_expressions,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -303,7 +307,7 @@ stylex_test!(
 
 stylex_test!(
   unary_expressions,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -317,7 +321,7 @@ stylex_test!(
 
 stylex_test!(
   logical_expressions_safe_left_side,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -331,7 +335,7 @@ stylex_test!(
 
 stylex_test!(
   logical_expressions_safe_right_side,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -345,7 +349,7 @@ stylex_test!(
 
 stylex_test!(
   nullish_coalescing_safe_left_side,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -359,7 +363,7 @@ stylex_test!(
 
 stylex_test!(
   conditional_expressions_safe_branches,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -373,7 +377,7 @@ stylex_test!(
 
 stylex_test!(
   conditional_expressions_safe_branches_parenthesized,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -386,7 +390,7 @@ stylex_test!(
 
 stylex_test!(
   complex_nested_safe_expressions,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -402,7 +406,7 @@ stylex_test!(
 
 stylex_test!(
   complex_safe_ternary_expressions,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
             import * as stylex from '@stylexjs/stylex';
             export const styles = stylex.create({
@@ -423,7 +427,7 @@ stylex_test!(
 
 stylex_test!(
   nullish_coalescing_with_object_type,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -437,7 +441,7 @@ stylex_test!(
 
 stylex_test!(
   nullish_coalescing_with_object_type_and_array,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -456,7 +460,7 @@ stylex_test!(
 
 stylex_test!(
   nullish_coalescing_with_boolean_type,
-  |tr| StyleXTransform::test(tr.comments.clone()).into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
 

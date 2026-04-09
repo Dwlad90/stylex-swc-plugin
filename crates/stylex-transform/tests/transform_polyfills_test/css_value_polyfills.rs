@@ -1,5 +1,4 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
 
 stylex_test!(
   non_standard_value_end_aka_inline_end_for_clear_property,
@@ -27,11 +26,11 @@ stylex_test!(
 
 stylex_test!(
   non_standard_value_start_aka_inline_start_for_float_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_logical_styles_polyfill(false)
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_logical_styles_polyfill(false)
+      .with_style_resolution(StyleResolution::ApplicationOrder)
+      .with_runtime_injection()
+  }),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { float: 'start' } });

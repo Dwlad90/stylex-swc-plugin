@@ -1,17 +1,21 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
+
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(
+      b.with_import_sources(vec![ImportSources::Regular("custom-stylex-path".to_string())])
+        .with_runtime_injection_option(RuntimeInjection::Boolean(true))
+        .with_runtime_injection(),
+    )
+  })
+}
 
 stylex_test!(
   basic_stylex_call,
-  |tr| {
-    StyleXTransform::test(tr.comments.clone())
-      .with_import_sources(vec![ImportSources::Regular(
-        "custom-stylex-path".to_string(),
-      )])
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_runtime_injection()
-      .into_pass()
-  },
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'custom-stylex-path';
         const styles = stylex.create({

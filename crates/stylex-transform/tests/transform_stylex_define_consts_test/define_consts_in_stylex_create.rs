@@ -1,22 +1,25 @@
 use crate::utils::prelude::*;
 use crate::utils::transform::stringify_js;
-use swc_core::ecma::transforms::testing::test;
+
+fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+  let cwd_path = std::env::current_dir().unwrap();
+  let fixture_path = cwd_path.join("tests/fixture/consts");
+
+  build_test_transform(comments, move |b| {
+    customize(
+      b.with_cwd(fixture_path.clone())
+        .with_filename(fixture_path.clone().join("constants.stylex.js").into())
+        .with_unstable_module_resolution(ModuleResolution {
+          r#type: "commonJS".to_string(),
+          root_dir: Some(fixture_path.to_string_lossy().to_string()),
+          theme_file_extension: None,
+        }),
+    )
+  })
+}
 
 fn transform_with_inline_consts(input: &str) -> String {
-  stringify_js(input, ts_syntax(), |tr| {
-    let cwd_path = std::env::current_dir().unwrap();
-    let fixture_path = cwd_path.join("tests/fixture/consts");
-
-    StyleXTransform::test(tr.comments.clone())
-      .with_cwd(fixture_path.clone())
-      .with_filename(fixture_path.clone().join("constants.stylex.js").into())
-      .with_unstable_module_resolution(ModuleResolution {
-        r#type: "commonJS".to_string(),
-        root_dir: Some(fixture_path.to_string_lossy().to_string()),
-        theme_file_extension: None,
-      })
-      .into_pass()
-  })
+  stringify_js(input, ts_syntax(), |tr| stylex_transform(tr.comments.clone(), |b| b))
 }
 
 #[test]

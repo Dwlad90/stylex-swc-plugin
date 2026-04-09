@@ -1,6 +1,12 @@
 use crate::utils::prelude::*;
 use stylex_enums::property_validation_mode::PropertyValidationMode;
 
+fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(b.with_runtime_injection())
+  })
+}
+
 // Test default behavior (silent mode)
 stylex_test_transform!(
   does_not_throw_by_default_for_disallowed_properties_silent_mode,
@@ -21,10 +27,7 @@ stylex_test_transform!(
 stylex_test_panic!(
   throws_error_when_property_validation_mode_is_throw,
   "is not supported",
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_property_validation_mode(PropertyValidationMode::Throw)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_property_validation_mode(PropertyValidationMode::Throw)),
   r#"
       import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
@@ -38,10 +41,7 @@ stylex_test_panic!(
 // Test warn mode
 stylex_test_transform!(
   does_not_throw_when_property_validation_mode_is_warn,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_property_validation_mode(PropertyValidationMode::Warn)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_property_validation_mode(PropertyValidationMode::Warn)),
   r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
@@ -58,10 +58,7 @@ stylex_test_transform!(
 // Test silent mode explicitly
 stylex_test_transform!(
   does_not_throw_when_property_validation_mode_is_silent,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_property_validation_mode(PropertyValidationMode::Silent)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_property_validation_mode(PropertyValidationMode::Silent)),
   r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
@@ -78,10 +75,7 @@ stylex_test_transform!(
 // Test with background property
 stylex_test_transform!(
   works_with_background_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_property_validation_mode(PropertyValidationMode::Silent)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_property_validation_mode(PropertyValidationMode::Silent)),
   r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
@@ -98,10 +92,7 @@ stylex_test_transform!(
 // Test with animation property
 stylex_test_transform!(
   works_with_animation_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_property_validation_mode(PropertyValidationMode::Silent)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_property_validation_mode(PropertyValidationMode::Silent)),
   r#"
         import * as stylex from '@stylexjs/stylex';
         const styles = stylex.create({
@@ -119,10 +110,7 @@ stylex_test_transform!(
 stylex_test_panic!(
   throws_for_background_in_throw_mode,
   "is not supported",
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_property_validation_mode(PropertyValidationMode::Throw)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_property_validation_mode(PropertyValidationMode::Throw)),
   r#"
       import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({
@@ -137,10 +125,7 @@ stylex_test_panic!(
 stylex_test_panic!(
   throws_for_animation_in_throw_mode,
   "is not supported",
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_property_validation_mode(PropertyValidationMode::Throw)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_property_validation_mode(PropertyValidationMode::Throw)),
   r#"
       import * as stylex from '@stylexjs/stylex';
       const styles = stylex.create({

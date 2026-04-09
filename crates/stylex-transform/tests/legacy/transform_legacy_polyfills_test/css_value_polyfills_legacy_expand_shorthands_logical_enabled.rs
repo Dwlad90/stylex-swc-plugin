@@ -1,20 +1,22 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test,
-};
+
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(
+      b.with_runtime_injection_option(RuntimeInjection::Boolean(true))
+        .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+        .with_enable_logical_styles_polyfill(true)
+        .with_runtime_injection(),
+    )
+  })
+}
 
 stylex_test!(
   non_standard_value_end_aka_inline_end_for_clear_property,
-  |tr| {
-StyleXTransform::test(tr.comments.clone())
-    
-    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-    .with_enable_logical_styles_polyfill(true)
-    .with_runtime_injection()
-    .into_pass()
-  },
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { clear: 'end' } });
@@ -23,15 +25,7 @@ StyleXTransform::test(tr.comments.clone())
 
 stylex_test!(
   non_standard_value_start_aka_inline_start_for_clear_property,
-  |tr| {
-StyleXTransform::test(tr.comments.clone())
-    
-    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-    .with_enable_logical_styles_polyfill(true)
-    .with_runtime_injection()
-    .into_pass()
-  },
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { clear: 'start' } });
@@ -40,15 +34,7 @@ StyleXTransform::test(tr.comments.clone())
 
 stylex_test!(
   non_standard_value_end_aka_inline_end_for_float_property,
-  |tr| {
-StyleXTransform::test(tr.comments.clone())
-    
-    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-    .with_enable_logical_styles_polyfill(true)
-    .with_runtime_injection()
-    .into_pass()
-  },
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { float: 'end' } });
@@ -57,15 +43,7 @@ StyleXTransform::test(tr.comments.clone())
 
 stylex_test!(
   non_standard_value_start_aka_inline_start_for_float_property,
-  |tr| {
-StyleXTransform::test(tr.comments.clone())
-    
-    .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-    .with_style_resolution(StyleResolution::LegacyExpandShorthands)
-    .with_enable_logical_styles_polyfill(true)
-    .with_runtime_injection()
-    .into_pass()
-  },
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         export const styles = stylex.create({ x: { float: 'start' } });

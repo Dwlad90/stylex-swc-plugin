@@ -1,7 +1,15 @@
 use crate::utils::prelude::*;
 
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| customize(b.with_runtime_injection()))
+}
+
 stylex_test!(
   empty_stylex_props_call,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         stylex.attrs();
@@ -10,6 +18,7 @@ stylex_test!(
 
 stylex_test!(
   basic_stylex_call,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from 'stylex';
         const styles = stylex.create({
@@ -23,6 +32,7 @@ stylex_test!(
 
 stylex_test!(
   basic_stylex_attrs_call,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from 'stylex';
         const styles = stylex.create({
@@ -36,6 +46,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_number,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from 'stylex';
         const styles = stylex.create({
@@ -52,6 +63,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_computed_number,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from 'stylex';
         const styles = stylex.create({
@@ -68,6 +80,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_computed_string,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -81,6 +94,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_multiple_namespaces,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import {create, attrs} from 'stylex';
         const styles = create({
@@ -99,6 +113,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_within_variable_declarations,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -112,6 +127,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_styles_variable_assignment,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -129,6 +145,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_within_export_declarations,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -145,6 +162,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_short_form_properties,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -158,6 +176,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_exported_short_form_properties,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         export const styles = stylex.create({
@@ -171,6 +190,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_using_styles_with_pseudo_selectors,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -187,6 +207,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_using_styles_with_pseudo_selectors_within_property,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from 'stylex';
         const styles = stylex.create({
@@ -203,6 +224,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_using_styles_with_media_queries,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -222,6 +244,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_using_styles_with_media_queries_within_property,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -239,6 +262,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_using_styles_with_support_queries,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -258,6 +282,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_using_styles_with_support_queries_within_property,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import stylex from 'stylex';
         const styles = stylex.create({
@@ -283,10 +308,7 @@ stylex_test!(
       EnvEntry::Expr(create_string_expr("#00ffaa")),
     );
 
-    StyleXTransform::test(tr.comments.clone())
-      .with_env(env)
-      .with_runtime_injection()
-      .into_pass()
+    stylex_transform(tr.comments.clone(), |b| b.with_env(env))
   },
   r#"
     import { attrs, create, env } from 'stylex';

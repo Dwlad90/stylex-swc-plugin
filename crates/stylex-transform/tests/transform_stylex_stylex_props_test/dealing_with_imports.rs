@@ -1,15 +1,24 @@
 use crate::utils::prelude::*;
-use swc_core::{common::FileName, ecma::transforms::testing::test};
+use swc_core::common::FileName;
+
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(
+      b.with_filename(FileName::Real("/stylex/packages/TestFile.js".into()))
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
+          "/stylex/packages/".to_string(),
+        )))
+        .with_runtime_injection(),
+    )
+  })
+}
 
 stylex_test!(
   all_local_styles,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/stylex/packages/TestFile.js".into()))
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
           import * as stylex from '@stylexjs/stylex';
           const styles = stylex.create({
@@ -31,14 +40,7 @@ stylex_test!(
 
 stylex_test!(
   local_array_styles,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/stylex/packages/TestFile.js".into()))
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .with_enable_minified_keys(false)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_enable_minified_keys(false)),
   r#"
           import * as stylex from '@stylexjs/stylex';
           const styles = stylex.create({
@@ -61,13 +63,7 @@ stylex_test!(
 
 stylex_test!(
   regular_style_import,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/stylex/packages/TestFile.js".into()))
-    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-      "/stylex/packages/".to_string()
-    )))
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
           import * as stylex from '@stylexjs/stylex';
           import {someStyle} from './otherFile';
@@ -87,13 +83,13 @@ stylex_test!(
 
     let fixture_path = cwd_path.join("tests/fixture");
     let filename = fixture_path.join("consts/constants.stylex");
-    StyleXTransform::test(tr.comments.clone())
-      .with_filename(FileName::Real(filename.clone()))
-      .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-        fixture_path.to_string_lossy().to_string(),
-      )))
-      .with_runtime_injection()
-      .into_pass()
+    build_test_transform(tr.comments.clone(), move |b| {
+      b.with_filename(FileName::Real(filename.clone()))
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
+          fixture_path.to_string_lossy().to_string(),
+        )))
+        .with_runtime_injection()
+    })
   },
   r#"
           import * as stylex from '@stylexjs/stylex';
@@ -115,13 +111,13 @@ stylex_test!(
 
     let fixture_path = cwd_path.join("tests/fixture");
     let filename = fixture_path.join("consts/constants.stylex");
-    StyleXTransform::test(tr.comments.clone())
-      .with_filename(FileName::Real(filename.clone()))
-      .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-        fixture_path.to_string_lossy().to_string(),
-      )))
-      .with_runtime_injection()
-      .into_pass()
+    build_test_transform(tr.comments.clone(), move |b| {
+      b.with_filename(FileName::Real(filename.clone()))
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
+          fixture_path.to_string_lossy().to_string(),
+        )))
+        .with_runtime_injection()
+    })
   },
   r#"
           import * as stylex from '@stylexjs/stylex';

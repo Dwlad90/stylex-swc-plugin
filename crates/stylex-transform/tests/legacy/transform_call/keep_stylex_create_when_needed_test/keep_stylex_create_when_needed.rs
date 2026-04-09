@@ -1,5 +1,4 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
 
 stylex_test!(
   stylex_call_with_computed_key_access,

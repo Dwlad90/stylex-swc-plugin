@@ -1,12 +1,17 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
+
+fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(
+      b.with_style_resolution(StyleResolution::ApplicationOrder)
+        .with_runtime_injection(),
+    )
+  })
+}
 
 stylex_test!(
   empty_stylex_call,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
       import stylex from 'stylex';
       stylex();
@@ -15,10 +20,7 @@ stylex_test!(
 
 stylex_test!(
   basic_stylex_call,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -32,10 +34,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_number,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -52,10 +51,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_computed_number,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -72,10 +68,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_computed_number_without_declaration,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -92,10 +85,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_multiple_namespaces,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -114,10 +104,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_within_variable_declarations,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -132,10 +119,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_styles_variable_assignment,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -154,10 +138,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_short_form_properties,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -171,10 +152,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_exported_short_form_properties,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -188,10 +166,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_keeps_only_the_styles_that_are_needed,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -215,10 +190,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_keeps_all_null_when_applied_after_unknown,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -242,10 +214,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_keeps_only_the_nulls_that_are_needed,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -269,10 +238,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_keeps_only_the_nulls_that_are_needed_second,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -296,10 +262,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_using_styles_with_pseudo_selectors,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -316,10 +279,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_using_styles_with_pseudo_selectors_within_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -336,10 +296,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_using_styles_with_media_queries,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
@@ -359,10 +316,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_using_styles_with_media_queries_within_property,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_style_resolution(StyleResolution::ApplicationOrder)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({

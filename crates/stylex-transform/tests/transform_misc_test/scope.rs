@@ -1,16 +1,22 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
+
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| customize(b.with_dev(false)))
+}
 
 stylex_test!(
   correct_transform_variables_with_same_name_in_different_scopes,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_dev(true)
-    .with_enable_debug_class_names(true)
-    .with_treeshake_compensation(true)
-    .with_unstable_module_resolution(ModuleResolution::haste(None))
-    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_dev(true)
+      .with_enable_debug_class_names(true)
+      .with_treeshake_compensation(true)
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_runtime_injection_option(RuntimeInjection::Boolean(false))
+      .with_runtime_injection()
+  }),
   r#"
     'use client';
 
@@ -74,10 +80,9 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_redaclare_import_declaration_in_dev_mode,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_dev(true)
-    .with_enable_debug_class_names(true)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_dev(true).with_enable_debug_class_names(true)
+  }),
   r#"
       'use client';
 
@@ -117,9 +122,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_redaclare_import_declaration_in_prod_mode,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_dev(false)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
       'use client';
 
@@ -159,10 +162,9 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_redaclare_variable_from_other_scope_in_dev_mode,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_dev(true)
-    .with_enable_debug_class_names(true)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_dev(true).with_enable_debug_class_names(true)
+  }),
   r#"
       'use client';
 
@@ -204,9 +206,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_redaclare_variable_from_other_scope_in_prod_mode,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_dev(false)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
 
       import * as stylex from '@stylexjs/stylex';
@@ -247,9 +247,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_redaclare_function_from_other_scope_in_dev_mode,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_dev(false)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
       'use client';
 
@@ -291,9 +289,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_redaclare_function_from_other_scope_in_prod_mode,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_dev(false)
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
 
       import * as stylex from '@stylexjs/stylex';

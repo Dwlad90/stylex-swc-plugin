@@ -1,5 +1,4 @@
 use crate::utils::prelude::*;
-use swc_core::ecma::transforms::testing::test;
 
 stylex_test!(
   stylex_call_with_conditions,
@@ -19,10 +18,9 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_conditions_skip_conditional,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_inlined_conditional_merge(false)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_inlined_conditional_merge(false).with_runtime_injection()
+  }),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -110,10 +108,9 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_conditions_and_collisions_skip_conditional,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_inlined_conditional_merge(false)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_inlined_conditional_merge(false).with_runtime_injection()
+  }),
   r#"
       import stylex from 'stylex';
       const styles = stylex.create({
@@ -146,10 +143,9 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_with_conditions_and_null_collisions_skip_conditional,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_enable_inlined_conditional_merge(false)
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| build_test_transform(tr.comments.clone(), |b| {
+    b.with_enable_inlined_conditional_merge(false).with_runtime_injection()
+  }),
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({

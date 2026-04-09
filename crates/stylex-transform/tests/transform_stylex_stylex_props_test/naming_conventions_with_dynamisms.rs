@@ -1,5 +1,17 @@
 use crate::utils::prelude::*;
-use swc_core::{common::FileName, ecma::transforms::testing::test};
+use swc_core::common::FileName;
+
+fn stylex_transform(
+  comments: TestComments,
+  customize: impl FnOnce(TestBuilder) -> TestBuilder,
+) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(
+      b.with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
+        .with_runtime_injection(),
+    )
+  })
+}
 
 stylex_test!(
   stylex_call_props_with_camel_case_key,
@@ -141,10 +153,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_props_with_renaming_dynamic_styles_prop,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         import { fonts as f } from '@stylexjs/open-props/lib/fonts.stylex';
@@ -173,10 +182,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_props_with_renaming_dynamic_styles_prop_and_conflict_import_name,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
         import { fonts as foo } from '@stylexjs/open-props/lib/fonts.stylex';
@@ -204,10 +210,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_props_with_varians_dynamic_key,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
 
@@ -229,10 +232,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_props_with_varians_dynamic_key_directly,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
 
@@ -254,10 +254,7 @@ stylex_test!(
 
 stylex_test!(
   stylex_call_props_with_varians_dynamic_key_directly_v2,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real("/html/js/components/Foo.react.js".into()))
-    .with_runtime_injection()
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
         import * as stylex from '@stylexjs/stylex';
 

@@ -1,5 +1,5 @@
 use crate::utils::prelude::*;
-use swc_core::{common::FileName, ecma::transforms::testing::test};
+use swc_core::common::FileName;
 
 static OUTPUT_OF_STYLEX_DEFINE_VARS: &str = r#"
 import stylex from 'stylex';
@@ -12,14 +12,20 @@ export const buttonTheme = {
 };
 "#;
 
+fn stylex_transform(comments: TestComments, customize: impl FnOnce(TestBuilder) -> TestBuilder) -> impl Pass {
+  build_test_transform(comments, |b| {
+    customize(
+      b.with_filename(FileName::Real(
+        "/stylex/packages/TestTheme.stylex.js".into(),
+      ))
+      .with_runtime_injection_option(RuntimeInjection::Boolean(false)),
+    )
+  })
+}
+
 stylex_test!(
   transforms_variables_object,
-  |tr| StyleXTransform::test(tr.comments.clone())
-    .with_filename(FileName::Real(
-      "/stylex/packages/TestTheme.stylex.js".into()
-    ))
-    .with_runtime_injection_option(RuntimeInjection::Boolean(false))
-    .into_pass(),
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
   format!(
     r#"
       {}

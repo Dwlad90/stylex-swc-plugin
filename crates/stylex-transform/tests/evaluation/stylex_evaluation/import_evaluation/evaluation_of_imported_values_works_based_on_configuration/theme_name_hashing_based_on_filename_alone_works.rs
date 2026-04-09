@@ -4,7 +4,6 @@ use std::env;
 use insta::assert_snapshot;
 use stylex_transform::shared::utils::common::create_hash;
 use swc_core::common::FileName;
-use swc_core::ecma::transforms::testing::test;
 
 use crate::utils::transform::stringify_js;
 

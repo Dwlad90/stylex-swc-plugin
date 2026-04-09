@@ -26,6 +26,7 @@
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
     "test": "scripty",
+    "test:fix-indent": "python3 ../../scripts/fix-test-indent.py",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
   },
   "config": {

@@ -12,14 +12,14 @@ stylex_test!(
   }),
   // dev:true
   r#"
-      import stylex from 'stylex';
+    import stylex from 'stylex';
 
-      const styles = stylex.create({
-        default: {
-          color: 'red',
-        },
-      });
-      stylex(styles.default);
+    const styles = stylex.create({
+      default: {
+        color: 'red',
+      },
+    });
+    stylex(styles.default);
   "#
 );
 
@@ -33,19 +33,19 @@ stylex_test!(
   }),
   // dev:true and enable_inlined_conditional_merge:true
   r#"
-      import stylex from 'stylex';
-      const styles = stylex.create({
-        default: {
-          color: 'red',
-        },
-      });
-      const otherStyles = stylex.create({
-        default: {
-          backgroundColor: 'blue',
-        }
-      });
-      stylex(styles.default, isActive && otherStyles.default);
-"#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        color: 'red',
+      },
+    });
+    const otherStyles = stylex.create({
+      default: {
+        backgroundColor: 'blue',
+      }
+    });
+    stylex(styles.default, isActive && otherStyles.default);
+  "#
 );
 
 stylex_test!(
@@ -58,19 +58,19 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-      import stylex from 'stylex';
-      const styles = stylex.create({
-        default: {
-          color: 'red',
-        },
-      });
-      const otherStyles = stylex.create({
-        default: {
-          backgroundColor: 'blue',
-        }
-      });
-      stylex(styles.default, isActive && otherStyles.default);
-"#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        color: 'red',
+      },
+    });
+    const otherStyles = stylex.create({
+      default: {
+        backgroundColor: 'blue',
+      }
+    });
+    stylex(styles.default, isActive && otherStyles.default);
+  "#
 );
 
 stylex_test!(
@@ -105,15 +105,15 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-      import stylex from 'stylex';
-      const styles = stylex.create({
-        default: {
-          color: 'red',
-        },
-        active: {
-          color: 'blue',
-        }
-      });
-      stylex(styles.default, isActive && styles.active);
-"#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      default: {
+        color: 'red',
+      },
+      active: {
+        color: 'blue',
+      }
+    });
+    stylex(styles.default, isActive && styles.active);
+  "#
 );

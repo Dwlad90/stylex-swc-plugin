@@ -25,19 +25,19 @@ fn stylex_transform(
 #[test]
 fn constants_are_unique() {
   let input1 = r#"
-        import stylex from 'stylex';
-        export const breakpoints = stylex.defineConsts({ padding: '10px' });
-      "#;
+    import stylex from 'stylex';
+    export const breakpoints = stylex.defineConsts({ padding: '10px' });
+  "#;
 
   let input2 = r#"
-        import stylex from 'stylex';
-        export const breakpoints = stylex.defineConsts({ padding: '10px' });
-      "#;
+    import stylex from 'stylex';
+    export const breakpoints = stylex.defineConsts({ padding: '10px' });
+  "#;
 
   let input3 = r#"
-        import stylex from 'stylex';
-        export const breakpoints = stylex.defineConsts({ margin: '10px' });
-      "#;
+    import stylex from 'stylex';
+    export const breakpoints = stylex.defineConsts({ margin: '10px' });
+  "#;
 
   let output1 = stringify_js(input1, ts_syntax(), |tr| {
     stylex_transform(tr.comments.clone(), |b| b)
@@ -60,13 +60,13 @@ stylex_test!(
   constants_object,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const breakpoints = stylex.defineConsts({
-          sm: '(min-width: 768px)',
-          md: '(min-width: 1024px)',
-          lg: '(min-width: 1280px)',
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const breakpoints = stylex.defineConsts({
+      sm: '(min-width: 768px)',
+      md: '(min-width: 1024px)',
+      lg: '(min-width: 1280px)',
+    });
+  "#
 );
 
 stylex_test!(
@@ -75,45 +75,45 @@ stylex_test!(
     b.with_unstable_module_resolution(ModuleResolution::haste(None))
   }),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const breakpoints = stylex.defineConsts({
-          sm: '(min-width: 768px)',
-          md: '(min-width: 1024px)',
-          lg: '(min-width: 1280px)',
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const breakpoints = stylex.defineConsts({
+      sm: '(min-width: 768px)',
+      md: '(min-width: 1024px)',
+      lg: '(min-width: 1280px)',
+    });
+  "#
 );
 
 stylex_test!(
   constant_names_special_characters,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const sizes = stylex.defineConsts({
-          'font-size*large': '18px',
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const sizes = stylex.defineConsts({
+      'font-size*large': '18px',
+    });
+  "#
 );
 
 stylex_test!(
   constant_names_number,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const levels = stylex.defineConsts({
-          1: 'one'
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const levels = stylex.defineConsts({
+      1: 'one'
+    });
+  "#
 );
 
 stylex_test!(
   constant_names_double_dash_prefix,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const sizes = stylex.defineConsts({
-          '--small': '8px',
-          '--large': '24px',
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const sizes = stylex.defineConsts({
+      '--small': '8px',
+      '--large': '24px',
+    });
+  "#
 );

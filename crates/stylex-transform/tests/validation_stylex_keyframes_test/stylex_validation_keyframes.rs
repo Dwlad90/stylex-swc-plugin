@@ -18,17 +18,17 @@ stylex_test_panic!(
   "keyframes() can only accept an object.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        const keyframes = {
-          from: {
-            color: 'red',
-          },
-          to: {
-            color: 'blue',
-          }
-        };
-        export const name = stylex.keyframes(keyframes);
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    const keyframes = {
+      from: {
+        color: 'red',
+      },
+      to: {
+        color: 'blue',
+      }
+    };
+    export const name = stylex.keyframes(keyframes);
+  "#
 );
 
 stylex_test_panic!(
@@ -36,9 +36,9 @@ stylex_test_panic!(
   "keyframes() can only accept an object.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import stylex from 'stylex';
-          const name = stylex.keyframes(null);
-        "#
+    import stylex from 'stylex';
+    const name = stylex.keyframes(null);
+  "#
 );
 
 stylex_test_panic!(
@@ -46,39 +46,39 @@ stylex_test_panic!(
   "Every frame within a keyframes() call must be an object.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import stylex from 'stylex';
-          const name = stylex.keyframes({
-            from: false
-          });
-        "#
+    import stylex from 'stylex';
+    const name = stylex.keyframes({
+      from: false
+    });
+  "#
 );
 
 stylex_test!(
   only_argument_must_be_an_object_of_objects_valid_percentage,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import stylex from 'stylex';
-          const name = stylex.keyframes({
-            '0%': {
-              opacity: 0
-            },
-            '50%': {
-              opacity: 0.5
-            },
-          });
-        "#
+    import stylex from 'stylex';
+    const name = stylex.keyframes({
+      '0%': {
+        opacity: 0
+      },
+      '50%': {
+        opacity: 0.5
+      },
+    });
+  "#
 );
 
 stylex_test!(
   only_argument_must_be_an_object_of_objects_valid_from_to,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import stylex from 'stylex';
-          const name = stylex.keyframes({
-            from: {},
-            to: {},
-          });
-        "#
+    import stylex from 'stylex';
+    const name = stylex.keyframes({
+      from: {},
+      to: {},
+    });
+  "#
 );
 
 stylex_test!(
@@ -92,13 +92,13 @@ stylex_test!(
     })
   },
   r#"
-            import stylex from 'stylex';
-            const styles = stylex.keyframes({
-              from: {
-                backgroundColor: 'var(--bar)',
-              },
-            });
-          "#
+    import stylex from 'stylex';
+    const styles = stylex.keyframes({
+      from: {
+        backgroundColor: 'var(--bar)',
+      },
+    });
+  "#
 );
 
 stylex_test!(
@@ -112,11 +112,11 @@ stylex_test!(
     })
   },
   r#"
-            import stylex from 'stylex';
-            const styles = stylex.keyframes({
-              from: {
-                backgroundColor: 'var(--foobar)',
-              },
-            });
-          "#
+    import stylex from 'stylex';
+    const styles = stylex.keyframes({
+      from: {
+        backgroundColor: 'var(--foobar)',
+      },
+    });
+  "#
 );

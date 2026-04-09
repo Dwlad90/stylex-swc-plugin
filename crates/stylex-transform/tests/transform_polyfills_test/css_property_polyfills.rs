@@ -12,9 +12,9 @@ stylex_test_transform!(
   line_clamp,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import * as stylex from '@stylexjs/stylex';
-            export const styles = stylex.create({ x: { lineClamp: 3 } });
-        "#,
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ x: { lineClamp: 3 } });
+  "#,
   r#""#
 );
 
@@ -23,14 +23,14 @@ stylex_test_transform!(
   pointer_events,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import * as stylex from '@stylexjs/stylex';
-            export const styles = stylex.create({
-              a: { pointerEvents: 'auto' },
-              b: { pointerEvents: 'box-none' },
-              c: { pointerEvents: 'box-only' },
-              d: { pointerEvents: 'none' }
-            });
-        "#,
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      a: { pointerEvents: 'auto' },
+      b: { pointerEvents: 'box-none' },
+      c: { pointerEvents: 'box-only' },
+      d: { pointerEvents: 'none' }
+    });
+  "#,
   r#""#
 );
 
@@ -39,8 +39,8 @@ stylex_test_transform!(
   scrollbar_width,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import * as stylex from '@stylexjs/stylex';
-            export const styles = stylex.create({ x: { scrollbarWidth: 'none' } });
-        "#,
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ x: { scrollbarWidth: 'none' } });
+  "#,
   r#""#
 );

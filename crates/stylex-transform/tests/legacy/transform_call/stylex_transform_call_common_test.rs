@@ -16,9 +16,9 @@ stylex_test!(
   empty_stylex_call,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-      import stylex from 'stylex';
-      stylex();
-    "#
+    import stylex from 'stylex';
+    stylex();
+  "#
 );
 
 stylex_test!(
@@ -39,17 +39,17 @@ stylex_test!(
   stylex_call_with_number,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-      import stylex from 'stylex';
-      const styles = stylex.create({
-        0: {
-          color: 'red',
-        },
-        1: {
-          backgroundColor: 'blue',
-        }
-      });
-      stylex(styles[0], styles[1]);
-"#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      0: {
+        color: 'red',
+      },
+      1: {
+        backgroundColor: 'blue',
+      }
+    });
+    stylex(styles[0], styles[1]);
+  "#
 );
 
 stylex_test!(
@@ -73,17 +73,17 @@ stylex_test!(
   stylex_call_with_computed_number_without_declaration,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-      import stylex from 'stylex';
-      const styles = stylex.create({
-        [0]: {
-          color: 'red',
-        },
-        [1]: {
-          backgroundColor: 'blue',
-        }
-      });
-      export default stylex(styles[0], styles[1]);
-"#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      [0]: {
+        color: 'red',
+      },
+      [1]: {
+        backgroundColor: 'blue',
+      }
+    });
+    export default stylex(styles[0], styles[1]);
+  "#
 );
 
 stylex_test!(

@@ -21,14 +21,14 @@ stylex_test!(
     .with_enable_inlined_conditional_merge(false)),
   // dev:true
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            default: {
-                color: 'red',
-            },
-        });
-        stylex.props(styles.default);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+        default: {
+            color: 'red',
+        },
+    });
+    stylex.props(styles.default);
+  "#
 );
 
 stylex_test!(
@@ -36,19 +36,19 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   // dev:true and enable_inlined_conditional_merge:true
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            default: {
-                color: 'red',
-            },
-        });
-        const otherStyles = stylex.create({
-            default: {
-                backgroundColor: 'blue',
-            }
-        });
-        stylex.props([styles.default, isActive && otherStyles.default]);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+        default: {
+            color: 'red',
+        },
+    });
+    const otherStyles = stylex.create({
+        default: {
+            backgroundColor: 'blue',
+        }
+    });
+    stylex.props([styles.default, isActive && otherStyles.default]);
+  "#
 );
 
 stylex_test!(
@@ -56,34 +56,34 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_enable_inlined_conditional_merge(false)),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            default: {
-                color: 'red',
-            },
-        });
-        const otherStyles = stylex.create({
-            default: {
-                backgroundColor: 'blue',
-            }
-        });
-        stylex.props([styles.default, isActive && otherStyles.default]);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+        default: {
+            color: 'red',
+        },
+    });
+    const otherStyles = stylex.create({
+        default: {
+            backgroundColor: 'blue',
+        }
+    });
+    stylex.props([styles.default, isActive && otherStyles.default]);
+  "#
 );
 
 stylex_test!(
   stylex_call_produces_dev_class_name_with_collisions,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({
-            default: {
-                color: 'red',
-            },
-            active: {
-                color: 'blue',
-            }
-        });
-        stylex.props([styles.default, isActive && styles.active]);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({
+        default: {
+            color: 'red',
+        },
+        active: {
+            color: 'blue',
+        }
+    });
+    stylex.props([styles.default, isActive && styles.active]);
+  "#
 );

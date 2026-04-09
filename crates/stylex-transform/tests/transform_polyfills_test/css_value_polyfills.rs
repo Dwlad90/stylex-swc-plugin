@@ -3,25 +3,25 @@ use crate::utils::prelude::*;
 stylex_test!(
   non_standard_value_end_aka_inline_end_for_clear_property,
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const styles = stylex.create({ x: { clear: 'end' } });
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ x: { clear: 'end' } });
+  "#
 );
 
 stylex_test!(
   non_standard_value_start_aka_inline_start_for_clear_property,
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const styles = stylex.create({ x: { clear: 'start' } });
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ x: { clear: 'start' } });
+  "#
 );
 
 stylex_test!(
   non_standard_value_end_aka_inline_end_for_float_property,
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const styles = stylex.create({ x: { float: 'end' } });
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ x: { float: 'end' } });
+  "#
 );
 
 stylex_test!(
@@ -32,7 +32,7 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const styles = stylex.create({ x: { float: 'start' } });
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ x: { float: 'start' } });
+  "#
 );

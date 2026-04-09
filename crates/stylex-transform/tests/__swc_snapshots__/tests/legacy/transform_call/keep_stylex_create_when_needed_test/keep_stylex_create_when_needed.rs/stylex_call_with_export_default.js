@@ -17,10 +17,10 @@ const styles = {
 };
 function MyComponent() {
     return <>
-            <div className={"x1e2nbdu"}/>
-            <div className={"x1t391ir"}/>
-            <CustomComponent xstyle={styles.foo}/>
-            <div className={"x1e2nbdu x1t391ir"}/>
-          </>;
+          <div className={"x1e2nbdu"}/>
+          <div className={"x1t391ir"}/>
+          <CustomComponent xstyle={styles.foo}/>
+          <div className={"x1e2nbdu x1t391ir"}/>
+        </>;
 }
 export default MyComponent;

@@ -11,10 +11,10 @@ stylex_test_transform!(
             a;
         "#,
   r#"
-          import react from 'react';
-          const a = [1, 2];
-          [1, 2];
-        "#
+    import react from 'react';
+    const a = [1, 2];
+    [1, 2];
+  "#
 );
 
 stylex_test_panic!(
@@ -22,11 +22,11 @@ stylex_test_panic!(
   "Referenced value is not a constant",
   |_tr| EvaluationStyleXLastStatementTransform::default_with_pass(),
   r#"
-          import react from 'react';
-            const a = [1, 2];
-            a.push(3);
-            a;
-        "#
+    import react from 'react';
+      const a = [1, 2];
+      a.push(3);
+      a;
+  "#
 );
 
 stylex_test_panic!(
@@ -34,11 +34,11 @@ stylex_test_panic!(
   "Referenced value is not a constant",
   |_tr| EvaluationStyleXLastStatementTransform::default_with_pass(),
   r#"
-            import react from 'react';
-            const a = [1, 2];
-            a[0] = 3;
-            a;
-        "#
+    import react from 'react';
+    const a = [1, 2];
+    a[0] = 3;
+    a;
+  "#
 );
 
 stylex_test_panic!(
@@ -46,11 +46,11 @@ stylex_test_panic!(
   "Referenced value is not a constant",
   |_tr| EvaluationStyleXLastStatementTransform::default_with_pass(),
   r#"
-            import react from 'react';
-            const a = {bar: 'baz'};
-            Object.assign(a, {foo: 1});
-            a;
-        "#
+    import react from 'react';
+    const a = {bar: 'baz'};
+    Object.assign(a, {foo: 1});
+    a;
+  "#
 );
 
 stylex_test_panic!(
@@ -58,11 +58,11 @@ stylex_test_panic!(
   "Referenced value is not a constant",
   |_tr| EvaluationStyleXLastStatementTransform::default_with_pass(),
   r#"
-            import react from 'react';
-            const a = [1, 2];
-            ++a[0];
-            a;
-        "#
+    import react from 'react';
+    const a = [1, 2];
+    ++a[0];
+    a;
+  "#
 );
 
 stylex_test_panic!(
@@ -70,9 +70,9 @@ stylex_test_panic!(
   "Referenced value is not a constant",
   |_tr| EvaluationStyleXLastStatementTransform::default_with_pass(),
   r#"
-            import react from 'react';
-            const a = {foo: 'bar'};
-            delete a.foo;
-            a;
-        "#
+    import react from 'react';
+    const a = {foo: 'bar'};
+    delete a.foo;
+    a;
+  "#
 );

@@ -12,16 +12,16 @@ fn stylex_transform(
 stylex_test_transform!(
   does_not_throw_by_default_for_disallowed_properties_silent_mode,
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        const styles = stylex.create({
-          root: {
-            border: '1px solid red',
-          },
-        });
-      "#,
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        border: '1px solid red',
+      },
+    });
+  "#,
   r#"
-        import * as stylex from '@stylexjs/stylex';
-      "#
+    import * as stylex from '@stylexjs/stylex';
+  "#
 );
 
 // Test throw mode
@@ -31,13 +31,13 @@ stylex_test_panic!(
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_property_validation_mode(PropertyValidationMode::Throw)),
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          border: '1px solid red',
-        },
-      });
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        border: '1px solid red',
+      },
+    });
+  "#
 );
 
 // Test warn mode
@@ -46,16 +46,16 @@ stylex_test_transform!(
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_property_validation_mode(PropertyValidationMode::Warn)),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        const styles = stylex.create({
-          root: {
-            border: '1px solid red',
-          },
-        });
-      "#,
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        border: '1px solid red',
+      },
+    });
+  "#,
   r#"
-        import * as stylex from '@stylexjs/stylex';
-      "#
+    import * as stylex from '@stylexjs/stylex';
+  "#
 );
 
 // Test silent mode explicitly
@@ -64,16 +64,16 @@ stylex_test_transform!(
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_property_validation_mode(PropertyValidationMode::Silent)),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        const styles = stylex.create({
-          root: {
-            border: '1px solid red',
-          },
-        });
-      "#,
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        border: '1px solid red',
+      },
+    });
+  "#,
   r#"
-        import * as stylex from '@stylexjs/stylex';
-      "#
+    import * as stylex from '@stylexjs/stylex';
+  "#
 );
 
 // Test with background property
@@ -82,16 +82,16 @@ stylex_test_transform!(
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_property_validation_mode(PropertyValidationMode::Silent)),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        const styles = stylex.create({
-          root: {
-            background: 'red',
-          },
-        });
-      "#,
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        background: 'red',
+      },
+    });
+  "#,
   r#"
-        import * as stylex from '@stylexjs/stylex';
-      "#
+    import * as stylex from '@stylexjs/stylex';
+  "#
 );
 
 // Test with animation property
@@ -100,16 +100,16 @@ stylex_test_transform!(
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_property_validation_mode(PropertyValidationMode::Silent)),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        const styles = stylex.create({
-          root: {
-            animation: 'spin 1s',
-          },
-        });
-      "#,
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        animation: 'spin 1s',
+      },
+    });
+  "#,
   r#"
-        import * as stylex from '@stylexjs/stylex';
-      "#
+    import * as stylex from '@stylexjs/stylex';
+  "#
 );
 
 // Test throw mode with background
@@ -119,13 +119,13 @@ stylex_test_panic!(
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_property_validation_mode(PropertyValidationMode::Throw)),
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          background: 'red',
-        },
-      });
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        background: 'red',
+      },
+    });
+  "#
 );
 
 // Test throw mode with animation
@@ -135,11 +135,11 @@ stylex_test_panic!(
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_property_validation_mode(PropertyValidationMode::Throw)),
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        root: {
-          animation: 'spin 1s',
-        },
-      });
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        animation: 'spin 1s',
+      },
+    });
+  "#
 );

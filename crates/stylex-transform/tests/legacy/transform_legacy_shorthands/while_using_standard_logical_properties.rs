@@ -47,14 +47,14 @@ stylex_test!(
   stylex_call_with_exported_short_form_properties,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-      import stylex from 'stylex';
-      export const styles = stylex.create({
-        foo: {
-          paddingInline: 5
-        }
-      });
-      stylex(styles.foo);
-    "#
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      foo: {
+        paddingInline: 5
+      }
+    });
+    stylex(styles.foo);
+  "#
 );
 
 stylex_test!(
@@ -75,20 +75,20 @@ stylex_test!(
   stylex_call_with_short_form_property_collisions,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-      import stylex from 'stylex';
-      const styles = stylex.create({
-        foo: {
-          padding: 5,
-          paddingInlineEnd: 10,
-        },
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      foo: {
+        padding: 5,
+        paddingInlineEnd: 10,
+      },
 
-        bar: {
-          padding: 2,
-          paddingInlineStart: 10,
-        },
-      });
-      stylex(styles.foo, styles.bar);
-    "#
+      bar: {
+        padding: 2,
+        paddingInlineStart: 10,
+      },
+    });
+    stylex(styles.foo, styles.bar);
+  "#
 );
 
 stylex_test!(
@@ -413,13 +413,13 @@ stylex_test_panic!(
     b.with_property_validation_mode(PropertyValidationMode::Throw)
   }),
   r#"
-      import stylex from 'stylex';
-      export const styles = stylex.create({
-        none: {
-          listStyle: 'none inherit'
-        },
-      });
-    "#
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      none: {
+        listStyle: 'none inherit'
+      },
+    });
+  "#
 );
 
 stylex_test_panic!(
@@ -429,11 +429,11 @@ stylex_test_panic!(
     b.with_property_validation_mode(PropertyValidationMode::Throw)
   }),
   r#"
-      import stylex from 'stylex';
-      export const styles = stylex.create({
-        none: {
-          listStyle: 'none var(--image)'
-        },
-      });
-    "#
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      none: {
+        listStyle: 'none var(--image)'
+      },
+    });
+  "#
 );

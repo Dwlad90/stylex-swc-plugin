@@ -18,9 +18,9 @@ stylex_test_panic!(
   "The return value of defineMarker() must be bound to a named export.",
   |tr| define_marker_transform(tr.comments.clone()),
   r#"
-      import * as stylex from '@stylexjs/stylex';
-      const marker = stylex.defineMarker();
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    const marker = stylex.defineMarker();
+  "#
 );
 
 stylex_test_panic!(
@@ -28,43 +28,43 @@ stylex_test_panic!(
   "defineMarker() should have 0 arguments.",
   |tr| define_marker_transform(tr.comments.clone()),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const marker = stylex.defineMarker(1);
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    export const marker = stylex.defineMarker(1);
+  "#
 );
 
 stylex_test_transform!(
   valid_export_direct_named_export,
   |tr| define_marker_transform(tr.comments.clone()),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const marker = stylex.defineMarker();
-    "#,
+    import * as stylex from '@stylexjs/stylex';
+    export const marker = stylex.defineMarker();
+  "#,
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const marker = {
-            x1allf69: "x1allf69",
-            $$css: true
-        };
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    export const marker = {
+        x1allf69: "x1allf69",
+        $$css: true
+    };
+  "#
 );
 
 stylex_test_transform!(
   valid_export_separate_const_and_export_statement,
   |tr| define_marker_transform(tr.comments.clone()),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        const marker = stylex.defineMarker();
-        export { marker };
-    "#,
+    import * as stylex from '@stylexjs/stylex';
+    const marker = stylex.defineMarker();
+    export { marker };
+  "#,
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        const marker = {
-            x1allf69: "x1allf69",
-            $$css: true
-        };
-        export { marker };
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    const marker = {
+        x1allf69: "x1allf69",
+        $$css: true
+    };
+    export { marker };
+  "#
 );
 
 stylex_test_panic!(
@@ -72,10 +72,10 @@ stylex_test_panic!(
   "The return value of defineMarker() must be bound to a named export.",
   |tr| define_marker_transform(tr.comments.clone()),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        const marker = stylex.defineMarker();
-        export { marker } from './other.stylex.js';
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    const marker = stylex.defineMarker();
+    export { marker } from './other.stylex.js';
+  "#
 );
 
 stylex_test_panic!(
@@ -83,10 +83,10 @@ stylex_test_panic!(
   "The return value of defineMarker() must be bound to a named export.",
   |tr| define_marker_transform(tr.comments.clone()),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        const marker = stylex.defineMarker();
-        export { marker as otherMarker } from './other.stylex.js';
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    const marker = stylex.defineMarker();
+    export { marker as otherMarker } from './other.stylex.js';
+  "#
 );
 
 stylex_test_panic!(
@@ -94,10 +94,10 @@ stylex_test_panic!(
   "The return value of defineMarker() must be bound to a named export.",
   |tr| define_marker_transform(tr.comments.clone()),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        const marker = stylex.defineMarker();
-        export default marker;
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    const marker = stylex.defineMarker();
+    export default marker;
+  "#
 );
 
 stylex_test_panic!(
@@ -105,8 +105,8 @@ stylex_test_panic!(
   "The return value of defineMarker() must be bound to a named export.",
   |tr| define_marker_transform(tr.comments.clone()),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        const marker = stylex.defineMarker();
-        export { marker as themeMarker };
-    "#
+    import * as stylex from '@stylexjs/stylex';
+    const marker = stylex.defineMarker();
+    export { marker as themeMarker };
+  "#
 );

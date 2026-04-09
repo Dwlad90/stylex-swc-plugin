@@ -20,21 +20,21 @@ stylex_test!(
   all_local_styles,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const styles = stylex.create({
-            default: {
-              color: 'black',
-            },
-            red: {
-              color: 'red',
-            },
-            blueBg: {
-              backgroundColor: 'blue',
-            },
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      default: {
+        color: 'black',
+      },
+      red: {
+        color: 'red',
+      },
+      blueBg: {
+        backgroundColor: 'blue',
+      },
 
-          });
+    });
 
-          <div {...stylex.props(styles.default, styles.red, styles.blueBg)} />
+    <div {...stylex.props(styles.default, styles.red, styles.blueBg)} />
   "#
 );
 
@@ -42,22 +42,22 @@ stylex_test!(
   local_array_styles,
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_enable_minified_keys(false)),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const styles = stylex.create({
-            default: {
-              color: 'black',
-            },
-            red: {
-              color: 'red',
-            },
-            blueBg: {
-              backgroundColor: 'blue',
-            },
-          });
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      default: {
+        color: 'black',
+      },
+      red: {
+        color: 'red',
+      },
+      blueBg: {
+        backgroundColor: 'blue',
+      },
+    });
 
-          const base = [styles.default, styles.red];
+    const base = [styles.default, styles.red];
 
-          <div {...stylex.props(base, styles.blueBg)} />
+    <div {...stylex.props(base, styles.blueBg)} />
   "#
 );
 
@@ -65,14 +65,14 @@ stylex_test!(
   regular_style_import,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          import {someStyle} from './otherFile';
-          const styles = stylex.create({
-            default: {
-              color: 'black',
-            },
-          });
-          <div {...stylex.props(styles.default, someStyle)} />
+    import * as stylex from '@stylexjs/stylex';
+    import {someStyle} from './otherFile';
+    const styles = stylex.create({
+      default: {
+        color: 'black',
+      },
+    });
+    <div {...stylex.props(styles.default, someStyle)} />
   "#
 );
 
@@ -92,15 +92,15 @@ stylex_test!(
     })
   },
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          import {someStyle, vars} from './constants.stylex.js';
-          const styles = stylex.create({
-            default: {
-              color: 'black',
-              backgroundColor: vars.foo,
-            },
-          });
-          <div {...stylex.props(styles.default, someStyle)} />
+    import * as stylex from '@stylexjs/stylex';
+    import {someStyle, vars} from './constants.stylex.js';
+    const styles = stylex.create({
+      default: {
+        color: 'black',
+        backgroundColor: vars.foo,
+      },
+    });
+    <div {...stylex.props(styles.default, someStyle)} />
   "#
 );
 
@@ -120,14 +120,14 @@ stylex_test!(
     })
   },
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          import {someStyle} from './constants.stylex.js';
-          const styles = stylex.create({
-            default: {
-              color: 'black',
-              backgroundColor: someStyle.foo,
-            },
-          });
-          <div {...stylex.props(styles.default, someStyle.foo)} />
+    import * as stylex from '@stylexjs/stylex';
+    import {someStyle} from './constants.stylex.js';
+    const styles = stylex.create({
+      default: {
+        color: 'black',
+        backgroundColor: someStyle.foo,
+      },
+    });
+    <div {...stylex.props(styles.default, someStyle.foo)} />
   "#
 );

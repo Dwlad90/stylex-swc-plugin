@@ -17,9 +17,9 @@ stylex_test_panic!(
   "createTheme() calls must be bound to a bare variable.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import stylex from 'stylex';
-            stylex.createTheme({__varGroupHash__: 'x568ih9'}, {});
-        "#
+    import stylex from 'stylex';
+    stylex.createTheme({__varGroupHash__: 'x568ih9'}, {});
+  "#
 );
 
 stylex_test_panic!(
@@ -27,9 +27,9 @@ stylex_test_panic!(
   "createTheme() should have 1 argument",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import stylex from 'stylex';
-            const variables = stylex.createTheme();
-        "#
+    import stylex from 'stylex';
+    const variables = stylex.createTheme();
+  "#
 );
 
 stylex_test_panic!(
@@ -37,9 +37,9 @@ stylex_test_panic!(
   "createTheme() should have 1 argument.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import stylex from 'stylex';
-            const variables = stylex.createTheme({});
-        "#
+    import stylex from 'stylex';
+    const variables = stylex.createTheme({});
+  "#
 );
 
 stylex_test_panic!(
@@ -47,9 +47,9 @@ stylex_test_panic!(
   "Only static values are allowed inside of a createTheme() call.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import stylex from 'stylex';
-            const variables = stylex.createTheme(genStyles(),{});
-        "#
+    import stylex from 'stylex';
+    const variables = stylex.createTheme(genStyles(),{});
+  "#
 );
 
 stylex_test_panic!(
@@ -57,21 +57,21 @@ stylex_test_panic!(
   "Can only override variables theme created with defineVars().",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import stylex from 'stylex';
-            const variables = stylex.createTheme({},{});
-        "#
+    import stylex from 'stylex';
+    const variables = stylex.createTheme({},{});
+  "#
 );
 
 stylex_test!(
   it_must_have_two_arguments_valid,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-        import stylex from 'stylex';
-        export const variables = stylex.createTheme(
-            {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
-            {}
-        );
-    "#
+    import stylex from 'stylex';
+    export const variables = stylex.createTheme(
+        {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+        {}
+    );
+  "#
 );
 
 stylex_test_panic!(
@@ -79,36 +79,36 @@ stylex_test_panic!(
   "Only static values are allowed inside of a createTheme() call.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import stylex from 'stylex';
-            const variables = stylex.createTheme(
-                {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
-                {[labelColor]: 'red',}
-            );
-        "#
+    import stylex from 'stylex';
+    const variables = stylex.createTheme(
+        {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+        {[labelColor]: 'red',}
+    );
+  "#
 );
 
 stylex_test!(
   values_must_be_static_number_or_string_in_stylex_create_theme_v1,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-        import stylex from 'stylex';
-        export const variables = stylex.createTheme(
-            {__varGroupHash__: 'x568ih9', cornerRadius: 'var(--cornerRadiusHash)'},
-            {cornerRadius: 5,}
-        );
-    "#
+    import stylex from 'stylex';
+    export const variables = stylex.createTheme(
+        {__varGroupHash__: 'x568ih9', cornerRadius: 'var(--cornerRadiusHash)'},
+        {cornerRadius: 5,}
+    );
+  "#
 );
 
 stylex_test!(
   values_must_be_static_number_or_string_in_stylex_create_theme_v2,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-        import stylex from 'stylex';
-        export const variables = stylex.createTheme(
-            {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
-            {labelColor: 'red',}
-        );
-    "#
+    import stylex from 'stylex';
+    export const variables = stylex.createTheme(
+        {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+        {labelColor: 'red',}
+    );
+  "#
 );
 
 stylex_test_panic!(
@@ -116,12 +116,12 @@ stylex_test_panic!(
   "Only static values are allowed inside of a createTheme() call.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import stylex from 'stylex';
-            const variables = stylex.createTheme(
-                {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
-                {labelColor: labelColor,}
-            );
-        "#
+    import stylex from 'stylex';
+    const variables = stylex.createTheme(
+        {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+        {labelColor: labelColor,}
+    );
+  "#
 );
 
 stylex_test_panic!(
@@ -129,12 +129,12 @@ stylex_test_panic!(
   "Only static values are allowed inside of a createTheme() call.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import stylex from 'stylex';
-            const variables = stylex.createTheme(
-                {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
-                {labelColor: labelColor(),}
-            );
-        "#
+    import stylex from 'stylex';
+    const variables = stylex.createTheme(
+        {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+        {labelColor: labelColor(),}
+    );
+  "#
 );
 
 stylex_test_panic!(
@@ -142,37 +142,37 @@ stylex_test_panic!(
   "createTheme() can only accept an object as the second argument",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import stylex from 'stylex';
-            import { buttonTokens } from "./ButtonTokens";
+    import stylex from 'stylex';
+    import { buttonTokens } from "./ButtonTokens";
 
-            export const variables = stylex.createTheme(buttonTokens, buttonTokens);
-        "#
+    export const variables = stylex.createTheme(buttonTokens, buttonTokens);
+  "#
 );
 
 stylex_test!(
   second_arg_can_be_local_variable_in_stylex_create_theme_fn,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-            import stylex from 'stylex';
+    import stylex from 'stylex';
 
-            const buttonTokens ={
-                __varGroupHash__: 'TestTheme.stylex.js//buttonTheme',
-                bgColor: 'var(--xgck17p)',
-            };
+    const buttonTokens ={
+        __varGroupHash__: 'TestTheme.stylex.js//buttonTheme',
+        bgColor: 'var(--xgck17p)',
+    };
 
-            const simpleTheme = {
-                bgColor: {
-                    default: {
-                        default: 'green',
-                        '@supports (color: oklab(0 0 0))': 'oklab(0.7 -0.3 -0.4)',
-                    },
-                    '@media (prefers-color-scheme: dark)': {
-                        default: 'lightgreen',
-                        '@supports (color: oklab(0 0 0))': 'oklab(0.7 -0.2 -0.4)',
-                    },
-                },
-            }
+    const simpleTheme = {
+        bgColor: {
+            default: {
+                default: 'green',
+                '@supports (color: oklab(0 0 0))': 'oklab(0.7 -0.3 -0.4)',
+            },
+            '@media (prefers-color-scheme: dark)': {
+                default: 'lightgreen',
+                '@supports (color: oklab(0 0 0))': 'oklab(0.7 -0.2 -0.4)',
+            },
+        },
+    }
 
-            export const variables = stylex.createTheme(buttonTokens, simpleTheme);
-        "#
+    export const variables = stylex.createTheme(buttonTokens, simpleTheme);
+  "#
 );

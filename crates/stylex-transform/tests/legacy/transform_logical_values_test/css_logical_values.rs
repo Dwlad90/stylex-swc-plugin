@@ -3,55 +3,55 @@ use crate::utils::prelude::*;
 stylex_test!(
   value_inline_end_for_clear_property,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { clear: 'inline-end' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { clear: 'inline-end' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
   value_inline_start_for_clear_property,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { clear: 'inline-start' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { clear: 'inline-start' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
   value_inline_end_for_float_property,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { float: 'inline-end' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { float: 'inline-end' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
   value_inline_start_for_float_property,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { float: 'inline-start' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { float: 'inline-start' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
   value_end_for_text_align_property,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { textAlign: 'end' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { textAlign: 'end' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
   value_start_for_text_align_property,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { textAlign: 'start' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { textAlign: 'start' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -61,10 +61,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { cursor: 'e-resize' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { cursor: 'e-resize' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -74,10 +74,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { cursor: 'w-resize' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { cursor: 'w-resize' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -87,10 +87,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { cursor: 'ne-resize' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { cursor: 'ne-resize' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -100,10 +100,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { cursor: 'nw-resize' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { cursor: 'nw-resize' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -113,10 +113,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { cursor: 'se-resize' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { cursor: 'se-resize' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -126,37 +126,37 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { cursor: 'sw-resize' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { cursor: 'sw-resize' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
   legacy_value_of_animation_name_property,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { animationName: 'ignore' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { animationName: 'ignore' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
   legacy_value_of_background_position_property_top_end,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { backgroundPosition: 'top end' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { backgroundPosition: 'top end' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
   legacy_value_of_background_position_property_top_start,
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { backgroundPosition: 'top start' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { backgroundPosition: 'top start' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -216,10 +216,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { boxShadow: 'none' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { boxShadow: 'none' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -254,10 +254,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { boxShadow: '1px 1px #000' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { boxShadow: '1px 1px #000' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -267,10 +267,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { boxShadow: '-1px -1px #000' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { boxShadow: '-1px -1px #000' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -280,10 +280,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { boxShadow: 'inset 1px 1px #000' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { boxShadow: 'inset 1px 1px #000' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -293,10 +293,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { boxShadow: '1px 1px 1px 1px #000' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { boxShadow: '1px 1px 1px 1px #000' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -306,10 +306,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { boxShadow: 'inset 1px 1px 1px 1px #000' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { boxShadow: 'inset 1px 1px 1px 1px #000' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -319,10 +319,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { boxShadow: '2px 2px 2px 2px red, inset 1px 1px 1px 1px #000' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { boxShadow: '2px 2px 2px 2px red, inset 1px 1px 1px 1px #000' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -332,10 +332,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { textShadow: 'none' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { textShadow: 'none' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -345,10 +345,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { textShadow: '1px 1px #000' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { textShadow: '1px 1px #000' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -358,10 +358,10 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { textShadow: '-1px -1px #000' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { textShadow: '-1px -1px #000' } });
+    export const classnames = stylex(styles.x);
+  "#
 );
 
 stylex_test!(
@@ -371,8 +371,8 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'stylex';
-        const styles = stylex.create({ x: { textShadow: '1px 1px 1px #000' } });
-        export const classnames = stylex(styles.x);
-    "#
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { textShadow: '1px 1px 1px #000' } });
+    export const classnames = stylex(styles.x);
+  "#
 );

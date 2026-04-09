@@ -21,19 +21,19 @@ stylex_test!(
     ))
   }),
   r#"
-            import * as stylex from '@stylexjs/stylex';
-          export const styles = stylex.create({
-            foo: {
-              color: 'red'
-            },
-            'bar-baz': {
-              display: 'block'
-            },
-            1: {
-              fontSize: '1em'
-            }
-          });
-        "#
+      import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      foo: {
+        color: 'red'
+      },
+      'bar-baz': {
+        display: 'block'
+      },
+      1: {
+        fontSize: '1em'
+      }
+    });
+  "#
 );
 
 stylex_test!(
@@ -45,19 +45,19 @@ stylex_test!(
     .with_unstable_module_resolution(ModuleResolution::common_js(Some("/js".to_string())))
   }),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const styles = stylex.create({
-            foo: {
-              color: 'red'
-            },
-            'bar-baz': {
-              display: 'block'
-            },
-            1: {
-              fontSize: '1em'
-            }
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      foo: {
+        color: 'red'
+      },
+      'bar-baz': {
+        display: 'block'
+      },
+      1: {
+        fontSize: '1em'
+      }
+    });
+  "#
 );
 
 stylex_test!(
@@ -73,19 +73,19 @@ stylex_test!(
     })
   }),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const styles = stylex.create({
-            foo: {
-              color: 'red'
-            },
-            'bar-baz': {
-              display: 'block'
-            },
-            1: {
-              fontSize: '1em'
-            }
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      foo: {
+        color: 'red'
+      },
+      'bar-baz': {
+        display: 'block'
+      },
+      1: {
+        fontSize: '1em'
+      }
+    });
+  "#
 );
 
 stylex_test!(
@@ -101,17 +101,17 @@ stylex_test!(
     })
   }),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const styles = stylex.create({
-            foo: {
-              color: 'red'
-            },
-            'bar-baz': {
-              display: 'block'
-            },
-            1: {
-              fontSize: '1em'
-            }
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      foo: {
+        color: 'red'
+      },
+      'bar-baz': {
+        display: 'block'
+      },
+      1: {
+        fontSize: '1em'
+      }
+    });
+  "#
 );

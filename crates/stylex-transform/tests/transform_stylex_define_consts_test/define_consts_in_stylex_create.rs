@@ -30,15 +30,15 @@ fn transform_with_inline_consts(input: &str) -> String {
 #[test]
 fn adds_placeholder_for_constant_value_from_constants_stylex() {
   let input = r#"
-        import * as stylex from '@stylexjs/stylex';
-        import { colors } from './constants.stylex';
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from './constants.stylex';
 
-        export const styles = stylex.create({
-          root: {
-            backgroundColor: colors.background,
-          },
-        });
-    "#;
+    export const styles = stylex.create({
+      root: {
+        backgroundColor: colors.background,
+      },
+    });
+  "#;
   let output = transform_with_inline_consts(input);
   insta::assert_snapshot!(
     "adds_placeholder_for_constant_value_from_constants_stylex",
@@ -49,18 +49,18 @@ fn adds_placeholder_for_constant_value_from_constants_stylex() {
 #[test]
 fn adds_media_query_placeholder_from_constants_stylex() {
   let input = r#"
-        import * as stylex from '@stylexjs/stylex';
-        import { breakpoints } from './constants.stylex';
+    import * as stylex from '@stylexjs/stylex';
+    import { breakpoints } from './constants.stylex';
 
-        export const styles = stylex.create({
-          root: {
-            color: {
-              default: 'red',
-              [breakpoints.small]: 'blue',
-            },
-          },
-        });
-    "#;
+    export const styles = stylex.create({
+      root: {
+        color: {
+          default: 'red',
+          [breakpoints.small]: 'blue',
+        },
+      },
+    });
+  "#;
   let output = transform_with_inline_consts(input);
   insta::assert_snapshot!("adds_media_query_placeholder_from_constants_stylex", output);
 }
@@ -69,17 +69,17 @@ fn adds_media_query_placeholder_from_constants_stylex() {
 #[ignore]
 fn works_with_first_that_works() {
   let input = r#"
-      import * as stylex from '@stylexjs/stylex';
-      import { colors } from './constants.stylex';
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from './constants.stylex';
 
-      export const styles = stylex.create({
-        nodeEnd: (animationDuration) => ({
-          foo: {
-            color: stylex.firstThatWorks(colors.background, 'transparent'),
-          },
-        }),
-      });
-    "#;
+    export const styles = stylex.create({
+      nodeEnd: (animationDuration) => ({
+        foo: {
+          color: stylex.firstThatWorks(colors.background, 'transparent'),
+        },
+      }),
+    });
+  "#;
 
   let output = transform_with_inline_consts(input);
   insta::assert_snapshot!("works_with_first_that_works", output);
@@ -88,16 +88,16 @@ fn works_with_first_that_works() {
 #[test]
 fn works_with_dynamic_styles_constants() {
   let input = r#"
-      import * as stylex from '@stylexjs/stylex';
-      import { colors } from './constants.stylex';
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from './constants.stylex';
 
-      export const styles = stylex.create({
-        node: (padding) => ({
-          padding: padding,
-          color: colors.background,
-        }),
-      });
-    "#;
+    export const styles = stylex.create({
+      node: (padding) => ({
+        padding: padding,
+        color: colors.background,
+      }),
+    });
+  "#;
 
   let output = transform_with_inline_consts(input);
   insta::assert_snapshot!("works_with_dynamic_styles_constants", output);
@@ -106,18 +106,18 @@ fn works_with_dynamic_styles_constants() {
 #[test]
 fn works_with_dynamic_styles_at_rules() {
   let input = r#"
-      import * as stylex from '@stylexjs/stylex';
-      import { breakpoints } from './constants.stylex';
+    import * as stylex from '@stylexjs/stylex';
+    import { breakpoints } from './constants.stylex';
 
-      export const styles = stylex.create({
-        node: (color) => ({
-          color: {
-            [breakpoints.small]: 'blue',
-            default: color,
-          },
-        }),
-      });
-    "#;
+    export const styles = stylex.create({
+      node: (color) => ({
+        color: {
+          [breakpoints.small]: 'blue',
+          default: color,
+        },
+      }),
+    });
+  "#;
   let output = transform_with_inline_consts(input);
   insta::assert_snapshot!("works_with_dynamic_styles_at_rules", output);
 }
@@ -125,19 +125,19 @@ fn works_with_dynamic_styles_at_rules() {
 #[test]
 fn adds_multiple_media_query_placeholders_from_constants_stylex() {
   let input = r#"
-        import * as stylex from '@stylexjs/stylex';
-        import { breakpoints } from './constants.stylex';
+    import * as stylex from '@stylexjs/stylex';
+    import { breakpoints } from './constants.stylex';
 
-        export const styles = stylex.create({
-          root: {
-            color: {
-              default: 'red',
-              [breakpoints.small]: 'blue',
-              [breakpoints.big]: 'yellow',
-            },
-          },
-        });
-    "#;
+    export const styles = stylex.create({
+      root: {
+        color: {
+          default: 'red',
+          [breakpoints.small]: 'blue',
+          [breakpoints.big]: 'yellow',
+        },
+      },
+    });
+  "#;
   let output = transform_with_inline_consts(input);
   insta::assert_snapshot!(
     "adds_multiple_media_query_placeholders_from_constants_stylex",
@@ -148,21 +148,21 @@ fn adds_multiple_media_query_placeholders_from_constants_stylex() {
 #[test]
 fn adds_nested_media_query_placeholders_from_constants_stylex() {
   let input = r#"
-        import * as stylex from '@stylexjs/stylex';
-        import { breakpoints, colors } from './constants.stylex';
+    import * as stylex from '@stylexjs/stylex';
+    import { breakpoints, colors } from './constants.stylex';
 
-        export const styles = stylex.create({
-          root: {
-            color: {
-              default: 'black',
-              [breakpoints.big]: {
-                default: colors.red,
-                [breakpoints.small]: colors.blue,
-              },
-            },
+    export const styles = stylex.create({
+      root: {
+        color: {
+          default: 'black',
+          [breakpoints.big]: {
+            default: colors.red,
+            [breakpoints.small]: colors.blue,
           },
-        });
-    "#;
+        },
+      },
+    });
+  "#;
   let output = transform_with_inline_consts(input);
   insta::assert_snapshot!(
     "adds_nested_media_query_placeholders_from_constants_stylex",

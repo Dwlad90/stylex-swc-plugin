@@ -14,9 +14,9 @@ stylex_test_panic!(
   "The return value of defineConsts() must be bound to a named export.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const constants = stylex.defineConsts({});
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    const constants = stylex.defineConsts({});
+  "#
 );
 
 stylex_test_panic!(
@@ -24,9 +24,9 @@ stylex_test_panic!(
   "defineConsts() calls must be bound to a bare variable.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          stylex.defineConsts({});
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    stylex.defineConsts({});
+  "#
 );
 
 stylex_test_panic!(
@@ -34,9 +34,9 @@ stylex_test_panic!(
   "defineConsts() should have 1 argument.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts();
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts();
+  "#
 );
 
 stylex_test_panic!(
@@ -44,9 +44,9 @@ stylex_test_panic!(
   "defineConsts() should have 1 argument.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts({}, {});
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts({}, {});
+  "#
 );
 
 stylex_test_panic!(
@@ -54,9 +54,9 @@ stylex_test_panic!(
   "defineConsts() can only accept an object.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts(1);
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts(1);
+  "#
 );
 
 stylex_test_panic!(
@@ -64,9 +64,9 @@ stylex_test_panic!(
   "defineConsts() can only accept an object.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts('1');
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts('1');
+  "#
 );
 
 stylex_test_panic!(
@@ -74,28 +74,28 @@ stylex_test_panic!(
   "Only static values are allowed inside of a defineConsts() call.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts(genStyles());
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts(genStyles());
+  "#
 );
 
 stylex_test!(
   valid_argument_object,
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts({});
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts({});
+  "#
 );
 
 stylex_test!(
   valid_export_separate_const_and_export_statement,
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const constants = stylex.defineConsts({});
-          export { constants };
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    const constants = stylex.defineConsts({});
+    export { constants };
+  "#
 );
 
 stylex_test_panic!(
@@ -103,10 +103,10 @@ stylex_test_panic!(
   "The return value of defineConsts() must be bound to a named export.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const constants = stylex.defineConsts({});
-          export { constants } from './other.stylex.js';
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    const constants = stylex.defineConsts({});
+    export { constants } from './other.stylex.js';
+  "#
 );
 
 stylex_test_panic!(
@@ -114,10 +114,10 @@ stylex_test_panic!(
   "The return value of defineConsts() must be bound to a named export.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const constants = stylex.defineConsts({});
-          export { constants as otherConstants } from './other.stylex.js';
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    const constants = stylex.defineConsts({});
+    export { constants as otherConstants } from './other.stylex.js';
+  "#
 );
 
 stylex_test_panic!(
@@ -125,10 +125,10 @@ stylex_test_panic!(
   "The return value of defineConsts() must be bound to a named export.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const constants = stylex.defineConsts({});
-          export default constants;
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    const constants = stylex.defineConsts({});
+    export default constants;
+  "#
 );
 
 stylex_test_panic!(
@@ -136,10 +136,10 @@ stylex_test_panic!(
   "The return value of defineConsts() must be bound to a named export.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const constants = stylex.defineConsts({});
-          export { constants as themeConstants };
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    const constants = stylex.defineConsts({});
+    export { constants as themeConstants };
+  "#
 );
 
 /* Properties */
@@ -160,11 +160,11 @@ stylex_test_panic!(
   "Only static values are allowed inside of a defineConsts() call.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts({
-            [labelColor]: 'red',
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts({
+      [labelColor]: 'red',
+    });
+  "#
 );
 
 /* Values */
@@ -174,11 +174,11 @@ stylex_test_panic!(
   "Only static values are allowed inside of a defineConsts() call.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts({
-            labelColor: labelColor,
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts({
+      labelColor: labelColor,
+    });
+  "#
 );
 
 stylex_test_panic!(
@@ -186,33 +186,33 @@ stylex_test_panic!(
   "Only static values are allowed inside of a defineConsts() call.",
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts({
-            labelColor: labelColor(),
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts({
+      labelColor: labelColor(),
+    });
+  "#
 );
 
 stylex_test!(
   valid_value_number,
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts({
-            small: 5,
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts({
+      small: 5,
+    });
+  "#
 );
 
 stylex_test!(
   valid_value_string,
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts({
-            small: '5px',
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts({
+      small: '5px',
+    });
+  "#
 );
 
 stylex_test_transform!(
@@ -220,21 +220,21 @@ stylex_test_transform!(
   valid_value_keyframes,
   |tr| file_transform(tr.comments.clone()),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts({
-            fadeIn: stylex.keyframes({
-              '0%': { opacity: 0 },
-              '100%': { opacity: 1}
-            }),
-          });
-        "#,
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts({
+      fadeIn: stylex.keyframes({
+        '0%': { opacity: 0 },
+        '100%': { opacity: 1}
+      }),
+    });
+  "#,
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const constants = stylex.defineConsts({
-            fadeIn: stylex.keyframes({
-              '0%': { opacity: 0 },
-              '100%': { opacity: 1}
-            }),
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const constants = stylex.defineConsts({
+      fadeIn: stylex.keyframes({
+        '0%': { opacity: 0 },
+        '100%': { opacity: 1}
+      }),
+    });
+  "#
 );

@@ -17,9 +17,9 @@ stylex_test_panic!(
   "The return value of defineVars() must be bound to a named export.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const styles = stylex.defineVars({});
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.defineVars({});
+  "#
 );
 
 stylex_test_panic!(
@@ -27,9 +27,9 @@ stylex_test_panic!(
   "defineVars() calls must be bound to a bare variable.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          stylex.defineVars({});
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    stylex.defineVars({});
+  "#
 );
 
 stylex_test_panic!(
@@ -37,9 +37,9 @@ stylex_test_panic!(
   "defineVars() should have 1 argument.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const vars = stylex.defineVars();
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars();
+  "#
 );
 
 stylex_test_panic!(
@@ -47,9 +47,9 @@ stylex_test_panic!(
   "defineVars() should have 1 argument.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const vars = stylex.defineVars({}, {});
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({}, {});
+  "#
 );
 
 stylex_test_panic!(
@@ -57,9 +57,9 @@ stylex_test_panic!(
   "defineVars() can only accept an object.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const vars = stylex.defineVars(1);
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars(1);
+  "#
 );
 
 stylex_test_panic!(
@@ -67,9 +67,9 @@ stylex_test_panic!(
   "defineVars() can only accept an object.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const vars = stylex.defineVars('1');
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars('1');
+  "#
 );
 
 stylex_test_panic!(
@@ -77,28 +77,28 @@ stylex_test_panic!(
   "Only static values are allowed inside of a defineVars() call.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const vars = stylex.defineVars(genStyles());
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars(genStyles());
+  "#
 );
 
 stylex_test!(
   valid_argument_object,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const vars = stylex.defineVars({});
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({});
+  "#
 );
 
 stylex_test!(
   valid_export_separate_const_and_export_statement,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const vars = stylex.defineVars({});
-          export { vars };
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    const vars = stylex.defineVars({});
+    export { vars };
+  "#
 );
 
 stylex_test_panic!(
@@ -106,10 +106,10 @@ stylex_test_panic!(
   "The return value of defineVars() must be bound to a named export.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const vars = stylex.defineVars({});
-          export { vars } from './other.stylex.js';
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    const vars = stylex.defineVars({});
+    export { vars } from './other.stylex.js';
+  "#
 );
 
 stylex_test_panic!(
@@ -117,10 +117,10 @@ stylex_test_panic!(
   "The return value of defineVars() must be bound to a named export.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const vars = stylex.defineVars({});
-          export { vars as otherVars } from './other.stylex.js';
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    const vars = stylex.defineVars({});
+    export { vars as otherVars } from './other.stylex.js';
+  "#
 );
 
 stylex_test_panic!(
@@ -128,10 +128,10 @@ stylex_test_panic!(
   "The return value of defineVars() must be bound to a named export.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const vars = stylex.defineVars({});
-          export default vars;
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    const vars = stylex.defineVars({});
+    export default vars;
+  "#
 );
 
 stylex_test_panic!(
@@ -139,10 +139,10 @@ stylex_test_panic!(
   "The return value of defineVars() must be bound to a named export.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          const vars = stylex.defineVars({});
-          export { vars as themeVars };
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    const vars = stylex.defineVars({});
+    export { vars as themeVars };
+  "#
 );
 
 /* Properties */
@@ -152,11 +152,11 @@ stylex_test_panic!(
   "Only static values are allowed inside of a defineVars() call.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const vars = stylex.defineVars({
-            [labelColor]: 'red',
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      [labelColor]: 'red',
+    });
+  "#
 );
 
 /* Values */
@@ -166,11 +166,11 @@ stylex_test_panic!(
   "Only static values are allowed inside of a defineVars() call.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const vars = stylex.defineVars({
-            labelColor: labelColor,
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      labelColor: labelColor,
+    });
+  "#
 );
 
 stylex_test_panic!(
@@ -178,45 +178,45 @@ stylex_test_panic!(
   "Only static values are allowed inside of a defineVars() call.",
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const vars = stylex.defineVars({
-            labelColor: labelColor(),
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      labelColor: labelColor(),
+    });
+  "#
 );
 
 stylex_test!(
   valid_value_number,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const vars = stylex.defineVars({
-            cornerRadius: 5,
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      cornerRadius: 5,
+    });
+  "#
 );
 
 stylex_test!(
   valid_value_string,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const vars = stylex.defineVars({
-            labelColor: 'red',
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      labelColor: 'red',
+    });
+  "#
 );
 
 stylex_test!(
   valid_value_keyframes,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-          import * as stylex from '@stylexjs/stylex';
-          export const vars = stylex.defineVars({
-            fadeIn: stylex.keyframes({
-              '0%': { opacity: 0 },
-              '100%': { opacity: 1}
-            }),
-          });
-        "#
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      fadeIn: stylex.keyframes({
+        '0%': { opacity: 0 },
+        '100%': { opacity: 1}
+      }),
+    });
+  "#
 );

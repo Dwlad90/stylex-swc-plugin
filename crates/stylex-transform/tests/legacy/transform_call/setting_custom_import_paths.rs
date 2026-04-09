@@ -11,14 +11,14 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-        import stylex from 'custom-stylex-path';
-        const styles = stylex.create({
-            red: {
-            color: 'red',
-            }
-        });
-        stylex(styles.red);
-"#
+    import stylex from 'custom-stylex-path';
+    const styles = stylex.create({
+        red: {
+        color: 'red',
+        }
+    });
+    stylex(styles.red);
+  "#
 );
 
 stylex_test!(
@@ -32,14 +32,14 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-      import {css as stylex} from 'custom-stylex-path';
-      const styles = stylex.create({
-        red: {
-          color: 'red',
-        }
-      });
-      stylex(styles.red);
-"#
+    import {css as stylex} from 'custom-stylex-path';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    stylex(styles.red);
+  "#
 );
 
 stylex_test!(
@@ -53,12 +53,12 @@ stylex_test!(
       .with_runtime_injection()
   }),
   r#"
-      import {css} from 'custom-stylex-path';
-      const styles = css.create({
-        red: {
-          color: 'red',
-        }
-      });
-      css(styles.red);
-"#
+    import {css} from 'custom-stylex-path';
+    const styles = css.create({
+      red: {
+        color: 'red',
+      }
+    });
+    css(styles.red);
+  "#
 );

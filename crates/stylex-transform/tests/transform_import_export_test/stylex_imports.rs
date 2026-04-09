@@ -163,12 +163,12 @@ fn transform_with_options(
 #[test]
 fn import_none() {
   let input = r#"
-        export const styles = stylex.create({
-          root: {
-            color: 'red'
-          }
-        });
-    "#;
+    export const styles = stylex.create({
+      root: {
+        color: 'red'
+      }
+    });
+  "#;
   let output = transform(input);
   assert_snapshot!(output);
 }
@@ -176,8 +176,8 @@ fn import_none() {
 #[test]
 fn import_non_stylex() {
   let input = r#"
-        import {foo, bar} from 'other';
-    "#;
+    import {foo, bar} from 'other';
+  "#;
   let output = transform(input);
   assert_snapshot!(output);
 }
@@ -185,8 +185,8 @@ fn import_non_stylex() {
 #[test]
 fn require_non_stylex() {
   let input = r#"
-        const {foo, bar} = require('other');
-    "#;
+    const {foo, bar} = require('other');
+  "#;
   let output = transform(input);
   assert_snapshot!(output);
 }

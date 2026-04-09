@@ -26,13 +26,13 @@ stylex_test!(
     .with_runtime_injection()
   }),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const breakpoints = stylex.defineConsts({
-          sm: '(min-width: 768px)',
-          md: '(min-width: 1024px)',
-          lg: '(min-width: 1280px)',
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const breakpoints = stylex.defineConsts({
+      sm: '(min-width: 768px)',
+      md: '(min-width: 1024px)',
+      lg: '(min-width: 1280px)',
+    });
+  "#
 );
 
 stylex_test!(
@@ -46,13 +46,13 @@ stylex_test!(
     .with_runtime_injection()
   }),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const sizes = stylex.defineConsts({
-          small: 8,
-          medium: 16,
-          large: 24,
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const sizes = stylex.defineConsts({
+      small: 8,
+      medium: 16,
+      large: 24,
+    });
+  "#
 );
 
 stylex_test!(
@@ -66,13 +66,13 @@ stylex_test!(
     .with_runtime_injection()
   }),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const colors = stylex.defineConsts({
-          primary: 'rebeccapurple',
-          secondary: 'coral',
-          tertiary: 'turquoise',
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineConsts({
+      primary: 'rebeccapurple',
+      secondary: 'coral',
+      tertiary: 'turquoise',
+    });
+  "#
 );
 
 stylex_test!(
@@ -86,13 +86,13 @@ stylex_test!(
     .with_runtime_injection()
   }),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const theme = stylex.defineConsts({
-          spacing: 16,
-          color: 'blue',
-          breakpoint: '(min-width: 768px)',
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const theme = stylex.defineConsts({
+      spacing: 16,
+      color: 'blue',
+      breakpoint: '(min-width: 768px)',
+    });
+  "#
 );
 
 stylex_test!(
@@ -106,11 +106,11 @@ stylex_test!(
     .with_runtime_injection()
   }),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const urls = stylex.defineConsts({
-          background: "url('bg.png')",
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const urls = stylex.defineConsts({
+      background: "url('bg.png')",
+    });
+  "#
 );
 
 stylex_test!(
@@ -124,11 +124,11 @@ stylex_test!(
     .with_runtime_injection_option(RuntimeInjection::Regular("@custom/inject-path".to_string()))
   }),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const breakpoints = stylex.defineConsts({
-          sm: '(min-width: 768px)',
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const breakpoints = stylex.defineConsts({
+      sm: '(min-width: 768px)',
+    });
+  "#
 );
 
 stylex_test!(
@@ -142,12 +142,12 @@ stylex_test!(
     .with_runtime_injection()
   }),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const breakpoints = stylex.defineConsts({
-          sm: '(min-width: 768px)',
-          md: '(min-width: 1024px)',
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const breakpoints = stylex.defineConsts({
+      sm: '(min-width: 768px)',
+      md: '(min-width: 1024px)',
+    });
+  "#
 );
 
 stylex_test!(
@@ -160,13 +160,13 @@ stylex_test!(
     .with_runtime_injection()
   }),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const levels = stylex.defineConsts({
-          0: 'zero',
-          1: 'one',
-          2: 'two',
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const levels = stylex.defineConsts({
+      0: 'zero',
+      1: 'one',
+      2: 'two',
+    });
+  "#
 );
 
 stylex_test!(
@@ -180,12 +180,12 @@ stylex_test!(
     .with_runtime_injection()
   }),
   r#"
-        import * as stylex from '@stylexjs/stylex';
-        export const breakpoints = stylex.defineConsts({
-          sm: '(min-width: 768px)',
-        });
-        export const colors = stylex.defineConsts({
-          primary: 'blue',
-        });
-      "#
+    import * as stylex from '@stylexjs/stylex';
+    export const breakpoints = stylex.defineConsts({
+      sm: '(min-width: 768px)',
+    });
+    export const colors = stylex.defineConsts({
+      primary: 'blue',
+    });
+  "#
 );

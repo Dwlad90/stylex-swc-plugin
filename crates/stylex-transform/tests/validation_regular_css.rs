@@ -7,15 +7,15 @@ use utils::prelude::*;
 stylex_test!(
   transform_simple_css_class,
   r#"
-      import s from "@stylexjs/stylex";
+    import s from "@stylexjs/stylex";
 
-      const c = s.create({
-        base: {
-          backgroundColor: 'red',
-          color: 'blue',
-        },
-      });
-    "#
+    const c = s.create({
+      base: {
+        backgroundColor: 'red',
+        color: 'blue',
+      },
+    });
+  "#
 );
 
 stylex_test!(

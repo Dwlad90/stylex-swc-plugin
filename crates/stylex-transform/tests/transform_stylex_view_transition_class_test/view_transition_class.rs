@@ -99,15 +99,15 @@ stylex_test_transform!(
   using_contextual_styles,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-      import * as stylex from 'stylex';
-      export const cls = stylex.viewTransitionClass({
-        group: {
-          animationDuration: {
-            default: '1s',
-            '@media (min-width: 800px)': '2s'
-          }
-        },
-      });
-    "#,
+    import * as stylex from 'stylex';
+    export const cls = stylex.viewTransitionClass({
+      group: {
+        animationDuration: {
+          default: '1s',
+          '@media (min-width: 800px)': '2s'
+        }
+      },
+    });
+  "#,
   r#""#
 );

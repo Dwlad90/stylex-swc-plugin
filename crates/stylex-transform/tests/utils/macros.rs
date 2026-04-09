@@ -1,20 +1,9 @@
-/// Unified test macro for StyleX transform tests.
+/// Snapshot-based test macro (delegates to SWC's `test!`).
 ///
-/// # Arms
-///
-/// **Arm 1** — Default with runtime injection (~75% of tests):
 /// ```ignore
-/// stylex_test!(test_name, r#"input code"#);
-/// ```
-///
-/// **Arm 2** — Full custom transform via closure (escape hatch):
-/// ```ignore
-/// stylex_test!(test_name, |tr| StyleXTransform::test(tr.comments.clone()).into_pass(), r#"input code"#);
-/// ```
-///
-/// **Arm 3** — With custom options + runtime injection:
-/// ```ignore
-/// stylex_test!(test_name, &mut options, r#"input code"#);
+/// stylex_test!(name, r#"code"#);                    // default
+/// stylex_test!(name, |tr| custom_pass(), r#"code"#); // closure
+/// stylex_test!(name, &mut opts, r#"code"#);          // options
 /// ```
 macro_rules! stylex_test {
   ($name:ident, $code:expr) => {
@@ -28,8 +17,8 @@ macro_rules! stylex_test {
     );
   };
 
-  // Closure arm MUST come before options arm — closures are valid expressions
-  // and `$options:expr` would eagerly match them otherwise.
+  // Closure arm MUST come before options — closures are valid expressions
+  // and `$options:expr` would eagerly match them.
   ($name:ident, |$tr:ident| $transform:expr, $code:expr) => {
     test!(
       $crate::utils::transform::ts_syntax(),
@@ -52,45 +41,22 @@ macro_rules! stylex_test {
   };
 }
 
-/// Unified test macro for transform tests with expected output (`test_transform`).
+/// Transform test macro with expected output (input + expected).
 ///
-/// Uses `test_transform` (input + expected output) instead of snapshot-based `test!`.
-///
-/// # Arms
-///
-/// **Arm 1** — Default runtime injection:
+/// Supports optional `#[ignore]` as the first argument:
 /// ```ignore
-/// stylex_test_transform!(test_name, r#"input"#, r#"expected"#);
+/// stylex_test_transform!(name, r#"in"#, r#"out"#);
+/// stylex_test_transform!(name, |tr| custom(), r#"in"#, r#"out"#);
+/// stylex_test_transform!(name, &mut opts, r#"in"#, r#"out"#);
+/// stylex_test_transform!(#[ignore], name, r#"in"#, r#"out"#);
 /// ```
-///
-/// **Arm 2** — Custom closure:
-/// ```ignore
-/// stylex_test_transform!(test_name, |tr| custom_pass(), r#"input"#, r#"expected"#);
-/// ```
-///
-/// **Arm 3** — Custom options + runtime injection:
-/// ```ignore
-/// stylex_test_transform!(test_name, &mut opts, r#"input"#, r#"expected"#);
-/// ```
-///
-/// **Arm 4** — `#[ignore]` + default runtime injection:
-/// ```ignore
-/// stylex_test_transform!(#[ignore], test_name, r#"input"#, r#"expected"#);
-/// ```
-///
-/// **Arm 5** — `#[ignore]` + custom closure:
-/// ```ignore
-/// stylex_test_transform!(#[ignore], test_name, |tr| custom_pass(), r#"input"#, r#"expected"#);
-/// ```
-///
-/// **Arm 6** — `#[ignore]` + custom options + runtime injection:
-/// ```ignore
-/// stylex_test_transform!(#[ignore], test_name, &mut opts, r#"input"#, r#"expected"#);
-/// ```
+#[allow(unused_macros)]
 macro_rules! stylex_test_transform {
-  // Arm 1: default runtime injection
-  ($name:ident, $input:expr, $expected:expr) => {
+  // --- Internal dispatch (3 modes) — must precede catch-all entry ---
+
+  (@impl [$($attrs:tt)*] $name:ident, $input:expr, $expected:expr) => {
     #[test]
+    $($attrs)*
     fn $name() {
       test_transform(
         $crate::utils::transform::ts_syntax(),
@@ -106,9 +72,10 @@ macro_rules! stylex_test_transform {
     }
   };
 
-  // Arm 2 (closure): custom closure — must come before Arm 3 (options)
-  ($name:ident, |$tr:ident| $transform:expr, $input:expr, $expected:expr) => {
+  // Closure MUST come before options — closures match `$options:expr`.
+  (@impl [$($attrs:tt)*] $name:ident, |$tr:ident| $transform:expr, $input:expr, $expected:expr) => {
     #[test]
+    $($attrs)*
     fn $name() {
       test_transform(
         $crate::utils::transform::ts_syntax(),
@@ -120,9 +87,9 @@ macro_rules! stylex_test_transform {
     }
   };
 
-  // Arm 3: custom options + runtime injection
-  ($name:ident, $options:expr, $input:expr, $expected:expr) => {
+  (@impl [$($attrs:tt)*] $name:ident, $options:expr, $input:expr, $expected:expr) => {
     #[test]
+    $($attrs)*
     fn $name() {
       test_transform(
         $crate::utils::transform::ts_syntax(),
@@ -139,69 +106,32 @@ macro_rules! stylex_test_transform {
     }
   };
 
-  // Arm 4: #[ignore] + default runtime injection
-  (#[ignore $($reason:tt)*], $name:ident, $input:expr, $expected:expr) => {
-    #[test]
-    #[ignore $($reason)*]
-    fn $name() {
-      test_transform(
-        $crate::utils::transform::ts_syntax(),
-        Option::None,
-        |tr| {
-          StyleXTransform::test(tr.comments.clone())
-            .with_runtime_injection()
-            .into_pass()
-        },
-        $input,
-        $expected,
-      );
-    }
-  };
+  // --- Entry points ---
 
-  // Arm 5 (closure): #[ignore] + custom closure — must come before Arm 6 (options)
-  (#[ignore $($reason:tt)*], $name:ident, |$tr:ident| $transform:expr, $input:expr, $expected:expr) => {
-    #[test]
-    #[ignore $($reason)*]
-    fn $name() {
-      test_transform(
-        $crate::utils::transform::ts_syntax(),
-        Option::None,
-        |$tr| $transform,
-        $input,
-        $expected,
-      );
-    }
+  (#[ignore $($reason:tt)*], $($rest:tt)*) => {
+    stylex_test_transform!(@impl [#[ignore $($reason)*]] $($rest)*);
   };
-
-  // Arm 6: #[ignore] + custom options + runtime injection
-  (#[ignore $($reason:tt)*], $name:ident, $options:expr, $input:expr, $expected:expr) => {
-    #[test]
-    #[ignore $($reason)*]
-    fn $name() {
-      test_transform(
-        $crate::utils::transform::ts_syntax(),
-        Option::None,
-        |tr| {
-          StyleXTransform::test(tr.comments.clone())
-            .with_options($options)
-            .with_runtime_injection()
-            .into_pass()
-        },
-        $input,
-        $expected,
-      );
-    }
+  ($($rest:tt)*) => {
+    stylex_test_transform!(@impl [] $($rest)*);
   };
 }
 
-/// Unified test macro for StyleX validation tests (`#[should_panic]`).
+/// Validation test macro (`#[should_panic]`).
 ///
-/// Uses `test_transform` instead of SWC's `test!` since `test!` doesn't
-/// support `#[should_panic]`.
+/// Supports optional `#[ignore]` as the first argument:
+/// ```ignore
+/// stylex_test_panic!(name, "msg", r#"code"#);
+/// stylex_test_panic!(name, "msg", |tr| custom(), r#"code"#);
+/// stylex_test_panic!(name, "msg", &mut opts, r#"code"#);
+/// stylex_test_panic!(#[ignore], name, "msg", r#"code"#);
+/// ```
+#[allow(unused_macros)]
 macro_rules! stylex_test_panic {
-  // Arm 1: default runtime injection
-  ($name:ident, $panic_msg:expr, $code:expr) => {
+  // --- Internal dispatch (3 modes) — must precede catch-all entry ---
+
+  (@impl [$($attrs:tt)*] $name:ident, $panic_msg:expr, $code:expr) => {
     #[test]
+    $($attrs)*
     #[should_panic(expected = $panic_msg)]
     fn $name() {
       test_transform(
@@ -218,29 +148,10 @@ macro_rules! stylex_test_panic {
     }
   };
 
-  // Arm 2: #[ignore] + default runtime injection
-  (#[ignore $($reason:tt)*], $name:ident, $panic_msg:expr, $code:expr) => {
+  // Closure MUST come before options — closures match `$options:expr`.
+  (@impl [$($attrs:tt)*] $name:ident, $panic_msg:expr, |$tr:ident| $transform:expr, $code:expr) => {
     #[test]
-    #[ignore $($reason)*]
-    #[should_panic(expected = $panic_msg)]
-    fn $name() {
-      test_transform(
-        $crate::utils::transform::ts_syntax(),
-        Option::None,
-        |tr| {
-          StyleXTransform::test(tr.comments.clone())
-            .with_runtime_injection()
-            .into_pass()
-        },
-        $code,
-        $code,
-      );
-    }
-  };
-
-  // Arm 3 (closure): custom closure — must come before Arm 5 (options)
-  ($name:ident, $panic_msg:expr, |$tr:ident| $transform:expr, $code:expr) => {
-    #[test]
+    $($attrs)*
     #[should_panic(expected = $panic_msg)]
     fn $name() {
       test_transform(
@@ -253,25 +164,9 @@ macro_rules! stylex_test_panic {
     }
   };
 
-  // Arm 4 (closure): #[ignore] + custom closure
-  (#[ignore $($reason:tt)*], $name:ident, $panic_msg:expr, |$tr:ident| $transform:expr, $code:expr) => {
+  (@impl [$($attrs:tt)*] $name:ident, $panic_msg:expr, $options:expr, $code:expr) => {
     #[test]
-    #[ignore $($reason)*]
-    #[should_panic(expected = $panic_msg)]
-    fn $name() {
-      test_transform(
-        $crate::utils::transform::ts_syntax(),
-        Option::None,
-        |$tr| $transform,
-        $code,
-        $code,
-      );
-    }
-  };
-
-  // Arm 5: custom options + runtime injection
-  ($name:ident, $panic_msg:expr, $options:expr, $code:expr) => {
-    #[test]
+    $($attrs)*
     #[should_panic(expected = $panic_msg)]
     fn $name() {
       test_transform(
@@ -289,24 +184,12 @@ macro_rules! stylex_test_panic {
     }
   };
 
-  // Arm 6: #[ignore] + custom options + runtime injection
-  (#[ignore $($reason:tt)*], $name:ident, $panic_msg:expr, $options:expr, $code:expr) => {
-    #[test]
-    #[ignore $($reason)*]
-    #[should_panic(expected = $panic_msg)]
-    fn $name() {
-      test_transform(
-        $crate::utils::transform::ts_syntax(),
-        Option::None,
-        |tr| {
-          StyleXTransform::test(tr.comments.clone())
-            .with_options($options)
-            .with_runtime_injection()
-            .into_pass()
-        },
-        $code,
-        $code,
-      );
-    }
+  // --- Entry points ---
+
+  (#[ignore $($reason:tt)*], $($rest:tt)*) => {
+    stylex_test_panic!(@impl [#[ignore $($reason)*]] $($rest)*);
+  };
+  ($($rest:tt)*) => {
+    stylex_test_panic!(@impl [] $($rest)*);
   };
 }

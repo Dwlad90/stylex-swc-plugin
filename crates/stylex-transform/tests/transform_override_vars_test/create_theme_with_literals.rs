@@ -31,21 +31,21 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   format!(
     r#"
-      {}
-      export const buttonThemePositive = stylex.createTheme(buttonTheme, {{
-            '--bgColor': {{
-              default: 'green',
-              '@media (prefers-color-scheme: dark)': 'lightgreen',
-              '@media print': 'transparent',
-            }},
-            '--bgColorDisabled': {{
-              default: 'antiquewhite',
-              '@media (prefers-color-scheme: dark)': 'floralwhite',
-            }},
-            '--cornerRadius': {{ default: '6px' }},
-            '--fgColor': 'coral',
-      }});
-    "#,
+    {}
+    export const buttonThemePositive = stylex.createTheme(buttonTheme, {{
+          '--bgColor': {{
+            default: 'green',
+            '@media (prefers-color-scheme: dark)': 'lightgreen',
+            '@media print': 'transparent',
+          }},
+          '--bgColorDisabled': {{
+            default: 'antiquewhite',
+            '@media (prefers-color-scheme: dark)': 'floralwhite',
+          }},
+          '--cornerRadius': {{ default: '6px' }},
+          '--fgColor': 'coral',
+    }});
+  "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS
   )
   .as_str()

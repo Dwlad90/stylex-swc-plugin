@@ -19,12 +19,12 @@ stylex_test!(
   basic_stylex_call,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-        import stylex from 'custom-stylex-path';
-        const styles = stylex.create({
-            red: {
-                color: 'red',
-            }
-        });
-        stylex.attrs(styles.red);
-"#
+    import stylex from 'custom-stylex-path';
+    const styles = stylex.create({
+        red: {
+            color: 'red',
+        }
+    });
+    stylex.attrs(styles.red);
+  "#
 );

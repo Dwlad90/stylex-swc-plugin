@@ -25,81 +25,81 @@ stylex_test_transform!(
   evaluates_primitive_value_expressions,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
-            1 + 2;
-            1 - 2;
-            1 * 2;
-            1 / 2;
-            1 % 2;
-            1 ** 2;
-            1 << 2;
-            1 >> 2;
-            1 & 2;
-            1 | 2;
-            1 ^ 2;
-            1 && 2;
-            1 || 2;
+    1 + 2;
+    1 - 2;
+    1 * 2;
+    1 / 2;
+    1 % 2;
+    1 ** 2;
+    1 << 2;
+    1 >> 2;
+    1 & 2;
+    1 | 2;
+    1 ^ 2;
+    1 && 2;
+    1 || 2;
 
-            null;
-            undefined;
-            true;
-            false;
-            let x = "hello";
-        "#,
+    null;
+    undefined;
+    true;
+    false;
+    let x = "hello";
+  "#,
   r#"
-            3;
-            -1;
-            2;
-            0.5;
-            1;
-            1;
-            4;
-            0;
-            0;
-            3;
-            3;
-            2;
-            1;
+    3;
+    -1;
+    2;
+    0.5;
+    1;
+    1;
+    4;
+    0;
+    0;
+    3;
+    3;
+    2;
+    1;
 
-            null
-            undefined
-            true
-            false
-            "hello"
-        "#
+    null
+    undefined
+    true
+    false
+    "hello"
+  "#
 );
 
 stylex_test_transform!(
   evaluates_simple_arrays_and_objects,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
-            const x = {};
-            const x = {name: "Name", age: 43};
-            const x = [];
-            const x = [1, 2, 3];
-            const x = [1, 2, 3, 4, 5];
-        "#,
+    const x = {};
+    const x = {name: "Name", age: 43};
+    const x = [];
+    const x = [1, 2, 3];
+    const x = [1, 2, 3, 4, 5];
+  "#,
   r#"
-            ({});
-            ({name: "Name", age: 43});
-            [];
-            [1, 2, 3];
-            [1, 2, 3, 4, 5];
-        "#
+    ({});
+    ({name: "Name", age: 43});
+    [];
+    [1, 2, 3];
+    [1, 2, 3, 4, 5];
+  "#
 );
 
 stylex_test_transform!(
   evaluates_objects_with_spreads,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
-            const x = {name: "Name", ...({hero: true}), age: 43};
-            const x = {name: "Name", ...({name: "StyleXToOverride", age: 1, name: "StyleX"}), age: 43};
-            const x = {name: "Name", ...({name: "NameToOverride", age: 1, name: "SecondnameToOverride"}), age: 43, name: "StyleX"};
-        "#,
+    const x = {name: "Name", ...({hero: true}), age: 43};
+    const x = {name: "Name", ...({name: "StyleXToOverride", age: 1, name: "StyleX"}), age: 43};
+    const x = {name: "Name", ...({name: "NameToOverride", age: 1, name: "SecondnameToOverride"}), age: 43, name: "StyleX"};
+  "#,
   r#"
-            ({ name: "Name", hero: true, age: 43 });
-            ({ name: "StyleX", age: 43 });
-            ({ age: 43 , name: "StyleX", });
-        "#
+    ({ name: "Name", hero: true, age: 43 });
+    ({ name: "StyleX", age: 43 });
+    ({ age: 43 , name: "StyleX", });
+  "#
 );
 
 stylex_test_panic!(
@@ -107,8 +107,8 @@ stylex_test_panic!(
   "Evaluation built-in functions not supported",
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
-            const x = Object.getOwnPropertyNames({a: 2});
-        "#
+    const x = Object.getOwnPropertyNames({a: 2});
+  "#
 );
 
 stylex_test_transform!(
@@ -158,13 +158,13 @@ stylex_test_transform!(
     })
   },
   r#"
-            const x = makeArray(1, 2, 3);
-            const x = stylex.makeArray(1, 2, 3);
-        "#,
+    const x = makeArray(1, 2, 3);
+    const x = stylex.makeArray(1, 2, 3);
+  "#,
   r#"
-            [3, 2, 1];
-            [3, 2, 1];
-        "#
+    [3, 2, 1];
+    [3, 2, 1];
+  "#
 );
 
 stylex_test_transform!(
@@ -205,11 +205,11 @@ stylex_test_transform!(
     })
   },
   r#"
-            const x = makeClass("Hello");
-        "#,
+    const x = makeClass("Hello");
+  "#,
   r#"
-            new MyClass("Hello");
-        "#
+    new MyClass("Hello");
+  "#
 );
 
 stylex_test_transform!(
@@ -247,11 +247,11 @@ stylex_test_transform!(
     })
   },
   r#"
-            const x = {name: "Name", ...makeObj("Hello"), age: 30};
-        "#,
+    const x = {name: "Name", ...makeObj("Hello"), age: 30};
+  "#,
   r#"
-        ({ name: "Name", spreadValue: "Hello", age: 30 });
-        "#
+    ({ name: "Name", spreadValue: "Hello", age: 30 });
+  "#
 );
 
 stylex_test_transform!(
@@ -295,54 +295,54 @@ stylex_test_transform!(
     })
   },
   r#"
-            const x = getNode("Hello");
-        "#,
+    const x = getNode("Hello");
+  "#,
   r#"
-            ({ type: "StringLiteral", value: "Hello" });
-        "#
+    ({ type: "StringLiteral", value: "Hello" });
+  "#
 );
 
 stylex_test_transform!(
   evaluates_unary_value_expressions,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
-            !1;
-            !0;
-            !{};
-            !null;
-            !false;
-            !true;
-            +1;
-            +"1";
-            -1;
-            -"1";
-            ~1;
-            ~3;
-            typeof 1;
-            typeof "a";
-            typeof null;
-            typeof {};
-            typeof undefined;
-        "#,
+    !1;
+    !0;
+    !{};
+    !null;
+    !false;
+    !true;
+    +1;
+    +"1";
+    -1;
+    -"1";
+    ~1;
+    ~3;
+    typeof 1;
+    typeof "a";
+    typeof null;
+    typeof {};
+    typeof undefined;
+  "#,
   r#"
-            false;
-            true;
-            false;
-            true;
-            true;
-            false;
-            1;
-            1;
-            -1;
-            -1;
-            -2;
-            -4;
-            "number";
-            "string";
-            "object";
-            "object";
-            "undefined";
-        "#
+    false;
+    true;
+    false;
+    true;
+    true;
+    false;
+    1;
+    1;
+    -1;
+    -1;
+    -2;
+    -4;
+    "number";
+    "string";
+    "object";
+    "object";
+    "undefined";
+  "#
 );
 
 stylex_test_panic!(
@@ -350,9 +350,9 @@ stylex_test_panic!(
   "Failed to evaluate expression",
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
-              void 1;
+    void 1;
 
-        "#
+  "#
 );
 
 stylex_test_panic!(
@@ -360,63 +360,63 @@ stylex_test_panic!(
   "Failed to evaluate expression",
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
-              delete a.b;
+    delete a.b;
 
-        "#
+  "#
 );
 
 stylex_test_transform!(
   evaluates_sequence_value_expressions,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
-            (1,2,3);
-            (1,2,3,4,5);
-            (1,2,3,4,5,6,7,8,9,10);
-            (-1,-2,-3);
-            (-1,-2,-3,-4,-5);
-            (-1,-2,-3,-4,-5,-6,-7,-8,-9,-10);
-        "#,
+    (1,2,3);
+    (1,2,3,4,5);
+    (1,2,3,4,5,6,7,8,9,10);
+    (-1,-2,-3);
+    (-1,-2,-3,-4,-5);
+    (-1,-2,-3,-4,-5,-6,-7,-8,-9,-10);
+  "#,
   r#"
-            3;
-            5;
-            10;
-            -3;
-            -5;
-            -10;
-        "#
+    3;
+    5;
+    10;
+    -3;
+    -5;
+    -10;
+  "#
 );
 
 stylex_test_transform!(
   evaluates_ts_as_value_expressions,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
-            (3 as number) * (4 as number);
-        "#,
+    (3 as number) * (4 as number);
+  "#,
   r#"
-            12
-        "#
+    12
+  "#
 );
 
 stylex_test_transform!(
   evaluates_ts_satisfies_value_expressions,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
-            (3 satisfies number) * (4 satisfies number);
-        "#,
+    (3 satisfies number) * (4 satisfies number);
+  "#,
   r#"
-            12
-        "#
+    12
+  "#
 );
 
 stylex_test_transform!(
   evaluates_condition_value_expressions,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
-            2 > 1 ? 1 : 0
-            2 < 1 ? 1 : 0
-        "#,
+    2 > 1 ? 1 : 0
+    2 < 1 ? 1 : 0
+  "#,
   r#"
-            1
-            0
-        "#
+    1
+    0
+  "#
 );

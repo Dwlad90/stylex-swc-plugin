@@ -40,4 +40,41 @@ mod unprefixed_custom_properties_tests {
     let (result, _) = swc_parse_css("* { color: var(--a); background: var(--b) }");
     unprefixed_custom_properties_validator(&result.unwrap());
   }
+
+  #[test]
+  #[should_panic(expected = "Unprefixed custom properties")]
+  fn rejects_unprefixed_single_letter() {
+    let (result, _) = swc_parse_css("* { color: var(x) }");
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
+
+  #[test]
+  fn accepts_empty_stylesheet() {
+    let (result, _) = swc_parse_css("");
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
+
+  #[test]
+  fn accepts_rule_without_var() {
+    let (result, _) = swc_parse_css("* { margin: 10px; padding: 0 }");
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
+
+  #[test]
+  fn accepts_var_with_double_dash_prefix() {
+    let (result, _) = swc_parse_css("* { color: var(--xAbCdEf) }");
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
+
+  #[test]
+  fn accepts_calc_function() {
+    let (result, _) = swc_parse_css("* { width: calc(100% - 20px) }");
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
+
+  #[test]
+  fn accepts_nested_var_in_calc() {
+    let (result, _) = swc_parse_css("* { width: calc(var(--x) + 10px) }");
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
 }

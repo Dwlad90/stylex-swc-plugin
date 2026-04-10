@@ -806,4 +806,198 @@ mod tests {
       _ => panic!("Expected Expr::Tpl"),
     }
   }
+
+  // ──────────────────────────────────────────────
+  // convert_unary_to_num tests
+  // ──────────────────────────────────────────────
+
+  mod convert_unary_to_num_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::convert_unary_to_num;
+    use swc_core::ecma::ast::{UnaryExpr, UnaryOp};
+
+    fn make_unary(op: UnaryOp, val: f64) -> UnaryExpr {
+      UnaryExpr {
+        span: Default::default(),
+        op,
+        arg: Box::new(make_num_expr(val)),
+      }
+    }
+
+    #[test]
+    fn minus_negates_positive() {
+      let unary = make_unary(UnaryOp::Minus, 5.0);
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, -5.0);
+    }
+
+    #[test]
+    fn minus_negates_negative() {
+      let unary = make_unary(UnaryOp::Minus, -3.0);
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, 3.0);
+    }
+
+    #[test]
+    fn minus_zero() {
+      let unary = make_unary(UnaryOp::Minus, 0.0);
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
+      // -0.0 == 0.0 in f64
+      assert_eq!(result, 0.0);
+    }
+
+    #[test]
+    fn plus_preserves_value() {
+      let unary = make_unary(UnaryOp::Plus, 7.0);
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, 7.0);
+    }
+
+    #[test]
+    fn plus_preserves_negative() {
+      let unary = make_unary(UnaryOp::Plus, -4.0);
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, -4.0);
+    }
+
+    #[test]
+    fn minus_large_number() {
+      let unary = make_unary(UnaryOp::Minus, 1e10);
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, -1e10);
+    }
+
+    #[test]
+    fn minus_fractional() {
+      let unary = make_unary(UnaryOp::Minus, 0.5);
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, -0.5);
+    }
+
+    #[test]
+    #[should_panic]
+    fn unsupported_op_panics() {
+      let unary = make_unary(UnaryOp::TypeOf, 5.0);
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // convert_ident_to_expr tests
+  // ──────────────────────────────────────────────
+
+  mod convert_ident_to_expr_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::convert_ident_to_expr;
+    use crate::shared::utils::common::fill_state_declarations;
+    use swc_core::ecma::ast::BindingIdent;
+
+    fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
+      swc_core::ecma::ast::VarDeclarator {
+        span: Default::default(),
+        name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
+          id: Ident {
+            span: Default::default(),
+            sym: name.into(),
+            optional: false,
+            ctxt: SyntaxContext::empty(),
+          },
+          type_ann: None,
+        }),
+        init: Some(Box::new(init)),
+        definite: false,
+      }
+    }
+
+    #[test]
+    fn resolves_ident_to_number_expr() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+
+      let decl = make_var_declarator("myNum", make_num_expr(42.0));
+      fill_state_declarations(&mut state, &decl);
+      // Set count so reduce doesn't underflow
+      state
+        .var_decl_count_map
+        .insert("myNum".into(), 2);
+
+      let ident = Ident {
+        span: Default::default(),
+        sym: "myNum".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      };
+
+      let result = convert_ident_to_expr(&ident, &mut state, &fns);
+      match result {
+        Expr::Lit(Lit::Num(n)) => assert_eq!(n.value, 42.0),
+        _ => panic!("Expected number literal"),
+      }
+    }
+
+    #[test]
+    fn resolves_ident_to_string_expr() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+
+      let decl = make_var_declarator("myStr", make_str_expr("hello"));
+      fill_state_declarations(&mut state, &decl);
+      state
+        .var_decl_count_map
+        .insert("myStr".into(), 2);
+
+      let ident = Ident {
+        span: Default::default(),
+        sym: "myStr".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      };
+
+      let result = convert_ident_to_expr(&ident, &mut state, &fns);
+      match result {
+        Expr::Lit(Lit::Str(s)) => {
+          assert_eq!(s.value.as_str().expect("Expected string"), "hello")
+        },
+        _ => panic!("Expected string literal"),
+      }
+    }
+
+    #[test]
+    #[should_panic]
+    fn panics_for_undeclared_ident() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let ident = Ident {
+        span: Default::default(),
+        sym: "undeclared".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      };
+      convert_ident_to_expr(&ident, &mut state, &fns);
+    }
+  }
 }

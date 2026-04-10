@@ -295,4 +295,344 @@ mod tests {
     let result = ancestor(":hover", Some(&options)).unwrap();
     assert_eq!(result, ":where(.default-marker:hover *)");
   }
+
+  // --- ancestor additional tests ---
+
+  #[test]
+  fn ancestor_invalid_pseudo_no_colon() {
+    let result = ancestor("hover", None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("must start with"));
+  }
+
+  #[test]
+  fn ancestor_invalid_pseudo_double_colon() {
+    let result = ancestor("::before", None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("pseudo-elements"));
+  }
+
+  #[test]
+  fn ancestor_with_focus_visible() {
+    let result = ancestor(":focus-visible", None).unwrap();
+    assert_eq!(result, ":where(.x-default-marker:focus-visible *)");
+  }
+
+  #[test]
+  fn ancestor_with_functional_pseudo() {
+    let result = ancestor(":nth-child(2)", None).unwrap();
+    assert_eq!(result, ":where(.x-default-marker:nth-child(2) *)");
+  }
+
+  #[test]
+  fn ancestor_with_attribute_selector() {
+    let result = ancestor("[data-state=\"open\"]", None).unwrap();
+    assert_eq!(
+      result,
+      ":where(.x-default-marker[data-state=\"open\"] *)"
+    );
+  }
+
+  // --- descendant additional tests ---
+
+  #[test]
+  fn descendant_invalid_pseudo_no_colon() {
+    let result = descendant("focus", None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("must start with"));
+  }
+
+  #[test]
+  fn descendant_invalid_pseudo_double_colon() {
+    let result = descendant("::after", None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("pseudo-elements"));
+  }
+
+  #[test]
+  fn descendant_with_custom_options() {
+    let options = StyleXStateOptions {
+      class_name_prefix: "my".to_string(),
+      ..Default::default()
+    };
+    let result = descendant(":hover", Some(&options)).unwrap();
+    assert_eq!(result, ":where(:has(.my-default-marker:hover))");
+  }
+
+  #[test]
+  fn descendant_with_empty_prefix() {
+    let options = StyleXStateOptions {
+      class_name_prefix: "".to_string(),
+      ..Default::default()
+    };
+    let result = descendant(":active", Some(&options)).unwrap();
+    assert_eq!(result, ":where(:has(.default-marker:active))");
+  }
+
+  #[test]
+  fn descendant_with_focus_visible() {
+    let result = descendant(":focus-visible", None).unwrap();
+    assert_eq!(
+      result,
+      ":where(:has(.x-default-marker:focus-visible))"
+    );
+  }
+
+  #[test]
+  fn descendant_with_attribute_selector() {
+    let result = descendant("[disabled]", None).unwrap();
+    assert_eq!(result, ":where(:has(.x-default-marker[disabled]))");
+  }
+
+  // --- sibling_before additional tests ---
+
+  #[test]
+  fn sibling_before_invalid_pseudo_no_colon() {
+    let result = sibling_before("active", None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("must start with"));
+  }
+
+  #[test]
+  fn sibling_before_invalid_pseudo_double_colon() {
+    let result = sibling_before("::first-line", None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("pseudo-elements"));
+  }
+
+  #[test]
+  fn sibling_before_with_custom_options() {
+    let options = StyleXStateOptions {
+      class_name_prefix: "sb".to_string(),
+      ..Default::default()
+    };
+    let result = sibling_before(":hover", Some(&options)).unwrap();
+    assert_eq!(result, ":where(.sb-default-marker:hover ~ *)");
+  }
+
+  #[test]
+  fn sibling_before_with_empty_prefix() {
+    let options = StyleXStateOptions {
+      class_name_prefix: "".to_string(),
+      ..Default::default()
+    };
+    let result = sibling_before(":focus", Some(&options)).unwrap();
+    assert_eq!(result, ":where(.default-marker:focus ~ *)");
+  }
+
+  #[test]
+  fn sibling_before_with_focus() {
+    let result = sibling_before(":focus", None).unwrap();
+    assert_eq!(result, ":where(.x-default-marker:focus ~ *)");
+  }
+
+  #[test]
+  fn sibling_before_with_attribute_selector() {
+    let result = sibling_before("[data-active]", None).unwrap();
+    assert_eq!(
+      result,
+      ":where(.x-default-marker[data-active] ~ *)"
+    );
+  }
+
+  // --- sibling_after additional tests ---
+
+  #[test]
+  fn sibling_after_invalid_pseudo_no_colon() {
+    let result = sibling_after("focus", None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("must start with"));
+  }
+
+  #[test]
+  fn sibling_after_invalid_pseudo_double_colon() {
+    let result = sibling_after("::selection", None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("pseudo-elements"));
+  }
+
+  #[test]
+  fn sibling_after_with_custom_options() {
+    let options = StyleXStateOptions {
+      class_name_prefix: "sa".to_string(),
+      ..Default::default()
+    };
+    let result = sibling_after(":hover", Some(&options)).unwrap();
+    assert_eq!(result, ":where(:has(~ .sa-default-marker:hover))");
+  }
+
+  #[test]
+  fn sibling_after_with_empty_prefix() {
+    let options = StyleXStateOptions {
+      class_name_prefix: "".to_string(),
+      ..Default::default()
+    };
+    let result = sibling_after(":active", Some(&options)).unwrap();
+    assert_eq!(result, ":where(:has(~ .default-marker:active))");
+  }
+
+  #[test]
+  fn sibling_after_with_active() {
+    let result = sibling_after(":active", None).unwrap();
+    assert_eq!(
+      result,
+      ":where(:has(~ .x-default-marker:active))"
+    );
+  }
+
+  #[test]
+  fn sibling_after_with_attribute_selector() {
+    let result = sibling_after("[aria-selected]", None).unwrap();
+    assert_eq!(
+      result,
+      ":where(:has(~ .x-default-marker[aria-selected]))"
+    );
+  }
+
+  // --- any_sibling additional tests ---
+
+  #[test]
+  fn any_sibling_invalid_pseudo_no_colon() {
+    let result = any_sibling("active", None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("must start with"));
+  }
+
+  #[test]
+  fn any_sibling_invalid_pseudo_double_colon() {
+    let result = any_sibling("::placeholder", None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("pseudo-elements"));
+  }
+
+  #[test]
+  fn any_sibling_with_custom_options() {
+    let options = StyleXStateOptions {
+      class_name_prefix: "as".to_string(),
+      ..Default::default()
+    };
+    let result = any_sibling(":hover", Some(&options)).unwrap();
+    assert_eq!(
+      result,
+      ":where(.as-default-marker:hover ~ *, :has(~ .as-default-marker:hover))"
+    );
+  }
+
+  #[test]
+  fn any_sibling_with_empty_prefix() {
+    let options = StyleXStateOptions {
+      class_name_prefix: "".to_string(),
+      ..Default::default()
+    };
+    let result = any_sibling(":focus", Some(&options)).unwrap();
+    assert_eq!(
+      result,
+      ":where(.default-marker:focus ~ *, :has(~ .default-marker:focus))"
+    );
+  }
+
+  #[test]
+  fn any_sibling_with_hover() {
+    let result = any_sibling(":hover", None).unwrap();
+    assert_eq!(
+      result,
+      ":where(.x-default-marker:hover ~ *, :has(~ .x-default-marker:hover))"
+    );
+  }
+
+  #[test]
+  fn any_sibling_with_attribute_selector() {
+    let result = any_sibling("[data-checked]", None).unwrap();
+    assert_eq!(
+      result,
+      ":where(.x-default-marker[data-checked] ~ *, \
+:has(~ .x-default-marker[data-checked]))"
+    );
+  }
+
+  // --- from_proxy / from_stylex_style ---
+
+  #[test]
+  fn from_proxy_returns_none() {
+    let opts = StyleXStateOptions::default();
+    assert_eq!(from_proxy(&opts), None);
+  }
+
+  #[test]
+  fn from_stylex_style_returns_none() {
+    let opts = StyleXStateOptions::default();
+    assert_eq!(from_stylex_style(&opts), None);
+  }
+
+  #[test]
+  fn from_proxy_with_custom_options_returns_none() {
+    let opts = StyleXStateOptions {
+      class_name_prefix: "app".to_string(),
+      dev: true,
+      ..Default::default()
+    };
+    assert_eq!(from_proxy(&opts), None);
+  }
+
+  #[test]
+  fn from_stylex_style_with_custom_options_returns_none() {
+    let opts = StyleXStateOptions {
+      class_name_prefix: "app".to_string(),
+      test: true,
+      ..Default::default()
+    };
+    assert_eq!(from_stylex_style(&opts), None);
+  }
+
+  // --- get_default_marker_class_name indirect tests ---
+
+  #[test]
+  fn default_marker_with_prefix_x() {
+    // Default prefix is "x", so marker should be "x-default-marker"
+    let result = ancestor(":hover", None).unwrap();
+    assert!(result.contains("x-default-marker"));
+  }
+
+  #[test]
+  fn default_marker_none_options_uses_fallback() {
+    // When no options, the fallback "x-default-marker" is used
+    let result = descendant(":hover", None).unwrap();
+    assert!(result.contains("x-default-marker"));
+  }
+
+  // --- Validate attribute selectors with functions ---
+
+  #[test]
+  fn ancestor_with_attribute_value_selector() {
+    let result = ancestor("[data-theme='dark']", None).unwrap();
+    assert_eq!(
+      result,
+      ":where(.x-default-marker[data-theme='dark'] *)"
+    );
+  }
+
+  #[test]
+  fn descendant_with_attribute_contains_selector() {
+    let result = descendant("[class*=\"active\"]", None).unwrap();
+    assert_eq!(
+      result,
+      ":where(:has(.x-default-marker[class*=\"active\"]))"
+    );
+  }
+
+  // --- Validate invalid attribute selectors with functions ---
+
+  #[test]
+  fn ancestor_with_invalid_attribute_missing_bracket() {
+    let result = ancestor("[data-state", None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("must end with"));
+  }
+
+  #[test]
+  fn descendant_with_invalid_attribute_mismatched_quotes() {
+    let result = descendant("[data=\"open']", None);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("invalid format"));
+  }
 }

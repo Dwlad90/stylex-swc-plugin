@@ -17,7 +17,7 @@ base62.workspace = true
 murmur2.workspace = true
 radix_fmt.workspace = true
 rustc-hash.workspace = true
-swc_core = { workspace = true, features = ["common", "ecma_utils"] }
+swc_core = { workspace = true, features = ["common", "ecma_ast", "ecma_utils"] }
 
 stylex_regex = { path = "../stylex-regex" }
 

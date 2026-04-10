@@ -351,3 +351,346 @@ mod get_priority_tests {
     assert!(p > 0.0);
   }
 }
+
+#[cfg(test)]
+mod normalize_css_property_value_tests {
+  use crate::css::common::normalize_css_property_value;
+  use stylex_structures::stylex_state_options::StyleXStateOptions;
+
+  fn default_options() -> StyleXStateOptions {
+    StyleXStateOptions::default()
+  }
+
+  fn rem_enabled_options() -> StyleXStateOptions {
+    StyleXStateOptions {
+      enable_font_size_px_to_rem: true,
+      ..Default::default()
+    }
+  }
+
+  // --- Simple values ---
+
+  #[test]
+  fn normalizes_simple_color_keyword() {
+    let opts = default_options();
+    let result = normalize_css_property_value("color", "red", &opts);
+    assert_eq!(result, "red");
+  }
+
+  #[test]
+  fn normalizes_hex_color() {
+    let opts = default_options();
+    let result = normalize_css_property_value("color", "#ff0000", &opts);
+    // SWC minifies #ff0000 to #f00
+    assert_eq!(result, "#f00");
+  }
+
+  #[test]
+  fn normalizes_transparent() {
+    let opts = default_options();
+    let result = normalize_css_property_value("color", "transparent", &opts);
+    assert_eq!(result, "transparent");
+  }
+
+  // --- Numeric values ---
+
+  #[test]
+  fn normalizes_pixel_value() {
+    let opts = default_options();
+    let result = normalize_css_property_value("width", "100px", &opts);
+    assert_eq!(result, "100px");
+  }
+
+  #[test]
+  fn normalizes_percentage_value() {
+    let opts = default_options();
+    let result = normalize_css_property_value("width", "50%", &opts);
+    assert_eq!(result, "50%");
+  }
+
+  #[test]
+  fn normalizes_em_value() {
+    let opts = default_options();
+    let result = normalize_css_property_value("margin", "2em", &opts);
+    assert_eq!(result, "2em");
+  }
+
+  #[test]
+  fn normalizes_zero_value() {
+    let opts = default_options();
+    let result = normalize_css_property_value("margin", "0", &opts);
+    assert_eq!(result, "0");
+  }
+
+  // --- Calc expressions ---
+
+  #[test]
+  fn normalizes_calc_expression() {
+    let opts = default_options();
+    let result = normalize_css_property_value("width", "calc(100% - 20px)", &opts);
+    assert_eq!(result, "calc(100% - 20px)");
+  }
+
+  #[test]
+  fn normalizes_nested_calc() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("width", "calc(100% - calc(20px + 10px))", &opts);
+    assert_eq!(result, "calc(100% - calc(20px + 10px))");
+  }
+
+  // --- Color functions (early return path) ---
+
+  #[test]
+  fn color_function_oklch_returns_early() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("color", "oklch(0.7 0.15 180)", &opts);
+    // oklch triggers early return: normalizes spaces only
+    assert_eq!(result, "oklch(0.7 0.15 180)");
+  }
+
+  #[test]
+  fn color_function_hsl_returns_early() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("color", "hsl(120, 100%, 50%)", &opts);
+    assert_eq!(result, "hsl(120, 100%, 50%)");
+  }
+
+  #[test]
+  fn color_function_hsla_returns_early() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("color", "hsla(120, 100%, 50%, 0.5)", &opts);
+    assert_eq!(result, "hsla(120, 100%, 50%, 0.5)");
+  }
+
+  #[test]
+  fn color_function_collapses_extra_whitespace() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("color", "oklch(0.7   0.15   180)", &opts);
+    assert_eq!(result, "oklch(0.7 0.15 180)");
+  }
+
+  // --- CSS variables ---
+
+  #[test]
+  fn normalizes_css_variable_value() {
+    let opts = default_options();
+    let result = normalize_css_property_value("--myVar", "blue", &opts);
+    assert_eq!(result, "blue");
+  }
+
+  #[test]
+  fn normalizes_css_variable_hex() {
+    let opts = default_options();
+    let result = normalize_css_property_value("--customColor", "#abcdef", &opts);
+    assert_eq!(result, "#abcdef");
+  }
+
+  // --- Multiple values ---
+
+  #[test]
+  fn normalizes_margin_four_values() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("margin", "10px 20px 30px 40px", &opts);
+    assert_eq!(result, "10px 20px 30px 40px");
+  }
+
+  #[test]
+  fn normalizes_padding_two_values() {
+    let opts = default_options();
+    let result = normalize_css_property_value("padding", "5px 10px", &opts);
+    assert_eq!(result, "5px 10px");
+  }
+
+  // --- Shorthand properties ---
+
+  #[test]
+  fn normalizes_border_shorthand() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("border", "1px solid red", &opts);
+    assert_eq!(result, "1px solid red");
+  }
+
+  // --- Font-size px to rem conversion ---
+
+  #[test]
+  fn font_size_px_to_rem_when_enabled() {
+    let opts = rem_enabled_options();
+    let result = normalize_css_property_value("fontSize", "16px", &opts);
+    assert_eq!(result, "1rem");
+  }
+
+  #[test]
+  fn font_size_px_to_rem_32px() {
+    let opts = rem_enabled_options();
+    let result = normalize_css_property_value("fontSize", "32px", &opts);
+    assert_eq!(result, "2rem");
+  }
+
+  #[test]
+  fn font_size_px_no_conversion_when_disabled() {
+    let opts = default_options();
+    let result = normalize_css_property_value("fontSize", "16px", &opts);
+    assert_eq!(result, "16px");
+  }
+
+  // --- Keywords and special values ---
+
+  #[test]
+  fn normalizes_inherit_keyword() {
+    let opts = default_options();
+    let result = normalize_css_property_value("color", "inherit", &opts);
+    assert_eq!(result, "inherit");
+  }
+
+  #[test]
+  fn normalizes_initial_keyword() {
+    let opts = default_options();
+    let result = normalize_css_property_value("display", "initial", &opts);
+    assert_eq!(result, "initial");
+  }
+
+  #[test]
+  fn normalizes_none_keyword() {
+    let opts = default_options();
+    let result = normalize_css_property_value("display", "none", &opts);
+    assert_eq!(result, "none");
+  }
+
+  #[test]
+  fn normalizes_auto_value() {
+    let opts = default_options();
+    let result = normalize_css_property_value("margin", "auto", &opts);
+    assert_eq!(result, "auto");
+  }
+
+  // --- Var() function ---
+
+  #[test]
+  fn normalizes_var_function() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("color", "var(--xColor)", &opts);
+    assert_eq!(result, "var(--xColor)");
+  }
+
+  #[test]
+  fn normalizes_var_with_fallback() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("color", "var(--xColor, red)", &opts);
+    assert_eq!(result, "var(--xColor,red)");
+  }
+
+  // --- Transform functions (camelCase conversion) ---
+
+  #[test]
+  fn normalizes_translatex_to_camel_case() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("transform", "translateX(10px)", &opts);
+    assert_eq!(result, "translateX(10px)");
+  }
+
+  #[test]
+  fn normalizes_rgb_color_value() {
+    let opts = default_options();
+    let result = normalize_css_property_value("color", "rgb(255, 0, 0)", &opts);
+    // SWC preserves rgb() function form
+    assert_eq!(result, "rgb(255,0,0)");
+  }
+
+  #[test]
+  fn normalizes_rgba_color_value() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("color", "rgba(0, 0, 0, 0.5)", &opts);
+    assert!(result.contains("0") || result.contains("rgba"));
+  }
+
+  // --- Whitespace handling ---
+
+  #[test]
+  fn normalizes_extra_whitespace_in_value() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("margin", "10px   20px   30px", &opts);
+    assert_eq!(result, "10px 20px 30px");
+  }
+
+  // --- Display values ---
+
+  #[test]
+  fn normalizes_flex_display() {
+    let opts = default_options();
+    let result = normalize_css_property_value("display", "flex", &opts);
+    assert_eq!(result, "flex");
+  }
+
+  #[test]
+  fn normalizes_grid_display() {
+    let opts = default_options();
+    let result = normalize_css_property_value("display", "grid", &opts);
+    assert_eq!(result, "grid");
+  }
+
+  // --- Gradient (early-return path) ---
+
+  #[test]
+  fn normalizes_radial_gradient() {
+    let opts = default_options();
+    let result = normalize_css_property_value(
+      "background",
+      "radial-gradient(circle, red, blue)",
+      &opts,
+    );
+    assert_eq!(result, "radial-gradient(circle, red, blue)");
+  }
+
+  // --- Lab/LCH functions (early-return path) ---
+
+  #[test]
+  fn normalizes_lab_color() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("color", "lab(50% 40 59.5)", &opts);
+    assert_eq!(result, "lab(50% 40 59.5)");
+  }
+
+  #[test]
+  fn normalizes_lch_color() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("color", "lch(52.2% 72.2 50)", &opts);
+    assert_eq!(result, "lch(52.2% 72.2 50)");
+  }
+
+  // --- HWB color (early-return path) ---
+
+  #[test]
+  fn normalizes_hwb_color() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("color", "hwb(194 0% 0%)", &opts);
+    assert_eq!(result, "hwb(194 0% 0%)");
+  }
+
+  // --- Clamp function (early-return path) ---
+
+  #[test]
+  fn normalizes_clamp_function() {
+    let opts = default_options();
+    let result = normalize_css_property_value(
+      "fontSize",
+      "clamp(1rem, 2vw, 3rem)",
+      &opts,
+    );
+    assert_eq!(result, "clamp(1rem, 2vw, 3rem)");
+  }
+}

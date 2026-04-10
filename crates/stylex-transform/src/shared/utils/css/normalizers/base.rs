@@ -123,7 +123,7 @@ fn kebab_case_normalizer(declaration: &mut Declaration) {
   let should_normalize = match &declaration.name {
     DeclarationName::Ident(ident) => {
       ident.value == "transitionProperty" || ident.value == "willChange"
-    }
+    },
     DeclarationName::DashedIdent(_) => false,
   };
 
@@ -223,7 +223,7 @@ fn zero_dimension_normalizer(
         value: "deg".into(),
         raw: None,
       };
-    }
+    },
     Dimension::Time(time) => {
       if time.value.value != 0.0 {
         return;
@@ -234,6 +234,6 @@ fn zero_dimension_normalizer(
         value: "s".into(),
         raw: None,
       };
-    }
+    },
   }
 }

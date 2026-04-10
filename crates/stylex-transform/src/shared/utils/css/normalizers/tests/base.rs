@@ -7,7 +7,7 @@ mod normalizers {
 
   use crate::shared::utils::css::common::{stringify, swc_parse_css};
   use crate::shared::utils::css::normalizers::base::base_normalizer;
-  use stylex_css::css::normalizers::whitespace_normalizer::whitespace_normalizer;
+  use stylex_css::css::normalizers::{extract_css_value, normalize_spacing};
 
   #[test]
   fn should_normalize_transition_property() {
@@ -197,11 +197,10 @@ mod normalizers {
     let (stylesheet, errors) = swc_parse_css(r#"* {{ color: oklab(40.101% 0.1147 0.0453) }}"#);
 
     assert_eq!(
-      whitespace_normalizer(stringify(&base_normalizer(
-        stylesheet.unwrap(),
-        false,
-        Some("color")
-      ))),
+      {
+        let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("color")));
+        normalize_spacing(extract_css_value(&s))
+      },
       r#"oklab(40.101% .1147 .0453)"#
     );
 
@@ -298,11 +297,10 @@ mod normalizers {
     let (stylesheet, errors) = swc_parse_css(r#"* {{ color: clamp(200px,  40%,     400px) }}"#);
 
     assert_eq!(
-      whitespace_normalizer(stringify(&base_normalizer(
-        stylesheet.unwrap(),
-        false,
-        Some("color")
-      ))),
+      {
+        let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("color")));
+        normalize_spacing(extract_css_value(&s))
+      },
       r#"clamp(200px,40%,400px)"#
     );
 

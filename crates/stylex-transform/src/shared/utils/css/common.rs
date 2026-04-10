@@ -19,7 +19,7 @@ use stylex_constants::constants::shorthands_of_shorthands::SHORTHANDS_OF_SHORTHA
 use stylex_constants::constants::unitless_number_properties::UNITLESS_NUMBER_PROPERTIES;
 use stylex_css::css::generate_ltr::generate_ltr;
 use stylex_css::css::generate_rtl::generate_rtl;
-use stylex_css::css::normalizers::whitespace_normalizer::whitespace_normalizer;
+use stylex_css::css::normalizers::{extract_css_value, normalize_spacing};
 use stylex_regex::regex::{
   ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, DESCENDANT_SELECTOR, MANY_SPACES,
   PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
@@ -439,9 +439,11 @@ pub(crate) fn normalize_css_property_value(
         Some(css_property),
       );
 
-      let result = whitespace_normalizer(stringify(&parsed_ast));
+      let stringified = stringify(&parsed_ast);
+      let value = extract_css_value(&stringified);
+      let normalized = normalize_spacing(value);
 
-      convert_css_function_to_camel_case(&result)
+      convert_css_function_to_camel_case(&normalized)
     },
     Err(err) => {
       stylex_panic!("{}", err.message())
@@ -479,14 +481,16 @@ fn convert_css_function_to_camel_case(function: &str) -> String {
 }
 
 pub fn stringify(node: &Stylesheet) -> String {
-  let mut buf = String::new();
-  let writer = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
-  let mut codegen = CodeGenerator::new(writer, CodegenConfig { minify: true });
+  let mut buf = String::with_capacity(256);
+  let wr = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
+  let mut codegen = CodeGenerator::new(wr, CodegenConfig { minify: true });
 
   match Emit::emit(&mut codegen, node) {
     Ok(_) => {},
     Err(e) => stylex_panic!("CSS codegen emit failed: {}", e),
   };
+
+  drop(codegen);
 
   let mut result = buf.replace('\'', "");
 
@@ -502,13 +506,14 @@ pub fn stringify(node: &Stylesheet) -> String {
      * HACK: Replace `--\3{number}` with `--{number}` to simulate original behavior of StyleX
      */
 
-    result = CLEAN_CSS_VAR
-      .replace_all(buf.as_str(), |caps: &fancy_regex::Captures| {
+    let clean = CLEAN_CSS_VAR
+      .replace_all(result.as_str(), |caps: &fancy_regex::Captures| {
         caps
           .get(1)
           .map_or(String::default(), |m| m.as_str().to_string())
       })
       .to_string();
+    result = clean;
   }
 
   result

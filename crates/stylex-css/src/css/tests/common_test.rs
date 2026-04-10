@@ -694,3 +694,558 @@ mod normalize_css_property_value_tests {
     assert_eq!(result, "clamp(1rem, 2vw, 3rem)");
   }
 }
+
+// ── generate_css_rule tests ──────────────────────────────────────────
+
+#[cfg(test)]
+mod generate_css_rule_tests {
+  use crate::css::common::generate_css_rule;
+  use stylex_structures::stylex_state_options::StyleXStateOptions;
+
+  fn default_options() -> StyleXStateOptions {
+    StyleXStateOptions::default()
+  }
+
+  #[test]
+  fn generates_simple_ltr_rule() {
+    let result = generate_css_rule(
+      "x123",
+      "color",
+      &["red".into()],
+      &mut [],
+      &mut [],
+      &mut [],
+      &default_options(),
+    );
+    assert!(result.ltr.contains(".x123"));
+    assert!(result.ltr.contains("color:red"));
+    assert!(result.rtl.is_none());
+    assert!(result.priority.is_some());
+  }
+
+  #[test]
+  fn generates_rule_with_pseudo() {
+    let result = generate_css_rule(
+      "x456",
+      "color",
+      &["blue".into()],
+      &mut [":hover".into()],
+      &mut [],
+      &mut [],
+      &default_options(),
+    );
+    assert!(result.ltr.contains(":hover"));
+    assert!(result.ltr.contains("color:blue"));
+  }
+
+  #[test]
+  fn generates_rule_with_at_rule() {
+    let result = generate_css_rule(
+      "xmq",
+      "color",
+      &["green".into()],
+      &mut [],
+      &mut ["@media (max-width: 600px)".into()],
+      &mut [],
+      &default_options(),
+    );
+    assert!(result.ltr.contains("@media"));
+    assert!(result.ltr.contains("color:green"));
+  }
+
+  #[test]
+  fn generates_rule_with_const_rules() {
+    let result = generate_css_rule(
+      "xcr",
+      "color",
+      &["red".into()],
+      &mut [],
+      &mut [],
+      &mut ["--myConst".into()],
+      &default_options(),
+    );
+    assert!(result.ltr.contains("--myConst"));
+  }
+
+  #[test]
+  fn generates_rule_with_pseudo_and_at_rule() {
+    let result = generate_css_rule(
+      "xpa",
+      "color",
+      &["red".into()],
+      &mut [":hover".into()],
+      &mut ["@media (max-width: 600px)".into()],
+      &mut [],
+      &default_options(),
+    );
+    assert!(result.ltr.contains(":hover"));
+    assert!(result.ltr.contains("@media"));
+  }
+
+  #[test]
+  fn generates_rule_with_multiple_values() {
+    let result = generate_css_rule(
+      "xmv",
+      "color",
+      &["red".into(), "blue".into()],
+      &mut [],
+      &mut [],
+      &mut [],
+      &default_options(),
+    );
+    assert!(result.ltr.contains("color:red"));
+    assert!(result.ltr.contains("color:blue"));
+  }
+
+  #[test]
+  fn priority_increases_with_pseudos() {
+    let base = generate_css_rule(
+      "xa",
+      "color",
+      &["red".into()],
+      &mut [],
+      &mut [],
+      &mut [],
+      &default_options(),
+    );
+    let with_pseudo = generate_css_rule(
+      "xb",
+      "color",
+      &["red".into()],
+      &mut [":hover".into()],
+      &mut [],
+      &mut [],
+      &default_options(),
+    );
+    assert!(with_pseudo.priority.unwrap() > base.priority.unwrap());
+  }
+
+  #[test]
+  fn priority_increases_with_at_rules() {
+    let base = generate_css_rule(
+      "xa",
+      "color",
+      &["red".into()],
+      &mut [],
+      &mut [],
+      &mut [],
+      &default_options(),
+    );
+    let with_at = generate_css_rule(
+      "xb",
+      "color",
+      &["red".into()],
+      &mut [],
+      &mut ["@media (min-width: 800px)".into()],
+      &mut [],
+      &default_options(),
+    );
+    assert!(with_at.priority.unwrap() > base.priority.unwrap());
+  }
+
+  #[test]
+  fn generates_rtl_for_logical_property() {
+    use stylex_enums::style_resolution::StyleResolution;
+
+    let opts = StyleXStateOptions {
+      style_resolution: StyleResolution::PropertySpecificity,
+      ..Default::default()
+    };
+    let result = generate_css_rule(
+      "xrtl",
+      "margin-start",
+      &["10px".into()],
+      &mut [],
+      &mut [],
+      &mut [],
+      &opts,
+    );
+    // margin-start should generate LTR → margin-left, RTL → margin-right
+    assert!(result.ltr.contains("margin-left"));
+    assert!(result.rtl.is_some());
+    let rtl = result.rtl.unwrap();
+    assert!(rtl.contains("margin-right"));
+  }
+
+  #[test]
+  fn generates_rule_with_thumb_pseudo() {
+    let result = generate_css_rule(
+      "xth",
+      "color",
+      &["red".into()],
+      &mut ["::thumb".into()],
+      &mut [],
+      &mut [],
+      &default_options(),
+    );
+    assert!(result.ltr.contains("::-webkit-slider-thumb"));
+    assert!(result.ltr.contains("::-moz-range-thumb"));
+    assert!(result.ltr.contains("::-ms-thumb"));
+  }
+
+  #[test]
+  fn generates_rule_with_where_pseudo() {
+    let result = generate_css_rule(
+      "xwh",
+      "color",
+      &["red".into()],
+      &mut [":where(.dark)".into()],
+      &mut [],
+      &mut [],
+      &default_options(),
+    );
+    // Should contain doubled class for specificity
+    assert!(result.ltr.contains(".xwh.xwh"));
+  }
+}
+
+// ── get_priority additional tests ────────────────────────────────────
+
+#[cfg(test)]
+mod get_priority_extended_tests {
+  use crate::css::common::get_priority;
+
+  #[test]
+  fn compound_pseudo_hover_after() {
+    // :hover::after is a compound pseudo that should be handled
+    let p = get_priority(":hover::after");
+    // Should be sum of :hover (130.0) + ::after (5000.0)
+    assert!(p > 5000.0);
+  }
+
+  #[test]
+  fn compound_pseudo_focus_before() {
+    let p = get_priority(":focus::before");
+    assert!(p > 5000.0);
+  }
+
+  #[test]
+  fn compound_pseudo_active_placeholder() {
+    let p = get_priority(":active::placeholder");
+    assert!(p > 5000.0);
+  }
+
+  #[test]
+  fn at_container_priority() {
+    let p = get_priority("@container (min-width: 300px)");
+    assert_eq!(p, 300.0);
+  }
+
+  #[test]
+  fn at_supports_priority() {
+    let p = get_priority("@supports (display: grid)");
+    assert_eq!(p, 30.0);
+  }
+
+  #[test]
+  fn at_media_priority() {
+    let p = get_priority("@media (hover: hover)");
+    assert_eq!(p, 200.0);
+  }
+
+  #[test]
+  fn pseudo_element_after() {
+    let p = get_priority("::after");
+    assert_eq!(p, 5000.0);
+  }
+
+  #[test]
+  fn pseudo_element_before() {
+    let p = get_priority("::before");
+    assert_eq!(p, 5000.0);
+  }
+
+  #[test]
+  fn pseudo_element_placeholder() {
+    let p = get_priority("::placeholder");
+    assert_eq!(p, 5000.0);
+  }
+
+  #[test]
+  fn pseudo_class_with_parens_no_compound() {
+    // :nth-child(2) has parens, so get_compound_pseudo_priority returns None
+    let p = get_priority(":nth-child(2)");
+    assert_eq!(p, 60.0);
+  }
+
+  #[test]
+  fn pseudo_class_first_child() {
+    assert_eq!(get_priority(":first-child"), 52.0);
+  }
+
+  #[test]
+  fn pseudo_class_last_child() {
+    assert_eq!(get_priority(":last-child"), 54.0);
+  }
+
+  #[test]
+  fn pseudo_class_active() {
+    assert_eq!(get_priority(":active"), 170.0);
+  }
+
+  #[test]
+  fn pseudo_class_visited() {
+    assert_eq!(get_priority(":visited"), 85.0);
+  }
+
+  #[test]
+  fn pseudo_class_disabled() {
+    assert_eq!(get_priority(":disabled"), 92.0);
+  }
+
+  #[test]
+  fn shorthand_of_shorthands_margin_gets_1000() {
+    assert_eq!(get_priority("margin"), 1000.0);
+  }
+
+  #[test]
+  fn shorthand_of_longhands_gets_2000() {
+    assert_eq!(get_priority("border-color"), 2000.0);
+  }
+
+  #[test]
+  fn unknown_pseudo_class_gets_default_40() {
+    assert_eq!(get_priority(":unknown-pseudo"), 40.0);
+  }
+
+  #[test]
+  fn custom_property_priority() {
+    assert_eq!(get_priority("--myVar"), 1.0);
+  }
+
+  #[test]
+  fn ancestor_selector_priority() {
+    // :where(.cls123:hover *)
+    let p = get_priority(":where(.cls123:hover *)");
+    // Should be 10.0 + (:hover priority / 100.0)
+    assert!(p > 10.0 && p < 15.0);
+  }
+
+  #[test]
+  fn descendant_selector_priority() {
+    // :where(:has(.cls123:focus))
+    let p = get_priority(":where(:has(.cls123:focus))");
+    assert!(p > 15.0 && p < 20.0);
+  }
+
+  #[test]
+  fn sibling_before_selector_priority() {
+    let p = get_priority(":where(.cls123:hover ~ *)");
+    assert!(p > 30.0 && p < 35.0);
+  }
+
+  #[test]
+  fn sibling_after_selector_priority() {
+    let p = get_priority(":where(:has(~ .cls123:hover))");
+    assert!(p > 40.0 && p < 45.0);
+  }
+
+  #[test]
+  fn any_sibling_selector_priority() {
+    let p = get_priority(":where(.cls123:hover ~ *, :has(~ .cls123:focus))");
+    assert!(p > 20.0 && p < 25.0);
+  }
+}
+
+// ── convert_css_function_to_camel_case coverage ──────────────────────
+
+#[cfg(test)]
+mod convert_css_function_camel_case_tests {
+  use crate::css::common::normalize_css_property_value;
+  use stylex_structures::stylex_state_options::StyleXStateOptions;
+
+  fn opts() -> StyleXStateOptions {
+    StyleXStateOptions::default()
+  }
+
+  #[test]
+  fn translatey_becomes_camel_case() {
+    let r = normalize_css_property_value("transform", "translateY(20px)", &opts());
+    assert_eq!(r, "translateY(20px)");
+  }
+
+  #[test]
+  fn scalex_becomes_camel_case() {
+    let r = normalize_css_property_value("transform", "scaleX(2)", &opts());
+    assert_eq!(r, "scaleX(2)");
+  }
+
+  #[test]
+  fn scaley_becomes_camel_case() {
+    let r = normalize_css_property_value("transform", "scaleY(0.5)", &opts());
+    assert_eq!(r, "scaleY(.5)");
+  }
+
+  #[test]
+  fn rotatex_becomes_camel_case() {
+    let r = normalize_css_property_value("transform", "rotateX(45deg)", &opts());
+    assert_eq!(r, "rotateX(45deg)");
+  }
+
+  #[test]
+  fn skewx_becomes_camel_case() {
+    let r = normalize_css_property_value("transform", "skewX(10deg)", &opts());
+    assert_eq!(r, "skewX(10deg)");
+  }
+
+  #[test]
+  fn skewy_becomes_camel_case() {
+    let r = normalize_css_property_value("transform", "skewY(5deg)", &opts());
+    assert_eq!(r, "skewY(5deg)");
+  }
+
+  #[test]
+  fn no_function_returns_as_is() {
+    // No parentheses → convert_css_function_to_camel_case returns as-is
+    let r = normalize_css_property_value("color", "red", &opts());
+    assert_eq!(r, "red");
+  }
+
+  #[test]
+  fn unknown_function_not_camel_cased() {
+    // rotate3d is not in CAMEL_CASE_PRIORITIES
+    let r = normalize_css_property_value("transform", "rotate(45deg)", &opts());
+    assert_eq!(r, "rotate(45deg)");
+  }
+}
+
+// ── normalize_css_property_value: CSS variable property path ──────────
+
+#[cfg(test)]
+mod normalize_css_variable_property_tests {
+  use crate::css::common::normalize_css_property_value;
+  use stylex_structures::stylex_state_options::StyleXStateOptions;
+
+  fn opts() -> StyleXStateOptions {
+    StyleXStateOptions::default()
+  }
+
+  #[test]
+  fn css_variable_uses_color_for_parsing() {
+    // When property starts with "--", parsing uses "color" as the property
+    let r = normalize_css_property_value("--xCustom", "10px", &opts());
+    assert_eq!(r, "10px");
+  }
+
+  #[test]
+  fn css_variable_with_hex() {
+    let r = normalize_css_property_value("--xBg", "#ff0000", &opts());
+    assert_eq!(r, "#f00");
+  }
+
+  #[test]
+  fn css_variable_with_keyword() {
+    let r = normalize_css_property_value("--xBorder", "solid", &opts());
+    assert_eq!(r, "solid");
+  }
+}
+
+// ── normalize_css_property_value error paths ─────────────────────────
+
+#[cfg(test)]
+mod normalize_css_property_value_error_tests {
+  use crate::css::common::normalize_css_property_value;
+  use stylex_structures::stylex_state_options::StyleXStateOptions;
+
+  fn opts() -> StyleXStateOptions {
+    StyleXStateOptions::default()
+  }
+
+  #[test]
+  #[should_panic(expected = "Rule contains an unclosed function")]
+  fn panics_on_unclosed_function_paren() {
+    normalize_css_property_value("color", "rgb(255, 0, 0", &opts());
+  }
+
+  #[test]
+  fn css_variable_property_uses_color_for_parsing() {
+    // --foo is a CSS variable, so it uses "color" as the parsing property
+    let r = normalize_css_property_value("--xSomething", "10px", &opts());
+    assert_eq!(r, "10px");
+  }
+
+  #[test]
+  fn css_variable_with_complex_value() {
+    let r = normalize_css_property_value("--xVar", "1px solid #000", &opts());
+    assert_eq!(r, "1px solid #000");
+  }
+}
+
+// ── build_nested_css_rule additional tests ────────────────────────────
+
+#[cfg(test)]
+mod build_nested_css_rule_extended_tests {
+  use crate::css::common::build_nested_css_rule;
+
+  #[test]
+  fn builds_rule_with_multiple_at_rules() {
+    let result = build_nested_css_rule(
+      "xm",
+      "color:red".into(),
+      &mut [],
+      &mut [
+        "@media (max-width: 600px)".into(),
+        "@supports (display: grid)".into(),
+      ],
+      &mut [],
+    );
+    assert!(result.contains("@media"));
+    assert!(result.contains("@supports"));
+    // Should be nested
+    assert!(result.contains(".xm.xm.xm"));
+  }
+
+  #[test]
+  fn builds_rule_with_pseudo_and_at_rule_combined() {
+    let result = build_nested_css_rule(
+      "xc",
+      "color:red".into(),
+      &mut [":hover".into()],
+      &mut ["@media (min-width: 800px)".into()],
+      &mut [],
+    );
+    assert!(result.contains(":hover"));
+    assert!(result.contains("@media"));
+  }
+
+  #[test]
+  fn builds_rule_with_at_rules_and_const_rules() {
+    let result = build_nested_css_rule(
+      "xac",
+      "color:red".into(),
+      &mut [],
+      &mut ["@media (min-width: 800px)".into()],
+      &mut ["--condition".into()],
+    );
+    assert!(result.contains("@media"));
+    assert!(result.contains("--condition"));
+  }
+
+  #[test]
+  fn builds_rule_with_thumb_and_pseudo() {
+    let result = build_nested_css_rule(
+      "xtp",
+      "color:red".into(),
+      &mut ["::thumb".into(), ":hover".into()],
+      &mut [],
+      &mut [],
+    );
+    assert!(result.contains("::-webkit-slider-thumb"));
+    assert!(result.contains(":hover"));
+  }
+
+  #[test]
+  fn builds_rule_with_where_and_at_rule() {
+    let result = build_nested_css_rule(
+      "xwa",
+      "color:red".into(),
+      &mut [":where(.theme)".into()],
+      &mut ["@media (min-width: 800px)".into()],
+      &mut [],
+    );
+    assert!(result.contains(":where(.theme)"));
+    assert!(result.contains("@media"));
+    // where should trigger extra specificity class
+    assert!(result.contains(".xwa.xwa"));
+  }
+}

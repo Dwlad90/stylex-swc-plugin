@@ -77,4 +77,25 @@ mod unprefixed_custom_properties_tests {
     let (result, _) = swc_parse_css("* { width: calc(var(--x) + 10px) }");
     unprefixed_custom_properties_validator(&result.unwrap());
   }
+
+  #[test]
+  fn accepts_multiple_declarations_with_var() {
+    let (result, _) = swc_parse_css(
+      "* { color: var(--xColor); background: var(--xBg); border-color: var(--xBorder) }",
+    );
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
+
+  #[test]
+  fn accepts_min_max_clamp_functions() {
+    let (result, _) = swc_parse_css("* { width: min(100%, 500px) }");
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
+
+  #[test]
+  fn accepts_non_qualified_rules() {
+    // at-rules are not QualifiedRules, validator should skip them
+    let (result, _) = swc_parse_css("@media screen { * { color: red } }");
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
 }

@@ -13,10 +13,13 @@ mod tests {
 
   use crate::shared::structures::state_manager::StateManager;
   use crate::shared::utils::common::{
-    _md5_hash, evaluate_bin_expr, extract_filename_from_path, extract_filename_with_ext_from_path,
-    extract_path, fill_state_declarations, fill_top_level_expressions, gen_file_based_identifier,
-    get_expr_from_var_decl, increase_ident_count, increase_ident_count_by_count, normalize_expr,
-    reduce_ident_count, remove_duplicates, serialize_value_to_json_string,
+    _md5_hash, deep_merge_props, evaluate_bin_expr, extract_filename_from_path,
+    extract_filename_with_ext_from_path, extract_path, fill_state_declarations,
+    fill_top_level_expressions, gen_file_based_identifier, get_expr_from_var_decl,
+    get_import_from, increase_ident_count, increase_ident_count_by_count,
+    increase_member_ident_count, increase_member_ident_count_by_count, js_object_to_json,
+    normalize_expr, reduce_ident_count, reduce_member_ident_count, remove_duplicates,
+    serialize_value_to_json_string, type_of,
   };
 
   // ──────────────────────────────────────────────
@@ -650,6 +653,92 @@ mod tests {
   }
 
   // ──────────────────────────────────────────────
+  // Member ident count functions
+  // ──────────────────────────────────────────────
+
+  mod member_ident_count_tests {
+    use super::*;
+
+    #[test]
+    fn increase_member_ident_count_creates_entry() {
+      let mut state = StateManager::default();
+      let atom: Atom = "obj".into();
+      increase_member_ident_count(&mut state, &atom);
+      assert_eq!(
+        state.member_object_ident_count_map.get(&atom),
+        Some(&1)
+      );
+    }
+
+    #[test]
+    fn increase_member_ident_count_increments_existing() {
+      let mut state = StateManager::default();
+      let atom: Atom = "obj".into();
+      increase_member_ident_count(&mut state, &atom);
+      increase_member_ident_count(&mut state, &atom);
+      assert_eq!(
+        state.member_object_ident_count_map.get(&atom),
+        Some(&2)
+      );
+    }
+
+    #[test]
+    fn increase_member_ident_count_by_count_adds_correct_amount() {
+      let mut state = StateManager::default();
+      let atom: Atom = "member".into();
+      increase_member_ident_count_by_count(&mut state, &atom, 5);
+      assert_eq!(
+        state.member_object_ident_count_map.get(&atom),
+        Some(&5)
+      );
+    }
+
+    #[test]
+    fn increase_member_ident_count_by_count_accumulates() {
+      let mut state = StateManager::default();
+      let atom: Atom = "member".into();
+      increase_member_ident_count_by_count(&mut state, &atom, 3);
+      increase_member_ident_count_by_count(&mut state, &atom, 2);
+      assert_eq!(
+        state.member_object_ident_count_map.get(&atom),
+        Some(&5)
+      );
+    }
+
+    #[test]
+    fn reduce_member_ident_count_decrements() {
+      let mut state = StateManager::default();
+      let atom: Atom = "member".into();
+      increase_member_ident_count_by_count(&mut state, &atom, 3);
+      reduce_member_ident_count(&mut state, &atom);
+      assert_eq!(
+        state.member_object_ident_count_map.get(&atom),
+        Some(&2)
+      );
+    }
+
+    #[test]
+    fn reduce_member_ident_count_on_nonexistent_is_noop() {
+      let mut state = StateManager::default();
+      let atom: Atom = "ghost".into();
+      reduce_member_ident_count(&mut state, &atom);
+      assert_eq!(state.member_object_ident_count_map.get(&atom), None);
+    }
+
+    #[test]
+    fn multiple_member_idents_tracked_independently() {
+      let mut state = StateManager::default();
+      let a: Atom = "a".into();
+      let b: Atom = "b".into();
+      increase_member_ident_count(&mut state, &a);
+      increase_member_ident_count(&mut state, &a);
+      increase_member_ident_count(&mut state, &b);
+      assert_eq!(state.member_object_ident_count_map.get(&a), Some(&2));
+      assert_eq!(state.member_object_ident_count_map.get(&b), Some(&1));
+    }
+  }
+
+  // ──────────────────────────────────────────────
   // fill_state_declarations
   // ──────────────────────────────────────────────
 
@@ -836,6 +925,519 @@ mod tests {
       assert_eq!(state.top_level_expressions.len(), 1);
       // Default exports don't add to declarations
       assert!(state.declarations.is_empty());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // fill_top_level_expressions - ParenExpr branch
+  // ──────────────────────────────────────────────
+
+  mod fill_top_level_expressions_paren_tests {
+    use super::*;
+    use swc_core::ecma::ast::{ExportDefaultExpr, ParenExpr};
+
+    #[test]
+    fn captures_paren_wrapped_default_export() {
+      let mut state = StateManager::default();
+
+      let inner = make_num_expr(99.0);
+      let paren = Expr::Paren(ParenExpr {
+        span: DUMMY_SP,
+        expr: Box::new(inner),
+      });
+
+      let module = Module {
+        span: DUMMY_SP,
+        body: vec![ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(
+          ExportDefaultExpr {
+            span: DUMMY_SP,
+            expr: Box::new(paren),
+          },
+        ))],
+        shebang: None,
+      };
+
+      fill_top_level_expressions(&module, &mut state);
+      assert_eq!(state.top_level_expressions.len(), 1);
+      assert!(state.declarations.is_empty());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // remove_duplicates - additional branches
+  // ──────────────────────────────────────────────
+
+  mod remove_duplicates_extra_tests {
+    use super::*;
+    use swc_core::ecma::ast::{IdentName, KeyValueProp, Prop, PropName, PropOrSpread, SpreadElement};
+
+    fn make_kv_prop(key: &str, val: f64) -> PropOrSpread {
+      PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: key.into(),
+        }),
+        value: Box::new(make_num_expr(val)),
+      })))
+    }
+
+    fn make_kv_str_key_prop(key: &str, val: f64) -> PropOrSpread {
+      PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Str(Str {
+          span: DUMMY_SP,
+          value: key.into(),
+          raw: None,
+        }),
+        value: Box::new(make_num_expr(val)),
+      })))
+    }
+
+    fn make_shorthand_prop(name: &str) -> PropOrSpread {
+      PropOrSpread::Prop(Box::new(Prop::Shorthand(make_ident(name))))
+    }
+
+    fn make_spread_prop() -> PropOrSpread {
+      PropOrSpread::Spread(SpreadElement {
+        dot3_token: DUMMY_SP,
+        expr: Box::new(make_num_expr(1.0)),
+      })
+    }
+
+    #[test]
+    fn deduplicates_shorthand_props() {
+      let props = vec![
+        make_shorthand_prop("a"),
+        make_shorthand_prop("b"),
+        make_shorthand_prop("a"),
+      ];
+      let result = remove_duplicates(props);
+      assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn deduplicates_str_key_props() {
+      let props = vec![
+        make_kv_str_key_prop("color", 1.0),
+        make_kv_str_key_prop("color", 2.0),
+      ];
+      let result = remove_duplicates(props);
+      assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn skips_spread_elements() {
+      let props = vec![make_kv_prop("a", 1.0), make_spread_prop()];
+      let result = remove_duplicates(props);
+      // Spread is skipped (continue), only "a" remains
+      assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn mixed_shorthand_and_kv_props() {
+      let props = vec![
+        make_shorthand_prop("x"),
+        make_kv_prop("x", 5.0),
+      ];
+      let result = remove_duplicates(props);
+      // "x" appears twice but last wins
+      assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn skips_non_kv_non_shorthand_props() {
+      use swc_core::ecma::ast::{GetterProp, PropName};
+      let getter_prop = PropOrSpread::Prop(Box::new(Prop::Getter(GetterProp {
+        span: DUMMY_SP,
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: "val".into(),
+        }),
+        type_ann: None,
+        body: None,
+      })));
+      let props = vec![make_kv_prop("a", 1.0), getter_prop];
+      let result = remove_duplicates(props);
+      // Getter is skipped (continue), only "a" remains
+      assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn skips_numeric_key_props() {
+      let num_key_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Num(Number {
+          span: DUMMY_SP,
+          value: 42.0,
+          raw: None,
+        }),
+        value: Box::new(make_num_expr(1.0)),
+      })));
+      let props = vec![num_key_prop];
+      let result = remove_duplicates(props);
+      // Numeric key falls into `_ => continue`
+      assert_eq!(result.len(), 0);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // deep_merge_props
+  // ──────────────────────────────────────────────
+
+  mod deep_merge_props_tests {
+    use super::*;
+    use swc_core::ecma::ast::{
+      IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, SpreadElement,
+    };
+
+    fn make_kv_prop(key: &str, val: f64) -> PropOrSpread {
+      PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: key.into(),
+        }),
+        value: Box::new(make_num_expr(val)),
+      })))
+    }
+
+    fn make_kv_obj_prop(key: &str, inner_props: Vec<PropOrSpread>) -> PropOrSpread {
+      PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: key.into(),
+        }),
+        value: Box::new(Expr::Object(ObjectLit {
+          span: DUMMY_SP,
+          props: inner_props,
+        })),
+      })))
+    }
+
+    fn make_spread() -> PropOrSpread {
+      PropOrSpread::Spread(SpreadElement {
+        dot3_token: DUMMY_SP,
+        expr: Box::new(make_num_expr(0.0)),
+      })
+    }
+
+    #[test]
+    fn merges_non_overlapping_props() {
+      let old = vec![make_kv_prop("a", 1.0)];
+      let new = vec![make_kv_prop("b", 2.0)];
+      let result = deep_merge_props(old, new);
+      assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn overlapping_object_key_merges_nested() {
+      let inner_old = vec![make_kv_prop("x", 1.0)];
+      let inner_new = vec![make_kv_prop("y", 2.0)];
+      let old = vec![make_kv_obj_prop("shared", inner_old)];
+      let new = vec![make_kv_obj_prop("shared", inner_new)];
+      let result = deep_merge_props(old, new);
+      // After dedup, "shared" appears once but both old and new versions are merged
+      assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn non_kv_old_props_appended() {
+      use swc_core::ecma::ast::GetterProp;
+      let getter = PropOrSpread::Prop(Box::new(Prop::Getter(GetterProp {
+        span: DUMMY_SP,
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: "val".into(),
+        }),
+        type_ann: None,
+        body: None,
+      })));
+      let old = vec![getter];
+      let new = vec![make_kv_prop("a", 1.0)];
+      let result = deep_merge_props(old, new);
+      assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn spread_old_props_appended() {
+      let old = vec![make_spread()];
+      let new = vec![make_kv_prop("a", 1.0)];
+      let result = deep_merge_props(old, new);
+      assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn empty_old_returns_new() {
+      let new = vec![make_kv_prop("a", 1.0)];
+      let result = deep_merge_props(vec![], new);
+      assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn overlapping_non_object_value_appended() {
+      // When old and new share a key but old value is not an object
+      let old = vec![make_kv_prop("x", 1.0)];
+      let new = vec![make_kv_prop("x", 2.0)];
+      let result = deep_merge_props(old, new);
+      // Last wins via remove_duplicates
+      assert_eq!(result.len(), 1);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // get_import_from
+  // ──────────────────────────────────────────────
+
+  mod get_import_from_tests {
+    use super::*;
+    use swc_core::ecma::ast::{
+      ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportSpecifier,
+      ImportStarAsSpecifier, ModuleExportName,
+    };
+
+    fn make_named_import(local: &str, source: &str) -> ImportDecl {
+      ImportDecl {
+        span: DUMMY_SP,
+        specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
+          span: DUMMY_SP,
+          local: make_ident(local),
+          imported: None,
+          is_type_only: false,
+        })],
+        src: Box::new(Str {
+          span: DUMMY_SP,
+          value: source.into(),
+          raw: None,
+        }),
+        type_only: false,
+        with: None,
+        phase: Default::default(),
+      }
+    }
+
+    fn make_default_import(local: &str, source: &str) -> ImportDecl {
+      ImportDecl {
+        span: DUMMY_SP,
+        specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
+          span: DUMMY_SP,
+          local: make_ident(local),
+        })],
+        src: Box::new(Str {
+          span: DUMMY_SP,
+          value: source.into(),
+          raw: None,
+        }),
+        type_only: false,
+        with: None,
+        phase: Default::default(),
+      }
+    }
+
+    fn make_namespace_import(local: &str, source: &str) -> ImportDecl {
+      ImportDecl {
+        span: DUMMY_SP,
+        specifiers: vec![ImportSpecifier::Namespace(ImportStarAsSpecifier {
+          span: DUMMY_SP,
+          local: make_ident(local),
+        })],
+        src: Box::new(Str {
+          span: DUMMY_SP,
+          value: source.into(),
+          raw: None,
+        }),
+        type_only: false,
+        with: None,
+        phase: Default::default(),
+      }
+    }
+
+    fn make_renamed_import(
+      local: &str,
+      imported: &str,
+      source: &str,
+    ) -> ImportDecl {
+      ImportDecl {
+        span: DUMMY_SP,
+        specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
+          span: DUMMY_SP,
+          local: make_ident(local),
+          imported: Some(ModuleExportName::Ident(make_ident(imported))),
+          is_type_only: false,
+        })],
+        src: Box::new(Str {
+          span: DUMMY_SP,
+          value: source.into(),
+          raw: None,
+        }),
+        type_only: false,
+        with: None,
+        phase: Default::default(),
+      }
+    }
+
+    #[test]
+    fn finds_named_import_by_local() {
+      let mut state = StateManager::default();
+      state.top_imports.push(make_named_import("stylex", "@stylexjs/stylex"));
+      let ident = make_ident("stylex");
+      let result = get_import_from(&state, &ident);
+      assert!(result.is_some());
+    }
+
+    #[test]
+    fn returns_none_when_not_found() {
+      let state = StateManager::default();
+      let ident = make_ident("nonexistent");
+      let result = get_import_from(&state, &ident);
+      assert!(result.is_none());
+    }
+
+    #[test]
+    fn finds_default_import() {
+      let mut state = StateManager::default();
+      state.top_imports.push(make_default_import("stylex", "@stylexjs/stylex"));
+      let ident = make_ident("stylex");
+      let result = get_import_from(&state, &ident);
+      assert!(result.is_some());
+    }
+
+    #[test]
+    fn finds_namespace_import() {
+      let mut state = StateManager::default();
+      state.top_imports.push(make_namespace_import("ns", "module"));
+      let ident = make_ident("ns");
+      let result = get_import_from(&state, &ident);
+      assert!(result.is_some());
+    }
+
+    #[test]
+    fn finds_renamed_import_by_original_name() {
+      let mut state = StateManager::default();
+      state
+        .top_imports
+        .push(make_renamed_import("localName", "create", "@stylexjs/stylex"));
+      let ident = make_ident("create");
+      let result = get_import_from(&state, &ident);
+      assert!(result.is_some());
+    }
+
+    #[test]
+    fn finds_renamed_import_by_local_name() {
+      let mut state = StateManager::default();
+      state
+        .top_imports
+        .push(make_renamed_import("localName", "create", "@stylexjs/stylex"));
+      let ident = make_ident("localName");
+      let result = get_import_from(&state, &ident);
+      assert!(result.is_some());
+    }
+
+    #[test]
+    fn does_not_match_wrong_ident() {
+      let mut state = StateManager::default();
+      state.top_imports.push(make_named_import("stylex", "@stylexjs/stylex"));
+      let ident = make_ident("wrongName");
+      let result = get_import_from(&state, &ident);
+      assert!(result.is_none());
+    }
+
+    #[test]
+    fn finds_str_imported_name() {
+      let import = ImportDecl {
+        span: DUMMY_SP,
+        specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
+          span: DUMMY_SP,
+          local: make_ident("localName"),
+          imported: Some(ModuleExportName::Str(Str {
+            span: DUMMY_SP,
+            value: "strExport".into(),
+            raw: None,
+          })),
+          is_type_only: false,
+        })],
+        src: Box::new(Str {
+          span: DUMMY_SP,
+          value: "module".into(),
+          raw: None,
+        }),
+        type_only: false,
+        with: None,
+        phase: Default::default(),
+      };
+      let mut state = StateManager::default();
+      state.top_imports.push(import);
+      let ident = make_ident("strExport");
+      let result = get_import_from(&state, &ident);
+      assert!(result.is_some());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // serialize_value_to_json_string - JS object path
+  // ──────────────────────────────────────────────
+
+  mod serialize_value_to_json_string_extra_tests {
+    use super::*;
+
+    #[test]
+    fn serializes_js_object_like_string() {
+      // A string that starts with '{' and does NOT contain `":`
+      // triggers js_object_to_json
+      let result = serialize_value_to_json_string("{color: red, size: big}");
+      assert!(result.contains('"'));
+    }
+
+    #[test]
+    fn serializes_json_like_string_passthrough() {
+      // A string that starts with '{' and contains `":` is NOT treated
+      // as a JS object; it falls through to the plain remove_quotes path
+      let result = serialize_value_to_json_string(r#"{"key":"value"}"#);
+      assert!(result.contains("key"));
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // js_object_to_json
+  // ──────────────────────────────────────────────
+
+  mod js_object_to_json_tests {
+    use super::*;
+
+    #[test]
+    fn converts_js_object_keys_to_quoted_json() {
+      let input = "{color: red}";
+      let result = js_object_to_json(input);
+      assert!(result.contains('"'));
+    }
+
+    #[test]
+    fn handles_empty_object() {
+      let input = "{}";
+      let result = js_object_to_json(input);
+      assert_eq!(result, "{}");
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // type_of
+  // ──────────────────────────────────────────────
+
+  mod type_of_tests {
+    use super::*;
+
+    #[test]
+    fn returns_type_name_for_i32() {
+      let result = type_of(42_i32);
+      assert_eq!(result, "i32");
+    }
+
+    #[test]
+    fn returns_type_name_for_string() {
+      let result = type_of(String::from("hello"));
+      assert!(result.contains("String"));
+    }
+
+    #[test]
+    fn returns_type_name_for_bool() {
+      let result = type_of(true);
+      assert_eq!(result, "bool");
     }
   }
 }

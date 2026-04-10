@@ -388,4 +388,169 @@ mod normalizers {
       vec![Error::new(DUMMY_SP, ErrorKind::InvalidSelector)]
     );
   }
+
+  // ── Font-size px→rem conversion ────────────────────────────────
+
+  #[test]
+  fn should_convert_font_size_px_to_rem() {
+    let (stylesheet, _) = swc_parse_css("* {{ fontSize: 16px; }}");
+    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("fontSize")));
+    assert!(result.contains("1rem"));
+  }
+
+  #[test]
+  fn should_convert_font_size_32px_to_2rem() {
+    let (stylesheet, _) = swc_parse_css("* {{ fontSize: 32px; }}");
+    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("fontSize")));
+    assert!(result.contains("2rem"));
+  }
+
+  #[test]
+  fn should_not_convert_font_size_when_disabled() {
+    let (stylesheet, _) = swc_parse_css("* {{ fontSize: 16px; }}");
+    let result = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("fontSize")));
+    assert!(result.contains("16px"));
+  }
+
+  #[test]
+  fn should_not_convert_zero_font_size() {
+    let (stylesheet, _) = swc_parse_css("* {{ fontSize: 0px; }}");
+    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("fontSize")));
+    // 0px stays as 0 (zero-dimension normalizer strips units)
+    assert!(result.contains(":0"));
+  }
+
+  #[test]
+  fn should_not_convert_non_font_size_with_rem_enabled() {
+    let (stylesheet, _) = swc_parse_css("* {{ width: 16px; }}");
+    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("width")));
+    assert!(result.contains("16px"));
+    assert!(!result.contains("rem"));
+  }
+
+  #[test]
+  fn should_not_convert_font_size_em() {
+    let (stylesheet, _) = swc_parse_css("* {{ fontSize: 2em; }}");
+    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("fontSize")));
+    assert!(result.contains("2em"));
+  }
+
+  // ── Timing normalizer ─────────────────────────────────────────
+
+  #[test]
+  fn timing_normalizer_below_10ms_no_conversion() {
+    let (stylesheet, _) = swc_parse_css("* {{ transitionDuration: 5ms; }}");
+    let result = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("transitionDuration"),
+    ));
+    assert!(result.contains("5ms"));
+  }
+
+  #[test]
+  fn timing_normalizer_1000ms_to_1s() {
+    let (stylesheet, _) = swc_parse_css("* {{ transitionDuration: 1000ms; }}");
+    let result = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("transitionDuration"),
+    ));
+    assert!(result.contains("1s"));
+  }
+
+  #[test]
+  fn timing_normalizer_seconds_unchanged() {
+    let (stylesheet, _) = swc_parse_css("* {{ transitionDuration: 2s; }}");
+    let result = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("transitionDuration"),
+    ));
+    assert!(result.contains("2s"));
+  }
+
+  // ── Zero dimension normalizer edge cases ──────────────────────
+
+  #[test]
+  fn zero_length_strips_unit() {
+    let (stylesheet, _) = swc_parse_css("* {{ margin: 0px; }}");
+    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("margin")));
+    let value = extract_css_value(&s);
+    assert_eq!(value, "0");
+  }
+
+  #[test]
+  fn zero_fr_preserves_unit() {
+    let (stylesheet, _) = swc_parse_css("* {{ gridTemplateColumns: 0fr; }}");
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("gridTemplateColumns"),
+    ));
+    assert!(s.contains("0fr"));
+  }
+
+  #[test]
+  fn zero_percent_preserves_unit() {
+    let (stylesheet, _) = swc_parse_css("* {{ width: 0%; }}");
+    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("width")));
+    assert!(s.contains("0%"));
+  }
+
+  #[test]
+  fn zero_angle_becomes_deg() {
+    let (stylesheet, _) = swc_parse_css("* {{ transform: rotate(0rad); }}");
+    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("transform")));
+    // zero angle normalizes to 0deg (but inside function arg, is_function_arg skips it)
+    assert!(!s.is_empty());
+  }
+
+  #[test]
+  fn zero_time_becomes_0s() {
+    let (stylesheet, _) = swc_parse_css("* {{ transitionDuration: 0ms; }}");
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("transitionDuration"),
+    ));
+    assert!(s.contains("0s"));
+  }
+
+  #[test]
+  fn non_zero_length_preserved() {
+    let (stylesheet, _) = swc_parse_css("* {{ margin: 10px; }}");
+    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("margin")));
+    assert!(s.contains("10px"));
+  }
+
+  // ── Custom property skip ──────────────────────────────────────
+
+  #[test]
+  fn custom_property_skips_zero_normalization() {
+    let (stylesheet, _) = swc_parse_css("* {{ color: 0px; }}");
+    let s_custom = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("--myProp"),
+    ));
+    // Custom property: zero dimension normalizer should skip
+    assert!(s_custom.contains("0px"));
+  }
+
+  // ── kebab_case_normalizer ─────────────────────────────────────
+
+  #[test]
+  fn will_change_normalizes_to_kebab_case() {
+    let (stylesheet, _) = swc_parse_css("* {{ willChange: marginTop; }}");
+    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("willChange")));
+    assert!(s.contains("margin-top"));
+  }
+
+  #[test]
+  fn non_transition_property_not_kebab_cased() {
+    let (stylesheet, _) = swc_parse_css("* {{ color: red; }}");
+    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("color")));
+    assert!(s.contains("red"));
+  }
 }

@@ -584,7 +584,7 @@ pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> S
   }
 }
 
-fn js_object_to_json(js_str: &str) -> String {
+pub(crate) fn js_object_to_json(js_str: &str) -> String {
   JSON_REGEX.replace_all(js_str, r#"$1"$2":"#).to_string()
 }
 

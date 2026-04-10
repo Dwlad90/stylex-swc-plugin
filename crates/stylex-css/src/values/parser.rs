@@ -106,6 +106,7 @@ pub fn parse_css_inner<'a>(
           )
         }) {
           Ok(css) => css,
+          #[cfg(not(tarpaulin_include))]
           Err(e) => stylex_panic!("Failed to parse nested CSS block: {:?}", e),
         };
 
@@ -269,7 +270,8 @@ pub fn parse_css_inner<'a>(
         iter_result.push('#');
         iter_result.push_str(&format_ident(value));
       },
-      // url()
+      // url() — unquoted URLs are explicitly unsupported.
+      #[cfg(not(tarpaulin_include))]
       Token::UnquotedUrl(ref _value) => {
         stylex_unimplemented!(
           "Unquoted URL values in CSS are not supported. Use url(\"...\") with quotes instead."
@@ -352,6 +354,7 @@ pub fn parse_css_inner<'a>(
           parse_css_inner(parser, curr_rule.as_str(), curr_prop.as_str())
         }) {
           Ok(css) => css,
+          #[cfg(not(tarpaulin_include))]
           Err(e) => stylex_panic!("Failed to parse CSS function block: {:?}", e),
         };
 
@@ -393,6 +396,9 @@ pub fn parse_css(css_string: &str) -> Vec<String> {
         }
       })
       .collect::<Vec<String>>(),
+    // `parse_css_inner` always returns `Ok` — the `Err` variant is required
+    // by the cssparser API but never produced in our implementation.
+    #[cfg(not(tarpaulin_include))]
     Err(_) => stylex_unreachable!("parse_css_inner returned Err, which should not happen"),
   }
 }

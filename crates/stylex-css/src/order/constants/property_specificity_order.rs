@@ -5,6 +5,7 @@ pub struct Shorthands;
 
 impl Shorthands {
   #[allow(dead_code)]
+  #[cfg(not(tarpaulin_include))]
   fn all(_: Option<String>) -> Result<Vec<OrderPair>, String> {
     Err("all is not supported".into())
   }

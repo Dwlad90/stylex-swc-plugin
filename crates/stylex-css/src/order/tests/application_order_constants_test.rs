@@ -1070,3 +1070,65 @@ fn aliases_get_unknown_returns_none() {
 fn aliases_get_empty_returns_none() {
   assert!(Aliases::get("").is_none());
 }
+
+// ── Coverage: uncovered alias functions ─────────────────────────────
+
+#[test]
+fn aliases_get_border_block_end_color() {
+  let func = Aliases::get("borderBlockEndColor").unwrap();
+  let result = func(Some("blue".into())).unwrap();
+  assert_eq!(
+    result,
+    vec![OrderPair("borderBottomColor".into(), Some("blue".into()))]
+  );
+}
+
+#[test]
+fn aliases_get_border_block_start_style() {
+  let func = Aliases::get("borderBlockStartStyle").unwrap();
+  let result = func(Some("solid".into())).unwrap();
+  assert_eq!(
+    result,
+    vec![OrderPair("borderTopStyle".into(), Some("solid".into()))]
+  );
+}
+
+#[test]
+fn aliases_get_border_block_end_style() {
+  let func = Aliases::get("borderBlockEndStyle").unwrap();
+  let result = func(Some("dashed".into())).unwrap();
+  assert_eq!(
+    result,
+    vec![OrderPair("borderBottomStyle".into(), Some("dashed".into()))]
+  );
+}
+
+#[test]
+fn aliases_get_border_block_start_width() {
+  let func = Aliases::get("borderBlockStartWidth").unwrap();
+  let result = func(Some("2px".into())).unwrap();
+  assert_eq!(
+    result,
+    vec![OrderPair("borderTopWidth".into(), Some("2px".into()))]
+  );
+}
+
+#[test]
+fn aliases_get_border_top_end_radius() {
+  let func = Aliases::get("borderTopEndRadius").unwrap();
+  let result = func(Some("8px".into())).unwrap();
+  assert_eq!(
+    result,
+    vec![OrderPair("borderStartEndRadius".into(), Some("8px".into()))]
+  );
+}
+
+#[test]
+fn aliases_get_border_bottom_start_radius() {
+  let func = Aliases::get("borderBottomStartRadius").unwrap();
+  let result = func(Some("6px".into())).unwrap();
+  assert_eq!(
+    result,
+    vec![OrderPair("borderEndStartRadius".into(), Some("6px".into()))]
+  );
+}

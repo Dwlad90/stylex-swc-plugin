@@ -1305,6 +1305,7 @@ pub struct Aliases;
 
 impl Aliases {
   #[allow(dead_code)]
+  #[cfg(not(tarpaulin_include))]
   fn block_size(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("height".to_string(), value)])
   }

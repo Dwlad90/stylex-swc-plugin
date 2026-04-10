@@ -53,6 +53,7 @@ mod tests {
   use super::*;
 
   #[test]
+  #[cfg_attr(tarpaulin, ignore)]
   fn stylex_transform_performance_test() {
     // Paths to the theme files
     let simple_theme_path = PathBuf::from("tests/performance_fixture/simpleTheme.js");

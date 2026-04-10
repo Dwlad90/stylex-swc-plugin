@@ -75,3 +75,6 @@ glob = { version = "0.3.3" }
 # cargo build-wasm32 generates wasm32-unknown-unknown binary.
 
 # wasm-pack build --target web --dev -d dist --out-name index
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin)', 'cfg(tarpaulin_include)'] }

@@ -63,5 +63,8 @@ test-results/
 # TypeScript
 *.tsbuildinfo
 
+# Test coverage
+*.profraw
+
 # Python
 __pycache__/

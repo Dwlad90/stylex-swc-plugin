@@ -2728,5 +2728,141 @@ mod tests {
       };
       let _ = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns);
     }
+
+    #[test]
+    fn add_two_strings_returns_concat() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let bin = BinExpr {
+        span: Default::default(),
+        op: BinaryOp::Add,
+        left: Box::new(make_str_expr("hello")),
+        right: Box::new(make_str_expr(" world")),
+      };
+      let result = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns);
+      assert!(result.is_ok());
+      match result.unwrap() {
+        BinaryExprType::String(s) => assert_eq!(s, "hello world"),
+        _ => panic!("Expected string result"),
+      }
+    }
+
+    #[test]
+    fn add_num_left_with_string_right_concat() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let bin = BinExpr {
+        span: Default::default(),
+        op: BinaryOp::Add,
+        left: Box::new(make_num_expr(42.0)),
+        right: Box::new(make_str_expr("world")),
+      };
+      // Left is not a string, but doesn't necessarily panic -
+      // it may return Ok with concatenation via evaluate_cached
+      let result = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns);
+      assert!(result.is_ok());
+    }
+
+    #[test]
+    fn add_string_left_num_right_returns_concat() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let bin = BinExpr {
+        span: Default::default(),
+        op: BinaryOp::Add,
+        left: Box::new(make_str_expr("hello")),
+        right: Box::new(make_num_expr(42.0)),
+      };
+      let result = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns);
+      assert!(result.is_ok());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // binary_expr_to_num - with non-number result from bin
+  // ──────────────────────────────────────────────
+
+  mod binary_expr_to_num_error_tests {
+    use super::*;
+
+    #[test]
+    fn str_operand_returns_error() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let bin = BinExpr {
+        span: Default::default(),
+        op: BinaryOp::Sub,
+        left: Box::new(make_str_expr("hello")),
+        right: Box::new(make_num_expr(5.0)),
+      };
+      let result = binary_expr_to_num(&bin, &mut state, &mut traversal_state, &fns);
+      // Expect error since string can't be converted to number
+      assert!(result.is_err());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // convert_unary_to_num - error branches
+  // ──────────────────────────────────────────────
+
+  mod convert_unary_to_num_error_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::convert_unary_to_num;
+    use swc_core::ecma::ast::{UnaryExpr, UnaryOp};
+
+    #[test]
+    fn minus_num_returns_value() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let unary = UnaryExpr {
+        span: Default::default(),
+        op: UnaryOp::Minus,
+        arg: Box::new(make_num_expr(5.0)),
+      };
+      let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, -5.0);
+    }
+
+    #[test]
+    fn plus_num_returns_value() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let unary = UnaryExpr {
+        span: Default::default(),
+        op: UnaryOp::Plus,
+        arg: Box::new(make_num_expr(5.0)),
+      };
+      let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, 5.0);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // convert_expr_to_bool - Bin expr path
+  // ──────────────────────────────────────────────
+
+  mod convert_expr_to_bool_bin_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::convert_expr_to_bool;
+
+    #[test]
+    #[should_panic]
+    fn panics_for_bin_expr() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let expr = Expr::Bin(BinExpr {
+        span: Default::default(),
+        op: BinaryOp::Add,
+        left: Box::new(make_num_expr(3.0)),
+        right: Box::new(make_num_expr(4.0)),
+      });
+      convert_expr_to_bool(&expr, &mut state, &fns);
+    }
   }
 }

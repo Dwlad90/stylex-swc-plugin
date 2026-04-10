@@ -716,3 +716,50 @@ fn aliases_get_unknown_returns_none() {
 fn aliases_get_empty_returns_none() {
   assert!(Aliases::get("").is_none());
 }
+
+// ── Coverage: listStyle error paths ─────────────────────────────────
+
+#[test]
+fn shorthands_list_style_var_mixed_with_other() {
+  let func = Shorthands::get("listStyle").unwrap();
+  let result = func(Some("disc var(--foo)".into()));
+  assert!(result.is_err());
+  let err = result.unwrap_err();
+  assert!(err.contains("Invalid listStyle"));
+}
+
+#[test]
+fn shorthands_list_style_duplicate_position() {
+  let func = Shorthands::get("listStyle").unwrap();
+  let result = func(Some("inside outside".into()));
+  assert!(result.is_err());
+  let err = result.unwrap_err();
+  assert!(err.contains("Invalid listStyle"));
+}
+
+#[test]
+fn shorthands_list_style_duplicate_type() {
+  let func = Shorthands::get("listStyle").unwrap();
+  let result = func(Some("disc square".into()));
+  assert!(result.is_err());
+  let err = result.unwrap_err();
+  assert!(err.contains("Invalid listStyle"));
+}
+
+#[test]
+fn shorthands_list_style_too_many_nones() {
+  let func = Shorthands::get("listStyle").unwrap();
+  // "none none none" → first none → type, second none → image, third none → error (duplicate image)
+  let result = func(Some("none none none".into()));
+  assert!(result.is_err());
+  let err = result.unwrap_err();
+  assert!(err.contains("Invalid listStyle"));
+}
+
+#[test]
+fn shorthands_list_style_global_mixed() {
+  let func = Shorthands::get("listStyle").unwrap();
+  // A global keyword mixed with other values should error
+  let result = func(Some("disc inherit".into()));
+  assert!(result.is_err());
+}

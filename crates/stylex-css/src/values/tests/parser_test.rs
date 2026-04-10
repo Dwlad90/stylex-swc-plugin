@@ -369,3 +369,173 @@ fn parse_css_delim_tilde() {
   let result = parse_css("~");
   assert!(!result.is_empty());
 }
+
+// ── Coverage: close brackets at top level ───────────────────────────
+
+#[test]
+fn parse_css_close_paren_top_level() {
+  let result = parse_css(")");
+  assert!(!result.is_empty());
+  assert_eq!(result[0], ")");
+}
+
+#[test]
+fn parse_css_close_square_bracket_top_level() {
+  let result = parse_css("]");
+  assert!(!result.is_empty());
+  assert_eq!(result[0], "]");
+}
+
+#[test]
+fn parse_css_close_curly_bracket_top_level() {
+  let result = parse_css("}");
+  assert!(!result.is_empty());
+  assert_eq!(result[0], "}");
+}
+
+// ── Coverage: match operators ───────────────────────────────────────
+
+#[test]
+fn parse_css_include_match() {
+  let result = parse_css("~=");
+  assert!(!result.is_empty());
+  assert_eq!(result[0], "~=");
+}
+
+#[test]
+fn parse_css_dash_match() {
+  let result = parse_css("|=");
+  assert!(!result.is_empty());
+  assert_eq!(result[0], "|=");
+}
+
+#[test]
+fn parse_css_prefix_match() {
+  let result = parse_css("^=");
+  assert!(!result.is_empty());
+  assert_eq!(result[0], "^=");
+}
+
+#[test]
+fn parse_css_suffix_match() {
+  let result = parse_css("$=");
+  assert!(!result.is_empty());
+  assert_eq!(result[0], "$=");
+}
+
+#[test]
+fn parse_css_substring_match() {
+  let result = parse_css("*=");
+  assert!(!result.is_empty());
+  assert_eq!(result[0], "*=");
+}
+
+// ── Coverage: CDO / CDC (HTML comment delimiters) ───────────────────
+
+#[test]
+fn parse_css_cdo() {
+  let result = parse_css("<!--");
+  assert!(!result.is_empty());
+  assert_eq!(result[0], "<!--");
+}
+
+#[test]
+fn parse_css_cdc() {
+  let result = parse_css("-->");
+  assert!(!result.is_empty());
+  assert_eq!(result[0], "-->");
+}
+
+// ── Coverage: ident token (curr_rule / curr_prop assignment) ────────
+
+#[test]
+fn parse_css_plain_ident() {
+  let result = parse_css("div");
+  assert!(!result.is_empty());
+  assert_eq!(result[0], "div");
+}
+
+#[test]
+fn parse_css_multiple_idents() {
+  let result = parse_css("margin auto");
+  assert!(result.len() >= 2);
+}
+
+// ── Coverage: hash token (non-ID hash) ──────────────────────────────
+
+#[test]
+fn parse_css_hex_color_hash() {
+  let result = parse_css("#fff");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("#"));
+  assert!(joined.contains("fff"));
+}
+
+// ── Coverage: signed number / percentage / dimension ────────────────
+
+#[test]
+fn parse_css_explicit_positive_number() {
+  let result = parse_css("+42");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  // Should contain the + sign and 42
+  assert!(joined.contains("42"));
+}
+
+#[test]
+fn parse_css_explicit_positive_percentage() {
+  let result = parse_css("+75%");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("75%"));
+}
+
+#[test]
+fn parse_css_explicit_positive_dimension() {
+  let result = parse_css("+20em");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("20em"));
+}
+
+// ── Coverage: function token (nested function parsing) ──────────────
+
+#[test]
+fn parse_css_function_rgb() {
+  let result = parse_css("rgb(255, 128, 0)");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("rgb("));
+  assert!(joined.contains(")"));
+}
+
+#[test]
+fn parse_css_function_min() {
+  let result = parse_css("min(10px, 50%)");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("min("));
+}
+
+// ── Coverage: at-keyword sets curr_rule ─────────────────────────────
+
+#[test]
+fn parse_css_at_import() {
+  let result = parse_css("@import");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("@import"));
+}
+
+// ── Coverage: curly brace block (not already covered inline) ────────
+
+#[test]
+fn parse_css_curly_block_content() {
+  let result = parse_css("div { color: red }");
+  assert!(!result.is_empty());
+  let joined = result.join(" ");
+  assert!(joined.contains("{"));
+  assert!(joined.contains("}"));
+  assert!(joined.contains("color"));
+}

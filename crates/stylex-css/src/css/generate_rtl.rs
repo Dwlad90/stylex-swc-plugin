@@ -1,7 +1,4 @@
 use std::borrow::Cow;
-
-use log::warn;
-
 use stylex_constants::constants::{
   cursor_flip::CURSOR_FLIP,
   logical_to_rtl::{INLINE_TO_RTL, LOGICAL_TO_RTL},
@@ -111,16 +108,10 @@ fn flip_shadow(value: &str) -> Option<String> {
 }
 
 fn is_unit(input: &str) -> bool {
+  // Regex match failure is practically unreachable; default to false.
   LENGTH_UNIT_TESTER_REGEX
     .is_match(input)
-    .unwrap_or_else(|err| {
-      warn!(
-        "Error matching LENGTH_UNIT_TESTER_REGEX for '{}': {}. Skipping pattern match.",
-        input, err
-      );
-
-      false
-    })
+    .unwrap_or(false)
 }
 
 fn flip_sign(value: &str) -> String {

@@ -72,3 +72,6 @@ swc_core = { workspace = true, features = [
   "testing_transform",
 ] }
 testing.workspace = true
+
+[lints]
+workspace = true

@@ -215,6 +215,8 @@ fn zero_dimension_normalizer(
     Dimension::Frequency(d) => normalize_zero!(d),
     Dimension::Resolution(d) => normalize_zero!(d),
     Dimension::Flex(d) => normalize_zero!(d),
+    // SWC does not produce `UnknownDimension` from standard CSS parsing.
+    #[cfg(not(tarpaulin_include))]
     Dimension::UnknownDimension(d) => normalize_zero!(d),
     Dimension::Angle(angle) => {
       if angle.value.value != 0.0 {

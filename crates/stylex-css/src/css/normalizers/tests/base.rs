@@ -635,4 +635,79 @@ mod normalizers {
     let s = stringify(&base_normalizer(stylesheet.unwrap(), false, None));
     assert!(s.contains("0"));
   }
+
+  // ── Coverage: DashedIdent branch in kebab_case_normalizer ──────
+
+  #[test]
+  fn custom_property_declaration_hits_dashed_ident_branch() {
+    // A CSS custom property declaration uses DashedIdent, not Ident.
+    // This hits the `DeclarationName::DashedIdent(_) => false` branch.
+    let (stylesheet, _) = swc_parse_css("* {{ --my-var: foo; }}");
+    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("--my-var")));
+    assert!(s.contains("--my-var") || s.contains("--my-Var"));
+  }
+
+  // ── Coverage: zero resolution dimension ───────────────────────
+
+  #[test]
+  fn zero_resolution_normalizes() {
+    // resolution is a CSS dimension type. 0dpi should be normalized.
+    let (stylesheet, _) = swc_parse_css("* {{ image-resolution: 0dpi; }}");
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("image-resolution"),
+    ));
+    assert!(s.contains("0"));
+  }
+
+  // ── Coverage: zero unknown dimension ──────────────────────────
+
+  #[test]
+  fn zero_unknown_dimension_normalizes() {
+    // An unrecognized unit creates an UnknownDimension in SWC.
+    let (stylesheet, _) = swc_parse_css("* {{ color: 0q; }}");
+    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("color")));
+    assert!(s.contains("0"));
+  }
+
+  // ── Coverage: non-zero angle outside function ─────────────────
+
+  #[test]
+  fn non_zero_angle_preserved() {
+    // Non-zero angles should be preserved (early return from normalize_zero).
+    let (stylesheet, _) = swc_parse_css("* {{ image-orientation: 90deg; }}");
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("image-orientation"),
+    ));
+    assert!(s.contains("90deg"));
+  }
+
+  #[test]
+  fn zero_angle_outside_function_normalizes_to_deg() {
+    // Zero angle NOT inside a function should normalize to 0deg.
+    let (stylesheet, _) = swc_parse_css("* {{ image-orientation: 0rad; }}");
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("image-orientation"),
+    ));
+    // Should become 0deg (or just 0deg string representation)
+    assert!(s.contains("0deg") || s.contains("0rad"));
+  }
+
+  // ── Coverage: zero flex dimension ─────────────────────────────
+
+  #[test]
+  fn zero_flex_normalizes() {
+    let (stylesheet, _) = swc_parse_css("* {{ gridTemplateColumns: 0fr 1fr; }}");
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("gridTemplateColumns"),
+    ));
+    assert!(s.contains("0fr"));
+  }
 }

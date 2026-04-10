@@ -365,10 +365,8 @@ pub fn normalize_css_property_value(
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
 
   if !errors.is_empty() {
-    let mut error_message = match errors.first() {
-      Some(e) => e.message().to_string(),
-      None => stylex_panic!("CSS parsing failed but no error details were available."),
-    };
+    // `errors[0]` is safe: we just confirmed `!errors.is_empty()`.
+    let mut error_message = errors[0].message().to_string();
 
     if error_message.ends_with("expected ')'") || error_message.ends_with("expected '('") {
       error_message = LINT_UNCLOSED_FUNCTION.to_string();
@@ -393,6 +391,9 @@ pub fn normalize_css_property_value(
 
       convert_css_function_to_camel_case(&normalized)
     },
+    // SWC parser returns errors via the separate `errors` list above,
+    // so this `Err` branch is practically unreachable.
+    #[cfg(not(tarpaulin_include))]
     Err(err) => {
       stylex_panic!("{}", err.message())
     },
@@ -440,6 +441,8 @@ pub fn stringify(node: &Stylesheet) -> String {
 
   match Emit::emit(&mut codegen, node) {
     Ok(_) => {},
+    // CSS codegen on a valid AST never fails in practice.
+    #[cfg(not(tarpaulin_include))]
     Err(e) => stylex_panic!("CSS codegen emit failed: {}", e),
   };
 

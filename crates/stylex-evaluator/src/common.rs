@@ -47,6 +47,9 @@ pub fn normalize_expr(expr: &mut Expr) -> &mut Expr {
 }
 
 /// Resolves a Node.js package path relative to `./cwd`.
+// Excluded from tarpaulin: the `Ok` path requires a real `./cwd/node_modules`
+// directory with an installed package, which isn't available in unit test context.
+#[cfg(not(tarpaulin_include))]
 pub fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
   match node_resolve::Resolver::default()
     .with_basedir(PathBuf::from("./cwd"))

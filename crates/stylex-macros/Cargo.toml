@@ -19,3 +19,6 @@ log.workspace = true
 pretty_env_logger.workspace = true
 
 stylex_constants = { path = "../stylex-constants" }
+
+[lints]
+workspace = true

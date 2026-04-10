@@ -10,6 +10,14 @@ engine = "Llvm"               # LLVM is significantly more accurate and faster t
 # Exclusions & Ignored Code
 ignore-tests = true           # Don't count the test functions themselves in the coverage metric
 ignore-panics = true          # Ignore panic/unwind branches (crucial for hitting 100% in Rust)
+
+# Exclude binary/infrastructure crates that are not unit-testable
+exclude = [
+    "stylex_test_parser",     # Binary crate (main.rs), not a library
+    "stylex_compiler_rs",     # NAPI native module — tested via integration tests in JS
+    "stylex_logs",            # Logging infrastructure — side-effect-only code
+]
+
 exclude-files = [
     "build.rs",               # Usually doesn't need to be part of the final binary coverage
     "*/tests/*",              # Exclude integration test directories

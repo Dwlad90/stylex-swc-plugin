@@ -23,3 +23,6 @@ swc_core = { workspace = true, features = ["common"] }
 [dev-dependencies]
 ctor.workspace = true
 pretty_env_logger.workspace = true
+
+[lints]
+workspace = true

@@ -356,7 +356,7 @@ fn evaluate_partial_object_recursively(
                   {
                     get_number_suffix(prop_name.as_str())
                   } else {
-                    String::new()
+                    ""
                   };
 
                   let inline_style_expression = if !unit.is_empty() {
@@ -382,7 +382,7 @@ fn evaluate_partial_object_recursively(
                             span: DUMMY_SP,
                             op: BinaryOp::Add,
                             left: Box::new(val_ident.clone()),
-                            right: Box::new(create_string_expr(&unit)),
+                            right: Box::new(create_string_expr(unit)),
                           })),
                           alt: Box::new(Expr::from(CondExpr {
                             span: DUMMY_SP,

@@ -15,6 +15,7 @@ doctest = false
 [dependencies]
 cssparser.workspace = true
 fancy-regex.workspace = true
+logos.workspace = true
 indexmap.workspace = true
 log.workspace = true
 rustc-hash.workspace = true

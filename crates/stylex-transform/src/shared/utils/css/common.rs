@@ -388,8 +388,10 @@ pub(crate) fn normalize_css_property_value(
     .iter()
     .chain(COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES.iter())
     .any(|css_fnc| {
-      css_property_value.contains(format!("{}(", css_fnc).as_str())
-        || css_property_value.to_lowercase().contains(css_fnc)
+      css_property_value.contains(css_fnc) && css_property_value.contains('(')
+        || css_property_value
+          .to_lowercase()
+          .contains(css_fnc.to_ascii_lowercase().as_str())
     })
   {
     return MANY_SPACES.replace_all(css_property_value, " ").to_string();
@@ -429,20 +431,6 @@ pub(crate) fn normalize_css_property_value(
 
   match parsed_css {
     Ok(parsed_css_property_value) => {
-      // let validators: Vec<Validator> = vec![
-      //   unprefixed_custom_properties_validator,
-      //   // Add other validator functions here...
-      // ];
-
-      // let normalizers: Vec<Normalizer> = vec![
-      //   base_normalizer,
-      //   // Add other normalizer functions here...
-      // ];
-
-      // for validator in validators {
-      //   validator(ast.clone());
-      // }
-
       unprefixed_custom_properties_validator(&parsed_css_property_value);
 
       let parsed_ast = base_normalizer(
@@ -450,10 +438,6 @@ pub(crate) fn normalize_css_property_value(
         options.enable_font_size_px_to_rem,
         Some(css_property),
       );
-
-      // for normalizer in normalizers {
-      //   parsed_ast = normalizer(parsed_ast, options.enable_font_size_px_to_rem);
-      // }
 
       let result = whitespace_normalizer(stringify(&parsed_ast));
 
@@ -465,20 +449,15 @@ pub(crate) fn normalize_css_property_value(
   }
 }
 
-// type Normalizer = fn(Stylesheet, bool) -> Stylesheet;
-// type Validator = fn(Stylesheet);
-
-pub(crate) fn get_number_suffix(key: &str) -> String {
+pub(crate) fn get_number_suffix(key: &str) -> &'static str {
   if UNITLESS_NUMBER_PROPERTIES.contains(key) || key.starts_with("--") {
-    return String::default();
+    return "";
   }
 
-  let result = match NUMBER_PROPERTY_SUFFIXIES.get(key) {
+  match NUMBER_PROPERTY_SUFFIXIES.get(key) {
     Some(suffix) => suffix,
     None => "px",
-  };
-
-  result.to_string()
+  }
 }
 
 pub(crate) fn get_value_from_ident(ident: &Ident) -> String {

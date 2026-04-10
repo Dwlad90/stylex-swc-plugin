@@ -1,4 +1,9 @@
 use crate::utils::prelude::*;
+use stylex_structures::stylex_options::StyleXOptionsParams;
+use swc_core::{
+  common::FileName,
+  ecma::parser::{Syntax, TsSyntax},
+};
 
 fn stylex_transform(
   comments: TestComments,
@@ -250,5 +255,41 @@ stylex_test!(
     export default function Component({round, min, abs, pow}) {
       return <div {...stylex.props(round && styles.round(12), min && styles.min(12), abs && styles.abs(12), pow && styles.pow(12))} />;
     }
+  "#
+);
+
+test!(
+  Syntax::Typescript(TsSyntax {
+    tsx: true,
+    ..Default::default()
+  }),
+  |tr| {
+    let cwd_path = std::env::current_dir().unwrap();
+
+    let fixture_path = cwd_path.join("tests/fixture");
+    let filename = fixture_path.join("consts/constants.stylex");
+
+    StyleXTransform::new_test_force_runtime_injection_with_pass(
+      tr.comments.clone(),
+      PluginPass {
+        cwd: None,
+        filename: FileName::Real(filename.clone()),
+      },
+      Some(&mut StyleXOptionsParams {
+        unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
+          fixture_path.to_string_lossy().to_string(),
+        ))),
+        ..StyleXOptionsParams::default()
+      }),
+    )
+  },
+  constant_names_with_template_literal,
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+    import { C } from "./constants.stylex.js";
+
+    const styles = stylex.create({
+      box: { height: `${C.INPUT_HEIGHT}px` },
+    });
   "#
 );

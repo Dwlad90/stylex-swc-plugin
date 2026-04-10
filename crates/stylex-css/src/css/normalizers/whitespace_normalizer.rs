@@ -1,87 +1,175 @@
-use stylex_regex::regex::{
-  CSS_RULE_REGEX, CSS_URL_REGEX, HASH_WHITESPACE_NORMALIZER_REGEX,
-  WHITESPACE_BRACKET_NORMALIZER_REGEX, WHITESPACE_FUNC_NORMALIZER_REGEX,
-  WHITESPACE_NORMALIZER_EXTRA_SPACES_REGEX, WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX,
-};
+use logos::Logos;
 
-pub fn whitespace_normalizer(content: impl Into<String>) -> String {
-  let content = content.into();
-  // Early return: If content is a URL, return it as-is
-  if let Ok(Some(captures)) = CSS_URL_REGEX.captures(&content)
-    && let Some(url) = captures.get(0)
+/// CSS value tokens — minimal set needed for spacing decisions.
+#[derive(Logos, Debug, PartialEq, Clone, Copy)]
+enum Tok {
+  /// Identifiers, custom properties, numbers, decimals
+  #[regex(r"--[a-zA-Z0-9_][a-zA-Z0-9_-]*")]
+  #[regex(r"-?[a-zA-Z_][a-zA-Z0-9_-]*")]
+  #[regex(r"[0-9]+(\.[0-9]+)?")]
+  #[regex(r"\.[0-9]+")]
+  Word,
+  /// Quoted string: `"hello"`, `""`
+  #[regex(r#""[^"]*""#)]
+  Str,
+  #[token("(")]
+  LP,
+  #[token(")")]
+  RP,
+  #[token(",")]
+  Comma,
+  #[token("#")]
+  Hash,
+  #[token("%")]
+  Pct,
+  #[token("+")]
+  Plus,
+  #[token("-")]
+  Minus,
+  #[token("*")]
+  Star,
+  #[token("/")]
+  Slash,
+  #[regex(r"\s+")]
+  Ws,
+}
+
+/// Returns true if `s` is a CSS dimension unit that may follow `)` without a
+/// space — e.g. `var(--x)px` should remain unsplit.
+fn is_css_unit(s: &str) -> bool {
+  matches!(
+    s,
+    "px" | "em" | "rem" | "ex" | "ch" | "lh" | "rlh" | "cap" | "ic"
+      | "cm" | "mm" | "in" | "pt" | "pc"
+      | "vw" | "vh" | "vi" | "vb" | "vmin" | "vmax"
+      | "dvw" | "dvh" | "lvw" | "lvh" | "svw" | "svh"
+      | "cqw" | "cqh" | "cqi" | "cqb" | "cqmin" | "cqmax"
+      | "ms" | "s" | "deg" | "rad" | "grad" | "turn"
+      | "dpi" | "dpcm" | "dppx" | "fr" | "Hz" | "kHz" | "Q"
+  )
+}
+
+/// Decides whether to emit a space between two adjacent non-whitespace tokens.
+fn spacing(prev: Tok, cur: Tok, cur_text: &str, had_ws: bool) -> bool {
+  use Tok::*;
+  match (prev, cur) {
+    // Suppress: after `(`, before `)`, before/after `,`
+    (LP, _) | (_, RP) | (_, Comma) | (Comma, _) => false,
+    // FIX(#927): no space before CSS unit after `)`
+    (RP, Word) if is_css_unit(cur_text) => false,
+    // Space after `)` before other tokens
+    (RP, _) => true,
+    // Space between adjacent quoted strings (empty-quote collapse handled separately)
+    (Str, Str) => true,
+    // Space before `#` when preceded by a value
+    (Word | Pct | Str, Hash) => true,
+    // `%` attaches to left number, no space
+    (Word, Pct) => false,
+    // Space after `%` before operand
+    (Pct, Word | LP) => true,
+    // Space around math operators (`+`, `*`, `/`)
+    (Word | Pct, Plus | Star | Slash) => true,
+    (Plus | Star | Slash, Word | LP) => true,
+    // Space before `-` when acting as an operator
+    (Word | Pct, Minus) => true,
+    // After `-`: preserve original spacing (keeps negative numbers: `-3` vs `- 3`)
+    (Minus, Word | LP) => had_ws,
+    // Default: preserve original spacing
+    _ => had_ws,
+  }
+}
+
+/// Extract CSS property value from a rule wrapper like `*{prop:value}`.
+fn extract_value(css: &str) -> Option<&str> {
+  let brace = css.find('{')?;
+  let mut start = brace + 1;
+  while css.as_bytes().get(start) == Some(&b'{') {
+    start += 1;
+  }
+  let colon = css[start..].find(':')? + start;
+  let val_start = css[colon + 1..]
+    .find(|c: char| c != ' ')
+    .map_or(colon + 1, |p| colon + 1 + p);
+  let end = css[val_start..]
+    .find(['}', ';'])
+    .map_or(css.len(), |p| val_start + p);
+  Some(&css[val_start..end])
+}
+
+pub fn whitespace_normalizer(content: String) -> String {
+  let raw = content.as_str();
+
+  // Fast-path: return URL values as-is
+  if let Some(start) = raw.find("url(")
+    && let Some(end) = raw[start..].find(')')
   {
-    return url.as_str().to_string();
+    return raw[start..start + end + 1].to_string();
   }
 
-  // Extract CSS value from rule if present (e.g., "color: red;" -> "red")
-  let mut css = if content.contains('{') {
-    CSS_RULE_REGEX
-      .captures(&content)
-      .ok()
-      .flatten()
-      .and_then(|c| c.get(1))
-      .map(|m| m.as_str().to_string())
-      .unwrap_or(content)
+  // Extract value from CSS rule wrapper
+  let css = if raw.contains('{') {
+    extract_value(raw).unwrap_or(raw)
   } else {
-    content
+    raw
   };
 
-  // Normalize whitespace around math operators (+, -, *, /, %)
-  css = WHITESPACE_NORMALIZER_MATH_SIGNS_REGEX
-    .replace_all(&css, |caps: &fancy_regex::Captures| {
-      // Using named groups for better readability
-      let left = caps.name("left").map(|m| m.as_str()).unwrap_or("");
-      let op = caps.name("op").map(|m| m.as_str()).unwrap_or("");
-      let right_space = caps.name("rspace").map(|m| m.as_str()).unwrap_or("");
-      let right = caps.name("right").map(|m| m.as_str()).unwrap_or("");
+  // Phase 1 — tokenize, recording source text and preceding whitespace
+  let mut toks: Vec<(Tok, &str, bool)> = Vec::new();
+  let mut had_ws = false;
 
-      match op {
-        // Percent: attach to left, space before right (e.g., "50% 10" not "50 % 10")
-        "%" => format!("{}{} {}", left, op, right),
-        // Minus: preserve negative numbers (e.g., "5 -3" vs "5- 3")
-        "-" => {
-          if right_space.is_empty() {
-            format!("{} {}{}", left, op, right)
-          } else {
-            format!("{} {} {}", left, op, right)
-          }
-        },
-        // Other operators: always add space around
-        _ => format!("{} {} {}", left, op, right),
+  for (result, span) in Tok::lexer(css).spanned() {
+    let text = &css[span];
+    match result {
+      Ok(Tok::Ws) => had_ws = true,
+      Ok(kind) => {
+        toks.push((kind, text, had_ws));
+        had_ws = false;
       }
-    })
-    .to_string();
-
-  // Normalize brackets and quotes: ")a" -> ") a", """" -> ""
-  css = WHITESPACE_BRACKET_NORMALIZER_REGEX
-    .replace_all(&css, "$1$3 $2$4")
-    .to_string();
-
-  // Remove extra spaces in specific cases (empty quotes, multiple parens)
-  css = WHITESPACE_NORMALIZER_EXTRA_SPACES_REGEX
-    .replace_all(&css, |caps: &fancy_regex::Captures| {
-      // Match empty string quotes: "" -> ""
-      if let (Some(q1), Some(q2)) = (caps.get(1), caps.get(2)) {
-        format!("{}{}", q1.as_str(), q2.as_str())
+      Err(()) => {
+        toks.push((Tok::Word, text, had_ws));
+        had_ws = false;
       }
-      // Match multiple closing parens: ") )" -> "))"
-      else if let (Some(p1), Some(p2)) = (caps.get(3), caps.get(4)) {
-        format!("{}{}", p1.as_str(), p2.as_str())
-      } else {
-        caps[0].to_string()
+    }
+  }
+
+  // Phase 2 — rebuild with normalised spacing
+  let mut out = String::with_capacity(css.len() + 16);
+  let mut skip = false;
+
+  for i in 0..toks.len() {
+    if skip {
+      skip = false;
+      continue;
+    }
+
+    let (kind, text, had_ws) = toks[i];
+
+    // Collapse adjacent empty quotes: `""` `""` → `""`
+    if kind == Tok::Str
+      && text == "\"\""
+      && toks
+        .get(i + 1)
+        .is_some_and(|n| n.0 == Tok::Str && n.1 == "\"\"")
+    {
+      out.push_str("\"\"");
+      skip = true;
+      continue;
+    }
+
+    if i > 0 {
+      let (pk, _, _) = toks[i - 1];
+      if spacing(pk, kind, text, had_ws) {
+        out.push(' ');
       }
-    })
-    .to_string();
+    }
 
-  // Add space before hash in colors: "a#fff" -> "a #fff"
-  css = HASH_WHITESPACE_NORMALIZER_REGEX
-    .replace_all(&css, "$1 #")
-    .to_string();
+    out.push_str(text);
+  }
 
-  // Normalize function arguments: "( arg )" -> "(arg)"
-  css = WHITESPACE_FUNC_NORMALIZER_REGEX
-    .replace_all(&css, "($1),")
-    .to_string();
-
-  css.trim().to_string()
+  let trimmed = out.trim();
+  if trimmed.len() == out.len() {
+    out
+  } else {
+    trimmed.to_string()
+  }
 }

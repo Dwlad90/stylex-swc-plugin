@@ -393,9 +393,9 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        four: {
+      four: {
         margin: '1 2 3 4',
-        }
+      }
     });
     stylex(styles.four);
   "#

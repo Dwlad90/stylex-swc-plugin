@@ -46,9 +46,9 @@ stylex_test!(
   r#"
     import * as stylex from '@stylexjs/stylex';
     export default (stylex.create({
-      root: {
-        color: 'red',
-      }
+        root: {
+          color: 'red',
+        }
     }));
   "#
 );

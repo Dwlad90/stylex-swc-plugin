@@ -68,8 +68,8 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     export const variables = stylex.createTheme(
-        {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
-        {}
+      {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+      {}
     );
   "#
 );
@@ -81,8 +81,8 @@ stylex_test_panic!(
   r#"
     import stylex from 'stylex';
     const variables = stylex.createTheme(
-        {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
-        {[labelColor]: 'red',}
+      {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+      {[labelColor]: 'red',}
     );
   "#
 );
@@ -93,8 +93,8 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     export const variables = stylex.createTheme(
-        {__varGroupHash__: 'x568ih9', cornerRadius: 'var(--cornerRadiusHash)'},
-        {cornerRadius: 5,}
+      {__varGroupHash__: 'x568ih9', cornerRadius: 'var(--cornerRadiusHash)'},
+      {cornerRadius: 5,}
     );
   "#
 );
@@ -105,8 +105,8 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     export const variables = stylex.createTheme(
-        {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
-        {labelColor: 'red',}
+      {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+      {labelColor: 'red',}
     );
   "#
 );
@@ -118,8 +118,8 @@ stylex_test_panic!(
   r#"
     import stylex from 'stylex';
     const variables = stylex.createTheme(
-        {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
-        {labelColor: labelColor,}
+      {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+      {labelColor: labelColor,}
     );
   "#
 );
@@ -131,8 +131,8 @@ stylex_test_panic!(
   r#"
     import stylex from 'stylex';
     const variables = stylex.createTheme(
-        {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
-        {labelColor: labelColor(),}
+      {__varGroupHash__: 'x568ih9', labelColor: 'var(--labelColorHash)'},
+      {labelColor: labelColor(),}
     );
   "#
 );
@@ -156,21 +156,21 @@ stylex_test!(
     import stylex from 'stylex';
 
     const buttonTokens ={
-        __varGroupHash__: 'TestTheme.stylex.js//buttonTheme',
-        bgColor: 'var(--xgck17p)',
+      __varGroupHash__: 'TestTheme.stylex.js//buttonTheme',
+      bgColor: 'var(--xgck17p)',
     };
 
     const simpleTheme = {
-        bgColor: {
-            default: {
-                default: 'green',
-                '@supports (color: oklab(0 0 0))': 'oklab(0.7 -0.3 -0.4)',
-            },
-            '@media (prefers-color-scheme: dark)': {
-                default: 'lightgreen',
-                '@supports (color: oklab(0 0 0))': 'oklab(0.7 -0.2 -0.4)',
-            },
+      bgColor: {
+        default: {
+          default: 'green',
+          '@supports (color: oklab(0 0 0))': 'oklab(0.7 -0.3 -0.4)',
         },
+        '@media (prefers-color-scheme: dark)': {
+          default: 'lightgreen',
+          '@supports (color: oklab(0 0 0))': 'oklab(0.7 -0.2 -0.4)',
+        },
+      },
     }
 
     export const variables = stylex.createTheme(buttonTokens, simpleTheme);

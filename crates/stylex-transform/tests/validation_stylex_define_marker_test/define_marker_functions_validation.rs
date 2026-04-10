@@ -33,36 +33,21 @@ stylex_test_panic!(
   "#
 );
 
-stylex_test_transform!(
+stylex_test!(
   valid_export_direct_named_export,
   |tr| define_marker_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const marker = stylex.defineMarker();
-  "#,
-  r#"
-    import * as stylex from '@stylexjs/stylex';
-    export const marker = {
-        x1allf69: "x1allf69",
-        $$css: true
-    };
   "#
 );
 
-stylex_test_transform!(
+stylex_test!(
   valid_export_separate_const_and_export_statement,
   |tr| define_marker_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const marker = stylex.defineMarker();
-    export { marker };
-  "#,
-  r#"
-    import * as stylex from '@stylexjs/stylex';
-    const marker = {
-        x1allf69: "x1allf69",
-        $$css: true
-    };
     export { marker };
   "#
 );

@@ -370,7 +370,7 @@ stylex_test!(
       const isActive = status === 'active';
 
       return <button {...stylex.props(styles.base, ...isActive ? [styles.active]: [styles.inactive])} />
-    };
+      };
   "#
 );
 
@@ -395,11 +395,11 @@ stylex_test!(
       const isActive = /status/.test(status);
 
       return <>
-      <button {...stylex.props(styles.base, ...isActive ? [styles.active]: [styles.inactive])} />
-      {isActive ? <div {...stylex.props(styles.active)}>Active</div> : <div {...stylex.props(styles.inactive)}>Inactive</div>}
-      <div {...stylex.props(isActive && styles.active)}>Active</div>
-      </>
-    };
+        <button {...stylex.props(styles.base, ...isActive ? [styles.active]: [styles.inactive])} />
+          {isActive ? <div {...stylex.props(styles.active)}>Active</div> : <div {...stylex.props(styles.inactive)}>Inactive</div>}
+          <div {...stylex.props(isActive && styles.active)}>Active</div>
+        </>
+      };
   "#
 );
 
@@ -414,63 +414,63 @@ stylex_test!(
       .with_enable_debug_class_names(true)
   }),
   r#"
-  import * as stylex from '@stylexjs/stylex';
-  import { useState } from 'react';
+    import * as stylex from '@stylexjs/stylex';
+    import { useState } from 'react';
 
-  const styles = stylex.create({
-    base: {
-      backgroundColor: 'blue',
-    },
-    active: {
-      right: 0,
-    },
-    inactive: {
-      left: 0,
-    },
-    answered: {
-      right: 10,
-    },
-    unanswered: {
-      left: 10,
-    },
-  });
+    const styles = stylex.create({
+      base: {
+        backgroundColor: 'blue',
+      },
+      active: {
+        right: 0,
+      },
+      inactive: {
+        left: 0,
+      },
+      answered: {
+        right: 10,
+      },
+      unanswered: {
+        left: 10,
+      },
+    });
 
-  export function Props_With_Null(isActive, isInactive,items) {
-  const isAnswered = items[isActive] !== null;
-  const [isFirst, setIsFirst] = useState(false);
+    export function Props_With_Null(isActive, isInactive,items) {
+      const isAnswered = items[isActive] !== null;
+      const [isFirst, setIsFirst] = useState(false);
 
-    return <>
-  <button {...stylex.props(
-        styles.base,
-        ...isFirst === true ? [ styles.active] : [],
-        ...isFirst === true ? [styles.answered, styles.active] : [styles.base],
-        isAnswered ? styles.answered : null,
-        isAnswered ? styles.answered : isInactive ? styles.inactive : null,
-        isAnswered ? styles.answered : styles.unanswered
-      )} />
+      return <>
+        <button {...stylex.props(
+            styles.base,
+            ...isFirst === true ? [ styles.active] : [],
+            ...isFirst === true ? [styles.answered, styles.active] : [styles.base],
+            isAnswered ? styles.answered : null,
+            isAnswered ? styles.answered : isInactive ? styles.inactive : null,
+            isAnswered ? styles.answered : styles.unanswered
+        )} />
+        <button {...stylex.props(
+            styles.base,
+            ...isFirst === true ? [ styles.active] : [],
+        )}
+        >Active</button>
+      <button {...stylex.props(
+          styles.base,
+          ...isFirst === true ? [ styles.active] : [],
+      )}
+      >Inactive</button>
     <button {...stylex.props(
         styles.base,
         ...isFirst === true ? [ styles.active] : [],
-      )}
-      >Active</button>
-      <button {...stylex.props(
+    )}
+    >Answered</button>
+    <button {...stylex.props(
         styles.base,
         ...isFirst === true ? [ styles.active] : [],
-      )}
-      >Inactive</button>
-      <button {...stylex.props(
-        styles.base,
-        ...isFirst === true ? [ styles.active] : [],
-      )}
-      >Answered</button>
-      <button {...stylex.props(
-        styles.base,
-        ...isFirst === true ? [ styles.active] : [],
-      )}
-      >Unanswered</button>
-      </>
-  };
-"#
+    )}
+    >Unanswered</button>
+    </>
+    };
+  "#
 );
 
 stylex_test!(

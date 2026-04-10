@@ -16,12 +16,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        default: {
-            backgroundColor: 'red',
-        },
-        active: {
-            color: 'blue',
-        }
+      default: {
+        backgroundColor: 'red',
+      },
+      active: {
+        color: 'blue',
+      }
     });
     stylex.props([styles.default, isActive && styles.active]);
   "#
@@ -33,12 +33,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        default: {
-            backgroundColor: 'red',
-        },
-        active: {
-            color: 'blue',
-        }
+      default: {
+        backgroundColor: 'red',
+      },
+      active: {
+        color: 'blue',
+      }
     });
     stylex.props([styles.default, isActive && styles.active]);
   "#
@@ -49,12 +49,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
-        blue: {
-            color: 'blue',
-        }
+      red: {
+        color: 'red',
+      },
+      blue: {
+        color: 'blue',
+      }
     });
     stylex.props([styles.red, styles.blue]);
     stylex.props([styles.blue, styles.red]);
@@ -66,12 +66,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
-        revert: {
-            color: null,
-        }
+      red: {
+        color: 'red',
+      },
+      revert: {
+        color: null,
+      }
     });
     stylex.props([styles.red, styles.revert]);
     stylex.props([styles.revert, styles.red]);
@@ -83,15 +83,15 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        foo: {
-            padding: 5,
-            paddingEnd: 10,
-        },
+      foo: {
+        padding: 5,
+        paddingEnd: 10,
+      },
 
-        bar: {
-            padding: 2,
-            paddingStart: 10,
-        },
+      bar: {
+        padding: 2,
+        paddingStart: 10,
+      },
     });
     stylex.props([styles.foo, styles.bar]);
   "#
@@ -102,15 +102,15 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        foo: {
-            padding: 5,
-            paddingEnd: 10,
-        },
+      foo: {
+        padding: 5,
+        paddingEnd: 10,
+      },
 
-        bar: {
-            padding: 2,
-            paddingStart: null,
-        },
+      bar: {
+        padding: 2,
+        paddingStart: null,
+      },
     });
     stylex.props([styles.foo, styles.bar]);
   "#
@@ -121,13 +121,13 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
-        blue: {
-            color: 'blue',
-        }
-        });
+      red: {
+        color: 'red',
+      },
+      blue: {
+        color: 'blue',
+      }
+    });
     stylex.props([styles.red, isActive && styles.blue]);
   "#
 );
@@ -138,12 +138,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
-        blue: {
-            color: 'blue',
-        }
+      red: {
+        color: 'red',
+      },
+      blue: {
+        color: 'blue',
+      }
     });
     stylex.props([styles.red, isActive && styles.blue]);
   "#
@@ -155,12 +155,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
-        blue: {
-            color: null,
-        }
+      red: {
+        color: 'red',
+      },
+      blue: {
+        color: null,
+      }
     });
     stylex.props([styles.red, isActive && styles.blue]);
   "#
@@ -172,12 +172,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
-        blue: {
-            color: null,
-        }
+      red: {
+        color: 'red',
+      },
+      blue: {
+        color: null,
+      }
     });
     stylex.props([styles.red, isActive && styles.blue]);
   "#
@@ -189,9 +189,9 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
+      red: {
+        color: 'red',
+      },
     });
     stylex.props(Math.random() > 1 ? styles.red : null);
     stylex.props(true ? styles.red : null);
@@ -210,9 +210,9 @@ stylex_test!(
     import * as stylex from 'stylex';
 
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
+      red: {
+        color: 'red',
+      },
     });
 
     stylex.props(Math.random() > 1 ? styles.red : undefined);
@@ -226,24 +226,24 @@ stylex_test!(
     stylex.props(true ? null : styles.red);
 
     export function TestComponent({removeStyle, isAnimation}) {
-        stylex.props(Math.random() > 1 ? styles.red : undefined);
-        stylex.props(true ? styles.red : undefined);
-        stylex.props(false ? styles.red : undefined);
+      stylex.props(Math.random() > 1 ? styles.red : undefined);
+      stylex.props(true ? styles.red : undefined);
+      stylex.props(false ? styles.red : undefined);
 
-        stylex.props(Math.random() > 1 ? undefined: styles.red);
-        stylex.props(true ? undefined: styles.red );
-        stylex.props(false ? undefined : styles.red);
-        stylex.props(false ? null : styles.red);
-        stylex.props(true ? null : styles.red);
-        stylex.props(removeStyle ? undefined : styles.red);
-        stylex.props(removeStyle ? null : styles.red);
+      stylex.props(Math.random() > 1 ? undefined: styles.red);
+      stylex.props(true ? undefined: styles.red );
+      stylex.props(false ? undefined : styles.red);
+      stylex.props(false ? null : styles.red);
+      stylex.props(true ? null : styles.red);
+      stylex.props(removeStyle ? undefined : styles.red);
+      stylex.props(removeStyle ? null : styles.red);
 
-        const { className: classNameDiv2, style: styleDiv2 } = sx.props(
-          removeStyle ? null : c.red,
-          isAnimation && c.red
-        );
+      const { className: classNameDiv2, style: styleDiv2 } = sx.props(
+        removeStyle ? null : c.red,
+        isAnimation && c.red
+      );
 
-        return <div className={classNameDiv2} style={styleDiv2} />;
+      return <div className={classNameDiv2} style={styleDiv2} />;
     }
   "#
 );
@@ -258,9 +258,9 @@ stylex_test!(
     import * as stylex from 'stylex';
 
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
+      red: {
+        color: 'red',
+      },
     });
 
     stylex.props(Math.random() > 1 ? styles.red : undefined);
@@ -274,24 +274,24 @@ stylex_test!(
     stylex.props(true ? null : styles.red);
 
     export function TestComponent({removeStyle, isAnimation}) {
-        stylex.props(Math.random() > 1 ? styles.red : undefined);
-        stylex.props(true ? styles.red : undefined);
-        stylex.props(false ? styles.red : undefined);
+      stylex.props(Math.random() > 1 ? styles.red : undefined);
+      stylex.props(true ? styles.red : undefined);
+      stylex.props(false ? styles.red : undefined);
 
-        stylex.props(Math.random() > 1 ? undefined: styles.red);
-        stylex.props(true ? undefined: styles.red );
-        stylex.props(false ? undefined : styles.red);
-        stylex.props(false ? null : styles.red);
-        stylex.props(true ? null : styles.red);
-        stylex.props(removeStyle ? undefined : styles.red);
-        stylex.props(removeStyle ? null : styles.red);
+      stylex.props(Math.random() > 1 ? undefined: styles.red);
+      stylex.props(true ? undefined: styles.red );
+      stylex.props(false ? undefined : styles.red);
+      stylex.props(false ? null : styles.red);
+      stylex.props(true ? null : styles.red);
+      stylex.props(removeStyle ? undefined : styles.red);
+      stylex.props(removeStyle ? null : styles.red);
 
-        const { className: classNameDiv2, style: styleDiv2 } = sx.props(
-          removeStyle ? null : c.red,
-          isAnimation && c.red
-        );
+      const { className: classNameDiv2, style: styleDiv2 } = sx.props(
+        removeStyle ? null : c.red,
+        isAnimation && c.red
+      );
 
-        return <div className={classNameDiv2} style={styleDiv2} />;
+      return <div className={classNameDiv2} style={styleDiv2} />;
     }
   "#
 );

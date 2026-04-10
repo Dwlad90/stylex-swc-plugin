@@ -53,9 +53,9 @@ stylex_test_panic!(
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({
       dynamic: (props = {}) => ({
-        color: props.color,
-      }),
-    });
+          color: props.color,
+        }),
+      });
   "#
 );
 
@@ -119,7 +119,7 @@ stylex_test_panic!(
     export const styles = stylex.create({
       button: () => {
         return {
-            justifyContent: 'center',
+          justifyContent: 'center',
         };
       },
     });

@@ -35,7 +35,7 @@ fn adds_placeholder_for_constant_value_from_constants_stylex() {
 
     export const styles = stylex.create({
       root: {
-        backgroundColor: colors.background,
+      backgroundColor: colors.background,
       },
     });
   "#;
@@ -54,10 +54,10 @@ fn adds_media_query_placeholder_from_constants_stylex() {
 
     export const styles = stylex.create({
       root: {
-        color: {
+      color: {
           default: 'red',
           [breakpoints.small]: 'blue',
-        },
+      },
       },
     });
   "#;
@@ -74,9 +74,9 @@ fn works_with_first_that_works() {
 
     export const styles = stylex.create({
       nodeEnd: (animationDuration) => ({
-        foo: {
+      foo: {
           color: stylex.firstThatWorks(colors.background, 'transparent'),
-        },
+      },
       }),
     });
   "#;
@@ -93,8 +93,8 @@ fn works_with_dynamic_styles_constants() {
 
     export const styles = stylex.create({
       node: (padding) => ({
-        padding: padding,
-        color: colors.background,
+      padding: padding,
+      color: colors.background,
       }),
     });
   "#;
@@ -111,10 +111,10 @@ fn works_with_dynamic_styles_at_rules() {
 
     export const styles = stylex.create({
       node: (color) => ({
-        color: {
+      color: {
           [breakpoints.small]: 'blue',
           default: color,
-        },
+      },
       }),
     });
   "#;
@@ -130,11 +130,11 @@ fn adds_multiple_media_query_placeholders_from_constants_stylex() {
 
     export const styles = stylex.create({
       root: {
-        color: {
+      color: {
           default: 'red',
           [breakpoints.small]: 'blue',
           [breakpoints.big]: 'yellow',
-        },
+      },
       },
     });
   "#;
@@ -153,13 +153,13 @@ fn adds_nested_media_query_placeholders_from_constants_stylex() {
 
     export const styles = stylex.create({
       root: {
-        color: {
+      color: {
           default: 'black',
           [breakpoints.big]: {
-            default: colors.red,
-            [breakpoints.small]: colors.blue,
+      default: colors.red,
+      [breakpoints.small]: colors.blue,
           },
-        },
+      },
       },
     });
   "#;

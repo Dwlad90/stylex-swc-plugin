@@ -23,21 +23,21 @@ stylex_test!(
   local_static_styles,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  red: {
-    color: 'red',
-  }
-});
-function Foo() {
-  return (
-    <>
-      <div id="test" {...stylex.props(styles.red)}>Hello World</div>
-      <div className="test" {...stylex.props(styles.red)} id="test">Hello World</div>
-      <div id="test" {...stylex.props(styles.red)} className="test">Hello World</div>
-    </>
-  );
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo() {
+      return (
+        <>
+          <div id="test" {...stylex.props(styles.red)}>Hello World</div>
+          <div className="test" {...stylex.props(styles.red)} id="test">Hello World</div>
+          <div id="test" {...stylex.props(styles.red)} className="test">Hello World</div>
+        </>
+      );
+    }
   "#
 );
 
@@ -68,18 +68,18 @@ stylex_test!(
   non_local_styles,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  red: {
-    color: 'red',
-  }
-});
-function Foo(props) {
-  return (
-    <div id="test" {...stylex.props(props.style, styles.red)}>
-      Hello World
-    </div>
-  );
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo(props) {
+      return (
+        <div id="test" {...stylex.props(props.style, styles.red)}>
+          Hello World
+        </div>
+      );
+    }
   "#
 );

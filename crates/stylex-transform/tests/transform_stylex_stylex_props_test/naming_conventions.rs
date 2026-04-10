@@ -8,22 +8,22 @@ stylex_test!(
 
     const styles = stylex.create({
       primaryVariant: {
-          padding: '0',
-          margin: '0',
-          listStyle: 'none',
-          display: 'grid',
-          gridAutoFlow: 'column',
-          width: '100%',
-          justifyContent: 'flex-start',
-          borderBottomStyle: 'solid',
-          borderBottomWidth: '1px',
+        padding: '0',
+        margin: '0',
+        listStyle: 'none',
+        display: 'grid',
+        gridAutoFlow: 'column',
+        width: '100%',
+        justifyContent: 'flex-start',
+        borderBottomStyle: 'solid',
+        borderBottomWidth: '1px',
       },
     });
 
     function TestComponent() {
-        return (
-            <div {...stylex.props(styles.primaryVariant)} />
-        );
+      return (
+        <div {...stylex.props(styles.primaryVariant)} />
+      );
     }
   "#
 );
@@ -35,22 +35,22 @@ stylex_test!(
 
     const styles = stylex.create({
       PrimaryVariant: {
-          padding: '0',
-          margin: '0',
-          listStyle: 'none',
-          display: 'grid',
-          gridAutoFlow: 'column',
-          width: '100%',
-          justifyContent: 'flex-start',
-          borderBottomStyle: 'solid',
-          borderBottomWidth: '1px',
+        padding: '0',
+        margin: '0',
+        listStyle: 'none',
+        display: 'grid',
+        gridAutoFlow: 'column',
+        width: '100%',
+        justifyContent: 'flex-start',
+        borderBottomStyle: 'solid',
+        borderBottomWidth: '1px',
       },
     });
 
     function TestComponent() {
-        return (
-            <div {...stylex.props(styles.PrimaryVariant)} />
-        );
+      return (
+        <div {...stylex.props(styles.PrimaryVariant)} />
+      );
     }
   "#
 );
@@ -62,23 +62,23 @@ stylex_test!(
 
     const styles = stylex.create({
       'primary_variant': {
-          padding: '0',
-          margin: '0',
-          listStyle: 'none',
-          display: 'grid',
-          gridAutoFlow: 'column',
-          width: '100%',
-          justifyContent: 'flex-start',
-          borderBottomStyle: 'solid',
-          borderBottomWidth: '1px',
+        padding: '0',
+        margin: '0',
+        listStyle: 'none',
+        display: 'grid',
+        gridAutoFlow: 'column',
+        width: '100%',
+        justifyContent: 'flex-start',
+        borderBottomStyle: 'solid',
+        borderBottomWidth: '1px',
       },
     });
 
     function TestComponent() {
-        return (
-            <div {...stylex.props(styles['primary_variant'])} />
+      return (
+        <div {...stylex.props(styles['primary_variant'])} />
         );
-    }
+      }
   "#
 );
 
@@ -89,22 +89,22 @@ stylex_test!(
 
     const styles = stylex.create({
       'primary-variant': {
-          padding: '0',
-          margin: '0',
-          listStyle: 'none',
-          display: 'grid',
-          gridAutoFlow: 'column',
-          width: '100%',
-          justifyContent: 'flex-start',
-          borderBottomStyle: 'solid',
-          borderBottomWidth: '1px',
+        padding: '0',
+        margin: '0',
+        listStyle: 'none',
+        display: 'grid',
+        gridAutoFlow: 'column',
+        width: '100%',
+        justifyContent: 'flex-start',
+        borderBottomStyle: 'solid',
+        borderBottomWidth: '1px',
       },
     });
 
     function TestComponent() {
-        return (
-            <div {...stylex.props(styles['primary-variant'])} />
+      return (
+        <div {...stylex.props(styles['primary-variant'])} />
         );
-    }
+      }
   "#
 );

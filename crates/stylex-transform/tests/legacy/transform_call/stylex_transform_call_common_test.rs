@@ -66,7 +66,7 @@ stylex_test!(
       }
     });
     stylex(styles[0], styles[1]);
-"#
+  "#
 );
 
 stylex_test!(
@@ -102,7 +102,7 @@ stylex_test!(
       }
     });
     stylex(styles.default, otherStyles.default);
-"#
+  "#
 );
 
 stylex_test!(
@@ -117,7 +117,7 @@ stylex_test!(
       return stylex(styles.foo);
     }
     a
-"#
+  "#
 );
 
 stylex_test!(
@@ -136,7 +136,7 @@ stylex_test!(
     stylex(styles.foo, styles.bar);
     const foo = styles;
     foo;
-"#
+  "#
 );
 
 stylex_test!(
@@ -150,7 +150,7 @@ stylex_test!(
       }
     });
     stylex(styles.foo);
-"#
+  "#
 );
 
 stylex_test!(
@@ -164,7 +164,7 @@ stylex_test!(
       }
     });
     stylex(styles.foo);
-"#
+  "#
 );
 
 stylex_test!(
@@ -188,7 +188,7 @@ stylex_test!(
     stylex(styles.bar, styles.foo);
     stylex(styles.foo, styles.bar, styles.baz);
     stylex(styles.foo, somethingElse);
-"#
+  "#
 );
 
 stylex_test!(
@@ -212,7 +212,7 @@ stylex_test!(
     stylex(styles.bar, styles.foo);
     stylex(styles.foo, styles.bar, styles.baz);
     stylex(somethingElse, styles.foo);
-"#
+  "#
 );
 
 stylex_test!(
@@ -236,7 +236,7 @@ stylex_test!(
     stylex(styles.bar, styles.foo);
     stylex(styles.foo, styles.bar, styles.baz);
     stylex(styles.baz, styles.foo, somethingElse);
-"#
+  "#
 );
 
 stylex_test!(
@@ -260,7 +260,7 @@ stylex_test!(
     stylex(styles.bar, styles.foo);
     stylex(styles.foo, styles.bar, styles.baz);
     stylex(styles.bar, styles.foo, somethingElse);
-"#
+  "#
 );
 
 stylex_test!(
@@ -277,7 +277,7 @@ stylex_test!(
       }
     });
     stylex(styles.default);
-"#
+  "#
 );
 
 stylex_test!(
@@ -294,7 +294,7 @@ stylex_test!(
       }
     });
     stylex(styles.default);
-"#
+  "#
 );
 
 stylex_test!(
@@ -314,7 +314,7 @@ stylex_test!(
       },
     });
     stylex(styles.default);
-"#
+  "#
 );
 
 stylex_test!(
@@ -332,5 +332,5 @@ stylex_test!(
       },
     });
     stylex(styles.default);
-"#
+  "#
 );

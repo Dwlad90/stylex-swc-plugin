@@ -92,7 +92,7 @@ stylex_test!(
       }
     });
     stylex(styles.default, isActive && styles.active);
-"#
+  "#
 );
 
 stylex_test!(

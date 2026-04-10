@@ -21,9 +21,9 @@ stylex_test!(
   r#"
     import stylex from 'custom-stylex-path';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        }
+      red: {
+        color: 'red',
+      }
     });
     stylex.props(styles.red);
   "#

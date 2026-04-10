@@ -5,14 +5,14 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     stylex.attrs(styles[variant]);
-    const styles = stylex.create({
+      const styles = stylex.create({
         [0]: {
-            color: 'red',
+          color: 'red',
         },
         [1]: {
-            backgroundColor: 'blue',
+          backgroundColor: 'blue',
         }
-    });
+      });
   "#
 );
 
@@ -22,23 +22,23 @@ stylex_test!(
     import stylex from 'stylex';
 
     function MyComponent() {
-        return (
-            <>
-                <div {...stylex.attrs(styles.foo)} />
-                <div {...stylex.attrs(styles.bar)} />
-                <CustomComponent xstyle={styles.foo} />
-                <div {...stylex.attrs([styles.foo, styles.bar])} />
-            </>
-        );
+      return (
+        <>
+          <div {...stylex.attrs(styles.foo)} />
+          <div {...stylex.attrs(styles.bar)} />
+          <CustomComponent xstyle={styles.foo} />
+          <div {...stylex.attrs([styles.foo, styles.bar])} />
+        </>
+      );
     }
 
     const styles = stylex.create({
-        foo: {
-            color: 'red',
-        },
-        bar: {
-            backgroundColor: 'blue',
-        }
+      foo: {
+        color: 'red',
+      },
+      bar: {
+        backgroundColor: 'blue',
+      }
     });
   "#
 );
@@ -49,9 +49,9 @@ stylex_test!(
     import stylex from 'stylex';
     stylex.attrs([styles.default, attrs]);
     const styles = stylex.create({
-        default: {
-            color: 'red',
-        },
+      default: {
+        color: 'red',
+      },
     });
   "#
 );
@@ -62,14 +62,14 @@ stylex_test!(
     import stylex from 'stylex';
     stylex.attrs(styles.default);
     export const styles = stylex.create({
-        default: {
-            ':hover': {
-                color: 'blue',
-            },
-            '@media (min-width: 1000px)': {
-                backgroundColor: 'blue',
-            },
-        }
+      default: {
+        ':hover': {
+          color: 'blue',
+        },
+        '@media (min-width: 1000px)': {
+          backgroundColor: 'blue',
+        },
+      }
     });
   "#
 );

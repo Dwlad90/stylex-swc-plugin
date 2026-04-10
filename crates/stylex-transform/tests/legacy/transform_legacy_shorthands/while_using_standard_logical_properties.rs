@@ -108,7 +108,7 @@ stylex_test!(
       },
     });
     stylex(styles.foo, styles.bar);
-    "#
+  "#
 );
 
 stylex_test!(

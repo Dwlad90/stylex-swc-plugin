@@ -9,18 +9,15 @@ fn stylex_transform(
 }
 
 // Test default behavior (silent mode)
-stylex_test_transform!(
+stylex_test!(
   does_not_throw_by_default_for_disallowed_properties_silent_mode,
   r#"
     import * as stylex from '@stylexjs/stylex';
-    const styles = stylex.create({
+    export const styles = stylex.create({
       root: {
         border: '1px solid red',
       },
     });
-  "#,
-  r#"
-    import * as stylex from '@stylexjs/stylex';
   "#
 );
 
@@ -41,74 +38,62 @@ stylex_test_panic!(
 );
 
 // Test warn mode
-stylex_test_transform!(
+stylex_test!(
   does_not_throw_when_property_validation_mode_is_warn,
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_property_validation_mode(PropertyValidationMode::Warn)),
   r#"
     import * as stylex from '@stylexjs/stylex';
-    const styles = stylex.create({
+    export const styles = stylex.create({
       root: {
         border: '1px solid red',
       },
     });
-  "#,
-  r#"
-    import * as stylex from '@stylexjs/stylex';
   "#
 );
 
 // Test silent mode explicitly
-stylex_test_transform!(
+stylex_test!(
   does_not_throw_when_property_validation_mode_is_silent,
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_property_validation_mode(PropertyValidationMode::Silent)),
   r#"
     import * as stylex from '@stylexjs/stylex';
-    const styles = stylex.create({
+    export const styles = stylex.create({
       root: {
         border: '1px solid red',
       },
     });
-  "#,
-  r#"
-    import * as stylex from '@stylexjs/stylex';
   "#
 );
 
 // Test with background property
-stylex_test_transform!(
+stylex_test!(
   works_with_background_property,
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_property_validation_mode(PropertyValidationMode::Silent)),
   r#"
     import * as stylex from '@stylexjs/stylex';
-    const styles = stylex.create({
+    export const styles = stylex.create({
       root: {
         background: 'red',
       },
     });
-  "#,
-  r#"
-    import * as stylex from '@stylexjs/stylex';
   "#
 );
 
 // Test with animation property
-stylex_test_transform!(
+stylex_test!(
   works_with_animation_property,
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_property_validation_mode(PropertyValidationMode::Silent)),
   r#"
     import * as stylex from '@stylexjs/stylex';
-    const styles = stylex.create({
+    export const styles = stylex.create({
       root: {
         animation: 'spin 1s',
       },
     });
-  "#,
-  r#"
-    import * as stylex from '@stylexjs/stylex';
   "#
 );
 

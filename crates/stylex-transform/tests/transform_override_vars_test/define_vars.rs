@@ -26,7 +26,7 @@ stylex_test!(
       cornerRadius: '6px',
       fgColor: 'coral',
     });
-    "#
+  "#
 );
 
 stylex_test!(
@@ -53,7 +53,7 @@ stylex_test!(
         default: 'pink',
       },
     });
-    "#
+  "#
 );
 
 stylex_test!(
@@ -80,5 +80,5 @@ stylex_test!(
         default: 'pink',
       },
     });
-    "#
+  "#
 );

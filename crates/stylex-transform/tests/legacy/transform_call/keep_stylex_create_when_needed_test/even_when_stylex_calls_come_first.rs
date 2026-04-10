@@ -5,14 +5,14 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     stylex(styles[variant]);
-    const styles = stylex.create({
-      [0]: {
-        color: 'red',
-      },
-      [1]: {
-        backgroundColor: 'blue',
-      }
-    });
+      const styles = stylex.create({
+        [0]: {
+          color: 'red',
+        },
+        [1]: {
+          backgroundColor: 'blue',
+        }
+      });
   "#
 );
 

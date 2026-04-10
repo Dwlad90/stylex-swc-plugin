@@ -16,7 +16,7 @@ _inject2({
 export function Props_With_Conditional_Array(status) {
     const isActive = /status/.test(status);
     return <>
-      <button {...{
+        <button {...{
         0: {
             className: "x1t391ir x1prwzq3"
         },
@@ -24,12 +24,12 @@ export function Props_With_Conditional_Array(status) {
             className: "x1t391ir x1e2nbdu"
         }
     }[!!isActive << 0]}/>
-      {isActive ? <div className="x1e2nbdu">Active</div> : <div className="x1prwzq3">Inactive</div>}
-      <div {...{
+          {isActive ? <div className="x1e2nbdu">Active</div> : <div className="x1prwzq3">Inactive</div>}
+          <div {...{
         0: {},
         1: {
             className: "x1e2nbdu"
         }
     }[!!isActive << 0]}>Active</div>
-      </>;
+        </>;
 }

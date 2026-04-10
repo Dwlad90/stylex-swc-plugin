@@ -13,6 +13,6 @@ const styles = {
 };
 function Foo(props) {
     return <div id="test" {...stylex.props(props.style, styles.red)}>
-      Hello World
-    </div>;
+          Hello World
+        </div>;
 }

@@ -39,9 +39,9 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({ x: {
-      margin: '0px',
-      marginLeft: '1px'
-    } });
+        margin: '0px',
+        marginLeft: '1px'
+      } });
   "#
 );
 
@@ -92,9 +92,9 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({ x: {
-      transitionDuration: '0.01s',
-      transitionTimingFunction: 'cubic-bezier(.08,.52,.52,1)'
-    } });
+        transitionDuration: '0.01s',
+        transitionTimingFunction: 'cubic-bezier(.08,.52,.52,1)'
+      } });
   "#
 );
 

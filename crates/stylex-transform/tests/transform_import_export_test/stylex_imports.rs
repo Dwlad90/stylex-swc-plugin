@@ -165,7 +165,7 @@ fn import_none() {
   let input = r#"
     export const styles = stylex.create({
       root: {
-        color: 'red'
+      color: 'red'
       }
     });
   "#;
@@ -339,7 +339,7 @@ stylex_test!(
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { constants } from './constants.consts';
-    "#
+  "#
 );
 
 stylex_test!(
@@ -348,7 +348,7 @@ stylex_test!(
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { theme } from './theme.stylex';
-    "#
+  "#
 );
 
 stylex_test!(
@@ -357,7 +357,7 @@ stylex_test!(
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { constants } from './constants.consts.ts';
-    "#
+  "#
 );
 
 stylex_test!(
@@ -366,7 +366,7 @@ stylex_test!(
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { theme } from './theme.stylex.ts';
-    "#
+  "#
 );
 
 stylex_test!(
@@ -375,7 +375,7 @@ stylex_test!(
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { constants } from './constants.stylex';
-    "#
+  "#
 );
 
 stylex_test!(
@@ -384,5 +384,5 @@ stylex_test!(
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { constants } from './constants.consts.ts';
-    "#
+  "#
 );

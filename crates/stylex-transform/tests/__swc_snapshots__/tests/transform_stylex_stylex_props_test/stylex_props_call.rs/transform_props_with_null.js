@@ -56,7 +56,7 @@ export function Props_With_Null(isActive, isInactive, items) {
     const isAnswered = items[isActive] !== null;
     const [isFirst, setIsFirst] = useState(false);
     return <>
-  <button {...stylex.props(styles.base, ...isFirst === true ? [
+        <button {...stylex.props(styles.base, ...isFirst === true ? [
         styles.active
     ] : [], ...isFirst === true ? [
         styles.answered,
@@ -64,17 +64,17 @@ export function Props_With_Null(isActive, isInactive, items) {
     ] : [
         styles.base
     ], isAnswered ? styles.answered : null, isAnswered ? styles.answered : isInactive ? styles.inactive : null, isAnswered ? styles.answered : styles.unanswered)}/>
-    <button {...stylex.props(styles.base, ...isFirst === true ? [
+        <button {...stylex.props(styles.base, ...isFirst === true ? [
         styles.active
     ] : [])}>Active</button>
       <button {...stylex.props(styles.base, ...isFirst === true ? [
         styles.active
     ] : [])}>Inactive</button>
-      <button {...stylex.props(styles.base, ...isFirst === true ? [
+    <button {...stylex.props(styles.base, ...isFirst === true ? [
         styles.active
     ] : [])}>Answered</button>
-      <button {...stylex.props(styles.base, ...isFirst === true ? [
+    <button {...stylex.props(styles.base, ...isFirst === true ? [
         styles.active
     ] : [])}>Unanswered</button>
-      </>;
+    </>;
 }

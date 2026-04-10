@@ -5,7 +5,7 @@ stylex_test!(
   valid_import_non_stylex,
   r#"
     import classnames from 'classnames';
-    "#
+  "#
 );
 
 stylex_test!(
@@ -13,7 +13,7 @@ stylex_test!(
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({});
-    "#
+  "#
 );
 
 stylex_test!(
@@ -21,7 +21,7 @@ stylex_test!(
   r#"
     import * as stylex from '@stylexjs/stylex';
     export default stylex.create({});
-    "#
+  "#
 );
 
 stylex_test!(

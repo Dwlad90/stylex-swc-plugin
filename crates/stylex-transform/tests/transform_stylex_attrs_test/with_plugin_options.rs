@@ -21,9 +21,9 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        default: {
-            color: 'red',
-        },
+      default: {
+        color: 'red',
+      },
     });
     stylex.attrs(styles.default);
   "#
@@ -36,14 +36,14 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        default: {
-            color: 'red',
-        },
+      default: {
+        color: 'red',
+      },
     });
     const otherStyles = stylex.create({
-        default: {
-            backgroundColor: 'blue',
-        }
+      default: {
+        backgroundColor: 'blue',
+      }
     });
     stylex.attrs([styles.default, isActive && otherStyles.default]);
   "#
@@ -55,14 +55,14 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        default: {
-            color: 'red',
-        },
+      default: {
+        color: 'red',
+      },
     });
     const otherStyles = stylex.create({
-        default: {
-            backgroundColor: 'blue',
-        }
+      default: {
+        backgroundColor: 'blue',
+      }
     });
     stylex.attrs([styles.default, isActive && otherStyles.default]);
   "#
@@ -74,12 +74,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        default: {
-            color: 'red',
-        },
-        active: {
-            color: 'blue',
-        }
+      default: {
+        color: 'red',
+      },
+      active: {
+        color: 'blue',
+      }
     });
     stylex.attrs([styles.default, isActive && styles.active]);
   "#

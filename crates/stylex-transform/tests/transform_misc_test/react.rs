@@ -28,12 +28,12 @@ stylex_test!(
       const isSelected = true;
 
       const innerComponent = useMemo(() => {
-        return <Component {...stylex.props(isSelected && styles.selected)} />
-      }, [isSelected]);
+          return <Component {...stylex.props(isSelected && styles.selected)} />
+        }, [isSelected]);
 
-      return innerComponent;
-    }
-"#
+        return innerComponent;
+      }
+  "#
 );
 
 stylex_test!(
@@ -56,12 +56,12 @@ stylex_test!(
       const isSelected = true;
 
       const innerComponent = useMemo(() => {
-        return <Component {...stylex.props(isSelected && styles.selected)} />
-      }, [isSelected]);
+          return <Component {...stylex.props(isSelected && styles.selected)} />
+        }, [isSelected]);
 
-      return innerComponent;
-    }
-"#
+        return innerComponent;
+      }
+  "#
 );
 
 stylex_test!(
@@ -86,7 +86,7 @@ stylex_test!(
         <div styleExtend={[c.descriptionTextLink]} />
       );
     }
-"#
+  "#
 );
 
 stylex_test!(
@@ -121,7 +121,7 @@ stylex_test!(
         <div styleExtend={[c.base, c[grid]]} />
       );
     }
-"#
+  "#
 );
 
 stylex_test!(
@@ -144,18 +144,18 @@ stylex_test!(
 
       return (
         <div {...sx.props(
-        nullable?.test && c.base,
-        undef?.test && c.base,
-        (()=>{
-                    const implementation = {
-                        foo: ()=>null,
-                        bar: ()=>c.base
-                    };
-                    return implementation[result?.value !== 'test' ? "foo" : result?.test] || implementation.foo;
-                })()())} />
-      );
-    }
-"#
+            nullable?.test && c.base,
+            undef?.test && c.base,
+            (()=>{
+                const implementation = {
+                  foo: ()=>null,
+                  bar: ()=>c.base
+                };
+                return implementation[result?.value !== 'test' ? "foo" : result?.test] || implementation.foo;
+              })()())} />
+        );
+      }
+  "#
 );
 
 stylex_test!(
@@ -180,7 +180,7 @@ stylex_test!(
         <div {...sx.props(result && c.base)} />
       );
     }
-"#
+  "#
 );
 
 stylex_test!(
@@ -198,14 +198,14 @@ stylex_test!(
     export function Button_Record_From_Import ()  {
 
       return <button
-        {...stylex.props(
+      {...stylex.props(
           buttonTheme[state.theme],
-        )}
+      )}
       >
-        Click Me!
-      </button>
+      Click Me!
+    </button>
     };
-"#
+  "#
 );
 
 stylex_test!(
@@ -224,7 +224,7 @@ stylex_test!(
     export default function Example() {
       return <div className={stylex(styles.container)}>Content</div>;
     };
-"#
+  "#
 );
 
 stylex_test!(
@@ -232,23 +232,23 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({
-        round: (size) => ({
-          fontSize: `${Math.round(size * (2 / 3))}px`,
-        }),
-        min: (size) => ({
-          fontSize: `${Math.min(size * (2 / 3), 12)}px`,
-        }),
-        abs: (size) => ({
-          fontSize: Math.abs(size * (2 / 3)) + "px",
-        }),
-        pow: (size) => ({
-          fontSize: Math.pow(size * (2 / 3), 2) + "px",
-        }),
-      });
+    const styles = stylex.create({
+      round: (size) => ({
+        fontSize: `${Math.round(size * (2 / 3))}px`,
+      }),
+      min: (size) => ({
+        fontSize: `${Math.min(size * (2 / 3), 12)}px`,
+      }),
+      abs: (size) => ({
+        fontSize: Math.abs(size * (2 / 3)) + "px",
+      }),
+      pow: (size) => ({
+        fontSize: Math.pow(size * (2 / 3), 2) + "px",
+      }),
+    });
 
-      export default function Component({round, min, abs, pow}) {
-        return <div {...stylex.props(round && styles.round(12), min && styles.min(12), abs && styles.abs(12), pow && styles.pow(12))} />;
-      }
-"#
+    export default function Component({round, min, abs, pow}) {
+      return <div {...stylex.props(round && styles.round(12), min && styles.min(12), abs && styles.abs(12), pow && styles.pow(12))} />;
+    }
+  "#
 );

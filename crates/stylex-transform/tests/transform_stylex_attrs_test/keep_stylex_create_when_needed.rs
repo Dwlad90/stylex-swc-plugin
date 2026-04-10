@@ -5,12 +5,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        [0]: {
-            color: 'red',
-        },
-        [1]: {
-            backgroundColor: 'blue',
-        }
+      [0]: {
+        color: 'red',
+      },
+      [1]: {
+        backgroundColor: 'blue',
+      }
     });
     stylex.attrs(styles[variant]);
   "#
@@ -21,9 +21,9 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        default: {
-            color: 'red',
-        },
+      default: {
+        color: 'red',
+      },
     });
     stylex.attrs([styles.default, attrs]);
   "#
@@ -34,14 +34,14 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
-    default: {
+      default: {
         ':hover': {
-            color: 'blue',
+          color: 'blue',
         },
         '@media (min-width: 1000px)': {
-            backgroundColor: 'blue',
+          backgroundColor: 'blue',
         },
-    }
+      }
     });
     stylex.attrs(styles.default);
   "#

@@ -7,9 +7,9 @@ stylex_test_transform!(
   |_tr| EvaluationStyleXLastStatementTransform::default_with_pass(),
   r#"
     import react from 'react';
-            const a = [1, 2];
-            a;
-        "#,
+    const a = [1, 2];
+    a;
+  "#,
   r#"
     import react from 'react';
     const a = [1, 2];
@@ -23,9 +23,9 @@ stylex_test_panic!(
   |_tr| EvaluationStyleXLastStatementTransform::default_with_pass(),
   r#"
     import react from 'react';
-      const a = [1, 2];
-      a.push(3);
-      a;
+    const a = [1, 2];
+    a.push(3);
+    a;
   "#
 );
 
@@ -49,7 +49,7 @@ stylex_test_panic!(
     import react from 'react';
     const a = {bar: 'baz'};
     Object.assign(a, {foo: 1});
-    a;
+      a;
   "#
 );
 

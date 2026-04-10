@@ -20,12 +20,12 @@ stylex_test!(
     import { when, create } from '@stylexjs/stylex';
 
     const styles = create({
-        container: {
-          backgroundColor: {
-            default: 'blue',
-            [when.ancestor(':hover')]: 'red',
-          },
+      container: {
+        backgroundColor: {
+          default: 'blue',
+          [when.ancestor(':hover')]: 'red',
         },
+      },
     });
 
     console.log(styles.container);

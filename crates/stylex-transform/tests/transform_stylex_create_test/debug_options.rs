@@ -21,7 +21,7 @@ stylex_test!(
     ))
   }),
   r#"
-      import * as stylex from '@stylexjs/stylex';
+    import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
       foo: {
         color: 'red'

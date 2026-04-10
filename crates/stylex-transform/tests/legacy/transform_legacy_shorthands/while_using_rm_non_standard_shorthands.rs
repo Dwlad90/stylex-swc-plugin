@@ -20,12 +20,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
-        foo: {
-            padding: 5
-        }
+      foo: {
+        padding: 5
+      }
     });
     stylex(styles.foo);
-    "#
+  "#
 );
 
 stylex_test!(
@@ -34,18 +34,18 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        foo: {
-            padding: 5,
-            paddingEnd: 10,
-        },
+      foo: {
+        padding: 5,
+        paddingEnd: 10,
+      },
 
-        bar: {
-            padding: 2,
-            paddingStart: 10,
-        },
+      bar: {
+        padding: 2,
+        paddingStart: 10,
+      },
     });
     stylex(styles.foo, styles.bar);
-    "#
+  "#
 );
 
 stylex_test!(
@@ -54,15 +54,15 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        foo: {
-            padding: 5,
-            paddingEnd: 10,
-        },
+      foo: {
+        padding: 5,
+        paddingEnd: 10,
+      },
 
-        bar: {
-            padding: 2,
-            paddingStart: null,
-        },
+      bar: {
+        padding: 2,
+        paddingStart: null,
+      },
     });
     stylex(styles.foo, styles.bar);
   "#

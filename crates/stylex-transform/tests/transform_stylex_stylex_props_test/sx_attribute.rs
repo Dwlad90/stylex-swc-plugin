@@ -23,21 +23,21 @@ stylex_test!(
   sx_attr_instead_of_stylex_props,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  red: {
-    color: 'red',
-  }
-});
-function Foo() {
-  return (
-    <>
-      <div id="test" sx={styles.red}>Hello World</div>
-      <div className="test" sx={styles.red} id="test">Hello World</div>
-      <div id="test" sx={styles.red} className="test">Hello World</div>
-    </>
-  );
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo() {
+      return (
+        <>
+          <div id="test" sx={styles.red}>Hello World</div>
+          <div className="test" sx={styles.red} id="test">Hello World</div>
+          <div id="test" sx={styles.red} className="test">Hello World</div>
+        </>
+      );
+    }
   "#
 );
 
@@ -47,15 +47,15 @@ stylex_test!(
     b.with_sx_prop_name(SxPropNameParam::Enabled("css".to_string()))
   }),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  red: {
-    color: 'red',
-  }
-});
-function Foo() {
-  return <div css={styles.red}>Hello World</div>;
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo() {
+      return <div css={styles.red}>Hello World</div>;
+    }
   "#
 );
 
@@ -65,15 +65,15 @@ stylex_test!(
     b.with_sx_prop_name(SxPropNameParam::Disabled)
   }),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  red: {
-    color: 'red',
-  }
-});
-function Foo() {
-  return <div sx={styles.red}>Hello World</div>;
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo() {
+      return <div sx={styles.red}>Hello World</div>;
+    }
   "#
 );
 
@@ -81,15 +81,15 @@ stylex_test!(
   sx_attr_not_applied_to_component_elements,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  red: {
-    color: 'red',
-  }
-});
-function Foo() {
-  return <MyComponent sx={styles.red}>Hello World</MyComponent>;
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo() {
+      return <MyComponent sx={styles.red}>Hello World</MyComponent>;
+    }
   "#
 );
 
@@ -98,18 +98,18 @@ stylex_test!(
   sx_attr_array_syntax,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  card: {
-    borderRadius: 4,
-  },
-  blueBg: {
-    backgroundColor: 'blue',
-  }
-});
-function Foo() {
-  return <div sx={[styles.card, styles.blueBg]}>Hello World</div>;
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      card: {
+        borderRadius: 4,
+      },
+      blueBg: {
+        backgroundColor: 'blue',
+      }
+    });
+    function Foo() {
+      return <div sx={[styles.card, styles.blueBg]}>Hello World</div>;
+    }
   "#
 );
 
@@ -118,18 +118,18 @@ stylex_test!(
   sx_attr_compiled_jsx_form,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  main: {
-    color: 'red',
-  }
-});
-function App() {
-  return _jsx("div", {
-    sx: styles.main,
-    children: "Hello World"
-  });
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          sx: styles.main,
+          children: "Hello World"
+        });
+      }
   "#
 );
 
@@ -138,21 +138,21 @@ stylex_test!(
   sx_attr_compiled_jsx_form_array_syntax,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  card: {
-    borderRadius: 4,
-  },
-  blueBg: {
-    backgroundColor: 'blue',
-  }
-});
-function App() {
-  return _jsx("div", {
-    sx: [styles.card, styles.blueBg],
-    children: "Hello World"
-  });
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      card: {
+        borderRadius: 4,
+      },
+      blueBg: {
+        backgroundColor: 'blue',
+      }
+    });
+    function App() {
+      return _jsx("div", {
+          sx: [styles.card, styles.blueBg],
+          children: "Hello World"
+        });
+      }
   "#
 );
 
@@ -161,18 +161,18 @@ stylex_test!(
   sx_attr_compiled_jsx_not_applied_to_components,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  main: {
-    color: 'red',
-  }
-});
-function App() {
-  return _jsx(MyComponent, {
-    sx: styles.main,
-    children: "Hello World"
-  });
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      }
+    });
+    function App() {
+      return _jsx(MyComponent, {
+          sx: styles.main,
+          children: "Hello World"
+        });
+      }
   "#
 );
 
@@ -181,24 +181,24 @@ stylex_test!(
   sx_attr_vue_create_element_block,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  main: {
-    color: 'red',
-  },
-  card: {
-    borderRadius: 4,
-  }
-});
-function App() {
-  return _createElementBlock("div", {
-    sx: styles.main
-  }, [
-    _createElementVNode("div", {
-      sx: [styles.card]
-    }, "Hello World")
-  ]);
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      },
+      card: {
+        borderRadius: 4,
+      }
+    });
+    function App() {
+      return _createElementBlock("div", {
+          sx: styles.main
+        }, [
+          _createElementVNode("div", {
+              sx: [styles.card]
+            }, "Hello World")
+        ]);
+      }
   "#
 );
 
@@ -207,22 +207,22 @@ stylex_test!(
   sx_attr_solid_js_set_attribute,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  main: {
-    color: 'red',
-  },
-  card: {
-    borderRadius: 4,
-  },
-  blueBg: {
-    backgroundColor: 'blue',
-  }
-});
-function App() {
-  _$setAttribute(_el$, "sx", styles.main);
-  _$spread(_el$2, _$mergeProps(() => stylex.props(styles.card, styles.blueBg)), false, true);
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      },
+      card: {
+        borderRadius: 4,
+      },
+      blueBg: {
+        backgroundColor: 'blue',
+      }
+    });
+    function App() {
+      _$setAttribute(_el$, "sx", styles.main);
+      _$spread(_el$2, _$mergeProps(() => stylex.props(styles.card, styles.blueBg)), false, true);
+    }
   "#
 );
 
@@ -231,27 +231,27 @@ stylex_test!(
   sx_attr_vite_jsx_runtime_call,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  main: {
-    color: 'red',
-  },
-  card: {
-    borderRadius: 4,
-  },
-  blueBg: {
-    backgroundColor: 'blue',
-  }
-});
-function App() {
-  return jsx("div", {
-    sx: styles.main
-  }, [
-    jsx("div", {
-      sx: [styles.card]
-    }, "Hello World")
-  ]);
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      main: {
+        color: 'red',
+      },
+      card: {
+        borderRadius: 4,
+      },
+      blueBg: {
+        backgroundColor: 'blue',
+      }
+    });
+    function App() {
+      return jsx("div", {
+          sx: styles.main
+        }, [
+          jsx("div", {
+              sx: [styles.card]
+            }, "Hello World")
+        ]);
+      }
   "#
 );
 
@@ -260,18 +260,18 @@ stylex_test!(
   sx_attr_solid_js_set_attribute_array,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  card: {
-    borderRadius: 4,
-  },
-  blueBg: {
-    backgroundColor: 'blue',
-  }
-});
-function App() {
-  _$setAttribute(_el$, "sx", [styles.card, styles.blueBg]);
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      card: {
+        borderRadius: 4,
+      },
+      blueBg: {
+        backgroundColor: 'blue',
+      }
+    });
+    function App() {
+      _$setAttribute(_el$, "sx", [styles.card, styles.blueBg]);
+      }
   "#
 );
 
@@ -279,27 +279,27 @@ stylex_test!(
   sx_attr_and_props_calls_are_equivalent,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import stylex from 'stylex';
-const styles = stylex.create({
-  red: {
-    color: 'red',
-  },
-  blueBg: {
-    backgroundColor: 'blue',
-  }
-});
-function Foo() {
-  return (
-    <>
-      <div id="test" sx={styles.red}>Hello World</div>
-      <div id="test" {...stylex.props(styles.red)}>Hello World</div>
-      <div className="test" sx={[styles.red, color && styles.blueBg]} id="test">Hello World</div>
-      <div className="test" {...stylex.props(styles.red, color && styles.blueBg)} id="test">Hello World</div>
-      <div id="test" sx={styles.blueBg} className="test">Hello World</div>
-      <div id="test" {...stylex.props(styles.blueBg)} className="test">Hello World</div>
-    </>
-  );
-}
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      },
+      blueBg: {
+        backgroundColor: 'blue',
+      }
+    });
+    function Foo() {
+      return (
+        <>
+          <div id="test" sx={styles.red}>Hello World</div>
+          <div id="test" {...stylex.props(styles.red)}>Hello World</div>
+          <div className="test" sx={[styles.red, color && styles.blueBg]} id="test">Hello World</div>
+          <div className="test" {...stylex.props(styles.red, color && styles.blueBg)} id="test">Hello World</div>
+          <div id="test" sx={styles.blueBg} className="test">Hello World</div>
+          <div id="test" {...stylex.props(styles.blueBg)} className="test">Hello World</div>
+        </>
+      );
+    }
   "#
 );
 
@@ -307,15 +307,15 @@ stylex_test!(
   sx_attr_import_name_as_default,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-  import sx from '@stylexjs/stylex';
-  const styles = sx.create({
-    red: {
-      color: 'red',
+    import sx from '@stylexjs/stylex';
+    const styles = sx.create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo({overrideProps= []}) {
+      return <div sx={[styles.red, ...overrideProps]}>Hello World</div>;
     }
-  });
-  function Foo({overrideProps= []}) {
-    return <div sx={[styles.red, ...overrideProps]}>Hello World</div>;
-  }
   "#
 );
 
@@ -323,15 +323,15 @@ stylex_test!(
   sx_attr_import_name_as_namespace,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-  import * as sx from '@stylexjs/stylex';
-  const styles = sx.create({
-    red: {
-      color: 'red',
+    import * as sx from '@stylexjs/stylex';
+    const styles = sx.create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo({overrideProps= []}) {
+      return <div sx={[styles.red, ...overrideProps]}>Hello World</div>;
     }
-  });
-  function Foo({overrideProps= []}) {
-    return <div sx={[styles.red, ...overrideProps]}>Hello World</div>;
-  }
   "#
 );
 
@@ -339,15 +339,15 @@ stylex_test!(
   sx_attr_import_name_as_named,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-  import {create, props as sx} from '@stylexjs/stylex';
-  const styles = create({
-    red: {
-      color: 'red',
+    import {create, props as sx} from '@stylexjs/stylex';
+    const styles = create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo({overrideProps= []}) {
+      return <div sx={[styles.red, ...overrideProps]}>Hello World</div>;
     }
-  });
-  function Foo({overrideProps= []}) {
-    return <div sx={[styles.red, ...overrideProps]}>Hello World</div>;
-  }
   "#
 );
 
@@ -355,14 +355,14 @@ stylex_test!(
   sx_attr_import_name_as_props,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-  import {create, props} from '@stylexjs/stylex';
-  const styles = create({
-    red: {
-      color: 'red',
+    import {create, props} from '@stylexjs/stylex';
+    const styles = create({
+      red: {
+        color: 'red',
+      }
+    });
+    function Foo({overrideProps= []}) {
+      return <div sx={[styles.red, ...overrideProps]}>Hello World</div>;
     }
-  });
-  function Foo({overrideProps= []}) {
-    return <div sx={[styles.red, ...overrideProps]}>Hello World</div>;
-  }
   "#
 );

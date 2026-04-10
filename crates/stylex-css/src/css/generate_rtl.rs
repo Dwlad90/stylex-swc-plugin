@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use log::warn;
 
 use stylex_constants::constants::{
@@ -8,12 +10,11 @@ use stylex_enums::style_resolution::StyleResolution;
 use stylex_regex::regex::LENGTH_UNIT_TESTER_REGEX;
 use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
 
-fn logical_to_physical_rtl(input: impl AsRef<str>) -> Option<&'static str> {
-  let input = input.as_ref();
+fn logical_to_physical_rtl(input: &str) -> Option<Cow<'_, str>> {
   match input {
-    "start" | "inline-start" => Some("right"),
-    "end" | "inline-end" => Some("left"),
-    _ => None,
+    "start" | "inline-start" => Some(std::borrow::Cow::Borrowed("right")),
+    "end" | "inline-end" => Some(std::borrow::Cow::Borrowed("left")),
+    _ => Some(std::borrow::Cow::Borrowed(input)),
   }
 }
 

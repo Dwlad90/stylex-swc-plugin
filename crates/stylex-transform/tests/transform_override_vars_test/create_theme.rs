@@ -28,15 +28,15 @@ fn transform(input: &str) -> String {
 }
 
 static OUTPUT_OF_STYLEX_DEFINE_VARS: &str = r#"
-import stylex from 'stylex';
-export const buttonTheme = {
-    bgColor: "var(--xgck17p)",
-    bgColorDisabled: "var(--xpegid5)",
-    cornerRadius: "var(--xrqfjmn)",
-    fgColor: "var(--x4y59db)",
-    __varGroupHash__: "x568ih9"
-};
-"#;
+    import stylex from 'stylex';
+    export const buttonTheme = {
+      bgColor: "var(--xgck17p)",
+      bgColorDisabled: "var(--xpegid5)",
+      cornerRadius: "var(--xrqfjmn)",
+      fgColor: "var(--x4y59db)",
+      __varGroupHash__: "x568ih9"
+    };
+  "#;
 
 static CREATE_THEME: &str = r#"{
   bgColor: {
@@ -70,16 +70,16 @@ static CREATE_THEME_WITH_DIFFERENT_ORDER: &str = r#"{
 fn variables_order_does_not_change_the_class_name_hash() {
   let input_v1 = format!(
     r#"
-    {}
-  const buttonThemePositive = stylex.createTheme(buttonTheme, {});
+      {}
+      const buttonThemePositive = stylex.createTheme(buttonTheme, {});
     "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS, CREATE_THEME
   );
 
   let input_v2 = format!(
     r#"
-    {}
-    const buttonThemePositive = stylex.createTheme(buttonTheme, {});
+      {}
+      const buttonThemePositive = stylex.createTheme(buttonTheme, {});
     "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS, CREATE_THEME_WITH_DIFFERENT_ORDER
   );
@@ -100,8 +100,8 @@ stylex_test!(
   }),
   format!(
     r#"
-    {}
-    export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
+      {}
+      export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
     "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS, CREATE_THEME
   )
@@ -113,8 +113,8 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   format!(
     r#"
-    {}
-    export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
+      {}
+      export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
     "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS, CREATE_THEME
   )
@@ -129,8 +129,8 @@ stylex_test!(
   }),
   format!(
     r#"
-    {}
-    export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
+      {}
+      export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
     "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS, CREATE_THEME
   )
@@ -145,8 +145,8 @@ stylex_test!(
   }),
   format!(
     r#"
-    {}
-    export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
+      {}
+      export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
     "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS, CREATE_THEME
   )
@@ -160,12 +160,12 @@ stylex_test!(
   }),
   format!(
     r#"
-    {}
-    export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
-    export const buttonThemeNew = stylex.createTheme(buttonTheme, {{
-      bgColor: 'skyblue',
-      cornerRadius: '8px',
-    }});
+      {}
+      export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
+        export const buttonThemeNew = stylex.createTheme(buttonTheme, {{
+              bgColor: 'skyblue',
+              cornerRadius: '8px',
+          }});
     "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS, CREATE_THEME
   )
@@ -177,14 +177,14 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   format!(
     r#"
-    {}
-    export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
-    export const buttonThemeMonochromatic = stylex.createTheme(
-      buttonTheme, {{
-        bgColor: 'white',
-        bgColorDisabled: 'black',
-        cornerRadius: '0px',
-      }});
+      {}
+      export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
+        export const buttonThemeMonochromatic = stylex.createTheme(
+          buttonTheme, {{
+              bgColor: 'white',
+              bgColorDisabled: 'black',
+              cornerRadius: '0px',
+          }});
     "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS, CREATE_THEME
   )
@@ -199,18 +199,18 @@ stylex_test!(
       {}
       const RADIUS = 10;
       export const buttonThemePositive = stylex.createTheme(buttonTheme, {{
-      bgColor: {{
-        default: 'green',
-        '@media (prefers-color-scheme: dark)': 'lightgreen',
-        '@media print': 'transparent',
-      }},
-      bgColorDisabled: {{
-        default: 'antiquewhite',
-        '@media (prefers-color-scheme: dark)': 'floralwhite',
-      }},
-      cornerRadius: {{ default: RADIUS }},
-      fgColor: 'coral',
-    }});
+            bgColor: {{
+                default: 'green',
+                '@media (prefers-color-scheme: dark)': 'lightgreen',
+                '@media print': 'transparent',
+            }},
+            bgColorDisabled: {{
+                default: 'antiquewhite',
+                '@media (prefers-color-scheme: dark)': 'floralwhite',
+            }},
+            cornerRadius: {{ default: RADIUS }},
+            fgColor: 'coral',
+        }});
     "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS
   )
@@ -222,22 +222,22 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   format!(
     r#"
-    {}
-    const COLOR = 'coral';
-    export const buttonThemePositive = stylex.createTheme(buttonTheme, {{
-      bgColor: {{
-        default: 'green',
-        '@media (prefers-color-scheme: dark)': 'lightgreen',
-        '@media print': 'transparent',
-      }},
-      bgColorDisabled: {{
-        default: 'antiquewhite',
-        '@media (prefers-color-scheme: dark)': 'floralwhite',
-      }},
-      cornerRadius: {{ default: '6px' }},
-      fgColor: COLOR,
-    }});
-  "#,
+      {}
+      const COLOR = 'coral';
+      export const buttonThemePositive = stylex.createTheme(buttonTheme, {{
+            bgColor: {{
+                default: 'green',
+                '@media (prefers-color-scheme: dark)': 'lightgreen',
+                '@media print': 'transparent',
+            }},
+            bgColorDisabled: {{
+                default: 'antiquewhite',
+                '@media (prefers-color-scheme: dark)': 'floralwhite',
+            }},
+            cornerRadius: {{ default: '6px' }},
+            fgColor: COLOR,
+        }});
+    "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS
   )
   .as_str()
@@ -248,22 +248,22 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   format!(
     r#"
-    {}
-    const name = 'light';
-    export const buttonThemePositive = stylex.createTheme(buttonTheme, {{
-      bgColor: {{
-        default: `${{name}}green`,
-        '@media (prefers-color-scheme: dark)': 'lightgreen',
-        '@media print': 'transparent',
-      }},
-      bgColorDisabled: {{
-        default: 'antiquewhite',
-        '@media (prefers-color-scheme: dark)': 'floralwhite',
-      }},
-      cornerRadius: {{ default: '6px' }},
-      fgColor: 'coral',
-    }});
-  "#,
+      {}
+      const name = 'light';
+      export const buttonThemePositive = stylex.createTheme(buttonTheme, {{
+            bgColor: {{
+                default: `${{name}}green`,
+                '@media (prefers-color-scheme: dark)': 'lightgreen',
+                '@media print': 'transparent',
+            }},
+            bgColorDisabled: {{
+                default: 'antiquewhite',
+                '@media (prefers-color-scheme: dark)': 'floralwhite',
+            }},
+            cornerRadius: {{ default: '6px' }},
+            fgColor: 'coral',
+        }});
+    "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS
   )
   .as_str()
@@ -274,22 +274,22 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_dev(true)),
   format!(
     r#"
-    {}
-    const RADIUS = 2;
-    export const buttonThemePositive = stylex.createTheme(buttonTheme, {{
-      bgColor: {{
-        default: 'green',
-        '@media (prefers-color-scheme: dark)': 'lightgreen',
-        '@media print': 'transparent',
-      }},
-      bgColorDisabled: {{
-        default: 'antiquewhite',
-        '@media (prefers-color-scheme: dark)': 'floralwhite',
-      }},
-      cornerRadius: {{ default: RADIUS * 2 }},
-      fgColor: 'coral',
-    }});
-  "#,
+      {}
+      const RADIUS = 2;
+      export const buttonThemePositive = stylex.createTheme(buttonTheme, {{
+            bgColor: {{
+                default: 'green',
+                '@media (prefers-color-scheme: dark)': 'lightgreen',
+                '@media print': 'transparent',
+            }},
+            bgColorDisabled: {{
+                default: 'antiquewhite',
+                '@media (prefers-color-scheme: dark)': 'floralwhite',
+            }},
+            cornerRadius: {{ default: RADIUS * 2 }},
+            fgColor: 'coral',
+        }});
+    "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS
   )
   .as_str()
@@ -308,9 +308,9 @@ stylex_test!(
   }),
   format!(
     r#"
-    {}
-    export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
-  "#,
+      {}
+      export const buttonThemePositive = stylex.createTheme(buttonTheme, {});
+    "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS, CREATE_THEME
   )
   .as_str()
@@ -324,18 +324,18 @@ stylex_test!(
       {}
       export const RADIUS = 2;
       export const buttonThemePositive = stylex.createTheme(buttonTheme, {{
-      bgColor: stylex.types.color({{
-        default: 'green',
-        '@media (prefers-color-scheme: dark)': 'lightgreen',
-        '@media print': 'transparent',
-      }}),
-      bgColorDisabled: stylex.types.color({{
-        default: 'antiquewhite',
-        '@media (prefers-color-scheme: dark)': 'floralwhite',
-      }}),
-      cornerRadius: stylex.types.length({{ default: RADIUS * 2 }}),
-      fgColor: stylex.types.color('coral'),
-    }});
+            bgColor: stylex.types.color({{
+                default: 'green',
+                '@media (prefers-color-scheme: dark)': 'lightgreen',
+                '@media print': 'transparent',
+            }}),
+            bgColorDisabled: stylex.types.color({{
+                default: 'antiquewhite',
+                '@media (prefers-color-scheme: dark)': 'floralwhite',
+            }}),
+            cornerRadius: stylex.types.length({{ default: RADIUS * 2 }}),
+            fgColor: stylex.types.color('coral'),
+        }});
     "#,
     OUTPUT_OF_STYLEX_DEFINE_VARS
   )

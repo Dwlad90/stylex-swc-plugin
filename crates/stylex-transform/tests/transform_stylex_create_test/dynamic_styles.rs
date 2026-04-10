@@ -433,9 +433,9 @@ stylex_test!(
 
     export const styles = stylex.create({
       fn: (opt: { height?: number }) => ({
-        height: opt.height ?? null,
-      }),
-    });
+          height: opt.height ?? null,
+        }),
+      });
   "#
 );
 
@@ -447,14 +447,14 @@ stylex_test!(
 
     export const styles = stylex.create({
       fn: (opt: { size?: 'xlarge' | 'large' | 'medium' | 'small' }) => ({
-        borderRadius: {
-          xlarge: 16,
-          large: 12,
-          medium: 8,
-          small: 8,
-        }[opt?.size ?? 'large'],
-      }),
-    });
+          borderRadius: {
+            xlarge: 16,
+            large: 12,
+            medium: 8,
+            small: 8,
+          }[opt?.size ?? 'large'],
+        }),
+      });
   "#
 );
 
@@ -466,8 +466,8 @@ stylex_test!(
 
     export const styles = stylex.create({
       fn: (opt?: { isPressed: boolean }) => ({
-        outline: { true: 'red', false: 'blue' }[String(!!opt?.isPressed)],
-      }),
-    });
+          outline: { true: 'red', false: 'blue' }[String(!!opt?.isPressed)],
+        }),
+      });
   "#
 );

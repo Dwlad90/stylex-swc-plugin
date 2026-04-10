@@ -19,26 +19,26 @@ stylex_test!(
   theme_object,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-export const theme = stylex.createTheme(vars, {
-  color: {
-    default: 'green',
-    '@media (prefers-color-scheme: dark)': 'lightgreen',
-    '@media print': 'transparent',
-  },
-  otherColor: {
-    default: 'antiquewhite',
-    '@media (prefers-color-scheme: dark)': 'floralwhite',
-  },
-  radius: '6px'
-});
+    export const theme = stylex.createTheme(vars, {
+        color: {
+          default: 'green',
+          '@media (prefers-color-scheme: dark)': 'lightgreen',
+          '@media print': 'transparent',
+        },
+        otherColor: {
+          default: 'antiquewhite',
+          '@media (prefers-color-scheme: dark)': 'floralwhite',
+        },
+        radius: '6px'
+      });
   "#
 );
 
@@ -48,26 +48,26 @@ stylex_test!(
     b.with_unstable_module_resolution(ModuleResolution::haste(None))
   }),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-export const theme = stylex.createTheme(vars, {
-  color: {
-    default: 'green',
-    '@media (prefers-color-scheme: dark)': 'lightgreen',
-    '@media print': 'transparent',
-  },
-  otherColor: {
-    default: 'antiquewhite',
-    '@media (prefers-color-scheme: dark)': 'floralwhite',
-  },
-  radius: '6px'
-});
+    export const theme = stylex.createTheme(vars, {
+        color: {
+          default: 'green',
+          '@media (prefers-color-scheme: dark)': 'lightgreen',
+          '@media print': 'transparent',
+        },
+        otherColor: {
+          default: 'antiquewhite',
+          '@media (prefers-color-scheme: dark)': 'floralwhite',
+        },
+        radius: '6px'
+      });
   "#
 );
 
@@ -79,26 +79,26 @@ stylex_test!(
     ))
   }),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-export const theme = stylex.createTheme(vars, {
-  color: {
-    default: 'green',
-    '@media (prefers-color-scheme: dark)': 'lightgreen',
-    '@media print': 'transparent',
-  },
-  otherColor: {
-    default: 'antiquewhite',
-    '@media (prefers-color-scheme: dark)': 'floralwhite',
-  },
-  radius: '6px'
-});
+    export const theme = stylex.createTheme(vars, {
+        color: {
+          default: 'green',
+          '@media (prefers-color-scheme: dark)': 'lightgreen',
+          '@media print': 'transparent',
+        },
+        otherColor: {
+          default: 'antiquewhite',
+          '@media (prefers-color-scheme: dark)': 'floralwhite',
+        },
+        radius: '6px'
+      });
   "#
 );
 
@@ -106,19 +106,19 @@ stylex_test!(
   literal_tokens_theme_object,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  "--color": "var(--color)",
-  "--otherColor": "var(--otherColor)",
-  "--radius": "var(--radius)",
-  __varGroupHash__: "xop34xu"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      "--color": "var(--color)",
+      "--otherColor": "var(--otherColor)",
+      "--radius": "var(--radius)",
+      __varGroupHash__: "xop34xu"
+    };
 
-export const theme = stylex.createTheme(vars, {
-  '--color': 'green',
-  '--otherColor': 'purple',
-  '--radius': 6
-});
+    export const theme = stylex.createTheme(vars, {
+        '--color': 'green',
+        '--otherColor': 'purple',
+        '--radius': 6
+      });
   "#
 );
 
@@ -126,27 +126,27 @@ stylex_test!(
   local_variable_theme_object,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-const themeObj = {
-  color: {
-    default: 'green',
-    '@media (prefers-color-scheme: dark)': 'lightgreen',
-    '@media print': 'transparent',
-  },
-  otherColor: {
-    default: 'antiquewhite',
-    '@media (prefers-color-scheme: dark)': 'floralwhite',
-  },
-  radius: '6px'
-};
-export const theme = stylex.createTheme(vars, themeObj);
+    const themeObj = {
+      color: {
+        default: 'green',
+        '@media (prefers-color-scheme: dark)': 'lightgreen',
+        '@media print': 'transparent',
+      },
+      otherColor: {
+        default: 'antiquewhite',
+        '@media (prefers-color-scheme: dark)': 'floralwhite',
+      },
+      radius: '6px'
+    };
+    export const theme = stylex.createTheme(vars, themeObj);
   "#
 );
 
@@ -154,18 +154,18 @@ stylex_test!(
   local_variables_used_in_theme_objects,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-const RADIUS = 10;
-export const theme = stylex.createTheme(vars, {
-  radius: RADIUS
-});
+    const RADIUS = 10;
+    export const theme = stylex.createTheme(vars, {
+        radius: RADIUS
+      });
   "#
 );
 
@@ -173,18 +173,18 @@ stylex_test!(
   template_literals_used_in_theme_objects,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-const name = 'light';
-export const theme = stylex.createTheme(vars, {
-  color: `${name}green`
-});
+    const name = 'light';
+    export const theme = stylex.createTheme(vars, {
+        color: `${name}green`
+      });
   "#
 );
 
@@ -192,18 +192,18 @@ stylex_test!(
   expressions_used_in_theme_objects,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-const RADIUS = 10;
-export const theme = stylex.createTheme(vars, {
-  radius: RADIUS * 2
-});
+    const RADIUS = 10;
+    export const theme = stylex.createTheme(vars, {
+        radius: RADIUS * 2
+      });
   "#
 );
 
@@ -211,27 +211,27 @@ stylex_test!(
   stylex_types_used_in_theme_object,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-const RADIUS = 10;
-export const theme = stylex.createTheme(vars, {
-  color: stylex.types.color({
-    default: 'green',
-    '@media (prefers-color-scheme: dark)': 'lightgreen',
-    '@media print': 'transparent',
-  }),
-  otherColor: stylex.types.color({
-    default: 'antiquewhite',
-    '@media (prefers-color-scheme: dark)': 'floralwhite',
-  }),
-  radius: stylex.types.length({ default: RADIUS * 2 })
-});
+    const RADIUS = 10;
+    export const theme = stylex.createTheme(vars, {
+        color: stylex.types.color({
+          default: 'green',
+          '@media (prefers-color-scheme: dark)': 'lightgreen',
+          '@media print': 'transparent',
+        }),
+        otherColor: stylex.types.color({
+          default: 'antiquewhite',
+          '@media (prefers-color-scheme: dark)': 'floralwhite',
+        }),
+        radius: stylex.types.length({ default: RADIUS * 2 })
+      });
   "#
 );
 
@@ -239,30 +239,30 @@ stylex_test!(
   multiple_theme_objects_same_vars,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-export const theme = stylex.createTheme(vars, {
-  color: {
-    default: 'green',
-    '@media (prefers-color-scheme: dark)': 'lightgreen',
-    '@media print': 'transparent',
-  },
-  otherColor: {
-    default: 'antiquewhite',
-    '@media (prefers-color-scheme: dark)': 'floralwhite',
-  },
-  radius: '6px'
-});
-export const otherTheme = stylex.createTheme(vars, {
-  color: 'skyblue',
-  radius: '8px',
-});
+    export const theme = stylex.createTheme(vars, {
+        color: {
+          default: 'green',
+          '@media (prefers-color-scheme: dark)': 'lightgreen',
+          '@media print': 'transparent',
+        },
+        otherColor: {
+          default: 'antiquewhite',
+          '@media (prefers-color-scheme: dark)': 'floralwhite',
+        },
+        radius: '6px'
+      });
+      export const otherTheme = stylex.createTheme(vars, {
+          color: 'skyblue',
+          radius: '8px',
+        });
   "#
 );
 
@@ -274,26 +274,26 @@ stylex_test!(
     ))
   }),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-export const theme = stylex.createTheme(vars, {
-  color: {
-    default: 'green',
-    '@media (prefers-color-scheme: dark)': 'lightgreen',
-    '@media print': 'transparent',
-  },
-  otherColor: {
-    default: 'antiquewhite',
-    '@media (prefers-color-scheme: dark)': 'floralwhite',
-  },
-  radius: '6px'
-});
+    export const theme = stylex.createTheme(vars, {
+        color: {
+          default: 'green',
+          '@media (prefers-color-scheme: dark)': 'lightgreen',
+          '@media print': 'transparent',
+        },
+        otherColor: {
+          default: 'antiquewhite',
+          '@media (prefers-color-scheme: dark)': 'floralwhite',
+        },
+        radius: '6px'
+      });
   "#
 );
 
@@ -301,26 +301,26 @@ stylex_test!(
   themes_are_indifferent_to_order_of_keys,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-export const theme = stylex.createTheme(vars, {
-  radius: '6px',
-  otherColor: {
-    default: 'antiquewhite',
-    '@media (prefers-color-scheme: dark)': 'floralwhite',
-  },
-  color: {
-    default: 'green',
-    '@media (prefers-color-scheme: dark)': 'lightgreen',
-    '@media print': 'transparent',
-  }
-});
+    export const theme = stylex.createTheme(vars, {
+        radius: '6px',
+        otherColor: {
+          default: 'antiquewhite',
+          '@media (prefers-color-scheme: dark)': 'floralwhite',
+        },
+        color: {
+          default: 'green',
+          '@media (prefers-color-scheme: dark)': 'lightgreen',
+          '@media print': 'transparent',
+        }
+      });
   "#
 );
 
@@ -331,17 +331,17 @@ stylex_test!(
       .with_debug(true)
   }),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-export const theme = stylex.createTheme(vars, {
-  color: 'orange'
-});
+    export const theme = stylex.createTheme(vars, {
+        color: 'orange'
+      });
   "#
 );
 
@@ -354,17 +354,17 @@ stylex_test!(
     .with_debug(true)
   }),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-export const theme = stylex.createTheme(vars, {
-  color: 'orange'
-});
+    export const theme = stylex.createTheme(vars, {
+        color: 'orange'
+      });
   "#
 );
 
@@ -376,17 +376,17 @@ stylex_test!(
       .with_unstable_module_resolution(ModuleResolution::haste(None))
   }),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-export const theme = stylex.createTheme(vars, {
-  color: 'orange'
-});
+    export const theme = stylex.createTheme(vars, {
+        color: 'orange'
+      });
   "#
 );
 
@@ -400,17 +400,17 @@ stylex_test!(
     .with_unstable_module_resolution(ModuleResolution::haste(None))
   }),
   r#"
-import * as stylex from '@stylexjs/stylex';
-export const vars = {
-  color: "var(--xt4ziaz)",
-  otherColor: "var(--x1e3it8h)",
-  radius: "var(--x1onrunl)",
-  __varGroupHash__: "x1xohuxq"
-};
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      otherColor: "var(--x1e3it8h)",
+      radius: "var(--x1onrunl)",
+      __varGroupHash__: "x1xohuxq"
+    };
 
-export const theme = stylex.createTheme(vars, {
-  color: 'orange'
-});
+    export const theme = stylex.createTheme(vars, {
+        color: 'orange'
+      });
   "#
 );
 
@@ -430,8 +430,8 @@ stylex_test!(
     };
 
     export const theme = stylex.createTheme(vars, {
-      color: 'orange'
-    });
+        color: 'orange'
+      });
   "#
 );
 
@@ -451,7 +451,7 @@ stylex_test!(
     };
 
     export const theme = stylex.createTheme(vars, {
-      color: 'orange'
-    });
+        color: 'orange'
+      });
   "#
 );

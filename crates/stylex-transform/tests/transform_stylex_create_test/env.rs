@@ -665,7 +665,7 @@ stylex_test!(
     export const styles = stylex.create({
       root: {
         color: stylex.env.select({ primary: 'red', secondary: 'blue' }, 'secondary'),
-      }
+    }
     });
   "#
 );
@@ -685,7 +685,7 @@ stylex_test!(
     export const styles = stylex.create({
       root: {
         color: stylex.env.pick({ a: ['red', 'darkred'], b: ['blue', 'navy'] }, 'a'),
-      }
+    }
     });
   "#
 );

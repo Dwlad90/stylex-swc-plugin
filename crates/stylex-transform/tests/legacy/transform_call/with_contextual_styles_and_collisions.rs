@@ -160,5 +160,5 @@ stylex_test!(
       }
     });
     stylex(styles.red, isActive && styles.blue);
-"#
+  "#
 );

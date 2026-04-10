@@ -62,19 +62,19 @@ stylex_test!(
 
     export const ComponentWithCallings = () => {
       array.forEach((item) => {
-        if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
-          fn(item)
-        }
+          if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
+            fn(item)
+          }
+        });
+
+        return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
+      };
+
+      const s = stylex.create({
+        div: {
+          backgroundColor: '#F7F5F6',
+        },
       });
-
-      return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
-    };
-
-    const s = stylex.create({
-      div: {
-        backgroundColor: '#F7F5F6',
-      },
-    });
   "#
 );
 
@@ -104,19 +104,19 @@ stylex_test!(
 
     export const ComponentWithCallings = () => {
       array.forEach((item) => {
-        if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
-          fn(item)
-        }
+          if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
+            fn(item)
+          }
+        });
+
+        return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
+      };
+
+      const s = stylex.create({
+        div: {
+          backgroundColor: '#F7F5F6',
+        },
       });
-
-      return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
-    };
-
-    const s = stylex.create({
-      div: {
-        backgroundColor: '#F7F5F6',
-      },
-    });
   "#
 );
 
@@ -144,19 +144,19 @@ stylex_test!(
 
     export const ComponentWithCallings = () => {
       array.forEach((item) => {
-        if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
-          fn(item)
-        }
+          if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
+            fn(item)
+          }
+        });
+
+        return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
+      };
+
+      const s = stylex.create({
+        div: {
+          backgroundColor: '#F7F5F6',
+        },
       });
-
-      return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
-    };
-
-    const s = stylex.create({
-      div: {
-        backgroundColor: '#F7F5F6',
-      },
-    });
   "#
 );
 
@@ -188,19 +188,19 @@ stylex_test!(
 
     export const ComponentWithCallings = () => {
       array.forEach((item) => {
-        if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
-          fn(item)
-        }
+          if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
+            fn(item)
+          }
+        });
+
+        return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
+      };
+
+      const s = stylex.create({
+        div: {
+          backgroundColor: '#F7F5F6',
+        },
       });
-
-      return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
-    };
-
-    const s = stylex.create({
-      div: {
-        backgroundColor: '#F7F5F6',
-      },
-    });
   "#
 );
 
@@ -229,19 +229,19 @@ stylex_test!(
 
     export const ComponentWithCallings = () => {
       array.forEach((item) => {
-        if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
-          fn(item)
-        }
+          if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
+            fn(item)
+          }
+        });
+
+        return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
+      };
+
+      const s = stylex.create({
+        div: {
+          backgroundColor: '#F7F5F6',
+        },
       });
-
-      return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
-    };
-
-    const s = stylex.create({
-      div: {
-        backgroundColor: '#F7F5F6',
-      },
-    });
   "#
 );
 
@@ -271,19 +271,19 @@ stylex_test!(
 
     export const ComponentWithCallings = () => {
       array.forEach((item) => {
-        if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
-          fn(item)
-        }
+          if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
+            fn(item)
+          }
+        });
+
+        return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
+      };
+
+      const s = stylex.create({
+        div: {
+          backgroundColor: '#F7F5F6',
+        },
       });
-
-      return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
-    };
-
-    const s = stylex.create({
-      div: {
-        backgroundColor: '#F7F5F6',
-      },
-    });
   "#
 );
 
@@ -312,18 +312,18 @@ stylex_test!(
 
     export const ComponentWithCallings = () => {
       array.forEach((item) => {
-        if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
-          fn(item)
-        }
+          if (fn(item).arg('str', 1, null, undefined, NaN, { foo: 'bar' }, [1, 2, 3], func())) {
+            fn(item)
+          }
+        });
+
+        return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
+      };
+
+      const s = stylex.create({
+        div: {
+          backgroundColor: '#F7F5F6',
+        },
       });
-
-      return <div>{array.length > 0 ? <div {...stylex.props(s.div, display.flex)} >{array.map(_ => null)}</div> : null}</div>;
-    };
-
-    const s = stylex.create({
-      div: {
-        backgroundColor: '#F7F5F6',
-      },
-    });
   "#
 );

@@ -6,6 +6,6 @@ const buttonTheme = {
 };
 export function Button_Record_From_Import() {
     return <button {...stylex.props(buttonTheme[state.theme])}>
-        Click Me!
-      </button>;
+      Click Me!
+    </button>;
 }

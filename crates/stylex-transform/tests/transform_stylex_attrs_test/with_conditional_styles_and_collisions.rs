@@ -13,12 +13,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        default: {
-            backgroundColor: 'red',
-        },
-        active: {
-            color: 'blue',
-        }
+      default: {
+        backgroundColor: 'red',
+      },
+      active: {
+        color: 'blue',
+      }
     });
     stylex.attrs([styles.default, isActive && styles.active]);
   "#
@@ -29,12 +29,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        default: {
-            backgroundColor: 'red',
-        },
-        active: {
-            color: 'blue',
-        }
+      default: {
+        backgroundColor: 'red',
+      },
+      active: {
+        color: 'blue',
+      }
     });
     stylex.attrs([styles.default, isActive && styles.active]);
   "#
@@ -45,12 +45,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
-        blue: {
-            color: 'blue',
-        }
+      red: {
+        color: 'red',
+      },
+      blue: {
+        color: 'blue',
+      }
     });
     stylex.attrs([styles.red, styles.blue]);
     stylex.attrs([styles.blue, styles.red]);
@@ -62,12 +62,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
-        revert: {
-            color: null,
-        }
+      red: {
+        color: 'red',
+      },
+      revert: {
+        color: null,
+      }
     });
     stylex.attrs([styles.red, styles.revert]);
     stylex.attrs([styles.revert, styles.red]);
@@ -79,15 +79,15 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        foo: {
-            padding: 5,
-            paddingEnd: 10,
-        },
+      foo: {
+        padding: 5,
+        paddingEnd: 10,
+      },
 
-        bar: {
-            padding: 2,
-            paddingStart: 10,
-        },
+      bar: {
+        padding: 2,
+        paddingStart: 10,
+      },
     });
     stylex.attrs([styles.foo, styles.bar]);
   "#
@@ -98,15 +98,15 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        foo: {
-            padding: 5,
-            paddingEnd: 10,
-        },
+      foo: {
+        padding: 5,
+        paddingEnd: 10,
+      },
 
-        bar: {
-            padding: 2,
-            paddingStart: null,
-        },
+      bar: {
+        padding: 2,
+        paddingStart: null,
+      },
     });
     stylex.attrs([styles.foo, styles.bar]);
   "#
@@ -118,13 +118,13 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
-        blue: {
-            color: 'blue',
-        }
-        });
+      red: {
+        color: 'red',
+      },
+      blue: {
+        color: 'blue',
+      }
+    });
     stylex.attrs([styles.red, isActive && styles.blue]);
   "#
 );
@@ -134,12 +134,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
-        blue: {
-            color: 'blue',
-        }
+      red: {
+        color: 'red',
+      },
+      blue: {
+        color: 'blue',
+      }
     });
     stylex.attrs([styles.red, isActive && styles.blue]);
   "#
@@ -151,12 +151,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
-        blue: {
-            color: null,
-        }
+      red: {
+        color: 'red',
+      },
+      blue: {
+        color: null,
+      }
     });
     stylex.attrs([styles.red, isActive && styles.blue]);
   "#
@@ -167,12 +167,12 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     const styles = stylex.create({
-        red: {
-            color: 'red',
-        },
-        blue: {
-            color: null,
-        }
+      red: {
+        color: 'red',
+      },
+      blue: {
+        color: null,
+      }
     });
     stylex.attrs([styles.red, isActive && styles.blue]);
   "#

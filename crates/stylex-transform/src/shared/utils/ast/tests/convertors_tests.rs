@@ -1692,9 +1692,9 @@ mod tests {
       let mut state = EvaluationState::new();
       let mut traversal_state = StateManager::default();
       let fns = FunctionMap::default();
-      let expr = make_num_expr(3.14);
+      let expr = make_num_expr(2.5);
       let result = expr_to_num(&expr, &mut state, &mut traversal_state, &fns).unwrap();
-      assert!((result - 3.14).abs() < f64::EPSILON);
+      assert!((result - 2.5).abs() < f64::EPSILON);
     }
 
     #[test]

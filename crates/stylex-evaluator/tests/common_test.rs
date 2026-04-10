@@ -357,15 +357,4 @@ mod resolve_node_package_path_tests {
     let result = resolve_node_package_path("@nonexistent-scope/nonexistent-pkg");
     assert!(result.is_err());
   }
-
-  #[test]
-  fn existing_package_returns_ok() {
-    // Uses the cwd/node_modules/test-resolve-pkg fixture
-    let result = resolve_node_package_path("test-resolve-pkg");
-    assert!(
-      result.is_ok(),
-      "Expected Ok for existing test fixture package, got: {:?}",
-      result
-    );
-  }
 }

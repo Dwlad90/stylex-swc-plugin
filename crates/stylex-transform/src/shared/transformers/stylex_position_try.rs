@@ -10,8 +10,9 @@ use crate::shared::structures::functions::{FunctionConfig, FunctionType};
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::FlatCompiledStyles;
 use crate::shared::utils::ast::convertors::{convert_lit_to_string, create_string_expr};
-use crate::shared::utils::common::{create_hash, dashify};
 use crate::shared::utils::css::common::transform_value_cached;
+use stylex_utils::hash::create_hash;
+use stylex_utils::string::dashify;
 use crate::shared::utils::object::{
   Pipe, obj_map, obj_map_keys_string, preprocess_object_properties,
 };

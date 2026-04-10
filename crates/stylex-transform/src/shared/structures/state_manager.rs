@@ -31,10 +31,11 @@ use swc_core::{
 
 use crate::shared::structures::types::InjectableStylesMap;
 use crate::shared::utils::ast::convertors::create_number_expr;
-use crate::shared::utils::common::stable_hash;
 use crate::shared::utils::common::{
-  extract_filename_from_path, extract_filename_with_ext_from_path, extract_path, round_f64,
+  extract_filename_from_path, extract_filename_with_ext_from_path, extract_path,
 };
+use stylex_utils::hash::stable_hash;
+use stylex_utils::math::round_f64;
 use stylex_ast::ast::factories::create_binding_ident;
 use stylex_ast::ast::factories::{
   create_expr_or_spread, create_key_value_prop, create_number_expr_or_spread,

@@ -9,10 +9,10 @@ use crate::shared::structures::types::{
   ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap,
 };
 use crate::shared::utils::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
-use crate::shared::utils::common::{
-  create_hash, get_key_values_from_object, round_to_decimal_places,
-};
+use crate::shared::utils::common::get_key_values_from_object;
 use stylex_constants::constants::common::SPLIT_TOKEN;
+use stylex_utils::hash::create_hash;
+use stylex_utils::math::round_to_decimal_places;
 use stylex_constants::constants::messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT};
 use stylex_enums::value_with_default::ValueWithDefault;
 use stylex_types::structures::injectable_style::InjectableStyle;

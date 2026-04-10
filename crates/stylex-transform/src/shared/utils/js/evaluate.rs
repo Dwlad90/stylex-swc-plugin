@@ -43,12 +43,17 @@ use crate::shared::utils::ast::convertors::{
   expand_shorthand_prop, expr_to_num, extract_tpl_cooked_value,
 };
 use crate::shared::utils::common::{
-  char_code_at, deep_merge_props, get_hash_map_difference, get_hash_map_value_difference,
-  get_import_by_ident, get_key_values_from_object, get_var_decl_by_ident, get_var_decl_from,
-  normalize_expr, reduce_ident_count, reduce_member_expression_count, remove_duplicates,
-  sort_numbers_factory, stable_hash, sum_hash_map_values,
+  deep_merge_props, get_import_by_ident, get_key_values_from_object, get_var_decl_by_ident,
+  get_var_decl_from, normalize_expr, reduce_ident_count, reduce_member_expression_count,
+  remove_duplicates,
 };
 use crate::shared::utils::js::native_functions::{evaluate_filter, evaluate_join, evaluate_map};
+use stylex_utils::collection::{
+  get_hash_map_difference, get_hash_map_value_difference, sort_numbers_factory,
+  sum_hash_map_values,
+};
+use stylex_utils::hash::stable_hash;
+use stylex_utils::string::char_code_at;
 use stylex_ast::ast::factories::{
   create_array_expression, create_expr_or_spread, create_ident_key_value_prop,
   create_object_expression, create_object_lit, create_string_lit,

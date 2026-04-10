@@ -6,11 +6,6 @@ use swc_core::ecma::{
   utils::drop_span,
 };
 
-// Re-export pure utilities from stylex-utils.
-pub use stylex_utils::collection::{find_and_swap_remove, sort_numbers_factory};
-pub use stylex_utils::hash::{create_hash, create_short_hash, hash_f64, stable_hash};
-pub use stylex_utils::math::round_f64;
-pub use stylex_utils::string::{char_code_at, wrap_key_in_quotes};
 
 /// Extracts the initializer expression from a variable declarator, panicking
 /// if no initializer is present.

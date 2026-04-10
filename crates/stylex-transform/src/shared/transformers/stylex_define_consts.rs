@@ -7,8 +7,9 @@ use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompi
 use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{FlatCompiledStyles, InjectableStylesMap};
-use crate::shared::utils::common::{create_hash, serialize_value_to_json_string};
+use crate::shared::utils::common::serialize_value_to_json_string;
 use crate::shared::utils::object::obj_map;
+use stylex_utils::hash::create_hash;
 use stylex_constants::constants::messages::{
   EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT,
 };

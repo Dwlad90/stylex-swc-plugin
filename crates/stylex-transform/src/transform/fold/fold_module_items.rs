@@ -12,9 +12,10 @@ use crate::{
   StyleXTransform,
   shared::utils::{
     ast::convertors::convert_atom_to_string,
-    common::{fill_state_declarations, stable_hash},
+    common::fill_state_declarations,
   },
 };
+use stylex_utils::hash::stable_hash;
 use stylex_ast::ast::factories::create_binding_ident;
 use stylex_constants::constants::messages::VAR_DECL_INIT_REQUIRED;
 use stylex_enums::core::TransformationCycle;

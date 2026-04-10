@@ -5,8 +5,9 @@ use swc_core::{
 
 use crate::{
   StyleXTransform,
-  shared::utils::common::{normalize_expr, stable_hash},
+  shared::utils::common::normalize_expr,
 };
+use stylex_utils::hash::stable_hash;
 use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>

@@ -495,6 +495,4 @@ pub fn inline_style_to_css_string(pairs: &[Pair]) -> String {
     .join(";")
 }
 
-// Re-export round_to_decimal_places so callers that depend on it through
-// css::common can find it here as well.
-pub use stylex_utils::math::round_to_decimal_places;
+

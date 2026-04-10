@@ -13,8 +13,8 @@ use crate::shared::structures::types::{
   ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap, StylesObjectMap,
 };
 use crate::shared::utils::ast::convertors::convert_expr_to_str;
-use crate::shared::utils::common::create_short_hash;
 use crate::shared::utils::core::flatten_raw_style_object::flatten_raw_style_object;
+use stylex_utils::hash::create_short_hash;
 use crate::shared::utils::validators::validate_namespace;
 use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_constants::constants::messages::{EXPRESSION_IS_NOT_A_STRING, VALUES_MUST_BE_OBJECT};

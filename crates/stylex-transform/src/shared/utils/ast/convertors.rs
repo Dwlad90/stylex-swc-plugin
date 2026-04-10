@@ -26,8 +26,9 @@ use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state::EvaluationState;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::common::{
-  get_expr_from_var_decl, get_var_decl_by_ident, wrap_key_in_quotes,
+  get_expr_from_var_decl, get_var_decl_by_ident,
 };
+use stylex_utils::string::wrap_key_in_quotes;
 use crate::shared::utils::js::evaluate::{deopt, evaluate_cached};
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_VALUE, VAR_DECL_INIT_REQUIRED, non_static_value,

@@ -14,10 +14,10 @@ mod stylex_define_vars {
   use crate::shared::transformers::stylex_define_vars::stylex_define_vars;
   use crate::shared::transformers::stylex_types::get_types_fn;
   use crate::shared::utils::ast::convertors::create_string_expr;
-  use crate::shared::utils::common::create_hash;
   use stylex_ast::ast::factories::{
     create_key_value_prop, create_nested_object_prop, create_object_expression,
   };
+  use stylex_utils::hash::create_hash;
   use stylex_enums::value_with_default::ValueWithDefault;
   use stylex_structures::stylex_state_options::StyleXStateOptions;
   use stylex_types::structures::injectable_style::InjectableStyle;

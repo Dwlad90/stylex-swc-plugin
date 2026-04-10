@@ -1,6 +1,6 @@
 use crate::shared::structures::state_manager::StateManager;
-use crate::shared::utils::common::round_to_decimal_places;
 use stylex_constants::constants::common::{CSS_CONTENT_FUNCTIONS, CSS_CONTENT_KEYWORDS};
+use stylex_utils::math::round_to_decimal_places;
 
 // Re-export moved functions from stylex_css so existing callers keep compiling.
 #[allow(unused_imports)]

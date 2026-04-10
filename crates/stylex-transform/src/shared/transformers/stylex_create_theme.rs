@@ -10,15 +10,15 @@ use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{FlatCompiledStyles, InjectableStylesMap};
 use crate::shared::utils::ast::convertors::{convert_expr_to_str, convert_key_value_to_str};
-use crate::shared::utils::common::{
-  create_hash, find_and_swap_remove, get_css_value, get_key_values_from_object,
-  round_to_decimal_places,
-};
+use crate::shared::utils::common::{get_css_value, get_key_values_from_object};
 use crate::shared::utils::core::define_vars_utils::{
   collect_vars_by_at_rules, priority_for_at_rule, wrap_with_at_rules,
 };
 use crate::shared::utils::validators::validate_theme_variables;
 use stylex_constants::constants::common::{COMPILED_KEY, VAR_GROUP_HASH_KEY};
+use stylex_utils::collection::find_and_swap_remove;
+use stylex_utils::hash::create_hash;
+use stylex_utils::math::round_to_decimal_places;
 use stylex_constants::constants::messages::{
   AT_RULE_NOT_FOUND, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING, THEME_VARS_MUST_BE_OBJECT,
 };

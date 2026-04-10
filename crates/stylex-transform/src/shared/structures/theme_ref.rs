@@ -3,8 +3,9 @@ use std::sync::Arc;
 use rustc_hash::FxHashMap;
 use stylex_macros::stylex_panic;
 
-use crate::shared::utils::common::{create_hash, gen_file_based_identifier};
+use crate::shared::utils::common::gen_file_based_identifier;
 use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
+use stylex_utils::hash::create_hash;
 use stylex_enums::theme_ref::ThemeRefResult;
 
 use super::state_manager::StateManager;

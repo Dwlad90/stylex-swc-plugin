@@ -3121,6 +3121,7 @@ dependencies = [
  "stylex_css",
  "stylex_css_parser",
  "stylex_enums",
+ "stylex_evaluator",
  "stylex_logs",
  "stylex_macros",
  "stylex_path_resolver",

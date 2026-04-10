@@ -6,8 +6,8 @@ mod stylex_define_consts {
   use crate::shared::structures::state_manager::StateManager;
   use crate::shared::transformers::stylex_define_consts::stylex_define_consts;
   use crate::shared::utils::ast::convertors::create_string_expr;
-  use crate::shared::utils::common::create_hash;
   use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
+  use stylex_utils::hash::create_hash;
   use stylex_structures::stylex_options::StyleXOptions;
   use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 

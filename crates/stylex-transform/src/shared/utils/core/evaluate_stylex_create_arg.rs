@@ -20,8 +20,9 @@ use crate::shared::utils::ast::convertors::{
   convert_expr_to_str, create_ident_expr, create_null_expr, create_string_expr,
   expand_shorthand_prop,
 };
-use crate::shared::utils::common::{create_hash, normalize_expr};
+use crate::shared::utils::common::normalize_expr;
 use crate::shared::utils::css::common::get_number_suffix;
+use stylex_utils::hash::create_hash;
 use crate::shared::utils::js::evaluate::{evaluate, evaluate_obj_key};
 use crate::shared::utils::validators::validate_dynamic_style_params;
 use stylex_ast::ast::factories::{

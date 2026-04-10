@@ -7,6 +7,7 @@ use std::{
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use stylex_types::traits::StyleOptions;
+use stylex_utils::string::remove_quotes;
 use swc_core::{
   atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
@@ -36,16 +37,6 @@ use stylex_regex::regex::JSON_REGEX;
 use super::ast::convertors::expand_shorthand_prop;
 use stylex_ast::ast::factories::create_var_declarator;
 
-// Re-exports from stylex-utils: canonical definitions live there.
-pub(crate) use stylex_utils::collection::{
-  find_and_swap_remove, get_hash_map_difference, get_hash_map_value_difference,
-  sort_numbers_factory, sum_hash_map_values,
-};
-pub use stylex_utils::hash::{create_hash, create_short_hash, stable_hash};
-#[allow(unused_imports)]
-pub(crate) use stylex_utils::hash::hash_f64;
-pub(crate) use stylex_utils::math::{round_f64, round_to_decimal_places};
-pub(crate) use stylex_utils::string::{char_code_at, dashify, remove_quotes, wrap_key_in_quotes};
 
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {

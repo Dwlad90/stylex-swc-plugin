@@ -9,8 +9,9 @@ use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompi
 use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{FlatCompiledStyles, InjectableStylesMap};
-use crate::shared::utils::common::{create_hash, get_css_value};
+use crate::shared::utils::common::get_css_value;
 use crate::shared::utils::core::define_vars_utils::construct_css_variables_string;
+use stylex_utils::hash::create_hash;
 use crate::shared::utils::object::obj_map;
 use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
 use stylex_constants::constants::messages::{

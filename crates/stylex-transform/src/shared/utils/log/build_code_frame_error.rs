@@ -43,12 +43,7 @@ impl CodeFrame {
     }
   }
 
-  pub(crate) fn create_error<'a>(
-    &'a self,
-    span: Span,
-    message: impl AsRef<str>,
-  ) -> DiagnosticBuilder<'a> {
-    let message = message.as_ref();
+  pub(crate) fn create_error<'a>(&'a self, span: Span, message: &str) -> DiagnosticBuilder<'a> {
     let prefixed_message = format!("[StyleX] {}", message);
     let mut diagnostic = self.handler.struct_span_err(span, &prefixed_message);
 

@@ -54,7 +54,7 @@ where
       let types_fn = get_types_fn();
       let position_try_fn = get_position_try_fn();
 
-      if let Some(set) = self.state.get_import(ImportKind::Keyframes) {
+      if let Some(set) = self.state.get_stylex_api_import(ImportKind::Keyframes) {
         for name in set {
           identifiers.insert(
             name.clone(),
@@ -63,7 +63,7 @@ where
         }
       }
 
-      if let Some(set) = self.state.get_import(ImportKind::Types) {
+      if let Some(set) = self.state.get_stylex_api_import(ImportKind::Types) {
         for name in set {
           identifiers.insert(
             name.clone(),
@@ -72,7 +72,7 @@ where
         }
       }
 
-      if let Some(set) = self.state.get_import(ImportKind::PositionTry) {
+      if let Some(set) = self.state.get_stylex_api_import(ImportKind::PositionTry) {
         for name in set {
           identifiers.insert(
             name.clone(),

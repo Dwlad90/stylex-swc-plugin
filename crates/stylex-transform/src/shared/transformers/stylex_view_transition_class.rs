@@ -40,7 +40,7 @@ pub(crate) fn stylex_view_transition_class(
 
     let pipe_result = Pipe::create(style.clone())
       .pipe(|style| preprocess_object_properties(&style, state))
-      .pipe(|entries| obj_map_keys_string(&entries, |s: &str| dashify(s)))
+      .pipe(|entries| obj_map_keys_string(&entries, dashify))
       .pipe(|entries| {
         obj_map(
           ObjMapType::Map(entries),

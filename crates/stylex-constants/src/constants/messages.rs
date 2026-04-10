@@ -1,6 +1,5 @@
 // Functions that generate messages with parameters
-pub fn illegal_argument_length(fn_name: impl AsRef<str>, arg_length: usize) -> String {
-  let fn_name = fn_name.as_ref();
+pub fn illegal_argument_length(fn_name: &str, arg_length: usize) -> String {
   let plural = if arg_length == 1 { "" } else { "s" };
   format!(
     "{}() should have {} argument{}.",
@@ -8,34 +7,29 @@ pub fn illegal_argument_length(fn_name: impl AsRef<str>, arg_length: usize) -> S
   )
 }
 
-pub fn non_static_value(fn_name: impl AsRef<str>) -> String {
-  let fn_name = fn_name.as_ref();
+pub fn non_static_value(fn_name: &str) -> String {
   format!(
     "Only static values are allowed inside of a {}() call.",
     fn_name
   )
 }
 
-pub fn non_style_object(fn_name: impl AsRef<str>) -> String {
-  let fn_name = fn_name.as_ref();
+pub fn non_style_object(fn_name: &str) -> String {
   format!("{}() can only accept an object.", fn_name)
 }
 
-pub fn non_export_named_declaration(fn_name: impl AsRef<str>) -> String {
-  let fn_name = fn_name.as_ref();
+pub fn non_export_named_declaration(fn_name: &str) -> String {
   format!(
     "The return value of {}() must be bound to a named export.",
     fn_name
   )
 }
 
-pub fn unbound_call_value(fn_name: impl AsRef<str>) -> String {
-  let fn_name = fn_name.as_ref();
+pub fn unbound_call_value(fn_name: &str) -> String {
   format!("{}() calls must be bound to a bare variable.", fn_name)
 }
 
-pub fn cannot_generate_hash(fn_name: impl AsRef<str>) -> String {
-  let fn_name = fn_name.as_ref();
+pub fn cannot_generate_hash(fn_name: &str) -> String {
   format!(
     "Unable to generate hash for {}(). Check that the file has a valid extension and that unstable_moduleResolution is configured.",
     fn_name
@@ -165,8 +159,7 @@ pub static THEME_VARS_MUST_BE_OBJECT: &str = "Theme variables must be defined as
 
 pub static RULE_SET_EMPTY: &str = "The style rule set is empty. At least one rule is required.";
 
-pub fn expected_call_expression(fn_name: impl AsRef<str>) -> String {
-  let fn_name = fn_name.as_ref();
+pub fn expected_call_expression(fn_name: &str) -> String {
   format!(
     "{}(): Expected a call expression. Ensure the value is a direct function call.",
     fn_name

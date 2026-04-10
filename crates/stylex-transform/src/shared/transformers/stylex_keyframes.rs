@@ -54,7 +54,7 @@ pub(crate) fn stylex_keyframes(
 
     let pipe_result = Pipe::create(frame)
       .pipe(|frame| expand_frame_shorthands(frame, state))
-      .pipe(|entries| obj_map_keys_string(&entries, |s: &str| dashify(s)))
+      .pipe(|entries| obj_map_keys_string(&entries, dashify))
       .pipe(|entries| {
         obj_map(
           ObjMapType::Map(entries),
@@ -145,7 +145,7 @@ pub(crate) fn stylex_keyframes(
   let animation_name = format!(
     "{}{}-B",
     class_name_prefix,
-    create_hash(format!("<>{}", stable_string))
+    create_hash(&format!("<>{}", stable_string))
   );
 
   let ltr = format!("@keyframes {}{{{}}}", animation_name, ltr_string);

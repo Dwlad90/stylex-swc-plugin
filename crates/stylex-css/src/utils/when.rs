@@ -31,8 +31,7 @@ fn get_default_marker_class_name(options: &StyleXStateOptions) -> String {
 }
 
 /// Validates that a pseudo selector starts with ':' but not '::'
-fn validate_pseudo_selector(pseudo: impl AsRef<str>) -> Result<(), String> {
-  let pseudo = pseudo.as_ref();
+fn validate_pseudo_selector(pseudo: &str) -> Result<(), String> {
   if !pseudo.starts_with(':') && !pseudo.starts_with('[') {
     return Err("Pseudo selector must start with \":\" or \"[\"".to_string());
   }
@@ -60,46 +59,38 @@ fn validate_pseudo_selector(pseudo: impl AsRef<str>) -> Result<(), String> {
 }
 
 /// Validates that an attribute selector has proper bracket and quote matching
-fn is_valid_attribute_selector(selector: impl AsRef<str>) -> bool {
-  let selector = selector.as_ref();
-  let chars: Vec<char> = selector.chars().collect();
-  if chars.is_empty() || chars[0] != '[' || chars[chars.len() - 1] != ']' {
+fn is_valid_attribute_selector(selector: &str) -> bool {
+  if !selector.starts_with('[') || !selector.ends_with(']') {
     return false;
   }
 
   let mut in_single_quote = false;
   let mut in_double_quote = false;
-  let mut bracket_count = 0;
+  let mut bracket_count: i32 = 1;
+  let mut prev = '[';
 
-  for i in 0..chars.len() {
-    let c = chars[i];
-
-    // Track quote state
-    if c == '\'' && (i == 0 || chars[i - 1] != '\\') {
-      in_single_quote = !in_single_quote;
-    } else if c == '"' && (i == 0 || chars[i - 1] != '\\') {
-      in_double_quote = !in_double_quote;
-    }
-
-    // Track brackets only outside quotes
-    if !in_single_quote && !in_double_quote {
-      if c == '[' {
+  for c in selector[1..].chars() {
+    match c {
+      '\'' if prev != '\\' && !in_double_quote => in_single_quote = !in_single_quote,
+      '"' if prev != '\\' && !in_single_quote => in_double_quote = !in_double_quote,
+      '[' if !in_single_quote && !in_double_quote => {
         bracket_count += 1;
         // CSS attribute selectors can only have one opening bracket (at the start)
         if bracket_count > 1 {
           return false;
         }
-      } else if c == ']' {
+      },
+      ']' if !in_single_quote && !in_double_quote => {
         bracket_count -= 1;
-        // Closing bracket should only reach 0 at the end
-        if bracket_count < 0 || (bracket_count == 0 && i < chars.len() - 1) {
+        if bracket_count < 0 {
           return false;
         }
-      }
+      },
+      _ => {},
     }
+    prev = c;
   }
 
-  // Should end with exactly one bracket pair and no unclosed quotes
   bracket_count == 0 && !in_single_quote && !in_double_quote
 }
 
@@ -112,11 +103,7 @@ fn is_valid_attribute_selector(selector: impl AsRef<str>) -> bool {
 ///
 /// # Returns
 /// A :where() clause for the ancestor observer
-pub fn ancestor(
-  pseudo: impl AsRef<str>,
-  options: Option<&StyleXStateOptions>,
-) -> Result<String, String> {
-  let pseudo = pseudo.as_ref();
+pub fn ancestor(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
   let default_marker = options
     .map(get_default_marker_class_name)
@@ -133,11 +120,7 @@ pub fn ancestor(
 ///
 /// # Returns
 /// A :has() clause for the descendant observer
-pub fn descendant(
-  pseudo: impl AsRef<str>,
-  options: Option<&StyleXStateOptions>,
-) -> Result<String, String> {
-  let pseudo = pseudo.as_ref();
+pub fn descendant(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
   let default_marker = options
     .map(get_default_marker_class_name)
@@ -155,10 +138,9 @@ pub fn descendant(
 /// # Returns
 /// A :where() clause for the previous sibling observer
 pub fn sibling_before(
-  pseudo: impl AsRef<str>,
+  pseudo: &str,
   options: Option<&StyleXStateOptions>,
 ) -> Result<String, String> {
-  let pseudo = pseudo.as_ref();
   validate_pseudo_selector(pseudo)?;
   let default_marker = options
     .map(get_default_marker_class_name)
@@ -175,11 +157,7 @@ pub fn sibling_before(
 ///
 /// # Returns
 /// A :has() clause for the next sibling observer
-pub fn sibling_after(
-  pseudo: impl AsRef<str>,
-  options: Option<&StyleXStateOptions>,
-) -> Result<String, String> {
-  let pseudo = pseudo.as_ref();
+pub fn sibling_after(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
   let default_marker = options
     .map(get_default_marker_class_name)
@@ -196,11 +174,7 @@ pub fn sibling_after(
 ///
 /// # Returns
 /// A :where() clause for the any sibling observer
-pub fn any_sibling(
-  pseudo: impl AsRef<str>,
-  options: Option<&StyleXStateOptions>,
-) -> Result<String, String> {
-  let pseudo = pseudo.as_ref();
+pub fn any_sibling(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
   let default_marker = options
     .map(get_default_marker_class_name)

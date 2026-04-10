@@ -202,7 +202,7 @@ where
       let keyframes_fn = get_keyframes_fn();
       let position_try_fn = get_position_try_fn();
 
-      if let Some(set) = self.state.get_import(ImportKind::FirstThatWorks) {
+      if let Some(set) = self.state.get_stylex_api_import(ImportKind::FirstThatWorks) {
         for name in set {
           identifiers.insert(
             name.clone(),
@@ -211,7 +211,7 @@ where
         }
       }
 
-      if let Some(set) = self.state.get_import(ImportKind::Keyframes) {
+      if let Some(set) = self.state.get_stylex_api_import(ImportKind::Keyframes) {
         for name in set {
           identifiers.insert(
             name.clone(),
@@ -220,7 +220,7 @@ where
         }
       }
 
-      if let Some(set) = self.state.get_import(ImportKind::PositionTry) {
+      if let Some(set) = self.state.get_stylex_api_import(ImportKind::PositionTry) {
         for name in set {
           identifiers.insert(
             name.clone(),
@@ -229,7 +229,7 @@ where
         }
       }
 
-      if let Some(set) = self.state.get_import(ImportKind::DefaultMarker) {
+      if let Some(set) = self.state.get_stylex_api_import(ImportKind::DefaultMarker) {
         for name in set {
           identifiers.insert(
             name.clone(),
@@ -243,7 +243,7 @@ where
         }
       }
 
-      if let Some(set) = self.state.get_import(ImportKind::When) {
+      if let Some(set) = self.state.get_stylex_api_import(ImportKind::When) {
         for name in set {
           identifiers.insert(
             name.clone(),

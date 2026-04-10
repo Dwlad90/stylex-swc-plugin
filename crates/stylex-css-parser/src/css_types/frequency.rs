@@ -32,8 +32,7 @@ impl Frequency {
   }
 
   /// Check if a unit is a valid frequency unit
-  pub fn is_valid_unit(unit: impl AsRef<str>) -> bool {
-    let unit = unit.as_ref();
+  pub fn is_valid_unit(unit: &str) -> bool {
     FREQUENCY_UNITS.contains(&unit)
   }
 

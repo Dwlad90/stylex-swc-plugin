@@ -37,8 +37,7 @@ use stylex_structures::inline_style::InlineStyle;
 
 /// Prepends a key name to an existing error reason to provide context
 /// about which property path triggered the evaluation failure.
-fn prepend_key_to_reason(key: impl AsRef<str>, reason: Option<String>) -> Option<String> {
-  let key = key.as_ref();
+fn prepend_key_to_reason(key: &str, reason: Option<String>) -> Option<String> {
   reason.map(|r| format!("{} > {}", key, r))
 }
 
@@ -333,14 +332,14 @@ fn evaluate_partial_object_recursively(
 
                     key_path.push(key_str.clone());
 
-                    format!("--x-{}", create_hash(key_path.join("_")))
+                    format!("--x-{}", create_hash(&key_path.join("_")))
                   } else {
                     format!("--x-{}", key_str)
                   };
 
                   let new_prop = create_key_value_prop(
                     &key_str,
-                    create_string_expr(format!("var({})", var_name)),
+                    create_string_expr(&format!("var({})", var_name)),
                   );
                   obj.push(new_prop);
 

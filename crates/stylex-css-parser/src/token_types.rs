@@ -149,8 +149,7 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
   }
 }
 
-fn tokenize_all(input: impl AsRef<str>) -> Vec<SimpleToken> {
-  let input = input.as_ref();
+fn tokenize_all(input: &str) -> Vec<SimpleToken> {
   let mut input_buf = ParserInput::new(input);
   let mut parser = Parser::new(&mut input_buf);
 
@@ -212,8 +211,7 @@ pub struct TokenList {
 
 impl TokenList {
   /// Create a new TokenList from a CSS string
-  pub fn new(input: impl AsRef<str>) -> Self {
-    let input = input.as_ref();
+  pub fn new(input: &str) -> Self {
     Self {
       tokens: tokenize_all(input),
       current_index: 0,

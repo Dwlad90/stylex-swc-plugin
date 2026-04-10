@@ -300,7 +300,7 @@ where
     match state.cycle {
       TransformationCycle::TransformEnter => {
         use ImportKind::*;
-        state.any_import_contains(
+        state.any_stylex_api_import_contains(
           &[
             Create,
             DefineVars,
@@ -318,7 +318,7 @@ where
         )
       },
       TransformationCycle::TransformExit => {
-        state.any_import_contains(&[ImportKind::Attrs, ImportKind::Props], &ident_sym)
+        state.any_stylex_api_import_contains(&[ImportKind::Attrs, ImportKind::Props], &ident_sym)
       },
       _ => false,
     }

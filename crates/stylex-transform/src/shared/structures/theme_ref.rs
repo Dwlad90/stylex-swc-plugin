@@ -31,8 +31,7 @@ impl ThemeRef {
     }
   }
 
-  pub(crate) fn get(&mut self, key: impl AsRef<str>, state: &StateManager) -> ThemeRefResult {
-    let key = key.as_ref();
+  pub(crate) fn get(&mut self, key: &str, state: &StateManager) -> ThemeRefResult {
     if key == "__IS_PROXY" {
       return ThemeRefResult::Proxy;
     }
@@ -41,7 +40,7 @@ impl ThemeRef {
       let value = format!(
         "{}{}",
         state.options.class_name_prefix,
-        create_hash(gen_file_based_identifier(
+        create_hash(&gen_file_based_identifier(
           &self.file_name,
           &self.export_name,
           None

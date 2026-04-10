@@ -475,18 +475,26 @@ pub(crate) fn find_and_validate_stylex_define_consts(
 
 pub(crate) fn is_create_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
-    ("create", state.get_import(ImportKind::Create)),
+    ("create", state.get_stylex_api_import(ImportKind::Create)),
     call,
     state,
   )
 }
 
 pub(crate) fn is_props_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(("props", state.get_import(ImportKind::Props)), call, state)
+  is_target_call(
+    ("props", state.get_stylex_api_import(ImportKind::Props)),
+    call,
+    state,
+  )
 }
 
 pub(crate) fn is_attrs_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(("attrs", state.get_import(ImportKind::Attrs)), call, state)
+  is_target_call(
+    ("attrs", state.get_stylex_api_import(ImportKind::Attrs)),
+    call,
+    state,
+  )
 }
 
 pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) -> bool {
@@ -494,7 +502,10 @@ pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) 
 
   match init {
     Some(call) => is_target_call(
-      ("keyframes", state.get_import(ImportKind::Keyframes)),
+      (
+        "keyframes",
+        state.get_stylex_api_import(ImportKind::Keyframes),
+      ),
       &call,
       state,
     ),
@@ -507,7 +518,10 @@ pub(crate) fn is_position_try_call(var_decl: &VarDeclarator, state: &StateManage
 
   match init {
     Some(call) => is_target_call(
-      ("positionTry", state.get_import(ImportKind::PositionTry)),
+      (
+        "positionTry",
+        state.get_stylex_api_import(ImportKind::PositionTry),
+      ),
       &call,
       state,
     ),
@@ -517,7 +531,10 @@ pub(crate) fn is_position_try_call(var_decl: &VarDeclarator, state: &StateManage
 
 pub(crate) fn is_default_marker_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
-    ("defaultMarker", state.get_import(ImportKind::DefaultMarker)),
+    (
+      "defaultMarker",
+      state.get_stylex_api_import(ImportKind::DefaultMarker),
+    ),
     call,
     state,
   )
@@ -533,7 +550,7 @@ pub(crate) fn is_view_transition_class_call(
     Some(call) => is_target_call(
       (
         "viewTransitionClass",
-        state.get_import(ImportKind::ViewTransitionClass),
+        state.get_stylex_api_import(ImportKind::ViewTransitionClass),
       ),
       &call,
       state,
@@ -544,7 +561,10 @@ pub(crate) fn is_view_transition_class_call(
 
 pub(crate) fn is_create_theme_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
-    ("createTheme", state.get_import(ImportKind::CreateTheme)),
+    (
+      "createTheme",
+      state.get_stylex_api_import(ImportKind::CreateTheme),
+    ),
     call,
     state,
   )
@@ -552,7 +572,10 @@ pub(crate) fn is_create_theme_call(call: &CallExpr, state: &StateManager) -> boo
 
 pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
-    ("defineVars", state.get_import(ImportKind::DefineVars)),
+    (
+      "defineVars",
+      state.get_stylex_api_import(ImportKind::DefineVars),
+    ),
     call,
     state,
   )
@@ -560,7 +583,10 @@ pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool
 
 pub(crate) fn is_define_consts_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
-    ("defineConsts", state.get_import(ImportKind::DefineConsts)),
+    (
+      "defineConsts",
+      state.get_stylex_api_import(ImportKind::DefineConsts),
+    ),
     call,
     state,
   )
@@ -568,7 +594,10 @@ pub(crate) fn is_define_consts_call(call: &CallExpr, state: &StateManager) -> bo
 
 pub(crate) fn is_define_marker_call(call: &CallExpr, state: &StateManager) -> bool {
   is_target_call(
-    ("defineMarker", state.get_import(ImportKind::DefineMarker)),
+    (
+      "defineMarker",
+      state.get_stylex_api_import(ImportKind::DefineMarker),
+    ),
     call,
     state,
   )
@@ -790,12 +819,7 @@ pub(crate) fn assert_valid_properties(
   }
 }
 
-fn assert_stylex_arg(
-  value: &EvaluateResultValue,
-  state: &mut StateManager,
-  fn_name: impl AsRef<str>,
-) {
-  let fn_name = fn_name.as_ref();
+fn assert_stylex_arg(value: &EvaluateResultValue, state: &mut StateManager, fn_name: &str) {
   if let EvaluateResultValue::Expr(expr) = value {
     if !expr.is_object() {
       build_code_frame_error_and_panic(expr, expr, &non_style_object(fn_name), state);

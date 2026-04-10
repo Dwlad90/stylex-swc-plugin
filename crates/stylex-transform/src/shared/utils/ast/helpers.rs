@@ -28,8 +28,7 @@ pub(crate) fn is_variable_named_exported(
   false
 }
 
-pub fn get_property_by_key(expr: &Expr, key: impl AsRef<str>) -> Option<&Expr> {
-  let key = key.as_ref();
+pub fn get_property_by_key<'a>(expr: &'a Expr, key: &str) -> Option<&'a Expr> {
   match expr {
     Expr::Object(obj) => {
       for prop in &obj.props {

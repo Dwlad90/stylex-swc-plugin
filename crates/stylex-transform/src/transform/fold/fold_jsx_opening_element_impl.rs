@@ -258,7 +258,7 @@ where
   fn get_props_ident_name(&self) -> Option<String> {
     self
       .state
-      .get_import(ImportKind::Props)
+      .get_stylex_api_import(ImportKind::Props)
       .and_then(|set| set.iter().next())
       .map(|ident| ident.to_string())
   }
@@ -306,8 +306,7 @@ fn build_stylex_props_call(
 }
 
 /// Find the index of the prop with key matching `sx_prop_name` in a props list.
-fn find_sx_prop_idx(props: &[PropOrSpread], sx_prop_name: impl AsRef<str>) -> Option<usize> {
-  let sx_prop_name = sx_prop_name.as_ref();
+fn find_sx_prop_idx(props: &[PropOrSpread], sx_prop_name: &str) -> Option<usize> {
   props.iter().position(|prop| {
     if let PropOrSpread::Prop(p) = prop
       && let Prop::KeyValue(kv) = p.as_ref()

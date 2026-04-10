@@ -482,15 +482,13 @@ impl MediaQuery {
   }
 
   /// Check if parentheses are balanced in a media query string
-  pub fn has_balanced_parens(input: impl AsRef<str>) -> bool {
-    let input = input.as_ref();
+  pub fn has_balanced_parens(input: &str) -> bool {
     has_balanced_parens(input)
   }
 }
 
 /// Validate media query string
-pub fn validate_media_query(input: impl AsRef<str>) -> Result<MediaQuery, String> {
-  let input = input.as_ref();
+pub fn validate_media_query(input: &str) -> Result<MediaQuery, String> {
   if !has_balanced_parens(input) {
     return Err(crate::at_queries::messages::MediaQueryErrors::UNBALANCED_PARENS.to_string());
   }
@@ -502,8 +500,7 @@ pub fn validate_media_query(input: impl AsRef<str>) -> Result<MediaQuery, String
 }
 
 /// Check if parentheses are balanced
-fn has_balanced_parens(input: impl AsRef<str>) -> bool {
-  let input = input.as_ref();
+fn has_balanced_parens(input: &str) -> bool {
   let mut count = 0;
   for ch in input.chars() {
     match ch {

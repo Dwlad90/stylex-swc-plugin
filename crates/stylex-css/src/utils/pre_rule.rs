@@ -45,9 +45,7 @@ pub fn sort_at_rules(at_rules: &[String]) -> Vec<String> {
 
 // a comparator function that sorts strings alphabetically
 // but where `default` always comes first
-fn string_comparator(a: impl AsRef<str>, b: impl AsRef<str>) -> std::cmp::Ordering {
-  let a = a.as_ref();
-  let b = b.as_ref();
+fn string_comparator(a: &str, b: &str) -> std::cmp::Ordering {
   if a == "default" {
     return Ordering::Less;
   }

@@ -98,7 +98,7 @@ stylex_test!(
           .get(2)
           .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
-        create_string_expr(format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
+        create_string_expr(&format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
       })),
     );
     stylex_transform(tr.comments.clone(), |b| b.with_env(env))
@@ -132,7 +132,7 @@ stylex_test!(
           .get(2)
           .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
-        create_string_expr(format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
+        create_string_expr(&format!("color-mix(in srgb, {} {}%, {})", c1, pct, c2))
       })),
     );
     stylex_transform(tr.comments.clone(), |b| b.with_env(env))
@@ -162,7 +162,7 @@ stylex_test!(
           .get(1)
           .and_then(convert_expr_to_num_wrapper)
           .unwrap_or(0.0);
-        create_string_expr(format!(
+        create_string_expr(&format!(
           "0 4px 4px 2px color-mix(in srgb, {} {}%, transparent)",
           color,
           (opacity * 100.0) as i64
@@ -196,7 +196,7 @@ stylex_test!(
           .get(1)
           .and_then(convert_expr_to_num_wrapper)
           .unwrap_or(0.0);
-        create_string_expr(format!(
+        create_string_expr(&format!(
           "color-mix(in srgb, {} {}%, transparent)",
           color,
           (pct * 100.0) as i64
@@ -295,7 +295,7 @@ stylex_test!(
           .unwrap_or_default();
         create_object_expression(vec![
           create_key_value_prop("color", create_string_expr(&color)),
-          create_key_value_prop("fontSize", create_string_expr(format!("{}px", size))),
+          create_key_value_prop("fontSize", create_string_expr(&format!("{}px", size))),
           create_key_value_prop("padding", create_string_expr("8px 16px")),
         ])
       })),
@@ -325,7 +325,7 @@ stylex_test!(
           .get(1)
           .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
-        create_string_expr(format!("color-mix(in srgb, {}, {})", c1, c2))
+        create_string_expr(&format!("color-mix(in srgb, {}, {})", c1, c2))
       })),
     );
     env.insert(
@@ -336,8 +336,8 @@ stylex_test!(
           .and_then(convert_expr_to_str_wrapper)
           .unwrap_or_default();
         create_object_expression(vec![
-          create_key_value_prop("paddingTop", create_string_expr(format!("{}px", size))),
-          create_key_value_prop("paddingBottom", create_string_expr(format!("{}px", size))),
+          create_key_value_prop("paddingTop", create_string_expr(&format!("{}px", size))),
+          create_key_value_prop("paddingBottom", create_string_expr(&format!("{}px", size))),
         ])
       })),
     );
@@ -438,7 +438,7 @@ stylex_test!(
         create_object_expression(vec![
           create_key_value_prop(
             "fontSize",
-            create_string_expr(format!("{}px", (16.0 * scale) as i64)),
+            create_string_expr(&format!("{}px", (16.0 * scale) as i64)),
           ),
           create_key_value_prop(
             "lineHeight",
@@ -476,7 +476,7 @@ stylex_test!(
           create_key_value_prop("display", create_string_expr("grid")),
           create_key_value_prop(
             "gridTemplateColumns",
-            create_string_expr(format!("repeat({}, 1fr)", columns)),
+            create_string_expr(&format!("repeat({}, 1fr)", columns)),
           ),
           create_key_value_prop("gap", create_number_expr(8.0)),
         ])
@@ -593,7 +593,7 @@ stylex_test!(
             "color",
             create_string_expr(if mode == "dark" { "white" } else { &primary }),
           ),
-          create_key_value_prop("fontSize", create_string_expr(format!("{}px", size))),
+          create_key_value_prop("fontSize", create_string_expr(&format!("{}px", size))),
         ])
       })),
     );

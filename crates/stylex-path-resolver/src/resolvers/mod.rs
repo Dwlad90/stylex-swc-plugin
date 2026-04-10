@@ -220,8 +220,7 @@ static RESOLVER: Lazy<Resolver> = Lazy::new(|| {
   Resolver::new(options)
 });
 
-fn file_not_found_error(import_path: impl AsRef<str>) -> std::io::Error {
-  let import_path = import_path.as_ref();
+fn file_not_found_error(import_path: &str) -> std::io::Error {
   std::io::Error::new(
     std::io::ErrorKind::NotFound,
     format!("File not found for import: {}", import_path),
@@ -229,15 +228,12 @@ fn file_not_found_error(import_path: impl AsRef<str>) -> std::io::Error {
 }
 
 pub fn resolve_file_path(
-  import_path_str: impl AsRef<str>,
-  source_file_path: impl AsRef<str>,
-  root_path: impl AsRef<str>,
+  import_path_str: &str,
+  source_file_path: &str,
+  root_path: &str,
   aliases: &FxHashMap<String, Vec<String>>,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> std::io::Result<PathBuf> {
-  let import_path_str = import_path_str.as_ref();
-  let source_file_path = source_file_path.as_ref();
-  let root_path = root_path.as_ref();
   let source_file_dir = Path::new(source_file_path).parent().ok_or_else(|| {
     std::io::Error::new(
       std::io::ErrorKind::InvalidInput,
@@ -507,10 +503,9 @@ fn try_resolve_with_extensions(base_path: &Path) -> Option<PathBuf> {
 }
 
 fn possible_aliased_paths(
-  import_path_str: impl AsRef<str>,
+  import_path_str: &str,
   aliases: &FxHashMap<String, Vec<String>>,
 ) -> Vec<PathBuf> {
-  let import_path_str = import_path_str.as_ref();
   let mut result = vec![PathBuf::from(import_path_str)];
 
   if aliases.is_empty() {

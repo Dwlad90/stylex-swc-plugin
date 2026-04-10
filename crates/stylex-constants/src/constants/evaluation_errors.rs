@@ -35,12 +35,10 @@ pub static UNDEFINED_CONST: &str = "Referenced constant is not defined.";
 
 pub static OBJECT_METHOD: &str = "Unsupported object method.\n\n";
 
-pub fn unsupported_operator(op: impl AsRef<str>) -> String {
-  let op = op.as_ref();
+pub fn unsupported_operator(op: &str) -> String {
   format!("Unsupported operator: {}\n\n", op)
 }
 
-pub fn unsupported_expression(type_: impl AsRef<str>) -> String {
-  let type_ = type_.as_ref();
+pub fn unsupported_expression(type_: &str) -> String {
   format!("Unsupported expression: {}\n\n", type_)
 }

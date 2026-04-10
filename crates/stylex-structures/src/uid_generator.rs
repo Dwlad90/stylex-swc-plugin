@@ -27,8 +27,7 @@ pub struct UidGenerator {
 
 impl UidGenerator {
   /// Creates a new UidGenerator with the given prefix and counter mode.
-  pub fn new(prefix: impl AsRef<str>, mode: CounterMode) -> Self {
-    let prefix = prefix.as_ref();
+  pub fn new(prefix: &str, mode: CounterMode) -> Self {
     match mode {
       CounterMode::_Global => {
         // Ensure the counter for this prefix exists in global counters

@@ -39,6 +39,7 @@ stylex_constants = { path = "../stylex-constants" }
 stylex_css = { path = "../stylex-css" }
 stylex_css_parser = { path = "../stylex-css-parser" }
 stylex_enums = { path = "../stylex-enums" }
+stylex_evaluator = { path = "../stylex-evaluator" }
 stylex_logs = { path = "../stylex-logs" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_path_resolver = { path = "../stylex-path-resolver" }

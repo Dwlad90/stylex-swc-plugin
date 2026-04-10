@@ -14,9 +14,9 @@ use swc_core::{
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
   ecma::{
     ast::{
-      BinaryOp, Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module,
-      ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, Pat, Prop, PropName,
-      PropOrSpread, Stmt, VarDeclarator,
+      Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module, ModuleDecl,
+      ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, Pat, Prop, PropName, PropOrSpread,
+      Stmt, VarDeclarator,
     },
     utils::drop_span,
   },
@@ -80,13 +80,11 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
   }
 }
 
-pub fn create_hash(value: impl AsRef<str>) -> String {
-  let value = value.as_ref();
+pub fn create_hash(value: &str) -> String {
   radix(murmur2::murmur2(value.as_bytes(), 1), 36).to_string()
 }
 
-pub(crate) fn wrap_key_in_quotes(key: impl AsRef<str>, should_wrap_in_quotes: bool) -> String {
-  let key = key.as_ref();
+pub(crate) fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> String {
   if should_wrap_in_quotes {
     format!("\"{}\"", key)
   } else {
@@ -264,16 +262,6 @@ pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
   }
 }
 
-pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
-  match &op {
-    BinaryOp::Add => left + right,
-    BinaryOp::Sub => left - right,
-    BinaryOp::Mul => left * right,
-    BinaryOp::Div => left / right,
-    _ => stylex_panic!("Operator '{}' is not supported", op),
-  }
-}
-
 #[allow(dead_code)]
 pub(crate) fn type_of<T>(_: T) -> &'static str {
   type_name::<T>()
@@ -424,8 +412,7 @@ pub(crate) fn sum_hash_map_values(
   sum_map
 }
 
-pub(crate) fn dashify(s: impl AsRef<str>) -> String {
-  let s = s.as_ref();
+pub(crate) fn dashify(s: &str) -> String {
   DASHIFY_REGEX.replace_all(s, "-$1").to_lowercase()
 }
 
@@ -574,27 +561,28 @@ pub fn fill_state_declarations(state: &mut StateManager, decl: &VarDeclarator) {
   }
 }
 
-fn _get_variable_names(name: &Pat) -> Vec<String> {
+#[allow(dead_code)]
+fn get_variable_names(name: &Pat) -> Vec<String> {
   match name {
     Pat::Ident(ident) => vec![ident.id.sym.to_string()],
     Pat::Object(pat_object) => pat_object
       .props
       .iter()
       .flat_map(|prop| match prop {
-        ObjectPatProp::KeyValue(kv) => _get_variable_names(&kv.value),
-        ObjectPatProp::Assign(assign) => _get_variable_names(&Pat::Ident(assign.key.clone())),
-        ObjectPatProp::Rest(rest) => _get_variable_names(&rest.arg),
+        ObjectPatProp::KeyValue(kv) => get_variable_names(&kv.value),
+        ObjectPatProp::Assign(assign) => get_variable_names(&Pat::Ident(assign.key.clone())),
+        ObjectPatProp::Rest(rest) => get_variable_names(&rest.arg),
       })
       .collect(),
     Pat::Array(pat_array) => pat_array
       .elems
       .iter()
       .flatten()
-      .flat_map(_get_variable_names)
+      .flat_map(get_variable_names)
       .collect(),
-    Pat::Rest(rest_pat) => _get_variable_names(&rest_pat.arg),
+    Pat::Rest(rest_pat) => get_variable_names(&rest_pat.arg),
     Pat::Invalid(_) | Pat::Expr(_) => vec![],
-    Pat::Assign(assign) => _get_variable_names(&assign.left),
+    Pat::Assign(assign) => get_variable_names(&assign.left),
   }
 }
 
@@ -616,8 +604,8 @@ pub(crate) fn round_f64(value: f64, decimal_places: u32) -> f64 {
   (value * multiplier).round() / multiplier
 }
 
-pub(crate) fn _resolve_node_package_path(package_name: impl AsRef<str>) -> Result<PathBuf, String> {
-  let package_name = package_name.as_ref();
+#[allow(dead_code)]
+pub(crate) fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
   match node_resolve::Resolver::default()
     .with_basedir(PathBuf::from("./cwd"))
     .preserve_symlinks(true)
@@ -647,8 +635,7 @@ pub(crate) fn sort_numbers_factory() -> impl FnMut(&f64, &f64) -> std::cmp::Orde
   |a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
 }
 
-pub(crate) fn char_code_at(s: impl AsRef<str>, index: usize) -> Option<u32> {
-  let s = s.as_ref();
+pub(crate) fn char_code_at(s: &str, index: usize) -> Option<u32> {
   s.chars().nth(index).map(|c| c as u32)
 }
 
@@ -668,8 +655,7 @@ where
     .map(|index| vec.swap_remove(index))
 }
 
-pub(crate) fn create_short_hash(value: impl AsRef<str>) -> String {
-  let value = value.as_ref();
+pub(crate) fn create_short_hash(value: &str) -> String {
   let hash = murmur2::murmur2(value.as_bytes(), 1) % (62u32.pow(5));
   base62::encode(hash)
 }
@@ -687,8 +673,7 @@ pub(crate) fn _md5_hash<T: serde::Serialize>(value: T, length: usize) -> String 
   }
 }
 
-pub(crate) fn remove_quotes(s: impl AsRef<str>) -> String {
-  let s = s.as_ref();
+pub(crate) fn remove_quotes(s: &str) -> String {
   s.trim_matches('"').to_string()
 }
 

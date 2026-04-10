@@ -41,13 +41,16 @@ pub(crate) fn stylex_merge(
   let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
   let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
-  if let Some(set) = state.get_import(ImportKind::DefaultMarker) {
+  if let Some(set) = state.get_stylex_api_import(ImportKind::DefaultMarker) {
     for name in set {
       let values = match stylex_default_maker::stylex_default_marker(&state.options).as_values() {
         Some(v) => v.clone(),
         None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
       };
-      identifiers.insert(name.clone(), Box::new(FunctionConfigType::IndexMap(values)));
+      identifiers.insert(
+        name.clone(),
+        Box::new(FunctionConfigType::IndexMap(values.clone())),
+      );
     }
   }
 

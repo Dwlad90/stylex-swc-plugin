@@ -51,7 +51,7 @@ where
             if import_sources.contains(&convert_atom_to_string(declaration))
               && self
                 .state
-                .import_as(convert_atom_to_string(&import_decl.src.value))
+                .import_as(&convert_atom_to_string(&import_decl.src.value))
                 .is_none()
             {
               let local_name = import_specifier.local.sym.to_string();
@@ -80,7 +80,7 @@ where
             if import_sources.contains(&convert_atom_to_string(declaration))
               && self
                 .state
-                .import_as(convert_atom_to_string(&import_decl.src.value))
+                .import_as(&convert_atom_to_string(&import_decl.src.value))
                 .is_none()
             {
               let local_name = import_specifier.local.sym.to_string();
@@ -169,7 +169,9 @@ where
       let local_name_ident_atom = import_specifier.local.clone().sym;
 
       if let Some(kind) = ImportKind::from_import_name(imported_name.as_str()) {
-        self.state.insert_import(kind, local_name_ident_atom);
+        self
+          .state
+          .insert_stylex_api_import(kind, local_name_ident_atom);
       }
     }
   }

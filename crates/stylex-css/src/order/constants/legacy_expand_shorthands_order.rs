@@ -439,10 +439,7 @@ impl Shorthands {
     ])
   }
 
-  pub fn get(
-    name: impl AsRef<str>,
-  ) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
-    let name = name.as_ref();
+  pub fn get(name: &str) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
     match name {
       "border" => Some(Shorthands::border),
       "borderColor" => Some(Shorthands::border_color),
@@ -659,10 +656,7 @@ impl Aliases {
     Ok(vec![OrderPair("clear".into(), value)])
   }
 
-  pub fn get(
-    name: impl AsRef<str>,
-  ) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
-    let name = name.as_ref();
+  pub fn get(name: &str) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
     match name {
       "insetBlockStart" => Some(Aliases::inset_block_start),
       "insetBlockEnd" => Some(Aliases::inset_block_end),

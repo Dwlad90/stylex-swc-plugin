@@ -39,14 +39,12 @@ impl CustomIdentifier {
   }
 
   /// Check if a string is a reserved keyword
-  pub fn is_reserved_keyword(value: impl AsRef<str>) -> bool {
-    let value = value.as_ref();
+  pub fn is_reserved_keyword(value: &str) -> bool {
     RESERVED_KEYWORDS.contains(&value.to_lowercase().as_str())
   }
 
   /// Check if a string is a valid custom identifier
-  pub fn is_valid_custom_ident(value: impl AsRef<str>) -> bool {
-    let value = value.as_ref();
+  pub fn is_valid_custom_ident(value: &str) -> bool {
     !Self::is_reserved_keyword(value) && !value.is_empty()
   }
 

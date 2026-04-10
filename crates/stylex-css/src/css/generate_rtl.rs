@@ -72,13 +72,7 @@ pub fn generate_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<Pair> {
   property_to_rtl(pair, options)
 }
 
-fn shadows_flip(
-  key: impl AsRef<str>,
-  val: impl AsRef<str>,
-  options: &StyleXStateOptions,
-) -> Option<Pair> {
-  let key = key.as_ref();
-  let val = val.as_ref();
+fn shadows_flip(key: &str, val: &str, options: &StyleXStateOptions) -> Option<Pair> {
   match key {
     "box-shadow" | "text-shadow" => {
       if !options.enable_legacy_value_flipping {
@@ -92,8 +86,7 @@ fn shadows_flip(
   }
 }
 
-fn flip_shadow(value: impl AsRef<str>) -> Option<String> {
-  let value = value.as_ref();
+fn flip_shadow(value: &str) -> Option<String> {
   let defs: Vec<&str> = value.split(',').collect();
   let mut built_defs = Vec::new();
 
@@ -117,8 +110,7 @@ fn flip_shadow(value: impl AsRef<str>) -> Option<String> {
   if rtl != value { Some(rtl) } else { None }
 }
 
-fn is_unit(input: impl AsRef<str>) -> bool {
-  let input = input.as_ref();
+fn is_unit(input: &str) -> bool {
   LENGTH_UNIT_TESTER_REGEX
     .is_match(input)
     .unwrap_or_else(|err| {
@@ -131,8 +123,7 @@ fn is_unit(input: impl AsRef<str>) -> bool {
     })
 }
 
-fn flip_sign(value: impl AsRef<str>) -> String {
-  let value = value.as_ref();
+fn flip_sign(value: &str) -> String {
   if value == "0" {
     value.to_string()
   } else if value.starts_with('-') {

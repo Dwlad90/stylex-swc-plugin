@@ -559,8 +559,7 @@ impl NamedColor {
   }
 
   /// Check if a string is a valid named color
-  pub fn is_valid_named_color(name: impl AsRef<str>) -> bool {
-    let name = name.as_ref();
+  pub fn is_valid_named_color(name: &str) -> bool {
     NAMED_COLORS.contains(&name.to_lowercase().as_str())
   }
 
@@ -605,8 +604,7 @@ impl HashColor {
   }
 
   /// Validate hex color format
-  pub fn is_valid_hex(value: impl AsRef<str>) -> bool {
-    let value = value.as_ref();
+  pub fn is_valid_hex(value: &str) -> bool {
     let valid_lengths = [3, 6, 8]; // 3-digit, 6-digit, 8-digit (with alpha)
     valid_lengths.contains(&value.len()) && value.chars().all(|c| c.is_ascii_hexdigit())
   }

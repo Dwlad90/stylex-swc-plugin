@@ -20,8 +20,7 @@ pub const ANSI_ORANGE: &str = "\x1B[38;5;208m";
 
 static MAX_MODULE_WIDTH: AtomicUsize = AtomicUsize::new(0);
 
-fn max_target_width(target: impl AsRef<str>) -> usize {
-  let target = target.as_ref();
+fn max_target_width(target: &str) -> usize {
   let max_width = MAX_MODULE_WIDTH.load(Ordering::Relaxed);
 
   if max_width < target.len() {

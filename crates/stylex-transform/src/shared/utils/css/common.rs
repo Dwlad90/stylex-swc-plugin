@@ -55,12 +55,11 @@ const THUMB_VARIANTS: [&str; 3] = [
 
 pub(crate) fn build_nested_css_rule(
   class_name: &str,
-  decls: impl AsRef<str>,
+  decls: &str,
   pseudos: &mut [String],
   at_rules: &mut [String],
   const_rules: &mut [String],
 ) -> String {
-  let decls = decls.as_ref();
   let pseudo = pseudos
     .iter()
     .filter(|&p| p != "::thumb")
@@ -141,13 +140,13 @@ pub(crate) fn generate_css_rule(
     .collect::<Vec<String>>()
     .join(";");
 
-  let ltr_rule = build_nested_css_rule(class_name, ltr_decls, pseudos, at_rules, const_rules);
+  let ltr_rule = build_nested_css_rule(class_name, &ltr_decls, pseudos, at_rules, const_rules);
   let rtl_rule = if rtl_decls.is_empty() {
     None
   } else {
     Some(build_nested_css_rule(
       class_name,
-      rtl_decls,
+      &rtl_decls,
       pseudos,
       at_rules,
       const_rules,
@@ -155,9 +154,9 @@ pub(crate) fn generate_css_rule(
   };
 
   let priority = get_priority(key)
-    + pseudos.iter().map(get_priority).sum::<f64>()
-    + at_rules.iter().map(get_priority).sum::<f64>()
-    + const_rules.iter().map(get_priority).sum::<f64>();
+    + pseudos.iter().map(|s| get_priority(s)).sum::<f64>()
+    + at_rules.iter().map(|s| get_priority(s)).sum::<f64>()
+    + const_rules.iter().map(|s| get_priority(s)).sum::<f64>();
 
   InjectableStyle {
     priority: Some(priority),
@@ -288,8 +287,7 @@ fn get_default_priority(key: &str) -> Option<f64> {
   None
 }
 
-pub(crate) fn get_priority(key: impl AsRef<str>) -> f64 {
-  let key = key.as_ref();
+pub(crate) fn get_priority(key: &str) -> f64 {
   if let Some(at_rule_priority) = get_at_rule_priority(key) {
     return at_rule_priority;
   }
@@ -313,13 +311,7 @@ pub(crate) fn get_priority(key: impl AsRef<str>) -> f64 {
   3000.0
 }
 
-pub(crate) fn transform_value(
-  key: impl AsRef<str>,
-  value: impl AsRef<str>,
-  state: &StateManager,
-) -> String {
-  let key = key.as_ref();
-  let value = value.as_ref();
+pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> String {
   let css_property_value = value.trim();
 
   let value = match &css_property_value.parse::<f64>() {
@@ -353,13 +345,7 @@ pub(crate) fn transform_value(
   normalize_css_property_value(key, value.as_ref(), &state.options)
 }
 
-pub(crate) fn transform_value_cached(
-  key: impl AsRef<str>,
-  value: impl AsRef<str>,
-  state: &mut StateManager,
-) -> String {
-  let key = key.as_ref();
-  let value = value.as_ref();
+pub(crate) fn transform_value_cached(key: &str, value: &str, state: &mut StateManager) -> String {
   let cache_key: String = format!("{}:{}", key, value);
 
   let cache = state.css_property_seen.get(&cache_key);
@@ -375,8 +361,7 @@ pub(crate) fn transform_value_cached(
   result
 }
 
-pub fn swc_parse_css(source: impl AsRef<str>) -> (Result<Stylesheet, Error>, Vec<Error>) {
-  let source = source.as_ref();
+pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
   let config = ParserConfig {
     allow_wrong_line_comments: false,
     css_modules: false,
@@ -483,8 +468,7 @@ pub(crate) fn normalize_css_property_value(
 // type Normalizer = fn(Stylesheet, bool) -> Stylesheet;
 // type Validator = fn(Stylesheet);
 
-pub(crate) fn get_number_suffix(key: impl AsRef<str>) -> String {
-  let key = key.as_ref();
+pub(crate) fn get_number_suffix(key: &str) -> String {
   if UNITLESS_NUMBER_PROPERTIES.contains(key) || key.starts_with("--") {
     return String::default();
   }
@@ -556,8 +540,7 @@ pub fn stringify(node: &Stylesheet) -> String {
 /// Custom properties (`--*`) are returned as-is. Vendor-prefixed properties
 /// (e.g. `MsTransition`, `WebkitTapHighlightColor`) are converted to their
 /// standard hyphenated forms (`-ms-transition`, `-webkit-tap-highlight-color`).
-pub(crate) fn normalize_css_property_name(prop: impl AsRef<str>) -> String {
-  let prop = prop.as_ref();
+pub(crate) fn normalize_css_property_name(prop: &str) -> String {
   if prop.starts_with("--") {
     return prop.to_string();
   }

@@ -77,8 +77,7 @@ impl ToNapiValue for RuntimeInjectionUnion {
 
 static MAX_IMPORT_PATH_LENGTH: usize = 214;
 
-fn validate_import_path(path: impl AsRef<str>) -> Result<(), String> {
-  let path = path.as_ref();
+fn validate_import_path(path: &str) -> Result<(), String> {
   if path.len() > MAX_IMPORT_PATH_LENGTH {
     return Err(format!(
       "Import path is too long (max {} characters)",
@@ -167,8 +166,7 @@ pub enum PathFilterUnion {
 }
 
 impl PathFilterUnion {
-  pub fn from_string(pattern: impl AsRef<str>) -> Self {
-    let pattern = pattern.as_ref();
+  pub fn from_string(pattern: &str) -> Self {
     if pattern.starts_with('/') && pattern.len() > 2 {
       // Find the last unescaped slash to handle patterns like /path\/to\/file/
       let mut last_slash_pos = None;

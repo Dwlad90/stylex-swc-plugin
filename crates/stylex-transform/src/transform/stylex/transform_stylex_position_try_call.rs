@@ -54,7 +54,7 @@ where
         takes_path: false,
       };
 
-      if let Some(set) = self.state.get_import(ImportKind::FirstThatWorks) {
+      if let Some(set) = self.state.get_stylex_api_import(ImportKind::FirstThatWorks) {
         for name in set {
           identifiers.insert(
             name.clone(),

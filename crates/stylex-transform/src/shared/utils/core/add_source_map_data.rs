@@ -168,8 +168,7 @@ pub(crate) fn add_source_map_data(
   result
 }
 
-fn get_package_prefix(absolute_path: impl AsRef<str>) -> Option<String> {
-  let absolute_path = absolute_path.as_ref();
+fn get_package_prefix(absolute_path: &str) -> Option<String> {
   const NODE_MODULES: &str = "node_modules";
 
   let node_modules_index = absolute_path.find(NODE_MODULES)?;
@@ -185,8 +184,7 @@ fn get_package_prefix(absolute_path: impl AsRef<str>) -> Option<String> {
     .map(String::from)
 }
 
-fn get_short_path(relative_path: impl AsRef<str>, state: &StateManager) -> String {
-  let relative_path = relative_path.as_ref();
+fn get_short_path(relative_path: &str, state: &StateManager) -> String {
   // Check if commonJS module resolution with rootDir is configured
   if let CheckModuleResolution::CommonJS(ref config) = state.options.unstable_module_resolution
     && let Some(ref root_dir) = config.root_dir
@@ -212,11 +210,10 @@ fn get_short_path(relative_path: impl AsRef<str>, state: &StateManager) -> Strin
 }
 
 fn create_short_filename(
-  absolute_path: impl AsRef<str>,
+  absolute_path: &str,
   state: &StateManager,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> String {
-  let absolute_path = absolute_path.as_ref();
   let is_haste = matches!(
     state.options.unstable_module_resolution,
     CheckModuleResolution::Haste(_)

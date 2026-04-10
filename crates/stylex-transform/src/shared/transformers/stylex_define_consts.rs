@@ -77,13 +77,13 @@ pub(crate) fn stylex_define_consts(
             "{}-{}{}",
             var_safe_key,
             class_name_prefix,
-            create_hash(format!("{}.{}", export_id, key))
+            create_hash(&format!("{}.{}", export_id, key))
           )
         } else {
           format!(
             "{}{}",
             class_name_prefix,
-            create_hash(format!("{}.{}", export_id, key))
+            create_hash(&format!("{}.{}", export_id, key))
           )
         };
 

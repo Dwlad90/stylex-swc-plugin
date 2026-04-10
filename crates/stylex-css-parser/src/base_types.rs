@@ -17,8 +17,7 @@ pub struct SubString {
 
 impl SubString {
   /// Create a new SubString from a string
-  pub fn new(s: impl AsRef<str>) -> Self {
-    let s = s.as_ref();
+  pub fn new(s: &str) -> Self {
     Self {
       string: s.to_string(),
       start_index: 0,
@@ -28,8 +27,7 @@ impl SubString {
 
   /// Check if the substring starts with the given string
   /// Uses a loop to avoid creating a new string
-  pub fn starts_with(&self, s: impl AsRef<str>) -> bool {
-    let s = s.as_ref();
+  pub fn starts_with(&self, s: &str) -> bool {
     let chars: Vec<char> = self.string.chars().collect();
     let search_chars: Vec<char> = s.chars().collect();
 

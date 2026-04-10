@@ -104,8 +104,7 @@ impl ImportKind {
     ImportKind::Env,
   ];
 
-  pub(crate) fn from_import_name(name: impl AsRef<str>) -> Option<ImportKind> {
-    let name = name.as_ref();
+  pub(crate) fn from_import_name(name: &str) -> Option<ImportKind> {
     match name {
       "create" => Some(ImportKind::Create),
       "props" => Some(ImportKind::Props),
@@ -141,7 +140,7 @@ pub struct StateManager {
   pub(crate) import_paths: FxHashSet<String>,
   pub(crate) stylex_import: FxHashSet<ImportSources>,
   pub(crate) import_specifiers: Vec<String>,
-  pub(crate) api_imports: FxHashMap<ImportKind, AtomHashSet>,
+  pub(crate) stylex_api_imports: FxHashMap<ImportKind, AtomHashSet>,
   pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
   pub(crate) export_id: Option<String>,
 
@@ -197,7 +196,7 @@ impl StateManager {
       import_paths: FxHashSet::default(),
       stylex_import: FxHashSet::default(),
       import_specifiers: vec![],
-      api_imports: FxHashMap::default(),
+      stylex_api_imports: FxHashMap::default(),
       inject_import_inserted: None,
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
@@ -237,26 +236,28 @@ impl StateManager {
   }
 
   /// Check if an import of the given kind contains the given symbol.
-  pub(crate) fn has_import(&self, kind: ImportKind, sym: &Atom) -> bool {
+  pub(crate) fn has_stylex_api_import(&self, kind: ImportKind, sym: &Atom) -> bool {
     self
-      .api_imports
+      .stylex_api_imports
       .get(&kind)
       .is_some_and(|set| set.contains(sym))
   }
 
   /// Insert a symbol into the import set for the given kind.
-  pub(crate) fn insert_import(&mut self, kind: ImportKind, sym: Atom) {
-    self.api_imports.entry(kind).or_default().insert(sym);
+  pub(crate) fn insert_stylex_api_import(&mut self, kind: ImportKind, sym: Atom) {
+    self.stylex_api_imports.entry(kind).or_default().insert(sym);
   }
 
   /// Get the import set for the given kind, if any entries exist.
-  pub(crate) fn get_import(&self, kind: ImportKind) -> Option<&AtomHashSet> {
-    self.api_imports.get(&kind)
+  pub(crate) fn get_stylex_api_import(&self, kind: ImportKind) -> Option<&AtomHashSet> {
+    self.stylex_api_imports.get(&kind)
   }
 
   /// Check if any import of the given kinds contains the given symbol.
-  pub(crate) fn any_import_contains(&self, kinds: &[ImportKind], sym: &Atom) -> bool {
-    kinds.iter().any(|kind| self.has_import(*kind, sym))
+  pub(crate) fn any_stylex_api_import_contains(&self, kinds: &[ImportKind], sym: &Atom) -> bool {
+    kinds
+      .iter()
+      .any(|kind| self.has_stylex_api_import(*kind, sym))
   }
 
   /// Applies the `env` configuration to the given identifiers and member_expressions maps.
@@ -284,7 +285,7 @@ impl StateManager {
 
     // For direct env imports (e.g., `import { env } from '@stylexjs/stylex'`),
     // add the env object directly to identifiers.
-    if let Some(env_imports) = self.get_import(ImportKind::Env) {
+    if let Some(env_imports) = self.get_stylex_api_import(ImportKind::Env) {
       for name in env_imports {
         identifiers.insert(
           name.clone(),
@@ -314,8 +315,7 @@ impl StateManager {
     self.seen_module_source_code = Some(Box::new((Program::Module(module.clone()), source_code)));
   }
 
-  pub fn import_as(&self, import: impl AsRef<str>) -> Option<String> {
-    let import = import.as_ref();
+  pub fn import_as(&self, import: &str) -> Option<String> {
     for import_source in &self.options.import_sources {
       match import_source {
         ImportSources::Regular(_) => {},
@@ -822,8 +822,8 @@ impl StateManager {
 
     // Combine all API import sets (fixes bug where 7 kinds were previously missing)
     for kind in ImportKind::ALL {
-      if let Some(other_set) = other.api_imports.get(kind) {
-        let self_set = self.api_imports.entry(*kind).or_default();
+      if let Some(other_set) = other.stylex_api_imports.get(kind) {
+        let self_set = self.stylex_api_imports.entry(*kind).or_default();
         for item in other_set {
           self_set.insert(item.clone());
         }
@@ -901,8 +901,7 @@ fn add_inject_default_import_expression(ident: &Ident, inject_path: Option<&str>
   }))
 }
 
-pub(crate) fn add_import_expression(path: impl AsRef<str>) -> ModuleItem {
-  let path = path.as_ref();
+pub(crate) fn add_import_expression(path: &str) -> ModuleItem {
   ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
     span: DUMMY_SP,
     specifiers: vec![],
@@ -952,12 +951,7 @@ fn add_inject_var_decl_expression(decl_ident: &Ident, value_ident: &Ident) -> Mo
   }))))
 }
 
-pub(crate) fn matches_file_suffix(
-  allowed_suffix: impl AsRef<str>,
-  filename: impl AsRef<str>,
-) -> bool {
-  let allowed_suffix = allowed_suffix.as_ref();
-  let filename = filename.as_ref();
+pub(crate) fn matches_file_suffix(allowed_suffix: &str, filename: &str) -> bool {
   if filename.ends_with(allowed_suffix) {
     return true;
   }

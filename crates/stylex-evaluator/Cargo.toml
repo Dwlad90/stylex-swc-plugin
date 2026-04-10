@@ -14,14 +14,8 @@ doctest = false
 
 [dependencies]
 anyhow.workspace = true
-base62.workspace = true
 indexmap.workspace = true
 log.workspace = true
-md5.workspace = true
-murmur2.workspace = true
-node-resolve.workspace = true
-radix_fmt.workspace = true
-rustc-hash.workspace = true
 swc_core = { workspace = true, features = [
   "common",
   "ecma_codegen",

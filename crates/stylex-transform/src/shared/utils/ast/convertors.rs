@@ -10,6 +10,7 @@ pub use stylex_ast::ast::convertors::{
 };
 
 use anyhow::anyhow;
+use stylex_evaluator::common::evaluate_bin_expr;
 // Import error handling macros from shared utilities
 use stylex_macros::{
   as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic, convert_expr_to_str_or_err, stylex_panic,
@@ -25,7 +26,7 @@ use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state::EvaluationState;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::common::{
-  evaluate_bin_expr, get_expr_from_var_decl, get_var_decl_by_ident, wrap_key_in_quotes,
+  get_expr_from_var_decl, get_var_decl_by_ident, wrap_key_in_quotes,
 };
 use crate::shared::utils::js::evaluate::{deopt, evaluate_cached};
 use stylex_constants::constants::messages::{

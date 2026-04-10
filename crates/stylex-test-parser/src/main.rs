@@ -172,8 +172,7 @@ impl Fold for TypeScriptStripper {
   }
 }
 
-fn transform_file(file_path: &Path, dir: impl AsRef<str>) -> Result<(), std::io::Error> {
-  let dir = dir.as_ref();
+fn transform_file(file_path: &Path, dir: &str) -> Result<(), std::io::Error> {
   let is_snapshot = file_path.to_string_lossy().ends_with(".snap");
 
   let source_code = read_to_string(file_path)?.replace("{ ... }", "{ }");
@@ -237,8 +236,7 @@ fn write_file<P: Display, C: AsRef<[u8]>>(
   write(format!("{}/{}", dir, test_file_name), transformed_code)
 }
 
-fn create_dir_if_not_exists(dir: impl AsRef<str>) -> io::Result<()> {
-  let dir = dir.as_ref();
+fn create_dir_if_not_exists(dir: &str) -> io::Result<()> {
   fs::remove_dir_all(dir).unwrap_or_default();
   fs::create_dir_all(dir)
 }

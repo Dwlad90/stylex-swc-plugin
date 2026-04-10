@@ -13,8 +13,13 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
+base62.workspace = true
+murmur2.workspace = true
+radix_fmt.workspace = true
+rustc-hash.workspace = true
 swc_core = { workspace = true, features = ["common", "ecma_utils"] }
-# convert_case = { workspace = true }
+
+stylex_regex = { path = "../stylex-regex" }
 
 [dev-dependencies]
 ctor.workspace = true

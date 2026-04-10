@@ -16,6 +16,9 @@ doctest = false
 anyhow.workspace = true
 indexmap.workspace = true
 log.workspace = true
+md5.workspace = true
+node-resolve.workspace = true
+rustc-hash.workspace = true
 swc_core = { workspace = true, features = [
   "common",
   "ecma_codegen",
@@ -30,6 +33,7 @@ stylex_js = { path = "../stylex-js" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_path_resolver = { path = "../stylex-path-resolver" }
 stylex_types = { path = "../stylex-types" }
+stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
 ctor.workspace = true

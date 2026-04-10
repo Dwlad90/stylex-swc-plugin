@@ -1,9 +1,7 @@
-use radix_fmt::radix;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 use std::{
   any::type_name,
   collections::hash_map::Entry,
-  hash::{DefaultHasher, Hash, Hasher},
   ops::Deref,
   path::PathBuf,
 };
@@ -37,6 +35,17 @@ use stylex_regex::regex::JSON_REGEX;
 
 use super::ast::convertors::expand_shorthand_prop;
 use stylex_ast::ast::factories::create_var_declarator;
+
+// Re-exports from stylex-utils: canonical definitions live there.
+pub(crate) use stylex_utils::collection::{
+  find_and_swap_remove, get_hash_map_difference, get_hash_map_value_difference,
+  sort_numbers_factory, sum_hash_map_values,
+};
+pub use stylex_utils::hash::{create_hash, create_short_hash, stable_hash};
+#[allow(unused_imports)]
+pub(crate) use stylex_utils::hash::hash_f64;
+pub(crate) use stylex_utils::math::{round_f64, round_to_decimal_places};
+pub(crate) use stylex_utils::string::{char_code_at, dashify, remove_quotes, wrap_key_in_quotes};
 
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {
@@ -80,19 +89,8 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
   }
 }
 
-pub fn create_hash(value: &str) -> String {
-  radix(murmur2::murmur2(value.as_bytes(), 1), 36).to_string()
-}
 
-pub(crate) fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> String {
-  if should_wrap_in_quotes {
-    format!("\"{}\"", key)
-  } else {
-    key.to_string()
-  }
-}
-
-pub fn reduce_ident_count<'a>(state: &'a mut StateManager, ident: &'a Ident) {
+pub fn reduce_ident_count(state: &mut StateManager, ident: &Ident) {
   if let Entry::Occupied(mut entry) = state.var_decl_count_map.entry(ident.sym.clone()) {
     *entry.get_mut() -= 1;
   }
@@ -344,76 +342,6 @@ pub(crate) fn deep_merge_props(
   remove_duplicates(new_props.into_iter().rev().collect())
 }
 
-pub(crate) fn get_hash_map_difference<K, V>(
-  orig_map: &FxHashMap<K, V>,
-  compare_map: &FxHashMap<K, V>,
-) -> FxHashMap<K, V>
-where
-  K: Eq + Hash + Clone,
-  V: PartialEq + Clone,
-{
-  let mut diff = FxHashMap::default();
-
-  for (key, value) in orig_map {
-    if let Some(map2_value) = compare_map.get(key) {
-      if value != map2_value {
-        diff.insert(key.clone(), value.clone());
-      }
-    } else {
-      diff.insert(key.clone(), value.clone());
-    }
-  }
-
-  for (key, value) in compare_map {
-    if !orig_map.contains_key(key) {
-      diff.insert(key.clone(), value.clone());
-    }
-  }
-
-  diff
-}
-
-pub(crate) fn get_hash_map_value_difference(
-  orig_map: &FxHashMap<Atom, i16>,
-  map2: &FxHashMap<Atom, i16>,
-) -> FxHashMap<Atom, i16> {
-  let mut diff = FxHashMap::default();
-
-  for (key, value) in orig_map {
-    if let Some(map2_value) = map2.get(key) {
-      if value != map2_value {
-        diff.insert(key.clone(), value - map2_value);
-      }
-    } else {
-      diff.insert(key.clone(), *value);
-    }
-  }
-
-  diff
-}
-
-pub(crate) fn sum_hash_map_values(
-  orig_map: &FxHashMap<Atom, i16>,
-  compare_map: &FxHashMap<Atom, i16>,
-) -> FxHashMap<Atom, i16> {
-  let mut sum_map = FxHashMap::default();
-
-  for (key, value) in orig_map {
-    sum_map.insert(key.clone(), *value);
-  }
-
-  for (key, value) in compare_map {
-    sum_map
-      .entry(key.clone())
-      .and_modify(|e| *e += value)
-      .or_insert(*value);
-  }
-
-  sum_map
-}
-
-pub(crate) use stylex_css::utils::css_helpers::dashify;
-
 pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>) {
   let Some(obj) = key_value.value.as_object() else {
     return (key_value.value, None);
@@ -594,13 +522,6 @@ pub(crate) fn gen_file_based_identifier(
   format!("{}//{}{}", file_name, export_name, key)
 }
 
-#[allow(unused_imports)]
-pub(crate) use stylex_utils::hash::hash_f64;
-
-pub(crate) fn round_f64(value: f64, decimal_places: u32) -> f64 {
-  let multiplier = 10f64.powi(decimal_places as i32);
-  (value * multiplier).round() / multiplier
-}
 
 #[allow(dead_code)]
 pub(crate) fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
@@ -629,34 +550,6 @@ pub(crate) fn normalize_expr(expr: &mut Expr) -> &mut Expr {
   }
 }
 
-pub(crate) fn sort_numbers_factory() -> impl FnMut(&f64, &f64) -> std::cmp::Ordering {
-  |a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)
-}
-
-pub(crate) fn char_code_at(s: &str, index: usize) -> Option<u32> {
-  s.chars().nth(index).map(|c| c as u32)
-}
-
-pub fn stable_hash<T: Hash>(t: &T) -> u64 {
-  let mut hasher = DefaultHasher::new();
-  t.hash(&mut hasher);
-  hasher.finish()
-}
-
-pub(crate) fn find_and_swap_remove<T, F>(vec: &mut Vec<T>, predicate: F) -> Option<T>
-where
-  F: Fn(&T) -> bool,
-{
-  vec
-    .iter()
-    .position(predicate)
-    .map(|index| vec.swap_remove(index))
-}
-
-pub(crate) fn create_short_hash(value: &str) -> String {
-  let hash = murmur2::murmur2(value.as_bytes(), 1) % (62u32.pow(5));
-  base62::encode(hash)
-}
 
 pub(crate) fn _md5_hash<T: serde::Serialize>(value: T, length: usize) -> String {
   let serialized_value = serialize_value_to_json_string(value);
@@ -671,9 +564,6 @@ pub(crate) fn _md5_hash<T: serde::Serialize>(value: T, length: usize) -> String 
   }
 }
 
-pub(crate) fn remove_quotes(s: &str) -> String {
-  s.trim_matches('"').to_string()
-}
 
 pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> String {
   match serde_json::to_string(&value) {
@@ -707,7 +597,6 @@ fn js_object_to_json(js_str: &str) -> String {
   JSON_REGEX.replace_all(js_str, r#"$1"$2":"#).to_string()
 }
 
-pub(crate) use stylex_css::utils::css_helpers::round_to_decimal_places;
 
 /// Utility function to get the `StateManager` from the `StyleOptions` trait.
 /// This is a helper function to get the `StateManager` from the `StyleOptions` trait.

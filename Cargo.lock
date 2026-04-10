@@ -2926,6 +2926,7 @@ dependencies = [
  "stylex_regex",
  "stylex_structures",
  "stylex_types",
+ "stylex_utils",
  "swc_core",
 ]
 
@@ -2969,13 +2970,17 @@ dependencies = [
  "ctor",
  "indexmap",
  "log",
+ "md5",
+ "node-resolve",
  "pretty_env_logger",
+ "rustc-hash",
  "stylex_ast",
  "stylex_constants",
  "stylex_js",
  "stylex_macros",
  "stylex_path_resolver",
  "stylex_types",
+ "stylex_utils",
  "swc_core",
 ]
 
@@ -3116,7 +3121,6 @@ dependencies = [
  "stylex_css",
  "stylex_css_parser",
  "stylex_enums",
- "stylex_evaluator",
  "stylex_logs",
  "stylex_macros",
  "stylex_path_resolver",
@@ -3157,8 +3161,13 @@ dependencies = [
 name = "stylex_utils"
 version = "0.15.3"
 dependencies = [
+ "base62",
  "ctor",
+ "murmur2",
  "pretty_env_logger",
+ "radix_fmt",
+ "rustc-hash",
+ "stylex_regex",
  "swc_core",
 ]
 

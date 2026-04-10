@@ -3,7 +3,7 @@ use crate::css::generate_rtl::generate_rtl;
 use crate::css::normalizers::base::base_normalizer;
 use crate::css::normalizers::{extract_css_value, normalize_spacing};
 use crate::css::validators::unprefixed_custom_properties::unprefixed_custom_properties_validator;
-use crate::utils::css_helpers::dashify;
+use stylex_utils::string::dashify;
 use stylex_constants::constants::common::{
   COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES,
   COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES,
@@ -497,4 +497,4 @@ pub fn inline_style_to_css_string(pairs: &[Pair]) -> String {
 
 // Re-export round_to_decimal_places so callers that depend on it through
 // css::common can find it here as well.
-pub use crate::utils::css_helpers::round_to_decimal_places;
+pub use stylex_utils::math::round_to_decimal_places;

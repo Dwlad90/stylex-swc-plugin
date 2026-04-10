@@ -1,25 +1,10 @@
-use stylex_regex::regex::DASHIFY_REGEX;
-
-/// Converts a camelCase string to kebab-case by inserting hyphens before
-/// uppercase letters and lowercasing the result.
-pub fn dashify(s: &str) -> String {
-  DASHIFY_REGEX.replace_all(s, "-$1").to_lowercase()
-}
-
 /// Rounds a floating-point value to the specified number of decimal places.
 ///
 /// For a single decimal place (`decimal_places == 1`), uses smart rounding
 /// that preserves legitimate decimals (e.g. 0.25) while fixing
-/// floating-point precision errors.
+/// floating-point precision errors (e.g. 0.6000000000000001 → 0.6).
 ///
-/// # Examples
-/// ```ignore
-/// round_to_decimal_places(0.6000000000000001, 1) // → 0.6
-/// round_to_decimal_places(0.25, 1)               // → 0.25 (preserved)
-///
-/// round_to_decimal_places(33.333333333333336, 4) // → 33.3333
-/// round_to_decimal_places(10.0, 4)               // → 10.0
-/// ```
+/// For other decimal places, always rounds to the specified precision.
 pub fn round_to_decimal_places(value: f64, decimal_places: u32) -> f64 {
   let multiplier = 10_f64.powi(decimal_places as i32);
   let rounded = (value * multiplier).round() / multiplier;
@@ -35,4 +20,13 @@ pub fn round_to_decimal_places(value: f64, decimal_places: u32) -> f64 {
     // For other decimal places, always round
     rounded
   }
+}
+
+/// Simple rounding to the given number of decimal places.
+///
+/// Unlike `round_to_decimal_places`, this always rounds without special
+/// handling for single decimal places.
+pub fn round_f64(value: f64, decimal_places: u32) -> f64 {
+  let multiplier = 10f64.powi(decimal_places as i32);
+  (value * multiplier).round() / multiplier
 }

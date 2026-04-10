@@ -9,7 +9,7 @@ use swc_core::{
   },
 };
 
-use crate::utils::css_helpers::dashify;
+use stylex_utils::string::dashify;
 use stylex_constants::constants::common::ROOT_FONT_SIZE;
 
 struct CssFolder {

@@ -39,6 +39,7 @@ stylex_macros = { path = "../stylex-macros" }
 stylex_regex = { path = "../stylex-regex" }
 stylex_structures = { path = "../stylex-structures" }
 stylex_types = { path = "../stylex-types" }
+stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
 ctor.workspace = true

@@ -192,3 +192,180 @@ fn parse_css_nested_function() {
   assert!(joined.contains("calc("));
   assert!(joined.contains("var("));
 }
+
+// ── Additional coverage: token branches ─────────────────────────────
+
+#[test]
+fn parse_css_signed_positive_number() {
+  let result = parse_css("+5");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("+5") || joined.contains("5"));
+}
+
+#[test]
+fn parse_css_signed_positive_percentage() {
+  let result = parse_css("+50%");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("50%"));
+}
+
+#[test]
+fn parse_css_signed_positive_dimension() {
+  let result = parse_css("+10px");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("10px"));
+}
+
+#[test]
+fn parse_css_negative_percentage() {
+  let result = parse_css("-25%");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("-25%"));
+}
+
+#[test]
+fn parse_css_zero_percentage() {
+  let result = parse_css("0%");
+  assert_eq!(result, vec!["0%"]);
+}
+
+#[test]
+fn parse_css_id_hash_selector() {
+  let result = parse_css("#myId");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("#"));
+}
+
+#[test]
+fn parse_css_at_keyword_charset() {
+  let result = parse_css("@charset");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("@charset"));
+}
+
+#[test]
+fn parse_css_at_keyword_font_face() {
+  let result = parse_css("@font-face");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("@font-face"));
+}
+
+#[test]
+fn parse_css_curly_braces() {
+  let result = parse_css("a { color: red }");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("{"));
+  assert!(joined.contains("}"));
+}
+
+#[test]
+fn parse_css_comma_filtered_out() {
+  let result = parse_css("a, b, c");
+  // Commas are filtered by parse_css
+  for item in &result {
+    assert_ne!(item, ",");
+  }
+}
+
+#[test]
+fn parse_css_multiple_dimensions() {
+  let result = parse_css("1rem 2em 3vh 4vw");
+  assert_eq!(result.len(), 4);
+}
+
+#[test]
+fn parse_css_slash_in_join() {
+  // Test the join_css "/" handling: no space before "/"
+  let result = parse_css("10px / 20px");
+  assert!(!result.is_empty());
+  let joined = result.join(" ");
+  assert!(joined.contains("/"));
+}
+
+#[test]
+fn parse_css_format_ident_special() {
+  let result = format_ident("_underscore-dash");
+  assert_eq!(result, "_underscore-dash");
+}
+
+#[test]
+fn parse_css_format_ident_empty() {
+  let result = format_ident("");
+  assert!(result.is_empty());
+}
+
+#[test]
+fn parse_css_whitespace_only() {
+  let result = parse_css("   ");
+  assert!(result.is_empty());
+}
+
+#[test]
+fn parse_css_comment() {
+  let result = parse_css("/* comment */ red");
+  assert!(!result.is_empty());
+  let joined = result.join(" ");
+  assert!(joined.contains("red"));
+}
+
+#[test]
+fn parse_css_semicolon() {
+  let result = parse_css("color: red; margin: 0");
+  let joined = result.join(" ");
+  assert!(joined.contains(";"));
+}
+
+#[test]
+fn parse_css_single_quoted_string() {
+  let result = parse_css("'hello world'");
+  let joined = result.join("");
+  assert!(joined.contains("hello world"));
+}
+
+#[test]
+fn parse_css_negative_dimension() {
+  let result = parse_css("-3em");
+  assert_eq!(result, vec!["-3em"]);
+}
+
+#[test]
+fn parse_css_zero_number() {
+  let result = parse_css("0");
+  assert_eq!(result, vec!["0"]);
+}
+
+#[test]
+fn parse_css_large_number() {
+  let result = parse_css("999999");
+  assert_eq!(result, vec!["999999"]);
+}
+
+#[test]
+fn parse_css_nested_parens() {
+  let result = parse_css("calc(max(10px, 20px) + 5px)");
+  assert!(!result.is_empty());
+  let joined = result.join("");
+  assert!(joined.contains("calc("));
+  assert!(joined.contains("max("));
+}
+
+#[test]
+fn parse_css_delim_star() {
+  let result = parse_css("*");
+  assert!(!result.is_empty());
+  assert_eq!(result[0], "*");
+}
+
+#[test]
+fn parse_css_delim_tilde() {
+  let result = parse_css("~");
+  assert!(!result.is_empty());
+}

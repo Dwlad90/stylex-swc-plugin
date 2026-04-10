@@ -1741,4 +1741,992 @@ mod tests {
       assert_eq!(result, 7.0);
     }
   }
+
+  // ──────────────────────────────────────────────
+  // convert_expr_to_str tests
+  // ──────────────────────────────────────────────
+
+  mod convert_expr_to_str_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::convert_expr_to_str;
+    use crate::shared::utils::common::fill_state_declarations;
+    use swc_core::ecma::ast::BindingIdent;
+
+    fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
+      swc_core::ecma::ast::VarDeclarator {
+        span: Default::default(),
+        name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
+          id: Ident {
+            span: Default::default(),
+            sym: name.into(),
+            optional: false,
+            ctxt: SyntaxContext::empty(),
+          },
+          type_ann: None,
+        }),
+        init: Some(Box::new(init)),
+        definite: false,
+      }
+    }
+
+    #[test]
+    fn string_literal_returns_string() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let expr = make_str_expr("hello");
+      let result = convert_expr_to_str(&expr, &mut state, &fns);
+      assert_eq!(result, Some("hello".to_string()));
+    }
+
+    #[test]
+    fn ident_resolves_to_string() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let decl = make_var_declarator("color", make_str_expr("red"));
+      fill_state_declarations(&mut state, &decl);
+      state.var_decl_count_map.insert("color".into(), 2);
+      let expr = make_ident_expr("color");
+      let result = convert_expr_to_str(&expr, &mut state, &fns);
+      assert_eq!(result, Some("red".to_string()));
+    }
+
+    #[test]
+    fn number_literal_returns_string() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let expr = make_num_expr(42.0);
+      let result = convert_expr_to_str(&expr, &mut state, &fns);
+      assert_eq!(result, Some("42".to_string()));
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // convert_key_value_to_str - BigInt key
+  // ──────────────────────────────────────────────
+
+  mod convert_key_value_to_str_bigint_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::convert_key_value_to_str;
+    use swc_core::ecma::ast::{BigInt, KeyValueProp, PropName};
+
+    #[test]
+    fn bigint_key_returns_string() {
+      let kv = KeyValueProp {
+        key: PropName::BigInt(BigInt {
+          span: Default::default(),
+          value: Box::new(100u32.into()),
+          raw: None,
+        }),
+        value: Box::new(make_num_expr(0.0)),
+      };
+      let result = convert_key_value_to_str(&kv);
+      assert!(result.contains("100"));
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // ident_to_number - bin/unary declaration resolution
+  // ──────────────────────────────────────────────
+
+  mod ident_to_number_extended_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::ident_to_number;
+    use crate::shared::utils::common::fill_state_declarations;
+    use swc_core::ecma::ast::{BindingIdent, UnaryExpr, UnaryOp};
+
+    fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
+      swc_core::ecma::ast::VarDeclarator {
+        span: Default::default(),
+        name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
+          id: Ident {
+            span: Default::default(),
+            sym: name.into(),
+            optional: false,
+            ctxt: SyntaxContext::empty(),
+          },
+          type_ann: None,
+        }),
+        init: Some(Box::new(init)),
+        definite: false,
+      }
+    }
+
+    #[test]
+    fn resolves_ident_with_bin_expr_decl() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let bin_expr = Expr::Bin(BinExpr {
+        span: Default::default(),
+        op: BinaryOp::Add,
+        left: Box::new(make_num_expr(3.0)),
+        right: Box::new(make_num_expr(7.0)),
+      });
+      let decl = make_var_declarator("sum", bin_expr);
+      fill_state_declarations(&mut traversal_state, &decl);
+      traversal_state.var_decl_count_map.insert("sum".into(), 2);
+      let ident = Ident {
+        span: Default::default(),
+        sym: "sum".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      };
+      let result = ident_to_number(&ident, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, 10.0);
+    }
+
+    #[test]
+    fn resolves_ident_with_unary_expr_decl() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let unary_expr = Expr::Unary(UnaryExpr {
+        span: Default::default(),
+        op: UnaryOp::Minus,
+        arg: Box::new(make_num_expr(5.0)),
+      });
+      let decl = make_var_declarator("neg", unary_expr);
+      fill_state_declarations(&mut traversal_state, &decl);
+      traversal_state.var_decl_count_map.insert("neg".into(), 2);
+      let ident = Ident {
+        span: Default::default(),
+        sym: "neg".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      };
+      let result = ident_to_number(&ident, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, -5.0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn panics_for_undeclared_ident() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let ident = Ident {
+        span: Default::default(),
+        sym: "missing".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      };
+      ident_to_number(&ident, &mut state, &mut traversal_state, &fns);
+    }
+
+    #[test]
+    #[should_panic]
+    fn panics_for_non_number_decl() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let decl = make_var_declarator("s", make_str_expr("hello"));
+      fill_state_declarations(&mut traversal_state, &decl);
+      traversal_state.var_decl_count_map.insert("s".into(), 2);
+      let ident = Ident {
+        span: Default::default(),
+        sym: "s".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      };
+      ident_to_number(&ident, &mut state, &mut traversal_state, &fns);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // handle_tpl_to_expression tests
+  // ──────────────────────────────────────────────
+
+  mod handle_tpl_to_expression_extended_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::handle_tpl_to_expression;
+    use crate::shared::utils::common::fill_state_declarations;
+    use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
+
+    fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
+      swc_core::ecma::ast::VarDeclarator {
+        span: Default::default(),
+        name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
+          id: Ident {
+            span: Default::default(),
+            sym: name.into(),
+            optional: false,
+            ctxt: SyntaxContext::empty(),
+          },
+          type_ann: None,
+        }),
+        init: Some(Box::new(init)),
+        definite: false,
+      }
+    }
+
+    #[test]
+    fn replaces_ident_with_var_decl_init_extended() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let decl = make_var_declarator("val", make_num_expr(42.0));
+      fill_state_declarations(&mut state, &decl);
+      state.var_decl_count_map.insert("val".into(), 2);
+
+      let tpl = Tpl {
+        span: Default::default(),
+        exprs: vec![Box::new(make_ident_expr("val"))],
+        quasis: vec![
+          TplElement {
+            span: Default::default(),
+            tail: false,
+            cooked: Some("prefix ".into()),
+            raw: "prefix ".into(),
+          },
+          TplElement {
+            span: Default::default(),
+            tail: true,
+            cooked: Some(" suffix".into()),
+            raw: " suffix".into(),
+          },
+        ],
+      };
+      let result = handle_tpl_to_expression(&tpl, &mut state, &fns);
+      assert!(result.is_tpl());
+    }
+
+    #[test]
+    fn non_ident_expressions_unchanged_extended() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let tpl = Tpl {
+        span: Default::default(),
+        exprs: vec![Box::new(make_num_expr(10.0))],
+        quasis: vec![
+          TplElement {
+            span: Default::default(),
+            tail: false,
+            cooked: Some("a".into()),
+            raw: "a".into(),
+          },
+          TplElement {
+            span: Default::default(),
+            tail: true,
+            cooked: Some("b".into()),
+            raw: "b".into(),
+          },
+        ],
+      };
+      let result = handle_tpl_to_expression(&tpl, &mut state, &fns);
+      assert!(result.is_tpl());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // expr_tpl_to_string - bin expr and literal expressions
+  // ──────────────────────────────────────────────
+
+  mod expr_tpl_to_string_extended_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::expr_tpl_to_string;
+    use crate::shared::utils::common::fill_state_declarations;
+    use swc_core::ecma::ast::{BindingIdent, Tpl, TplElement};
+
+    fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
+      swc_core::ecma::ast::VarDeclarator {
+        span: Default::default(),
+        name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
+          id: Ident {
+            span: Default::default(),
+            sym: name.into(),
+            optional: false,
+            ctxt: SyntaxContext::empty(),
+          },
+          type_ann: None,
+        }),
+        init: Some(Box::new(init)),
+        definite: false,
+      }
+    }
+
+    #[test]
+    fn template_with_bin_expr() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let tpl = Tpl {
+        span: Default::default(),
+        exprs: vec![Box::new(Expr::Bin(BinExpr {
+          span: Default::default(),
+          op: BinaryOp::Add,
+          left: Box::new(make_num_expr(3.0)),
+          right: Box::new(make_num_expr(4.0)),
+        }))],
+        quasis: vec![
+          TplElement {
+            span: Default::default(),
+            tail: false,
+            cooked: Some("result: ".into()),
+            raw: "result: ".into(),
+          },
+          TplElement {
+            span: Default::default(),
+            tail: true,
+            cooked: Some("px".into()),
+            raw: "px".into(),
+          },
+        ],
+      };
+      let result = expr_tpl_to_string(&tpl, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, "result: 7px");
+    }
+
+    #[test]
+    fn template_with_number_literal() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let tpl = Tpl {
+        span: Default::default(),
+        exprs: vec![Box::new(make_num_expr(42.0))],
+        quasis: vec![
+          TplElement {
+            span: Default::default(),
+            tail: false,
+            cooked: Some("".into()),
+            raw: "".into(),
+          },
+          TplElement {
+            span: Default::default(),
+            tail: true,
+            cooked: Some("px".into()),
+            raw: "px".into(),
+          },
+        ],
+      };
+      let result = expr_tpl_to_string(&tpl, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, "42px");
+    }
+
+    #[test]
+    fn template_with_ident_resolving_to_string() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let decl = make_var_declarator("unit", make_str_expr("em"));
+      fill_state_declarations(&mut traversal_state, &decl);
+      traversal_state.var_decl_count_map.insert("unit".into(), 2);
+      let tpl = Tpl {
+        span: Default::default(),
+        exprs: vec![Box::new(make_ident_expr("unit"))],
+        quasis: vec![
+          TplElement {
+            span: Default::default(),
+            tail: false,
+            cooked: Some("10".into()),
+            raw: "10".into(),
+          },
+          TplElement {
+            span: Default::default(),
+            tail: true,
+            cooked: Some("".into()),
+            raw: "".into(),
+          },
+        ],
+      };
+      let result = expr_tpl_to_string(&tpl, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, "10em");
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // binary_expr_to_num - comparison operators
+  // ──────────────────────────────────────────────
+
+  mod binary_expr_to_num_comparison_tests {
+    use super::*;
+
+    fn eval_bin(op: BinaryOp, left: f64, right: f64) -> f64 {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let bin = BinExpr {
+        span: Default::default(),
+        op,
+        left: Box::new(make_num_expr(left)),
+        right: Box::new(make_num_expr(right)),
+      };
+      match binary_expr_to_num(&bin, &mut state, &mut traversal_state, &fns).unwrap() {
+        BinaryExprType::Number(n) => n,
+        _ => panic!("Expected number"),
+      }
+    }
+
+    #[test]
+    fn eqeq_equal_returns_1() {
+      assert_eq!(eval_bin(BinaryOp::EqEq, 5.0, 5.0), 1.0);
+    }
+
+    #[test]
+    fn eqeq_not_equal_returns_0() {
+      assert_eq!(eval_bin(BinaryOp::EqEq, 5.0, 3.0), 0.0);
+    }
+
+    #[test]
+    fn noteq_different_returns_1() {
+      assert_eq!(eval_bin(BinaryOp::NotEq, 5.0, 3.0), 1.0);
+    }
+
+    #[test]
+    fn noteq_same_returns_0() {
+      assert_eq!(eval_bin(BinaryOp::NotEq, 5.0, 5.0), 0.0);
+    }
+
+    #[test]
+    fn eqeqeq_equal_returns_1() {
+      assert_eq!(eval_bin(BinaryOp::EqEqEq, 5.0, 5.0), 1.0);
+    }
+
+    #[test]
+    fn eqeqeq_not_equal_returns_0() {
+      assert_eq!(eval_bin(BinaryOp::EqEqEq, 5.0, 3.0), 0.0);
+    }
+
+    #[test]
+    fn noteqeq_different_returns_1() {
+      assert_eq!(eval_bin(BinaryOp::NotEqEq, 5.0, 3.0), 1.0);
+    }
+
+    #[test]
+    fn noteqeq_same_returns_0() {
+      assert_eq!(eval_bin(BinaryOp::NotEqEq, 5.0, 5.0), 0.0);
+    }
+
+    #[test]
+    fn gt_greater_returns_1() {
+      assert_eq!(eval_bin(BinaryOp::Gt, 5.0, 3.0), 1.0);
+    }
+
+    #[test]
+    fn gt_not_greater_returns_0() {
+      assert_eq!(eval_bin(BinaryOp::Gt, 3.0, 5.0), 0.0);
+    }
+
+    #[test]
+    fn gteq_equal_returns_1() {
+      assert_eq!(eval_bin(BinaryOp::GtEq, 5.0, 5.0), 1.0);
+    }
+
+    #[test]
+    fn gteq_less_returns_0() {
+      assert_eq!(eval_bin(BinaryOp::GtEq, 3.0, 5.0), 0.0);
+    }
+
+    #[test]
+    fn lt_less_returns_1() {
+      assert_eq!(eval_bin(BinaryOp::Lt, 3.0, 5.0), 1.0);
+    }
+
+    #[test]
+    fn lt_not_less_returns_0() {
+      assert_eq!(eval_bin(BinaryOp::Lt, 5.0, 3.0), 0.0);
+    }
+
+    #[test]
+    fn lteq_equal_returns_1() {
+      assert_eq!(eval_bin(BinaryOp::LtEq, 5.0, 5.0), 1.0);
+    }
+
+    #[test]
+    fn lteq_greater_returns_0() {
+      assert_eq!(eval_bin(BinaryOp::LtEq, 5.0, 3.0), 0.0);
+    }
+
+    #[test]
+    fn in_zero_right_returns_1() {
+      assert_eq!(eval_bin(BinaryOp::In, 5.0, 0.0), 1.0);
+    }
+
+    #[test]
+    fn in_nonzero_right_returns_0() {
+      assert_eq!(eval_bin(BinaryOp::In, 5.0, 1.0), 0.0);
+    }
+
+    #[test]
+    fn instanceof_zero_right_returns_1() {
+      assert_eq!(eval_bin(BinaryOp::InstanceOf, 5.0, 0.0), 1.0);
+    }
+
+    #[test]
+    fn instanceof_nonzero_right_returns_0() {
+      assert_eq!(eval_bin(BinaryOp::InstanceOf, 5.0, 1.0), 0.0);
+    }
+
+    #[test]
+    fn modulo_returns_remainder() {
+      assert_eq!(eval_bin(BinaryOp::Mod, 10.0, 3.0), 1.0);
+    }
+
+    #[test]
+    fn exp_returns_power() {
+      assert_eq!(eval_bin(BinaryOp::Exp, 2.0, 3.0), 8.0);
+    }
+
+    #[test]
+    fn zero_fill_rshift() {
+      assert_eq!(eval_bin(BinaryOp::ZeroFillRShift, 8.0, 1.0), 4.0);
+    }
+
+    #[test]
+    fn logical_or_truthy_left() {
+      assert_eq!(eval_bin(BinaryOp::LogicalOr, 5.0, 3.0), 5.0);
+    }
+
+    #[test]
+    fn logical_or_falsy_left() {
+      assert_eq!(eval_bin(BinaryOp::LogicalOr, 0.0, 3.0), 3.0);
+    }
+
+    #[test]
+    fn logical_and_truthy_left() {
+      assert_eq!(eval_bin(BinaryOp::LogicalAnd, 5.0, 3.0), 3.0);
+    }
+
+    #[test]
+    fn logical_and_falsy_left() {
+      assert_eq!(eval_bin(BinaryOp::LogicalAnd, 0.0, 3.0), 0.0);
+    }
+
+    #[test]
+    fn nullish_coalescing_nonzero_left() {
+      assert_eq!(eval_bin(BinaryOp::NullishCoalescing, 5.0, 3.0), 5.0);
+    }
+
+    #[test]
+    fn nullish_coalescing_zero_left() {
+      assert_eq!(eval_bin(BinaryOp::NullishCoalescing, 0.0, 3.0), 3.0);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // transform_bin_expr_to_number tests
+  // ──────────────────────────────────────────────
+
+  mod transform_bin_expr_to_number_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::transform_bin_expr_to_number;
+
+    #[test]
+    fn add_two_numbers() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let bin = BinExpr {
+        span: Default::default(),
+        op: BinaryOp::Add,
+        left: Box::new(make_num_expr(3.0)),
+        right: Box::new(make_num_expr(4.0)),
+      };
+      let result = transform_bin_expr_to_number(&bin, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, 7.0);
+    }
+
+    #[test]
+    fn mul_two_numbers() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let bin = BinExpr {
+        span: Default::default(),
+        op: BinaryOp::Mul,
+        left: Box::new(make_num_expr(3.0)),
+        right: Box::new(make_num_expr(5.0)),
+      };
+      let result = transform_bin_expr_to_number(&bin, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, 15.0);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // convert_expr_to_bool - additional branches
+  // ──────────────────────────────────────────────
+
+  mod convert_expr_to_bool_extra_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::convert_expr_to_bool;
+    use swc_core::ecma::ast::{UnaryExpr, UnaryOp};
+
+    #[test]
+    fn minus_zero_is_truthy_by_negation() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      // Minus applies !convert_expr_to_bool(arg), and 0 is falsy, so !false = true
+      let expr = Expr::Unary(UnaryExpr {
+        span: Default::default(),
+        op: UnaryOp::Minus,
+        arg: Box::new(make_num_expr(0.0)),
+      });
+      assert!(convert_expr_to_bool(&expr, &mut state, &fns));
+    }
+
+    #[test]
+    fn plus_zero_is_truthy_by_negation() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      // Plus applies !convert_expr_to_bool(arg), and 0 is falsy, so !false = true
+      let expr = Expr::Unary(UnaryExpr {
+        span: Default::default(),
+        op: UnaryOp::Plus,
+        arg: Box::new(make_num_expr(0.0)),
+      });
+      assert!(convert_expr_to_bool(&expr, &mut state, &fns));
+    }
+
+    #[test]
+    fn tilde_of_neg1_is_falsy() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      // ~(-1) = 0 → !convert_expr_to_bool(-1) = !true = false
+      // But -1 is truthy (nonzero), so tilde inverts: !true = false
+      let expr = Expr::Unary(UnaryExpr {
+        span: Default::default(),
+        op: UnaryOp::Tilde,
+        arg: Box::new(make_num_expr(1.0)),
+      });
+      assert!(!convert_expr_to_bool(&expr, &mut state, &fns));
+    }
+
+    #[test]
+    fn nested_bang_double_negation() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      // !!true == true
+      let inner = Expr::Unary(UnaryExpr {
+        span: Default::default(),
+        op: UnaryOp::Bang,
+        arg: Box::new(Expr::Lit(Lit::Bool(swc_core::ecma::ast::Bool {
+          span: Default::default(),
+          value: true,
+        }))),
+      });
+      let expr = Expr::Unary(UnaryExpr {
+        span: Default::default(),
+        op: UnaryOp::Bang,
+        arg: Box::new(inner),
+      });
+      assert!(convert_expr_to_bool(&expr, &mut state, &fns));
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // convert_ident_to_expr tests
+  // ──────────────────────────────────────────────
+
+  mod convert_ident_to_expr_extended_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::convert_ident_to_expr;
+    use crate::shared::utils::common::fill_state_declarations;
+    use swc_core::ecma::ast::BindingIdent;
+
+    fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
+      swc_core::ecma::ast::VarDeclarator {
+        span: Default::default(),
+        name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
+          id: Ident {
+            span: Default::default(),
+            sym: name.into(),
+            optional: false,
+            ctxt: SyntaxContext::empty(),
+          },
+          type_ann: None,
+        }),
+        init: Some(Box::new(init)),
+        definite: false,
+      }
+    }
+
+    #[test]
+    fn resolves_ident_to_expr_value() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let decl = make_var_declarator("x", make_num_expr(42.0));
+      fill_state_declarations(&mut state, &decl);
+      state.var_decl_count_map.insert("x".into(), 2);
+      let ident = Ident {
+        span: Default::default(),
+        sym: "x".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      };
+      let result = convert_ident_to_expr(&ident, &mut state, &fns);
+      assert!(result.is_lit());
+    }
+
+    #[test]
+    #[should_panic]
+    fn panics_for_undeclared_ident_convert() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let ident = Ident {
+        span: Default::default(),
+        sym: "missing".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      };
+      convert_ident_to_expr(&ident, &mut state, &fns);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // convert_expr_to_str - should_panic for unsupported expr
+  // ──────────────────────────────────────────────
+
+  mod convert_expr_to_str_panic_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::convert_expr_to_str;
+    use swc_core::ecma::ast::ArrayLit;
+
+    #[test]
+    #[should_panic]
+    fn panics_for_array_expr() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let expr = Expr::Array(ArrayLit {
+        span: Default::default(),
+        elems: vec![],
+      });
+      convert_expr_to_str(&expr, &mut state, &fns);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // expr_to_num - should_panic for unsupported expr
+  // ──────────────────────────────────────────────
+
+  mod expr_to_num_panic_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::expr_to_num;
+    use swc_core::ecma::ast::ArrayLit;
+
+    #[test]
+    #[should_panic]
+    fn panics_for_array_expr() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let expr = Expr::Array(ArrayLit {
+        span: Default::default(),
+        elems: vec![],
+      });
+      let _ = expr_to_num(&expr, &mut state, &mut traversal_state, &fns);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // convert_expr_to_bool - unsupported expr
+  // ──────────────────────────────────────────────
+
+  mod convert_expr_to_bool_unsupported_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::convert_expr_to_bool;
+    use swc_core::ecma::ast::Tpl;
+
+    #[test]
+    #[should_panic]
+    fn panics_for_template_literal() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let expr = Expr::Tpl(Tpl {
+        span: Default::default(),
+        exprs: vec![],
+        quasis: vec![],
+      });
+      convert_expr_to_bool(&expr, &mut state, &fns);
+    }
+
+    #[test]
+    #[should_panic]
+    fn panics_for_unsupported_lit_type() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      // Regex lit is a Lit that's not handled
+      let expr = Expr::Lit(Lit::Regex(swc_core::ecma::ast::Regex {
+        span: Default::default(),
+        exp: ".*".into(),
+        flags: "g".into(),
+      }));
+      convert_expr_to_bool(&expr, &mut state, &fns);
+    }
+
+    #[test]
+    #[should_panic]
+    fn panics_for_unsupported_unary_op() {
+      use swc_core::ecma::ast::UnaryExpr;
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let expr = Expr::Unary(UnaryExpr {
+        span: Default::default(),
+        op: swc_core::ecma::ast::UnaryOp::Delete,
+        arg: Box::new(make_num_expr(1.0)),
+      });
+      convert_expr_to_bool(&expr, &mut state, &fns);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // convert_key_value_to_str - computed non-literal panic
+  // ──────────────────────────────────────────────
+
+  mod convert_key_value_to_str_panic_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::convert_key_value_to_str;
+    use swc_core::ecma::ast::{ComputedPropName, KeyValueProp, PropName};
+
+    #[test]
+    #[should_panic]
+    fn panics_for_computed_non_literal_key() {
+      let kv = KeyValueProp {
+        key: PropName::Computed(ComputedPropName {
+          span: Default::default(),
+          expr: Box::new(make_ident_expr("dynamic")),
+        }),
+        value: Box::new(make_num_expr(0.0)),
+      };
+      convert_key_value_to_str(&kv);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // ident_to_number - additional edge cases
+  // ──────────────────────────────────────────────
+
+  mod ident_to_number_edge_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::ident_to_number;
+    use crate::shared::utils::common::fill_state_declarations;
+    use swc_core::ecma::ast::BindingIdent;
+
+    fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
+      swc_core::ecma::ast::VarDeclarator {
+        span: Default::default(),
+        name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
+          id: Ident {
+            span: Default::default(),
+            sym: name.into(),
+            optional: false,
+            ctxt: SyntaxContext::empty(),
+          },
+          type_ann: None,
+        }),
+        init: Some(Box::new(init)),
+        definite: false,
+      }
+    }
+
+    #[test]
+    fn resolves_ident_with_literal_string_number() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      // Declare val = 42 (as number literal)
+      let decl = make_var_declarator("val", make_num_expr(42.0));
+      fill_state_declarations(&mut traversal_state, &decl);
+      traversal_state.var_decl_count_map.insert("val".into(), 2);
+      let ident = Ident {
+        span: Default::default(),
+        sym: "val".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      };
+      let result = ident_to_number(&ident, &mut state, &mut traversal_state, &fns);
+      assert_eq!(result, 42.0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn panics_for_object_expr_decl() {
+      use swc_core::ecma::ast::ObjectLit;
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let obj_expr = Expr::Object(ObjectLit {
+        span: Default::default(),
+        props: vec![],
+      });
+      let decl = make_var_declarator("obj", obj_expr);
+      fill_state_declarations(&mut traversal_state, &decl);
+      traversal_state.var_decl_count_map.insert("obj".into(), 2);
+      let ident = Ident {
+        span: Default::default(),
+        sym: "obj".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      };
+      // This should panic with "Variable ... is not a number"
+      ident_to_number(&ident, &mut state, &mut traversal_state, &fns);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // convert_expr_to_str - ident resolving to ident chain
+  // ──────────────────────────────────────────────
+
+  mod convert_expr_to_str_ident_chain_tests {
+    use super::*;
+    use crate::shared::utils::ast::convertors::convert_expr_to_str;
+    use crate::shared::utils::common::fill_state_declarations;
+    use swc_core::ecma::ast::BindingIdent;
+
+    fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
+      swc_core::ecma::ast::VarDeclarator {
+        span: Default::default(),
+        name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
+          id: Ident {
+            span: Default::default(),
+            sym: name.into(),
+            optional: false,
+            ctxt: SyntaxContext::empty(),
+          },
+          type_ann: None,
+        }),
+        init: Some(Box::new(init)),
+        definite: false,
+      }
+    }
+
+    #[test]
+    fn ident_resolves_through_chain_to_string() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      // inner = "red"
+      let inner_decl = make_var_declarator("inner", make_str_expr("red"));
+      fill_state_declarations(&mut state, &inner_decl);
+      state.var_decl_count_map.insert("inner".into(), 3);
+      // outer = inner (ident)
+      let outer_decl = make_var_declarator("outer", make_ident_expr("inner"));
+      fill_state_declarations(&mut state, &outer_decl);
+      state.var_decl_count_map.insert("outer".into(), 2);
+
+      let expr = make_ident_expr("outer");
+      let result = convert_expr_to_str(&expr, &mut state, &fns);
+      assert_eq!(result, Some("red".to_string()));
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // binary_expr_to_string - non-Add operator panic
+  // ──────────────────────────────────────────────
+
+  mod binary_expr_to_string_non_add_tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn panics_for_sub_op() {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let bin = BinExpr {
+        span: Default::default(),
+        op: BinaryOp::Sub,
+        left: Box::new(make_str_expr("hello")),
+        right: Box::new(make_str_expr("world")),
+      };
+      let _ = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns);
+    }
+  }
 }

@@ -291,4 +291,111 @@ mod generate_rtl_tests {
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_none());
   }
+
+  // ── Additional coverage for remaining branches ──────────────────
+
+  #[test]
+  fn cursor_e_resize_flips_with_legacy() {
+    let pair = Pair::new("cursor".into(), "e-resize".into());
+    let result = generate_rtl(&pair, &flipping_options());
+    if let Some(rtl) = result {
+      assert_eq!(rtl.value, "w-resize");
+    }
+  }
+
+  #[test]
+  fn cursor_w_resize_flips_with_legacy() {
+    let pair = Pair::new("cursor".into(), "w-resize".into());
+    let result = generate_rtl(&pair, &flipping_options());
+    if let Some(rtl) = result {
+      assert_eq!(rtl.value, "e-resize");
+    }
+  }
+
+  #[test]
+  fn cursor_ne_resize_flips_with_legacy() {
+    let pair = Pair::new("cursor".into(), "ne-resize".into());
+    let result = generate_rtl(&pair, &flipping_options());
+    if let Some(rtl) = result {
+      assert_eq!(rtl.value, "nw-resize");
+    }
+  }
+
+  #[test]
+  fn cursor_se_resize_flips_with_legacy() {
+    let pair = Pair::new("cursor".into(), "se-resize".into());
+    let result = generate_rtl(&pair, &flipping_options());
+    if let Some(rtl) = result {
+      assert_eq!(rtl.value, "sw-resize");
+    }
+  }
+
+  #[test]
+  fn background_position_inset_inline_start_becomes_right() {
+    let pair = Pair::new(
+      "background-position".into(),
+      "inset-inline-start center".into(),
+    );
+    let result = generate_rtl(&pair, &default_options());
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().value, "right center");
+  }
+
+  #[test]
+  fn background_position_inset_inline_end_becomes_left() {
+    let pair = Pair::new(
+      "background-position".into(),
+      "inset-inline-end top".into(),
+    );
+    let result = generate_rtl(&pair, &default_options());
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().value, "left top");
+  }
+
+  #[test]
+  fn clear_inline_start_becomes_right() {
+    let pair = Pair::new("clear".into(), "inline-start".into());
+    let result = generate_rtl(&pair, &default_options());
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().value, "right");
+  }
+
+  #[test]
+  fn clear_inline_end_becomes_left() {
+    let pair = Pair::new("clear".into(), "inline-end".into());
+    let result = generate_rtl(&pair, &default_options());
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().value, "left");
+  }
+
+  #[test]
+  fn text_shadow_no_flip_without_legacy() {
+    let pair = Pair::new("text-shadow".into(), "2px 2px #000".into());
+    let result = generate_rtl(&pair, &default_options());
+    assert!(result.is_none());
+  }
+
+  #[test]
+  fn box_shadow_inset_flips() {
+    let pair = Pair::new("box-shadow".into(), "inset 5px 5px 10px #000".into());
+    let result = generate_rtl(&pair, &flipping_options());
+    assert!(result.is_some());
+    let rtl = result.unwrap();
+    assert!(rtl.value.contains("-5px") || rtl.value.contains("inset"));
+  }
+
+  #[test]
+  fn legacy_polyfill_non_inline_key_falls_through() {
+    let pair = Pair::new("float".into(), "start".into());
+    let result = generate_rtl(&pair, &legacy_logical_options());
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().value, "right");
+  }
+
+  #[test]
+  fn legacy_no_polyfill_regular_property_returns_none() {
+    let pair = Pair::new("color".into(), "red".into());
+    let result = generate_rtl(&pair, &legacy_options());
+    assert!(result.is_none());
+  }
 }

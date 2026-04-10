@@ -635,4 +635,72 @@ mod tests {
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("invalid format"));
   }
+
+  // --- is_valid_attribute_selector edge cases ---
+
+  #[test]
+  fn is_valid_attribute_selector_empty() {
+    assert!(!is_valid_attribute_selector(""));
+  }
+
+  #[test]
+  fn is_valid_attribute_selector_no_open_bracket() {
+    assert!(!is_valid_attribute_selector("disabled]"));
+  }
+
+  #[test]
+  fn is_valid_attribute_selector_no_close_bracket() {
+    assert!(!is_valid_attribute_selector("[disabled"));
+  }
+
+  #[test]
+  fn is_valid_attribute_selector_bracket_in_double_quotes() {
+    assert!(is_valid_attribute_selector("[data-x=\"[\"]"));
+  }
+
+  #[test]
+  fn is_valid_attribute_selector_bracket_in_single_quotes() {
+    assert!(is_valid_attribute_selector("[data-x='[']"));
+  }
+
+  #[test]
+  fn is_valid_attribute_selector_close_bracket_mid_string() {
+    assert!(!is_valid_attribute_selector("[a]b]"));
+  }
+
+  #[test]
+  fn is_valid_attribute_selector_with_escaped_quotes() {
+    assert!(is_valid_attribute_selector("[data-x=\"val\\\"ue\"]"));
+  }
+
+  #[test]
+  fn is_valid_attribute_selector_simple_valid() {
+    assert!(is_valid_attribute_selector("[disabled]"));
+    assert!(is_valid_attribute_selector("[data-state=\"open\"]"));
+  }
+
+  // --- Additional pseudo selectors ---
+
+  #[test]
+  fn validate_pseudo_selector_starts_with_bracket() {
+    assert!(validate_pseudo_selector("[aria-label]").is_ok());
+  }
+
+  #[test]
+  fn sibling_before_with_nth_child() {
+    let result = sibling_before(":nth-child(2n+1)", None).unwrap();
+    assert!(result.contains(":nth-child(2n+1)"));
+  }
+
+  #[test]
+  fn sibling_after_with_first_child() {
+    let result = sibling_after(":first-child", None).unwrap();
+    assert!(result.contains(":first-child"));
+  }
+
+  #[test]
+  fn any_sibling_with_last_child() {
+    let result = any_sibling(":last-child", None).unwrap();
+    assert!(result.contains(":last-child"));
+  }
 }

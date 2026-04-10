@@ -98,4 +98,36 @@ mod unprefixed_custom_properties_tests {
     let (result, _) = swc_parse_css("@media screen { * { color: red } }");
     unprefixed_custom_properties_validator(&result.unwrap());
   }
+
+  #[test]
+  fn accepts_var_with_fallback_var() {
+    let (result, _) = swc_parse_css("* { color: var(--a, var(--b)) }");
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
+
+  #[test]
+  fn accepts_multiple_properties_with_functions() {
+    let (result, _) = swc_parse_css(
+      "* { color: rgb(var(--r), 0, 0); background: var(--bg) }",
+    );
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
+
+  #[test]
+  fn accepts_empty_function() {
+    let (result, _) = swc_parse_css("* { content: attr(data-value) }");
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
+
+  #[test]
+  fn accepts_non_var_function_with_ident_arg() {
+    let (result, _) = swc_parse_css("* { width: max(100px, 200px) }");
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
+
+  #[test]
+  fn accepts_declaration_without_function() {
+    let (result, _) = swc_parse_css("* { display: block; color: blue }");
+    unprefixed_custom_properties_validator(&result.unwrap());
+  }
 }

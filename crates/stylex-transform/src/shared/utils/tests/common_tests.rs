@@ -13,14 +13,19 @@ mod tests {
 
   use crate::shared::structures::state_manager::StateManager;
   use crate::shared::utils::common::{
-    _md5_hash, deep_merge_props, evaluate_bin_expr, extract_filename_from_path,
+    _get_var_decl_by_ident_or_member, _md5_hash, deep_merge_props,
+    downcast_style_options_to_state_manager, evaluate_bin_expr, extract_filename_from_path,
     extract_filename_with_ext_from_path, extract_path, fill_state_declarations,
-    fill_top_level_expressions, gen_file_based_identifier, get_expr_from_var_decl,
-    get_import_from, increase_ident_count, increase_ident_count_by_count,
-    increase_member_ident_count, increase_member_ident_count_by_count, js_object_to_json,
-    normalize_expr, reduce_ident_count, reduce_member_ident_count, remove_duplicates,
+    fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_expr_from_var_decl,
+    get_import_from, get_key_values_from_object, get_var_decl_by_ident,
+    increase_ident_count, increase_ident_count_by_count,
+    increase_member_ident, increase_member_ident_count, increase_member_ident_count_by_count,
+    js_object_to_json, normalize_expr, reduce_ident_count, reduce_member_expression_count,
+    reduce_member_ident_count, remove_duplicates,
     serialize_value_to_json_string, type_of,
   };
+  use crate::shared::structures::functions::FunctionMap;
+  use stylex_enums::misc::VarDeclAction;
 
   // ──────────────────────────────────────────────
   // Helpers
@@ -1438,6 +1443,827 @@ mod tests {
     fn returns_type_name_for_bool() {
       let result = type_of(true);
       assert_eq!(result, "bool");
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // increase_member_ident / reduce_member_expression_count
+  // (MemberExpr-based wrappers)
+  // ──────────────────────────────────────────────
+
+  mod member_expr_wrapper_tests {
+    use super::*;
+    use swc_core::ecma::ast::{MemberExpr, MemberProp};
+
+    fn make_member_expr_with_ident_obj(name: &str) -> MemberExpr {
+      MemberExpr {
+        span: DUMMY_SP,
+        obj: Box::new(Expr::Ident(make_ident(name))),
+        prop: MemberProp::Ident(swc_core::ecma::ast::IdentName {
+          span: DUMMY_SP,
+          sym: "prop".into(),
+        }),
+      }
+    }
+
+    fn make_member_expr_with_non_ident_obj() -> MemberExpr {
+      MemberExpr {
+        span: DUMMY_SP,
+        obj: Box::new(make_num_expr(42.0)),
+        prop: MemberProp::Ident(swc_core::ecma::ast::IdentName {
+          span: DUMMY_SP,
+          sym: "prop".into(),
+        }),
+      }
+    }
+
+    #[test]
+    fn increase_member_ident_with_ident_obj() {
+      let mut state = StateManager::default();
+      let member = make_member_expr_with_ident_obj("obj");
+      increase_member_ident(&mut state, &member);
+      let atom: Atom = "obj".into();
+      assert_eq!(
+        state.member_object_ident_count_map.get(&atom),
+        Some(&1)
+      );
+    }
+
+    #[test]
+    fn increase_member_ident_with_non_ident_obj_is_noop() {
+      let mut state = StateManager::default();
+      let member = make_member_expr_with_non_ident_obj();
+      increase_member_ident(&mut state, &member);
+      assert!(state.member_object_ident_count_map.is_empty());
+    }
+
+    #[test]
+    fn reduce_member_expression_count_with_ident_obj() {
+      let mut state = StateManager::default();
+      let atom: Atom = "obj".into();
+      increase_member_ident_count_by_count(&mut state, &atom, 3);
+      let member = make_member_expr_with_ident_obj("obj");
+      reduce_member_expression_count(&mut state, &member);
+      assert_eq!(
+        state.member_object_ident_count_map.get(&atom),
+        Some(&2)
+      );
+    }
+
+    #[test]
+    fn reduce_member_expression_count_with_non_ident_obj_is_noop() {
+      let mut state = StateManager::default();
+      let member = make_member_expr_with_non_ident_obj();
+      reduce_member_expression_count(&mut state, &member);
+      assert!(state.member_object_ident_count_map.is_empty());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // get_var_decl_by_ident - Increase and None actions
+  // ──────────────────────────────────────────────
+
+  mod get_var_decl_by_ident_tests {
+    use super::*;
+
+    #[test]
+    fn with_increase_action_increments_count() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let decl = make_var_declarator("x", make_num_expr(10.0));
+      fill_state_declarations(&mut state, &decl);
+      let ident = make_ident("x");
+      let result =
+        get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::Increase);
+      assert!(result.is_some());
+      assert_eq!(state.var_decl_count_map.get(&Atom::from("x")), Some(&1));
+    }
+
+    #[test]
+    fn with_none_action_does_not_change_count() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let decl = make_var_declarator("x", make_num_expr(10.0));
+      fill_state_declarations(&mut state, &decl);
+      let ident = make_ident("x");
+      let result =
+        get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+      assert!(result.is_some());
+      assert_eq!(state.var_decl_count_map.get(&Atom::from("x")), None);
+    }
+
+    #[test]
+    fn with_reduce_action_decrements_count() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let decl = make_var_declarator("x", make_num_expr(10.0));
+      fill_state_declarations(&mut state, &decl);
+      state.var_decl_count_map.insert("x".into(), 3);
+      let ident = make_ident("x");
+      let result =
+        get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::Reduce);
+      assert!(result.is_some());
+      assert_eq!(state.var_decl_count_map.get(&Atom::from("x")), Some(&2));
+    }
+
+    #[test]
+    fn returns_none_for_unknown_ident() {
+      let mut state = StateManager::default();
+      let fns = FunctionMap::default();
+      let ident = make_ident("nonexistent");
+      let result =
+        get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+      assert!(result.is_none());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // _get_var_decl_by_ident_or_member
+  // ──────────────────────────────────────────────
+
+  mod get_var_decl_by_ident_or_member_tests {
+    use super::*;
+
+    #[test]
+    fn finds_decl_by_ident_name() {
+      let mut state = StateManager::default();
+      let decl = make_var_declarator("myVar", make_num_expr(42.0));
+      fill_state_declarations(&mut state, &decl);
+      let ident = make_ident("myVar");
+      let result = _get_var_decl_by_ident_or_member(&state, &ident);
+      assert!(result.is_some());
+    }
+
+    #[test]
+    fn returns_none_when_not_found() {
+      let state = StateManager::default();
+      let ident = make_ident("missing");
+      let result = _get_var_decl_by_ident_or_member(&state, &ident);
+      assert!(result.is_none());
+    }
+
+    #[test]
+    fn finds_decl_by_member_call_prop_ident() {
+      use swc_core::ecma::ast::{
+        Callee, CallExpr, IdentName, MemberExpr, MemberProp,
+      };
+      let mut state = StateManager::default();
+      // Create: const x = obj.create()
+      let call_expr = Expr::Call(CallExpr {
+        span: DUMMY_SP,
+        callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
+          span: DUMMY_SP,
+          obj: Box::new(Expr::Ident(make_ident("obj"))),
+          prop: MemberProp::Ident(IdentName {
+            span: DUMMY_SP,
+            sym: "create".into(),
+          }),
+        }))),
+        args: vec![],
+        type_args: None,
+        ctxt: SyntaxContext::empty(),
+      });
+      let decl = make_var_declarator("x", call_expr);
+      fill_state_declarations(&mut state, &decl);
+      let ident = make_ident("create");
+      let result = _get_var_decl_by_ident_or_member(&state, &ident);
+      assert!(result.is_some());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // get_key_values_from_object
+  // ──────────────────────────────────────────────
+
+  mod get_key_values_from_object_tests {
+    use super::*;
+    use swc_core::ecma::ast::{
+      IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
+    };
+
+    #[test]
+    fn returns_empty_for_empty_object() {
+      let obj = ObjectLit {
+        span: DUMMY_SP,
+        props: vec![],
+      };
+      let result = get_key_values_from_object(&obj);
+      assert!(result.is_empty());
+    }
+
+    #[test]
+    fn extracts_key_values() {
+      let obj = ObjectLit {
+        span: DUMMY_SP,
+        props: vec![
+          PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+            key: PropName::Ident(IdentName {
+              span: DUMMY_SP,
+              sym: "color".into(),
+            }),
+            value: Box::new(make_str_expr("red")),
+          }))),
+          PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+            key: PropName::Ident(IdentName {
+              span: DUMMY_SP,
+              sym: "size".into(),
+            }),
+            value: Box::new(make_num_expr(12.0)),
+          }))),
+        ],
+      };
+      let result = get_key_values_from_object(&obj);
+      assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn expands_shorthand_props() {
+      let obj = ObjectLit {
+        span: DUMMY_SP,
+        props: vec![PropOrSpread::Prop(Box::new(Prop::Shorthand(
+          make_ident("color"),
+        )))],
+      };
+      let result = get_key_values_from_object(&obj);
+      assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn panics_on_getter_prop() {
+      use swc_core::ecma::ast::GetterProp;
+      let obj = ObjectLit {
+        span: DUMMY_SP,
+        props: vec![PropOrSpread::Prop(Box::new(Prop::Getter(GetterProp {
+          span: DUMMY_SP,
+          key: PropName::Ident(IdentName {
+            span: DUMMY_SP,
+            sym: "val".into(),
+          }),
+          type_ann: None,
+          body: None,
+        })))],
+      };
+      get_key_values_from_object(&obj);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // get_css_value
+  // ──────────────────────────────────────────────
+
+  mod get_css_value_tests {
+    use super::*;
+    use swc_core::ecma::ast::{
+      IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
+    };
+
+    #[test]
+    fn returns_value_directly_when_not_object() {
+      let kv = KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: "color".into(),
+        }),
+        value: Box::new(make_str_expr("red")),
+      };
+      let (expr, css_type) = get_css_value(kv);
+      assert!(css_type.is_none());
+      assert!(expr.is_lit());
+    }
+
+    #[test]
+    fn returns_value_from_syntax_object() {
+      let syntax_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: "syntax".into(),
+        }),
+        value: Box::new(make_str_expr("<length>")),
+      })));
+      let value_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: "value".into(),
+        }),
+        value: Box::new(make_num_expr(10.0)),
+      })));
+      let obj = ObjectLit {
+        span: DUMMY_SP,
+        props: vec![syntax_prop, value_prop],
+      };
+      let kv = KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: "width".into(),
+        }),
+        value: Box::new(Expr::Object(obj)),
+      };
+      let (expr, css_type) = get_css_value(kv);
+      assert!(css_type.is_some());
+      assert!(expr.is_lit());
+    }
+
+    #[test]
+    fn returns_object_when_no_syntax_key() {
+      let some_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: "notSyntax".into(),
+        }),
+        value: Box::new(make_str_expr("val")),
+      })));
+      let obj = ObjectLit {
+        span: DUMMY_SP,
+        props: vec![some_prop],
+      };
+      let kv = KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: "width".into(),
+        }),
+        value: Box::new(Expr::Object(obj)),
+      };
+      let (expr, css_type) = get_css_value(kv);
+      assert!(css_type.is_none());
+      assert!(expr.is_object());
+    }
+
+    #[test]
+    fn returns_empty_object_unchanged() {
+      let obj = ObjectLit {
+        span: DUMMY_SP,
+        props: vec![],
+      };
+      let kv = KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: "width".into(),
+        }),
+        value: Box::new(Expr::Object(obj)),
+      };
+      let (expr, css_type) = get_css_value(kv);
+      assert!(css_type.is_none());
+      assert!(expr.is_object());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // deep_merge_props - Str/Num key branches via prop_name_eq
+  // ──────────────────────────────────────────────
+
+  mod deep_merge_props_str_num_key_tests {
+    use super::*;
+    use swc_core::ecma::ast::{
+      IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
+    };
+
+    fn make_kv_str_key_obj_prop(key: &str, inner: Vec<PropOrSpread>) -> PropOrSpread {
+      PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Str(Str {
+          span: DUMMY_SP,
+          value: key.into(),
+          raw: None,
+        }),
+        value: Box::new(Expr::Object(ObjectLit {
+          span: DUMMY_SP,
+          props: inner,
+        })),
+      })))
+    }
+
+    fn make_kv_num_key_obj_prop(key: f64, inner: Vec<PropOrSpread>) -> PropOrSpread {
+      PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Num(Number {
+          span: DUMMY_SP,
+          value: key,
+          raw: None,
+        }),
+        value: Box::new(Expr::Object(ObjectLit {
+          span: DUMMY_SP,
+          props: inner,
+        })),
+      })))
+    }
+
+    fn make_kv_prop_ident(key: &str, val: f64) -> PropOrSpread {
+      PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: key.into(),
+        }),
+        value: Box::new(make_num_expr(val)),
+      })))
+    }
+
+    #[test]
+    fn overlapping_str_keys_merge_nested_objects() {
+      let inner_old = vec![make_kv_prop_ident("x", 1.0)];
+      let inner_new = vec![make_kv_prop_ident("y", 2.0)];
+      let old = vec![make_kv_str_key_obj_prop("shared", inner_old)];
+      let new = vec![make_kv_str_key_obj_prop("shared", inner_new)];
+      let result = deep_merge_props(old, new);
+      assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn overlapping_num_keys_merge_nested_objects() {
+      let inner_old = vec![make_kv_prop_ident("x", 1.0)];
+      let inner_new = vec![make_kv_prop_ident("y", 2.0)];
+      let old = vec![make_kv_num_key_obj_prop(42.0, inner_old)];
+      let new = vec![make_kv_num_key_obj_prop(42.0, inner_new)];
+      let result = deep_merge_props(old, new);
+      // Num keys trigger prop_name_eq(Num,Num) path but are then
+      // skipped by remove_duplicates (_ => continue), so result is empty
+      assert!(result.is_empty());
+    }
+
+    #[test]
+    fn non_matching_key_types_no_merge() {
+      let inner_old = vec![make_kv_prop_ident("x", 1.0)];
+      let inner_new = vec![make_kv_prop_ident("y", 2.0)];
+      // One Str key, one Num key - they should not match
+      let old = vec![make_kv_str_key_obj_prop("42", inner_old)];
+      let new = vec![make_kv_num_key_obj_prop(42.0, inner_new)];
+      let result = deep_merge_props(old, new);
+      // Str key survives remove_duplicates but Num key is skipped
+      assert_eq!(result.len(), 1);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // fill_top_level_expressions - additional branches
+  // ──────────────────────────────────────────────
+
+  mod fill_top_level_expressions_extra_tests {
+    use super::*;
+    use swc_core::ecma::ast::{ExportAll, ImportDecl};
+
+    #[test]
+    fn ignores_import_decl_items() {
+      let mut state = StateManager::default();
+      let module = Module {
+        span: DUMMY_SP,
+        body: vec![ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+          span: DUMMY_SP,
+          specifiers: vec![],
+          src: Box::new(Str {
+            span: DUMMY_SP,
+            value: "module".into(),
+            raw: None,
+          }),
+          type_only: false,
+          with: None,
+          phase: Default::default(),
+        }))],
+        shebang: None,
+      };
+      fill_top_level_expressions(&module, &mut state);
+      assert!(state.top_level_expressions.is_empty());
+    }
+
+    #[test]
+    fn ignores_export_all_items() {
+      let mut state = StateManager::default();
+      let module = Module {
+        span: DUMMY_SP,
+        body: vec![ModuleItem::ModuleDecl(ModuleDecl::ExportAll(ExportAll {
+          span: DUMMY_SP,
+          src: Box::new(Str {
+            span: DUMMY_SP,
+            value: "module".into(),
+            raw: None,
+          }),
+          type_only: false,
+          with: None,
+        }))],
+        shebang: None,
+      };
+      fill_top_level_expressions(&module, &mut state);
+      assert!(state.top_level_expressions.is_empty());
+    }
+
+    #[test]
+    fn ignores_expression_stmts() {
+      use swc_core::ecma::ast::ExprStmt;
+      let mut state = StateManager::default();
+      let module = Module {
+        span: DUMMY_SP,
+        body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+          span: DUMMY_SP,
+          expr: Box::new(make_num_expr(42.0)),
+        }))],
+        shebang: None,
+      };
+      fill_top_level_expressions(&module, &mut state);
+      assert!(state.top_level_expressions.is_empty());
+    }
+
+    #[test]
+    fn skips_exported_var_decl_without_init() {
+      let mut state = StateManager::default();
+      let decl = make_var_declarator_no_init("noInit");
+
+      let module = Module {
+        span: DUMMY_SP,
+        body: vec![ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl {
+          span: DUMMY_SP,
+          decl: Decl::Var(Box::new(VarDecl {
+            span: DUMMY_SP,
+            kind: VarDeclKind::Const,
+            declare: false,
+            decls: vec![decl],
+            ctxt: SyntaxContext::empty(),
+          })),
+        }))],
+        shebang: None,
+      };
+
+      fill_top_level_expressions(&module, &mut state);
+      assert!(state.top_level_expressions.is_empty());
+    }
+
+    #[test]
+    fn ignores_non_var_export_decls() {
+      use swc_core::ecma::ast::{FnDecl, Function};
+      let mut state = StateManager::default();
+      let fn_decl = Decl::Fn(FnDecl {
+        ident: make_ident("myFn"),
+        declare: false,
+        function: Box::new(Function {
+          params: vec![],
+          decorators: vec![],
+          span: DUMMY_SP,
+          ctxt: SyntaxContext::empty(),
+          body: None,
+          is_generator: false,
+          is_async: false,
+          type_params: None,
+          return_type: None,
+        }),
+      });
+      let module = Module {
+        span: DUMMY_SP,
+        body: vec![ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl {
+          span: DUMMY_SP,
+          decl: fn_decl,
+        }))],
+        shebang: None,
+      };
+      fill_top_level_expressions(&module, &mut state);
+      assert!(state.top_level_expressions.is_empty());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // downcast_style_options_to_state_manager
+  // ──────────────────────────────────────────────
+
+  mod downcast_style_options_tests {
+    use super::*;
+
+    #[test]
+    fn downcasts_state_manager_successfully() {
+      let mut state = StateManager::default();
+      let sm = downcast_style_options_to_state_manager(&mut state);
+      // Verify we get a valid StateManager back
+      assert!(sm.declarations.is_empty());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // get_var_decl_by_ident - FunctionMap branches
+  // ──────────────────────────────────────────────
+
+  mod get_var_decl_by_ident_function_map_tests {
+    use super::*;
+    use crate::shared::structures::functions::{
+      FunctionConfig, FunctionConfigType, FunctionMap, FunctionType,
+    };
+    use std::rc::Rc;
+
+    #[test]
+    fn returns_var_decl_from_mapper_function() {
+      let mut state = StateManager::default();
+      let mut fns = FunctionMap::default();
+      let mapper: Rc<dyn Fn() -> Expr + 'static> =
+        Rc::new(|| make_num_expr(99.0));
+      fns.identifiers.insert(
+        "myMapper".into(),
+        Box::new(FunctionConfigType::Regular(FunctionConfig {
+          fn_ptr: FunctionType::Mapper(mapper),
+          takes_path: false,
+        })),
+      );
+      let ident = make_ident("myMapper");
+      let result =
+        get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+      assert!(result.is_some());
+    }
+
+    #[test]
+    fn returns_none_for_env_object() {
+      use indexmap::IndexMap;
+      let mut state = StateManager::default();
+      let mut fns = FunctionMap::default();
+      fns.identifiers.insert(
+        "envObj".into(),
+        Box::new(FunctionConfigType::EnvObject(IndexMap::new())),
+      );
+      let ident = make_ident("envObj");
+      let result =
+        get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+      assert!(result.is_none());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // deep_merge_props - additional edge cases
+  // ──────────────────────────────────────────────
+
+  mod deep_merge_props_extra_edge_tests {
+    use super::*;
+    use swc_core::ecma::ast::{
+      GetterProp, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
+      SpreadElement,
+    };
+
+    fn make_kv_prop(key: &str, val: f64) -> PropOrSpread {
+      PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: key.into(),
+        }),
+        value: Box::new(make_num_expr(val)),
+      })))
+    }
+
+    fn make_kv_obj_prop(key: &str, inner_props: Vec<PropOrSpread>) -> PropOrSpread {
+      PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: key.into(),
+        }),
+        value: Box::new(Expr::Object(ObjectLit {
+          span: DUMMY_SP,
+          props: inner_props,
+        })),
+      })))
+    }
+
+    #[test]
+    fn new_props_non_kv_triggers_false_branch() {
+      // Old has a KV obj prop, new has a getter with matching key
+      // This triggers the `_ => false` at line 320 in deep_merge_props
+      let getter = PropOrSpread::Prop(Box::new(Prop::Getter(GetterProp {
+        span: DUMMY_SP,
+        key: PropName::Ident(IdentName {
+          span: DUMMY_SP,
+          sym: "shared".into(),
+        }),
+        type_ann: None,
+        body: None,
+      })));
+      let inner_old = vec![make_kv_prop("x", 1.0)];
+      let old = vec![make_kv_obj_prop("shared", inner_old)];
+      let new = vec![getter];
+      let result = deep_merge_props(old, new);
+      // Old KV appended since no match found
+      assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn new_props_spread_triggers_false_branch() {
+      // Old has a KV obj prop, new has a spread
+      // This triggers the `_ => false` at line 322 in deep_merge_props
+      let spread = PropOrSpread::Spread(SpreadElement {
+        dot3_token: DUMMY_SP,
+        expr: Box::new(make_num_expr(0.0)),
+      });
+      let inner_old = vec![make_kv_prop("x", 1.0)];
+      let old = vec![make_kv_obj_prop("shared", inner_old)];
+      let new = vec![spread];
+      let result = deep_merge_props(old, new);
+      assert!(!result.is_empty());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // get_key_values_from_object - spread should_panic
+  // ──────────────────────────────────────────────
+
+  mod get_key_values_from_object_spread_tests {
+    use super::*;
+    use swc_core::ecma::ast::{ObjectLit, PropOrSpread, SpreadElement};
+
+    #[test]
+    #[should_panic]
+    fn panics_on_spread_element() {
+      let obj = ObjectLit {
+        span: DUMMY_SP,
+        props: vec![PropOrSpread::Spread(SpreadElement {
+          dot3_token: DUMMY_SP,
+          expr: Box::new(make_num_expr(1.0)),
+        })],
+      };
+      get_key_values_from_object(&obj);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // get_import_by_ident
+  // ──────────────────────────────────────────────
+
+  mod get_import_by_ident_tests {
+    use super::*;
+    use crate::shared::utils::common::get_import_by_ident;
+    use swc_core::ecma::ast::{
+      ImportDecl, ImportNamedSpecifier, ImportSpecifier,
+    };
+
+    #[test]
+    fn finds_import_by_ident() {
+      let mut state = StateManager::default();
+      state.top_imports.push(ImportDecl {
+        span: DUMMY_SP,
+        specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
+          span: DUMMY_SP,
+          local: make_ident("stylex"),
+          imported: None,
+          is_type_only: false,
+        })],
+        src: Box::new(Str {
+          span: DUMMY_SP,
+          value: "@stylexjs/stylex".into(),
+          raw: None,
+        }),
+        type_only: false,
+        with: None,
+        phase: Default::default(),
+      });
+      let ident = make_ident("stylex");
+      assert!(get_import_by_ident(&ident, &state).is_some());
+    }
+
+    #[test]
+    fn returns_none_for_missing() {
+      let state = StateManager::default();
+      let ident = make_ident("missing");
+      assert!(get_import_by_ident(&ident, &state).is_none());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // get_var_decl_from
+  // ──────────────────────────────────────────────
+
+  mod get_var_decl_from_tests {
+    use super::*;
+    use crate::shared::utils::common::get_var_decl_from;
+
+    #[test]
+    fn finds_matching_declaration() {
+      let mut state = StateManager::default();
+      let decl = make_var_declarator("x", make_num_expr(1.0));
+      fill_state_declarations(&mut state, &decl);
+      let ident = make_ident("x");
+      assert!(get_var_decl_from(&state, &ident).is_some());
+    }
+
+    #[test]
+    fn returns_none_for_no_match() {
+      let state = StateManager::default();
+      let ident = make_ident("nonexistent");
+      assert!(get_var_decl_from(&state, &ident).is_none());
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // evaluate_bin_expr - should_panic
+  // ──────────────────────────────────────────────
+
+  mod evaluate_bin_expr_panic_tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn panics_for_modulo_op() {
+      evaluate_bin_expr(BinaryOp::Mod, 10.0, 3.0);
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // get_expr_from_var_decl - should_panic
+  // ──────────────────────────────────────────────
+
+  mod get_expr_from_var_decl_panic_tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn panics_when_init_is_none() {
+      let decl = make_var_declarator_no_init("x");
+      get_expr_from_var_decl(&decl);
     }
   }
 }

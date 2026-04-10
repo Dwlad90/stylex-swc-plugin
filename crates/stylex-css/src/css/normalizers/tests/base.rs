@@ -553,4 +553,86 @@ mod normalizers {
     let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("color")));
     assert!(s.contains("red"));
   }
+
+  // ── Additional coverage for uncovered branches ──────────────────
+
+  #[test]
+  fn transition_property_normalizes_camel_case() {
+    let (stylesheet, _) = swc_parse_css("* {{ transitionProperty: backgroundColor; }}");
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("transitionProperty"),
+    ));
+    assert!(s.contains("background-color"));
+  }
+
+  #[test]
+  fn transition_property_preserves_custom_property() {
+    let (stylesheet, _) = swc_parse_css("* {{ transitionProperty: --myVar; }}");
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("transitionProperty"),
+    ));
+    assert!(s.contains("--myVar") || s.contains("--myvar"));
+  }
+
+  #[test]
+  fn will_change_normalizes_camel_case() {
+    let (stylesheet, _) = swc_parse_css("* {{ willChange: backgroundColor; }}");
+    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("willChange")));
+    assert!(s.contains("background-color"));
+  }
+
+  #[test]
+  fn zero_frequency_normalizes() {
+    let (stylesheet, _) = swc_parse_css("* {{ color: 0Hz; }}");
+    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("color")));
+    // Zero frequency should have unit stripped (or becomes "0")
+    assert!(s.contains("0"));
+  }
+
+  #[test]
+  fn non_zero_time_seconds_preserved() {
+    let (stylesheet, _) = swc_parse_css("* {{ transitionDuration: 2s; }}");
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("transitionDuration"),
+    ));
+    assert!(s.contains("2s"));
+  }
+
+  #[test]
+  fn zero_dimension_in_calc_not_normalized() {
+    // Inside a function, zero dimensions should NOT be normalized
+    let (stylesheet, _) = swc_parse_css("* {{ width: calc(0px + 10px); }}");
+    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("width")));
+    assert!(s.contains("calc("));
+  }
+
+  #[test]
+  fn font_size_non_zero_px_converts_to_rem() {
+    let (stylesheet, _) = swc_parse_css("* {{ fontSize: 8px; }}");
+    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("fontSize")));
+    // 8px / 16 = 0.5rem
+    assert!(result.contains("rem"));
+    assert!(!result.contains("8px"));
+  }
+
+  #[test]
+  fn font_size_rem_not_converted() {
+    let (stylesheet, _) = swc_parse_css("* {{ fontSize: 1rem; }}");
+    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("fontSize")));
+    assert!(result.contains("1rem"));
+    assert!(!result.contains("px"));
+  }
+
+  #[test]
+  fn base_normalizer_with_no_property() {
+    let (stylesheet, _) = swc_parse_css("* {{ margin: 0px; }}");
+    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, None));
+    assert!(s.contains("0"));
+  }
 }

@@ -14,6 +14,8 @@ use crate::{
 };
 
 mod tests;
+#[cfg(test)]
+mod unit_tests;
 
 pub const EXTENSIONS: [&str; 8] = [".tsx", ".ts", ".jsx", ".js", ".mjs", ".cjs", ".mdx", ".md"];
 
@@ -222,7 +224,7 @@ static RESOLVER: Lazy<Resolver> = Lazy::new(|| {
   Resolver::new(options)
 });
 
-fn file_not_found_error(import_path: &str) -> std::io::Error {
+pub(crate) fn file_not_found_error(import_path: &str) -> std::io::Error {
   std::io::Error::new(
     std::io::ErrorKind::NotFound,
     format!("File not found for import: {}", import_path),
@@ -506,7 +508,7 @@ fn try_resolve_with_extensions(base_path: &Path) -> Option<PathBuf> {
   None
 }
 
-fn possible_aliased_paths(
+pub(crate) fn possible_aliased_paths(
   import_path_str: &str,
   aliases: &FxHashMap<String, Vec<String>>,
 ) -> Vec<PathBuf> {
@@ -533,49 +535,3 @@ fn possible_aliased_paths(
   result
 }
 
-#[cfg(test)]
-mod unit_tests {
-  use super::*;
-
-  #[test]
-  fn file_not_found_error_creates_not_found() {
-    let err = file_not_found_error("./foo/bar");
-    assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
-    assert!(err.to_string().contains("./foo/bar"));
-  }
-
-  #[test]
-  fn possible_aliased_paths_empty_aliases() {
-    let aliases = FxHashMap::default();
-    let paths = possible_aliased_paths("@pkg/foo", &aliases);
-    assert_eq!(paths, vec![PathBuf::from("@pkg/foo")]);
-  }
-
-  #[test]
-  fn possible_aliased_paths_exact_match() {
-    let mut aliases = FxHashMap::default();
-    aliases.insert("@pkg/foo".to_string(), vec!["/abs/path/foo".to_string()]);
-    let paths = possible_aliased_paths("@pkg/foo", &aliases);
-    assert_eq!(paths.len(), 2);
-    assert_eq!(paths[0], PathBuf::from("@pkg/foo"));
-    assert_eq!(paths[1], PathBuf::from("/abs/path/foo"));
-  }
-
-  #[test]
-  fn possible_aliased_paths_wildcard_match() {
-    let mut aliases = FxHashMap::default();
-    aliases.insert("@src/*".to_string(), vec!["./src/*".to_string()]);
-    let paths = possible_aliased_paths("@src/components/Button", &aliases);
-    assert_eq!(paths.len(), 2);
-    assert_eq!(paths[0], PathBuf::from("@src/components/Button"));
-    assert_eq!(paths[1], PathBuf::from("./src/components/Button"));
-  }
-
-  #[test]
-  fn possible_aliased_paths_no_match() {
-    let mut aliases = FxHashMap::default();
-    aliases.insert("@other/*".to_string(), vec!["./other/*".to_string()]);
-    let paths = possible_aliased_paths("@pkg/foo", &aliases);
-    assert_eq!(paths, vec![PathBuf::from("@pkg/foo")]);
-  }
-}

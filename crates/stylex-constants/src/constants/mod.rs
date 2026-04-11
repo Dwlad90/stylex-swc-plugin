@@ -13,3 +13,6 @@ pub mod shorthands_of_longhands;
 pub mod shorthands_of_shorthands;
 pub mod time_units;
 pub mod unitless_number_properties;
+
+#[cfg(test)]
+mod tests;

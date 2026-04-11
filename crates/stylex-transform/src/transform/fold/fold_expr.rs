@@ -3,12 +3,9 @@ use swc_core::{
   ecma::{ast::Expr, visit::FoldWith},
 };
 
-use crate::{
-  StyleXTransform,
-  shared::utils::common::normalize_expr,
-};
-use stylex_utils::hash::stable_hash;
+use crate::{StyleXTransform, shared::utils::common::normalize_expr};
 use stylex_enums::core::TransformationCycle;
+use stylex_utils::hash::stable_hash;
 
 impl<C> StyleXTransform<C>
 where

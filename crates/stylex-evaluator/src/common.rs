@@ -6,7 +6,6 @@ use swc_core::ecma::{
   utils::drop_span,
 };
 
-
 /// Extracts the initializer expression from a variable declarator, panicking
 /// if no initializer is present.
 pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {

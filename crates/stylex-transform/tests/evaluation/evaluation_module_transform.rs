@@ -1,5 +1,4 @@
 use rustc_hash::FxHashMap;
-use stylex_utils::hash::stable_hash;
 use stylex_enums::core::TransformationCycle;
 use stylex_transform::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
@@ -10,6 +9,7 @@ use stylex_transform::shared::{
     js::evaluate::evaluate,
   },
 };
+use stylex_utils::hash::stable_hash;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{

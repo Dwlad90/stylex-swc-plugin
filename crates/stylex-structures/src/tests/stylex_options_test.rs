@@ -27,7 +27,10 @@ fn stylex_options_default_key_fields() {
   assert!(opts.enable_minified_keys);
   assert!(opts.enable_debug_data_prop);
   assert!(!opts.treeshake_compensation);
-  assert!(matches!(opts.runtime_injection, RuntimeInjection::Boolean(false)));
+  assert!(matches!(
+    opts.runtime_injection,
+    RuntimeInjection::Boolean(false)
+  ));
   assert!(matches!(
     opts.unstable_module_resolution,
     CheckModuleResolution::CommonJS(_)
@@ -42,7 +45,10 @@ fn from_stylex_options_params_defaults() {
   assert_eq!(opts.class_name_prefix, "x");
   assert!(!opts.dev);
   assert!(!opts.debug);
-  assert!(matches!(opts.runtime_injection, RuntimeInjection::Boolean(false)));
+  assert!(matches!(
+    opts.runtime_injection,
+    RuntimeInjection::Boolean(false)
+  ));
   assert_eq!(opts.import_sources.len(), 2);
 }
 
@@ -51,18 +57,19 @@ fn from_stylex_options_params_runtime_injection_true() {
   let mut params = StyleXOptionsParams::default();
   params.runtime_injection = Some(RuntimeInjection::Boolean(true));
   let opts: StyleXOptions = params.into();
-  assert!(matches!(opts.runtime_injection, RuntimeInjection::Regular(_)));
+  assert!(matches!(
+    opts.runtime_injection,
+    RuntimeInjection::Regular(_)
+  ));
 }
 
 #[test]
 fn from_stylex_options_params_runtime_injection_named() {
   let mut params = StyleXOptionsParams::default();
-  params.runtime_injection = Some(RuntimeInjection::Named(
-    NamedImportSource {
-      r#as: "inject".into(),
-      from: "my-pkg".into(),
-    },
-  ));
+  params.runtime_injection = Some(RuntimeInjection::Named(NamedImportSource {
+    r#as: "inject".into(),
+    from: "my-pkg".into(),
+  }));
   let opts: StyleXOptions = params.into();
   assert!(matches!(opts.runtime_injection, RuntimeInjection::Named(_)));
 }

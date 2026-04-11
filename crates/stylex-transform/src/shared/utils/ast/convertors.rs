@@ -25,15 +25,13 @@ use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResult
 use crate::shared::structures::functions::FunctionMap;
 use crate::shared::structures::state::EvaluationState;
 use crate::shared::structures::state_manager::StateManager;
-use crate::shared::utils::common::{
-  get_expr_from_var_decl, get_var_decl_by_ident,
-};
-use stylex_utils::string::wrap_key_in_quotes;
+use crate::shared::utils::common::{get_expr_from_var_decl, get_var_decl_by_ident};
 use crate::shared::utils::js::evaluate::{deopt, evaluate_cached};
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_VALUE, VAR_DECL_INIT_REQUIRED, non_static_value,
 };
 use stylex_enums::misc::{BinaryExprType, VarDeclAction};
+use stylex_utils::string::wrap_key_in_quotes;
 use stylex_utils::swc::get_default_expr_ctx;
 
 pub fn expr_to_num(
@@ -49,14 +47,12 @@ pub fn expr_to_num(
     Expr::Bin(lit) => {
       let mut state = Box::new(EvaluationState::new());
 
-      match binary_expr_to_num(lit, &mut state, traversal_state, fns)
-        .unwrap_or_else(|error| {
-          #[cfg(not(tarpaulin_include))]
-          {
-            stylex_panic!("{}", error)
-          }
-        })
-      {
+      match binary_expr_to_num(lit, &mut state, traversal_state, fns).unwrap_or_else(|error| {
+        #[cfg(not(tarpaulin_include))]
+        {
+          stylex_panic!("{}", error)
+        }
+      }) {
         BinaryExprType::Number(number) => number,
         #[cfg(not(tarpaulin_include))]
         _ => stylex_panic!(
@@ -504,14 +500,12 @@ pub fn ident_to_number(
 
       match &var_decl_expr {
         Expr::Bin(bin_expr) => {
-          match binary_expr_to_num(bin_expr, state, traversal_state, fns)
-            .unwrap_or_else(|error| {
-              #[cfg(not(tarpaulin_include))]
-              {
-                stylex_panic!("{}", error)
-              }
-            })
-          {
+          match binary_expr_to_num(bin_expr, state, traversal_state, fns).unwrap_or_else(|error| {
+            #[cfg(not(tarpaulin_include))]
+            {
+              stylex_panic!("{}", error)
+            }
+          }) {
             BinaryExprType::Number(number) => number,
             #[cfg(not(tarpaulin_include))]
             _ => stylex_panic!(
@@ -521,14 +515,12 @@ pub fn ident_to_number(
           }
         },
         Expr::Unary(unary_expr) => convert_unary_to_num(unary_expr, state, traversal_state, fns),
-        Expr::Lit(lit) => {
-          convert_lit_to_number(lit).unwrap_or_else(|error| {
-            #[cfg(not(tarpaulin_include))]
-            {
-              stylex_panic!("{}", error)
-            }
-          })
-        },
+        Expr::Lit(lit) => convert_lit_to_number(lit).unwrap_or_else(|error| {
+          #[cfg(not(tarpaulin_include))]
+          {
+            stylex_panic!("{}", error)
+          }
+        }),
         #[cfg(not(tarpaulin_include))]
         _ => stylex_panic!(
           "Varable {:?} is not a number",

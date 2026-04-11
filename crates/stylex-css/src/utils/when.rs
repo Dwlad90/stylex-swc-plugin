@@ -327,10 +327,7 @@ mod tests {
   #[test]
   fn ancestor_with_attribute_selector() {
     let result = ancestor("[data-state=\"open\"]", None).unwrap();
-    assert_eq!(
-      result,
-      ":where(.x-default-marker[data-state=\"open\"] *)"
-    );
+    assert_eq!(result, ":where(.x-default-marker[data-state=\"open\"] *)");
   }
 
   // --- descendant additional tests ---
@@ -351,20 +348,14 @@ mod tests {
 
   #[test]
   fn descendant_with_custom_options() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "my".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("my");
     let result = descendant(":hover", Some(&options)).unwrap();
     assert_eq!(result, ":where(:has(.my-default-marker:hover))");
   }
 
   #[test]
   fn descendant_with_empty_prefix() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("");
     let result = descendant(":active", Some(&options)).unwrap();
     assert_eq!(result, ":where(:has(.default-marker:active))");
   }
@@ -372,10 +363,7 @@ mod tests {
   #[test]
   fn descendant_with_focus_visible() {
     let result = descendant(":focus-visible", None).unwrap();
-    assert_eq!(
-      result,
-      ":where(:has(.x-default-marker:focus-visible))"
-    );
+    assert_eq!(result, ":where(:has(.x-default-marker:focus-visible))");
   }
 
   #[test]
@@ -402,20 +390,14 @@ mod tests {
 
   #[test]
   fn sibling_before_with_custom_options() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "sb".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("sb");
     let result = sibling_before(":hover", Some(&options)).unwrap();
     assert_eq!(result, ":where(.sb-default-marker:hover ~ *)");
   }
 
   #[test]
   fn sibling_before_with_empty_prefix() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("");
     let result = sibling_before(":focus", Some(&options)).unwrap();
     assert_eq!(result, ":where(.default-marker:focus ~ *)");
   }
@@ -429,10 +411,7 @@ mod tests {
   #[test]
   fn sibling_before_with_attribute_selector() {
     let result = sibling_before("[data-active]", None).unwrap();
-    assert_eq!(
-      result,
-      ":where(.x-default-marker[data-active] ~ *)"
-    );
+    assert_eq!(result, ":where(.x-default-marker[data-active] ~ *)");
   }
 
   // --- sibling_after additional tests ---
@@ -453,20 +432,14 @@ mod tests {
 
   #[test]
   fn sibling_after_with_custom_options() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "sa".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("sa");
     let result = sibling_after(":hover", Some(&options)).unwrap();
     assert_eq!(result, ":where(:has(~ .sa-default-marker:hover))");
   }
 
   #[test]
   fn sibling_after_with_empty_prefix() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("");
     let result = sibling_after(":active", Some(&options)).unwrap();
     assert_eq!(result, ":where(:has(~ .default-marker:active))");
   }
@@ -474,19 +447,13 @@ mod tests {
   #[test]
   fn sibling_after_with_active() {
     let result = sibling_after(":active", None).unwrap();
-    assert_eq!(
-      result,
-      ":where(:has(~ .x-default-marker:active))"
-    );
+    assert_eq!(result, ":where(:has(~ .x-default-marker:active))");
   }
 
   #[test]
   fn sibling_after_with_attribute_selector() {
     let result = sibling_after("[aria-selected]", None).unwrap();
-    assert_eq!(
-      result,
-      ":where(:has(~ .x-default-marker[aria-selected]))"
-    );
+    assert_eq!(result, ":where(:has(~ .x-default-marker[aria-selected]))");
   }
 
   // --- any_sibling additional tests ---
@@ -507,10 +474,7 @@ mod tests {
 
   #[test]
   fn any_sibling_with_custom_options() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "as".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("as");
     let result = any_sibling(":hover", Some(&options)).unwrap();
     assert_eq!(
       result,
@@ -520,10 +484,7 @@ mod tests {
 
   #[test]
   fn any_sibling_with_empty_prefix() {
-    let options = StyleXStateOptions {
-      class_name_prefix: "".to_string(),
-      ..Default::default()
-    };
+    let options = StyleXStateOptions::default().with_class_name_prefix("");
     let result = any_sibling(":focus", Some(&options)).unwrap();
     assert_eq!(
       result,
@@ -566,21 +527,17 @@ mod tests {
 
   #[test]
   fn from_proxy_with_custom_options_returns_none() {
-    let opts = StyleXStateOptions {
-      class_name_prefix: "app".to_string(),
-      dev: true,
-      ..Default::default()
-    };
+    let opts = StyleXStateOptions::default()
+      .with_class_name_prefix("app")
+      .with_dev(true);
     assert_eq!(from_proxy(&opts), None);
   }
 
   #[test]
   fn from_stylex_style_with_custom_options_returns_none() {
-    let opts = StyleXStateOptions {
-      class_name_prefix: "app".to_string(),
-      test: true,
-      ..Default::default()
-    };
+    let opts = StyleXStateOptions::default()
+      .with_class_name_prefix("app")
+      .with_test(true);
     assert_eq!(from_stylex_style(&opts), None);
   }
 
@@ -605,19 +562,13 @@ mod tests {
   #[test]
   fn ancestor_with_attribute_value_selector() {
     let result = ancestor("[data-theme='dark']", None).unwrap();
-    assert_eq!(
-      result,
-      ":where(.x-default-marker[data-theme='dark'] *)"
-    );
+    assert_eq!(result, ":where(.x-default-marker[data-theme='dark'] *)");
   }
 
   #[test]
   fn descendant_with_attribute_contains_selector() {
     let result = descendant("[class*=\"active\"]", None).unwrap();
-    assert_eq!(
-      result,
-      ":where(:has(.x-default-marker[class*=\"active\"]))"
-    );
+    assert_eq!(result, ":where(:has(.x-default-marker[class*=\"active\"]))");
   }
 
   // --- Validate invalid attribute selectors with functions ---

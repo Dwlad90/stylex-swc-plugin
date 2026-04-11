@@ -1,10 +1,5 @@
 use rustc_hash::FxHashSet;
-use std::{
-  any::type_name,
-  collections::hash_map::Entry,
-  ops::Deref,
-  path::PathBuf,
-};
+use std::{any::type_name, collections::hash_map::Entry, ops::Deref, path::PathBuf};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use stylex_types::traits::StyleOptions;
 use stylex_utils::string::remove_quotes;
@@ -13,9 +8,9 @@ use swc_core::{
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
   ecma::{
     ast::{
-      Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module, ModuleDecl,
-      ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, Pat, Prop, PropName, PropOrSpread,
-      Stmt, VarDeclarator,
+      BinaryOp, Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module,
+      ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, Pat, Prop, PropName,
+      PropOrSpread, Stmt, VarDeclarator,
     },
     utils::drop_span,
   },
@@ -36,7 +31,6 @@ use stylex_regex::regex::JSON_REGEX;
 
 use super::ast::convertors::expand_shorthand_prop;
 use stylex_ast::ast::factories::create_var_declarator;
-
 
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {
@@ -84,7 +78,6 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
     _ => None,
   }
 }
-
 
 pub fn reduce_ident_count(state: &mut StateManager, ident: &Ident) {
   if let Entry::Occupied(mut entry) = state.var_decl_count_map.entry(ident.sym.clone()) {
@@ -538,7 +531,6 @@ pub(crate) fn gen_file_based_identifier(
   format!("{}//{}{}", file_name, export_name, key)
 }
 
-
 #[allow(dead_code)]
 pub(crate) fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
   match node_resolve::Resolver::default()
@@ -566,7 +558,6 @@ pub(crate) fn normalize_expr(expr: &mut Expr) -> &mut Expr {
   }
 }
 
-
 pub(crate) fn _md5_hash<T: serde::Serialize>(value: T, length: usize) -> String {
   let serialized_value = serialize_value_to_json_string(value);
 
@@ -579,7 +570,6 @@ pub(crate) fn _md5_hash<T: serde::Serialize>(value: T, length: usize) -> String 
     hex[..length].to_string()
   }
 }
-
 
 pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> String {
   match serde_json::to_string(&value) {
@@ -615,7 +605,6 @@ pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> S
 pub(crate) fn js_object_to_json(js_str: &str) -> String {
   JSON_REGEX.replace_all(js_str, r#"$1"$2":"#).to_string()
 }
-
 
 /// Utility function to get the `StateManager` from the `StyleOptions` trait.
 /// This is a helper function to get the `StateManager` from the `StyleOptions` trait.

@@ -109,9 +109,7 @@ fn flip_shadow(value: &str) -> Option<String> {
 
 fn is_unit(input: &str) -> bool {
   // Regex match failure is practically unreachable; default to false.
-  LENGTH_UNIT_TESTER_REGEX
-    .is_match(input)
-    .unwrap_or(false)
+  LENGTH_UNIT_TESTER_REGEX.is_match(input).unwrap_or(false)
 }
 
 fn flip_sign(value: &str) -> String {

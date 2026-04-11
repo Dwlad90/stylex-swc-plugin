@@ -36,4 +36,3 @@ impl From<InjectableStyleKind> for InjectableStyleBaseKind {
     }
   }
 }
-

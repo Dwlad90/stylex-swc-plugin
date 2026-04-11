@@ -2,11 +2,7 @@ use crate::utils::prelude::*;
 use std::env;
 
 use insta::assert_snapshot;
-use stylex_structures::{
-  named_import_source::RuntimeInjection,
-  plugin_pass::PluginPass,
-  stylex_options::{StyleXOptions, StyleXOptionsParams},
-};
+use stylex_structures::named_import_source::RuntimeInjection;
 use stylex_transform::StyleXTransform;
 use stylex_utils::hash::create_hash;
 use swc_core::common::FileName;

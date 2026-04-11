@@ -345,9 +345,15 @@ mod tests {
 
   #[test]
   fn test_inherit_parser() {
-    let result = CssWideKeyword::inherit_parser().parse_to_end("inherit").unwrap();
+    let result = CssWideKeyword::inherit_parser()
+      .parse_to_end("inherit")
+      .unwrap();
     assert_eq!(result, CssWideKeyword::Inherit);
-    assert!(CssWideKeyword::inherit_parser().parse_to_end("initial").is_err());
+    assert!(
+      CssWideKeyword::inherit_parser()
+        .parse_to_end("initial")
+        .is_err()
+    );
   }
 
   #[test]
@@ -387,7 +393,9 @@ mod tests {
 
   #[test]
   fn test_css_variable_parser() {
-    let result = CssVariable::parser().parse_to_end("var(--main-color)").unwrap();
+    let result = CssVariable::parser()
+      .parse_to_end("var(--main-color)")
+      .unwrap();
     assert_eq!(result.name, "--main-color");
   }
 }

@@ -180,16 +180,13 @@ mod inline_style_to_css_string_tests {
 
   #[test]
   fn formats_single_pair() {
-    let pairs = vec![Pair::new("color".into(), "red".into())];
+    let pairs = vec![Pair::new("color", "red")];
     assert_eq!(inline_style_to_css_string(&pairs), "color:red");
   }
 
   #[test]
   fn formats_multiple_pairs() {
-    let pairs = vec![
-      Pair::new("color".into(), "red".into()),
-      Pair::new("marginTop".into(), "10px".into()),
-    ];
+    let pairs = vec![Pair::new("color", "red"), Pair::new("marginTop", "10px")];
     assert_eq!(
       inline_style_to_css_string(&pairs),
       "color:red;margin-top:10px"
@@ -204,7 +201,7 @@ mod inline_style_to_css_string_tests {
 
   #[test]
   fn handles_custom_properties() {
-    let pairs = vec![Pair::new("--my-var".into(), "blue".into())];
+    let pairs = vec![Pair::new("--my-var", "blue")];
     assert_eq!(inline_style_to_css_string(&pairs), "--my-var:blue");
   }
 }
@@ -215,13 +212,7 @@ mod build_nested_css_rule_tests {
 
   #[test]
   fn builds_simple_rule() {
-    let result = build_nested_css_rule(
-      "x1234",
-      "color:red".into(),
-      &mut [],
-      &mut [],
-      &mut [],
-    );
+    let result = build_nested_css_rule("x1234", "color:red".into(), &mut [], &mut [], &mut []);
     assert_eq!(result, ".x1234{color:red}");
   }
 
@@ -246,10 +237,7 @@ mod build_nested_css_rule_tests {
       &mut ["@media (max-width: 600px)".to_string()],
       &mut [],
     );
-    assert_eq!(
-      result,
-      "@media (max-width: 600px){.x1234.x1234{color:red}}"
-    );
+    assert_eq!(result, "@media (max-width: 600px){.x1234.x1234{color:red}}");
   }
 
   #[test]
@@ -362,10 +350,7 @@ mod normalize_css_property_value_tests {
   }
 
   fn rem_enabled_options() -> StyleXStateOptions {
-    StyleXStateOptions {
-      enable_font_size_px_to_rem: true,
-      ..Default::default()
-    }
+    StyleXStateOptions::default().with_enable_font_size_px_to_rem(true)
   }
 
   // --- Simple values ---
@@ -434,8 +419,7 @@ mod normalize_css_property_value_tests {
   #[test]
   fn normalizes_nested_calc() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("width", "calc(100% - calc(20px + 10px))", &opts);
+    let result = normalize_css_property_value("width", "calc(100% - calc(20px + 10px))", &opts);
     assert_eq!(result, "calc(100% - calc(20px + 10px))");
   }
 
@@ -444,8 +428,7 @@ mod normalize_css_property_value_tests {
   #[test]
   fn color_function_oklch_returns_early() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("color", "oklch(0.7 0.15 180)", &opts);
+    let result = normalize_css_property_value("color", "oklch(0.7 0.15 180)", &opts);
     // oklch triggers early return: normalizes spaces only
     assert_eq!(result, "oklch(0.7 0.15 180)");
   }
@@ -453,24 +436,21 @@ mod normalize_css_property_value_tests {
   #[test]
   fn color_function_hsl_returns_early() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("color", "hsl(120, 100%, 50%)", &opts);
+    let result = normalize_css_property_value("color", "hsl(120, 100%, 50%)", &opts);
     assert_eq!(result, "hsl(120, 100%, 50%)");
   }
 
   #[test]
   fn color_function_hsla_returns_early() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("color", "hsla(120, 100%, 50%, 0.5)", &opts);
+    let result = normalize_css_property_value("color", "hsla(120, 100%, 50%, 0.5)", &opts);
     assert_eq!(result, "hsla(120, 100%, 50%, 0.5)");
   }
 
   #[test]
   fn color_function_collapses_extra_whitespace() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("color", "oklch(0.7   0.15   180)", &opts);
+    let result = normalize_css_property_value("color", "oklch(0.7   0.15   180)", &opts);
     assert_eq!(result, "oklch(0.7 0.15 180)");
   }
 
@@ -495,8 +475,7 @@ mod normalize_css_property_value_tests {
   #[test]
   fn normalizes_margin_four_values() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("margin", "10px 20px 30px 40px", &opts);
+    let result = normalize_css_property_value("margin", "10px 20px 30px 40px", &opts);
     assert_eq!(result, "10px 20px 30px 40px");
   }
 
@@ -512,8 +491,7 @@ mod normalize_css_property_value_tests {
   #[test]
   fn normalizes_border_shorthand() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("border", "1px solid red", &opts);
+    let result = normalize_css_property_value("border", "1px solid red", &opts);
     assert_eq!(result, "1px solid red");
   }
 
@@ -575,16 +553,14 @@ mod normalize_css_property_value_tests {
   #[test]
   fn normalizes_var_function() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("color", "var(--xColor)", &opts);
+    let result = normalize_css_property_value("color", "var(--xColor)", &opts);
     assert_eq!(result, "var(--xColor)");
   }
 
   #[test]
   fn normalizes_var_with_fallback() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("color", "var(--xColor, red)", &opts);
+    let result = normalize_css_property_value("color", "var(--xColor, red)", &opts);
     assert_eq!(result, "var(--xColor,red)");
   }
 
@@ -593,8 +569,7 @@ mod normalize_css_property_value_tests {
   #[test]
   fn normalizes_translatex_to_camel_case() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("transform", "translateX(10px)", &opts);
+    let result = normalize_css_property_value("transform", "translateX(10px)", &opts);
     assert_eq!(result, "translateX(10px)");
   }
 
@@ -609,8 +584,7 @@ mod normalize_css_property_value_tests {
   #[test]
   fn normalizes_rgba_color_value() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("color", "rgba(0, 0, 0, 0.5)", &opts);
+    let result = normalize_css_property_value("color", "rgba(0, 0, 0, 0.5)", &opts);
     assert!(result.contains("0") || result.contains("rgba"));
   }
 
@@ -619,8 +593,7 @@ mod normalize_css_property_value_tests {
   #[test]
   fn normalizes_extra_whitespace_in_value() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("margin", "10px   20px   30px", &opts);
+    let result = normalize_css_property_value("margin", "10px   20px   30px", &opts);
     assert_eq!(result, "10px 20px 30px");
   }
 
@@ -645,11 +618,8 @@ mod normalize_css_property_value_tests {
   #[test]
   fn normalizes_radial_gradient() {
     let opts = default_options();
-    let result = normalize_css_property_value(
-      "background",
-      "radial-gradient(circle, red, blue)",
-      &opts,
-    );
+    let result =
+      normalize_css_property_value("background", "radial-gradient(circle, red, blue)", &opts);
     assert_eq!(result, "radial-gradient(circle, red, blue)");
   }
 
@@ -658,16 +628,14 @@ mod normalize_css_property_value_tests {
   #[test]
   fn normalizes_lab_color() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("color", "lab(50% 40 59.5)", &opts);
+    let result = normalize_css_property_value("color", "lab(50% 40 59.5)", &opts);
     assert_eq!(result, "lab(50% 40 59.5)");
   }
 
   #[test]
   fn normalizes_lch_color() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("color", "lch(52.2% 72.2 50)", &opts);
+    let result = normalize_css_property_value("color", "lch(52.2% 72.2 50)", &opts);
     assert_eq!(result, "lch(52.2% 72.2 50)");
   }
 
@@ -676,8 +644,7 @@ mod normalize_css_property_value_tests {
   #[test]
   fn normalizes_hwb_color() {
     let opts = default_options();
-    let result =
-      normalize_css_property_value("color", "hwb(194 0% 0%)", &opts);
+    let result = normalize_css_property_value("color", "hwb(194 0% 0%)", &opts);
     assert_eq!(result, "hwb(194 0% 0%)");
   }
 
@@ -686,11 +653,7 @@ mod normalize_css_property_value_tests {
   #[test]
   fn normalizes_clamp_function() {
     let opts = default_options();
-    let result = normalize_css_property_value(
-      "fontSize",
-      "clamp(1rem, 2vw, 3rem)",
-      &opts,
-    );
+    let result = normalize_css_property_value("fontSize", "clamp(1rem, 2vw, 3rem)", &opts);
     assert_eq!(result, "clamp(1rem, 2vw, 3rem)");
   }
 }
@@ -847,10 +810,8 @@ mod generate_css_rule_tests {
   fn generates_rtl_for_logical_property() {
     use stylex_enums::style_resolution::StyleResolution;
 
-    let opts = StyleXStateOptions {
-      style_resolution: StyleResolution::PropertySpecificity,
-      ..Default::default()
-    };
+    let opts =
+      StyleXStateOptions::default().with_style_resolution(StyleResolution::PropertySpecificity);
     let result = generate_css_rule(
       "xrtl",
       "margin-start",
@@ -1260,11 +1221,7 @@ mod colon_prefixed_property_tests {
   #[test]
   fn normalizes_colon_prefixed_pseudo_property() {
     let opts = StyleXStateOptions::default();
-    let result = normalize_css_property_value(
-      ":hover",
-      "{color:red}",
-      &opts,
-    );
+    let result = normalize_css_property_value(":hover", "{color:red}", &opts);
     assert!(!result.is_empty());
   }
 }
@@ -1292,9 +1249,7 @@ mod stringify_css_var_numeric_tests {
   #[test]
   fn stringify_unescapes_numeric_css_variable_double_brace() {
     let (stylesheet, _) = swc_parse_css("* {{ --3foo: blue; }}");
-    let s = stringify(&stylesheet.unwrap_or_else(|_| {
-      panic!("Could not parse CSS")
-    }));
+    let s = stringify(&stylesheet.unwrap_or_else(|_| panic!("Could not parse CSS")));
     // Verify the regex cleaning path fires
     assert!(!s.is_empty());
   }

@@ -120,4 +120,3 @@ impl From<StyleXOptions> for StyleXStateOptions {
     }
   }
 }
-

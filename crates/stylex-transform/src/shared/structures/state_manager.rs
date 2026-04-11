@@ -34,8 +34,6 @@ use crate::shared::utils::ast::convertors::create_number_expr;
 use crate::shared::utils::common::{
   extract_filename_from_path, extract_filename_with_ext_from_path, extract_path,
 };
-use stylex_utils::hash::stable_hash;
-use stylex_utils::math::round_f64;
 use stylex_ast::ast::factories::create_binding_ident;
 use stylex_ast::ast::factories::{
   create_expr_or_spread, create_key_value_prop, create_number_expr_or_spread,
@@ -49,6 +47,8 @@ use stylex_enums::top_level_expression::TopLevelExpressionKind;
 use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 use stylex_structures::top_level_expression::TopLevelExpression;
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+use stylex_utils::hash::stable_hash;
+use stylex_utils::math::round_f64;
 
 use super::seen_value::SeenValue;
 use super::types::StylesObjectMap;

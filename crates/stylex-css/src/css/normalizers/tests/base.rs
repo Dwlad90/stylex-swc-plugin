@@ -394,28 +394,44 @@ mod normalizers {
   #[test]
   fn should_convert_font_size_px_to_rem() {
     let (stylesheet, _) = swc_parse_css("* {{ fontSize: 16px; }}");
-    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("fontSize")));
+    let result = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      true,
+      Some("fontSize"),
+    ));
     assert!(result.contains("1rem"));
   }
 
   #[test]
   fn should_convert_font_size_32px_to_2rem() {
     let (stylesheet, _) = swc_parse_css("* {{ fontSize: 32px; }}");
-    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("fontSize")));
+    let result = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      true,
+      Some("fontSize"),
+    ));
     assert!(result.contains("2rem"));
   }
 
   #[test]
   fn should_not_convert_font_size_when_disabled() {
     let (stylesheet, _) = swc_parse_css("* {{ fontSize: 16px; }}");
-    let result = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("fontSize")));
+    let result = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("fontSize"),
+    ));
     assert!(result.contains("16px"));
   }
 
   #[test]
   fn should_not_convert_zero_font_size() {
     let (stylesheet, _) = swc_parse_css("* {{ fontSize: 0px; }}");
-    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("fontSize")));
+    let result = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      true,
+      Some("fontSize"),
+    ));
     // 0px stays as 0 (zero-dimension normalizer strips units)
     assert!(result.contains(":0"));
   }
@@ -431,7 +447,11 @@ mod normalizers {
   #[test]
   fn should_not_convert_font_size_em() {
     let (stylesheet, _) = swc_parse_css("* {{ fontSize: 2em; }}");
-    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("fontSize")));
+    let result = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      true,
+      Some("fontSize"),
+    ));
     assert!(result.contains("2em"));
   }
 
@@ -501,7 +521,11 @@ mod normalizers {
   #[test]
   fn zero_angle_becomes_deg() {
     let (stylesheet, _) = swc_parse_css("* {{ transform: rotate(0rad); }}");
-    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("transform")));
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("transform"),
+    ));
     // zero angle normalizes to 0deg (but inside function arg, is_function_arg skips it)
     assert!(!s.is_empty());
   }
@@ -543,7 +567,11 @@ mod normalizers {
   #[test]
   fn will_change_normalizes_to_kebab_case() {
     let (stylesheet, _) = swc_parse_css("* {{ willChange: marginTop; }}");
-    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("willChange")));
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("willChange"),
+    ));
     assert!(s.contains("margin-top"));
   }
 
@@ -581,7 +609,11 @@ mod normalizers {
   #[test]
   fn will_change_normalizes_camel_case() {
     let (stylesheet, _) = swc_parse_css("* {{ willChange: backgroundColor; }}");
-    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("willChange")));
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("willChange"),
+    ));
     assert!(s.contains("background-color"));
   }
 
@@ -615,7 +647,11 @@ mod normalizers {
   #[test]
   fn font_size_non_zero_px_converts_to_rem() {
     let (stylesheet, _) = swc_parse_css("* {{ fontSize: 8px; }}");
-    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("fontSize")));
+    let result = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      true,
+      Some("fontSize"),
+    ));
     // 8px / 16 = 0.5rem
     assert!(result.contains("rem"));
     assert!(!result.contains("8px"));
@@ -624,7 +660,11 @@ mod normalizers {
   #[test]
   fn font_size_rem_not_converted() {
     let (stylesheet, _) = swc_parse_css("* {{ fontSize: 1rem; }}");
-    let result = stringify(&base_normalizer(stylesheet.unwrap(), true, Some("fontSize")));
+    let result = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      true,
+      Some("fontSize"),
+    ));
     assert!(result.contains("1rem"));
     assert!(!result.contains("px"));
   }
@@ -643,7 +683,11 @@ mod normalizers {
     // A CSS custom property declaration uses DashedIdent, not Ident.
     // This hits the `DeclarationName::DashedIdent(_) => false` branch.
     let (stylesheet, _) = swc_parse_css("* {{ --my-var: foo; }}");
-    let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("--my-var")));
+    let s = stringify(&base_normalizer(
+      stylesheet.unwrap(),
+      false,
+      Some("--my-var"),
+    ));
     assert!(s.contains("--my-var") || s.contains("--my-Var"));
   }
 

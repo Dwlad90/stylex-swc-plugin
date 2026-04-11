@@ -459,16 +459,12 @@ pub(crate) fn get_types_fn() -> FunctionConfig {
   FunctionConfig {
     fn_ptr: FunctionType::StylexFnsFactory(
       |prop_name| -> Rc<dyn Fn(ValueWithDefault) -> Expr + 'static> {
-        Rc::new(
-          *FN_MAP
-            .get(prop_name.as_str())
-            .unwrap_or_else(|| {
-              #[cfg(not(tarpaulin_include))]
-              {
-                stylex_panic!(r#"Function "{}" not found"#, prop_name)
-              }
-            }),
-        )
+        Rc::new(*FN_MAP.get(prop_name.as_str()).unwrap_or_else(|| {
+          #[cfg(not(tarpaulin_include))]
+          {
+            stylex_panic!(r#"Function "{}" not found"#, prop_name)
+          }
+        }))
       },
     ),
     takes_path: false,

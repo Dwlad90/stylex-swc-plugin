@@ -865,13 +865,10 @@ pub(crate) fn validate_theme_variables(
 
     let key_value = create_key_value_prop_ident(
       VAR_GROUP_HASH_KEY,
-      create_string_expr(
-        match value.as_css_var() {
-          Some(v) => v,
-          None => stylex_panic!("{}", EXPECTED_CSS_VAR),
-        }
-        .as_str(),
-      ),
+      create_string_expr(match value.as_css_var() {
+        Some(v) => v,
+        None => stylex_panic!("{}", EXPECTED_CSS_VAR),
+      }),
     );
 
     return key_value;

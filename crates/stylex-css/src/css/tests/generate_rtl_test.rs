@@ -9,39 +9,33 @@ mod generate_rtl_tests {
   }
 
   fn legacy_options() -> StyleXStateOptions {
-    StyleXStateOptions {
-      style_resolution: StyleResolution::LegacyExpandShorthands,
-      ..Default::default()
-    }
+    StyleXStateOptions::default().with_style_resolution(StyleResolution::LegacyExpandShorthands)
   }
 
   fn legacy_logical_options() -> StyleXStateOptions {
-    StyleXStateOptions {
-      style_resolution: StyleResolution::LegacyExpandShorthands,
-      enable_logical_styles_polyfill: true,
-      ..Default::default()
-    }
+    StyleXStateOptions::default()
+      .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
   }
 
   fn flipping_options() -> StyleXStateOptions {
-    StyleXStateOptions {
-      enable_legacy_value_flipping: true,
-      ..Default::default()
-    }
+    let mut options = StyleXStateOptions::default();
+    options.core.enable_legacy_value_flipping = true;
+    options
   }
 
   // ── No RTL needed for non-logical properties ──────────────────
 
   #[test]
   fn no_rtl_for_regular_property() {
-    let pair = Pair::new("color".into(), "red".into());
+    let pair = Pair::new("color", "red");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_none());
   }
 
   #[test]
   fn no_rtl_for_width() {
-    let pair = Pair::new("width".into(), "100px".into());
+    let pair = Pair::new("width", "100px");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_none());
   }
@@ -50,7 +44,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn margin_start_to_rtl_margin_right() {
-    let pair = Pair::new("margin-start".into(), "10px".into());
+    let pair = Pair::new("margin-start", "10px");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     let rtl = result.unwrap();
@@ -60,7 +54,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn margin_end_to_rtl_margin_left() {
-    let pair = Pair::new("margin-end".into(), "10px".into());
+    let pair = Pair::new("margin-end", "10px");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     let rtl = result.unwrap();
@@ -69,7 +63,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn padding_start_to_rtl() {
-    let pair = Pair::new("padding-start".into(), "5px".into());
+    let pair = Pair::new("padding-start", "5px");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     let rtl = result.unwrap();
@@ -80,7 +74,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn float_start_becomes_right_in_rtl() {
-    let pair = Pair::new("float".into(), "start".into());
+    let pair = Pair::new("float", "start");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     assert_eq!(result.unwrap().value, "right");
@@ -88,7 +82,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn float_end_becomes_left_in_rtl() {
-    let pair = Pair::new("float".into(), "end".into());
+    let pair = Pair::new("float", "end");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     assert_eq!(result.unwrap().value, "left");
@@ -96,7 +90,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn clear_start_becomes_right_in_rtl() {
-    let pair = Pair::new("clear".into(), "start".into());
+    let pair = Pair::new("clear", "start");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     assert_eq!(result.unwrap().value, "right");
@@ -104,7 +98,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn clear_end_becomes_left_in_rtl() {
-    let pair = Pair::new("clear".into(), "end".into());
+    let pair = Pair::new("clear", "end");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     assert_eq!(result.unwrap().value, "left");
@@ -112,23 +106,25 @@ mod generate_rtl_tests {
 
   #[test]
   fn float_left_no_rtl() {
-    let pair = Pair::new("float".into(), "left".into());
+    let pair = Pair::new("float", "left");
     let result = generate_rtl(&pair, &default_options());
-    assert!(result.is_none());
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().value, "left");
   }
 
   #[test]
   fn clear_both_no_rtl() {
-    let pair = Pair::new("clear".into(), "both".into());
+    let pair = Pair::new("clear", "both");
     let result = generate_rtl(&pair, &default_options());
-    assert!(result.is_none());
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().value, "both");
   }
 
   // ── float inline-start / inline-end ───────────────────────────
 
   #[test]
   fn float_inline_start_becomes_right_in_rtl() {
-    let pair = Pair::new("float".into(), "inline-start".into());
+    let pair = Pair::new("float", "inline-start");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     assert_eq!(result.unwrap().value, "right");
@@ -136,7 +132,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn float_inline_end_becomes_left_in_rtl() {
-    let pair = Pair::new("float".into(), "inline-end".into());
+    let pair = Pair::new("float", "inline-end");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     assert_eq!(result.unwrap().value, "left");
@@ -146,7 +142,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn background_position_start_becomes_right() {
-    let pair = Pair::new("background-position".into(), "start center".into());
+    let pair = Pair::new("background-position", "start center");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     let rtl = result.unwrap();
@@ -155,7 +151,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn background_position_end_becomes_left() {
-    let pair = Pair::new("background-position".into(), "end top".into());
+    let pair = Pair::new("background-position", "end top");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     let rtl = result.unwrap();
@@ -164,7 +160,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn background_position_no_logical_no_rtl() {
-    let pair = Pair::new("background-position".into(), "center bottom".into());
+    let pair = Pair::new("background-position", "center bottom");
     let result = generate_rtl(&pair, &default_options());
     // "center bottom" → still "center bottom" in RTL, same as original
     // So generate_rtl might return None or Some with same value
@@ -177,7 +173,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn legacy_no_polyfill_returns_none() {
-    let pair = Pair::new("margin-start".into(), "10px".into());
+    let pair = Pair::new("margin-start", "10px");
     let result = generate_rtl(&pair, &legacy_options());
     assert!(result.is_none());
   }
@@ -186,7 +182,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn legacy_polyfill_inline_start_mapped() {
-    let pair = Pair::new("margin-inline-start".into(), "10px".into());
+    let pair = Pair::new("margin-inline-start", "10px");
     let result = generate_rtl(&pair, &legacy_logical_options());
     assert!(result.is_some());
     let rtl = result.unwrap();
@@ -195,7 +191,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn legacy_polyfill_inline_end_mapped() {
-    let pair = Pair::new("margin-inline-end".into(), "10px".into());
+    let pair = Pair::new("margin-inline-end", "10px");
     let result = generate_rtl(&pair, &legacy_logical_options());
     assert!(result.is_some());
     let rtl = result.unwrap();
@@ -206,7 +202,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn box_shadow_flips_with_legacy_value_flipping() {
-    let pair = Pair::new("box-shadow".into(), "5px 5px 10px #000".into());
+    let pair = Pair::new("box-shadow", "5px 5px 10px #000");
     let result = generate_rtl(&pair, &flipping_options());
     assert!(result.is_some());
     let rtl = result.unwrap();
@@ -215,7 +211,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn text_shadow_flips_with_legacy_value_flipping() {
-    let pair = Pair::new("text-shadow".into(), "2px 2px 4px #000".into());
+    let pair = Pair::new("text-shadow", "2px 2px 4px #000");
     let result = generate_rtl(&pair, &flipping_options());
     assert!(result.is_some());
     let rtl = result.unwrap();
@@ -224,14 +220,14 @@ mod generate_rtl_tests {
 
   #[test]
   fn box_shadow_no_flip_without_legacy() {
-    let pair = Pair::new("box-shadow".into(), "5px 5px 10px #000".into());
+    let pair = Pair::new("box-shadow", "5px 5px 10px #000");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_none());
   }
 
   #[test]
   fn box_shadow_zero_offset_no_flip() {
-    let pair = Pair::new("box-shadow".into(), "0 0 10px #000".into());
+    let pair = Pair::new("box-shadow", "0 0 10px #000");
     let result = generate_rtl(&pair, &flipping_options());
     // 0 stays 0, no actual flip needed
     assert!(result.is_none());
@@ -239,7 +235,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn box_shadow_negative_becomes_positive() {
-    let pair = Pair::new("box-shadow".into(), "-3px 3px 5px #000".into());
+    let pair = Pair::new("box-shadow", "-3px 3px 5px #000");
     let result = generate_rtl(&pair, &flipping_options());
     assert!(result.is_some());
     let rtl = result.unwrap();
@@ -248,10 +244,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn box_shadow_multiple_shadows() {
-    let pair = Pair::new(
-      "box-shadow".into(),
-      "2px 0 4px #000, -1px 0 2px #fff".into(),
-    );
+    let pair = Pair::new("box-shadow", "2px 0 4px #000, -1px 0 2px #fff");
     let result = generate_rtl(&pair, &flipping_options());
     assert!(result.is_some());
     let rtl = result.unwrap();
@@ -263,14 +256,14 @@ mod generate_rtl_tests {
 
   #[test]
   fn cursor_no_flip_without_legacy() {
-    let pair = Pair::new("cursor".into(), "e-resize".into());
+    let pair = Pair::new("cursor", "e-resize");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_none());
   }
 
   #[test]
   fn cursor_no_flip_for_unknown_value() {
-    let pair = Pair::new("cursor".into(), "pointer".into());
+    let pair = Pair::new("cursor", "pointer");
     let result = generate_rtl(&pair, &flipping_options());
     // "pointer" is not in CURSOR_FLIP
     assert!(result.is_none());
@@ -280,14 +273,14 @@ mod generate_rtl_tests {
 
   #[test]
   fn non_shadow_non_logical_returns_none() {
-    let pair = Pair::new("z-index".into(), "10".into());
+    let pair = Pair::new("z-index", "10");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_none());
   }
 
   #[test]
   fn display_returns_none() {
-    let pair = Pair::new("display".into(), "flex".into());
+    let pair = Pair::new("display", "flex");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_none());
   }
@@ -296,7 +289,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn cursor_e_resize_flips_with_legacy() {
-    let pair = Pair::new("cursor".into(), "e-resize".into());
+    let pair = Pair::new("cursor", "e-resize");
     let result = generate_rtl(&pair, &flipping_options());
     if let Some(rtl) = result {
       assert_eq!(rtl.value, "w-resize");
@@ -305,7 +298,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn cursor_w_resize_flips_with_legacy() {
-    let pair = Pair::new("cursor".into(), "w-resize".into());
+    let pair = Pair::new("cursor", "w-resize");
     let result = generate_rtl(&pair, &flipping_options());
     if let Some(rtl) = result {
       assert_eq!(rtl.value, "e-resize");
@@ -314,7 +307,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn cursor_ne_resize_flips_with_legacy() {
-    let pair = Pair::new("cursor".into(), "ne-resize".into());
+    let pair = Pair::new("cursor", "ne-resize");
     let result = generate_rtl(&pair, &flipping_options());
     if let Some(rtl) = result {
       assert_eq!(rtl.value, "nw-resize");
@@ -323,7 +316,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn cursor_se_resize_flips_with_legacy() {
-    let pair = Pair::new("cursor".into(), "se-resize".into());
+    let pair = Pair::new("cursor", "se-resize");
     let result = generate_rtl(&pair, &flipping_options());
     if let Some(rtl) = result {
       assert_eq!(rtl.value, "sw-resize");
@@ -332,10 +325,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn background_position_inset_inline_start_becomes_right() {
-    let pair = Pair::new(
-      "background-position".into(),
-      "inset-inline-start center".into(),
-    );
+    let pair = Pair::new("background-position", "inset-inline-start center");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     assert_eq!(result.unwrap().value, "right center");
@@ -343,10 +333,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn background_position_inset_inline_end_becomes_left() {
-    let pair = Pair::new(
-      "background-position".into(),
-      "inset-inline-end top".into(),
-    );
+    let pair = Pair::new("background-position", "inset-inline-end top");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     assert_eq!(result.unwrap().value, "left top");
@@ -354,7 +341,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn clear_inline_start_becomes_right() {
-    let pair = Pair::new("clear".into(), "inline-start".into());
+    let pair = Pair::new("clear", "inline-start");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     assert_eq!(result.unwrap().value, "right");
@@ -362,7 +349,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn clear_inline_end_becomes_left() {
-    let pair = Pair::new("clear".into(), "inline-end".into());
+    let pair = Pair::new("clear", "inline-end");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_some());
     assert_eq!(result.unwrap().value, "left");
@@ -370,14 +357,14 @@ mod generate_rtl_tests {
 
   #[test]
   fn text_shadow_no_flip_without_legacy() {
-    let pair = Pair::new("text-shadow".into(), "2px 2px #000".into());
+    let pair = Pair::new("text-shadow", "2px 2px #000");
     let result = generate_rtl(&pair, &default_options());
     assert!(result.is_none());
   }
 
   #[test]
   fn box_shadow_inset_flips() {
-    let pair = Pair::new("box-shadow".into(), "inset 5px 5px 10px #000".into());
+    let pair = Pair::new("box-shadow", "inset 5px 5px 10px #000");
     let result = generate_rtl(&pair, &flipping_options());
     assert!(result.is_some());
     let rtl = result.unwrap();
@@ -386,7 +373,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn legacy_polyfill_non_inline_key_falls_through() {
-    let pair = Pair::new("float".into(), "start".into());
+    let pair = Pair::new("float", "start");
     let result = generate_rtl(&pair, &legacy_logical_options());
     assert!(result.is_some());
     assert_eq!(result.unwrap().value, "right");
@@ -394,7 +381,7 @@ mod generate_rtl_tests {
 
   #[test]
   fn legacy_no_polyfill_regular_property_returns_none() {
-    let pair = Pair::new("color".into(), "red".into());
+    let pair = Pair::new("color", "red");
     let result = generate_rtl(&pair, &legacy_options());
     assert!(result.is_none());
   }

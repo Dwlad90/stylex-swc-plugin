@@ -9,8 +9,6 @@ use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::FlatCompiledStyles;
 use crate::shared::utils::css::common::transform_value_cached;
-use stylex_utils::hash::create_hash;
-use stylex_utils::string::dashify;
 use crate::shared::utils::object::{
   Pipe, obj_map, obj_map_keys_key_value, obj_map_keys_string, preprocess_object_properties,
 };
@@ -20,6 +18,8 @@ use stylex_constants::constants::messages::{
 use stylex_structures::pair::Pair;
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_types::structures::injectable_style::InjectableStyle;
+use stylex_utils::hash::create_hash;
+use stylex_utils::string::dashify;
 
 pub(crate) fn stylex_view_transition_class(
   styles: &EvaluateResultValue,

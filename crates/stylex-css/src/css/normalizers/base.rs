@@ -9,8 +9,8 @@ use swc_core::{
   },
 };
 
-use stylex_utils::string::dashify;
 use stylex_constants::constants::common::ROOT_FONT_SIZE;
+use stylex_utils::string::dashify;
 
 struct CssFolder {
   enable_font_size_px_to_rem: bool,

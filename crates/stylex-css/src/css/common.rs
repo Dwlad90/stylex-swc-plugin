@@ -3,7 +3,6 @@ use crate::css::generate_rtl::generate_rtl;
 use crate::css::normalizers::base::base_normalizer;
 use crate::css::normalizers::{extract_css_value, normalize_spacing};
 use crate::css::validators::unprefixed_custom_properties::unprefixed_custom_properties_validator;
-use stylex_utils::string::dashify;
 use stylex_constants::constants::common::{
   COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES,
   COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES,
@@ -26,6 +25,7 @@ use stylex_regex::regex::{
 use stylex_structures::pair::Pair;
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 use stylex_types::structures::injectable_style::InjectableStyle;
+use stylex_utils::string::dashify;
 use swc_core::{
   common::{BytePos, input::StringInput, source_map::SmallPos},
   css::{
@@ -497,5 +497,3 @@ pub fn inline_style_to_css_string(pairs: &[Pair]) -> String {
     .collect::<Vec<_>>()
     .join(";")
 }
-
-

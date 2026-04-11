@@ -296,7 +296,9 @@ where
               .as_values()
               .unwrap_or_else(|| {
                 #[cfg(not(tarpaulin_include))]
-                { stylex_panic!("{}", EXPECTED_COMPILED_STYLES) }
+                {
+                  stylex_panic!("{}", EXPECTED_COMPILED_STYLES)
+                }
               })
               .clone(),
           )),

@@ -9,7 +9,10 @@ mod dashify_tests {
 
   #[test]
   fn converts_multiple_uppercase_letters() {
-    assert_eq!(dashify("borderBottomLeftRadius"), "border-bottom-left-radius");
+    assert_eq!(
+      dashify("borderBottomLeftRadius"),
+      "border-bottom-left-radius"
+    );
   }
 
   #[test]

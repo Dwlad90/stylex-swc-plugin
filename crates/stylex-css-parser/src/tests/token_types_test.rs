@@ -151,9 +151,18 @@ mod test_token_types {
   #[test]
   fn test_extract_value_for_all_token_types() {
     // Tokens with extractable values
-    assert_eq!(SimpleToken::Ident("foo".to_string()).extract_value(), Some("foo".to_string()));
-    assert_eq!(SimpleToken::String("bar".to_string()).extract_value(), Some("bar".to_string()));
-    assert_eq!(SimpleToken::Hash("abc".to_string()).extract_value(), Some("abc".to_string()));
+    assert_eq!(
+      SimpleToken::Ident("foo".to_string()).extract_value(),
+      Some("foo".to_string())
+    );
+    assert_eq!(
+      SimpleToken::String("bar".to_string()).extract_value(),
+      Some("bar".to_string())
+    );
+    assert_eq!(
+      SimpleToken::Hash("abc".to_string()).extract_value(),
+      Some("abc".to_string())
+    );
     assert_eq!(
       SimpleToken::AtKeyword("media".to_string()).extract_value(),
       Some("media".to_string())
@@ -162,18 +171,34 @@ mod test_token_types {
       SimpleToken::Comment("hello".to_string()).extract_value(),
       Some("hello".to_string())
     );
-    assert_eq!(SimpleToken::Number(42.0).extract_value(), Some("42".to_string()));
-    assert_eq!(SimpleToken::Percentage(0.5).extract_value(), Some("0.5".to_string()));
     assert_eq!(
-      SimpleToken::Dimension { value: 10.0, unit: "px".to_string() }.extract_value(),
+      SimpleToken::Number(42.0).extract_value(),
+      Some("42".to_string())
+    );
+    assert_eq!(
+      SimpleToken::Percentage(0.5).extract_value(),
+      Some("0.5".to_string())
+    );
+    assert_eq!(
+      SimpleToken::Dimension {
+        value: 10.0,
+        unit: "px".to_string()
+      }
+      .extract_value(),
       Some("10px".to_string())
     );
-    assert_eq!(SimpleToken::Delim('+').extract_value(), Some("+".to_string()));
+    assert_eq!(
+      SimpleToken::Delim('+').extract_value(),
+      Some("+".to_string())
+    );
     assert_eq!(
       SimpleToken::Function("rgb".to_string()).extract_value(),
       Some("rgb".to_string())
     );
-    assert_eq!(SimpleToken::Unknown("?".to_string()).extract_value(), Some("?".to_string()));
+    assert_eq!(
+      SimpleToken::Unknown("?".to_string()).extract_value(),
+      Some("?".to_string())
+    );
 
     // Structural tokens without values
     assert_eq!(SimpleToken::LeftParen.extract_value(), None);
@@ -193,11 +218,18 @@ mod test_token_types {
     assert_eq!(SimpleToken::Number(42.0).extract_number(), Some(42.0));
     assert_eq!(SimpleToken::Percentage(0.5).extract_number(), Some(0.5));
     assert_eq!(
-      SimpleToken::Dimension { value: 10.0, unit: "px".to_string() }.extract_number(),
+      SimpleToken::Dimension {
+        value: 10.0,
+        unit: "px".to_string()
+      }
+      .extract_number(),
       Some(10.0)
     );
     assert_eq!(SimpleToken::Ident("foo".to_string()).extract_number(), None);
-    assert_eq!(SimpleToken::String("bar".to_string()).extract_number(), None);
+    assert_eq!(
+      SimpleToken::String("bar".to_string()).extract_number(),
+      None
+    );
     assert_eq!(SimpleToken::Comma.extract_number(), None);
   }
 
@@ -208,7 +240,10 @@ mod test_token_types {
     list.consume_next_token().unwrap();
     list.consume_next_token().unwrap();
     list.restore_position(saved).unwrap();
-    assert_eq!(list.peek().unwrap(), Some(SimpleToken::Ident("a".to_string())));
+    assert_eq!(
+      list.peek().unwrap(),
+      Some(SimpleToken::Ident("a".to_string()))
+    );
   }
 
   #[test]

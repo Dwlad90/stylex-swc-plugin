@@ -3,11 +3,11 @@ use stylex_macros::stylex_panic;
 use crate::shared::structures::pre_rule::PreRuleValue;
 use crate::shared::structures::state_manager::StateManager;
 use crate::shared::utils::css::common::{generate_css_rule, transform_value_cached};
-use stylex_utils::hash::create_hash;
-use stylex_utils::string::dashify;
 use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS};
 use stylex_css::utils::pre_rule::{sort_at_rules, sort_pseudos};
 use stylex_types::structures::injectable_style::InjectableStyle;
+use stylex_utils::hash::create_hash;
+use stylex_utils::string::dashify;
 
 pub(crate) fn convert_style_to_class_name(
   obj_entry: (&str, &PreRuleValue),

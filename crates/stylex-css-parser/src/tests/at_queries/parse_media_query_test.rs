@@ -4928,10 +4928,7 @@ mod style_value_parser_at_queries {
         _ => stylex_panic!("Expected And rule"),
       }
 
-      assert_eq!(
-        parsed.to_string(),
-        "@media (screen) and (min-width: 768px)"
-      );
+      assert_eq!(parsed.to_string(), "@media (screen) and (min-width: 768px)");
     }
   }
 
@@ -5042,9 +5039,7 @@ mod style_value_parser_at_queries {
 
     #[test]
     fn media_prefix_with_screen_keyword() {
-      let with_prefix = MediaQuery::parser()
-        .parse_to_end("@media screen")
-        .unwrap();
+      let with_prefix = MediaQuery::parser().parse_to_end("@media screen").unwrap();
       assert_eq!(with_prefix.to_string(), "@media screen");
     }
 

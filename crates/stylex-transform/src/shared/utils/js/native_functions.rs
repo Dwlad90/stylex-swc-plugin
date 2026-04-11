@@ -168,7 +168,8 @@ pub(crate) fn evaluate_filter_cb(
     {
       stylex_panic!("{}", error)
     }
-  }) == 0.0 {
+  }) == 0.0
+  {
     None
   } else {
     Some(item.clone())

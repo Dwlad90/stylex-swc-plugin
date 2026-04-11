@@ -335,4 +335,3 @@ pub fn extract_str_lit_ref(lit: &Lit) -> Option<&str> {
     _ => None,
   }
 }
-

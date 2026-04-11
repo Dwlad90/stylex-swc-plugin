@@ -571,4 +571,3 @@ pub fn create_null_var_declarator(ident: Ident) -> VarDeclarator {
 pub fn create_string_var_declarator(ident: Ident, value: &str) -> VarDeclarator {
   create_var_declarator(ident, create_string_expr(value))
 }
-

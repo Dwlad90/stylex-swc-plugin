@@ -161,10 +161,7 @@ fn extract_semicolon_terminated() {
 
 #[test]
 fn extract_multiple_values() {
-  assert_eq!(
-    extract_css_value("*{margin:10px 20px}"),
-    "10px 20px"
-  );
+  assert_eq!(extract_css_value("*{margin:10px 20px}"), "10px 20px");
 }
 
 #[test]
@@ -337,10 +334,7 @@ fn compound_expressions() {
 // Complex calc expression
 #[test]
 fn complex_calc_expression() {
-  assert_eq!(
-    normalize_spacing("calc(100% - 2px)"),
-    "calc(100% - 2px)"
-  );
+  assert_eq!(normalize_spacing("calc(100% - 2px)"), "calc(100% - 2px)");
 }
 
 // `)` + `-` is not a space-triggering pair
@@ -352,10 +346,7 @@ fn paren_before_minus_no_space() {
 // Strings inside quotes are not modified
 #[test]
 fn string_contents_preserved() {
-  assert_eq!(
-    normalize_spacing(r#""hello)world""#),
-    r#""hello)world""#
-  );
+  assert_eq!(normalize_spacing(r#""hello)world""#), r#""hello)world""#);
 }
 
 // Multiple functions chained

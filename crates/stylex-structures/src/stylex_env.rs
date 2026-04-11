@@ -56,4 +56,3 @@ impl JSFunction {
     (self.inner)(args)
   }
 }
-

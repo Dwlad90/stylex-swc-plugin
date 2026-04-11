@@ -149,4 +149,3 @@ impl UidGenerator {
     Ident::from(unique_name.as_str())
   }
 }
-

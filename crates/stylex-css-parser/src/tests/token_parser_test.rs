@@ -814,10 +814,8 @@ mod test_token_parser {
 
     #[test]
     fn chains_string_to_next_token() {
-      let parser = TokenParser::<String>::string("foo").flat_map(
-        move |_| tokens::colon(),
-        Some("colon"),
-      );
+      let parser =
+        TokenParser::<String>::string("foo").flat_map(move |_| tokens::colon(), Some("colon"));
 
       let result = parser.parse_to_end("foo:");
       assert!(result.is_ok());
@@ -827,12 +825,7 @@ mod test_token_parser {
     #[test]
     fn chains_two_parsers_with_whitespace() {
       let parser = TokenParser::<String>::string("foo").flat_map(
-        move |_| {
-          tokens::whitespace().flat_map(
-            move |_| TokenParser::<String>::string("bar"),
-            None,
-          )
-        },
+        move |_| tokens::whitespace().flat_map(move |_| TokenParser::<String>::string("bar"), None),
         Some("ws_then_bar"),
       );
 
@@ -851,8 +844,7 @@ mod test_token_parser {
       let p_foo = TokenParser::<String>::string("foo");
       let p_comma = tokens::comma().map(|_| ",".to_string(), None);
 
-      let parser =
-        TokenParser::<String>::set_of(vec![p_foo, p_comma]).as_token_parser();
+      let parser = TokenParser::<String>::set_of(vec![p_foo, p_comma]).as_token_parser();
 
       // Input ",foo" - comma first, then foo
       let result = parser.parse_to_end(",foo");
@@ -866,8 +858,7 @@ mod test_token_parser {
       let p_foo = TokenParser::<String>::string("foo");
       let p_comma = tokens::comma().map(|_| ",".to_string(), None);
 
-      let parser =
-        TokenParser::<String>::set_of(vec![p_foo, p_comma]).as_token_parser();
+      let parser = TokenParser::<String>::set_of(vec![p_foo, p_comma]).as_token_parser();
 
       // Input "foo," - already in parser order
       let result = parser.parse_to_end("foo,");
@@ -951,9 +942,8 @@ mod test_token_parser {
       let p_colon = tokens::colon().map(|_| ":".to_string(), None);
       let p_bar = TokenParser::<String>::string("bar");
 
-      let parser =
-        TokenParser::<String>::sequence_with_separators(vec![p_foo, p_colon, p_bar])
-          .as_token_parser();
+      let parser = TokenParser::<String>::sequence_with_separators(vec![p_foo, p_colon, p_bar])
+        .as_token_parser();
 
       let result = parser.parse_to_end("foo:bar");
       assert!(result.is_ok());
@@ -965,9 +955,8 @@ mod test_token_parser {
       let p_foo = TokenParser::<String>::string("foo");
       let p_bar = TokenParser::<String>::string("bar");
 
-      let parser =
-        TokenParser::<String>::sequence_with_separators(vec![p_foo, p_bar])
-          .separated_by(tokens::whitespace());
+      let parser = TokenParser::<String>::sequence_with_separators(vec![p_foo, p_bar])
+        .separated_by(tokens::whitespace());
 
       let result = parser.parse_to_end("foo bar");
       assert!(result.is_ok());

@@ -235,10 +235,7 @@ fn create_jsx_spread_attr_works() {
 
 #[test]
 fn create_jsx_attr_works() {
-  let attr = create_jsx_attr(
-    "className",
-    JSXAttrValue::Str("test".into()),
-  );
+  let attr = create_jsx_attr("className", JSXAttrValue::Str("test".into()));
   assert!(matches!(attr.name, JSXAttrName::Ident(_)));
   assert!(attr.value.is_some());
 }

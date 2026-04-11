@@ -107,9 +107,7 @@ mod unprefixed_custom_properties_tests {
 
   #[test]
   fn accepts_multiple_properties_with_functions() {
-    let (result, _) = swc_parse_css(
-      "* { color: rgb(var(--r), 0, 0); background: var(--bg) }",
-    );
+    let (result, _) = swc_parse_css("* { color: rgb(var(--r), 0, 0); background: var(--bg) }");
     unprefixed_custom_properties_validator(&result.unwrap());
   }
 

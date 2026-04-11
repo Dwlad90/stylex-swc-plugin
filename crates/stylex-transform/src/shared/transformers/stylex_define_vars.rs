@@ -11,7 +11,6 @@ use crate::shared::structures::state_manager::StateManager;
 use crate::shared::structures::types::{FlatCompiledStyles, InjectableStylesMap};
 use crate::shared::utils::common::get_css_value;
 use crate::shared::utils::core::define_vars_utils::construct_css_variables_string;
-use stylex_utils::hash::create_hash;
 use crate::shared::utils::object::obj_map;
 use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
 use stylex_constants::constants::messages::{
@@ -19,6 +18,7 @@ use stylex_constants::constants::messages::{
 };
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_types::structures::injectable_style::InjectableStyle;
+use stylex_utils::hash::create_hash;
 
 pub(crate) fn stylex_define_vars(
   variables: &EvaluateResultValue,

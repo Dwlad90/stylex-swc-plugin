@@ -1,9 +1,7 @@
 //! Tests for StyleXError formatting, SuppressPanicStderr guard,
 //! ANSI stripping, and panic message extraction.
 
-use crate::stylex_error::{
-  SuppressPanicStderr, format_panic_message, is_panic_stderr_suppressed,
-};
+use crate::stylex_error::{SuppressPanicStderr, format_panic_message, is_panic_stderr_suppressed};
 
 /// SuppressPanicStderr RAII guard should toggle the thread-local flag.
 #[test]

@@ -42,4 +42,3 @@ pub fn unsupported_operator(op: &str) -> String {
 pub fn unsupported_expression(type_: &str) -> String {
   format!("Unsupported expression: {}\n\n", type_)
 }
-

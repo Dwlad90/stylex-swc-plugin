@@ -48,12 +48,6 @@ use crate::shared::utils::common::{
   remove_duplicates,
 };
 use crate::shared::utils::js::native_functions::{evaluate_filter, evaluate_join, evaluate_map};
-use stylex_utils::collection::{
-  get_hash_map_difference, get_hash_map_value_difference, sort_numbers_factory,
-  sum_hash_map_values,
-};
-use stylex_utils::hash::stable_hash;
-use stylex_utils::string::char_code_at;
 use stylex_ast::ast::factories::{
   create_array_expression, create_expr_or_spread, create_ident_key_value_prop,
   create_object_expression, create_object_lit, create_string_lit,
@@ -76,6 +70,11 @@ use stylex_enums::misc::{BinaryExprType, VarDeclAction};
 use stylex_enums::value_with_default::ValueWithDefault;
 use stylex_structures::named_import_source::ImportSources;
 use stylex_structures::stylex_env::EnvEntry;
+use stylex_utils::collection::{
+  get_hash_map_difference, get_hash_map_value_difference, sort_numbers_factory, sum_hash_map_values,
+};
+use stylex_utils::hash::stable_hash;
+use stylex_utils::string::char_code_at;
 use stylex_utils::swc::get_default_expr_ctx;
 
 use super::check_declaration::{DeclarationType, check_ident_declaration};
@@ -1399,23 +1398,19 @@ fn _evaluate(
                               let elems =
                                 array.elems.iter().flatten().collect::<Vec<&ExprOrSpread>>();
 
-                              let key =
-                                elems
-                                  .first()
-                                  .and_then(|e| e.expr.as_lit())
-                                  .unwrap_or_else(|| {
-                                    #[cfg(not(tarpaulin_include))]
-                                    {
-                                      stylex_panic!(
-                                        "Object key must be a static literal (identifier or string)."
-                                      )
-                                    }
-                                  });
+                              let key = elems.first().and_then(|e| e.expr.as_lit()).unwrap_or_else(
+                                || {
+                                  #[cfg(not(tarpaulin_include))]
+                                  {
+                                    stylex_panic!(
+                                      "Object key must be a static literal (identifier or string)."
+                                    )
+                                  }
+                                },
+                              );
 
-                              let value = elems
-                                .get(1)
-                                .map(|e| e.expr.clone())
-                                .unwrap_or_else(|| {
+                              let value =
+                                elems.get(1).map(|e| e.expr.clone()).unwrap_or_else(|| {
                                   #[cfg(not(tarpaulin_include))]
                                   {
                                     stylex_panic!("{}", VALUE_MUST_BE_LITERAL)

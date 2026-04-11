@@ -17,10 +17,10 @@ mod stylex_define_vars {
   use stylex_ast::ast::factories::{
     create_key_value_prop, create_nested_object_prop, create_object_expression,
   };
-  use stylex_utils::hash::create_hash;
   use stylex_enums::value_with_default::ValueWithDefault;
   use stylex_structures::stylex_state_options::StyleXStateOptions;
   use stylex_types::structures::injectable_style::InjectableStyle;
+  use stylex_utils::hash::create_hash;
 
   enum DefaultVarsFactoryValue<'a> {
     Simple(&'a str),

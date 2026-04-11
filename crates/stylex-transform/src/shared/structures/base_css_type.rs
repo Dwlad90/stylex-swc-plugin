@@ -116,7 +116,7 @@ impl From<ObjectLit> for BaseCSSType {
                       let value = match convert_lit_to_string(lit) {
                         Some(v) => v,
                         #[cfg(not(tarpaulin_include))]
-                      None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
+                        None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
                       };
 
                       obj_map.insert(key, ValueWithDefault::String(value));

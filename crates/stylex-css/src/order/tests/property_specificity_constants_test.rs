@@ -102,7 +102,10 @@ fn shorthands_get_special_chars_returns_none() {
 fn aliases_get_block_size() {
   let func = Aliases::get("blockSize").unwrap();
   let result = func(Some("100px".into())).unwrap();
-  assert_eq!(result, vec![OrderPair("height".into(), Some("100px".into()))]);
+  assert_eq!(
+    result,
+    vec![OrderPair("height".into(), Some("100px".into()))]
+  );
 }
 
 #[test]
@@ -140,50 +143,35 @@ fn aliases_get_border_horizontal_width() {
 fn aliases_get_border_horizontal_style() {
   let func = Aliases::get("borderHorizontalStyle").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("borderInlineStyle".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("borderInlineStyle".into(), None)]);
 }
 
 #[test]
 fn aliases_get_border_horizontal_color() {
   let func = Aliases::get("borderHorizontalColor").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("borderInlineColor".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("borderInlineColor".into(), None)]);
 }
 
 #[test]
 fn aliases_get_border_vertical_width() {
   let func = Aliases::get("borderVerticalWidth").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("borderBlockWidth".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("borderBlockWidth".into(), None)]);
 }
 
 #[test]
 fn aliases_get_border_vertical_style() {
   let func = Aliases::get("borderVerticalStyle").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("borderBlockStyle".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("borderBlockStyle".into(), None)]);
 }
 
 #[test]
 fn aliases_get_border_vertical_color() {
   let func = Aliases::get("borderVerticalColor").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("borderBlockColor".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("borderBlockColor".into(), None)]);
 }
 
 #[test]
@@ -200,10 +188,7 @@ fn aliases_get_border_block_start_color() {
 fn aliases_get_border_block_end_style() {
   let func = Aliases::get("borderBlockEndStyle").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("borderBottomStyle".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("borderBottomStyle".into(), None)]);
 }
 
 #[test]
@@ -220,10 +205,7 @@ fn aliases_get_border_start_color() {
 fn aliases_get_border_end_width() {
   let func = Aliases::get("borderEndWidth").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("borderInlineEndWidth".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("borderInlineEndWidth".into(), None)]);
 }
 
 #[test]
@@ -240,10 +222,7 @@ fn aliases_get_border_top_start_radius() {
 fn aliases_get_border_bottom_end_radius() {
   let func = Aliases::get("borderBottomEndRadius").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("borderEndEndRadius".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("borderEndEndRadius".into(), None)]);
 }
 
 #[test]
@@ -287,40 +266,28 @@ fn aliases_get_margin_block_end() {
 fn aliases_get_margin_start() {
   let func = Aliases::get("marginStart").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("marginInlineStart".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("marginInlineStart".into(), None)]);
 }
 
 #[test]
 fn aliases_get_margin_end() {
   let func = Aliases::get("marginEnd").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("marginInlineEnd".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("marginInlineEnd".into(), None)]);
 }
 
 #[test]
 fn aliases_get_margin_horizontal() {
   let func = Aliases::get("marginHorizontal").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("marginInline".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("marginInline".into(), None)]);
 }
 
 #[test]
 fn aliases_get_margin_vertical() {
   let func = Aliases::get("marginVertical").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("marginBlock".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("marginBlock".into(), None)]);
 }
 
 #[test]
@@ -355,40 +322,28 @@ fn aliases_get_padding_block_end() {
 fn aliases_get_padding_start() {
   let func = Aliases::get("paddingStart").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("paddingInlineStart".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("paddingInlineStart".into(), None)]);
 }
 
 #[test]
 fn aliases_get_padding_end() {
   let func = Aliases::get("paddingEnd").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("paddingInlineEnd".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("paddingInlineEnd".into(), None)]);
 }
 
 #[test]
 fn aliases_get_padding_horizontal() {
   let func = Aliases::get("paddingHorizontal").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("paddingInline".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("paddingInline".into(), None)]);
 }
 
 #[test]
 fn aliases_get_padding_vertical() {
   let func = Aliases::get("paddingVertical").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("paddingBlock".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("paddingBlock".into(), None)]);
 }
 
 #[test]
@@ -402,10 +357,7 @@ fn aliases_get_scroll_margin_block_start() {
 fn aliases_get_scroll_margin_block_end() {
   let func = Aliases::get("scrollMarginBlockEnd").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("scrollMarginBottom".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("scrollMarginBottom".into(), None)]);
 }
 
 #[test]
@@ -426,20 +378,14 @@ fn aliases_get_inset_block_end() {
 fn aliases_get_start() {
   let func = Aliases::get("start").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("insetInlineStart".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("insetInlineStart".into(), None)]);
 }
 
 #[test]
 fn aliases_get_end() {
   let func = Aliases::get("end").unwrap();
   let result = func(None).unwrap();
-  assert_eq!(
-    result,
-    vec![OrderPair("insetInlineEnd".into(), None)]
-  );
+  assert_eq!(result, vec![OrderPair("insetInlineEnd".into(), None)]);
 }
 
 // ── Deprecated aliases ──────────────────────────────────────────────
@@ -526,8 +472,16 @@ fn aliases_all_called_with_some_value() {
     ("borderTopEndRadius", "4px", "borderStartEndRadius"),
     ("borderBottomStartRadius", "4px", "borderEndStartRadius"),
     ("borderBottomEndRadius", "4px", "borderEndEndRadius"),
-    ("containIntrinsicBlockSize", "auto 300px", "containIntrinsicHeight"),
-    ("containIntrinsicInlineSize", "200px", "containIntrinsicWidth"),
+    (
+      "containIntrinsicBlockSize",
+      "auto 300px",
+      "containIntrinsicHeight",
+    ),
+    (
+      "containIntrinsicInlineSize",
+      "200px",
+      "containIntrinsicWidth",
+    ),
     ("marginBlockStart", "10px", "marginTop"),
     ("marginBlockEnd", "20px", "marginBottom"),
     ("marginStart", "5px", "marginInlineStart"),

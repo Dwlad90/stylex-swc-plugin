@@ -1,5 +1,4 @@
 use crate::utils::prelude::*;
-use stylex_structures::stylex_options::StyleXOptionsParams;
 use swc_core::{
   common::FileName,
   ecma::parser::{Syntax, TsSyntax},
@@ -269,19 +268,16 @@ test!(
     let fixture_path = cwd_path.join("tests/fixture");
     let filename = fixture_path.join("consts/constants.stylex");
 
-    StyleXTransform::new_test_force_runtime_injection_with_pass(
-      tr.comments.clone(),
-      PluginPass {
+    build_test_transform(tr.comments.clone(), move |b| {
+      b.with_pass(PluginPass {
         cwd: None,
         filename: FileName::Real(filename.clone()),
-      },
-      Some(&mut StyleXOptionsParams {
-        unstable_module_resolution: Some(StyleXOptions::get_common_js_module_resolution(Some(
-          fixture_path.to_string_lossy().to_string(),
-        ))),
-        ..StyleXOptionsParams::default()
-      }),
-    )
+      })
+      .with_runtime_injection()
+      .with_unstable_module_resolution(ModuleResolution::common_js(Some(
+        fixture_path.to_string_lossy().to_string(),
+      )))
+    })
   },
   constant_names_with_template_literal,
   r#"

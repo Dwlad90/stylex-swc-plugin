@@ -14,8 +14,6 @@ use crate::shared::utils::ast::convertors::{
   convert_expr_to_str, convert_key_value_to_str, create_string_expr,
 };
 use crate::shared::utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
-use stylex_utils::hash::create_hash;
-use stylex_utils::string::dashify;
 use crate::shared::utils::css::common::transform_value_cached;
 use crate::shared::utils::object::{
   Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_string,
@@ -33,6 +31,8 @@ use stylex_structures::order_pair::OrderPair;
 use stylex_structures::pair::Pair;
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_types::structures::injectable_style::InjectableStyle;
+use stylex_utils::hash::create_hash;
+use stylex_utils::string::dashify;
 
 pub(crate) fn stylex_keyframes(
   frames: &EvaluateResultValue,

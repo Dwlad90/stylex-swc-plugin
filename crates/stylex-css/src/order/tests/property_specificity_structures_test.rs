@@ -8,7 +8,10 @@ use crate::order::structures::property_specificity_order::PropertySpecificityOrd
 fn get_expansion_fn_for_alias_block_size() {
   let func = PropertySpecificityOrder::get_expansion_fn("blockSize").unwrap();
   let result = func(Some("100px".into())).unwrap();
-  assert_eq!(result, vec![OrderPair("height".into(), Some("100px".into()))]);
+  assert_eq!(
+    result,
+    vec![OrderPair("height".into(), Some("100px".into()))]
+  );
 }
 
 #[test]

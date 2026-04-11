@@ -62,9 +62,9 @@ fn split_value_empty_string() {
 fn split_value_required_single() {
   let (top, right, bottom, left) = split_value_required(Some("10px"));
   assert_eq!(top, "10px");
-  assert_eq!(right, "10px");   // falls back to top
-  assert_eq!(bottom, "10px");  // falls back to top
-  assert_eq!(left, "10px");    // falls back to right (which is top)
+  assert_eq!(right, "10px"); // falls back to top
+  assert_eq!(bottom, "10px"); // falls back to top
+  assert_eq!(left, "10px"); // falls back to right (which is top)
 }
 
 #[test]
@@ -72,8 +72,8 @@ fn split_value_required_two() {
   let (top, right, bottom, left) = split_value_required(Some("10px 20px"));
   assert_eq!(top, "10px");
   assert_eq!(right, "20px");
-  assert_eq!(bottom, "10px");  // falls back to top
-  assert_eq!(left, "20px");    // falls back to right
+  assert_eq!(bottom, "10px"); // falls back to top
+  assert_eq!(left, "20px"); // falls back to right
 }
 
 #[test]
@@ -82,7 +82,7 @@ fn split_value_required_three() {
   assert_eq!(top, "10px");
   assert_eq!(right, "20px");
   assert_eq!(bottom, "30px");
-  assert_eq!(left, "20px");    // falls back to right
+  assert_eq!(left, "20px"); // falls back to right
 }
 
 #[test]

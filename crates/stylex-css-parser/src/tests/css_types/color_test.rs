@@ -597,9 +597,7 @@ mod test_css_type_color {
 
   #[test]
   fn parses_rgba_comma_syntax() {
-    let color = Color::parse()
-      .parse_to_end("rgba(255, 0, 0, 0.5)")
-      .unwrap();
+    let color = Color::parse().parse_to_end("rgba(255, 0, 0, 0.5)").unwrap();
     match color {
       Color::Rgba(ref rgba) => {
         assert_eq!(rgba.r, 255);
@@ -626,9 +624,7 @@ mod test_css_type_color {
 
   #[test]
   fn parses_rgba_space_slash_syntax() {
-    let color = Color::parse()
-      .parse_to_end("rgb(255 0 0 / 0.5)")
-      .unwrap();
+    let color = Color::parse().parse_to_end("rgb(255 0 0 / 0.5)").unwrap();
     match color {
       Color::Rgba(ref rgba) => {
         assert_eq!(rgba.r, 255);
@@ -655,9 +651,7 @@ mod test_css_type_color {
 
   #[test]
   fn parses_hsl_space_syntax() {
-    let color = Color::parse()
-      .parse_to_end("hsl(180deg 50% 50%)")
-      .unwrap();
+    let color = Color::parse().parse_to_end("hsl(180deg 50% 50%)").unwrap();
     match color {
       Color::Hsl(ref hsl) => {
         assert_eq!(hsl.h.value, 180.0);
@@ -722,9 +716,7 @@ mod test_css_type_color {
 
   #[test]
   fn parses_lch_with_angle_hue() {
-    let color = Color::parse()
-      .parse_to_end("lch(50 100 270deg)")
-      .unwrap();
+    let color = Color::parse().parse_to_end("lch(50 100 270deg)").unwrap();
     match color {
       Color::Lch(ref lch) => {
         assert_eq!(lch.l, 50.0);
@@ -763,9 +755,7 @@ mod test_css_type_color {
 
   #[test]
   fn parses_oklch_numeric_hue() {
-    let color = Color::parse()
-      .parse_to_end("oklch(0.5 0.15 180)")
-      .unwrap();
+    let color = Color::parse().parse_to_end("oklch(0.5 0.15 180)").unwrap();
     match color {
       Color::Oklch(ref oklch) => {
         assert_eq!(oklch.l, 0.5);
@@ -814,9 +804,7 @@ mod test_css_type_color {
 
   #[test]
   fn parses_oklab_numeric_values() {
-    let color = Color::parse()
-      .parse_to_end("oklab(0.5 0.1 -0.1)")
-      .unwrap();
+    let color = Color::parse().parse_to_end("oklab(0.5 0.1 -0.1)").unwrap();
     match color {
       Color::Oklab(ref oklab) => {
         assert_eq!(oklab.l, 0.5);

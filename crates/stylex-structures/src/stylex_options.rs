@@ -290,4 +290,3 @@ impl From<StyleXOptionsParams> for StyleXOptions {
     }
   }
 }
-

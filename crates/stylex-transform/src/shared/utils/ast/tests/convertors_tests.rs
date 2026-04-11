@@ -941,9 +941,7 @@ mod tests {
       let decl = make_var_declarator("myNum", make_num_expr(42.0));
       fill_state_declarations(&mut state, &decl);
       // Set count so reduce doesn't underflow
-      state
-        .var_decl_count_map
-        .insert("myNum".into(), 2);
+      state.var_decl_count_map.insert("myNum".into(), 2);
 
       let ident = Ident {
         span: Default::default(),
@@ -966,9 +964,7 @@ mod tests {
 
       let decl = make_var_declarator("myStr", make_str_expr("hello"));
       fill_state_declarations(&mut state, &decl);
-      state
-        .var_decl_count_map
-        .insert("myStr".into(), 2);
+      state.var_decl_count_map.insert("myStr".into(), 2);
 
       let ident = Ident {
         span: Default::default(),
@@ -1010,8 +1006,7 @@ mod tests {
     use crate::shared::utils::ast::convertors::convert_expr_to_bool;
     use crate::shared::utils::common::fill_state_declarations;
     use swc_core::ecma::ast::{
-      ArrayLit, BindingIdent, Bool, ClassExpr, Function, Null, ObjectLit, UnaryExpr,
-      UnaryOp,
+      ArrayLit, BindingIdent, Bool, ClassExpr, Function, Null, ObjectLit, UnaryExpr, UnaryOp,
     };
 
     fn make_var_declarator(name: &str, init: Expr) -> swc_core::ecma::ast::VarDeclarator {
@@ -1285,9 +1280,7 @@ mod tests {
   mod convert_key_value_to_str_tests {
     use super::*;
     use crate::shared::utils::ast::convertors::convert_key_value_to_str;
-    use swc_core::ecma::ast::{
-      ComputedPropName, IdentName, KeyValueProp, Number, PropName,
-    };
+    use swc_core::ecma::ast::{ComputedPropName, IdentName, KeyValueProp, Number, PropName};
 
     fn make_kv(key: PropName) -> KeyValueProp {
       KeyValueProp {
@@ -1424,9 +1417,7 @@ mod tests {
 
       let decl = make_var_declarator("size", make_str_expr("16px"));
       fill_state_declarations(&mut traversal_state, &decl);
-      traversal_state
-        .var_decl_count_map
-        .insert("size".into(), 2);
+      traversal_state.var_decl_count_map.insert("size".into(), 2);
 
       let tpl = Tpl {
         span: Default::default(),
@@ -1543,10 +1534,7 @@ mod tests {
           // The expression should have been replaced with the var init
           match result_tpl.exprs[0].as_ref() {
             Expr::Lit(Lit::Str(s)) => {
-              assert_eq!(
-                s.value.as_str().expect("Expected string"),
-                "replaced"
-              )
+              assert_eq!(s.value.as_str().expect("Expected string"), "replaced")
             },
             _ => panic!("Expected string literal replacement"),
           }
@@ -1581,11 +1569,9 @@ mod tests {
 
       let result = handle_tpl_to_expression(&tpl, &mut state, &fns);
       match result {
-        Expr::Tpl(result_tpl) => {
-          match result_tpl.exprs[0].as_ref() {
-            Expr::Lit(Lit::Num(n)) => assert_eq!(n.value, 42.0),
-            _ => panic!("Expected numeric literal unchanged"),
-          }
+        Expr::Tpl(result_tpl) => match result_tpl.exprs[0].as_ref() {
+          Expr::Lit(Lit::Num(n)) => assert_eq!(n.value, 42.0),
+          _ => panic!("Expected numeric literal unchanged"),
         },
         _ => panic!("Expected Tpl expression"),
       }
@@ -1627,9 +1613,7 @@ mod tests {
 
       let decl = make_var_declarator("myNum", make_num_expr(42.0));
       fill_state_declarations(&mut traversal_state, &decl);
-      traversal_state
-        .var_decl_count_map
-        .insert("myNum".into(), 2);
+      traversal_state.var_decl_count_map.insert("myNum".into(), 2);
 
       let ident = Ident {
         span: Default::default(),

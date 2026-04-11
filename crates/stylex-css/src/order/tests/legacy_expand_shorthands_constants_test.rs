@@ -23,7 +23,10 @@ fn shorthands_get_border_color() {
   let func = Shorthands::get("borderColor").unwrap();
   let result = func(Some("red green blue yellow".into())).unwrap();
   assert_eq!(result.len(), 4);
-  assert_eq!(result[0], OrderPair("borderTopColor".into(), Some("red".into())));
+  assert_eq!(
+    result[0],
+    OrderPair("borderTopColor".into(), Some("red".into()))
+  );
 }
 
 #[test]
@@ -131,7 +134,10 @@ fn shorthands_get_start() {
   let func = Shorthands::get("start").unwrap();
   let result = func(Some("10px".into())).unwrap();
   assert_eq!(result.len(), 3);
-  assert_eq!(result[0], OrderPair("insetInlineStart".into(), Some("10px".into())));
+  assert_eq!(
+    result[0],
+    OrderPair("insetInlineStart".into(), Some("10px".into()))
+  );
 }
 
 #[test]
@@ -163,7 +169,10 @@ fn shorthands_get_gap() {
   let result = func(Some("10px 20px".into())).unwrap();
   assert_eq!(result.len(), 2);
   assert_eq!(result[0], OrderPair("rowGap".into(), Some("10px".into())));
-  assert_eq!(result[1], OrderPair("columnGap".into(), Some("20px".into())));
+  assert_eq!(
+    result[1],
+    OrderPair("columnGap".into(), Some("20px".into()))
+  );
 }
 
 #[test]
@@ -205,7 +214,10 @@ fn shorthands_get_margin_left() {
   let func = Shorthands::get("marginLeft").unwrap();
   let result = func(Some("5px".into())).unwrap();
   assert_eq!(result.len(), 3);
-  assert_eq!(result[0], OrderPair("marginLeft".into(), Some("5px".into())));
+  assert_eq!(
+    result[0],
+    OrderPair("marginLeft".into(), Some("5px".into()))
+  );
 }
 
 #[test]
@@ -227,7 +239,10 @@ fn shorthands_get_overflow() {
   let func = Shorthands::get("overflow").unwrap();
   let result = func(Some("hidden scroll".into())).unwrap();
   assert_eq!(result.len(), 2);
-  assert_eq!(result[0], OrderPair("overflowX".into(), Some("hidden".into())));
+  assert_eq!(
+    result[0],
+    OrderPair("overflowX".into(), Some("hidden".into()))
+  );
 }
 
 #[test]
@@ -235,7 +250,10 @@ fn shorthands_get_padding() {
   let func = Shorthands::get("padding").unwrap();
   let result = func(Some("10px 20px 30px 40px".into())).unwrap();
   assert_eq!(result.len(), 4);
-  assert_eq!(result[0], OrderPair("paddingTop".into(), Some("10px".into())));
+  assert_eq!(
+    result[0],
+    OrderPair("paddingTop".into(), Some("10px".into()))
+  );
 }
 
 #[test]
@@ -337,7 +355,10 @@ fn shorthands_get_list_style_quoted_type() {
 fn shorthands_get_list_style_type_and_position() {
   let func = Shorthands::get("listStyle").unwrap();
   let result = func(Some("disc inside".into())).unwrap();
-  assert_eq!(result[0], OrderPair("listStyleType".into(), Some("disc".into())));
+  assert_eq!(
+    result[0],
+    OrderPair("listStyleType".into(), Some("disc".into()))
+  );
   assert_eq!(
     result[1],
     OrderPair("listStylePosition".into(), Some("inside".into()))
@@ -439,7 +460,10 @@ fn aliases_get_inset_inline_end_delegates() {
 fn aliases_get_block_size() {
   let func = Aliases::get("blockSize").unwrap();
   let result = func(Some("200px".into())).unwrap();
-  assert_eq!(result, vec![OrderPair("height".into(), Some("200px".into()))]);
+  assert_eq!(
+    result,
+    vec![OrderPair("height".into(), Some("200px".into()))]
+  );
 }
 
 #[test]
@@ -463,11 +487,7 @@ fn aliases_get_min_max_block_inline_size() {
 
 #[test]
 fn aliases_get_border_block_delegates() {
-  for name in &[
-    "borderBlockWidth",
-    "borderBlockStyle",
-    "borderBlockColor",
-  ] {
+  for name in &["borderBlockWidth", "borderBlockStyle", "borderBlockColor"] {
     let func = Aliases::get(name).unwrap();
     let result = func(None).unwrap();
     assert_eq!(result.len(), 2);

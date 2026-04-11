@@ -37,11 +37,7 @@ fn sort_pseudos_pseudo_element_starts_new_group() {
 
 #[test]
 fn sort_pseudos_pseudo_element_followed_by_two_classes() {
-  let result = sort_pseudos(&[
-    "::after".into(),
-    ":hover".into(),
-    ":focus".into(),
-  ]);
+  let result = sort_pseudos(&["::after".into(), ":hover".into(), ":focus".into()]);
   // ::after → group1, :hover starts group2, :focus joins group2
   // group2 gets sorted
   assert_eq!(result, vec!["::after", ":focus", ":hover"]);
@@ -49,21 +45,14 @@ fn sort_pseudos_pseudo_element_followed_by_two_classes() {
 
 #[test]
 fn sort_pseudos_multiple_pseudo_elements() {
-  let result = sort_pseudos(&[
-    "::before".into(),
-    "::after".into(),
-  ]);
+  let result = sort_pseudos(&["::before".into(), "::after".into()]);
   // Each :: starts its own group (len 1 each)
   assert_eq!(result, vec!["::before", "::after"]);
 }
 
 #[test]
 fn sort_pseudos_classes_then_element() {
-  let result = sort_pseudos(&[
-    ":hover".into(),
-    ":focus".into(),
-    "::before".into(),
-  ]);
+  let result = sort_pseudos(&[":hover".into(), ":focus".into(), "::before".into()]);
   // :hover → group1, :focus joins group1, ::before starts group2
   // group1 sorted, group2 is single
   assert_eq!(result, vec![":focus", ":hover", "::before"]);

@@ -24,7 +24,10 @@ fn shorthands_get_animation_returns_ok() {
 fn shorthands_get_animation_with_value() {
   let func = Shorthands::get("animation").unwrap();
   let result = func(Some("fadeIn 1s".to_string())).unwrap();
-  assert_eq!(result[0], OrderPair("animation".into(), Some("fadeIn 1s".into())));
+  assert_eq!(
+    result[0],
+    OrderPair("animation".into(), Some("fadeIn 1s".into()))
+  );
   // All sub-properties should be None
   assert_eq!(result[1].1, None);
 }
@@ -51,7 +54,10 @@ fn shorthands_get_background_position() {
   let func = Shorthands::get("backgroundPosition").unwrap();
   let result = func(Some("center".into())).unwrap();
   assert_eq!(result.len(), 3);
-  assert_eq!(result[0], OrderPair("backgroundPosition".into(), Some("center".into())));
+  assert_eq!(
+    result[0],
+    OrderPair("backgroundPosition".into(), Some("center".into()))
+  );
 }
 
 #[test]
@@ -756,14 +762,20 @@ fn shorthands_get_special_chars_returns_none() {
 fn aliases_get_block_size() {
   let func = Aliases::get("blockSize").expect("blockSize should be registered");
   let result = func(Some("100px".into())).unwrap();
-  assert_eq!(result, vec![OrderPair("height".into(), Some("100px".into()))]);
+  assert_eq!(
+    result,
+    vec![OrderPair("height".into(), Some("100px".into()))]
+  );
 }
 
 #[test]
 fn aliases_get_inline_size() {
   let func = Aliases::get("inlineSize").unwrap();
   let result = func(Some("200px".into())).unwrap();
-  assert_eq!(result, vec![OrderPair("width".into(), Some("200px".into()))]);
+  assert_eq!(
+    result,
+    vec![OrderPair("width".into(), Some("200px".into()))]
+  );
 }
 
 #[test]
@@ -820,7 +832,10 @@ fn aliases_get_border_top_start_radius() {
   let result = func(Some("4px".into())).unwrap();
   assert_eq!(
     result,
-    vec![OrderPair("borderStartStartRadius".into(), Some("4px".into()))]
+    vec![OrderPair(
+      "borderStartStartRadius".into(),
+      Some("4px".into())
+    )]
   );
 }
 

@@ -36,30 +36,39 @@ fn import_sources_get_import_str_named() {
 fn runtime_injection_is_boolean_export() {
   assert!(RuntimeInjection::Boolean(true).is_boolean_export());
   assert!(!RuntimeInjection::Regular("x".into()).is_boolean_export());
-  assert!(!RuntimeInjection::Named(NamedImportSource {
-    r#as: "a".into(),
-    from: "b".into(),
-  }).is_boolean_export());
+  assert!(
+    !RuntimeInjection::Named(NamedImportSource {
+      r#as: "a".into(),
+      from: "b".into(),
+    })
+    .is_boolean_export()
+  );
 }
 
 #[test]
 fn runtime_injection_is_regular_export() {
   assert!(!RuntimeInjection::Boolean(true).is_regular_export());
   assert!(RuntimeInjection::Regular("x".into()).is_regular_export());
-  assert!(!RuntimeInjection::Named(NamedImportSource {
-    r#as: "a".into(),
-    from: "b".into(),
-  }).is_regular_export());
+  assert!(
+    !RuntimeInjection::Named(NamedImportSource {
+      r#as: "a".into(),
+      from: "b".into(),
+    })
+    .is_regular_export()
+  );
 }
 
 #[test]
 fn runtime_injection_is_named_export() {
   assert!(!RuntimeInjection::Boolean(true).is_named_export());
   assert!(!RuntimeInjection::Regular("x".into()).is_named_export());
-  assert!(RuntimeInjection::Named(NamedImportSource {
-    r#as: "a".into(),
-    from: "b".into(),
-  }).is_named_export());
+  assert!(
+    RuntimeInjection::Named(NamedImportSource {
+      r#as: "a".into(),
+      from: "b".into(),
+    })
+    .is_named_export()
+  );
 }
 
 #[test]
@@ -67,10 +76,14 @@ fn runtime_injection_as_boolean() {
   assert_eq!(RuntimeInjection::Boolean(true).as_boolean(), Some(&true));
   assert_eq!(RuntimeInjection::Boolean(false).as_boolean(), Some(&false));
   assert!(RuntimeInjection::Regular("x".into()).as_boolean().is_none());
-  assert!(RuntimeInjection::Named(NamedImportSource {
-    r#as: "a".into(),
-    from: "b".into(),
-  }).as_boolean().is_none());
+  assert!(
+    RuntimeInjection::Named(NamedImportSource {
+      r#as: "a".into(),
+      from: "b".into(),
+    })
+    .as_boolean()
+    .is_none()
+  );
 }
 
 #[test]
@@ -80,10 +93,14 @@ fn runtime_injection_as_regular() {
     RuntimeInjection::Regular("path".into()).as_regular(),
     Some(&"path".to_string())
   );
-  assert!(RuntimeInjection::Named(NamedImportSource {
-    r#as: "a".into(),
-    from: "b".into(),
-  }).as_regular().is_none());
+  assert!(
+    RuntimeInjection::Named(NamedImportSource {
+      r#as: "a".into(),
+      from: "b".into(),
+    })
+    .as_regular()
+    .is_none()
+  );
 }
 
 #[test]

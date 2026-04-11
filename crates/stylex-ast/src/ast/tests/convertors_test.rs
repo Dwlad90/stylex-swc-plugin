@@ -296,7 +296,10 @@ fn concat_call_to_template_literal_non_concat_returns_none() {
     callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
       span: DUMMY_SP,
       obj: Box::new(create_string_expr("base")),
-      prop: MemberProp::Ident(swc_core::ecma::ast::IdentName::new("slice".into(), DUMMY_SP)),
+      prop: MemberProp::Ident(swc_core::ecma::ast::IdentName::new(
+        "slice".into(),
+        DUMMY_SP,
+      )),
     }))),
     args: vec![],
     type_args: None,

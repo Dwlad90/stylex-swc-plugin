@@ -11,20 +11,19 @@ mod tests {
     },
   };
 
+  use crate::shared::structures::functions::FunctionMap;
   use crate::shared::structures::state_manager::StateManager;
   use crate::shared::utils::common::{
     _get_var_decl_by_ident_or_member, _md5_hash, deep_merge_props,
     downcast_style_options_to_state_manager, evaluate_bin_expr, extract_filename_from_path,
     extract_filename_with_ext_from_path, extract_path, fill_state_declarations,
     fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_expr_from_var_decl,
-    get_import_from, get_key_values_from_object, get_var_decl_by_ident,
-    increase_ident_count, increase_ident_count_by_count,
-    increase_member_ident, increase_member_ident_count, increase_member_ident_count_by_count,
-    js_object_to_json, normalize_expr, reduce_ident_count, reduce_member_expression_count,
-    reduce_member_ident_count, remove_duplicates,
+    get_import_from, get_key_values_from_object, get_var_decl_by_ident, increase_ident_count,
+    increase_ident_count_by_count, increase_member_ident, increase_member_ident_count,
+    increase_member_ident_count_by_count, js_object_to_json, normalize_expr, reduce_ident_count,
+    reduce_member_expression_count, reduce_member_ident_count, remove_duplicates,
     serialize_value_to_json_string, type_of,
   };
-  use crate::shared::structures::functions::FunctionMap;
   use stylex_enums::misc::VarDeclAction;
 
   // ──────────────────────────────────────────────
@@ -669,10 +668,7 @@ mod tests {
       let mut state = StateManager::default();
       let atom: Atom = "obj".into();
       increase_member_ident_count(&mut state, &atom);
-      assert_eq!(
-        state.member_object_ident_count_map.get(&atom),
-        Some(&1)
-      );
+      assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&1));
     }
 
     #[test]
@@ -681,10 +677,7 @@ mod tests {
       let atom: Atom = "obj".into();
       increase_member_ident_count(&mut state, &atom);
       increase_member_ident_count(&mut state, &atom);
-      assert_eq!(
-        state.member_object_ident_count_map.get(&atom),
-        Some(&2)
-      );
+      assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&2));
     }
 
     #[test]
@@ -692,10 +685,7 @@ mod tests {
       let mut state = StateManager::default();
       let atom: Atom = "member".into();
       increase_member_ident_count_by_count(&mut state, &atom, 5);
-      assert_eq!(
-        state.member_object_ident_count_map.get(&atom),
-        Some(&5)
-      );
+      assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&5));
     }
 
     #[test]
@@ -704,10 +694,7 @@ mod tests {
       let atom: Atom = "member".into();
       increase_member_ident_count_by_count(&mut state, &atom, 3);
       increase_member_ident_count_by_count(&mut state, &atom, 2);
-      assert_eq!(
-        state.member_object_ident_count_map.get(&atom),
-        Some(&5)
-      );
+      assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&5));
     }
 
     #[test]
@@ -716,10 +703,7 @@ mod tests {
       let atom: Atom = "member".into();
       increase_member_ident_count_by_count(&mut state, &atom, 3);
       reduce_member_ident_count(&mut state, &atom);
-      assert_eq!(
-        state.member_object_ident_count_map.get(&atom),
-        Some(&2)
-      );
+      assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&2));
     }
 
     #[test]
@@ -974,7 +958,9 @@ mod tests {
 
   mod remove_duplicates_extra_tests {
     use super::*;
-    use swc_core::ecma::ast::{IdentName, KeyValueProp, Prop, PropName, PropOrSpread, SpreadElement};
+    use swc_core::ecma::ast::{
+      IdentName, KeyValueProp, Prop, PropName, PropOrSpread, SpreadElement,
+    };
 
     fn make_kv_prop(key: &str, val: f64) -> PropOrSpread {
       PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
@@ -1039,10 +1025,7 @@ mod tests {
 
     #[test]
     fn mixed_shorthand_and_kv_props() {
-      let props = vec![
-        make_shorthand_prop("x"),
-        make_kv_prop("x", 5.0),
-      ];
+      let props = vec![make_shorthand_prop("x"), make_kv_prop("x", 5.0)];
       let result = remove_duplicates(props);
       // "x" appears twice but last wins
       assert_eq!(result.len(), 1);
@@ -1253,11 +1236,7 @@ mod tests {
       }
     }
 
-    fn make_renamed_import(
-      local: &str,
-      imported: &str,
-      source: &str,
-    ) -> ImportDecl {
+    fn make_renamed_import(local: &str, imported: &str, source: &str) -> ImportDecl {
       ImportDecl {
         span: DUMMY_SP,
         specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
@@ -1280,7 +1259,9 @@ mod tests {
     #[test]
     fn finds_named_import_by_local() {
       let mut state = StateManager::default();
-      state.top_imports.push(make_named_import("stylex", "@stylexjs/stylex"));
+      state
+        .top_imports
+        .push(make_named_import("stylex", "@stylexjs/stylex"));
       let ident = make_ident("stylex");
       let result = get_import_from(&state, &ident);
       assert!(result.is_some());
@@ -1297,7 +1278,9 @@ mod tests {
     #[test]
     fn finds_default_import() {
       let mut state = StateManager::default();
-      state.top_imports.push(make_default_import("stylex", "@stylexjs/stylex"));
+      state
+        .top_imports
+        .push(make_default_import("stylex", "@stylexjs/stylex"));
       let ident = make_ident("stylex");
       let result = get_import_from(&state, &ident);
       assert!(result.is_some());
@@ -1306,7 +1289,9 @@ mod tests {
     #[test]
     fn finds_namespace_import() {
       let mut state = StateManager::default();
-      state.top_imports.push(make_namespace_import("ns", "module"));
+      state
+        .top_imports
+        .push(make_namespace_import("ns", "module"));
       let ident = make_ident("ns");
       let result = get_import_from(&state, &ident);
       assert!(result.is_some());
@@ -1315,9 +1300,11 @@ mod tests {
     #[test]
     fn finds_renamed_import_by_original_name() {
       let mut state = StateManager::default();
-      state
-        .top_imports
-        .push(make_renamed_import("localName", "create", "@stylexjs/stylex"));
+      state.top_imports.push(make_renamed_import(
+        "localName",
+        "create",
+        "@stylexjs/stylex",
+      ));
       let ident = make_ident("create");
       let result = get_import_from(&state, &ident);
       assert!(result.is_some());
@@ -1326,9 +1313,11 @@ mod tests {
     #[test]
     fn finds_renamed_import_by_local_name() {
       let mut state = StateManager::default();
-      state
-        .top_imports
-        .push(make_renamed_import("localName", "create", "@stylexjs/stylex"));
+      state.top_imports.push(make_renamed_import(
+        "localName",
+        "create",
+        "@stylexjs/stylex",
+      ));
       let ident = make_ident("localName");
       let result = get_import_from(&state, &ident);
       assert!(result.is_some());
@@ -1337,7 +1326,9 @@ mod tests {
     #[test]
     fn does_not_match_wrong_ident() {
       let mut state = StateManager::default();
-      state.top_imports.push(make_named_import("stylex", "@stylexjs/stylex"));
+      state
+        .top_imports
+        .push(make_named_import("stylex", "@stylexjs/stylex"));
       let ident = make_ident("wrongName");
       let result = get_import_from(&state, &ident);
       assert!(result.is_none());
@@ -1483,10 +1474,7 @@ mod tests {
       let member = make_member_expr_with_ident_obj("obj");
       increase_member_ident(&mut state, &member);
       let atom: Atom = "obj".into();
-      assert_eq!(
-        state.member_object_ident_count_map.get(&atom),
-        Some(&1)
-      );
+      assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&1));
     }
 
     #[test]
@@ -1504,10 +1492,7 @@ mod tests {
       increase_member_ident_count_by_count(&mut state, &atom, 3);
       let member = make_member_expr_with_ident_obj("obj");
       reduce_member_expression_count(&mut state, &member);
-      assert_eq!(
-        state.member_object_ident_count_map.get(&atom),
-        Some(&2)
-      );
+      assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&2));
     }
 
     #[test]
@@ -1533,8 +1518,7 @@ mod tests {
       let decl = make_var_declarator("x", make_num_expr(10.0));
       fill_state_declarations(&mut state, &decl);
       let ident = make_ident("x");
-      let result =
-        get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::Increase);
+      let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::Increase);
       assert!(result.is_some());
       assert_eq!(state.var_decl_count_map.get(&Atom::from("x")), Some(&1));
     }
@@ -1546,8 +1530,7 @@ mod tests {
       let decl = make_var_declarator("x", make_num_expr(10.0));
       fill_state_declarations(&mut state, &decl);
       let ident = make_ident("x");
-      let result =
-        get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+      let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
       assert!(result.is_some());
       assert_eq!(state.var_decl_count_map.get(&Atom::from("x")), None);
     }
@@ -1560,8 +1543,7 @@ mod tests {
       fill_state_declarations(&mut state, &decl);
       state.var_decl_count_map.insert("x".into(), 3);
       let ident = make_ident("x");
-      let result =
-        get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::Reduce);
+      let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::Reduce);
       assert!(result.is_some());
       assert_eq!(state.var_decl_count_map.get(&Atom::from("x")), Some(&2));
     }
@@ -1571,8 +1553,7 @@ mod tests {
       let mut state = StateManager::default();
       let fns = FunctionMap::default();
       let ident = make_ident("nonexistent");
-      let result =
-        get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+      let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
       assert!(result.is_none());
     }
   }
@@ -1604,9 +1585,7 @@ mod tests {
 
     #[test]
     fn finds_decl_by_member_call_prop_ident() {
-      use swc_core::ecma::ast::{
-        Callee, CallExpr, IdentName, MemberExpr, MemberProp,
-      };
+      use swc_core::ecma::ast::{CallExpr, Callee, IdentName, MemberExpr, MemberProp};
       let mut state = StateManager::default();
       // Create: const x = obj.create()
       let call_expr = Expr::Call(CallExpr {
@@ -1637,9 +1616,7 @@ mod tests {
 
   mod get_key_values_from_object_tests {
     use super::*;
-    use swc_core::ecma::ast::{
-      IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
-    };
+    use swc_core::ecma::ast::{IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread};
 
     #[test]
     fn returns_empty_for_empty_object() {
@@ -1680,9 +1657,9 @@ mod tests {
     fn expands_shorthand_props() {
       let obj = ObjectLit {
         span: DUMMY_SP,
-        props: vec![PropOrSpread::Prop(Box::new(Prop::Shorthand(
-          make_ident("color"),
-        )))],
+        props: vec![PropOrSpread::Prop(Box::new(Prop::Shorthand(make_ident(
+          "color",
+        ))))],
       };
       let result = get_key_values_from_object(&obj);
       assert_eq!(result.len(), 1);
@@ -1714,9 +1691,7 @@ mod tests {
 
   mod get_css_value_tests {
     use super::*;
-    use swc_core::ecma::ast::{
-      IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
-    };
+    use swc_core::ecma::ast::{IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread};
 
     #[test]
     fn returns_value_directly_when_not_object() {
@@ -1814,9 +1789,7 @@ mod tests {
 
   mod deep_merge_props_str_num_key_tests {
     use super::*;
-    use swc_core::ecma::ast::{
-      IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
-    };
+    use swc_core::ecma::ast::{IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread};
 
     fn make_kv_str_key_obj_prop(key: &str, inner: Vec<PropOrSpread>) -> PropOrSpread {
       PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
@@ -2046,8 +2019,7 @@ mod tests {
     fn returns_var_decl_from_mapper_function() {
       let mut state = StateManager::default();
       let mut fns = FunctionMap::default();
-      let mapper: Rc<dyn Fn() -> Expr + 'static> =
-        Rc::new(|| make_num_expr(99.0));
+      let mapper: Rc<dyn Fn() -> Expr + 'static> = Rc::new(|| make_num_expr(99.0));
       fns.identifiers.insert(
         "myMapper".into(),
         Box::new(FunctionConfigType::Regular(FunctionConfig {
@@ -2056,8 +2028,7 @@ mod tests {
         })),
       );
       let ident = make_ident("myMapper");
-      let result =
-        get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+      let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
       assert!(result.is_some());
     }
 
@@ -2071,8 +2042,7 @@ mod tests {
         Box::new(FunctionConfigType::EnvObject(IndexMap::new())),
       );
       let ident = make_ident("envObj");
-      let result =
-        get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+      let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
       assert!(result.is_none());
     }
   }
@@ -2084,8 +2054,7 @@ mod tests {
   mod deep_merge_props_extra_edge_tests {
     use super::*;
     use swc_core::ecma::ast::{
-      GetterProp, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
-      SpreadElement,
+      GetterProp, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, SpreadElement,
     };
 
     fn make_kv_prop(key: &str, val: f64) -> PropOrSpread {
@@ -2177,9 +2146,7 @@ mod tests {
   mod get_import_by_ident_tests {
     use super::*;
     use crate::shared::utils::common::get_import_by_ident;
-    use swc_core::ecma::ast::{
-      ImportDecl, ImportNamedSpecifier, ImportSpecifier,
-    };
+    use swc_core::ecma::ast::{ImportDecl, ImportNamedSpecifier, ImportSpecifier};
 
     #[test]
     fn finds_import_by_ident() {
@@ -2406,8 +2373,7 @@ mod tests {
   mod get_css_value_panic_tests {
     use super::*;
     use swc_core::ecma::ast::{
-      GetterProp, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
-      SpreadElement,
+      GetterProp, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, SpreadElement,
     };
 
     #[test]
@@ -2576,15 +2542,15 @@ mod tests {
   }
 
   // ──────────────────────────────────────────────
-  // _resolve_node_package_path
+  // resolve_node_package_path
   // ──────────────────────────────────────────────
 
   mod resolve_node_package_path_tests {
-    use crate::shared::utils::common::_resolve_node_package_path;
+    use crate::shared::utils::common::resolve_node_package_path;
 
     #[test]
     fn returns_err_for_nonexistent_package() {
-      let result = _resolve_node_package_path("nonexistent_package_12345");
+      let result = resolve_node_package_path("nonexistent_package_12345");
       assert!(result.is_err());
       assert!(result.unwrap_err().contains("Error resolving package"));
     }

@@ -68,6 +68,7 @@ impl LengthPercentage {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for LengthPercentage {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {

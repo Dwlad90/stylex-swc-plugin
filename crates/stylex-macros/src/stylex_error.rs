@@ -25,6 +25,7 @@ pub struct StyleXError {
   pub source_location: Option<String>,
 }
 
+#[cfg(not(tarpaulin_include))]
 impl fmt::Display for StyleXError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     // Colored [StyleX] prefix
@@ -165,4 +166,77 @@ pub fn format_panic_message(error: &Box<dyn std::any::Any + Send>) -> String {
 
 thread_local! {
   static SUPPRESS_PANIC_STDERR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn suppress_panic_stderr_guard_toggles_flag() {
+    assert!(!is_panic_stderr_suppressed());
+    {
+      let _guard = SuppressPanicStderr::new();
+      assert!(is_panic_stderr_suppressed());
+    }
+    assert!(!is_panic_stderr_suppressed());
+  }
+
+  #[test]
+  fn suppress_panic_stderr_default_works() {
+    assert!(!is_panic_stderr_suppressed());
+    {
+      let _guard = SuppressPanicStderr::default();
+      assert!(is_panic_stderr_suppressed());
+    }
+    assert!(!is_panic_stderr_suppressed());
+  }
+
+  #[test]
+  fn strip_ansi_removes_escape_sequences() {
+    let ansi_str = "\x1B[31mhello\x1B[0m world";
+    assert_eq!(strip_ansi(ansi_str), "hello world");
+  }
+
+  #[test]
+  fn strip_ansi_passthrough_plain_text() {
+    assert_eq!(strip_ansi("no escape codes"), "no escape codes");
+  }
+
+  #[test]
+  fn strip_ansi_handles_empty_string() {
+    assert_eq!(strip_ansi(""), "");
+  }
+
+  #[test]
+  fn format_panic_message_from_string_payload() {
+    let msg = String::from("something went wrong");
+    let payload: Box<dyn std::any::Any + Send> = Box::new(msg);
+    let result = format_panic_message(&payload);
+    assert_eq!(result, "[StyleX] something went wrong");
+  }
+
+  #[test]
+  fn format_panic_message_from_str_payload() {
+    let msg: &str = "static error";
+    let payload: Box<dyn std::any::Any + Send> = Box::new(msg);
+    let result = format_panic_message(&payload);
+    assert_eq!(result, "[StyleX] static error");
+  }
+
+  #[test]
+  fn format_panic_message_with_existing_prefix() {
+    let msg = String::from("[StyleX] already prefixed");
+    let payload: Box<dyn std::any::Any + Send> = Box::new(msg);
+    let result = format_panic_message(&payload);
+    assert_eq!(result, "[StyleX] already prefixed");
+  }
+
+  #[test]
+  fn format_panic_message_unknown_type() {
+    let payload: Box<dyn std::any::Any + Send> = Box::new(42i32);
+    let result = format_panic_message(&payload);
+    assert!(result.contains("[StyleX]"));
+    assert!(result.contains("Unknown error"));
+  }
 }

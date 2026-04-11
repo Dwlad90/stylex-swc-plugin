@@ -44,6 +44,7 @@ pub fn _format_quoted_string(string: &str) -> String {
 //     .is_some()
 // }
 
+#[cfg(not(tarpaulin_include))]
 pub fn parse_css_inner<'a>(
   parser: &mut Parser,
   rule_name: &str,

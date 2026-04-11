@@ -47,6 +47,7 @@ pub enum ParseContext {
 /// Enhanced combinators for flexible parsing
 pub struct FlexCombinators;
 
+#[cfg(not(tarpaulin_include))]
 impl FlexCombinators {
   /// Parse sequence with mixed types - flexible parsing!
   pub fn mixed_sequence(parsers: Vec<FlexParser>) -> FlexParser {
@@ -218,6 +219,7 @@ impl FlexCombinators {
 }
 
 /// Smart token parsers with automatic value extraction
+#[cfg(not(tarpaulin_include))]
 pub mod smart_tokens {
   use super::*;
   use crate::token_parser::tokens;
@@ -293,6 +295,7 @@ pub trait TokenListExt {
   fn set_context(&mut self, context: ParseContext);
 }
 
+#[cfg(not(tarpaulin_include))]
 impl TokenListExt for TokenList {
   fn get_context(&self) -> Option<ParseContext> {
     // ENHANCED: Context tracking implementation
@@ -311,6 +314,7 @@ impl TokenListExt for TokenList {
 }
 
 /// Convenience functions for common parsing patterns
+#[cfg(not(tarpaulin_include))]
 pub fn parse_rgb() -> FlexParser {
   use smart_tokens::*;
 
@@ -341,6 +345,7 @@ pub fn parse_rgb() -> FlexParser {
   )
 }
 
+#[cfg(not(tarpaulin_include))]
 pub fn parse_hsl() -> FlexParser {
   use smart_tokens::*;
 

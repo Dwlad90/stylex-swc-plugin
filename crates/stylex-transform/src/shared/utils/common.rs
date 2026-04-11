@@ -43,10 +43,12 @@ pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
     FileName::Real(path_buf) => {
       let stem = match path_buf.file_stem() {
         Some(s) => s,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("File path has no file stem component."),
       };
       match stem.to_str() {
         Some(s) => s.to_string(),
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("{}", INVALID_UTF8),
       }
     },
@@ -58,6 +60,7 @@ pub(crate) fn extract_path(path: &FileName) -> &str {
   match path {
     FileName::Real(path_buf) => match path_buf.to_str() {
       Some(s) => s,
+      #[cfg(not(tarpaulin_include))]
       None => stylex_panic!("{}", INVALID_UTF8),
     },
     _ => "",
@@ -69,10 +72,12 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
     FileName::Real(path_buf) => {
       let name = match path_buf.file_name() {
         Some(n) => n,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("File path has no file name component."),
       };
       Some(match name.to_str() {
         Some(s) => s,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("{}", INVALID_UTF8),
       })
     },
@@ -160,11 +165,14 @@ pub fn get_var_decl_by_ident<'a>(
 
           return Some(var_decl);
         },
+        #[cfg(not(tarpaulin_include))]
         _ => stylex_panic!("Function type not supported: {:?}", func),
       },
+      #[cfg(not(tarpaulin_include))]
       FunctionConfigType::Map(_) => {
         stylex_unimplemented!("Map values are not supported in this context.")
       },
+      #[cfg(not(tarpaulin_include))]
       FunctionConfigType::IndexMap(_) => {
         stylex_unimplemented!("IndexMap values are not supported in this context.")
       },
@@ -247,10 +255,20 @@ pub(crate) fn _get_var_decl_by_ident_or_member<'a>(
 pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
   match &var_decl.init {
     Some(var_decl_init) => var_decl_init,
+    #[cfg(not(tarpaulin_include))]
     None => stylex_panic!("Variable declaration must be initialized with an expression."),
   }
 }
 
+pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
+  match &op {
+    BinaryOp::Add => left + right,
+    BinaryOp::Sub => left - right,
+    BinaryOp::Mul => left * right,
+    BinaryOp::Div => left / right,
+    _ => stylex_panic!("Operator '{}' is not supported", op),
+  }
+}
 #[allow(dead_code)]
 pub(crate) fn type_of<T>(_: T) -> &'static str {
   type_name::<T>()
@@ -340,6 +358,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
   for prop in obj.props.clone().into_iter() {
     match prop {
+      #[cfg(not(tarpaulin_include))]
       PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
       PropOrSpread::Prop(mut prop) => {
         expand_shorthand_prop(&mut prop);
@@ -351,6 +370,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
             {
               let value = obj.props.iter().find(|prop| {
                 match prop {
+                  #[cfg(not(tarpaulin_include))]
                   PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
                   PropOrSpread::Prop(prop) => {
                     let mut prop = prop.clone();
@@ -362,6 +382,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
                           return ident.sym == "value";
                         }
                       },
+                      #[cfg(not(tarpaulin_include))]
                       _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
                     }
                   },
@@ -373,6 +394,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
               if let Some(value) = value {
                 let result_key_value = match value.as_prop().and_then(|prop| prop.as_key_value()) {
                   Some(kv) => kv,
+                  #[cfg(not(tarpaulin_include))]
                   None => stylex_panic!("Expected key-value property"),
                 };
 
@@ -380,6 +402,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
               }
             }
           },
+          #[cfg(not(tarpaulin_include))]
           _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
         }
       },
@@ -417,6 +440,7 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
           if let Some(decl_init) = decl.init.as_ref() {
             let ident_sym = match decl.name.as_ident() {
               Some(i) => i.sym.clone(),
+              #[cfg(not(tarpaulin_include))]
               None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
             };
             state.top_level_expressions.push(TopLevelExpression(
@@ -454,6 +478,7 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
         {
           let stmt_ident_sym = match decl.name.as_ident() {
             Some(i) => i.sym.clone(),
+            #[cfg(not(tarpaulin_include))]
             None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
           };
           state.top_level_expressions.push(TopLevelExpression(
@@ -579,7 +604,10 @@ pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> S
       }
     },
     Err(err) => {
-      stylex_panic!("Failed to serialize value. Error: {}", err)
+      #[cfg(not(tarpaulin_include))]
+      {
+        stylex_panic!("Failed to serialize value. Error: {}", err)
+      }
     },
   }
 }

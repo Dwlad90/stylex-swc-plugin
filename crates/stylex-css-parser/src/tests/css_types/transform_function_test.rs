@@ -418,4 +418,141 @@ mod test_css_type_transform_function {
       );
     }
   }
+
+  #[cfg(test)]
+  mod test_matrix3d_parse_to_string {
+    use super::*;
+
+    #[test]
+    fn identity_matrix3d() {
+      assert_eq!(
+        TransformFunction::parse()
+          .parse_to_end("matrix3d(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)")
+          .unwrap()
+          .to_string(),
+        "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)"
+      );
+    }
+  }
+
+  #[cfg(test)]
+  mod test_translate3d_parse_to_string {
+    use super::*;
+
+    #[test]
+    #[ignore] // Translate3d parser does not yet handle separators between arguments
+    fn translate3d_with_px_values() {
+      assert_eq!(
+        TransformFunction::parse()
+          .parse_to_end("translate3d(10px, 20px, 30px)")
+          .unwrap()
+          .to_string(),
+        "translate3d(10px, 20px, 30px)"
+      );
+    }
+  }
+
+  #[cfg(test)]
+  mod test_rotate3d_parse_to_string {
+    use super::*;
+
+    #[test]
+    fn rotate3d_x_axis() {
+      // rotate3d(1, 0, 0, ...) is optimized to rotateX(...)
+      assert_eq!(
+        TransformFunction::parse()
+          .parse_to_end("rotate3d(1, 0, 0, 45deg)")
+          .unwrap()
+          .to_string(),
+        "rotateX(45deg)"
+      );
+    }
+  }
+
+  #[cfg(test)]
+  mod test_scale3d_parse_to_string {
+    use super::*;
+
+    #[test]
+    fn scale3d_values() {
+      assert_eq!(
+        TransformFunction::parse()
+          .parse_to_end("scale3d(1, 2, 3)")
+          .unwrap()
+          .to_string(),
+        "scale3d(1, 2, 3)"
+      );
+    }
+  }
+
+  #[cfg(test)]
+  mod test_perspective_parse_to_string {
+    use super::*;
+
+    #[test]
+    fn perspective_100px() {
+      assert_eq!(
+        TransformFunction::parse()
+          .parse_to_end("perspective(100px)")
+          .unwrap()
+          .to_string(),
+        "perspective(100px)"
+      );
+    }
+  }
+
+  #[cfg(test)]
+  mod test_skew_parse_to_string {
+    use super::*;
+
+    #[test]
+    fn skew_single_angle() {
+      assert_eq!(
+        TransformFunction::parse()
+          .parse_to_end("skew(30deg)")
+          .unwrap()
+          .to_string(),
+        "skew(30deg)"
+      );
+    }
+
+    #[test]
+    #[ignore] // Skew parser does not yet handle second angle argument
+    fn skew_two_angles() {
+      assert_eq!(
+        TransformFunction::parse()
+          .parse_to_end("skew(30deg, 20deg)")
+          .unwrap()
+          .to_string(),
+        "skew(30deg, 20deg)"
+      );
+    }
+  }
+
+  #[cfg(test)]
+  mod test_skew_axis_parse_to_string {
+    use super::*;
+
+    #[test]
+    fn skew_x() {
+      assert_eq!(
+        TransformFunction::parse()
+          .parse_to_end("skewX(30deg)")
+          .unwrap()
+          .to_string(),
+        "skewX(30deg)"
+      );
+    }
+
+    #[test]
+    fn skew_y() {
+      assert_eq!(
+        TransformFunction::parse()
+          .parse_to_end("skewY(20deg)")
+          .unwrap()
+          .to_string(),
+        "skewY(20deg)"
+      );
+    }
+  }
 }

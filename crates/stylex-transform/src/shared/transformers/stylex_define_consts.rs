@@ -21,7 +21,10 @@ pub(crate) fn stylex_define_consts(
   state: &mut StateManager,
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
   let Some(constants) = constants.as_expr().and_then(|expr| expr.as_object()) else {
-    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+    #[cfg(not(tarpaulin_include))]
+    {
+      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+    }
   };
 
   let class_name_prefix = state.options.class_name_prefix.clone();
@@ -29,6 +32,7 @@ pub(crate) fn stylex_define_consts(
   let enable_debug_class_names = state.options.enable_debug_class_names;
   let export_id = match state.export_id.clone() {
     Some(id) => id,
+    #[cfg(not(tarpaulin_include))]
     None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
   };
 
@@ -37,6 +41,7 @@ pub(crate) fn stylex_define_consts(
     state,
     |item, _| -> Rc<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
+        #[cfg(not(tarpaulin_include))]
         FlatCompiledStylesValue::InjectableStyle(_) => {
           stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
         },
@@ -46,6 +51,7 @@ pub(crate) fn stylex_define_consts(
 
           FlatCompiledStylesValue::String(serialized_value)
         },
+        #[cfg(not(tarpaulin_include))]
         _ => stylex_unimplemented!(
           "FlatCompiledStylesValue variant not supported in stylex_define_consts"
         ),

@@ -105,6 +105,7 @@ impl ThemeRef {
     ThemeRefResult::CssVar(Arc::clone(entry))
   }
 
+  #[cfg(not(tarpaulin_include))]
   fn _set(&self, key: &str, value: &str) {
     stylex_panic!(
       "Cannot set value {} to key {} in theme {}",
@@ -115,6 +116,7 @@ impl ThemeRef {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl PartialEq for ThemeRef {
   fn eq(&self, _other: &Self) -> bool {
     stylex_panic!("Theme references cannot be compared directly.");

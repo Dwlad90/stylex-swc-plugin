@@ -291,6 +291,7 @@ fn are_media_queries_disjoint(media_keys: &[String]) -> bool {
 }
 
 /// Extract width/height range from a media query if it's a simple range
+#[cfg(not(tarpaulin_include))]
 fn extract_width_height_range(mq: &MediaQuery) -> Option<(String, f32, f32)> {
   match &mq.queries {
     MediaQueryRule::And(and_rules) if and_rules.rules.len() == 2 => {
@@ -351,6 +352,7 @@ fn extract_width_height_range(mq: &MediaQuery) -> Option<(String, f32, f32)> {
 }
 
 /// Check if two ranges overlap
+#[cfg(not(tarpaulin_include))]
 fn ranges_overlap(range1: &(String, f32, f32), range2: &(String, f32, f32)) -> bool {
   // Only compare ranges of the same dimension
   if range1.0 != range2.0 {

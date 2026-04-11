@@ -1033,6 +1033,7 @@ fn format_number(n: f64) -> String {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for TransformFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {

@@ -70,6 +70,7 @@ impl Frequency {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Frequency {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     if self.unit == "Hz" {

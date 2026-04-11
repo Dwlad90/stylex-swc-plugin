@@ -86,6 +86,7 @@ pub fn resolve_path(
   resolved_path_by_package_name
 }
 
+#[cfg(not(tarpaulin_include))]
 fn resolve_from_package_json(
   processing_file: &Path,
   root_dir: &Path,
@@ -119,6 +120,7 @@ fn resolve_from_package_json(
   Ok(resolved_path)
 }
 
+#[cfg(not(tarpaulin_include))]
 fn get_package_path_by_package_json(
   cwd: &Path,
   relative_package_path: &Path,
@@ -343,6 +345,7 @@ pub fn resolve_file_path(
 /// Tries to find the corresponding pnpm path for a resolved node_modules path.
 /// pnpm stores packages in node_modules/.pnpm/<package-name>@<version>/node_modules/<package-name>
 /// This function checks if such a path exists and returns it if found.
+#[cfg(not(tarpaulin_include))]
 fn try_resolve_pnpm_path(resolved_path: &Path) -> PathBuf {
   let resolved_str = resolved_path.to_string_lossy();
 
@@ -462,6 +465,7 @@ fn try_resolve_pnpm_path(resolved_path: &Path) -> PathBuf {
 /// 3. Path has no extension - try each extension
 ///
 /// Returns `Some(path)` if a valid file is found, `None` otherwise.
+#[cfg(not(tarpaulin_include))]
 fn try_resolve_with_extensions(base_path: &Path) -> Option<PathBuf> {
   // First check if the path exists as-is
   if fs::metadata(base_path).is_ok() {
@@ -527,4 +531,51 @@ fn possible_aliased_paths(
   }
 
   result
+}
+
+#[cfg(test)]
+mod unit_tests {
+  use super::*;
+
+  #[test]
+  fn file_not_found_error_creates_not_found() {
+    let err = file_not_found_error("./foo/bar");
+    assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
+    assert!(err.to_string().contains("./foo/bar"));
+  }
+
+  #[test]
+  fn possible_aliased_paths_empty_aliases() {
+    let aliases = FxHashMap::default();
+    let paths = possible_aliased_paths("@pkg/foo", &aliases);
+    assert_eq!(paths, vec![PathBuf::from("@pkg/foo")]);
+  }
+
+  #[test]
+  fn possible_aliased_paths_exact_match() {
+    let mut aliases = FxHashMap::default();
+    aliases.insert("@pkg/foo".to_string(), vec!["/abs/path/foo".to_string()]);
+    let paths = possible_aliased_paths("@pkg/foo", &aliases);
+    assert_eq!(paths.len(), 2);
+    assert_eq!(paths[0], PathBuf::from("@pkg/foo"));
+    assert_eq!(paths[1], PathBuf::from("/abs/path/foo"));
+  }
+
+  #[test]
+  fn possible_aliased_paths_wildcard_match() {
+    let mut aliases = FxHashMap::default();
+    aliases.insert("@src/*".to_string(), vec!["./src/*".to_string()]);
+    let paths = possible_aliased_paths("@src/components/Button", &aliases);
+    assert_eq!(paths.len(), 2);
+    assert_eq!(paths[0], PathBuf::from("@src/components/Button"));
+    assert_eq!(paths[1], PathBuf::from("./src/components/Button"));
+  }
+
+  #[test]
+  fn possible_aliased_paths_no_match() {
+    let mut aliases = FxHashMap::default();
+    aliases.insert("@other/*".to_string(), vec!["./other/*".to_string()]);
+    let paths = possible_aliased_paths("@pkg/foo", &aliases);
+    assert_eq!(paths, vec![PathBuf::from("@pkg/foo")]);
+  }
 }

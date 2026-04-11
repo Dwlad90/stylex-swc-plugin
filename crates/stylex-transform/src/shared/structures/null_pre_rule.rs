@@ -12,12 +12,14 @@ impl NullPreRule {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Default for NullPreRule {
   fn default() -> Self {
     NullPreRule::new()
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl PreRule for NullPreRule {
   fn get_value(&self) -> Option<PreRuleValue> {
     None

@@ -32,6 +32,7 @@ pub(crate) fn stylex_create_set(
 
   for (namespace_name, namespace) in match namespaces.as_map() {
     Some(map) => map,
+    #[cfg(not(tarpaulin_include))]
     None => stylex_panic!("{}", VALUES_MUST_BE_OBJECT),
   } {
     validate_namespace(namespace, &[], traversal_state);
@@ -117,6 +118,7 @@ pub(crate) fn stylex_create_set(
     let resolved_namespace_name =
       match convert_expr_to_str(namespace_name, traversal_state, functions) {
         Some(s) => s,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
       };
 

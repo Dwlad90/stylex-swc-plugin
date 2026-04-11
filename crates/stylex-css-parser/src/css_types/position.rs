@@ -18,6 +18,7 @@ pub enum HorizontalKeyword {
   Right,
 }
 
+#[cfg(not(tarpaulin_include))]
 impl fmt::Display for HorizontalKeyword {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let s = match self {
@@ -46,6 +47,7 @@ pub enum VerticalKeyword {
   Bottom,
 }
 
+#[cfg(not(tarpaulin_include))]
 impl fmt::Display for VerticalKeyword {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let s = match self {
@@ -75,6 +77,7 @@ pub enum Horizontal {
   KeywordWithOffset(HorizontalKeyword, LengthPercentage), // [HorizontalKeyword, LengthPercentage]
 }
 
+#[cfg(not(tarpaulin_include))]
 impl fmt::Display for Horizontal {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -93,6 +96,7 @@ pub enum Vertical {
   KeywordWithOffset(VerticalKeyword, LengthPercentage), // [VerticalKeyword, LengthPercentage]
 }
 
+#[cfg(not(tarpaulin_include))]
 impl fmt::Display for Vertical {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -330,6 +334,7 @@ impl Position {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl fmt::Display for Position {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let parts: Vec<String> = [

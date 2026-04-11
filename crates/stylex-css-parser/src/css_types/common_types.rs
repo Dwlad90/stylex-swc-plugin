@@ -22,6 +22,7 @@ pub enum CssWideKeyword {
   Revert,
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for CssWideKeyword {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -150,6 +151,7 @@ impl CssVariable {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for CssVariable {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "var({})", self.name)
@@ -184,6 +186,7 @@ impl Percentage {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Percentage {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}%", self.value)
@@ -216,6 +219,7 @@ impl Number {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Number {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.value)
@@ -229,6 +233,7 @@ pub enum NumberOrPercentage {
   Percentage(Percentage),
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for NumberOrPercentage {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -307,5 +312,82 @@ mod tests {
 
     assert_eq!(num.to_string(), "42");
     assert_eq!(pct.to_string(), "50%");
+  }
+
+  #[test]
+  fn test_css_wide_keyword_parse_inherit() {
+    let result = CssWideKeyword::parser().parse_to_end("inherit").unwrap();
+    assert_eq!(result, CssWideKeyword::Inherit);
+  }
+
+  #[test]
+  fn test_css_wide_keyword_parse_initial() {
+    let result = CssWideKeyword::parser().parse_to_end("initial").unwrap();
+    assert_eq!(result, CssWideKeyword::Initial);
+  }
+
+  #[test]
+  fn test_css_wide_keyword_parse_unset() {
+    let result = CssWideKeyword::parser().parse_to_end("unset").unwrap();
+    assert_eq!(result, CssWideKeyword::Unset);
+  }
+
+  #[test]
+  fn test_css_wide_keyword_parse_revert() {
+    let result = CssWideKeyword::parser().parse_to_end("revert").unwrap();
+    assert_eq!(result, CssWideKeyword::Revert);
+  }
+
+  #[test]
+  fn test_css_wide_keyword_parse_invalid() {
+    assert!(CssWideKeyword::parser().parse_to_end("invalid").is_err());
+  }
+
+  #[test]
+  fn test_inherit_parser() {
+    let result = CssWideKeyword::inherit_parser().parse_to_end("inherit").unwrap();
+    assert_eq!(result, CssWideKeyword::Inherit);
+    assert!(CssWideKeyword::inherit_parser().parse_to_end("initial").is_err());
+  }
+
+  #[test]
+  fn test_auto_parser_succeeds() {
+    let result = auto_parser().parse_to_end("auto").unwrap();
+    assert_eq!(result, "auto");
+  }
+
+  #[test]
+  fn test_auto_parser_rejects_other() {
+    assert!(auto_parser().parse_to_end("none").is_err());
+  }
+
+  #[test]
+  fn test_number_parser() {
+    let result = Number::parser().parse_to_end("42").unwrap();
+    assert_eq!(result.value, 42.0);
+  }
+
+  #[test]
+  fn test_percentage_parser() {
+    let result = Percentage::parser().parse_to_end("50%").unwrap();
+    assert_eq!(result.value, 50.0);
+  }
+
+  #[test]
+  fn test_number_or_percentage_parser_number() {
+    let result = number_or_percentage_parser().parse_to_end("42").unwrap();
+    assert!(matches!(result, NumberOrPercentage::Number(_)));
+  }
+
+  #[test]
+  fn test_number_or_percentage_parser_percentage() {
+    let result = number_or_percentage_parser().parse_to_end("50%").unwrap();
+    assert!(matches!(result, NumberOrPercentage::Percentage(_)));
+  }
+
+  #[test]
+  fn test_css_variable_parser() {
+    let result = CssVariable::parser().parse_to_end("var(--main-color)").unwrap();
+    assert_eq!(result.name, "--main-color");
   }
 }

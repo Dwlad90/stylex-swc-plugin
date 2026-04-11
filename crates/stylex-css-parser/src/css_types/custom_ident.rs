@@ -74,6 +74,7 @@ impl CustomIdentifier {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for CustomIdentifier {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.value)

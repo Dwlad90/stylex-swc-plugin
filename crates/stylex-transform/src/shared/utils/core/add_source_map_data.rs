@@ -62,6 +62,7 @@ pub(crate) fn add_source_map_data(
               }
             }
           },
+          #[cfg(not(tarpaulin_include))]
           _ => stylex_panic!("{}", EXPECTED_OBJECT_EXPRESSION),
         };
         let mut inner_map = IndexMap::new();
@@ -159,6 +160,7 @@ pub(crate) fn add_source_map_data(
           },
         };
       },
+      #[cfg(not(tarpaulin_include))]
       _ => {
         stylex_panic!("{}", illegal_argument_length("add_source_map_data", 1));
       },
@@ -224,6 +226,7 @@ fn create_short_filename(
 
   let cwd_str = match cwd.to_str() {
     Some(s) => s,
+    #[cfg(not(tarpaulin_include))]
     None => stylex_panic!("{}", INVALID_UTF8),
   };
   let cwd_package = StateManager::get_package_name_and_path(cwd_str, package_json_seen);

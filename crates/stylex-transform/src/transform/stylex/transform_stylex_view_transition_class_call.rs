@@ -43,10 +43,12 @@ where
 
       let call = match var_decl.init.as_ref().and_then(|decl| decl.as_call()) {
         Some(call) => call,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("{}", expected_call_expression("viewTransitionClass")),
       };
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
+        #[cfg(not(tarpaulin_include))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -133,6 +135,7 @@ where
           );
           value
         },
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!(
           "{}",
           build_code_frame_error(

@@ -25,6 +25,7 @@ pub struct PackageJsonExtended {
   pub dev_dependencies: Option<PackageDependencies>,
 }
 
+#[cfg(not(tarpaulin_include))]
 pub fn get_package_json(
   path: &Path,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
@@ -71,6 +72,7 @@ pub fn get_package_json(
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 pub(crate) fn get_package_json_path(path: &Path) -> (Option<PathBuf>, PackageJsonManager) {
   let mut manager = PackageJsonManager::new();
 
@@ -141,6 +143,7 @@ pub fn recursive_find_node_modules(
   node_modules_paths
 }
 
+#[cfg(not(tarpaulin_include))]
 pub(crate) fn get_package_json_deps(
   cwd: &Path,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,

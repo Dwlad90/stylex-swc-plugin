@@ -41,6 +41,7 @@ pub(crate) fn evaluate_map(
 
           Some(create_array_expression(elems))
         },
+        #[cfg(not(tarpaulin_include))]
         _ => stylex_unimplemented!("Unhandled EvaluateResultValue in map callback"),
       }
     })
@@ -67,6 +68,7 @@ pub(crate) fn evaluate_join(
 
   let join_arg = match convert_expr_to_str(join_arg.as_expr()?, state, functions) {
     Some(s) => s,
+    #[cfg(not(tarpaulin_include))]
     None => stylex_panic!("The join() separator argument must be a string value."),
   };
 
@@ -75,10 +77,12 @@ pub(crate) fn evaluate_join(
     .map(|arg_ref| {
       let arg_expr = match arg_ref.as_ref().and_then(|arg| arg.as_expr()) {
         Some(expr) => expr,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("Array element must evaluate to a string for join()."),
       };
       match convert_expr_to_str(arg_expr, state, functions) {
         Some(s) => s,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("Array element must evaluate to a string for join()."),
       }
     })
@@ -121,6 +125,7 @@ pub(crate) fn evaluate_filter(
 
           Some(create_array_expression(elems))
         },
+        #[cfg(not(tarpaulin_include))]
         _ => stylex_unimplemented!("Unhandled EvaluateResultValue in filter callback"),
       }
     })
@@ -152,10 +157,18 @@ pub(crate) fn evaluate_filter_cb(
   let result = evaluate_map_cb(cb, cb_arg);
 
   let Some(lit) = result.as_lit() else {
-    stylex_panic!("Expr is not a literal");
+    #[cfg(not(tarpaulin_include))]
+    {
+      stylex_panic!("Expr is not a literal");
+    }
   };
 
-  if convert_lit_to_number(lit).unwrap_or_else(|error| stylex_panic!("{}", error)) == 0.0 {
+  if convert_lit_to_number(lit).unwrap_or_else(|error| {
+    #[cfg(not(tarpaulin_include))]
+    {
+      stylex_panic!("{}", error)
+    }
+  }) == 0.0 {
     None
   } else {
     Some(item.clone())

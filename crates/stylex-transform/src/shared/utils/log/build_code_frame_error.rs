@@ -220,6 +220,7 @@ fn get_memoized_frame_source_code(
   state.set_seen_module_source_code(
     match program.as_module() {
       Some(module) => module,
+      #[cfg(not(tarpaulin_include))]
       None => stylex_panic!("Expected a module program for source code caching."),
     },
     Some(source_code),

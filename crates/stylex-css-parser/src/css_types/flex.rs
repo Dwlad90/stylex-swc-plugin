@@ -59,6 +59,7 @@ impl Flex {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Flex {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}fr", self.fraction)

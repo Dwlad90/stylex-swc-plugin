@@ -53,6 +53,7 @@ impl AnglePercentage {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for AnglePercentage {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {

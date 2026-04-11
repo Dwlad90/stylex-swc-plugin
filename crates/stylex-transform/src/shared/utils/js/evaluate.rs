@@ -112,13 +112,19 @@ fn evaluate_result_vec_to_array_expr(items: &[Option<EvaluateResultValue>]) -> E
             .map(|vec| evaluate_result_vec_to_array_expr(vec))
             .or_else(|| entry.as_expr().cloned())
         })
-        .unwrap_or_else(|| stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE));
+        .unwrap_or_else(|| {
+          #[cfg(not(tarpaulin_include))]
+          {
+            stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE)
+          }
+        });
 
       let expr = match expr {
         Expr::Array(array) => Expr::Array(array),
         Expr::Object(obj) => Expr::Object(obj),
         Expr::Lit(lit) => Expr::Lit(lit),
         Expr::Ident(ident) => Expr::Ident(ident),
+        #[cfg(not(tarpaulin_include))]
         _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
       };
 
@@ -173,6 +179,7 @@ pub(crate) fn evaluate_obj_key(
       if computed_result.confident {
         match computed_result.value {
           Some(EvaluateResultValue::Expr(ref value)) => value.clone(),
+          #[cfg(not(tarpaulin_include))]
           _ => stylex_panic!("Expected an expression value from the evaluation result."),
         }
       } else {
@@ -308,7 +315,12 @@ fn _evaluate(
                       let expr = arg
                         .as_ref()
                         .and_then(|arg| arg.as_expr())
-                        .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION));
+                        .unwrap_or_else(|| {
+                          #[cfg(not(tarpaulin_include))]
+                          {
+                            stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION)
+                          }
+                        });
 
                       let cl = |arg: Expr| move || arg.clone();
 
@@ -347,6 +359,7 @@ fn _evaluate(
                     Some(res) => match res {
                       EvaluateResultValue::Expr(expr) => expr.clone(),
                       EvaluateResultValue::Vec(items) => evaluate_result_vec_to_array_expr(&items),
+                      #[cfg(not(tarpaulin_include))]
                       _ => stylex_unimplemented!(
                         "The evaluation result must resolve to a static expression."
                       ),
@@ -395,6 +408,7 @@ fn _evaluate(
           FunctionConfigType::Map(func_map) => {
             return Some(EvaluateResultValue::FunctionConfigMap(func_map.clone()));
           },
+          #[cfg(not(tarpaulin_include))]
           FunctionConfigType::IndexMap(_func_map) => {
             stylex_unimplemented!("IndexMap values are not supported in this context.");
           },
@@ -421,6 +435,7 @@ fn _evaluate(
     Expr::Seq(sec) => {
       let expr = match sec.exprs.last() {
         Some(e) => e,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("Sequence expression must contain at least one expression."),
       };
 
@@ -458,6 +473,7 @@ fn _evaluate(
 
       let test_result = match match test_result {
         Some(v) => v,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!(
           "The test condition of a conditional expression must be a static expression."
         ),
@@ -531,6 +547,7 @@ fn _evaluate(
               Expr::Array(ArrayLit { elems, .. }) => {
                 let eval_res = match property {
                   Some(p) => p,
+                  #[cfg(not(tarpaulin_include))]
                   None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
                 };
 
@@ -557,6 +574,7 @@ fn _evaluate(
               Expr::Object(ObjectLit { props, .. }) => {
                 let eval_res = match property {
                   Some(p) => p,
+                  #[cfg(not(tarpaulin_include))]
                   None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
                 };
 
@@ -646,6 +664,7 @@ fn _evaluate(
                   return Some(EvaluateResultValue::Expr(
                     *match prop.as_key_value() {
                       Some(kv) => kv,
+                      #[cfg(not(tarpaulin_include))]
                       None => stylex_panic!("{}", KEY_VALUE_EXPECTED),
                     }
                     .value
@@ -730,6 +749,7 @@ fn _evaluate(
                     Expr::Ident(Ident { sym, .. }) => sym.to_string(),
                     Expr::Lit(lit) => match convert_lit_to_string(&lit) {
                       Some(s) => s,
+                      #[cfg(not(tarpaulin_include))]
                       None => stylex_panic!("Property key must be a string value."),
                     },
                     _ => stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED),
@@ -754,6 +774,7 @@ fn _evaluate(
               return Some(EvaluateResultValue::Expr(create_string_expr(
                 match value.as_css_var() {
                   Some(css_var) => css_var,
+                  #[cfg(not(tarpaulin_include))]
                   None => stylex_panic!("{}", EXPECTED_CSS_VAR),
                 },
               )));
@@ -821,6 +842,7 @@ fn _evaluate(
 
       let arg = match match arg {
         Some(v) => v,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("The operand of a unary expression must be a static expression."),
       } {
         EvaluateResultValue::Expr(expr) => expr,
@@ -1053,6 +1075,7 @@ fn _evaluate(
                   props.push(create_ident_key_value_prop(
                     &match key {
                       Some(k) => k,
+                      #[cfg(not(tarpaulin_include))]
                       None => stylex_panic!("Property key must be present in the style object."),
                     },
                     value,
@@ -1106,6 +1129,7 @@ fn _evaluate(
           if state.functions.identifiers.contains_key(&ident_id.0) {
             match match state.functions.identifiers.get(&ident_id.0) {
               Some(v) => v,
+              #[cfg(not(tarpaulin_include))]
               None => stylex_panic!(
                 "Could not resolve the function identifier. Ensure the function is defined and in scope."
               ),
@@ -1118,6 +1142,7 @@ fn _evaluate(
                 "Map-type function configurations are not yet supported in this context."
               ),
               FunctionConfigType::Regular(fc) => func = Some(Box::new(fc.clone())),
+              #[cfg(not(tarpaulin_include))]
               FunctionConfigType::IndexMap(_) => {
                 stylex_unimplemented!("IndexMap values are not supported in this context.")
               }
@@ -1152,6 +1177,7 @@ fn _evaluate(
           if object.is_ident() {
             let obj_ident = match object.as_ident() {
               Some(ident) => ident,
+              #[cfg(not(tarpaulin_include))]
               None => {
                 stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT)
               },
@@ -1169,7 +1195,10 @@ fn _evaluate(
                 match callee_name {
                   "Math" => {
                     let first_arg = call.args.first().unwrap_or_else(|| {
-                      stylex_panic!("Math.{} requires an argument", method_name)
+                      #[cfg(not(tarpaulin_include))]
+                      {
+                        stylex_panic!("Math.{} requires an argument", method_name)
+                      }
                     });
 
                     if first_arg.spread.is_some() {
@@ -1185,6 +1214,7 @@ fn _evaluate(
 
                         let second_arg = match call.args.get(1) {
                           Some(arg) => arg,
+                          #[cfg(not(tarpaulin_include))]
                           None => stylex_panic!("Math.pow() requires a second numeric argument."),
                         };
 
@@ -1217,6 +1247,7 @@ fn _evaluate(
                               "round" => MathJS::Round,
                               "ceil" => MathJS::Ceil,
                               "floor" => MathJS::Floor,
+                              #[cfg(not(tarpaulin_include))]
                               _ => stylex_unreachable!("Invalid method: {}", method_name),
                             },
                           ))),
@@ -1230,7 +1261,12 @@ fn _evaluate(
                           context = Some(vec![Some(EvaluateResultValue::Expr(
                             cached_first_arg
                               .as_expr()
-                              .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION))
+                              .unwrap_or_else(|| {
+                                #[cfg(not(tarpaulin_include))]
+                                {
+                                  stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION)
+                                }
+                              })
                               .clone(),
                           ))]);
                         }
@@ -1241,6 +1277,7 @@ fn _evaluate(
                             match method_name {
                               "min" => MathJS::Min,
                               "max" => MathJS::Max,
+                              #[cfg(not(tarpaulin_include))]
                               _ => stylex_unreachable!("Invalid method: {}", method_name),
                             },
                           ))),
@@ -1282,11 +1319,17 @@ fn _evaluate(
                           context = Some(vec![Some(EvaluateResultValue::Expr(
                             cached_first_arg
                               .as_expr()
-                              .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION))
+                              .unwrap_or_else(|| {
+                                #[cfg(not(tarpaulin_include))]
+                                {
+                                  stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION)
+                                }
+                              })
                               .clone(),
                           ))]);
                         }
                       },
+                      #[cfg(not(tarpaulin_include))]
                       _ => {
                         stylex_panic!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name)
                       },
@@ -1296,7 +1339,10 @@ fn _evaluate(
                     let args = &call.args;
 
                     let arg = args.first().unwrap_or_else(|| {
-                      stylex_panic!("Object.{} requires an argument", method_name)
+                      #[cfg(not(tarpaulin_include))]
+                      {
+                        stylex_panic!("Object.{} requires an argument", method_name)
+                      }
                     });
 
                     if arg.spread.is_some() {
@@ -1318,15 +1364,19 @@ fn _evaluate(
 
                         match match cached_arg {
                           Some(v) => v,
+                          #[cfg(not(tarpaulin_include))]
                           None => stylex_panic!(
                             "Object.fromEntries() requires an array of [key, value] entries."
                           ),
                         } {
                           EvaluateResultValue::Expr(expr) => {
                             let array = expr.as_array().cloned().unwrap_or_else(|| {
-                              stylex_panic!(
-                                "Object.fromEntries() requires an array of [key, value] entries."
-                              )
+                              #[cfg(not(tarpaulin_include))]
+                              {
+                                stylex_panic!(
+                                  "Object.fromEntries() requires an array of [key, value] entries."
+                                )
+                              }
                             });
 
                             let entries = array
@@ -1340,6 +1390,7 @@ fn _evaluate(
 
                               let array = match entry.expr.as_array() {
                                 Some(a) => a,
+                                #[cfg(not(tarpaulin_include))]
                                 None => stylex_panic!(
                                   "Each entry in Object.fromEntries() must be a [key, value] array."
                                 ),
@@ -1353,15 +1404,23 @@ fn _evaluate(
                                   .first()
                                   .and_then(|e| e.expr.as_lit())
                                   .unwrap_or_else(|| {
-                                    stylex_panic!(
-                                      "Object key must be a static literal (identifier or string)."
-                                    )
+                                    #[cfg(not(tarpaulin_include))]
+                                    {
+                                      stylex_panic!(
+                                        "Object key must be a static literal (identifier or string)."
+                                      )
+                                    }
                                   });
 
                               let value = elems
                                 .get(1)
                                 .map(|e| e.expr.clone())
-                                .unwrap_or_else(|| stylex_panic!("{}", VALUE_MUST_BE_LITERAL));
+                                .unwrap_or_else(|| {
+                                  #[cfg(not(tarpaulin_include))]
+                                  {
+                                    stylex_panic!("{}", VALUE_MUST_BE_LITERAL)
+                                  }
+                                });
 
                               from_entries_result.insert(key.clone(), value.clone());
                             }
@@ -1371,9 +1430,12 @@ fn _evaluate(
                               let entry = entry
                                 .and_then(|entry| entry.as_vec().cloned())
                                 .unwrap_or_else(|| {
-                                  stylex_panic!(
-                                    "Expected an array element but found a hole (empty slot)."
-                                  )
+                                  #[cfg(not(tarpaulin_include))]
+                                  {
+                                    stylex_panic!(
+                                      "Expected an array element but found a hole (empty slot)."
+                                    )
+                                  }
                                 });
 
                               let key = entry
@@ -1382,20 +1444,29 @@ fn _evaluate(
                                 .and_then(|item| item.as_expr().cloned())
                                 .and_then(|expr| expr.as_lit().cloned())
                                 .unwrap_or_else(|| {
-                                  stylex_panic!(
-                                    "Object key must be a static literal (identifier or string)."
-                                  )
+                                  #[cfg(not(tarpaulin_include))]
+                                  {
+                                    stylex_panic!(
+                                      "Object key must be a static literal (identifier or string)."
+                                    )
+                                  }
                                 });
 
                               let value = entry
                                 .get(1)
                                 .and_then(|item| item.clone())
                                 .and_then(|item| item.as_expr().cloned())
-                                .unwrap_or_else(|| stylex_panic!("{}", VALUE_MUST_BE_LITERAL));
+                                .unwrap_or_else(|| {
+                                  #[cfg(not(tarpaulin_include))]
+                                  {
+                                    stylex_panic!("{}", VALUE_MUST_BE_LITERAL)
+                                  }
+                                });
 
                               from_entries_result.insert(key.clone(), Box::new(value.clone()));
                             }
                           },
+                          #[cfg(not(tarpaulin_include))]
                           _ => {
                             stylex_panic!(
                               "Object.fromEntries() requires an array of [key, value] entries."
@@ -1423,11 +1494,13 @@ fn _evaluate(
                           for prop in &object.props {
                             let expr = match prop.as_prop().cloned() {
                               Some(p) => p,
+                              #[cfg(not(tarpaulin_include))]
                               None => stylex_panic!("{}", SPREAD_NOT_SUPPORTED),
                             };
 
                             let key_values = match expr.as_key_value() {
                               Some(kv) => kv,
+                              #[cfg(not(tarpaulin_include))]
                               None => stylex_panic!("Object.keys() requires an object argument."),
                             };
 
@@ -1459,11 +1532,13 @@ fn _evaluate(
                           for prop in &object.props {
                             let prop = match prop.as_prop().cloned() {
                               Some(p) => p,
+                              #[cfg(not(tarpaulin_include))]
                               None => stylex_panic!("{}", SPREAD_NOT_SUPPORTED),
                             };
 
                             let key_values = match prop.as_key_value() {
                               Some(kv) => kv,
+                              #[cfg(not(tarpaulin_include))]
                               None => stylex_panic!("Object.values() requires an object argument."),
                             };
 
@@ -1491,11 +1566,13 @@ fn _evaluate(
                           for prop in &object.props {
                             let expr = match prop.as_prop().map(|prop| *prop.clone()) {
                               Some(p) => p,
+                              #[cfg(not(tarpaulin_include))]
                               None => stylex_panic!("{}", SPREAD_NOT_SUPPORTED),
                             };
 
                             let key_values = match expr.as_key_value() {
                               Some(kv) => kv,
+                              #[cfg(not(tarpaulin_include))]
                               None => {
                                 stylex_panic!("Object.entries() requires an object argument.")
                               },
@@ -1511,16 +1588,19 @@ fn _evaluate(
 
                         context = Some(vec![Some(EvaluateResultValue::Entries(entries))]);
                       },
+                      #[cfg(not(tarpaulin_include))]
                       _ => {
                         stylex_panic!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name)
                       },
                     }
                   },
+                  #[cfg(not(tarpaulin_include))]
                   _ => stylex_panic!("{} - {}", BUILT_IN_FUNCTION, callee_name),
                 }
               } else {
                 let prop_ident = match property.as_ident() {
                   Some(ident) => ident,
+                  #[cfg(not(tarpaulin_include))]
                   None => stylex_panic!(
                     "Property key must be a static identifier, not a computed expression."
                   ),
@@ -1544,6 +1624,7 @@ fn _evaluate(
                       traversal_state,
                       "Map-type function configurations are not yet supported in this context."
                     ),
+                    #[cfg(not(tarpaulin_include))]
                     FunctionConfigType::IndexMap(_) => {
                       stylex_unimplemented!("IndexMap values are not supported in this context.")
                     },
@@ -1588,6 +1669,7 @@ fn _evaluate(
           if object.is_lit() {
             let obj_lit = match object.as_lit() {
               Some(lit) => lit,
+              #[cfg(not(tarpaulin_include))]
               None => stylex_panic!("Expected a static object literal."),
             };
 
@@ -1609,6 +1691,7 @@ fn _evaluate(
               if property.is_ident() {
                 let prop_ident = match property.as_ident() {
                   Some(ident) => ident,
+                  #[cfg(not(tarpaulin_include))]
                   None => stylex_panic!(
                     "Property key must be a static identifier, not a computed expression."
                   ),
@@ -1694,6 +1777,7 @@ fn _evaluate(
                         .map(|elem| {
                           let elem = match elem.clone() {
                             Some(e) => e,
+                            #[cfg(not(tarpaulin_include))]
                             None => stylex_panic!(
                               "Array element must be present (no empty slots allowed)."
                             ),
@@ -1899,6 +1983,7 @@ fn _evaluate(
               let func_result = (func)(
                 (**match args.first() {
                   Some(a) => a,
+                  #[cfg(not(tarpaulin_include))]
                   None => {
                     stylex_panic!("StyleX expression function requires at least one argument.")
                   },
@@ -1963,6 +2048,7 @@ fn _evaluate(
                   .into_iter()
                   .map(|arg| match arg.as_expr().cloned() {
                     Some(e) => e,
+                    #[cfg(not(tarpaulin_include))]
                     None => stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION),
                   })
                   .collect(),
@@ -1978,7 +2064,10 @@ fn _evaluate(
                   .first()
                   .and_then(|arg| arg.as_expr().cloned())
                   .unwrap_or_else(|| {
-                    stylex_panic!("StyleX expression function requires an expression argument.")
+                    #[cfg(not(tarpaulin_include))]
+                    {
+                      stylex_panic!("StyleX expression function requires an expression argument.")
+                    }
                   }),
                 traversal_state,
               );
@@ -1990,27 +2079,36 @@ fn _evaluate(
               let expr = args
                 .first()
                 .and_then(|expr| expr.as_expr())
-                .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION));
+                .unwrap_or_else(|| {
+                  #[cfg(not(tarpaulin_include))]
+                  {
+                    stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION)
+                  }
+                });
 
               match expr {
                 Expr::Object(obj) => {
                   for prop in &obj.props {
                     let prop = match prop.as_prop() {
                       Some(p) => p,
+                      #[cfg(not(tarpaulin_include))]
                       None => stylex_panic!("{}", SPREAD_NOT_SUPPORTED),
                     };
                     let key_value = match prop.as_key_value() {
                       Some(kv) => kv,
+                      #[cfg(not(tarpaulin_include))]
                       None => stylex_panic!("{}", KEY_VALUE_EXPECTED),
                     };
 
                     let key = match key_value.key.as_ident() {
                       Some(ident) => ident.sym.to_string(),
+                      #[cfg(not(tarpaulin_include))]
                       None => stylex_panic!("{}", OBJECT_KEY_MUST_BE_IDENT),
                     };
 
                     let value = match key_value.value.as_lit() {
                       Some(lit) => lit,
+                      #[cfg(not(tarpaulin_include))]
                       None => stylex_panic!("{}", VALUE_MUST_BE_LITERAL),
                     };
 
@@ -2035,6 +2133,7 @@ fn _evaluate(
             FunctionType::Callback(func) => {
               let context = match context {
                 Some(c) => c,
+                #[cfg(not(tarpaulin_include))]
                 None => stylex_panic!("Object.entries() requires an object argument."),
               };
 
@@ -2152,12 +2251,18 @@ fn _evaluate(
                         .map(|expr| {
                           unwrap_or_panic!(expr_to_num(expr, state, traversal_state, fns))
                         })
-                        .unwrap_or_else(|| stylex_panic!("All arguments must be numeric values."))
+                        .unwrap_or_else(|| {
+                          #[cfg(not(tarpaulin_include))]
+                          {
+                            stylex_panic!("All arguments must be numeric values.")
+                          }
+                        })
                     })
                     .collect::<Vec<f64>>();
 
                   let result = match (num_args.first(), num_args.get(1)) {
                     (Some(base), Some(exp)) => base.powf(*exp),
+                    #[cfg(not(tarpaulin_include))]
                     _ => stylex_panic!("Math.pow() requires two numeric arguments."),
                   };
 
@@ -2181,6 +2286,7 @@ fn _evaluate(
                     CallbackType::Math(MathJS::Round) => num.round(),
                     CallbackType::Math(MathJS::Ceil) => num.ceil(),
                     CallbackType::Math(MathJS::Floor) => num.floor(),
+                    #[cfg(not(tarpaulin_include))]
                     _ => stylex_unreachable!("Invalid function type"),
                   };
 
@@ -2204,11 +2310,17 @@ fn _evaluate(
                     CallbackType::Math(MathJS::Max) => {
                       num_args.iter().cloned().max_by(sort_numbers_factory())
                     }
+                    #[cfg(not(tarpaulin_include))]
                     _ => stylex_unreachable!("Invalid function type"),
                   }
-                  .unwrap_or_else(|| stylex_panic!(
-                    "Math.min()/Math.max() returned no result. Ensure numeric arguments are provided."
-                  ));
+                  .unwrap_or_else(|| {
+                    #[cfg(not(tarpaulin_include))]
+                    {
+                      stylex_panic!(
+                      "Math.min()/Math.max() returned no result. Ensure numeric arguments are provided."
+                      )
+                    }
+                  });
 
                   return Some(EvaluateResultValue::Expr(create_number_expr(result)));
                 },
@@ -2299,18 +2411,27 @@ fn _evaluate(
                           unwrap_or_panic!(expr_to_num(expr, state, traversal_state, fns))
                         })
                         .unwrap_or_else(|| {
-                          stylex_panic!("The first argument must be a numeric value.")
+                          #[cfg(not(tarpaulin_include))]
+                          {
+                            stylex_panic!("The first argument must be a numeric value.")
+                          }
                         })
                     })
                     .collect::<Vec<f64>>();
 
                   let char_index = num_args.first().unwrap_or_else(|| {
-                    stylex_panic!("The first argument of String.charCodeAt() must be a number.")
+                    #[cfg(not(tarpaulin_include))]
+                    {
+                      stylex_panic!("The first argument of String.charCodeAt() must be a number.")
+                    }
                   });
 
                   let char_code =
                     char_code_at(&base_str, *char_index as usize).unwrap_or_else(|| {
-                      stylex_panic!("String.charCodeAt() returned no result for the given index.")
+                      #[cfg(not(tarpaulin_include))]
+                      {
+                        stylex_panic!("String.charCodeAt() returned no result for the given index.")
+                      }
                     });
 
                   return Some(EvaluateResultValue::Expr(create_number_expr(
@@ -2352,6 +2473,7 @@ fn _evaluate(
                 .map(|arg| {
                   match arg.as_expr() {
                     Some(e) => e,
+                    #[cfg(not(tarpaulin_include))]
                     None => stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION),
                   }
                   .clone()
@@ -2492,7 +2614,10 @@ fn _evaluate(
           }
         })
         .unwrap_or_else(|| {
-          stylex_panic!("Could not resolve the import specifier. Ensure the import is correct.")
+          #[cfg(not(tarpaulin_include))]
+          {
+            stylex_panic!("Could not resolve the import specifier. Ensure the import is correct.")
+          }
         });
 
       let imported = imported
@@ -2599,6 +2724,7 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
             let expr = match elem_value {
               EvaluateResultValue::Expr(expr) => expr.clone(),
               EvaluateResultValue::Vec(vec) => normalize_js_object_method_nested_vector_arg(vec),
+              #[cfg(not(tarpaulin_include))]
               _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
             };
 
@@ -2631,6 +2757,7 @@ fn normalize_js_object_method_nested_vector_arg(vec: &[Option<EvaluateResultValu
                 .map(|item| {
                   let expr = match item.as_expr() {
                     Some(e) => e,
+                    #[cfg(not(tarpaulin_include))]
                     None => stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION),
                   };
                   Some(create_expr_or_spread(expr.clone()))
@@ -2641,7 +2768,12 @@ fn normalize_js_object_method_nested_vector_arg(vec: &[Option<EvaluateResultValu
             })
             .or_else(|| entry.as_expr().cloned())
         })
-        .unwrap_or_else(|| stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE));
+        .unwrap_or_else(|| {
+          #[cfg(not(tarpaulin_include))]
+          {
+            stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE)
+          }
+        });
 
       Some(create_expr_or_spread(expr))
     })
@@ -2681,6 +2813,7 @@ fn args_to_numbers(
           ]
         },
         EvaluateResultValue::Vec(vec) => args_to_numbers(vec, state, traversal_state, fns),
+        #[cfg(not(tarpaulin_include))]
         _ => stylex_unreachable!("Math.min/max requires a number"),
       },
       None => vec![],
@@ -2706,6 +2839,7 @@ fn is_valid_callee(callee: &Expr) -> bool {
 fn get_callee_name(callee: &Expr) -> &str {
   match callee {
     Expr::Ident(ident) => &ident.sym,
+    #[cfg(not(tarpaulin_include))]
     _ => stylex_panic!("The function being called must be a static identifier."),
   }
 }
@@ -2772,6 +2906,7 @@ fn is_mutation_expr(expr: &Expr) -> bool {
 fn get_method_name(prop: &MemberProp) -> &str {
   match prop {
     MemberProp::Ident(ident_prop) => &ident_prop.sym,
+    #[cfg(not(tarpaulin_include))]
     _ => stylex_panic!("The method name in a call expression must be a static identifier."),
   }
 }
@@ -2782,6 +2917,7 @@ fn is_id_prop(prop: &MemberProp) -> Option<&Atom> {
   {
     return Some(match strng.value.as_atom() {
       Some(a) => a,
+      #[cfg(not(tarpaulin_include))]
       None => stylex_panic!("{}", INVALID_UTF8),
     });
   }

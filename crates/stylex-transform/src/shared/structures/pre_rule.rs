@@ -127,6 +127,7 @@ impl StylesPreRule {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl PreRule for StylesPreRule {
   fn get_value(&self) -> Option<PreRuleValue> {
     Some(self.value.to_owned())

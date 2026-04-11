@@ -68,6 +68,7 @@ impl CalcConstant {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for CalcConstant {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.as_str())

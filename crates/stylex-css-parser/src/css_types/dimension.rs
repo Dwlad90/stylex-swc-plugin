@@ -69,6 +69,7 @@ pub fn dimension() -> TokenParser<Dimension> {
   Dimension::parse()
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Dimension {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {

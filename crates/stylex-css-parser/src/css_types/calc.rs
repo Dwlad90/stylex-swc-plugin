@@ -30,6 +30,7 @@ impl CalcDimension {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for CalcDimension {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}{}", self.value, self.unit)
@@ -428,6 +429,7 @@ impl CalcValue {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for CalcValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -508,12 +510,14 @@ impl Calc {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Calc {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "calc({})", self.value)
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 pub fn calc_value_to_string(value: &CalcValue) -> String {
   match value {
     CalcValue::Number(n) => n.to_string(),

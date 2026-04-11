@@ -29,6 +29,7 @@ pub(crate) fn stylex_define_vars(
     state.options.class_name_prefix,
     create_hash(match state.export_id.as_ref() {
       Some(id) => id,
+      #[cfg(not(tarpaulin_include))]
       None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
     })
   );
@@ -36,7 +37,10 @@ pub(crate) fn stylex_define_vars(
   let mut typed_variables: FlatCompiledStyles = IndexMap::new();
 
   let Some(variables) = variables.as_expr().and_then(|expr| expr.as_object()) else {
-    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+    #[cfg(not(tarpaulin_include))]
+    {
+      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+    }
   };
 
   let variables_map = obj_map(
@@ -44,6 +48,7 @@ pub(crate) fn stylex_define_vars(
     state,
     |item, state| -> Rc<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
+        #[cfg(not(tarpaulin_include))]
         FlatCompiledStylesValue::InjectableStyle(_) => {
           stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
         },
@@ -52,6 +57,7 @@ pub(crate) fn stylex_define_vars(
             "{}.{}",
             match state.export_id.as_ref() {
               Some(id) => id,
+              #[cfg(not(tarpaulin_include))]
               None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
             },
             key
@@ -96,6 +102,7 @@ pub(crate) fn stylex_define_vars(
 
           FlatCompiledStylesValue::Tuple(name_hash.to_string(), css_value, css_type)
         },
+        #[cfg(not(tarpaulin_include))]
         _ => stylex_unimplemented!("Unsupported value type in define vars"),
       };
 
@@ -107,12 +114,14 @@ pub(crate) fn stylex_define_vars(
     ObjMapType::Map(variables_map.clone()),
     state,
     |item, _| match item.as_ref() {
+      #[cfg(not(tarpaulin_include))]
       FlatCompiledStylesValue::InjectableStyle(_) => {
         stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
       },
       FlatCompiledStylesValue::Tuple(key, _, _) => {
         Rc::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))
       },
+      #[cfg(not(tarpaulin_include))]
       _ => stylex_unreachable!("Unsupported value type"),
     },
   );
@@ -136,6 +145,7 @@ pub(crate) fn stylex_define_vars(
             ..Default::default()
           })
         },
+        #[cfg(not(tarpaulin_include))]
         _ => stylex_unreachable!("Unsupported value type"),
       };
 

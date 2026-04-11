@@ -31,6 +31,7 @@ pub enum EvaluateResultValue {
   EnvObject(IndexMap<String, EnvEntry>),
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Serialize for EvaluateResultValue {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where
@@ -80,6 +81,7 @@ impl Serialize for EvaluateResultValue {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Clone for EvaluateResultValue {
   fn clone(&self) -> Self {
     match self {
@@ -96,6 +98,7 @@ impl Clone for EvaluateResultValue {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl fmt::Debug for EvaluateResultValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -112,6 +115,7 @@ impl fmt::Debug for EvaluateResultValue {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl PartialEq for EvaluateResultValue {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {

@@ -54,6 +54,7 @@ pub fn evaluate_stylex_create_arg(
 
       for prop in &style_object.props {
         match prop {
+          #[cfg(not(tarpaulin_include))]
           PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
           PropOrSpread::Prop(prop) => {
             let mut prop = prop.clone();
@@ -77,10 +78,12 @@ pub fn evaluate_stylex_create_arg(
 
                 let key = match key_result.value.as_ref() {
                   Some(val) => val,
+                  #[cfg(not(tarpaulin_include))]
                   None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
                 };
                 let key_expr = match key.as_expr() {
                   Some(expr) => expr,
+                  #[cfg(not(tarpaulin_include))]
                   None => stylex_panic!("Expected an expression from evaluation result."),
                 };
                 let value_path = &mut key_value_prop.value;
@@ -130,6 +133,7 @@ pub fn evaluate_stylex_create_arg(
                             .and_then(|expr| expr.as_object())
                           {
                             Some(obj) => obj,
+                            #[cfg(not(tarpaulin_include))]
                             None => stylex_panic!(
                               "Expected an object value in style evaluation, but received a different type."
                             ),
@@ -138,6 +142,7 @@ pub fn evaluate_stylex_create_arg(
                           let key = match convert_expr_to_str(key_expr, traversal_state, functions)
                           {
                             Some(k) => k,
+                            #[cfg(not(tarpaulin_include))]
                             None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
                           };
 
@@ -186,6 +191,7 @@ pub fn evaluate_stylex_create_arg(
 
                     let value_to_insert = match match val.value.as_ref() {
                       Some(v) => v,
+                      #[cfg(not(tarpaulin_include))]
                       None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
                     } {
                       EvaluateResultValue::Expr(Expr::Object(obj_expr)) => obj_expr
@@ -194,6 +200,7 @@ pub fn evaluate_stylex_create_arg(
                         .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
                         .cloned()
                         .collect::<Vec<_>>(),
+                      #[cfg(not(tarpaulin_include))]
                       _ => stylex_panic!("{}", ILLEGAL_NAMESPACE_VALUE),
                     };
 
@@ -241,7 +248,10 @@ fn evaluate_partial_object_recursively(
         if !result.confident {
           return result;
         }
-        stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED);
+        #[cfg(not(tarpaulin_include))]
+        {
+          stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED);
+        }
       },
       PropOrSpread::Prop(prop) => {
         let mut prop = prop.clone();
@@ -265,11 +275,13 @@ fn evaluate_partial_object_recursively(
 
             let key = match key_result.value.as_ref().and_then(|v| v.as_expr()) {
               Some(expr) => expr,
+              #[cfg(not(tarpaulin_include))]
               None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
             };
 
             let mut key_str = match convert_expr_to_str(key, traversal_state, functions) {
               Some(s) => s,
+              #[cfg(not(tarpaulin_include))]
               None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
             };
 
@@ -311,6 +323,7 @@ fn evaluate_partial_object_recursively(
                   &key_str,
                   match result.value.and_then(|v| v.as_expr().cloned()) {
                     Some(expr) => expr,
+                    #[cfg(not(tarpaulin_include))]
                     None => stylex_panic!("{}", VALUE_NOT_EXPRESSION),
                   },
                 );
@@ -438,6 +451,7 @@ fn evaluate_partial_object_recursively(
                     &key_str,
                     match result.value.and_then(|v| v.as_expr().cloned()) {
                       Some(expr) => expr,
+                      #[cfg(not(tarpaulin_include))]
                       None => stylex_panic!("{}", VALUE_NOT_EXPRESSION),
                     },
                   );

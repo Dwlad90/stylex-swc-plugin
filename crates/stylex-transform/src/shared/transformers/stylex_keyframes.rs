@@ -45,12 +45,18 @@ pub(crate) fn stylex_keyframes(
   }
 
   let Some(frames) = frames.as_expr().and_then(|expr| expr.as_object()) else {
-    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+    #[cfg(not(tarpaulin_include))]
+    {
+      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+    }
   };
 
   let expanded_object = obj_map(ObjMapType::Object(frames.clone()), state, |frame, state| {
     let Some((_, frame, _)) = frame.as_tuple() else {
-      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+      #[cfg(not(tarpaulin_include))]
+      {
+        stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+      }
     };
 
     let pipe_result = Pipe::create(frame)
@@ -67,6 +73,7 @@ pub(crate) fn stylex_keyframes(
                 transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
               )))
             },
+            #[cfg(not(tarpaulin_include))]
             _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
           },
         )
@@ -88,7 +95,10 @@ pub(crate) fn stylex_keyframes(
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
-        stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+        #[cfg(not(tarpaulin_include))]
+        {
+          stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+        }
       };
 
       let ltr_values = pairs
@@ -105,7 +115,10 @@ pub(crate) fn stylex_keyframes(
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
-        stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+        #[cfg(not(tarpaulin_include))]
+        {
+          stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+        }
       };
 
       let ltr_values = pairs
@@ -124,7 +137,10 @@ pub(crate) fn stylex_keyframes(
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
-        stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+        #[cfg(not(tarpaulin_include))]
+        {
+          stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+        }
       };
 
       let rtl_values = pairs
@@ -182,6 +198,7 @@ fn construct_keyframes_obj(frames: &FlatCompiledStyles) -> String {
           })
           .collect::<Vec<String>>()
           .join(""),
+        #[cfg(not(tarpaulin_include))]
         _ => stylex_panic!("Value must be a key value pair array"),
       };
 
@@ -198,6 +215,7 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
       let key = convert_key_value_to_str(pair);
       let value = match convert_expr_to_str(pair.value.as_ref(), state, &FunctionMap::default()) {
         Some(v) => v,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
       };
 

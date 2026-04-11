@@ -37,12 +37,14 @@ where
       let stylex_create_theme_top_level_expr =
         match find_and_validate_stylex_define_vars(call, &mut self.state) {
           Some(expr) => expr,
+          #[cfg(not(tarpaulin_include))]
           None => stylex_panic!("defineVars(): Could not find the top-level variable declaration."),
         };
 
       let TopLevelExpression(_, _, var_id) = stylex_create_theme_top_level_expr;
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
+        #[cfg(not(tarpaulin_include))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -143,6 +145,7 @@ where
           );
           value
         },
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("{}", non_static_value("defineVars")),
       };
 
@@ -151,11 +154,13 @@ where
         .get_filename_for_hashing(&mut FxHashMap::default())
       {
         Some(name) => name,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("{}", cannot_generate_hash("defineVars")),
       };
 
       let export_name = match var_id.map(|decl| decl.to_string()) {
         Some(name) => name,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!(
           "defineVars(): The export variable could not be found. Ensure the call is bound to a named export."
         ),

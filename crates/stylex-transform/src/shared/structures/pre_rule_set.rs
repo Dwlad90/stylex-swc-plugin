@@ -30,6 +30,7 @@ impl PreRuleSet {
       0 => PreRules::NullPreRule(NullPreRule::new()),
       1 => match flat_rules.first() {
         Some(rule) => rule.to_owned(),
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("{}", RULE_SET_EMPTY),
       },
       _ => PreRules::PreRuleSet(PreRuleSet { rules: flat_rules }),
@@ -37,6 +38,7 @@ impl PreRuleSet {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl PreRule for PreRuleSet {
   fn equals(&self, _other: &dyn PreRule) -> bool {
     true

@@ -32,6 +32,7 @@ where
       let top_level_expr_defined_consts =
         match find_and_validate_stylex_define_consts(call, &mut self.state) {
           Some(expr) => expr,
+          #[cfg(not(tarpaulin_include))]
           None => {
             stylex_panic!("defineConsts(): Could not find the top-level variable declaration.")
           },
@@ -40,6 +41,7 @@ where
       let TopLevelExpression(_, _, var_id) = top_level_expr_defined_consts;
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
+        #[cfg(not(tarpaulin_include))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -86,6 +88,7 @@ where
           );
           value
         },
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("{}", non_static_value("defineConsts")),
       };
 
@@ -94,11 +97,13 @@ where
         .get_filename_for_hashing(&mut FxHashMap::default())
       {
         Some(name) => name,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("{}", cannot_generate_hash("defineConsts")),
       };
 
       let export_name = match var_id {
         Some(name) => name,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!(
           "defineConsts(): The export variable could not be found. Ensure the call is bound to a named export."
         ),

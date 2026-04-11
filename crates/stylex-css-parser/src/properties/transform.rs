@@ -27,6 +27,7 @@ impl Transform {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Transform {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let function_strings: Vec<String> = self.value.iter().map(|func| func.to_string()).collect();

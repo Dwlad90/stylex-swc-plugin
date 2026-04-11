@@ -39,6 +39,7 @@ where
       validate_stylex_create_theme_indent(parent_var_decl, call, &mut self.state);
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
+        #[cfg(not(tarpaulin_include))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -47,6 +48,7 @@ where
         .args
         .get(1)
         .map(|second_arg| match &second_arg.spread {
+          #[cfg(not(tarpaulin_include))]
           Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
           None => second_arg.expr.clone(),
         })?;
@@ -147,6 +149,7 @@ where
           validate_theme_variables(value, &self.state);
           value.clone()
         },
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!(
           "{}",
           build_code_frame_error(
@@ -179,6 +182,7 @@ where
           );
           value.clone()
         },
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!(
           "{}",
           build_code_frame_error(

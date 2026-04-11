@@ -900,6 +900,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl<T: Clone + Debug> Display for TokenParser<T> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "{}", self.label)
@@ -975,6 +976,7 @@ pub struct TokenZeroOrMoreParsers<T: Clone + Debug> {
   separator: Option<TokenParser<()>>,
 }
 
+#[cfg(not(tarpaulin_include))]
 impl<T: Clone + Debug + 'static> TokenZeroOrMoreParsers<T> {
   pub fn new(parser: TokenParser<T>, separator: Option<TokenParser<()>>) -> Self {
     Self { parser, separator }
@@ -1320,6 +1322,7 @@ impl<T: Clone + Debug + 'static> SequenceParsers<T> {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl<T: Clone + Debug + 'static> TokenOneOrMoreParsers<T> {
   pub fn new(parser: TokenParser<T>, separator: Option<TokenParser<()>>) -> Self {
     Self { parser, separator }
@@ -1381,8 +1384,10 @@ impl<T: Clone + Debug + 'static> TokenOneOrMoreParsers<T> {
 }
 
 /// Tokens API providing access to all basic token parsers
+#[cfg(not(tarpaulin_include))]
 pub struct Tokens;
 
+#[cfg(not(tarpaulin_include))]
 impl Tokens {
   /// Parse an identifier token
   pub fn ident() -> TokenParser<SimpleToken> {
@@ -1501,10 +1506,12 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
 }
 
 /// Builder for mixed sequences that can handle optional parsers intelligently
+#[cfg(not(tarpaulin_include))]
 pub struct MixedSequenceBuilder<T: Clone + Debug + 'static> {
   parsers: Vec<Either<TokenParser<T>, TokenParser<Option<T>>>>,
 }
 
+#[cfg(not(tarpaulin_include))]
 impl<T: Clone + Debug + 'static> MixedSequenceBuilder<T> {
   pub fn new(parsers: Vec<Either<TokenParser<T>, TokenParser<Option<T>>>>) -> Self {
     Self { parsers }

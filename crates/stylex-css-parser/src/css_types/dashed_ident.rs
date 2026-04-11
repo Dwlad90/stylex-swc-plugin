@@ -50,6 +50,7 @@ impl DashedIdentifier {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for DashedIdentifier {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.value)

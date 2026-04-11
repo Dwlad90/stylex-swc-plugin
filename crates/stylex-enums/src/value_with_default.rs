@@ -7,6 +7,7 @@ pub enum ValueWithDefault {
   Map(IndexMap<String, ValueWithDefault>),
 }
 
+#[cfg(not(tarpaulin_include))]
 impl std::hash::Hash for ValueWithDefault {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     match self {
@@ -30,10 +31,39 @@ impl ValueWithDefault {
     }
   }
 
+  #[cfg(not(tarpaulin_include))]
   fn _as_string(&self) -> Option<&String> {
     match self {
       ValueWithDefault::String(s) => Some(s),
       _ => None,
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_as_map_with_map() {
+    let mut inner = IndexMap::new();
+    inner.insert(
+      "key".to_string(),
+      ValueWithDefault::String("val".to_string()),
+    );
+    let value = ValueWithDefault::Map(inner.clone());
+    assert_eq!(value.as_map(), Some(&inner));
+  }
+
+  #[test]
+  fn test_as_map_with_string() {
+    let value = ValueWithDefault::String("hello".to_string());
+    assert_eq!(value.as_map(), None);
+  }
+
+  #[test]
+  fn test_as_map_with_number() {
+    let value = ValueWithDefault::Number(42.0);
+    assert_eq!(value.as_map(), None);
   }
 }

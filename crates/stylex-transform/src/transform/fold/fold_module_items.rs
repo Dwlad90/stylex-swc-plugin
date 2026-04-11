@@ -132,6 +132,7 @@ where
             0,
             match module_items.first() {
               Some(item) => item.clone(),
+              #[cfg(not(tarpaulin_include))]
               None => stylex_panic!("Module items list is unexpectedly empty."),
             },
           );
@@ -184,6 +185,7 @@ where
             for decl in decls {
               let key = match decl.init.clone() {
                 Some(k) => k,
+                #[cfg(not(tarpaulin_include))]
                 None => stylex_panic!("{}", VAR_DECL_INIT_REQUIRED),
               };
 

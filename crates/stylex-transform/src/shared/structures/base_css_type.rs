@@ -84,6 +84,7 @@ impl From<ObjectLit> for BaseCSSType {
             Expr::Lit(obj) => {
               let value = match convert_lit_to_string(obj) {
                 Some(v) => v,
+                #[cfg(not(tarpaulin_include))]
                 None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
               };
 
@@ -91,6 +92,7 @@ impl From<ObjectLit> for BaseCSSType {
 
               &create_object_lit(vec![prop])
             },
+            #[cfg(not(tarpaulin_include))]
             _ => stylex_panic!(
               "Value must be an object or string, but got: {:?}",
               key_value.value.get_type(get_default_expr_ctx())
@@ -113,11 +115,13 @@ impl From<ObjectLit> for BaseCSSType {
                     Expr::Lit(lit) => {
                       let value = match convert_lit_to_string(lit) {
                         Some(v) => v,
-                        None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
+                        #[cfg(not(tarpaulin_include))]
+                      None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
                       };
 
                       obj_map.insert(key, ValueWithDefault::String(value));
                     },
+                    #[cfg(not(tarpaulin_include))]
                     _ => stylex_panic!(
                       "Value must be a string, but got: {:?}",
                       key_value.value.get_type(get_default_expr_ctx())
@@ -137,6 +141,7 @@ impl From<ObjectLit> for BaseCSSType {
 
                 values.insert(key, ValueWithDefault::String(value));
               },
+              #[cfg(not(tarpaulin_include))]
               _ => stylex_panic!(
                 "Value must be a string or object, but got: {:?}",
                 key_value.value.get_type(get_default_expr_ctx())
@@ -144,6 +149,7 @@ impl From<ObjectLit> for BaseCSSType {
             }
           }
         },
+        #[cfg(not(tarpaulin_include))]
         _ => {
           stylex_panic!(r#"Key "{}" not support by BaseCSSType"#, key)
         },
@@ -161,6 +167,7 @@ impl From<ObjectLit> for BaseCSSType {
       value: ValueWithDefault::Map(values),
       syntax: match syntax {
         Some(s) => s,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("CSS syntax definition is required for this type."),
       },
     }

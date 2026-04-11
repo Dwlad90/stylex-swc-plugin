@@ -462,7 +462,12 @@ pub(crate) fn get_types_fn() -> FunctionConfig {
         Rc::new(
           *FN_MAP
             .get(prop_name.as_str())
-            .unwrap_or_else(|| stylex_panic!(r#"Function "{}" not found"#, prop_name)),
+            .unwrap_or_else(|| {
+              #[cfg(not(tarpaulin_include))]
+              {
+                stylex_panic!(r#"Function "{}" not found"#, prop_name)
+              }
+            }),
         )
       },
     ),

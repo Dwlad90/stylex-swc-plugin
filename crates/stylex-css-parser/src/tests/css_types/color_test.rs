@@ -571,4 +571,276 @@ mod test_css_type_color {
       }
     }
   }
+
+  #[test]
+  fn parses_space_separated_rgb_additional() {
+    let color = Color::parse().parse_to_end("rgb(255 0 0)").unwrap();
+    match color {
+      Color::Rgb(ref rgb) => {
+        assert_eq!(rgb.r, 255);
+        assert_eq!(rgb.g, 0);
+        assert_eq!(rgb.b, 0);
+      },
+      _ => stylex_panic!("Expected Rgb"),
+    }
+
+    let color2 = Color::parse().parse_to_end("rgb(128 64 32)").unwrap();
+    match color2 {
+      Color::Rgb(ref rgb) => {
+        assert_eq!(rgb.r, 128);
+        assert_eq!(rgb.g, 64);
+        assert_eq!(rgb.b, 32);
+      },
+      _ => stylex_panic!("Expected Rgb"),
+    }
+  }
+
+  #[test]
+  fn parses_rgba_comma_syntax() {
+    let color = Color::parse()
+      .parse_to_end("rgba(255, 0, 0, 0.5)")
+      .unwrap();
+    match color {
+      Color::Rgba(ref rgba) => {
+        assert_eq!(rgba.r, 255);
+        assert_eq!(rgba.g, 0);
+        assert_eq!(rgba.b, 0);
+        assert_eq!(rgba.a, 0.5);
+      },
+      _ => stylex_panic!("Expected Rgba"),
+    }
+
+    let color2 = Color::parse()
+      .parse_to_end("rgba(128, 64, 32, 0.8)")
+      .unwrap();
+    match color2 {
+      Color::Rgba(ref rgba) => {
+        assert_eq!(rgba.r, 128);
+        assert_eq!(rgba.g, 64);
+        assert_eq!(rgba.b, 32);
+        assert_eq!(rgba.a, 0.8);
+      },
+      _ => stylex_panic!("Expected Rgba"),
+    }
+  }
+
+  #[test]
+  fn parses_rgba_space_slash_syntax() {
+    let color = Color::parse()
+      .parse_to_end("rgb(255 0 0 / 0.5)")
+      .unwrap();
+    match color {
+      Color::Rgba(ref rgba) => {
+        assert_eq!(rgba.r, 255);
+        assert_eq!(rgba.g, 0);
+        assert_eq!(rgba.b, 0);
+        assert_eq!(rgba.a, 0.5);
+      },
+      _ => stylex_panic!("Expected Rgba"),
+    }
+
+    let color2 = Color::parse()
+      .parse_to_end("rgba(128 64 32 / 0.8)")
+      .unwrap();
+    match color2 {
+      Color::Rgba(ref rgba) => {
+        assert_eq!(rgba.r, 128);
+        assert_eq!(rgba.g, 64);
+        assert_eq!(rgba.b, 32);
+        assert_eq!(rgba.a, 0.8);
+      },
+      _ => stylex_panic!("Expected Rgba"),
+    }
+  }
+
+  #[test]
+  fn parses_hsl_space_syntax() {
+    let color = Color::parse()
+      .parse_to_end("hsl(180deg 50% 50%)")
+      .unwrap();
+    match color {
+      Color::Hsl(ref hsl) => {
+        assert_eq!(hsl.h.value, 180.0);
+        assert_eq!(hsl.h.unit, "deg");
+        assert_eq!(hsl.s.value, 50.0);
+        assert_eq!(hsl.l.value, 50.0);
+      },
+      _ => stylex_panic!("Expected Hsl"),
+    }
+  }
+
+  #[test]
+  fn parses_hsla_comma_syntax() {
+    let color = Color::parse()
+      .parse_to_end("hsla(180deg, 50%, 50%, 0.7)")
+      .unwrap();
+    match color {
+      Color::Hsla(ref hsla) => {
+        assert_eq!(hsla.h.value, 180.0);
+        assert_eq!(hsla.h.unit, "deg");
+        assert_eq!(hsla.s.value, 50.0);
+        assert_eq!(hsla.l.value, 50.0);
+        assert_eq!(hsla.a, 0.7);
+      },
+      _ => stylex_panic!("Expected Hsla"),
+    }
+  }
+
+  #[test]
+  fn parses_hsla_space_slash_syntax() {
+    let color = Color::parse()
+      .parse_to_end("hsl(180deg 50% 50% / 0.8)")
+      .unwrap();
+    match color {
+      Color::Hsla(ref hsla) => {
+        assert_eq!(hsla.h.value, 180.0);
+        assert_eq!(hsla.h.unit, "deg");
+        assert_eq!(hsla.s.value, 50.0);
+        assert_eq!(hsla.l.value, 50.0);
+        assert_eq!(hsla.a, 0.8);
+      },
+      _ => stylex_panic!("Expected Hsla"),
+    }
+  }
+
+  #[test]
+  fn parses_lch_numeric_values() {
+    let color = Color::parse().parse_to_end("lch(50 100 180)").unwrap();
+    match color {
+      Color::Lch(ref lch) => {
+        assert_eq!(lch.l, 50.0);
+        assert_eq!(lch.c, 100.0);
+        match &lch.h {
+          crate::css_types::color::LchHue::Number(h) => assert_eq!(*h, 180.0),
+          _ => stylex_panic!("Expected number hue for lch(50 100 180)"),
+        }
+        assert!(lch.alpha.is_none());
+      },
+      _ => stylex_panic!("Expected Lch"),
+    }
+  }
+
+  #[test]
+  fn parses_lch_with_angle_hue() {
+    let color = Color::parse()
+      .parse_to_end("lch(50 100 270deg)")
+      .unwrap();
+    match color {
+      Color::Lch(ref lch) => {
+        assert_eq!(lch.l, 50.0);
+        assert_eq!(lch.c, 100.0);
+        match &lch.h {
+          crate::css_types::color::LchHue::Angle(angle) => {
+            assert_eq!(angle.value, 270.0);
+            assert_eq!(angle.unit, "deg");
+          },
+          _ => stylex_panic!("Expected angle hue for lch(50 100 270deg)"),
+        }
+        assert!(lch.alpha.is_none());
+      },
+      _ => stylex_panic!("Expected Lch"),
+    }
+  }
+
+  #[test]
+  fn parses_lch_with_alpha() {
+    let color = Color::parse()
+      .parse_to_end("lch(50 100 180 / 0.5)")
+      .unwrap();
+    match color {
+      Color::Lch(ref lch) => {
+        assert_eq!(lch.l, 50.0);
+        assert_eq!(lch.c, 100.0);
+        match &lch.h {
+          crate::css_types::color::LchHue::Number(h) => assert_eq!(*h, 180.0),
+          _ => stylex_panic!("Expected number hue for lch(50 100 180 / 0.5)"),
+        }
+        assert_eq!(lch.alpha, Some(0.5));
+      },
+      _ => stylex_panic!("Expected Lch"),
+    }
+  }
+
+  #[test]
+  fn parses_oklch_numeric_hue() {
+    let color = Color::parse()
+      .parse_to_end("oklch(0.5 0.15 180)")
+      .unwrap();
+    match color {
+      Color::Oklch(ref oklch) => {
+        assert_eq!(oklch.l, 0.5);
+        assert_eq!(oklch.c, 0.15);
+        assert_eq!(oklch.h.value, 180.0);
+        assert_eq!(oklch.h.unit, "deg");
+        assert!(oklch.alpha.is_none());
+      },
+      _ => stylex_panic!("Expected Oklch"),
+    }
+  }
+
+  #[test]
+  fn parses_oklch_deg_hue() {
+    let color = Color::parse()
+      .parse_to_end("oklch(0.5 0.15 180deg)")
+      .unwrap();
+    match color {
+      Color::Oklch(ref oklch) => {
+        assert_eq!(oklch.l, 0.5);
+        assert_eq!(oklch.c, 0.15);
+        assert_eq!(oklch.h.value, 180.0);
+        assert_eq!(oklch.h.unit, "deg");
+        assert!(oklch.alpha.is_none());
+      },
+      _ => stylex_panic!("Expected Oklch"),
+    }
+  }
+
+  #[test]
+  fn parses_oklch_with_alpha() {
+    let color = Color::parse()
+      .parse_to_end("oklch(0.5 0.15 180 / 0.8)")
+      .unwrap();
+    match color {
+      Color::Oklch(ref oklch) => {
+        assert_eq!(oklch.l, 0.5);
+        assert_eq!(oklch.c, 0.15);
+        assert_eq!(oklch.h.value, 180.0);
+        assert_eq!(oklch.h.unit, "deg");
+        assert_eq!(oklch.alpha, Some(0.8));
+      },
+      _ => stylex_panic!("Expected Oklch"),
+    }
+  }
+
+  #[test]
+  fn parses_oklab_numeric_values() {
+    let color = Color::parse()
+      .parse_to_end("oklab(0.5 0.1 -0.1)")
+      .unwrap();
+    match color {
+      Color::Oklab(ref oklab) => {
+        assert_eq!(oklab.l, 0.5);
+        assert_eq!(oklab.a, 0.1);
+        assert_eq!(oklab.b, -0.1);
+        assert!(oklab.alpha.is_none());
+      },
+      _ => stylex_panic!("Expected Oklab"),
+    }
+  }
+
+  #[test]
+  fn parses_oklab_with_alpha() {
+    let color = Color::parse()
+      .parse_to_end("oklab(0.5 0.1 -0.1 / 0.5)")
+      .unwrap();
+    match color {
+      Color::Oklab(ref oklab) => {
+        assert_eq!(oklab.l, 0.5);
+        assert_eq!(oklab.a, 0.1);
+        assert_eq!(oklab.b, -0.1);
+        assert_eq!(oklab.alpha, Some(0.5));
+      },
+      _ => stylex_panic!("Expected Oklab"),
+    }
+  }
 }

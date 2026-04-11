@@ -54,6 +54,7 @@ impl BorderRadiusIndividual {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for BorderRadiusIndividual {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let horizontal = self.horizontal.to_string();
@@ -321,6 +322,7 @@ impl BorderRadiusShorthand {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for BorderRadiusShorthand {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.to_shortest_string())

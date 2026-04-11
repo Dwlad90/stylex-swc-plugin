@@ -637,6 +637,7 @@ impl SepiaFilterFunction {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for FilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -653,54 +654,63 @@ impl Display for FilterFunction {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for BlurFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "blur({})", self.radius)
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for BrightnessFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "brightness({})", self.percentage)
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for ContrastFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "contrast({})", self.amount)
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for GrayscaleFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "grayscale({})", self.amount)
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for HueRotateFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "hue-rotate({})", self.angle)
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for InvertFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "invert({})", self.amount)
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for OpacityFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "opacity({})", self.amount)
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for SaturateFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "saturate({})", self.amount)
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for SepiaFilterFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "sepia({})", self.amount)

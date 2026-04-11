@@ -82,6 +82,7 @@ impl SubString {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for SubString {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.into_string())

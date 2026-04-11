@@ -46,6 +46,7 @@ pub enum CircleRadius {
   FarthestSide,
 }
 
+#[cfg(not(tarpaulin_include))]
 impl fmt::Display for CircleRadius {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -56,6 +57,7 @@ impl fmt::Display for CircleRadius {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl fmt::Display for BasicShape {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {

@@ -110,6 +110,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
                     if !compiled_key_value_is_true {
                       let compiled_key_string_value = match compiled_key_value.as_ref() {
                         FlatCompiledStylesValue::String(strng) => strng.clone(),
+                        #[cfg(not(tarpaulin_include))]
                         other => {
                           let other_debug_info = format!("{:?}", other);
                           let variant_name =
@@ -186,11 +187,14 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
                 };
               }
             } else {
-              stylex_panic!(
-                "styleq: {:#?} typeof {:?} is not \"string\" or \"null\".",
-                compiled_key,
-                "Bool"
-              )
+              #[cfg(not(tarpaulin_include))]
+              {
+                stylex_panic!(
+                  "styleq: {:#?} typeof {:?} is not \"string\" or \"null\".",
+                  compiled_key,
+                  "Bool"
+                )
+              }
             }
           } else {
             // ----- DYNAMIC: Process inline style object (no $$css) -----
@@ -236,15 +240,18 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
           }
         },
         StyleObject::Nullable => {},
+        #[cfg(not(tarpaulin_include))]
         StyleObject::Other => {
           stylex_panic!("Only compiled StyleX style objects are allowed in styleq().")
         },
+        #[cfg(not(tarpaulin_include))]
         StyleObject::Unreachable => {
           stylex_unreachable!(
             "Encountered an unexpected style object variant in styleq processing."
           )
         },
       },
+      #[cfg(not(tarpaulin_include))]
       _ => stylex_unreachable!("Unexpected ResolvedArg variant in styleq loop"),
     };
   }

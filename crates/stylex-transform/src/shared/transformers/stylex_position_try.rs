@@ -41,7 +41,10 @@ pub(crate) fn stylex_position_try(
   }
 
   let Some(styles) = styles.as_expr().and_then(|expr| expr.as_object()) else {
-    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+    #[cfg(not(tarpaulin_include))]
+    {
+      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+    }
   };
 
   let extended_object = {
@@ -56,6 +59,7 @@ pub(crate) fn stylex_position_try(
             FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
               transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
             )),
+            #[cfg(not(tarpaulin_include))]
             _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
           },
         )
@@ -68,6 +72,7 @@ pub(crate) fn stylex_position_try(
         .map(|(key, value)| {
           let value = match value.as_string() {
             Some(s) => s.clone(),
+            #[cfg(not(tarpaulin_include))]
             None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
           };
 
@@ -84,7 +89,10 @@ pub(crate) fn stylex_position_try(
     state,
     |style, _| {
       let Some(tuple) = style.as_tuple() else {
-        stylex_panic!("{}", THEME_VAR_TUPLE)
+        #[cfg(not(tarpaulin_include))]
+        {
+          stylex_panic!("{}", THEME_VAR_TUPLE)
+        }
       };
 
       let ltr_values = generate_ltr(
@@ -92,6 +100,7 @@ pub(crate) fn stylex_position_try(
           key: tuple.0.clone(),
           value: convert_lit_to_string(match tuple.1.clone().as_lit() {
             Some(lit) => lit,
+            #[cfg(not(tarpaulin_include))]
             None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
           })
           .unwrap_or_default(),
@@ -108,11 +117,15 @@ pub(crate) fn stylex_position_try(
     state,
     |style, _| {
       let Some(tuple) = style.as_tuple() else {
-        stylex_panic!("{}", THEME_VAR_TUPLE)
+        #[cfg(not(tarpaulin_include))]
+        {
+          stylex_panic!("{}", THEME_VAR_TUPLE)
+        }
       };
 
       let value = convert_lit_to_string(match tuple.1.clone().as_lit() {
         Some(lit) => lit,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
       })
       .unwrap_or_default();
@@ -189,6 +202,7 @@ fn construct_position_try_obj(styles: FlatCompiledStyles) -> String {
     .map(|k| {
       let v = match styles.get(&k) {
         Some(v) => v,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("Expected property key to exist in compiled styles."),
       };
       match v.as_ref() {

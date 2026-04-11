@@ -226,4 +226,48 @@ mod tests {
     assert_eq!(results[0].1, vec!["_test", "_test2", "_test3"]);
     assert_eq!(results[1].1, vec!["_test", "_test2", "_test3"]);
   }
+
+  #[test]
+  fn test_clear_local() {
+    let mut uid = UidGenerator::new("clr", CounterMode::Local);
+    assert_eq!(uid.generate(), "_clr");
+    assert_eq!(uid.generate(), "_clr2");
+    uid.clear();
+    assert_eq!(uid.generate(), "_clr");
+  }
+
+  #[test]
+  fn test_clear_thread_local() {
+    let mut uid = UidGenerator::new("tclr", CounterMode::ThreadLocal);
+    assert_eq!(uid.generate(), "_tclr");
+    assert_eq!(uid.generate(), "_tclr2");
+    uid.clear();
+    assert_eq!(uid.generate(), "_tclr");
+  }
+
+  #[test]
+  fn test_clear_global() {
+    let mut uid = UidGenerator::new("gclr", CounterMode::_Global);
+    let _ = uid.generate();
+    uid.clear();
+    // After clearing, creating a new generator should start fresh
+    let uid2 = UidGenerator::new("gclr", CounterMode::_Global);
+    assert_eq!(uid2.generate(), "_gclr");
+  }
+
+  #[test]
+  fn test_clear_thread_unique() {
+    let mut uid = UidGenerator::new("tuclr", CounterMode::_ThreadUnique);
+    // _ThreadUnique clear is a no-op, should not panic
+    uid.clear();
+  }
+
+  #[test]
+  fn test_generate_ident_returns_valid_ident() {
+    let uid = UidGenerator::new("id", CounterMode::Local);
+    let ident = uid.generate_ident();
+    assert_eq!(ident.sym.as_ref(), "_id");
+    let ident2 = uid.generate_ident();
+    assert_eq!(ident2.sym.as_ref(), "_id2");
+  }
 }

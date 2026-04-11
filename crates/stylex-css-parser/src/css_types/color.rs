@@ -529,6 +529,7 @@ impl Color {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Color {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -584,6 +585,7 @@ impl NamedColor {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for NamedColor {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.value)
@@ -683,6 +685,7 @@ impl HashColor {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for HashColor {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "#{}", self.value)
@@ -899,6 +902,7 @@ impl Rgb {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Rgb {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "rgb({}, {}, {})", self.r, self.g, self.b)
@@ -1188,6 +1192,7 @@ impl Rgba {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Rgba {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "rgba({}, {}, {}, {})", self.r, self.g, self.b, self.a)
@@ -1442,6 +1447,7 @@ impl Hsl {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Hsl {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "hsl({}, {}, {})", self.h, self.s, self.l)
@@ -1759,6 +1765,7 @@ impl Hsla {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Hsla {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "hsla({}, {}, {}, {})", self.h, self.s, self.l, self.a)
@@ -1790,6 +1797,7 @@ impl LchHue {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl std::fmt::Display for LchHue {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
@@ -2000,6 +2008,7 @@ impl Lch {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Lch {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.alpha {
@@ -2159,6 +2168,7 @@ impl Oklch {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Oklch {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.alpha {
@@ -2296,6 +2306,7 @@ impl Oklab {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for Oklab {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.alpha {

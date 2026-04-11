@@ -228,6 +228,7 @@ impl BoxShadow {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for BoxShadow {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let inset_str = if self.inset { "inset " } else { "" };
@@ -302,6 +303,7 @@ impl BoxShadowList {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Display for BoxShadowList {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     if self.shadows.is_empty() {

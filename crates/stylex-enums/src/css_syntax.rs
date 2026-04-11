@@ -19,6 +19,7 @@ pub enum CSSSyntax {
   TransformList,
 }
 
+#[cfg(not(tarpaulin_include))]
 impl fmt::Display for CSSSyntax {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match *self {
@@ -57,5 +58,49 @@ impl From<String> for CSSSyntax {
       "<url>" => CSSSyntax::Url,
       _ => stylex_panic!(r#"CSSSyntax "{}" not found"#, value),
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_from_string_all_variants() {
+    let cases = vec![
+      ("<angle>", CSSSyntax::Angle),
+      ("<color>", CSSSyntax::Color),
+      ("<image>", CSSSyntax::Image),
+      ("<integer>", CSSSyntax::Integer),
+      ("<length>", CSSSyntax::Length),
+      ("<lengthPercentage>", CSSSyntax::LengthPercentage),
+      ("<number>", CSSSyntax::Number),
+      ("<percentage>", CSSSyntax::Percentage),
+      ("<resolution>", CSSSyntax::Resolution),
+      ("<time>", CSSSyntax::Time),
+      ("<transformFunction>", CSSSyntax::TransformFunction),
+      ("<transformList>", CSSSyntax::TransformList),
+      ("<url>", CSSSyntax::Url),
+    ];
+    for (input, expected) in cases {
+      assert_eq!(CSSSyntax::from(input.to_string()), expected);
+    }
+  }
+
+  #[test]
+  fn test_display_all_variants() {
+    assert_eq!(CSSSyntax::Angle.to_string(), "<angle>");
+    assert_eq!(CSSSyntax::Color.to_string(), "<color>");
+    assert_eq!(CSSSyntax::Image.to_string(), "<image>");
+    assert_eq!(CSSSyntax::Integer.to_string(), "<integer>");
+    assert_eq!(CSSSyntax::Length.to_string(), "<length>");
+    assert_eq!(CSSSyntax::LengthPercentage.to_string(), "<lengthPercentage>");
+    assert_eq!(CSSSyntax::Number.to_string(), "<number>");
+    assert_eq!(CSSSyntax::Percentage.to_string(), "<percentage>");
+    assert_eq!(CSSSyntax::Resolution.to_string(), "<resolution>");
+    assert_eq!(CSSSyntax::Time.to_string(), "<time>");
+    assert_eq!(CSSSyntax::TransformFunction.to_string(), "<transformFunction>");
+    assert_eq!(CSSSyntax::TransformList.to_string(), "<transformList>");
+    assert_eq!(CSSSyntax::Url.to_string(), "<url>");
   }
 }

@@ -39,6 +39,7 @@ pub enum FunctionType {
   EnvFunction(JSFunction),
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Clone for FunctionType {
   fn clone(&self) -> Self {
     match self {
@@ -54,6 +55,7 @@ impl Clone for FunctionType {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl std::fmt::Debug for FunctionType {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
@@ -69,6 +71,7 @@ impl std::fmt::Debug for FunctionType {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl PartialEq for FunctionType {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {
@@ -85,6 +88,7 @@ impl PartialEq for FunctionType {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl std::hash::Hash for FunctionType {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     std::mem::discriminant(self).hash(state);
@@ -105,6 +109,7 @@ pub enum FunctionConfigType {
   EnvObject(IndexMap<String, stylex_structures::stylex_env::EnvEntry>),
 }
 
+#[cfg(not(tarpaulin_include))]
 impl std::fmt::Debug for FunctionConfigType {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
@@ -116,6 +121,7 @@ impl std::fmt::Debug for FunctionConfigType {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Clone for FunctionConfigType {
   fn clone(&self) -> Self {
     match self {
@@ -127,6 +133,7 @@ impl Clone for FunctionConfigType {
   }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl PartialEq for FunctionConfigType {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {

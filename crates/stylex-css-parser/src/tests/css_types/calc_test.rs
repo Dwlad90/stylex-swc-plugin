@@ -341,4 +341,47 @@ mod test_css_type_calc {
   fn rejects_invalid_calc_spacing() {
     assert!(Calc::parser().parse_to_end("calc(10+ 5 )").is_err());
   }
+
+  #[test]
+  fn parses_basic_addition_with_px() {
+    let calc = Calc::parser().parse_to_end("calc(10px + 20px)").unwrap();
+    assert_eq!(calc.to_string(), "calc(10px + 20px)");
+  }
+
+  #[test]
+  fn parses_subtraction_percent_minus_px() {
+    let calc = Calc::parser().parse_to_end("calc(100% - 10px)").unwrap();
+    assert_eq!(calc.to_string(), "calc(100% - 10px)");
+  }
+
+  #[test]
+  fn parses_multiplication_px_times_number() {
+    let calc = Calc::parser().parse_to_end("calc(10px * 2)").unwrap();
+    assert_eq!(calc.to_string(), "calc(10px * 2)");
+  }
+
+  #[test]
+  fn parses_division_px_by_number() {
+    let calc = Calc::parser().parse_to_end("calc(100px / 2)").unwrap();
+    assert_eq!(calc.to_string(), "calc(100px / 2)");
+  }
+
+  #[test]
+  fn parses_operator_precedence_add_mul() {
+    let calc = Calc::parser()
+      .parse_to_end("calc(10px + 20px * 2)")
+      .unwrap();
+    let reparsed = Calc::parser().parse_to_end(&calc.to_string()).unwrap();
+    assert_eq!(calc.to_string(), reparsed.to_string());
+  }
+
+  #[test]
+  fn parses_parenthesized_group() {
+    let calc = Calc::parser()
+      .parse_to_end("calc((10px + 20px) * 2)")
+      .unwrap();
+    assert!(calc.to_string().contains("(10px + 20px)"));
+    let reparsed = Calc::parser().parse_to_end(&calc.to_string()).unwrap();
+    assert_eq!(calc.to_string(), reparsed.to_string());
+  }
 }

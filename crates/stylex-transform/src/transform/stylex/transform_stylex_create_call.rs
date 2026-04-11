@@ -89,10 +89,12 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("stylex.when ancestor: expression is not a string"),
       };
       let result = match stylex_when::ancestor(&expr_str, Some(&state.options)) {
         Ok(v) => v,
+        #[cfg(not(tarpaulin_include))]
         Err(e) => stylex_panic!("stylex.when ancestor error: {}", e),
       };
       create_string_expr(&result)
@@ -105,10 +107,12 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("stylex.when descendant: expression is not a string"),
       };
       let result = match stylex_when::descendant(&expr_str, Some(&state.options)) {
         Ok(v) => v,
+        #[cfg(not(tarpaulin_include))]
         Err(e) => stylex_panic!("stylex.when descendant error: {}", e),
       };
       create_string_expr(&result)
@@ -121,10 +125,12 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("stylex.when siblingBefore: expression is not a string"),
       };
       let result = match stylex_when::sibling_before(&expr_str, Some(&state.options)) {
         Ok(v) => v,
+        #[cfg(not(tarpaulin_include))]
         Err(e) => stylex_panic!("stylex.when siblingBefore error: {}", e),
       };
       create_string_expr(&result)
@@ -137,10 +143,12 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("stylex.when siblingAfter: expression is not a string"),
       };
       let result = match stylex_when::sibling_after(&expr_str, Some(&state.options)) {
         Ok(v) => v,
+        #[cfg(not(tarpaulin_include))]
         Err(e) => stylex_panic!("stylex.when siblingAfter error: {}", e),
       };
       create_string_expr(&result)
@@ -153,10 +161,12 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("stylex.when anySibling: expression is not a string"),
       };
       let result = match stylex_when::any_sibling(&expr_str, Some(&state.options)) {
         Ok(v) => v,
+        #[cfg(not(tarpaulin_include))]
         Err(e) => stylex_panic!("stylex.when anySibling error: {}", e),
       };
       create_string_expr(&result)
@@ -260,6 +270,7 @@ where
 
         let member_expression = match member_expressions.get_mut(name) {
           Some(me) => me,
+          #[cfg(not(tarpaulin_include))]
           None => stylex_panic!("Could not resolve the member expression for the StyleX import."),
         };
 
@@ -283,7 +294,10 @@ where
           Box::new(FunctionConfigType::IndexMap(
             stylex_default_maker::stylex_default_marker(&self.state.options)
               .as_values()
-              .unwrap_or_else(|| stylex_panic!("{}", EXPECTED_COMPILED_STYLES))
+              .unwrap_or_else(|| {
+                #[cfg(not(tarpaulin_include))]
+                { stylex_panic!("{}", EXPECTED_COMPILED_STYLES) }
+              })
               .clone(),
           )),
         );
@@ -343,6 +357,7 @@ where
 
       let value = match evaluated_arg.value {
         Some(v) => v,
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("{}", non_static_value("create")),
       };
 
@@ -665,9 +680,12 @@ where
                                     })
                                   })
                                   .unwrap_or_else(|| {
-                                    stylex_panic!(
-                                      "Expected at least one expression to reduce in class name concatenation."
-                                    )
+                                    #[cfg(not(tarpaulin_include))]
+                                    {
+                                      stylex_panic!(
+                                        "Expected at least one expression to reduce in class name concatenation."
+                                      )
+                                    }
                                   })
                               };
 
@@ -755,6 +773,7 @@ where
 
                         let hoist_ident_expr = match hoist_ident.expr.as_ident() {
                           Some(ident) => ident.clone(),
+                          #[cfg(not(tarpaulin_include))]
                           None => stylex_panic!("Expected an identifier for the hoisted style variable."),
                         };
                         self.state.declarations.push(

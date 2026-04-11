@@ -94,6 +94,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
 
   let init_expr = match &var_decl.init {
     Some(init) => init.clone(),
+    #[cfg(not(tarpaulin_include))]
     None => stylex_panic!("{}", non_static_value("keyframes")),
   };
 
@@ -146,6 +147,7 @@ pub(crate) fn validate_stylex_position_try_indent(
 
   let init_expr = match &var_decl.init {
     Some(init) => init.clone(),
+    #[cfg(not(tarpaulin_include))]
     None => stylex_panic!("{}", non_static_value("positionTry")),
   };
 
@@ -215,6 +217,7 @@ pub(crate) fn validate_stylex_view_transition_class_indent(
 
   let init_expr = match &var_decl.init {
     Some(init) => init.clone(),
+    #[cfg(not(tarpaulin_include))]
     None => stylex_panic!("{}", non_static_value("viewTransitionClass")),
   };
 
@@ -624,6 +627,7 @@ pub(crate) fn is_target_call(
             && state.stylex_import_stringified().contains(
               &match member.obj.as_ident() {
                 Some(ident) => ident,
+                #[cfg(not(tarpaulin_include))]
                 None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
               }
               .sym
@@ -739,11 +743,17 @@ pub(crate) fn validate_conditional_styles(
       || inner_key.starts_with("var(--")
       || inner_key == "default")
   {
-    stylex_panic!("{}", INVALID_PSEUDO_OR_AT_RULE);
+    #[cfg(not(tarpaulin_include))]
+    {
+      stylex_panic!("{}", INVALID_PSEUDO_OR_AT_RULE);
+    }
   }
 
   if conditions.contains(&inner_key) {
-    stylex_panic!("{}", DUPLICATE_CONDITIONAL);
+    #[cfg(not(tarpaulin_include))]
+    {
+      stylex_panic!("{}", DUPLICATE_CONDITIONAL);
+    }
   }
 
   match inner_value.as_ref() {
@@ -795,6 +805,7 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue, state: &mut Stat
         build_code_frame_error_and_panic(expr, expr, &non_style_object("keyframes"), state);
       },
     },
+    #[cfg(not(tarpaulin_include))]
     _ => stylex_panic!("{}", non_static_value("keyframes")),
   }
 }
@@ -825,7 +836,10 @@ fn assert_stylex_arg(value: &EvaluateResultValue, state: &mut StateManager, fn_n
       build_code_frame_error_and_panic(expr, expr, &non_style_object(fn_name), state);
     }
   } else {
-    stylex_panic!("{}", non_static_value(fn_name));
+    #[cfg(not(tarpaulin_include))]
+    {
+      stylex_panic!("{}", non_static_value(fn_name));
+    }
   }
 }
 
@@ -851,17 +865,23 @@ pub(crate) fn validate_theme_variables(
 
     let key_value = create_key_value_prop_ident(
       VAR_GROUP_HASH_KEY,
-      create_string_expr(match value.as_css_var() {
-        Some(v) => v,
-        None => stylex_panic!("{}", EXPECTED_CSS_VAR),
-      }),
+      create_string_expr(
+        match value.as_css_var() {
+          Some(v) => v,
+          None => stylex_panic!("{}", EXPECTED_CSS_VAR),
+        }
+        .as_str(),
+      ),
     );
 
     return key_value;
   }
 
   if !variables.as_expr().is_some_and(|expr| expr.is_object()) {
-    stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS);
+    #[cfg(not(tarpaulin_include))]
+    {
+      stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS);
+    }
   }
 
   match variables
@@ -891,6 +911,7 @@ pub(crate) fn validate_theme_variables(
       None
     }) {
     Some(key_value) => key_value,
+    #[cfg(not(tarpaulin_include))]
     None => stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS),
   }
 }

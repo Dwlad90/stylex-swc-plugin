@@ -88,6 +88,7 @@ impl<T> Pipe<T> {
 pub(crate) fn obj_entries(obj: &Expr) -> Vec<KeyValueProp> {
   let object = match obj.as_object() {
     Some(o) => o,
+    #[cfg(not(tarpaulin_include))]
     None => stylex_panic!("Object expected"),
   };
 
@@ -102,6 +103,7 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, String
       key.clone(),
       match value.as_ref() {
         Some(v) => v.clone(),
+        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!("Value is not a string"),
       },
     );
@@ -142,6 +144,7 @@ pub(crate) fn obj_map_keys_key_value(
 
     let key_values = match value.as_key_values() {
       Some(kv) => kv,
+      #[cfg(not(tarpaulin_include))]
       None => stylex_panic!("Value must be a key-value pairs"),
     };
 

@@ -515,4 +515,123 @@ mod test_css_type_basic_shape {
     };
     assert_eq!(ellipse.to_string(), "ellipse(farthest-side closest-side)");
   }
+
+  // Parse-and-to_string round-trip tests
+  mod parse_to_string {
+    use super::*;
+
+    #[test]
+    fn circle_with_radius() {
+      assert_eq!(
+        BasicShape::parse()
+          .parse_to_end("circle(50px)")
+          .unwrap()
+          .to_string(),
+        "circle(50px)"
+      );
+    }
+
+    #[test]
+    #[ignore] // Position parsing with "at" not yet fully implemented
+    fn circle_with_position() {
+      assert_eq!(
+        BasicShape::parse()
+          .parse_to_end("circle(50px at center center)")
+          .unwrap()
+          .to_string(),
+        "circle(50px at center center)"
+      );
+    }
+
+    #[test]
+    fn ellipse_two_radii() {
+      assert_eq!(
+        BasicShape::parse()
+          .parse_to_end("ellipse(50px 30px)")
+          .unwrap()
+          .to_string(),
+        "ellipse(50px 30px)"
+      );
+    }
+
+    #[test]
+    #[ignore] // Position parsing with "at" not yet fully implemented
+    fn ellipse_with_position() {
+      assert_eq!(
+        BasicShape::parse()
+          .parse_to_end("ellipse(50px 30px at 10% 20%)")
+          .unwrap()
+          .to_string(),
+        "ellipse(50px 30px at 10% 20%)"
+      );
+    }
+
+    #[test]
+    fn polygon_three_points() {
+      let result = BasicShape::parse()
+        .parse_to_end("polygon(0% 0%, 100% 0%, 50% 100%)")
+        .unwrap();
+      assert!(result.to_string().contains("polygon"));
+      if let BasicShape::Polygon { fill_rule, points } = result {
+        assert_eq!(points.len(), 3);
+        assert_eq!(fill_rule, Some("nonzero".to_string()));
+      }
+    }
+
+    #[test]
+    fn polygon_with_fill_rule() {
+      let result = BasicShape::parse()
+        .parse_to_end("polygon(evenodd, 0% 0%, 100% 0%, 50% 100%)")
+        .unwrap();
+      assert!(result.to_string().contains("polygon"));
+      if let BasicShape::Polygon { fill_rule, points } = result {
+        assert_eq!(points.len(), 3);
+        assert_eq!(fill_rule, Some("evenodd".to_string()));
+      }
+    }
+
+    #[test]
+    fn inset_single_value() {
+      assert_eq!(
+        BasicShape::parse()
+          .parse_to_end("inset(10px)")
+          .unwrap()
+          .to_string(),
+        "inset(10px)"
+      );
+    }
+
+    #[test]
+    fn inset_two_values() {
+      assert_eq!(
+        BasicShape::parse()
+          .parse_to_end("inset(10px 20px)")
+          .unwrap()
+          .to_string(),
+        "inset(10px 20px)"
+      );
+    }
+
+    #[test]
+    fn inset_four_values() {
+      assert_eq!(
+        BasicShape::parse()
+          .parse_to_end("inset(10px 20px 30px 40px)")
+          .unwrap()
+          .to_string(),
+        "inset(10px 20px 30px 40px)"
+      );
+    }
+
+    #[test]
+    fn path_to_string() {
+      let result = BasicShape::parse()
+        .parse_to_end("path(\"M 0 0 L 100 100\")")
+        .unwrap();
+      assert!(result.to_string().contains("path"));
+      if let BasicShape::Path { path, .. } = result {
+        assert_eq!(path, "M 0 0 L 100 100");
+      }
+    }
+  }
 }

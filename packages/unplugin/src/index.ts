@@ -210,15 +210,6 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         cleanedExtensionName = cleanedExtensionName.slice(1);
       }
 
-      // Vue SFCs: only transform virtual script blocks (`?type=script`).
-      // Raw `.vue` files include template/style tags and cannot be parsed by SWC.
-      if (cleanedExtensionName === 'vue') {
-        const isVirtualScriptBlock = id.includes('?') && id.includes('type=script');
-        if (!isVirtualScriptBlock) {
-          return false;
-        }
-      }
-
       if (!pageExtensions.includes(cleanedExtensionName)) {
         return false;
       }
@@ -232,27 +223,13 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     },
 
     async transform(inputCode, id) {
-      // Never pass raw Vue SFC documents to SWC.
-      // Only virtual Vue script blocks (type=script) are transformable.
-      if (id.includes('.vue') && !id.includes('type=script')) {
-        return null;
-      }
-
       if (!hasStyleXCode(normalizedOptions, inputCode)) {
         return null;
       }
 
       const dir = path.dirname(id);
       const basename = path.basename(id);
-      const baseFile = path.join(dir, basename.split('?')[0] || basename);
-
-      // For Vue virtual script modules, use a virtual filename with script lang extension
-      // so the Rust parser picks the correct JS/TS syntax mode.
-      let file = baseFile;
-      if (id.includes('.vue') && id.includes('type=script')) {
-        const lang = id.match(/[?&]lang\\.([a-z0-9]+)/i)?.[1] || 'js';
-        file = `${baseFile}.${lang}`;
-      }
+      const file = path.join(dir, basename.split('?')[0] || basename);
 
       try {
         const { code, map } = transformStyleXCode(

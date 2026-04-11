@@ -144,6 +144,9 @@ jobs:
           - id: tests
             name: Run tests
             command: pnpm run test
+          - id: tests-coverage
+            name: Run tests coverage
+            command: pnpm run test:coverage
           - id: check-artifacts
             name: Check artifacts
             command: pnpm run check:artifacts --filter "{./packages/*}" --filter "{./crates/*}"
@@ -155,10 +158,25 @@ jobs:
           fetch-depth: 0
           fetch-tags: false
 
+      - name: Cache Tarpaulin
+        if: matrix.check.id == 'tests-coverage' && steps.tarpaulin-cache.outputs.cache-hit != 'true'
+        id: tarpaulin-cache
+        uses: actions/cache@v6.0.2
+        with:
+          path: ~/.cargo/bin/cargo-tarpaulin
+          key: ${{ runner.os }}-tarpaulin-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
           rust-target: 'wasm32-wasip1'
+
+      - name: Install Tarpaulin (if not cached)
+        if: matrix.check.id == 'tests-coverage'
+        run: |
+          if ! command -v cargo-tarpaulin >/dev/null 2>&1; then
+            cargo install --locked cargo-tarpaulin
+          fi
 
       - name: Cache turbo build setup
         id: turbo-cache

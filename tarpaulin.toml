@@ -15,8 +15,6 @@ ignore-panics = true          # Ignore panic/unwind branches (crucial for hittin
 exclude = [
     "stylex_test_parser",     # Binary crate (main.rs), not a library
     "stylex_compiler_rs",     # NAPI native module — tested via integration tests in JS
-    #"stylex_js",              # JS helper functions — Rust-level unit tests must be applied # !Must be test covered!
-    "stylex_logs",            # Logging infrastructure — side-effect-only code
 ]
 
 exclude-files = [
@@ -26,15 +24,15 @@ exclude-files = [
     "**/examples/**",
     "**/stylex-test-parser/**",
     "**/stylex-rs-compiler/**",
-    "**/stylex-logs/**",
+    "**/.DS_Store",
     "crates/stylex-test-parser/**",
     "crates/stylex-rs-compiler/**",
-    "crates/stylex-logs/**",
 ]
 
 # Output settings
 out = ["Html", "Lcov"]        # Generate an HTML report for humans and Lcov for CI tools (like Codecov)
-output-dir = "target/tarpaulin"
+output-dir = "target/tarpaulin-output"
+target-dir = "/tmp/stylex-swc-plugin-tarpaulin-target"
 
 # Enforcement
 fail-under = 100              # Fail the CI/run if coverage drops below 100%

@@ -104,10 +104,7 @@ pub fn create_array_expression(elems: Vec<Option<ExprOrSpread>>) -> Expr {
 /// let prop_or_spread = create_key_value_prop("key", value);
 pub fn create_key_value_prop(key: &str, value: Expr) -> PropOrSpread {
   PropOrSpread::from(Prop::from(KeyValueProp {
-    key: match convert_string_to_prop_name(key) {
-      Some(k) => k,
-      None => stylex_panic!("Failed to create prop name from key: {}", key),
-    },
+    key: convert_string_to_prop_name(key),
     value: Box::new(value),
   }))
 }

@@ -41,7 +41,7 @@ mod tests {
 
     for key in keys_with_quotes {
       assert!(
-        convert_string_to_prop_name(key).unwrap().is_str(),
+        convert_string_to_prop_name(key).is_str(),
         "Key '{}' should be wrapped in quotes",
         key
       );
@@ -104,7 +104,7 @@ mod tests {
 
     for key in keys_without_quotes {
       assert!(
-        convert_string_to_prop_name(key).unwrap().is_ident(),
+        convert_string_to_prop_name(key).is_ident(),
         "Key '{}' should not be wrapped in quotes",
         key
       );

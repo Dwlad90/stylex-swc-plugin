@@ -239,21 +239,18 @@ fn should_wrap_prop_name_key_with_quotes(key: &str) -> bool {
   }
 }
 #[inline]
-pub fn convert_string_to_prop_name(value: &str) -> Option<PropName> {
+pub fn convert_string_to_prop_name(value: &str) -> PropName {
   if should_wrap_prop_name_key_with_quotes(value) {
-    Some(PropName::Str(quote_str!(value)))
+    PropName::Str(quote_str!(value))
   } else {
-    Some(PropName::Ident(quote_ident!(value)))
+    PropName::Ident(quote_ident!(value))
   }
 }
 
 pub fn expand_shorthand_prop(prop: &mut Box<Prop>) {
   if let Some(ident) = prop.as_shorthand() {
     **prop = Prop::from(KeyValueProp {
-      key: match convert_string_to_prop_name(ident.sym.as_ref()) {
-        Some(k) => k,
-        None => stylex_panic!("Failed to convert string to a valid property name."),
-      },
+      key: convert_string_to_prop_name(ident.sym.as_ref()),
       value: Box::new(Expr::Ident(ident.clone())),
     });
   }

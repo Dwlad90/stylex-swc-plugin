@@ -123,15 +123,13 @@ fn convert_concat_to_tpl_expr_passthrough_non_call() {
 #[test]
 fn convert_string_to_prop_name_simple_ident() {
   let result = convert_string_to_prop_name("color");
-  assert!(result.is_some());
-  assert!(matches!(result.unwrap(), PropName::Ident(_)));
+  assert!(matches!(result, PropName::Ident(_)));
 }
 
 #[test]
 fn convert_string_to_prop_name_needs_quoting() {
   let result = convert_string_to_prop_name("background-color");
-  assert!(result.is_some());
-  assert!(matches!(result.unwrap(), PropName::Str(_)));
+  assert!(matches!(result, PropName::Str(_)));
 }
 
 #[test]
@@ -306,4 +304,44 @@ fn concat_call_to_template_literal_non_concat_returns_none() {
     ctxt: SyntaxContext::empty(),
   };
   assert!(concat_call_to_template_literal(&call).is_none());
+}
+
+#[test]
+fn convert_concat_to_tpl_expr_converts_concat_call() {
+  use swc_core::common::SyntaxContext;
+  use swc_core::ecma::ast::{Callee, MemberExpr, MemberProp};
+
+  let call = CallExpr {
+    span: DUMMY_SP,
+    callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
+      span: DUMMY_SP,
+      obj: Box::new(create_string_expr("base")),
+      prop: MemberProp::Ident(swc_core::ecma::ast::IdentName::new(
+        "concat".into(),
+        DUMMY_SP,
+      )),
+    }))),
+    args: vec![ExprOrSpread {
+      spread: None,
+      expr: Box::new(create_string_expr("tail")),
+    }],
+    type_args: None,
+    ctxt: SyntaxContext::empty(),
+  };
+
+  let result = convert_concat_to_tpl_expr(Expr::Call(call));
+  assert!(matches!(result, Expr::Tpl(_)));
+}
+
+#[test]
+fn create_big_int_expr_produces_big_int_lit() {
+  let big = BigInt {
+    span: DUMMY_SP,
+    value: Box::new(42i64.into()),
+    raw: None,
+  };
+  assert!(matches!(
+    create_big_int_expr(big),
+    Expr::Lit(Lit::BigInt(_))
+  ));
 }

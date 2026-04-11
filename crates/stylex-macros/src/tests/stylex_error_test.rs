@@ -63,3 +63,12 @@ fn format_panic_message_unknown_type() {
   assert!(result.contains("[StyleX]"));
   assert!(result.contains("Unknown error"));
 }
+
+/// ANSI escape codes should be stripped before prefixing.
+#[test]
+fn format_panic_message_strips_ansi_codes() {
+  let msg = String::from("\u{1b}[31mred error\u{1b}[0m");
+  let payload: Box<dyn std::any::Any + Send> = Box::new(msg);
+  let result = format_panic_message(&payload);
+  assert_eq!(result, "[StyleX] red error");
+}

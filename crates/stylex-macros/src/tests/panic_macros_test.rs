@@ -41,3 +41,14 @@ fn stylex_err_with_file_accepts_owned_strings() {
   assert_eq!(err.message, "msg");
   assert_eq!(err.file.as_deref(), Some("file.rs"));
 }
+
+/// Verify `unwrap_or_panic!` without context triggers the base panic branch.
+#[test]
+fn unwrap_or_panic_without_context_panics() {
+  let result = std::panic::catch_unwind(|| {
+    let failure: Result<(), &str> = Err("boom");
+    crate::unwrap_or_panic!(failure);
+  });
+
+  assert!(result.is_err());
+}

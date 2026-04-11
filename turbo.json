@@ -114,29 +114,6 @@
       "cache": true,
       "outputs": [],
       "outputLogs": "errors-only"
-    },
-    "test:tarpaulin": {
-      "dependsOn": [
-        "^build"
-      ],
-      "cache": false,
-      "outputs": [
-        "target/tarpaulin/**/*",
-        "target/tarpaulin-json/**/*",
-        "**/*.profraw"
-      ],
-      "outputLogs": "errors-only"
-    },
-    "test:flamegraph": {
-      "dependsOn": [
-        "^build"
-      ],
-      "cache": false,
-      "outputs": [
-        "**/flamegraph.svg",
-        "target/flamegraph/**/*"
-      ],
-      "outputLogs": "errors-only"
     }
   },
   "boundaries": {

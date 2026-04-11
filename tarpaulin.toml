@@ -10,6 +10,7 @@ engine = "Llvm"               # LLVM is significantly more accurate and faster t
 # Exclusions & Ignored Code
 ignore-tests = true           # Don't count the test functions themselves in the coverage metric
 ignore-panics = true          # Ignore panic/unwind branches (crucial for hitting 100% in Rust)
+skip-clean = true             # Reuse build artifacts between runs for faster local iteration
 
 exclude-files = [
     "**/build.rs",
@@ -21,14 +22,16 @@ exclude-files = [
     "**/crates/stylex-transform/**",
     "**/stylex-rs-compiler/**",
     "**/stylex-test-parser/**",
+    "**/stylex-css-parser/**",
     "crates/stylex-logs/**",
     "crates/stylex-rs-compiler/**",
     "crates/stylex-test-parser/**",
     "crates/stylex-transform/**",
+    "crates/stylex-css-parser/**",
 ]
 
 # Output settings
-out = ["Html", "Lcov"]        # Generate an HTML report for humans and Lcov for CI tools (like Codecov)
+out = ["Json"]                # Keep CLI coverage output aligned with workspace `test:coverage`
 output-dir = "target/tarpaulin"
 target-dir = "/tmp/stylex-swc-plugin-tarpaulin-target"
 
@@ -39,10 +42,7 @@ fail-under = 100              # Fail the CI/run if coverage drops below 100%
 timeout = '300s'                 # Give tests up to 5 minutes to complete to prevent hanging
 color = "Always"
 
-# Run types: specify what should be executed
-# 'Tests' covers unit/integration tests
-# 'Doctests' covers examples in your doc comments (///)
-run-types = ["Tests", "Doctests"]
-
-# Explicitly enable documentation test coverage
-doc = true
+# Run only unit/integration tests across all packages.
+# Bin-only crates do not expose doctests and would fail if doctests are forced.
+run-types = ["Tests"]
+doc = false

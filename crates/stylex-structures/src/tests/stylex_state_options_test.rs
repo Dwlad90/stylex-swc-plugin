@@ -89,3 +89,11 @@ fn from_stylex_options_preserves_fields() {
   assert!(state.debug);
   assert_eq!(state.class_name_prefix, "y");
 }
+
+#[test]
+fn stylex_state_options_deref_mut_updates_core() {
+  // Ensure mutable deref reaches the embedded CoreStyleXOptions value.
+  let mut opts = StyleXStateOptions::default();
+  std::ops::DerefMut::deref_mut(&mut opts).class_name_prefix = "state-mutated".into();
+  assert_eq!(opts.class_name_prefix, "state-mutated");
+}

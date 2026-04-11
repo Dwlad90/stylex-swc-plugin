@@ -31,6 +31,27 @@
         "build"
       ],
       "cache": false
+    },
+    "test:coverage": {
+      "dependsOn": [
+        "^do:nothing"
+      ],
+      "cache": false,
+      "outputs": [
+        "target/tarpaulin/**/*",
+        "target/tarpaulin-json/**/*",
+        "**/*.profraw"
+      ]
+    },
+    "test:flamegraph": {
+      "dependsOn": [
+        "^do:nothing"
+      ],
+      "cache": false,
+      "outputs": [
+        "**/flamegraph.svg",
+        "target/flamegraph/**/*"
+      ]
     }
   }
 }

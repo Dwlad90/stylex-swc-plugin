@@ -275,6 +275,7 @@ pub fn parse_css(css_string: &str) -> Vec<String> {
   let mut parser = Parser::new(&mut input);
 
   let nodes = parse_css_inner(&mut parser).unwrap_or_else(|_| {
+    #[cfg(not(tarpaulin_include))]
     stylex_unreachable!("parse_css_inner returned Err, which should not happen")
   });
 

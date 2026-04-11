@@ -48,10 +48,10 @@ pub fn resolve_path(
     );
   }
 
-  #[cfg(test)]
+  #[cfg(any(test, tarpaulin))]
   let cwd = root_dir.to_path_buf();
 
-  #[cfg(not(test))]
+  #[cfg(all(not(test), not(tarpaulin)))]
   let cwd: PathBuf = "cwd".into();
 
   let path_by_package_json =

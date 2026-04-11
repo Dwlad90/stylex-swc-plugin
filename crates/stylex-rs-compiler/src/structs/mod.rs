@@ -159,3 +159,140 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
     })
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn empty_options() -> StyleXOptions {
+    StyleXOptions {
+      style_resolution: None,
+      enable_font_size_px_to_rem: None,
+      runtime_injection: None,
+      class_name_prefix: None,
+      defined_stylex_css_variables: None,
+      import_sources: None,
+      treeshake_compensation: None,
+      enable_inlined_conditional_merge: None,
+      enable_media_query_order: None,
+      enable_logical_styles_polyfill: None,
+      enable_legacy_value_flipping: None,
+      enable_ltr_rtl_comments: None,
+      legacy_disable_layers: None,
+      dev: None,
+      test: None,
+      debug: None,
+      enable_debug_class_names: None,
+      enable_debug_data_prop: None,
+      enable_dev_class_names: None,
+      enable_minified_keys: None,
+      inject_stylex_side_effects: None,
+      use_real_file_for_source: None,
+      aliases: None,
+      unstable_module_resolution: None,
+      source_map: None,
+      include: None,
+      exclude: None,
+      swc_plugins: None,
+      property_validation_mode: None,
+      env: None,
+      debug_file_path: None,
+      sx_prop_name: None,
+    }
+  }
+
+  #[test]
+  fn try_from_maps_supported_fields() {
+    let options = StyleXOptions {
+      style_resolution: Some("application-order".to_string()),
+      runtime_injection: Some(RuntimeInjectionUnion::Regular("inject-path".to_string())),
+      import_sources: Some(vec![
+        ImportSourceUnion::Regular("@stylexjs/stylex".to_string()),
+        ImportSourceUnion::Named(NamedImportSource {
+          r#as: "sx".to_string(),
+          from: "stylex".to_string(),
+        }),
+      ]),
+      unstable_module_resolution: Some(StyleXModuleResolution {
+        r#type: "commonJS".to_string(),
+        root_dir: Some("/root".to_string()),
+        theme_file_extension: Some(".stylex".to_string()),
+      }),
+      property_validation_mode: Some(PropertyValidationMode::Warn),
+      sx_prop_name: Some(SxPropNameUnion::Name("sx".to_string())),
+      ..empty_options()
+    };
+
+    let parsed = StyleXOptionsParams::try_from(options).unwrap();
+
+    assert!(parsed.style_resolution.is_some());
+    assert_eq!(
+      parsed.runtime_injection,
+      Some(RuntimeInjection::Regular("inject-path".to_string()))
+    );
+    assert_eq!(parsed.import_sources.as_ref().map(Vec::len), Some(2));
+    assert_eq!(
+      parsed
+        .unstable_module_resolution
+        .as_ref()
+        .map(|m| m.r#type.as_str()),
+      Some("commonJS")
+    );
+    assert_eq!(
+      parsed.property_validation_mode,
+      Some(StylexPropertyValidationMode::Warn)
+    );
+    assert!(matches!(
+      parsed.sx_prop_name,
+      Some(SxPropNameParam::Enabled(ref value)) if value == "sx"
+    ));
+  }
+
+  #[test]
+  fn try_from_returns_error_for_invalid_style_resolution() {
+    let options = StyleXOptions {
+      style_resolution: Some("not-a-style-resolution".to_string()),
+      ..empty_options()
+    };
+
+    match StyleXOptionsParams::try_from(options) {
+      Ok(_) => panic!("expected style resolution parsing to fail"),
+      Err(error) => assert!(
+        error
+          .to_string()
+          .contains("Failed to parse style resolution")
+      ),
+    }
+  }
+
+  #[test]
+  fn try_from_uses_dev_for_debug_when_debug_not_set() {
+    let options = StyleXOptions {
+      dev: Some(true),
+      debug: None,
+      ..empty_options()
+    };
+
+    let parsed = StyleXOptionsParams::try_from(options).unwrap();
+    assert_eq!(parsed.debug, Some(true));
+  }
+
+  #[test]
+  fn try_from_maps_runtime_injection_bool_and_sx_disabled() {
+    let options = StyleXOptions {
+      runtime_injection: Some(RuntimeInjectionUnion::Boolean(true)),
+      sx_prop_name: Some(SxPropNameUnion::Disabled),
+      ..empty_options()
+    };
+
+    let parsed = StyleXOptionsParams::try_from(options).unwrap();
+    assert_eq!(
+      parsed.runtime_injection,
+      Some(RuntimeInjection::Boolean(true))
+    );
+    assert!(matches!(
+      parsed.sx_prop_name,
+      Some(SxPropNameParam::Disabled)
+    ));
+  }
+}

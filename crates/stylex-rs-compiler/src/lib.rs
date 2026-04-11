@@ -39,6 +39,15 @@ use crate::enums::{
   StyleXModuleResolution,
 };
 
+fn source_maps_config(source_map: Option<&SourceMaps>) -> SourceMapsConfig {
+  match source_map {
+    Some(SourceMaps::True) => SourceMapsConfig::Bool(true),
+    Some(SourceMaps::False) => SourceMapsConfig::Bool(false),
+    Some(SourceMaps::Inline) => SourceMapsConfig::Str("inline".to_string()),
+    None => SourceMapsConfig::Bool(true),
+  }
+}
+
 fn extract_patterns(
   env: &Env,
   patterns_opt: &mut Option<Vec<napi::UnknownRef>>,
@@ -115,12 +124,7 @@ pub fn transform(
       filename: filename.clone(),
     };
 
-    let source_map = match options.source_map.as_ref() {
-      Some(SourceMaps::True) => SourceMapsConfig::Bool(true),
-      Some(SourceMaps::False) => SourceMapsConfig::Bool(false),
-      Some(SourceMaps::Inline) => SourceMapsConfig::Str("inline".to_string()),
-      None => SourceMapsConfig::Bool(true),
-    };
+    let source_map = source_maps_config(options.source_map.as_ref());
 
     let mut config: StyleXOptionsParams = options.try_into()?;
 
@@ -272,25 +276,7 @@ fn parse_js_pattern_from_unknown(_env: &Env, value: napi::Unknown) -> Result<Pat
         let source_str = source.into_utf8()?.as_str()?.to_owned();
         let flags_str = flags.into_utf8()?.as_str()?.to_owned();
 
-        // Convert JavaScript flags to regex inline modifiers
-        // Note: 'g' (global) and 'y' (sticky) are not relevant for single-string matching
-        let mut inline_flags = String::new();
-        if flags_str.contains('i') {
-          inline_flags.push('i'); // case insensitive
-        }
-        if flags_str.contains('m') {
-          inline_flags.push('m'); // multiline
-        }
-        if flags_str.contains('s') {
-          inline_flags.push('s'); // dotAll
-        }
-
-        // Prepend inline flags if any exist
-        let pattern = if !inline_flags.is_empty() {
-          format!("(?{}){}", inline_flags, source_str)
-        } else {
-          source_str
-        };
+        let pattern = enums::js_regex_pattern_from_source_and_flags(&source_str, &flags_str);
 
         return Ok(PathFilterUnion::Regex(pattern));
       }
@@ -363,4 +349,136 @@ pub fn normalize_rs_options(options: StyleXOptions) -> Result<StyleXOptions> {
   }
 
   Ok(normalized_options)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn empty_options() -> StyleXOptions {
+    StyleXOptions {
+      style_resolution: None,
+      enable_font_size_px_to_rem: None,
+      runtime_injection: None,
+      class_name_prefix: None,
+      defined_stylex_css_variables: None,
+      import_sources: None,
+      treeshake_compensation: None,
+      enable_inlined_conditional_merge: None,
+      enable_media_query_order: None,
+      enable_logical_styles_polyfill: None,
+      enable_legacy_value_flipping: None,
+      enable_ltr_rtl_comments: None,
+      legacy_disable_layers: None,
+      dev: None,
+      test: None,
+      debug: None,
+      enable_debug_class_names: None,
+      enable_debug_data_prop: None,
+      enable_dev_class_names: None,
+      enable_minified_keys: None,
+      inject_stylex_side_effects: None,
+      use_real_file_for_source: None,
+      aliases: None,
+      unstable_module_resolution: None,
+      source_map: None,
+      include: None,
+      exclude: None,
+      swc_plugins: None,
+      property_validation_mode: None,
+      env: None,
+      debug_file_path: None,
+      sx_prop_name: None,
+    }
+  }
+
+  #[test]
+  fn normalize_rs_options_applies_defaults() {
+    let normalized = normalize_rs_options(empty_options()).unwrap();
+
+    assert!(matches!(
+      normalized.runtime_injection,
+      Some(RuntimeInjectionUnion::Boolean(false))
+    ));
+    assert_eq!(normalized.enable_minified_keys, Some(true));
+    assert_eq!(normalized.enable_media_query_order, Some(true));
+    assert_eq!(
+      normalized.style_resolution.as_deref(),
+      Some("property-specificity")
+    );
+    assert!(matches!(
+      normalized.property_validation_mode,
+      Some(PropertyValidationMode::Silent)
+    ));
+    assert_eq!(normalized.import_sources.as_ref().map(Vec::len), Some(2));
+  }
+
+  #[test]
+  fn normalize_rs_options_preserves_explicit_values() {
+    let options = StyleXOptions {
+      style_resolution: Some("application-order".to_string()),
+      runtime_injection: Some(RuntimeInjectionUnion::Regular("inject-path".to_string())),
+      enable_minified_keys: Some(false),
+      property_validation_mode: Some(PropertyValidationMode::Warn),
+      ..empty_options()
+    };
+
+    let normalized = normalize_rs_options(options).unwrap();
+
+    assert!(matches!(
+      normalized.runtime_injection,
+      Some(RuntimeInjectionUnion::Regular(ref value)) if value == "inject-path"
+    ));
+    assert_eq!(normalized.enable_minified_keys, Some(false));
+    assert!(matches!(
+      normalized.property_validation_mode,
+      Some(PropertyValidationMode::Warn)
+    ));
+    assert_eq!(
+      normalized.style_resolution.as_deref(),
+      Some("application-order")
+    );
+  }
+
+  #[test]
+  fn normalize_rs_options_rejects_invalid_style_resolution() {
+    let options = StyleXOptions {
+      style_resolution: Some("not-a-style-resolution".to_string()),
+      ..empty_options()
+    };
+
+    match normalize_rs_options(options) {
+      Ok(_) => panic!("expected invalid style resolution to fail"),
+      Err(error) => assert!(
+        error
+          .to_string()
+          .contains("Failed to parse style resolution")
+      ),
+    }
+  }
+
+  #[test]
+  fn source_maps_config_defaults_to_true() {
+    assert!(matches!(
+      source_maps_config(None),
+      SourceMapsConfig::Bool(true)
+    ));
+  }
+
+  #[test]
+  fn source_maps_config_maps_explicit_values() {
+    assert!(matches!(
+      source_maps_config(Some(&SourceMaps::True)),
+      SourceMapsConfig::Bool(true)
+    ));
+    assert!(matches!(
+      source_maps_config(Some(&SourceMaps::False)),
+      SourceMapsConfig::Bool(false)
+    ));
+
+    match source_maps_config(Some(&SourceMaps::Inline)) {
+      SourceMapsConfig::Str(value) => assert_eq!(value, "inline"),
+      _ => panic!("expected inline source map string"),
+    }
+  }
 }

@@ -101,12 +101,7 @@ fn convert_theme_to_base_styles(variable_name: &str, filename: &str) -> FlatComp
     .unwrap_or_default()
     .split('.')
     .next()
-    .unwrap_or_else(|| {
-      #[cfg(not(tarpaulin_include))]
-      {
-        stylex_panic!("File path has no base name.")
-      }
-    });
+    .unwrap_or_else(|| stylex_panic!("File path has no base name."));
 
   // Build up the class name, and sanitize it of disallowed characters
   let dev_class_name = format!("{}__{}", basename, variable_name);
@@ -126,7 +121,6 @@ pub(crate) fn convert_theme_to_dev_styles(
 ) -> FlatCompiledStyles {
   let variable_name_str = match variable_name.as_ref() {
     Some(v) => v.as_str(),
-    #[cfg(not(tarpaulin_include))]
     None => stylex_panic!("The variable name could not be determined."),
   };
 

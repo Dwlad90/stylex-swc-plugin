@@ -218,7 +218,6 @@ impl CssValue {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
 impl fmt::Display for CssValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {

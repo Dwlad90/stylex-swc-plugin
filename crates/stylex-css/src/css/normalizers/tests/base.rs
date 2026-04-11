@@ -710,7 +710,7 @@ mod normalizers {
   #[test]
   fn zero_unknown_dimension_normalizes() {
     // An unrecognized unit creates an UnknownDimension in SWC.
-    let (stylesheet, _) = swc_parse_css("* {{ color: 0q; }}");
+    let (stylesheet, _) = swc_parse_css("* {{ color: 0unknown; }}");
     let s = stringify(&base_normalizer(stylesheet.unwrap(), false, Some("color")));
     assert!(s.contains("0"));
   }

@@ -31,27 +31,79 @@ fn max_target_width(target: &str) -> usize {
   }
 }
 
-pub fn log_formatter(f: &mut Formatter, record: &log::Record) -> std::io::Result<()> {
-  use std::io::Write;
-
-  let target = record.target();
-  let max_width = max_target_width(target);
-
-  let level_color = match record.level() {
+fn level_color(level: log::Level) -> Color {
+  match level {
     log::Level::Error => Color::Red,
     log::Level::Warn => Color::Yellow,
     log::Level::Info => Color::Green,
     log::Level::Debug => Color::Blue,
     log::Level::Trace => Color::White,
-  };
+  }
+}
 
-  writeln!(
-    f,
+fn format_log_line(level: log::Level, target: &str, args: &str, width: usize) -> String {
+  format!(
     "{} {} {:width$} > {}",
-    record.level().to_string().color(level_color).bold(),
+    level.to_string().color(level_color(level)).bold(),
     STYLEX_PREFIX.bright_blue().bold(),
     target.bold(),
-    record.args(),
-    width = max_width
+    args,
+    width = width
   )
+}
+
+pub fn log_formatter(f: &mut Formatter, record: &log::Record) -> std::io::Result<()> {
+  use std::io::Write;
+
+  let target = record.target();
+  let max_width = max_target_width(target);
+  writeln!(
+    f,
+    "{}",
+    format_log_line(
+      record.level(),
+      target,
+      &record.args().to_string(),
+      max_width
+    )
+  )
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn max_target_width_tracks_longest_target() {
+    MAX_MODULE_WIDTH.store(0, Ordering::Relaxed);
+
+    assert_eq!(max_target_width("a"), 1);
+    assert_eq!(max_target_width("ab"), 2);
+    assert_eq!(max_target_width("x"), 2);
+  }
+
+  #[test]
+  fn ansi_constants_are_present() {
+    assert_eq!(ANSI_RED, "\x1B[31m");
+    assert_eq!(ANSI_GREEN, "\x1B[32m");
+    assert_eq!(ANSI_RESET, "\x1B[0m");
+    assert_eq!(ANSI_ORANGE, "\x1B[38;5;208m");
+  }
+
+  #[test]
+  fn level_color_maps_each_level() {
+    assert_eq!(level_color(log::Level::Error), Color::Red);
+    assert_eq!(level_color(log::Level::Warn), Color::Yellow);
+    assert_eq!(level_color(log::Level::Info), Color::Green);
+    assert_eq!(level_color(log::Level::Debug), Color::Blue);
+    assert_eq!(level_color(log::Level::Trace), Color::White);
+  }
+
+  #[test]
+  fn format_log_line_contains_target_and_message() {
+    let line = format_log_line(log::Level::Info, "stylex::module", "hello", 4);
+    assert!(line.contains(STYLEX_PREFIX));
+    assert!(line.contains("stylex::module"));
+    assert!(line.contains("hello"));
+  }
 }

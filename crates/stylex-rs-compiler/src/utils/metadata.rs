@@ -5,6 +5,31 @@ use stylex_transform::StyleXTransform;
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleBaseKind;
 use swc_core::plugin::proxies::PluginCommentsProxy;
 
+#[derive(Debug, PartialEq, Eq)]
+struct MetadataStyleParts<'a> {
+  ltr: &'a str,
+  rtl: Option<&'a str>,
+  const_key: Option<&'a str>,
+  const_value: Option<&'a str>,
+}
+
+fn metadata_style_parts(style: &InjectableStyleBaseKind) -> MetadataStyleParts<'_> {
+  match style {
+    InjectableStyleBaseKind::Regular(styles) => MetadataStyleParts {
+      ltr: &styles.ltr,
+      rtl: styles.rtl.as_deref(),
+      const_key: None,
+      const_value: None,
+    },
+    InjectableStyleBaseKind::Const(styles) => MetadataStyleParts {
+      ltr: &styles.ltr,
+      rtl: styles.rtl.as_deref(),
+      const_key: Some(&styles.const_key),
+      const_value: Some(&styles.const_value),
+    },
+  }
+}
+
 /// Extracts StyleX metadata from the transformation state
 pub(crate) fn extract_stylex_metadata(
   env: Env,
@@ -19,23 +44,16 @@ pub(crate) fn extract_stylex_metadata(
       metadata_value.set_element(0, env.create_string(meta.get_class_name())?)?;
 
       let mut style_value = env.create_object()?;
-      let styles = meta.get_style();
+      let parts = metadata_style_parts(meta.get_style());
 
-      match styles {
-        InjectableStyleBaseKind::Regular(styles) => {
-          set_metadata_ltr_and_rtl(env, &mut style_value, &styles.ltr, &styles.rtl, None, None)?;
-        },
-        InjectableStyleBaseKind::Const(styles) => {
-          set_metadata_ltr_and_rtl(
-            env,
-            &mut style_value,
-            &styles.ltr,
-            &styles.rtl,
-            Some(&styles.const_key),
-            Some(&styles.const_value),
-          )?;
-        },
-      }
+      set_metadata_ltr_and_rtl(
+        env,
+        &mut style_value,
+        parts.ltr,
+        parts.rtl,
+        parts.const_key,
+        parts.const_value,
+      )?;
 
       metadata_value.set_element(1, style_value)?;
       metadata_value.set_element(2, env.create_double(*meta.get_priority())?)?;
@@ -52,7 +70,7 @@ fn set_metadata_ltr_and_rtl(
   env: Env,
   style_value: &mut JsObject,
   ltr: &str,
-  rtl: &Option<String>,
+  rtl: Option<&str>,
   consts_key: Option<&str>,
   consts_value: Option<&str>,
 ) -> Result<(), Error> {
@@ -66,8 +84,45 @@ fn set_metadata_ltr_and_rtl(
 
   style_value.set_named_property("ltr", ltr)?;
 
-  let rtl_value = rtl.as_ref().map(|v| env.create_string(v)).transpose()?;
+  let rtl_value = rtl.map(|v| env.create_string(v)).transpose()?;
   style_value.set_named_property("rtl", rtl_value)?;
 
   Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  use stylex_types::structures::injectable_style::{InjectableStyleBase, InjectableStyleConstBase};
+
+  use super::*;
+
+  #[test]
+  fn metadata_style_parts_regular_variant() {
+    let style = InjectableStyleBaseKind::Regular(InjectableStyleBase {
+      ltr: "a{color:red}".to_string(),
+      rtl: Some("a{color:blue}".to_string()),
+    });
+
+    let parts = metadata_style_parts(&style);
+    assert_eq!(parts.ltr, "a{color:red}");
+    assert_eq!(parts.rtl, Some("a{color:blue}"));
+    assert_eq!(parts.const_key, None);
+    assert_eq!(parts.const_value, None);
+  }
+
+  #[test]
+  fn metadata_style_parts_const_variant() {
+    let style = InjectableStyleBaseKind::Const(InjectableStyleConstBase {
+      ltr: "a{color:red}".to_string(),
+      rtl: None,
+      const_key: "themeKey".to_string(),
+      const_value: "themeVal".to_string(),
+    });
+
+    let parts = metadata_style_parts(&style);
+    assert_eq!(parts.ltr, "a{color:red}");
+    assert_eq!(parts.rtl, None);
+    assert_eq!(parts.const_key, Some("themeKey"));
+    assert_eq!(parts.const_value, Some("themeVal"));
+  }
 }

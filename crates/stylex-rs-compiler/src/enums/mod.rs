@@ -77,6 +77,25 @@ impl ToNapiValue for RuntimeInjectionUnion {
 
 static MAX_IMPORT_PATH_LENGTH: usize = 214;
 
+pub(crate) fn js_regex_pattern_from_source_and_flags(source: &str, flags: &str) -> String {
+  let mut inline_flags = String::new();
+  if flags.contains('i') {
+    inline_flags.push('i');
+  }
+  if flags.contains('m') {
+    inline_flags.push('m');
+  }
+  if flags.contains('s') {
+    inline_flags.push('s');
+  }
+
+  if inline_flags.is_empty() {
+    source.to_string()
+  } else {
+    format!("(?{}){}", inline_flags, source)
+  }
+}
+
 fn validate_import_path(path: &str) -> Result<(), String> {
   if path.len() > MAX_IMPORT_PATH_LENGTH {
     return Err(format!(
@@ -202,25 +221,10 @@ impl PathFilterUnion {
         {
           // Try to validate the regex pattern
           if Regex::new(regex_pattern).is_ok() {
-            // Convert JS flags to inline modifiers for Rust regex
-            let mut inline_flags = String::new();
-            if flags.contains('i') {
-              inline_flags.push('i');
-            }
-            if flags.contains('m') {
-              inline_flags.push('m');
-            }
-            if flags.contains('s') {
-              inline_flags.push('s');
-            }
-
-            let final_pattern = if !inline_flags.is_empty() {
-              format!("(?{}){}", inline_flags, regex_pattern)
-            } else {
-              regex_pattern.to_string()
-            };
-
-            return PathFilterUnion::Regex(final_pattern);
+            return PathFilterUnion::Regex(js_regex_pattern_from_source_and_flags(
+              regex_pattern,
+              flags,
+            ));
           }
         }
       }
@@ -283,5 +287,68 @@ impl ToNapiValue for SxPropNameUnion {
         Ok(js_str.raw())
       },
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn validate_import_path_accepts_valid_npm_names() {
+    assert!(validate_import_path("@scope/pkg-name").is_ok());
+    assert!(validate_import_path("stylex").is_ok());
+  }
+
+  #[test]
+  fn validate_import_path_rejects_too_long_values() {
+    let long_path = "a".repeat(MAX_IMPORT_PATH_LENGTH + 1);
+    let error = validate_import_path(&long_path).unwrap_err();
+    assert!(error.contains("too long"));
+  }
+
+  #[test]
+  fn validate_import_path_rejects_invalid_pattern() {
+    let error = validate_import_path("Invalid Package Name!").unwrap_err();
+    assert!(error.contains("required pattern"));
+  }
+
+  #[test]
+  fn path_filter_union_parses_regex_and_glob_patterns() {
+    let regex = PathFilterUnion::from_string(r"/foo\/bar/i");
+    match regex {
+      PathFilterUnion::Regex(pattern) => {
+        assert!(pattern.contains("foo\\/bar"));
+        assert!(pattern.starts_with("(?i)"));
+      },
+      PathFilterUnion::Glob(_) => panic!("expected regex pattern"),
+    }
+
+    let glob = PathFilterUnion::from_string("src/**/*.ts");
+    match glob {
+      PathFilterUnion::Glob(pattern) => assert_eq!(pattern, "src/**/*.ts"),
+      PathFilterUnion::Regex(_) => panic!("expected glob pattern"),
+    }
+  }
+
+  #[test]
+  fn path_filter_union_falls_back_to_glob_for_invalid_regex() {
+    let pattern = PathFilterUnion::from_string("/[invalid/");
+    match pattern {
+      PathFilterUnion::Glob(glob) => assert_eq!(glob, "/[invalid/"),
+      PathFilterUnion::Regex(_) => panic!("invalid regex should fall back to glob"),
+    }
+  }
+
+  #[test]
+  fn js_regex_pattern_respects_supported_flags() {
+    let pattern = js_regex_pattern_from_source_and_flags("foo.*bar", "gimsuy");
+    assert_eq!(pattern, "(?ims)foo.*bar");
+  }
+
+  #[test]
+  fn js_regex_pattern_without_supported_flags_keeps_source() {
+    let pattern = js_regex_pattern_from_source_and_flags("foo", "gyu");
+    assert_eq!(pattern, "foo");
   }
 }

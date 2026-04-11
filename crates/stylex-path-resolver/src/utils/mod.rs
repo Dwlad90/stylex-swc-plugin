@@ -4,11 +4,15 @@ use path_clean::PathClean;
 use stylex_macros::stylex_panic;
 
 pub(crate) fn contains_subpath(path: &Path, sub_path: &Path) -> bool {
-  path
-    .display()
-    .to_string()
-    .split("/")
-    .any(|part| part == sub_path.display().to_string())
+  let sub_components: Vec<_> = sub_path.components().collect();
+  if sub_components.is_empty() {
+    return false;
+  }
+
+  let path_components: Vec<_> = path.components().collect();
+  path_components
+    .windows(sub_components.len())
+    .any(|window| window == sub_components.as_slice())
 }
 
 #[cfg(not(tarpaulin_include))]

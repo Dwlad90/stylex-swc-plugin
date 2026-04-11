@@ -1,7 +1,7 @@
 use cssparser::{
   ParseError, Parser, ParserInput, SourcePosition, Token, serialize_identifier, serialize_string,
 };
-use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
+use stylex_macros::stylex_unreachable;
 
 pub fn format_ident(ident: &str) -> String {
   let mut res: String = String::default();
@@ -44,29 +44,19 @@ pub fn _format_quoted_string(string: &str) -> String {
 //     .is_some()
 // }
 
-#[cfg(not(tarpaulin_include))]
 pub fn parse_css_inner<'a>(
   parser: &mut Parser,
-  rule_name: &str,
-  prop_name: &str,
 ) -> Result<Vec<String>, ParseError<'a, Vec<String>>> {
   let mut result: Vec<String> = vec![];
 
-  let mut curr_rule: String = rule_name.to_string();
-  let mut curr_prop: String = prop_name.to_string();
-  let mut token: &Token;
-  let mut token_offset: SourcePosition;
-
-  loop {
+  while let Some((token_offset, token)) = {
+    let token_offset: SourcePosition = parser.position();
+    parser
+      .next_including_whitespace_and_comments()
+      .ok()
+      .map(|token| (token_offset, token))
+  } {
     let mut iter_result: String = String::default();
-
-    token_offset = parser.position();
-    token = match parser.next_including_whitespace_and_comments() {
-      Ok(token) => token,
-      Err(_) => {
-        break;
-      },
-    };
 
     match *token {
       Token::Comment(_) => {
@@ -76,44 +66,29 @@ pub fn parse_css_inner<'a>(
       Token::Semicolon => iter_result.push(';'),
       Token::Colon => iter_result.push(':'),
       Token::Comma => iter_result.push(','),
-      Token::ParenthesisBlock | Token::SquareBracketBlock | Token::CurlyBracketBlock => {
-        // if options.no_fonts && curr_rule == "font-face" {
-        //   continue;
-        // }
-
-        let closure: &str;
-        if token == &Token::ParenthesisBlock {
-          iter_result.push('(');
-          closure = ")";
-        } else if token == &Token::SquareBracketBlock {
-          iter_result.push('[');
-          closure = "]";
-        } else {
-          iter_result.push('{');
-          closure = "}";
-        }
-
-        let block_css: Vec<String> = match parser.parse_nested_block(|parser| {
-          parse_css_inner(
-            // cache,
-            // client,
-            // document_url,
-            parser,
-            // options,
-            // depth,
-            rule_name,
-            curr_prop.as_str(),
-            // func_name,
-          )
-        }) {
-          Ok(css) => css,
-          #[cfg(not(tarpaulin_include))]
-          Err(e) => stylex_panic!("Failed to parse nested CSS block: {:?}", e),
-        };
-
+      Token::ParenthesisBlock => {
+        iter_result.push('(');
+        let block_css: Vec<String> = parser
+          .parse_nested_block(|parser| parse_css_inner(parser))
+          .unwrap_or_default();
         iter_result.push_str(join_css(&block_css).as_str());
-
-        iter_result.push_str(closure);
+        iter_result.push(')');
+      },
+      Token::SquareBracketBlock => {
+        iter_result.push('[');
+        let block_css: Vec<String> = parser
+          .parse_nested_block(|parser| parse_css_inner(parser))
+          .unwrap_or_default();
+        iter_result.push_str(join_css(&block_css).as_str());
+        iter_result.push(']');
+      },
+      Token::CurlyBracketBlock => {
+        iter_result.push('{');
+        let block_css: Vec<String> = parser
+          .parse_nested_block(|parser| parse_css_inner(parser))
+          .unwrap_or_default();
+        iter_result.push_str(join_css(&block_css).as_str());
+        iter_result.push('}');
       },
       Token::CloseParenthesis => iter_result.push(')'),
       Token::CloseSquareBracket => iter_result.push(']'),
@@ -130,22 +105,19 @@ pub fn parse_css_inner<'a>(
       },
       // div...
       Token::Ident(ref value) => {
-        curr_rule = String::default();
-        curr_prop = value.to_string();
         iter_result.push_str(&format_ident(value));
       },
       // @import, @font-face, @charset, @media...
       Token::AtKeyword(ref value) => {
-        curr_rule = value.to_string();
         // if options.no_fonts && curr_rule == "font-face" {
         //   continue;
         // }
         iter_result.push('@');
         iter_result.push_str(value);
       },
-      Token::Hash(ref value) => {
+      Token::Hash(ref value) | Token::IDHash(ref value) => {
         iter_result.push('#');
-        iter_result.push_str(value);
+        iter_result.push_str(&format_ident(value));
       },
       Token::QuotedString(ref value) => {
         // Add the quoted string with quotes preserved
@@ -265,105 +237,23 @@ pub fn parse_css_inner<'a>(
         iter_result.push_str(&value.to_string());
         iter_result.push_str(unit.as_ref());
       },
-      // #selector, #id...
-      Token::IDHash(ref value) => {
-        curr_rule = String::default();
-        iter_result.push('#');
-        iter_result.push_str(&format_ident(value));
-      },
       // url() — unquoted URLs are explicitly unsupported.
-      #[cfg(not(tarpaulin_include))]
-      Token::UnquotedUrl(ref _value) => {
-        stylex_unimplemented!(
-          "Unquoted URL values in CSS are not supported. Use url(\"...\") with quotes instead."
-        );
-        //   let is_import: bool = curr_rule == "import";
-
-        //   if is_import {
-        //     // Reset current at-rule value
-        //     curr_rule =  String::default();
-        //   }
-
-        //   // Skip empty url()'s
-        //   if value.len() < 1 {
-        //     result.push_str("url()");
-        //     continue;
-        //   } else if value.starts_with("#") {
-        //     result.push_str("url(");
-        //     result.push_str(value);
-        //     result.push_str(")");
-        //     continue;
-        //   }
-
-        //   result.push_str("url(");
-        //   if is_import {
-        //     let full_url: Url = resolve_url(&document_url, value);
-        //     match retrieve_asset(cache, client, &document_url, &full_url, options, depth + 1) {
-        //       Ok((css, final_url, media_type, charset)) => {
-        //         let mut data_url = create_data_url(
-        //           &media_type,
-        //           &charset,
-        //           embed_css(
-        //             cache,
-        //             client,
-        //             &final_url,
-        //             &String::from_utf8_lossy(&css),
-        //             options,
-        //             depth + 1,
-        //           )
-        //           .as_bytes(),
-        //           &final_url,
-        //         );
-        //         data_url.set_fragment(full_url.fragment());
-        //         result.push_str(format_quoted_string(&data_url.to_string()).as_str());
-        //       }
-        //       Err(_) => {
-        //         // Keep remote reference if unable to retrieve the asset
-        //         if full_url.scheme() == "http" || full_url.scheme() == "https" {
-        //           result.push_str(format_quoted_string(&full_url.to_string()).as_str());
-        //         }
-        //       }
-        //     }
-        //   } else {
-        //     if is_image_url_prop(curr_prop.as_str()) && options.no_images {
-        //       result.push_str(format_quoted_string(EMPTY_IMAGE_DATA_URL).as_str());
-        //     } else {
-        //       let full_url: Url = resolve_url(&document_url, value);
-        //       match retrieve_asset(cache, client, &document_url, &full_url, options, depth + 1) {
-        //         Ok((data, final_url, media_type, charset)) => {
-        //           let mut data_url = create_data_url(&media_type, &charset, &data, &final_url);
-        //           data_url.set_fragment(full_url.fragment());
-        //           result.push_str(format_quoted_string(&data_url.to_string()).as_str());
-        //         }
-        //         Err(_) => {
-        //           // Keep remote reference if unable to retrieve the asset
-        //           if full_url.scheme() == "http" || full_url.scheme() == "https" {
-        //             result.push_str(format_quoted_string(&full_url.to_string()).as_str());
-        //           }
-        //         }
-        //       }
-        //     }
-        //   }
-        //   result.push_str(")");
+      Token::UnquotedUrl(_) | Token::BadUrl(_) | Token::BadString(_) => {
+        panic!("Unsupported CSS token: unquoted/bad url or bad string. Use quoted values instead.")
       },
       Token::Delim(ref value) => iter_result.push(*value),
       Token::Function(ref name) => {
         iter_result.push_str(name);
         iter_result.push('(');
 
-        let block_css: Vec<String> = match parser.parse_nested_block(|parser| {
-          parse_css_inner(parser, curr_rule.as_str(), curr_prop.as_str())
-        }) {
-          Ok(css) => css,
-          #[cfg(not(tarpaulin_include))]
-          Err(e) => stylex_panic!("Failed to parse CSS function block: {:?}", e),
-        };
+        let block_css: Vec<String> = parser
+          .parse_nested_block(|parser| parse_css_inner(parser))
+          .unwrap_or_default();
 
         iter_result.push_str(join_css(&block_css).as_str());
 
         iter_result.push(')');
       },
-      _ => {},
     }
 
     // Ensure empty CSS is really empty
@@ -383,25 +273,21 @@ pub fn parse_css(css_string: &str) -> Vec<String> {
   let mut input = ParserInput::new(css_string);
 
   let mut parser = Parser::new(&mut input);
-  let rule_name = "";
-  let prop_name = "";
 
-  match parse_css_inner(&mut parser, rule_name, prop_name) {
-    Ok(nodes) => nodes
-      .into_iter()
-      .filter_map(|s| {
-        if !s.is_empty() && s != "," {
-          Some(s)
-        } else {
-          None
-        }
-      })
-      .collect::<Vec<String>>(),
-    // `parse_css_inner` always returns `Ok` — the `Err` variant is required
-    // by the cssparser API but never produced in our implementation.
-    #[cfg(not(tarpaulin_include))]
-    Err(_) => stylex_unreachable!("parse_css_inner returned Err, which should not happen"),
-  }
+  let nodes = parse_css_inner(&mut parser).unwrap_or_else(|_| {
+    stylex_unreachable!("parse_css_inner returned Err, which should not happen")
+  });
+
+  nodes
+    .into_iter()
+    .filter_map(|s| {
+      if !s.is_empty() && s != "," {
+        Some(s)
+      } else {
+        None
+      }
+    })
+    .collect::<Vec<String>>()
 }
 
 fn join_css(nodes: &[String]) -> String {
@@ -421,4 +307,28 @@ fn join_css(nodes: &[String]) -> String {
   }
 
   result
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{join_css, parse_css};
+
+  #[test]
+  fn join_css_avoids_space_around_slash_and_comma() {
+    let nodes = vec![
+      "10px".to_string(),
+      "/".to_string(),
+      "20px".to_string(),
+      ",".to_string(),
+      "30px".to_string(),
+    ];
+
+    assert_eq!(join_css(&nodes), "10px/20px,30px");
+  }
+
+  #[test]
+  fn parse_css_bad_string_is_tolerated() {
+    let result = parse_css("\"unterminated");
+    assert!(!result.is_empty());
+  }
 }

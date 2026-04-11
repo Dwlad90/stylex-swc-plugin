@@ -538,12 +538,7 @@ impl StateManager {
         let filename = self.get_filename();
 
         let (_, root_dir) = StateManager::get_package_name_and_path(filename, package_json_seen)
-          .unwrap_or_else(|| {
-            #[cfg(not(tarpaulin_include))]
-            {
-              stylex_panic!("Cannot get package name and path for: {}", filename)
-            }
-          });
+          .unwrap_or_else(|| stylex_panic!("Cannot get package name and path for: {}", filename));
 
         let aliases = self.options.aliases.as_ref().cloned().unwrap_or_default();
 
@@ -566,7 +561,6 @@ impl StateManager {
         ImportPathResolutionType::ThemeNameRef,
         add_file_extension(import_path, source_file_path),
       ),
-      #[cfg(not(tarpaulin_include))]
       _ => stylex_unimplemented!("This module resolution strategy is not yet supported."),
     }
   }
@@ -639,7 +633,6 @@ impl StateManager {
     if !self.prepend_include_module_items.is_empty() {
       return match self.inject_import_inserted.as_ref() {
         Some(idents) => idents.1.clone(),
-        #[cfg(not(tarpaulin_include))]
         None => stylex_panic!(
           "inject_import_inserted is None when prepend_include_module_items is non-empty"
         ),
@@ -1068,10 +1061,7 @@ fn file_path_resolver(
     return resolved_path_str;
   }
 
-  #[cfg(not(tarpaulin_include))]
-  {
-    stylex_panic!("Cannot resolve file path: {}", relative_file_path)
-  }
+  stylex_panic!("Cannot resolve file path: {}", relative_file_path)
 }
 
 impl stylex_types::traits::StyleOptions for StateManager {

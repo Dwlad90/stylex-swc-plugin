@@ -65,7 +65,6 @@ swc_ecma_parser = { workspace = true, features = ["verify"] }
 
 [dev-dependencies]
 insta = { workspace = true, features = ["yaml"] }
-stylex_utils = { path = "../stylex-utils" }
 swc_core = { workspace = true, features = [
   "ecma_parser",
   "ecma_utils",

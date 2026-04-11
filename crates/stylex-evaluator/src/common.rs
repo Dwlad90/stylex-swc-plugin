@@ -45,22 +45,49 @@ pub fn normalize_expr(expr: &mut Expr) -> &mut Expr {
   }
 }
 
-/// Resolves a Node.js package path relative to `./cwd`.
-// Excluded from tarpaulin: the `Ok` path requires a real `./cwd/node_modules`
-// directory with an installed package, which isn't available in unit test context.
-#[cfg(not(tarpaulin_include))]
+/// Resolves a Node.js package path relative to the current working directory.
 pub fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
-  match node_resolve::Resolver::default()
-    .with_basedir(PathBuf::from("./cwd"))
-    .preserve_symlinks(true)
-    .with_extensions([".ts", ".tsx", ".js", ".jsx", ".json"])
-    .with_main_fields(vec![String::from("main"), String::from("module")])
-    .resolve(package_name)
-  {
+  let basedir = std::env::current_dir()
+    .map_err(|error| format!("Error determining current working directory: {:?}", error))?;
+
+  resolve_node_package_path_from_basedir(package_name, basedir)
+}
+
+fn resolve_node_package_path_from_basedir(
+  package_name: &str,
+  basedir: PathBuf,
+) -> Result<PathBuf, String> {
+  let resolver = node_resolve::Resolver::default();
+  let resolver = resolver.with_basedir(basedir);
+  let resolver = resolver.preserve_symlinks(true);
+  let resolver = resolver.with_extensions([".ts", ".tsx", ".js", ".jsx", ".json"]);
+  let resolver = resolver.with_main_fields(vec![String::from("main"), String::from("module")]);
+
+  match resolver.resolve(package_name) {
     Ok(path) => Ok(path),
     Err(error) => Err(format!(
       "Error resolving package {}: {:?}",
       package_name, error
     )),
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::path::PathBuf;
+
+  use super::resolve_node_package_path_from_basedir;
+
+  #[test]
+  fn resolve_node_package_path_from_basedir_includes_package_in_error() {
+    let result = resolve_node_package_path_from_basedir(
+      "definitely-not-a-real-package-123",
+      PathBuf::from("/"),
+    );
+
+    match result {
+      Ok(_) => panic!("expected resolution failure"),
+      Err(message) => assert!(message.contains("definitely-not-a-real-package-123")),
+    }
   }
 }

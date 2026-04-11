@@ -2,17 +2,17 @@
 //! Each test validates one semantic group and forces Lazy<Regex> initialization.
 
 use crate::regex::{
-  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, CSS_PROPERTY_KEY, DASHIFY_REGEX,
+  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, CSS_VALUE_SPLIT_REGEX, DASHIFY_REGEX,
   DESCENDANT_SELECTOR, IS_CSS_VAR, JSON_REGEX, LENGTH_UNIT_TESTER_REGEX, MANY_SPACES,
   PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR, STYLEX_CONSTS_IMPORT_REGEX,
   URL_REGEX, VAR_EXTRACTION_REGEX,
 };
 
-/// Key-level parsers should detect adjacency patterns used by value splitters.
+/// Value-splitting parsers should detect adjacency patterns.
 #[test]
-fn css_key_parsers_match_expected_tokens() {
-  assert!(CSS_PROPERTY_KEY.is_match(")a").unwrap());
-  assert!(CSS_PROPERTY_KEY.is_match("\"\"").unwrap());
+fn css_value_parsers_match_expected_tokens() {
+  assert!(CSS_VALUE_SPLIT_REGEX.is_match(")a").unwrap());
+  assert!(CSS_VALUE_SPLIT_REGEX.is_match("\"\"").unwrap());
   assert!(LENGTH_UNIT_TESTER_REGEX.is_match("12px").unwrap());
   assert!(LENGTH_UNIT_TESTER_REGEX.is_match("-5").unwrap());
 }

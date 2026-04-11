@@ -260,7 +260,7 @@ stylex_test!(
     let cwd_path = std::env::current_dir().unwrap();
 
     let fixture_path = cwd_path.join("tests/fixture");
-    let filename = fixture_path.join("consts/constants.stylex");
+    let filename = fixture_path.join("consts/constants.stylex.js");
 
     build_test_transform(tr.comments.clone(), move |b| {
       b.with_filename(FileName::Real(filename))

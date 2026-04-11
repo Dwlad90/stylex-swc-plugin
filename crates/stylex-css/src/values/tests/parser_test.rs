@@ -518,6 +518,31 @@ fn parse_css_function_min() {
   assert!(joined.contains("min("));
 }
 
+#[test]
+fn parse_css_hash_token_variant() {
+  let result = parse_css("#-invalid");
+  assert!(!result.is_empty());
+  assert!(result.join("").contains('#'));
+}
+
+#[test]
+#[should_panic(expected = "Unsupported CSS token")]
+fn parse_css_unquoted_url_panics() {
+  let _ = parse_css("url(foo)");
+}
+
+#[test]
+fn parse_css_malformed_function_is_tolerated() {
+  let result = parse_css("calc(100% -");
+  assert!(!result.is_empty());
+}
+
+#[test]
+fn parse_css_malformed_bracket_block_is_tolerated() {
+  let result = parse_css("[foo");
+  assert!(!result.is_empty());
+}
+
 // ── Coverage: at-keyword sets curr_rule ─────────────────────────────
 
 #[test]

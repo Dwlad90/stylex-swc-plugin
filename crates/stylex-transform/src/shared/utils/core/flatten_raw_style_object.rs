@@ -25,7 +25,7 @@ use stylex_constants::constants::messages::{
   ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
 };
 use stylex_enums::misc::VarDeclAction;
-use stylex_regex::regex::CSS_PROPERTY_KEY;
+use stylex_regex::regex::CSS_VALUE_SPLIT_REGEX;
 use stylex_structures::order_pair::OrderPair;
 
 use super::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
@@ -66,7 +66,6 @@ pub(crate) fn flatten_raw_style_object(
       Ok(transformed) => {
         processed_style = transformed;
       },
-      #[cfg(not(tarpaulin_include))]
       Err(_) => {
         stylex_panic!("{}", INVALID_MEDIA_QUERY_SYNTAX);
       },
@@ -88,9 +87,9 @@ pub(crate) fn flatten_raw_style_object_logic(
   for property in style.iter() {
     let key = convert_key_value_to_str(property);
 
-    let css_property_key = if CSS_PROPERTY_KEY.is_match(&key).unwrap_or_else(|err| {
+    let css_property_key = if CSS_VALUE_SPLIT_REGEX.is_match(&key).unwrap_or_else(|err| {
       warn!(
-        "Error matching CSS_PROPERTY_KEY for '{}': {}. Skipping pattern match.",
+        "Error matching CSS_VALUE_SPLIT_REGEX for '{}': {}. Skipping pattern match.",
         key, err
       );
 
@@ -135,7 +134,6 @@ pub(crate) fn flatten_raw_style_object_logic(
                   }
                 }
               },
-              #[cfg(not(tarpaulin_include))]
               _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
             }
           }
@@ -221,7 +219,6 @@ pub(crate) fn flatten_raw_style_object_logic(
         let result = expr_tpl_to_string(
           match handled_tpl.as_tpl() {
             Some(tpl) => tpl,
-            #[cfg(not(tarpaulin_include))]
             None => stylex_panic!("Expected a template literal expression."),
           },
           state,
@@ -258,7 +255,6 @@ pub(crate) fn flatten_raw_style_object_logic(
 
             flattened.extend(inner_flattened);
           },
-          #[cfg(not(tarpaulin_include))]
           _ => {
             stylex_panic!("{}", non_static_value("stylex"));
           },
@@ -275,7 +271,6 @@ pub(crate) fn flatten_raw_style_object_logic(
 
         flattened.extend(inner_flattened)
       },
-      #[cfg(not(tarpaulin_include))]
       Expr::Call(_) => stylex_panic!("{}", non_static_value("stylex")),
       Expr::Object(obj) => {
         if !key.starts_with(':') && !key.starts_with('@') && !key.starts_with('[') {
@@ -319,7 +314,6 @@ pub(crate) fn flatten_raw_style_object_logic(
                   } else {
                     let inner_map = match equivalent_pairs.get_mut(&property) {
                       Some(map) => map,
-                      #[cfg(not(tarpaulin_include))]
                       None => {
                         stylex_panic!("Property not found in the equivalent style pairs map.")
                       },
@@ -328,16 +322,10 @@ pub(crate) fn flatten_raw_style_object_logic(
                   }
                 }
               } else {
-                #[cfg(not(tarpaulin_include))]
-                {
-                  stylex_panic!("{}", non_static_value("stylex"));
-                }
-              }
-            } else {
-              #[cfg(not(tarpaulin_include))]
-              {
                 stylex_panic!("{}", non_static_value("stylex"));
               }
+            } else {
+              stylex_panic!("{}", non_static_value("stylex"));
             }
           }
 
@@ -374,7 +362,6 @@ pub(crate) fn flatten_raw_style_object_logic(
           }
         }
       },
-      #[cfg(not(tarpaulin_include))]
       _ => {
         stylex_panic!("{}", ILLEGAL_PROP_VALUE)
       },

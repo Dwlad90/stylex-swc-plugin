@@ -8,12 +8,13 @@ use stylex_enums::counter_mode::CounterMode;
 
 #[test]
 fn test_global_counter_consistency() {
-  let gen1 = UidGenerator::new("test", CounterMode::_Global);
-  let gen2 = UidGenerator::new("test", CounterMode::_Global);
+  let mut gen1 = UidGenerator::new("test_global_counter_consistency", CounterMode::_Global);
+  gen1.clear();
+  let gen2 = UidGenerator::new("test_global_counter_consistency", CounterMode::_Global);
 
-  assert_eq!(gen1.generate(), "_test");
-  assert_eq!(gen2.generate(), "_test2");
-  assert_eq!(gen1.generate(), "_test3");
+  assert_eq!(gen1.generate(), "_test_global_counter_consistency");
+  assert_eq!(gen2.generate(), "_test_global_counter_consistency2");
+  assert_eq!(gen1.generate(), "_test_global_counter_consistency3");
 }
 
 #[test]
@@ -133,8 +134,8 @@ fn test_get_global_counter_or_panic_returns_existing_counter() {
 }
 
 #[test]
+#[should_panic(expected = "Missing global counter for prefix")]
 fn test_get_global_counter_or_panic_panics_when_missing() {
   let counters: FxHashMap<String, AtomicUsize> = FxHashMap::default();
-  let result = std::panic::catch_unwind(|| get_global_counter_or_panic(&counters, "missing"));
-  assert!(result.is_err());
+  let _ = get_global_counter_or_panic(&counters, "missing");
 }

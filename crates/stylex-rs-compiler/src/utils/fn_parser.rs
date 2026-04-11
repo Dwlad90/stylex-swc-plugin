@@ -19,6 +19,58 @@ thread_local! {
     const { std::cell::Cell::new(None) };
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum EnvValueKind {
+  String,
+  Number,
+  Boolean,
+  Nullish,
+  Function,
+  Object,
+  Unsupported,
+}
+
+fn env_value_kind(value_type: ValueType) -> EnvValueKind {
+  match value_type {
+    ValueType::String => EnvValueKind::String,
+    ValueType::Number => EnvValueKind::Number,
+    ValueType::Boolean => EnvValueKind::Boolean,
+    ValueType::Null | ValueType::Undefined => EnvValueKind::Nullish,
+    ValueType::Function => EnvValueKind::Function,
+    ValueType::Object => EnvValueKind::Object,
+    _ => EnvValueKind::Unsupported,
+  }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DebugFilePathKind {
+  String,
+  Function,
+  Unsupported,
+}
+
+fn debug_file_path_kind(val_type: napi::sys::napi_valuetype) -> DebugFilePathKind {
+  match val_type {
+    napi::sys::ValueType::napi_string => DebugFilePathKind::String,
+    napi::sys::ValueType::napi_function => DebugFilePathKind::Function,
+    _ => DebugFilePathKind::Unsupported,
+  }
+}
+
+fn utf8_string_from_written_buffer(mut buf: Vec<u8>, written: usize) -> String {
+  buf.truncate(written);
+  String::from_utf8(buf).unwrap_or_default()
+}
+
+fn prop_name_to_string(key: &PropName) -> Option<String> {
+  match key {
+    PropName::Ident(id) => Some(id.sym.to_string()),
+    PropName::Str(s) => Some(s.value.as_str().unwrap_or("").to_string()),
+    PropName::Num(n) => Some(n.value.to_string()),
+    _ => None,
+  }
+}
+
 /// Sets the NAPI env for the duration of a closure, then clears it.
 pub(crate) fn with_napi_env<F, R>(env: &napi::Env, f: F) -> R
 where
@@ -51,16 +103,16 @@ pub(crate) fn parse_env_object(
 }
 
 fn parse_env_value(env: &napi::Env, value: Unknown) -> napi::Result<EnvEntry> {
-  match value.get_type()? {
-    ValueType::String => {
+  match env_value_kind(value.get_type()?) {
+    EnvValueKind::String => {
       let s: JsString = unsafe { value.cast()? };
       Ok(EnvEntry::Expr(create_string_expr(s.into_utf8()?.as_str()?)))
     },
-    ValueType::Number => {
+    EnvValueKind::Number => {
       let n: JsNumber = unsafe { value.cast()? };
       Ok(EnvEntry::Expr(create_number_expr(n.get_double()?)))
     },
-    ValueType::Boolean => {
+    EnvValueKind::Boolean => {
       let raw_env = env.raw();
       let mut b = false;
       let status = unsafe { napi::sys::napi_get_value_bool(raw_env, value.raw(), &mut b) };
@@ -69,10 +121,10 @@ fn parse_env_value(env: &napi::Env, value: Unknown) -> napi::Result<EnvEntry> {
       }
       Ok(EnvEntry::Expr(create_bool_expr(b)))
     },
-    ValueType::Null | ValueType::Undefined => Ok(EnvEntry::Expr(create_null_expr())),
-    ValueType::Function => parse_env_function(env, value.raw()),
-    ValueType::Object => Ok(EnvEntry::Expr(napi_value_to_expr(env.raw(), value.raw()))),
-    _ => Ok(EnvEntry::Expr(create_null_expr())),
+    EnvValueKind::Nullish => Ok(EnvEntry::Expr(create_null_expr())),
+    EnvValueKind::Function => parse_env_function(env, value.raw()),
+    EnvValueKind::Object => Ok(EnvEntry::Expr(napi_value_to_expr(env.raw(), value.raw()))),
+    EnvValueKind::Unsupported => Ok(EnvEntry::Expr(create_null_expr())),
   }
 }
 
@@ -154,11 +206,8 @@ fn expr_to_napi_value(raw_env: napi::sys::napi_env, expr: &Expr) -> napi::sys::n
         if let PropOrSpread::Prop(prop) = prop
           && let Some(kv) = prop.as_key_value()
         {
-          let key = match &kv.key {
-            PropName::Ident(id) => id.sym.to_string(),
-            PropName::Str(s) => s.value.as_str().unwrap_or("").to_string(),
-            PropName::Num(n) => n.value.to_string(),
-            _ => continue,
+          let Some(key) = prop_name_to_string(&kv.key) else {
+            continue;
           };
           let prop_val = expr_to_napi_value(raw_env, &kv.value);
           let mut key_val: napi::sys::napi_value = std::ptr::null_mut();
@@ -209,8 +258,8 @@ pub(crate) fn parse_debug_file_path(
   let mut val_type: napi::sys::napi_valuetype = napi::sys::ValueType::napi_undefined;
   unsafe { napi::sys::napi_typeof(raw_env, raw_val, &mut val_type) };
 
-  match val_type {
-    napi::sys::ValueType::napi_string => {
+  match debug_file_path_kind(val_type) {
+    DebugFilePathKind::String => {
       let mut len = 0;
       unsafe {
         napi::sys::napi_get_value_string_utf8(raw_env, raw_val, std::ptr::null_mut(), 0, &mut len);
@@ -226,19 +275,16 @@ pub(crate) fn parse_debug_file_path(
           &mut written,
         );
       }
-      buf.truncate(written);
-      let s = String::from_utf8(buf).unwrap_or_default();
+      let s = utf8_string_from_written_buffer(buf, written);
       Ok(JSFunction::new(move |_args| create_string_expr(&s)))
     },
-    napi::sys::ValueType::napi_function => {
-      parse_env_function(env, raw_val).and_then(|entry| match entry {
-        EnvEntry::Function(f) => Ok(f),
-        _ => Err(napi::Error::from_reason(
-          "Expected function from parse_env_function",
-        )),
-      })
-    },
-    _ => Err(napi::Error::from_reason(
+    DebugFilePathKind::Function => parse_env_function(env, raw_val).and_then(|entry| match entry {
+      EnvEntry::Function(f) => Ok(f),
+      _ => Err(napi::Error::from_reason(
+        "Expected function from parse_env_function",
+      )),
+    }),
+    DebugFilePathKind::Unsupported => Err(napi::Error::from_reason(
       "debugFilePath must be a string or function",
     )),
   }
@@ -260,8 +306,7 @@ fn read_napi_string(raw_env: napi::sys::napi_env, value: napi::sys::napi_value) 
       &mut written,
     );
   }
-  buf.truncate(written);
-  String::from_utf8(buf).unwrap_or_default()
+  utf8_string_from_written_buffer(buf, written)
 }
 
 fn napi_value_to_expr(raw_env: napi::sys::napi_env, value: napi::sys::napi_value) -> Expr {
@@ -372,5 +417,86 @@ impl Drop for EnvFnRef {
         status
       );
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use swc_core::common::DUMMY_SP;
+  use swc_core::ecma::ast::{ComputedPropName, IdentName, Number, Str};
+
+  use super::*;
+
+  #[test]
+  fn env_value_kind_classifies_variants() {
+    assert_eq!(env_value_kind(ValueType::String), EnvValueKind::String);
+    assert_eq!(env_value_kind(ValueType::Number), EnvValueKind::Number);
+    assert_eq!(env_value_kind(ValueType::Boolean), EnvValueKind::Boolean);
+    assert_eq!(env_value_kind(ValueType::Null), EnvValueKind::Nullish);
+    assert_eq!(env_value_kind(ValueType::Undefined), EnvValueKind::Nullish);
+    assert_eq!(env_value_kind(ValueType::Function), EnvValueKind::Function);
+    assert_eq!(env_value_kind(ValueType::Object), EnvValueKind::Object);
+    assert_eq!(env_value_kind(ValueType::Symbol), EnvValueKind::Unsupported);
+  }
+
+  #[test]
+  fn debug_file_path_kind_classifies_variants() {
+    assert_eq!(
+      debug_file_path_kind(napi::sys::ValueType::napi_string),
+      DebugFilePathKind::String
+    );
+    assert_eq!(
+      debug_file_path_kind(napi::sys::ValueType::napi_function),
+      DebugFilePathKind::Function
+    );
+    assert_eq!(
+      debug_file_path_kind(napi::sys::ValueType::napi_boolean),
+      DebugFilePathKind::Unsupported
+    );
+  }
+
+  #[test]
+  fn utf8_string_from_written_buffer_truncates_and_decodes() {
+    let buf = vec![b'a', b'b', b'c', b'd'];
+    assert_eq!(utf8_string_from_written_buffer(buf, 3), "abc");
+  }
+
+  #[test]
+  fn utf8_string_from_written_buffer_returns_default_for_invalid_utf8() {
+    let buf = vec![0xff, 0xfe, 0xfd];
+    assert_eq!(utf8_string_from_written_buffer(buf, 3), "");
+  }
+
+  #[test]
+  fn prop_name_to_string_supports_ident_str_and_num() {
+    let ident = PropName::Ident(IdentName::new("foo".into(), DUMMY_SP));
+    let str_key = PropName::Str(Str {
+      span: DUMMY_SP,
+      value: "bar".into(),
+      raw: None,
+    });
+    let num_key = PropName::Num(Number {
+      span: DUMMY_SP,
+      value: 42.0,
+      raw: None,
+    });
+
+    assert_eq!(prop_name_to_string(&ident), Some("foo".to_string()));
+    assert_eq!(prop_name_to_string(&str_key), Some("bar".to_string()));
+    assert_eq!(prop_name_to_string(&num_key), Some("42".to_string()));
+  }
+
+  #[test]
+  fn prop_name_to_string_rejects_computed_keys() {
+    let computed = PropName::Computed(ComputedPropName {
+      span: DUMMY_SP,
+      expr: Box::new(Expr::Lit(Lit::Num(Number {
+        span: DUMMY_SP,
+        value: 1.0,
+        raw: None,
+      }))),
+    });
+
+    assert_eq!(prop_name_to_string(&computed), None);
   }
 }

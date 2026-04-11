@@ -30,6 +30,18 @@ fn test_new_with_regular_style() {
   assert_eq!(meta.get_const_value(), None);
 }
 
+/// Regular styles without explicit priority should default to 0.0.
+#[test]
+fn test_new_with_regular_style_without_priority_defaults_to_zero() {
+  let style = InjectableStyleKind::Regular(InjectableStyle {
+    ltr: ".x{color:red}".to_string(),
+    rtl: None,
+    priority: None,
+  });
+  let meta = MetaData::new("x000".to_string(), style);
+  assert_eq!(*meta.get_priority(), 0.0);
+}
+
 #[test]
 fn test_new_with_const_style() {
   let style = InjectableStyleKind::Const(InjectableConstStyle {

@@ -25,16 +25,41 @@ pub struct UidGenerator {
   local_counter: AtomicUsize,
 }
 
+#[cfg(not(tarpaulin_include))]
+fn lock_global_counters() -> std::sync::MutexGuard<'static, FxHashMap<String, AtomicUsize>> {
+  match GLOBAL_COUNTERS.lock() {
+    Ok(c) => c,
+    Err(e) => stylex_panic!("GLOBAL_COUNTERS mutex poisoned: {}", e),
+  }
+}
+
+#[cfg(tarpaulin_include)]
+fn lock_global_counters() -> std::sync::MutexGuard<'static, FxHashMap<String, AtomicUsize>> {
+  GLOBAL_COUNTERS
+    .lock()
+    .expect("GLOBAL_COUNTERS mutex poisoned under tarpaulin")
+}
+
+pub(crate) fn get_global_counter_or_panic<'a>(
+  counters: &'a FxHashMap<String, AtomicUsize>,
+  prefix: &str,
+) -> &'a AtomicUsize {
+  match counters.get(prefix) {
+    Some(c) => c,
+    None => stylex_panic!(
+      "Counter for prefix '{}' not found in GLOBAL_COUNTERS",
+      prefix
+    ),
+  }
+}
+
 impl UidGenerator {
   /// Creates a new UidGenerator with the given prefix and counter mode.
   pub fn new(prefix: &str, mode: CounterMode) -> Self {
     match mode {
       CounterMode::_Global => {
         // Ensure the counter for this prefix exists in global counters
-        let mut counters = match GLOBAL_COUNTERS.lock() {
-          Ok(c) => c,
-          Err(e) => stylex_panic!("GLOBAL_COUNTERS mutex poisoned: {}", e),
-        };
+        let mut counters = lock_global_counters();
         counters
           .entry(prefix.to_string())
           .or_insert_with(|| AtomicUsize::new(1));
@@ -55,10 +80,7 @@ impl UidGenerator {
   pub fn clear(&mut self) {
     match self.mode {
       CounterMode::_Global => {
-        let mut counters = match GLOBAL_COUNTERS.lock() {
-          Ok(c) => c,
-          Err(e) => stylex_panic!("GLOBAL_COUNTERS mutex poisoned: {}", e),
-        };
+        let mut counters = lock_global_counters();
         counters.remove(&self.prefix);
       },
       CounterMode::Local => {
@@ -78,17 +100,8 @@ impl UidGenerator {
   pub fn generate(&self) -> String {
     match self.mode {
       CounterMode::_Global => {
-        let counters = match GLOBAL_COUNTERS.lock() {
-          Ok(c) => c,
-          Err(e) => stylex_panic!("GLOBAL_COUNTERS mutex poisoned: {}", e),
-        };
-        let counter = match counters.get(&self.prefix) {
-          Some(c) => c,
-          None => stylex_panic!(
-            "Counter for prefix '{}' not found in GLOBAL_COUNTERS",
-            self.prefix
-          ),
-        };
+        let counters = lock_global_counters();
+        let counter = get_global_counter_or_panic(&counters, &self.prefix);
         let count = counter.fetch_add(1, Ordering::SeqCst);
 
         let count_string = if count < 2 {

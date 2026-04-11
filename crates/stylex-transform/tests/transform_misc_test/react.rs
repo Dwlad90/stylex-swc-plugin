@@ -1,8 +1,5 @@
 use crate::utils::prelude::*;
-use swc_core::{
-  common::FileName,
-  ecma::parser::{Syntax, TsSyntax},
-};
+use swc_core::common::FileName;
 
 fn stylex_transform(
   comments: TestComments,
@@ -257,11 +254,8 @@ stylex_test!(
   "#
 );
 
-test!(
-  Syntax::Typescript(TsSyntax {
-    tsx: true,
-    ..Default::default()
-  }),
+stylex_test!(
+  constant_names_with_template_literal,
   |tr| {
     let cwd_path = std::env::current_dir().unwrap();
 
@@ -269,17 +263,13 @@ test!(
     let filename = fixture_path.join("consts/constants.stylex");
 
     build_test_transform(tr.comments.clone(), move |b| {
-      b.with_pass(PluginPass {
-        cwd: None,
-        filename: FileName::Real(filename.clone()),
-      })
-      .with_runtime_injection()
-      .with_unstable_module_resolution(ModuleResolution::common_js(Some(
-        fixture_path.to_string_lossy().to_string(),
-      )))
+      b.with_filename(FileName::Real(filename))
+        .with_runtime_injection()
+        .with_unstable_module_resolution(ModuleResolution::common_js(Some(
+          fixture_path.to_string_lossy().to_string(),
+        )))
     })
   },
-  constant_names_with_template_literal,
   r#"
     import * as stylex from "@stylexjs/stylex";
     import { C } from "./constants.stylex.js";

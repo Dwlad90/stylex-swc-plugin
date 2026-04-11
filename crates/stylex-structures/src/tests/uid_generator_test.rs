@@ -1,6 +1,9 @@
 //! Tests for UidGenerator across all counter modes (Global, Local, ThreadLocal, ThreadUnique).
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use crate::uid_generator::*;
+use rustc_hash::FxHashMap;
 use stylex_enums::counter_mode::CounterMode;
 
 #[test]
@@ -118,4 +121,20 @@ fn test_generate_ident_returns_valid_ident() {
   assert_eq!(ident.sym.as_ref(), "_id");
   let ident2 = uid.generate_ident();
   assert_eq!(ident2.sym.as_ref(), "_id2");
+}
+
+#[test]
+fn test_get_global_counter_or_panic_returns_existing_counter() {
+  let mut counters = FxHashMap::default();
+  counters.insert("present".to_string(), AtomicUsize::new(7));
+
+  let counter = get_global_counter_or_panic(&counters, "present");
+  assert_eq!(counter.load(Ordering::SeqCst), 7);
+}
+
+#[test]
+fn test_get_global_counter_or_panic_panics_when_missing() {
+  let counters: FxHashMap<String, AtomicUsize> = FxHashMap::default();
+  let result = std::panic::catch_unwind(|| get_global_counter_or_panic(&counters, "missing"));
+  assert!(result.is_err());
 }

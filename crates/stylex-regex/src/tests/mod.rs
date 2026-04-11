@@ -4,6 +4,7 @@
 use ctor::ctor;
 
 mod regex_patterns_test;
+mod regex_static_coverage_test;
 
 #[ctor]
 fn init_logger() {

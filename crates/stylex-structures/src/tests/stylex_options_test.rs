@@ -54,8 +54,10 @@ fn from_stylex_options_params_defaults() {
 
 #[test]
 fn from_stylex_options_params_runtime_injection_true() {
-  let mut params = StyleXOptionsParams::default();
-  params.runtime_injection = Some(RuntimeInjection::Boolean(true));
+  let params = StyleXOptionsParams {
+    runtime_injection: Some(RuntimeInjection::Boolean(true)),
+    ..StyleXOptionsParams::default()
+  };
   let opts: StyleXOptions = params.into();
   assert!(matches!(
     opts.runtime_injection,
@@ -65,23 +67,27 @@ fn from_stylex_options_params_runtime_injection_true() {
 
 #[test]
 fn from_stylex_options_params_runtime_injection_named() {
-  let mut params = StyleXOptionsParams::default();
-  params.runtime_injection = Some(RuntimeInjection::Named(NamedImportSource {
-    r#as: "inject".into(),
-    from: "my-pkg".into(),
-  }));
+  let params = StyleXOptionsParams {
+    runtime_injection: Some(RuntimeInjection::Named(NamedImportSource {
+      r#as: "inject".into(),
+      from: "my-pkg".into(),
+    })),
+    ..StyleXOptionsParams::default()
+  };
   let opts: StyleXOptions = params.into();
   assert!(matches!(opts.runtime_injection, RuntimeInjection::Named(_)));
 }
 
 #[test]
 fn from_stylex_options_params_haste_resolution() {
-  let mut params = StyleXOptionsParams::default();
-  params.unstable_module_resolution = Some(ModuleResolution {
-    r#type: "haste".to_string(),
-    root_dir: Some("/root".to_string()),
-    theme_file_extension: None,
-  });
+  let params = StyleXOptionsParams {
+    unstable_module_resolution: Some(ModuleResolution {
+      r#type: "haste".to_string(),
+      root_dir: Some("/root".to_string()),
+      theme_file_extension: None,
+    }),
+    ..StyleXOptionsParams::default()
+  };
   let opts: StyleXOptions = params.into();
   assert!(matches!(
     opts.unstable_module_resolution,
@@ -91,12 +97,15 @@ fn from_stylex_options_params_haste_resolution() {
 
 #[test]
 fn from_stylex_options_params_cross_file_parsing_resolution() {
-  let mut params = StyleXOptionsParams::default();
-  params.unstable_module_resolution = Some(ModuleResolution {
-    r#type: "cross-file-parsing".to_string(),
-    root_dir: None,
-    theme_file_extension: None,
-  });
+  let params = StyleXOptionsParams {
+    unstable_module_resolution: Some(ModuleResolution {
+      r#type: "cross-file-parsing".to_string(),
+      root_dir: None,
+      theme_file_extension: None,
+    }),
+    ..StyleXOptionsParams::default()
+  };
+
   let opts: StyleXOptions = params.into();
   assert!(matches!(
     opts.unstable_module_resolution,

@@ -13,10 +13,10 @@ where
   S: Serializer,
 {
   if priority.fract() == 0.0 {
-    return serializer.serialize_i32(*priority as i32);
+    serializer.serialize_i32(*priority as i32)
+  } else {
+    serializer.serialize_f64(*priority)
   }
-
-  serializer.serialize_f64(*priority)
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]

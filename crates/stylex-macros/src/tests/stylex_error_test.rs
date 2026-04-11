@@ -19,7 +19,7 @@ fn suppress_panic_stderr_guard_toggles_flag() {
 fn suppress_panic_stderr_default_works() {
   assert!(!is_panic_stderr_suppressed());
   {
-    let _guard = SuppressPanicStderr::default();
+    let _guard = SuppressPanicStderr::new();
     assert!(is_panic_stderr_suppressed());
   }
   assert!(!is_panic_stderr_suppressed());
@@ -27,7 +27,6 @@ fn suppress_panic_stderr_default_works() {
 
 /// strip_ansi is private, but tested indirectly via format_panic_message.
 /// Here we test the format_panic_message function which internally uses strip_ansi.
-
 /// A String payload without [StyleX] prefix should be wrapped with the prefix.
 #[test]
 fn format_panic_message_from_string_payload() {

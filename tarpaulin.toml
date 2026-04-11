@@ -1,6 +1,6 @@
 [default]
 # Workspace settings
-workspace = true
+workspace = false              # Enable workspace mode to include all crates in the workspace
 all-features = true           # Ensure all conditionally compiled code behind features is tested
 release = false               # Run in debug mode (default, better for coverage mapping)
 
@@ -10,12 +10,6 @@ engine = "Llvm"               # LLVM is significantly more accurate and faster t
 # Exclusions & Ignored Code
 ignore-tests = true           # Don't count the test functions themselves in the coverage metric
 ignore-panics = true          # Ignore panic/unwind branches (crucial for hitting 100% in Rust)
-
-# Exclude binary/infrastructure crates that are not unit-testable
-exclude = [
-    "stylex_test_parser",     # Binary crate (main.rs), not a library
-    "stylex_compiler_rs",     # NAPI native module — tested via integration tests in JS
-]
 
 exclude-files = [
     "**/build.rs",
@@ -31,7 +25,7 @@ exclude-files = [
 
 # Output settings
 out = ["Html", "Lcov"]        # Generate an HTML report for humans and Lcov for CI tools (like Codecov)
-output-dir = "target/tarpaulin-output"
+output-dir = "target/tarpaulin"
 target-dir = "/tmp/stylex-swc-plugin-tarpaulin-target"
 
 # Enforcement

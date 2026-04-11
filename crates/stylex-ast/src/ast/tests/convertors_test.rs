@@ -226,9 +226,9 @@ fn extract_str_lit_ref_num_returns_none() {
 
 #[test]
 fn create_number_expr_produces_num_lit() {
-  let expr = create_number_expr(3.14);
+  let expr = create_number_expr(std::f64::consts::PI);
   match expr {
-    Expr::Lit(Lit::Num(n)) => assert!((n.value - 3.14).abs() < f64::EPSILON),
+    Expr::Lit(Lit::Num(n)) => assert!((n.value - std::f64::consts::PI).abs() < f64::EPSILON),
     _ => panic!("Expected Num lit"),
   }
 }

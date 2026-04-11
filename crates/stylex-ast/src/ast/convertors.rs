@@ -104,12 +104,7 @@ pub fn convert_tpl_to_string_lit(tpl: &Tpl) -> Option<Lit> {
 #[inline]
 pub fn convert_simple_tpl_to_str_expr(expr: Expr) -> Expr {
   match expr {
-    Expr::Tpl(ref tpl) => {
-      if let Some(str_lit) = convert_tpl_to_string_lit(tpl) {
-        return Expr::Lit(str_lit);
-      }
-      expr
-    },
+    Expr::Tpl(ref tpl) => convert_tpl_to_string_lit(tpl).map_or(expr, Expr::Lit),
     _ => expr,
   }
 }
@@ -131,12 +126,7 @@ pub fn convert_simple_tpl_to_str_expr(expr: Expr) -> Expr {
 #[inline]
 pub fn convert_concat_to_tpl_expr(expr: Expr) -> Expr {
   match expr {
-    Expr::Call(ref call_expr) => {
-      if let Some(tpl_expr) = concat_call_to_template_literal(call_expr) {
-        return tpl_expr;
-      }
-      expr
-    },
+    Expr::Call(ref call_expr) => concat_call_to_template_literal(call_expr).unwrap_or(expr),
     _ => expr,
   }
 }

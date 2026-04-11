@@ -9,3 +9,7 @@ pub fn get_default_expr_ctx() -> ExprCtx {
     remaining_depth: 4,
   }
 }
+
+#[cfg(test)]
+#[path = "tests/swc_test.rs"]
+mod tests;

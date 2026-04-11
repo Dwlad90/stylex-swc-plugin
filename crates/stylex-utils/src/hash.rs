@@ -26,3 +26,7 @@ pub fn create_short_hash(value: &str) -> String {
   let hash = murmur2::murmur2(value.as_bytes(), 1) % (62u32.pow(5));
   base62::encode(hash)
 }
+
+#[cfg(test)]
+#[path = "tests/hash_test.rs"]
+mod tests;

@@ -633,3 +633,7 @@ impl Display for StepsKeyword {
     write!(f, "{}", keyword_str)
   }
 }
+
+#[cfg(test)]
+#[path = "../tests/css_types/easing_function_test.rs"]
+mod tests;

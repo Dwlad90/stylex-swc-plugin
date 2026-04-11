@@ -31,3 +31,7 @@ pub fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> String {
 pub fn char_code_at(s: &str, index: usize) -> Option<u32> {
   s.chars().nth(index).map(|c| c as u32)
 }
+
+#[cfg(test)]
+#[path = "tests/string_test.rs"]
+mod tests;

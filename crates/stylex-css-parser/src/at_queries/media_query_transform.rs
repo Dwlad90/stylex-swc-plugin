@@ -393,3 +393,7 @@ fn normalize_media_query_syntax(result: Vec<KeyValueProp>) -> Vec<KeyValueProp> 
     })
     .collect()
 }
+
+#[cfg(test)]
+#[path = "../tests/at_queries/media_query_transform_test.rs"]
+mod tests;

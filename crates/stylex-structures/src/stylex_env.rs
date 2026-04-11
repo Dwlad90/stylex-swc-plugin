@@ -56,3 +56,7 @@ impl JSFunction {
     (self.inner)(args)
   }
 }
+
+#[cfg(test)]
+#[path = "tests/stylex_env_test.rs"]
+mod tests;

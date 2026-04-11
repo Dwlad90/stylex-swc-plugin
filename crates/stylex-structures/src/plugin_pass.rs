@@ -43,3 +43,7 @@ impl PluginPass {
     self
   }
 }
+
+#[cfg(test)]
+#[path = "tests/plugin_pass_test.rs"]
+mod tests;

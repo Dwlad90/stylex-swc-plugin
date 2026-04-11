@@ -248,3 +248,7 @@ macro_rules! stylex_unwrap {
     })
   };
 }
+
+#[cfg(test)]
+#[path = "tests/panic_macros_test.rs"]
+mod tests;

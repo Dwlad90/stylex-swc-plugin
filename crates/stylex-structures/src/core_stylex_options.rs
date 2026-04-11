@@ -339,3 +339,7 @@ impl CoreStyleXOptions {
     self
   }
 }
+
+#[cfg(test)]
+#[path = "tests/core_stylex_options_test.rs"]
+mod tests;

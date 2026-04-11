@@ -1128,3 +1128,7 @@ impl Display for TransformFunction {
     }
   }
 }
+
+#[cfg(test)]
+#[path = "../tests/css_types/transform_function_test.rs"]
+mod tests;

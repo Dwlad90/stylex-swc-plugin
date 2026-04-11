@@ -13,6 +13,8 @@ use crate::{
   utils::{contains_subpath, relative_path},
 };
 
+#[cfg(test)]
+#[path = "../tests/resolvers_tests.rs"]
 mod tests;
 #[cfg(test)]
 mod unit_tests;

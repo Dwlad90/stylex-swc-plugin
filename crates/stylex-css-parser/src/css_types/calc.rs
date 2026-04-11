@@ -549,3 +549,7 @@ pub fn calc_value_to_string(value: &CalcValue) -> String {
 }
 
 // Tests are in calc_parsing_tests.rs
+
+#[cfg(test)]
+#[path = "../tests/css_types/calc_test.rs"]
+mod tests;

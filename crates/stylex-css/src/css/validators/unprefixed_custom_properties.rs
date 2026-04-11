@@ -3,8 +3,6 @@ use swc_core::css::ast::{
 };
 
 use crate::css::common::get_value_from_ident;
-#[cfg(test)]
-use crate::css::common::swc_parse_css;
 use stylex_constants::constants::messages::UNPREFIXED_CUSTOM_PROPERTIES;
 
 fn process_function(func: &Function) {
@@ -45,10 +43,6 @@ pub fn unprefixed_custom_properties_validator(ast: &Stylesheet) {
   }
 }
 
-#[test]
-#[should_panic(expected = "Unprefixed custom properties")]
-fn disallow_unprefixed_custom_properties() {
-  let (result, _) = swc_parse_css("* { color: var(foo); }");
-
-  unprefixed_custom_properties_validator(&result.unwrap());
-}
+#[cfg(test)]
+#[path = "../../tests/unprefixed_custom_properties_tests.rs"]
+mod tests;

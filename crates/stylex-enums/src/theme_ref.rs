@@ -22,3 +22,7 @@ impl ThemeRefResult {
     }
   }
 }
+
+#[cfg(test)]
+#[path = "tests/theme_ref_test.rs"]
+mod tests;

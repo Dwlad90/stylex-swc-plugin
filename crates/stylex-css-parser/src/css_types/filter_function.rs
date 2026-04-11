@@ -716,3 +716,7 @@ impl Display for SepiaFilterFunction {
     write!(f, "sepia({})", self.amount)
   }
 }
+
+#[cfg(test)]
+#[path = "../tests/css_types/filter_function_test.rs"]
+mod tests;

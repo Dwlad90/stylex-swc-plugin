@@ -13,3 +13,7 @@ impl Pair {
     }
   }
 }
+
+#[cfg(test)]
+#[path = "tests/pair_test.rs"]
+mod tests;

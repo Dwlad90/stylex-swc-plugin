@@ -39,3 +39,7 @@ impl ValueWithDefault {
     }
   }
 }
+
+#[cfg(test)]
+#[path = "tests/value_with_default_test.rs"]
+mod tests;

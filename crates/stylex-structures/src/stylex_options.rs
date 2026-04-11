@@ -290,3 +290,11 @@ impl From<StyleXOptionsParams> for StyleXOptions {
     }
   }
 }
+
+#[cfg(test)]
+#[path = "tests/stylex_options_test.rs"]
+mod tests;
+
+#[cfg(test)]
+#[path = "tests/stylex_options_builders_test.rs"]
+mod stylex_options_builders_test;

@@ -167,3 +167,7 @@ pub fn format_panic_message(error: &Box<dyn std::any::Any + Send>) -> String {
 thread_local! {
   static SUPPRESS_PANIC_STDERR: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
+
+#[cfg(test)]
+#[path = "tests/stylex_error_test.rs"]
+mod tests;

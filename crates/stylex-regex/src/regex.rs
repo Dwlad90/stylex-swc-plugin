@@ -83,3 +83,11 @@ pub static STYLEX_CONSTS_IMPORT_REGEX: Lazy<Regex> = Lazy::new(|| {
 
 pub static VAR_EXTRACTION_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"var\((--x-[^,)]+)[^)]*\)").expect("Var extraction regex is valid"));
+
+#[cfg(test)]
+#[path = "tests/regex_static_coverage_test.rs"]
+mod regex_static_coverage_test;
+
+#[cfg(test)]
+#[path = "tests/regex_patterns_test.rs"]
+mod regex_patterns_test;

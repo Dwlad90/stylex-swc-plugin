@@ -16,16 +16,12 @@ impl FnResult {
       _ => None,
     }
   }
-
-  #[cfg(test)]
   pub(crate) fn as_stylex(&self) -> Option<&Expr> {
     match self {
       FnResult::Stylex(expr) => Some(expr),
       _ => None,
     }
   }
-
-  #[cfg(test)]
   pub(crate) fn as_attrs(&self) -> Option<&NestedStringObject> {
     match self {
       FnResult::Attrs(attrs) => Some(attrs),

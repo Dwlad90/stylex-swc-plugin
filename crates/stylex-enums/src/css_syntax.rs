@@ -60,3 +60,11 @@ impl From<String> for CSSSyntax {
     }
   }
 }
+
+#[cfg(test)]
+#[path = "tests/css_syntax_test.rs"]
+mod tests;
+
+#[cfg(test)]
+#[path = "tests/css_syntax_error_paths_test.rs"]
+mod css_syntax_error_paths_test;

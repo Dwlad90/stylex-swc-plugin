@@ -12,6 +12,3 @@ pub mod sx_prop_name_param;
 pub mod theme_ref;
 pub mod top_level_expression;
 pub mod value_with_default;
-
-#[cfg(test)]
-mod tests;

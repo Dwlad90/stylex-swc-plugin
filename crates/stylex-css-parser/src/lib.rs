@@ -61,9 +61,6 @@ pub mod token_types;
 pub mod css_value;
 pub mod flex_parser;
 
-#[cfg(test)]
-pub mod tests;
-
 pub use at_queries::last_media_query_wins_transform;
 pub use token_parser as tokenParser;
 

@@ -1,3 +1,6 @@
+// Path resolver behavior suites (pnpm/npm/aliases/exports scenarios).
+// Source: crates/stylex-path-resolver/src/resolvers/tests.rs
+
 use std::{
   env,
   path::{Path, PathBuf},

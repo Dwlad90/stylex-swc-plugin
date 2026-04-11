@@ -89,3 +89,7 @@ pub enum RuntimeInjectionState {
   Regular(String),
   Named(NamedImportSource),
 }
+
+#[cfg(test)]
+#[path = "tests/named_import_source_test.rs"]
+mod tests;

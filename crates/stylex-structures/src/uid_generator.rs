@@ -159,3 +159,7 @@ impl UidGenerator {
     Ident::from(unique_name.as_str())
   }
 }
+
+#[cfg(test)]
+#[path = "tests/uid_generator_test.rs"]
+mod tests;

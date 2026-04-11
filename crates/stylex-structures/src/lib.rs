@@ -14,6 +14,3 @@ pub mod stylex_options;
 pub mod stylex_state_options;
 pub mod top_level_expression;
 pub mod uid_generator;
-
-#[cfg(test)]
-mod tests;

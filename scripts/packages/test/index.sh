@@ -3,6 +3,10 @@
 # Define the patterns: #[test], test_transform(, or test!(
 # We use -E for extended regex to use the OR (|) operator
 PATTERNS="#\[test\]|test_transform\(|test!\("
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+workspace_root="$(cd "$script_dir/../../.." && pwd)"
+crate_slug="$(basename "$PWD" | tr -c '[:alnum:]_-' '_')"
+crate_target_dir="/tmp/stylex-swc-plugin-test-target-${crate_slug}"
 
 # Search recursively in the src directory
 # -q: quiet mode (don't output matches, just exit status)
@@ -17,8 +21,8 @@ if grep -qRE --include="*.rs" "$PATTERNS" src tests; then
         args=(-- --test-threads=1)
     fi
 
-    NODE_ENV="test" cargo test --lib --bins --tests --all-features "${args[@]}"
-    NODE_ENV="test" cargo test --doc --all-features "${args[@]}"
+    NODE_ENV="test" cargo test --target-dir "$crate_target_dir" --lib --bins --tests --all-features "${args[@]}"
+    NODE_ENV="test" cargo test --target-dir "$crate_target_dir" --doc --all-features "${args[@]}"
 else
     exit 0
 fi

@@ -326,6 +326,25 @@ pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
   (parse_string_input(input, None, config, &mut errors), errors)
 }
 
+fn contains_css_function_call(value: &str, function_name: &str) -> bool {
+  let value_bytes = value.as_bytes();
+  let function_bytes = function_name.as_bytes();
+
+  if function_bytes.is_empty() || value_bytes.len() <= function_bytes.len() {
+    return false;
+  }
+
+  for i in 0..=(value_bytes.len() - function_bytes.len() - 1) {
+    if value_bytes[i..i + function_bytes.len()].eq_ignore_ascii_case(function_bytes)
+      && value_bytes[i + function_bytes.len()] == b'('
+    {
+      return true;
+    }
+  }
+
+  false
+}
+
 /// Normalizes a CSS property value by parsing, normalizing, and re-serializing it.
 pub fn normalize_css_property_value(
   css_property: &str,
@@ -335,12 +354,7 @@ pub fn normalize_css_property_value(
   if COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES
     .iter()
     .chain(COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES.iter())
-    .any(|css_fnc| {
-      css_property_value.contains(css_fnc) && css_property_value.contains('(')
-        || css_property_value
-          .to_lowercase()
-          .contains(css_fnc.to_ascii_lowercase().as_str())
-    })
+    .any(|css_fnc| contains_css_function_call(css_property_value, css_fnc))
   {
     return MANY_SPACES.replace_all(css_property_value, " ").to_string();
   }
@@ -393,9 +407,15 @@ pub fn normalize_css_property_value(
     },
     // SWC parser returns errors via the separate `errors` list above,
     // so this `Err` branch is practically unreachable.
-    #[cfg(not(tarpaulin_include))]
     Err(err) => {
-      stylex_panic!("{}", err.message())
+      #[cfg(not(tarpaulin_include))]
+      {
+        stylex_panic!("{}", err.message())
+      }
+      #[cfg(tarpaulin_include)]
+      {
+        unreachable!("{}", err.message())
+      }
     },
   }
 }
@@ -442,8 +462,16 @@ pub fn stringify(node: &Stylesheet) -> String {
   match Emit::emit(&mut codegen, node) {
     Ok(_) => {},
     // CSS codegen on a valid AST never fails in practice.
-    #[cfg(not(tarpaulin_include))]
-    Err(e) => stylex_panic!("CSS codegen emit failed: {}", e),
+    Err(e) => {
+      #[cfg(not(tarpaulin_include))]
+      {
+        stylex_panic!("CSS codegen emit failed: {}", e)
+      }
+      #[cfg(tarpaulin_include)]
+      {
+        unreachable!("CSS codegen emit failed: {}", e)
+      }
+    },
   };
 
   drop(codegen);

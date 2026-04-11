@@ -25,16 +25,8 @@ pub fn is_css_unit(s: &str) -> bool {
 /// Extract the CSS property value from a stringified rule like `*{prop:value}`.
 ///
 /// Handles both `*{prop:value}` and `prop:value` formats. Returns the value
-/// portion with leading/trailing whitespace trimmed. For URL values, returns
-/// just the `url(...)` portion.
+/// portion with leading/trailing whitespace trimmed.
 pub fn extract_css_value(css: &str) -> &str {
-  // Fast-path: return URL values as-is
-  if let Some(start) = css.find("url(")
-    && let Some(end) = css[start..].find(')')
-  {
-    return &css[start..start + end + 1];
-  }
-
   // Find the value inside a rule wrapper
   let search_start = if let Some(brace) = css.find('{') {
     let mut s = brace + 1;
@@ -57,9 +49,43 @@ pub fn extract_css_value(css: &str) -> &str {
     .find(|c: char| c != ' ')
     .map_or(colon + 1, |p| colon + 1 + p);
 
-  let end = css[val_start..]
-    .find(['}', ';'])
-    .map_or(css.len(), |p| val_start + p);
+  let mut end = css.len();
+  let mut paren_depth: usize = 0;
+  let mut in_single_quote = false;
+  let mut in_double_quote = false;
+  let mut escaped = false;
+
+  for (offset, byte) in css.as_bytes()[val_start..].iter().enumerate() {
+    let idx = val_start + offset;
+
+    if escaped {
+      escaped = false;
+      continue;
+    }
+
+    match *byte {
+      b'\\' if in_single_quote || in_double_quote => {
+        escaped = true;
+      },
+      b'\'' if !in_double_quote => {
+        in_single_quote = !in_single_quote;
+      },
+      b'"' if !in_single_quote => {
+        in_double_quote = !in_double_quote;
+      },
+      b'(' if !in_single_quote && !in_double_quote => {
+        paren_depth += 1;
+      },
+      b')' if !in_single_quote && !in_double_quote => {
+        paren_depth = paren_depth.saturating_sub(1);
+      },
+      b';' | b'}' if !in_single_quote && !in_double_quote && paren_depth == 0 => {
+        end = idx;
+        break;
+      },
+      _ => {},
+    }
+  }
 
   css[val_start..end].trim()
 }
@@ -166,3 +192,7 @@ pub fn normalize_spacing(css: &str) -> String {
 
   result
 }
+
+#[cfg(test)]
+#[path = "../../tests/whitespace_normalizer_tests.rs"]
+mod tests;

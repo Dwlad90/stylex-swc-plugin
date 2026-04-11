@@ -1,3 +1,4 @@
+pub mod base;
 pub mod whitespace_normalizer;
 
 #[cfg(test)]

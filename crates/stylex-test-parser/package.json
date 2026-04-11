@@ -29,7 +29,9 @@
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
     "start": "./dist/test-parser",
-    "test": "NODE_ENV=test cargo test --bins --tests"
+    "test": "NODE_ENV=test cargo test --bins --tests",
+    "test:flamegraph": "NODE_ENV=test cargo flamegraph --root --test",
+    "test:tarpaulin": "NODE_ENV=test cargo tarpaulin --skip-clean --out Json --run-types Tests,Doctests"
   },
   "config": {
     "scripty": {

@@ -34,6 +34,8 @@
     "postbuild": "pnpm run build:swc && pnpm run build:types && pnpm run check:artifacts",
     "prepublishOnly": "napi prepublish --no-gh-release",
     "test": "ava",
+    "test:flamegraph": "NODE_ENV=test cargo flamegraph --root --test",
+    "test:tarpaulin": "NODE_ENV=test cargo tarpaulin --skip-clean --out Json --run-types Tests,Doctests",
     "typecheck": "scripty --rs",
     "version": "napi version"
   },

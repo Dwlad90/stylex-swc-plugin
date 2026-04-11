@@ -27,7 +27,9 @@
     "prepush": "lint-prepush",
     "test": "scripty",
     "test:fix-indent": "python3 ../../scripts/fix-test-indent.py",
-    "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
+    "test:flamegraph": "pnpm run test:profile",
+    "test:profile": "NODE_ENV=test cargo flamegraph --root --test",
+    "test:tarpaulin": "NODE_ENV=test cargo tarpaulin --skip-clean --out Json --run-types Tests,Doctests"
   },
   "config": {
     "scripty": {

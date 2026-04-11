@@ -5,8 +5,8 @@ use crate::theme_ref::ThemeRefResult;
 /// CssVar variant should return the inner string from `as_css_var()`.
 #[test]
 fn as_css_var_with_css_var() {
-  let result = ThemeRefResult::CssVar("--color-primary".to_string());
-  assert_eq!(result.as_css_var(), Some(&"--color-primary".to_string()));
+  let result = ThemeRefResult::CssVar("--color-primary".into());
+  assert_eq!(result.as_css_var(), Some("--color-primary"));
 }
 
 /// Proxy variant should return None from `as_css_var()`.
@@ -33,7 +33,7 @@ fn as_is_proxy_with_proxy() {
 /// CssVar variant should return None from `as_is_proxy()`.
 #[test]
 fn as_is_proxy_with_css_var() {
-  let result = ThemeRefResult::CssVar("x".to_string());
+  let result = ThemeRefResult::CssVar("x".into());
   assert_eq!(result.as_is_proxy(), None);
 }
 

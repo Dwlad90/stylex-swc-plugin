@@ -78,13 +78,11 @@ fn from_stylex_options_named_injection() {
 
 #[test]
 fn from_stylex_options_preserves_fields() {
-  let opts = StyleXOptions {
-    dev: true,
-    test: true,
-    debug: true,
-    class_name_prefix: "y".to_string(),
-    ..StyleXOptions::default()
-  };
+  let opts = StyleXOptions::default()
+    .with_dev(true)
+    .with_test(true)
+    .with_debug(true)
+    .with_class_name_prefix("y");
   let state: StyleXStateOptions = opts.into();
   assert!(state.dev);
   assert!(state.test);

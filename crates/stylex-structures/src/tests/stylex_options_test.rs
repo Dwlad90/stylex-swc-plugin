@@ -99,7 +99,7 @@ fn from_stylex_options_params_cross_file_parsing_resolution() {
 
 #[test]
 fn get_haste_module_resolution() {
-  let res = StyleXOptions::get_haste_module_resolution(Some("/root".to_string()));
+  let res = ModuleResolution::haste(Some("/root".to_string()));
   assert_eq!(res.r#type, "haste");
   assert_eq!(res.root_dir, Some("/root".to_string()));
   assert!(res.theme_file_extension.is_none());
@@ -107,7 +107,7 @@ fn get_haste_module_resolution() {
 
 #[test]
 fn get_common_js_module_resolution() {
-  let res = StyleXOptions::get_common_js_module_resolution(None);
+  let res = ModuleResolution::common_js(None);
   assert_eq!(res.r#type, "commonjs");
   assert!(res.root_dir.is_none());
 }

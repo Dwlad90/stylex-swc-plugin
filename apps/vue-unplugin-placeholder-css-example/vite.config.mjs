@@ -9,7 +9,8 @@ export default defineConfig({
   plugins: [
     vue(),
     styleXRSPlugin({
-      pageExtensions: ['tsx', 'jsx', 'js', 'ts', 'vue'],
+      // Keep Vue SFC processing on virtual script requests (`lang.ts`), not raw `.vue` documents.
+      pageExtensions: ['tsx', 'jsx', 'js', 'ts'],
       useCssPlaceholder: true,
       rsOptions: {
         dev: true,

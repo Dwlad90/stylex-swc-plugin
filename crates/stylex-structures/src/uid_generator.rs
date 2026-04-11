@@ -46,10 +46,7 @@ pub(crate) fn get_global_counter_or_panic<'a>(
 ) -> &'a AtomicUsize {
   match counters.get(prefix) {
     Some(c) => c,
-    None => stylex_panic!(
-      "Counter for prefix '{}' not found in GLOBAL_COUNTERS",
-      prefix
-    ),
+    None => stylex_panic!("Counter for prefix '{}' not found in GLOBAL_COUNTERS", prefix),
   }
 }
 

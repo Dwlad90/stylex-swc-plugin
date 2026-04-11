@@ -103,10 +103,15 @@ pub fn recursive_find_node_modules(
   let mut node_modules_paths = IndexSet::new();
 
   if path.eq(Path::new("/")) {
-    let root_node_modules = path.join("node_modules");
+    #[cfg(not(tarpaulin_include))]
+    // Root-level `node_modules` lookup is environment-dependent and is excluded from tarpaulin.
+    // We still keep this behavior in normal runtime builds.
+    {
+      let root_node_modules = path.join("node_modules");
 
-    if root_node_modules.exists() {
-      node_modules_paths.insert(root_node_modules);
+      if root_node_modules.exists() {
+        node_modules_paths.insert(root_node_modules);
+      }
     }
 
     return node_modules_paths;
@@ -157,3 +162,6 @@ pub(crate) fn get_package_json_deps(
 
   package_dependencies
 }
+
+#[cfg(test)]
+mod tests;

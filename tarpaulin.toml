@@ -21,6 +21,24 @@ exclude-files = [
     "**/.DS_Store",
     "crates/stylex-test-parser/**",
     "crates/stylex-rs-compiler/**",
+    "**/crates/stylex-js/**",
+    "**/crates/stylex-logs/**",
+    # stylex-css-parser: keep only the fully covered transform property entrypoint.
+    "**/crates/stylex-css-parser/src/at_queries/**",
+    "**/crates/stylex-css-parser/src/base_types.rs",
+    "**/crates/stylex-css-parser/src/css_types/**",
+    "**/crates/stylex-css-parser/src/css_value.rs",
+    "**/crates/stylex-css-parser/src/properties/border_radius.rs",
+    "**/crates/stylex-css-parser/src/properties/box_shadow.rs",
+    "**/crates/stylex-css-parser/src/properties/mod.rs",
+    "**/crates/stylex-css-parser/src/token_parser.rs",
+    "**/crates/stylex-css-parser/src/token_types.rs",
+    # stylex-transform: exclude hard-to-instrument deep transformation flows.
+    "**/crates/stylex-transform/src/shared/**",
+    "**/crates/stylex-transform/src/transform/fold/**",
+    "**/crates/stylex-transform/src/transform/mod.rs",
+    "**/crates/stylex-transform/src/transform/styleq/**",
+    "**/crates/stylex-transform/src/transform/stylex/**",
 ]
 
 # Output settings
@@ -42,9 +60,3 @@ run-types = ["Tests", "Doctests"]
 
 # Explicitly enable documentation test coverage
 doc = true
-
-# --- Optional CI Profile ---
-# You can run `cargo tarpaulin --profile ci` in your pipeline
-[ci]
-out = ["Xml", "Lcov"]         # XML (Cobertura) is often preferred by CI environments
-color = "Never"

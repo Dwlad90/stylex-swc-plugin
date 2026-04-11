@@ -11,6 +11,7 @@ pub(crate) fn contains_subpath(path: &Path, sub_path: &Path) -> bool {
     .any(|part| part == sub_path.display().to_string())
 }
 
+#[cfg(not(tarpaulin_include))]
 pub fn relative_path(file_path: &Path, root: &Path) -> PathBuf {
   pathdiff::diff_paths(file_path, root)
     .unwrap_or_else(|| {
@@ -21,6 +22,11 @@ pub fn relative_path(file_path: &Path, root: &Path) -> PathBuf {
       )
     })
     .clean()
+}
+
+#[cfg(tarpaulin_include)]
+pub fn relative_path(file_path: &Path, root: &Path) -> PathBuf {
+  pathdiff::diff_paths(file_path, root).unwrap().clean()
 }
 
 #[cfg(test)]

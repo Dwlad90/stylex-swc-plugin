@@ -19,7 +19,7 @@ fn suppress_panic_stderr_guard_toggles_flag() {
 fn suppress_panic_stderr_default_works() {
   assert!(!is_panic_stderr_suppressed());
   {
-    let _guard = SuppressPanicStderr::new();
+    let _guard = SuppressPanicStderr::default();
     assert!(is_panic_stderr_suppressed());
   }
   assert!(!is_panic_stderr_suppressed());

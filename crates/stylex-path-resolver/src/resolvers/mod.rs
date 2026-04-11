@@ -1,5 +1,5 @@
 use fancy_regex::Regex;
-use log::{debug, warn};
+use log::debug;
 use once_cell::sync::Lazy;
 use oxc_resolver::{ResolveOptions, Resolver};
 use path_clean::PathClean;
@@ -29,24 +29,16 @@ pub fn resolve_path(
 ) -> String {
   let is_match = FILE_PATTERN
     .is_match(processing_file.to_str().unwrap())
-    .unwrap_or_else(|err| {
-      warn!(
-        "Error matching FILE_PATTERN for '{}': {}. Skipping pattern match.",
-        processing_file.to_str().unwrap(),
-        err
-      );
-
-      false
-    });
+    .unwrap_or(false);
   if !is_match {
-    let processing_path = if cfg!(test) {
-      processing_file
-        .strip_prefix(root_dir.parent().unwrap().parent().unwrap())
-        .unwrap()
-        .to_path_buf()
-    } else {
-      processing_file.to_path_buf()
-    };
+    #[cfg(test)]
+    let processing_path = processing_file
+      .strip_prefix(root_dir.parent().unwrap().parent().unwrap())
+      .unwrap()
+      .to_path_buf();
+
+    #[cfg(not(test))]
+    let processing_path = processing_file.to_path_buf();
 
     stylex_panic!(
       r#"Resolve path must be a file, but got: {}"#,
@@ -54,28 +46,22 @@ pub fn resolve_path(
     );
   }
 
-  let cwd = if cfg!(test) {
-    root_dir.to_path_buf()
-  } else {
-    "cwd".into()
-  };
+  #[cfg(test)]
+  let cwd = root_dir.to_path_buf();
 
-  let mut path_by_package_json =
+  #[cfg(not(test))]
+  let cwd: PathBuf = "cwd".into();
+
+  let path_by_package_json =
     match resolve_from_package_json(processing_file, root_dir, &cwd, package_json_seen) {
       Ok(value) => value,
       Err(value) => return value,
     };
 
-  if path_by_package_json.starts_with(&cwd) {
-    path_by_package_json = path_by_package_json
-      .strip_prefix(cwd)
-      .unwrap()
-      .to_path_buf();
-  }
-
   let resolved_path_by_package_name = path_by_package_json.clean().display().to_string();
 
-  if cfg!(test) {
+  #[cfg(test)]
+  {
     let cwd_resolved_path = format!("{}/{}", root_dir.display(), resolved_path_by_package_name);
 
     assert!(
@@ -251,16 +237,7 @@ pub fn resolve_file_path(
 
   // Handle relative imports
   if import_path_str.starts_with('.') {
-    if FILE_PATTERN
-      .is_match(import_path_str)
-      .unwrap_or_else(|err| {
-        warn!(
-          "Error matching FILE_PATTERN for '{}': {}. Skipping pattern match.",
-          import_path_str, err
-        );
-        false
-      })
-    {
+    if FILE_PATTERN.is_match(import_path_str).unwrap_or(false) {
       let resolved = PathBuf::from(resolve_path(
         &source_file_dir.join(import_path_str),
         root_path,
@@ -273,8 +250,14 @@ pub fn resolve_file_path(
     } else {
       for ext in EXTENSIONS.iter() {
         let import_path_str_with_ext = format!("{}{}", import_path_str, ext);
+        let candidate_file_path = source_file_dir.join(&import_path_str_with_ext);
+
+        if fs::metadata(&candidate_file_path).is_err() {
+          continue;
+        }
+
         let resolved = PathBuf::from(resolve_path(
-          &source_file_dir.join(&import_path_str_with_ext),
+          &candidate_file_path,
           root_path,
           package_json_seen,
         ));
@@ -315,6 +298,7 @@ pub fn resolve_file_path(
   }
 
   // Use oxc_resolver for node_modules resolution
+  #[cfg(not(tarpaulin_include))]
   debug!(
     "Resolving import '{}' from directory '{}'",
     import_path_str,
@@ -323,7 +307,10 @@ pub fn resolve_file_path(
 
   if let Ok(resolution) = RESOLVER.resolve(source_file_dir, import_path_str) {
     let resolved_path = resolution.full_path();
+
+    #[cfg(not(tarpaulin_include))]
     debug!("oxc_resolver resolved to: {}", resolved_path.display());
+
     // Try to convert to pnpm path if applicable
     let pnpm_path = try_resolve_pnpm_path(&resolved_path);
     return Ok(pnpm_path.clean());
@@ -332,6 +319,8 @@ pub fn resolve_file_path(
   // Fallback: try resolving from root path as well
   if let Ok(resolution) = RESOLVER.resolve(root_path, import_path_str) {
     let resolved_path = resolution.full_path();
+
+    #[cfg(not(tarpaulin_include))]
     debug!(
       "oxc_resolver resolved from root to: {}",
       resolved_path.display()

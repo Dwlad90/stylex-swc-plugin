@@ -29,7 +29,7 @@ if grep -qRE --include="*.rs" "$PATTERNS" src tests; then
     exit 0
   fi
 
-  NODE_ENV="test" cargo tarpaulin --config "$tarpaulin_config" --target-dir "$crate_target_dir" --include-files "$crate_include_glob" "${extra_exclude_args[@]}" --skip-clean "$@"
+  NODE_ENV="test" cargo tarpaulin --config "$tarpaulin_config" --target-dir "$crate_target_dir" --include-files "$crate_include_glob" "${extra_exclude_args[@]}" "$@"
 else
   exit 0
 fi

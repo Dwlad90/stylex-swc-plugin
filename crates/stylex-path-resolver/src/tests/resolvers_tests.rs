@@ -37,6 +37,8 @@ fn fixture(test_path: &PathBuf, part: &str) -> PathBuf {
 
 #[cfg(test)]
 mod resolve_path_pnpm_tests {
+  use serial_test::serial;
+
   use crate::resolvers::{
     resolve_path,
     tests::{fixture, get_root_dir},
@@ -45,6 +47,7 @@ mod resolve_path_pnpm_tests {
   use std::{collections::HashMap, path::PathBuf};
 
   #[test]
+  #[serial]
   fn resolve_work_dir_packages() {
     let test_path = PathBuf::from("workspace-pnpm");
 
@@ -68,6 +71,7 @@ mod resolve_path_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(expected = "Path resolution failed: index.jsx")]
   fn resolve_work_dir_not_existed_packages() {
     let test_path = PathBuf::from("workspace-pnpm");
@@ -80,6 +84,7 @@ mod resolve_path_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn external_package_with_namespace() {
     let test_path = PathBuf::from("workspace-pnpm");
 
@@ -98,6 +103,7 @@ mod resolve_path_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Path resolution failed: node_modules/@stylex/open-props/lib/spaces.stylex.js"
   )]
@@ -116,6 +122,7 @@ mod resolve_path_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Path resolution failed: node_modules/@stylex/close-props/lib/colors.stylex.js"
   )]
@@ -134,6 +141,7 @@ mod resolve_path_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn external_package_without_namespace() {
     let test_path = PathBuf::from("workspace-pnpm");
 
@@ -148,6 +156,7 @@ mod resolve_path_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn external_pnpm_package_file() {
     assert_eq!(
       resolve_path(
@@ -161,6 +170,7 @@ mod resolve_path_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn external_npm_package_file() {
     assert_eq!(
       resolve_path(
@@ -177,6 +187,7 @@ mod resolve_path_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn external_yarn_pnp_package_file() {
     assert_eq!(
       resolve_path(
@@ -190,6 +201,7 @@ mod resolve_path_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn workspace_package_without_namespace() {
     let test_path = PathBuf::from("workspace-pnpm");
     let local_package_test_path = PathBuf::from("");
@@ -209,6 +221,7 @@ mod resolve_path_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn workspace_package_with_namespace() {
     let test_path = PathBuf::from("workspace-pnpm");
     let local_package_test_path = PathBuf::from("");
@@ -228,6 +241,7 @@ mod resolve_path_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn workspace_package_main_dist_with_namespace() {
     let test_path = PathBuf::from("workspace-pnpm");
     let local_package_test_path = PathBuf::from("");
@@ -249,6 +263,8 @@ mod resolve_path_pnpm_tests {
 
 #[cfg(test)]
 mod resolve_path_npm_tests {
+  use serial_test::serial;
+
   use crate::resolvers::{
     resolve_path,
     tests::{fixture, get_root_dir},
@@ -257,6 +273,7 @@ mod resolve_path_npm_tests {
   use std::{collections::HashMap, path::PathBuf};
 
   #[test]
+  #[serial]
   fn resolve_work_dir_packages() {
     let test_path = PathBuf::from("workspace-npm/apps/web");
 
@@ -282,6 +299,7 @@ mod resolve_path_npm_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(expected = "Path resolution failed: index.jsx")]
   fn resolve_work_dir_not_existed_packages() {
     let test_path = PathBuf::from("workspace-npm/apps/web");
@@ -294,6 +312,7 @@ mod resolve_path_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn external_package_with_namespace() {
     let test_path = PathBuf::from("workspace-npm");
 
@@ -312,6 +331,7 @@ mod resolve_path_npm_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Path resolution failed: node_modules/@stylex/open-props/lib/spaces.stylex.js"
   )]
@@ -330,6 +350,7 @@ mod resolve_path_npm_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Path resolution failed: node_modules/@stylex/close-props/lib/colors.stylex.js"
   )]
@@ -348,6 +369,7 @@ mod resolve_path_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn external_package_without_namespace() {
     let test_path = PathBuf::from("workspace-npm");
 
@@ -362,6 +384,7 @@ mod resolve_path_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn external_pnpm_package_file() {
     assert_eq!(
       resolve_path(
@@ -375,6 +398,7 @@ mod resolve_path_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn external_npm_package_file() {
     assert_eq!(
       resolve_path(
@@ -391,6 +415,7 @@ mod resolve_path_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn external_yarn_pnp_package_file() {
     assert_eq!(
       resolve_path(
@@ -404,6 +429,7 @@ mod resolve_path_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn workspace_package_without_namespace() {
     let test_path = PathBuf::from("workspace-npm/apps/web");
     let local_package_test_path = PathBuf::from("");
@@ -423,6 +449,7 @@ mod resolve_path_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn workspace_package_with_namespace() {
     let test_path = PathBuf::from("workspace-npm/apps/web");
     let local_package_test_path = PathBuf::from("");
@@ -442,6 +469,7 @@ mod resolve_path_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn workspace_package_main_dist_with_namespace() {
     let test_path = PathBuf::from("workspace-npm/apps/web");
     let local_package_test_path = PathBuf::from("");
@@ -463,6 +491,7 @@ mod resolve_path_npm_tests {
 
 #[cfg(test)]
 mod resolve_path_exports_tests {
+  use serial_test::serial;
 
   use crate::resolvers::{
     resolve_file_path, resolve_path,
@@ -473,6 +502,7 @@ mod resolve_path_exports_tests {
   use std::{collections::HashMap, path::PathBuf};
 
   #[test]
+  #[serial]
   fn external_package_main_exports() {
     let test_path = PathBuf::from("exports");
 
@@ -491,6 +521,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   fn external_package_module_exports() {
     let test_path = PathBuf::from("exports");
     assert_eq!(
@@ -508,6 +539,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   fn external_package_exports() {
     let test_path = PathBuf::from("exports");
 
@@ -526,6 +558,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   fn external_package_commonjs_and_esm_exports() {
     let test_path = PathBuf::from("exports");
 
@@ -557,6 +590,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   fn external_package_exports_with_main() {
     let test_path = PathBuf::from("exports");
 
@@ -575,6 +609,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   fn external_package_exports_with_wildcard() {
     let test_path = PathBuf::from("exports");
 
@@ -619,6 +654,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_file_path_with_wildcard_exports() {
     let test_path = PathBuf::from("exports");
     let root_path = get_root_dir(&test_path).display().to_string();
@@ -684,6 +720,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   fn workspace_package_main_exports() {
     let test_path = PathBuf::from("exports");
     let local_package_test_path = PathBuf::from("");
@@ -703,6 +740,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/packages/stylex-lib-dist-main-local"
   )]
@@ -722,6 +760,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   fn workspace_package_module_exports() {
     let test_path = PathBuf::from("exports");
     let local_package_test_path = PathBuf::from("");
@@ -741,6 +780,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   fn workspace_package_exports() {
     let test_path = PathBuf::from("exports");
     let local_package_test_path = PathBuf::from("");
@@ -799,6 +839,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/packages/stylex-lib-dist-module-local"
   )]
@@ -818,6 +859,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/packages/stylex-lib-dist-exports/colors.stylex"
   )]
@@ -837,6 +879,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/packages/stylex-lib-dist-exports-with-main/colors.stylex"
   )]
@@ -856,6 +899,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/exports/node_modules/stylex-lib-dist-exports/colors.stylex"
   )]
@@ -874,6 +918,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/exports/node_modules/stylex-lib-dist-exports-with-main/colors.stylex"
   )]
@@ -892,6 +937,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/exports/node_modules/stylex-lib-dist-exports"
   )]
@@ -909,6 +955,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/exports/node_modules/stylex-lib-dist-exports"
   )]
@@ -926,6 +973,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/exports/node_modules/stylex-lib-dist-exports/colors.stylex"
   )]
@@ -944,6 +992,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/exports/node_modules/stylex-lib-dist-exports-with-main/colors.stylex"
   )]
@@ -962,6 +1011,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   #[should_panic(
     expected = "Resolve path must be a file, but got: fixtures/packages/stylex-lib-dist-exports-local"
   )]
@@ -981,6 +1031,7 @@ mod resolve_path_exports_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_work_dir_existed_local_package_exports_path() {
     let test_path = PathBuf::from("exports");
     let local_package_test_path = PathBuf::from("");
@@ -1003,6 +1054,8 @@ mod resolve_path_exports_tests {
 }
 #[cfg(test)]
 mod resolve_path_application_pnpm_tests {
+  use serial_test::serial;
+
   use path_clean::PathClean;
   use rustc_hash::FxHashMap;
 
@@ -1011,6 +1064,7 @@ mod resolve_path_application_pnpm_tests {
   use std::{collections::HashMap, path::PathBuf};
 
   #[test]
+  #[serial]
   fn resolve_regular_local_import_from_src() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1040,6 +1094,7 @@ mod resolve_path_application_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_local_import_from_same_level_directory() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1069,6 +1124,7 @@ mod resolve_path_application_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_local_import_from_alias() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1099,6 +1155,7 @@ mod resolve_path_application_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_local_import_from_root_no_alias() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1127,6 +1184,7 @@ mod resolve_path_application_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_local_import_from_root_with_alias() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1157,6 +1215,7 @@ mod resolve_path_application_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_local_import_from_src_alias() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1187,6 +1246,7 @@ mod resolve_path_application_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_local_import_from_workspace_alias() {
     let test_path = PathBuf::from("workspace-pnpm");
 
@@ -1232,6 +1292,7 @@ mod resolve_path_application_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_external_import() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1264,6 +1325,7 @@ mod resolve_path_application_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_external_import_with_exports_dist() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1295,6 +1357,7 @@ mod resolve_path_application_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_package_with_pnpm_path() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1328,6 +1391,7 @@ mod resolve_path_application_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_organisation_package_with_pnpm_path() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1361,6 +1425,7 @@ mod resolve_path_application_pnpm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_organisation_package_with_pnpm_with_same_path() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1396,6 +1461,8 @@ mod resolve_path_application_pnpm_tests {
 
 #[cfg(test)]
 mod resolve_path_application_npm_tests {
+  use serial_test::serial;
+
   use path_clean::PathClean;
   use rustc_hash::FxHashMap;
 
@@ -1404,6 +1471,7 @@ mod resolve_path_application_npm_tests {
   use std::{collections::HashMap, path::PathBuf};
 
   #[test]
+  #[serial]
   fn resolve_regular_local_import_from_src() {
     let test_path = PathBuf::from("application-npm/apps/web");
 
@@ -1433,6 +1501,7 @@ mod resolve_path_application_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_local_import_from_same_level_directory() {
     let test_path = PathBuf::from("application-npm/apps/web");
 
@@ -1462,6 +1531,7 @@ mod resolve_path_application_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_local_import_from_alias() {
     let test_path = PathBuf::from("application-npm/apps/web");
 
@@ -1492,6 +1562,7 @@ mod resolve_path_application_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_local_import_from_workspace_alias() {
     let test_path = PathBuf::from("workspace-npm/apps/web");
 
@@ -1537,6 +1608,7 @@ mod resolve_path_application_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_external_import() {
     let test_path = PathBuf::from("application-npm/apps/web");
 
@@ -1570,6 +1642,7 @@ mod resolve_path_application_npm_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_regular_external_import_with_exports_dist() {
     let test_path = PathBuf::from("application-npm/apps/web");
 
@@ -1606,6 +1679,8 @@ mod resolve_path_application_npm_tests {
 }
 #[cfg(test)]
 mod resolve_path_aliases_tests {
+  use serial_test::serial;
+
   use rustc_hash::FxHashMap;
 
   use crate::resolvers::possible_aliased_paths;
@@ -1613,6 +1688,7 @@ mod resolve_path_aliases_tests {
   use std::path::PathBuf;
 
   #[test]
+  #[serial]
   fn get_import_path_when_no_aliases() {
     assert_eq!(
       possible_aliased_paths("@stylexjs/stylex", &FxHashMap::default()),
@@ -1621,6 +1697,7 @@ mod resolve_path_aliases_tests {
   }
 
   #[test]
+  #[serial]
   fn get_import_path_when_right_aliase() {
     assert_eq!(
       possible_aliased_paths(
@@ -1635,6 +1712,7 @@ mod resolve_path_aliases_tests {
   }
 
   #[test]
+  #[serial]
   fn get_import_path_with_aliases() {
     assert_eq!(
       possible_aliased_paths(
@@ -1666,6 +1744,7 @@ mod resolve_path_aliases_tests {
   }
 
   #[test]
+  #[serial]
   fn get_import_path_with_aliases_with_ext() {
     assert_eq!(
       possible_aliased_paths(
@@ -1683,6 +1762,7 @@ mod resolve_path_aliases_tests {
   }
 
   #[test]
+  #[serial]
   fn get_import_path_with_aliases_with_stylex_ext() {
     assert_eq!(
       possible_aliased_paths(
@@ -1702,12 +1782,15 @@ mod resolve_path_aliases_tests {
 
 #[cfg(test)]
 mod resolve_file_path_aliases_tests {
+  use serial_test::serial;
+
   use rustc_hash::FxHashMap;
   use std::{collections::HashMap, path::PathBuf};
 
   use crate::resolvers::{resolve_file_path, tests::get_root_dir};
 
   #[test]
+  #[serial]
   fn resolve_aliased_import_with_stylex_extension() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1739,6 +1822,7 @@ mod resolve_file_path_aliases_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_aliased_import_with_js_extension() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1769,6 +1853,7 @@ mod resolve_file_path_aliases_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_aliased_import_without_extension() {
     let test_path = PathBuf::from("application-pnpm");
 
@@ -1802,6 +1887,8 @@ mod resolve_file_path_aliases_tests {
 
 #[cfg(test)]
 mod resolve_nested_external_imports_tests {
+  use serial_test::serial;
+
   use rustc_hash::FxHashMap;
 
   use crate::{
@@ -1812,6 +1899,7 @@ mod resolve_nested_external_imports_tests {
   use std::{collections::HashMap, path::PathBuf};
 
   #[test]
+  #[serial]
   fn resolve_regular_nested_import() {
     let test_path = PathBuf::from("exports/node_modules/stylex-lib-dist-main");
 
@@ -1847,6 +1935,7 @@ mod resolve_nested_external_imports_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_nested_import_with_exports_and_nested_node_modules() {
     let test_path = PathBuf::from("exports/node_modules/stylex-lib-dist-main");
 
@@ -1896,6 +1985,7 @@ mod resolve_nested_external_imports_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_commonjs_exports() {
     let test_path = PathBuf::from("exports");
 
@@ -1945,6 +2035,7 @@ mod resolve_nested_external_imports_tests {
   }
 
   #[test]
+  #[serial]
   fn resolve_esm_exports() {
     let test_path = PathBuf::from("exports");
 

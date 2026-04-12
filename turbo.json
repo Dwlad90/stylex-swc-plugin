@@ -114,6 +114,53 @@
       "cache": true,
       "outputs": [],
       "outputLogs": "errors-only"
+    },
+    "//#test:coverage:workspace": {
+      "cache": true,
+      "inputs": [
+        "Cargo.lock",
+        "Cargo.toml",
+        "crates/*",
+        "rust-toolchain.toml",
+        "tarpaulin.toml"
+      ],
+      "outputs": [
+        "target/tarpaulin/**/*",
+        "target/tarpaulin-json/**/*",
+        "**/*.profraw"
+      ],
+      "outputLogs": "errors-only"
+    },
+    "//#test:crates:workspace:regular": {
+      "cache": true,
+      "inputs": [
+        "Cargo.lock",
+        "Cargo.toml",
+        "crates/*",
+        "rust-toolchain.toml"
+      ],
+      "outputLogs": "errors-only"
+    },
+    "//#test:crates:workspace:doc": {
+      "cache": true,
+      "inputs": [
+        "Cargo.lock",
+        "Cargo.toml",
+        "crates/*",
+        "rust-toolchain.toml"
+      ],
+      "outputLogs": "errors-only"
+    },
+    "//#lint:crates:workspace": {
+      "cache": true,
+      "inputs": [
+        "Cargo.lock",
+        "Cargo.toml",
+        "clippy.toml",
+        "crates/*",
+        "rust-toolchain.toml"
+      ],
+      "outputLogs": "errors-only"
     }
   },
   "boundaries": {

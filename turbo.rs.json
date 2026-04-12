@@ -13,24 +13,28 @@
       ],
       "outputs": [
         "dist/**/*"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
     "test": {
       "dependsOn": [
         "^do:nothing"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
     "typecheck": {
       "dependsOn": [
         "^do:nothing"
       ],
-      "outputs": []
+      "outputs": [],
+      "outputLogs": "errors-only"
     },
     "bench": {
       "dependsOn": [
         "build"
       ],
-      "cache": false
+      "cache": false,
+      "outputLogs": "errors-only"
     },
     "test:coverage": {
       "dependsOn": [
@@ -41,7 +45,8 @@
         "target/tarpaulin/**/*",
         "target/tarpaulin-json/**/*",
         "**/*.profraw"
-      ]
+      ],
+      "outputLogs": "errors-only"
     },
     "test:flamegraph": {
       "dependsOn": [
@@ -51,7 +56,8 @@
       "outputs": [
         "**/flamegraph.svg",
         "target/flamegraph/**/*"
-      ]
+      ],
+      "outputLogs": "errors-only"
     }
   }
 }

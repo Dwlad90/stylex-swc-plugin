@@ -28,12 +28,13 @@ exclude-files = [
     "crates/stylex-test-parser/**",
     "crates/stylex-transform/**",
     "crates/stylex-css-parser/**",
+    "crates/stylex-css/src/values/parser.rs",
 ]
 
 # Output settings
 out = ["Json"]                # Keep CLI coverage output aligned with workspace `test:coverage`
 output-dir = "target/tarpaulin"
-target-dir = "/tmp/stylex-swc-plugin-tarpaulin-target"
+target-dir = "target/tarpaulin"
 
 # Enforcement
 fail-under = 100              # Fail the CI/run if coverage drops below 100%

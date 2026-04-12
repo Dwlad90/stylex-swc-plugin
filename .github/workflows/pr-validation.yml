@@ -136,17 +136,23 @@ jobs:
       matrix:
         check:
           - id: lint-check
-            name: Lint code
-            command: pnpm run lint:check
+            name: Lint code Node.js
+            command: pnpm run lint:check --filter="{./packages/*}" --filter="{./apps/*}"
+          - id: lint-check-rust
+            name: Lint code Rust
+            command: pnpm exec turbo run lint:crates:workspace --filter="//"
           - id: typecheck
             name: Typecheck code
             command: pnpm run typecheck
-          - id: tests
-            name: Run tests
-            command: pnpm run test
+          - id: tests-nodejs
+            name: Tests Node.js
+            command: pnpm run test --filter="{./packages/*}" --filter="{./apps/*}" --filter="@stylexswc/rs-compiler"
+          - id: tests-rust
+            name: Tests Rust
+            command: pnpm run test:crates:workspace
           - id: tests-coverage
-            name: Run tests coverage
-            command: pnpm run test:coverage
+            name: Tests coverage
+            command: pnpm exec turbo run test:coverage:workspace --filter="//"
           - id: check-artifacts
             name: Check artifacts
             command: pnpm run check:artifacts --filter "{./packages/*}" --filter "{./crates/*}"

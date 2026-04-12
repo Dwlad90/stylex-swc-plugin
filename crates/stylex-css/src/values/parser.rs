@@ -68,26 +68,17 @@ pub fn parse_css_inner<'a>(
       Token::Comma => iter_result.push(','),
       Token::ParenthesisBlock => {
         iter_result.push('(');
-        let block_css: Vec<String> = parser
-          .parse_nested_block(|parser| parse_css_inner(parser))
-          .unwrap_or_default();
-        iter_result.push_str(join_css(&block_css).as_str());
+        iter_result.push_str(&parse_nested_joined(parser));
         iter_result.push(')');
       },
       Token::SquareBracketBlock => {
         iter_result.push('[');
-        let block_css: Vec<String> = parser
-          .parse_nested_block(|parser| parse_css_inner(parser))
-          .unwrap_or_default();
-        iter_result.push_str(join_css(&block_css).as_str());
+        iter_result.push_str(&parse_nested_joined(parser));
         iter_result.push(']');
       },
       Token::CurlyBracketBlock => {
         iter_result.push('{');
-        let block_css: Vec<String> = parser
-          .parse_nested_block(|parser| parse_css_inner(parser))
-          .unwrap_or_default();
-        iter_result.push_str(join_css(&block_css).as_str());
+        iter_result.push_str(&parse_nested_joined(parser));
         iter_result.push('}');
       },
       Token::CloseParenthesis => iter_result.push(')'),
@@ -245,13 +236,7 @@ pub fn parse_css_inner<'a>(
       Token::Function(ref name) => {
         iter_result.push_str(name);
         iter_result.push('(');
-
-        let block_css: Vec<String> = parser
-          .parse_nested_block(|parser| parse_css_inner(parser))
-          .unwrap_or_default();
-
-        iter_result.push_str(join_css(&block_css).as_str());
-
+        iter_result.push_str(&parse_nested_joined(parser));
         iter_result.push(')');
       },
     }
@@ -308,6 +293,13 @@ fn join_css(nodes: &[String]) -> String {
   }
 
   result
+}
+
+fn parse_nested_joined(parser: &mut Parser) -> String {
+  let block_css: Vec<String> = parser
+    .parse_nested_block(|parser| parse_css_inner(parser))
+    .unwrap_or_default();
+  join_css(&block_css)
 }
 
 #[cfg(test)]

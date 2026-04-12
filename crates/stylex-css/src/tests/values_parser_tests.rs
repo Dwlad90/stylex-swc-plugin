@@ -45,3 +45,40 @@ fn parse_css_panics_on_unquoted_url_values() {
   // Explicitly unsupported in this parser path.
   let _ = parse_css("url(foo)");
 }
+
+// Additional targeted tests to exercise edge branches discovered by tarpaulin
+
+#[test]
+fn parse_css_parenthesis_block_only() {
+  // Ensure a bare parenthesis block (not a function) is handled
+  let result = parse_css("(a)");
+  assert_eq!(result.join(""), "(a)");
+}
+
+#[test]
+fn parse_css_square_bracket_block_only() {
+  let result = parse_css("[a]");
+  assert_eq!(result.join(""), "[a]");
+}
+
+#[test]
+fn parse_css_curly_bracket_block_only() {
+  let result = parse_css("{a}");
+  assert_eq!(result.join(""), "{a}");
+}
+
+#[test]
+fn parse_css_ident_only() {
+  let result = parse_css("foo");
+  assert_eq!(result.join(""), "foo");
+}
+
+#[test]
+fn parse_css_signed_numbers_and_units_explicit() {
+  assert_eq!(parse_css("+1").join(""), "+1");
+  assert_eq!(parse_css("-1").join(""), "-1");
+  assert_eq!(parse_css("+10%").join(""), "+10%");
+  assert_eq!(parse_css("-10%").join(""), "-10%");
+  assert_eq!(parse_css("+3px").join(""), "+3px");
+  assert_eq!(parse_css("-3px").join(""), "-3px");
+}

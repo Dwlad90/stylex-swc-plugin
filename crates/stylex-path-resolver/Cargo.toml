@@ -33,5 +33,8 @@ oxc_resolver = { version = "11.19.1", features = ["yarn_pnp"] }
 package-json = "0.5.0"
 pathdiff = { version = "0.2.3" }
 
+[dev-dependencies]
+serial_test.workspace = true
+
 [lints]
 workspace = true

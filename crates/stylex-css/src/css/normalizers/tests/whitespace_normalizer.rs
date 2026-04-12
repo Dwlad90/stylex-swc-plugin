@@ -422,3 +422,15 @@ fn paren_before_all_common_units() {
   assert_eq!(normalize_spacing("var(--x)s"), "var(--x)s");
   assert_eq!(normalize_spacing("var(--x)turn"), "var(--x)turn");
 }
+
+// Extractor: ensure escaped characters inside quoted values are handled and do not
+// prematurely terminate the extraction loop. These cases exercise the escaped
+// character handling and quote toggling branches in extract_css_value.
+#[test]
+fn extract_css_value_handles_escaped_quotes() {
+  // Single-quoted value with an escaped single quote inside.
+  assert_eq!(extract_css_value(r#"*{content:'a\'b'}"#), r#"'a\'b'"#);
+
+  // Double-quoted value with an escaped backslash sequence inside.
+  assert_eq!(extract_css_value(r#"*{content:"a\\b"}"#), r#""a\\b""#);
+}

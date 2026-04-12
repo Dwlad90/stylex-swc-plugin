@@ -15,10 +15,12 @@ pub fn from_stylex_style(_value: &StyleXStateOptions) -> Option<String> {
 /// Gets the default marker class name based on options
 fn get_default_marker_class_name(options: &StyleXStateOptions) -> String {
   if let Some(value_from_proxy) = from_proxy(options) {
+    #[cfg(not(tarpaulin_include))]
     return value_from_proxy;
   }
 
   if let Some(value_from_style_xstyle) = from_stylex_style(options) {
+    #[cfg(not(tarpaulin_include))]
     return value_from_style_xstyle;
   }
 

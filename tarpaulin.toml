@@ -1,6 +1,6 @@
 [default]
 # Workspace settings
-workspace = false              # Enable workspace mode to include all crates in the workspace
+workspace = false             # Run in single-crate mode; --workspace flag is passed by the npm script
 all-features = true           # Ensure all conditionally compiled code behind features is tested
 release = false               # Run in debug mode (default, better for coverage mapping)
 

@@ -150,6 +150,9 @@ jobs:
           - id: tests-rust
             name: Tests Rust code
             command: pnpm run test:crates:workspace
+          - id: tests-coverage
+            name: Tests Rust coverage
+            command: pnpm exec turbo run test:coverage:workspace --filter="//"
           - id: check-artifacts
             name: Check artifacts
             command: pnpm run check:artifacts --filter "{./packages/*}" --filter "{./crates/*}"
@@ -166,6 +169,12 @@ jobs:
         with:
           rust-target: 'wasm32-wasip1'
 
+      - name: Install cargo-tarpaulin
+        if: matrix.check.id == 'tests-coverage'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-tarpaulin
+
       - name: Cache turbo build setup
         id: turbo-cache
         uses: ./.github/actions/turbo
@@ -175,50 +184,6 @@ jobs:
 
       - name: ${{ matrix.check.name }}
         run: ${{ matrix.check.command }}
-
-      - name: Save turbo build cache
-        if: always()
-        uses: ./.github/actions/turbo-save
-        with:
-          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
-
-  coverage:
-    name: Run coverage
-    if: >-
-      (github.event_name != 'schedule' || github.ref_name == 'develop') &&
-      (github.event.pull_request.number == null ||
-      !github.event.pull_request.draft)
-    runs-on: ubuntu-latest
-    needs:
-      - build-public-packages
-      - basic-checks
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6.0.2
-        with:
-          ref: ${{ env.CHECKOUT_REF }}
-          fetch-depth: 0
-          fetch-tags: false
-
-      - name: Setup environment
-        uses: ./.github/actions/setup
-        with:
-          rust-target: 'wasm32-wasip1'
-
-      - name: Install cargo-tarpaulin
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-tarpaulin
-
-      - name: Cache turbo build setup
-        id: turbo-cache
-        uses: ./.github/actions/turbo
-        with:
-          cache-scope: coverage
-          restore-cache-scope: build-public-packages
-
-      - name: Run coverage
-        run: pnpm exec turbo run test:coverage:workspace --filter="//"
 
       - name: Save turbo build cache
         if: always()
@@ -381,7 +346,6 @@ jobs:
       - checks
       - visual-tests
       - benchmark
-      - coverage
     runs-on: ubuntu-latest
     steps:
       - name: Verify validation jobs
@@ -390,7 +354,7 @@ jobs:
         run: |
           echo "$NEEDS_JSON" | jq .
 
-          for job in basic-checks checks build-public-packages visual-tests benchmark coverage; do
+          for job in basic-checks checks build-public-packages visual-tests benchmark; do
             result=$(echo "$NEEDS_JSON" | jq -r --arg job "$job" '.[$job].result')
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               echo "::error::Validation job '$job' finished with status '$result'."

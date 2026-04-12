@@ -118,11 +118,9 @@
     "//#test:coverage:workspace": {
       "cache": true,
       "inputs": [
-        "Cargo.lock",
-        "Cargo.toml",
-        "crates/*",
-        "rust-toolchain.toml",
-        "tarpaulin.toml"
+        "$TURBO_DEFAULT$",
+        "**/*.rs",
+        "**/*.toml"
       ],
       "outputs": [
         "target/tarpaulin/**/*",
@@ -134,31 +132,27 @@
     "//#test:crates:workspace:regular": {
       "cache": true,
       "inputs": [
-        "Cargo.lock",
-        "Cargo.toml",
-        "crates/*",
-        "rust-toolchain.toml"
+        "$TURBO_DEFAULT$",
+        "**/*.rs",
+        "**/*.toml"
       ],
       "outputLogs": "errors-only"
     },
     "//#test:crates:workspace:doc": {
       "cache": true,
       "inputs": [
-        "Cargo.lock",
-        "Cargo.toml",
-        "crates/*",
-        "rust-toolchain.toml"
+        "$TURBO_DEFAULT$",
+        "**/*.rs",
+        "**/*.toml"
       ],
       "outputLogs": "errors-only"
     },
     "//#lint:crates:workspace": {
       "cache": true,
       "inputs": [
-        "Cargo.lock",
-        "Cargo.toml",
-        "clippy.toml",
-        "crates/*",
-        "rust-toolchain.toml"
+        "$TURBO_DEFAULT$",
+        "**/*.rs",
+        "**/*.toml"
       ],
       "outputLogs": "errors-only"
     }

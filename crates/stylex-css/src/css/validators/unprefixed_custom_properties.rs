@@ -25,12 +25,23 @@ fn process_declaration(declaration: &Declaration) {
   }
 }
 
-fn process_qualified_rule(qualified_rule: &QualifiedRule) {
-  for declaration in qualified_rule.block.value.iter() {
-    if let ComponentValue::Declaration(declaration) = declaration {
-      process_declaration(declaration);
-    }
+/// SWC always emits `ComponentValue::Declaration` inside qualified-rule
+/// blocks, so the non-declaration arm is defensive only.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn as_declaration(cv: &ComponentValue) -> Option<&Declaration> {
+  match cv {
+    ComponentValue::Declaration(d) => Some(d),
+    _ => None,
   }
+}
+
+fn process_qualified_rule(qualified_rule: &QualifiedRule) {
+  qualified_rule
+    .block
+    .value
+    .iter()
+    .filter_map(as_declaration)
+    .for_each(process_declaration);
 }
 
 /// Validates that all `var()` references in a stylesheet use properly

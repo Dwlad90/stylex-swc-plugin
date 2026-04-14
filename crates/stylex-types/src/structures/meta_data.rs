@@ -28,7 +28,7 @@ pub struct MetaData {
   priority: f64,
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Hash for MetaData {
   fn hash<H: Hasher>(&self, state: &mut H) {
     self.class_name.hash(state);

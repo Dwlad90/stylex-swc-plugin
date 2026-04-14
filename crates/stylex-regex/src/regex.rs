@@ -18,7 +18,8 @@ pub static LENGTH_UNIT_TESTER_REGEX: Lazy<Regex> = Lazy::new(|| {
 pub static CLEAN_CSS_VAR: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"\\3(\d) "#).expect("Clean CSS var regex is valid"));
 
-// Updated: More permissive CSS variable name matching (allows dots, underscores, etc.)
+// Updated: More permissive CSS variable name matching (allows dots,
+// underscores, etc.)
 pub static IS_CSS_VAR: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"^var\(--[\w-]+\)$"#).expect("Is CSS var regex is valid"));
 
@@ -76,7 +77,8 @@ pub static PSEUDO_PART_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"::[a-zA-Z-]+|:[a-zA-Z-]+(?:\([^)]*\))?").expect("Pseudo part regex is valid")
 });
 
-// Matches .stylex or .consts file imports with optional extensions (.ts, .js, .tsx, .jsx)
+// Matches .stylex or .consts file imports with optional extensions (.ts, .js,
+// .tsx, .jsx)
 pub static STYLEX_CONSTS_IMPORT_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"\.(stylex|consts)(?:\.(.+){2,6})?$").expect("StyleX consts import regex is valid")
 });

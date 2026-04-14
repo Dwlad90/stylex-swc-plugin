@@ -1,8 +1,10 @@
 // Tests for function parser expression helpers and mutation detection.
 // Source: crates/stylex-rs-compiler/src/utils/fn_parser.rs
 
-use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{ComputedPropName, IdentName, Number, Str};
+use swc_core::{
+  common::DUMMY_SP,
+  ecma::ast::{ComputedPropName, IdentName, Number, Str},
+};
 
 use super::*;
 

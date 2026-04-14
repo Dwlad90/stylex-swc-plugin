@@ -12,14 +12,14 @@ impl NullPreRule {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Default for NullPreRule {
   fn default() -> Self {
     NullPreRule::new()
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl PreRule for NullPreRule {
   fn get_value(&self) -> Option<PreRuleValue> {
     None

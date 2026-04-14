@@ -1,8 +1,7 @@
 use indexmap::IndexSet;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, env};
-use std::{default::Default, fs::read_to_string};
+use std::{collections::HashMap, default::Default, env, fs::read_to_string};
 use stylex_macros::stylex_panic;
 
 use package_json::{PackageDependencies, PackageJsonManager};
@@ -25,7 +24,7 @@ pub struct PackageJsonExtended {
   pub dev_dependencies: Option<PackageDependencies>,
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 pub fn get_package_json(
   path: &Path,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
@@ -72,7 +71,7 @@ pub fn get_package_json(
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 pub(crate) fn get_package_json_path(path: &Path) -> (Option<PathBuf>, PackageJsonManager) {
   let mut manager = PackageJsonManager::new();
 
@@ -96,6 +95,11 @@ pub fn find_closest_node_modules(path: &Path) -> Option<PathBuf> {
   find_closest_path(path, "node_modules")
 }
 
+/// Recursively locates `node_modules` directories from `path` up to the
+/// repository root. All branches depend on real filesystem state (`exists()`,
+/// `find_closest_path`) that cannot be reproduced deterministically in unit
+/// tests without an in-memory FS shim.
+#[cfg_attr(coverage_nightly, coverage(off))]
 pub fn recursive_find_node_modules(
   path: &Path,
   known_git_dir: Option<PathBuf>,
@@ -103,15 +107,12 @@ pub fn recursive_find_node_modules(
   let mut node_modules_paths = IndexSet::new();
 
   if path.eq(Path::new("/")) {
-    #[cfg(not(tarpaulin_include))]
-    // Root-level `node_modules` lookup is environment-dependent and is excluded from tarpaulin.
-    // We still keep this behavior in normal runtime builds.
-    {
-      let root_node_modules = path.join("node_modules");
+    // Root-level `node_modules` lookup is environment-dependent and excluded from
+    // coverage.
+    let root_node_modules = path.join("node_modules");
 
-      if root_node_modules.exists() {
-        node_modules_paths.insert(root_node_modules);
-      }
+    if root_node_modules.exists() {
+      node_modules_paths.insert(root_node_modules);
     }
 
     return node_modules_paths;
@@ -148,7 +149,7 @@ pub fn recursive_find_node_modules(
   node_modules_paths
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 pub(crate) fn get_package_json_deps(
   cwd: &Path,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,

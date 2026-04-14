@@ -19,7 +19,7 @@ pub enum CSSSyntax {
   TransformList,
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl fmt::Display for CSSSyntax {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match *self {

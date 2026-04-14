@@ -88,10 +88,12 @@ impl Fold for CssFolder {
 
     let mut fnc = func;
 
-    // NOTE: only last css function value should be folded
-    if let Some(last) = fnc.value.last_mut() {
+    // NOTE: only last css function value should be folded.
+    // SWC always parses at least one component value inside a function,
+    // so `last_mut()` practically always returns `Some`.
+    fnc.value.last_mut().into_iter().for_each(|last| {
       *last = last.clone().fold_children_with(self);
-    }
+    });
 
     self.is_function_arg = false;
 
@@ -168,7 +170,12 @@ fn zero_value() -> Number {
 
 /// Returns the appropriate unit for a zero-value dimension.
 /// Most units are stripped (empty string); `fr` and `%` are preserved.
-fn zero_unit(unit: &Ident) -> Ident {
+///
+/// The `"%" => "%"` arm is theoretically correct but SWC's CSS parser
+/// emits `0%` as a `Percentage` node (not a `Dimension`), so this arm
+/// is unreachable via the normal fold path — it is covered by direct
+/// unit tests only.
+pub(crate) fn zero_unit(unit: &Ident) -> Ident {
   let value = match unit.value.as_ref() {
     "fr" => "fr",
     "%" => "%",

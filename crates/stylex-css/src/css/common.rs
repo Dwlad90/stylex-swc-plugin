@@ -1,29 +1,31 @@
-use crate::css::generate_ltr::generate_ltr;
-use crate::css::generate_rtl::generate_rtl;
-use crate::css::normalizers::base::base_normalizer;
-use crate::css::normalizers::{extract_css_value, normalize_spacing};
-use crate::css::validators::unprefixed_custom_properties::unprefixed_custom_properties_validator;
-use stylex_constants::constants::common::{
-  COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES,
-  COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES,
+use crate::css::{
+  generate_ltr::generate_ltr,
+  generate_rtl::generate_rtl,
+  normalizers::{base::base_normalizer, extract_css_value, normalize_spacing},
+  validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
 };
-use stylex_constants::constants::long_hand_logical::LONG_HAND_LOGICAL;
-use stylex_constants::constants::long_hand_physical::LONG_HAND_PHYSICAL;
-use stylex_constants::constants::messages::LINT_UNCLOSED_FUNCTION;
-use stylex_constants::constants::number_properties::NUMBER_PROPERTY_SUFFIXIES;
-use stylex_constants::constants::priorities::{
-  AT_RULE_PRIORITIES, CAMEL_CASE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY,
+use stylex_constants::constants::{
+  common::{
+    COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES,
+    COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES,
+  },
+  long_hand_logical::LONG_HAND_LOGICAL,
+  long_hand_physical::LONG_HAND_PHYSICAL,
+  messages::LINT_UNCLOSED_FUNCTION,
+  number_properties::NUMBER_PROPERTY_SUFFIXIES,
+  priorities::{
+    AT_RULE_PRIORITIES, CAMEL_CASE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY,
+  },
+  shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
+  shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
+  unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
 };
-use stylex_constants::constants::shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS;
-use stylex_constants::constants::shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS;
-use stylex_constants::constants::unitless_number_properties::UNITLESS_NUMBER_PROPERTIES;
 use stylex_macros::stylex_panic;
 use stylex_regex::regex::{
   ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, DESCENDANT_SELECTOR, MANY_SPACES,
   PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
 };
-use stylex_structures::pair::Pair;
-use stylex_structures::stylex_state_options::StyleXStateOptions;
+use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
 use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_utils::string::dashify;
 use swc_core::{
@@ -282,7 +284,8 @@ fn get_default_priority(key: &str) -> Option<f64> {
   None
 }
 
-/// Returns the CSS priority for a given key (property name, at-rule, or pseudo).
+/// Returns the CSS priority for a given key (property name, at-rule, or
+/// pseudo).
 pub fn get_priority(key: &str) -> f64 {
   if let Some(at_rule_priority) = get_at_rule_priority(key) {
     return at_rule_priority;
@@ -345,7 +348,34 @@ fn contains_css_function_call(value: &str, function_name: &str) -> bool {
   false
 }
 
-/// Normalizes a CSS property value by parsing, normalizing, and re-serializing it.
+/// Panics with a formatted CSS parse error.  Replaces unclosed-function
+/// messages with a friendlier lint message.  The non-paren error path
+/// is defensive — SWC rarely reports non-paren errors for declaration
+/// values — so the entire function is excluded from coverage.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn handle_css_parse_errors(errors: &[Error], css_rule: &str) -> ! {
+  let mut error_message = errors[0].message().to_string();
+  if error_message.ends_with("expected ')'") || error_message.ends_with("expected '('") {
+    error_message = LINT_UNCLOSED_FUNCTION.to_string();
+  }
+  stylex_panic!("{}, css rule: {}", error_message, css_rule)
+}
+
+/// SWC's CSS parser reports errors via a separate `errors` list. The `Err`
+/// branch of the parse result is therefore practically unreachable.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn swc_css_parse_unreachable(msg: &str) -> ! {
+  stylex_panic!("{}", msg)
+}
+
+/// CSS codegen on a well-formed AST never produces an `Err` in practice.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn css_codegen_unreachable(e: std::fmt::Error) -> ! {
+  stylex_panic!("CSS codegen emit failed: {}", e)
+}
+
+/// Normalizes a CSS property value by parsing, normalizing, and re-serializing
+/// it.
 pub fn normalize_css_property_value(
   css_property: &str,
   css_property_value: &str,
@@ -379,45 +409,29 @@ pub fn normalize_css_property_value(
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
 
   if !errors.is_empty() {
-    // `errors[0]` is safe: we just confirmed `!errors.is_empty()`.
-    let mut error_message = errors[0].message().to_string();
-
-    if error_message.ends_with("expected ')'") || error_message.ends_with("expected '('") {
-      error_message = LINT_UNCLOSED_FUNCTION.to_string();
-    }
-
-    stylex_panic!("{}, css rule: {}", error_message, css_rule)
+    handle_css_parse_errors(&errors, &css_rule);
   }
 
-  match parsed_css {
-    Ok(parsed_css_property_value) => {
-      unprefixed_custom_properties_validator(&parsed_css_property_value);
+  // SWC parser returns errors via the separate `errors` list above,
+  // so the `Err` branch is practically unreachable.
+  let parsed_css_property_value = parsed_css.unwrap_or_else(
+    #[cfg_attr(coverage_nightly, coverage(off))]
+    |err| swc_css_parse_unreachable(&err.message()),
+  );
 
-      let parsed_ast = base_normalizer(
-        parsed_css_property_value,
-        options.enable_font_size_px_to_rem,
-        Some(css_property),
-      );
+  unprefixed_custom_properties_validator(&parsed_css_property_value);
 
-      let stringified = stringify(&parsed_ast);
-      let value = extract_css_value(&stringified);
-      let normalized = normalize_spacing(value);
+  let parsed_ast = base_normalizer(
+    parsed_css_property_value,
+    options.enable_font_size_px_to_rem,
+    Some(css_property),
+  );
 
-      convert_css_function_to_camel_case(&normalized)
-    },
-    // SWC parser returns errors via the separate `errors` list above,
-    // so this `Err` branch is practically unreachable.
-    Err(err) => {
-      #[cfg(not(tarpaulin_include))]
-      {
-        stylex_panic!("{}", err.message())
-      }
-      #[cfg(tarpaulin_include)]
-      {
-        unreachable!("{}", err.message())
-      }
-    },
-  }
+  let stringified = stringify(&parsed_ast);
+  let value = extract_css_value(&stringified);
+  let normalized = normalize_spacing(value);
+
+  convert_css_function_to_camel_case(&normalized)
 }
 
 /// Returns the numeric suffix for a CSS property (`"px"`, `"ms"`, `""`, etc.).
@@ -459,20 +473,11 @@ pub fn stringify(node: &Stylesheet) -> String {
   let wr = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
   let mut codegen = CodeGenerator::new(wr, CodegenConfig { minify: true });
 
-  match Emit::emit(&mut codegen, node) {
-    Ok(_) => {},
-    // CSS codegen on a valid AST never fails in practice.
-    Err(e) => {
-      #[cfg(not(tarpaulin_include))]
-      {
-        stylex_panic!("CSS codegen emit failed: {}", e)
-      }
-      #[cfg(tarpaulin_include)]
-      {
-        unreachable!("CSS codegen emit failed: {}", e)
-      }
-    },
-  };
+  // CSS codegen on a valid AST never fails in practice.
+  Emit::emit(&mut codegen, node).unwrap_or_else(
+    #[cfg_attr(coverage_nightly, coverage(off))]
+    |e| css_codegen_unreachable(e),
+  );
 
   drop(codegen);
 
@@ -480,14 +485,16 @@ pub fn stringify(node: &Stylesheet) -> String {
 
   if result.contains("--\\") {
     /*
-     * In CSS, identifiers (including element names, classes, and IDs in selectors)
-     * can contain only the characters [a-zA-Z0-9] and ISO 10646 characters U+00A0 and higher,
-     * plus the hyphen (-) and the underscore (_);
-     * they cannot start with a digit, two hyphens, or a hyphen followed by a digit.
+     * In CSS, identifiers (including element names, classes, and IDs in
+     * selectors) can contain only the characters [a-zA-Z0-9] and ISO 10646
+     * characters U+00A0 and higher, plus the hyphen (-) and the underscore
+     * (_); they cannot start with a digit, two hyphens, or a hyphen followed
+     * by a digit.
      *
      * https://stackoverflow.com/a/27882887/6717252
      *
-     * HACK: Replace `--\3{number}` with `--{number}` to simulate original behavior of StyleX
+     * HACK: Replace `--\3{number}` with `--{number}` to simulate original
+     * behavior of StyleX
      */
 
     let clean = CLEAN_CSS_VAR

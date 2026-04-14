@@ -5,14 +5,20 @@ mod stylex_create {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::{Expr, ExprOrSpread, KeyValueProp};
 
-  use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-  use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-  use crate::shared::structures::functions::FunctionMap;
-  use crate::shared::structures::state::EvaluationState;
-  use crate::shared::structures::state_manager::StateManager;
-  use crate::shared::structures::types::{ClassPathsMap, InjectableStylesMap, StylesObjectMap};
-  use crate::shared::transformers::stylex_create::stylex_create_set;
-  use crate::shared::utils::ast::convertors::create_string_expr;
+  use crate::shared::{
+    enums::data_structures::{
+      evaluate_result_value::EvaluateResultValue,
+      flat_compiled_styles_value::FlatCompiledStylesValue,
+    },
+    structures::{
+      functions::FunctionMap,
+      state::EvaluationState,
+      state_manager::StateManager,
+      types::{ClassPathsMap, InjectableStylesMap, StylesObjectMap},
+    },
+    transformers::stylex_create::stylex_create_set,
+    utils::ast::convertors::create_string_expr,
+  };
   use stylex_ast::ast::factories::{
     create_array_expression, create_key_value_prop, create_key_value_prop_ident,
     create_nested_object_prop, create_null_lit, create_object_expression,

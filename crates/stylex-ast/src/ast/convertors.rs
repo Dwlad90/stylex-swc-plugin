@@ -65,7 +65,8 @@ pub fn convert_lit_to_number(lit_num: &Lit) -> Result<f64, anyhow::Error> {
 /// # Arguments
 /// * `tpl` - The template literal to convert
 /// # Returns
-/// * `Option<Lit>` - The string literal if the template is simple (no interpolations)
+/// * `Option<Lit>` - The string literal if the template is simple (no
+///   interpolations)
 /// * `None` - If the template is not simple (has interpolations)
 /// # Example
 /// ```javascript
@@ -92,8 +93,9 @@ pub fn convert_tpl_to_string_lit(tpl: &Tpl) -> Option<Lit> {
   None
 }
 
-/// Converts a simple template literal expression to a regular string literal expression.
-/// This is a convenience wrapper around `convert_tpl_to_string_lit` that works with `Expr::Tpl`.
+/// Converts a simple template literal expression to a regular string literal
+/// expression. This is a convenience wrapper around `convert_tpl_to_string_lit`
+/// that works with `Expr::Tpl`.
 ///
 /// # Arguments
 /// * `expr` - The expression to check and potentially convert
@@ -109,7 +111,8 @@ pub fn convert_simple_tpl_to_str_expr(expr: Expr) -> Expr {
   }
 }
 
-/// Converts a string `.concat()` call expression to a template literal expression.
+/// Converts a string `.concat()` call expression to a template literal
+/// expression.
 ///
 /// # Arguments
 /// * `expr` - The expression to check and potentially convert
@@ -131,7 +134,8 @@ pub fn convert_concat_to_tpl_expr(expr: Expr) -> Expr {
   }
 }
 
-/// Helper function that converts a CallExpr representing `.concat()` to a template literal.
+/// Helper function that converts a CallExpr representing `.concat()` to a
+/// template literal.
 ///
 /// # Arguments
 /// * `call_expr` - The call expression to convert
@@ -247,7 +251,8 @@ pub fn expand_shorthand_prop(prop: &mut Box<Prop>) {
 }
 
 /// Helper function to convert Wtf8Atom to String
-/// Note: `.as_str()` returns an `Option<&str>` that only fails when the string contains invalid UTF-8
+/// Note: `.as_str()` returns an `Option<&str>` that only fails when the string
+/// contains invalid UTF-8
 #[inline]
 pub fn convert_atom_to_string(atom: &Wtf8Atom) -> String {
   match atom.as_str() {

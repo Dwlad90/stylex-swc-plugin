@@ -46,6 +46,12 @@ pub fn normalize_expr(expr: &mut Expr) -> &mut Expr {
 }
 
 /// Resolves a Node.js package path relative to the current working directory.
+///
+/// The `current_dir()` call can only fail if the working directory has been
+/// deleted while the process is running — unreachable in any realistic test
+/// scenario. The thin delegation to `resolve_node_package_path_from_basedir`
+/// is tested directly.
+#[cfg_attr(coverage_nightly, coverage(off))]
 pub fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, String> {
   let basedir = std::env::current_dir()
     .map_err(|error| format!("Error determining current working directory: {:?}", error))?;

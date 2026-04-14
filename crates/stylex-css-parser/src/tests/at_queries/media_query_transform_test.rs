@@ -8,9 +8,11 @@ use crate::at_queries::{
   },
 };
 use serde_json::{Value, json};
-use swc_core::atoms::Wtf8Atom;
-use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, Str};
+use swc_core::{
+  atoms::Wtf8Atom,
+  common::DUMMY_SP,
+  ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, Str},
+};
 
 // Helper functions
 

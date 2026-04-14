@@ -2,8 +2,9 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
-use stylex_enums::property_validation_mode::PropertyValidationMode;
-use stylex_enums::style_resolution::StyleResolution;
+use stylex_enums::{
+  property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
+};
 
 use crate::{
   named_import_source::ImportSources,
@@ -11,10 +12,11 @@ use crate::{
   stylex_options::CheckModuleResolution,
 };
 
-/// Shared configuration fields between `StyleXOptions` and `StyleXStateOptions`.
+/// Shared configuration fields between `StyleXOptions` and
+/// `StyleXStateOptions`.
 ///
-/// Both option structs embed this via a `core` field and implement `Deref`/`DerefMut`
-/// so all fields are transparently accessible.
+/// Both option structs embed this via a `core` field and implement
+/// `Deref`/`DerefMut` so all fields are transparently accessible.
 #[derive(Deserialize, Clone, Debug)]
 pub struct CoreStyleXOptions {
   pub dev: bool,

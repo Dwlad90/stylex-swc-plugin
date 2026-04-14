@@ -1,8 +1,10 @@
-//! Tests for StyleXOptions default values, From<StyleXOptionsParams> conversion,
-//! and module resolution factories.
+//! Tests for StyleXOptions default values, From<StyleXOptionsParams>
+//! conversion, and module resolution factories.
 
-use crate::named_import_source::{NamedImportSource, RuntimeInjection};
-use crate::stylex_options::*;
+use crate::{
+  named_import_source::{NamedImportSource, RuntimeInjection},
+  stylex_options::*,
+};
 
 #[test]
 fn stylex_options_params_default_key_fields() {

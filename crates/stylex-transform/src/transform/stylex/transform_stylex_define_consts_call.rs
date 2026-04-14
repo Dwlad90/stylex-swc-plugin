@@ -6,17 +6,20 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::shared::structures::functions::FunctionMap;
-use crate::shared::transformers::stylex_define_consts::stylex_define_consts;
-use crate::shared::utils::common::gen_file_based_identifier;
-use crate::shared::utils::core::js_to_expr::{NestedStringObject, convert_object_to_ast};
-use crate::shared::utils::js::evaluate::evaluate;
-use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
-use crate::shared::utils::validators::{
-  find_and_validate_stylex_define_consts, is_define_consts_call,
+use crate::shared::{
+  structures::functions::FunctionMap,
+  transformers::stylex_define_consts::stylex_define_consts,
+  utils::{
+    common::gen_file_based_identifier,
+    core::js_to_expr::{NestedStringObject, convert_object_to_ast},
+    js::evaluate::evaluate,
+    log::build_code_frame_error::build_code_frame_error,
+    validators::{find_and_validate_stylex_define_consts, is_define_consts_call},
+  },
 };
-use stylex_constants::constants::messages::cannot_generate_hash;
-use stylex_constants::constants::messages::{non_static_value, non_style_object};
+use stylex_constants::constants::messages::{
+  cannot_generate_hash, non_static_value, non_style_object,
+};
 
 use crate::StyleXTransform;
 use stylex_structures::top_level_expression::TopLevelExpression;
@@ -32,7 +35,7 @@ where
       let top_level_expr_defined_consts =
         match find_and_validate_stylex_define_consts(call, &mut self.state) {
           Some(expr) => expr,
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           None => {
             stylex_panic!("defineConsts(): Could not find the top-level variable declaration.")
           },
@@ -41,7 +44,7 @@ where
       let TopLevelExpression(_, _, var_id) = top_level_expr_defined_consts;
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -88,7 +91,7 @@ where
           );
           value
         },
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", non_static_value("defineConsts")),
       };
 
@@ -97,13 +100,13 @@ where
         .get_filename_for_hashing(&mut FxHashMap::default())
       {
         Some(name) => name,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", cannot_generate_hash("defineConsts")),
       };
 
       let export_name = match var_id {
         Some(name) => name,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "defineConsts(): The export variable could not be found. Ensure the call is bound to a named export."
         ),

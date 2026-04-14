@@ -1,9 +1,7 @@
 //! Panic-path coverage for convertor helpers that require valid UTF-8.
 
 use crate::ast::convertors::*;
-use swc_core::atoms::Wtf8Atom;
-use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::*;
+use swc_core::{atoms::Wtf8Atom, common::DUMMY_SP, ecma::ast::*};
 
 fn invalid_wtf8_atom() -> Wtf8Atom {
   // Unpaired surrogate: valid WTF-8 storage, invalid UTF-8 decoding.

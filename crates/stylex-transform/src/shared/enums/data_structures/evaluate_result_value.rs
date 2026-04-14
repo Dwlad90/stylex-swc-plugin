@@ -12,10 +12,10 @@ use swc_core::{
   },
 };
 
-use crate::shared::structures::functions::FunctionConfig;
-use crate::shared::structures::theme_ref::ThemeRef;
-use crate::shared::structures::types::EvaluationCallback;
-use crate::shared::utils::log::build_code_frame_error::{CodeFrame, create_module, print_module};
+use crate::shared::{
+  structures::{functions::FunctionConfig, theme_ref::ThemeRef, types::EvaluationCallback},
+  utils::log::build_code_frame_error::{CodeFrame, create_module, print_module},
+};
 use stylex_structures::stylex_env::EnvEntry;
 
 pub enum EvaluateResultValue {
@@ -31,7 +31,7 @@ pub enum EvaluateResultValue {
   EnvObject(IndexMap<String, EnvEntry>),
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Serialize for EvaluateResultValue {
   fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
   where
@@ -81,7 +81,7 @@ impl Serialize for EvaluateResultValue {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Clone for EvaluateResultValue {
   fn clone(&self) -> Self {
     match self {
@@ -98,7 +98,7 @@ impl Clone for EvaluateResultValue {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl fmt::Debug for EvaluateResultValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -115,7 +115,7 @@ impl fmt::Debug for EvaluateResultValue {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl PartialEq for EvaluateResultValue {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {
@@ -133,9 +133,11 @@ impl PartialEq for EvaluateResultValue {
 }
 
 impl EvaluateResultValue {
-  /// Extracts an ObjectLit from an EvaluateResultValue if it contains an Expr(Object).
+  /// Extracts an ObjectLit from an EvaluateResultValue if it contains an
+  /// Expr(Object).
   ///
-  /// This is a common pattern when evaluating spread expressions or object literals.
+  /// This is a common pattern when evaluating spread expressions or object
+  /// literals.
   ///
   /// # Example
   /// ```ignore
@@ -151,7 +153,8 @@ impl EvaluateResultValue {
     }
   }
 
-  /// Extracts an ArrayLit from an EvaluateResultValue if it contains an Expr(Array).
+  /// Extracts an ArrayLit from an EvaluateResultValue if it contains an
+  /// Expr(Array).
   ///
   /// This is a common pattern when evaluating array expressions.
   ///
@@ -171,7 +174,8 @@ impl EvaluateResultValue {
 
   /// Extracts a string key from an `EvaluateResultValue::Expr` variant.
   ///
-  /// Handles the common pattern of resolving a property name from an evaluated expression:
+  /// Handles the common pattern of resolving a property name from an evaluated
+  /// expression:
   /// - `Expr::Ident` → symbol name as string
   /// - `Expr::Lit(Str)` → string value
   /// - `Expr::Lit(Num)` → number formatted as string

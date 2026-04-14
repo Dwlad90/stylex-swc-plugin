@@ -1,9 +1,11 @@
 use stylex_macros::stylex_panic;
-use swc_core::ecma::ast::{ExportDecl, ImportDecl, Str};
 use swc_core::{
   common::{DUMMY_SP, comments::Comments},
   ecma::{
-    ast::{Decl, Expr, Ident, Lit, ModuleDecl, ModuleItem, Pat, Stmt, VarDeclarator},
+    ast::{
+      Decl, ExportDecl, Expr, Ident, ImportDecl, Lit, ModuleDecl, ModuleItem, Pat, Stmt, Str,
+      VarDeclarator,
+    },
     visit::FoldWith,
   },
 };
@@ -129,7 +131,7 @@ where
             0,
             match module_items.first() {
               Some(item) => item.clone(),
-              #[cfg(not(tarpaulin_include))]
+              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("Module items list is unexpectedly empty."),
             },
           );
@@ -182,7 +184,7 @@ where
             for decl in decls {
               let key = match decl.init.clone() {
                 Some(k) => k,
-                #[cfg(not(tarpaulin_include))]
+                #[cfg_attr(coverage_nightly, coverage(off))]
                 None => stylex_panic!("{}", VAR_DECL_INIT_REQUIRED),
               };
 

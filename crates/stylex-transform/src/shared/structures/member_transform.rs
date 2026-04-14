@@ -1,5 +1,7 @@
-use swc_core::ecma::ast::{Expr, MemberExpr};
-use swc_core::ecma::visit::{Fold, FoldWith, noop_fold_type};
+use swc_core::ecma::{
+  ast::{Expr, MemberExpr},
+  visit::{Fold, FoldWith, noop_fold_type},
+};
 
 use crate::shared::utils::core::member_expression::member_expression;
 use stylex_enums::style_vars_to_keep::NonNullProps;

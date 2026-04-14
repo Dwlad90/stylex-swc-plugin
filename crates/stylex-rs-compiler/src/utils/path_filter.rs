@@ -2,10 +2,10 @@ use crate::enums::PathFilterUnion;
 use fancy_regex::Regex;
 use glob::Pattern as GlobPattern;
 use log::warn;
-use std::env;
-use std::path::Path;
+use std::{env, path::Path};
 
-/// Determines whether a file should be transformed based on include/exclude patterns
+/// Determines whether a file should be transformed based on include/exclude
+/// patterns
 pub(crate) fn should_transform_file(
   file_path: &str,
   include: &Option<Vec<PathFilterUnion>>,

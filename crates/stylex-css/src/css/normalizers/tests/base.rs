@@ -1,3 +1,7 @@
+use swc_core::{common::DUMMY_SP, css::ast::Ident};
+
+use crate::css::normalizers::base::zero_unit;
+
 #[cfg(test)]
 mod normalizers {
   use swc_core::{
@@ -5,9 +9,10 @@ mod normalizers {
     css::parser::error::{Error, ErrorKind},
   };
 
-  use crate::css::common::{stringify, swc_parse_css};
-  use crate::css::normalizers::base::base_normalizer;
-  use crate::css::normalizers::{extract_css_value, normalize_spacing};
+  use crate::css::{
+    common::{stringify, swc_parse_css},
+    normalizers::{base::base_normalizer, extract_css_value, normalize_spacing},
+  };
 
   #[test]
   fn should_normalize_transition_property() {
@@ -179,7 +184,8 @@ mod normalizers {
     );
 
     // TODO: remove this once when https://github.com/swc-project/swc/issues/9766 will be fixed
-    // Also, COLOR_FUNCTIONS_NON_NORMALIZED_PROPERTY_VALUES should be removed from the codebase
+    // Also, COLOR_FUNCTIONS_NON_NORMALIZED_PROPERTY_VALUES should be removed from
+    // the codebase
     assert_eq!(
       errors,
       vec![
@@ -230,7 +236,8 @@ mod normalizers {
     );
 
     // TODO: remove this once when https://github.com/swc-project/swc/issues/9766 will be fixed
-    // Also, COLOR_FUNCTIONS_NON_NORMALIZED_PROPERTY_VALUES should be removed from the codebase
+    // Also, COLOR_FUNCTIONS_NON_NORMALIZED_PROPERTY_VALUES should be removed from
+    // the codebase
     assert_eq!(
       errors3,
       vec![
@@ -255,7 +262,8 @@ mod normalizers {
     );
 
     // TODO: remove this once when https://github.com/swc-project/swc/issues/9766 will be fixed
-    // Also, COLOR_FUNCTIONS_NON_NORMALIZED_PROPERTY_VALUES should be removed from the codebase
+    // Also, COLOR_FUNCTIONS_NON_NORMALIZED_PROPERTY_VALUES should be removed from
+    // the codebase
     assert_eq!(
       errors4,
       vec![
@@ -279,7 +287,8 @@ mod normalizers {
     );
 
     // TODO: remove this once when https://github.com/swc-project/swc/issues/9766 will be fixed
-    // Also, COLOR_FUNCTIONS_NON_NORMALIZED_PROPERTY_VALUES should be removed from the codebase
+    // Also, COLOR_FUNCTIONS_NON_NORMALIZED_PROPERTY_VALUES should be removed from
+    // the codebase
     assert_eq!(
       errors5,
       vec![
@@ -333,7 +342,8 @@ mod normalizers {
     );
 
     // TODO: remove this once when https://github.com/swc-project/swc/issues/9766 will be fixed
-    // Also, COLOR_FUNCTIONS_NON_NORMALIZED_PROPERTY_VALUES should be removed from the codebase
+    // Also, COLOR_FUNCTIONS_NON_NORMALIZED_PROPERTY_VALUES should be removed from
+    // the codebase
     assert_eq!(
       errors3,
       vec![
@@ -526,7 +536,8 @@ mod normalizers {
       false,
       Some("transform"),
     ));
-    // zero angle normalizes to 0deg (but inside function arg, is_function_arg skips it)
+    // zero angle normalizes to 0deg (but inside function arg, is_function_arg skips
+    // it)
     assert!(!s.is_empty());
   }
 
@@ -754,4 +765,44 @@ mod normalizers {
     ));
     assert!(s.contains("0fr"));
   }
+}
+
+#[test]
+fn zero_unit_test() {
+  assert_eq!(
+    zero_unit(&Ident {
+      span: DUMMY_SP,
+      value: "%".into(),
+      raw: None
+    }),
+    Ident {
+      span: DUMMY_SP,
+      value: "%".into(),
+      raw: None
+    }
+  );
+  assert_eq!(
+    zero_unit(&Ident {
+      span: DUMMY_SP,
+      value: "fr".into(),
+      raw: None
+    }),
+    Ident {
+      span: DUMMY_SP,
+      value: "fr".into(),
+      raw: None
+    }
+  );
+  assert_eq!(
+    zero_unit(&Ident {
+      span: DUMMY_SP,
+      value: "dpi".into(),
+      raw: None
+    }),
+    Ident {
+      span: DUMMY_SP,
+      value: "".into(),
+      raw: None
+    }
+  );
 }

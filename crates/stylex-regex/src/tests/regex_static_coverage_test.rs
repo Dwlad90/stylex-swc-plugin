@@ -1,5 +1,6 @@
 //! Coverage-oriented tests for shared static regexes.
-//! Each test validates one semantic group and forces Lazy<Regex> initialization.
+//! Each test validates one semantic group and forces Lazy<Regex>
+//! initialization.
 
 use crate::regex::{
   ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, CSS_VALUE_SPLIT_REGEX, DASHIFY_REGEX,
@@ -17,7 +18,8 @@ fn css_value_parsers_match_expected_tokens() {
   assert!(LENGTH_UNIT_TESTER_REGEX.is_match("-5").unwrap());
 }
 
-/// Core token cleanups should match escaped vars, css var calls, and spacing cases.
+/// Core token cleanups should match escaped vars, css var calls, and spacing
+/// cases.
 #[test]
 fn core_cleanup_patterns_match() {
   assert!(CLEAN_CSS_VAR.is_match(r"\31 ").unwrap());

@@ -10,12 +10,13 @@ use swc_core::{
 use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
 use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-use crate::shared::structures::functions::FunctionMap;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::utils::ast::convertors::convert_lit_to_string;
-use crate::shared::utils::common::increase_ident_count;
-use crate::shared::utils::js::evaluate::evaluate;
+use crate::shared::{
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  structures::{functions::FunctionMap, state_manager::StateManager},
+  utils::{
+    ast::convertors::convert_lit_to_string, common::increase_ident_count, js::evaluate::evaluate,
+  },
+};
 
 pub(crate) fn member_expression(
   member: &MemberExpr,

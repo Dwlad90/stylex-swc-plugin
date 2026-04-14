@@ -1,8 +1,7 @@
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-use crate::shared::structures::functions::FunctionMap;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::utils::ast::convertors::{
-  convert_expr_to_str, convert_lit_to_number, create_string_expr,
+use crate::shared::{
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  structures::{functions::FunctionMap, state_manager::StateManager},
+  utils::ast::convertors::{convert_expr_to_str, convert_lit_to_number, create_string_expr},
 };
 use std::rc::Rc;
 use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
@@ -41,7 +40,7 @@ pub(crate) fn evaluate_map(
 
           Some(create_array_expression(elems))
         },
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_unimplemented!("Unhandled EvaluateResultValue in map callback"),
       }
     })
@@ -68,7 +67,7 @@ pub(crate) fn evaluate_join(
 
   let join_arg = match convert_expr_to_str(join_arg.as_expr()?, state, functions) {
     Some(s) => s,
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("The join() separator argument must be a string value."),
   };
 
@@ -77,12 +76,12 @@ pub(crate) fn evaluate_join(
     .map(|arg_ref| {
       let arg_expr = match arg_ref.as_ref().and_then(|arg| arg.as_expr()) {
         Some(expr) => expr,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("Array element must evaluate to a string for join()."),
       };
       match convert_expr_to_str(arg_expr, state, functions) {
         Some(s) => s,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("Array element must evaluate to a string for join()."),
       }
     })
@@ -125,7 +124,7 @@ pub(crate) fn evaluate_filter(
 
           Some(create_array_expression(elems))
         },
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_unimplemented!("Unhandled EvaluateResultValue in filter callback"),
       }
     })
@@ -157,14 +156,14 @@ pub(crate) fn evaluate_filter_cb(
   let result = evaluate_map_cb(cb, cb_arg);
 
   let Some(lit) = result.as_lit() else {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("Expr is not a literal");
     }
   };
 
   if convert_lit_to_number(lit).unwrap_or_else(|error| {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", error)
     }

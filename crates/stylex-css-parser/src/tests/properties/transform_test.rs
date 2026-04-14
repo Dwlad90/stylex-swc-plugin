@@ -2,8 +2,7 @@
 Transform property tests.
 */
 
-use crate::css_types::transform_function::*;
-use crate::properties::transform::Transform;
+use crate::{css_types::transform_function::*, properties::transform::Transform};
 
 #[cfg(test)]
 mod test_css_property_transform {
@@ -34,7 +33,8 @@ mod test_css_property_transform {
         stylex_panic!("Expected Matrix transform function");
       }
 
-      // Test multiple matrices: 'matrix(1, 0, 0, 1, 0, 0) matrix(1, 0, 0.5, 1.5, 0, 0)'
+      // Test multiple matrices: 'matrix(1, 0, 0, 1, 0, 0) matrix(1, 0, 0.5, 1.5, 0,
+      // 0)'
       let result = Transform::parser()
         .parse_to_end("matrix(1, 0, 0, 1, 0, 0) matrix(1, 0, 0.5, 1.5, 0, 0)")
         .unwrap();
@@ -53,7 +53,8 @@ mod test_css_property_transform {
 
     #[test]
     fn matrix3d() {
-      // Test: Transform.parse.parse('matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0.5, 1.5, 0, 0, 0, 0, 1)')
+      // Test: Transform.parse.parse('matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0.5, 1.5, 0,
+      // 0, 0, 0, 1)')
       let result = Transform::parser()
         .parse_to_end("matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0.5, 1.5, 0, 0, 0, 0, 1)")
         .unwrap();
@@ -174,7 +175,8 @@ mod test_css_property_transform {
 
     #[test]
     fn perspective_plus_matrix3d() {
-      // Test: Transform.parse.parse('perspective(100px)     matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0.5, 1.5, 0, 0, 0, 0, 1)')
+      // Test: Transform.parse.parse('perspective(100px)     matrix3d(1, 0, 0, 0, 0,
+      // 1, 0, 0, 0, 0.5, 1.5, 0, 0, 0, 0, 1)')
       let result = Transform::parser()
         .parse_to_end(
           "perspective(100px)     matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0.5, 1.5, 0, 0, 0, 0, 1)",
@@ -260,7 +262,8 @@ mod test_css_property_transform {
 
     #[test]
     fn scale_plus_rotate_plus_translate_plus_skew() {
-      // Test: Transform.parse.parse('scale(2) rotate(45deg) translate(100px) skew(45deg)')
+      // Test: Transform.parse.parse('scale(2) rotate(45deg) translate(100px)
+      // skew(45deg)')
       let result = Transform::parser()
         .parse_to_end("scale(2) rotate(45deg) translate(100px) skew(45deg)")
         .unwrap();

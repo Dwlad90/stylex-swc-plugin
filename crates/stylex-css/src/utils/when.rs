@@ -12,15 +12,18 @@ pub fn from_stylex_style(_value: &StyleXStateOptions) -> Option<String> {
   None
 }
 
-/// Gets the default marker class name based on options
+/// Gets the default marker class name based on options.
+///
+/// `from_proxy` / `from_stylex_style` are placeholder stubs that always
+/// return `None`; their early-return branches are dead code until the
+/// stubs are implemented. Excluded from coverage for that reason.
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn get_default_marker_class_name(options: &StyleXStateOptions) -> String {
   if let Some(value_from_proxy) = from_proxy(options) {
-    #[cfg(not(tarpaulin_include))]
     return value_from_proxy;
   }
 
   if let Some(value_from_style_xstyle) = from_stylex_style(options) {
-    #[cfg(not(tarpaulin_include))]
     return value_from_style_xstyle;
   }
 

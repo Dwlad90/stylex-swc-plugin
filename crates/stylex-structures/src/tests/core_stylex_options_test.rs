@@ -94,6 +94,80 @@ fn core_stylex_options_direct_setters_cover_all_fields() {
   assert!(opts.debug_file_path.is_some());
 }
 
+/// Optional `maybe_*` setters with `None` must leave the field unchanged.
+#[test]
+fn core_stylex_options_optional_setters_skip_none_values() {
+  let original = CoreStyleXOptions::default();
+  let opts = CoreStyleXOptions::default()
+    .maybe_dev(None)
+    .maybe_test(None)
+    .maybe_style_resolution(None)
+    .maybe_property_validation_mode(None)
+    .maybe_enable_font_size_px_to_rem(None)
+    .maybe_class_name_prefix(None)
+    .maybe_enable_debug_class_names(None)
+    .maybe_enable_debug_data_prop(None)
+    .maybe_enable_dev_class_names(None)
+    .maybe_enable_minified_keys(None)
+    .maybe_inject_stylex_side_effects(None)
+    .maybe_treeshake_compensation(None)
+    .maybe_enable_inlined_conditional_merge(None)
+    .maybe_enable_media_query_order(None)
+    .maybe_enable_logical_styles_polyfill(None)
+    .maybe_enable_legacy_value_flipping(None)
+    .maybe_enable_ltr_rtl_comments(None)
+    .maybe_use_real_file_for_source(None);
+
+  assert_eq!(opts.dev, original.dev);
+  assert_eq!(opts.test, original.test);
+  assert_eq!(opts.style_resolution, original.style_resolution);
+  assert_eq!(
+    opts.property_validation_mode,
+    original.property_validation_mode
+  );
+  assert_eq!(
+    opts.enable_font_size_px_to_rem,
+    original.enable_font_size_px_to_rem
+  );
+  assert_eq!(opts.class_name_prefix, original.class_name_prefix);
+  assert_eq!(
+    opts.enable_debug_class_names,
+    original.enable_debug_class_names
+  );
+  assert_eq!(opts.enable_debug_data_prop, original.enable_debug_data_prop);
+  assert_eq!(opts.enable_dev_class_names, original.enable_dev_class_names);
+  assert_eq!(opts.enable_minified_keys, original.enable_minified_keys);
+  assert_eq!(
+    opts.inject_stylex_side_effects,
+    original.inject_stylex_side_effects
+  );
+  assert_eq!(opts.treeshake_compensation, original.treeshake_compensation);
+  assert_eq!(
+    opts.enable_inlined_conditional_merge,
+    original.enable_inlined_conditional_merge
+  );
+  assert_eq!(
+    opts.enable_media_query_order,
+    original.enable_media_query_order
+  );
+  assert_eq!(
+    opts.enable_logical_styles_polyfill,
+    original.enable_logical_styles_polyfill
+  );
+  assert_eq!(
+    opts.enable_legacy_value_flipping,
+    original.enable_legacy_value_flipping
+  );
+  assert_eq!(
+    opts.enable_ltr_rtl_comments,
+    original.enable_ltr_rtl_comments
+  );
+  assert_eq!(
+    opts.use_real_file_for_source,
+    original.use_real_file_for_source
+  );
+}
+
 /// Optional `maybe_*` setters should apply values only when `Some`.
 #[test]
 fn core_stylex_options_optional_setters_apply_some_values() {

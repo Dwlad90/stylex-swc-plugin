@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod common_css_tests {
-  use crate::shared::structures::state_manager::StateManager;
-  use crate::shared::utils::css::common::{get_number_suffix, transform_value_cached};
+  use crate::shared::{
+    structures::state_manager::StateManager,
+    utils::css::common::{get_number_suffix, transform_value_cached},
+  };
 
   #[test]
   fn should_transform_css_property_value() {

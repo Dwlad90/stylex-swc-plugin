@@ -533,7 +533,7 @@ impl StepsKeyword {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for EasingFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -546,7 +546,7 @@ impl Display for EasingFunction {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for LinearEasingFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     // Format numbers to avoid floating point precision issues
@@ -572,7 +572,7 @@ impl Display for LinearEasingFunction {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for CubicBezierEasingFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     // Format numbers to avoid floating point precision issues
@@ -599,7 +599,7 @@ impl Display for CubicBezierEasingFunction {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for CubicBezierKeyword {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let keyword_str = match self.keyword {
@@ -612,7 +612,7 @@ impl Display for CubicBezierKeyword {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for StepsEasingFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let start_str = match self.start {
@@ -623,7 +623,7 @@ impl Display for StepsEasingFunction {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for StepsKeyword {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let keyword_str = match self.keyword {

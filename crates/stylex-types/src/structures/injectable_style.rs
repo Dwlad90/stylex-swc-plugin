@@ -35,7 +35,7 @@ pub struct InjectableConstStyle {
   pub const_value: String,
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Hash for InjectableStyle {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.ltr.hash(state);
@@ -55,7 +55,8 @@ impl From<InjectableStyle> for InjectableStyleBase {
 }
 
 impl InjectableStyle {
-  /// Creates a new InjectableStyle wrapped in Rc<InjectableStyleKind> with only LTR content.
+  /// Creates a new InjectableStyle wrapped in Rc<InjectableStyleKind> with only
+  /// LTR content.
   ///
   /// # Example
   /// ```ignore
@@ -70,7 +71,8 @@ impl InjectableStyle {
     }))
   }
 
-  /// Creates a new InjectableStyle wrapped in Rc<InjectableStyleKind> with both LTR and RTL content.
+  /// Creates a new InjectableStyle wrapped in Rc<InjectableStyleKind> with both
+  /// LTR and RTL content.
   ///
   /// # Example
   /// ```ignore

@@ -16,23 +16,24 @@ use stylex_macros::{
   as_expr_or_err, as_expr_or_opt_err, as_expr_or_panic, convert_expr_to_str_or_err, stylex_panic,
   stylex_unimplemented, unwrap_or_panic,
 };
-use swc_core::ecma::ast::{
-  BinExpr, BinaryOp, Expr, Ident, KeyValueProp, Lit, PropName, Tpl, UnaryExpr, UnaryOp,
+use swc_core::ecma::{
+  ast::{BinExpr, BinaryOp, Expr, Ident, KeyValueProp, Lit, PropName, Tpl, UnaryExpr, UnaryOp},
+  utils::ExprExt,
 };
-use swc_core::ecma::utils::ExprExt;
 
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-use crate::shared::structures::functions::FunctionMap;
-use crate::shared::structures::state::EvaluationState;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::utils::common::{get_expr_from_var_decl, get_var_decl_by_ident};
-use crate::shared::utils::js::evaluate::{deopt, evaluate_cached};
+use crate::shared::{
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
+  utils::{
+    common::{get_expr_from_var_decl, get_var_decl_by_ident},
+    js::evaluate::{deopt, evaluate_cached},
+  },
+};
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_VALUE, VAR_DECL_INIT_REQUIRED, non_static_value,
 };
 use stylex_enums::misc::{BinaryExprType, VarDeclAction};
-use stylex_utils::string::wrap_key_in_quotes;
-use stylex_utils::swc::get_default_expr_ctx;
+use stylex_utils::{string::wrap_key_in_quotes, swc::get_default_expr_ctx};
 
 pub fn expr_to_num(
   expr_num: &Expr,
@@ -48,20 +49,20 @@ pub fn expr_to_num(
       let mut state = Box::new(EvaluationState::new());
 
       match binary_expr_to_num(lit, &mut state, traversal_state, fns).unwrap_or_else(|error| {
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         {
           stylex_panic!("{}", error)
         }
       }) {
         BinaryExprType::Number(number) => number,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_panic!(
           "Binary expression is not a number: {:?}",
           expr_num.get_type(get_default_expr_ctx())
         ),
       }
     },
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => stylex_panic!(
       "Expression in not a number: {:?}",
       expr_num.get_type(get_default_expr_ctx())
@@ -81,15 +82,15 @@ fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &Function
       match &var_decl_expr {
         Expr::Lit(lit) => match convert_lit_to_string(lit) {
           Some(s) => s,
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           None => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
         },
         Expr::Ident(ident) => ident_to_string(ident, state, functions),
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
       }
     },
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
   }
 }
@@ -102,7 +103,7 @@ pub fn convert_ident_to_expr(
 ) -> Expr {
   match get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce) {
     Some(var_decl) => get_expr_from_var_decl(&var_decl).clone(),
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => {
       stylex_panic!("{}", ILLEGAL_PROP_VALUE)
     },
@@ -117,7 +118,7 @@ pub fn convert_expr_to_str(
   match &expr_string {
     Expr::Ident(ident) => Some(ident_to_string(ident, state, functions)),
     Expr::Lit(lit) => convert_lit_to_string(lit),
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => stylex_panic!(
       "Expression in not a string, got {:?}",
       expr_string.get_type(get_default_expr_ctx())
@@ -137,15 +138,15 @@ pub fn convert_unary_to_num(
   match &op {
     UnaryOp::Minus => match expr_to_num(arg, state, traversal_state, fns) {
       Ok(result) => -result,
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       Err(error) => stylex_panic!("{}", error),
     },
     UnaryOp::Plus => match expr_to_num(arg, state, traversal_state, fns) {
       Ok(result) => result,
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       Err(error) => stylex_panic!("{}", error),
     },
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => stylex_panic!(
       "Union operation '{:?}' is invalid",
       Expr::from(unary_expr.clone()).get_type(get_default_expr_ctx())
@@ -165,7 +166,7 @@ pub fn binary_expr_to_num(
       return Result::Err(anyhow::anyhow!("Left expression is not a number"));
     }
 
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("Left expression is not a number")
     }
@@ -185,7 +186,7 @@ pub fn binary_expr_to_num(
       return Result::Err(anyhow::anyhow!("Right expression is not a number"));
     }
 
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("Right expression is not a number")
     }
@@ -331,7 +332,7 @@ pub fn binary_expr_to_string(
       return Result::Err(anyhow::anyhow!("Left expression is not a string"));
     }
 
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("Left expression is not a string")
     }
@@ -356,7 +357,7 @@ pub fn binary_expr_to_string(
       return Result::Err(anyhow::anyhow!("Right expression is not a string"));
     }
 
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("Right expression is not a string")
     }
@@ -374,7 +375,7 @@ pub fn binary_expr_to_string(
     BinaryOp::Add => {
       format!("{}{}", left_str, right_str)
     },
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => stylex_panic!(
       "For string expressions, only addition is supported, got {:?}",
       op
@@ -414,7 +415,7 @@ fn evaluate_left_and_right_expression(
     let left_str = match left_expr {
       Expr::Lit(Lit::Str(_)) => match left_expr.as_lit() {
         Some(lit) => convert_lit_to_string(lit).unwrap_or_else(|| {
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           {
             stylex_panic!(
               "Left is not a string: {:?}",
@@ -422,7 +423,7 @@ fn evaluate_left_and_right_expression(
             )
           }
         }),
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "Left is not a string: {:?}",
           left_expr.get_type(get_default_expr_ctx())
@@ -434,7 +435,7 @@ fn evaluate_left_and_right_expression(
     let right_str = match right_expr {
       Expr::Lit(Lit::Str(_)) => match right_expr.as_lit() {
         Some(lit) => convert_lit_to_string(lit).unwrap_or_else(|| {
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           {
             stylex_panic!(
               "Right is not a string: {:?}",
@@ -442,7 +443,7 @@ fn evaluate_left_and_right_expression(
             )
           }
         }),
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "Right is not a string: {:?}",
           left_expr.get_type(get_default_expr_ctx())
@@ -501,13 +502,13 @@ pub fn ident_to_number(
       match &var_decl_expr {
         Expr::Bin(bin_expr) => {
           match binary_expr_to_num(bin_expr, state, traversal_state, fns).unwrap_or_else(|error| {
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             {
               stylex_panic!("{}", error)
             }
           }) {
             BinaryExprType::Number(number) => number,
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             _ => stylex_panic!(
               "Binary expression is not a number: {:?}",
               var_decl_expr.get_type(get_default_expr_ctx())
@@ -516,19 +517,19 @@ pub fn ident_to_number(
         },
         Expr::Unary(unary_expr) => convert_unary_to_num(unary_expr, state, traversal_state, fns),
         Expr::Lit(lit) => convert_lit_to_number(lit).unwrap_or_else(|error| {
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           {
             stylex_panic!("{}", error)
           }
         }),
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_panic!(
           "Varable {:?} is not a number",
           var_decl_expr.get_type(get_default_expr_ctx())
         ),
       }
     },
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     None => {
       stylex_panic!("Variable {} is not declared", ident.sym)
     },
@@ -552,10 +553,11 @@ pub fn handle_tpl_to_expression(
 
       // If a variable declaration was found
       if let Some(var_decl) = &var_decl {
-        // Swap the placeholder expression in the template with the variable declaration's initializer
+        // Swap the placeholder expression in the template with the variable
+        // declaration's initializer
         *expr = match var_decl.init.clone() {
           Some(init) => init,
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           None => stylex_panic!("{}", VAR_DECL_INIT_REQUIRED),
         };
       }
@@ -587,16 +589,16 @@ pub fn expr_tpl_to_string(
               let value = match &var_decl_expr {
                 Expr::Lit(lit) => match convert_lit_to_string(lit) {
                   Some(s) => s,
-                  #[cfg(not(tarpaulin_include))]
+                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
                 },
-                #[cfg(not(tarpaulin_include))]
+                #[cfg_attr(coverage_nightly, coverage(off))]
                 _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
               };
 
               tpl_str.push_str(value.as_str());
             },
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("{}", non_static_value("expr_tpl_to_string")),
           }
         },
@@ -607,10 +609,10 @@ pub fn expr_tpl_to_string(
         ),
         Expr::Lit(lit) => tpl_str.push_str(&match convert_lit_to_string(lit) {
           Some(s) => s,
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           None => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
         }),
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_unimplemented!(
           "TPL expression: {:?}",
           tpl.exprs[i].get_type(get_default_expr_ctx())
@@ -630,7 +632,7 @@ pub fn transform_bin_expr_to_number(
 ) -> f64 {
   let op = bin.op;
   let Some(left) = evaluate_cached(&bin.left, state, traversal_state, fns) else {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!(
         "Left expression is not a number: {:?}",
@@ -640,7 +642,7 @@ pub fn transform_bin_expr_to_number(
   };
 
   let Some(right) = evaluate_cached(&bin.right, state, traversal_state, fns) else {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!(
         "Left expression is not a number: {:?}",
@@ -670,7 +672,7 @@ pub fn convert_expr_to_bool(
       Lit::Num(n) => n.value != 0.0,
       Lit::Str(s) => !s.value.is_empty(),
       Lit::Null(_) => false,
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => stylex_unimplemented!(
         "Conversion {:?} expression to boolean",
         expr.get_type(get_default_expr_ctx())
@@ -691,13 +693,13 @@ pub fn convert_expr_to_bool(
       UnaryOp::Minus => !convert_expr_to_bool(&unary.arg, state, functions),
       UnaryOp::Plus => !convert_expr_to_bool(&unary.arg, state, functions),
       UnaryOp::Tilde => !convert_expr_to_bool(&unary.arg, state, functions),
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => stylex_unimplemented!(
         "Conversion {:?} expression to boolean",
         expr.get_type(get_default_expr_ctx())
       ),
     },
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => {
       stylex_unimplemented!(
         "Conversion {:?} expression to boolean",
@@ -729,10 +731,10 @@ pub(crate) fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
     PropName::Computed(computed) => match computed.expr.as_lit() {
       Some(lit) => match convert_lit_to_string(lit) {
         Some(s) => s,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("Computed property key must be a string or number literal."),
       },
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       None => stylex_unimplemented!("Computed key is not a literal"),
     },
   };

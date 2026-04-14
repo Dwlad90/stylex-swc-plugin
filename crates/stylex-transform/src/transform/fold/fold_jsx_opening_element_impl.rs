@@ -11,8 +11,7 @@ use swc_core::{
   },
 };
 
-use crate::StyleXTransform;
-use crate::shared::structures::state_manager::ImportKind;
+use crate::{StyleXTransform, shared::structures::state_manager::ImportKind};
 use stylex_ast::ast::factories::{
   create_arrow_expression, create_ident, create_ident_call_expr, create_ident_name,
   create_jsx_spread_attr, create_member_call_expr, create_object_lit, create_spread_prop,
@@ -39,7 +38,8 @@ where
       None => return jsx_opening_element.fold_children_with(self),
     };
 
-    // Only transform lowercase JSX element names (HTML elements, not React components)
+    // Only transform lowercase JSX element names (HTML elements, not React
+    // components)
     let is_lowercase_element = match &jsx_opening_element.name {
       JSXElementName::Ident(ident) => ident
         .sym
@@ -100,12 +100,14 @@ where
     jsx_opening_element.fold_children_with(self)
   }
 
-  /// Transform compiled JSX/VDOM calls with an `sx` prop during the Initializing cycle.
+  /// Transform compiled JSX/VDOM calls with an `sx` prop during the
+  /// Initializing cycle.
   ///
   /// Handles:
   /// - React: `_jsx("div", { sx: expr })` / `_jsxs("div", { sx: expr })`
   /// - React classic: `React.createElement("div", { sx: expr })`
-  /// - Vue: `_createElementBlock("div", { sx: expr })` / `_createElementVNode("div", { sx: expr })`
+  /// - Vue: `_createElementBlock("div", { sx: expr })` /
+  ///   `_createElementVNode("div", { sx: expr })`
   ///
   /// Transforms to: `fn("div", { ...stylex.props(expr), ... })`
   pub(crate) fn transform_sx_in_compiled_jsx(&self, expr: &Expr) -> Option<Expr> {
@@ -172,7 +174,8 @@ where
   /// `_$setAttribute(_el$, "sx", styles.main)`
   ///
   /// We transform it to:
-  /// `_$spread(_el$, _$mergeProps(() => stylex.props(styles.main)), false, true)`
+  /// `_$spread(_el$, _$mergeProps(() => stylex.props(styles.main)), false,
+  /// true)`
   pub(crate) fn transform_sx_in_solid_set_attribute(&self, expr: &Expr) -> Option<Expr> {
     let sx_prop_name = self.state.options.sx_prop_name.as_deref()?;
 
@@ -283,7 +286,8 @@ fn sx_value_to_props_args(value_expr: Expr) -> Vec<ExprOrSpread> {
 
 /// Build a call expression for stylex props:
 /// - `stylex.props(args...)` when `stylex_ident_name` is available
-/// - `<props_ident_name>(args...)` (e.g. `props(args...)` or `sx(args...)`) otherwise
+/// - `<props_ident_name>(args...)` (e.g. `props(args...)` or `sx(args...)`)
+///   otherwise
 fn build_stylex_props_call(
   stylex_ident_name: Option<String>,
   props_ident_name: Option<String>,
@@ -299,7 +303,7 @@ fn build_stylex_props_call(
   } else if let Some(props_ident_name) = props_ident_name {
     create_ident_call_expr(&props_ident_name, args)
   } else {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!(
         "Could not resolve StyleX import. Ensure you have imported stylex or the props function."
@@ -334,7 +338,8 @@ fn extract_prop_value(prop: &PropOrSpread) -> Option<Expr> {
   None
 }
 
-/// Check if a `CallExpr` is a JSX/VDOM runtime call that takes `(elementName, props, ...)`.
+/// Check if a `CallExpr` is a JSX/VDOM runtime call that takes `(elementName,
+/// props, ...)`.
 fn is_jsx_runtime_call(call: &CallExpr) -> bool {
   match &call.callee {
     Callee::Expr(e) => match e.as_ref() {

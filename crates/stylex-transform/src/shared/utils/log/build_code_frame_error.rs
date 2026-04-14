@@ -1,8 +1,12 @@
 use anyhow::Error;
 use log::{debug, warn};
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-use std::{fs, path::Path, sync::Arc};
+use std::{
+  collections::hash_map::DefaultHasher,
+  fs,
+  hash::{Hash, Hasher},
+  path::Path,
+  sync::Arc,
+};
 use stylex_macros::{panic_macros::__stylex_panic, stylex_error::StyleXError, stylex_panic};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
 use swc_config::is_module::IsModule;
@@ -20,9 +24,9 @@ use swc_core::{
   },
 };
 
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::utils::ast::convertors::{
-  convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr,
+use crate::shared::{
+  structures::state_manager::StateManager,
+  utils::ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
 };
 use stylex_regex::regex::URL_REGEX;
 
@@ -106,8 +110,9 @@ pub(crate) fn build_code_frame_error<'a>(
   error_message
 }
 
-/// Finds the span (source location) of a target expression within the source code.
-/// Uses caching to avoid redundant AST traversals for the same expression.
+/// Finds the span (source location) of a target expression within the source
+/// code. Uses caching to avoid redundant AST traversals for the same
+/// expression.
 ///
 /// # Arguments
 /// * `wrapped_expression` - The parent expression containing the target
@@ -115,7 +120,8 @@ pub(crate) fn build_code_frame_error<'a>(
 /// * `state` - Mutable reference to the state manager (for caching)
 ///
 /// # Returns
-/// A tuple of (CodeFrame, Span) where CodeFrame contains the source map for error display
+/// A tuple of (CodeFrame, Span) where CodeFrame contains the source map for
+/// error display
 pub(crate) fn get_span_from_source_code(
   wrapped_expression: &Expr,
   target_expression: &Expr,
@@ -187,7 +193,8 @@ fn find_expression_span(program: Program, target_expression: &Expr) -> Span {
 }
 
 /// Gets or parses the source code as a Program AST, with memoization.
-/// Returns a cleaned and normalized Program that can be used for expression finding.
+/// Returns a cleaned and normalized Program that can be used for expression
+/// finding.
 fn get_memoized_frame_source_code(
   wrapped_expression: &Expr,
   target_expression: &Expr,
@@ -220,7 +227,7 @@ fn get_memoized_frame_source_code(
   state.set_seen_module_source_code(
     match program.as_module() {
       Some(module) => module,
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       None => stylex_panic!("Expected a module program for source code caching."),
     },
     Some(source_code),
@@ -353,7 +360,8 @@ pub(crate) fn create_module(wrapped_expression: &Expr) -> Module {
 }
 
 /// Visitor that searches for a specific expression in an AST.
-/// Uses discriminant matching for fast filtering before expensive eq_ignore_span checks.
+/// Uses discriminant matching for fast filtering before expensive
+/// eq_ignore_span checks.
 #[derive(Debug)]
 struct ExpressionFinder {
   target: Expr,
@@ -361,8 +369,9 @@ struct ExpressionFinder {
   found_expr: Option<Expr>,
 }
 
-/// Visitor that normalizes AST by removing syntax contexts and type annotations.
-/// This allows for more reliable expression matching across different parsing contexts.
+/// Visitor that normalizes AST by removing syntax contexts and type
+/// annotations. This allows for more reliable expression matching across
+/// different parsing contexts.
 #[derive(Debug)]
 struct Cleaner {}
 impl Fold for Cleaner {

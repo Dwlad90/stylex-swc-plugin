@@ -1,14 +1,19 @@
-use crate::CssParseError;
-use crate::css_types::length_percentage::{LengthPercentage, length_percentage_parser};
-use crate::css_types::position::Position;
 /**
  * CSS Basic Shape Type Parsers
  *
- * Provides comprehensive basic shape parsing for CSS clip-path and shape-outside properties.
- * Covers all shape types with essential functionality and Rust type safety.
+ * Provides comprehensive basic shape parsing for CSS clip-path and
+ * shape-outside properties. Covers all shape types with essential
+ * functionality and Rust type safety.
  */
 use crate::token_parser::TokenParser;
-use crate::token_types::{SimpleToken, TokenList};
+use crate::{
+  CssParseError,
+  css_types::{
+    length_percentage::{LengthPercentage, length_percentage_parser},
+    position::Position,
+  },
+  token_types::{SimpleToken, TokenList},
+};
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -46,7 +51,7 @@ pub enum CircleRadius {
   FarthestSide,
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl fmt::Display for CircleRadius {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -57,7 +62,7 @@ impl fmt::Display for CircleRadius {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl fmt::Display for BasicShape {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {

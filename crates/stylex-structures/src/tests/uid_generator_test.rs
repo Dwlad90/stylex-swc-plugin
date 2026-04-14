@@ -1,4 +1,5 @@
-//! Tests for UidGenerator across all counter modes (Global, Local, ThreadLocal, ThreadUnique).
+//! Tests for UidGenerator across all counter modes (Global, Local, ThreadLocal,
+//! ThreadUnique).
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -52,8 +53,10 @@ fn test_thread_unique_identifiers() {
 
 #[test]
 fn test_parallel_thread_local_isolation() {
-  use std::sync::{Arc, Barrier};
-  use std::thread;
+  use std::{
+    sync::{Arc, Barrier},
+    thread,
+  };
 
   let barrier = Arc::new(Barrier::new(2));
   let mut handles = vec![];

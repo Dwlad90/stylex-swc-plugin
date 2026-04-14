@@ -9,18 +9,23 @@ use swc_core::ecma::{
   visit::FoldWith,
 };
 
-use crate::shared::enums::data_structures::fn_result::FnResult;
-use crate::shared::structures::functions::{FunctionConfigType, FunctionMap};
-use crate::shared::structures::member_transform::MemberTransform;
-use crate::shared::structures::state_manager::ImportKind;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
-use crate::shared::transformers::stylex_default_maker;
-use crate::shared::utils::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
-use crate::shared::utils::common::{reduce_ident_count, reduce_member_expression_count};
-use crate::shared::utils::core::make_string_expression::make_string_expression;
-use crate::shared::utils::core::parse_nullable_style::{
-  ResolvedArg, StyleObject, parse_nullable_style,
+use crate::shared::{
+  enums::data_structures::fn_result::FnResult,
+  structures::{
+    functions::{FunctionConfigType, FunctionMap},
+    member_transform::MemberTransform,
+    state_manager::{ImportKind, StateManager},
+    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+  },
+  transformers::stylex_default_maker,
+  utils::{
+    ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
+    common::{reduce_ident_count, reduce_member_expression_count},
+    core::{
+      make_string_expression::make_string_expression,
+      parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
+    },
+  },
 };
 use stylex_ast::ast::factories::{create_jsx_attr, create_jsx_attr_or_spread};
 use stylex_constants::constants::messages::{EXPECTED_COMPILED_STYLES, MEMBER_OBJ_NOT_IDENT};
@@ -121,7 +126,8 @@ pub(crate) fn stylex_merge(
       Expr::Member(member) => {
         match resolved {
           StyleObject::Other => {
-            //  Already processed in the conditional block above; bail_out flag set if needed.
+            //  Already processed in the conditional block above; bail_out flag
+            // set if needed.
           },
           StyleObject::Style(_) | StyleObject::Nullable => {
             let ident = match member.obj.as_ident() {

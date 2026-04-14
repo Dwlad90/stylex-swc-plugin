@@ -1,4 +1,5 @@
-//! Tests for user-facing message generation functions (argument length, static values, etc).
+//! Tests for user-facing message generation functions (argument length, static
+//! values, etc).
 
 use crate::constants::messages::*;
 

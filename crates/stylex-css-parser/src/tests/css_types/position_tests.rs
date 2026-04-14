@@ -67,7 +67,8 @@ fn test_keyword_with_offset_display() {
 
 #[test]
 fn test_numbers_only() {
-  // This would test: "50% 25%" -> Position with both horizontal and vertical length
+  // This would test: "50% 25%" -> Position with both horizontal and vertical
+  // length
   let pos = Position::new(
     Some(Horizontal::Length(LengthPercentage::Percentage(
       crate::css_types::Percentage::new(50.0),

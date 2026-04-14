@@ -23,7 +23,8 @@ where
     {
       for decl in &var_decl.decls {
         if let Some(ident) = decl.name.as_ident() {
-          // HACK: For preventing removing named export declarations need to increase the count by 2.
+          // HACK: For preventing removing named export declarations need to increase the
+          // count by 2.
           increase_ident_count_by_count(&mut self.state, ident, 2);
         }
       }

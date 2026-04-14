@@ -4,18 +4,21 @@ use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, Lit};
 
-use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-use crate::shared::structures::types::{
-  ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap,
+use crate::shared::{
+  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
+  structures::types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
+  utils::{
+    ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
+    common::get_key_values_from_object,
+  },
 };
-use crate::shared::utils::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
-use crate::shared::utils::common::get_key_values_from_object;
-use stylex_constants::constants::common::SPLIT_TOKEN;
-use stylex_constants::constants::messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT};
+use stylex_constants::constants::{
+  common::SPLIT_TOKEN,
+  messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT},
+};
 use stylex_enums::value_with_default::ValueWithDefault;
 use stylex_types::structures::injectable_style::InjectableStyle;
-use stylex_utils::hash::create_hash;
-use stylex_utils::math::round_to_decimal_places;
+use stylex_utils::{hash::create_hash, math::round_to_decimal_places};
 
 pub(crate) fn construct_css_variables_string(
   variables: &FlatCompiledStyles,

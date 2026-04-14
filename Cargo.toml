@@ -79,6 +79,5 @@ thiserror = "2.0.18"
 
 [workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [
-  'cfg(tarpaulin)',
-  'cfg(tarpaulin_include)',
+  'cfg(coverage_nightly)',
 ] }

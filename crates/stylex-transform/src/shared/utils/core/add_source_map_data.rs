@@ -11,18 +11,18 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr, KeyValueProp},
 };
 
-use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-use crate::shared::structures::functions::FunctionMap;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::types::StylesObjectMap;
-use crate::shared::utils::ast::convertors::{
-  convert_expr_to_str, convert_key_value_to_str, create_string_expr,
+use crate::shared::{
+  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
+  structures::{functions::FunctionMap, state_manager::StateManager, types::StylesObjectMap},
+  utils::{
+    ast::convertors::{convert_expr_to_str, convert_key_value_to_str, create_string_expr},
+    common::get_key_values_from_object,
+    log::build_code_frame_error::get_span_from_source_code,
+  },
 };
-use crate::shared::utils::common::get_key_values_from_object;
-use crate::shared::utils::log::build_code_frame_error::get_span_from_source_code;
-use stylex_constants::constants::common::COMPILED_KEY;
-use stylex_constants::constants::messages::{
-  EXPECTED_OBJECT_EXPRESSION, INVALID_UTF8, illegal_argument_length,
+use stylex_constants::constants::{
+  common::COMPILED_KEY,
+  messages::{EXPECTED_OBJECT_EXPRESSION, INVALID_UTF8, illegal_argument_length},
 };
 use stylex_structures::stylex_options::CheckModuleResolution;
 
@@ -62,7 +62,7 @@ pub(crate) fn add_source_map_data(
               }
             }
           },
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           _ => stylex_panic!("{}", EXPECTED_OBJECT_EXPRESSION),
         };
         let mut inner_map = IndexMap::new();
@@ -160,7 +160,7 @@ pub(crate) fn add_source_map_data(
           },
         };
       },
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => {
         stylex_panic!("{}", illegal_argument_length("add_source_map_data", 1));
       },
@@ -226,7 +226,7 @@ fn create_short_filename(
 
   let cwd_str = match cwd.to_str() {
     Some(s) => s,
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", INVALID_UTF8),
   };
   let cwd_package = StateManager::get_package_name_and_path(cwd_str, package_json_seen);
@@ -248,7 +248,8 @@ fn create_short_filename(
       return relative_path;
     }
 
-    // Otherwise, return package:relativePath (or just relativePath if no package name)
+    // Otherwise, return package:relativePath (or just relativePath if no package
+    // name)
     if let Some(package_name) = package_name_opt {
       return format!("{}:{}", package_name, relative_path);
     } else {

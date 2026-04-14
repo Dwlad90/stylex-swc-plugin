@@ -1,16 +1,18 @@
 #[cfg(test)]
 mod tests {
-  use crate::shared::structures::functions::FunctionMap;
-  use crate::shared::structures::state_manager::StateManager;
-  use crate::shared::utils::ast::convertors::{
-    create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
+  use crate::shared::{
+    structures::{functions::FunctionMap, state_manager::StateManager},
+    utils::{
+      ast::convertors::{
+        create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
+      },
+      js::evaluate::evaluate,
+    },
   };
-  use crate::shared::utils::js::evaluate::evaluate;
   use stylex_ast::ast::factories::create_ident;
   use stylex_structures::stylex_options::StyleXOptions;
-  use swc_core::common::util::take::Take;
   use swc_core::{
-    common::{DUMMY_SP, GLOBALS, Globals},
+    common::{DUMMY_SP, GLOBALS, Globals, util::take::Take},
     ecma::ast::{
       ArrayLit, AwaitExpr, BinExpr, BinaryOp, CallExpr, Callee, ComputedPropName, Expr,
       ExprOrSpread, IdentName, KeyValueProp, MemberExpr, MemberProp, ObjectLit, OptChainBase,
@@ -766,7 +768,8 @@ mod tests {
     })
   }
 
-  // Helper: evaluate with SWC GLOBALS set (needed for stylex_panic_with_context! code paths)
+  // Helper: evaluate with SWC GLOBALS set (needed for stylex_panic_with_context!
+  // code paths)
   fn evaluate_expr_with_globals(expr: &Expr) -> (bool, bool) {
     let globals = Globals::default();
     GLOBALS.set(&globals, || evaluate_expr(expr))
@@ -776,7 +779,8 @@ mod tests {
   fn test_unsupported_array_method_panic_includes_method_name() {
     // Calling an unsupported method on an array literal (e.g., [1].unsupported())
     // should panic with a message that includes the method name.
-    // This validates that stylex_panic_with_context! is used in the member call evaluation path.
+    // This validates that stylex_panic_with_context! is used in the member call
+    // evaluation path.
     let array = make_array_expr(vec![create_number_expr(1.0)]);
     let member = make_member_expr(array, "unsupported");
     let call = make_call_expr(member, vec![]);
@@ -800,8 +804,9 @@ mod tests {
 
   #[test]
   fn test_unsupported_string_method_panic_includes_method_name() {
-    // Calling an unsupported method on a string literal (e.g., "hello".unsupported())
-    // should panic with a message that includes the method name.
+    // Calling an unsupported method on a string literal (e.g.,
+    // "hello".unsupported()) should panic with a message that includes the
+    // method name.
     let string = create_string_expr("hello");
     let member = make_member_expr(string, "unsupported");
     let call = make_call_expr(member, vec![]);
@@ -881,7 +886,8 @@ mod tests {
 
   #[test]
   fn test_object_eval_failure_reason_includes_nested_key() {
-    // Evaluating { backgroundColor: someVar } should include "backgroundColor" in reason
+    // Evaluating { backgroundColor: someVar } should include "backgroundColor" in
+    // reason
     let obj = Expr::Object(ObjectLit {
       span: DUMMY_SP,
       props: vec![PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {

@@ -1,6 +1,10 @@
-use std::sync::Mutex;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::thread;
+use std::{
+  sync::{
+    Mutex,
+    atomic::{AtomicUsize, Ordering},
+  },
+  thread,
+};
 
 use rustc_hash::FxHashMap;
 use stylex_enums::counter_mode::CounterMode;
@@ -25,19 +29,12 @@ pub struct UidGenerator {
   local_counter: AtomicUsize,
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn lock_global_counters() -> std::sync::MutexGuard<'static, FxHashMap<String, AtomicUsize>> {
   match GLOBAL_COUNTERS.lock() {
     Ok(c) => c,
     Err(e) => stylex_panic!("GLOBAL_COUNTERS mutex poisoned: {}", e),
   }
-}
-
-#[cfg(tarpaulin_include)]
-fn lock_global_counters() -> std::sync::MutexGuard<'static, FxHashMap<String, AtomicUsize>> {
-  GLOBAL_COUNTERS
-    .lock()
-    .expect("GLOBAL_COUNTERS mutex poisoned under tarpaulin")
 }
 
 pub(crate) fn get_global_counter_or_panic<'a>(

@@ -352,6 +352,14 @@ fn shorthands_get_list_style_quoted_type() {
 }
 
 #[test]
+fn shorthands_get_list_style_quoted_type_single_quote() {
+  let func = Shorthands::get("listStyle").unwrap();
+  let result = func(Some("'→'".into())).unwrap();
+  // Quoted string => listStyleType
+  assert_eq!(result[0].0, "listStyleType");
+}
+
+#[test]
 fn shorthands_get_list_style_type_and_position() {
   let func = Shorthands::get("listStyle").unwrap();
   let result = func(Some("disc inside".into())).unwrap();
@@ -737,6 +745,33 @@ fn aliases_get_empty_returns_none() {
   assert!(Aliases::get("").is_none());
 }
 
+// ── Coverage: containIntrinsicSize single-value ─────────────────────
+
+#[test]
+fn shorthands_get_contain_intrinsic_size_single_value() {
+  let func = Shorthands::get("containIntrinsicSize").unwrap();
+  let result = func(Some("300px".into())).unwrap();
+  assert_eq!(result.len(), 2);
+  assert_eq!(result[0].0, "containIntrinsicWidth");
+  // Single CSS value is duplicated by split_value_required,
+  // so height equals width.
+  assert_eq!(result[0].1, result[1].1);
+}
+
+// ── Coverage: listStyle with non-type tokens ────────────────────────
+
+/// An uppercase identifier like "Disc" is not a valid list-style-type
+/// (lowercase + hyphens only), so it falls into the "remaining" bucket.
+#[test]
+fn shorthands_list_style_uppercase_ident_falls_through() {
+  let func = Shorthands::get("listStyle").unwrap();
+  // "Disc" has an uppercase letter → is_list_style_type returns false
+  let result = func(Some("Disc".into())).unwrap();
+  // Falls into remaining → assigned to image (the last resort)
+  assert_eq!(result[2].0, "listStyleImage");
+  assert_eq!(result[2].1, Some("Disc".into()));
+}
+
 // ── Coverage: listStyle error paths ─────────────────────────────────
 
 #[test]
@@ -769,7 +804,8 @@ fn shorthands_list_style_duplicate_type() {
 #[test]
 fn shorthands_list_style_too_many_nones() {
   let func = Shorthands::get("listStyle").unwrap();
-  // "none none none" → first none → type, second none → image, third none → error (duplicate image)
+  // "none none none" → first none → type, second none → image, third none → error
+  // (duplicate image)
   let result = func(Some("none none none".into()));
   assert!(result.is_err());
   let err = result.unwrap_err();

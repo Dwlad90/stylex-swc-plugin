@@ -5,9 +5,10 @@ use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
 use stylex_constants::constants::common::DEFAULT_INJECT_PATH;
-use stylex_enums::property_validation_mode::PropertyValidationMode;
-use stylex_enums::style_resolution::StyleResolution;
-use stylex_enums::sx_prop_name_param::SxPropNameParam;
+use stylex_enums::{
+  property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
+  sx_prop_name_param::SxPropNameParam,
+};
 
 use crate::{
   core_stylex_options::CoreStyleXOptions,

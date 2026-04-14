@@ -233,7 +233,8 @@ mod test_css_type_calc {
     // Should parse with correct operator precedence
     // The multiplication should be evaluated first: 20px * 2
     // Then the subtraction and addition from left to right
-    // Note: exact structure depends on implementation, but it should parse successfully
+    // Note: exact structure depends on implementation, but it should parse
+    // successfully
     assert!(!calc.to_string().is_empty());
 
     // Verify round-trip parsing
@@ -273,7 +274,8 @@ mod test_css_type_calc {
 
   #[test]
   fn operator_precedence() {
-    // Test that multiplication/division has higher precedence than addition/subtraction
+    // Test that multiplication/division has higher precedence than
+    // addition/subtraction
     let test_cases = vec![
       "calc(10 + 5 * 2)",    // Should be 10 + (5 * 2) = 20
       "calc(20 - 10 / 2)",   // Should be 20 - (10 / 2) = 15

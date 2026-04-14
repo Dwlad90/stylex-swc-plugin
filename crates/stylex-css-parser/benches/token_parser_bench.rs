@@ -10,8 +10,7 @@ Provides benchmarks for token parsing functionality and performance.
 use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use stylex_css_parser::token_parser::TokenParser;
-use stylex_css_parser::token_types::TokenList;
+use stylex_css_parser::{token_parser::TokenParser, token_types::TokenList};
 
 fn basic_parser_benchmarks(c: &mut Criterion) {
   let mut group = c.benchmark_group("BasicParsers");

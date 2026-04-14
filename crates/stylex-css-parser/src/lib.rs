@@ -50,6 +50,7 @@ let transformed = last_media_query_wins_transform(queries);
 - [`token_types`] - Tokenization utilities
 
 */
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 pub mod at_queries;
 pub mod base_types;
@@ -122,8 +123,10 @@ mod lib_tests {
 
   #[test]
   fn test_standard_imports() {
-    use crate::css_types::{Calc, Color, Length};
-    use crate::{last_media_query_wins_transform, properties};
+    use crate::{
+      css_types::{Calc, Color, Length},
+      last_media_query_wins_transform, properties,
+    };
 
     let _transform = properties::Transform::new(vec![]);
     let _transform_fn = last_media_query_wins_transform;
@@ -183,8 +186,10 @@ mod lib_tests {
   #[test]
   fn test_readme_example_compatibility() {
     // Test examples from the README/documentation work
-    use crate::css_types::{Calc, Color, Length};
-    use crate::{last_media_query_wins_transform, properties};
+    use crate::{
+      css_types::{Calc, Color, Length},
+      last_media_query_wins_transform, properties,
+    };
 
     // Parse CSS values
     let _color = Color::parse(); // CSS color parser

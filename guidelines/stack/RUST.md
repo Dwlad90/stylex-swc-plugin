@@ -32,7 +32,17 @@
 
 Run from within a crate directory:
 
-- `cargo test --lib --bins --tests -p <package-name>` -- unit/integration tests
+- `cargo nextest run --all-features -p <package-name>` -- unit/integration tests
+- `cargo test --doc --all-features -p <package-name>` -- doc tests only
 - `cargo fmt --all -p <package-name>` / `cargo fmt -- --check -p <package-name>`
 - `cargo clippy --all-targets --all-features -- -D warnings -p <package-name>`
 - `cargo build --release -p <package-name>` -- release build
+
+## Coverage
+
+- Use `#[cfg_attr(coverage_nightly, coverage(off))]` to exclude functions from
+  coverage (replaces the old `#[cfg(not(tarpaulin_include))]` pattern). On
+  stable Rust, this is a no-op; on nightly with `--cfg coverage_nightly`, it
+  activates `#[coverage(off)]`.
+- Do NOT add new coverage exclusions without justification.
+- 100% line coverage is enforced via `--fail-uncovered-lines 0 --fail-uncovered-regions 0 --fail-under-functions 0`.

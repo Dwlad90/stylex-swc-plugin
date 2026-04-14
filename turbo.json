@@ -9,26 +9,14 @@
     "turbo.json",
     "typings/**"
   ],
-  "globalEnv": [
-    "NODE_ENV",
-    "STYLEX_DEBUG",
-    "PORT"
-  ],
+  "globalEnv": ["NODE_ENV", "STYLEX_DEBUG", "PORT"],
   "futureFlags": {
     "errorsOnlyShowHash": true
   },
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "dist/**/*",
-        "npm/**/*",
-        ".next/**",
-        "!.next/cache/**",
-        "storybook-static/**/*"
-      ],
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**/*", "npm/**/*", ".next/**", "!.next/cache/**", "storybook-static/**/*"],
       "outputLogs": "errors-only"
     },
     "clean": {
@@ -37,29 +25,20 @@
     },
     "artifacts": {
       "cache": false,
-      "outputs": [
-        "dist/**/*"
-      ],
+      "outputs": ["dist/**/*"],
       "outputLogs": "errors-only"
     },
     "check:artifacts": {
       "cache": false,
-      "dependsOn": [
-        "^build",
-        "build"
-      ],
+      "dependsOn": ["^build", "build"],
       "outputLogs": "errors-only"
     },
     "lint": {
-      "dependsOn": [
-        "^lint"
-      ],
+      "dependsOn": ["^lint"],
       "outputLogs": "errors-only"
     },
     "lint:check": {
-      "outputs": [
-        "dist/eslint_report.json"
-      ],
+      "outputs": ["dist/eslint_report.json"],
       "outputLogs": "errors-only"
     },
     "dev": {
@@ -67,20 +46,13 @@
       "persistent": true
     },
     "typecheck": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "outputs": [],
       "outputLogs": "errors-only"
     },
     "test": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "**/__swc_snapshots__",
-        "**/__snapshots__"
-      ],
+      "dependsOn": ["^build"],
+      "outputs": ["**/__swc_snapshots__", "**/__snapshots__"],
       "outputLogs": "errors-only"
     },
     "format:check": {
@@ -93,67 +65,33 @@
       ]
     },
     "bench": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ],
+      "dependsOn": ["^build", "build"],
       "cache": false,
       "outputLogs": "errors-only"
     },
     "test:visual": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ],
-      "outputs": [
-        "**/.playwright-snapshots"
-      ],
+      "dependsOn": ["^build", "build"],
+      "outputs": ["**/.playwright-snapshots"],
       "outputLogs": "errors-only"
     },
     "do:nothing": {
-      "cache": true,
       "outputs": [],
       "outputLogs": "errors-only"
     },
     "//#test:coverage:workspace": {
-      "cache": true,
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "**/*.rs",
-        "**/*.toml"
-      ],
-      "outputs": [
-        "target/tarpaulin/**/*",
-        "target/tarpaulin-json/**/*",
-        "**/*.profraw"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
       "outputLogs": "errors-only"
     },
     "//#test:crates:workspace:regular": {
-      "cache": true,
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "**/*.rs",
-        "**/*.toml"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
       "outputLogs": "errors-only"
     },
     "//#test:crates:workspace:doc": {
-      "cache": true,
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "**/*.rs",
-        "**/*.toml"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
       "outputLogs": "errors-only"
     },
     "//#lint:crates:workspace": {
-      "cache": true,
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "**/*.rs",
-        "**/*.toml"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
       "outputLogs": "errors-only"
     }
   },
@@ -161,9 +99,7 @@
     "tags": {
       "rs-compiler": {
         "dependencies": {
-          "allow": [
-            "rust-crate"
-          ]
+          "allow": ["rust-crate"]
         }
       }
     }

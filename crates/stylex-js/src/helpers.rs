@@ -29,7 +29,8 @@ pub fn is_invalid_method(prop: &MemberProp) -> bool {
   }
 }
 
-/// Checks if a member property represents a mutating object method (Object.assign, etc.)
+/// Checks if a member property represents a mutating object method
+/// (Object.assign, etc.)
 pub fn is_mutating_object_method(prop: &MemberProp) -> bool {
   if let MemberProp::Ident(ident_prop) = prop {
     MUTATING_OBJECT_METHODS.contains(&*ident_prop.sym)
@@ -38,7 +39,8 @@ pub fn is_mutating_object_method(prop: &MemberProp) -> bool {
   }
 }
 
-/// Checks if a member property represents a mutating array method (push, pop, splice, etc.)
+/// Checks if a member property represents a mutating array method (push, pop,
+/// splice, etc.)
 pub fn is_mutating_array_method(prop: &MemberProp) -> bool {
   if let MemberProp::Ident(ident_prop) = prop {
     MUTATING_ARRAY_METHODS.contains(&*ident_prop.sym)

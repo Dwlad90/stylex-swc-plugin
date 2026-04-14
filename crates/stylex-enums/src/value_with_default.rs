@@ -7,7 +7,7 @@ pub enum ValueWithDefault {
   Map(IndexMap<String, ValueWithDefault>),
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl std::hash::Hash for ValueWithDefault {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     match self {
@@ -31,7 +31,7 @@ impl ValueWithDefault {
     }
   }
 
-  #[cfg(not(tarpaulin_include))]
+  #[cfg_attr(coverage_nightly, coverage(off))]
   fn _as_string(&self) -> Option<&String> {
     match self {
       ValueWithDefault::String(s) => Some(s),

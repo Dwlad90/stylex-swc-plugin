@@ -101,7 +101,8 @@ fn map_css_token(token: &CssToken) -> Option<SimpleToken> {
   }
 }
 
-/// Recursively tokenize nested content, handling ParenthesisBlock and other nested structures
+/// Recursively tokenize nested content, handling ParenthesisBlock and other
+/// nested structures
 fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
   while let Ok(inner_token) = parser.next_including_whitespace_and_comments() {
     match &inner_token {
@@ -181,7 +182,8 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
 
         // Parse the parenthesis content to get individual tokens
         if let Err(e) = parser.parse_nested_block(|nested_parser| {
-          // Recursively tokenize everything inside the parentheses, handling nested structures
+          // Recursively tokenize everything inside the parentheses, handling nested
+          // structures
           tokenize_nested_content(nested_parser, &mut tokens);
           Ok::<(), cssparser::ParseError<()>>(())
         }) {

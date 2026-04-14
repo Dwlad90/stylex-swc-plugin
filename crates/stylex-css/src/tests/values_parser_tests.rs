@@ -46,7 +46,7 @@ fn parse_css_panics_on_unquoted_url_values() {
   let _ = parse_css("url(foo)");
 }
 
-// Additional targeted tests to exercise edge branches discovered by tarpaulin
+// Additional targeted tests to exercise edge branches for coverage
 
 #[test]
 fn parse_css_parenthesis_block_only() {

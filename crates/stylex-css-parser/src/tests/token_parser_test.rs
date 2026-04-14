@@ -5,8 +5,10 @@ TokenParser core functionality tests.
 These tests verify the core parser combinator functionality with comprehensive coverage.
 */
 
-use crate::token_parser::{TokenParser, tokens};
-use crate::token_types::SimpleToken;
+use crate::{
+  token_parser::{TokenParser, tokens},
+  token_types::SimpleToken,
+};
 
 #[cfg(test)]
 mod test_token_parser {
@@ -536,7 +538,8 @@ mod test_token_parser {
       let parsed = result.unwrap();
       assert_eq!(parsed, vec!["foo", "baz"]);
 
-      // Should parse "baz foo" - different input order but result should be consistent
+      // Should parse "baz foo" - different input order but result should be
+      // consistent
       let result = parser.parse_to_end("baz foo");
       assert!(result.is_ok());
       let parsed = result.unwrap();

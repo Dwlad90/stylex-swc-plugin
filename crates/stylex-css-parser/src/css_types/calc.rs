@@ -30,7 +30,7 @@ impl CalcDimension {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for CalcDimension {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}{}", self.value, self.unit)
@@ -150,7 +150,8 @@ impl CalcValue {
     TokenParser::new(Self::parse_calc_value, "calc_value")
   }
 
-  /// Helper: Parse a basic calc value (number, dimension, percentage, or constant)
+  /// Helper: Parse a basic calc value (number, dimension, percentage, or
+  /// constant)
   fn parse_calc_value(tokens: &mut TokenList) -> Result<CalcValue, CssParseError> {
     let token = tokens
       .consume_next_token()?
@@ -263,7 +264,8 @@ impl CalcValue {
     }
   }
 
-  /// Apply operator precedence: multiplication/division first, then addition/subtraction
+  /// Apply operator precedence: multiplication/division first, then
+  /// addition/subtraction
   fn split_by_multiplication_or_division(
     values_and_operators: Vec<CalcValueOrOperator>,
   ) -> Result<CalcValue, CssParseError> {
@@ -429,7 +431,7 @@ impl CalcValue {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for CalcValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -510,14 +512,14 @@ impl Calc {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Calc {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "calc({})", self.value)
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 pub fn calc_value_to_string(value: &CalcValue) -> String {
   match value {
     CalcValue::Number(n) => n.to_string(),

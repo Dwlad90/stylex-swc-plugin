@@ -46,10 +46,11 @@ pnpm remove --filter=@stylexswc/<package-name> <dep>      # remove
 
 ## Per-Crate Rust Commands
 
-Run from within a crate directory (e.g., `crates/stylex-shared`):
+Run from within a crate directory (e.g., `crates/stylex-css`):
 
 ```sh
-cargo test --lib --bins --tests                           # tests
+cargo nextest run --all-features                          # tests (nextest)
+cargo test --doc --all-features                           # doc tests only
 cargo fmt --all                                           # format
 cargo fmt -- --check                                      # check format
 cargo clippy --all-targets --all-features -- -D warnings  # lint
@@ -57,3 +58,13 @@ cargo build --release                                     # release build
 ```
 
 Or run from the root directory with the `-p <crate-name>` flag.
+
+## Coverage Commands
+
+```sh
+# Workspace coverage (enforces 100% line coverage)
+pnpm run test:coverage:workspace
+
+# Per-crate coverage (from crate directory)
+pnpm run test:coverage
+```

@@ -8,7 +8,8 @@ use colored::Colorize;
 use crate::stylex_error::StyleXError;
 
 /// Macro to unwrap a Result or panic with the error message.
-/// This is a cleaner replacement for `.unwrap_or_else(|error| panic!("{}", error))`.
+/// This is a cleaner replacement for `.unwrap_or_else(|error| panic!("{}",
+/// error))`.
 ///
 /// # Usage
 /// ```ignore
@@ -19,7 +20,8 @@ use crate::stylex_error::StyleXError;
 ///
 /// # Arguments
 /// - `$result`: A Result type to unwrap
-/// - `$context` (optional): Additional context string to prepend to the error message
+/// - `$context` (optional): Additional context string to prepend to the error
+///   message
 #[macro_export]
 macro_rules! unwrap_or_panic {
   ($result:expr) => {
@@ -72,7 +74,7 @@ pub fn stylex_err_with_file(message: impl Into<String>, file: impl Into<String>)
 // invoke other `#[macro_export]` macros by `$crate::macro_name!()`.
 // ---------------------------------------------------------------------------
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 #[doc(hidden)]
 #[track_caller]
 pub fn __stylex_panic(mut err: StyleXError) -> ! {
@@ -85,7 +87,7 @@ pub fn __stylex_panic(mut err: StyleXError) -> ! {
   panic!("{}", err)
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 #[doc(hidden)]
 #[track_caller]
 pub fn __stylex_unimplemented(mut err: StyleXError) -> ! {
@@ -98,7 +100,7 @@ pub fn __stylex_unimplemented(mut err: StyleXError) -> ! {
   panic!("{}", err)
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 #[doc(hidden)]
 #[track_caller]
 pub fn __stylex_unreachable(mut err: StyleXError) -> ! {

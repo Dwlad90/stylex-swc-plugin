@@ -2,8 +2,10 @@
 Box shadow property tests.
 */
 
-use crate::css_types::color::*;
-use crate::properties::box_shadow::{BoxShadow, BoxShadowList};
+use crate::{
+  css_types::color::*,
+  properties::box_shadow::{BoxShadow, BoxShadowList},
+};
 
 #[cfg(test)]
 mod test_css_property_box_shadow {
@@ -43,7 +45,8 @@ mod test_css_property_box_shadow {
 
     #[test]
     fn valid_box_shadow_with_blur_radius_offsetx_offsety_blurradius_color() {
-      // Test: Valid: box-shadow with blur radius (offsetX, offsetY, blurRadius, color)
+      // Test: Valid: box-shadow with blur radius (offsetX, offsetY, blurRadius,
+      // color)
 
       let result = BoxShadow::parser()
         .parse_to_end("10px 5px 15px #ff0000")
@@ -70,7 +73,8 @@ mod test_css_property_box_shadow {
     #[test]
     fn valid_box_shadow_with_blur_and_spread_radius_offsetx_offsety_blurradius_spreadradius_color()
     {
-      // Test: Valid: box-shadow with blur and spread radius (offsetX, offsetY, blurRadius, spreadRadius, color)
+      // Test: Valid: box-shadow with blur and spread radius (offsetX, offsetY,
+      // blurRadius, spreadRadius, color)
 
       let result = BoxShadow::parser()
         .parse_to_end("10px 5px 15px 8px #ff0000")

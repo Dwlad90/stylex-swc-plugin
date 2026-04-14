@@ -7,7 +7,8 @@ use crate::{
   stylex_options::{CheckModuleResolution, ModuleResolution, StyleXOptions, StyleXOptionsParams},
 };
 
-/// `StyleXOptions` fluent setters should update both core fields and runtime injection.
+/// `StyleXOptions` fluent setters should update both core fields and runtime
+/// injection.
 #[test]
 fn stylex_options_builders_update_supported_fields() {
   let opts = StyleXOptions::default()
@@ -88,7 +89,8 @@ fn module_resolution_helper_builders_have_expected_type() {
   assert_eq!(cross.r#type, "cross-file-parsing");
 }
 
-/// Named runtime injection path should survive `StyleXOptionsParams` conversion.
+/// Named runtime injection path should survive `StyleXOptionsParams`
+/// conversion.
 #[test]
 fn from_params_keeps_named_runtime_injection() {
   let params = StyleXOptionsParams {

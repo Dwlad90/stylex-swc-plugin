@@ -1,34 +1,36 @@
-use std::fmt::Write;
-use std::rc::Rc;
+use std::{fmt::Write, rc::Rc};
 
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
 
-use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
-use crate::shared::structures::functions::{FunctionConfig, FunctionType};
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::types::FlatCompiledStyles;
-use crate::shared::utils::ast::convertors::{convert_lit_to_string, create_string_expr};
-use crate::shared::utils::css::common::transform_value_cached;
-use crate::shared::utils::object::{
-  Pipe, obj_map, obj_map_keys_string, preprocess_object_properties,
-};
 use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  utils::common::downcast_style_options_to_state_manager,
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
+  },
+  structures::{
+    functions::{FunctionConfig, FunctionType},
+    state_manager::StateManager,
+    types::FlatCompiledStyles,
+  },
+  utils::{
+    ast::convertors::{convert_lit_to_string, create_string_expr},
+    common::downcast_style_options_to_state_manager,
+    css::common::transform_value_cached,
+    object::{Pipe, obj_map, obj_map_keys_string, preprocess_object_properties},
+  },
 };
 use stylex_ast::ast::factories::{create_object_lit, create_string_key_value_prop};
 use stylex_constants::constants::messages::{
   ENTRY_MUST_BE_TUPLE, THEME_VAR_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
 };
-use stylex_css::css::generate_ltr::generate_ltr;
-use stylex_css::css::generate_rtl::generate_rtl;
+use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
 use stylex_structures::pair::Pair;
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-use stylex_types::structures::injectable_style::InjectableStyle;
-use stylex_utils::hash::create_hash;
-use stylex_utils::string::dashify;
+use stylex_types::{
+  enums::data_structures::injectable_style::InjectableStyleKind,
+  structures::injectable_style::InjectableStyle,
+};
+use stylex_utils::{hash::create_hash, string::dashify};
 
 pub(crate) fn stylex_position_try(
   styles: &EvaluateResultValue,
@@ -41,7 +43,7 @@ pub(crate) fn stylex_position_try(
   }
 
   let Some(styles) = styles.as_expr().and_then(|expr| expr.as_object()) else {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
     }
@@ -59,7 +61,7 @@ pub(crate) fn stylex_position_try(
             FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
               transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
             )),
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
           },
         )
@@ -72,7 +74,7 @@ pub(crate) fn stylex_position_try(
         .map(|(key, value)| {
           let value = match value.as_string() {
             Some(s) => s.clone(),
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
           };
 
@@ -89,7 +91,7 @@ pub(crate) fn stylex_position_try(
     state,
     |style, _| {
       let Some(tuple) = style.as_tuple() else {
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         {
           stylex_panic!("{}", THEME_VAR_TUPLE)
         }
@@ -100,7 +102,7 @@ pub(crate) fn stylex_position_try(
           key: tuple.0.clone(),
           value: convert_lit_to_string(match tuple.1.clone().as_lit() {
             Some(lit) => lit,
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
           })
           .unwrap_or_default(),
@@ -117,7 +119,7 @@ pub(crate) fn stylex_position_try(
     state,
     |style, _| {
       let Some(tuple) = style.as_tuple() else {
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         {
           stylex_panic!("{}", THEME_VAR_TUPLE)
         }
@@ -125,7 +127,7 @@ pub(crate) fn stylex_position_try(
 
       let value = convert_lit_to_string(match tuple.1.clone().as_lit() {
         Some(lit) => lit,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
       })
       .unwrap_or_default();
@@ -202,7 +204,7 @@ fn construct_position_try_obj(styles: FlatCompiledStyles) -> String {
     .map(|k| {
       let v = match styles.get(&k) {
         Some(v) => v,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("Expected property key to exist in compiled styles."),
       };
       match v.as_ref() {

@@ -1,5 +1,4 @@
-use std::any::Any;
-use std::rc::Rc;
+use std::{any::Any, rc::Rc};
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
@@ -8,10 +7,12 @@ use stylex_structures::stylex_state_options::StyleXStateOptions;
 
 use crate::enums::data_structures::injectable_style::InjectableStyleKind;
 
-/// Type alias for injectable styles map, moved here to be available at the types level.
+/// Type alias for injectable styles map, moved here to be available at the
+/// types level.
 pub type InjectableStylesMap = IndexMap<String, Rc<InjectableStyleKind>>;
 
-/// Tier 1: Minimal interface for CSS generation, PreRule, and function pointer signatures.
+/// Tier 1: Minimal interface for CSS generation, PreRule, and function pointer
+/// signatures.
 ///
 /// Object-safe — used as `dyn StyleOptions` in function pointer signatures
 /// (e.g., `StylexExprFn`, `FunctionType::ArrayArgs`).

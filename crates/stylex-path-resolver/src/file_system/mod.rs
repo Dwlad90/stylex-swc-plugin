@@ -3,7 +3,7 @@ use std::{
   path::{Path, PathBuf},
 };
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 pub(crate) fn _check_directory(path: &Path) -> bool {
   match fs::metadata(path) {
     Ok(metadata) => metadata.is_dir(),
@@ -11,7 +11,7 @@ pub(crate) fn _check_directory(path: &Path) -> bool {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 pub(crate) fn _get_directories(path: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
   Ok(
     fs::read_dir(path)?
@@ -25,7 +25,7 @@ pub(crate) fn _get_directories(path: &Path) -> Result<Vec<PathBuf>, std::io::Err
   )
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 pub(crate) fn _get_directory_path_recursive(path: &Path) -> Option<PathBuf> {
   if path.as_os_str().is_empty() {
     return None;

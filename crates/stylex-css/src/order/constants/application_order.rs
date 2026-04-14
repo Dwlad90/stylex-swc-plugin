@@ -4,6 +4,18 @@ use stylex_structures::order_pair::OrderPair;
 pub struct Shorthands;
 
 impl Shorthands {
+  /// All shorthand expansion functions return `Ok(…)` unconditionally;
+  /// the `Err` variant exists only for the shared function-pointer type.
+  /// This helper unwraps the infallible `Result`, excluding the dead
+  /// `Err` branch from coverage instrumentation.
+  #[cfg_attr(coverage_nightly, coverage(off))]
+  fn infallible(result: Result<Vec<OrderPair>, String>) -> Vec<OrderPair> {
+    match result {
+      Ok(v) => v,
+      Err(e) => unreachable!("infallible shorthand returned Err: {}", e),
+    }
+  }
+
   fn all(_: Option<String>) -> Result<Vec<OrderPair>, String> {
     Err("all is not supported".into())
   }
@@ -22,7 +34,7 @@ impl Shorthands {
       OrderPair("animationTimeline".to_string(), None),
     ];
 
-    result.extend(Shorthands::animation_range(None)?);
+    result.extend(Self::infallible(Shorthands::animation_range(None)));
 
     Ok(result)
   }
@@ -49,7 +61,7 @@ impl Shorthands {
       OrderPair("backgroundSize".to_string(), None),
     ];
 
-    result.extend(Shorthands::background_position(None)?);
+    result.extend(Self::infallible(Shorthands::background_position(None)));
 
     Ok(result)
   }
@@ -69,27 +81,27 @@ impl Shorthands {
   fn border(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("border".to_string(), value)];
 
-    result.extend(Shorthands::border_width(None)?);
-    result.extend(Shorthands::border_style(None)?);
-    result.extend(Shorthands::border_color(None)?);
+    result.extend(Self::infallible(Shorthands::border_width(None)));
+    result.extend(Self::infallible(Shorthands::border_style(None)));
+    result.extend(Self::infallible(Shorthands::border_color(None)));
 
     Ok(result)
   }
   fn border_inline(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderInline".to_string(), value)];
 
-    result.extend(Shorthands::border_inline_width(None)?);
-    result.extend(Shorthands::border_inline_style(None)?);
-    result.extend(Shorthands::border_inline_color(None)?);
+    result.extend(Self::infallible(Shorthands::border_inline_width(None)));
+    result.extend(Self::infallible(Shorthands::border_inline_style(None)));
+    result.extend(Self::infallible(Shorthands::border_inline_color(None)));
 
     Ok(result)
   }
   fn border_block(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderBlock".to_string(), value)];
 
-    result.extend(Shorthands::border_block_width(None)?);
-    result.extend(Shorthands::border_block_style(None)?);
-    result.extend(Shorthands::border_block_color(None)?);
+    result.extend(Self::infallible(Shorthands::border_block_width(None)));
+    result.extend(Self::infallible(Shorthands::border_block_style(None)));
+    result.extend(Self::infallible(Shorthands::border_block_color(None)));
 
     Ok(result)
   }
@@ -108,9 +120,9 @@ impl Shorthands {
   fn border_inline_end(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderInlineEnd".to_string(), value)];
 
-    result.extend(Shorthands::border_inline_end_width(None)?);
-    result.extend(Shorthands::border_inline_end_style(None)?);
-    result.extend(Shorthands::border_inline_end_color(None)?);
+    result.extend(Self::infallible(Shorthands::border_inline_end_width(None)));
+    result.extend(Self::infallible(Shorthands::border_inline_end_style(None)));
+    result.extend(Self::infallible(Shorthands::border_inline_end_color(None)));
 
     Ok(result)
   }
@@ -118,9 +130,9 @@ impl Shorthands {
   fn border_right(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderRight".to_string(), value)];
 
-    result.extend(Shorthands::border_right_width(None)?);
-    result.extend(Shorthands::border_right_style(None)?);
-    result.extend(Shorthands::border_right_color(None)?);
+    result.extend(Self::infallible(Shorthands::border_right_width(None)));
+    result.extend(Self::infallible(Shorthands::border_right_style(None)));
+    result.extend(Self::infallible(Shorthands::border_right_color(None)));
 
     Ok(result)
   }
@@ -139,9 +151,15 @@ impl Shorthands {
   fn border_inline_start(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderInlineStart".to_string(), value)];
 
-    result.extend(Shorthands::border_inline_start_width(None)?);
-    result.extend(Shorthands::border_inline_start_style(None)?);
-    result.extend(Shorthands::border_inline_start_color(None)?);
+    result.extend(Self::infallible(Shorthands::border_inline_start_width(
+      None,
+    )));
+    result.extend(Self::infallible(Shorthands::border_inline_start_style(
+      None,
+    )));
+    result.extend(Self::infallible(Shorthands::border_inline_start_color(
+      None,
+    )));
 
     Ok(result)
   }
@@ -149,9 +167,9 @@ impl Shorthands {
   fn border_left(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderLeft".to_string(), value)];
 
-    result.extend(Shorthands::border_left_width(None)?);
-    result.extend(Shorthands::border_left_style(None)?);
-    result.extend(Shorthands::border_left_color(None)?);
+    result.extend(Self::infallible(Shorthands::border_left_width(None)));
+    result.extend(Self::infallible(Shorthands::border_left_style(None)));
+    result.extend(Self::infallible(Shorthands::border_left_color(None)));
 
     Ok(result)
   }
@@ -218,24 +236,24 @@ impl Shorthands {
   fn border_color(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderColor".to_string(), value)];
 
-    result.extend(Shorthands::border_inline_color(None)?);
-    result.extend(Shorthands::border_block_color(None)?);
+    result.extend(Self::infallible(Shorthands::border_inline_color(None)));
+    result.extend(Self::infallible(Shorthands::border_block_color(None)));
 
     Ok(result)
   }
   fn border_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderStyle".to_string(), value)];
 
-    result.extend(Shorthands::border_inline_style(None)?);
-    result.extend(Shorthands::border_block_style(None)?);
+    result.extend(Self::infallible(Shorthands::border_inline_style(None)));
+    result.extend(Self::infallible(Shorthands::border_block_style(None)));
 
     Ok(result)
   }
   fn border_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("borderWidth".to_string(), value)];
 
-    result.extend(Shorthands::border_inline_width(None)?);
-    result.extend(Shorthands::border_block_width(None)?);
+    result.extend(Self::infallible(Shorthands::border_inline_width(None)));
+    result.extend(Self::infallible(Shorthands::border_block_width(None)));
 
     Ok(result)
   }
@@ -619,7 +637,7 @@ impl Shorthands {
       OrderPair("lineHeight".to_string(), None),
     ];
 
-    result.extend(Shorthands::font_variant(None)?);
+    result.extend(Self::infallible(Shorthands::font_variant(None)));
 
     Ok(result)
   }
@@ -654,7 +672,7 @@ impl Shorthands {
       OrderPair("gridAutoFlow".to_string(), None),
     ];
 
-    result.extend(Shorthands::grid_template(None)?);
+    result.extend(Self::infallible(Shorthands::grid_template(None)));
 
     Ok(result)
   }
@@ -702,8 +720,8 @@ impl Shorthands {
   fn inset(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("inset".to_string(), value)];
 
-    result.extend(Shorthands::inset_inline(None)?);
-    result.extend(Shorthands::inset_block(None)?);
+    result.extend(Self::infallible(Shorthands::inset_inline(None)));
+    result.extend(Self::infallible(Shorthands::inset_block(None)));
 
     Ok(result)
   }
@@ -778,8 +796,8 @@ impl Shorthands {
   fn margin(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("margin".to_string(), value)];
 
-    result.extend(Shorthands::margin_inline(None)?);
-    result.extend(Shorthands::margin_block(None)?);
+    result.extend(Self::infallible(Shorthands::margin_inline(None)));
+    result.extend(Self::infallible(Shorthands::margin_block(None)));
 
     Ok(result)
   }
@@ -908,8 +926,8 @@ impl Shorthands {
   fn padding(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("padding".to_string(), value)];
 
-    result.extend(Shorthands::padding_inline(None)?);
-    result.extend(Shorthands::padding_block(None)?);
+    result.extend(Self::infallible(Shorthands::padding_inline(None)));
+    result.extend(Self::infallible(Shorthands::padding_block(None)));
 
     Ok(result)
   }
@@ -1000,8 +1018,8 @@ impl Shorthands {
   fn scroll_margin(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("scrollMargin".to_string(), value)];
 
-    result.extend(Shorthands::scroll_margin_inline(None)?);
-    result.extend(Shorthands::scroll_margin_block(None)?);
+    result.extend(Self::infallible(Shorthands::scroll_margin_inline(None)));
+    result.extend(Self::infallible(Shorthands::scroll_margin_block(None)));
 
     Ok(result)
   }
@@ -1064,8 +1082,8 @@ impl Shorthands {
   fn scroll_padding(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("scrollPadding".to_string(), value)];
 
-    result.extend(Shorthands::scroll_padding_block(None)?);
-    result.extend(Shorthands::scroll_padding_inline(None)?);
+    result.extend(Self::infallible(Shorthands::scroll_padding_block(None)));
+    result.extend(Self::infallible(Shorthands::scroll_padding_inline(None)));
 
     Ok(result)
   }
@@ -1305,7 +1323,7 @@ pub struct Aliases;
 
 impl Aliases {
   #[allow(dead_code)]
-  #[cfg(not(tarpaulin_include))]
+  #[cfg_attr(coverage_nightly, coverage(off))]
   fn block_size(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("height".to_string(), value)])
   }

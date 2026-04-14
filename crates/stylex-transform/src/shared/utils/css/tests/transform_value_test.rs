@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod transform_value_content_property_tests {
-  use crate::shared::structures::state_manager::StateManager;
-  use crate::shared::utils::css::common::transform_value;
+  use crate::shared::{
+    structures::state_manager::StateManager, utils::css::common::transform_value,
+  };
   use stylex_structures::stylex_options::StyleXOptions;
 
   #[test]

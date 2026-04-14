@@ -3143,8 +3143,9 @@ mod style_value_parser_at_queries {
         let input = "@media (min-width: 100px) and (not (max-width: 50px))";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        // (min-width: 100px) and (not (max-width: 50px)) simplifies to (min-width: 100px)
-        // because 100px > 50px is already satisfied by the min-width constraint
+        // (min-width: 100px) and (not (max-width: 50px)) simplifies to (min-width:
+        // 100px) because 100px > 50px is already satisfied by the min-width
+        // constraint
         match &parsed.queries {
           crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
             assert_eq!(and_rules.r#type, "and");

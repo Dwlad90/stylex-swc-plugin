@@ -5,8 +5,10 @@ use rustc_hash::FxHashMap;
 use swc_core::{atoms::Atom, ecma::ast::Expr};
 
 use crate::shared::structures::types::FlatCompiledStyles;
-use stylex_enums::js::{ArrayJS, MathJS, ObjectJS, StringJS};
-use stylex_enums::value_with_default::ValueWithDefault;
+use stylex_enums::{
+  js::{ArrayJS, MathJS, ObjectJS, StringJS},
+  value_with_default::ValueWithDefault,
+};
 
 use super::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
 use stylex_structures::stylex_env::JSFunction;
@@ -39,7 +41,7 @@ pub enum FunctionType {
   EnvFunction(JSFunction),
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Clone for FunctionType {
   fn clone(&self) -> Self {
     match self {
@@ -55,7 +57,7 @@ impl Clone for FunctionType {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl std::fmt::Debug for FunctionType {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
@@ -71,7 +73,7 @@ impl std::fmt::Debug for FunctionType {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl PartialEq for FunctionType {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {
@@ -88,7 +90,7 @@ impl PartialEq for FunctionType {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl std::hash::Hash for FunctionType {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     std::mem::discriminant(self).hash(state);
@@ -105,11 +107,12 @@ pub enum FunctionConfigType {
   Regular(FunctionConfig),
   Map(FxHashMap<Atom, FunctionConfig>),
   IndexMap(FlatCompiledStyles),
-  /// An env object from the `env` config option. Contains both values and functions.
+  /// An env object from the `env` config option. Contains both values and
+  /// functions.
   EnvObject(IndexMap<String, stylex_structures::stylex_env::EnvEntry>),
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl std::fmt::Debug for FunctionConfigType {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
@@ -121,7 +124,7 @@ impl std::fmt::Debug for FunctionConfigType {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Clone for FunctionConfigType {
   fn clone(&self) -> Self {
     match self {
@@ -133,7 +136,7 @@ impl Clone for FunctionConfigType {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl PartialEq for FunctionConfigType {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {
@@ -194,8 +197,9 @@ impl FunctionConfigType {
 pub struct FunctionMap {
   pub identifiers: FunctionMapIdentifiers,
   pub member_expressions: FunctionMapMemberExpression,
-  /// If `true`, disables the generation or processing of imports for this function map.
-  /// Set to `true` when imports should not be generated (e.g., for built-in or inlined functions).
-  /// Set to `false` to allow normal import handling.
+  /// If `true`, disables the generation or processing of imports for this
+  /// function map. Set to `true` when imports should not be generated (e.g.,
+  /// for built-in or inlined functions). Set to `false` to allow normal
+  /// import handling.
   pub disable_imports: bool,
 }

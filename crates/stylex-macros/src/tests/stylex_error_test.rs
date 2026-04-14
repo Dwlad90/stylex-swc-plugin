@@ -27,8 +27,9 @@ fn suppress_panic_stderr_default_works() {
 }
 
 /// strip_ansi is private, but tested indirectly via format_panic_message.
-/// Here we test the format_panic_message function which internally uses strip_ansi.
-/// A String payload without [StyleX] prefix should be wrapped with the prefix.
+/// Here we test the format_panic_message function which internally uses
+/// strip_ansi. A String payload without [StyleX] prefix should be wrapped with
+/// the prefix.
 #[test]
 fn format_panic_message_from_string_payload() {
   let msg = String::from("something went wrong");
@@ -46,7 +47,8 @@ fn format_panic_message_from_str_payload() {
   assert_eq!(result, "[StyleX] static error");
 }
 
-/// A payload already containing [StyleX] should be returned as-is (not double-wrapped).
+/// A payload already containing [StyleX] should be returned as-is (not
+/// double-wrapped).
 #[test]
 fn format_panic_message_with_existing_prefix() {
   let msg = String::from("[StyleX] already prefixed");
@@ -55,7 +57,8 @@ fn format_panic_message_with_existing_prefix() {
   assert_eq!(result, "[StyleX] already prefixed");
 }
 
-/// An unknown type (not String or &str) should produce a generic "Unknown error" message.
+/// An unknown type (not String or &str) should produce a generic "Unknown
+/// error" message.
 #[test]
 fn format_panic_message_unknown_type() {
   let payload: Box<dyn std::any::Any + Send> = Box::new(42i32);

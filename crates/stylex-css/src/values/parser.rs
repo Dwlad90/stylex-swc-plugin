@@ -133,9 +133,9 @@ pub fn parse_css_inner<'a>(
         //     options,
         //     depth + 1,
         //   ) {
-        //     Ok((import_contents, import_final_url, import_media_type, import_charset)) => {
-        //       let mut import_data_url = create_data_url(
-        //         &import_media_type,
+        //     Ok((import_contents, import_final_url, import_media_type,
+        // import_charset)) => {       let mut import_data_url =
+        // create_data_url(         &import_media_type,
         //         &import_charset,
         //         embed_css(
         //           cache,
@@ -149,13 +149,14 @@ pub fn parse_css_inner<'a>(
         //         &import_final_url,
         //       );
         //       import_data_url.set_fragment(import_full_url.fragment());
-        //       result.push_str(format_quoted_string(&import_data_url.to_string()).as_str());
-        //     }
+        //       result.push_str(format_quoted_string(&import_data_url.
+        // to_string()).as_str());     }
         //     Err(_) => {
         //       // Keep remote reference if unable to retrieve the asset
-        //       if import_full_url.scheme() == "http" || import_full_url.scheme() == "https" {
-        //         result.push_str(format_quoted_string(&import_full_url.to_string()).as_str());
-        //       }
+        //       if import_full_url.scheme() == "http" ||
+        // import_full_url.scheme() == "https" {         result.
+        // push_str(format_quoted_string(&import_full_url.to_string()).
+        // as_str());       }
         //     }
         //   }
         // } else {
@@ -166,8 +167,8 @@ pub fn parse_css_inner<'a>(
         //     }
 
         //     if options.no_images && is_image_url_prop(curr_prop.as_str()) {
-        //       result.push_str(format_quoted_string(EMPTY_IMAGE_DATA_URL).as_str());
-        //     } else {
+        //       result.push_str(format_quoted_string(EMPTY_IMAGE_DATA_URL).
+        // as_str());     } else {
         //       let resolved_url: Url = resolve_url(&document_url, value);
         //       match retrieve_asset(
         //         cache,
@@ -178,15 +179,17 @@ pub fn parse_css_inner<'a>(
         //         depth + 1,
         //       ) {
         //         Ok((data, final_url, media_type, charset)) => {
-        //           let mut data_url = create_data_url(&media_type, &charset, &data, &final_url);
-        //           data_url.set_fragment(resolved_url.fragment());
-        //           result.push_str(format_quoted_string(&data_url.to_string()).as_str());
+        //           let mut data_url = create_data_url(&media_type, &charset,
+        // &data, &final_url);           data_url.
+        // set_fragment(resolved_url.fragment());           result.
+        // push_str(format_quoted_string(&data_url.to_string()).as_str());
         //         }
         //         Err(_) => {
         //           // Keep remote reference if unable to retrieve the asset
-        //           if resolved_url.scheme() == "http" || resolved_url.scheme() == "https" {
-        //             result.push_str(format_quoted_string(&resolved_url.to_string()).as_str());
-        //           }
+        //           if resolved_url.scheme() == "http" || resolved_url.scheme()
+        // == "https" {
+        // result.push_str(format_quoted_string(&resolved_url.to_string()).
+        // as_str());           }
         //         }
         //       }
         //     }
@@ -254,15 +257,19 @@ pub fn parse_css_inner<'a>(
   Ok(result)
 }
 
+/// `parse_css_inner` returns `Err` only when a parser bug occurs;
+/// the error path is unreachable under normal operation.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn parse_css_inner_unreachable(_err: ParseError<'_, Vec<String>>) -> Vec<String> {
+  stylex_unreachable!("parse_css_inner returned Err, which should not happen")
+}
+
 pub fn parse_css(css_string: &str) -> Vec<String> {
   let mut input = ParserInput::new(css_string);
 
   let mut parser = Parser::new(&mut input);
 
-  let nodes = parse_css_inner(&mut parser).unwrap_or_else(|_| {
-    #[cfg(not(tarpaulin_include))]
-    stylex_unreachable!("parse_css_inner returned Err, which should not happen")
-  });
+  let nodes = parse_css_inner(&mut parser).unwrap_or_else(parse_css_inner_unreachable);
 
   nodes
     .into_iter()

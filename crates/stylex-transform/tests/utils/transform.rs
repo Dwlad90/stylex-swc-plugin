@@ -3,21 +3,16 @@ use std::{rc::Rc, sync::Arc};
 use stylex_transform::StyleXTransform;
 
 use swc_core::{
-  common::SyntaxContext,
-  ecma::ast::{
-    CallExpr, Decl, Expr, ImportSpecifier, ModuleDecl, ModuleItem, Pass, Stmt, VarDecl,
-    VarDeclKind, VarDeclarator,
+  common::{DUMMY_SP, SyntaxContext, comments::SingleThreadedComments},
+  ecma::{
+    ast::{
+      CallExpr, Decl, Expr, ImportSpecifier, ModuleDecl, ModuleItem, Pass, Stmt, VarDecl,
+      VarDeclKind, VarDeclarator,
+    },
+    visit::visit_mut_pass,
   },
 };
-use swc_core::{
-  common::{DUMMY_SP, comments::SingleThreadedComments},
-  ecma::visit::visit_mut_pass,
-};
 
-use swc_core::ecma::transforms::base::{fixer, hygiene};
-use swc_core::ecma::transforms::testing::{HygieneVisualizer, Tester};
-use swc_core::ecma::utils::{DropSpan, ExprFactory, quote_ident, quote_str};
-use swc_core::ecma::visit::{VisitMut, noop_visit_mut_type};
 use swc_core::{
   common::{
     FileName, SourceMap,
@@ -26,7 +21,12 @@ use swc_core::{
   ecma::{
     ast::{EsVersion, Module},
     parser::{Parser, StringInput, Syntax, lexer::Lexer},
-    visit::FoldWith,
+    transforms::{
+      base::{fixer, hygiene},
+      testing::{HygieneVisualizer, Tester},
+    },
+    utils::{DropSpan, ExprFactory, quote_ident, quote_str},
+    visit::{FoldWith, VisitMut, noop_visit_mut_type},
   },
 };
 use swc_ecma_parser::TsSyntax;

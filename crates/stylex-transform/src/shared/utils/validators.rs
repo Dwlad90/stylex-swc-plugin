@@ -6,20 +6,25 @@ use swc_core::{
   ecma::ast::{ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, Pat, VarDeclarator},
 };
 
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-use crate::shared::structures::state_manager::{ImportKind, StateManager};
-use crate::shared::utils::ast::convertors::create_string_expr;
-use crate::shared::utils::ast::helpers::is_variable_named_exported;
-use crate::shared::utils::common::get_import_from;
-use crate::shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic;
+use crate::shared::{
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  structures::state_manager::{ImportKind, StateManager},
+  utils::{
+    ast::{convertors::create_string_expr, helpers::is_variable_named_exported},
+    common::get_import_from,
+    log::build_code_frame_error::build_code_frame_error_and_panic,
+  },
+};
 use stylex_ast::ast::factories::{create_expr_or_spread, create_key_value_prop_ident};
-use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
-use stylex_constants::constants::messages::{
-  DUPLICATE_CONDITIONAL, EXPECTED_CSS_VAR, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
-  INVALID_PSEUDO_OR_AT_RULE, MEMBER_OBJ_NOT_IDENT, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
-  NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
-  ONLY_OVERRIDE_DEFINE_VARS, illegal_argument_length, non_export_named_declaration,
-  non_static_value, non_style_object, unbound_call_value,
+use stylex_constants::constants::{
+  common::VAR_GROUP_HASH_KEY,
+  messages::{
+    DUPLICATE_CONDITIONAL, EXPECTED_CSS_VAR, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
+    INVALID_PSEUDO_OR_AT_RULE, MEMBER_OBJ_NOT_IDENT, NO_OBJECT_SPREADS, NON_OBJECT_KEYFRAME,
+    NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE, ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
+    ONLY_OVERRIDE_DEFINE_VARS, illegal_argument_length, non_export_named_declaration,
+    non_static_value, non_style_object, unbound_call_value,
+  },
 };
 
 use super::{
@@ -94,7 +99,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
 
   let init_expr = match &var_decl.init {
     Some(init) => init.clone(),
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", non_static_value("keyframes")),
   };
 
@@ -147,7 +152,7 @@ pub(crate) fn validate_stylex_position_try_indent(
 
   let init_expr = match &var_decl.init {
     Some(init) => init.clone(),
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", non_static_value("positionTry")),
   };
 
@@ -217,7 +222,7 @@ pub(crate) fn validate_stylex_view_transition_class_indent(
 
   let init_expr = match &var_decl.init {
     Some(init) => init.clone(),
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", non_static_value("viewTransitionClass")),
   };
 
@@ -627,7 +632,7 @@ pub(crate) fn is_target_call(
             && state.stylex_import_stringified().contains(
               &match member.obj.as_ident() {
                 Some(ident) => ident,
-                #[cfg(not(tarpaulin_include))]
+                #[cfg_attr(coverage_nightly, coverage(off))]
                 None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
               }
               .sym
@@ -743,14 +748,14 @@ pub(crate) fn validate_conditional_styles(
       || inner_key.starts_with("var(--")
       || inner_key == "default")
   {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", INVALID_PSEUDO_OR_AT_RULE);
     }
   }
 
   if conditions.contains(&inner_key) {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", DUPLICATE_CONDITIONAL);
     }
@@ -805,7 +810,7 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue, state: &mut Stat
         build_code_frame_error_and_panic(expr, expr, &non_style_object("keyframes"), state);
       },
     },
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => stylex_panic!("{}", non_static_value("keyframes")),
   }
 }
@@ -836,7 +841,7 @@ fn assert_stylex_arg(value: &EvaluateResultValue, state: &mut StateManager, fn_n
       build_code_frame_error_and_panic(expr, expr, &non_style_object(fn_name), state);
     }
   } else {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", non_static_value(fn_name));
     }
@@ -875,7 +880,7 @@ pub(crate) fn validate_theme_variables(
   }
 
   if !variables.as_expr().is_some_and(|expr| expr.is_object()) {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS);
     }
@@ -908,7 +913,7 @@ pub(crate) fn validate_theme_variables(
       None
     }) {
     Some(key_value) => key_value,
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS),
   }
 }

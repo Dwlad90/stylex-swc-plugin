@@ -423,9 +423,9 @@ fn paren_before_all_common_units() {
   assert_eq!(normalize_spacing("var(--x)turn"), "var(--x)turn");
 }
 
-// Extractor: ensure escaped characters inside quoted values are handled and do not
-// prematurely terminate the extraction loop. These cases exercise the escaped
-// character handling and quote toggling branches in extract_css_value.
+// Extractor: ensure escaped characters inside quoted values are handled and do
+// not prematurely terminate the extraction loop. These cases exercise the
+// escaped character handling and quote toggling branches in extract_css_value.
 #[test]
 fn extract_css_value_handles_escaped_quotes() {
   // Single-quoted value with an escaped single quote inside.

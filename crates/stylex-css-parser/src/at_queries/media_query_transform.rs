@@ -14,9 +14,11 @@ use super::media_query::{
   MediaAndRules, MediaNotRule, MediaOrRules, MediaQuery, MediaQueryRule, MediaRuleValue,
 };
 use rustc_hash::FxHashMap;
-use swc_core::atoms::Wtf8Atom;
-use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, Str};
+use swc_core::{
+  atoms::Wtf8Atom,
+  common::DUMMY_SP,
+  ecma::ast::{Expr, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, Str},
+};
 
 /// Helper function to extract key as string from KeyValueProp
 fn key_value_to_str(key_value: &KeyValueProp) -> String {
@@ -37,10 +39,12 @@ pub fn last_media_query_wins_transform(styles: &[KeyValueProp]) -> Vec<KeyValueP
 }
 
 /// Internal helper function for backwards compatibility with existing tests
-/// This preserves the old Vec<MediaQuery> -> Vec<MediaQuery> signature for internal use
+/// This preserves the old Vec<MediaQuery> -> Vec<MediaQuery> signature for
+/// internal use
 pub fn last_media_query_wins_transform_internal(queries: Vec<MediaQuery>) -> Vec<MediaQuery> {
-  // For now, just return the queries unchanged since the main tests are using KeyValueProp
-  // The real transformation happens in last_media_query_wins_transform with KeyValueProp input
+  // For now, just return the queries unchanged since the main tests are using
+  // KeyValueProp The real transformation happens in
+  // last_media_query_wins_transform with KeyValueProp input
   queries
 }
 
@@ -222,7 +226,8 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
   final_result
 }
 
-/// Combine media query with negations - matches JS combineMediaQueryWithNegations exactly
+/// Combine media query with negations - matches JS
+/// combineMediaQueryWithNegations exactly
 fn combine_media_query_with_negations(
   current: MediaQuery,
   negations: Vec<MediaQuery>,
@@ -231,7 +236,8 @@ fn combine_media_query_with_negations(
     return current;
   }
 
-  // Create NOT rules from negations - matches JS: negations.map((mq) => ({ type: 'not', rule: mq.queries }))
+  // Create NOT rules from negations - matches JS: negations.map((mq) => ({ type:
+  // 'not', rule: mq.queries }))
   let not_rules: Vec<MediaQueryRule> = negations
     .into_iter()
     .map(|mq| MediaQueryRule::Not(MediaNotRule::new(mq.queries)))
@@ -291,7 +297,7 @@ fn are_media_queries_disjoint(media_keys: &[String]) -> bool {
 }
 
 /// Extract width/height range from a media query if it's a simple range
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn extract_width_height_range(mq: &MediaQuery) -> Option<(String, f32, f32)> {
   match &mq.queries {
     MediaQueryRule::And(and_rules) if and_rules.rules.len() == 2 => {
@@ -352,7 +358,7 @@ fn extract_width_height_range(mq: &MediaQuery) -> Option<(String, f32, f32)> {
 }
 
 /// Check if two ranges overlap
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn ranges_overlap(range1: &(String, f32, f32), range2: &(String, f32, f32)) -> bool {
   // Only compare ranges of the same dimension
   if range1.0 != range2.0 {

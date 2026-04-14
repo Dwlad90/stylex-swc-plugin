@@ -4,10 +4,12 @@ use swc_core::ecma::ast::Expr;
 
 use stylex_types::traits::StyleOptions;
 
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::utils::ast::convertors::{convert_expr_to_str, create_string_expr};
 use crate::shared::{
-  structures::functions::FunctionMap, utils::common::downcast_style_options_to_state_manager,
+  structures::{functions::FunctionMap, state_manager::StateManager},
+  utils::{
+    ast::convertors::{convert_expr_to_str, create_string_expr},
+    common::downcast_style_options_to_state_manager,
+  },
 };
 use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
 use stylex_constants::constants::messages::EXPRESSION_IS_NOT_A_STRING;
@@ -16,7 +18,7 @@ use stylex_regex::regex::IS_CSS_VAR;
 fn is_var(arg: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool {
   let str_arg = match convert_expr_to_str(arg, state, functions) {
     Some(s) => s,
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
   };
 
@@ -64,7 +66,7 @@ pub(crate) fn stylex_first_that_works(
           if is_var(arg, state, functions) {
             let str_arg = match convert_expr_to_str(arg, state, functions) {
               Some(s) => s,
-              #[cfg(not(tarpaulin_include))]
+              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("Argument is not a string"),
             };
             let cleared_str_arg = &str_arg[4..str_arg.len() - 1];
@@ -80,7 +82,7 @@ pub(crate) fn stylex_first_that_works(
         for var_name in vars.iter() {
           let var_name_str = match convert_expr_to_str(var_name, state, functions) {
             Some(s) => s,
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
           };
 

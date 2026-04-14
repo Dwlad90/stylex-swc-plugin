@@ -7,19 +7,23 @@ use swc_core::ecma::{
   utils::quote_str,
 };
 
-use crate::shared::structures::functions::FunctionMap;
-use crate::shared::structures::null_pre_rule::NullPreRule;
-use crate::shared::structures::pre_rule::{PreRuleValue, PreRules, StylesPreRule};
-use crate::shared::structures::pre_rule_set::PreRuleSet;
-use crate::shared::structures::state::EvaluationState;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::types::ClassesToOriginalPaths;
-use crate::shared::utils::ast::convertors::{
-  convert_key_value_to_str, convert_lit_to_string, create_number_expr, expand_shorthand_prop,
-  expr_tpl_to_string, handle_tpl_to_expression, transform_bin_expr_to_number,
-};
-use crate::shared::utils::common::{
-  get_expr_from_var_decl, get_key_values_from_object, get_var_decl_by_ident,
+use crate::shared::{
+  structures::{
+    functions::FunctionMap,
+    null_pre_rule::NullPreRule,
+    pre_rule::{PreRuleValue, PreRules, StylesPreRule},
+    pre_rule_set::PreRuleSet,
+    state::EvaluationState,
+    state_manager::StateManager,
+    types::ClassesToOriginalPaths,
+  },
+  utils::{
+    ast::convertors::{
+      convert_key_value_to_str, convert_lit_to_string, create_number_expr, expand_shorthand_prop,
+      expr_tpl_to_string, handle_tpl_to_expression, transform_bin_expr_to_number,
+    },
+    common::{get_expr_from_var_decl, get_key_values_from_object, get_var_decl_by_ident},
+  },
 };
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,

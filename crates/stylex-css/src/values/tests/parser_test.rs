@@ -526,6 +526,14 @@ fn parse_css_hash_token_variant() {
 }
 
 #[test]
+fn parse_css_ident_token_variant() {
+  let result = parse_css("#007bff");
+  assert!(!result.is_empty());
+  let joined = result.join(" ");
+  assert!(joined.contains("#\\30 07bff"));
+}
+
+#[test]
 #[should_panic(expected = "Unsupported CSS token")]
 fn parse_css_unquoted_url_panics() {
   let _ = parse_css("url(foo)");

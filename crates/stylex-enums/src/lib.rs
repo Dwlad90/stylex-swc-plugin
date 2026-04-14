@@ -1,3 +1,5 @@
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+
 pub mod aliases;
 pub mod core;
 pub mod counter_mode;

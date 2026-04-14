@@ -1,8 +1,7 @@
 use fancy_regex::Regex;
 use log::warn;
-use napi::JsValue;
 use napi::{
-  Env, Error, NapiRaw, Unknown,
+  Env, Error, JsValue, NapiRaw, Unknown,
   bindgen_prelude::{FromNapiValue, ToNapiValue},
   sys::{napi_env, napi_value},
 };
@@ -246,7 +245,8 @@ pub enum PropertyValidationMode {
   Silent,
 }
 
-/// Represents the `sxPropName` option: a string name for the sx prop, or `false` to disable.
+/// Represents the `sxPropName` option: a string name for the sx prop, or
+/// `false` to disable.
 #[derive(Debug, Clone)]
 pub enum SxPropNameUnion {
   /// Disables the `sx` prop feature

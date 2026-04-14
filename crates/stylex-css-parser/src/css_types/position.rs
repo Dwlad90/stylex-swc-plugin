@@ -1,6 +1,5 @@
 use stylex_macros::stylex_unreachable;
 
-use crate::css_types::length_percentage::{LengthPercentage, length_percentage_parser};
 /**
  * CSS Position Type Parser
  *
@@ -8,7 +7,10 @@ use crate::css_types::length_percentage::{LengthPercentage, length_percentage_pa
  * Covers all major CSS position parsing scenarios with Rust type safety.
  */
 use crate::token_parser::TokenParser;
-use crate::token_types::SimpleToken;
+use crate::{
+  css_types::length_percentage::{LengthPercentage, length_percentage_parser},
+  token_types::SimpleToken,
+};
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -18,7 +20,7 @@ pub enum HorizontalKeyword {
   Right,
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl fmt::Display for HorizontalKeyword {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let s = match self {
@@ -47,7 +49,7 @@ pub enum VerticalKeyword {
   Bottom,
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl fmt::Display for VerticalKeyword {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let s = match self {
@@ -77,7 +79,7 @@ pub enum Horizontal {
   KeywordWithOffset(HorizontalKeyword, LengthPercentage), // [HorizontalKeyword, LengthPercentage]
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl fmt::Display for Horizontal {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -96,7 +98,7 @@ pub enum Vertical {
   KeywordWithOffset(VerticalKeyword, LengthPercentage), // [VerticalKeyword, LengthPercentage]
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl fmt::Display for Vertical {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -334,7 +336,7 @@ impl Position {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl fmt::Display for Position {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let parts: Vec<String> = [

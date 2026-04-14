@@ -38,7 +38,7 @@ where
         &Ident::from(
           match expt_str {
             Some(s) => s,
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
           }
           .as_str(),

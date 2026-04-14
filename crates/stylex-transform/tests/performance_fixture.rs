@@ -1,7 +1,9 @@
-use std::fs;
-use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::{
+  fs,
+  io::Write,
+  path::{Path, PathBuf},
+  time::Instant,
+};
 
 use stylex_structures::stylex_options::ModuleResolution;
 use stylex_transform::StyleXTransform;
@@ -53,7 +55,6 @@ mod tests {
   use super::*;
 
   #[test]
-  #[cfg_attr(tarpaulin, ignore)]
   fn stylex_transform_performance_test() {
     // Paths to the theme files
     let simple_theme_path = PathBuf::from("tests/performance_fixture/simpleTheme.js");
@@ -97,7 +98,8 @@ mod tests {
       "Complex theme transformation result should not be empty"
     );
 
-    // Verify performance expectation (complex should be less than 20x slower than simple)
+    // Verify performance expectation (complex should be less than 20x slower than
+    // simple)
     assert!(
       complex_time < simple_time * 20.0,
       "Complex theme transform took too long: {}ms (simple: {}ms)",

@@ -6,19 +6,24 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::shared::structures::functions::FunctionConfigType;
-use crate::shared::structures::functions::FunctionMap;
-use crate::shared::structures::state_manager::ImportKind;
-use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
-use crate::shared::transformers::stylex_define_vars::stylex_define_vars;
-use crate::shared::transformers::stylex_keyframes::get_keyframes_fn;
-use crate::shared::transformers::stylex_position_try::get_position_try_fn;
-use crate::shared::transformers::stylex_types::get_types_fn;
-use crate::shared::utils::common::gen_file_based_identifier;
-use crate::shared::utils::core::js_to_expr::{NestedStringObject, convert_object_to_ast};
-use crate::shared::utils::js::evaluate::evaluate;
-use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
-use crate::shared::utils::validators::{find_and_validate_stylex_define_vars, is_define_vars_call};
+use crate::shared::{
+  structures::{
+    functions::{FunctionConfigType, FunctionMap},
+    state_manager::ImportKind,
+    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+  },
+  transformers::{
+    stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,
+    stylex_position_try::get_position_try_fn, stylex_types::get_types_fn,
+  },
+  utils::{
+    common::gen_file_based_identifier,
+    core::js_to_expr::{NestedStringObject, convert_object_to_ast},
+    js::evaluate::evaluate,
+    log::build_code_frame_error::build_code_frame_error,
+    validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
+  },
+};
 use stylex_constants::constants::messages::{
   cannot_generate_hash, non_static_value, non_style_object,
 };
@@ -37,14 +42,14 @@ where
       let stylex_create_theme_top_level_expr =
         match find_and_validate_stylex_define_vars(call, &mut self.state) {
           Some(expr) => expr,
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           None => stylex_panic!("defineVars(): Could not find the top-level variable declaration."),
         };
 
       let TopLevelExpression(_, _, var_id) = stylex_create_theme_top_level_expr;
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -145,7 +150,7 @@ where
           );
           value
         },
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", non_static_value("defineVars")),
       };
 
@@ -154,13 +159,13 @@ where
         .get_filename_for_hashing(&mut FxHashMap::default())
       {
         Some(name) => name,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", cannot_generate_hash("defineVars")),
       };
 
       let export_name = match var_id.map(|decl| decl.to_string()) {
         Some(name) => name,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "defineVars(): The export variable could not be found. Ensure the call is bound to a named export."
         ),

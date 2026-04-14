@@ -1048,6 +1048,127 @@ fn aliases_get_border_horizontal_delegates() {
   }
 }
 
+// ── Coverage: uncovered Aliases::get deprecated match arms ──────────
+
+#[test]
+fn aliases_get_border_vertical_delegates_to_border_block() {
+  let func = Aliases::get("borderVertical").expect("borderVertical should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() > 3);
+  // Delegates to Shorthands::get("borderBlock") - first element is "borderBlock"
+  assert_eq!(result[0].0, "borderBlock");
+}
+
+#[test]
+fn aliases_get_border_block_start_delegates_to_border_top() {
+  let func = Aliases::get("borderBlockStart").expect("borderBlockStart should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() >= 4);
+  // Delegates to Shorthands::get("borderTop") - first element is "borderTop"
+  assert_eq!(result[0].0, "borderTop");
+}
+
+#[test]
+fn aliases_get_border_end_delegates_to_border_inline_end() {
+  let func = Aliases::get("borderEnd").expect("borderEnd should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() >= 4);
+  // Delegates to Shorthands::get("borderInlineEnd")
+  assert_eq!(result[0].0, "borderInlineEnd");
+}
+
+#[test]
+fn aliases_get_border_block_end_delegates_to_border_bottom() {
+  let func = Aliases::get("borderBlockEnd").expect("borderBlockEnd should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() >= 4);
+  // Delegates to Shorthands::get("borderBottom")
+  assert_eq!(result[0].0, "borderBottom");
+}
+
+#[test]
+fn aliases_get_border_start_delegates_to_border_inline_start() {
+  let func = Aliases::get("borderStart").expect("borderStart should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() >= 4);
+  // Delegates to Shorthands::get("borderInlineStart")
+  assert_eq!(result[0].0, "borderInlineStart");
+}
+
+#[test]
+fn aliases_get_border_horizontal_style_delegates_to_border_inline_style() {
+  let func =
+    Aliases::get("borderHorizontalStyle").expect("borderHorizontalStyle should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() >= 2);
+  // Delegates to Shorthands::get("borderInlineStyle")
+  assert_eq!(result[0].0, "borderInlineStyle");
+}
+
+#[test]
+fn aliases_get_border_horizontal_color_delegates_to_border_inline_color() {
+  let func =
+    Aliases::get("borderHorizontalColor").expect("borderHorizontalColor should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() >= 2);
+  // Delegates to Shorthands::get("borderInlineColor")
+  assert_eq!(result[0].0, "borderInlineColor");
+}
+
+#[test]
+fn aliases_get_border_vertical_style_delegates_to_border_block_style() {
+  let func = Aliases::get("borderVerticalStyle").expect("borderVerticalStyle should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() >= 2);
+  // Delegates to Shorthands::get("borderBlockStyle")
+  assert_eq!(result[0].0, "borderBlockStyle");
+}
+
+#[test]
+fn aliases_get_border_vertical_color_delegates_to_border_block_color() {
+  let func = Aliases::get("borderVerticalColor").expect("borderVerticalColor should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() >= 2);
+  // Delegates to Shorthands::get("borderBlockColor")
+  assert_eq!(result[0].0, "borderBlockColor");
+}
+
+#[test]
+fn aliases_get_border_start_style_delegates_to_border_inline_start_style() {
+  let func = Aliases::get("borderStartStyle").expect("borderStartStyle should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() >= 2);
+  // Delegates to Shorthands::get("borderInlineStartStyle")
+  assert_eq!(result[0].0, "borderInlineStartStyle");
+}
+
+#[test]
+fn aliases_get_border_end_style_delegates_to_border_inline_end_style() {
+  let func = Aliases::get("borderEndStyle").expect("borderEndStyle should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() >= 2);
+  // Delegates to Shorthands::get("borderInlineEndStyle")
+  assert_eq!(result[0].0, "borderInlineEndStyle");
+}
+
+#[test]
+fn aliases_get_border_start_width_delegates_to_border_inline_start_width() {
+  let func = Aliases::get("borderStartWidth").expect("borderStartWidth should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() >= 2);
+  // Delegates to Shorthands::get("borderInlineStartWidth")
+  assert_eq!(result[0].0, "borderInlineStartWidth");
+}
+
+#[test]
+fn aliases_get_border_end_width_delegates_to_border_inline_end_width() {
+  let func = Aliases::get("borderEndWidth").expect("borderEndWidth should be registered");
+  let result = func(None).unwrap();
+  assert!(result.len() >= 2);
+  // Delegates to Shorthands::get("borderInlineEndWidth")
+  assert_eq!(result[0].0, "borderInlineEndWidth");
+}
+
 #[test]
 fn aliases_get_border_horizontal_width_delegates() {
   let func = Aliases::get("borderHorizontalWidth").unwrap();

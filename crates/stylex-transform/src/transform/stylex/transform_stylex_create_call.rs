@@ -6,80 +6,82 @@ use stylex_path_resolver::package_json::PackageJsonExtended;
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use swc_core::{
-  common::DUMMY_SP,
+  common::{DUMMY_SP, SyntaxContext, comments::Comments},
   ecma::{
-    ast::{BinExpr, Bool, Decl, Lit, ModuleItem, ParenExpr, Stmt, UnaryOp, VarDecl, VarDeclKind},
+    ast::{
+      ArrowExpr, BinExpr, BinaryOp, BlockStmtOrExpr, Bool, CallExpr, CondExpr, Decl, Expr, Lit,
+      ModuleItem, ParenExpr, Pat, Prop, PropName, PropOrSpread, Stmt, UnaryOp, VarDecl,
+      VarDeclKind,
+    },
     utils::drop_span,
   },
 };
-use swc_core::{
-  common::SyntaxContext,
-  ecma::ast::{ArrowExpr, BinaryOp, BlockStmtOrExpr, CondExpr, Pat, Prop, PropName},
-};
-use swc_core::{
-  common::comments::Comments,
-  ecma::ast::{CallExpr, Expr, PropOrSpread},
-};
 
-use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
-use crate::shared::structures::pre_rule::PreRuleValue;
-use crate::shared::structures::state::EvaluationState;
-use crate::shared::structures::state_manager::ImportKind;
-use crate::shared::structures::types::FunctionMapIdentifiers;
-use crate::shared::structures::types::InjectableStylesMap;
-use crate::shared::structures::types::{FlatCompiledStyles, FunctionMapMemberExpression};
-use crate::shared::transformers::stylex_create::stylex_create_set;
-use crate::shared::transformers::stylex_default_maker;
-use crate::shared::transformers::stylex_first_that_works::stylex_first_that_works;
-use crate::shared::transformers::stylex_keyframes::get_keyframes_fn;
-use crate::shared::transformers::stylex_position_try::get_position_try_fn;
-use crate::shared::utils::ast::convertors::create_null_expr;
-use crate::shared::utils::ast::convertors::create_string_expr;
-use crate::shared::utils::ast::convertors::{
-  convert_atom_to_string, convert_expr_to_str, convert_key_value_to_str, convert_lit_to_string,
+use crate::{
+  shared::{
+    structures::{
+      functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType, StylexExprFn},
+      pre_rule::PreRuleValue,
+      state::EvaluationState,
+      state_manager::ImportKind,
+      types::{
+        FlatCompiledStyles, FunctionMapIdentifiers, FunctionMapMemberExpression,
+        InjectableStylesMap,
+      },
+    },
+    transformers::{
+      stylex_create::stylex_create_set, stylex_default_maker,
+      stylex_first_that_works::stylex_first_that_works, stylex_keyframes::get_keyframes_fn,
+      stylex_position_try::get_position_try_fn,
+    },
+    utils::{
+      ast::convertors::{
+        convert_atom_to_string, convert_expr_to_str, convert_key_value_to_str,
+        convert_lit_to_string, create_null_expr, create_string_expr,
+      },
+      common::{
+        downcast_style_options_to_state_manager, get_key_values_from_object, normalize_expr,
+      },
+      core::{
+        add_source_map_data::add_source_map_data,
+        dev_class_name::{convert_to_test_styles, inject_dev_class_names},
+        evaluate_stylex_create_arg::evaluate_stylex_create_arg,
+        flat_map_expanded_shorthands::flat_map_expanded_shorthands,
+        js_to_expr::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
+      },
+      log::build_code_frame_error::{build_code_frame_error, build_code_frame_error_and_panic},
+      validators::{is_create_call, validate_stylex_create},
+    },
+  },
+  transform::StyleXTransform,
 };
-use crate::shared::utils::common::get_key_values_from_object;
-use crate::shared::utils::common::normalize_expr;
-use crate::shared::utils::core::add_source_map_data::add_source_map_data;
-use crate::shared::utils::core::dev_class_name::{convert_to_test_styles, inject_dev_class_names};
-use crate::shared::utils::core::evaluate_stylex_create_arg::evaluate_stylex_create_arg;
-use crate::shared::utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
-use crate::shared::utils::core::js_to_expr::{
-  NestedStringObject, convert_object_to_ast, remove_objects_with_spreads,
-};
-use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
-use crate::shared::utils::log::build_code_frame_error::build_code_frame_error_and_panic;
-use crate::shared::utils::validators::{is_create_call, validate_stylex_create};
-use crate::shared::{
-  structures::functions::FunctionConfigType, utils::common::downcast_style_options_to_state_manager,
-};
-use crate::{shared::structures::functions::StylexExprFn, transform::StyleXTransform};
-use stylex_ast::ast::factories::create_key_value_prop;
-use stylex_ast::ast::factories::create_object_expression;
-use stylex_ast::ast::factories::create_string_var_declarator;
 use stylex_ast::ast::factories::{
-  create_array_expression, create_expr_or_spread, create_prop_from_name, create_var_declarator,
+  create_array_expression, create_expr_or_spread, create_key_value_prop, create_object_expression,
+  create_prop_from_name, create_string_var_declarator, create_var_declarator,
 };
-use stylex_constants::constants::common::COMPILED_KEY;
-use stylex_constants::constants::messages::{EXPECTED_COMPILED_STYLES, non_static_value};
+use stylex_constants::constants::{
+  common::COMPILED_KEY,
+  messages::{EXPECTED_COMPILED_STYLES, non_static_value},
+};
 use stylex_css::utils::when as stylex_when;
-use stylex_enums::counter_mode::CounterMode;
-use stylex_enums::style_resolution::StyleResolution;
+use stylex_enums::{counter_mode::CounterMode, style_resolution::StyleResolution};
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
-use stylex_structures::dynamic_style::DynamicStyle;
-use stylex_structures::order_pair::OrderPair;
-use stylex_structures::stylex_state_options::StyleXStateOptions;
-use stylex_structures::top_level_expression::TopLevelExpression;
-use stylex_structures::uid_generator::UidGenerator;
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-use stylex_types::structures::injectable_style::InjectableStyle;
+use stylex_structures::{
+  dynamic_style::DynamicStyle, order_pair::OrderPair, stylex_state_options::StyleXStateOptions,
+  top_level_expression::TopLevelExpression, uid_generator::UidGenerator,
+};
+use stylex_types::{
+  enums::data_structures::injectable_style::InjectableStyleKind,
+  structures::injectable_style::InjectableStyle,
+};
 
 /// Lazily-initialized Arc-wrapped map of stylex.when helper functions.
 ///
-/// Thread-safety: Arc ensures safe sharing across threads; Lazy guarantees one-time initialization.
-/// Lifecycle: Initialized on first access, immutable thereafter.
-/// Contains pure, stateless transformation functions (ancestor, descendant, etc.)
-/// that convert expressions to CSS selectors for relational styling.
+/// Thread-safety: Arc ensures safe sharing across threads; Lazy guarantees
+/// one-time initialization. Lifecycle: Initialized on first access, immutable
+/// thereafter. Contains pure, stateless transformation functions (ancestor,
+/// descendant, etc.) that convert expressions to CSS selectors for relational
+/// styling.
 static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(|| {
   let mut map: IndexMap<String, StylexExprFn> = IndexMap::default();
 
@@ -89,12 +91,12 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("stylex.when ancestor: expression is not a string"),
       };
       let result = match stylex_when::ancestor(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         Err(e) => stylex_panic!("stylex.when ancestor error: {}", e),
       };
       create_string_expr(&result)
@@ -107,12 +109,12 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("stylex.when descendant: expression is not a string"),
       };
       let result = match stylex_when::descendant(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         Err(e) => stylex_panic!("stylex.when descendant error: {}", e),
       };
       create_string_expr(&result)
@@ -125,12 +127,12 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("stylex.when siblingBefore: expression is not a string"),
       };
       let result = match stylex_when::sibling_before(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         Err(e) => stylex_panic!("stylex.when siblingBefore error: {}", e),
       };
       create_string_expr(&result)
@@ -143,12 +145,12 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("stylex.when siblingAfter: expression is not a string"),
       };
       let result = match stylex_when::sibling_after(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         Err(e) => stylex_panic!("stylex.when siblingAfter error: {}", e),
       };
       create_string_expr(&result)
@@ -161,12 +163,12 @@ static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(||
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("stylex.when anySibling: expression is not a string"),
       };
       let result = match stylex_when::any_sibling(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         Err(e) => stylex_panic!("stylex.when anySibling error: {}", e),
       };
       create_string_expr(&result)
@@ -270,7 +272,7 @@ where
 
         let member_expression = match member_expressions.get_mut(name) {
           Some(me) => me,
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           None => stylex_panic!("Could not resolve the member expression for the StyleX import."),
         };
 
@@ -295,7 +297,7 @@ where
             stylex_default_maker::stylex_default_marker(&self.state.options)
               .as_values()
               .unwrap_or_else(|| {
-                #[cfg(not(tarpaulin_include))]
+                #[cfg_attr(coverage_nightly, coverage(off))]
                 {
                   stylex_panic!("{}", EXPECTED_COMPILED_STYLES)
                 }
@@ -359,7 +361,7 @@ where
 
       let value = match evaluated_arg.value {
         Some(v) => v,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", non_static_value("create")),
       };
 
@@ -682,7 +684,7 @@ where
                                     })
                                   })
                                   .unwrap_or_else(|| {
-                                    #[cfg(not(tarpaulin_include))]
+                                    #[cfg_attr(coverage_nightly, coverage(off))]
                                     {
                                       stylex_panic!(
                                         "Expected at least one expression to reduce in class name concatenation."
@@ -775,7 +777,7 @@ where
 
                         let hoist_ident_expr = match hoist_ident.expr.as_ident() {
                           Some(ident) => ident.clone(),
-                          #[cfg(not(tarpaulin_include))]
+                          #[cfg_attr(coverage_nightly, coverage(off))]
                           None => stylex_panic!("Expected an identifier for the hoisted style variable."),
                         };
                         self.state.declarations.push(
@@ -955,8 +957,9 @@ fn extract_expr_from_rule(
   None
 }
 
-/// Hoists an expression to the program level by creating a const variable declaration.
-/// This is the Rust equivalent of the JavaScript `hoistExpression` function.
+/// Hoists an expression to the program level by creating a const variable
+/// declaration. This is the Rust equivalent of the JavaScript `hoistExpression`
+/// function.
 ///
 /// # Arguments
 /// * `ast_expression` - The expression to hoist

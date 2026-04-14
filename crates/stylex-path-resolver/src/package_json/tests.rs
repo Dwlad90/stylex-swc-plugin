@@ -57,7 +57,8 @@ fn recursive_find_node_modules_returns_empty_when_absent() {
   cleanup(&root);
 }
 
-/// Explicit known `.git` should collect nested, intermediate, and repository-root node_modules.
+/// Explicit known `.git` should collect nested, intermediate, and
+/// repository-root node_modules.
 #[test]
 fn recursive_find_node_modules_collects_known_git_tree() {
   let root = temp_dir("node-modules-known-git");
@@ -83,7 +84,8 @@ fn recursive_find_node_modules_collects_known_git_tree() {
   cleanup(&root);
 }
 
-/// When known_git_dir is omitted, resolver should discover `.git` in parent directories.
+/// When known_git_dir is omitted, resolver should discover `.git` in parent
+/// directories.
 #[test]
 fn recursive_find_node_modules_discovers_git_from_path() {
   let root = temp_dir("node-modules-discover-git");

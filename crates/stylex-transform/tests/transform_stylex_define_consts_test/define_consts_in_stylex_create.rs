@@ -1,5 +1,4 @@
-use crate::utils::prelude::*;
-use crate::utils::transform::stringify_js;
+use crate::utils::{prelude::*, transform::stringify_js};
 
 fn stylex_transform(
   comments: TestComments,

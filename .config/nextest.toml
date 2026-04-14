@@ -1,0 +1,26 @@
+[store]
+dir = "target/nextest"
+
+[profile.default]
+# Use all available cores for maximum parallelism
+test-threads = "num-cpus"
+# Don't abort on first failure — run all tests to get full picture
+fail-fast = false
+# Capture stdout/stderr and show on failure
+failure-output = "immediate-final"
+success-output = "never"
+# Slow test detection
+slow-timeout = { period = "60s", terminate-after = 2 }
+# No retries by default (fast local feedback)
+retries = 0
+
+[profile.ci]
+# Retry flaky tests in CI
+retries = 2
+# Fail on flaky tests
+flaky-result = "fail"
+# Show failures immediately + summary at end
+failure-output = "immediate-final"
+success-output = "never"
+# Stricter slow test timeout in CI
+slow-timeout = { period = "60s", terminate-after = 2 }

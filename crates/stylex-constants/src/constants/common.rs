@@ -92,8 +92,8 @@ pub static CSS_CONTENT_KEYWORDS: Lazy<[&str; 11]> = Lazy::new(|| {
   ]
 });
 
-// TODO: Once we have a reliable validator, these property checks should be replaced with
-// validators that can also validate the values.
+// TODO: Once we have a reliable validator, these property checks should be
+// replaced with validators that can also validate the values.
 pub static VALID_POSITION_TRY_PROPERTIES: Lazy<[&str; 40]> = Lazy::new(|| {
   [
     // anchor Properties
@@ -152,33 +152,40 @@ pub static VALID_VIEW_TRANSITION_CLASS_PROPERTIES: Lazy<[&str; 4]> =
 pub static CONSTS_FILE_EXTENSION: &str = ".const";
 
 /// CSS custom property used in the logical float/clear value polyfill system.
-/// Represents the logical "start" direction for float/clear, which maps to the physical
-/// direction "left" in left-to-right (LTR) text direction and "right" in right-to-left (RTL).
-/// This variable should be defined on the root or relevant container elements, typically by
-/// a polyfill or runtime logic that sets its value based on the current text direction.
+/// Represents the logical "start" direction for float/clear, which maps to the
+/// physical direction "left" in left-to-right (LTR) text direction and "right"
+/// in right-to-left (RTL). This variable should be defined on the root or
+/// relevant container elements, typically by a polyfill or runtime logic that
+/// sets its value based on the current text direction.
 ///
-/// This ensures that logical float/clear values behave correctly in both LTR and RTL contexts.
+/// This ensures that logical float/clear values behave correctly in both LTR
+/// and RTL contexts.
 pub static LOGICAL_FLOAT_START_VAR: &str = "--stylex-logical-start";
 
 /// CSS custom property used in the logical float/clear value polyfill system.
-/// Represents the logical "end" direction for float/clear, which maps to the physical
-/// direction "right" in left-to-right (LTR) text direction and "left" in right-to-left (RTL).
-/// This variable should be defined on the root or relevant container elements, typically by
-/// a polyfill or runtime logic that sets its value based on the current text direction.
+/// Represents the logical "end" direction for float/clear, which maps to the
+/// physical direction "right" in left-to-right (LTR) text direction and "left"
+/// in right-to-left (RTL). This variable should be defined on the root or
+/// relevant container elements, typically by a polyfill or runtime logic that
+/// sets its value based on the current text direction.
 ///
-/// This ensures that logical float/clear values behave correctly in both LTR and RTL contexts.
+/// This ensures that logical float/clear values behave correctly in both LTR
+/// and RTL contexts.
 pub static LOGICAL_FLOAT_END_VAR: &str = "--stylex-logical-end";
 
-/// List of valid JSX runtime call names to check against when determining if a call expression is a JSX runtime call.
-/// This includes both the classic React.createElement and the newer jsx/jsxs calls, as well as their DEV variants.
+/// List of valid JSX runtime call names to check against when determining if a
+/// call expression is a JSX runtime call. This includes both the classic
+/// React.createElement and the newer jsx/jsxs calls, as well as their DEV
+/// variants.
 ///
 /// Supported:
 /// - React runtime: `_jsx`, `_jsxs`
 /// - React classic: `createElement`, `React.createElement`
 /// - Vue runtime: `_createElementBlock`, `_createElementVNode`, `_createVNode`
 ///
-///   The DEV variants (e.g., `_jsxDEV`) are also included by checking for a "DEV" suffix,
-///   which is commonly used in development builds of React to provide additional debugging information.
+///   The DEV variants (e.g., `_jsxDEV`) are also included by checking for a
+///   "DEV" suffix,   which is commonly used in development builds of React to
+///   provide additional debugging information.
 pub static RUNTIME_JSX_CALL_NAMES: &[&str] = &[
   "jsx",
   "jsxs",

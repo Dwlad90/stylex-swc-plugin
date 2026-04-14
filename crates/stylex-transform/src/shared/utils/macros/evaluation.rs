@@ -31,8 +31,9 @@ macro_rules! stylex_panic_with_context {
   }};
 }
 
-/// Macro to safely convert an expression to a string with proper error handling.
-/// Returns the string on success, or calls deopt and returns None on failure.
+/// Macro to safely convert an expression to a string with proper error
+/// handling. Returns the string on success, or calls deopt and returns None on
+/// failure.
 ///
 /// This macro is designed for use in evaluation contexts where we need to:
 /// - Convert an expression to a string

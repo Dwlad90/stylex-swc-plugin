@@ -4,8 +4,10 @@ use swc_core::ecma::ast::Expr;
 
 /// An entry in the `env` configuration map.
 ///
-/// - `Expr(Expr)` — any static compile-time value (string, number, object, array, …)
-/// - `Function(JSFunction)` — a callable that receives `Vec<Expr>` and returns `Expr`
+/// - `Expr(Expr)` — any static compile-time value (string, number, object,
+///   array, …)
+/// - `Function(JSFunction)` — a callable that receives `Vec<Expr>` and returns
+///   `Expr`
 #[derive(Clone, Debug)]
 pub enum EnvEntry {
   Expr(Expr),

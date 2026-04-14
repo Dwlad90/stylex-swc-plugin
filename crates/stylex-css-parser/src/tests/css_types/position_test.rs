@@ -63,7 +63,8 @@ mod test_css_type_position {
       Some(Vertical::Keyword(VerticalKeyword::Top))
     ));
 
-    // Test: Position.parser.parse('right bottom') -> new Position('right', 'bottom')
+    // Test: Position.parser.parse('right bottom') -> new Position('right',
+    // 'bottom')
     let result = Position::parser().parse_to_end("right bottom").unwrap();
     assert!(matches!(
       result.horizontal,
@@ -74,7 +75,8 @@ mod test_css_type_position {
       Some(Vertical::Keyword(VerticalKeyword::Bottom))
     ));
 
-    // Test: Position.parser.parse('center center') -> new Position('center', 'center')
+    // Test: Position.parser.parse('center center') -> new Position('center',
+    // 'center')
     let result = Position::parser().parse_to_end("center center").unwrap();
     assert!(matches!(
       result.horizontal,

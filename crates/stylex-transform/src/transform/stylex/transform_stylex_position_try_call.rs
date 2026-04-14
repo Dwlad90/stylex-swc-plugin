@@ -4,24 +4,37 @@ use stylex_constants::constants::messages::{SPREAD_NOT_SUPPORTED, expected_call_
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
-use swc_core::ecma::ast::VarDeclarator;
-use swc_core::{common::comments::Comments, ecma::ast::Expr};
+use swc_core::{
+  common::comments::Comments,
+  ecma::ast::{Expr, VarDeclarator},
+};
 
-use crate::shared::structures::functions::FunctionConfigType;
-use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
-use crate::shared::structures::state_manager::ImportKind;
-use crate::shared::structures::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
-use crate::shared::transformers::stylex_first_that_works::stylex_first_that_works;
-use crate::shared::transformers::stylex_position_try::stylex_position_try;
-use crate::shared::utils::ast::convertors::create_string_expr;
-use crate::shared::utils::js::evaluate::evaluate;
-use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
-use crate::shared::utils::validators::validate_stylex_position_try_indent;
-use crate::shared::utils::validators::{assert_valid_position_try, assert_valid_properties};
-use crate::{StyleXTransform, shared::utils::validators::is_position_try_call};
-use stylex_constants::constants::common::VALID_POSITION_TRY_PROPERTIES;
-use stylex_constants::constants::messages::POSITION_TRY_INVALID_PROPERTY;
-use stylex_constants::constants::messages::{non_static_value, non_style_object};
+use crate::{
+  StyleXTransform,
+  shared::{
+    structures::{
+      functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+      state_manager::ImportKind,
+      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+    },
+    transformers::{
+      stylex_first_that_works::stylex_first_that_works, stylex_position_try::stylex_position_try,
+    },
+    utils::{
+      ast::convertors::create_string_expr,
+      js::evaluate::evaluate,
+      log::build_code_frame_error::build_code_frame_error,
+      validators::{
+        assert_valid_position_try, assert_valid_properties, is_position_try_call,
+        validate_stylex_position_try_indent,
+      },
+    },
+  },
+};
+use stylex_constants::constants::{
+  common::VALID_POSITION_TRY_PROPERTIES,
+  messages::{POSITION_TRY_INVALID_PROPERTY, non_static_value, non_style_object},
+};
 
 impl<C> StyleXTransform<C>
 where
@@ -38,12 +51,12 @@ where
 
       let call = match var_decl.init.as_ref().and_then(|decl| decl.as_call()) {
         Some(call) => call,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", expected_call_expression("positionTry")),
       };
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -114,7 +127,7 @@ where
           );
           value
         },
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "{}",
           build_code_frame_error(

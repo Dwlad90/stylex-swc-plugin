@@ -70,7 +70,7 @@ impl Time {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Time {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     if self.unit == "ms" {

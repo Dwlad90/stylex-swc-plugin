@@ -11,18 +11,19 @@ mod tests {
     },
   };
 
-  use crate::shared::structures::functions::FunctionMap;
-  use crate::shared::structures::state_manager::StateManager;
-  use crate::shared::utils::common::{
-    _get_var_decl_by_ident_or_member, _md5_hash, deep_merge_props,
-    downcast_style_options_to_state_manager, evaluate_bin_expr, extract_filename_from_path,
-    extract_filename_with_ext_from_path, extract_path, fill_state_declarations,
-    fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_expr_from_var_decl,
-    get_import_from, get_key_values_from_object, get_var_decl_by_ident, increase_ident_count,
-    increase_ident_count_by_count, increase_member_ident, increase_member_ident_count,
-    increase_member_ident_count_by_count, js_object_to_json, normalize_expr, reduce_ident_count,
-    reduce_member_expression_count, reduce_member_ident_count, remove_duplicates,
-    serialize_value_to_json_string, type_of,
+  use crate::shared::{
+    structures::{functions::FunctionMap, state_manager::StateManager},
+    utils::common::{
+      _get_var_decl_by_ident_or_member, _md5_hash, deep_merge_props,
+      downcast_style_options_to_state_manager, evaluate_bin_expr, extract_filename_from_path,
+      extract_filename_with_ext_from_path, extract_path, fill_state_declarations,
+      fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_expr_from_var_decl,
+      get_import_from, get_key_values_from_object, get_var_decl_by_ident, increase_ident_count,
+      increase_ident_count_by_count, increase_member_ident, increase_member_ident_count,
+      increase_member_ident_count_by_count, js_object_to_json, normalize_expr, reduce_ident_count,
+      reduce_member_expression_count, reduce_member_ident_count, remove_duplicates,
+      serialize_value_to_json_string, type_of,
+    },
   };
   use stylex_enums::misc::VarDeclAction;
 
@@ -2336,7 +2337,8 @@ mod tests {
 
     #[test]
     fn stmt_var_with_object_pattern_skipped() {
-      // Stmt var decls skip non-ident patterns (line 467: `decl.name.as_ident().is_some()`)
+      // Stmt var decls skip non-ident patterns (line 467:
+      // `decl.name.as_ident().is_some()`)
       let mut state = StateManager::default();
       let decl = VarDeclarator {
         span: DUMMY_SP,

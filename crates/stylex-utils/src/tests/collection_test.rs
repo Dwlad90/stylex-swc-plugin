@@ -81,7 +81,8 @@ mod get_hash_map_difference_tests {
     let mut b = FxHashMap::default();
     b.insert("key", 2);
     let diff = get_hash_map_difference(&a, &b);
-    // Both maps have "key" with different values, so "key" appears (with orig value)
+    // Both maps have "key" with different values, so "key" appears (with orig
+    // value)
     assert!(diff.contains_key("key"));
   }
 

@@ -19,10 +19,14 @@ use swc_core::{
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
 use stylex_structures::top_level_expression::TopLevelExpression;
 
-use crate::shared::structures::base_css_type::BaseCSSType;
-use crate::shared::structures::functions::{FunctionConfigType, FunctionMap, FunctionType};
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::utils::ast::convertors::{convert_str_lit_to_atom, convert_wtf8_to_atom};
+use crate::shared::{
+  structures::{
+    base_css_type::BaseCSSType,
+    functions::{FunctionConfigType, FunctionMap, FunctionType},
+    state_manager::StateManager,
+  },
+  utils::ast::convertors::{convert_str_lit_to_atom, convert_wtf8_to_atom},
+};
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_VALUE, INVALID_UTF8, SPREAD_NOT_SUPPORTED, VAR_DECL_NAME_NOT_IDENT,
 };
@@ -37,12 +41,12 @@ pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
     FileName::Real(path_buf) => {
       let stem = match path_buf.file_stem() {
         Some(s) => s,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("File path has no file stem component."),
       };
       match stem.to_str() {
         Some(s) => s.to_string(),
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", INVALID_UTF8),
       }
     },
@@ -54,7 +58,7 @@ pub(crate) fn extract_path(path: &FileName) -> &str {
   match path {
     FileName::Real(path_buf) => match path_buf.to_str() {
       Some(s) => s,
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       None => stylex_panic!("{}", INVALID_UTF8),
     },
     _ => "",
@@ -66,12 +70,12 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
     FileName::Real(path_buf) => {
       let name = match path_buf.file_name() {
         Some(n) => n,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("File path has no file name component."),
       };
       Some(match name.to_str() {
         Some(s) => s,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", INVALID_UTF8),
       })
     },
@@ -158,14 +162,14 @@ pub fn get_var_decl_by_ident<'a>(
 
           return Some(var_decl);
         },
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_panic!("Function type not supported: {:?}", func),
       },
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       FunctionConfigType::Map(_) => {
         stylex_unimplemented!("Map values are not supported in this context.")
       },
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       FunctionConfigType::IndexMap(_) => {
         stylex_unimplemented!("IndexMap values are not supported in this context.")
       },
@@ -248,7 +252,7 @@ pub(crate) fn _get_var_decl_by_ident_or_member<'a>(
 pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
   match &var_decl.init {
     Some(var_decl_init) => var_decl_init,
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("Variable declaration must be initialized with an expression."),
   }
 }
@@ -351,7 +355,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
   for prop in obj.props.clone().into_iter() {
     match prop {
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
       PropOrSpread::Prop(mut prop) => {
         expand_shorthand_prop(&mut prop);
@@ -363,7 +367,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
             {
               let value = obj.props.iter().find(|prop| {
                 match prop {
-                  #[cfg(not(tarpaulin_include))]
+                  #[cfg_attr(coverage_nightly, coverage(off))]
                   PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
                   PropOrSpread::Prop(prop) => {
                     let mut prop = prop.clone();
@@ -375,7 +379,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
                           return ident.sym == "value";
                         }
                       },
-                      #[cfg(not(tarpaulin_include))]
+                      #[cfg_attr(coverage_nightly, coverage(off))]
                       _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
                     }
                   },
@@ -387,7 +391,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
               if let Some(value) = value {
                 let result_key_value = match value.as_prop().and_then(|prop| prop.as_key_value()) {
                   Some(kv) => kv,
-                  #[cfg(not(tarpaulin_include))]
+                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!("Expected key-value property"),
                 };
 
@@ -395,7 +399,7 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
               }
             }
           },
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
         }
       },
@@ -433,7 +437,7 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
           if let Some(decl_init) = decl.init.as_ref() {
             let ident_sym = match decl.name.as_ident() {
               Some(i) => i.sym.clone(),
-              #[cfg(not(tarpaulin_include))]
+              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
             };
             state.top_level_expressions.push(TopLevelExpression(
@@ -471,7 +475,7 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
         {
           let stmt_ident_sym = match decl.name.as_ident() {
             Some(i) => i.sym.clone(),
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
           };
           state.top_level_expressions.push(TopLevelExpression(
@@ -594,7 +598,7 @@ pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> S
       }
     },
     Err(err) => {
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       {
         stylex_panic!("Failed to serialize value. Error: {}", err)
       }
@@ -607,7 +611,8 @@ pub(crate) fn js_object_to_json(js_str: &str) -> String {
 }
 
 /// Utility function to get the `StateManager` from the `StyleOptions` trait.
-/// This is a helper function to get the `StateManager` from the `StyleOptions` trait.
+/// This is a helper function to get the `StateManager` from the `StyleOptions`
+/// trait.
 pub(crate) fn downcast_style_options_to_state_manager(
   state: &mut dyn StyleOptions,
 ) -> &mut StateManager {

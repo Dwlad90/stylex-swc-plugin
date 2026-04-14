@@ -179,8 +179,18 @@ test-visual: ## Run visual regression tests
 
 test-rust: ## Run only Rust tests
 	@echo "$(YELLOW)Running Rust tests...$(NC)"
-	$(TURBO) --filter "./crates/*" test
+	$(CARGO) nextest run --workspace --all-features
 	@echo "$(GREEN)Rust tests completed!$(NC)"
+
+test-rust-doc: ## Run Rust doc tests
+	@echo "$(YELLOW)Running Rust doc tests...$(NC)"
+	$(CARGO) test --doc --workspace --all-features
+	@echo "$(GREEN)Rust doc tests completed!$(NC)"
+
+test-coverage: ## Run Rust coverage (enforces 100% line coverage)
+	@echo "$(YELLOW)Running Rust coverage...$(NC)"
+	$(PNPM) run test:coverage:workspace
+	@echo "$(GREEN)Rust coverage completed!$(NC)"
 
 bench: ## Run benchmarks
 	@echo "$(YELLOW)Running benchmarks...$(NC)"

@@ -247,7 +247,8 @@ fn expr_to_napi_value(raw_env: napi::sys::napi_env, expr: &Expr) -> napi::sys::n
   result
 }
 
-/// Parses a JS string or function into a `JSFunction` for use as `debugFilePath`.
+/// Parses a JS string or function into a `JSFunction` for use as
+/// `debugFilePath`.
 pub(crate) fn parse_debug_file_path(
   env: &napi::Env,
   unknown_val: Unknown,

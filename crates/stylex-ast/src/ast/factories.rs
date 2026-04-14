@@ -1,15 +1,12 @@
 use stylex_macros::stylex_panic;
 use swc_core::{
-  common::SyntaxContext,
+  common::{DUMMY_SP, Span, SyntaxContext},
   ecma::ast::{
-    ArrowExpr, BigInt, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, Ident, IdentName, JSXAttr,
-    JSXAttrName, JSXAttrOrSpread, JSXAttrValue, KeyValueProp, Lit, MemberExpr, Null, ParenExpr,
-    Pat, Prop, PropName, SpreadElement, VarDeclarator,
+    ArrayLit, ArrowExpr, BigInt, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, Expr,
+    ExprOrSpread, Ident, IdentName, JSXAttr, JSXAttrName, JSXAttrOrSpread, JSXAttrValue,
+    KeyValueProp, Lit, MemberExpr, Null, ObjectLit, ParenExpr, Pat, Prop, PropName, PropOrSpread,
+    SpreadElement, VarDeclarator,
   },
-};
-use swc_core::{
-  common::{DUMMY_SP, Span},
-  ecma::ast::{ArrayLit, Expr, ExprOrSpread, ObjectLit, PropOrSpread},
 };
 
 use super::convertors::{
@@ -33,7 +30,8 @@ pub fn wrap_in_paren(expr: Expr) -> Expr {
 }
 
 /// Wraps a reference to an expression in a ParenExpr with DUMMY_SP span.
-/// This clones the expression and is commonly used when creating error contexts.
+/// This clones the expression and is commonly used when creating error
+/// contexts.
 ///
 /// # Example
 /// ```ignore
@@ -204,10 +202,11 @@ pub fn create_nested_object_prop(key: &str, values: Vec<PropOrSpread>) -> PropOr
   create_key_value_prop(key, Expr::Object(object))
 }
 
-/// Creates a `PropOrSpread` from an already-constructed `PropName` and an expression value.
+/// Creates a `PropOrSpread` from an already-constructed `PropName` and an
+/// expression value.
 ///
-/// Use this when the key is an existing `PropName` (e.g. cloned from another prop),
-/// avoiding the need to re-stringify it.
+/// Use this when the key is an existing `PropName` (e.g. cloned from another
+/// prop), avoiding the need to re-stringify it.
 pub fn create_prop_from_name(key: PropName, value: Expr) -> PropOrSpread {
   PropOrSpread::from(Prop::from(KeyValueProp {
     key,
@@ -234,8 +233,9 @@ pub fn create_key_value_prop_ident(key: &str, value: Expr) -> KeyValueProp {
 /// Creates a `PropOrSpread` with an unconditional `PropName::Ident` key.
 ///
 /// Unlike `create_key_value_prop`, this bypasses identifier validation,
-/// preserving keys that contain special characters (e.g. `@media …`) as ident nodes.
-/// Use this wherever downstream code calls `.as_ident()` on the resulting key.
+/// preserving keys that contain special characters (e.g. `@media …`) as ident
+/// nodes. Use this wherever downstream code calls `.as_ident()` on the
+/// resulting key.
 pub fn create_ident_key_value_prop(key: &str, value: Expr) -> PropOrSpread {
   PropOrSpread::from(Prop::from(KeyValueProp {
     key: PropName::Ident(IdentName::new(key.into(), DUMMY_SP)),
@@ -289,8 +289,9 @@ pub fn create_boolean_prop(key: &str, value: Option<bool>) -> PropOrSpread {
 }
 
 /// Wraps an arbitrary expression in `ExprOrSpread` with no spread.
-/// This is the generic counterpart to the typed `expr_or_spread_*_factory` helpers
-/// and eliminates the common boilerplate `ExprOrSpread { spread: None, expr: Box::new(e) }`.
+/// This is the generic counterpart to the typed `expr_or_spread_*_factory`
+/// helpers and eliminates the common boilerplate `ExprOrSpread { spread: None,
+/// expr: Box::new(e) }`.
 pub fn create_expr_or_spread(expr: Expr) -> ExprOrSpread {
   ExprOrSpread {
     expr: Box::new(expr),
@@ -391,7 +392,8 @@ pub fn create_spread_element(expr: Expr) -> SpreadElement {
   }
 }
 
-/// Creates a `PropOrSpread::Spread` for spreading properties in an object literal.
+/// Creates a `PropOrSpread::Spread` for spreading properties in an object
+/// literal.
 ///
 /// # Arguments
 /// * `expr` - The expression to spread
@@ -405,7 +407,8 @@ pub fn create_spread_prop(expr: Expr) -> PropOrSpread {
   PropOrSpread::Spread(create_spread_element(expr))
 }
 
-/// Creates a `CallExpr` with a member expression callee (e.g., `obj.method(...args)`).
+/// Creates a `CallExpr` with a member expression callee (e.g.,
+/// `obj.method(...args)`).
 ///
 /// # Arguments
 /// * `callee_member` - The member expression to call
@@ -520,7 +523,8 @@ pub fn create_jsx_attr(name: &str, value: JSXAttrValue) -> JSXAttr {
   }
 }
 
-/// Creates a `VarDeclarator` with an identifier name and an expression initializer.
+/// Creates a `VarDeclarator` with an identifier name and an expression
+/// initializer.
 ///
 /// # Arguments
 /// * `ident` - The identifier for the variable name

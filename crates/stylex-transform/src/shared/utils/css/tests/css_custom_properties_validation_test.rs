@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod css_tests {
-  use crate::shared::structures::state_manager::StateManager;
-  use crate::shared::utils::css::common::transform_value_cached;
+  use crate::shared::{
+    structures::state_manager::StateManager, utils::css::common::transform_value_cached,
+  };
 
   #[test]
   #[should_panic(expected = "Rule contains an unclosed function")]

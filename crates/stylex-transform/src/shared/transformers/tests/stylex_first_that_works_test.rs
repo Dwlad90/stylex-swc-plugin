@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod stylex_first_that_works {
-  use swc_core::ecma::ast::Expr;
-  use swc_core::ecma::ast::ExprOrSpread;
+  use swc_core::ecma::ast::{Expr, ExprOrSpread};
 
-  use crate::shared::structures::functions::FunctionMap;
-  use crate::shared::structures::state_manager::StateManager;
-  use crate::shared::transformers::stylex_first_that_works::stylex_first_that_works;
-  use crate::shared::utils::ast::convertors::create_string_expr;
+  use crate::shared::{
+    structures::{functions::FunctionMap, state_manager::StateManager},
+    transformers::stylex_first_that_works::stylex_first_that_works,
+    utils::ast::convertors::create_string_expr,
+  };
   use stylex_ast::ast::factories::{create_array_expression, create_string_expr_or_spread};
 
   #[test]

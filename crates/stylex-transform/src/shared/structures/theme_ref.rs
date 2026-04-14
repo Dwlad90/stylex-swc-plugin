@@ -105,7 +105,7 @@ impl ThemeRef {
     ThemeRefResult::CssVar(Arc::clone(entry))
   }
 
-  #[cfg(not(tarpaulin_include))]
+  #[cfg_attr(coverage_nightly, coverage(off))]
   fn _set(&self, key: &str, value: &str) {
     stylex_panic!(
       "Cannot set value {} to key {} in theme {}",
@@ -116,10 +116,11 @@ impl ThemeRef {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl PartialEq for ThemeRef {
   fn eq(&self, _other: &Self) -> bool {
     stylex_panic!("Theme references cannot be compared directly.");
-    // self.file_name == other.file_name && self.export_name == other.export_name
+    // self.file_name == other.file_name && self.export_name ==
+    // other.export_name
   }
 }

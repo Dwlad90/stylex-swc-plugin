@@ -5,14 +5,15 @@ use swc_core::ecma::{
   utils::ExprExt,
 };
 
-use crate::shared::utils::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
-use crate::shared::utils::common::get_key_values_from_object;
+use crate::shared::utils::{
+  ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
+  common::get_key_values_from_object,
+};
 use stylex_ast::ast::factories::{
   create_key_value_prop, create_object_expression, create_object_lit, create_string_key_value_prop,
 };
 use stylex_constants::constants::messages::VALUE_MUST_BE_STRING;
-use stylex_enums::css_syntax::CSSSyntax;
-use stylex_enums::value_with_default::ValueWithDefault;
+use stylex_enums::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault};
 use stylex_utils::swc::get_default_expr_ctx;
 
 #[derive(Debug, PartialEq, Clone, Hash)]
@@ -84,7 +85,7 @@ impl From<ObjectLit> for BaseCSSType {
             Expr::Lit(obj) => {
               let value = match convert_lit_to_string(obj) {
                 Some(v) => v,
-                #[cfg(not(tarpaulin_include))]
+                #[cfg_attr(coverage_nightly, coverage(off))]
                 None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
               };
 
@@ -92,7 +93,7 @@ impl From<ObjectLit> for BaseCSSType {
 
               &create_object_lit(vec![prop])
             },
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             _ => stylex_panic!(
               "Value must be an object or string, but got: {:?}",
               key_value.value.get_type(get_default_expr_ctx())
@@ -115,13 +116,13 @@ impl From<ObjectLit> for BaseCSSType {
                     Expr::Lit(lit) => {
                       let value = match convert_lit_to_string(lit) {
                         Some(v) => v,
-                        #[cfg(not(tarpaulin_include))]
+                        #[cfg_attr(coverage_nightly, coverage(off))]
                         None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
                       };
 
                       obj_map.insert(key, ValueWithDefault::String(value));
                     },
-                    #[cfg(not(tarpaulin_include))]
+                    #[cfg_attr(coverage_nightly, coverage(off))]
                     _ => stylex_panic!(
                       "Value must be a string, but got: {:?}",
                       key_value.value.get_type(get_default_expr_ctx())
@@ -141,7 +142,7 @@ impl From<ObjectLit> for BaseCSSType {
 
                 values.insert(key, ValueWithDefault::String(value));
               },
-              #[cfg(not(tarpaulin_include))]
+              #[cfg_attr(coverage_nightly, coverage(off))]
               _ => stylex_panic!(
                 "Value must be a string or object, but got: {:?}",
                 key_value.value.get_type(get_default_expr_ctx())
@@ -149,7 +150,7 @@ impl From<ObjectLit> for BaseCSSType {
             }
           }
         },
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => {
           stylex_panic!(r#"Key "{}" not support by BaseCSSType"#, key)
         },
@@ -167,7 +168,7 @@ impl From<ObjectLit> for BaseCSSType {
       value: ValueWithDefault::Map(values),
       syntax: match syntax {
         Some(s) => s,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("CSS syntax definition is required for this type."),
       },
     }

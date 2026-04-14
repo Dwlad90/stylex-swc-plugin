@@ -39,9 +39,10 @@ where
 
       self.state.cycle = TransformationCycle::Cleaning;
 
-      // NOTE: Reversing the module body to clean the module items in the correct order,
-      // so removing unused variable declarations will more efficient
-      // After cleaning the module items, the module body will be reversed back to its original order
+      // NOTE: Reversing the module body to clean the module items in the correct
+      // order, so removing unused variable declarations will more efficient
+      // After cleaning the module items, the module body will be reversed back to its
+      // original order
       module.body.reverse();
 
       module = module.fold_children_with(self);

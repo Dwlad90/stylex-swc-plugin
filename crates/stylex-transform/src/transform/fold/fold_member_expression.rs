@@ -6,8 +6,10 @@ use swc_core::{
   },
 };
 
-use stylex_enums::core::TransformationCycle;
-use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
+use stylex_enums::{
+  core::TransformationCycle,
+  style_vars_to_keep::{NonNullProp, NonNullProps},
+};
 use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
 use crate::{

@@ -226,7 +226,8 @@ impl Matrix {
             }
           }
 
-          // Skip optional whitespace before each number (including first one after opening paren)
+          // Skip optional whitespace before each number (including first one after
+          // opening paren)
           while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
             tokens.consume_next_token()?;
           }
@@ -1033,7 +1034,7 @@ fn format_number(n: f64) -> String {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for TransformFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {

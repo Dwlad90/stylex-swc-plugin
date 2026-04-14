@@ -1,9 +1,10 @@
 //! Tests for AST factory functions that create SWC expression nodes.
 
-use crate::ast::convertors::{create_number_expr, create_string_expr};
-use crate::ast::factories::*;
-use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::*;
+use crate::ast::{
+  convertors::{create_number_expr, create_string_expr},
+  factories::*,
+};
+use swc_core::{common::DUMMY_SP, ecma::ast::*};
 
 #[test]
 fn wrap_in_paren_wraps_expression() {

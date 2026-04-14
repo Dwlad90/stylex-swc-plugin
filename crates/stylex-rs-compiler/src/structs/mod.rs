@@ -60,10 +60,12 @@ pub struct StyleXOptions {
   /// Compile-time constants and functions accessible via `stylex.env`.
   #[napi(ts_type = "Record<string, any>")]
   pub env: Option<JsObject>,
-  /// Optional function or string to transform file paths used in debug class names / source maps.
+  /// Optional function or string to transform file paths used in debug class
+  /// names / source maps.
   #[napi(ts_type = "((filePath: string) => string) | string | undefined")]
   pub debug_file_path: Option<napi::UnknownRef>,
-  /// The prop name to use as the `sx` shorthand (default: `"sx"`). Set to `false` to disable.
+  /// The prop name to use as the `sx` shorthand (default: `"sx"`). Set to
+  /// `false` to disable.
   #[napi(ts_type = "string | false")]
   pub sx_prop_name: Option<SxPropNameUnion>,
 }

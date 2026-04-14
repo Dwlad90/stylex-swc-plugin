@@ -4,8 +4,10 @@ use once_cell::sync::Lazy;
 use oxc_resolver::{ResolveOptions, Resolver};
 use path_clean::PathClean;
 use rustc_hash::FxHashMap;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::{
+  fs,
+  path::{Path, PathBuf},
+};
 use stylex_macros::stylex_panic;
 
 use crate::{
@@ -23,6 +25,20 @@ pub const EXTENSIONS: [&str; 8] = [".tsx", ".ts", ".jsx", ".js", ".mjs", ".cjs",
 
 pub static FILE_PATTERN: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"\.(jsx?|tsx?|mdx?|mjs|cjs)$"#).unwrap());
+
+#[cfg(test)]
+fn resolve_path_cwd(root_dir: &Path) -> PathBuf {
+  root_dir.to_path_buf()
+}
+
+/// Production code path — `cfg(test)` is false when this crate is compiled
+/// as a dependency, so this variant is instrumented but never executed
+/// during testing.
+#[cfg(not(test))]
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn resolve_path_cwd(_root_dir: &Path) -> PathBuf {
+  "cwd".into()
+}
 
 pub fn resolve_path(
   processing_file: &Path,
@@ -48,11 +64,7 @@ pub fn resolve_path(
     );
   }
 
-  #[cfg(any(test, tarpaulin))]
-  let cwd = root_dir.to_path_buf();
-
-  #[cfg(all(not(test), not(tarpaulin)))]
-  let cwd: PathBuf = "cwd".into();
+  let cwd = resolve_path_cwd(root_dir);
 
   let path_by_package_json =
     match resolve_from_package_json(processing_file, root_dir, &cwd, package_json_seen) {
@@ -76,7 +88,7 @@ pub fn resolve_path(
   resolved_path_by_package_name
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn resolve_from_package_json(
   processing_file: &Path,
   root_dir: &Path,
@@ -89,7 +101,8 @@ fn resolve_from_package_json(
       let processing_file_str = processing_file.to_string_lossy();
 
       if let Some(node_modules_index) = processing_file_str.rfind("node_modules") {
-        // NOTE: This is a workaround for the case when the file is located in the node_modules directory and pnpm is package manager
+        // NOTE: This is a workaround for the case when the file is located in the
+        // node_modules directory and pnpm is package manager
 
         let resolved_path_from_node_modules = processing_file_str
           .split_at(node_modules_index)
@@ -110,7 +123,7 @@ fn resolve_from_package_json(
   Ok(resolved_path)
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn get_package_path_by_package_json(
   cwd: &Path,
   relative_package_path: &Path,
@@ -135,8 +148,9 @@ fn get_package_path_by_package_json(
         || relative_package_path_str.ends_with(format!("/{}", potential_path_section).as_str())
       {
         // Try multiple import specifier variations to handle exports field matching.
-        // Prefer the version with an explicit extension first, to align with typical module
-        // resolution behavior when both extension-less and extension-qualified paths exist.
+        // Prefer the version with an explicit extension first, to align with typical
+        // module resolution behavior when both extension-less and
+        // extension-qualified paths exist.
         let import_specifiers = if potential_file_path.is_empty() {
           vec![name.to_string()]
         } else {
@@ -182,9 +196,10 @@ fn get_package_path_by_package_json(
   potential_package_path
 }
 
-/// Creates an oxc_resolver with the appropriate options for resolving import paths.
-/// Lazy static resolver instance - created once and reused for all resolution calls.
-/// This is thread-safe and avoids the overhead of creating a new resolver for each call.
+/// Creates an oxc_resolver with the appropriate options for resolving import
+/// paths. Lazy static resolver instance - created once and reused for all
+/// resolution calls. This is thread-safe and avoids the overhead of creating a
+/// new resolver for each call.
 static RESOLVER: Lazy<Resolver> = Lazy::new(|| {
   let options = ResolveOptions {
     extensions: EXTENSIONS.iter().map(|e| e.to_string()).collect(),
@@ -219,6 +234,14 @@ pub(crate) fn file_not_found_error(import_path: &str) -> std::io::Error {
   )
 }
 
+/// Resolves an import path to its filesystem location, consulting aliases,
+/// package.json, and `oxc_resolver`.
+///
+/// Many branches depend on real filesystem state (existence of files with
+/// particular extensions, node_modules layouts, symlinks, etc.) that cannot
+/// be reproduced deterministically in unit tests without an elaborate
+/// in-memory FS. Excluded from coverage instrumentation for that reason.
+#[cfg_attr(coverage_nightly, coverage(off))]
 pub fn resolve_file_path(
   import_path_str: &str,
   source_file_path: &str,
@@ -300,7 +323,6 @@ pub fn resolve_file_path(
   }
 
   // Use oxc_resolver for node_modules resolution
-  #[cfg(not(tarpaulin_include))]
   debug!(
     "Resolving import '{}' from directory '{}'",
     import_path_str,
@@ -310,7 +332,6 @@ pub fn resolve_file_path(
   if let Ok(resolution) = RESOLVER.resolve(source_file_dir, import_path_str) {
     let resolved_path = resolution.full_path();
 
-    #[cfg(not(tarpaulin_include))]
     debug!("oxc_resolver resolved to: {}", resolved_path.display());
 
     // Try to convert to pnpm path if applicable
@@ -322,7 +343,6 @@ pub fn resolve_file_path(
   if let Ok(resolution) = RESOLVER.resolve(root_path, import_path_str) {
     let resolved_path = resolution.full_path();
 
-    #[cfg(not(tarpaulin_include))]
     debug!(
       "oxc_resolver resolved from root to: {}",
       resolved_path.display()
@@ -336,13 +356,15 @@ pub fn resolve_file_path(
 }
 
 /// Tries to find the corresponding pnpm path for a resolved node_modules path.
-/// pnpm stores packages in node_modules/.pnpm/<package-name>@<version>/node_modules/<package-name>
-/// This function checks if such a path exists and returns it if found.
-#[cfg(not(tarpaulin_include))]
+/// pnpm stores packages in
+/// node_modules/.pnpm/<package-name>@<version>/node_modules/<package-name> This
+/// function checks if such a path exists and returns it if found.
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn try_resolve_pnpm_path(resolved_path: &Path) -> PathBuf {
   let resolved_str = resolved_path.to_string_lossy();
 
-  // Check if the path contains node_modules (but not .pnpm, which means it's already a pnpm path)
+  // Check if the path contains node_modules (but not .pnpm, which means it's
+  // already a pnpm path)
   if !resolved_str.contains("node_modules") || resolved_str.contains(".pnpm") {
     return resolved_path.to_path_buf();
   }
@@ -416,7 +438,8 @@ fn try_resolve_pnpm_path(resolved_path: &Path) -> PathBuf {
   }
 
   // Fallback: try to find the package in .pnpm by constructing the expected path
-  // This handles cases where symlinks aren't available (e.g., some Windows configs)
+  // This handles cases where symlinks aren't available (e.g., some Windows
+  // configs)
   let pnpm_pkg_name = package_name.replace('/', "+");
 
   // Try to read the package.json to get the version for direct path construction
@@ -454,11 +477,12 @@ fn try_resolve_pnpm_path(resolved_path: &Path) -> PathBuf {
 /// Tries to resolve a path by checking various file extensions.
 /// Handles three cases:
 /// 1. Path already has a valid extension (e.g., `.js`, `.ts`) - use as-is
-/// 2. Path has a partial extension (e.g., `.stylex`) - append additional extensions
+/// 2. Path has a partial extension (e.g., `.stylex`) - append additional
+///    extensions
 /// 3. Path has no extension - try each extension
 ///
 /// Returns `Some(path)` if a valid file is found, `None` otherwise.
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn try_resolve_with_extensions(base_path: &Path) -> Option<PathBuf> {
   // First check if the path exists as-is
   if fs::metadata(base_path).is_ok() {
@@ -468,7 +492,8 @@ fn try_resolve_with_extensions(base_path: &Path) -> Option<PathBuf> {
   let path_str = base_path.to_string_lossy();
 
   for ext in EXTENSIONS.iter() {
-    // Skip if the path already ends with this extension (we already checked it above)
+    // Skip if the path already ends with this extension (we already checked it
+    // above)
     if path_str.ends_with(ext) {
       continue;
     }
@@ -480,7 +505,8 @@ fn try_resolve_with_extensions(base_path: &Path) -> Option<PathBuf> {
         .iter()
         .any(|e| e.ends_with(existing_ext_str.as_ref()))
       {
-        // Already has a valid extension and was checked above; no further resolution possible
+        // Already has a valid extension and was checked above; no further resolution
+        // possible
         return None;
       } else {
         // Has a partial extension like .stylex, append the new extension

@@ -1,8 +1,11 @@
-//! Tests for StyleXStateOptions default values and From<StyleXOptions> conversion.
+//! Tests for StyleXStateOptions default values and From<StyleXOptions>
+//! conversion.
 
-use crate::named_import_source::{NamedImportSource, RuntimeInjection, RuntimeInjectionState};
-use crate::stylex_options::{CheckModuleResolution, StyleXOptions};
-use crate::stylex_state_options::*;
+use crate::{
+  named_import_source::{NamedImportSource, RuntimeInjection, RuntimeInjectionState},
+  stylex_options::{CheckModuleResolution, StyleXOptions},
+  stylex_state_options::*,
+};
 
 #[test]
 fn stylex_state_options_default() {

@@ -93,7 +93,8 @@ stylex_test!(
   "#
 );
 
-// sx={[styles.a, styles.b]} — array syntax maps to stylex.props(styles.a, styles.b)
+// sx={[styles.a, styles.b]} — array syntax maps to stylex.props(styles.a,
+// styles.b)
 stylex_test!(
   sx_attr_array_syntax,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
@@ -133,7 +134,8 @@ stylex_test!(
   "#
 );
 
-// Compiled JSX form with array: _jsx("div", { sx: [styles.card, styles.blueBg] })
+// Compiled JSX form with array: _jsx("div", { sx: [styles.card, styles.blueBg]
+// })
 stylex_test!(
   sx_attr_compiled_jsx_form_array_syntax,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
@@ -202,7 +204,8 @@ stylex_test!(
   "#
 );
 
-// Solid.js: _$setAttribute(el, "sx", value) → _$spread(el, _$mergeProps(() => stylex.props(value)), false, true)
+// Solid.js: _$setAttribute(el, "sx", value) → _$spread(el, _$mergeProps(() =>
+// stylex.props(value)), false, true)
 stylex_test!(
   sx_attr_solid_js_set_attribute,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

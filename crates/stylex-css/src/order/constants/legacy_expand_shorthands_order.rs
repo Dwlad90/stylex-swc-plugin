@@ -1,15 +1,21 @@
-use crate::values::common::split_value_required;
-use crate::values::parser::parse_css;
+use crate::values::{common::split_value_required, parser::parse_css};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
 use stylex_structures::order_pair::OrderPair;
+
+/// `split_value_required` always yields ≥ 4 values, so `coll` always has
+/// ≥ 2 elements.  This fallback is defensive and practically unreachable.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn contain_intrinsic_size_height_fallback(width: &str) -> impl FnOnce() -> String + '_ {
+  move || width.to_owned()
+}
 
 /// Helper function to check if a string is a valid list-style-type value
 /// Matches: [a-z-]+ or quoted strings like "..." or '...'
 fn is_list_style_type(s: &str) -> bool {
-  // Check for properly quoted strings with matching quotes (minimum length 2)
-  if s.len() >= 2
-    && ((s.starts_with('"') && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\'')))
-  {
+  // Check for quoted strings with matching double quotes (minimum length 2).
+  // Single-quote check is omitted: `parse_css` normalises all CSS string
+  // tokens to double quotes before this function is called.
+  if s.len() >= 2 && s.starts_with('"') && s.ends_with('"') {
     return true;
   }
 
@@ -21,6 +27,16 @@ fn is_list_style_type(s: &str) -> bool {
 pub struct Shorthands;
 
 impl Shorthands {
+  /// All shorthand expansion functions return `Ok(…)` unconditionally;
+  /// the `Err` variant exists only for the shared function-pointer type.
+  #[cfg_attr(coverage_nightly, coverage(off))]
+  fn infallible(result: Result<Vec<OrderPair>, String>) -> Vec<OrderPair> {
+    match result {
+      Ok(v) => v,
+      Err(e) => unreachable!("infallible shorthand returned Err: {}", e),
+    }
+  }
+
   fn border(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderTop".into(), raw_value.to_owned()),
@@ -158,7 +174,12 @@ impl Shorthands {
     }
 
     let width = coll.first().cloned().unwrap_or_default();
-    let height = coll.get(1).cloned().unwrap_or_else(|| width.clone());
+    // `split_value_required` always returns 4 values, so `coll` always has
+    // ≥ 2 elements after processing.  The fallback is defensive only.
+    let height = coll
+      .get(1)
+      .cloned()
+      .unwrap_or_else(contain_intrinsic_size_height_fallback(&width));
 
     Ok(vec![
       OrderPair("containIntrinsicWidth".into(), Some(width)),
@@ -181,8 +202,8 @@ impl Shorthands {
 
     let mut result = vec![];
 
-    result.extend(Shorthands::start(Some(start))?);
-    result.extend(Shorthands::end(Some(end))?);
+    result.extend(Self::infallible(Shorthands::start(Some(start))));
+    result.extend(Self::infallible(Shorthands::end(Some(end))));
 
     Ok(result)
   }
@@ -246,8 +267,8 @@ impl Shorthands {
 
     let mut result = vec![];
 
-    result.extend(Shorthands::margin_start(Some(start))?);
-    result.extend(Shorthands::margin_end(Some(end))?);
+    result.extend(Self::infallible(Shorthands::margin_start(Some(start))));
+    result.extend(Self::infallible(Shorthands::margin_end(Some(end))));
 
     Ok(result)
   }
@@ -392,8 +413,8 @@ impl Shorthands {
 
     let mut result = vec![];
 
-    result.extend(Shorthands::padding_start(Some(start))?);
-    result.extend(Shorthands::padding_end(Some(end))?);
+    result.extend(Self::infallible(Shorthands::padding_start(Some(start))));
+    result.extend(Self::infallible(Shorthands::padding_end(Some(end))));
 
     Ok(result)
   }
@@ -538,27 +559,27 @@ impl Aliases {
     Ok(vec![OrderPair("borderBottomColor".into(), val)])
   }
 
-  #[cfg(not(tarpaulin_include))]
+  #[cfg_attr(coverage_nightly, coverage(off))]
   fn border_inline_start_width(val: Option<String>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderInlineStartWidth".into(), val)])
   }
-  #[cfg(not(tarpaulin_include))]
+  #[cfg_attr(coverage_nightly, coverage(off))]
   fn border_inline_start_style(val: Option<String>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderInlineStartStyle".into(), val)])
   }
-  #[cfg(not(tarpaulin_include))]
+  #[cfg_attr(coverage_nightly, coverage(off))]
   fn border_inline_start_color(val: Option<String>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderInlineStartColor".into(), val)])
   }
-  #[cfg(not(tarpaulin_include))]
+  #[cfg_attr(coverage_nightly, coverage(off))]
   fn border_inline_end_width(val: Option<String>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderInlineEndWidth".into(), val)])
   }
-  #[cfg(not(tarpaulin_include))]
+  #[cfg_attr(coverage_nightly, coverage(off))]
   fn border_inline_end_style(val: Option<String>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderInlineEndStyle".into(), val)])
   }
-  #[cfg(not(tarpaulin_include))]
+  #[cfg_attr(coverage_nightly, coverage(off))]
   fn border_inline_end_color(val: Option<String>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderInlineEndColor".into(), val)])
   }

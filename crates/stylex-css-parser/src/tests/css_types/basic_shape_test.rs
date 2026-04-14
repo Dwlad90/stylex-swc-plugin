@@ -6,10 +6,12 @@ Test CSS Type: <basic-shape>
 Tests parsing of inset(), circle(), ellipse(), polygon(), and path() functions.
 */
 
-use crate::css_types::basic_shape::{BasicShape, CircleRadius};
-use crate::css_types::common_types::Percentage;
-use crate::css_types::length::Length;
-use crate::css_types::length_percentage::LengthPercentage;
+use crate::css_types::{
+  basic_shape::{BasicShape, CircleRadius},
+  common_types::Percentage,
+  length::Length,
+  length_percentage::LengthPercentage,
+};
 
 #[cfg(test)]
 mod test_css_type_basic_shape {

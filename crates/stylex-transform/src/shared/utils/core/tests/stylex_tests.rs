@@ -13,13 +13,19 @@ mod tests {
     },
   };
 
-  use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-  use crate::shared::utils::ast::convertors::{convert_lit_to_string, create_string_expr};
-  use crate::shared::utils::core::attrs::attrs;
-  use crate::shared::utils::core::js_to_expr::NestedStringObject;
-  use crate::shared::utils::core::parse_nullable_style::{ResolvedArg, StyleObject};
-  use crate::shared::utils::core::props::props;
-  use crate::shared::utils::core::stylex::stylex;
+  use crate::shared::{
+    enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
+    utils::{
+      ast::convertors::{convert_lit_to_string, create_string_expr},
+      core::{
+        attrs::attrs,
+        js_to_expr::NestedStringObject,
+        parse_nullable_style::{ResolvedArg, StyleObject},
+        props::props,
+        stylex::stylex,
+      },
+    },
+  };
   use stylex_ast::ast::factories::create_ident;
 
   fn create_style_object_args(args: &[&[(&str, FlatCompiledStylesValue)]]) -> Vec<ResolvedArg> {

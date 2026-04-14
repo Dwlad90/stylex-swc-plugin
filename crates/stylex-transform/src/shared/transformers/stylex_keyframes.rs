@@ -4,35 +4,35 @@ use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
-use crate::shared::structures::functions::{FunctionConfig, FunctionMap, FunctionType};
-use crate::shared::structures::pre_rule::PreRuleValue;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::types::FlatCompiledStyles;
-use crate::shared::utils::ast::convertors::{
-  convert_expr_to_str, convert_key_value_to_str, create_string_expr,
-};
-use crate::shared::utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
-use crate::shared::utils::css::common::transform_value_cached;
-use crate::shared::utils::object::{
-  Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_string,
-};
 use crate::shared::{
-  enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  utils::common::downcast_style_options_to_state_manager,
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
+  },
+  structures::{
+    functions::{FunctionConfig, FunctionMap, FunctionType},
+    pre_rule::PreRuleValue,
+    state_manager::StateManager,
+    types::FlatCompiledStyles,
+  },
+  utils::{
+    ast::convertors::{convert_expr_to_str, convert_key_value_to_str, create_string_expr},
+    common::downcast_style_options_to_state_manager,
+    core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
+    css::common::transform_value_cached,
+    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_string},
+  },
 };
 use stylex_constants::constants::messages::{
   ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
 };
-use stylex_css::css::generate_ltr::generate_ltr;
-use stylex_css::css::generate_rtl::generate_rtl;
-use stylex_structures::order_pair::OrderPair;
-use stylex_structures::pair::Pair;
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-use stylex_types::structures::injectable_style::InjectableStyle;
-use stylex_utils::hash::create_hash;
-use stylex_utils::string::dashify;
+use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
+use stylex_structures::{order_pair::OrderPair, pair::Pair};
+use stylex_types::{
+  enums::data_structures::injectable_style::InjectableStyleKind,
+  structures::injectable_style::InjectableStyle,
+};
+use stylex_utils::{hash::create_hash, string::dashify};
 
 pub(crate) fn stylex_keyframes(
   frames: &EvaluateResultValue,
@@ -45,7 +45,7 @@ pub(crate) fn stylex_keyframes(
   }
 
   let Some(frames) = frames.as_expr().and_then(|expr| expr.as_object()) else {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
     }
@@ -53,7 +53,7 @@ pub(crate) fn stylex_keyframes(
 
   let expanded_object = obj_map(ObjMapType::Object(frames.clone()), state, |frame, state| {
     let Some((_, frame, _)) = frame.as_tuple() else {
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       {
         stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
       }
@@ -73,7 +73,7 @@ pub(crate) fn stylex_keyframes(
                 transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
               )))
             },
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
           },
         )
@@ -95,7 +95,7 @@ pub(crate) fn stylex_keyframes(
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         {
           stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
         }
@@ -115,7 +115,7 @@ pub(crate) fn stylex_keyframes(
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         {
           stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
         }
@@ -137,7 +137,7 @@ pub(crate) fn stylex_keyframes(
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         {
           stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
         }
@@ -156,8 +156,8 @@ pub(crate) fn stylex_keyframes(
   let rtl_string = construct_keyframes_obj(&rtl_styles);
   let stable_string = construct_keyframes_obj(&stable_styles);
 
-  // NOTE: Use a direction-agnostic hash to keep LTR/RTL classnames stable across builds.
-  // NOTE: '<>' and '-B' is used to keep existing hashes stable.
+  // NOTE: Use a direction-agnostic hash to keep LTR/RTL classnames stable across
+  // builds. NOTE: '<>' and '-B' is used to keep existing hashes stable.
   // TODO: They should be removed in a future version.
   let animation_name = format!(
     "{}{}-B",
@@ -198,7 +198,7 @@ fn construct_keyframes_obj(frames: &FlatCompiledStyles) -> String {
           })
           .collect::<Vec<String>>()
           .join(""),
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_panic!("Value must be a key value pair array"),
       };
 
@@ -215,7 +215,7 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
       let key = convert_key_value_to_str(pair);
       let value = match convert_expr_to_str(pair.value.as_ref(), state, &FunctionMap::default()) {
         Some(v) => v,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
       };
 

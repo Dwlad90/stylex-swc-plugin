@@ -3,9 +3,13 @@ use std::{path::Path, rc::Rc};
 use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
 
-use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::types::{FlatCompiledStyles, StylesObjectMap};
+use crate::shared::{
+  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
+  structures::{
+    state_manager::StateManager,
+    types::{FlatCompiledStyles, StylesObjectMap},
+  },
+};
 use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_regex::regex::SANITIZE_CLASS_NAME_REGEX;
 

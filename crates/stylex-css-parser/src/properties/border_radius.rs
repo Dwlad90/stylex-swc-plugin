@@ -12,7 +12,8 @@ use crate::{
 };
 use std::fmt::{self, Display};
 
-/// Individual border radius value (can have different horizontal and vertical values)
+/// Individual border radius value (can have different horizontal and vertical
+/// values)
 #[derive(Debug, Clone, PartialEq)]
 pub struct BorderRadiusIndividual {
   pub horizontal: LengthPercentage,
@@ -54,7 +55,7 @@ impl BorderRadiusIndividual {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for BorderRadiusIndividual {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let horizontal = self.horizontal.to_string();
@@ -322,7 +323,7 @@ impl BorderRadiusShorthand {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for BorderRadiusShorthand {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.to_shortest_string())

@@ -1,5 +1,4 @@
-use crate::utils::prelude::*;
-use crate::utils::transform::stringify_js;
+use crate::utils::{prelude::*, transform::stringify_js};
 use std::path::PathBuf;
 use swc_core::common::FileName;
 

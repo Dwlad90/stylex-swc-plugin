@@ -1,5 +1,6 @@
-//! Tests for panic_macros helper functions: `stylex_err` and `stylex_err_with_file`.
-//! These constructors create StyleXError instances with different levels of context.
+//! Tests for panic_macros helper functions: `stylex_err` and
+//! `stylex_err_with_file`. These constructors create StyleXError instances with
+//! different levels of context.
 
 use crate::panic_macros::{stylex_err, stylex_err_with_file};
 

@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod unprefixed_custom_properties_tests {
-  use crate::css::common::swc_parse_css;
-  use crate::css::validators::unprefixed_custom_properties::unprefixed_custom_properties_validator;
+  use crate::css::{
+    common::swc_parse_css,
+    validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
+  };
 
   #[test]
   fn accepts_prefixed_custom_property() {

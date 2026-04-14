@@ -4,16 +4,19 @@ use indexmap::IndexMap;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, MemberProp, ObjectLit};
 
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-use crate::shared::structures::functions::FunctionMap;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::types::FlatCompiledStyles;
-use crate::shared::utils::ast::convertors::{
-  convert_expr_to_bool, convert_expr_to_str, convert_key_value_to_str, convert_lit_to_string,
+use crate::shared::{
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
+  },
+  structures::{functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles},
+  utils::{
+    ast::convertors::{
+      convert_expr_to_bool, convert_expr_to_str, convert_key_value_to_str, convert_lit_to_string,
+    },
+    common::reduce_ident_count,
+    js::evaluate::evaluate,
+  },
 };
-use crate::shared::utils::common::reduce_ident_count;
-use crate::shared::utils::js::evaluate::evaluate;
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum StyleObject {
@@ -65,7 +68,8 @@ impl ResolvedArg {
     ResolvedArg::StyleObject(style_obj, idents, Vec::default())
   }
 
-  /// Creates a `ResolvedArg::StyleObject` with both identifier and member tracking.
+  /// Creates a `ResolvedArg::StyleObject` with both identifier and member
+  /// tracking.
   ///
   /// # Arguments
   /// * `style_obj` - The resolved style object
@@ -208,7 +212,7 @@ fn parse_compiled_styles(
           Some(EvaluateResultValue::Vec(arr)) => {
             parse_compiled_styles(compiled_styles, &EvaluateResultValue::Vec(arr.clone()));
           },
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           _ => {
             stylex_unimplemented!(
               "Encountered an unsupported evaluation result while parsing a nullable style array."
@@ -230,7 +234,7 @@ fn parse_compiled_styles(
     EvaluateResultValue::ThemeRef(_) => {
       return Some(StyleObject::Other);
     },
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => {
       stylex_unimplemented!(
         "Encountered an unsupported evaluation result while parsing a nullable style."
@@ -252,7 +256,7 @@ fn parse_nullable_object(
           match key_value.value.as_ref() {
             Expr::Lit(lit) => parse_nullable_key_value(compiled_styles, key, lit),
 
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             _ => {
               stylex_unimplemented!(
                 "Encountered an unsupported expression type while parsing a nullable style array."
@@ -262,7 +266,7 @@ fn parse_nullable_object(
         }
       }
     },
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => {
       stylex_unimplemented!(
         "Encountered an unsupported expression type while parsing a nullable style array."
@@ -280,7 +284,7 @@ fn parse_nullable_key_value(
     Lit::Str(_) => {
       let value = match convert_lit_to_string(lit) {
         Some(s) => s,
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("Failed to convert literal value to string in style parsing."),
       };
 
@@ -293,7 +297,7 @@ fn parse_nullable_key_value(
     Lit::Null(_) => {
       compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::Null));
     },
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => {
       stylex_panic!("Unhandled literal type in nullable style parsing array");
     },

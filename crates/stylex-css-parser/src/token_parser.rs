@@ -21,10 +21,13 @@ use crate::{
   CssParseError,
   token_types::{SimpleToken, TokenList},
 };
-use std::fmt::{Debug, Display};
-use std::rc::Rc;
+use std::{
+  fmt::{Debug, Display},
+  rc::Rc,
+};
 
-/// Provides: TokenParser.tokens.Ident, TokenParser.tokens.Whitespace.optional, etc.
+/// Provides: TokenParser.tokens.Ident, TokenParser.tokens.Whitespace.optional,
+/// etc.
 pub mod tokens {
   use super::*;
 
@@ -549,8 +552,9 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
     SequenceParsers::new(parsers)
   }
 
-  /// Enhanced sequence parser that can handle mixed optional/required parsers with separators
-  /// This method takes a vector of Either<parser, optional_parser> to distinguish behavior
+  /// Enhanced sequence parser that can handle mixed optional/required parsers
+  /// with separators This method takes a vector of Either<parser,
+  /// optional_parser> to distinguish behavior
   pub fn flexible_sequence_separated_by<U: Clone + Debug + 'static, S: Clone + Debug + 'static>(
     parsers: Vec<Either<TokenParser<U>, TokenParser<Option<U>>>>,
     separator: TokenParser<S>,
@@ -900,7 +904,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl<T: Clone + Debug> Display for TokenParser<T> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "{}", self.label)
@@ -976,7 +980,7 @@ pub struct TokenZeroOrMoreParsers<T: Clone + Debug> {
   separator: Option<TokenParser<()>>,
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl<T: Clone + Debug + 'static> TokenZeroOrMoreParsers<T> {
   pub fn new(parser: TokenParser<T>, separator: Option<TokenParser<()>>) -> Self {
     Self { parser, separator }
@@ -1248,8 +1252,9 @@ impl<T: Clone + Debug + 'static> SequenceParsers<T> {
   }
 
   /// Parse a sequence with separators (like whitespace between elements)
-  /// Enhanced to handle optional parsers intelligently - when an optional parser
-  /// doesn't match, the separator is not consumed and parsing continues
+  /// Enhanced to handle optional parsers intelligently - when an optional
+  /// parser doesn't match, the separator is not consumed and parsing
+  /// continues
   pub fn separated_by<S: Clone + Debug + 'static>(
     self,
     separator: TokenParser<S>,
@@ -1283,7 +1288,8 @@ impl<T: Clone + Debug + 'static> SequenceParsers<T> {
                   match (parser.run)(tokens) {
                     Ok(value) => {
                       results.push(value);
-                      // Continue - this handles cases where separator was optional
+                      // Continue - this handles cases where separator was
+                      // optional
                     },
                     Err(e) => {
                       // Both attempts failed - this is a real error
@@ -1322,7 +1328,7 @@ impl<T: Clone + Debug + 'static> SequenceParsers<T> {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl<T: Clone + Debug + 'static> TokenOneOrMoreParsers<T> {
   pub fn new(parser: TokenParser<T>, separator: Option<TokenParser<()>>) -> Self {
     Self { parser, separator }
@@ -1384,10 +1390,8 @@ impl<T: Clone + Debug + 'static> TokenOneOrMoreParsers<T> {
 }
 
 /// Tokens API providing access to all basic token parsers
-#[cfg(not(tarpaulin_include))]
 pub struct Tokens;
 
-#[cfg(not(tarpaulin_include))]
 impl Tokens {
   /// Parse an identifier token
   pub fn ident() -> TokenParser<SimpleToken> {
@@ -1497,7 +1501,8 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
   }
 
   /// Create a helper for mixed sequence parsing
-  /// Usage: TokenParser::mixed_sequence([Left(foo), Right(bar.optional()), Left(baz)]).separated_by(whitespace)
+  /// Usage: TokenParser::mixed_sequence([Left(foo), Right(bar.optional()),
+  /// Left(baz)]).separated_by(whitespace)
   pub fn mixed_sequence<U: Clone + Debug + 'static>(
     parsers: Vec<Either<TokenParser<U>, TokenParser<Option<U>>>>,
   ) -> MixedSequenceBuilder<U> {
@@ -1506,12 +1511,10 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
 }
 
 /// Builder for mixed sequences that can handle optional parsers intelligently
-#[cfg(not(tarpaulin_include))]
 pub struct MixedSequenceBuilder<T: Clone + Debug + 'static> {
   parsers: Vec<Either<TokenParser<T>, TokenParser<Option<T>>>>,
 }
 
-#[cfg(not(tarpaulin_include))]
 impl<T: Clone + Debug + 'static> MixedSequenceBuilder<T> {
   pub fn new(parsers: Vec<Either<TokenParser<T>, TokenParser<Option<T>>>>) -> Self {
     Self { parsers }

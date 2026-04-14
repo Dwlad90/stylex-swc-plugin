@@ -11,28 +11,36 @@ use swc_core::{
   },
 };
 
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-use crate::shared::structures::evaluate_result::EvaluateResult;
-use crate::shared::structures::functions::FunctionMap;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::types::{DynamicFns, TInlineStyles};
-use crate::shared::utils::ast::convertors::{
-  convert_expr_to_str, create_ident_expr, create_null_expr, create_string_expr,
-  expand_shorthand_prop,
+use crate::shared::{
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  structures::{
+    evaluate_result::EvaluateResult,
+    functions::FunctionMap,
+    state_manager::StateManager,
+    types::{DynamicFns, TInlineStyles},
+  },
+  utils::{
+    ast::convertors::{
+      convert_expr_to_str, create_ident_expr, create_null_expr, create_string_expr,
+      expand_shorthand_prop,
+    },
+    common::normalize_expr,
+    css::common::get_number_suffix,
+    js::evaluate::{evaluate, evaluate_obj_key},
+    validators::validate_dynamic_style_params,
+  },
 };
-use crate::shared::utils::common::normalize_expr;
-use crate::shared::utils::css::common::get_number_suffix;
-use crate::shared::utils::js::evaluate::{evaluate, evaluate_obj_key};
-use crate::shared::utils::validators::validate_dynamic_style_params;
 use stylex_ast::ast::factories::{
   create_expr_or_spread, create_key_value_prop, create_object_expression,
 };
-use stylex_constants::constants::length_units::LENGTH_UNITS;
-use stylex_constants::constants::messages::ILLEGAL_NAMESPACE_VALUE;
-use stylex_constants::constants::messages::{
-  EVAL_RESULT_EXPECTED, KEY_MUST_EVAL_TO_STRING, SPREAD_NOT_SUPPORTED, VALUE_NOT_EXPRESSION,
+use stylex_constants::constants::{
+  length_units::LENGTH_UNITS,
+  messages::{
+    EVAL_RESULT_EXPECTED, ILLEGAL_NAMESPACE_VALUE, KEY_MUST_EVAL_TO_STRING, SPREAD_NOT_SUPPORTED,
+    VALUE_NOT_EXPRESSION,
+  },
+  time_units::get_time_units,
 };
-use stylex_constants::constants::time_units::get_time_units;
 use stylex_structures::inline_style::InlineStyle;
 use stylex_utils::hash::create_hash;
 
@@ -54,7 +62,7 @@ pub fn evaluate_stylex_create_arg(
 
       for prop in &style_object.props {
         match prop {
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
           PropOrSpread::Prop(prop) => {
             let mut prop = prop.clone();
@@ -78,12 +86,12 @@ pub fn evaluate_stylex_create_arg(
 
                 let key = match key_result.value.as_ref() {
                   Some(val) => val,
-                  #[cfg(not(tarpaulin_include))]
+                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
                 };
                 let key_expr = match key.as_expr() {
                   Some(expr) => expr,
-                  #[cfg(not(tarpaulin_include))]
+                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!("Expected an expression from evaluation result."),
                 };
                 let value_path = &mut key_value_prop.value;
@@ -133,7 +141,7 @@ pub fn evaluate_stylex_create_arg(
                             .and_then(|expr| expr.as_object())
                           {
                             Some(obj) => obj,
-                            #[cfg(not(tarpaulin_include))]
+                            #[cfg_attr(coverage_nightly, coverage(off))]
                             None => stylex_panic!(
                               "Expected an object value in style evaluation, but received a different type."
                             ),
@@ -142,7 +150,7 @@ pub fn evaluate_stylex_create_arg(
                           let key = match convert_expr_to_str(key_expr, traversal_state, functions)
                           {
                             Some(k) => k,
-                            #[cfg(not(tarpaulin_include))]
+                            #[cfg_attr(coverage_nightly, coverage(off))]
                             None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
                           };
 
@@ -191,7 +199,7 @@ pub fn evaluate_stylex_create_arg(
 
                     let value_to_insert = match match val.value.as_ref() {
                       Some(v) => v,
-                      #[cfg(not(tarpaulin_include))]
+                      #[cfg_attr(coverage_nightly, coverage(off))]
                       None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
                     } {
                       EvaluateResultValue::Expr(Expr::Object(obj_expr)) => obj_expr
@@ -200,7 +208,7 @@ pub fn evaluate_stylex_create_arg(
                         .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
                         .cloned()
                         .collect::<Vec<_>>(),
-                      #[cfg(not(tarpaulin_include))]
+                      #[cfg_attr(coverage_nightly, coverage(off))]
                       _ => stylex_panic!("{}", ILLEGAL_NAMESPACE_VALUE),
                     };
 
@@ -248,7 +256,7 @@ fn evaluate_partial_object_recursively(
         if !result.confident {
           return result;
         }
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         {
           stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED);
         }
@@ -275,20 +283,21 @@ fn evaluate_partial_object_recursively(
 
             let key = match key_result.value.as_ref().and_then(|v| v.as_expr()) {
               Some(expr) => expr,
-              #[cfg(not(tarpaulin_include))]
+              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
             };
 
             let mut key_str = match convert_expr_to_str(key, traversal_state, functions) {
               Some(s) => s,
-              #[cfg(not(tarpaulin_include))]
+              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("{}", KEY_MUST_EVAL_TO_STRING),
             };
 
             if key_str.starts_with("var(") && key_str.ends_with(')') {
               let inner = key_str[4..key_str.len() - 1].to_string();
 
-              // When the `key_path` is not empty, the var(--hash) is a `defineConsts` at-rule placeholder and must be kept intact.
+              // When the `key_path` is not empty, the var(--hash) is a `defineConsts` at-rule
+              // placeholder and must be kept intact.
               if key_path.is_empty() {
                 key_str = inner;
               }
@@ -323,7 +332,7 @@ fn evaluate_partial_object_recursively(
                   &key_str,
                   match result.value.and_then(|v| v.as_expr().cloned()) {
                     Some(expr) => expr,
-                    #[cfg(not(tarpaulin_include))]
+                    #[cfg_attr(coverage_nightly, coverage(off))]
                     None => stylex_panic!("{}", VALUE_NOT_EXPRESSION),
                   },
                 );
@@ -451,7 +460,7 @@ fn evaluate_partial_object_recursively(
                     &key_str,
                     match result.value.and_then(|v| v.as_expr().cloned()) {
                       Some(expr) => expr,
-                      #[cfg(not(tarpaulin_include))]
+                      #[cfg_attr(coverage_nightly, coverage(off))]
                       None => stylex_panic!("{}", VALUE_NOT_EXPRESSION),
                     },
                   );

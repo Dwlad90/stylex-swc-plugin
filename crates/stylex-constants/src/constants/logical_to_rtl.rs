@@ -1,6 +1,7 @@
 use phf::phf_map;
 
-// These properties are kept for a polyfill that is only used with `legacy-expand-shorthands`
+// These properties are kept for a polyfill that is only used with
+// `legacy-expand-shorthands`
 pub static LOGICAL_TO_RTL: phf::Map<&'static str, &'static str> = phf_map! {
     "margin-start" => "margin-right",
     "margin-end" => "margin-left",

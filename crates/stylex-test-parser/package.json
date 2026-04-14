@@ -29,7 +29,7 @@
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
     "start": "./dist/test-parser",
-    "test": "NODE_ENV=test cargo test --bins --tests",
+    "test": "NODE_ENV=test cargo nextest run --all-features",
     "test:coverage": "scripty",
     "test:flamegraph": "scripty"
   },

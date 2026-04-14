@@ -3,14 +3,15 @@ use std::fmt::Debug;
 use indexmap::IndexMap;
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::utils::common::type_of;
-use crate::shared::utils::core::convert_style_to_class_name::convert_style_to_class_name;
+use crate::shared::utils::{
+  common::type_of, core::convert_style_to_class_name::convert_style_to_class_name,
+};
 use stylex_css::utils::pre_rule::{sort_at_rules, sort_pseudos};
 
-use super::null_pre_rule::NullPreRule;
-use super::pre_rule_set::PreRuleSet;
-use super::state_manager::StateManager;
-use super::types::ClassesToOriginalPaths;
+use super::{
+  null_pre_rule::NullPreRule, pre_rule_set::PreRuleSet, state_manager::StateManager,
+  types::ClassesToOriginalPaths,
+};
 use stylex_types::structures::injectable_style::InjectableStyle;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -127,7 +128,7 @@ impl StylesPreRule {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl PreRule for StylesPreRule {
   fn get_value(&self) -> Option<PreRuleValue> {
     Some(self.value.to_owned())

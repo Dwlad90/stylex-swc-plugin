@@ -25,7 +25,7 @@ pub struct StyleXError {
   pub source_location: Option<String>,
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl fmt::Display for StyleXError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     // Colored [StyleX] prefix
@@ -69,7 +69,8 @@ impl fmt::Display for StyleXError {
 
 impl std::error::Error for StyleXError {}
 
-/// Returns `true` while a [`SuppressPanicStderr`] guard is alive on this thread.
+/// Returns `true` while a [`SuppressPanicStderr`] guard is alive on this
+/// thread.
 ///
 /// Used by the custom panic hook installed in `logger::initialize()` to avoid
 /// printing anything when a panic is caught by `std::panic::catch_unwind`.

@@ -20,7 +20,7 @@ pub struct Fraction {
   pub denominator: i32,
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Fraction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     // Format with spaces for consistent output
@@ -37,7 +37,7 @@ pub enum WordRule {
   ColorIndex,
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for WordRule {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -58,7 +58,7 @@ pub enum MediaRuleValue {
   Fraction(Fraction),
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for MediaRuleValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -90,7 +90,7 @@ impl MediaKeyword {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for MediaKeyword {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let mut parts = Vec::new();
@@ -124,7 +124,7 @@ impl MediaWordRule {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for MediaWordRule {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "({})", self.key_value)
@@ -150,7 +150,7 @@ impl MediaRulePair {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for MediaRulePair {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "({}: {})", self.key, self.value)
@@ -174,7 +174,7 @@ impl MediaNotRule {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for MediaNotRule {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.rule.as_ref() {
@@ -204,7 +204,7 @@ impl MediaAndRules {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for MediaAndRules {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let rule_strings: Vec<String> = self.rules.iter().map(|rule| rule.to_string()).collect();
@@ -228,7 +228,7 @@ impl MediaOrRules {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for MediaOrRules {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let rule_strings: Vec<String> = self.rules.iter().map(|rule| rule.to_string()).collect();
@@ -338,15 +338,16 @@ impl MediaQuery {
 }
 
 /// Add Display implementation for MediaQueryRule
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for MediaQueryRule {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    // Use the format_queries logic instead of the individual Display implementations
+    // Use the format_queries logic instead of the individual Display
+    // implementations
     write!(f, "{}", MediaQuery::format_queries(self, false))
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for MediaQuery {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
@@ -358,7 +359,7 @@ impl Display for MediaQuery {
 }
 
 impl MediaQuery {
-  #[cfg(not(tarpaulin_include))]
+  #[cfg_attr(coverage_nightly, coverage(off))]
   fn format_queries(queries: &MediaQueryRule, is_top_level: bool) -> String {
     match queries {
       MediaQueryRule::MediaKeyword(keyword) => {
@@ -482,8 +483,9 @@ impl MediaQuery {
             });
           }
         } else {
-          // If no @media prefix, assume we're parsing just the query part (for backwards compatibility)
-          // This maintains compatibility with existing tests
+          // If no @media prefix, assume we're parsing just the query part (for
+          // backwards compatibility) This maintains compatibility
+          // with existing tests
         }
 
         let rule = (media_query_rule_parser().run)(tokens)?;
@@ -529,12 +531,12 @@ fn has_balanced_parens(input: &str) -> bool {
   count == 0
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn is_numeric_length(val: &MediaRuleValue) -> bool {
   matches!(val, MediaRuleValue::Length(_))
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
   match merge_intervals_for_and(rules.clone()) {
     Ok(merged) => {
@@ -549,7 +551,7 @@ fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> 
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryRule>, String> {
   const EPSILON: f32 = 0.01;
   let dimensions = ["width", "height"];
@@ -1533,13 +1535,15 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
 
       // Apply epsilon based on whether operators are strict or inclusive
       if let MediaRuleValue::Length(ref mut length) = min_value {
-        // For min_value: if either operator is strict and would create a greater-than constraint, add epsilon
+        // For min_value: if either operator is strict and would create a greater-than
+        // constraint, add epsilon
         if (_op1 == '<' && !_eq1) || (_op2 == '>' && !_eq2) {
           length.value += EPSILON; // width > min_value → min-width: min_value + epsilon
         }
       }
       if let MediaRuleValue::Length(ref mut length) = max_value {
-        // For max_value: if either operator is strict and would create a less-than constraint, subtract epsilon
+        // For max_value: if either operator is strict and would create a less-than
+        // constraint, subtract epsilon
         if (_op1 == '>' && !_eq1) || (_op2 == '<' && !_eq2) {
           length.value -= EPSILON; // width < max_value → max-width: max_value - epsilon
         }
@@ -1810,7 +1814,8 @@ fn normal_rule_parser() -> TokenParser<MediaQueryRule> {
 }
 
 /// Parse parenthesized expressions, including complex NOT expressions
-/// Handles: (not (max-width: 1024px)), ((min-width: 500px) and (max-width: 600px))
+/// Handles: (not (max-width: 1024px)), ((min-width: 500px) and (max-width:
+/// 600px))
 fn parenthesized_expression_parser() -> TokenParser<MediaQueryRule> {
   TokenParser::new(
     |tokens| {

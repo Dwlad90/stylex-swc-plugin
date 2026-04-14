@@ -1,15 +1,18 @@
-use std::collections::BTreeMap;
-use std::rc::Rc;
+use std::{collections::BTreeMap, rc::Rc};
 
 use indexmap::IndexMap;
 use log::error;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use std::{
+  collections::hash_map::DefaultHasher,
+  hash::{Hash, Hasher},
+};
 use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 
-use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-use crate::shared::structures::types::FlatCompiledStyles;
-use crate::shared::utils::core::parse_nullable_style::{ResolvedArg, StyleObject};
+use crate::shared::{
+  enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
+  structures::types::FlatCompiledStyles,
+  utils::core::parse_nullable_style::{ResolvedArg, StyleObject},
+};
 use stylex_constants::constants::common::COMPILED_KEY;
 
 pub(crate) struct StyleQResult {
@@ -110,7 +113,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
                     if !compiled_key_value_is_true {
                       let compiled_key_string_value = match compiled_key_value.as_ref() {
                         FlatCompiledStylesValue::String(strng) => strng.clone(),
-                        #[cfg(not(tarpaulin_include))]
+                        #[cfg_attr(coverage_nightly, coverage(off))]
                         other => {
                           let other_debug_info = format!("{:?}", other);
                           let variant_name =
@@ -187,7 +190,7 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
                 };
               }
             } else {
-              #[cfg(not(tarpaulin_include))]
+              #[cfg_attr(coverage_nightly, coverage(off))]
               {
                 stylex_panic!(
                   "styleq: {:#?} typeof {:?} is not \"string\" or \"null\".",
@@ -240,18 +243,18 @@ pub(crate) fn styleq(arguments: &[ResolvedArg]) -> StyleQResult {
           }
         },
         StyleObject::Nullable => {},
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         StyleObject::Other => {
           stylex_panic!("Only compiled StyleX style objects are allowed in styleq().")
         },
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         StyleObject::Unreachable => {
           stylex_unreachable!(
             "Encountered an unexpected style object variant in styleq processing."
           )
         },
       },
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => stylex_unreachable!("Unexpected ResolvedArg variant in styleq loop"),
     };
   }

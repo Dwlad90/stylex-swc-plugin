@@ -1,25 +1,29 @@
-use std::fmt::Write;
-use std::rc::Rc;
+use std::{fmt::Write, rc::Rc};
 
 use stylex_macros::stylex_panic;
 
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::types::FlatCompiledStyles;
-use crate::shared::utils::css::common::transform_value_cached;
-use crate::shared::utils::object::{
-  Pipe, obj_map, obj_map_keys_key_value, obj_map_keys_string, preprocess_object_properties,
+use crate::shared::{
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
+  },
+  structures::{state_manager::StateManager, types::FlatCompiledStyles},
+  utils::{
+    css::common::transform_value_cached,
+    object::{
+      Pipe, obj_map, obj_map_keys_key_value, obj_map_keys_string, preprocess_object_properties,
+    },
+  },
 };
 use stylex_constants::constants::messages::{
   ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
 };
 use stylex_structures::pair::Pair;
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-use stylex_types::structures::injectable_style::InjectableStyle;
-use stylex_utils::hash::create_hash;
-use stylex_utils::string::dashify;
+use stylex_types::{
+  enums::data_structures::injectable_style::InjectableStyleKind,
+  structures::injectable_style::InjectableStyle,
+};
+use stylex_utils::{hash::create_hash, string::dashify};
 
 pub(crate) fn stylex_view_transition_class(
   styles: &EvaluateResultValue,
@@ -32,14 +36,14 @@ pub(crate) fn stylex_view_transition_class(
   }
 
   let Some(styles) = styles.as_expr().and_then(|expr| expr.as_object()) else {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
     }
   };
   let preprocessed_object = obj_map(ObjMapType::Object(styles.clone()), state, |style, state| {
     let Some((_, style, _)) = style.as_tuple() else {
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       {
         stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
       }
@@ -56,7 +60,7 @@ pub(crate) fn stylex_view_transition_class(
             FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
               transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
             )),
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
           },
         )
@@ -115,7 +119,7 @@ fn construct_view_transition_class_style_str(
       Rc::new(FlatCompiledStylesValue::String(result_string))
     },
     FlatCompiledStylesValue::String(s) => Rc::new(FlatCompiledStylesValue::String(s.clone())),
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => stylex_panic!("Expected KeyValues"),
   }
 }
@@ -125,7 +129,7 @@ fn construct_final_view_transition_css_str(styles: FlatCompiledStyles, class_nam
   for (key, value) in styles.iter() {
     let style_str = match value.as_ref() {
       FlatCompiledStylesValue::String(s) => s,
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => stylex_panic!("{}", VALUE_MUST_BE_STRING),
     };
     let _ = write!(result, "{}(*.{}){{{}}}", key, class_name, style_str);
@@ -143,7 +147,7 @@ fn concat_view_transition_class_style_str(
     let style_str_val = construct_view_transition_class_style_str(Rc::clone(v), state);
     let style_str = match style_str_val.as_ref() {
       FlatCompiledStylesValue::String(s) => s,
-      #[cfg(not(tarpaulin_include))]
+      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => stylex_panic!("{}", VALUE_MUST_BE_STRING),
     };
     let _ = write!(result, "{}:{};", k, style_str);

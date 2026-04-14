@@ -385,4 +385,39 @@ mod generate_rtl_tests {
     let result = generate_rtl(&pair, &legacy_options());
     assert!(result.is_none());
   }
+
+  /// The `else { 1 }` branch in `flip_shadow` is taken when `parts[0]`
+  /// is NOT a CSS unit value (e.g. a keyword like "inset" or a color).
+  /// This exercises `index = 1` and flips `parts[1]` instead of `parts[0]`.
+  #[test]
+  fn box_shadow_keyword_first_part_uses_index_one() {
+    // "inset 3px 2px 4px #000" → parts[0] = "inset" (not a unit)
+    // → index = 1 → flip parts[1] = "3px" → "-3px"
+    let pair = Pair::new("box-shadow", "inset 3px 2px 4px #000");
+    let result = generate_rtl(&pair, &flipping_options());
+    assert!(result.is_some());
+    let rtl = result.unwrap();
+    assert!(
+      rtl.value.contains("-3px"),
+      "expected -3px in: {}",
+      rtl.value
+    );
+  }
+
+  /// When a comma-separated shadow segment has a single non-unit token
+  /// (e.g. just a color), `index = 1` but `parts.len() == 1`, so the
+  /// flip is skipped — exercising the `index >= parts.len()` false branch.
+  #[test]
+  fn box_shadow_single_color_segment_skips_flip() {
+    let pair = Pair::new("box-shadow", "3px 3px #000, #fff");
+    let result = generate_rtl(&pair, &flipping_options());
+    assert!(result.is_some());
+    let rtl = result.unwrap();
+    // The second segment "#fff" has only one non-unit token so it is unchanged
+    assert!(
+      rtl.value.contains("#fff"),
+      "expected #fff in: {}",
+      rtl.value
+    );
+  }
 }

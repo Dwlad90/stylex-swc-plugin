@@ -1,5 +1,7 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use std::{
+  collections::hash_map::DefaultHasher,
+  hash::{Hash, Hasher},
+};
 
 /// Hashes a float value by converting to its bit representation first.
 pub fn hash_f64(value: f64) -> u64 {

@@ -3,14 +3,19 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::Expr;
 
-  use crate::shared::structures::functions::FunctionMap;
-  use crate::shared::structures::null_pre_rule::NullPreRule;
-  use crate::shared::structures::pre_rule::{PreRuleValue, PreRules, StylesPreRule};
-  use crate::shared::structures::pre_rule_set::PreRuleSet;
-  use crate::shared::structures::state::EvaluationState;
-  use crate::shared::structures::state_manager::StateManager;
-  use crate::shared::utils::ast::convertors::create_string_expr;
-  use crate::shared::utils::core::flatten_raw_style_object::flatten_raw_style_object;
+  use crate::shared::{
+    structures::{
+      functions::FunctionMap,
+      null_pre_rule::NullPreRule,
+      pre_rule::{PreRuleValue, PreRules, StylesPreRule},
+      pre_rule_set::PreRuleSet,
+      state::EvaluationState,
+      state_manager::StateManager,
+    },
+    utils::{
+      ast::convertors::create_string_expr, core::flatten_raw_style_object::flatten_raw_style_object,
+    },
+  };
   use stylex_ast::ast::factories::{create_array, create_key_value_prop_ident};
   use stylex_enums::style_resolution::StyleResolution;
 

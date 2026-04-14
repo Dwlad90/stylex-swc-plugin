@@ -1,7 +1,5 @@
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::hash::Hash;
-use std::path::Path;
-use std::{option::Option, rc::Rc};
+use std::{hash::Hash, option::Option, path::Path, rc::Rc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
 use indexmap::{IndexMap, IndexSet};
@@ -14,52 +12,50 @@ use stylex_path_resolver::{
 };
 use swc_core::{
   atoms::Atom,
-  common::{DUMMY_SP, EqIgnoreSpan, FileName},
+  common::{DUMMY_SP, EqIgnoreSpan, FileName, SyntaxContext},
   ecma::{
-    ast::{JSXAttrOrSpread, Module, NamedExport, Program},
+    ast::{
+      CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier,
+      ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread, Module, ModuleDecl,
+      ModuleExportName, ModuleItem, NamedExport, Pat, Program, Stmt, Str, VarDecl, VarDeclKind,
+      VarDeclarator,
+    },
     utils::drop_span,
   },
 };
-use swc_core::{
-  common::SyntaxContext,
-  ecma::ast::{
-    CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier,
-    ImportNamedSpecifier, ImportPhase, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
-    Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+
+use crate::shared::{
+  structures::types::InjectableStylesMap,
+  utils::{
+    ast::convertors::create_number_expr,
+    common::{extract_filename_from_path, extract_filename_with_ext_from_path, extract_path},
   },
 };
-
-use crate::shared::structures::types::InjectableStylesMap;
-use crate::shared::utils::ast::convertors::create_number_expr;
-use crate::shared::utils::common::{
-  extract_filename_from_path, extract_filename_with_ext_from_path, extract_path,
-};
-use stylex_ast::ast::factories::create_binding_ident;
 use stylex_ast::ast::factories::{
-  create_expr_or_spread, create_key_value_prop, create_number_expr_or_spread,
+  create_binding_ident, create_expr_or_spread, create_key_value_prop, create_number_expr_or_spread,
   create_object_expression, create_string_expr_or_spread, create_string_key_value_prop,
 };
 use stylex_constants::constants::common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH};
-use stylex_enums::core::TransformationCycle;
-use stylex_enums::counter_mode::CounterMode;
-use stylex_enums::import_path_resolution::{ImportPathResolution, ImportPathResolutionType};
-use stylex_enums::top_level_expression::TopLevelExpressionKind;
-use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
-use stylex_structures::top_level_expression::TopLevelExpression;
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-use stylex_utils::hash::stable_hash;
-use stylex_utils::math::round_f64;
-
-use super::seen_value::SeenValue;
-use super::types::StylesObjectMap;
-use stylex_structures::named_import_source::{
-  ImportSources, NamedImportSource, RuntimeInjectionState,
+use stylex_enums::{
+  core::TransformationCycle,
+  counter_mode::CounterMode,
+  import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
+  top_level_expression::TopLevelExpressionKind,
 };
-use stylex_structures::plugin_pass::PluginPass;
-use stylex_structures::stylex_options::ModuleResolution;
-use stylex_structures::stylex_options::{CheckModuleResolution, StyleXOptions};
-use stylex_structures::stylex_state_options::StyleXStateOptions;
-use stylex_structures::uid_generator::UidGenerator;
+use stylex_structures::{
+  style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
+};
+use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+use stylex_utils::{hash::stable_hash, math::round_f64};
+
+use super::{seen_value::SeenValue, types::StylesObjectMap};
+use stylex_structures::{
+  named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState},
+  plugin_pass::PluginPass,
+  stylex_options::{CheckModuleResolution, ModuleResolution, StyleXOptions},
+  stylex_state_options::StyleXStateOptions,
+  uid_generator::UidGenerator,
+};
 use stylex_types::structures::meta_data::MetaData;
 
 static TRANSFORMED_VARS_FILE_EXTENSION: Lazy<&'static str> = Lazy::new(|| ".transformed");
@@ -261,8 +257,9 @@ impl StateManager {
       .any(|kind| self.has_stylex_api_import(*kind, sym))
   }
 
-  /// Applies the `env` configuration to the given identifiers and member_expressions maps.
-  /// This is the Rust equivalent of the JavaScript `applyStylexEnv` method.
+  /// Applies the `env` configuration to the given identifiers and
+  /// member_expressions maps. This is the Rust equivalent of the JavaScript
+  /// `applyStylexEnv` method.
   pub(crate) fn apply_stylex_env(
     &self,
     identifiers: &mut super::types::FunctionMapIdentifiers,

@@ -1,10 +1,7 @@
 //! Tests for AST convertor functions that transform between node types.
 
-use crate::ast::convertors::*;
-use crate::ast::factories::*;
-use swc_core::atoms::Wtf8Atom;
-use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::*;
+use crate::ast::{convertors::*, factories::*};
+use swc_core::{atoms::Wtf8Atom, common::DUMMY_SP, ecma::ast::*};
 
 #[test]
 fn convert_lit_to_number_bool_true() {
@@ -286,8 +283,10 @@ fn expand_shorthand_prop_noop_for_kv() {
 
 #[test]
 fn concat_call_to_template_literal_non_concat_returns_none() {
-  use swc_core::common::SyntaxContext;
-  use swc_core::ecma::ast::{Callee, MemberExpr, MemberProp};
+  use swc_core::{
+    common::SyntaxContext,
+    ecma::ast::{Callee, MemberExpr, MemberProp},
+  };
 
   let call = CallExpr {
     span: DUMMY_SP,
@@ -308,8 +307,10 @@ fn concat_call_to_template_literal_non_concat_returns_none() {
 
 #[test]
 fn convert_concat_to_tpl_expr_converts_concat_call() {
-  use swc_core::common::SyntaxContext;
-  use swc_core::ecma::ast::{Callee, MemberExpr, MemberProp};
+  use swc_core::{
+    common::SyntaxContext,
+    ecma::ast::{Callee, MemberExpr, MemberProp},
+  };
 
   let call = CallExpr {
     span: DUMMY_SP,

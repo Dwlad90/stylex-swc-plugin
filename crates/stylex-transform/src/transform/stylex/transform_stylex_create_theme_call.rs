@@ -7,23 +7,31 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::shared::structures::functions::FunctionConfigType;
-use crate::shared::structures::functions::FunctionMap;
-use crate::shared::structures::state_manager::ImportKind;
-use crate::shared::structures::types::FunctionMapIdentifiers;
-use crate::shared::structures::types::FunctionMapMemberExpression;
-use crate::shared::transformers::stylex_create_theme::stylex_create_theme;
-use crate::shared::transformers::stylex_keyframes::get_keyframes_fn;
-use crate::shared::transformers::stylex_types::get_types_fn;
-use crate::shared::utils::core::dev_class_name::convert_theme_to_dev_styles;
-use crate::shared::utils::core::dev_class_name::convert_theme_to_test_styles;
-use crate::shared::utils::core::js_to_expr::{NestedStringObject, convert_object_to_ast};
-use crate::shared::utils::js::evaluate::evaluate;
-use crate::shared::utils::log::build_code_frame_error::build_code_frame_error;
-use crate::shared::utils::validators::{
-  is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
+use crate::{
+  StyleXTransform,
+  shared::{
+    structures::{
+      functions::{FunctionConfigType, FunctionMap},
+      state_manager::ImportKind,
+      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+    },
+    transformers::{
+      stylex_create_theme::stylex_create_theme, stylex_keyframes::get_keyframes_fn,
+      stylex_position_try::get_position_try_fn, stylex_types::get_types_fn,
+    },
+    utils::{
+      core::{
+        dev_class_name::{convert_theme_to_dev_styles, convert_theme_to_test_styles},
+        js_to_expr::{NestedStringObject, convert_object_to_ast},
+      },
+      js::evaluate::evaluate,
+      log::build_code_frame_error::build_code_frame_error,
+      validators::{
+        is_create_theme_call, validate_stylex_create_theme_indent, validate_theme_variables,
+      },
+    },
+  },
 };
-use crate::{StyleXTransform, shared::transformers::stylex_position_try::get_position_try_fn};
 use stylex_constants::constants::messages::{non_static_value, non_style_object};
 
 impl<C> StyleXTransform<C>
@@ -39,7 +47,7 @@ where
       validate_stylex_create_theme_indent(parent_var_decl, call, &mut self.state);
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -48,7 +56,7 @@ where
         .args
         .get(1)
         .map(|second_arg| match &second_arg.spread {
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
           None => second_arg.expr.clone(),
         })?;
@@ -149,7 +157,7 @@ where
           validate_theme_variables(value, &self.state);
           value.clone()
         },
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "{}",
           build_code_frame_error(
@@ -182,7 +190,7 @@ where
           );
           value.clone()
         },
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "{}",
           build_code_frame_error(

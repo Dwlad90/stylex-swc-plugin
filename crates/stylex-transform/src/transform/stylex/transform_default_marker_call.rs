@@ -1,11 +1,18 @@
-use swc_core::ecma::ast::CallExpr;
-use swc_core::{common::comments::Comments, ecma::ast::Expr};
-
-use crate::shared::transformers::stylex_default_maker::stylex_default_marker;
-use crate::shared::utils::validators::{
-  is_default_marker_call, validate_stylex_default_marker_indent,
+use swc_core::{
+  common::comments::Comments,
+  ecma::ast::{CallExpr, Expr},
 };
-use crate::{StyleXTransform, shared::utils::core::js_to_expr::convert_object_to_ast};
+
+use crate::{
+  StyleXTransform,
+  shared::{
+    transformers::stylex_default_maker::stylex_default_marker,
+    utils::{
+      core::js_to_expr::convert_object_to_ast,
+      validators::{is_default_marker_call, validate_stylex_default_marker_indent},
+    },
+  },
+};
 
 impl<C> StyleXTransform<C>
 where

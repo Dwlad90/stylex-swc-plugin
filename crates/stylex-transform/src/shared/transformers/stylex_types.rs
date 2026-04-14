@@ -1,11 +1,12 @@
-use crate::shared::structures::base_css_type::BaseCSSType;
-use crate::shared::structures::functions::{FunctionConfig, FunctionType};
+use crate::shared::structures::{
+  base_css_type::BaseCSSType,
+  functions::{FunctionConfig, FunctionType},
+};
 use indexmap::IndexMap;
 use phf::phf_map;
 use std::rc::Rc;
 use stylex_ast::ast::factories::{create_object_expression, create_string_key_value_prop};
-use stylex_enums::css_syntax::CSSSyntax;
-use stylex_enums::value_with_default::ValueWithDefault;
+use stylex_enums::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault};
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::Expr;
 
@@ -460,7 +461,7 @@ pub(crate) fn get_types_fn() -> FunctionConfig {
     fn_ptr: FunctionType::StylexFnsFactory(
       |prop_name| -> Rc<dyn Fn(ValueWithDefault) -> Expr + 'static> {
         Rc::new(*FN_MAP.get(prop_name.as_str()).unwrap_or_else(|| {
-          #[cfg(not(tarpaulin_include))]
+          #[cfg_attr(coverage_nightly, coverage(off))]
           {
             stylex_panic!(r#"Function "{}" not found"#, prop_name)
           }

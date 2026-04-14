@@ -2,18 +2,24 @@ use std::rc::Rc;
 
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
-use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
-use crate::shared::enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue;
-use crate::shared::enums::data_structures::obj_map_type::ObjMapType;
-use crate::shared::structures::state_manager::StateManager;
-use crate::shared::structures::types::{FlatCompiledStyles, InjectableStylesMap};
-use crate::shared::utils::common::serialize_value_to_json_string;
-use crate::shared::utils::object::obj_map;
+use crate::shared::{
+  enums::data_structures::{
+    evaluate_result_value::EvaluateResultValue,
+    flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
+  },
+  structures::{
+    state_manager::StateManager,
+    types::{FlatCompiledStyles, InjectableStylesMap},
+  },
+  utils::{common::serialize_value_to_json_string, object::obj_map},
+};
 use stylex_constants::constants::messages::{
   EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT,
 };
-use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-use stylex_types::structures::injectable_style::InjectableConstStyle;
+use stylex_types::{
+  enums::data_structures::injectable_style::InjectableStyleKind,
+  structures::injectable_style::InjectableConstStyle,
+};
 use stylex_utils::hash::create_hash;
 
 pub(crate) fn stylex_define_consts(
@@ -21,7 +27,7 @@ pub(crate) fn stylex_define_consts(
   state: &mut StateManager,
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
   let Some(constants) = constants.as_expr().and_then(|expr| expr.as_object()) else {
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
     }
@@ -32,7 +38,7 @@ pub(crate) fn stylex_define_consts(
   let enable_debug_class_names = state.options.enable_debug_class_names;
   let export_id = match state.export_id.clone() {
     Some(id) => id,
-    #[cfg(not(tarpaulin_include))]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
   };
 
@@ -41,7 +47,7 @@ pub(crate) fn stylex_define_consts(
     state,
     |item, _| -> Rc<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         FlatCompiledStylesValue::InjectableStyle(_) => {
           stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
         },
@@ -51,7 +57,7 @@ pub(crate) fn stylex_define_consts(
 
           FlatCompiledStylesValue::String(serialized_value)
         },
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_unimplemented!(
           "FlatCompiledStylesValue variant not supported in stylex_define_consts"
         ),

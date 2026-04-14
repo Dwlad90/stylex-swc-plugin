@@ -63,6 +63,16 @@ fn test_validate_pseudo_selector_invalid_attribute_nested_bracket() {
   assert!(result.unwrap_err().contains("invalid format"));
 }
 
+/// `[a][b]` has two sequential bracket pairs.  The first `]` brings
+/// `bracket_count` to 0, then the second `[` increments it back to 1
+/// — exercising the `bracket_count <= 1` (false) branch of the
+/// `if bracket_count > 1` guard.
+#[test]
+fn test_validate_pseudo_selector_sequential_attribute_selectors() {
+  let result = validate_pseudo_selector("[a][b]");
+  assert!(result.is_ok());
+}
+
 #[test]
 fn test_ancestor_with_default_options() {
   let result = ancestor(":hover", None).unwrap();

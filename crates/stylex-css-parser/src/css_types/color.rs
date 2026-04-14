@@ -55,7 +55,8 @@ fn function_parser(name: &'static str) -> TokenParser<()> {
 pub struct AdvancedColorParsers;
 
 impl AdvancedColorParsers {
-  /// Implements: TokenParser.sequence(fn, r, comma, g, comma, b, closeParen).map(([_fn, r, _c, g, _c2, b, _cp]) => ...)
+  /// Implements: TokenParser.sequence(fn, r, comma, g, comma, b,
+  /// closeParen).map(([_fn, r, _c, g, _c2, b, _cp]) => ...)
   pub fn rgb_comma_full() -> TokenParser<(u8, u8, u8)> {
     function_parser("rgb")
       .flat_map(|_| rgb_number_parser(), Some("r"))
@@ -100,7 +101,8 @@ impl AdvancedColorParsers {
       )
   }
 
-  /// [_fn, r, _comma, g, _comma2, b, _comma3, a, _closeParen] => new Rgba(r, g, b, a)
+  /// [_fn, r, _comma, g, _comma2, b, _comma3, a, _closeParen] => new Rgba(r, g,
+  /// b, a)
   pub fn rgba_comma_full() -> TokenParser<(u8, u8, u8, f32)> {
     function_parser("rgba")
       .flat_map(|_| rgb_number_parser(), Some("r"))
@@ -137,8 +139,9 @@ impl AdvancedColorParsers {
       )
   }
 
-  /// Uses rgb() function with space-separated values and slash for alpha: rgb(r g b / a)
-  /// [_fn, _preSpace, r, _space, g, _space2, b, _slash, a, _postSpace, _closeParen] => new Rgba(r, g, b, a)
+  /// Uses rgb() function with space-separated values and slash for alpha: rgb(r
+  /// g b / a) [_fn, _preSpace, r, _space, g, _space2, b, _slash, a,
+  /// _postSpace, _closeParen] => new Rgba(r, g, b, a)
   pub fn rgba_space_slash_full() -> TokenParser<(u8, u8, u8, f32)> {
     function_parser("rgb") // Note: rgb function, not rgba!
       .flat_map(
@@ -334,8 +337,8 @@ impl AdvancedColorParsers {
       )
   }
 
-  // NOTE: HSLA space/slash parser temporarily removed due to complex ownership issues
-  // This will be addressed in a future enhancement phase
+  // NOTE: HSLA space/slash parser temporarily removed due to complex ownership
+  // issues This will be addressed in a future enhancement phase
   // The comma parser already provides full functionality for most use cases
 }
 
@@ -529,7 +532,7 @@ impl Color {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Color {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -585,7 +588,7 @@ impl NamedColor {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for NamedColor {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.value)
@@ -685,7 +688,7 @@ impl HashColor {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for HashColor {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "#{}", self.value)
@@ -902,7 +905,7 @@ impl Rgb {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Rgb {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "rgb({}, {}, {})", self.r, self.g, self.b)
@@ -1000,7 +1003,8 @@ impl Rgba {
     )
   }
 
-  /// Parse space-separated RGBA with slash: rgb(255 0 0 / 0.5) or rgba(255 0 0 / 0.5)
+  /// Parse space-separated RGBA with slash: rgb(255 0 0 / 0.5) or rgba(255 0 0
+  /// / 0.5)
   fn space_slash_parser() -> TokenParser<Rgba> {
     TokenParser::new(
       |tokens| {
@@ -1192,7 +1196,7 @@ impl Rgba {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Rgba {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "rgba({}, {}, {}, {})", self.r, self.g, self.b, self.a)
@@ -1447,7 +1451,7 @@ impl Hsl {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Hsl {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "hsl({}, {}, {})", self.h, self.s, self.l)
@@ -1765,7 +1769,7 @@ impl Hsla {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Hsla {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "hsla({}, {}, {}, {})", self.h, self.s, self.l, self.a)
@@ -1797,7 +1801,7 @@ impl LchHue {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl std::fmt::Display for LchHue {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
@@ -1820,7 +1824,8 @@ impl Lch {
     Self::new(l, c, LchHue::Number(h), alpha)
   }
 
-  /// Parses lch(lightness chroma hue) and lch(lightness chroma hue / alpha) formats
+  /// Parses lch(lightness chroma hue) and lch(lightness chroma hue / alpha)
+  /// formats
   pub fn parse() -> TokenParser<Lch> {
     TokenParser::new(
       |tokens| {
@@ -2008,7 +2013,7 @@ impl Lch {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Lch {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.alpha {
@@ -2168,7 +2173,7 @@ impl Oklch {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Oklch {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.alpha {
@@ -2306,7 +2311,7 @@ impl Oklab {
   }
 }
 
-#[cfg(not(tarpaulin_include))]
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Oklab {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.alpha {

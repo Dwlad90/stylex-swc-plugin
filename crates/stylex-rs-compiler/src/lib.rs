@@ -4,10 +4,8 @@ mod enums;
 mod structs;
 mod utils;
 use log::info;
-use napi::ValueType;
-use napi::{Env, Result};
-use std::panic;
-use std::{env, sync::Arc};
+use napi::{Env, Result, ValueType};
+use std::{env, panic, sync::Arc};
 use structs::{StyleXMetadata, StyleXOptions, StyleXTransformResult};
 use stylex_logs::initializer::initialize as initialize_logger;
 use stylex_macros::stylex_error::{SuppressPanicStderr, format_panic_message};
@@ -85,14 +83,16 @@ pub fn transform(
   let include_patterns = extract_patterns(&env, &mut include_opt);
   let exclude_patterns = extract_patterns(&env, &mut exclude_opt);
 
-  // Parse the env object separately since it needs the napi::Env for JS function references.
+  // Parse the env object separately since it needs the napi::Env for JS function
+  // references.
   let parsed_env = options
     .env
     .take()
     .map(|ref env_obj| utils::fn_parser::parse_env_object(&env, env_obj))
     .transpose()?;
 
-  // Parse debugFilePath separately since it needs the napi::Env for JS function references.
+  // Parse debugFilePath separately since it needs the napi::Env for JS function
+  // references.
   let parsed_debug_file_path = options
     .debug_file_path
     .take()

@@ -10,8 +10,10 @@ use swc_core::{
   },
 };
 
-use crate::shared::enums::data_structures::fn_result::FnResult;
-use crate::shared::utils::ast::convertors::{create_number_expr, create_string_expr};
+use crate::shared::{
+  enums::data_structures::fn_result::FnResult,
+  utils::ast::convertors::{create_number_expr, create_string_expr},
+};
 use stylex_ast::ast::factories::create_object_expression;
 
 use super::{js_to_expr::convert_object_to_ast, parse_nullable_style::ResolvedArg};

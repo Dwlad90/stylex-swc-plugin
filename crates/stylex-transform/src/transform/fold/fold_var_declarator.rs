@@ -11,10 +11,13 @@ use swc_core::{
   },
 };
 
-use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
-use stylex_enums::top_level_expression::TopLevelExpressionKind;
-use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
-use stylex_structures::top_level_expression::TopLevelExpression;
+use stylex_enums::{
+  style_vars_to_keep::{NonNullProp, NonNullProps},
+  top_level_expression::TopLevelExpressionKind,
+};
+use stylex_structures::{
+  style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
+};
 
 use crate::{
   StyleXTransform,
@@ -109,7 +112,7 @@ where
             let top_level_expression = self.state.top_level_expressions.clone().into_iter().find(
               |TopLevelExpression(_, expr, _)| match var_name.init.clone() {
                 Some(init) => init.eq_ignore_span(&Box::new(expr.clone())),
-                #[cfg(not(tarpaulin_include))]
+                #[cfg_attr(coverage_nightly, coverage(off))]
                 None => {
                   stylex_panic!(
                     "Variable declaration must have an initializer for top-level expression lookup."
@@ -127,7 +130,7 @@ where
             {
               let namespaces_to_keep = match vars_to_keep.get(&match var_name.name.as_ident() {
                 Some(i) => i.sym.clone(),
-                #[cfg(not(tarpaulin_include))]
+                #[cfg_attr(coverage_nightly, coverage(off))]
                 None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
               }) {
                 Some(NonNullProps::Vec(vec)) => vec.clone(),
@@ -143,7 +146,7 @@ where
 
                 **match var_declarator.init.as_mut() {
                   Some(init) => init,
-                  #[cfg(not(tarpaulin_include))]
+                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!(
                     "Variable declaration must have an initializer when updating an object."
                   ),
@@ -173,7 +176,7 @@ where
 
       let prop = match object_prop.as_mut_prop() {
         Some(p) => p.as_mut(),
-        #[cfg(not(tarpaulin_include))]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
       };
 
@@ -188,14 +191,14 @@ where
         {
           let var_id = &match var_name.name.as_ident() {
             Some(i) => i,
-            #[cfg(not(tarpaulin_include))]
+            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
           }
           .sym;
           let key_id = NonNullProp::Atom(
             match key_as_ident {
               Some(i) => i,
-              #[cfg(not(tarpaulin_include))]
+              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("key_as_ident is None"),
             }
             .clone()
@@ -229,7 +232,7 @@ where
 
             if let Some(style_object) = match prop.as_mut_key_value() {
               Some(kv) => kv,
-              #[cfg(not(tarpaulin_include))]
+              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("{}", KEY_VALUE_EXPECTED),
             }
             .value

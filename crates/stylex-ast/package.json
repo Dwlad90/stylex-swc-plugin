@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/ast",
   "description": "AST factories, convertors and helpers for StyleX SWC plugin",
-  "version": "0.15.4-rc.1",
+  "version": "0.15.4",
   "private": true,
   "sideEffects": false,
   "files": [

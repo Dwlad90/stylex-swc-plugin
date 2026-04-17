@@ -4,6 +4,7 @@ pub(crate) mod utils;
 mod evaluation;
 mod legacy;
 mod metadata_test;
+mod performance_fixture;
 mod transform_import_export_test;
 mod transform_misc_test;
 mod transform_override_vars_test;

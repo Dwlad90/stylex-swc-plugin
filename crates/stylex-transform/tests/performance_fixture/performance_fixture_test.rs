@@ -7,10 +7,21 @@ use std::{
 
 use stylex_structures::stylex_options::ModuleResolution;
 use stylex_transform::StyleXTransform;
-use swc_core::ecma::{
-  parser::{Syntax, TsSyntax},
-  transforms::testing::test_fixture,
-};
+
+use crate::utils::{prelude::ts_syntax, transform::stringify_js};
+
+fn tranform(input_path: &Path, input: &str) -> String {
+  stringify_js(input, ts_syntax(), |tr| {
+    StyleXTransform::test(tr.comments.clone())
+      .with_filename(input_path.to_path_buf().into())
+      .with_dev(true)
+      .with_treeshake_compensation(true)
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_enable_minified_keys(false)
+      .with_runtime_injection()
+      .into_pass()
+  })
+}
 
 // Helper function to measure transform performance
 fn measure_transform_time(input_path: &Path) -> (String, f64) {
@@ -22,32 +33,16 @@ fn measure_transform_time(input_path: &Path) -> (String, f64) {
 
   let start = Instant::now();
 
-  test_fixture(
-    Syntax::Typescript(TsSyntax {
-      tsx: true,
-      ..Default::default()
-    }),
-    &|tr| {
-      StyleXTransform::test(tr.comments.clone())
-        .with_filename(input_path.to_path_buf().into())
-        .with_dev(true)
-        .with_treeshake_compensation(true)
-        .with_unstable_module_resolution(ModuleResolution::haste(None))
-        .with_enable_minified_keys(false)
-        .with_runtime_injection()
-        .into_pass()
-    },
-    input_path,
-    &output_path,
-    Default::default(),
-  );
+  let input = fs::read_to_string(input_path).unwrap();
+  let output = tranform(input_path, &input);
 
   let duration = start.elapsed().as_millis() as f64;
 
-  // Read the output file to return the transformation result
-  let code = fs::read_to_string(&output_path).unwrap_or_default();
+  let output_fixture = fs::read_to_string(output_path).unwrap_or_default();
 
-  (code, duration)
+  assert_eq!(output, output_fixture);
+
+  (output, duration)
 }
 
 #[cfg(test)]
@@ -62,9 +57,14 @@ mod tests {
 
     // Warm up the transformer with a simple transform
     measure_transform_time(&simple_theme_path);
+    // Warm up the transformer with a complex transform
+    measure_transform_time(&complex_theme_path);
 
     // Measure performance of simple theme transform
     let (simple_result, simple_time) = measure_transform_time(&simple_theme_path);
+
+    // Measure performance of complex theme transform
+    let (complex_result, complex_time) = measure_transform_time(&complex_theme_path);
 
     #[allow(clippy::explicit_write)]
     writeln!(
@@ -74,10 +74,7 @@ mod tests {
     )
     .unwrap();
 
-    let simple_time = simple_time.max(2.0); // Ensure at least 1.0 ms
-
-    // Measure performance of complex theme transform
-    let (complex_result, complex_time) = measure_transform_time(&complex_theme_path);
+    let simple_time = simple_time.max(2.0); // Ensure at least 2.0 ms
 
     #[allow(clippy::explicit_write)]
     writeln!(

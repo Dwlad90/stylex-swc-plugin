@@ -480,6 +480,19 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         );
       },
       async handleHotUpdate({ file: id, file, server, read, modules }) {
+        // Skip files that wouldn't pass transformInclude (e.g. package.json, .css, images)
+        // to avoid parsing non-JS/TS files with SWC
+        const extensionName = path.extname(file);
+        const questionSignIndex = extensionName.indexOf('?');
+        let cleanedExtensionName =
+          questionSignIndex > -1 ? extensionName.slice(0, questionSignIndex) : extensionName;
+        if (cleanedExtensionName.startsWith('.')) {
+          cleanedExtensionName = cleanedExtensionName.slice(1);
+        }
+        if (!normalizedOptions.pageExtensions.includes(cleanedExtensionName)) {
+          return;
+        }
+
         // For Vue files, include CSS module but don't transform
         // (raw .vue files have <template>, <style> sections that SWC can't parse)
         // The transform hook will update stylexRules when Vue plugin converts it to JS

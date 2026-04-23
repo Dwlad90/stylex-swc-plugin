@@ -11,8 +11,11 @@ const config = {
       useCSSLayers: process.env.NODE_ENV !== 'production',
       rsOptions: {
         dev: true,
+        debug: true,
         treeshakeCompensation: true,
         enableDebugClassNames: true,
+        enableDevClassNames: true,
+        enableDebugDataProp: true,
         env: {
           tokens: {
             colors: {

@@ -1,4 +1,4 @@
-import stylexRsCompiler, { normalizeRsOptions, shouldTransformFile } from '@stylexswc/rs-compiler';
+import { normalizeRsOptions, shouldTransformFile, transform as stylexTransform } from '@stylexswc/rs-compiler';
 import type { Rule } from '@stylexjs/babel-plugin';
 import { transform } from 'lightningcss';
 import type { CustomAtRules, TransformOptions } from 'lightningcss';
@@ -101,7 +101,7 @@ export default function stylexPlugin({
         return null;
       }
 
-      const result = stylexRsCompiler.transform(id, inputCode, normalizedRsOptions);
+      const result = stylexTransform(id, inputCode, normalizedRsOptions);
 
       if (result == null) {
         console.warn('stylex: transformAsync returned null');

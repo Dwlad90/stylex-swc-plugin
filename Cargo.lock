@@ -2908,8 +2908,6 @@ dependencies = [
 name = "stylex_compiler_rs"
 version = "0.15.4"
 dependencies = [
- "fancy-regex",
- "glob",
  "indexmap",
  "log",
  "napi",

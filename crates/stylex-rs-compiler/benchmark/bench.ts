@@ -1,4 +1,4 @@
-import { Bench, type BenchOptions, Task } from 'tinybench';
+import { Bench, type BenchOptions, Task, TaskResultWithStatistics } from 'tinybench';
 import { transform } from '../dist/index.js';
 import type { StyleXOptions } from '../dist/index.js';
 import path from 'path';
@@ -75,7 +75,13 @@ function addFixtureBenchmarks(bench: Bench, fixtureFilePaths: string[]) {
 }
 
 function formatBenchmarkSummary(task: Task): string {
-  const { name, result } = task;
+  const { name } = task;
+
+  if (!('throughput' in task.result)) {
+    throw new Error(`❌ ${name}: No results`);
+  }
+
+  const result = task.result as TaskResultWithStatistics;
   if (!result) return chalk.red(`❌ ${name}: No results`);
 
   const opsPerSec = result.throughput.mean.toLocaleString('en-US', {
@@ -106,7 +112,7 @@ ${chalk.bold.yellow('📊 Benchmark Environment:')}
   ${chalk.blue('🧩 Node.js:')}  ${chalk.green(process.version)}
   ${chalk.blue('🔌 Plugin:')}   ${chalk.green('v' + version)}
   ${chalk.blue('💻 OS:')}       ${chalk.green(os.type())} ${os.release()} ${os.arch()}
-  ${chalk.blue('⚡ CPU:')}      ${chalk.green(os.cpus()[0].model)} × ${os.cpus().length} cores
+  ${chalk.blue('⚡ CPU:')}      ${chalk.green(os.cpus()[0]?.model)} × ${os.cpus().length} cores
   ${chalk.blue('🧠 Memory:')}   ${chalk.green(Math.round(os.totalmem() / (1024 * 1024 * 1024)))}GB
 `;
 }

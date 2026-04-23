@@ -1,4 +1,3 @@
-use fancy_regex::Regex;
 use log::warn;
 use napi::{
   Env, Error, JsValue, NapiRaw, Unknown,
@@ -75,25 +74,6 @@ impl ToNapiValue for RuntimeInjectionUnion {
 }
 
 static MAX_IMPORT_PATH_LENGTH: usize = 214;
-
-pub(crate) fn js_regex_pattern_from_source_and_flags(source: &str, flags: &str) -> String {
-  let mut inline_flags = String::new();
-  if flags.contains('i') {
-    inline_flags.push('i');
-  }
-  if flags.contains('m') {
-    inline_flags.push('m');
-  }
-  if flags.contains('s') {
-    inline_flags.push('s');
-  }
-
-  if inline_flags.is_empty() {
-    source.to_string()
-  } else {
-    format!("(?{}){}", inline_flags, source)
-  }
-}
 
 fn validate_import_path(path: &str) -> Result<(), String> {
   if path.len() > MAX_IMPORT_PATH_LENGTH {
@@ -177,63 +157,6 @@ impl ToNapiValue for ImportSourceUnion {
   }
 }
 
-#[derive(Debug, Clone)]
-pub enum PathFilterUnion {
-  Glob(String),
-  Regex(String),
-}
-
-impl PathFilterUnion {
-  pub fn from_string(pattern: &str) -> Self {
-    if pattern.starts_with('/') && pattern.len() > 2 {
-      // Find the last unescaped slash to handle patterns like /path\/to\/file/
-      let mut last_slash_pos = None;
-      let chars: Vec<char> = pattern.chars().collect();
-
-      for i in (1..chars.len()).rev() {
-        if chars[i] == '/' {
-          // Check if this slash is escaped (preceded by odd number of backslashes)
-          let mut backslash_count = 0;
-          let mut j = i;
-          while j > 0 && chars[j - 1] == '\\' {
-            backslash_count += 1;
-            j -= 1;
-          }
-
-          // If even number of backslashes (including 0), the slash is not escaped
-          if backslash_count % 2 == 0 {
-            last_slash_pos = Some(i);
-            break;
-          }
-        }
-      }
-
-      if let Some(last_slash) = last_slash_pos {
-        // Extract the regex pattern (without the surrounding slashes)
-        let regex_pattern = &pattern[1..last_slash];
-        let flags = &pattern[last_slash + 1..];
-
-        // Validate regex flags (only valid JS regex flags: gimsuy)
-        if flags
-          .chars()
-          .all(|c| matches!(c, 'g' | 'i' | 'm' | 's' | 'u' | 'y'))
-        {
-          // Try to validate the regex pattern
-          if Regex::new(regex_pattern).is_ok() {
-            return PathFilterUnion::Regex(js_regex_pattern_from_source_and_flags(
-              regex_pattern,
-              flags,
-            ));
-          }
-        }
-      }
-    }
-
-    // Default to glob pattern
-    PathFilterUnion::Glob(pattern.to_string())
-  }
-}
-
 #[napi(string_enum)]
 #[derive(Debug)]
 pub enum PropertyValidationMode {
@@ -311,44 +234,5 @@ mod tests {
   fn validate_import_path_rejects_invalid_pattern() {
     let error = validate_import_path("Invalid Package Name!").unwrap_err();
     assert!(error.contains("required pattern"));
-  }
-
-  #[test]
-  fn path_filter_union_parses_regex_and_glob_patterns() {
-    let regex = PathFilterUnion::from_string(r"/foo\/bar/i");
-    match regex {
-      PathFilterUnion::Regex(pattern) => {
-        assert!(pattern.contains("foo\\/bar"));
-        assert!(pattern.starts_with("(?i)"));
-      },
-      PathFilterUnion::Glob(_) => panic!("expected regex pattern"),
-    }
-
-    let glob = PathFilterUnion::from_string("src/**/*.ts");
-    match glob {
-      PathFilterUnion::Glob(pattern) => assert_eq!(pattern, "src/**/*.ts"),
-      PathFilterUnion::Regex(_) => panic!("expected glob pattern"),
-    }
-  }
-
-  #[test]
-  fn path_filter_union_falls_back_to_glob_for_invalid_regex() {
-    let pattern = PathFilterUnion::from_string("/[invalid/");
-    match pattern {
-      PathFilterUnion::Glob(glob) => assert_eq!(glob, "/[invalid/"),
-      PathFilterUnion::Regex(_) => panic!("invalid regex should fall back to glob"),
-    }
-  }
-
-  #[test]
-  fn js_regex_pattern_respects_supported_flags() {
-    let pattern = js_regex_pattern_from_source_and_flags("foo.*bar", "gimsuy");
-    assert_eq!(pattern, "(?ims)foo.*bar");
-  }
-
-  #[test]
-  fn js_regex_pattern_without_supported_flags_keeps_source() {
-    let pattern = js_regex_pattern_from_source_and_flags("foo", "gyu");
-    assert_eq!(pattern, "foo");
   }
 }

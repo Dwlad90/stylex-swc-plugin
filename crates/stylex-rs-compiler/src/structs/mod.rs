@@ -1,4 +1,4 @@
-use napi::{JsObject, UnknownRef};
+use napi::JsObject;
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
 use stylex_enums::{
@@ -49,12 +49,6 @@ pub struct StyleXOptions {
   #[napi(js_name = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<StyleXModuleResolution>,
   pub source_map: Option<SourceMaps>,
-  #[napi(ts_type = "Array<string | RegExp>")]
-  pub include: Option<Vec<UnknownRef>>,
-  #[napi(ts_type = "Array<string | RegExp>")]
-  pub exclude: Option<Vec<UnknownRef>>,
-  #[napi(ts_type = "Array<[string, Record<string, any>]>")]
-  pub swc_plugins: Option<Vec<UnknownRef>>,
   #[napi(ts_type = "'throw' | 'warn' | 'silent'")]
   pub property_validation_mode: Option<PropertyValidationMode>,
   /// Compile-time constants and functions accessible via `stylex.env`.
@@ -193,9 +187,6 @@ mod tests {
       aliases: None,
       unstable_module_resolution: None,
       source_map: None,
-      include: None,
-      exclude: None,
-      swc_plugins: None,
       property_validation_mode: None,
       env: None,
       debug_file_path: None,

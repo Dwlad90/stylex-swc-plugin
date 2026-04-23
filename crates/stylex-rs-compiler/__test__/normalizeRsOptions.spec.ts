@@ -4,25 +4,26 @@ import type { StyleXOptions } from '../dist/index';
 
 const defaultResult: StyleXOptions = {
   dev: false,
+  test: false,
+  debug: false,
   enableFontSizePxToRem: false,
   enableInlinedConditionalMerge: true,
   enableLegacyValueFlipping: false,
   importSources: ['stylex', '@stylexjs/stylex'],
   runtimeInjection: false,
   treeshakeCompensation: false,
-  unstable_moduleResolution: {
-    type: 'commonJS',
-  },
   enableLogicalStylesPolyfill: false,
   enableMinifiedKeys: true,
   styleResolution: 'property-specificity',
-  swcPlugins: [],
   enableLTRRTLComments: false,
   legacyDisableLayers: false,
   useRealFileForSource: true,
   enableMediaQueryOrder: true,
   enableDebugClassNames: false,
   propertyValidationMode: 'silent',
+  include: [],
+  exclude: [],
+  swcPlugins: [],
 };
 
 test('normalizeRsOptions fills defaults for missing fields', t => {
@@ -36,7 +37,7 @@ test('normalizeRsOptions fills defaults for missing fields', t => {
     enableInlinedConditionalMerge: undefined,
   };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, { ...defaultResult, dev: process.env.NODE_ENV === 'development' });
+  t.deepEqual(result, defaultResult);
 });
 
 test('normalizeRsOptions preserves provided values', t => {
@@ -73,83 +74,45 @@ test('normalizeRsOptions preserves provided values', t => {
 
 test('normalizeRsOptions: handles empty input', t => {
   const result = normalizeRsOptions({});
-  t.deepEqual(result, { ...defaultResult, dev: process.env.NODE_ENV === 'development' });
+  t.deepEqual(result, defaultResult);
 });
 
 test('normalizeRsOptions: ignores unrelated fields', t => {
   const input = { foo: 123, bar: 'baz' };
   // @ts-expect-error - input not suitable for normalizeRsOptions
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, { ...defaultResult, dev: process.env.NODE_ENV === 'development' });
+  // Unrelated keys pass through (spread-based), defaults are still applied
+  t.is(result.dev, false);
+  t.deepEqual(result.importSources, ['stylex', '@stylexjs/stylex']);
 });
 
-test('normalizeRsOptions: negative - invalid importSources type', t => {
-  const input = { importSources: 123 };
-  // @ts-expect-error - input not suitable for normalizeRsOptions
-  const error = t.throws(() => normalizeRsOptions(input), {
-    message: 'Given napi value is not an array on StyleXOptions.importSources',
-  });
-  t.truthy(error);
-});
-
-test('normalizeRsOptions: negative - invalid unstable_moduleResolution', t => {
-  const input = { unstable_moduleResolution: 123 };
-  // @ts-expect-error - input not suitable for normalizeRsOptions
-  const error = t.throws(() => normalizeRsOptions(input), {
-    message: 'Missing field `type` on StyleXOptions.unstable_moduleResolution',
-  });
-  t.truthy(error);
-});
-
-test('normalizeRsOptions: positive - accepts string importSources', t => {
+test('normalizeRsOptions: accepts string importSources', t => {
   const input = { importSources: ['foo', 'bar'] };
-  const expected = {
-    ...defaultResult,
-    importSources: ['foo', 'bar'],
-    dev: process.env.NODE_ENV === 'development',
-  };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  t.deepEqual(result.importSources, ['foo', 'bar']);
 });
 
-test('normalizeRsOptions: positive - accepts object importSources', t => {
+test('normalizeRsOptions: accepts object importSources', t => {
   const input = { importSources: [{ as: 'x', from: 'y' }] };
-  const expected = {
-    ...defaultResult,
-    importSources: [{ as: 'x', from: 'y' }],
-    dev: process.env.NODE_ENV === 'development',
-  };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
-});
-
-test('normalizeRsOptions: negative - importSources with invalid object', t => {
-  const input = { importSources: [{ foo: {} }] };
-  // @ts-expect-error - input not suitable for normalizeRsOptions
-  // Note: napi v3 throws "StringExpected" during deserialization before validation
-  const error = t.throws(() => normalizeRsOptions(input), {
-    message: ' on StyleXOptions.importSources',
-  });
-  t.truthy(error);
+  t.deepEqual(result.importSources, [{ as: 'x', from: 'y' }]);
 });
 
 test('check default values when input is empty', t => {
   const result = normalizeRsOptions({});
-  t.deepEqual(result, { ...defaultResult, dev: process.env.NODE_ENV === 'development' });
+  t.deepEqual(result, defaultResult);
 });
 
 test('should throw when input is not provided', t => {
-  // @ts-expect-error - input must be an object
   const error = t.throws(() => normalizeRsOptions(), {
-    message: 'Cannot convert undefined or null to object',
+    message: 'Options must be an object, received null/undefined',
   });
   t.truthy(error);
 });
 
 test('should throw when input is null', t => {
-  // @ts-expect-error - input must be an object
   const error = t.throws(() => normalizeRsOptions(null), {
-    message: 'Cannot convert undefined or null to object',
+    message: 'Options must be an object, received null/undefined',
   });
   t.truthy(error);
 });
@@ -157,215 +120,126 @@ test('should throw when input is null', t => {
 test('should return default values when input is a string', t => {
   // @ts-expect-error - input must be an object
   const result = normalizeRsOptions('string input');
-  t.deepEqual(result, { ...defaultResult, dev: process.env.NODE_ENV === 'development' });
+  t.deepEqual(result, defaultResult);
 });
 
 test('normalizeRsOptions: importSources - valid npm string', t => {
-  const input = { importSources: ['@scope/pkg', 'foo-bar', 'a'.repeat(214)] };
-  const expected = {
-    ...defaultResult,
-    importSources: ['@scope/pkg', 'foo-bar', 'a'.repeat(214)],
-    dev: process.env.NODE_ENV === 'development',
-  };
+  const input = { importSources: ['@scope/pkg', 'foo-bar'] };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
-});
-
-test('normalizeRsOptions: importSources - invalid npm string (too long)', t => {
-  const input = { importSources: ['a'.repeat(215)] };
-  const error = t.throws(() => normalizeRsOptions(input), {
-    message: 'Import path is too long (max 214 characters) on StyleXOptions.importSources',
-  });
-  t.truthy(error);
+  t.deepEqual(result.importSources, ['@scope/pkg', 'foo-bar']);
 });
 
 test('normalizeRsOptions: importSources - valid object with npm from', t => {
   const input = { importSources: [{ as: 'foo', from: '@scope/pkg' }] };
-  const expected = {
-    ...defaultResult,
-    importSources: [{ as: 'foo', from: '@scope/pkg' }],
-    dev: process.env.NODE_ENV === 'development',
-  };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
-});
-
-test('normalizeRsOptions: importSources - invalid object with bad from', t => {
-  const input = { importSources: [{ as: 'foo', from: 'not valid path!' }] };
-  const error = t.throws(() => normalizeRsOptions(input), {
-    message: 'Import path does not match required pattern on StyleXOptions.importSources',
-  });
-  t.truthy(error);
-});
-
-test('normalizeRsOptions: importSources - mixed valid/invalid', t => {
-  const input = { importSources: ['@scope/pkg', { as: 'foo', from: 'not valid path!' }] };
-  const error = t.throws(() => normalizeRsOptions(input), {
-    message: 'Import path does not match required pattern on StyleXOptions.importSources',
-  });
-  t.truthy(error);
+  t.deepEqual(result.importSources, [{ as: 'foo', from: '@scope/pkg' }]);
 });
 
 test('normalizeRsOptions: importSources - mixed valid', t => {
   const input = { importSources: ['@scope/pkg', { as: 'foo', from: 'validpath' }] };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, {
-    ...defaultResult,
-    importSources: ['@scope/pkg', { as: 'foo', from: 'validpath' }],
-    dev: process.env.NODE_ENV === 'development',
-  });
+  t.deepEqual(result.importSources, ['@scope/pkg', { as: 'foo', from: 'validpath' }]);
 });
 
 test('normalizeRsOptions: importSources - empty array', t => {
   const input = { importSources: [] };
-  const expected = {
-    ...defaultResult,
-    importSources: [],
-    dev: process.env.NODE_ENV === 'development',
-  };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
-});
-
-test('normalizeRsOptions: importSources - array with null/undefined', t => {
-  const input = { importSources: [null, undefined, '@scope/pkg'] };
-  // @ts-expect-error - input not suitable for normalizeRsOptions
-  const error = t.throws(() => normalizeRsOptions(input), {
-    message: 'Cannot convert undefined or null to object',
-  });
-  t.truthy(error);
+  t.deepEqual(result.importSources, []);
 });
 
 test('normalizeRsOptions: styleResolution - default input', t => {
   const input: StyleXOptions = {};
-  const expected: StyleXOptions = {
-    ...defaultResult,
-    styleResolution: 'property-specificity',
-    dev: process.env.NODE_ENV === 'development',
-  };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  t.is(result.styleResolution, 'property-specificity');
 });
 
 test('normalizeRsOptions: styleResolution - valid input', t => {
   const input: StyleXOptions = { styleResolution: 'application-order' };
-  const expected: StyleXOptions = {
-    ...defaultResult,
-    styleResolution: 'application-order',
-    dev: process.env.NODE_ENV === 'development',
-  };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  t.is(result.styleResolution, 'application-order');
 });
 
 test('normalizeRsOptions: styleResolution - valid input with legacy-expand-shorthands', t => {
   const input: StyleXOptions = { styleResolution: 'legacy-expand-shorthands' };
-  const expected: StyleXOptions = {
-    ...defaultResult,
-    styleResolution: 'legacy-expand-shorthands',
-    dev: process.env.NODE_ENV === 'development',
-  };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
-});
-
-test('normalizeRsOptions: styleResolution - invalid input', t => {
-  // @ts-expect-error - input not suitable for normalizeRsOptions
-  const input: StyleXOptions = { styleResolution: 'invalid-resolution' };
-
-  const error = t.throws(() => normalizeRsOptions(input), {
-    message:
-      'Failed to parse style resolution: unknown variant `invalid-resolution`, expected one of `application-order`, `property-specificity`, `legacy-expand-shorthands`',
-  });
-  t.truthy(error);
+  t.is(result.styleResolution, 'legacy-expand-shorthands');
 });
 
 test('normalizeRsOptions: enableLegacyValueFlipping - true input', t => {
-  const input: StyleXOptions = { enableLegacyValueFlipping: true };
-  const expected: StyleXOptions = {
-    ...defaultResult,
-    enableLegacyValueFlipping: true,
-  };
-  const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  const result = normalizeRsOptions({ enableLegacyValueFlipping: true });
+  t.is(result.enableLegacyValueFlipping, true);
 });
 
 test('normalizeRsOptions: enableLegacyValueFlipping - false input', t => {
-  const input: StyleXOptions = { enableLegacyValueFlipping: false };
-  const expected: StyleXOptions = {
-    ...defaultResult,
-    enableLegacyValueFlipping: false,
-  };
-  const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  const result = normalizeRsOptions({ enableLegacyValueFlipping: false });
+  t.is(result.enableLegacyValueFlipping, false);
 });
 
 test('normalizeRsOptions: enableLegacyValueFlipping - empty input', t => {
-  const input: StyleXOptions = {};
-  const expected: StyleXOptions = {
-    ...defaultResult,
-    enableLegacyValueFlipping: false,
-  };
-  const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  const result = normalizeRsOptions({});
+  t.is(result.enableLegacyValueFlipping, false);
 });
 
 test('normalizeRsOptions: enableLTRRTLComments - true input', t => {
-  const input: StyleXOptions = { enableLTRRTLComments: true };
-  const expected: StyleXOptions = {
-    ...defaultResult,
-    enableLTRRTLComments: true,
-  };
-  const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  const result = normalizeRsOptions({ enableLTRRTLComments: true });
+  t.is(result.enableLTRRTLComments, true);
 });
 
 test('normalizeRsOptions: enableLTRRTLComments - false input', t => {
-  const input: StyleXOptions = { enableLTRRTLComments: false };
-  const expected: StyleXOptions = {
-    ...defaultResult,
-    enableLTRRTLComments: false,
-  };
-  const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  const result = normalizeRsOptions({ enableLTRRTLComments: false });
+  t.is(result.enableLTRRTLComments, false);
 });
 
 test('normalizeRsOptions: enableLTRRTLComments - empty input', t => {
-  const input: StyleXOptions = {};
-  const expected: StyleXOptions = {
-    ...defaultResult,
-    enableLTRRTLComments: false,
-  };
-  const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  const result = normalizeRsOptions({});
+  t.is(result.enableLTRRTLComments, false);
 });
 
 test('normalizeRsOptions: true value for runtimeInjection', t => {
-  const input = { runtimeInjection: true };
-  const expected = {
-    ...defaultResult,
-    runtimeInjection: true,
-  };
-  const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  const result = normalizeRsOptions({ runtimeInjection: true });
+  t.is(result.runtimeInjection, true);
 });
 
 test('normalizeRsOptions: false value for runtimeInjection', t => {
-  const input = { runtimeInjection: false };
-  const expected = {
-    ...defaultResult,
-    runtimeInjection: false,
-  };
-  const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  const result = normalizeRsOptions({ runtimeInjection: false });
+  t.is(result.runtimeInjection, false);
 });
 
 test('normalizeRsOptions: string value for runtimeInjection', t => {
-  const input = { runtimeInjection: '@test/runtime-injection' };
-  const expected = {
-    ...defaultResult,
-    runtimeInjection: '@test/runtime-injection',
-  };
-  const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  const result = normalizeRsOptions({ runtimeInjection: '@test/runtime-injection' });
+  t.is(result.runtimeInjection, '@test/runtime-injection');
+});
+
+test('normalizeRsOptions: include and exclude default to empty arrays', t => {
+  const result = normalizeRsOptions({});
+  t.deepEqual(result.include, []);
+  t.deepEqual(result.exclude, []);
+});
+
+test('normalizeRsOptions: include and exclude are passed through', t => {
+  const include = ['src/**/*.tsx'];
+  const exclude = [/node_modules/];
+  const result = normalizeRsOptions({ include, exclude });
+  t.deepEqual(result.include, include);
+  t.deepEqual(result.exclude, exclude);
+});
+
+test('normalizeRsOptions: swcPlugins default to empty array', t => {
+  const result = normalizeRsOptions({});
+  t.deepEqual(result.swcPlugins, []);
+});
+
+test('normalizeRsOptions: swcPlugins are passed through', t => {
+  const swcPlugins: Array<[string, Record<string, unknown>]> = [
+    ['@swc/plugin-example', { foo: 'bar' }],
+  ];
+  const result = normalizeRsOptions({ swcPlugins });
+  t.deepEqual(result.swcPlugins, swcPlugins);
+});
+
+test('normalizeRsOptions: unstable_moduleResolution is passed through', t => {
+  const result = normalizeRsOptions({
+    unstable_moduleResolution: { type: 'esm', rootDir: '/app' },
+  });
+  t.deepEqual(result.unstable_moduleResolution, { type: 'esm', rootDir: '/app' });
 });

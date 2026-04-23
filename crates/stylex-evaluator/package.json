@@ -36,12 +36,12 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/ast": "workspace:*",
-    "@stylexswc/constants": "workspace:*",
-    "@stylexswc/macros": "workspace:*",
-    "@stylexswc/path-resolver": "workspace:*",
-    "@stylexswc/stylex-js": "workspace:*",
-    "@stylexswc/types": "workspace:*",
+    "@stylexswc/ast": "0.15.4",
+    "@stylexswc/constants": "0.15.4",
+    "@stylexswc/macros": "0.15.4",
+    "@stylexswc/path-resolver": "0.15.4",
+    "@stylexswc/stylex-js": "0.15.4",
+    "@stylexswc/types": "0.15.4",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.1"

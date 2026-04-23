@@ -36,10 +36,10 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/constants": "workspace:*",
-    "@stylexswc/macros": "workspace:*",
-    "@stylexswc/misc": "workspace:*",
-    "@stylexswc/types": "workspace:*",
+    "@stylexswc/constants": "0.15.4",
+    "@stylexswc/macros": "0.15.4",
+    "@stylexswc/misc": "0.15.4",
+    "@stylexswc/types": "0.15.4",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.1"

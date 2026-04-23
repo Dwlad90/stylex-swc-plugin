@@ -2,8 +2,10 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "moduleResolution": "NodeNext",
+    "ignoreDeprecations": "6.0",
     "module": "NodeNext",
-    "outDir": "lib"
+    "outDir": "lib",
+    "rootDir": "."
   },
   "include": ["."],
   "exclude": ["lib"]

@@ -20,8 +20,11 @@ export const plugins = [
     useCSSLayers: true,
     rsOptions: {
       dev: true,
+      debug: true,
       treeshakeCompensation: true,
       enableDebugClassNames: true,
+      enableDevClassNames: true,
+      enableDebugDataProp: true,
       env: {
         tokens: {
           colors: {

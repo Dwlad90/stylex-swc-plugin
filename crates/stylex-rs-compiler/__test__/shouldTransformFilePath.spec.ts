@@ -250,6 +250,7 @@ test('shouldTransformFile: negative lookbehind - exclude files not preceded by s
 test('shouldTransformFile: invalid pattern type - skipped gracefully', t => {
   const filePath = path.join(cwd, 'src/Button.tsx');
   const include = [123, 'src/**/*.tsx'];
+  // @ts-expect-error - invalid pattern type
   const result = shouldTransformFile(filePath, include, undefined);
   // Should process valid patterns and skip invalid ones
   t.is(result, true);
@@ -592,8 +593,8 @@ test('shouldTransformFile: invalid regex patterns fallback to glob', t => {
 });
 
 test('shouldTransformFile: string regex with flags', t => {
-  // Test that string-based regex patterns with flags work correctly
-  const include = ['/button/i']; // Case-insensitive via string format
+  // Use native RegExp objects for case-insensitive matching
+  const include = [/button/i]; // Case-insensitive via RegExp
   const upper = path.join(cwd, 'src/BUTTON.tsx');
   const lower = path.join(cwd, 'src/button.tsx');
 

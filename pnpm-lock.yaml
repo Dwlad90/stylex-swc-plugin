@@ -1360,16 +1360,16 @@ importers:
   crates/stylex-ast:
     devDependencies:
       '@stylexswc/constants':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-constants
       '@stylexswc/macros':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-macros
       '@stylexswc/misc':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-utils
       '@stylexswc/types':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-types
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1396,31 +1396,31 @@ importers:
   crates/stylex-css:
     devDependencies:
       '@stylexswc/ast':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-ast
       '@stylexswc/constants':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-constants
       '@stylexswc/css-parser':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-css-parser
       '@stylexswc/evaluator':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-evaluator
       '@stylexswc/macros':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-macros
       '@stylexswc/regex':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-regex
       '@stylexswc/stylex-enums':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-enums
       '@stylexswc/stylex-structures':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-structures
       '@stylexswc/types':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-types
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1435,7 +1435,7 @@ importers:
   crates/stylex-css-parser:
     devDependencies:
       '@stylexswc/macros':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-macros
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1450,7 +1450,7 @@ importers:
   crates/stylex-enums:
     devDependencies:
       '@stylexswc/macros':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-macros
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1465,22 +1465,22 @@ importers:
   crates/stylex-evaluator:
     devDependencies:
       '@stylexswc/ast':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-ast
       '@stylexswc/constants':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-constants
       '@stylexswc/macros':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-macros
       '@stylexswc/path-resolver':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-path-resolver
       '@stylexswc/stylex-js':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-js
       '@stylexswc/types':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-types
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1495,10 +1495,10 @@ importers:
   crates/stylex-js:
     devDependencies:
       '@stylexswc/constants':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-constants
       '@stylexswc/macros':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-macros
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1513,7 +1513,7 @@ importers:
   crates/stylex-logs:
     devDependencies:
       '@stylexswc/macros':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-macros
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1528,7 +1528,7 @@ importers:
   crates/stylex-macros:
     devDependencies:
       '@stylexswc/constants':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-constants
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1543,7 +1543,7 @@ importers:
   crates/stylex-path-resolver:
     devDependencies:
       '@stylexswc/macros':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-macros
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1568,6 +1568,10 @@ importers:
         version: 3.8.1
 
   crates/stylex-rs-compiler:
+    dependencies:
+      picomatch:
+        specifier: ^4.0.4
+        version: 4.0.4
     devDependencies:
       '@napi-rs/cli':
         specifier: ^3.5.1
@@ -1579,44 +1583,50 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/ast':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-ast
       '@stylexswc/logs':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-logs
       '@stylexswc/macros':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-macros
       '@stylexswc/misc':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-utils
       '@stylexswc/regex':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-regex
       '@stylexswc/stylex-enums':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-enums
       '@stylexswc/stylex-structures':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-structures
       '@stylexswc/transform':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-transform
       '@stylexswc/types':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-types
+      '@stylexswc/typescript-config':
+        specifier: 0.15.4
+        version: link:../../packages/typescript-config
       '@swc-node/register':
         specifier: ^1.11.1
-        version: 1.11.1(@swc/core@1.15.11(@swc/helpers@0.5.19))(@swc/types@0.1.25)(typescript@6.0.2)
+        version: 1.11.1(@swc/core@1.15.13(@swc/helpers@0.5.19))(@swc/types@0.1.25)(typescript@6.0.2)
       '@swc/core':
         specifier: ^1.15.11
-        version: 1.15.11(@swc/helpers@0.5.19)
+        version: 1.15.13(@swc/helpers@0.5.19)
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
       '@types/node':
         specifier: ^25.5.0
         version: 25.5.0
+      '@types/picomatch':
+        specifier: ^4.0.3
+        version: 4.0.3
       ava:
         specifier: ^7.0.0
         version: 7.0.0(rollup@4.60.1)
@@ -1648,13 +1658,13 @@ importers:
   crates/stylex-structures:
     devDependencies:
       '@stylexswc/constants':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-constants
       '@stylexswc/macros':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-macros
       '@stylexswc/stylex-enums':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-enums
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1681,40 +1691,40 @@ importers:
   crates/stylex-transform:
     devDependencies:
       '@stylexswc/ast':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-ast
       '@stylexswc/constants':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-constants
       '@stylexswc/css':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-css
       '@stylexswc/css-parser':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-css-parser
       '@stylexswc/logs':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-logs
       '@stylexswc/macros':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-macros
       '@stylexswc/misc':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-utils
       '@stylexswc/path-resolver':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-path-resolver
       '@stylexswc/regex':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-regex
       '@stylexswc/stylex-enums':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-enums
       '@stylexswc/stylex-structures':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-structures
       '@stylexswc/types':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-types
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1729,19 +1739,19 @@ importers:
   crates/stylex-types:
     devDependencies:
       '@stylexswc/constants':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-constants
       '@stylexswc/macros':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-macros
       '@stylexswc/misc':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-utils
       '@stylexswc/stylex-enums':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-enums
       '@stylexswc/stylex-structures':
-        specifier: workspace:*
+        specifier: 0.15.4
         version: link:../stylex-structures
       '@taplo/cli':
         specifier: ^0.7.0
@@ -5440,6 +5450,9 @@ packages:
 
   '@types/object-path@0.11.4':
     resolution: {integrity: sha512-4tgJ1Z3elF/tOMpA8JLVuR9spt9Ynsf7+JjqsQ2IqtiPJtcLoHoXcT6qU4E10cPFqyXX5HDm9QwIzZhBSkLxsw==}
+
+  '@types/picomatch@4.0.3':
+    resolution: {integrity: sha512-iG0T6+nYJ9FAPmx9SsUlnwcq1ZVRuCXcVEvWnntoPlrOpwtSTKNDC9uVAxTsC3PUvJ+99n4RpAcNgBbHX3JSnQ==}
 
   '@types/qs@6.14.0':
     resolution: {integrity: sha512-eOunJqu0K1923aExK6y8p6fsihYEn/BYuQ4g0CxAAgFc4b/ZLN4CrsRZ55srTdqoiLzU2B2evC+apEIxprEzkQ==}
@@ -14906,16 +14919,16 @@ snapshots:
       invariant: 2.2.4
       styleq: 0.2.1
 
-  '@swc-node/core@1.14.1(@swc/core@1.15.11(@swc/helpers@0.5.19))(@swc/types@0.1.25)':
+  '@swc-node/core@1.14.1(@swc/core@1.15.13(@swc/helpers@0.5.19))(@swc/types@0.1.25)':
     dependencies:
-      '@swc/core': 1.15.11(@swc/helpers@0.5.19)
+      '@swc/core': 1.15.13(@swc/helpers@0.5.19)
       '@swc/types': 0.1.25
 
-  '@swc-node/register@1.11.1(@swc/core@1.15.11(@swc/helpers@0.5.19))(@swc/types@0.1.25)(typescript@6.0.2)':
+  '@swc-node/register@1.11.1(@swc/core@1.15.13(@swc/helpers@0.5.19))(@swc/types@0.1.25)(typescript@6.0.2)':
     dependencies:
-      '@swc-node/core': 1.14.1(@swc/core@1.15.11(@swc/helpers@0.5.19))(@swc/types@0.1.25)
+      '@swc-node/core': 1.14.1(@swc/core@1.15.13(@swc/helpers@0.5.19))(@swc/types@0.1.25)
       '@swc-node/sourcemap-support': 0.6.1
-      '@swc/core': 1.15.11(@swc/helpers@0.5.19)
+      '@swc/core': 1.15.13(@swc/helpers@0.5.19)
       colorette: 2.0.20
       debug: 4.4.3(supports-color@5.5.0)
       oxc-resolver: 11.19.0
@@ -15298,6 +15311,8 @@ snapshots:
       undici-types: 7.18.2
 
   '@types/object-path@0.11.4': {}
+
+  '@types/picomatch@4.0.3': {}
 
   '@types/qs@6.14.0': {}
 

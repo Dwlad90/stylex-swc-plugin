@@ -9,7 +9,7 @@ import type { UnpluginFactory, UnpluginInstance } from 'unplugin';
 import getStyleXRules from './utils/getStyleXRules';
 import normalizeOptions from './utils/normalizeOptions';
 import type { UnpluginStylexRSOptions } from './types';
-import stylexRsCompiler, { shouldTransformFile } from '@stylexswc/rs-compiler';
+import { shouldTransformFile, transform as stylexTransform } from '@stylexswc/rs-compiler';
 import generateHash from './utils/generateHash';
 import crypto from 'crypto';
 
@@ -822,7 +822,7 @@ function transformStyleXCode(
   rsOptions.include = undefined;
   rsOptions.exclude = undefined;
 
-  const result = stylexRsCompiler.transform(file, inputCode, rsOptions);
+  const result = stylexTransform(file, inputCode, rsOptions);
 
   const { metadata } = result;
 

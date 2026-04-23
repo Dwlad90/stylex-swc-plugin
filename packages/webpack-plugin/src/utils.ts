@@ -1,8 +1,8 @@
-import stylexPlugin, { normalizeRsOptions } from '@stylexswc/rs-compiler';
+import { normalizeRsOptions, transform } from '@stylexswc/rs-compiler';
 
 import type webpack from 'webpack';
 import type { SupplementedLoaderContext } from './types';
-import type { StyleXTransformResult } from '@stylexswc/rs-compiler';
+import type { StyleXOptions, StyleXTransformResult } from '@stylexswc/rs-compiler';
 
 export function stringifyRequest(loaderContext: webpack.LoaderContext<unknown>, request: string) {
   return JSON.stringify(
@@ -19,7 +19,7 @@ export const isSupplementedLoaderContext = <T>(
 export function generateStyleXOutput(
   resourcePath: string,
   inputSource: string,
-  rsOptions: Partial<stylexPlugin.StyleXOptions>
+  rsOptions: Partial<StyleXOptions>
 ): StyleXTransformResult {
-  return stylexPlugin.transform(resourcePath, inputSource, normalizeRsOptions(rsOptions ?? {}));
+  return transform(resourcePath, inputSource, normalizeRsOptions(rsOptions ?? {}));
 }

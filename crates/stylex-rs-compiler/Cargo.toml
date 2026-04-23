@@ -14,8 +14,6 @@ doctest = false
 
 
 [dependencies]
-fancy-regex.workspace = true
-glob.workspace = true
 log.workspace = true
 rustc-hash.workspace = true
 serde.workspace = true

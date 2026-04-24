@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/stylex-structures",
   "description": "Core data structures and configuration types for the StyleX system",
-  "version": "0.15.4",
+  "version": "0.15.5-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -36,9 +36,9 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/constants": "0.15.4",
-    "@stylexswc/macros": "0.15.4",
-    "@stylexswc/stylex-enums": "0.15.4",
+    "@stylexswc/constants": "0.15.5-rc.1",
+    "@stylexswc/macros": "0.15.5-rc.1",
+    "@stylexswc/stylex-enums": "0.15.5-rc.1",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.1"

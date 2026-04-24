@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/path-resolver",
   "description": "SWC lib for path imports resolving for SWC StyleX plugin",
-  "version": "0.15.4",
+  "version": "0.15.5-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -36,7 +36,7 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/macros": "0.15.4",
+    "@stylexswc/macros": "0.15.5-rc.1",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.1"

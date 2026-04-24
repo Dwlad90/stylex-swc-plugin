@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/types",
   "description": "Type definitions, enums, structs and traits for StyleX SWC plugin",
-  "version": "0.15.4",
+  "version": "0.15.5-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -36,11 +36,11 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/constants": "0.15.4",
-    "@stylexswc/macros": "0.15.4",
-    "@stylexswc/misc": "0.15.4",
-    "@stylexswc/stylex-enums": "0.15.4",
-    "@stylexswc/stylex-structures": "0.15.4",
+    "@stylexswc/constants": "0.15.5-rc.1",
+    "@stylexswc/macros": "0.15.5-rc.1",
+    "@stylexswc/misc": "0.15.5-rc.1",
+    "@stylexswc/stylex-enums": "0.15.5-rc.1",
+    "@stylexswc/stylex-structures": "0.15.5-rc.1",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.1"

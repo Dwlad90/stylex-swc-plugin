@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/misc",
   "description": "Miscellaneous SWC utilities for StyleX plugin",
-  "version": "0.15.4",
+  "version": "0.15.5-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [

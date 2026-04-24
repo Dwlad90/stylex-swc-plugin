@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Regression guard for napi 3.8.x `UnknownRef` leak warnings:
+// Regression guard for napi 3.x `UnknownRef` leak warnings:
 //   "ObjectRef is not unref, it considered as a memory leak"
 // This fires once per element on every Rust→JS round-trip of UnknownRef
 // fields. The fix (see src/lib.rs + src/structs/mod.rs) must keep stderr
@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const LEAK_STRING = 'ObjectRef is not unref';
 
-const distEntry = path.resolve(fileURLToPath(import.meta.url), '../../dist/index.js');
+const distEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist/index.js');
 
 function runNodeScript(script: string) {
   const result = spawnSync(process.execPath, ['-e', script], {
@@ -50,6 +50,7 @@ test('transform does not emit napi leak warnings across many calls', t => {
     const opts = normalizeRsOptions({
       include: ['**/*.ts'],
       exclude: [/\\.test\\./],
+      debugFilePath: (p) => p,
     });
     for (let i = 0; i < 50; i++) {
       transform('file.ts', 'export const x = 1;', opts);

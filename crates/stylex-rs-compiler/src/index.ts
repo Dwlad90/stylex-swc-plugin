@@ -87,9 +87,10 @@ function definedEntries(obj: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
- * Normalize StyleX compiler options by applying defaults and validating
- * complex fields. Uses a spread/defaults pattern: defaults are applied
- * first, then user-provided values overlay them (undefined keys skipped).
+ * Normalize StyleX compiler options by applying defaults and merging
+ * user-provided values. Uses a spread/defaults pattern: defaults are
+ * applied first, then user-provided values overlay them
+ * (undefined keys skipped).
  */
 export function normalizeRsOptions(options?: StyleXOptions | null): StyleXOptions {
   if (options == null) {
@@ -146,6 +147,8 @@ export function shouldTransformFile(
 /** Match a file path against a single pattern (glob string or RegExp). */
 function matchPattern(filePath: string, pattern: string | RegExp): boolean {
   if (pattern instanceof RegExp) {
+    // Reset lastIndex to avoid nondeterministic results with /g or /y flags
+    pattern.lastIndex = 0;
     return pattern.test(filePath);
   }
   if (typeof pattern !== 'string' || pattern === '') {
@@ -165,6 +168,15 @@ export function transform(
   code: string,
   options: StyleXOptions
 ): StyleXTransformResult {
+  // Apply include/exclude filter before transforming
+  if (!shouldTransformFile(filename, options.include, options.exclude)) {
+    return {
+      code,
+      metadata: { stylex: [] },
+      map: undefined,
+    } as StyleXTransformResult;
+  }
+
   let transformedCode = code;
 
   if (options.swcPlugins?.length) {
@@ -173,7 +185,12 @@ export function transform(
 
     const result = swc.transformSync(transformedCode, {
       filename,
-      sourceMaps: options.sourceMap === 'Inline' ? 'inline' : Boolean(options.sourceMap),
+      sourceMaps:
+        options.sourceMap === 'Inline'
+          ? 'inline'
+          : options.sourceMap === 'False'
+            ? false
+            : options.sourceMap !== undefined,
       jsc: {
         parser: { syntax: 'typescript', tsx: true },
         target: 'es2022',

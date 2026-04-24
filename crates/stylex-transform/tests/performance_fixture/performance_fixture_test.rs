@@ -95,7 +95,7 @@ mod tests {
       "Complex theme transformation result should not be empty"
     );
 
-    // Verify performance expectation (complex should be less than 20x slower than
+    // Verify performance expectation (complex should be less than 23x slower than
     // simple)
     assert!(
       complex_time < simple_time * 23.0,

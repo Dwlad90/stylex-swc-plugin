@@ -62,13 +62,18 @@ pub fn transform(
     .transpose()?;
 
   // Parse debugFilePath separately since it needs the napi::Env for JS function
-  // references.
+  // references. The UnknownRef must be explicitly unref'd after extracting its
+  // value to avoid napi "ObjectRef is not unref" leak warnings.
   let parsed_debug_file_path = options
     .debug_file_path
     .take()
     .map(|unknown_ref| {
-      let value = unknown_ref.get_value(&env)?;
-      utils::fn_parser::parse_debug_file_path(&env, value)
+      let parse_result = unknown_ref
+        .get_value(&env)
+        .and_then(|value| utils::fn_parser::parse_debug_file_path(&env, value));
+      // Always unref to prevent leak, regardless of parse success/failure
+      let _ = unknown_ref.unref(&env);
+      parse_result
     })
     .transpose()?;
 

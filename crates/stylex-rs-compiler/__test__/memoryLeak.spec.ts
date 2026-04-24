@@ -3,12 +3,6 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Regression guard for napi 3.x `UnknownRef` leak warnings:
-//   "ObjectRef is not unref, it considered as a memory leak"
-// This fires once per element on every Rust→JS round-trip of UnknownRef
-// fields. The fix (see src/lib.rs + src/structs/mod.rs) must keep stderr
-// clean of that string — otherwise user builds are noisy.
-
 const LEAK_STRING = 'ObjectRef is not unref';
 
 const distEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist/index.js');
@@ -69,6 +63,82 @@ test('shouldTransformFile does not emit napi leak warnings across many calls', t
     const exclude = [/\\.test\\./, /node_modules/];
     for (let i = 0; i < 100; i++) {
       shouldTransformFile('src/foo.ts', include, exclude);
+    }
+  `);
+  t.false(
+    result.stderr.includes(LEAK_STRING),
+    `napi leak warnings detected in stderr:\n${result.stderr}`
+  );
+});
+
+test('transform with debugFilePath function returning prefix does not leak', t => {
+  const result = runNodeScript(`
+    const { transform, normalizeRsOptions } = require(${JSON.stringify(distEntry)});
+    const opts = normalizeRsOptions({
+      debugFilePath: (p) => 'custom-prefix/' + p,
+    });
+    for (let i = 0; i < 50; i++) {
+      transform('file.ts', 'export const x = 1;', opts);
+    }
+  `);
+  t.false(
+    result.stderr.includes(LEAK_STRING),
+    `napi leak warnings detected in stderr:\n${result.stderr}`
+  );
+});
+
+test('transform with env object does not emit napi leak warnings', t => {
+  const result = runNodeScript(`
+    const { transform, normalizeRsOptions } = require(${JSON.stringify(distEntry)});
+    const opts = normalizeRsOptions({});
+    // Transform with env passed to native
+    for (let i = 0; i < 50; i++) {
+      try {
+        transform('file.ts', 'export const x = 1;', { ...opts, env: { APP_NAME: 'test' } });
+      } catch (e) {
+        // env parsing errors are ok, we're testing for leaks not correctness
+      }
+    }
+  `);
+  t.false(
+    result.stderr.includes(LEAK_STRING),
+    `napi leak warnings detected in stderr:\n${result.stderr}`
+  );
+});
+
+test('transform with stylex code does not emit napi leak warnings', t => {
+  const result = runNodeScript(`
+    const { transform, normalizeRsOptions } = require(${JSON.stringify(distEntry)});
+    const opts = normalizeRsOptions({
+      treeshakeCompensation: true,
+      unstable_moduleResolution: { type: 'commonJS' },
+    });
+    const code = \`
+      import stylex from "@stylexjs/stylex";
+      export const styles = stylex.create({ root: { color: "red" } });
+    \`;
+    for (let i = 0; i < 50; i++) {
+      transform('page.tsx', code, opts);
+    }
+  `);
+  t.false(
+    result.stderr.includes(LEAK_STRING),
+    `napi leak warnings detected in stderr:\n${result.stderr}`
+  );
+});
+
+test('normalizeRsOptions with various input shapes does not leak', t => {
+  const result = runNodeScript(`
+    const { normalizeRsOptions } = require(${JSON.stringify(distEntry)});
+    for (let i = 0; i < 100; i++) {
+      normalizeRsOptions({});
+      normalizeRsOptions({ dev: true, test: true });
+      normalizeRsOptions({ importSources: ['@scope/pkg'] });
+      normalizeRsOptions({
+        include: ['src/**'],
+        exclude: [/test/],
+        swcPlugins: [['@swc/plugin', {}]],
+      });
     }
   `);
   t.false(

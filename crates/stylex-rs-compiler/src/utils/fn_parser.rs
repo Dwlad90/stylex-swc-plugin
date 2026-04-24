@@ -71,15 +71,25 @@ fn prop_name_to_string(key: &PropName) -> Option<String> {
   }
 }
 
+/// Guard that clears `NAPI_ENV_RAW` on drop, ensuring cleanup even if the
+/// wrapped closure panics.
+struct NapiEnvGuard;
+
+impl Drop for NapiEnvGuard {
+  fn drop(&mut self) {
+    NAPI_ENV_RAW.set(None);
+  }
+}
+
 /// Sets the NAPI env for the duration of a closure, then clears it.
+/// Uses a drop guard to ensure cleanup even on panic.
 pub(crate) fn with_napi_env<F, R>(env: &napi::Env, f: F) -> R
 where
   F: FnOnce() -> R,
 {
   NAPI_ENV_RAW.set(Some(env.raw()));
-  let result = f();
-  NAPI_ENV_RAW.set(None);
-  result
+  let _guard = NapiEnvGuard;
+  f()
 }
 
 /// Parses a JS object into an `IndexMap<String, EnvEntry>`.

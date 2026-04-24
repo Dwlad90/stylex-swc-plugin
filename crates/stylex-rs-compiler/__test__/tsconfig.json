@@ -5,7 +5,8 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "outDir": "lib",
-    "rootDir": "."
+    "rootDir": ".",
+    "isolatedModules": false,
   },
   "include": ["*.ts"],
   "exclude": ["lib"]

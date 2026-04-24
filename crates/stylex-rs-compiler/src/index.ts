@@ -19,17 +19,17 @@ import type {
 
 // const enums are erased by TypeScript — provide runtime values
 // so ESM consumers can import them.
-export const SourceMaps = {
+export const SourceMaps = Object.freeze({
   True: 'True',
   False: 'False',
   Inline: 'Inline',
-} as const;
+} as const);
 
-export const PropertyValidationMode = {
+export const PropertyValidationMode = Object.freeze({
   Throw: 'throw',
   Warn: 'warn',
   Silent: 'silent',
-} as const;
+} as const);
 
 // ── Extended types ──────────────────────────────────────────────────
 

@@ -601,3 +601,149 @@ test('shouldTransformFile: string regex with flags', t => {
   t.is(shouldTransformFile(upper, include, undefined), true);
   t.is(shouldTransformFile(lower, include, undefined), true);
 });
+
+// Regression test for RegExp with /g flag (lastIndex statefulness)
+test('shouldTransformFile: regex with /g flag is deterministic across calls', t => {
+  const globalRegex = /src/g;
+  const include = [globalRegex];
+  const filePath = path.join(cwd, 'src/Button.tsx');
+
+  // Without lastIndex reset, the second call could return false
+  // because RegExp.test() with /g advances lastIndex
+  t.is(shouldTransformFile(filePath, include, undefined), true);
+  t.is(shouldTransformFile(filePath, include, undefined), true);
+  t.is(shouldTransformFile(filePath, include, undefined), true);
+});
+
+test('shouldTransformFile: regex with /y flag is deterministic across calls', t => {
+  const stickyRegex = /src/y;
+  const include = [stickyRegex];
+  const filePath = path.join(cwd, 'src/Button.tsx');
+
+  // Sticky flag also causes lastIndex issues
+  t.is(shouldTransformFile(filePath, include, undefined), true);
+  t.is(shouldTransformFile(filePath, include, undefined), true);
+});
+
+test('shouldTransformFile: regex with /gi flags is deterministic across calls', t => {
+  const globalInsensitiveRegex = /BUTTON/gi;
+  const include = [globalInsensitiveRegex];
+  const filePath = path.join(cwd, 'src/Button.tsx');
+
+  for (let i = 0; i < 10; i++) {
+    t.is(shouldTransformFile(filePath, include, undefined), true, `failed on call ${i + 1}`);
+  }
+});
+
+// ── Path edge cases ─────────────────────────────────────────────────
+
+test('shouldTransformFile: empty string file path', t => {
+  t.is(shouldTransformFile('', ['**/*.ts'], undefined), false);
+});
+
+test('shouldTransformFile: absolute path with no cwd prefix', t => {
+  // When the absolute path isn't under cwd, path.relative returns
+  // something with ../.. which may or may not match patterns
+  t.is(
+    shouldTransformFile('/completely/different/path.ts', ['src/**'], undefined),
+    false,
+    'unrelated absolute path should not match src/**'
+  );
+});
+
+test('shouldTransformFile: dot files and directories', t => {
+  const dotFile = path.join(cwd, '.eslintrc.ts');
+  const dotDir = path.join(cwd, '.config/styles.ts');
+
+  t.is(shouldTransformFile(dotFile, ['**/*.ts'], undefined), true);
+  t.is(shouldTransformFile(dotDir, ['.config/**'], undefined), true);
+});
+
+test('shouldTransformFile: file with spaces in path', t => {
+  const file = path.join(cwd, 'src/My Component/styles.tsx');
+  t.is(shouldTransformFile(file, ['src/**/*.tsx'], undefined), true);
+});
+
+test('shouldTransformFile: file with unicode characters in path', t => {
+  const file = path.join(cwd, 'src/компонент/styles.tsx');
+  t.is(shouldTransformFile(file, ['src/**/*.tsx'], undefined), true);
+});
+
+test('shouldTransformFile: deeply nested path', t => {
+  const file = path.join(cwd, 'src/a/b/c/d/e/f/g/h/styles.tsx');
+  t.is(shouldTransformFile(file, ['src/**/*.tsx'], undefined), true);
+  t.is(shouldTransformFile(file, ['src/*.tsx'], undefined), false);
+});
+
+test('shouldTransformFile: both include and exclude empty arrays', t => {
+  const file = path.join(cwd, 'anything.tsx');
+  t.is(shouldTransformFile(file, [], []), true);
+});
+
+test('shouldTransformFile: regex with special chars matches correctly', t => {
+  const file = path.join(cwd, 'src/file.module.css.ts');
+  t.is(shouldTransformFile(file, [/\.module\.css\.ts$/], undefined), true);
+  t.is(shouldTransformFile(file, [/\.module\.css$/], undefined), false);
+});
+
+test('shouldTransformFile: anchored regex patterns', t => {
+  const file = path.join(cwd, 'src/Button.tsx');
+  t.is(shouldTransformFile(file, [/^src\//], undefined), true);
+  t.is(shouldTransformFile(file, [/\.tsx$/], undefined), true);
+  t.is(shouldTransformFile(file, [/^lib\//], undefined), false);
+});
+
+test('shouldTransformFile: exclude with regex matching entire relative path', t => {
+  const file = path.join(cwd, 'vendor/third-party/lib.ts');
+  t.is(shouldTransformFile(file, undefined, [/^vendor\//]), false);
+  t.is(shouldTransformFile(file, undefined, [/third-party/]), false);
+});
+
+test('shouldTransformFile: same regex used for both include and exclude', t => {
+  const pattern = /src\/.*\.tsx$/;
+  const file = path.join(cwd, 'src/App.tsx');
+  // Include matches, exclude also matches → excluded
+  t.is(shouldTransformFile(file, [pattern], [pattern]), false);
+});
+
+test('shouldTransformFile: glob with negation-like pattern', t => {
+  const file1 = path.join(cwd, 'src/utils/helper.ts');
+  const file2 = path.join(cwd, 'src/utils/helper.test.ts');
+  // Include all TS, exclude tests
+  t.is(shouldTransformFile(file1, ['**/*.ts'], [/\.test\./]), true);
+  t.is(shouldTransformFile(file2, ['**/*.ts'], [/\.test\./]), false);
+});
+
+test('shouldTransformFile: single file glob pattern', t => {
+  const file = path.join(cwd, 'src/specific-file.tsx');
+  t.is(shouldTransformFile(file, ['src/specific-file.tsx'], undefined), true);
+  t.is(shouldTransformFile(file, ['src/other-file.tsx'], undefined), false);
+});
+
+test('shouldTransformFile: case-sensitive glob pattern', t => {
+  const file = path.join(cwd, 'src/MyComponent.TSX');
+  // Glob patterns are case-sensitive by default
+  t.is(shouldTransformFile(file, ['src/**/*.tsx'], undefined), false);
+  t.is(shouldTransformFile(file, ['src/**/*.TSX'], undefined), true);
+});
+
+test('shouldTransformFile: repeated calls with same stateful regex in exclude', t => {
+  const exclude = [/test/g];
+  const file = path.join(cwd, 'src/test-utils.ts');
+
+  for (let i = 0; i < 5; i++) {
+    t.is(
+      shouldTransformFile(file, undefined, exclude),
+      false,
+      `exclude with /g should be consistent on call ${i + 1}`
+    );
+  }
+});
+
+test('shouldTransformFile: empty include array matches everything', t => {
+  t.is(shouldTransformFile(path.join(cwd, 'any/file.ts'), [], undefined), true);
+});
+
+test('shouldTransformFile: empty exclude array excludes nothing', t => {
+  t.is(shouldTransformFile(path.join(cwd, 'any/file.ts'), undefined, []), true);
+});

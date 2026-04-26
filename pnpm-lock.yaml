@@ -65,10 +65,10 @@ importers:
         specifier: ^20.5.0
         version: 20.5.0(@types/node@25.5.0)(conventional-commits-parser@6.4.0)(typescript@6.0.2)
       '@stylexswc/eslint-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:packages/eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:packages/typescript-config
       '@typescript-eslint/parser':
         specifier: ^8.56.1
@@ -122,13 +122,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -141,7 +141,7 @@ importers:
         specifier: ^1.58.2
         version: 1.58.2
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.2.14
@@ -199,13 +199,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@stylexswc/postcss-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/postcss-plugin
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       '@testing-library/react':
         specifier: ^16.3.2
@@ -295,13 +295,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -323,7 +323,7 @@ importers:
         specifier: ^1.58.2
         version: 1.58.2
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.2.14
@@ -347,10 +347,10 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/nextjs-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/nextjs-plugin
       next:
         specifier: ^16.2.3
@@ -369,13 +369,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/jest':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/jest
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@swc/jest':
         specifier: ^0.2.39
@@ -435,13 +435,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/nextjs-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/nextjs-plugin
       '@stylexswc/postcss-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/postcss-plugin
       next:
         specifier: ^16.2.3
@@ -460,13 +460,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/jest':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/jest
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@swc/jest':
         specifier: ^0.2.39
@@ -526,13 +526,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/nextjs-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/nextjs-plugin
       '@stylexswc/postcss-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/postcss-plugin
       next:
         specifier: ^16.2.3
@@ -551,16 +551,16 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/jest':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/jest
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/turbopack-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/turbopack-plugin
       '@swc/jest':
         specifier: ^0.2.39
@@ -642,10 +642,10 @@ importers:
         specifier: ^0.4.0
         version: 0.4.0(@swc/core@1.15.13(@swc/helpers@0.5.19))(rollup@4.60.1)
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@stylexswc/rollup-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/rollup-plugin
       rollup:
         specifier: ^4.60.1
@@ -663,7 +663,7 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/rollup-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/rollup-plugin
 
   apps/rollup-unplugin-example:
@@ -675,13 +675,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -709,7 +709,7 @@ importers:
         specifier: ^0.4.0
         version: 0.4.0(@swc/core@1.15.13(@swc/helpers@0.5.19))(rollup@4.60.1)
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       rollup:
         specifier: ^4.60.1
@@ -730,13 +730,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -755,7 +755,7 @@ importers:
         specifier: ^1.4.6
         version: 1.4.6(@rsbuild/core@1.7.3)
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.2.14
@@ -776,13 +776,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -801,7 +801,7 @@ importers:
         specifier: ^1.4.6
         version: 1.4.6(@rsbuild/core@1.7.3)
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.2.14
@@ -822,13 +822,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -853,7 +853,7 @@ importers:
         specifier: ^1.7.6
         version: 1.7.6(@swc/helpers@0.5.19)
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.2.14
@@ -874,13 +874,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -905,7 +905,7 @@ importers:
         specifier: ^1.7.6
         version: 1.7.6(@swc/helpers@0.5.19)
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@types/react':
         specifier: ^19.2.14
@@ -929,16 +929,16 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -978,16 +978,16 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -1024,16 +1024,16 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -1067,13 +1067,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       vue:
         specifier: ^3.5.28
@@ -1083,7 +1083,7 @@ importers:
         specifier: ^1.58.2
         version: 1.58.2
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@vitejs/plugin-vue':
         specifier: ^6.0.5
@@ -1113,13 +1113,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       vue:
         specifier: ^3.5.28
@@ -1129,7 +1129,7 @@ importers:
         specifier: ^1.58.2
         version: 1.58.2
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@vitejs/plugin-vue':
         specifier: ^6.0.5
@@ -1172,13 +1172,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@stylexswc/postcss-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/postcss-plugin
       '@stylexswc/webpack-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/webpack-plugin
       '@swc/core':
         specifier: ^1.15.11
@@ -1232,13 +1232,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -1251,7 +1251,7 @@ importers:
         specifier: ^1.58.2
         version: 1.58.2
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@swc/core':
         specifier: ^1.15.11
@@ -1290,13 +1290,13 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/design-system':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/unplugin
       react:
         specifier: ^19.2.4
@@ -1309,7 +1309,7 @@ importers:
         specifier: ^1.58.2
         version: 1.58.2
       '@stylexswc/playwright':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/playwright
       '@swc/core':
         specifier: ^1.15.11
@@ -1360,16 +1360,16 @@ importers:
   crates/stylex-ast:
     devDependencies:
       '@stylexswc/constants':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-constants
       '@stylexswc/macros':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-macros
       '@stylexswc/misc':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-utils
       '@stylexswc/types':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-types
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1396,31 +1396,31 @@ importers:
   crates/stylex-css:
     devDependencies:
       '@stylexswc/ast':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-ast
       '@stylexswc/constants':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-constants
       '@stylexswc/css-parser':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-css-parser
       '@stylexswc/evaluator':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-evaluator
       '@stylexswc/macros':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-macros
       '@stylexswc/regex':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-regex
       '@stylexswc/stylex-enums':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-enums
       '@stylexswc/stylex-structures':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-structures
       '@stylexswc/types':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-types
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1435,7 +1435,7 @@ importers:
   crates/stylex-css-parser:
     devDependencies:
       '@stylexswc/macros':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-macros
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1450,7 +1450,7 @@ importers:
   crates/stylex-enums:
     devDependencies:
       '@stylexswc/macros':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-macros
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1465,22 +1465,22 @@ importers:
   crates/stylex-evaluator:
     devDependencies:
       '@stylexswc/ast':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-ast
       '@stylexswc/constants':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-constants
       '@stylexswc/macros':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-macros
       '@stylexswc/path-resolver':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-path-resolver
       '@stylexswc/stylex-js':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-js
       '@stylexswc/types':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-types
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1495,10 +1495,10 @@ importers:
   crates/stylex-js:
     devDependencies:
       '@stylexswc/constants':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-constants
       '@stylexswc/macros':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-macros
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1513,7 +1513,7 @@ importers:
   crates/stylex-logs:
     devDependencies:
       '@stylexswc/macros':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-macros
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1528,7 +1528,7 @@ importers:
   crates/stylex-macros:
     devDependencies:
       '@stylexswc/constants':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-constants
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1543,7 +1543,7 @@ importers:
   crates/stylex-path-resolver:
     devDependencies:
       '@stylexswc/macros':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-macros
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1583,34 +1583,34 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/ast':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-ast
       '@stylexswc/logs':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-logs
       '@stylexswc/macros':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-macros
       '@stylexswc/misc':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-utils
       '@stylexswc/regex':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-regex
       '@stylexswc/stylex-enums':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-enums
       '@stylexswc/stylex-structures':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-structures
       '@stylexswc/transform':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-transform
       '@stylexswc/types':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-types
       '@stylexswc/typescript-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../packages/typescript-config
       '@swc-node/register':
         specifier: ^1.11.1
@@ -1658,13 +1658,13 @@ importers:
   crates/stylex-structures:
     devDependencies:
       '@stylexswc/constants':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-constants
       '@stylexswc/macros':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-macros
       '@stylexswc/stylex-enums':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-enums
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1691,40 +1691,40 @@ importers:
   crates/stylex-transform:
     devDependencies:
       '@stylexswc/ast':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-ast
       '@stylexswc/constants':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-constants
       '@stylexswc/css':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-css
       '@stylexswc/css-parser':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-css-parser
       '@stylexswc/logs':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-logs
       '@stylexswc/macros':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-macros
       '@stylexswc/misc':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-utils
       '@stylexswc/path-resolver':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-path-resolver
       '@stylexswc/regex':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-regex
       '@stylexswc/stylex-enums':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-enums
       '@stylexswc/stylex-structures':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-structures
       '@stylexswc/types':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-types
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1739,19 +1739,19 @@ importers:
   crates/stylex-types:
     devDependencies:
       '@stylexswc/constants':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-constants
       '@stylexswc/macros':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-macros
       '@stylexswc/misc':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-utils
       '@stylexswc/stylex-enums':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-enums
       '@stylexswc/stylex-structures':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../stylex-structures
       '@taplo/cli':
         specifier: ^0.7.0
@@ -1781,7 +1781,7 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       react:
         specifier: ^19.2.4
@@ -1846,7 +1846,7 @@ importers:
   packages/jest:
     dependencies:
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
     devDependencies:
       '@babel/types':
@@ -1859,10 +1859,10 @@ importers:
         specifier: ^30.2.0
         version: 30.2.0
       '@stylexswc/eslint-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../typescript-config
       '@types/node':
         specifier: ^25.5.0
@@ -1871,23 +1871,23 @@ importers:
   packages/nextjs-plugin:
     dependencies:
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/turbopack-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../turbopack-plugin
       '@stylexswc/webpack-plugin':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../webpack-plugin
     devDependencies:
       '@babel/types':
         specifier: ^7.29.0
         version: 7.29.0
       '@stylexswc/eslint-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../typescript-config
       '@types/babel__core':
         specifier: ^7.20.5
@@ -1917,10 +1917,10 @@ importers:
         specifier: ^1.58.2
         version: 1.58.2
       '@stylexswc/eslint-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../typescript-config
       '@types/node':
         specifier: ^25.5.0
@@ -1935,7 +1935,7 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       fast-glob:
         specifier: ^3.3.3
@@ -1954,10 +1954,10 @@ importers:
         specifier: ^7.29.0
         version: 7.29.0
       '@stylexswc/eslint-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../typescript-config
       '@types/babel__core':
         specifier: ^7.20.5
@@ -1993,7 +1993,7 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       lightningcss:
         specifier: ^1.31.1
@@ -2036,7 +2036,7 @@ importers:
   packages/turbopack-plugin:
     dependencies:
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       loader-utils:
         specifier: ^3.3.1
@@ -2046,10 +2046,10 @@ importers:
         specifier: ^7.29.0
         version: 7.29.0
       '@stylexswc/eslint-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../typescript-config
       '@types/babel__core':
         specifier: ^7.20.5
@@ -2075,7 +2075,7 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       esbuild:
         specifier: '>=0.25.0'
@@ -2157,7 +2157,7 @@ importers:
         specifier: ^0.18.2
         version: 0.18.2
       '@stylexswc/rs-compiler':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../../crates/stylex-rs-compiler
       loader-utils:
         specifier: ^3.3.1
@@ -2167,10 +2167,10 @@ importers:
         specifier: ^7.29.0
         version: 7.29.0
       '@stylexswc/eslint-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../eslint-config
       '@stylexswc/typescript-config':
-        specifier: 0.15.5-rc.1
+        specifier: 0.15.5
         version: link:../typescript-config
       '@types/babel__core':
         specifier: ^7.20.5

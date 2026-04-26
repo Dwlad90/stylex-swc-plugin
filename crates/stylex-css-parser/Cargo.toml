@@ -5,7 +5,7 @@ license = "MIT"
 name = "stylex_css_parser"
 repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
 rust-version = "1.93.1"
-version = "0.15.5-rc.1"
+version = "0.15.5"
 
 
 [lib]

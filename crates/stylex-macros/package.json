@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/macros",
   "description": "Macros for StyleX NAPI-RS compiler",
-  "version": "0.15.5-rc.1",
+  "version": "0.15.5",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -36,7 +36,7 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/constants": "0.15.5-rc.1",
+    "@stylexswc/constants": "0.15.5",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.1"

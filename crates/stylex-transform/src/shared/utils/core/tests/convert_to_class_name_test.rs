@@ -49,7 +49,7 @@ mod convert_style_to_class_name {
         ..Default::default()
       },
     );
-    assert!(class_name.starts_with("margin-"))
+    assert!(class_name.as_str().starts_with("margin-"))
   }
 
   #[test]
@@ -70,8 +70,8 @@ mod convert_style_to_class_name {
         ..Default::default()
       },
     );
-    assert!(class_name.starts_with("x"));
-    assert!(!class_name.starts_with("margin-x"));
+    assert!(class_name.as_str().starts_with("x"));
+    assert!(!class_name.as_str().starts_with("margin-x"));
   }
 
   #[test]
@@ -91,8 +91,8 @@ mod convert_style_to_class_name {
         ..Default::default()
       },
     );
-    assert!(!class_name.starts_with("margin-"));
-    assert!(class_name.starts_with("x"));
+    assert!(!class_name.as_str().starts_with("margin-"));
+    assert!(class_name.as_str().starts_with("x"));
   }
 
   #[test]

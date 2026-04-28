@@ -64,10 +64,10 @@ mod stylex_define_consts {
     let sm_hash = get_const_hash(export_id, "sm", "x");
     let md_hash = get_const_hash(export_id, "md", "x");
 
-    assert!(injectable_styles.contains_key(&sm_hash));
-    assert!(injectable_styles.contains_key(&md_hash));
+    assert!(injectable_styles.contains_key(sm_hash.as_str()));
+    assert!(injectable_styles.contains_key(md_hash.as_str()));
 
-    match injectable_styles.get(&sm_hash).unwrap().as_ref() {
+    match injectable_styles.get(sm_hash.as_str()).unwrap().as_ref() {
       InjectableStyleKind::Const(style) => {
         assert_eq!(style.const_value, "(min-width: 768px)");
         assert_eq!(style.ltr, "");
@@ -77,7 +77,7 @@ mod stylex_define_consts {
       _ => panic!("Expected InjectableStyleKind::Const"),
     }
 
-    match injectable_styles.get(&md_hash).unwrap().as_ref() {
+    match injectable_styles.get(md_hash.as_str()).unwrap().as_ref() {
       InjectableStyleKind::Const(style) => {
         assert_eq!(style.const_value, "(min-width: 1024px)");
         assert_eq!(style.ltr, "");
@@ -116,8 +116,8 @@ mod stylex_define_consts {
     let max_width_hash = get_const_hash(export_id, "max-width", "x");
     let font_size_hash = get_const_hash(export_id, "font-size*large", "x");
 
-    assert!(injectable_styles.contains_key(&max_width_hash));
-    assert!(injectable_styles.contains_key(&font_size_hash));
+    assert!(injectable_styles.contains_key(max_width_hash.as_str()));
+    assert!(injectable_styles.contains_key(font_size_hash.as_str()));
 
     assert_ne!(max_width_hash, font_size_hash);
   }
@@ -138,8 +138,8 @@ mod stylex_define_consts {
     let hash_1 = get_const_hash(export_id, "1", "x");
     let hash_2 = get_const_hash(export_id, "2", "x");
 
-    assert!(injectable_styles.contains_key(&hash_1));
-    assert!(injectable_styles.contains_key(&hash_2));
+    assert!(injectable_styles.contains_key(hash_1.as_str()));
+    assert!(injectable_styles.contains_key(hash_2.as_str()));
 
     assert_ne!(hash_1, hash_2);
   }
@@ -159,12 +159,12 @@ mod stylex_define_consts {
 
     assert_eq!(js_output1, js_output2);
 
-    assert!(styles1.contains_key(&key_hash));
-    assert!(styles2.contains_key(&key_hash));
+    assert!(styles1.contains_key(key_hash.as_str()));
+    assert!(styles2.contains_key(key_hash.as_str()));
 
     match (
-      styles1.get(&key_hash).unwrap().as_ref(),
-      styles2.get(&key_hash).unwrap().as_ref(),
+      styles1.get(key_hash.as_str()).unwrap().as_ref(),
+      styles2.get(key_hash.as_str()).unwrap().as_ref(),
     ) {
       (InjectableStyleKind::Const(style1), InjectableStyleKind::Const(style2)) => {
         assert_eq!(style1.const_key, style2.const_key);
@@ -190,12 +190,12 @@ mod stylex_define_consts {
 
     assert_ne!(padding_key, margin_key);
 
-    assert!(styles1.contains_key(&padding_key));
-    assert!(styles2.contains_key(&margin_key));
+    assert!(styles1.contains_key(padding_key.as_str()));
+    assert!(styles2.contains_key(margin_key.as_str()));
 
     match (
-      styles1.get(&padding_key).unwrap().as_ref(),
-      styles2.get(&margin_key).unwrap().as_ref(),
+      styles1.get(padding_key.as_str()).unwrap().as_ref(),
+      styles2.get(margin_key.as_str()).unwrap().as_ref(),
     ) {
       (InjectableStyleKind::Const(style1), InjectableStyleKind::Const(style2)) => {
         assert_ne!(style1.const_key, style2.const_key);

@@ -183,7 +183,7 @@ pub(crate) fn get_position_try_fn() -> FunctionConfig {
 
         state
           .other_injected_css_rules
-          .insert(position_try_name.clone(), Rc::new(injected_style));
+          .insert(position_try_name.clone().into(), Rc::new(injected_style));
 
         create_string_expr(position_try_name.as_str())
       },

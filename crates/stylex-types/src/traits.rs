@@ -5,11 +5,13 @@ use rustc_hash::FxHashMap;
 
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 
-use crate::enums::data_structures::injectable_style::InjectableStyleKind;
+use crate::{
+  enums::data_structures::injectable_style::InjectableStyleKind, structures::style_key::RuleKey,
+};
 
 /// Type alias for injectable styles map, moved here to be available at the
 /// types level.
-pub type InjectableStylesMap = IndexMap<String, Rc<InjectableStyleKind>>;
+pub type InjectableStylesMap = IndexMap<RuleKey, Rc<InjectableStyleKind>>;
 
 /// Tier 1: Minimal interface for CSS generation, PreRule, and function pointer
 /// signatures.

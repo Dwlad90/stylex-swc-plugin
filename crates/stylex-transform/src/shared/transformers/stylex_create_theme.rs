@@ -190,7 +190,7 @@ pub(crate) fn stylex_create_theme(
     };
 
     styles_to_inject.insert(
-      format!("{}{}", override_class_name, suffix),
+      format!("{}{}", override_class_name, suffix).into(),
       InjectableStyle::regular(ltr, Some(priority)),
     );
   }

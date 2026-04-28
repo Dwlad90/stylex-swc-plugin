@@ -87,7 +87,7 @@ mod stylex_define_vars {
     for injected_style in injected_styles {
       let (key, value) = injected_style;
       expected_injected_styles.insert(
-        key.to_string(),
+        key.to_string().into(),
         InjectableStyle::regular(value.0.to_string(), Some(value.1)),
       );
     }

@@ -10,6 +10,7 @@ use crate::{
   structures::{
     injectable_style::{InjectableConstStyle, InjectableStyle},
     meta_data::MetaData,
+    style_key::RuleKey,
   },
   traits::InjectableStylesMap,
 };
@@ -78,7 +79,7 @@ fn test_get_style_returns_ref() {
 fn test_convert_from_injected_styles_map() {
   let mut map: InjectableStylesMap = IndexMap::new();
   map.insert(
-    "cls1".to_string(),
+    RuleKey::from("cls1"),
     Rc::new(InjectableStyleKind::Regular(InjectableStyle {
       ltr: "css1".to_string(),
       rtl: None,
@@ -86,7 +87,7 @@ fn test_convert_from_injected_styles_map() {
     })),
   );
   map.insert(
-    "cls2".to_string(),
+    RuleKey::from("cls2"),
     Rc::new(InjectableStyleKind::Const(InjectableConstStyle {
       ltr: "css2".to_string(),
       rtl: Some("css2-rtl".to_string()),

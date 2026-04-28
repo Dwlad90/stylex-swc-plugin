@@ -5,7 +5,7 @@ mod converting_pre_rule_to_css {
   use crate::shared::structures::{
     pre_rule::{CompiledResult, ComputedStyle, PreRule, PreRuleValue, StylesPreRule},
     state_manager::StateManager,
-    types::ClassesToOriginalPaths,
+    types::{ClassName, ClassNameToOriginalPaths},
   };
   use stylex_enums::style_resolution::StyleResolution;
   use stylex_types::structures::injectable_style::InjectableStyle;
@@ -39,13 +39,13 @@ mod converting_pre_rule_to_css {
     )
     .compiled(&mut get_state());
 
-    let mut classes_to_original_paths: ClassesToOriginalPaths = IndexMap::new();
-    classes_to_original_paths.insert("x1e2nbdu".to_string(), vec!["color".to_string()]);
+    let mut classes_to_original_paths: ClassNameToOriginalPaths = IndexMap::new();
+    classes_to_original_paths.insert(ClassName::from("x1e2nbdu"), vec!["color".to_string()]);
 
     assert_eq!(
       result,
       CompiledResult::ComputedStyles(vec![ComputedStyle(
-        "x1e2nbdu".to_string(),
+        ClassName::from("x1e2nbdu"),
         InjectableStyle {
           ltr: ".x1e2nbdu{color:red}".to_string(),
           rtl: None,

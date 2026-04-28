@@ -11,6 +11,7 @@ use crate::shared::enums::data_structures::{
   evaluate_result_value::EvaluateResultValue, flat_compiled_styles_value::FlatCompiledStylesValue,
 };
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+pub(crate) use stylex_types::structures::style_key::{ClassName, RuleKey};
 
 use super::{functions::FunctionConfigType, state_manager::StateManager};
 use stylex_structures::{inline_style::InlineStyle, named_import_source::ImportSources};
@@ -24,9 +25,10 @@ pub(crate) type FunctionMapMemberExpression =
   FxHashMap<ImportSources, Box<FxHashMap<Atom, Box<FunctionConfigType>>>>;
 pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>>;
 pub(crate) type StylesObjectMap = IndexMap<String, Rc<FlatCompiledStyles>>;
-pub(crate) type InjectableStylesMap = IndexMap<String, Rc<InjectableStyleKind>>;
+pub(crate) type InjectableStylesMap = IndexMap<RuleKey, Rc<InjectableStyleKind>>;
 pub(crate) type ClassPathsMap = IndexMap<String, Rc<ClassPathsInNamespace>>;
 pub(crate) type ClassesToOriginalPaths = IndexMap<String, Vec<String>>;
+pub(crate) type ClassNameToOriginalPaths = IndexMap<ClassName, Vec<String>>;
 pub(crate) type ClassPathsInNamespace = ClassesToOriginalPaths;
 pub(crate) type TInlineStyles = IndexMap<String, Box<InlineStyle>>;
 

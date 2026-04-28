@@ -101,7 +101,7 @@ pub(crate) fn stylex_define_consts(
         };
 
         Some((
-          const_key.to_owned(),
+          const_key.to_owned().into(),
           Rc::new(InjectableStyleKind::Const(InjectableConstStyle {
             ltr: String::default(),
             rtl: None,

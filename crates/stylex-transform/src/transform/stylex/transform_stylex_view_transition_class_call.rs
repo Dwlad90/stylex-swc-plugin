@@ -170,14 +170,11 @@ where
       let mut injected_styles = IndexMap::new();
 
       injected_styles.insert(
-        view_transition_class_name.clone(),
+        view_transition_class_name.clone().into(),
         Rc::new(injectable_style),
       );
 
-      let other_injected_css_rules: IndexMap<
-        String,
-        Rc<stylex_types::enums::data_structures::injectable_style::InjectableStyleKind>,
-      > = self.state.other_injected_css_rules.clone();
+      let other_injected_css_rules = self.state.other_injected_css_rules.clone();
 
       injected_styles.extend(other_injected_css_rules);
 

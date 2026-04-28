@@ -139,7 +139,7 @@ where
 
       let mut injected_styles = IndexMap::new();
 
-      injected_styles.insert(animation_name.clone(), Rc::new(injectable_style));
+      injected_styles.insert(animation_name.clone().into(), Rc::new(injectable_style));
 
       let result_ast = create_string_expr(animation_name.as_str());
 

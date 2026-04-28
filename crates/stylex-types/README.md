@@ -24,8 +24,8 @@ logic — six downstream crates import these types directly.
   minimal API for CSS generation without depending on the concrete
   `StateManager`
 - **Type alias** — `InjectableStylesMap`
-  (`IndexMap<String, Rc<InjectableStyleKind>>`) provides ordered,
-  reference-counted style storage
+  (`IndexMap<RuleKey, Rc<InjectableStyleKind>>`) provides ordered,
+  reference-counted style storage with typed lookup keys
 
 ## Architecture
 

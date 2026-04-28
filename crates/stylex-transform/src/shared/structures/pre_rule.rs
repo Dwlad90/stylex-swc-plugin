@@ -9,8 +9,10 @@ use crate::shared::utils::{
 use stylex_css::utils::pre_rule::{sort_at_rules, sort_pseudos};
 
 use super::{
-  null_pre_rule::NullPreRule, pre_rule_set::PreRuleSet, state_manager::StateManager,
-  types::ClassesToOriginalPaths,
+  null_pre_rule::NullPreRule,
+  pre_rule_set::PreRuleSet,
+  state_manager::StateManager,
+  types::{ClassName, ClassNameToOriginalPaths},
 };
 use stylex_types::structures::injectable_style::InjectableStyle;
 
@@ -24,9 +26,9 @@ pub(crate) enum PreRuleValue {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ComputedStyle(
-  pub(crate) String,
+  pub(crate) ClassName,
   pub(crate) InjectableStyle,
-  pub(crate) ClassesToOriginalPaths,
+  pub(crate) ClassNameToOriginalPaths,
 );
 
 #[derive(Debug, Clone, PartialEq)]

@@ -239,7 +239,7 @@ mod stylex_create {
       for (key, inj) in injected_style.1 {
         let (value, priority) = inj;
         expected_injected_styles.insert(
-          key.to_string(),
+          key.to_string().into(),
           InjectableStyle::regular(value.to_string(), Some(*priority)),
         );
       }

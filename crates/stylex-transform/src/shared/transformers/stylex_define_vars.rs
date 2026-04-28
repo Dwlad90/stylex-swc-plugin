@@ -165,7 +165,7 @@ pub(crate) fn stylex_define_vars(
     .filter_map(|(key, value)| {
       value.as_injectable_style().map(|inj_style| {
         (
-          key.to_owned(),
+          key.to_owned().into(),
           Rc::new(InjectableStyleKind::Regular(inj_style.clone())),
         )
       })

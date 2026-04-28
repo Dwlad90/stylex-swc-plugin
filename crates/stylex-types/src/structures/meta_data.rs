@@ -95,7 +95,10 @@ impl MetaData {
     injected_styles_map
       .iter()
       .map(|(class_name, injectable_style)| {
-        MetaData::new(class_name.clone(), injectable_style.as_ref().clone())
+        MetaData::new(
+          class_name.clone().into_string(),
+          injectable_style.as_ref().clone(),
+        )
       })
       .collect()
   }

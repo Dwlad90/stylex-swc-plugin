@@ -398,7 +398,7 @@ where
           let is_pseudo_element = paths.iter().any(|path| path.starts_with(':'));
 
           injected_inherit_styles.insert(
-            variable_name.clone(),
+            variable_name.clone().into(),
             InjectableStyle::regular(
               format!(
                 "@property {} {{ syntax: \"*\"; inherits: {};}}",
@@ -615,7 +615,7 @@ where
 
                                 let expr = if expr.is_none() && !nullish_var_expressions.is_empty()
                                 {
-                                  injected_styles.get(cls).and_then(|style| {
+                                  injected_styles.get(cls.as_str()).and_then(|style| {
                                     let rule = match style.as_ref() {
                                       InjectableStyleKind::Regular(s) => {
                                         let ltr = s.ltr.as_str();

@@ -152,7 +152,7 @@ where
 
       let mut injected_styles = IndexMap::new();
 
-      injected_styles.insert(position_try_name.clone(), Rc::new(injectable_style));
+      injected_styles.insert(position_try_name.clone().into(), Rc::new(injectable_style));
 
       let result_ast = create_string_expr(position_try_name.as_str());
 

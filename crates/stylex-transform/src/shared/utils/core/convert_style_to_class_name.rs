@@ -1,7 +1,11 @@
 use stylex_macros::stylex_panic;
 
 use crate::shared::{
-  structures::{pre_rule::PreRuleValue, state_manager::StateManager},
+  structures::{
+    pre_rule::PreRuleValue,
+    state_manager::StateManager,
+    types::{ClassName, RuleKey},
+  },
   utils::css::common::{generate_css_rule, transform_value_cached},
 };
 use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS};
@@ -15,7 +19,7 @@ pub(crate) fn convert_style_to_class_name(
   at_rules: &mut [String],
   const_rules: &mut [String],
   state: &mut StateManager,
-) -> (String, String, InjectableStyle) {
+) -> (RuleKey, ClassName, InjectableStyle) {
   let debug = state.options.debug;
   let enable_debug_class_names = state.options.enable_debug_class_names;
 
@@ -101,7 +105,11 @@ pub(crate) fn convert_style_to_class_name(
     &state.options,
   );
 
-  (key.to_string(), class_name_hashed, css_rules)
+  (
+    RuleKey::from(key),
+    ClassName::from(class_name_hashed),
+    css_rules,
+  )
 }
 
 fn variable_fallbacks(values: &[String]) -> Vec<String> {

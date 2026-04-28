@@ -13,7 +13,7 @@ use crate::shared::{
     state::EvaluationState,
     state_manager::StateManager,
     types::{
-      ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap,
+      ClassPathsInNamespace, ClassPathsMap, FlatCompiledStyles, InjectableStylesMap, RuleKey,
       StylesObjectMap,
     },
   },
@@ -114,9 +114,13 @@ pub(crate) fn stylex_create_set(
           for ComputedStyle(class_name, injectable_styles, classes_to_original_path) in
             class_name_tuples.into_iter()
           {
-            class_paths_in_namespace.extend(classes_to_original_path);
+            class_paths_in_namespace.extend(
+              classes_to_original_path
+                .into_iter()
+                .map(|(class_name, original_path)| (class_name.into_string(), original_path)),
+            );
             injected_styles_map
-              .entry(class_name)
+              .entry(RuleKey::from(class_name.into_string()))
               .or_insert_with(move || Rc::new(InjectableStyleKind::Regular(injectable_styles)));
           }
         },

@@ -49,7 +49,7 @@ pub(crate) fn construct_css_variables_string(
     }
 
     result.insert(
-      format!("{}{}", theme_name_hash, suffix),
+      format!("{}{}", theme_name_hash, suffix).into(),
       InjectableStyle::regular(
         ltr,
         // Round to avoid floating-point precision issues (0.1 + 0.2 = 0.30000000000000004)

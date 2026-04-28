@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{BindingIdent, Expr},
+  ecma::ast::{BindingIdent, Expr, Ident, Program},
 };
 
 use crate::shared::enums::data_structures::{
@@ -28,3 +28,15 @@ pub(crate) type ClassPathsMap = IndexMap<String, Rc<ClassPathsInNamespace>>;
 pub(crate) type ClassesToOriginalPaths = IndexMap<String, Vec<String>>;
 pub(crate) type ClassPathsInNamespace = ClassesToOriginalPaths;
 pub(crate) type TInlineStyles = IndexMap<String, Box<InlineStyle>>;
+
+#[derive(Clone, Debug)]
+pub(crate) struct InjectImportIdents {
+  pub(crate) module: Ident,
+  pub(crate) var: Ident,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct SeenModuleSource {
+  pub(crate) program: Program,
+  pub(crate) source_code: Option<String>,
+}

@@ -23,7 +23,7 @@ fn stylex_state_options_default() {
 #[test]
 fn check_module_resolution_default_is_commonjs() {
   let res = CheckModuleResolution::default();
-  assert!(matches!(res, CheckModuleResolution::CommonJS(_)));
+  assert!(matches!(res, CheckModuleResolution::CommonJs { .. }));
 }
 
 #[test]

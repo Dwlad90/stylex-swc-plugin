@@ -235,7 +235,7 @@ where
     let mut state = StateManager::new(config.into());
 
     state.options.import_sources = stylex_imports.into_iter().collect();
-    state._state = self.plugin_pass;
+    state.set_plugin_pass(self.plugin_pass);
 
     StyleXTransform {
       comments: self.comments,
@@ -266,7 +266,7 @@ where
 
     state.options.import_sources = stylex_imports.into_iter().collect();
 
-    state._state = plugin_pass;
+    state.set_plugin_pass(plugin_pass);
 
     StyleXTransform {
       comments,

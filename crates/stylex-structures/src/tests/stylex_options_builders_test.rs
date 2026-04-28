@@ -4,7 +4,10 @@ use stylex_enums::{style_resolution::StyleResolution, sx_prop_name_param::SxProp
 
 use crate::{
   named_import_source::{NamedImportSource, RuntimeInjection},
-  stylex_options::{CheckModuleResolution, ModuleResolution, StyleXOptions, StyleXOptionsParams},
+  stylex_options::{
+    CheckModuleResolution, ModuleResolution, ModuleResolutionKind, StyleXOptions,
+    StyleXOptionsParams,
+  },
 };
 
 /// `StyleXOptions` fluent setters should update both core fields and runtime
@@ -24,9 +27,7 @@ fn stylex_options_builders_update_supported_fields() {
     .with_enable_logical_styles_polyfill(true)
     .with_enable_minified_keys(false)
     .with_runtime_injection(RuntimeInjection::Regular("/custom/inject".to_string()))
-    .with_unstable_module_resolution(CheckModuleResolution::Haste(ModuleResolution::haste(Some(
-      "/repo".to_string(),
-    ))));
+    .with_unstable_module_resolution(ModuleResolution::haste(Some("/repo".to_string())).into());
 
   assert_eq!(opts.class_name_prefix, "pref");
   assert_eq!(opts.style_resolution, StyleResolution::ApplicationOrder);
@@ -45,7 +46,7 @@ fn stylex_options_builders_update_supported_fields() {
   ));
   assert!(matches!(
     opts.unstable_module_resolution,
-    CheckModuleResolution::Haste(_)
+    CheckModuleResolution::Haste { .. }
   ));
 }
 
@@ -84,9 +85,9 @@ fn module_resolution_helper_builders_have_expected_type() {
   let haste = ModuleResolution::haste(Some("/haste".to_string()));
   let cross = ModuleResolution::cross_file_parsing(Some("/cross".to_string()));
 
-  assert_eq!(common.r#type, "commonjs");
-  assert_eq!(haste.r#type, "haste");
-  assert_eq!(cross.r#type, "cross-file-parsing");
+  assert_eq!(common.kind, ModuleResolutionKind::CommonJs);
+  assert_eq!(haste.kind, ModuleResolutionKind::Haste);
+  assert_eq!(cross.kind, ModuleResolutionKind::CrossFileParsing);
 }
 
 /// Named runtime injection path should survive `StyleXOptionsParams`

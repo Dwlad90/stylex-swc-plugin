@@ -12,9 +12,9 @@ fn stylex_transform(
       b.with_cwd(fixture_path.clone())
         .with_filename(fixture_path.clone().join("constants.stylex.js").into())
         .with_unstable_module_resolution(ModuleResolution {
-          r#type: "commonJS".to_string(),
           root_dir: Some(fixture_path.to_string_lossy().to_string()),
           theme_file_extension: None,
+          ..ModuleResolution::common_js(None)
         }),
     )
   })

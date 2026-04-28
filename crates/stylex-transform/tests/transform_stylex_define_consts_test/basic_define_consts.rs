@@ -13,9 +13,9 @@ fn stylex_transform(
           "/stylex/packages/TestTheme.stylex.js".into(),
         ))
         .with_unstable_module_resolution(ModuleResolution {
-          r#type: "commonJS".to_string(),
           root_dir: Some("/stylex/packages/".to_string()),
           theme_file_extension: None,
+          ..ModuleResolution::common_js(None)
         }),
     )
   })

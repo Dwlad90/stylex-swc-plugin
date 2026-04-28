@@ -1,6 +1,6 @@
 use rustc_hash::FxHashSet;
 use std::{any::type_name, collections::hash_map::Entry, ops::Deref, path::PathBuf};
-use stylex_macros::{stylex_panic, stylex_unimplemented};
+use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 use stylex_types::traits::StyleOptions;
 use stylex_utils::string::remove_quotes;
 use swc_core::{
@@ -619,5 +619,5 @@ pub(crate) fn downcast_style_options_to_state_manager(
   state
     .as_any_mut()
     .downcast_mut::<StateManager>()
-    .expect("StyleOptions must be StateManager")
+    .unwrap_or_else(|| stylex_unreachable!("StyleOptions must be StateManager"))
 }

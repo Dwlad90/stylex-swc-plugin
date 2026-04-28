@@ -35,9 +35,9 @@ pub(crate) fn extract_stylex_metadata(
   env: Env,
   stylex: &StyleXTransform<PluginCommentsProxy>,
 ) -> Result<Vec<JsObject>, Error> {
-  let mut stylex_metadata = Vec::with_capacity(stylex.state.metadata.len());
+  let mut stylex_metadata = Vec::with_capacity(stylex.state.metadata().len());
 
-  for value in stylex.state.metadata.values() {
+  for value in stylex.state.metadata().values() {
     for meta in value {
       let mut metadata_value = env.create_array_with_length(3)?;
 

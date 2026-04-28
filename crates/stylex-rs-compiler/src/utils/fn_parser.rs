@@ -7,6 +7,7 @@ use stylex_ast::ast::{
   convertors::{create_bool_expr, create_null_expr, create_number_expr, create_string_expr},
   factories::{create_array_expression, create_key_value_prop, create_object_expression},
 };
+use stylex_macros::stylex_panic;
 use stylex_structures::stylex_env::{EnvEntry, JSFunction};
 use stylex_utils::swc::get_default_expr_ctx;
 use swc_core::ecma::{
@@ -159,7 +160,7 @@ fn parse_env_function(env: &napi::Env, js_fn_raw: napi::sys::napi_value) -> napi
     move |args: Vec<Expr>| {
       let raw_env = NAPI_ENV_RAW
         .get()
-        .expect("NAPI env not available during env function call");
+        .unwrap_or_else(|| stylex_panic!("NAPI env not available during env function call"));
 
       let mut js_fn_raw: napi::sys::napi_value = std::ptr::null_mut();
       unsafe {

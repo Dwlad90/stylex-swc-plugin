@@ -55,47 +55,99 @@ pub fn build_nested_css_rule(
   at_rules: &mut [String],
   const_rules: &mut [String],
 ) -> String {
-  let pseudo = pseudos
+  let has_thumb = pseudos.iter().any(|pseudo| pseudo == "::thumb");
+  let has_where = pseudos
     .iter()
-    .filter(|&p| p != "::thumb")
-    .collect::<Vec<&String>>();
-  let pseudo_strs: Vec<&str> = pseudo.iter().map(|s| s.as_str()).collect();
-  let pseudo = pseudo_strs.join("");
-
-  let mut combined_at_rules = Vec::with_capacity(at_rules.len() + const_rules.len());
-
-  combined_at_rules.extend_from_slice(at_rules);
-  combined_at_rules.extend_from_slice(const_rules);
-
-  // Bump specificity of stylex.when selectors
-  let has_where = pseudo.contains(":where(");
-  let extra_class_for_where = if has_where {
-    format!(".{}", class_name)
+    .any(|pseudo| pseudo != "::thumb" && pseudo.contains(":where("));
+  let wrapper_count = at_rules.len() + const_rules.len();
+  let selector_len = selector_len(class_name, pseudos, has_where, wrapper_count);
+  let thumb_selector_len = if has_thumb {
+    THUMB_VARIANTS
+      .iter()
+      .map(|suffix| selector_len + suffix.len())
+      .sum::<usize>()
+      + ", ".len() * (THUMB_VARIANTS.len() - 1)
   } else {
-    String::default()
+    selector_len
   };
+  let wrapper_len = at_rules
+    .iter()
+    .chain(const_rules.iter())
+    .map(|rule| rule.len() + 2)
+    .sum::<usize>();
 
-  let mut selector_for_at_rules = format!(
-    ".{class_name}{extra_class_for_where}{}{pseudo}",
-    combined_at_rules
-      .iter()
-      .map(|_| format!(".{}", class_name))
-      .collect::<Vec<String>>()
-      .join(""),
-  );
+  let mut result = String::with_capacity(wrapper_len + thumb_selector_len + decls.len() + 2);
 
-  if pseudos.contains(&"::thumb".to_string()) {
-    selector_for_at_rules = THUMB_VARIANTS
-      .iter()
-      .map(|suffix| format!("{}{}", selector_for_at_rules, suffix))
-      .collect::<Vec<String>>()
-      .join(", ");
+  for rule in at_rules.iter().chain(const_rules.iter()).rev() {
+    result.push_str(rule);
+    result.push('{');
   }
 
-  combined_at_rules.iter().fold(
-    format!("{}{{{}}}", selector_for_at_rules, decls),
-    |acc, at_rule| format!("{}{{{}}}", at_rule, acc),
-  )
+  if has_thumb {
+    for (index, suffix) in THUMB_VARIANTS.iter().enumerate() {
+      if index > 0 {
+        result.push_str(", ");
+      }
+      push_selector(&mut result, class_name, pseudos, has_where, wrapper_count);
+      result.push_str(suffix);
+    }
+  } else {
+    push_selector(&mut result, class_name, pseudos, has_where, wrapper_count);
+  }
+
+  result.push('{');
+  result.push_str(&decls);
+  result.push('}');
+
+  for _ in 0..wrapper_count {
+    result.push('}');
+  }
+
+  result
+}
+
+fn selector_len(
+  class_name: &str,
+  pseudos: &[String],
+  has_where: bool,
+  wrapper_count: usize,
+) -> usize {
+  let class_selector_len = 1 + class_name.len();
+  let pseudo_len = pseudos
+    .iter()
+    .filter(|pseudo| pseudo.as_str() != "::thumb")
+    .map(String::len)
+    .sum::<usize>();
+
+  class_selector_len
+    + usize::from(has_where) * class_selector_len
+    + wrapper_count * class_selector_len
+    + pseudo_len
+}
+
+fn push_selector(
+  result: &mut String,
+  class_name: &str,
+  pseudos: &[String],
+  has_where: bool,
+  wrapper_count: usize,
+) {
+  result.push('.');
+  result.push_str(class_name);
+
+  if has_where {
+    result.push('.');
+    result.push_str(class_name);
+  }
+
+  for _ in 0..wrapper_count {
+    result.push('.');
+    result.push_str(class_name);
+  }
+
+  for pseudo in pseudos.iter().filter(|pseudo| pseudo.as_str() != "::thumb") {
+    result.push_str(pseudo);
+  }
 }
 
 /// Generates a complete `InjectableStyle` (LTR + optional RTL rule + priority)
@@ -109,33 +161,31 @@ pub fn generate_css_rule(
   const_rules: &mut [String],
   options: &StyleXStateOptions,
 ) -> InjectableStyle {
-  let mut pairs: Vec<Pair> = vec![];
+  let decl_capacity = values
+    .iter()
+    .map(|value| key.len() + value.len() + 1)
+    .sum::<usize>()
+    + values.len().saturating_sub(1);
+  let mut ltr_decls = String::with_capacity(decl_capacity);
+  let mut rtl_decls = String::with_capacity(decl_capacity);
 
   for value in values {
-    pairs.push(Pair::new(key.to_string(), value.clone()));
+    let pair = Pair::new(key, value.as_str());
+    let ltr_pair = generate_ltr(&pair, options);
+    push_css_decl(
+      &mut ltr_decls,
+      ltr_pair.key.as_ref(),
+      ltr_pair.value.as_ref(),
+    );
+
+    if let Some(rtl_pair) = generate_rtl(&pair, options) {
+      push_css_decl(
+        &mut rtl_decls,
+        rtl_pair.key.as_ref(),
+        rtl_pair.value.as_ref(),
+      );
+    }
   }
-
-  let ltr_pairs = pairs
-    .iter()
-    .map(|pair| generate_ltr(pair, options))
-    .collect::<Vec<_>>();
-
-  let rtl_pairs = pairs
-    .iter()
-    .filter_map(|pair| generate_rtl(pair, options))
-    .collect::<Vec<_>>();
-
-  let ltr_decls = ltr_pairs
-    .iter()
-    .map(|pair| format!("{}:{}", pair.key, pair.value))
-    .collect::<Vec<String>>()
-    .join(";");
-
-  let rtl_decls = rtl_pairs
-    .iter()
-    .map(|pair| format!("{}:{}", pair.key, pair.value))
-    .collect::<Vec<String>>()
-    .join(";");
 
   let ltr_rule = build_nested_css_rule(class_name, ltr_decls, pseudos, at_rules, const_rules);
   let rtl_rule = if rtl_decls.is_empty() {
@@ -526,9 +576,27 @@ pub fn normalize_css_property_name(prop: &str) -> String {
 ///
 /// Each pair is formatted as `property:value` and joined with `;`.
 pub fn inline_style_to_css_string(pairs: &[Pair]) -> String {
-  pairs
+  let capacity = pairs
     .iter()
-    .map(|p| format!("{}:{}", normalize_css_property_name(&p.key), p.value))
-    .collect::<Vec<_>>()
-    .join(";")
+    .map(|pair| pair.key.len() + pair.value.len() + 1)
+    .sum::<usize>()
+    + pairs.len().saturating_sub(1);
+  let mut out = String::with_capacity(capacity);
+
+  for pair in pairs {
+    let normalized_key = normalize_css_property_name(&pair.key);
+    push_css_decl(&mut out, normalized_key.as_str(), pair.value.as_str());
+  }
+
+  out
+}
+
+fn push_css_decl(out: &mut String, key: &str, value: &str) {
+  if !out.is_empty() {
+    out.push(';');
+  }
+
+  out.push_str(key);
+  out.push(':');
+  out.push_str(value);
 }

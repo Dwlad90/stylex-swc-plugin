@@ -511,16 +511,17 @@ fn _evaluate(
       "Parenthesized expressions should be unwrapped before evaluation."
     ),
     Expr::Member(member) => {
-      let parent_is_call_expr = traversal_state
-        .all_call_expressions
-        .values()
-        .any(|call_expr| {
-          if let Callee::Expr(callee) = &call_expr.callee {
-            callee.eq_ignore_span(&Box::new(Expr::Member(member.clone())))
-          } else {
-            false
-          }
-        });
+      let parent_is_call_expr =
+        traversal_state
+          .all_call_expressions
+          .values()
+          .any(|call_expr_callee| {
+            if let Callee::Expr(callee) = call_expr_callee {
+              callee.eq_ignore_span(&Box::new(Expr::Member(member.clone())))
+            } else {
+              false
+            }
+          });
 
       let evaluated_value = if parent_is_call_expr {
         None

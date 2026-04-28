@@ -48,11 +48,14 @@ use stylex_structures::{
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_utils::{hash::stable_hash, math::round_f64};
 
-use super::{seen_value::SeenValue, types::StylesObjectMap};
+use super::{
+  seen_value::SeenValue,
+  types::{InjectImportIdents, SeenModuleSource, StylesObjectMap},
+};
 use stylex_structures::{
   named_import_source::{ImportSources, NamedImportSource, RuntimeInjectionState},
   plugin_pass::PluginPass,
-  stylex_options::{CheckModuleResolution, ModuleResolution, StyleXOptions},
+  stylex_options::{CheckModuleResolution, StyleXOptions},
   stylex_state_options::StyleXStateOptions,
   uid_generator::UidGenerator,
 };
@@ -131,23 +134,23 @@ pub(crate) struct SeenValueWithVarDeclCount {
 
 #[derive(Clone, Debug)]
 pub struct StateManager {
-  pub(crate) _state: PluginPass,
+  pub(crate) plugin_pass: PluginPass,
 
   // Imports
   pub(crate) import_paths: FxHashSet<String>,
   pub(crate) stylex_import: FxHashSet<ImportSources>,
   pub(crate) import_specifiers: Vec<String>,
   pub(crate) stylex_api_imports: FxHashMap<ImportKind, AtomHashSet>,
-  pub(crate) inject_import_inserted: Option<(Ident, Ident)>,
+  pub(crate) inject_import_inserted: Option<InjectImportIdents>,
   pub(crate) export_id: Option<String>,
 
-  pub(crate) seen_module_source_code: Option<Box<(Program, Option<String>)>>,
+  pub(crate) seen_module_source_code: Option<Box<SeenModuleSource>>,
 
   pub(crate) class_name_declarations: Vec<Ident>,
   pub(crate) function_name_declarations: Vec<Ident>,
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
-  pub all_call_expressions: FxHashMap<u64, CallExpr>,
+  pub(crate) all_call_expressions: FxHashMap<u64, Callee>,
   pub(crate) var_decl_count_map: AtomHashMap,
   pub(crate) seen: FxHashMap<u64, Rc<SeenValueWithVarDeclCount>>,
   pub(crate) css_property_seen: FxHashMap<String, String>,
@@ -165,7 +168,7 @@ pub struct StateManager {
   pub(crate) in_stylex_create: bool,
 
   pub(crate) options: StyleXStateOptions,
-  pub metadata: IndexMap<String, IndexSet<MetaData>>,
+  pub(crate) metadata: IndexMap<String, IndexSet<MetaData>>,
   pub(crate) styles_to_inject: IndexMap<u64, Vec<ModuleItem>>,
   pub(crate) prepend_include_module_items: Vec<ModuleItem>,
   pub(crate) hoisted_module_items: Vec<ModuleItem>,
@@ -189,7 +192,7 @@ impl StateManager {
     let options = StyleXStateOptions::from(stylex_options);
 
     Self {
-      _state: PluginPass::default(),
+      plugin_pass: PluginPass::default(),
       import_paths: FxHashSet::default(),
       stylex_import: FxHashSet::default(),
       import_specifiers: vec![],
@@ -230,6 +233,20 @@ impl StateManager {
 
       cycle: TransformationCycle::Initializing,
     }
+  }
+
+  pub(crate) fn set_plugin_pass(&mut self, plugin_pass: PluginPass) {
+    self.plugin_pass = plugin_pass;
+  }
+
+  pub fn metadata(&self) -> &IndexMap<String, IndexSet<MetaData>> {
+    &self.metadata
+  }
+
+  pub fn add_call_expression(&mut self, call_expr: &CallExpr) {
+    self
+      .all_call_expressions
+      .insert(stable_hash(call_expr), call_expr.callee.clone());
   }
 
   /// Check if an import of the given kind contains the given symbol.
@@ -295,10 +312,10 @@ impl StateManager {
 
   /// Gets the source code program if it exists and is not yet normalized
   pub(crate) fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
-    if let Some((program, source_code)) = self.seen_module_source_code.as_ref().map(|b| b.as_ref())
-      && let Program::Module(module) = program
+    if let Some(seen_module_source) = self.seen_module_source_code.as_ref().map(|b| b.as_ref())
+      && let Program::Module(module) = &seen_module_source.program
     {
-      return Some((module, source_code));
+      return Some((module, &seen_module_source.source_code));
     }
 
     None
@@ -310,7 +327,10 @@ impl StateManager {
     module: &Module,
     source_code: Option<String>,
   ) {
-    self.seen_module_source_code = Some(Box::new((Program::Module(module.clone()), source_code)));
+    self.seen_module_source_code = Some(Box::new(SeenModuleSource {
+      program: Program::Module(module.clone()),
+      source_code,
+    }));
   }
 
   pub fn import_as(&self, import: &str) -> Option<String> {
@@ -373,10 +393,10 @@ impl StateManager {
   }
 
   pub(crate) fn get_short_filename(&self) -> String {
-    extract_filename_from_path(&self._state.filename)
+    extract_filename_from_path(&self.plugin_pass.filename)
   }
   pub(crate) fn get_filename(&self) -> &str {
-    extract_path(&self._state.filename)
+    extract_path(&self.plugin_pass.filename)
   }
   pub(crate) fn get_filename_for_hashing(
     &self,
@@ -385,21 +405,9 @@ impl StateManager {
     let filename = self.get_filename();
 
     let unstable_module_resolution = &self.options.unstable_module_resolution;
-
-    let theme_file_extension = match unstable_module_resolution {
-      CheckModuleResolution::CommonJS(ModuleResolution {
-        theme_file_extension,
-        ..
-      })
-      | CheckModuleResolution::Haste(ModuleResolution {
-        theme_file_extension,
-        ..
-      })
-      | CheckModuleResolution::CrossFileParsing(ModuleResolution {
-        theme_file_extension,
-        ..
-      }) => theme_file_extension.as_deref().unwrap_or(".stylex"),
-    };
+    let theme_file_extension = unstable_module_resolution
+      .theme_file_extension()
+      .unwrap_or(".stylex");
 
     if filename.is_empty() {
       return None;
@@ -415,11 +423,11 @@ impl StateManager {
     }
 
     match unstable_module_resolution {
-      CheckModuleResolution::Haste(_) => {
+      CheckModuleResolution::Haste { .. } => {
         let filename = FileName::Real(filename.into());
         extract_filename_with_ext_from_path(&filename).map(|s| s.to_string())
       },
-      CheckModuleResolution::CommonJS(_) | CheckModuleResolution::CrossFileParsing(_) => {
+      CheckModuleResolution::CommonJs { .. } | CheckModuleResolution::CrossFileParsing { .. } => {
         Some(self.get_canonical_file_path(filename, package_json_seen))
       },
     }
@@ -473,13 +481,7 @@ impl StateManager {
       }
     }
 
-    if let Some(root_dir) = match &self.options.unstable_module_resolution {
-      CheckModuleResolution::CommonJS(module_resolution) => module_resolution.root_dir.as_deref(),
-      CheckModuleResolution::Haste(module_resolution) => module_resolution.root_dir.as_deref(),
-      CheckModuleResolution::CrossFileParsing(module_resolution) => {
-        module_resolution.root_dir.as_deref()
-      },
-    } {
+    if let Some(root_dir) = self.options.unstable_module_resolution.root_dir() {
       let file_path = Path::new(file_path);
       let root_dir = Path::new(root_dir);
 
@@ -509,14 +511,11 @@ impl StateManager {
       return ImportPathResolution::False;
     }
 
-    let theme_file_extension = (match &self.options.unstable_module_resolution {
-      CheckModuleResolution::CommonJS(module_resolution) => module_resolution,
-      CheckModuleResolution::Haste(module_resolution) => module_resolution,
-      CheckModuleResolution::CrossFileParsing(module_resolution) => module_resolution,
-    })
-    .theme_file_extension
-    .as_deref()
-    .unwrap_or(".stylex");
+    let theme_file_extension = self
+      .options
+      .unstable_module_resolution
+      .theme_file_extension()
+      .unwrap_or(".stylex");
 
     let consts_file_extension = format!("{}{}", theme_file_extension, CONSTS_FILE_EXTENSION);
 
@@ -531,7 +530,7 @@ impl StateManager {
     }
 
     match &self.options.unstable_module_resolution {
-      CheckModuleResolution::CommonJS(_) => {
+      CheckModuleResolution::CommonJs { .. } => {
         let filename = self.get_filename();
 
         let (_, root_dir) = StateManager::get_package_name_and_path(filename, package_json_seen)
@@ -554,11 +553,13 @@ impl StateManager {
 
         ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, resolved_file_path)
       },
-      CheckModuleResolution::Haste(_) => ImportPathResolution::Tuple(
+      CheckModuleResolution::Haste { .. } => ImportPathResolution::Tuple(
         ImportPathResolutionType::ThemeNameRef,
         add_file_extension(import_path, source_file_path),
       ),
-      _ => stylex_unimplemented!("This module resolution strategy is not yet supported."),
+      CheckModuleResolution::CrossFileParsing { .. } => {
+        stylex_unimplemented!("This module resolution strategy is not yet supported.")
+      },
     }
   }
 
@@ -629,7 +630,7 @@ impl StateManager {
   fn setup_injection_imports(&mut self) -> Ident {
     if !self.prepend_include_module_items.is_empty() {
       return match self.inject_import_inserted.as_ref() {
-        Some(idents) => idents.1.clone(),
+        Some(idents) => idents.var.clone(),
         None => stylex_panic!(
           "inject_import_inserted is None when prepend_include_module_items is non-empty"
         ),
@@ -645,7 +646,7 @@ impl StateManager {
       .unwrap_or(RuntimeInjectionState::Boolean(true));
 
     let (inject_module_ident, inject_var_ident) = match self.inject_import_inserted.take() {
-      Some(idents) => idents,
+      Some(idents) => (idents.module, idents.var),
       None => {
         let module_ident = uid_generator.generate_ident();
 
@@ -659,10 +660,13 @@ impl StateManager {
           },
         };
 
-        let idents = (module_ident, var_ident);
+        let idents = InjectImportIdents {
+          module: module_ident,
+          var: var_ident,
+        };
         self.inject_import_inserted = Some(idents.clone());
 
-        idents
+        (idents.module, idents.var)
       },
     };
 
@@ -719,7 +723,7 @@ impl StateManager {
 
       self
         .all_call_expressions
-        .insert(new_call_hash, call_expr.clone());
+        .insert(new_call_hash, call_expr.callee.clone());
     }
   }
 

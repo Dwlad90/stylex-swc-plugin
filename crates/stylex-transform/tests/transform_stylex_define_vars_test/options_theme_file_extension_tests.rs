@@ -15,9 +15,9 @@ fn stylex_transform(
         .with_debug(true)
         .with_enable_debug_class_names(true)
         .with_unstable_module_resolution(ModuleResolution {
-          r#type: "commonJS".to_string(),
           root_dir: Some("/stylex/packages/".to_string()),
           theme_file_extension: Some("cssvars".to_string()),
+          ..ModuleResolution::common_js(None)
         }),
     )
   })

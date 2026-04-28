@@ -7,7 +7,7 @@ use stylex_enums::{
 };
 use stylex_structures::{
   named_import_source::{ImportSources, NamedImportSource, RuntimeInjection},
-  stylex_options::{ModuleResolution, StyleXOptionsParams},
+  stylex_options::{ModuleResolution, ModuleResolutionKind, StyleXOptionsParams},
 };
 
 use crate::enums::{
@@ -101,11 +101,20 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
         .collect()
     });
 
-    let unstable_module_resolution = val.unstable_module_resolution.map(|res| ModuleResolution {
-      r#type: res.r#type,
-      root_dir: res.root_dir,
-      theme_file_extension: res.theme_file_extension,
-    });
+    let unstable_module_resolution = val
+      .unstable_module_resolution
+      .map(|res| {
+        let kind = serde_plain::from_str::<ModuleResolutionKind>(&res.r#type).map_err(|e| {
+          napi::Error::from_reason(format!("Failed to parse module resolution type: {}", e))
+        })?;
+
+        Ok::<ModuleResolution, napi::Error>(ModuleResolution {
+          kind,
+          root_dir: res.root_dir,
+          theme_file_extension: res.theme_file_extension,
+        })
+      })
+      .transpose()?;
 
     let runtime_injection: Option<RuntimeInjection> = val.runtime_injection.map(|ri| match ri {
       RuntimeInjectionUnion::Boolean(b) => RuntimeInjection::Boolean(b),
@@ -225,11 +234,8 @@ mod tests {
     );
     assert_eq!(parsed.import_sources.as_ref().map(Vec::len), Some(2));
     assert_eq!(
-      parsed
-        .unstable_module_resolution
-        .as_ref()
-        .map(|m| m.r#type.as_str()),
-      Some("commonJS")
+      parsed.unstable_module_resolution.as_ref().map(|m| m.kind),
+      Some(ModuleResolutionKind::CommonJs)
     );
     assert_eq!(
       parsed.property_validation_mode,
@@ -456,7 +462,7 @@ mod tests {
   fn try_from_maps_module_resolution_minimal() {
     let options = StyleXOptions {
       unstable_module_resolution: Some(StyleXModuleResolution {
-        r#type: "esm".to_string(),
+        r#type: "haste".to_string(),
         root_dir: None,
         theme_file_extension: None,
       }),
@@ -464,11 +470,8 @@ mod tests {
     };
     let parsed = StyleXOptionsParams::try_from(options).unwrap();
     assert_eq!(
-      parsed
-        .unstable_module_resolution
-        .as_ref()
-        .map(|m| m.r#type.as_str()),
-      Some("esm")
+      parsed.unstable_module_resolution.as_ref().map(|m| m.kind),
+      Some(ModuleResolutionKind::Haste)
     );
     assert!(
       parsed

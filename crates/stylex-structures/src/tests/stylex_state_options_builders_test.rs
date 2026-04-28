@@ -23,9 +23,9 @@ fn stylex_state_options_builders_update_all_supported_fields() {
     .with_enable_font_size_px_to_rem(true)
     .with_enable_logical_styles_polyfill(true)
     .with_enable_minified_keys(false)
-    .with_unstable_module_resolution(CheckModuleResolution::CrossFileParsing(
-      ModuleResolution::cross_file_parsing(Some("/repo".to_string())),
-    ))
+    .with_unstable_module_resolution(
+      ModuleResolution::cross_file_parsing(Some("/repo".to_string())).into(),
+    )
     .with_runtime_injection(Some(RuntimeInjectionState::Named(NamedImportSource {
       r#as: "inject".to_string(),
       from: "pkg".to_string(),
@@ -44,7 +44,7 @@ fn stylex_state_options_builders_update_all_supported_fields() {
   assert!(!state.enable_minified_keys);
   assert!(matches!(
     state.unstable_module_resolution,
-    CheckModuleResolution::CrossFileParsing(_)
+    CheckModuleResolution::CrossFileParsing { .. }
   ));
   assert!(matches!(
     state.runtime_injection,

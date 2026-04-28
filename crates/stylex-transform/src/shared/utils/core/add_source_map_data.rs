@@ -188,8 +188,10 @@ fn get_package_prefix(absolute_path: &str) -> Option<String> {
 
 fn get_short_path(relative_path: &str, state: &StateManager) -> String {
   // Check if commonJS module resolution with rootDir is configured
-  if let CheckModuleResolution::CommonJS(ref config) = state.options.unstable_module_resolution
-    && let Some(ref root_dir) = config.root_dir
+  if let CheckModuleResolution::CommonJs {
+    root_dir: Some(root_dir),
+    ..
+  } = &state.options.unstable_module_resolution
   {
     let relative_path_obj = Path::new(relative_path);
     let root_dir_path = Path::new(root_dir);
@@ -218,7 +220,7 @@ fn create_short_filename(
 ) -> String {
   let is_haste = matches!(
     state.options.unstable_module_resolution,
-    CheckModuleResolution::Haste(_)
+    CheckModuleResolution::Haste { .. }
   );
 
   let path = Path::new(absolute_path);

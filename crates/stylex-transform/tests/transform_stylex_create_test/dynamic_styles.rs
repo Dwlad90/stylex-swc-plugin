@@ -80,9 +80,9 @@ stylex_test!(
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_filename(swc_core::common::FileName::Real("MyComponent.js".into()))
       .with_unstable_module_resolution(ModuleResolution {
-        r#type: "haste".to_string(),
         root_dir: None,
         theme_file_extension: None,
+        ..ModuleResolution::haste(None)
       })
       .with_runtime_injection()
   }),

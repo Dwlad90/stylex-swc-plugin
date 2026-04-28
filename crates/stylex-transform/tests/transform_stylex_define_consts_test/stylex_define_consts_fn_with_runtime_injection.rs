@@ -39,9 +39,9 @@ stylex_test!(
   numeric_constants_with_runtime_injection_true,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_unstable_module_resolution(ModuleResolution {
-      r#type: "commonJS".to_string(),
       root_dir: Some("/stylex/packages/".to_string()),
       theme_file_extension: None,
+      ..ModuleResolution::common_js(None)
     })
     .with_runtime_injection()
   }),
@@ -59,9 +59,9 @@ stylex_test!(
   string_constants_with_runtime_injection_true,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_unstable_module_resolution(ModuleResolution {
-      r#type: "commonJS".to_string(),
       root_dir: Some("/stylex/packages/".to_string()),
       theme_file_extension: None,
+      ..ModuleResolution::common_js(None)
     })
     .with_runtime_injection()
   }),
@@ -79,9 +79,9 @@ stylex_test!(
   mixed_string_and_numeric_constants_with_runtime_injection_true,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_unstable_module_resolution(ModuleResolution {
-      r#type: "commonJS".to_string(),
       root_dir: Some("/stylex/packages/".to_string()),
       theme_file_extension: None,
+      ..ModuleResolution::common_js(None)
     })
     .with_runtime_injection()
   }),
@@ -99,9 +99,9 @@ stylex_test!(
   constants_with_special_characters_with_runtime_injection_true,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_unstable_module_resolution(ModuleResolution {
-      r#type: "commonJS".to_string(),
       root_dir: Some("/stylex/packages/".to_string()),
       theme_file_extension: None,
+      ..ModuleResolution::common_js(None)
     })
     .with_runtime_injection()
   }),
@@ -117,9 +117,9 @@ stylex_test!(
   constants_with_custom_inject_path_with_runtime_injection,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_unstable_module_resolution(ModuleResolution {
-      r#type: "commonJS".to_string(),
       root_dir: Some("/stylex/packages/".to_string()),
       theme_file_extension: None,
+      ..ModuleResolution::common_js(None)
     })
     .with_runtime_injection_option(RuntimeInjection::Regular("@custom/inject-path".to_string()))
   }),
@@ -135,9 +135,9 @@ stylex_test!(
   haste_module_with_runtime_injection_true,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_unstable_module_resolution(ModuleResolution {
-      r#type: "haste".to_string(),
       root_dir: None,
       theme_file_extension: None,
+      ..ModuleResolution::haste(None)
     })
     .with_runtime_injection()
   }),
@@ -173,9 +173,9 @@ stylex_test!(
   multiple_define_consts_calls_with_runtime_injection_true,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_unstable_module_resolution(ModuleResolution {
-      r#type: "commonJS".to_string(),
       root_dir: Some("/stylex/packages/".to_string()),
       theme_file_extension: None,
+      ..ModuleResolution::common_js(None)
     })
     .with_runtime_injection()
   }),

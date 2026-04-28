@@ -67,9 +67,9 @@ stylex_test!(
       "/html/js/components/Foo.react.js".into(),
     ))
     .with_unstable_module_resolution(ModuleResolution {
-      r#type: "haste".to_string(),
       root_dir: None,
       theme_file_extension: None,
+      ..ModuleResolution::haste(None)
     })
   }),
   r#"
@@ -95,9 +95,9 @@ stylex_test!(
       "/node_modules/npm-package/dist/components/Foo.react.js".into(),
     ))
     .with_unstable_module_resolution(ModuleResolution {
-      r#type: "haste".to_string(),
       root_dir: None,
       theme_file_extension: None,
+      ..ModuleResolution::haste(None)
     })
   }),
   r#"

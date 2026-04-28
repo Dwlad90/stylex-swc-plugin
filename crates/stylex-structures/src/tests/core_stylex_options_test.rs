@@ -57,9 +57,7 @@ fn core_stylex_options_direct_setters_cover_all_fields() {
     .with_treeshake_compensation(true)
     .with_inject_stylex_side_effects(true)
     .with_aliases(Some(aliases.clone()))
-    .with_unstable_module_resolution(CheckModuleResolution::Haste(ModuleResolution::haste(Some(
-      "/repo".to_string(),
-    ))))
+    .with_unstable_module_resolution(ModuleResolution::haste(Some("/repo".to_string())).into())
     .with_sx_prop_name(None)
     .with_env(env.clone())
     .with_debug_file_path(Some(debug_file_path));
@@ -87,7 +85,7 @@ fn core_stylex_options_direct_setters_cover_all_fields() {
   assert_eq!(opts.aliases, Some(aliases));
   assert!(matches!(
     opts.unstable_module_resolution,
-    CheckModuleResolution::Haste(_)
+    CheckModuleResolution::Haste { .. }
   ));
   assert_eq!(opts.sx_prop_name, None);
   assert_eq!(opts.env.len(), env.len());

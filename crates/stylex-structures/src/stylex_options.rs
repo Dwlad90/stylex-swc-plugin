@@ -85,10 +85,20 @@ impl Default for StyleXOptionsParams {
   }
 }
 
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum ModuleResolutionKind {
+  Haste,
+  #[serde(rename = "commonjs", alias = "commonJS")]
+  CommonJs,
+  CrossFileParsing,
+}
+
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all(deserialize = "camelCase", serialize = "PascalCase"))]
 pub struct ModuleResolution {
-  pub r#type: String,
+  #[serde(rename = "type")]
+  pub kind: ModuleResolutionKind,
   pub root_dir: Option<String>,
   pub theme_file_extension: Option<String>,
 }
@@ -96,7 +106,7 @@ pub struct ModuleResolution {
 impl ModuleResolution {
   pub fn haste(root_dir: Option<String>) -> Self {
     ModuleResolution {
-      r#type: "haste".to_string(),
+      kind: ModuleResolutionKind::Haste,
       root_dir,
       theme_file_extension: None,
     }
@@ -104,7 +114,7 @@ impl ModuleResolution {
 
   pub fn common_js(root_dir: Option<String>) -> Self {
     ModuleResolution {
-      r#type: "commonjs".to_string(),
+      kind: ModuleResolutionKind::CommonJs,
       root_dir,
       theme_file_extension: None,
     }
@@ -112,7 +122,7 @@ impl ModuleResolution {
 
   pub fn cross_file_parsing(root_dir: Option<String>) -> Self {
     ModuleResolution {
-      r#type: "cross-file-parsing".to_string(),
+      kind: ModuleResolutionKind::CrossFileParsing,
       root_dir,
       theme_file_extension: None,
     }
@@ -120,16 +130,79 @@ impl ModuleResolution {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-
 pub enum CheckModuleResolution {
-  CommonJS(ModuleResolution),
-  Haste(ModuleResolution),
-  CrossFileParsing(ModuleResolution),
+  CommonJs {
+    root_dir: Option<String>,
+    theme_file_extension: Option<String>,
+  },
+  Haste {
+    root_dir: Option<String>,
+    theme_file_extension: Option<String>,
+  },
+  CrossFileParsing {
+    root_dir: Option<String>,
+    theme_file_extension: Option<String>,
+  },
+}
+
+impl CheckModuleResolution {
+  pub fn root_dir(&self) -> Option<&str> {
+    match self {
+      CheckModuleResolution::CommonJs { root_dir, .. }
+      | CheckModuleResolution::Haste { root_dir, .. }
+      | CheckModuleResolution::CrossFileParsing { root_dir, .. } => root_dir.as_deref(),
+    }
+  }
+
+  pub fn theme_file_extension(&self) -> Option<&str> {
+    match self {
+      CheckModuleResolution::CommonJs {
+        theme_file_extension,
+        ..
+      }
+      | CheckModuleResolution::Haste {
+        theme_file_extension,
+        ..
+      }
+      | CheckModuleResolution::CrossFileParsing {
+        theme_file_extension,
+        ..
+      } => theme_file_extension.as_deref(),
+    }
+  }
+}
+
+impl From<ModuleResolution> for CheckModuleResolution {
+  fn from(module_resolution: ModuleResolution) -> Self {
+    let ModuleResolution {
+      kind,
+      root_dir,
+      theme_file_extension,
+    } = module_resolution;
+
+    match kind {
+      ModuleResolutionKind::Haste => CheckModuleResolution::Haste {
+        root_dir,
+        theme_file_extension,
+      },
+      ModuleResolutionKind::CommonJs => CheckModuleResolution::CommonJs {
+        root_dir,
+        theme_file_extension,
+      },
+      ModuleResolutionKind::CrossFileParsing => CheckModuleResolution::CrossFileParsing {
+        root_dir,
+        theme_file_extension,
+      },
+    }
+  }
 }
 
 impl Default for CheckModuleResolution {
   fn default() -> Self {
-    CheckModuleResolution::CommonJS(ModuleResolution::common_js(None))
+    CheckModuleResolution::CommonJs {
+      root_dir: None,
+      theme_file_extension: None,
+    }
   }
 }
 
@@ -234,11 +307,7 @@ impl From<StyleXOptionsParams> for StyleXOptions {
       .unstable_module_resolution
       .unwrap_or_else(|| ModuleResolution::common_js(None));
 
-    let unstable_module_resolution = match module_resolution.r#type.to_lowercase().as_str() {
-      "haste" => CheckModuleResolution::Haste(module_resolution),
-      "cross-file-parsing" => CheckModuleResolution::CrossFileParsing(module_resolution),
-      _ => CheckModuleResolution::CommonJS(module_resolution),
-    };
+    let unstable_module_resolution = CheckModuleResolution::from(module_resolution);
 
     let runtime_injection = match options.runtime_injection {
       Some(RuntimeInjection::Boolean(true)) => {

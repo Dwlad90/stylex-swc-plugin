@@ -9,7 +9,6 @@ use stylex_transform::shared::{
     js::evaluate::evaluate,
   },
 };
-use stylex_utils::hash::stable_hash;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
@@ -134,10 +133,7 @@ impl Fold for EvaluationStyleXLastStatementTransform {
 
   fn fold_expr(&mut self, expr: Expr) -> Expr {
     if let Some(call_expr) = expr.as_call() {
-      self
-        .state
-        .all_call_expressions
-        .insert(stable_hash(&call_expr), call_expr.clone());
+      self.state.add_call_expression(call_expr);
     }
 
     if self.state.cycle == TransformationCycle::TransformEnter {

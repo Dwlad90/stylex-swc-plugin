@@ -35,7 +35,7 @@ fn stylex_options_default_key_fields() {
   ));
   assert!(matches!(
     opts.unstable_module_resolution,
-    CheckModuleResolution::CommonJS(_)
+    CheckModuleResolution::CommonJs { .. }
   ));
   assert_eq!(opts.sx_prop_name, Some("sx".to_string()));
 }
@@ -84,7 +84,7 @@ fn from_stylex_options_params_runtime_injection_named() {
 fn from_stylex_options_params_haste_resolution() {
   let params = StyleXOptionsParams {
     unstable_module_resolution: Some(ModuleResolution {
-      r#type: "haste".to_string(),
+      kind: ModuleResolutionKind::Haste,
       root_dir: Some("/root".to_string()),
       theme_file_extension: None,
     }),
@@ -93,7 +93,7 @@ fn from_stylex_options_params_haste_resolution() {
   let opts: StyleXOptions = params.into();
   assert!(matches!(
     opts.unstable_module_resolution,
-    CheckModuleResolution::Haste(_)
+    CheckModuleResolution::Haste { .. }
   ));
 }
 
@@ -101,7 +101,7 @@ fn from_stylex_options_params_haste_resolution() {
 fn from_stylex_options_params_cross_file_parsing_resolution() {
   let params = StyleXOptionsParams {
     unstable_module_resolution: Some(ModuleResolution {
-      r#type: "cross-file-parsing".to_string(),
+      kind: ModuleResolutionKind::CrossFileParsing,
       root_dir: None,
       theme_file_extension: None,
     }),
@@ -111,14 +111,14 @@ fn from_stylex_options_params_cross_file_parsing_resolution() {
   let opts: StyleXOptions = params.into();
   assert!(matches!(
     opts.unstable_module_resolution,
-    CheckModuleResolution::CrossFileParsing(_)
+    CheckModuleResolution::CrossFileParsing { .. }
   ));
 }
 
 #[test]
 fn get_haste_module_resolution() {
   let res = ModuleResolution::haste(Some("/root".to_string()));
-  assert_eq!(res.r#type, "haste");
+  assert_eq!(res.kind, ModuleResolutionKind::Haste);
   assert_eq!(res.root_dir, Some("/root".to_string()));
   assert!(res.theme_file_extension.is_none());
 }
@@ -126,7 +126,7 @@ fn get_haste_module_resolution() {
 #[test]
 fn get_common_js_module_resolution() {
   let res = ModuleResolution::common_js(None);
-  assert_eq!(res.r#type, "commonjs");
+  assert_eq!(res.kind, ModuleResolutionKind::CommonJs);
   assert!(res.root_dir.is_none());
 }
 

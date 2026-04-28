@@ -6,7 +6,7 @@ mod get_canonical_file_path {
   use rustc_hash::FxHashMap;
 
   use crate::shared::structures::state_manager::StateManager;
-  use stylex_structures::stylex_options::{CheckModuleResolution, ModuleResolution};
+  use stylex_structures::stylex_options::CheckModuleResolution;
 
   fn get_fixture_path(test_path: &str) -> PathBuf {
     env::current_dir()
@@ -61,11 +61,10 @@ mod get_canonical_file_path {
     stage_manager.options =
       stage_manager
         .options
-        .with_unstable_module_resolution(CheckModuleResolution::CommonJS(ModuleResolution {
-          r#type: "commonjs".to_string(),
+        .with_unstable_module_resolution(CheckModuleResolution::CommonJs {
           root_dir: Some(fixture_path.parent().unwrap().to_string_lossy().into()),
           theme_file_extension: None,
-        }));
+        });
 
     let canonical_path = stage_manager
       .get_canonical_file_path(fixture_path.to_str().unwrap(), &mut FxHashMap::default());
@@ -84,11 +83,10 @@ mod get_canonical_file_path {
     stage_manager.options =
       stage_manager
         .options
-        .with_unstable_module_resolution(CheckModuleResolution::CommonJS(ModuleResolution {
-          r#type: "commonjs".to_string(),
+        .with_unstable_module_resolution(CheckModuleResolution::CommonJs {
           root_dir: Some(root_dir.to_string_lossy().into()),
           theme_file_extension: None,
-        }));
+        });
 
     let canonical_path = stage_manager.get_canonical_file_path(
       root_dir.join("src/components").to_str().unwrap(),

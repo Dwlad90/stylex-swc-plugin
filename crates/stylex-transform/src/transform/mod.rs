@@ -22,7 +22,6 @@ use stylex_structures::{
 };
 
 mod fold;
-pub(crate) mod styleq;
 pub(crate) mod stylex;
 
 pub struct StyleXTransform<C>

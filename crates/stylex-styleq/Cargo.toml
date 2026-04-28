@@ -1,0 +1,18 @@
+[package]
+description = "Rust port of Nicolas Gallagher's styleq class-name merging runtime"
+edition.workspace = true
+license.workspace = true
+name = "stylex_styleq"
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+indexmap.workspace = true
+log.workspace = true
+
+[lints]
+workspace = true

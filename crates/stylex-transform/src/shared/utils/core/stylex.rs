@@ -1,11 +1,8 @@
-use crate::{
-  shared::{
-    enums::data_structures::fn_result::FnResult, utils::ast::convertors::create_string_expr,
-  },
-  transform::styleq::common::styleq,
+use crate::shared::{
+  enums::data_structures::fn_result::FnResult, utils::ast::convertors::create_string_expr,
 };
 
-use super::parse_nullable_style::ResolvedArg;
+use super::{parse_nullable_style::ResolvedArg, styleq::styleq};
 
 pub(crate) fn stylex(values: &[ResolvedArg]) -> Option<FnResult> {
   let result = styleq(values);

@@ -66,6 +66,10 @@ use stylex_structures::{
 };
 use stylex_types::structures::meta_data::MetaData;
 
+// LOCK: Rc<T> by design. SWC Fold is sequential per file; cross-file
+// parallelism is provided by the host (Node worker pool calls into the
+// NAPI binding from multiple threads, each with its own StateManager).
+// Arc<T> would add atomic-RMW on every clone with no benefit.
 const TRANSFORMED_VARS_FILE_EXTENSION: &str = ".transformed";
 
 type AtomHashMap = FxHashMap<Atom, i16>;

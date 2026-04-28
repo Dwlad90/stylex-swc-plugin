@@ -45,6 +45,7 @@ stylex_macros = { path = "../stylex-macros" }
 stylex_path_resolver = { path = "../stylex-path-resolver" }
 stylex_regex = { path = "../stylex-regex" }
 stylex_structures = { path = "../stylex-structures" }
+stylex_styleq = { path = "../stylex-styleq" }
 stylex_types = { path = "../stylex-types" }
 stylex_utils = { path = "../stylex-utils" }
 swc_compiler_base = { workspace = true, features = ["node"] }

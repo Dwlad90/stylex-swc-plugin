@@ -3,15 +3,18 @@ use stylex_structures::pair::Pair;
 
 use indexmap::IndexMap;
 
-use crate::{
-  shared::{
-    enums::data_structures::{
-      flat_compiled_styles_value::FlatCompiledStylesValue, fn_result::FnResult,
-    },
-    structures::types::FlatCompiledStyles,
-    utils::{core::js_to_ast::NestedStringObject, css::common::normalize_css_property_name},
+use crate::shared::{
+  enums::data_structures::{
+    flat_compiled_styles_value::FlatCompiledStylesValue, fn_result::FnResult,
   },
-  transform::styleq::common::{StyleQResult, styleq},
+  structures::types::FlatCompiledStyles,
+  utils::{
+    core::{
+      js_to_ast::NestedStringObject,
+      styleq::{StyleQResult, styleq},
+    },
+    css::common::normalize_css_property_name,
+  },
 };
 
 use super::parse_nullable_style::ResolvedArg;

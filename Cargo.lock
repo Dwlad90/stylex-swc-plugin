@@ -3112,6 +3112,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylex_styleq"
+version = "0.15.5"
+dependencies = [
+ "indexmap",
+ "log",
+]
+
+[[package]]
 name = "stylex_test_parser"
 version = "0.15.5"
 dependencies = [
@@ -3169,6 +3177,7 @@ dependencies = [
  "stylex_path_resolver",
  "stylex_regex",
  "stylex_structures",
+ "stylex_styleq",
  "stylex_types",
  "stylex_utils",
  "swc_compiler_base",

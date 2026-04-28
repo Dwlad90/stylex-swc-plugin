@@ -37,6 +37,14 @@ mod create_hash_tests {
     let hash = create_hash(&long);
     assert!(!hash.is_empty());
   }
+
+  #[test]
+  fn matches_radix_fmt_base36_output() {
+    for input in ["", "hello", "world", "日本語", "a very long input string"] {
+      let raw = murmur2::murmur2(input.as_bytes(), 1);
+      assert_eq!(create_hash(input), radix_fmt::radix(raw, 36).to_string());
+    }
+  }
 }
 
 #[cfg(test)]

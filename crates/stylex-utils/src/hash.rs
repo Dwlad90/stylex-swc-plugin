@@ -17,6 +17,7 @@ use swc_core::ecma::{
 };
 
 const MAX_UNSPANNED_HASH_COLLECTION_LEN: usize = 128;
+const BASE36_DIGITS: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
 /// Hashes a float value by converting to its bit representation first.
 pub fn hash_f64(value: f64) -> u64 {
@@ -27,8 +28,30 @@ pub fn hash_f64(value: f64) -> u64 {
 }
 
 /// Creates a base-36 hash of a string using murmur2.
+#[inline]
 pub fn create_hash(value: &str) -> String {
-  radix_fmt::radix(murmur2::murmur2(value.as_bytes(), 1), 36).to_string()
+  to_base36(murmur2::murmur2(value.as_bytes(), 1))
+}
+
+fn to_base36(mut value: u32) -> String {
+  if value == 0 {
+    return "0".to_string();
+  }
+
+  let mut divisor = 1;
+  while value / divisor >= 36 {
+    divisor *= 36;
+  }
+
+  let mut result = String::with_capacity(7);
+  while divisor > 0 {
+    let digit = value / divisor;
+    result.push(BASE36_DIGITS[digit as usize] as char);
+    value %= divisor;
+    divisor /= 36;
+  }
+
+  result
 }
 
 /// Deterministic hash using `DefaultHasher` (SipHash-based).

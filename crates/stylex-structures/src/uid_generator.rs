@@ -1,4 +1,5 @@
 use std::{
+  fmt::Write,
   sync::{
     Mutex,
     atomic::{AtomicUsize, Ordering},
@@ -98,24 +99,12 @@ impl UidGenerator {
         let counter = get_global_counter_or_panic(&counters, &self.prefix);
         let count = counter.fetch_add(1, Ordering::SeqCst);
 
-        let count_string = if count < 2 {
-          String::default()
-        } else {
-          count.to_string()
-        };
-
-        format!("_{}{}", self.prefix, count_string)
+        prefixed_count(&self.prefix, count)
       },
       CounterMode::Local => {
         let count = self.local_counter.fetch_add(1, Ordering::SeqCst);
 
-        let count_string = if count < 2 {
-          String::default()
-        } else {
-          count.to_string()
-        };
-
-        format!("_{}{}", self.prefix, count_string)
+        prefixed_count(&self.prefix, count)
       },
       CounterMode::ThreadLocal => {
         let count = THREAD_LOCAL_COUNTERS.with(|counters| {
@@ -126,25 +115,20 @@ impl UidGenerator {
           current_count
         });
 
-        let count_string = if count < 2 {
-          String::default()
-        } else {
-          count.to_string()
-        };
-
-        format!("_{}{}", self.prefix, count_string)
+        prefixed_count(&self.prefix, count)
       },
       CounterMode::_ThreadUnique => {
         let thread_id = thread::current().id();
         let count = self.local_counter.fetch_add(1, Ordering::SeqCst);
 
-        let count_string = if count < 2 {
-          String::default()
-        } else {
-          count.to_string()
-        };
-
-        format!("_{}_{:?}{}", self.prefix, thread_id, count_string)
+        let suffix = count_suffix(count);
+        let mut result = String::with_capacity(self.prefix.len() + suffix.len() + 24);
+        result.push('_');
+        result.push_str(&self.prefix);
+        result.push('_');
+        let _ = write!(result, "{thread_id:?}");
+        result.push_str(&suffix);
+        result
       },
     }
   }
@@ -155,6 +139,23 @@ impl UidGenerator {
 
     Ident::from(unique_name.as_str())
   }
+}
+
+fn count_suffix(count: usize) -> String {
+  if count < 2 {
+    String::default()
+  } else {
+    count.to_string()
+  }
+}
+
+fn prefixed_count(prefix: &str, count: usize) -> String {
+  let suffix = count_suffix(count);
+  let mut result = String::with_capacity(prefix.len() + suffix.len() + 1);
+  result.push('_');
+  result.push_str(prefix);
+  result.push_str(&suffix);
+  result
 }
 
 #[cfg(test)]

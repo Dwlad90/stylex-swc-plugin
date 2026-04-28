@@ -30,14 +30,6 @@ impl ValueWithDefault {
       _ => None,
     }
   }
-
-  #[cfg_attr(coverage_nightly, coverage(off))]
-  fn _as_string(&self) -> Option<&String> {
-    match self {
-      ValueWithDefault::String(s) => Some(s),
-      _ => None,
-    }
-  }
 }
 
 #[cfg(test)]

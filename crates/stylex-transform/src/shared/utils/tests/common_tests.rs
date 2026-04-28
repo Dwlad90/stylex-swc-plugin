@@ -14,15 +14,14 @@ mod tests {
   use crate::shared::{
     structures::{functions::FunctionMap, state_manager::StateManager},
     utils::common::{
-      _get_var_decl_by_ident_or_member, _md5_hash, deep_merge_props,
-      downcast_style_options_to_state_manager, evaluate_bin_expr, extract_filename_from_path,
-      extract_filename_with_ext_from_path, extract_path, fill_state_declarations,
-      fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_expr_from_var_decl,
-      get_import_from, get_key_values_from_object, get_var_decl_by_ident, increase_ident_count,
-      increase_ident_count_by_count, increase_member_ident, increase_member_ident_count,
-      increase_member_ident_count_by_count, js_object_to_json, normalize_expr, reduce_ident_count,
-      reduce_member_expression_count, reduce_member_ident_count, remove_duplicates,
-      serialize_value_to_json_string, type_of,
+      deep_merge_props, downcast_style_options_to_state_manager, evaluate_bin_expr,
+      extract_filename_from_path, extract_filename_with_ext_from_path, extract_path,
+      fill_state_declarations, fill_top_level_expressions, gen_file_based_identifier,
+      get_css_value, get_expr_from_var_decl, get_import_from, get_key_values_from_object,
+      get_var_decl_by_ident, increase_ident_count, increase_ident_count_by_count,
+      increase_member_ident, increase_member_ident_count, increase_member_ident_count_by_count,
+      js_object_to_json, normalize_expr, reduce_ident_count, reduce_member_expression_count,
+      reduce_member_ident_count, remove_duplicates, serialize_value_to_json_string, type_of,
     },
   };
   use stylex_enums::misc::VarDeclAction;
@@ -363,62 +362,6 @@ mod tests {
         },
         _ => panic!("Expected unwrapped string literal"),
       }
-    }
-  }
-
-  // ──────────────────────────────────────────────
-  // _md5_hash
-  // ──────────────────────────────────────────────
-
-  mod md5_hash_tests {
-    use super::*;
-
-    #[test]
-    fn deterministic_same_input_same_output() {
-      let hash1 = _md5_hash("hello", 8);
-      let hash2 = _md5_hash("hello", 8);
-      assert_eq!(hash1, hash2);
-    }
-
-    #[test]
-    fn different_inputs_produce_different_hashes() {
-      let hash1 = _md5_hash("hello", 8);
-      let hash2 = _md5_hash("world", 8);
-      assert_ne!(hash1, hash2);
-    }
-
-    #[test]
-    fn empty_string_produces_valid_hash() {
-      let hash = _md5_hash("", 8);
-      assert_eq!(hash.len(), 8);
-      assert!(hash.chars().all(|c| c.is_ascii_hexdigit()));
-    }
-
-    #[test]
-    fn respects_length_parameter() {
-      let hash_short = _md5_hash("test", 4);
-      let hash_long = _md5_hash("test", 16);
-      assert_eq!(hash_short.len(), 4);
-      assert_eq!(hash_long.len(), 16);
-    }
-
-    #[test]
-    fn length_exceeding_hash_returns_full_hash() {
-      let hash = _md5_hash("test", 100);
-      // MD5 hex is always 32 characters
-      assert_eq!(hash.len(), 32);
-    }
-
-    #[test]
-    fn works_with_numeric_input() {
-      let hash = _md5_hash(42, 8);
-      assert_eq!(hash.len(), 8);
-    }
-
-    #[test]
-    fn works_with_boolean_input() {
-      let hash = _md5_hash(true, 8);
-      assert_eq!(hash.len(), 8);
     }
   }
 
@@ -1556,58 +1499,6 @@ mod tests {
       let ident = make_ident("nonexistent");
       let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
       assert!(result.is_none());
-    }
-  }
-
-  // ──────────────────────────────────────────────
-  // _get_var_decl_by_ident_or_member
-  // ──────────────────────────────────────────────
-
-  mod get_var_decl_by_ident_or_member_tests {
-    use super::*;
-
-    #[test]
-    fn finds_decl_by_ident_name() {
-      let mut state = StateManager::default();
-      let decl = make_var_declarator("myVar", make_num_expr(42.0));
-      fill_state_declarations(&mut state, &decl);
-      let ident = make_ident("myVar");
-      let result = _get_var_decl_by_ident_or_member(&state, &ident);
-      assert!(result.is_some());
-    }
-
-    #[test]
-    fn returns_none_when_not_found() {
-      let state = StateManager::default();
-      let ident = make_ident("missing");
-      let result = _get_var_decl_by_ident_or_member(&state, &ident);
-      assert!(result.is_none());
-    }
-
-    #[test]
-    fn finds_decl_by_member_call_prop_ident() {
-      use swc_core::ecma::ast::{CallExpr, Callee, IdentName, MemberExpr, MemberProp};
-      let mut state = StateManager::default();
-      // Create: const x = obj.create()
-      let call_expr = Expr::Call(CallExpr {
-        span: DUMMY_SP,
-        callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
-          span: DUMMY_SP,
-          obj: Box::new(Expr::Ident(make_ident("obj"))),
-          prop: MemberProp::Ident(IdentName {
-            span: DUMMY_SP,
-            sym: "create".into(),
-          }),
-        }))),
-        args: vec![],
-        type_args: None,
-        ctxt: SyntaxContext::empty(),
-      });
-      let decl = make_var_declarator("x", call_expr);
-      fill_state_declarations(&mut state, &decl);
-      let ident = make_ident("create");
-      let result = _get_var_decl_by_ident_or_member(&state, &ident);
-      assert!(result.is_some());
     }
   }
 

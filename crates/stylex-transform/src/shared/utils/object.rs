@@ -142,7 +142,7 @@ pub(crate) fn obj_map_keys_key_value(
   let mut map = IndexMap::with_capacity(entries.len());
 
   for (key, value) in entries {
-    let obejct_key = mapper(key);
+    let object_key = mapper(key);
 
     let key_values = match value.as_key_values() {
       Some(kv) => kv,
@@ -156,23 +156,9 @@ pub(crate) fn obj_map_keys_key_value(
       .collect::<Vec<Pair>>();
 
     map.insert(
-      obejct_key.clone(),
+      object_key,
       Rc::new(FlatCompiledStylesValue::KeyValues(object_key_values)),
     );
-  }
-
-  map
-}
-
-pub(crate) fn _obj_map_entries(
-  entries: &IndexMap<String, String>,
-  mapper: fn((&str, &str)) -> Pair,
-) -> IndexMap<String, FlatCompiledStylesValue> {
-  let mut map = IndexMap::with_capacity(entries.len());
-
-  for (key, value) in entries {
-    let result = mapper((key, value));
-    map.insert(key.clone(), FlatCompiledStylesValue::KeyValue(result));
   }
 
   map

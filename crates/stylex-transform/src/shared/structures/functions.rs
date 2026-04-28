@@ -150,45 +150,10 @@ impl PartialEq for FunctionConfigType {
 }
 
 impl FunctionConfigType {
-  pub(crate) fn _as_function_config(&self) -> Option<&FunctionConfig> {
-    match self {
-      Self::Regular(config) => Some(config),
-      Self::Map(_) | Self::IndexMap(_) | Self::EnvObject(_) => None,
-    }
-  }
-
-  pub(crate) fn _as_map(&self) -> Option<&FxHashMap<Atom, FunctionConfig>> {
-    match self {
-      Self::Map(map) => Some(map),
-      Self::Regular(_) | Self::IndexMap(_) | Self::EnvObject(_) => None,
-    }
-  }
-
   pub(crate) fn as_map_mut(&mut self) -> Option<&mut FxHashMap<Atom, FunctionConfig>> {
     match self {
       Self::Map(map) => Some(map),
       Self::Regular(_) | Self::IndexMap(_) | Self::EnvObject(_) => None,
-    }
-  }
-
-  pub(crate) fn _as_function_config_mut(&mut self) -> Option<&mut FunctionConfig> {
-    match self {
-      Self::Regular(config) => Some(config),
-      Self::Map(_) | Self::IndexMap(_) | Self::EnvObject(_) => None,
-    }
-  }
-
-  pub(crate) fn _as_index_map(&self) -> Option<&FlatCompiledStyles> {
-    match self {
-      Self::IndexMap(map) => Some(map),
-      Self::Regular(_) | Self::Map(_) | Self::EnvObject(_) => None,
-    }
-  }
-
-  pub(crate) fn _as_index_map_mut(&mut self) -> Option<&mut FlatCompiledStyles> {
-    match self {
-      Self::IndexMap(map) => Some(map),
-      Self::Regular(_) | Self::Map(_) | Self::EnvObject(_) => None,
     }
   }
 }

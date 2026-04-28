@@ -228,27 +228,6 @@ pub(crate) fn get_import_from<'a>(
   })
 }
 
-pub(crate) fn _get_var_decl_by_ident_or_member<'a>(
-  state: &'a StateManager,
-  ident: &'a Ident,
-) -> Option<VarDeclarator> {
-  state
-    .declarations
-    .iter()
-    .find(|var_declarator| {
-      matches_ident_with_var_decl_name(ident, var_declarator)
-        || matches!(
-          var_declarator.init.as_ref()
-            .and_then(|init| init.as_call())
-            .and_then(|call| call.callee.as_expr())
-            .and_then(|callee| callee.as_member())
-            .and_then(|member| member.prop.as_ident()),
-          Some(member_ident) if member_ident.sym == ident.sym
-        )
-    })
-    .cloned()
-}
-
 pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
   match &var_decl.init {
     Some(var_decl_init) => var_decl_init,
@@ -559,19 +538,6 @@ pub(crate) fn normalize_expr(expr: &mut Expr) -> &mut Expr {
       *expr = drop_span(expr.clone());
       expr
     },
-  }
-}
-
-pub(crate) fn _md5_hash<T: serde::Serialize>(value: T, length: usize) -> String {
-  let serialized_value = serialize_value_to_json_string(value);
-
-  let digest = md5::compute(serialized_value.as_bytes());
-  let hex = format!("{:x}", digest);
-
-  if length >= hex.len() {
-    hex
-  } else {
-    hex[..length].to_string()
   }
 }
 

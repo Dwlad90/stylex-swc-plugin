@@ -2,7 +2,11 @@ use std::{fmt, rc::Rc};
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
-use serde::{Serialize, ser::Serializer};
+use serde::{
+  Deserialize, Deserializer, Serialize,
+  de::{Error, Visitor},
+  ser::Serializer,
+};
 use stylex_macros::stylex_unimplemented;
 use swc_core::{
   atoms::Atom,
@@ -19,8 +23,9 @@ use crate::shared::{
 use stylex_structures::stylex_env::EnvEntry;
 
 pub enum EvaluateResultValue {
+  Null,
   Expr(Expr),
-  Vec(Vec<Option<EvaluateResultValue>>),
+  Vec(Vec<EvaluateResultValue>),
   Map(IndexMap<Expr, Vec<KeyValueProp>>),
   Entries(IndexMap<Lit, Box<Expr>>),
   Callback(EvaluationCallback),
@@ -38,6 +43,7 @@ impl Serialize for EvaluateResultValue {
     S: Serializer,
   {
     match self {
+      Self::Null => serializer.serialize_none(),
       Self::Expr(expr) => {
         let module = create_module(expr);
         let code_frame = CodeFrame::new();
@@ -82,9 +88,54 @@ impl Serialize for EvaluateResultValue {
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
+impl<'de> Deserialize<'de> for EvaluateResultValue {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    struct EvaluateResultValueVisitor;
+
+    impl<'de> Visitor<'de> for EvaluateResultValueVisitor {
+      type Value = EvaluateResultValue;
+
+      fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("null")
+      }
+
+      fn visit_none<E>(self) -> Result<Self::Value, E>
+      where
+        E: Error,
+      {
+        Ok(EvaluateResultValue::Null)
+      }
+
+      fn visit_unit<E>(self) -> Result<Self::Value, E>
+      where
+        E: Error,
+      {
+        Ok(EvaluateResultValue::Null)
+      }
+
+      fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+      where
+        D: Deserializer<'de>,
+      {
+        let _ = deserializer;
+        Err(Error::custom(
+          "only null EvaluateResultValue deserialization is supported",
+        ))
+      }
+    }
+
+    deserializer.deserialize_option(EvaluateResultValueVisitor)
+  }
+}
+
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Clone for EvaluateResultValue {
   fn clone(&self) -> Self {
     match self {
+      Self::Null => Self::Null,
       Self::Expr(e) => Self::Expr(e.clone()),
       Self::Vec(v) => Self::Vec(v.clone()),
       Self::Map(m) => Self::Map(m.clone()),
@@ -102,6 +153,7 @@ impl Clone for EvaluateResultValue {
 impl fmt::Debug for EvaluateResultValue {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
+      Self::Null => f.debug_tuple("Null").finish(),
       Self::Expr(e) => f.debug_tuple("Expr").field(e).finish(),
       Self::Vec(v) => f.debug_tuple("Vec").field(v).finish(),
       Self::Map(m) => f.debug_tuple("Map").field(m).finish(),
@@ -119,6 +171,7 @@ impl fmt::Debug for EvaluateResultValue {
 impl PartialEq for EvaluateResultValue {
   fn eq(&self, other: &Self) -> bool {
     match (self, other) {
+      (Self::Null, Self::Null) => true,
       (Self::Expr(e1), Self::Expr(e2)) => e1 == e2,
       (Self::Vec(v1), Self::Vec(v2)) => v1 == v2,
       (Self::ThemeRef(v1), Self::ThemeRef(v2)) => v1 == v2,
@@ -198,5 +251,30 @@ impl EvaluateResultValue {
       },
       _ => None,
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::EvaluateResultValue;
+
+  #[test]
+  fn serializes_null_as_json_null() {
+    let json = match serde_json::to_string(&EvaluateResultValue::Null) {
+      Ok(json) => json,
+      Err(error) => panic!("failed to serialize null evaluate result: {error}"),
+    };
+
+    assert_eq!(json, "null");
+  }
+
+  #[test]
+  fn deserializes_json_null_as_null() {
+    let value = match serde_json::from_str::<EvaluateResultValue>("null") {
+      Ok(value) => value,
+      Err(error) => panic!("failed to deserialize null evaluate result: {error}"),
+    };
+
+    assert_eq!(value, EvaluateResultValue::Null);
   }
 }

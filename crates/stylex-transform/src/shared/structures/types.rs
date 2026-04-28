@@ -19,7 +19,7 @@ pub(crate) type FlatCompiledStyles = IndexMap<String, Rc<FlatCompiledStylesValue
 pub(crate) type DynamicFns = IndexMap<String, (Vec<BindingIdent>, TInlineStyles)>;
 
 pub(crate) type EvaluationCallback =
-  Rc<dyn Fn(Vec<Option<EvaluateResultValue>>, &mut StateManager) -> Expr + 'static>;
+  Rc<dyn Fn(Vec<EvaluateResultValue>, &mut StateManager) -> Expr + 'static>;
 pub(crate) type FunctionMapMemberExpression =
   FxHashMap<ImportSources, Box<FxHashMap<Atom, Box<FunctionConfigType>>>>;
 pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>>;

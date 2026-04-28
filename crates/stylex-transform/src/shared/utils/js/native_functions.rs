@@ -9,7 +9,7 @@ use swc_core::ecma::ast::{Expr, ExprOrSpread};
 
 pub(crate) fn evaluate_map(
   funcs: &[EvaluateResultValue],
-  args: &[Option<EvaluateResultValue>],
+  args: &[EvaluateResultValue],
   traversal_state: &mut StateManager,
 ) -> Option<EvaluateResultValue> {
   let cb = funcs.first()?;
@@ -19,11 +19,11 @@ pub(crate) fn evaluate_map(
   let mut func_result = Vec::new();
 
   for arg in args {
-    let Some(result) = arg.as_ref() else {
+    if matches!(arg, EvaluateResultValue::Null) {
       continue;
-    };
+    }
 
-    match result {
+    match arg {
       EvaluateResultValue::Expr(_) => func_result.push(evaluate_map_cb(cb, arg, traversal_state)),
       EvaluateResultValue::Vec(vec) => {
         let func_result_value = vec
@@ -60,7 +60,7 @@ pub(crate) fn evaluate_map(
 
 pub(crate) fn evaluate_join(
   funcs: &[EvaluateResultValue],
-  args: &[Option<EvaluateResultValue>],
+  args: &[EvaluateResultValue],
   state: &mut StateManager,
   functions: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
@@ -74,8 +74,8 @@ pub(crate) fn evaluate_join(
 
   let result = args
     .iter()
-    .map(|arg_ref| {
-      let arg_expr = match arg_ref.as_ref().and_then(|arg| arg.as_expr()) {
+    .map(|arg| {
+      let arg_expr = match arg.as_expr() {
         Some(expr) => expr,
         #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("Array element must evaluate to a string for join()."),
@@ -94,7 +94,7 @@ pub(crate) fn evaluate_join(
 
 pub(crate) fn evaluate_filter(
   funcs: &[EvaluateResultValue],
-  args: &[Option<EvaluateResultValue>],
+  args: &[EvaluateResultValue],
   traversal_state: &mut StateManager,
 ) -> Option<EvaluateResultValue> {
   let cb = funcs.first()?;
@@ -104,11 +104,11 @@ pub(crate) fn evaluate_filter(
   let mut func_result = Vec::new();
 
   for arg in args {
-    let Some(result) = arg.as_ref() else {
+    if matches!(arg, EvaluateResultValue::Null) {
       continue;
-    };
+    }
 
-    match result {
+    match arg {
       EvaluateResultValue::Expr(expr) => {
         if let Some(expr) = evaluate_filter_cb(cb, arg, expr, traversal_state) {
           func_result.push(expr);
@@ -118,12 +118,11 @@ pub(crate) fn evaluate_filter(
         let func_result_value = vec
           .iter()
           .filter_map(|expr| {
-            let result = evaluate_filter_cb(
-              cb,
-              &expr.clone(),
-              &expr.as_ref()?.as_expr()?.clone(),
-              traversal_state,
-            );
+            if matches!(expr, EvaluateResultValue::Null) {
+              return None;
+            }
+
+            let result = evaluate_filter_cb(cb, expr, &expr.as_expr()?.clone(), traversal_state);
 
             result.map(EvaluateResultValue::Expr)
           })
@@ -154,7 +153,7 @@ pub(crate) fn evaluate_filter(
 
 pub(crate) fn evaluate_map_cb(
   cb: &EvaluationCallback,
-  cb_arg: &Option<EvaluateResultValue>,
+  cb_arg: &EvaluateResultValue,
   traversal_state: &mut StateManager,
 ) -> Expr {
   (cb)(vec![cb_arg.clone()], traversal_state)
@@ -162,7 +161,7 @@ pub(crate) fn evaluate_map_cb(
 
 pub(crate) fn evaluate_filter_cb(
   cb: &EvaluationCallback,
-  cb_arg: &Option<EvaluateResultValue>,
+  cb_arg: &EvaluateResultValue,
   item: &Expr,
   traversal_state: &mut StateManager,
 ) -> Option<Expr> {

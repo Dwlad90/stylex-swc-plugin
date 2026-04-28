@@ -207,11 +207,12 @@ fn parse_compiled_styles(
   match result {
     EvaluateResultValue::Vec(arr) => {
       for item in arr.iter() {
-        match item.as_ref() {
-          Some(EvaluateResultValue::Expr(expr)) => parse_nullable_object(compiled_styles, expr),
-          Some(EvaluateResultValue::Vec(arr)) => {
+        match item {
+          EvaluateResultValue::Expr(expr) => parse_nullable_object(compiled_styles, expr),
+          EvaluateResultValue::Vec(arr) => {
             parse_compiled_styles(compiled_styles, &EvaluateResultValue::Vec(arr.clone()));
           },
+          EvaluateResultValue::Null => {},
           #[cfg_attr(coverage_nightly, coverage(off))]
           _ => {
             stylex_unimplemented!(

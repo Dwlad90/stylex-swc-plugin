@@ -76,18 +76,18 @@ impl Fold for EvaluationStyleXFirstStatementTransform {
           elems: vec
             .iter()
             .map(|value| match value {
-              Some(value) => value.as_expr().map(|expr| ExprOrSpread {
+              EvaluateResultValue::Null => None,
+              value => value.as_expr().map(|expr| ExprOrSpread {
                 spread: None,
                 expr: Box::new(expr.clone()),
               }),
-              None => None,
             })
             .collect(),
         }),
         EvaluateResultValue::Callback(func) => func(
           vec![
-            Some(EvaluateResultValue::Expr(create_number_expr(2.0))),
-            Some(EvaluateResultValue::Expr(create_number_expr(7.0))),
+            EvaluateResultValue::Expr(create_number_expr(2.0)),
+            EvaluateResultValue::Expr(create_number_expr(7.0)),
           ],
           &mut self.state,
         ),
@@ -188,18 +188,18 @@ impl EvaluationStyleXLastStatementTransform {
           elems: vec
             .iter()
             .map(|value| match value {
-              Some(value) => value.as_expr().map(|expr| ExprOrSpread {
+              EvaluateResultValue::Null => None,
+              value => value.as_expr().map(|expr| ExprOrSpread {
                 spread: None,
                 expr: Box::new(expr.clone()),
               }),
-              None => None,
             })
             .collect(),
         }),
         EvaluateResultValue::Callback(func) => func(
           vec![
-            Some(EvaluateResultValue::Expr(create_number_expr(2.0))),
-            Some(EvaluateResultValue::Expr(create_number_expr(7.0))),
+            EvaluateResultValue::Expr(create_number_expr(2.0)),
+            EvaluateResultValue::Expr(create_number_expr(7.0)),
           ],
           &mut self.state,
         ),

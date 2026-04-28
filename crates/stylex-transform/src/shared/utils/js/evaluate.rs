@@ -7,9 +7,7 @@ use stylex_constants::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJEC
 use indexmap::IndexMap;
 use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
-use stylex_macros::{
-  collect_confident, stylex_panic, stylex_unimplemented, stylex_unreachable, unwrap_or_panic,
-};
+use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable, unwrap_or_panic};
 use swc_core::{
   atoms::Atom,
   common::{EqIgnoreSpan, SyntaxContext},
@@ -109,18 +107,14 @@ fn resolve_env_entry_to_result(
 /// `Expr`. Only `Array`, `Object`, `Lit`, and `Ident` expressions are allowed
 /// as element values; any other variant panics with
 /// [`ILLEGAL_PROP_ARRAY_VALUE`].
-fn evaluate_result_vec_to_array_expr(items: &[Option<EvaluateResultValue>]) -> Expr {
+fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -> Expr {
   let elems = items
     .iter()
     .map(|entry| {
       let expr = entry
-        .as_ref()
-        .and_then(|entry| {
-          entry
-            .as_vec()
-            .map(|vec| evaluate_result_vec_to_array_expr(vec))
-            .or_else(|| entry.as_expr().cloned())
-        })
+        .as_vec()
+        .map(|vec| evaluate_result_vec_to_array_expr(vec))
+        .or_else(|| entry.as_expr().cloned())
         .unwrap_or_else(|| {
           #[cfg_attr(coverage_nightly, coverage(off))]
           {
@@ -321,23 +315,19 @@ fn _evaluate(
               |identifiers: FunctionMapIdentifiers,
                ident_params: Vec<Atom>,
                body_expr: Box<Expr>| {
-                move |cb_args: Vec<Option<EvaluateResultValue>>,
-                      traversal_state: &mut StateManager| {
+                move |cb_args: Vec<EvaluateResultValue>, traversal_state: &mut StateManager| {
                   let mut identifiers = identifiers.clone();
 
                   let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
                   ident_params.iter().enumerate().for_each(|(index, ident)| {
                     if let Some(arg) = cb_args.get(index) {
-                      let expr = arg
-                        .as_ref()
-                        .and_then(|arg| arg.as_expr())
-                        .unwrap_or_else(|| {
-                          #[cfg_attr(coverage_nightly, coverage(off))]
-                          {
-                            stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION)
-                          }
-                        });
+                      let expr = arg.as_expr().unwrap_or_else(|| {
+                        #[cfg_attr(coverage_nightly, coverage(off))]
+                        {
+                          stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION)
+                        }
+                      });
 
                       let cl = |arg: Expr| move || arg.clone();
 
@@ -917,12 +907,16 @@ fn _evaluate(
       }
     },
     Expr::Array(arr_path) => {
-      let mut arr: Vec<Option<EvaluateResultValue>> = Vec::with_capacity(arr_path.elems.len());
+      let mut arr: Vec<EvaluateResultValue> = Vec::with_capacity(arr_path.elems.len());
 
       for elem in arr_path.elems.iter().flatten() {
         let elem_value =
           evaluate_with_functions(&elem.expr, traversal_state, Rc::clone(&state.functions));
-        collect_confident!(elem_value, arr);
+        if elem_value.confident {
+          arr.push(elem_value.value.unwrap_or(EvaluateResultValue::Null));
+        } else {
+          return None;
+        }
       }
 
       Some(EvaluateResultValue::Vec(arr))
@@ -1065,17 +1059,17 @@ fn _evaluate(
                   },
                   EvaluateResultValue::Callback(cb) => match path_key_value.value.as_ref() {
                     Expr::Call(call_expr) => {
-                      let cb_args: Vec<Option<EvaluateResultValue>> = call_expr
+                      let cb_args: Vec<EvaluateResultValue> = call_expr
                         .args
                         .iter()
                         .map(|arg| {
                           let eval_arg = evaluate_cached(&arg.expr, state, traversal_state, fns);
 
                           if !state.confident {
-                            return None;
+                            return EvaluateResultValue::Null;
                           }
 
-                          eval_arg
+                          eval_arg.unwrap_or(EvaluateResultValue::Null)
                         })
                         .collect();
 
@@ -1142,7 +1136,7 @@ fn _evaluate(
         })
     ),
     Expr::Call(call) => {
-      let mut context: Option<Vec<Option<EvaluateResultValue>>> = None;
+      let mut context: Option<Vec<EvaluateResultValue>> = None;
       let mut func: Option<Box<FunctionConfig>> = None;
 
       if let Callee::Expr(callee_expr) = &call.callee {
@@ -1259,10 +1253,10 @@ fn _evaluate(
                         if let Some(cached_first_arg) = cached_first_arg
                           && let Some(cached_second_arg) = cached_second_arg
                         {
-                          context = Some(vec![Some(EvaluateResultValue::Vec(vec![
-                            Some(cached_first_arg),
-                            Some(cached_second_arg),
-                          ]))]);
+                          context = Some(vec![EvaluateResultValue::Vec(vec![
+                            cached_first_arg,
+                            cached_second_arg,
+                          ])]);
                         }
                       },
                       "round" | "ceil" | "floor" => {
@@ -1279,7 +1273,7 @@ fn _evaluate(
                           evaluate_cached(&first_arg.expr, state, traversal_state, fns);
 
                         if let Some(cached_first_arg) = cached_first_arg {
-                          context = Some(vec![Some(EvaluateResultValue::Expr(
+                          context = Some(vec![EvaluateResultValue::Expr(
                             cached_first_arg
                               .as_expr()
                               .unwrap_or_else(|| {
@@ -1289,7 +1283,7 @@ fn _evaluate(
                                 }
                               })
                               .clone(),
-                          ))]);
+                          )]);
                         }
                       },
                       "min" | "max" => {
@@ -1306,7 +1300,7 @@ fn _evaluate(
                           evaluate_cached(&first_arg.expr, state, traversal_state, fns);
 
                         if let Some(cached_first_arg) = cached_first_arg {
-                          let mut result = vec![Some(cached_first_arg)];
+                          let mut result = vec![cached_first_arg];
 
                           result.extend(
                             call
@@ -1314,12 +1308,12 @@ fn _evaluate(
                               .iter()
                               .skip(1)
                               .map(|arg| evaluate_cached(&arg.expr, state, traversal_state, fns))
-                              .collect::<Vec<Option<EvaluateResultValue>>>(),
+                              .map(|arg| arg.unwrap_or(EvaluateResultValue::Null))
+                              .collect::<Vec<EvaluateResultValue>>(),
                           );
 
-                          context = Some(vec![Some(EvaluateResultValue::Vec(
-                            result.into_iter().collect(),
-                          ))]);
+                          context =
+                            Some(vec![EvaluateResultValue::Vec(result.into_iter().collect())]);
                         }
                       },
                       "abs" => {
@@ -1334,7 +1328,7 @@ fn _evaluate(
                             takes_path: false,
                           }));
 
-                          context = Some(vec![Some(EvaluateResultValue::Expr(
+                          context = Some(vec![EvaluateResultValue::Expr(
                             cached_first_arg
                               .as_expr()
                               .unwrap_or_else(|| {
@@ -1344,7 +1338,7 @@ fn _evaluate(
                                 }
                               })
                               .clone(),
-                          ))]);
+                          )]);
                         }
                       },
                       #[cfg_attr(coverage_nightly, coverage(off))]
@@ -1441,20 +1435,17 @@ fn _evaluate(
                           },
                           EvaluateResultValue::Vec(vec) => {
                             for entry in vec {
-                              let entry = entry
-                                .and_then(|entry| entry.as_vec().cloned())
-                                .unwrap_or_else(|| {
-                                  #[cfg_attr(coverage_nightly, coverage(off))]
-                                  {
-                                    stylex_panic!(
-                                      "Expected an array element but found a hole (empty slot)."
-                                    )
-                                  }
-                                });
+                              let entry = entry.as_vec().cloned().unwrap_or_else(|| {
+                                #[cfg_attr(coverage_nightly, coverage(off))]
+                                {
+                                  stylex_panic!(
+                                    "Expected an array element but found a hole (empty slot)."
+                                  )
+                                }
+                              });
 
                               let key = entry
                                 .first()
-                                .and_then(|item| item.clone())
                                 .and_then(|item| item.as_expr().cloned())
                                 .and_then(|expr| expr.as_lit().cloned())
                                 .unwrap_or_else(|| {
@@ -1468,7 +1459,6 @@ fn _evaluate(
 
                               let value = entry
                                 .get(1)
-                                .and_then(|item| item.clone())
                                 .and_then(|item| item.as_expr().cloned())
                                 .unwrap_or_else(|| {
                                   #[cfg_attr(coverage_nightly, coverage(off))]
@@ -1488,9 +1478,7 @@ fn _evaluate(
                           },
                         };
 
-                        context = Some(vec![Some(EvaluateResultValue::Entries(
-                          from_entries_result,
-                        ))]);
+                        context = Some(vec![EvaluateResultValue::Entries(from_entries_result)]);
                       },
                       Ok(ObjectJS::Keys) => {
                         func = Some(Box::new(FunctionConfig {
@@ -1526,8 +1514,8 @@ fn _evaluate(
                           }
                         }
 
-                        context = Some(vec![Some(EvaluateResultValue::Expr(
-                          create_array_expression(keys),
+                        context = Some(vec![EvaluateResultValue::Expr(create_array_expression(
+                          keys,
                         ))]);
                       },
                       Ok(ObjectJS::Values) => {
@@ -1560,8 +1548,8 @@ fn _evaluate(
                           }
                         }
 
-                        context = Some(vec![Some(EvaluateResultValue::Expr(
-                          create_array_expression(values),
+                        context = Some(vec![EvaluateResultValue::Expr(create_array_expression(
+                          values,
                         ))]);
                       },
                       Ok(ObjectJS::Entries) => {
@@ -1600,7 +1588,7 @@ fn _evaluate(
                           }
                         }
 
-                        context = Some(vec![Some(EvaluateResultValue::Entries(entries))]);
+                        context = Some(vec![EvaluateResultValue::Entries(entries)]);
                       },
                       #[cfg_attr(coverage_nightly, coverage(off))]
                       Err(()) => {
@@ -1805,11 +1793,11 @@ fn _evaluate(
                               "Array element must be present (no empty slots allowed)."
                             ),
                           };
-                          Some(EvaluateResultValue::Expr(*elem.expr))
+                          EvaluateResultValue::Expr(*elem.expr)
                         })
-                        .collect::<Vec<Option<EvaluateResultValue>>>();
+                        .collect::<Vec<EvaluateResultValue>>();
 
-                      context = Some(vec![Some(EvaluateResultValue::Vec(expr))]);
+                      context = Some(vec![EvaluateResultValue::Vec(expr)]);
                     },
                     Expr::Lit(Lit::Str(_)) => {
                       let string_method = match StringJS::try_from(prop_name.as_str()) {
@@ -1832,7 +1820,7 @@ fn _evaluate(
                         takes_path: false,
                       }));
 
-                      context = Some(vec![Some(EvaluateResultValue::Expr(expr.clone()))]);
+                      context = Some(vec![EvaluateResultValue::Expr(expr.clone())]);
                     },
                     Expr::Object(object) => {
                       let key_values = get_key_values_from_object(&object);
@@ -1856,17 +1844,17 @@ fn _evaluate(
                         takes_path: false,
                       }));
 
-                      let args: Vec<Option<EvaluateResultValue>> = call
+                      let args: Vec<EvaluateResultValue> = call
                         .args
                         .iter()
                         .map(|arg| {
                           let arg = evaluate_cached(&arg.expr, state, traversal_state, fns);
 
                           if !state.confident {
-                            return None;
+                            return EvaluateResultValue::Null;
                           }
 
-                          arg
+                          arg.unwrap_or(EvaluateResultValue::Null)
                         })
                         .collect();
 
@@ -1894,7 +1882,7 @@ fn _evaluate(
                         takes_path: false,
                       }));
 
-                      context = Some(vec![Some(value)]);
+                      context = Some(vec![value]);
                     },
                     FunctionType::DefaultMarker(default_marker) => {
                       if let Some(expr_fn) = default_marker.get(&prop_name) {
@@ -1903,7 +1891,7 @@ fn _evaluate(
                           takes_path: false,
                         }));
 
-                        context = Some(vec![Some(value)]);
+                        context = Some(vec![value]);
                       };
                     },
                     _ => stylex_panic_with_context!(
@@ -2181,7 +2169,7 @@ fn _evaluate(
                   return evaluate_join(&args, &context, traversal_state, &state.functions);
                 },
                 CallbackType::Object(ObjectJS::Entries) => {
-                  let Some(Some(eval_result)) = context.first() else {
+                  let Some(eval_result) = context.first() else {
                     stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -2214,7 +2202,7 @@ fn _evaluate(
                   )));
                 },
                 CallbackType::Object(ObjectJS::Keys) => {
-                  let Some(Some(EvaluateResultValue::Expr(keys))) = context.first() else {
+                  let Some(EvaluateResultValue::Expr(keys)) = context.first() else {
                     stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -2225,7 +2213,7 @@ fn _evaluate(
                   return Some(EvaluateResultValue::Expr(keys.clone()));
                 },
                 CallbackType::Object(ObjectJS::Values) => {
-                  let Some(Some(EvaluateResultValue::Expr(values))) = context.first() else {
+                  let Some(EvaluateResultValue::Expr(values)) = context.first() else {
                     stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -2236,7 +2224,7 @@ fn _evaluate(
                   return Some(EvaluateResultValue::Expr(values.clone()));
                 },
                 CallbackType::Object(ObjectJS::FromEntries) => {
-                  let Some(Some(EvaluateResultValue::Entries(entries))) = context.first() else {
+                  let Some(EvaluateResultValue::Entries(entries)) = context.first() else {
                     stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -2261,7 +2249,7 @@ fn _evaluate(
                   )));
                 },
                 CallbackType::Math(MathJS::Pow) => {
-                  let Some(Some(EvaluateResultValue::Vec(args))) = context.first() else {
+                  let Some(EvaluateResultValue::Vec(args)) = context.first() else {
                     stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -2271,7 +2259,6 @@ fn _evaluate(
 
                   let num_args = args
                     .iter()
-                    .flatten()
                     .map(|arg| {
                       arg
                         .as_expr()
@@ -2296,7 +2283,7 @@ fn _evaluate(
                   return Some(EvaluateResultValue::Expr(create_number_expr(result)));
                 },
                 CallbackType::Math(MathJS::Round | MathJS::Floor | MathJS::Ceil) => {
-                  let Some(Some(EvaluateResultValue::Expr(expr))) = context.first() else {
+                  let Some(EvaluateResultValue::Expr(expr)) = context.first() else {
                     stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -2320,7 +2307,7 @@ fn _evaluate(
                   return Some(EvaluateResultValue::Expr(create_number_expr(result)));
                 },
                 CallbackType::Math(MathJS::Min | MathJS::Max) => {
-                  let Some(Some(EvaluateResultValue::Vec(args))) = context.first() else {
+                  let Some(EvaluateResultValue::Vec(args)) = context.first() else {
                     stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -2352,7 +2339,7 @@ fn _evaluate(
                   return Some(EvaluateResultValue::Expr(create_number_expr(result)));
                 },
                 CallbackType::Math(MathJS::Abs) => {
-                  let Some(Some(EvaluateResultValue::Expr(expr))) = context.first() else {
+                  let Some(EvaluateResultValue::Expr(expr)) = context.first() else {
                     stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -2368,7 +2355,7 @@ fn _evaluate(
                   return Some(EvaluateResultValue::Expr(create_number_expr(num.abs())));
                 },
                 CallbackType::String(StringJS::Concat) => {
-                  let Some(Some(EvaluateResultValue::Expr(base_str))) = context.first() else {
+                  let Some(EvaluateResultValue::Expr(base_str)) = context.first() else {
                     stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -2411,7 +2398,7 @@ fn _evaluate(
                   )));
                 },
                 CallbackType::String(StringJS::CharCodeAt) => {
-                  let Some(Some(EvaluateResultValue::Expr(base_str))) = context.first() else {
+                  let Some(EvaluateResultValue::Expr(base_str)) = context.first() else {
                     stylex_panic_with_context!(
                       path,
                       traversal_state,
@@ -2471,9 +2458,7 @@ fn _evaluate(
                   let evaluation_result = evaluate_cached(arrow_fn, state, traversal_state, fns);
 
                   let expr_result = match evaluation_result.as_ref() {
-                    Some(EvaluateResultValue::Callback(cb)) => {
-                      cb(args.into_iter().map(Some).collect(), traversal_state)
-                    },
+                    Some(EvaluateResultValue::Callback(cb)) => cb(args, traversal_state),
                     _ => {
                       stylex_panic_with_context!(
                         path,
@@ -2750,16 +2735,18 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
         .iter()
         .enumerate()
         .filter_map(|(index, elem)| {
-          elem.as_ref().map(|elem_value| {
-            let expr = match elem_value {
-              EvaluateResultValue::Expr(expr) => expr.clone(),
-              EvaluateResultValue::Vec(vec) => normalize_js_object_method_nested_vector_arg(vec),
-              #[cfg_attr(coverage_nightly, coverage(off))]
-              _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
-            };
+          if matches!(elem, EvaluateResultValue::Null) {
+            return None;
+          }
 
-            create_ident_key_value_prop(&index.to_string(), expr)
-          })
+          let expr = match elem {
+            EvaluateResultValue::Expr(expr) => expr.clone(),
+            EvaluateResultValue::Vec(vec) => normalize_js_object_method_nested_vector_arg(vec),
+            #[cfg_attr(coverage_nightly, coverage(off))]
+            _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
+          };
+
+          Some(create_ident_key_value_prop(&index.to_string(), expr))
         })
         .collect();
 
@@ -2772,33 +2759,29 @@ fn normalize_js_object_method_args(cached_arg: Option<EvaluateResultValue>) -> O
 
 /// Helper function to convert a nested vector of EvaluateResultValues to an
 /// array expression
-fn normalize_js_object_method_nested_vector_arg(vec: &[Option<EvaluateResultValue>]) -> Expr {
+fn normalize_js_object_method_nested_vector_arg(vec: &[EvaluateResultValue]) -> Expr {
   let elems = vec
     .iter()
     .map(|entry| {
       let expr = entry
-        .as_ref()
-        .and_then(|entry| {
-          entry
-            .as_vec()
-            .map(|nested_vec| {
-              let nested_elems = nested_vec
-                .iter()
-                .flatten()
-                .map(|item| {
-                  let expr = match item.as_expr() {
-                    Some(e) => e,
-                    #[cfg_attr(coverage_nightly, coverage(off))]
-                    None => stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION),
-                  };
-                  Some(create_expr_or_spread(expr.clone()))
-                })
-                .collect();
-
-              create_array_expression(nested_elems)
+        .as_vec()
+        .map(|nested_vec| {
+          let nested_elems = nested_vec
+            .iter()
+            .filter(|item| !matches!(item, EvaluateResultValue::Null))
+            .map(|item| {
+              let expr = match item.as_expr() {
+                Some(e) => e,
+                #[cfg_attr(coverage_nightly, coverage(off))]
+                None => stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION),
+              };
+              Some(create_expr_or_spread(expr.clone()))
             })
-            .or_else(|| entry.as_expr().cloned())
+            .collect();
+
+          create_array_expression(nested_elems)
         })
+        .or_else(|| entry.as_expr().cloned())
         .unwrap_or_else(|| {
           #[cfg_attr(coverage_nightly, coverage(off))]
           {
@@ -2827,7 +2810,7 @@ fn evaluate_func_call_args(
 }
 
 fn args_to_numbers(
-  args: &[Option<EvaluateResultValue>],
+  args: &[EvaluateResultValue],
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
@@ -2835,19 +2818,17 @@ fn args_to_numbers(
   args
     .iter()
     .flat_map(|arg| match arg {
-      Some(arg) => match arg {
-        EvaluateResultValue::Expr(expr) => {
-          vec![
-            expr_to_num(expr, state, traversal_state, fns).unwrap_or_else(|error| {
-              stylex_panic_with_context!(expr, traversal_state, error.to_string().as_str())
-            }),
-          ]
-        },
-        EvaluateResultValue::Vec(vec) => args_to_numbers(vec, state, traversal_state, fns),
-        #[cfg_attr(coverage_nightly, coverage(off))]
-        _ => stylex_unreachable!("Math.min/max requires a number"),
+      EvaluateResultValue::Expr(expr) => {
+        vec![
+          expr_to_num(expr, state, traversal_state, fns).unwrap_or_else(|error| {
+            stylex_panic_with_context!(expr, traversal_state, error.to_string().as_str())
+          }),
+        ]
       },
-      None => vec![],
+      EvaluateResultValue::Vec(vec) => args_to_numbers(vec, state, traversal_state, fns),
+      EvaluateResultValue::Null => vec![],
+      #[cfg_attr(coverage_nightly, coverage(off))]
+      _ => stylex_unreachable!("Math.min/max requires a number"),
     })
     .collect::<Vec<f64>>()
 }

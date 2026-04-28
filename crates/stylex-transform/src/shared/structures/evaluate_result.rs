@@ -31,7 +31,7 @@ impl EvaluateResultValue {
     }
   }
 
-  pub fn as_vec(&self) -> Option<&Vec<Option<EvaluateResultValue>>> {
+  pub fn as_vec(&self) -> Option<&Vec<EvaluateResultValue>> {
     match self {
       EvaluateResultValue::Vec(value) => Some(value),
       _ => None,

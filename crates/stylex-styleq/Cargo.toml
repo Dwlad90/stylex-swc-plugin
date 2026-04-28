@@ -14,5 +14,12 @@ doctest = false
 indexmap.workspace = true
 log.workspace = true
 
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+harness = false
+name = "performance_bench"
+
 [lints]
 workspace = true

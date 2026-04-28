@@ -18,9 +18,15 @@ struct CacheEntry {
   debug_string: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum CacheKey {
+  Identity(usize),
+  Hash(u64),
+}
+
 pub struct Styleq<V: StyleqValue> {
   options: StyleqOptions<V>,
-  cache: RefCell<IndexMap<u64, CacheEntry>>,
+  cache: RefCell<IndexMap<CacheKey, CacheEntry>>,
 }
 
 pub fn create_styleq<V: StyleqValue>(options: StyleqOptions<V>) -> Styleq<V> {
@@ -59,6 +65,7 @@ impl<V: StyleqValue> Styleq<V> {
       let Some(style) = possible_style.as_style() else {
         continue;
       };
+      let cache_key = possible_style.cache_key();
 
       let transformed_style;
       let style = match &self.options.transform {
@@ -75,6 +82,7 @@ impl<V: StyleqValue> Styleq<V> {
           &mut defined_properties,
           &mut class_name,
           &mut debug_string,
+          cache_key,
           use_cache,
         );
       } else if self.options.disable_mix {
@@ -110,12 +118,16 @@ impl<V: StyleqValue> Styleq<V> {
     defined_properties: &mut Vec<String>,
     class_name: &mut String,
     debug_string: &mut String,
+    cache_key: Option<usize>,
     use_cache: bool,
   ) {
     let mut class_name_chunk = String::new();
-    let style_hash = hash_style(style);
+    let cache_key = cache_key
+      .filter(|_| self.options.transform.is_none())
+      .map(CacheKey::Identity)
+      .unwrap_or_else(|| CacheKey::Hash(hash_style(style)));
 
-    if use_cache && let Some(cache_entry) = self.cache.borrow().get(&style_hash).cloned() {
+    if use_cache && let Some(cache_entry) = self.cache.borrow().get(&cache_key).cloned() {
       class_name_chunk = cache_entry.class_name;
       *debug_string = cache_entry.debug_string;
       defined_properties.extend(cache_entry.defined_properties);
@@ -169,7 +181,7 @@ impl<V: StyleqValue> Styleq<V> {
 
       if use_cache {
         self.cache.borrow_mut().insert(
-          style_hash,
+          cache_key,
           CacheEntry {
             class_name: class_name_chunk.clone(),
             defined_properties: defined_properties_chunk,
@@ -201,7 +213,7 @@ impl<V: StyleqValue> Styleq<V> {
     let mut sub_style: Option<StyleMap<V>> = None;
 
     for (prop, value) in style {
-      if !defined_properties.contains(&prop) {
+      if !defined_properties.contains(prop) {
         if !value.is_null() {
           sub_style
             .get_or_insert_with(IndexMap::new)

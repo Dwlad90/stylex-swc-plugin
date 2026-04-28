@@ -3115,6 +3115,7 @@ dependencies = [
 name = "stylex_styleq"
 version = "0.15.5"
 dependencies = [
+ "criterion",
  "indexmap",
  "log",
 ]

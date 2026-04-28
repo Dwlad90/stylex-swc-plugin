@@ -30,6 +30,11 @@ impl<V: StyleqValue> StyleqValue for Rc<V> {
 pub trait StyleqArgument<V: StyleqValue> {
   fn as_style(&self) -> Option<&StyleMap<V>>;
 
+  /// Returns an identity key only when the style allocation outlives the cache.
+  fn cache_key(&self) -> Option<usize> {
+    None
+  }
+
   fn as_nested(&self) -> Option<&[Self]>
   where
     Self: Sized,

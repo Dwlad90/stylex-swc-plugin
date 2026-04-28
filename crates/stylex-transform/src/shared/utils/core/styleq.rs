@@ -43,6 +43,12 @@ impl StyleqArgument<Rc<FlatCompiledStylesValue>> for ResolvedArg {
     }
   }
 
+  fn cache_key(&self) -> Option<usize> {
+    self
+      .as_style()
+      .map(|style| std::ptr::from_ref(style).cast::<()>() as usize)
+  }
+
   fn should_skip(&self) -> bool {
     matches!(
       self,

@@ -447,6 +447,7 @@ impl Fold for ExpressionFinder {
 }
 
 #[track_caller]
+#[cold]
 pub(crate) fn build_code_frame_error_and_panic(
   wrapped_expression: &Expr,
   fault_expression: &Expr,

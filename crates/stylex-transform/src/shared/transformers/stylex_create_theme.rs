@@ -50,9 +50,8 @@ pub(crate) fn stylex_create_theme(
 
   variables_key_values.sort_by_key(convert_key_value_to_str);
 
-  #[allow(unused_assignments)]
-  let mut var_group_hash: String = String::new();
-  let mut theme_vars_key_values: Vec<KeyValueProp> = Vec::new();
+  let var_group_hash: String;
+  let mut theme_vars_key_values: Vec<KeyValueProp>;
 
   match theme_vars {
     EvaluateResultValue::Expr(expr) => {
@@ -76,6 +75,7 @@ pub(crate) fn stylex_create_theme(
         .unwrap_or_default();
     },
     EvaluateResultValue::ThemeRef(theme_ref) => {
+      theme_vars_key_values = Vec::new();
       var_group_hash = match theme_ref.get(VAR_GROUP_HASH_KEY, state).as_css_var() {
         Some(v) => v.to_owned(),
         #[cfg_attr(coverage_nightly, coverage(off))]

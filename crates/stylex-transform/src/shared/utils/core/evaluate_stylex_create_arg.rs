@@ -233,7 +233,7 @@ pub fn evaluate_stylex_create_arg(
         reason: None,
         value: Some(EvaluateResultValue::Map(result_value)),
         inline_styles: None,
-        fns: if fns.is_empty() { None } else { Some(fns) },
+        fns: (!fns.is_empty()).then_some(fns),
       })
     },
     _ => evaluate(path, traversal_state, functions),

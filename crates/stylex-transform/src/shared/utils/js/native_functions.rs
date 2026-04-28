@@ -16,7 +16,7 @@ pub(crate) fn evaluate_map(
 
   let cb = cb.as_callback()?;
 
-  let mut func_result = Vec::new();
+  let mut func_result = Vec::with_capacity(args.len());
 
   for arg in args {
     if matches!(arg, EvaluateResultValue::Null) {
@@ -101,7 +101,7 @@ pub(crate) fn evaluate_filter(
 
   let cb = cb.as_callback()?;
 
-  let mut func_result = Vec::new();
+  let mut func_result = Vec::with_capacity(args.len());
 
   for arg in args {
     if matches!(arg, EvaluateResultValue::Null) {

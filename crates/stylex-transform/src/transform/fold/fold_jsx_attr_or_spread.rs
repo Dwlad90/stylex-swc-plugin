@@ -19,7 +19,7 @@ where
       TransformationCycle::Initializing => {
         for jsx_attr in jsx_attrs.iter() {
           if let JSXAttrOrSpread::SpreadElement(spread) = jsx_attr {
-            let expr = drop_span(*spread.expr.clone());
+            let expr = drop_span(spread.expr.as_ref().clone());
             self
               .state
               .jsx_spread_attr_exprs_map
@@ -35,7 +35,7 @@ where
           .flat_map(|jsx_attr| {
             match jsx_attr {
               JSXAttrOrSpread::SpreadElement(spread) => {
-                let expr = drop_span(*spread.expr.clone());
+                let expr = drop_span(spread.expr.as_ref().clone());
                 if let Some(updated_exprs) =
                   self.state.jsx_spread_attr_exprs_map.get(&expr).cloned()
                 {

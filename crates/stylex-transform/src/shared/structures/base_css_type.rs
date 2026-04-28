@@ -43,7 +43,7 @@ impl BaseCSSType {
         props
       },
       ValueWithDefault::Map(map) => {
-        let mut local_props = vec![];
+        let mut local_props = Vec::with_capacity(map.len());
 
         for (key, val) in map {
           let props_to_extend = BaseCSSType::value_to_props(val, Some(key));

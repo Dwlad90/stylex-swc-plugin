@@ -3,19 +3,13 @@ use super::{
   state_manager::StateManager,
 };
 
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq, Copy, Default)]
 pub(crate) struct NullPreRule {}
 
 impl NullPreRule {
+  #[must_use]
   pub(crate) fn new() -> Self {
-    NullPreRule {}
-  }
-}
-
-#[cfg_attr(coverage_nightly, coverage(off))]
-impl Default for NullPreRule {
-  fn default() -> Self {
-    NullPreRule::new()
+    Self::default()
   }
 }
 

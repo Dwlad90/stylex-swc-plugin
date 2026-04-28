@@ -51,6 +51,7 @@ pub fn wrap_in_paren_ref(expr: &Expr) -> Expr {
 /// ```ignore
 /// let object_lit = create_object_lit(vec![prop_or_spread_factory(key, value)]);
 /// ```
+#[inline]
 pub fn create_object_lit(props: Vec<PropOrSpread>) -> ObjectLit {
   ObjectLit {
     span: DUMMY_SP,
@@ -67,6 +68,7 @@ pub fn create_object_lit(props: Vec<PropOrSpread>) -> ObjectLit {
 /// ```ignore
 /// let array_lit = create_array_lit(vec![create_expr_or_spread(value)]);
 /// ```
+#[inline]
 pub fn create_array_lit(elems: Vec<Option<ExprOrSpread>>) -> ArrayLit {
   ArrayLit {
     span: DUMMY_SP,
@@ -83,10 +85,12 @@ pub fn create_array_lit(elems: Vec<Option<ExprOrSpread>>) -> ArrayLit {
 /// ```ignore
 /// let object_expression = create_object_expression(vec![prop_or_spread_factory(key, value)]);
 /// ```
+#[inline]
 pub fn create_object_expression(props: Vec<PropOrSpread>) -> Expr {
   Expr::from(create_object_lit(props))
 }
 
+#[inline]
 pub fn create_array_expression(elems: Vec<Option<ExprOrSpread>>) -> Expr {
   Expr::from(create_array_lit(elems))
 }
@@ -120,6 +124,7 @@ pub fn create_cond_expr(test: Expr, cons: Expr, alt: Expr) -> Expr {
 /// # Example
 /// ```ignore
 /// let prop_or_spread = create_key_value_prop("key", value);
+#[inline]
 pub fn create_key_value_prop(key: &str, value: Expr) -> PropOrSpread {
   PropOrSpread::from(Prop::from(KeyValueProp {
     key: convert_string_to_prop_name(key),
@@ -136,6 +141,7 @@ pub fn create_key_value_prop(key: &str, value: Expr) -> PropOrSpread {
 /// ```ignore
 /// let binding_ident = create_binding_ident(ident);
 /// ```
+#[inline]
 pub fn create_binding_ident(ident: Ident) -> BindingIdent {
   BindingIdent::from(ident)
 }
@@ -149,6 +155,7 @@ pub fn create_binding_ident(ident: Ident) -> BindingIdent {
 /// ```ignore
 /// let lit_str = create_string_lit("value");
 /// ```
+#[inline]
 pub fn create_string_lit(value: &str) -> Lit {
   Lit::from(value)
 }
@@ -157,6 +164,7 @@ pub fn create_string_lit(value: &str) -> Lit {
 ///
 /// # Arguments
 /// * `value` - The number to create a literal for
+#[inline]
 pub fn create_number_lit(value: f64) -> Lit {
   Lit::from(value)
 }
@@ -170,6 +178,7 @@ pub fn create_number_lit(value: f64) -> Lit {
 /// ```ignore
 /// let lit_big_int = create_big_int_lit(BigInt::from(123));
 /// ```
+#[inline]
 pub fn create_big_int_lit(value: BigInt) -> Lit {
   Lit::from(value)
 }
@@ -183,6 +192,7 @@ pub fn create_big_int_lit(value: BigInt) -> Lit {
 /// ```ignore
 /// let lit_boolean = create_boolean_lit(true);
 /// ```
+#[inline]
 pub fn create_boolean_lit(value: bool) -> Lit {
   Lit::from(value)
 }
@@ -196,6 +206,7 @@ pub fn create_boolean_lit(value: bool) -> Lit {
 /// ```ignore
 /// let lit_null = create_null_lit();
 /// ```
+#[inline]
 pub fn create_null_lit() -> Lit {
   Lit::Null(Null { span: DUMMY_SP })
 }
@@ -209,10 +220,12 @@ pub fn create_null_lit() -> Lit {
 /// ```ignore
 /// let ident = create_ident("props");
 /// ```
+#[inline]
 pub fn create_ident(name: &str) -> Ident {
   Ident::from(name)
 }
 
+#[inline]
 pub fn create_nested_object_prop(key: &str, values: Vec<PropOrSpread>) -> PropOrSpread {
   let object = ObjectLit {
     span: DUMMY_SP,
@@ -227,6 +240,7 @@ pub fn create_nested_object_prop(key: &str, values: Vec<PropOrSpread>) -> PropOr
 ///
 /// Use this when the key is an existing `PropName` (e.g. cloned from another
 /// prop), avoiding the need to re-stringify it.
+#[inline]
 pub fn create_prop_from_name(key: PropName, value: Expr) -> PropOrSpread {
   PropOrSpread::from(Prop::from(KeyValueProp {
     key,
@@ -243,6 +257,7 @@ pub fn create_prop_from_name(key: PropName, value: Expr) -> PropOrSpread {
 /// # Example
 /// ```ignore
 /// let key_value = create_key_value_prop_ident("props", value);
+#[inline]
 pub fn create_key_value_prop_ident(key: &str, value: Expr) -> KeyValueProp {
   KeyValueProp {
     key: PropName::Ident(IdentName::new(key.into(), DUMMY_SP)),
@@ -256,6 +271,7 @@ pub fn create_key_value_prop_ident(key: &str, value: Expr) -> KeyValueProp {
 /// preserving keys that contain special characters (e.g. `@media …`) as ident
 /// nodes. Use this wherever downstream code calls `.as_ident()` on the
 /// resulting key.
+#[inline]
 pub fn create_ident_key_value_prop(key: &str, value: Expr) -> PropOrSpread {
   PropOrSpread::from(Prop::from(KeyValueProp {
     key: PropName::Ident(IdentName::new(key.into(), DUMMY_SP)),
@@ -272,6 +288,7 @@ pub fn create_ident_key_value_prop(key: &str, value: Expr) -> PropOrSpread {
 /// # Example
 /// ```ignore
 /// let prop_or_spread = create_string_key_value_prop("key", "value");
+#[inline]
 pub fn create_string_key_value_prop(key: &str, value: &str) -> PropOrSpread {
   let value = create_string_expr(value);
 
@@ -301,6 +318,7 @@ pub fn create_string_array_prop(key: &str, value: &[&str]) -> PropOrSpread {
 /// # Example
 /// ```ignore
 /// let prop_or_spread = prop_or_spread_boolean_factory("key", true);
+#[inline]
 pub fn create_boolean_prop(key: &str, value: Option<bool>) -> PropOrSpread {
   match value {
     Some(value) => create_key_value_prop(key, create_bool_expr(value)),
@@ -312,6 +330,7 @@ pub fn create_boolean_prop(key: &str, value: Option<bool>) -> PropOrSpread {
 /// This is the generic counterpart to the typed `expr_or_spread_*_factory`
 /// helpers and eliminates the common boilerplate `ExprOrSpread { spread: None,
 /// expr: Box::new(e) }`.
+#[inline]
 pub fn create_expr_or_spread(expr: Expr) -> ExprOrSpread {
   ExprOrSpread {
     expr: Box::new(expr),
@@ -328,10 +347,12 @@ pub fn create_expr_or_spread(expr: Expr) -> ExprOrSpread {
 /// ```ignore
 /// let expr_or_spread = create_string_expr_or_spread("value");
 /// ```
+#[inline]
 pub fn create_string_expr_or_spread(value: &str) -> ExprOrSpread {
   create_expr_or_spread(create_string_expr(value))
 }
 
+#[inline]
 pub fn create_number_expr_or_spread(value: f64) -> ExprOrSpread {
   create_expr_or_spread(create_number_expr(value))
 }
@@ -351,6 +372,7 @@ pub fn create_array(values: &[Expr]) -> ArrayLit {
 /// ```ignore
 /// let array_lit = _create_spreaded_array(vec![expr1, expr2, expr3]);
 /// ```
+#[inline]
 pub fn create_spreaded_array(values: &[Expr]) -> ArrayLit {
   array_fabric(values, Some(DUMMY_SP))
 }
@@ -535,6 +557,7 @@ pub fn create_jsx_attr_or_spread(attr: JSXAttr) -> JSXAttrOrSpread {
 /// let jsx_attr = create_jsx_attr("name", value);
 /// ```
 #[allow(dead_code)]
+#[inline]
 pub fn create_jsx_attr(name: &str, value: JSXAttrValue) -> JSXAttr {
   JSXAttr {
     span: DUMMY_SP,
@@ -554,6 +577,7 @@ pub fn create_jsx_attr(name: &str, value: JSXAttrValue) -> JSXAttr {
 /// ```ignore
 /// let decl = create_var_declarator(my_ident, some_expr);
 /// ```
+#[inline]
 pub fn create_var_declarator(ident: Ident, init: Expr) -> VarDeclarator {
   VarDeclarator {
     span: DUMMY_SP,
@@ -575,6 +599,7 @@ pub fn create_var_declarator(ident: Ident, init: Expr) -> VarDeclarator {
 /// ```ignore
 /// let decl = var_declarator_null_init_factory(my_ident);
 /// ```
+#[inline]
 pub fn create_null_var_declarator(ident: Ident) -> VarDeclarator {
   create_var_declarator(ident, create_null_expr())
 }
@@ -589,6 +614,7 @@ pub fn create_null_var_declarator(ident: Ident) -> VarDeclarator {
 /// ```ignore
 /// let decl = create_string_var_declarator(my_ident, "value");
 /// ```
+#[inline]
 pub fn create_string_var_declarator(ident: Ident, value: &str) -> VarDeclarator {
   create_var_declarator(ident, create_string_expr(value))
 }

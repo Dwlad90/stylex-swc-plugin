@@ -4,7 +4,6 @@ use stylex_macros::{stylex_panic, stylex_unimplemented};
 
 use indexmap::{IndexMap, IndexSet};
 use log::debug;
-use once_cell::sync::Lazy;
 use stylex_path_resolver::{
   package_json::{PackageJsonExtended, find_closest_package_json_folder, get_package_json},
   resolvers::{EXTENSIONS, resolve_file_path},
@@ -67,7 +66,7 @@ use stylex_structures::{
 };
 use stylex_types::structures::meta_data::MetaData;
 
-static TRANSFORMED_VARS_FILE_EXTENSION: Lazy<&'static str> = Lazy::new(|| ".transformed");
+const TRANSFORMED_VARS_FILE_EXTENSION: &str = ".transformed";
 
 type AtomHashMap = FxHashMap<Atom, i16>;
 type AtomHashSet = FxHashSet<Atom>;
@@ -529,7 +528,7 @@ impl StateManager {
     let is_consts_only_file = matches_file_suffix(&consts_file_extension, import_path);
 
     let is_valid_transformed_vars_file =
-      matches_file_suffix(*TRANSFORMED_VARS_FILE_EXTENSION, import_path);
+      matches_file_suffix(TRANSFORMED_VARS_FILE_EXTENSION, import_path);
 
     if !is_theme_file && !is_valid_transformed_vars_file && !is_consts_only_file {
       return ImportPathResolution::Unresolved;
@@ -804,8 +803,10 @@ impl StateManager {
 
     let styles_to_inject = self.styles_to_inject.entry(ast_hash).or_default();
 
-    if !styles_to_inject.contains(&drop_span(module.clone())) {
-      styles_to_inject.push(drop_span(module.clone()));
+    let normalized_module = drop_span(module.clone());
+
+    if !styles_to_inject.contains(&normalized_module) {
+      styles_to_inject.push(normalized_module.clone());
     }
 
     if let Some(fallback_ast) = fallback_ast {
@@ -813,8 +814,8 @@ impl StateManager {
 
       let fallback_styles_to_inject = self.styles_to_inject.entry(fallback_ast_hash).or_default();
 
-      if !fallback_styles_to_inject.contains(&drop_span(module.clone())) {
-        fallback_styles_to_inject.push(drop_span(module.clone()));
+      if !fallback_styles_to_inject.contains(&normalized_module) {
+        fallback_styles_to_inject.push(normalized_module);
       }
     }
   }

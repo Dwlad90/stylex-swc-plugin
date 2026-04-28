@@ -908,10 +908,7 @@ pub(crate) fn validate_theme_variables(
           if let Some(lit) = value.as_lit() {
             let value = convert_lit_to_string(lit);
 
-            if value
-              .and_then(|value| if value.is_empty() { None } else { Some(value) })
-              .is_some()
-            {
+            if value.filter(|value| !value.is_empty()).is_some() {
               return Some(key_value);
             }
           }

@@ -925,7 +925,7 @@ fn _evaluate(
       Some(EvaluateResultValue::Vec(arr))
     },
     Expr::Object(obj_path) => {
-      let mut props = vec![];
+      let mut props = Vec::with_capacity(obj_path.props.len());
 
       for prop in &obj_path.props {
         match prop {
@@ -1493,9 +1493,9 @@ fn _evaluate(
 
                         let object = normalize_js_object_method_args(cached_arg);
 
-                        let mut keys = vec![];
-
                         if let Some(object) = object {
+                          let mut keys = Vec::with_capacity(object.props.len());
+
                           for prop in &object.props {
                             let expr = match prop.as_prop().cloned() {
                               Some(p) => p,
@@ -1515,11 +1515,15 @@ fn _evaluate(
                               key.as_str(),
                             ))));
                           }
-                        }
 
-                        context = Some(vec![EvaluateResultValue::Expr(create_array_expression(
-                          keys,
-                        ))]);
+                          context = Some(vec![EvaluateResultValue::Expr(create_array_expression(
+                            keys,
+                          ))]);
+                        } else {
+                          context = Some(vec![EvaluateResultValue::Expr(create_array_expression(
+                            Vec::new(),
+                          ))]);
+                        }
                       },
                       Ok(ObjectJS::Values) => {
                         func = Some(Box::new(FunctionConfig {
@@ -1531,9 +1535,9 @@ fn _evaluate(
 
                         let object = normalize_js_object_method_args(cached_arg);
 
-                        let mut values = vec![];
-
                         if let Some(object) = object {
+                          let mut values = Vec::with_capacity(object.props.len());
+
                           for prop in &object.props {
                             let prop = match prop.as_prop().cloned() {
                               Some(p) => p,
@@ -1549,11 +1553,15 @@ fn _evaluate(
 
                             values.push(Some(create_expr_or_spread(*key_values.value.clone())));
                           }
-                        }
 
-                        context = Some(vec![EvaluateResultValue::Expr(create_array_expression(
-                          values,
-                        ))]);
+                          context = Some(vec![EvaluateResultValue::Expr(create_array_expression(
+                            values,
+                          ))]);
+                        } else {
+                          context = Some(vec![EvaluateResultValue::Expr(create_array_expression(
+                            Vec::new(),
+                          ))]);
+                        }
                       },
                       Ok(ObjectJS::Entries) => {
                         func = Some(Box::new(FunctionConfig {
@@ -2235,7 +2243,7 @@ fn _evaluate(
                     )
                   };
 
-                  let mut entry_elems = vec![];
+                  let mut entry_elems = Vec::with_capacity(entries.len());
 
                   for (key, value) in entries {
                     let key_str = if let Lit::Str(lit_str) = key {
@@ -2368,7 +2376,7 @@ fn _evaluate(
 
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
 
-                  let mut str_args_vec = Vec::new();
+                  let mut str_args_vec = Vec::with_capacity(args.len());
                   for arg in &args {
                     match arg.as_expr() {
                       Some(expr) => {

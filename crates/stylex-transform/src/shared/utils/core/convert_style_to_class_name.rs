@@ -147,7 +147,12 @@ fn variable_fallbacks(values: &[String]) -> Vec<String> {
     .map(|val| val[4..val.len() - 1].to_string())
     .collect::<Vec<String>>();
 
-  let mut result = Vec::new();
+  let result_capacity = if values_before_first_var.is_empty() {
+    1
+  } else {
+    values_before_first_var.len()
+  } + values_after_last_var.len();
+  let mut result = Vec::with_capacity(result_capacity);
 
   if !values_before_first_var.is_empty() {
     for val in values_before_first_var {
@@ -155,10 +160,10 @@ fn variable_fallbacks(values: &[String]) -> Vec<String> {
 
       to_push.push(val.to_string());
 
-      result.push(compose_vars(to_push));
+      result.push(compose_vars(&to_push));
     }
   } else {
-    result.push(compose_vars(var_values));
+    result.push(compose_vars(&var_values));
   }
 
   for val in values_after_last_var {
@@ -168,13 +173,24 @@ fn variable_fallbacks(values: &[String]) -> Vec<String> {
   result
 }
 
-fn compose_vars(vars: Vec<String>) -> String {
+fn compose_vars(vars: &[String]) -> String {
   match vars.split_first() {
     Some((first, rest)) if !rest.is_empty() => {
-      format!("var({},{})", first, compose_vars(rest.to_vec()))
+      let fallback = compose_vars(rest);
+      let mut result = String::with_capacity(first.len() + fallback.len() + 6);
+      result.push_str("var(");
+      result.push_str(first);
+      result.push(',');
+      result.push_str(&fallback);
+      result.push(')');
+      result
     },
     Some((first, _)) if first.starts_with("--") => {
-      format!("var({})", first)
+      let mut result = String::with_capacity(first.len() + 5);
+      result.push_str("var(");
+      result.push_str(first);
+      result.push(')');
+      result
     },
     Some((first, _)) => first.to_string(),
     None => String::new(),

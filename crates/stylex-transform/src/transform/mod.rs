@@ -2,11 +2,10 @@ use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   atoms::Atom,
-  common::{Mark, comments::Comments},
+  common::{EqIgnoreSpan, Mark, comments::Comments},
   ecma::{
     ast::{CallExpr, Callee, Expr, Id, MemberProp, Pass, VarDeclarator},
     transforms::{base::resolver, typescript::strip},
-    utils::drop_span,
     visit::fold_pass,
   },
 };
@@ -56,6 +55,7 @@ where
 ///     .with_runtime_injection()
 ///     .into_pass()
 /// ```
+#[must_use = "builder; call .build() or .into_pass() to finalize the transform"]
 pub struct StyleXTransformBuilder<C>
 where
   C: Comments,
@@ -373,7 +373,7 @@ where
       .find(|decl| match &decl.init {
         Some(init) => {
           if let Expr::Call(init_call) = init.as_ref() {
-            init_call == &drop_span(call.clone())
+            init_call.eq_ignore_span(call)
           } else {
             false
           }

@@ -1,5 +1,8 @@
-use once_cell::sync::Lazy;
-use std::{fmt::Write, rc::Rc, sync::Arc};
+use std::{
+  fmt::Write,
+  rc::Rc,
+  sync::{Arc, LazyLock},
+};
 use stylex_macros::stylex_panic;
 use stylex_path_resolver::package_json::PackageJsonExtended;
 
@@ -86,7 +89,7 @@ use stylex_types::{
 /// thereafter. Contains pure, stateless transformation functions (ancestor,
 /// descendant, etc.) that convert expressions to CSS selectors for relational
 /// styling.
-static STYLEX_WHEN_MAP: Lazy<Arc<IndexMap<String, StylexExprFn>>> = Lazy::new(|| {
+static STYLEX_WHEN_MAP: LazyLock<Arc<IndexMap<String, StylexExprFn>>> = LazyLock::new(|| {
   let mut map: IndexMap<String, StylexExprFn> = IndexMap::default();
 
   map.insert(
@@ -264,7 +267,7 @@ where
           identifiers.insert(
             name.clone(),
             Box::new(FunctionConfigType::Regular(FunctionConfig {
-              fn_ptr: FunctionType::DefaultMarker(Arc::clone(Lazy::force(&STYLEX_WHEN_MAP))),
+              fn_ptr: FunctionType::DefaultMarker(Arc::clone(LazyLock::force(&STYLEX_WHEN_MAP))),
               takes_path: false,
             })),
           );
@@ -317,7 +320,9 @@ where
               map.insert(
                 STYLEX_WHEN.into(),
                 FunctionConfig {
-                  fn_ptr: FunctionType::DefaultMarker(Arc::clone(Lazy::force(&STYLEX_WHEN_MAP))),
+                  fn_ptr: FunctionType::DefaultMarker(Arc::clone(LazyLock::force(
+                    &STYLEX_WHEN_MAP,
+                  ))),
                   takes_path: false,
                 },
               );
@@ -328,7 +333,7 @@ where
             map.insert(
               STYLEX_WHEN.into(),
               FunctionConfig {
-                fn_ptr: FunctionType::DefaultMarker(Arc::clone(Lazy::force(&STYLEX_WHEN_MAP))),
+                fn_ptr: FunctionType::DefaultMarker(Arc::clone(LazyLock::force(&STYLEX_WHEN_MAP))),
                 takes_path: false,
               },
             );
@@ -559,8 +564,8 @@ where
                       value: true,
                     })));
 
-                    let mut static_props = vec![];
-                    let mut conditional_props = vec![];
+                    let mut static_props = Vec::with_capacity(value.props.len());
+                    let mut conditional_props = Vec::with_capacity(value.props.len());
 
                     for prop in value.props.iter_mut() {
                       if let PropOrSpread::Prop(prop) = prop {
@@ -590,7 +595,7 @@ where
 
                             if !class_list.is_empty() {
                               let mut is_static = true;
-                              let mut expr_list = vec![];
+                              let mut expr_list = Vec::with_capacity(class_list.len());
 
                               // Pre-calculate class strings with spaces to avoid repeated allocations
                               let class_strings: Vec<String> = class_list
@@ -761,7 +766,7 @@ where
                     );
 
                     if static_obj.is_some() || conditional_obj.is_some() {
-                      let mut array_elements = Vec::new();
+                      let mut array_elements = Vec::with_capacity(2);
 
                       if let Some(static_obj) = static_obj {
                         let hoist_ident = create_expr_or_spread(hoist_expression(

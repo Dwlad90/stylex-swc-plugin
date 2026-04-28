@@ -44,7 +44,6 @@ pub(crate) fn stylex_merge(
   let mut conditional = 0;
   let mut current_index = -1;
   let mut bail_out_index = None;
-  let mut resolved_args = vec![];
 
   let mut identifiers: FunctionMapIdentifiers = FxHashMap::default();
   let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
@@ -97,6 +96,7 @@ pub(crate) fn stylex_merge(
     })
     .flatten()
     .collect::<Vec<ExprOrSpread>>();
+  let mut resolved_args = Vec::with_capacity(args_path.len());
 
   for arg_path in args_path.iter() {
     current_index += 1;
@@ -376,7 +376,7 @@ fn get_conditional_expr_idents(alternate: &Expr) -> Option<Vec<Ident>> {
     }]),
     Expr::Lit(Lit::Null(_) | Lit::Bool(_)) => None,
     Expr::Array(array) => {
-      let mut idents = Vec::new();
+      let mut idents = Vec::with_capacity(array.elems.len());
 
       for elem in array.elems.iter().flatten() {
         match get_conditional_expr_idents(&elem.expr) {
@@ -392,7 +392,7 @@ fn get_conditional_expr_idents(alternate: &Expr) -> Option<Vec<Ident>> {
       Some(idents)
     },
     Expr::Cond(cond_expr) => {
-      let mut idents = Vec::new();
+      let mut idents = Vec::with_capacity(1);
 
       match get_conditional_expr_idents(&cond_expr.alt) {
         Some(mut alt_idents) => {
@@ -418,7 +418,7 @@ fn get_conditional_expr_members(alternate: &Expr) -> Option<Vec<MemberExpr>> {
   match alternate {
     Expr::Member(member) => Some(vec![member.clone()]),
     Expr::Array(array) => {
-      let mut members = Vec::new();
+      let mut members = Vec::with_capacity(array.elems.len());
 
       for elem in array.elems.iter().flatten() {
         if let Some(mut elem_members) = get_conditional_expr_members(&elem.expr) {

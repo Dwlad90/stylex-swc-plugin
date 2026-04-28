@@ -1,8 +1,7 @@
 use indexmap::IndexMap;
 use log::{debug, info, warn};
-use once_cell::sync::Lazy;
 use rustc_hash::FxHashMap;
-use std::{env, path::Path, rc::Rc};
+use std::{env, path::Path, rc::Rc, sync::LazyLock};
 use stylex_macros::stylex_panic;
 use stylex_path_resolver::package_json::PackageJsonExtended;
 
@@ -26,7 +25,7 @@ use stylex_constants::constants::{
 };
 use stylex_structures::stylex_options::CheckModuleResolution;
 
-static NEXTJS_HYDRATION_WARNING: Lazy<String> = Lazy::new(|| {
+static NEXTJS_HYDRATION_WARNING: LazyLock<String> = LazyLock::new(|| {
   "\n\nNote: If you are using Next.js, you may encounter hydration mismatches between server and client.\n\
     This occurs because Next.js uses precompiled and transformed source code on the client side,\n\
     which can lead to different AST generation and cause the following error:\n\

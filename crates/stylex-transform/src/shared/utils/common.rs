@@ -285,7 +285,7 @@ fn prop_name_eq(a: &PropName, b: &PropName) -> bool {
 
 pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
   let mut set = FxHashSet::default();
-  let mut result = vec![];
+  let mut result = Vec::with_capacity(props.len());
 
   for prop in props.into_iter().rev() {
     let key = match &prop {
@@ -430,7 +430,7 @@ pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp
 }
 
 pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
-  module.clone().body.iter().for_each(|item| match &item {
+  module.body.iter().for_each(|item| match item {
     ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export_decl)) => {
       if let Decl::Var(decl_var) = &export_decl.decl {
         for decl in &decl_var.decls {
@@ -442,7 +442,7 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
             };
             state.top_level_expressions.push(TopLevelExpression(
               TopLevelExpressionKind::NamedExport,
-              *drop_span(decl_init.clone()),
+              drop_span(decl_init.as_ref().clone()),
               Some(ident_sym),
             ));
             fill_state_declarations(state, decl);
@@ -455,14 +455,14 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
         Some(paren) => {
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::DefaultExport,
-            *drop_span(paren.expr.clone()),
+            drop_span(paren.expr.as_ref().clone()),
             None,
           ));
         },
         _ => {
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::DefaultExport,
-            *drop_span(export_decl.expr.clone()),
+            drop_span(export_decl.expr.as_ref().clone()),
             None,
           ));
         },
@@ -480,7 +480,7 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
           };
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::Stmt,
-            *drop_span(decl_init.clone()),
+            drop_span(decl_init.as_ref().clone()),
             Some(stmt_ident_sym),
           ));
 
@@ -496,7 +496,7 @@ pub fn fill_state_declarations(state: &mut StateManager, decl: &VarDeclarator) {
   let normalized_decl = drop_span(decl.clone());
 
   if !state.declarations.contains(&normalized_decl) {
-    state.declarations.push(normalized_decl.clone());
+    state.declarations.push(normalized_decl);
   }
 }
 

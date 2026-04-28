@@ -131,6 +131,9 @@ fn flip_sign(value: &str) -> String {
   } else if value.starts_with('-') {
     value.strip_prefix('-').unwrap_or(value).to_string()
   } else {
-    format!("-{}", value)
+    let mut flipped = String::with_capacity(value.len() + 1);
+    flipped.push('-');
+    flipped.push_str(value);
+    flipped
   }
 }

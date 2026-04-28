@@ -572,7 +572,8 @@ pub fn expr_tpl_to_string(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> String {
-  let mut tpl_str: String = String::new();
+  let quasi_len = tpl.quasis.iter().map(|quasi| quasi.raw.len()).sum();
+  let mut tpl_str = String::with_capacity(quasi_len);
 
   for (i, quasi) in tpl.quasis.iter().enumerate() {
     tpl_str.push_str(quasi.raw.as_ref());

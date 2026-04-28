@@ -105,7 +105,8 @@ pub(crate) fn stylex_first_that_works(
           };
         }
 
-        let mut result = vec![create_string_expr(&so_far)];
+        let mut result = Vec::with_capacity(1 + priorities.len());
+        result.push(create_string_expr(&so_far));
         result.extend(priorities.iter().map(|&expr| expr.clone()));
         result
       };

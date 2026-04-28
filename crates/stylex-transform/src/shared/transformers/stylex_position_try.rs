@@ -197,33 +197,30 @@ fn construct_position_try_obj(styles: FlatCompiledStyles) -> String {
   let mut sorted_keys = styles.keys().cloned().collect::<Vec<String>>();
   sorted_keys.sort();
 
-  sorted_keys
-    .into_iter()
-    .map(|k| {
-      let v = match styles.get(&k) {
-        Some(v) => v,
-        #[cfg_attr(coverage_nightly, coverage(off))]
-        None => stylex_panic!("Expected property key to exist in compiled styles."),
-      };
-      match v.as_ref() {
-        FlatCompiledStylesValue::String(val) => format!("{}:{};", k, val),
-        FlatCompiledStylesValue::KeyValue(pair) => {
-          format!("{}:{};{}:{};", k, k, pair.key, pair.value)
-        },
-        FlatCompiledStylesValue::KeyValues(pairs) => {
-          let capacity = pairs
-            .iter()
-            .map(|pair| (k.len() * 2) + pair.key.len() + pair.value.len() + 4)
-            .sum();
-          let mut strng = String::with_capacity(capacity);
-          for pair in pairs {
-            let _ = write!(strng, "{}:{};{}:{};", k, k, pair.key, pair.value);
-          }
-          strng
-        },
-        _ => String::default(),
-      }
-    })
-    .collect::<Vec<String>>()
-    .join("")
+  let mut output = String::with_capacity(sorted_keys.len().saturating_mul(32));
+
+  for k in sorted_keys {
+    let v = match styles.get(&k) {
+      Some(v) => v,
+      #[cfg_attr(coverage_nightly, coverage(off))]
+      None => stylex_panic!("Expected property key to exist in compiled styles."),
+    };
+
+    match v.as_ref() {
+      FlatCompiledStylesValue::String(val) => {
+        let _ = write!(output, "{}:{};", k, val);
+      },
+      FlatCompiledStylesValue::KeyValue(pair) => {
+        let _ = write!(output, "{}:{};{}:{};", k, k, pair.key, pair.value);
+      },
+      FlatCompiledStylesValue::KeyValues(pairs) => {
+        for pair in pairs {
+          let _ = write!(output, "{}:{};{}:{};", k, k, pair.key, pair.value);
+        }
+      },
+      _ => {},
+    }
+  }
+
+  output
 }

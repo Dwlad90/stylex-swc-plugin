@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use std::{rc::Rc, sync::Arc};
+use std::{fmt::Write, rc::Rc, sync::Arc};
 use stylex_macros::stylex_panic;
 use stylex_path_resolver::package_json::PackageJsonExtended;
 
@@ -404,11 +404,7 @@ where
           injected_inherit_styles.insert(
             variable_name.clone().into(),
             InjectableStyle::regular(
-              format!(
-                "@property {} {{ syntax: \"*\"; inherits: {};}}",
-                variable_name,
-                if is_pseudo_element { "true" } else { "false" },
-              ),
+              create_property_rule(&variable_name, is_pseudo_element),
               Some(0f64),
             ),
           );
@@ -600,13 +596,16 @@ where
                               let class_strings: Vec<String> = class_list
                                 .iter()
                                 .enumerate()
-                                .map(|(index, cls)| {
-                                  if index == class_list.len() - 1 {
-                                    cls.clone()
-                                  } else {
-                                    format!("{} ", cls)
-                                  }
-                                })
+                                 .map(|(index, cls)| {
+                                   if index == class_list.len() - 1 {
+                                     cls.clone()
+                                   } else {
+                                     let mut spaced = String::with_capacity(cls.len() + 1);
+                                     spaced.push_str(cls);
+                                     spaced.push(' ');
+                                     spaced
+                                   }
+                                 })
                                 .collect();
 
                               for (index, cls) in class_list.iter().enumerate() {
@@ -846,7 +845,7 @@ fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicSty
     .flat_map(|(i, dynamic_style)| {
       let obj_entry = (
         dynamic_style.key.clone(),
-        PreRuleValue::String(format!("p{}", i)),
+        PreRuleValue::String(create_shorthand_key(i)),
       );
 
       let options = StyleXStateOptions::default()
@@ -883,6 +882,29 @@ fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicSty
     .collect();
 
   expanded_keys_to_key_paths
+}
+
+fn create_property_rule(variable_name: &str, is_pseudo_element: bool) -> String {
+  let inherits = if is_pseudo_element { "true" } else { "false" };
+  let mut rule = String::with_capacity(variable_name.len() + inherits.len() + 40);
+  rule.push_str("@property ");
+  rule.push_str(variable_name);
+  rule.push_str(" { syntax: \"*\"; inherits: ");
+  rule.push_str(inherits);
+  rule.push_str(";}");
+  rule
+}
+
+fn create_shorthand_key(index: usize) -> String {
+  let digit_count = if index == 0 {
+    1
+  } else {
+    index.ilog10() as usize + 1
+  };
+  let mut key = String::with_capacity(digit_count + 1);
+  key.push('p');
+  let _ = write!(key, "{index}");
+  key
 }
 
 fn is_safe_to_skip_null_check(expr: &mut Expr) -> bool {

@@ -284,7 +284,8 @@ pub fn parse_css(css_string: &str) -> Vec<String> {
 }
 
 fn join_css(nodes: &[String]) -> String {
-  let mut result = String::new();
+  let capacity = nodes.iter().map(String::len).sum::<usize>() + nodes.len().saturating_sub(1);
+  let mut result = String::with_capacity(capacity);
   let mut needs_space = false;
 
   for node in nodes.iter() {

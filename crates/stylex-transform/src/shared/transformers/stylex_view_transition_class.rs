@@ -105,14 +105,25 @@ fn construct_view_transition_class_style_str(
   style_strings: Rc<FlatCompiledStylesValue>,
   _state: &mut StateManager,
 ) -> Rc<FlatCompiledStylesValue> {
-  let fmt_pair = |pair: &Pair| format!("{}:{};", pair.key, pair.value);
+  let fmt_pair = |pair: &Pair| {
+    let mut result = String::with_capacity(pair.key.len() + pair.value.len() + 2);
+    result.push_str(&pair.key);
+    result.push(':');
+    result.push_str(&pair.value);
+    result.push(';');
+    result
+  };
 
   match style_strings.as_ref() {
     FlatCompiledStylesValue::KeyValue(pair) => {
       Rc::new(FlatCompiledStylesValue::String(fmt_pair(pair)))
     },
     FlatCompiledStylesValue::KeyValues(pairs) => {
-      let mut result_string = String::new();
+      let capacity = pairs
+        .iter()
+        .map(|pair| pair.key.len() + pair.value.len() + 2)
+        .sum();
+      let mut result_string = String::with_capacity(capacity);
       for pair in pairs {
         result_string.push_str(&fmt_pair(pair));
       }
@@ -125,7 +136,19 @@ fn construct_view_transition_class_style_str(
 }
 
 fn construct_final_view_transition_css_str(styles: FlatCompiledStyles, class_name: &str) -> String {
-  let mut result = String::new();
+  let capacity = styles
+    .iter()
+    .map(|(key, value)| {
+      let style_str = match value.as_ref() {
+        FlatCompiledStylesValue::String(s) => s.as_str(),
+        #[cfg_attr(coverage_nightly, coverage(off))]
+        _ => stylex_panic!("{}", VALUE_MUST_BE_STRING),
+      };
+
+      key.len() + class_name.len() + style_str.len() + 6
+    })
+    .sum();
+  let mut result = String::with_capacity(capacity);
   for (key, value) in styles.iter() {
     let style_str = match value.as_ref() {
       FlatCompiledStylesValue::String(s) => s,
@@ -141,7 +164,7 @@ fn concat_view_transition_class_style_str(
   style_strings: &FlatCompiledStyles,
   state: &mut StateManager,
 ) -> String {
-  let mut result = String::new();
+  let mut result = String::with_capacity(style_strings.len() * 16);
 
   style_strings.into_iter().for_each(|(k, v)| {
     let style_str_val = construct_view_transition_class_style_str(Rc::clone(v), state);

@@ -287,10 +287,10 @@ pub fn convert_str_lit_to_atom(str_lit: &Str) -> Atom {
 
 /// Helper function to safely get cooked string from TplElement
 #[inline]
-pub fn extract_tpl_cooked_value(elem: &TplElement) -> String {
+pub fn extract_tpl_cooked_value(elem: &TplElement) -> &str {
   match elem.cooked.as_ref() {
     Some(cooked) => match cooked.as_str() {
-      Some(s) => s.to_string(),
+      Some(s) => s,
       None => stylex_panic!("{}", INVALID_UTF8),
     },
     None => stylex_panic!(

@@ -63,11 +63,10 @@ where
 
     self.state.export_id = Some(export_id.clone());
 
-    let id = format!(
-      "{}{}",
-      self.state.options.class_name_prefix,
-      create_hash(&export_id)
-    );
+    let hash = create_hash(&export_id);
+    let mut id = String::with_capacity(self.state.options.class_name_prefix.len() + hash.len());
+    id.push_str(&self.state.options.class_name_prefix);
+    id.push_str(&hash);
 
     let mut marker_result = IndexMap::new();
 

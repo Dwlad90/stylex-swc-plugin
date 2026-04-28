@@ -448,12 +448,21 @@ pub fn normalize_css_property_value(
   };
 
   let css_rule = if css_property_for_parsing.starts_with(':') {
-    format!("{0} {1}", css_property_for_parsing, css_property_value)
+    let mut rule =
+      String::with_capacity(css_property_for_parsing.len() + css_property_value.len() + 1);
+    rule.push_str(css_property_for_parsing);
+    rule.push(' ');
+    rule.push_str(css_property_value);
+    rule
   } else {
-    format!(
-      "* {{ {0}: {1} }}",
-      css_property_for_parsing, css_property_value
-    )
+    let mut rule =
+      String::with_capacity(css_property_for_parsing.len() + css_property_value.len() + 8);
+    rule.push_str("* { ");
+    rule.push_str(css_property_for_parsing);
+    rule.push_str(": ");
+    rule.push_str(css_property_value);
+    rule.push_str(" }");
+    rule
   };
 
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
@@ -514,7 +523,10 @@ fn convert_css_function_to_camel_case(function: &str) -> String {
     return function.to_string();
   };
 
-  format!("{}{}", camel_case_name, args)
+  let mut result = String::with_capacity(camel_case_name.len() + args.len());
+  result.push_str(camel_case_name);
+  result.push_str(args);
+  result
 }
 
 /// Serializes an SWC `Stylesheet` AST back to a minified CSS string.

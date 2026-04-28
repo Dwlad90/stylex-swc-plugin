@@ -2950,8 +2950,6 @@ pub(crate) fn evaluate_quasis(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
-  let mut strng = String::new();
-
   let exprs = match tpl_expr {
     Expr::Tpl(tpl) => &tpl.exprs,
     Expr::TaggedTpl(tagged_tpl) => &tagged_tpl.tpl.exprs,
@@ -2962,6 +2960,18 @@ pub(crate) fn evaluate_quasis(
     ),
   };
 
+  let quasi_len = quasis
+    .iter()
+    .map(|elem| {
+      if raw {
+        elem.raw.len()
+      } else {
+        extract_tpl_cooked_value(elem).len()
+      }
+    })
+    .sum::<usize>();
+  let mut strng = String::with_capacity(quasi_len);
+
   for (i, elem) in quasis.iter().enumerate() {
     if !state.confident {
       return None;
@@ -2970,7 +2980,7 @@ pub(crate) fn evaluate_quasis(
     if raw {
       strng.push_str(&elem.raw);
     } else {
-      strng.push_str(&extract_tpl_cooked_value(elem));
+      strng.push_str(extract_tpl_cooked_value(elem));
     }
 
     if let Some(expr) = exprs.get(i)

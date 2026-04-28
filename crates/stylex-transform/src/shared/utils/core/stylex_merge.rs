@@ -28,7 +28,10 @@ use crate::shared::{
   },
 };
 use stylex_ast::ast::factories::{create_jsx_attr, create_jsx_attr_or_spread};
-use stylex_constants::constants::messages::{EXPECTED_COMPILED_STYLES, MEMBER_OBJ_NOT_IDENT};
+use stylex_constants::constants::{
+  api_names::STYLEX_DEFAULT_MARKER,
+  messages::{EXPECTED_COMPILED_STYLES, MEMBER_OBJ_NOT_IDENT},
+};
 use stylex_enums::style_vars_to_keep::NonNullProps;
 use stylex_utils::swc::get_default_expr_ctx;
 
@@ -72,7 +75,7 @@ pub(crate) fn stylex_merge(
       None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
     };
     member_expression.insert(
-      "defaultMarker".into(),
+      STYLEX_DEFAULT_MARKER.into(),
       Box::new(FunctionConfigType::IndexMap(values)),
     );
   }

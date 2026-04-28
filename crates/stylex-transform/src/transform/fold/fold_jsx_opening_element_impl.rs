@@ -16,7 +16,7 @@ use stylex_ast::ast::factories::{
   create_arrow_expression, create_ident, create_ident_call_expr, create_ident_name,
   create_jsx_spread_attr, create_member_call_expr, create_object_lit, create_spread_prop,
 };
-use stylex_constants::constants::common::RUNTIME_JSX_CALL_NAMES;
+use stylex_constants::constants::{api_names::STYLEX_PROPS, common::RUNTIME_JSX_CALL_NAMES};
 use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
@@ -297,7 +297,7 @@ fn build_stylex_props_call(
     let member = MemberExpr {
       span: DUMMY_SP,
       obj: Box::new(Expr::Ident(create_ident(&stylex_ident_name))),
-      prop: MemberProp::Ident(create_ident_name("props")),
+      prop: MemberProp::Ident(create_ident_name(STYLEX_PROPS)),
     };
     create_member_call_expr(member, args)
   } else if let Some(props_ident_name) = props_ident_name {

@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use stylex_constants::constants::{
   cursor_flip::CURSOR_FLIP,
-  logical_to_rtl::{INLINE_TO_RTL, LOGICAL_TO_RTL},
+  logical_to_rtl::{INLINE_TO_RTL, LOGICAL_TO_RTL, LOGICAL_VALUE_TO_RTL},
 };
 use stylex_enums::style_resolution::StyleResolution;
 use stylex_regex::regex::LENGTH_UNIT_TESTER_REGEX;
@@ -11,11 +11,9 @@ use stylex_structures::{
 };
 
 fn logical_to_physical_rtl(input: &str) -> Option<Cow<'_, str>> {
-  match input {
-    "start" | "inline-start" => Some(std::borrow::Cow::Borrowed("right")),
-    "end" | "inline-end" => Some(std::borrow::Cow::Borrowed("left")),
-    _ => Some(std::borrow::Cow::Borrowed(input)),
-  }
+  Some(Cow::Borrowed(
+    LOGICAL_VALUE_TO_RTL.get(input).copied().unwrap_or(input),
+  ))
 }
 
 fn property_to_rtl<'a>(pair: &'a Pair, options: &StyleXStateOptions) -> Option<PairCow<'a>> {

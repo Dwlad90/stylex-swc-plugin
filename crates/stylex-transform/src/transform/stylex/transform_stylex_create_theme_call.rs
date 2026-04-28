@@ -32,6 +32,7 @@ use crate::{
     },
   },
 };
+use stylex_constants::constants::api_names::{STYLEX_CREATE_THEME, STYLEX_KEYFRAMES, STYLEX_TYPES};
 use stylex_constants::constants::messages::{non_static_value, non_style_object};
 
 impl<C> StyleXTransform<C>
@@ -99,7 +100,7 @@ where
         let member_expression = member_expressions.entry(name.clone()).or_default();
 
         member_expression.insert(
-          "keyframes".into(),
+          STYLEX_KEYFRAMES.into(),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
 
@@ -108,7 +109,7 @@ where
           .or_insert_with(|| Box::new(FunctionConfigType::Map(FxHashMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
-          identifier_map.insert("types".into(), types_fn.clone());
+          identifier_map.insert(STYLEX_TYPES.into(), types_fn.clone());
         }
       }
 
@@ -132,7 +133,7 @@ where
           &evaluated_arg1
             .deopt
             .unwrap_or_else(|| *first_arg.to_owned()),
-          &non_static_value("createTheme"),
+          &non_static_value(STYLEX_CREATE_THEME),
           &mut self.state,
         )
       );
@@ -147,7 +148,7 @@ where
           &evaluated_arg2
             .deopt
             .unwrap_or_else(|| *second_arg.to_owned()),
-          &non_static_value("createTheme"),
+          &non_static_value(STYLEX_CREATE_THEME),
           &mut self.state,
         )
       );
@@ -184,7 +185,7 @@ where
               &evaluated_arg2
                 .deopt
                 .unwrap_or_else(|| *second_arg.to_owned()),
-              &non_style_object("createTheme"),
+              &non_style_object(STYLEX_CREATE_THEME),
               &mut self.state,
             )
           );
@@ -198,7 +199,7 @@ where
             &evaluated_arg2
               .deopt
               .unwrap_or_else(|| *second_arg.to_owned()),
-            &non_style_object("createTheme"),
+            &non_style_object(STYLEX_CREATE_THEME),
             &mut self.state,
           )
         ),

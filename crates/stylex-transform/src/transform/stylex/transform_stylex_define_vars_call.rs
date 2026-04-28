@@ -1,11 +1,15 @@
 use rustc_hash::FxHashMap;
-use stylex_constants::constants::messages::SPREAD_NOT_SUPPORTED;
+use stylex_constants::constants::{
+  api_names::{STYLEX_DEFINE_VARS, STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_TYPES},
+  messages::{SPREAD_NOT_SUPPORTED, cannot_generate_hash, non_static_value, non_style_object},
+};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
 };
 
+use crate::StyleXTransform;
 use crate::shared::{
   structures::{
     functions::{FunctionConfigType, FunctionMap},
@@ -24,11 +28,6 @@ use crate::shared::{
     validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
   },
 };
-use stylex_constants::constants::messages::{
-  cannot_generate_hash, non_static_value, non_style_object,
-};
-
-use crate::StyleXTransform;
 use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>
@@ -92,12 +91,12 @@ where
         let member_expression = member_expressions.entry(name.clone()).or_default();
 
         member_expression.insert(
-          "keyframes".into(),
+          STYLEX_KEYFRAMES.into(),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
 
         member_expression.insert(
-          "positionTry".into(),
+          STYLEX_POSITION_TRY.into(),
           Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
         );
 
@@ -106,7 +105,7 @@ where
           .or_insert_with(|| Box::new(FunctionConfigType::Map(FxHashMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
-          identifier_map.insert("types".into(), types_fn.clone());
+          identifier_map.insert(STYLEX_TYPES.into(), types_fn.clone());
         }
       }
 
@@ -128,7 +127,7 @@ where
         build_code_frame_error(
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          &non_static_value("defineVars"),
+          &non_static_value(STYLEX_DEFINE_VARS),
           &mut self.state,
         )
       );
@@ -144,14 +143,14 @@ where
             build_code_frame_error(
               &Expr::Call(call.clone()),
               &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-              &non_style_object("defineVars"),
+              &non_style_object(STYLEX_DEFINE_VARS),
               &mut self.state,
             )
           );
           value
         },
         #[cfg_attr(coverage_nightly, coverage(off))]
-        None => stylex_panic!("{}", non_static_value("defineVars")),
+        None => stylex_panic!("{}", non_static_value(STYLEX_DEFINE_VARS)),
       };
 
       let file_name = match self
@@ -160,7 +159,7 @@ where
       {
         Some(name) => name,
         #[cfg_attr(coverage_nightly, coverage(off))]
-        None => stylex_panic!("{}", cannot_generate_hash("defineVars")),
+        None => stylex_panic!("{}", cannot_generate_hash(STYLEX_DEFINE_VARS)),
       };
 
       let export_name = match var_id.map(|decl| decl.to_string()) {

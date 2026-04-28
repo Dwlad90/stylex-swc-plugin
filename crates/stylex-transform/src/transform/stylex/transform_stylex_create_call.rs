@@ -9,9 +9,8 @@ use swc_core::{
   common::{DUMMY_SP, SyntaxContext, comments::Comments},
   ecma::{
     ast::{
-      ArrowExpr, BinExpr, BinaryOp, BlockStmtOrExpr, Bool, CallExpr, CondExpr, Decl, Expr, Lit,
-      ModuleItem, ParenExpr, Pat, Prop, PropName, PropOrSpread, Stmt, UnaryOp, VarDecl,
-      VarDeclKind,
+      ArrowExpr, BinaryOp, BlockStmtOrExpr, Bool, CallExpr, Decl, Expr, Lit, ModuleItem, ParenExpr,
+      Pat, Prop, PropName, PropOrSpread, Stmt, UnaryOp, VarDecl, VarDeclKind,
     },
     utils::drop_span,
   },
@@ -56,10 +55,15 @@ use crate::{
   transform::StyleXTransform,
 };
 use stylex_ast::ast::factories::{
-  create_array_expression, create_expr_or_spread, create_key_value_prop, create_object_expression,
-  create_prop_from_name, create_string_var_declarator, create_var_declarator,
+  create_array_expression, create_bin_expr, create_cond_expr, create_expr_or_spread,
+  create_key_value_prop, create_object_expression, create_prop_from_name,
+  create_string_var_declarator, create_var_declarator,
 };
 use stylex_constants::constants::{
+  api_names::{
+    STYLEX_CREATE, STYLEX_DEFAULT_MARKER, STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES,
+    STYLEX_POSITION_TRY, STYLEX_WHEN,
+  },
   common::COMPILED_KEY,
   messages::{EXPECTED_COMPILED_STYLES, non_static_value},
 };
@@ -277,22 +281,22 @@ where
         };
 
         member_expression.insert(
-          "firstThatWorks".into(),
+          STYLEX_FIRST_THAT_WORKS.into(),
           Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
         );
 
         member_expression.insert(
-          "keyframes".into(),
+          STYLEX_KEYFRAMES.into(),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
 
         member_expression.insert(
-          "positionTry".into(),
+          STYLEX_POSITION_TRY.into(),
           Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
         );
 
         member_expression.insert(
-          "defaultMarker".into(),
+          STYLEX_DEFAULT_MARKER.into(),
           Box::new(FunctionConfigType::IndexMap(
             stylex_default_marker::stylex_default_marker(&self.state.options)
               .as_values()
@@ -311,7 +315,7 @@ where
           .and_modify(|func_type| {
             if let Some(map) = func_type.as_map_mut() {
               map.insert(
-                "when".into(),
+                STYLEX_WHEN.into(),
                 FunctionConfig {
                   fn_ptr: FunctionType::DefaultMarker(Arc::clone(Lazy::force(&STYLEX_WHEN_MAP))),
                   takes_path: false,
@@ -322,7 +326,7 @@ where
           .or_insert_with(|| {
             let mut map = FxHashMap::default();
             map.insert(
-              "when".into(),
+              STYLEX_WHEN.into(),
               FunctionConfig {
                 fn_ptr: FunctionType::DefaultMarker(Arc::clone(Lazy::force(&STYLEX_WHEN_MAP))),
                 takes_path: false,
@@ -354,7 +358,7 @@ where
           evaluated_arg
             .reason
             .as_deref()
-            .unwrap_or(&non_static_value("create")),
+            .unwrap_or(&non_static_value(STYLEX_CREATE)),
           &mut self.state,
         )
       );
@@ -362,7 +366,7 @@ where
       let value = match evaluated_arg.value {
         Some(v) => v,
         #[cfg_attr(coverage_nightly, coverage(off))]
-        None => stylex_panic!("{}", non_static_value("create")),
+        None => stylex_panic!("{}", non_static_value(STYLEX_CREATE)),
       };
 
       assert!(
@@ -374,7 +378,7 @@ where
           evaluated_arg
             .reason
             .as_deref()
-            .unwrap_or(&non_static_value("create")),
+            .unwrap_or(&non_static_value(STYLEX_CREATE)),
           &mut self.state,
         )
       );
@@ -654,17 +658,15 @@ where
                                   }
                                 }) {
                                   is_static = false;
-                                  expr_list.push(Expr::Cond(CondExpr {
-                                    span: DUMMY_SP,
-                                    test: Box::new(Expr::Bin(BinExpr {
-                                      span: DUMMY_SP,
-                                      op: BinaryOp::NotEq,
-                                      left: Box::new(expr.clone()),
-                                      right: Box::new(create_null_expr()),
-                                    })),
-                                    cons: Box::new(create_string_expr(cls_with_space)),
-                                    alt: Box::new(expr),
-                                  }));
+                                  expr_list.push(create_cond_expr(
+                                    create_bin_expr(
+                                      BinaryOp::NotEq,
+                                      expr.clone(),
+                                      create_null_expr(),
+                                    ),
+                                    create_string_expr(cls_with_space),
+                                    expr,
+                                  ));
                                 } else {
                                   expr_list.push(create_string_expr(cls_with_space));
                                 }
@@ -675,14 +677,7 @@ where
                               } else {
                                 expr_list
                                   .into_iter()
-                                  .reduce(|acc, curr| {
-                                    Expr::Bin(BinExpr {
-                                      span: DUMMY_SP,
-                                      op: BinaryOp::Add,
-                                      left: Box::new(acc),
-                                      right: Box::new(curr),
-                                    })
-                                  })
+                                  .reduce(|acc, curr| create_bin_expr(BinaryOp::Add, acc, curr))
                                   .unwrap_or_else(|| {
                                     #[cfg_attr(coverage_nightly, coverage(off))]
                                     {

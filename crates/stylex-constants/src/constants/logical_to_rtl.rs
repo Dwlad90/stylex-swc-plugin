@@ -43,3 +43,10 @@ pub static INLINE_TO_RTL: phf::Map<&'static str, &'static str> = phf_map! {
     "inset-inline-start" => "right",
     "inset-inline-end" => "left",
 };
+
+pub static LOGICAL_VALUE_TO_RTL: phf::Map<&'static str, &'static str> = phf_map! {
+    "start" => "right",
+    "inline-start" => "right",
+    "end" => "left",
+    "inline-end" => "left",
+};

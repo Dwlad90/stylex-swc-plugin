@@ -35,7 +35,15 @@ use stylex_ast::ast::factories::{
   create_binding_ident, create_expr_or_spread, create_key_value_prop, create_number_expr_or_spread,
   create_object_expression, create_string_expr_or_spread, create_string_key_value_prop,
 };
-use stylex_constants::constants::common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH};
+use stylex_constants::constants::{
+  api_names::{
+    STYLEX_ATTRS, STYLEX_CREATE, STYLEX_CREATE_THEME, STYLEX_DEFAULT_MARKER, STYLEX_DEFINE_CONSTS,
+    STYLEX_DEFINE_MARKER, STYLEX_DEFINE_VARS, STYLEX_ENV, STYLEX_FIRST_THAT_WORKS,
+    STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_PROPS, STYLEX_TYPES,
+    STYLEX_VIEW_TRANSITION_CLASS, STYLEX_WHEN,
+  },
+  common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH},
+};
 use stylex_enums::{
   core::TransformationCycle, counter_mode::CounterMode,
   import_path_resolution::ImportPathResolution, top_level_expression::TopLevelExpressionKind,
@@ -104,21 +112,21 @@ impl ImportKind {
 
   pub(crate) fn from_import_name(name: &str) -> Option<ImportKind> {
     match name {
-      "create" => Some(ImportKind::Create),
-      "props" => Some(ImportKind::Props),
-      "attrs" => Some(ImportKind::Attrs),
-      "keyframes" => Some(ImportKind::Keyframes),
-      "firstThatWorks" => Some(ImportKind::FirstThatWorks),
-      "defineVars" => Some(ImportKind::DefineVars),
-      "defineConsts" => Some(ImportKind::DefineConsts),
-      "defineMarker" => Some(ImportKind::DefineMarker),
-      "createTheme" => Some(ImportKind::CreateTheme),
-      "positionTry" => Some(ImportKind::PositionTry),
-      "viewTransitionClass" => Some(ImportKind::ViewTransitionClass),
-      "types" => Some(ImportKind::Types),
-      "when" => Some(ImportKind::When),
-      "env" => Some(ImportKind::Env),
-      "defaultMarker" => Some(ImportKind::DefaultMarker),
+      STYLEX_CREATE => Some(ImportKind::Create),
+      STYLEX_PROPS => Some(ImportKind::Props),
+      STYLEX_ATTRS => Some(ImportKind::Attrs),
+      STYLEX_KEYFRAMES => Some(ImportKind::Keyframes),
+      STYLEX_FIRST_THAT_WORKS => Some(ImportKind::FirstThatWorks),
+      STYLEX_DEFINE_VARS => Some(ImportKind::DefineVars),
+      STYLEX_DEFINE_CONSTS => Some(ImportKind::DefineConsts),
+      STYLEX_DEFINE_MARKER => Some(ImportKind::DefineMarker),
+      STYLEX_CREATE_THEME => Some(ImportKind::CreateTheme),
+      STYLEX_POSITION_TRY => Some(ImportKind::PositionTry),
+      STYLEX_VIEW_TRANSITION_CLASS => Some(ImportKind::ViewTransitionClass),
+      STYLEX_TYPES => Some(ImportKind::Types),
+      STYLEX_WHEN => Some(ImportKind::When),
+      STYLEX_ENV => Some(ImportKind::Env),
+      STYLEX_DEFAULT_MARKER => Some(ImportKind::DefaultMarker),
       _ => None,
     }
   }
@@ -291,7 +299,7 @@ impl StateManager {
     for name in &self.stylex_import {
       let member_expression = member_expressions.entry(name.clone()).or_default();
       member_expression.insert(
-        "env".into(),
+        STYLEX_ENV.into(),
         Box::new(super::functions::FunctionConfigType::EnvObject(env.clone())),
       );
     }

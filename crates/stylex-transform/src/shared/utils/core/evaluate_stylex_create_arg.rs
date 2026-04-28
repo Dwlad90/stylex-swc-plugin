@@ -4,8 +4,8 @@ use swc_core::{
   common::{DUMMY_SP, SyntaxContext},
   ecma::{
     ast::{
-      ArrowExpr, BinExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, CondExpr,
-      Expr, KeyValueProp, ObjectLit, Pat, Prop, PropOrSpread, UnaryExpr, UnaryOp,
+      ArrowExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, Expr, KeyValueProp,
+      ObjectLit, Pat, Prop, PropOrSpread, UnaryExpr, UnaryOp,
     },
     utils::quote_ident,
   },
@@ -31,7 +31,8 @@ use crate::shared::{
   },
 };
 use stylex_ast::ast::factories::{
-  create_expr_or_spread, create_key_value_prop, create_object_expression,
+  create_bin_expr, create_cond_expr, create_expr_or_spread, create_key_value_prop,
+  create_object_expression,
 };
 use stylex_constants::constants::{
   length_units::LENGTH_UNITS,
@@ -389,36 +390,27 @@ fn evaluate_partial_object_recursively(
                       callee: Callee::Expr(Box::new(Expr::Arrow(ArrowExpr {
                         span: DUMMY_SP,
                         params: vec![Pat::Ident(BindingIdent::from(quote_ident!("val")))],
-                        body: Box::new(BlockStmtOrExpr::Expr(Box::new(Expr::Cond(CondExpr {
-                          span: DUMMY_SP,
-                          test: Box::new(Expr::from(BinExpr {
-                            span: DUMMY_SP,
-                            op: BinaryOp::EqEqEq,
-                            left: Box::new(Expr::from(UnaryExpr {
+                        body: Box::new(BlockStmtOrExpr::Expr(Box::new(create_cond_expr(
+                          create_bin_expr(
+                            BinaryOp::EqEqEq,
+                            Expr::from(UnaryExpr {
                               span: DUMMY_SP,
                               op: UnaryOp::TypeOf,
                               arg: Box::new(val_ident.clone()),
-                            })),
-                            right: Box::new(create_string_expr("number")),
-                          })),
-                          cons: Box::new(Expr::from(BinExpr {
-                            span: DUMMY_SP,
-                            op: BinaryOp::Add,
-                            left: Box::new(val_ident.clone()),
-                            right: Box::new(create_string_expr(unit)),
-                          })),
-                          alt: Box::new(Expr::from(CondExpr {
-                            span: DUMMY_SP,
-                            test: Box::new(Expr::from(BinExpr {
-                              span: DUMMY_SP,
-                              op: BinaryOp::NotEq,
-                              left: Box::new(val_ident.clone()),
-                              right: Box::new(create_null_expr()),
-                            })),
-                            cons: Box::new(val_ident),
-                            alt: Box::new(create_ident_expr("undefined")),
-                          })),
-                        })))),
+                            }),
+                            create_string_expr("number"),
+                          ),
+                          create_bin_expr(
+                            BinaryOp::Add,
+                            val_ident.clone(),
+                            create_string_expr(unit),
+                          ),
+                          create_cond_expr(
+                            create_bin_expr(BinaryOp::NotEq, val_ident.clone(), create_null_expr()),
+                            val_ident,
+                            create_ident_expr("undefined"),
+                          ),
+                        )))),
                         is_async: false,
                         is_generator: false,
                         type_params: None,
@@ -430,17 +422,11 @@ fn evaluate_partial_object_recursively(
                       ctxt: SyntaxContext::empty(),
                     })
                   } else {
-                    Expr::from(CondExpr {
-                      span: DUMMY_SP,
-                      test: Box::new(Expr::from(BinExpr {
-                        span: DUMMY_SP,
-                        op: BinaryOp::NotEq,
-                        left: value_path.clone(),
-                        right: Box::new(create_null_expr()),
-                      })),
-                      cons: value_path.clone(),
-                      alt: Box::new(create_ident_expr("undefined")),
-                    })
+                    create_cond_expr(
+                      create_bin_expr(BinaryOp::NotEq, *value_path.clone(), create_null_expr()),
+                      *value_path.clone(),
+                      create_ident_expr("undefined"),
+                    )
                   };
 
                   let mut key_path = key_path.clone();

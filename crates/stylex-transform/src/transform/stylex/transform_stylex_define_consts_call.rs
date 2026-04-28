@@ -1,11 +1,15 @@
 use rustc_hash::FxHashMap;
-use stylex_constants::constants::messages::SPREAD_NOT_SUPPORTED;
+use stylex_constants::constants::{
+  api_names::STYLEX_DEFINE_CONSTS,
+  messages::{SPREAD_NOT_SUPPORTED, cannot_generate_hash, non_static_value, non_style_object},
+};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
 };
 
+use crate::StyleXTransform;
 use crate::shared::{
   structures::functions::FunctionMap,
   transformers::stylex_define_consts::stylex_define_consts,
@@ -17,11 +21,6 @@ use crate::shared::{
     validators::{find_and_validate_stylex_define_consts, is_define_consts_call},
   },
 };
-use stylex_constants::constants::messages::{
-  cannot_generate_hash, non_static_value, non_style_object,
-};
-
-use crate::StyleXTransform;
 use stylex_structures::top_level_expression::TopLevelExpression;
 
 impl<C> StyleXTransform<C>
@@ -69,7 +68,7 @@ where
         build_code_frame_error(
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          &non_static_value("defineConsts"),
+          &non_static_value(STYLEX_DEFINE_CONSTS),
           &mut self.state,
         )
       );
@@ -85,14 +84,14 @@ where
             build_code_frame_error(
               &Expr::Call(call.clone()),
               &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-              &non_style_object("defineConsts"),
+              &non_style_object(STYLEX_DEFINE_CONSTS),
               &mut self.state,
             )
           );
           value
         },
         #[cfg_attr(coverage_nightly, coverage(off))]
-        None => stylex_panic!("{}", non_static_value("defineConsts")),
+        None => stylex_panic!("{}", non_static_value(STYLEX_DEFINE_CONSTS)),
       };
 
       let file_name = match self
@@ -101,7 +100,7 @@ where
       {
         Some(name) => name,
         #[cfg_attr(coverage_nightly, coverage(off))]
-        None => stylex_panic!("{}", cannot_generate_hash("defineConsts")),
+        None => stylex_panic!("{}", cannot_generate_hash(STYLEX_DEFINE_CONSTS)),
       };
 
       let export_name = match var_id {

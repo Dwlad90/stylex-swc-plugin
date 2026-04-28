@@ -19,7 +19,9 @@ use crate::{
     },
   },
 };
-use stylex_constants::constants::{common::COMPILED_KEY, messages::cannot_generate_hash};
+use stylex_constants::constants::{
+  api_names::STYLEX_DEFINE_MARKER, common::COMPILED_KEY, messages::cannot_generate_hash,
+};
 use stylex_utils::hash::create_hash;
 
 impl<C> StyleXTransform<C>
@@ -47,7 +49,7 @@ where
     {
       Some(name) => name,
       #[cfg_attr(coverage_nightly, coverage(off))]
-      None => stylex_panic!("{}", cannot_generate_hash("defineMarker")),
+      None => stylex_panic!("{}", cannot_generate_hash(STYLEX_DEFINE_MARKER)),
     };
 
     let export_name = match var_name {

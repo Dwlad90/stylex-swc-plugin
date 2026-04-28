@@ -2,7 +2,10 @@ use std::{borrow::Borrow, rc::Rc, sync::Arc};
 
 // Import error handling macros from shared utilities
 use crate::{expr_to_str_or_deopt, stylex_panic_with_context};
-use stylex_constants::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS};
+use stylex_constants::constants::{
+  api_names::STYLEX_ENV,
+  common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS},
+};
 
 use indexmap::IndexMap;
 use log::{debug, warn};
@@ -724,8 +727,8 @@ fn _evaluate(
                 return Some(EvaluateResultValue::FunctionConfig(fc.clone()));
               }
 
-              // Check if this is an "env" property access on a stylex import
-              if key.sym.as_ref() == "env" {
+              // Check if this is an env property access on a stylex import.
+              if key.sym.as_ref() == STYLEX_ENV {
                 if traversal_state.options.env.is_empty() {
                   stylex_panic_with_context!(
                     path,

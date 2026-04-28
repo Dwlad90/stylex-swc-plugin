@@ -33,6 +33,7 @@ use crate::{
   },
 };
 use stylex_constants::constants::{
+  api_names::{STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES, STYLEX_VIEW_TRANSITION_CLASS},
   common::VALID_VIEW_TRANSITION_CLASS_PROPERTIES,
   messages::{VIEW_TRANSITION_CLASS_INVALID_PROPERTY, non_static_value, non_style_object},
 };
@@ -53,7 +54,7 @@ where
       let call = match var_decl.init.as_ref().and_then(|decl| decl.as_call()) {
         Some(call) => call,
         #[cfg_attr(coverage_nightly, coverage(off))]
-        None => stylex_panic!("{}", expected_call_expression("viewTransitionClass")),
+        None => stylex_panic!("{}", expected_call_expression(STYLEX_VIEW_TRANSITION_CLASS)),
       };
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
@@ -94,12 +95,12 @@ where
         let member_expression = member_expressions.entry(name.clone()).or_default();
 
         member_expression.insert(
-          "firstThatWorks".into(),
+          STYLEX_FIRST_THAT_WORKS.into(),
           Box::new(FunctionConfigType::Regular(first_that_works_fn.clone())),
         );
 
         member_expression.insert(
-          "keyframes".into(),
+          STYLEX_KEYFRAMES.into(),
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
       }
@@ -122,7 +123,7 @@ where
         build_code_frame_error(
           &Expr::Call(call.clone()),
           &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-          &non_static_value("viewTransitionClass"),
+          &non_static_value(STYLEX_VIEW_TRANSITION_CLASS),
           &mut self.state,
         )
       );
@@ -138,7 +139,7 @@ where
             build_code_frame_error(
               &Expr::Call(call.clone()),
               &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-              &non_style_object("viewTransitionClass"),
+              &non_style_object(STYLEX_VIEW_TRANSITION_CLASS),
               &mut self.state,
             )
           );
@@ -150,7 +151,7 @@ where
           build_code_frame_error(
             &Expr::Call(call.clone()),
             &evaluated_arg.deopt.unwrap_or_else(|| *first_arg.to_owned()),
-            &non_static_value("viewTransitionClass"),
+            &non_static_value(STYLEX_VIEW_TRANSITION_CLASS),
             &mut self.state,
           )
         ),

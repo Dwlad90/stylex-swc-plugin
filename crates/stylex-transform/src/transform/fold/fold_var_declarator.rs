@@ -26,8 +26,9 @@ use crate::{
     utils::{ast::convertors::expand_shorthand_prop, common::fill_state_declarations},
   },
 };
-use stylex_constants::constants::messages::{
-  KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND, VAR_DECL_NAME_NOT_IDENT,
+use stylex_constants::constants::{
+  api_names::STYLEX_CREATE,
+  messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND, VAR_DECL_NAME_NOT_IDENT},
 };
 use stylex_enums::core::TransformationCycle;
 
@@ -63,7 +64,7 @@ where
                 })
             })
             && self.state.cycle == TransformationCycle::StateFilling
-            && (member.as_str() == "create" || member.eq(declaration_string.as_str()))
+            && (member.as_str() == STYLEX_CREATE || member.eq(declaration_string.as_str()))
           {
             self.props_declaration = var_declarator.name.as_ident().map(|ident| ident.to_id());
           }

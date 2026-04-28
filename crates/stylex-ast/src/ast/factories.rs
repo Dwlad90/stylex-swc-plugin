@@ -2,10 +2,10 @@ use stylex_macros::stylex_panic;
 use swc_core::{
   common::{DUMMY_SP, Span, SyntaxContext},
   ecma::ast::{
-    ArrayLit, ArrowExpr, BigInt, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, Expr,
-    ExprOrSpread, Ident, IdentName, JSXAttr, JSXAttrName, JSXAttrOrSpread, JSXAttrValue,
-    KeyValueProp, Lit, MemberExpr, Null, ObjectLit, ParenExpr, Pat, Prop, PropName, PropOrSpread,
-    SpreadElement, VarDeclarator,
+    ArrayLit, ArrowExpr, BigInt, BinExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr,
+    Callee, CondExpr, Expr, ExprOrSpread, Ident, IdentName, JSXAttr, JSXAttrName, JSXAttrOrSpread,
+    JSXAttrValue, KeyValueProp, Lit, MemberExpr, Null, ObjectLit, ParenExpr, Pat, Prop, PropName,
+    PropOrSpread, SpreadElement, VarDeclarator,
   },
 };
 
@@ -89,6 +89,26 @@ pub fn create_object_expression(props: Vec<PropOrSpread>) -> Expr {
 
 pub fn create_array_expression(elems: Vec<Option<ExprOrSpread>>) -> Expr {
   Expr::from(create_array_lit(elems))
+}
+
+#[inline]
+pub fn create_bin_expr(op: BinaryOp, left: Expr, right: Expr) -> Expr {
+  Expr::from(BinExpr {
+    span: DUMMY_SP,
+    op,
+    left: Box::new(left),
+    right: Box::new(right),
+  })
+}
+
+#[inline]
+pub fn create_cond_expr(test: Expr, cons: Expr, alt: Expr) -> Expr {
+  Expr::from(CondExpr {
+    span: DUMMY_SP,
+    test: Box::new(test),
+    cons: Box::new(cons),
+    alt: Box::new(alt),
+  })
 }
 
 /// Creates a `PropOrSpread` from a key and value.

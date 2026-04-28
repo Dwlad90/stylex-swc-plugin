@@ -25,6 +25,30 @@ pub struct StyleXError {
   pub source_location: Option<Cow<'static, str>>,
 }
 
+impl StyleXError {
+  pub fn with_location(
+    mut self,
+    file: impl Into<Cow<'static, str>>,
+    line: usize,
+    col: usize,
+  ) -> Self {
+    self.file = Some(file.into());
+    self.line = Some(line);
+    self.col = Some(col);
+    self
+  }
+
+  pub fn with_key_path(mut self, key_path: impl Into<Vec<String>>) -> Self {
+    self.key_path = Some(key_path.into());
+    self
+  }
+
+  pub fn with_source_location(mut self, source_location: impl Into<Cow<'static, str>>) -> Self {
+    self.source_location = Some(source_location.into());
+    self
+  }
+}
+
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl fmt::Display for StyleXError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

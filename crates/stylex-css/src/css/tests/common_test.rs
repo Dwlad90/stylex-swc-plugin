@@ -138,6 +138,8 @@ mod get_value_from_ident_tests {
 
 #[cfg(test)]
 mod normalize_css_property_name_tests {
+  use std::borrow::Cow;
+
   use crate::css::common::normalize_css_property_name;
 
   #[test]
@@ -149,6 +151,10 @@ mod normalize_css_property_name_tests {
   fn preserves_custom_properties() {
     assert_eq!(normalize_css_property_name("--my-var"), "--my-var");
     assert_eq!(normalize_css_property_name("--xAbcDef"), "--xAbcDef");
+    assert!(matches!(
+      normalize_css_property_name("--xAbcDef"),
+      Cow::Borrowed("--xAbcDef")
+    ));
   }
 
   #[test]

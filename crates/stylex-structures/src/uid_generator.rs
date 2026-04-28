@@ -109,10 +109,17 @@ impl UidGenerator {
       CounterMode::ThreadLocal => {
         let count = THREAD_LOCAL_COUNTERS.with(|counters| {
           let mut counters = counters.borrow_mut();
-          let counter = counters.entry(self.prefix.clone()).or_insert(1);
-          let current_count = *counter;
-          *counter += 1;
-          current_count
+          match counters.get_mut(&self.prefix) {
+            Some(counter) => {
+              let current_count = *counter;
+              *counter += 1;
+              current_count
+            },
+            None => {
+              counters.insert(self.prefix.clone(), 2);
+              1
+            },
+          }
         });
 
         prefixed_count(&self.prefix, count)

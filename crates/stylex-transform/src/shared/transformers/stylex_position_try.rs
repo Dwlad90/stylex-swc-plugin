@@ -211,7 +211,11 @@ fn construct_position_try_obj(styles: FlatCompiledStyles) -> String {
           format!("{}:{};{}:{};", k, k, pair.key, pair.value)
         },
         FlatCompiledStylesValue::KeyValues(pairs) => {
-          let mut strng = String::new();
+          let capacity = pairs
+            .iter()
+            .map(|pair| (k.len() * 2) + pair.key.len() + pair.value.len() + 4)
+            .sum();
+          let mut strng = String::with_capacity(capacity);
           for pair in pairs {
             let _ = write!(strng, "{}:{};{}:{};", k, k, pair.key, pair.value);
           }

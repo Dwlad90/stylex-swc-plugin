@@ -87,9 +87,19 @@ pub(crate) fn stylex_first_that_works(
           };
 
           so_far = if !so_far.is_empty() {
-            format!("var({}, {})", var_name_str, so_far)
+            let mut next = String::with_capacity(var_name_str.len() + so_far.len() + 7);
+            next.push_str("var(");
+            next.push_str(&var_name_str);
+            next.push_str(", ");
+            next.push_str(&so_far);
+            next.push(')');
+            next
           } else if var_name_str.starts_with("--") {
-            format!("var({})", var_name_str)
+            let mut next = String::with_capacity(var_name_str.len() + 5);
+            next.push_str("var(");
+            next.push_str(&var_name_str);
+            next.push(')');
+            next
           } else {
             var_name_str
           };

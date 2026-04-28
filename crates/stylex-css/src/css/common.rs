@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::css::{
   generate_ltr::generate_ltr,
   generate_rtl::generate_rtl,
@@ -577,11 +579,11 @@ pub fn stringify(node: &Stylesheet) -> String {
 /// Custom properties (`--*`) are returned as-is. Vendor-prefixed properties
 /// (e.g. `MsTransition`, `WebkitTapHighlightColor`) are converted to their
 /// standard hyphenated forms (`-ms-transition`, `-webkit-tap-highlight-color`).
-pub fn normalize_css_property_name(prop: &str) -> String {
+pub fn normalize_css_property_name(prop: &str) -> Cow<'_, str> {
   if prop.starts_with("--") {
-    return prop.to_string();
+    return Cow::Borrowed(prop);
   }
-  dashify(prop).into_owned()
+  dashify(prop)
 }
 
 /// Serializes a list of key-value pairs into an inline CSS style string.
@@ -597,7 +599,7 @@ pub fn inline_style_to_css_string(pairs: &[Pair]) -> String {
 
   for pair in pairs {
     let normalized_key = normalize_css_property_name(&pair.key);
-    push_css_decl(&mut out, normalized_key.as_str(), pair.value.as_str());
+    push_css_decl(&mut out, normalized_key.as_ref(), pair.value.as_str());
   }
 
   out

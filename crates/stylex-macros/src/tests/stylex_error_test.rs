@@ -1,7 +1,28 @@
 //! Tests for StyleXError formatting, SuppressPanicStderr guard,
 //! ANSI stripping, and panic message extraction.
 
-use crate::stylex_error::{SuppressPanicStderr, format_panic_message, is_panic_stderr_suppressed};
+use crate::{
+  panic_macros::stylex_err,
+  stylex_error::{SuppressPanicStderr, format_panic_message, is_panic_stderr_suppressed},
+};
+
+#[test]
+fn stylex_error_builders_set_context_fields() {
+  let err = stylex_err("missing property")
+    .with_location("src/App.js", 12, 8)
+    .with_key_path(vec!["styles".to_string(), "root".to_string()])
+    .with_source_location("panic.rs:42");
+
+  assert_eq!(err.message, "missing property");
+  assert_eq!(err.file.as_deref(), Some("src/App.js"));
+  assert_eq!(err.line, Some(12));
+  assert_eq!(err.col, Some(8));
+  assert_eq!(
+    err.key_path.as_deref(),
+    Some(["styles".to_string(), "root".to_string()].as_slice())
+  );
+  assert_eq!(err.source_location.as_deref(), Some("panic.rs:42"));
+}
 
 /// SuppressPanicStderr RAII guard should toggle the thread-local flag.
 #[test]

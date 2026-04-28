@@ -25,20 +25,22 @@ use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableStyle,
 };
-use stylex_utils::hash::create_hash;
+use stylex_utils::hash::{create_hash, create_key_hash};
 
 pub(crate) fn stylex_define_vars(
   variables: &EvaluateResultValue,
   state: &mut StateManager,
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
+  let export_id = match state.export_id.as_ref() {
+    Some(id) => id.clone(),
+    #[cfg_attr(coverage_nightly, coverage(off))]
+    None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
+  };
+
   let var_group_hash = format!(
     "{}{}",
     state.options.class_name_prefix,
-    create_hash(match state.export_id.as_ref() {
-      Some(id) => id,
-      #[cfg_attr(coverage_nightly, coverage(off))]
-      None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
-    })
+    create_hash(export_id.as_str())
   );
 
   let mut typed_variables: FlatCompiledStyles = IndexMap::new();
@@ -60,16 +62,6 @@ pub(crate) fn stylex_define_vars(
           stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
         },
         FlatCompiledStylesValue::Tuple(key, value, _) => {
-          let str_to_hash = format!(
-            "{}.{}",
-            match state.export_id.as_ref() {
-              Some(id) => id,
-              #[cfg_attr(coverage_nightly, coverage(off))]
-              None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
-            },
-            key
-          );
-
           let debug = state.options.debug;
           let enable_debug_class_names = state.options.enable_debug_class_names;
 
@@ -86,20 +78,18 @@ pub(crate) fn stylex_define_vars(
 
           // Created hashed variable names with fileName//themeName//key
           let name_hash = if key.starts_with("--") {
-            key.get(2..).unwrap_or_default()
+            key.get(2..).unwrap_or_default().to_string()
           } else if debug && enable_debug_class_names {
-            &format!(
+            let key_hash = create_key_hash(&export_id, key);
+
+            format!(
               "{}-{}{}",
-              var_safe_key,
-              &state.options.class_name_prefix,
-              create_hash(str_to_hash.as_str())
+              var_safe_key, &state.options.class_name_prefix, key_hash
             )
           } else {
-            &format!(
-              "{}{}",
-              &state.options.class_name_prefix,
-              create_hash(str_to_hash.as_str())
-            )
+            let key_hash = create_key_hash(&export_id, key);
+
+            format!("{}{}", &state.options.class_name_prefix, key_hash)
           };
 
           let (css_value, css_type) = get_css_value(KeyValueProp {
@@ -107,7 +97,7 @@ pub(crate) fn stylex_define_vars(
             value: value.clone(),
           });
 
-          FlatCompiledStylesValue::Tuple(name_hash.to_string(), css_value, css_type)
+          FlatCompiledStylesValue::Tuple(name_hash, css_value, css_type)
         },
         #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_unimplemented!("Unsupported value type in define vars"),

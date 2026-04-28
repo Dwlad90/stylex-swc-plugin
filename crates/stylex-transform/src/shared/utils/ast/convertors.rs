@@ -739,5 +739,5 @@ pub(crate) fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
     },
   };
 
-  wrap_key_in_quotes(&key, should_wrap_in_quotes)
+  wrap_key_in_quotes(&key, should_wrap_in_quotes).into_owned()
 }

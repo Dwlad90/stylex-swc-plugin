@@ -61,7 +61,7 @@ pub(crate) fn stylex_keyframes(
 
     let pipe_result = Pipe::create(frame)
       .pipe(|frame| expand_frame_shorthands(frame, state))
-      .pipe(|entries| obj_map_keys_string(&entries, dashify))
+      .pipe(|entries| obj_map_keys_string(&entries, |key| dashify(key).into_owned()))
       .pipe(|entries| {
         obj_map(
           ObjMapType::Map(entries),

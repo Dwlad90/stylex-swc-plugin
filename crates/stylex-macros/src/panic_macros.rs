@@ -4,6 +4,7 @@
 //! when working with expressions, conversions, and evaluations.
 
 use colored::Colorize;
+use std::borrow::Cow;
 
 use crate::stylex_error::StyleXError;
 
@@ -44,7 +45,7 @@ macro_rules! unwrap_or_panic {
 // ---------------------------------------------------------------------------
 
 /// Create a simple `StyleXError` with just a message.
-pub fn stylex_err(message: impl Into<String>) -> StyleXError {
+pub fn stylex_err(message: impl Into<Cow<'static, str>>) -> StyleXError {
   StyleXError {
     message: message.into(),
     file: None,
@@ -56,7 +57,10 @@ pub fn stylex_err(message: impl Into<String>) -> StyleXError {
 }
 
 /// Create a `StyleXError` with a message and file context.
-pub fn stylex_err_with_file(message: impl Into<String>, file: impl Into<String>) -> StyleXError {
+pub fn stylex_err_with_file(
+  message: impl Into<Cow<'static, str>>,
+  file: impl Into<Cow<'static, str>>,
+) -> StyleXError {
   StyleXError {
     message: message.into(),
     file: Some(file.into()),
@@ -81,7 +85,7 @@ pub fn __stylex_panic(mut err: StyleXError) -> ! {
   let caller = std::panic::Location::caller();
 
   if err.source_location.is_none() {
-    err.source_location = Some(format!("{}:{}", caller.file(), caller.line()));
+    err.source_location = Some(format!("{}:{}", caller.file(), caller.line()).into());
   }
 
   panic!("{}", err)
@@ -93,9 +97,9 @@ pub fn __stylex_panic(mut err: StyleXError) -> ! {
 pub fn __stylex_unimplemented(mut err: StyleXError) -> ! {
   let caller = std::panic::Location::caller();
   if err.source_location.is_none() {
-    err.source_location = Some(format!("{}:{}", caller.file(), caller.line()));
+    err.source_location = Some(format!("{}:{}", caller.file(), caller.line()).into());
   }
-  err.message = format!("{} {}", "[UNIMPLEMENTED]".dimmed().magenta(), err.message);
+  err.message = format!("{} {}", "[UNIMPLEMENTED]".dimmed().magenta(), err.message).into();
 
   panic!("{}", err)
 }
@@ -106,9 +110,9 @@ pub fn __stylex_unimplemented(mut err: StyleXError) -> ! {
 pub fn __stylex_unreachable(mut err: StyleXError) -> ! {
   let caller = std::panic::Location::caller();
   if err.source_location.is_none() {
-    err.source_location = Some(format!("{}:{}", caller.file(), caller.line()));
+    err.source_location = Some(format!("{}:{}", caller.file(), caller.line()).into());
   }
-  err.message = format!("{} {}", "[UNREACHABLE]".dimmed().blue(), err.message);
+  err.message = format!("{} {}", "[UNREACHABLE]".dimmed().blue(), err.message).into();
 
   panic!("{}", err)
 }
@@ -195,7 +199,7 @@ macro_rules! stylex_bail {
   ($($arg:tt)*) => {
     return Err(anyhow::anyhow!(
       $crate::panic_macros::StyleXError {
-        message: format!($($arg)*),
+        message: format!($($arg)*).into(),
         file: None,
         key_path: None,
         line: None,
@@ -214,7 +218,7 @@ macro_rules! stylex_anyhow {
   ($($arg:tt)*) => {
     anyhow::anyhow!(
       $crate::panic_macros::StyleXError {
-        message: format!($($arg)*),
+        message: format!($($arg)*).into(),
         file: None,
         key_path: None,
         line: None,

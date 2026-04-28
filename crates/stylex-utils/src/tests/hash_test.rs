@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod create_hash_tests {
-  use crate::hash::create_hash;
+  use crate::hash::{create_hash, create_key_hash};
 
   #[test]
   fn returns_consistent_hash() {
@@ -44,6 +44,14 @@ mod create_hash_tests {
       let raw = murmur2::murmur2(input.as_bytes(), 1);
       assert_eq!(create_hash(input), radix_fmt::radix(raw, 36).to_string());
     }
+  }
+
+  #[test]
+  fn create_key_hash_matches_joined_key_hash() {
+    assert_eq!(
+      create_key_hash("Button.stylex", "root"),
+      create_hash("Button.stylex.root")
+    );
   }
 }
 

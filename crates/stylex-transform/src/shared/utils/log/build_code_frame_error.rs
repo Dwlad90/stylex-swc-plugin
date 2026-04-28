@@ -483,16 +483,12 @@ pub(crate) fn build_code_frame_error_and_panic(
   };
 
   let err = StyleXError {
-    message: error_message.to_string(),
-    file,
+    message: error_message.to_string().into(),
+    file: file.map(Into::into),
     key_path: None,
     line,
     col: None,
-    source_location: Some(format!(
-      "{}:{}",
-      caller_location.file(),
-      caller_location.line()
-    )),
+    source_location: Some(format!("{}:{}", caller_location.file(), caller_location.line()).into()),
   };
 
   __stylex_panic(err)

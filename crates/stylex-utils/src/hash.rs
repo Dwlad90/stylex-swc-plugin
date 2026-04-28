@@ -33,6 +33,17 @@ pub fn create_hash(value: &str) -> String {
   to_base36(murmur2::murmur2(value.as_bytes(), 1))
 }
 
+/// Creates a StyleX key hash without allocating through `format!`.
+#[inline]
+pub fn create_key_hash(namespace: &str, key: &str) -> String {
+  let mut value = String::with_capacity(namespace.len() + 1 + key.len());
+  value.push_str(namespace);
+  value.push('.');
+  value.push_str(key);
+
+  create_hash(&value)
+}
+
 fn to_base36(mut value: u32) -> String {
   if value == 0 {
     return "0".to_string();

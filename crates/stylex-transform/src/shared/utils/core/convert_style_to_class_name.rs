@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use stylex_macros::stylex_panic;
 
 use crate::shared::{
@@ -26,7 +28,7 @@ pub(crate) fn convert_style_to_class_name(
   let (key, raw_value) = obj_entry;
 
   let dashed_key = if key.starts_with("--") {
-    key.to_string()
+    Cow::Borrowed(key)
   } else {
     dashify(key)
   };
@@ -82,7 +84,7 @@ pub(crate) fn convert_style_to_class_name(
 
   let string_to_hash = format!(
     "<>{}{}{}",
-    dashed_key,
+    dashed_key.as_ref(),
     value.join(", "),
     modifier_hash_string
   );
@@ -97,7 +99,7 @@ pub(crate) fn convert_style_to_class_name(
 
   let css_rules = generate_css_rule(
     class_name_hashed.as_str(),
-    dashed_key.as_str(),
+    dashed_key.as_ref(),
     &value,
     pseudos,
     at_rules,

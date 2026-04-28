@@ -137,7 +137,7 @@ fn kebab_case_normalizer(declaration: &mut Declaration) {
     if let ComponentValue::Ident(ident) = value
       && !ident.value.starts_with("--")
     {
-      ident.value = dashify(ident.value.as_str()).into();
+      ident.value = dashify(ident.value.as_str()).into_owned().into();
     }
   }
 }

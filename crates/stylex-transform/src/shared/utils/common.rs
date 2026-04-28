@@ -555,9 +555,9 @@ pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> S
               return inner_string;
             }
 
-            remove_quotes(&inner_string)
+            remove_quotes(&inner_string).into_owned()
           },
-          _ => remove_quotes(&json_str),
+          _ => remove_quotes(&json_str).into_owned(),
         }
       } else {
         json_str

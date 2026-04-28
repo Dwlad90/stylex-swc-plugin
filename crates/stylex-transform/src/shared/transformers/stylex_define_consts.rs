@@ -20,7 +20,7 @@ use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableConstStyle,
 };
-use stylex_utils::hash::create_hash;
+use stylex_utils::hash::create_key_hash;
 
 pub(crate) fn stylex_define_consts(
   constants: &EvaluateResultValue,
@@ -85,19 +85,14 @@ pub(crate) fn stylex_define_consts(
         let const_key = if key.starts_with("--") {
           // Preserve user-authored CSS custom property name without the leading `--`
           key.chars().skip(2).collect::<String>()
-        } else if debug && enable_debug_class_names {
-          format!(
-            "{}-{}{}",
-            var_safe_key,
-            class_name_prefix,
-            create_hash(&format!("{}.{}", export_id, key))
-          )
         } else {
-          format!(
-            "{}{}",
-            class_name_prefix,
-            create_hash(&format!("{}.{}", export_id, key))
-          )
+          let key_hash = create_key_hash(&export_id, key);
+
+          if debug && enable_debug_class_names {
+            format!("{}-{}{}", var_safe_key, class_name_prefix, key_hash)
+          } else {
+            format!("{}{}", class_name_prefix, key_hash)
+          }
         };
 
         Some((

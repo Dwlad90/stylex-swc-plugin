@@ -4,7 +4,7 @@
 //! branded `[StyleX] <message>` output on both stderr and NAPI boundaries.
 
 use colored::Colorize;
-use std::fmt;
+use std::{borrow::Cow, fmt};
 use stylex_constants::logger::STYLEX_LOG_PREFIX;
 
 /// Structured error for all user-facing StyleX diagnostics.
@@ -17,12 +17,12 @@ use stylex_constants::logger::STYLEX_LOG_PREFIX;
 /// ```
 #[derive(Debug, Clone)]
 pub struct StyleXError {
-  pub message: String,
-  pub file: Option<String>,
+  pub message: Cow<'static, str>,
+  pub file: Option<Cow<'static, str>>,
   pub key_path: Option<Vec<String>>,
   pub line: Option<usize>,
   pub col: Option<usize>,
-  pub source_location: Option<String>,
+  pub source_location: Option<Cow<'static, str>>,
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
@@ -39,10 +39,11 @@ impl fmt::Display for StyleXError {
     }
 
     // Main error message
-    write!(f, "{}", self.message.red())?;
+    write!(f, "{}", self.message.as_ref().red())?;
 
     // File location (when available)
     if let Some(ref file) = self.file {
+      let file = file.as_ref();
       match (self.line, self.col) {
         (Some(line), Some(col)) => {
           write!(f, "\n  --> {file}:{line}:{col}")?;
@@ -60,7 +61,12 @@ impl fmt::Display for StyleXError {
     if let Some(ref src) = self.source_location
       && log::log_enabled!(log::Level::Info)
     {
-      write!(f, "\n{}: {src}", "[Stack trace]".dimmed().yellow(),)?;
+      write!(
+        f,
+        "\n{}: {}",
+        "[Stack trace]".dimmed().yellow(),
+        src.as_ref()
+      )?;
     }
 
     Ok(())
@@ -114,7 +120,11 @@ impl Drop for SuppressPanicStderr {
 // ---------------------------------------------------------------------------
 
 /// Strip ANSI escape sequences from a string.
-fn strip_ansi(s: &str) -> String {
+fn strip_ansi(s: &str) -> Cow<'_, str> {
+  if !s.as_bytes().contains(&b'\x1B') {
+    return Cow::Borrowed(s);
+  }
+
   let mut result = String::with_capacity(s.len());
   let mut chars = s.chars().peekable();
   while let Some(ch) = chars.next() {
@@ -129,7 +139,7 @@ fn strip_ansi(s: &str) -> String {
       result.push(ch);
     }
   }
-  result
+  Cow::Owned(result)
 }
 
 /// Extract a plain-text error message from a caught panic payload.
@@ -143,20 +153,20 @@ fn strip_ansi(s: &str) -> String {
 pub fn format_panic_message(error: &Box<dyn std::any::Any + Send>) -> String {
   // How to get stack trace from the error?
   let raw = match error.downcast_ref::<String>() {
-    Some(s) => s.clone(),
+    Some(s) => s.as_str(),
     None => match error.downcast_ref::<&str>() {
-      Some(s) => s.to_string(),
+      Some(s) => *s,
       None => {
         return format!("{} Unknown error during transformation", STYLEX_LOG_PREFIX);
       },
     },
   };
 
-  if raw.contains(STYLEX_LOG_PREFIX) {
-    raw
-  } else {
-    let plain = strip_ansi(&raw);
+  let plain = strip_ansi(raw);
 
+  if plain.contains(STYLEX_LOG_PREFIX) {
+    plain.into_owned()
+  } else {
     format!("{} {}", STYLEX_LOG_PREFIX, plain)
   }
 }

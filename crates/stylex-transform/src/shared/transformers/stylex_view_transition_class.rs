@@ -51,7 +51,7 @@ pub(crate) fn stylex_view_transition_class(
 
     let pipe_result = Pipe::create(style.clone())
       .pipe(|style| preprocess_object_properties(&style, state))
-      .pipe(|entries| obj_map_keys_string(&entries, dashify))
+      .pipe(|entries| obj_map_keys_string(&entries, |key| dashify(key).into_owned()))
       .pipe(|entries| {
         obj_map(
           ObjMapType::Map(entries),
@@ -76,7 +76,8 @@ pub(crate) fn stylex_view_transition_class(
   });
 
   let expanded_object = obj_map_keys_key_value(&preprocessed_object, |k| {
-    format!("::view-transition-{}", dashify(k))
+    let dashed_key = dashify(k);
+    format!("::view-transition-{}", dashed_key)
   });
 
   let style_strings = obj_map(

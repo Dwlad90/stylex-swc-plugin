@@ -581,7 +581,7 @@ pub fn normalize_css_property_name(prop: &str) -> String {
   if prop.starts_with("--") {
     return prop.to_string();
   }
-  dashify(prop)
+  dashify(prop).into_owned()
 }
 
 /// Serializes a list of key-value pairs into an inline CSS style string.

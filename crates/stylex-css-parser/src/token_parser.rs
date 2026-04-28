@@ -310,41 +310,73 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
     P: Clone + Debug + 'static,
     S: Clone + Debug + 'static,
   {
-    let main_parser = self.clone();
     match suffix {
       Some(suffix_parser) => {
-        // Use flat_map to sequence the parsers
-        prefix.flat_map(
-          move |_| {
-            let main = main_parser.clone();
-            let suffix = suffix_parser.clone();
-            main.flat_map(
-              move |value| {
-                let result_value = value.clone();
-                suffix.map(move |_| result_value.clone(), None)
+        let main_run = self.run.clone();
+        let prefix_run = prefix.run.clone();
+        let suffix_run = suffix_parser.run.clone();
+        let new_label = format!("{}.flatMap(surrounded_prefix)", prefix.label);
+
+        TokenParser::new(
+          move |tokens| {
+            let current_index = tokens.current_index;
+
+            if let Err(error) = (prefix_run)(tokens) {
+              tokens.set_current_index(current_index);
+              return Err(error);
+            }
+
+            let value = match (main_run)(tokens) {
+              Ok(value) => value,
+              Err(error) => {
+                tokens.set_current_index(current_index);
+                return Err(error);
               },
-              Some("surrounded_middle"),
-            )
+            };
+
+            match (suffix_run)(tokens) {
+              Ok(_) => Ok(value),
+              Err(error) => {
+                tokens.set_current_index(current_index);
+                Err(error)
+              },
+            }
           },
-          Some("surrounded_prefix"),
+          &new_label,
         )
       },
       None => {
-        // Use the prefix as both prefix and suffix
-        let prefix_clone = prefix.clone();
-        prefix.flat_map(
-          move |_| {
-            let main = main_parser.clone();
-            let prefix_clone2 = prefix_clone.clone();
-            main.flat_map(
-              move |value| {
-                let result_value = value.clone();
-                prefix_clone2.map(move |_| result_value.clone(), None)
+        let main_run = self.run.clone();
+        let prefix_run = prefix.run.clone();
+        let suffix_run = prefix.run.clone();
+        let new_label = format!("{}.flatMap(surrounded_prefix_same)", prefix.label);
+
+        TokenParser::new(
+          move |tokens| {
+            let current_index = tokens.current_index;
+
+            if let Err(error) = (prefix_run)(tokens) {
+              tokens.set_current_index(current_index);
+              return Err(error);
+            }
+
+            let value = match (main_run)(tokens) {
+              Ok(value) => value,
+              Err(error) => {
+                tokens.set_current_index(current_index);
+                return Err(error);
               },
-              Some("surrounded_middle_same"),
-            )
+            };
+
+            match (suffix_run)(tokens) {
+              Ok(_) => Ok(value),
+              Err(error) => {
+                tokens.set_current_index(current_index);
+                Err(error)
+              },
+            }
           },
-          Some("surrounded_prefix_same"),
+          &new_label,
         )
       },
     }

@@ -41,7 +41,11 @@ mod create_hash_tests {
 
 #[cfg(test)]
 mod stable_hash_tests {
-  use crate::hash::stable_hash;
+  use crate::hash::{stable_hash, stable_hash_unspanned};
+  use swc_core::{
+    common::{BytePos, Span, SyntaxContext},
+    ecma::ast::{Expr, Ident, IdentName, MemberExpr, MemberProp},
+  };
 
   #[test]
   fn returns_consistent_hash_for_same_value() {
@@ -63,6 +67,52 @@ mod stable_hash_tests {
   fn works_with_tuples() {
     assert_eq!(stable_hash(&(1, 2)), stable_hash(&(1, 2)));
     assert_ne!(stable_hash(&(1, 2)), stable_hash(&(2, 1)));
+  }
+
+  #[test]
+  fn unspanned_expr_hash_ignores_nested_spans() {
+    let expr_a = member_expr("foo", 1, "bar", 4);
+    let expr_b = member_expr("foo", 10, "bar", 40);
+
+    assert_eq!(
+      stable_hash_unspanned(&expr_a),
+      stable_hash_unspanned(&expr_b)
+    );
+  }
+
+  #[test]
+  fn unspanned_expr_hash_preserves_structure() {
+    let expr_a = member_expr("foo", 1, "bar", 4);
+    let expr_b = member_expr("foo", 1, "baz", 4);
+
+    assert_ne!(
+      stable_hash_unspanned(&expr_a),
+      stable_hash_unspanned(&expr_b)
+    );
+  }
+
+  fn member_expr(obj: &str, obj_start: u32, prop: &str, prop_start: u32) -> Expr {
+    Expr::Member(MemberExpr {
+      span: span(obj_start, prop_start + 3),
+      obj: Box::new(Expr::Ident(ident(obj, obj_start))),
+      prop: MemberProp::Ident(IdentName::new(
+        prop.into(),
+        span(prop_start, prop_start + 3),
+      )),
+    })
+  }
+
+  fn ident(sym: &str, start: u32) -> Ident {
+    Ident {
+      span: span(start, start + sym.len() as u32),
+      ctxt: SyntaxContext::empty(),
+      sym: sym.into(),
+      optional: false,
+    }
+  }
+
+  fn span(start: u32, end: u32) -> Span {
+    Span::new(BytePos(start), BytePos(end))
   }
 }
 

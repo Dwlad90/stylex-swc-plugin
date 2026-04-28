@@ -85,10 +85,13 @@ impl Fold for ArgsStyleXTransform {
             })
             .collect(),
         ),
-        EvaluateResultValue::Callback(func) => func(vec![
-          Some(EvaluateResultValue::Expr(create_number_expr(2.0))),
-          Some(EvaluateResultValue::Expr(create_number_expr(7.0))),
-        ]),
+        EvaluateResultValue::Callback(func) => func(
+          vec![
+            Some(EvaluateResultValue::Expr(create_number_expr(2.0))),
+            Some(EvaluateResultValue::Expr(create_number_expr(7.0))),
+          ],
+          &mut self.state,
+        ),
         EvaluateResultValue::Map(map) => {
           let mut props = vec![];
 

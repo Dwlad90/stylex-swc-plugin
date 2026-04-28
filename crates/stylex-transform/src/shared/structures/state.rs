@@ -1,4 +1,6 @@
-use rustc_hash::{FxHashMap, FxHashSet};
+use std::rc::Rc;
+
+use rustc_hash::FxHashSet;
 use swc_core::ecma::ast::Expr;
 
 use super::functions::FunctionMap;
@@ -8,7 +10,7 @@ pub struct EvaluationState {
   pub(crate) confident: bool,
   pub(crate) deopt_path: Option<Expr>,
   pub(crate) added_imports: FxHashSet<String>,
-  pub(crate) functions: FunctionMap,
+  pub(crate) functions: Rc<FunctionMap>,
   pub(crate) deopt_reason: Option<String>,
 }
 
@@ -19,11 +21,7 @@ impl Default for EvaluationState {
       deopt_path: None,
       added_imports: FxHashSet::default(),
       deopt_reason: None,
-      functions: FunctionMap {
-        identifiers: FxHashMap::default(),
-        member_expressions: FxHashMap::default(),
-        disable_imports: false,
-      },
+      functions: Rc::new(FunctionMap::default()),
     }
   }
 }

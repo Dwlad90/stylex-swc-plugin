@@ -84,10 +84,13 @@ impl Fold for EvaluationStyleXFirstStatementTransform {
             })
             .collect(),
         }),
-        EvaluateResultValue::Callback(func) => func(vec![
-          Some(EvaluateResultValue::Expr(create_number_expr(2.0))),
-          Some(EvaluateResultValue::Expr(create_number_expr(7.0))),
-        ]),
+        EvaluateResultValue::Callback(func) => func(
+          vec![
+            Some(EvaluateResultValue::Expr(create_number_expr(2.0))),
+            Some(EvaluateResultValue::Expr(create_number_expr(7.0))),
+          ],
+          &mut self.state,
+        ),
         _ => panic!("Failed to evaluate expression"),
       },
       None => panic!("Failed to evaluate expression"),
@@ -193,10 +196,13 @@ impl EvaluationStyleXLastStatementTransform {
             })
             .collect(),
         }),
-        EvaluateResultValue::Callback(func) => func(vec![
-          Some(EvaluateResultValue::Expr(create_number_expr(2.0))),
-          Some(EvaluateResultValue::Expr(create_number_expr(7.0))),
-        ]),
+        EvaluateResultValue::Callback(func) => func(
+          vec![
+            Some(EvaluateResultValue::Expr(create_number_expr(2.0))),
+            Some(EvaluateResultValue::Expr(create_number_expr(7.0))),
+          ],
+          &mut self.state,
+        ),
         _ => panic!("Failed to evaluate expression"),
       },
       None => panic!("Failed to evaluate expression"),

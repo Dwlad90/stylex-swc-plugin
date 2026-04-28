@@ -69,7 +69,7 @@ use stylex_constants::constants::{
 };
 use stylex_enums::{
   core::TransformationCycle,
-  import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
+  import_path_resolution::ImportPathResolution,
   js::{ArrayJS, MathJS, ObjectJS, StringJS},
   misc::{BinaryExprType, VarDeclAction},
   value_with_default::ValueWithDefault,
@@ -80,7 +80,7 @@ use stylex_utils::{
     get_hash_map_difference, get_hash_map_value_difference, sort_numbers_factory,
     sum_hash_map_values,
   },
-  hash::stable_hash,
+  hash::stable_hash_unspanned,
   string::char_code_at,
   swc::get_default_expr_ctx,
 };
@@ -236,15 +236,23 @@ pub fn evaluate(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Box<EvaluateResult> {
+  evaluate_with_functions(path, traversal_state, Rc::new(fns.clone()))
+}
+
+fn evaluate_with_functions(
+  path: &Expr,
+  traversal_state: &mut StateManager,
+  fns: Rc<FunctionMap>,
+) -> Box<EvaluateResult> {
   let mut state = Box::new(EvaluationState {
     confident: true,
     deopt_path: None,
     deopt_reason: None,
     added_imports: FxHashSet::default(),
-    functions: fns.clone(),
+    functions: Rc::clone(&fns),
   });
 
-  let mut value = evaluate_cached(path, &mut state, traversal_state, fns);
+  let mut value = evaluate_cached(path, &mut state, traversal_state, &fns);
 
   if !state.confident {
     value = None;
@@ -312,9 +320,9 @@ fn _evaluate(
             let arrow_closure_fabric =
               |identifiers: FunctionMapIdentifiers,
                ident_params: Vec<Atom>,
-               body_expr: Box<Expr>,
-               traversal_state: StateManager| {
-                move |cb_args: Vec<Option<EvaluateResultValue>>| {
+               body_expr: Box<Expr>| {
+                move |cb_args: Vec<Option<EvaluateResultValue>>,
+                      traversal_state: &mut StateManager| {
                   let mut identifiers = identifiers.clone();
 
                   let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
@@ -352,14 +360,14 @@ fn _evaluate(
 
                   let mut local_state = traversal_state.clone();
 
-                  let result = evaluate(
+                  let result = evaluate_with_functions(
                     &body_expr,
                     &mut local_state,
-                    &FunctionMap {
+                    Rc::new(FunctionMap {
                       identifiers,
                       member_expressions,
                       disable_imports: false,
-                    },
+                    }),
                   );
 
                   let value = result.value;
@@ -384,7 +392,6 @@ fn _evaluate(
               identifiers,
               ident_params,
               Box::new(*body_expr.clone()),
-              traversal_state.clone(),
             ));
 
             return Some(EvaluateResultValue::Callback(arrow_closure));
@@ -913,7 +920,8 @@ fn _evaluate(
       let mut arr: Vec<Option<EvaluateResultValue>> = Vec::with_capacity(arr_path.elems.len());
 
       for elem in arr_path.elems.iter().flatten() {
-        let elem_value = evaluate(&elem.expr, traversal_state, &state.functions);
+        let elem_value =
+          evaluate_with_functions(&elem.expr, traversal_state, Rc::clone(&state.functions));
         collect_confident!(elem_value, arr);
       }
 
@@ -963,8 +971,11 @@ fn _evaluate(
                   PropName::Str(strng) => Some(convert_atom_to_string(&strng.value)),
                   PropName::Num(num) => Some(num.value.to_string()),
                   PropName::Computed(computed) => {
-                    let evaluated_result =
-                      evaluate(&computed.expr, traversal_state, &state.functions);
+                    let evaluated_result = evaluate_with_functions(
+                      &computed.expr,
+                      traversal_state,
+                      Rc::clone(&state.functions),
+                    );
 
                     if !evaluated_result.confident {
                       if let Some(deopt_val) = evaluated_result.deopt {
@@ -1008,7 +1019,11 @@ fn _evaluate(
                   PropName::BigInt(big_int) => Some(big_int.value.to_string()),
                 };
 
-                let eval_value = evaluate(&path_key_value.value, traversal_state, &state.functions);
+                let eval_value = evaluate_with_functions(
+                  &path_key_value.value,
+                  traversal_state,
+                  Rc::clone(&state.functions),
+                );
 
                 if !eval_value.confident {
                   if let Some(deopt_val) = eval_value.deopt {
@@ -1064,7 +1079,7 @@ fn _evaluate(
                         })
                         .collect();
 
-                      Some(cb(cb_args))
+                      Some(cb(cb_args, traversal_state))
                     },
                     Expr::Arrow(arrow_func_expr) => Some(Expr::Arrow(arrow_func_expr.clone())),
                     _ => stylex_panic_with_context!(
@@ -1251,16 +1266,12 @@ fn _evaluate(
                         }
                       },
                       "round" | "ceil" | "floor" => {
+                        let math_method = MathJS::try_from(method_name).unwrap_or_else(|()| {
+                          stylex_unreachable!("Invalid method: {}", method_name)
+                        });
+
                         func = Some(Box::new(FunctionConfig {
-                          fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(
-                            match method_name {
-                              "round" => MathJS::Round,
-                              "ceil" => MathJS::Ceil,
-                              "floor" => MathJS::Floor,
-                              #[cfg_attr(coverage_nightly, coverage(off))]
-                              _ => stylex_unreachable!("Invalid method: {}", method_name),
-                            },
-                          ))),
+                          fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(math_method))),
                           takes_path: false,
                         }));
 
@@ -1282,15 +1293,12 @@ fn _evaluate(
                         }
                       },
                       "min" | "max" => {
+                        let math_method = MathJS::try_from(method_name).unwrap_or_else(|()| {
+                          stylex_unreachable!("Invalid method: {}", method_name)
+                        });
+
                         func = Some(Box::new(FunctionConfig {
-                          fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(
-                            match method_name {
-                              "min" => MathJS::Min,
-                              "max" => MathJS::Max,
-                              #[cfg_attr(coverage_nightly, coverage(off))]
-                              _ => stylex_unreachable!("Invalid method: {}", method_name),
-                            },
-                          ))),
+                          fn_ptr: FunctionType::Callback(Box::new(CallbackType::Math(math_method))),
                           takes_path: false,
                         }));
 
@@ -1361,8 +1369,8 @@ fn _evaluate(
 
                     let cached_arg = evaluate_cached(&arg.expr, state, traversal_state, fns);
 
-                    match method_name {
-                      "fromEntries" => {
+                    match ObjectJS::try_from(method_name) {
+                      Ok(ObjectJS::FromEntries) => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Object(
                             ObjectJS::FromEntries,
@@ -1484,7 +1492,7 @@ fn _evaluate(
                           from_entries_result,
                         ))]);
                       },
-                      "keys" => {
+                      Ok(ObjectJS::Keys) => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Object(
                             ObjectJS::Keys,
@@ -1522,7 +1530,7 @@ fn _evaluate(
                           create_array_expression(keys),
                         ))]);
                       },
-                      "values" => {
+                      Ok(ObjectJS::Values) => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Object(
                             ObjectJS::Values,
@@ -1556,7 +1564,7 @@ fn _evaluate(
                           create_array_expression(values),
                         ))]);
                       },
-                      "entries" => {
+                      Ok(ObjectJS::Entries) => {
                         func = Some(Box::new(FunctionConfig {
                           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Object(
                             ObjectJS::Entries,
@@ -1595,7 +1603,7 @@ fn _evaluate(
                         context = Some(vec![Some(EvaluateResultValue::Entries(entries))]);
                       },
                       #[cfg_attr(coverage_nightly, coverage(off))]
-                      _ => {
+                      Err(()) => {
                         stylex_panic!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name)
                       },
                     }
@@ -1691,7 +1699,8 @@ fn _evaluate(
           }
 
           if func.is_none() {
-            let parsed_obj = evaluate(object, traversal_state, &state.functions);
+            let parsed_obj =
+              evaluate_with_functions(object, traversal_state, Rc::clone(&state.functions));
 
             if parsed_obj.confident {
               if property.is_ident() {
@@ -1737,12 +1746,10 @@ fn _evaluate(
                     };
                   },
                   EvaluateResultValue::Vec(expr) => {
-                    func = Some(Box::new(FunctionConfig {
-                      fn_ptr: FunctionType::Callback(Box::new(match prop_name.as_str() {
-                        "map" => CallbackType::Array(ArrayJS::Map),
-                        "filter" => CallbackType::Array(ArrayJS::Filter),
-                        "join" => CallbackType::Array(ArrayJS::Join),
-                        "entries" => CallbackType::Object(ObjectJS::Entries),
+                    let callback_type = match ArrayJS::try_from(prop_name.as_str()) {
+                      Ok(array_method) => CallbackType::Array(array_method),
+                      Err(()) => match ObjectJS::try_from(prop_name.as_str()) {
+                        Ok(ObjectJS::Entries) => CallbackType::Object(ObjectJS::Entries),
                         _ => stylex_panic_with_context!(
                           path,
                           traversal_state,
@@ -1752,7 +1759,11 @@ fn _evaluate(
                           )
                           .as_str()
                         ),
-                      })),
+                      },
+                    };
+
+                    func = Some(Box::new(FunctionConfig {
+                      fn_ptr: FunctionType::Callback(Box::new(callback_type)),
                       takes_path: false,
                     }));
 
@@ -1760,11 +1771,13 @@ fn _evaluate(
                   },
                   EvaluateResultValue::Expr(expr) => match expr {
                     Expr::Array(ArrayLit { elems, .. }) => {
-                      func = Some(Box::new(FunctionConfig {
-                        fn_ptr: FunctionType::Callback(Box::new(match prop_name.as_str() {
-                          "map" => CallbackType::Array(ArrayJS::Map),
-                          "filter" => CallbackType::Array(ArrayJS::Filter),
-                          "entries" => CallbackType::Object(ObjectJS::Entries),
+                      let callback_type = match ArrayJS::try_from(prop_name.as_str()) {
+                        Ok(array_method @ (ArrayJS::Map | ArrayJS::Filter)) => {
+                          CallbackType::Array(array_method)
+                        },
+                        Ok(ArrayJS::Join) | Err(()) => match ObjectJS::try_from(prop_name.as_str())
+                        {
+                          Ok(ObjectJS::Entries) => CallbackType::Object(ObjectJS::Entries),
                           _ => stylex_panic_with_context!(
                             path,
                             traversal_state,
@@ -1774,7 +1787,11 @@ fn _evaluate(
                             )
                             .as_str()
                           ),
-                        })),
+                        },
+                      };
+
+                      func = Some(Box::new(FunctionConfig {
+                        fn_ptr: FunctionType::Callback(Box::new(callback_type)),
                         takes_path: false,
                       }));
 
@@ -1795,20 +1812,23 @@ fn _evaluate(
                       context = Some(vec![Some(EvaluateResultValue::Vec(expr))]);
                     },
                     Expr::Lit(Lit::Str(_)) => {
+                      let string_method = match StringJS::try_from(prop_name.as_str()) {
+                        Ok(string_method) => string_method,
+                        Err(()) => stylex_panic_with_context!(
+                          path,
+                          traversal_state,
+                          format!(
+                            "The method '{}' is not yet supported in static evaluation.",
+                            prop_name
+                          )
+                          .as_str()
+                        ),
+                      };
+
                       func = Some(Box::new(FunctionConfig {
-                        fn_ptr: FunctionType::Callback(Box::new(match prop_name.as_str() {
-                          "concat" => CallbackType::String(StringJS::Concat),
-                          "charCodeAt" => CallbackType::String(StringJS::CharCodeAt),
-                          _ => stylex_panic_with_context!(
-                            path,
-                            traversal_state,
-                            format!(
-                              "The method '{}' is not yet supported in static evaluation.",
-                              prop_name
-                            )
-                            .as_str()
-                          ),
-                        })),
+                        fn_ptr: FunctionType::Callback(Box::new(CallbackType::String(
+                          string_method,
+                        ))),
                         takes_path: false,
                       }));
 
@@ -2148,12 +2168,12 @@ fn _evaluate(
                 CallbackType::Array(ArrayJS::Map) => {
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
 
-                  return evaluate_map(&args, &context);
+                  return evaluate_map(&args, &context, traversal_state);
                 },
                 CallbackType::Array(ArrayJS::Filter) => {
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
 
-                  return evaluate_filter(&args, &context);
+                  return evaluate_filter(&args, &context, traversal_state);
                 },
                 CallbackType::Array(ArrayJS::Join) => {
                   let args = evaluate_func_call_args(call, state, traversal_state, fns);
@@ -2452,7 +2472,7 @@ fn _evaluate(
 
                   let expr_result = match evaluation_result.as_ref() {
                     Some(EvaluateResultValue::Callback(cb)) => {
-                      cb(args.into_iter().map(Some).collect())
+                      cb(args.into_iter().map(Some).collect(), traversal_state)
                     },
                     _ => {
                       stylex_panic_with_context!(
@@ -2642,10 +2662,12 @@ fn _evaluate(
       };
 
       let return_value = match abs_path {
-        ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, value) => {
+        ImportPathResolution::Resolved { path: value } => {
           evaluate_theme_ref(&value, imported_name, traversal_state)
         },
-        _ => return deopt(path, state, IMPORT_PATH_RESOLUTION_ERROR),
+        ImportPathResolution::Unresolved => {
+          return deopt(path, state, IMPORT_PATH_RESOLUTION_ERROR);
+        },
       };
 
       if state.confident {
@@ -2991,9 +3013,7 @@ pub(crate) fn evaluate_cached(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
-  let mut cleaned_path = drop_span(path.clone());
-
-  let cleaned_path_hash = stable_hash(&cleaned_path);
+  let cleaned_path_hash = stable_hash_unspanned(path);
 
   let existing = traversal_state.seen.get(&cleaned_path_hash);
 
@@ -3027,6 +3047,7 @@ pub(crate) fn evaluate_cached(
       deopt(path, state, PATH_WITHOUT_NODE)
     },
     None => {
+      let mut cleaned_path = drop_span(path.clone());
       let should_save_var_decl_count = path.is_object();
 
       let var_decl_count_map_orig =

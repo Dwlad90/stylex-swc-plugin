@@ -92,9 +92,8 @@ pub(crate) fn stylex_create_set(
         CompiledResult::ComputedStyles(class_name_tuples) => {
           let mut unique_class_names = IndexSet::new();
 
-          for ComputedStyle(class_name, _, classes_to_original_path) in class_name_tuples.iter() {
+          for ComputedStyle(class_name, _, _) in class_name_tuples.iter() {
             unique_class_names.insert(class_name.as_str());
-            class_paths_in_namespace.extend(classes_to_original_path.clone());
           }
 
           let class_name = unique_class_names
@@ -104,22 +103,25 @@ pub(crate) fn stylex_create_set(
             .join(" ");
 
           namespace_obj.insert(
-            key.clone(),
+            key,
             if !class_name.is_empty() {
-              Rc::new(FlatCompiledStylesValue::String(class_name.clone()))
+              Rc::new(FlatCompiledStylesValue::String(class_name))
             } else {
               Rc::new(FlatCompiledStylesValue::Null)
             },
           );
 
-          for ComputedStyle(class_name, injectable_styles, _) in class_name_tuples.iter() {
+          for ComputedStyle(class_name, injectable_styles, classes_to_original_path) in
+            class_name_tuples.into_iter()
+          {
+            class_paths_in_namespace.extend(classes_to_original_path);
             injected_styles_map
-              .entry(class_name.clone())
-              .or_insert_with(|| Rc::new(InjectableStyleKind::Regular(injectable_styles.clone())));
+              .entry(class_name)
+              .or_insert_with(move || Rc::new(InjectableStyleKind::Regular(injectable_styles)));
           }
         },
         _ => {
-          namespace_obj.insert(key.clone(), Rc::new(FlatCompiledStylesValue::Null));
+          namespace_obj.insert(key, Rc::new(FlatCompiledStylesValue::Null));
         },
       }
     }

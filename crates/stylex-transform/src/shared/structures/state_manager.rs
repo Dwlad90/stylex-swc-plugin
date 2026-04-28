@@ -37,10 +37,8 @@ use stylex_ast::ast::factories::{
 };
 use stylex_constants::constants::common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH};
 use stylex_enums::{
-  core::TransformationCycle,
-  counter_mode::CounterMode,
-  import_path_resolution::{ImportPathResolution, ImportPathResolutionType},
-  top_level_expression::TopLevelExpressionKind,
+  core::TransformationCycle, counter_mode::CounterMode,
+  import_path_resolution::ImportPathResolution, top_level_expression::TopLevelExpressionKind,
 };
 use stylex_structures::{
   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
@@ -508,7 +506,7 @@ impl StateManager {
     let source_file_path = self.get_filename();
 
     if source_file_path.is_empty() {
-      return ImportPathResolution::False;
+      return ImportPathResolution::Unresolved;
     }
 
     let theme_file_extension = self
@@ -526,7 +524,7 @@ impl StateManager {
       matches_file_suffix(*TRANSFORMED_VARS_FILE_EXTENSION, import_path);
 
     if !is_theme_file && !is_valid_transformed_vars_file && !is_consts_only_file {
-      return ImportPathResolution::False;
+      return ImportPathResolution::Unresolved;
     }
 
     match &self.options.unstable_module_resolution {
@@ -538,25 +536,32 @@ impl StateManager {
 
         let aliases = self.options.aliases.as_ref().cloned().unwrap_or_default();
 
-        let resolved_file_path = file_path_resolver(
+        let resolved_file_path = match file_path_resolver(
           import_path,
           source_file_path,
           &root_dir,
           &aliases,
           package_json_seen,
-        );
+        ) {
+          Ok(resolved_file_path) => resolved_file_path,
+          Err(err) => {
+            debug!("Could not resolve import path {}: {}", import_path, err);
+            return ImportPathResolution::Unresolved;
+          },
+        };
 
         debug!("Resolved import path: {}", resolved_file_path);
 
         let resolved_file_path =
           self.get_canonical_file_path(&resolved_file_path, package_json_seen);
 
-        ImportPathResolution::Tuple(ImportPathResolutionType::ThemeNameRef, resolved_file_path)
+        ImportPathResolution::Resolved {
+          path: resolved_file_path,
+        }
       },
-      CheckModuleResolution::Haste { .. } => ImportPathResolution::Tuple(
-        ImportPathResolutionType::ThemeNameRef,
-        add_file_extension(import_path, source_file_path),
-      ),
+      CheckModuleResolution::Haste { .. } => ImportPathResolution::Resolved {
+        path: add_file_extension(import_path, source_file_path),
+      },
       CheckModuleResolution::CrossFileParsing { .. } => {
         stylex_unimplemented!("This module resolution strategy is not yet supported.")
       },
@@ -1043,22 +1048,16 @@ fn file_path_resolver(
   root_path: &str,
   aliases: &FxHashMap<String, Vec<String>>,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
-) -> String {
-  let resolved_file_path = resolve_file_path(
+) -> anyhow::Result<String> {
+  let resolved_path = resolve_file_path(
     relative_file_path,
     source_file_path,
     root_path,
     aliases,
     package_json_seen,
-  );
+  )?;
 
-  if let Ok(resolved_path) = resolved_file_path {
-    let resolved_path_str = resolved_path.display().to_string();
-
-    return resolved_path_str;
-  }
-
-  stylex_panic!("Cannot resolve file path: {}", relative_file_path)
+  Ok(resolved_path.display().to_string())
 }
 
 impl stylex_types::traits::StyleOptions for StateManager {

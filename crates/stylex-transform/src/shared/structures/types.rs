@@ -12,13 +12,14 @@ use crate::shared::enums::data_structures::{
 };
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 
-use super::functions::FunctionConfigType;
+use super::{functions::FunctionConfigType, state_manager::StateManager};
 use stylex_structures::{inline_style::InlineStyle, named_import_source::ImportSources};
 
 pub(crate) type FlatCompiledStyles = IndexMap<String, Rc<FlatCompiledStylesValue>>;
 pub(crate) type DynamicFns = IndexMap<String, (Vec<BindingIdent>, TInlineStyles)>;
 
-pub(crate) type EvaluationCallback = Rc<dyn Fn(Vec<Option<EvaluateResultValue>>) -> Expr + 'static>;
+pub(crate) type EvaluationCallback =
+  Rc<dyn Fn(Vec<Option<EvaluateResultValue>>, &mut StateManager) -> Expr + 'static>;
 pub(crate) type FunctionMapMemberExpression =
   FxHashMap<ImportSources, Box<FxHashMap<Atom, Box<FunctionConfigType>>>>;
 pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>>;

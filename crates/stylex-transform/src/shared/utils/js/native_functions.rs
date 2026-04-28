@@ -1,9 +1,8 @@
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{functions::FunctionMap, state_manager::StateManager},
+  structures::{functions::FunctionMap, state_manager::StateManager, types::EvaluationCallback},
   utils::ast::convertors::{convert_expr_to_str, convert_lit_to_number, create_string_expr},
 };
-use std::rc::Rc;
 use stylex_ast::ast::factories::{create_array_expression, create_expr_or_spread};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::{Expr, ExprOrSpread};
@@ -11,40 +10,42 @@ use swc_core::ecma::ast::{Expr, ExprOrSpread};
 pub(crate) fn evaluate_map(
   funcs: &[EvaluateResultValue],
   args: &[Option<EvaluateResultValue>],
+  traversal_state: &mut StateManager,
 ) -> Option<EvaluateResultValue> {
   let cb = funcs.first()?;
 
   let cb = cb.as_callback()?;
 
-  let func_result = args
-    .iter()
-    .filter_map(|arg| {
-      let result = arg.as_ref()?;
+  let mut func_result = Vec::new();
 
-      match result {
-        EvaluateResultValue::Expr(_) => Some(evaluate_map_cb(cb, arg)),
-        EvaluateResultValue::Vec(vec) => {
-          let func_result = vec
-            .iter()
-            .map(|expr| {
-              let expr = evaluate_map_cb(cb, expr);
+  for arg in args {
+    let Some(result) = arg.as_ref() else {
+      continue;
+    };
 
-              EvaluateResultValue::Expr(expr)
-            })
-            .collect::<Vec<EvaluateResultValue>>();
+    match result {
+      EvaluateResultValue::Expr(_) => func_result.push(evaluate_map_cb(cb, arg, traversal_state)),
+      EvaluateResultValue::Vec(vec) => {
+        let func_result_value = vec
+          .iter()
+          .map(|expr| {
+            let expr = evaluate_map_cb(cb, expr, traversal_state);
 
-          let elems = func_result
-            .into_iter()
-            .map(|item| Some(create_expr_or_spread(item.as_expr()?.clone())))
-            .collect::<Vec<Option<ExprOrSpread>>>();
+            EvaluateResultValue::Expr(expr)
+          })
+          .collect::<Vec<EvaluateResultValue>>();
 
-          Some(create_array_expression(elems))
-        },
-        #[cfg_attr(coverage_nightly, coverage(off))]
-        _ => stylex_unimplemented!("Unhandled EvaluateResultValue in map callback"),
-      }
-    })
-    .collect::<Vec<Expr>>();
+        let elems = func_result_value
+          .into_iter()
+          .map(|item| Some(create_expr_or_spread(item.as_expr()?.clone())))
+          .collect::<Vec<Option<ExprOrSpread>>>();
+
+        func_result.push(create_array_expression(elems));
+      },
+      #[cfg_attr(coverage_nightly, coverage(off))]
+      _ => stylex_unimplemented!("Unhandled EvaluateResultValue in map callback"),
+    }
+  }
 
   match func_result.first() {
     Some(Expr::Array(array)) => Some(EvaluateResultValue::Expr(Expr::from(array.clone()))),
@@ -94,41 +95,51 @@ pub(crate) fn evaluate_join(
 pub(crate) fn evaluate_filter(
   funcs: &[EvaluateResultValue],
   args: &[Option<EvaluateResultValue>],
+  traversal_state: &mut StateManager,
 ) -> Option<EvaluateResultValue> {
   let cb = funcs.first()?;
 
   let cb = cb.as_callback()?;
 
-  let func_result = args
-    .iter()
-    .filter_map(|arg| {
-      let result = arg.as_ref()?;
+  let mut func_result = Vec::new();
 
-      match result {
-        EvaluateResultValue::Expr(expr) => evaluate_filter_cb(cb, arg, expr),
-        EvaluateResultValue::Vec(vec) => {
-          let func_result = vec
-            .iter()
-            .filter_map(|expr| {
-              let result =
-                evaluate_filter_cb(cb, &expr.clone(), &expr.as_ref()?.as_expr()?.clone());
+  for arg in args {
+    let Some(result) = arg.as_ref() else {
+      continue;
+    };
 
-              result.map(EvaluateResultValue::Expr)
-            })
-            .collect::<Vec<EvaluateResultValue>>();
+    match result {
+      EvaluateResultValue::Expr(expr) => {
+        if let Some(expr) = evaluate_filter_cb(cb, arg, expr, traversal_state) {
+          func_result.push(expr);
+        }
+      },
+      EvaluateResultValue::Vec(vec) => {
+        let func_result_value = vec
+          .iter()
+          .filter_map(|expr| {
+            let result = evaluate_filter_cb(
+              cb,
+              &expr.clone(),
+              &expr.as_ref()?.as_expr()?.clone(),
+              traversal_state,
+            );
 
-          let elems = func_result
-            .into_iter()
-            .map(|item| Some(create_expr_or_spread(item.as_expr()?.clone())))
-            .collect::<Vec<Option<ExprOrSpread>>>();
+            result.map(EvaluateResultValue::Expr)
+          })
+          .collect::<Vec<EvaluateResultValue>>();
 
-          Some(create_array_expression(elems))
-        },
-        #[cfg_attr(coverage_nightly, coverage(off))]
-        _ => stylex_unimplemented!("Unhandled EvaluateResultValue in filter callback"),
-      }
-    })
-    .collect::<Vec<Expr>>();
+        let elems = func_result_value
+          .into_iter()
+          .map(|item| Some(create_expr_or_spread(item.as_expr()?.clone())))
+          .collect::<Vec<Option<ExprOrSpread>>>();
+
+        func_result.push(create_array_expression(elems));
+      },
+      #[cfg_attr(coverage_nightly, coverage(off))]
+      _ => stylex_unimplemented!("Unhandled EvaluateResultValue in filter callback"),
+    }
+  }
 
   match func_result.first() {
     Some(Expr::Array(array)) => Some(EvaluateResultValue::Expr(Expr::from(array.clone()))),
@@ -142,18 +153,20 @@ pub(crate) fn evaluate_filter(
 }
 
 pub(crate) fn evaluate_map_cb(
-  cb: &Rc<dyn Fn(Vec<Option<EvaluateResultValue>>) -> Expr>,
+  cb: &EvaluationCallback,
   cb_arg: &Option<EvaluateResultValue>,
+  traversal_state: &mut StateManager,
 ) -> Expr {
-  (cb)(vec![cb_arg.clone()])
+  (cb)(vec![cb_arg.clone()], traversal_state)
 }
 
 pub(crate) fn evaluate_filter_cb(
-  cb: &Rc<dyn Fn(Vec<Option<EvaluateResultValue>>) -> Expr>,
+  cb: &EvaluationCallback,
   cb_arg: &Option<EvaluateResultValue>,
   item: &Expr,
+  traversal_state: &mut StateManager,
 ) -> Option<Expr> {
-  let result = evaluate_map_cb(cb, cb_arg);
+  let result = evaluate_map_cb(cb, cb_arg, traversal_state);
 
   let Some(lit) = result.as_lit() else {
     #[cfg_attr(coverage_nightly, coverage(off))]

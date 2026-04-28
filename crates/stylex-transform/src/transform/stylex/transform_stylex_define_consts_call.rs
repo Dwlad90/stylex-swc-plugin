@@ -11,7 +11,7 @@ use crate::shared::{
   transformers::stylex_define_consts::stylex_define_consts,
   utils::{
     common::gen_file_based_identifier,
-    core::js_to_expr::{NestedStringObject, convert_object_to_ast},
+    core::js_to_ast::{NestedStringObject, convert_object_to_ast},
     js::evaluate::evaluate,
     log::build_code_frame_error::build_code_frame_error,
     validators::{find_and_validate_stylex_define_consts, is_define_consts_call},

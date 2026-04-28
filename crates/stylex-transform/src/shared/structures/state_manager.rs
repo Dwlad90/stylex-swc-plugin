@@ -802,10 +802,6 @@ impl StateManager {
     }
   }
 
-  // pub(crate) fn _get_css_vars(&self) -> FxHashMap<String, String> {
-  //   self.options.defined_stylex_css_variables.clone()
-  // }
-
   pub(crate) fn get_treeshake_compensation(&self) -> bool {
     self.options.treeshake_compensation
   }

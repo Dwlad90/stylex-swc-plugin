@@ -6,7 +6,7 @@ pub(crate) mod dev_class_name;
 pub mod evaluate_stylex_create_arg;
 pub(crate) mod flat_map_expanded_shorthands;
 pub(crate) mod flatten_raw_style_object;
-pub(crate) mod js_to_expr;
+pub(crate) mod js_to_ast;
 pub(crate) mod make_string_expression;
 pub(crate) mod member_expression;
 pub(crate) mod parse_nullable_style;

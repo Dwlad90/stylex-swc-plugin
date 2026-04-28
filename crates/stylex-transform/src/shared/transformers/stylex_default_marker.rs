@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 
 use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
-  utils::core::js_to_expr::NestedStringObject,
+  utils::core::js_to_ast::NestedStringObject,
 };
 use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_structures::stylex_state_options::StyleXStateOptions;
@@ -43,5 +43,5 @@ pub(crate) fn stylex_default_marker(options: &StyleXStateOptions) -> NestedStrin
 }
 
 #[cfg(test)]
-#[path = "../../tests/stylex_default_maker_tests.rs"]
+#[path = "../../tests/stylex_default_marker_tests.rs"]
 mod tests;

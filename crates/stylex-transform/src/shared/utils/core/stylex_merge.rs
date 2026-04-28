@@ -17,7 +17,7 @@ use crate::shared::{
     state_manager::{ImportKind, StateManager},
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
-  transformers::stylex_default_maker,
+  transformers::stylex_default_marker,
   utils::{
     ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
     common::{reduce_ident_count, reduce_member_expression_count},
@@ -48,7 +48,7 @@ pub(crate) fn stylex_merge(
 
   if let Some(set) = state.get_stylex_api_import(ImportKind::DefaultMarker) {
     for name in set {
-      let values = match stylex_default_maker::stylex_default_marker(&state.options).as_values() {
+      let values = match stylex_default_marker::stylex_default_marker(&state.options).as_values() {
         Some(v) => v.clone(),
         None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
       };
@@ -67,7 +67,7 @@ pub(crate) fn stylex_merge(
       None => stylex_panic!("Could not resolve the member expression for the import."),
     };
 
-    let values = match stylex_default_maker::stylex_default_marker(&state.options).as_values() {
+    let values = match stylex_default_marker::stylex_default_marker(&state.options).as_values() {
       Some(v) => v.clone(),
       None => stylex_panic!("{}", EXPECTED_COMPILED_STYLES),
     };

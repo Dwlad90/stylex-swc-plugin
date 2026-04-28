@@ -15,6 +15,7 @@ This implementation provides a complete parsing API with:
 */
 
 use log::debug;
+use rustc_hash::FxHashSet;
 use stylex_macros::stylex_unreachable;
 
 use crate::{
@@ -1064,7 +1065,7 @@ impl<T: Clone + Debug + 'static> SetOfParsers<T> {
       move |tokens| {
         let start_index = tokens.current_index;
         let mut results = vec![None; parsers.len()];
-        let mut used_indices = std::collections::HashSet::new();
+        let mut used_indices = FxHashSet::default();
         let mut errors = Vec::new();
 
         // Try to match each position in order, but parsers can match in any order
@@ -1153,7 +1154,7 @@ impl<T: Clone + Debug + 'static> SetOfParsers<T> {
       move |tokens| {
         let start_index = tokens.current_index;
         let mut results = vec![None; parsers.len()];
-        let mut used_indices = std::collections::HashSet::new();
+        let mut used_indices = FxHashSet::default();
         let mut errors = Vec::new();
 
         // Try to match each position in order, but parsers can match in any order

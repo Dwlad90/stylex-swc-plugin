@@ -1,19 +1,27 @@
+use std::borrow::Cow;
+
 use stylex_constants::constants::logical_to_ltr::{INLINE_PROPERTY_TO_LTR, PROPERTY_TO_LTR};
 use stylex_enums::style_resolution::StyleResolution;
-use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
+use stylex_structures::{
+  pair::{Pair, PairCow},
+  stylex_state_options::StyleXStateOptions,
+};
 
-pub fn generate_ltr(pair: &Pair, options: &StyleXStateOptions) -> Pair {
+pub fn generate_ltr<'a>(pair: &'a Pair, options: &StyleXStateOptions) -> PairCow<'a> {
   let enable_logical_styles_polyfill = options.enable_logical_styles_polyfill;
   let style_resolution = &options.style_resolution;
   let key = pair.key.as_str();
 
   if style_resolution == &StyleResolution::LegacyExpandShorthands {
     if !enable_logical_styles_polyfill {
-      return pair.clone();
+      return PairCow::borrowed(pair);
     }
 
-    if let Some(inline_to_ltr_value) = INLINE_PROPERTY_TO_LTR.get(key) {
-      return Pair::new(inline_to_ltr_value.to_string(), pair.value.clone());
+    if let Some(&inline_to_ltr_value) = INLINE_PROPERTY_TO_LTR.get(key) {
+      return PairCow {
+        key: Cow::Borrowed(inline_to_ltr_value),
+        value: Cow::Borrowed(pair.value.as_str()),
+      };
     }
   }
 
@@ -28,7 +36,7 @@ fn logical_to_physical_ltr(input: &str) -> Option<&str> {
   }
 }
 
-fn property_to_ltr(pair: &Pair) -> Pair {
+fn property_to_ltr(pair: &Pair) -> PairCow<'_> {
   match pair.key.as_str() {
     "background-position" => {
       let new_val = pair
@@ -41,16 +49,25 @@ fn property_to_ltr(pair: &Pair) -> Pair {
         })
         .collect::<Vec<_>>()
         .join(" ");
-      Pair::new(pair.key.clone(), new_val)
+      PairCow {
+        key: Cow::Borrowed(pair.key.as_str()),
+        value: Cow::Owned(new_val),
+      }
     },
     "float" | "clear" => logical_to_physical_ltr(pair.value.as_str())
-      .map(|value| Pair::new(pair.key.clone(), value.to_string()))
-      .unwrap_or_else(|| Pair::new(pair.key.clone(), pair.value.clone())),
+      .map(|value| PairCow {
+        key: Cow::Borrowed(pair.key.as_str()),
+        value: Cow::Borrowed(value),
+      })
+      .unwrap_or_else(|| PairCow::borrowed(pair)),
     k => {
       if let Some(&physical) = PROPERTY_TO_LTR.get(k) {
-        Pair::new(physical.to_string(), pair.value.clone())
+        PairCow {
+          key: Cow::Borrowed(physical),
+          value: Cow::Borrowed(pair.value.as_str()),
+        }
       } else {
-        Pair::new(pair.key.clone(), pair.value.clone())
+        PairCow::borrowed(pair)
       }
     },
   }

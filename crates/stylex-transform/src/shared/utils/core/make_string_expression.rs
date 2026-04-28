@@ -16,7 +16,7 @@ use crate::shared::{
 };
 use stylex_ast::ast::factories::create_object_expression;
 
-use super::{js_to_expr::convert_object_to_ast, parse_nullable_style::ResolvedArg};
+use super::{js_to_ast::convert_object_to_ast, parse_nullable_style::ResolvedArg};
 
 fn fn_result_to_expression(fn_result: FnResult) -> Option<Expr> {
   match fn_result {

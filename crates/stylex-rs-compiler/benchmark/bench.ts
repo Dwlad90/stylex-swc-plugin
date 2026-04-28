@@ -7,6 +7,7 @@ import os from 'os';
 import chalk from 'chalk';
 
 const BENCHMARK_CONFIG: BenchOptions = {
+  retainSamples: true,
   warmup: true,
 };
 
@@ -88,10 +89,40 @@ function formatBenchmarkSummary(task: Task): string {
     maximumFractionDigits: 2,
   });
 
+  const median = formatLatency(result.latency.p50);
+  const p95 = formatLatency(percentile(result.latency.samples, 95));
   const rme = result.latency.rme.toFixed(2);
-  const samples = result.latency?.samples?.length ?? 0;
+  const samples = result.latency.samplesCount;
 
-  return `${name} x ${opsPerSec} ops/sec ±${rme}% (${samples} runs sampled)`;
+  return `${name}: median ${median}, p95 ${p95}, ${opsPerSec} ops/sec ±${rme}% (${samples} runs sampled)`;
+}
+
+function percentile(samples: readonly number[] | undefined, percentile: number): number {
+  if (!samples || samples.length === 0) return Number.NaN;
+
+  const index = Math.min(samples.length - 1, Math.ceil((percentile / 100) * samples.length) - 1);
+  return samples[index] ?? Number.NaN;
+}
+
+function formatLatency(milliseconds: number): string {
+  if (!Number.isFinite(milliseconds)) return 'n/a';
+
+  const nanoseconds = milliseconds * 1_000_000;
+  if (nanoseconds >= 1_000_000) {
+    return `${(nanoseconds / 1_000_000).toLocaleString('en-US', {
+      maximumFractionDigits: 2,
+    })} ms`;
+  }
+
+  if (nanoseconds >= 1_000) {
+    return `${(nanoseconds / 1_000).toLocaleString('en-US', {
+      maximumFractionDigits: 2,
+    })} µs`;
+  }
+
+  return `${nanoseconds.toLocaleString('en-US', {
+    maximumFractionDigits: 0,
+  })} ns`;
 }
 
 function getSystemInfo(): string {

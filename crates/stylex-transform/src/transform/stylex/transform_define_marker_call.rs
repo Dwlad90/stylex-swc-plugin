@@ -14,7 +14,7 @@ use crate::{
     enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
     utils::{
       common::gen_file_based_identifier,
-      core::js_to_expr::{NestedStringObject, convert_object_to_ast},
+      core::js_to_ast::{NestedStringObject, convert_object_to_ast},
       validators::{is_define_marker_call, validate_stylex_define_marker_indent},
     },
   },

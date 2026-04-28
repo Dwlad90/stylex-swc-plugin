@@ -42,8 +42,13 @@ stylex_types = { path = "../stylex-types" }
 stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
+criterion.workspace = true
 ctor.workspace = true
 pretty_env_logger.workspace = true
+
+[[bench]]
+name = "css_generation_bench"
+harness = false
 
 [lints]
 workspace = true

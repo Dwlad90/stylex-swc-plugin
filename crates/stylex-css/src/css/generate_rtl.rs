@@ -5,7 +5,10 @@ use stylex_constants::constants::{
 };
 use stylex_enums::style_resolution::StyleResolution;
 use stylex_regex::regex::LENGTH_UNIT_TESTER_REGEX;
-use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
+use stylex_structures::{
+  pair::{Pair, PairCow},
+  stylex_state_options::StyleXStateOptions,
+};
 
 fn logical_to_physical_rtl(input: &str) -> Option<Cow<'_, str>> {
   match input {
@@ -15,14 +18,19 @@ fn logical_to_physical_rtl(input: &str) -> Option<Cow<'_, str>> {
   }
 }
 
-fn property_to_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<Pair> {
+fn property_to_rtl<'a>(pair: &'a Pair, options: &StyleXStateOptions) -> Option<PairCow<'a>> {
   if let Some(&ltr_key) = LOGICAL_TO_RTL.get(pair.key.as_str()) {
-    return Some(Pair::new(ltr_key.to_string(), pair.value.clone()));
+    return Some(PairCow {
+      key: Cow::Borrowed(ltr_key),
+      value: Cow::Borrowed(pair.value.as_str()),
+    });
   }
 
   match pair.key.as_str() {
-    "float" | "clear" => logical_to_physical_rtl(pair.value.as_str())
-      .map(|value| Pair::new(pair.key.clone(), value.to_string())),
+    "float" | "clear" => logical_to_physical_rtl(pair.value.as_str()).map(|value| PairCow {
+      key: Cow::Borrowed(pair.key.as_str()),
+      value,
+    }),
     "background-position" => {
       let new_val = pair
         .value
@@ -34,22 +42,26 @@ fn property_to_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<Pair> {
         })
         .collect::<Vec<_>>()
         .join(" ");
-      Some(Pair::new(pair.key.clone(), new_val))
+      Some(PairCow {
+        key: Cow::Borrowed(pair.key.as_str()),
+        value: Cow::Owned(new_val),
+      })
     },
     "cursor" => {
       if !options.enable_legacy_value_flipping {
         return None;
       }
 
-      CURSOR_FLIP
-        .get(pair.value.as_str())
-        .map(|val| Pair::new(pair.key.clone(), val.to_string()))
+      CURSOR_FLIP.get(pair.value.as_str()).map(|&val| PairCow {
+        key: Cow::Borrowed(pair.key.as_str()),
+        value: Cow::Borrowed(val),
+      })
     },
     _ => shadows_flip(pair.key.as_str(), pair.value.as_str(), options),
   }
 }
 
-pub fn generate_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<Pair> {
+pub fn generate_rtl<'a>(pair: &'a Pair, options: &StyleXStateOptions) -> Option<PairCow<'a>> {
   let enable_logical_styles_polyfill = options.enable_logical_styles_polyfill;
   let style_resolution = &options.style_resolution;
   let key = pair.key.as_str();
@@ -58,18 +70,18 @@ pub fn generate_rtl(pair: &Pair, options: &StyleXStateOptions) -> Option<Pair> {
     if !enable_logical_styles_polyfill {
       return None;
     }
-    if let Some(inline_to_rtl_value) = INLINE_TO_RTL.get(key) {
-      return Some(Pair::new(
-        inline_to_rtl_value.to_string(),
-        pair.value.clone(),
-      ));
+    if let Some(&inline_to_rtl_value) = INLINE_TO_RTL.get(key) {
+      return Some(PairCow {
+        key: Cow::Borrowed(inline_to_rtl_value),
+        value: Cow::Borrowed(pair.value.as_str()),
+      });
     }
   }
 
   property_to_rtl(pair, options)
 }
 
-fn shadows_flip(key: &str, val: &str, options: &StyleXStateOptions) -> Option<Pair> {
+fn shadows_flip<'a>(key: &'a str, val: &str, options: &StyleXStateOptions) -> Option<PairCow<'a>> {
   match key {
     "box-shadow" | "text-shadow" => {
       if !options.enable_legacy_value_flipping {
@@ -77,7 +89,10 @@ fn shadows_flip(key: &str, val: &str, options: &StyleXStateOptions) -> Option<Pa
       }
 
       let rtl_val = flip_shadow(val);
-      rtl_val.map(|rtl_val| Pair::new(key.to_string(), rtl_val.to_string()))
+      rtl_val.map(|rtl_val| PairCow {
+        key: Cow::Borrowed(key),
+        value: Cow::Owned(rtl_val),
+      })
     },
     _ => None,
   }

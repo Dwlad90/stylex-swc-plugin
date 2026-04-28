@@ -2949,6 +2949,7 @@ dependencies = [
 name = "stylex_css"
 version = "0.15.5"
 dependencies = [
+ "criterion",
  "cssparser",
  "ctor",
  "fancy-regex",
@@ -3137,6 +3138,7 @@ version = "0.15.5"
 dependencies = [
  "anyhow",
  "base62",
+ "criterion",
  "cssparser",
  "ctor",
  "derive_more",

@@ -97,18 +97,17 @@ pub(crate) fn stylex_position_try(
         }
       };
 
-      let ltr_values = generate_ltr(
-        &Pair {
-          key: tuple.0.clone(),
-          value: convert_lit_to_string(match tuple.1.clone().as_lit() {
-            Some(lit) => lit,
-            #[cfg_attr(coverage_nightly, coverage(off))]
-            None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
-          })
-          .unwrap_or_default(),
-        },
-        &options,
-      );
+      let pair = Pair {
+        key: tuple.0.clone(),
+        value: convert_lit_to_string(match tuple.1.clone().as_lit() {
+          Some(lit) => lit,
+          #[cfg_attr(coverage_nightly, coverage(off))]
+          None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
+        })
+        .unwrap_or_default(),
+      };
+
+      let ltr_values = generate_ltr(&pair, &options).into_owned();
 
       Rc::new(FlatCompiledStylesValue::KeyValue(ltr_values))
     },
@@ -134,16 +133,15 @@ pub(crate) fn stylex_position_try(
 
       let key = tuple.0.clone();
 
-      let rtl_values = generate_rtl(
-        &Pair {
-          key: key.clone(),
-          value: value.clone(),
-        },
-        &options,
-      );
+      let pair = Pair {
+        key: key.clone(),
+        value: value.clone(),
+      };
+
+      let rtl_values = generate_rtl(&pair, &options);
 
       match rtl_values {
-        Some(rtl_value) => Rc::new(FlatCompiledStylesValue::KeyValue(rtl_value)),
+        Some(rtl_value) => Rc::new(FlatCompiledStylesValue::KeyValue(rtl_value.into_owned())),
         None => Rc::new(FlatCompiledStylesValue::KeyValue(Pair { key, value })),
       }
     },

@@ -23,10 +23,11 @@ fn border_radius_benchmarks(c: &mut Criterion) {
     "1em 2em 3em 4em / 0.5em 1.5em 2.5em 3.5em",
   ];
 
-  for input in &border_radius_inputs {
+  for (index, input) in border_radius_inputs.iter().enumerate() {
     group.bench_with_input(
       format!(
-        "individual_border_radius_{}",
+        "individual_border_radius_{}_{}",
+        index,
         input.replace([' ', '/'], "_")
       ),
       input,
@@ -39,7 +40,11 @@ fn border_radius_benchmarks(c: &mut Criterion) {
     );
 
     group.bench_with_input(
-      format!("shorthand_border_radius_{}", input.replace([' ', '/'], "_")),
+      format!(
+        "shorthand_border_radius_{}_{}",
+        index,
+        input.replace([' ', '/'], "_")
+      ),
       input,
       |b, input| {
         b.iter(|| {
@@ -67,9 +72,9 @@ fn box_shadow_benchmarks(c: &mut Criterion) {
     "inset 0 1px 3px rgba(0,0,0,0.3), 0 1px rgba(255,255,255,0.1)",
   ];
 
-  for input in &box_shadow_inputs {
+  for (index, input) in box_shadow_inputs.iter().enumerate() {
     group.bench_with_input(
-      format!("single_box_shadow_{}", input.len()),
+      format!("single_box_shadow_{}_{}", index, input.len()),
       input,
       |b, input| {
         b.iter(|| {
@@ -80,7 +85,7 @@ fn box_shadow_benchmarks(c: &mut Criterion) {
     );
 
     group.bench_with_input(
-      format!("box_shadow_list_{}", input.len()),
+      format!("box_shadow_list_{}_{}", index, input.len()),
       input,
       |b, input| {
         b.iter(|| {
@@ -122,9 +127,13 @@ fn transform_benchmarks(c: &mut Criterion) {
     "matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,10,20,30,1)",
   ];
 
-  for input in &transform_inputs {
+  for (index, input) in transform_inputs.iter().enumerate() {
     group.bench_with_input(
-      format!("transform_{}", input.split('(').next().unwrap_or("unknown")),
+      format!(
+        "transform_{}_{}",
+        index,
+        input.split('(').next().unwrap_or("unknown")
+      ),
       input,
       |b, input| {
         b.iter(|| {

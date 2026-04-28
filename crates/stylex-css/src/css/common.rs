@@ -115,15 +115,15 @@ pub fn generate_css_rule(
     pairs.push(Pair::new(key.to_string(), value.clone()));
   }
 
-  let ltr_pairs: Vec<Pair> = pairs
+  let ltr_pairs = pairs
     .iter()
     .map(|pair| generate_ltr(pair, options))
-    .collect::<Vec<Pair>>();
+    .collect::<Vec<_>>();
 
-  let rtl_pairs: Vec<Pair> = pairs
+  let rtl_pairs = pairs
     .iter()
     .filter_map(|pair| generate_rtl(pair, options))
-    .collect::<Vec<Pair>>();
+    .collect::<Vec<_>>();
 
   let ltr_decls = ltr_pairs
     .iter()

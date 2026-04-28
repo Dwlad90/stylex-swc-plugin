@@ -1,6 +1,6 @@
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::utils::core::js_to_expr::NestedStringObject;
+use crate::shared::utils::core::js_to_ast::NestedStringObject;
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum FnResult {

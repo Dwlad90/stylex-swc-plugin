@@ -64,6 +64,7 @@ swc_core = { workspace = true, features = [
 swc_ecma_parser = { workspace = true, features = ["verify"] }
 
 [dev-dependencies]
+criterion.workspace = true
 insta = { workspace = true, features = ["yaml"] }
 swc_core = { workspace = true, features = [
   "ecma_parser",
@@ -71,6 +72,10 @@ swc_core = { workspace = true, features = [
   "testing_transform",
 ] }
 testing.workspace = true
+
+[[bench]]
+name = "evaluate_bench"
+harness = false
 
 [lints]
 workspace = true

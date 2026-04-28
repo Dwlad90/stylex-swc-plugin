@@ -103,7 +103,7 @@ pub(crate) fn stylex_keyframes(
 
       let ltr_values = pairs
         .iter()
-        .map(|pair| generate_ltr(pair, &options))
+        .map(|pair| generate_ltr(pair, &options).into_owned())
         .collect();
 
       Rc::new(FlatCompiledStylesValue::KeyValues(ltr_values))
@@ -123,7 +123,7 @@ pub(crate) fn stylex_keyframes(
 
       let ltr_values = pairs
         .iter()
-        .map(|pair| generate_ltr(pair, &Default::default()))
+        .map(|pair| generate_ltr(pair, &Default::default()).into_owned())
         .collect();
 
       Rc::new(FlatCompiledStylesValue::KeyValues(ltr_values))
@@ -145,7 +145,11 @@ pub(crate) fn stylex_keyframes(
 
       let rtl_values = pairs
         .iter()
-        .map(|pair| generate_rtl(pair, &options).unwrap_or_else(|| pair.clone()))
+        .map(|pair| {
+          generate_rtl(pair, &options)
+            .map(|pair| pair.into_owned())
+            .unwrap_or_else(|| pair.clone())
+        })
         .collect();
 
       Rc::new(FlatCompiledStylesValue::KeyValues(rtl_values))

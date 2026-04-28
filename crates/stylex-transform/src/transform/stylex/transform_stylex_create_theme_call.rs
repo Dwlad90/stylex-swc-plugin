@@ -22,7 +22,7 @@ use crate::{
     utils::{
       core::{
         dev_class_name::{convert_theme_to_dev_styles, convert_theme_to_test_styles},
-        js_to_expr::{NestedStringObject, convert_object_to_ast},
+        js_to_ast::{NestedStringObject, convert_object_to_ast},
       },
       js::evaluate::evaluate,
       log::build_code_frame_error::build_code_frame_error,

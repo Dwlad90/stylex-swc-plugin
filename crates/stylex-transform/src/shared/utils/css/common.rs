@@ -51,7 +51,7 @@ pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> S
 }
 
 pub(crate) fn transform_value_cached(key: &str, value: &str, state: &mut StateManager) -> String {
-  let cache_key: String = format!("{}:{}", key, value);
+  let cache_key = format!("{}:{}", key, value);
 
   let cache = state.css_property_seen.get(&cache_key);
 

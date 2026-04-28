@@ -30,7 +30,7 @@ use crate::{
       },
     },
     transformers::{
-      stylex_create::stylex_create_set, stylex_default_maker,
+      stylex_create::stylex_create_set, stylex_default_marker,
       stylex_first_that_works::stylex_first_that_works, stylex_keyframes::get_keyframes_fn,
       stylex_position_try::get_position_try_fn,
     },
@@ -47,7 +47,7 @@ use crate::{
         dev_class_name::{convert_to_test_styles, inject_dev_class_names},
         evaluate_stylex_create_arg::evaluate_stylex_create_arg,
         flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-        js_to_expr::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
+        js_to_ast::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
       },
       log::build_code_frame_error::{build_code_frame_error, build_code_frame_error_and_panic},
       validators::{is_create_call, validate_stylex_create},
@@ -246,7 +246,7 @@ where
           identifiers.insert(
             name.clone(),
             Box::new(FunctionConfigType::IndexMap(
-              stylex_default_maker::stylex_default_marker(&self.state.options)
+              stylex_default_marker::stylex_default_marker(&self.state.options)
                 .as_values()
                 .unwrap_or_else(|| stylex_panic!("{}", EXPECTED_COMPILED_STYLES))
                 .clone(),
@@ -294,7 +294,7 @@ where
         member_expression.insert(
           "defaultMarker".into(),
           Box::new(FunctionConfigType::IndexMap(
-            stylex_default_maker::stylex_default_marker(&self.state.options)
+            stylex_default_marker::stylex_default_marker(&self.state.options)
               .as_values()
               .unwrap_or_else(|| {
                 #[cfg_attr(coverage_nightly, coverage(off))]

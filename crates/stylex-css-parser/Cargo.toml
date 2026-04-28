@@ -37,8 +37,20 @@ thiserror.workspace = true
 stylex_macros = { path = "../stylex-macros" }
 
 [dev-dependencies]
-criterion = { version = "0.8", features = ["html_reports"] }
+criterion.workspace = true
 proptest = "1.11"
+
+[[bench]]
+name = "css_types_bench"
+harness = false
+
+[[bench]]
+name = "properties_bench"
+harness = false
+
+[[bench]]
+name = "token_parser_bench"
+harness = false
 
 [lints]
 workspace = true

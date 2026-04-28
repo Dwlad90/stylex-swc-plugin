@@ -9,7 +9,7 @@ use crate::{
       flat_compiled_styles_value::FlatCompiledStylesValue, fn_result::FnResult,
     },
     structures::types::FlatCompiledStyles,
-    utils::{core::js_to_expr::NestedStringObject, css::common::normalize_css_property_name},
+    utils::{core::js_to_ast::NestedStringObject, css::common::normalize_css_property_name},
   },
   transform::styleq::common::{StyleQResult, styleq},
 };

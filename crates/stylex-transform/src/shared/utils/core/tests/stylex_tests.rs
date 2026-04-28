@@ -19,7 +19,7 @@ mod tests {
       ast::convertors::{convert_lit_to_string, create_string_expr},
       core::{
         attrs::attrs,
-        js_to_expr::NestedStringObject,
+        js_to_ast::NestedStringObject,
         parse_nullable_style::{ResolvedArg, StyleObject},
         props::props,
         stylex::stylex,

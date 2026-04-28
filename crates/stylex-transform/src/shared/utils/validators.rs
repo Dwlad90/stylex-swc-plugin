@@ -12,7 +12,9 @@ use crate::shared::{
   utils::{
     ast::{convertors::create_string_expr, helpers::is_variable_named_exported},
     common::get_import_from,
-    log::build_code_frame_error::build_code_frame_error_and_panic,
+    log::build_code_frame_error::{
+      build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
+    },
   },
 };
 use stylex_ast::ast::factories::{create_expr_or_spread, create_key_value_prop_ident};
@@ -37,10 +39,101 @@ use super::{
   common::get_key_values_from_object,
 };
 
+fn validate_arg_count_for_expr(
+  wrapped_expr: &Expr,
+  call: &CallExpr,
+  expected: usize,
+  fn_name: &str,
+  state: &mut StateManager,
+) {
+  if call.args.len() != expected {
+    build_code_frame_error_and_panic_at(
+      wrapped_expr,
+      &illegal_argument_length(fn_name, expected),
+      state,
+    );
+  }
+}
+
+fn assert_first_arg_is_object(
+  wrapped_expr: &Expr,
+  call: &CallExpr,
+  fn_name: &str,
+  state: &mut StateManager,
+) {
+  let first_arg = &call.args[0];
+
+  if !first_arg.expr.is_object() {
+    build_code_frame_error_and_panic(
+      wrapped_expr,
+      &first_arg.expr,
+      &non_style_object(fn_name),
+      state,
+    );
+  }
+}
+
+fn validate_single_object_arg_indent(
+  var_decl: &VarDeclarator,
+  fn_name: &str,
+  state: &mut StateManager,
+) {
+  let init_expr = match var_decl.init.as_deref() {
+    Some(init) => init,
+    #[cfg_attr(coverage_nightly, coverage(off))]
+    None => stylex_panic!("{}", non_static_value(fn_name)),
+  };
+
+  let init_call = init_expr.as_call().unwrap_or_else(|| {
+    build_code_frame_error_and_panic_at(init_expr, &non_static_value(fn_name), state);
+  });
+
+  if state
+    .find_top_level_expr(init_call, |_| false, None)
+    .is_none()
+  {
+    build_code_frame_error_and_panic_at(init_expr, &unbound_call_value(fn_name), state);
+  }
+
+  validate_arg_count_for_expr(init_expr, init_call, 1, fn_name, state);
+  assert_first_arg_is_object(init_expr, init_call, fn_name, state);
+}
+
+fn is_var_decl_target_call(
+  var_decl: &VarDeclarator,
+  state: &StateManager,
+  call_name: &str,
+  kind: ImportKind,
+) -> bool {
+  var_decl
+    .init
+    .as_deref()
+    .and_then(Expr::as_call)
+    .is_some_and(|call| is_target_call((call_name, state.get_stylex_api_import(kind)), call, state))
+}
+
+macro_rules! stylex_call_predicate {
+  ($name:ident, $api_name:expr, $kind:expr) => {
+    pub(crate) fn $name(call: &CallExpr, state: &StateManager) -> bool {
+      is_target_call(($api_name, state.get_stylex_api_import($kind)), call, state)
+    }
+  };
+}
+
+macro_rules! stylex_var_decl_call_predicate {
+  ($name:ident, $api_name:expr, $kind:expr) => {
+    pub(crate) fn $name(var_decl: &VarDeclarator, state: &StateManager) -> bool {
+      is_var_decl_target_call(var_decl, state, $api_name, $kind)
+    }
+  };
+}
+
 pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) {
   if !is_create_call(call, state) {
     return;
   }
+
+  let call_expr = Expr::Call(call.clone());
 
   if state.find_call_declaration(call).is_none()
     && state
@@ -51,33 +144,13 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
       )
       .is_none()
   {
-    build_code_frame_error_and_panic(
-      &Expr::Call(call.clone()),
-      &Expr::Call(call.clone()),
-      &unbound_call_value(STYLEX_CREATE),
-      state,
-    );
+    build_code_frame_error_and_panic_at(&call_expr, &unbound_call_value(STYLEX_CREATE), state);
   }
 
-  if call.args.len() != 1 {
-    build_code_frame_error_and_panic(
-      &Expr::Call(call.clone()),
-      &Expr::Call(call.clone()),
-      &illegal_argument_length(STYLEX_CREATE, 1),
-      state,
-    );
-  }
+  validate_arg_count_for_expr(&call_expr, call, 1, STYLEX_CREATE, state);
+  assert_first_arg_is_object(&call_expr, call, STYLEX_CREATE, state);
 
   let first_arg = &call.args[0];
-  if !first_arg.expr.is_object() {
-    build_code_frame_error_and_panic(
-      &Expr::Call(call.clone()),
-      &first_arg.expr,
-      &non_style_object(STYLEX_CREATE),
-      state,
-    );
-  }
-
   let has_spread = if let Expr::Object(obj) = first_arg.expr.as_ref() {
     obj
       .props
@@ -88,12 +161,7 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
   };
 
   if has_spread {
-    build_code_frame_error_and_panic(
-      &Expr::Call(call.clone()),
-      &first_arg.expr,
-      NO_OBJECT_SPREADS,
-      state,
-    );
+    build_code_frame_error_and_panic(&call_expr, &first_arg.expr, NO_OBJECT_SPREADS, state);
   }
 }
 
@@ -102,49 +170,7 @@ pub(crate) fn validate_stylex_keyframes_indent(var_decl: &VarDeclarator, state: 
     return;
   }
 
-  let init_expr = match &var_decl.init {
-    Some(init) => init.clone(),
-    #[cfg_attr(coverage_nightly, coverage(off))]
-    None => stylex_panic!("{}", non_static_value(STYLEX_KEYFRAMES)),
-  };
-
-  let init_call = init_expr.as_call().unwrap_or_else(|| {
-    build_code_frame_error_and_panic(
-      &init_expr,
-      &init_expr,
-      &non_static_value(STYLEX_KEYFRAMES),
-      state,
-    );
-  });
-
-  match state.find_top_level_expr(init_call, |_| false, None) {
-    Some(_) => {},
-    None => build_code_frame_error_and_panic(
-      &init_expr,
-      &init_expr,
-      &unbound_call_value(STYLEX_KEYFRAMES),
-      state,
-    ),
-  }
-
-  if init_call.args.len() != 1 {
-    build_code_frame_error_and_panic(
-      &init_expr,
-      &init_expr,
-      &illegal_argument_length(STYLEX_KEYFRAMES, 1),
-      state,
-    );
-  }
-
-  let first_arg: &_ = &init_call.args[0];
-  if !first_arg.expr.is_object() {
-    build_code_frame_error_and_panic(
-      &init_expr,
-      &first_arg.expr,
-      &non_style_object(STYLEX_KEYFRAMES),
-      state,
-    );
-  }
+  validate_single_object_arg_indent(var_decl, STYLEX_KEYFRAMES, state);
 }
 
 pub(crate) fn validate_stylex_position_try_indent(
@@ -155,49 +181,7 @@ pub(crate) fn validate_stylex_position_try_indent(
     return;
   }
 
-  let init_expr = match &var_decl.init {
-    Some(init) => init.clone(),
-    #[cfg_attr(coverage_nightly, coverage(off))]
-    None => stylex_panic!("{}", non_static_value(STYLEX_POSITION_TRY)),
-  };
-
-  let init_call = init_expr.as_call().unwrap_or_else(|| {
-    build_code_frame_error_and_panic(
-      &init_expr,
-      &init_expr,
-      &non_static_value(STYLEX_POSITION_TRY),
-      state,
-    );
-  });
-
-  match state.find_top_level_expr(init_call, |_| false, None) {
-    Some(_) => {},
-    None => build_code_frame_error_and_panic(
-      &init_expr,
-      &init_expr,
-      &unbound_call_value(STYLEX_POSITION_TRY),
-      state,
-    ),
-  }
-
-  if init_call.args.len() != 1 {
-    build_code_frame_error_and_panic(
-      &init_expr,
-      &init_expr,
-      &illegal_argument_length(STYLEX_POSITION_TRY, 1),
-      state,
-    );
-  }
-
-  let first_arg: &_ = &init_call.args[0];
-  if !first_arg.expr.is_object() {
-    build_code_frame_error_and_panic(
-      &init_expr,
-      &first_arg.expr,
-      &non_style_object(STYLEX_POSITION_TRY),
-      state,
-    );
-  }
+  validate_single_object_arg_indent(var_decl, STYLEX_POSITION_TRY, state);
 }
 
 pub(crate) fn validate_stylex_default_marker_indent(call: &CallExpr, state: &mut StateManager) {
@@ -208,9 +192,8 @@ pub(crate) fn validate_stylex_default_marker_indent(call: &CallExpr, state: &mut
   let call_expr = Expr::from(call.clone());
 
   if !call.args.is_empty() {
-    build_code_frame_error_and_panic(
+    build_code_frame_error_and_panic_at(
       &call_expr,
-      &Box::new(call_expr.clone()),
       &illegal_argument_length(STYLEX_DEFAULT_MARKER, 1),
       state,
     );
@@ -225,49 +208,7 @@ pub(crate) fn validate_stylex_view_transition_class_indent(
     return;
   }
 
-  let init_expr = match &var_decl.init {
-    Some(init) => init.clone(),
-    #[cfg_attr(coverage_nightly, coverage(off))]
-    None => stylex_panic!("{}", non_static_value(STYLEX_VIEW_TRANSITION_CLASS)),
-  };
-
-  let init_call = init_expr.as_call().unwrap_or_else(|| {
-    build_code_frame_error_and_panic(
-      &init_expr,
-      &init_expr,
-      &non_static_value(STYLEX_VIEW_TRANSITION_CLASS),
-      state,
-    );
-  });
-
-  match state.find_top_level_expr(init_call, |_| false, None) {
-    Some(_) => {},
-    None => build_code_frame_error_and_panic(
-      &init_expr,
-      &init_expr,
-      &unbound_call_value(STYLEX_VIEW_TRANSITION_CLASS),
-      state,
-    ),
-  }
-
-  if init_call.args.len() != 1 {
-    build_code_frame_error_and_panic(
-      &init_expr,
-      &init_expr,
-      &illegal_argument_length(STYLEX_VIEW_TRANSITION_CLASS, 1),
-      state,
-    );
-  }
-
-  let first_arg: &_ = &init_call.args[0];
-  if !first_arg.expr.is_object() {
-    build_code_frame_error_and_panic(
-      &init_expr,
-      &first_arg.expr,
-      &non_style_object(STYLEX_VIEW_TRANSITION_CLASS),
-      state,
-    );
-  }
+  validate_single_object_arg_indent(var_decl, STYLEX_VIEW_TRANSITION_CLASS, state);
 }
 
 pub(crate) fn validate_stylex_create_theme_indent(
@@ -279,19 +220,19 @@ pub(crate) fn validate_stylex_create_theme_indent(
     return;
   }
 
+  let call_expr = Expr::Call(call.clone());
+
   let var_decl = var_decl.as_ref().unwrap_or_else(|| {
-    build_code_frame_error_and_panic(
-      &Expr::Call(call.clone()),
-      &Expr::Call(call.clone()),
+    build_code_frame_error_and_panic_at(
+      &call_expr,
       &unbound_call_value(STYLEX_CREATE_THEME),
       state,
     );
   });
 
   let init_expr = var_decl.init.as_ref().unwrap_or_else(|| {
-    build_code_frame_error_and_panic(
-      &Expr::Call(call.clone()),
-      &Expr::Call(call.clone()),
+    build_code_frame_error_and_panic_at(
+      &call_expr,
       &unbound_call_value(STYLEX_CREATE_THEME),
       state,
     );
@@ -300,7 +241,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   let init = init_expr.as_call().unwrap_or_else(|| {
     build_code_frame_error_and_panic(
       init_expr,
-      &Expr::Call(call.clone()),
+      &call_expr,
       &non_static_value(STYLEX_CREATE_THEME),
       state,
     );
@@ -310,7 +251,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
     Some(_) => {},
     None => build_code_frame_error_and_panic(
       init_expr,
-      &Expr::Call(call.clone()),
+      &call_expr,
       &unbound_call_value(STYLEX_CREATE_THEME),
       state,
     ),
@@ -319,7 +260,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   if init.args.len() != 2 {
     build_code_frame_error_and_panic(
       init_expr,
-      &Expr::Call(call.clone()),
+      &call_expr,
       &illegal_argument_length(STYLEX_CREATE_THEME, 1),
       state,
     );
@@ -336,7 +277,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   if !is_valid_second_arg {
     build_code_frame_error_and_panic(
       init_expr,
-      &Expr::Call(call.clone()),
+      &call_expr,
       NON_STATIC_SECOND_ARG_CREATE_THEME_VALUE,
       state,
     );
@@ -383,8 +324,7 @@ pub(crate) fn find_and_validate_stylex_define_vars(
   }
 
   if !is_variable_named_exported(stylex_create_theme_top_level_expr, state) {
-    build_code_frame_error_and_panic(
-      &call_expr,
+    build_code_frame_error_and_panic_at(
       &call_expr,
       &non_export_named_declaration(STYLEX_DEFINE_VARS),
       state,
@@ -402,9 +342,8 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
   let call_expr = Expr::from(call.clone());
 
   if !call.args.is_empty() {
-    build_code_frame_error_and_panic(
+    build_code_frame_error_and_panic_at(
       &call_expr,
-      &Box::new(call_expr.clone()),
       &illegal_argument_length(STYLEX_DEFINE_MARKER, 0),
       state,
     );
@@ -426,8 +365,7 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
   };
 
   if !is_variable_named_exported(define_marker_top_level_expr, state) {
-    build_code_frame_error_and_panic(
-      &call_expr,
+    build_code_frame_error_and_panic_at(
       &call_expr,
       &non_export_named_declaration(STYLEX_DEFINE_MARKER),
       state,
@@ -475,8 +413,7 @@ pub(crate) fn find_and_validate_stylex_define_consts(
   }
 
   if !is_variable_named_exported(define_consts_top_level_expr, state) {
-    build_code_frame_error_and_panic(
-      &call_expr,
+    build_code_frame_error_and_panic_at(
       &call_expr,
       &non_export_named_declaration(STYLEX_DEFINE_CONSTS),
       state,
@@ -486,138 +423,46 @@ pub(crate) fn find_and_validate_stylex_define_consts(
   Some(define_consts_top_level_expr.clone())
 }
 
-pub(crate) fn is_create_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(
-    (
-      STYLEX_CREATE,
-      state.get_stylex_api_import(ImportKind::Create),
-    ),
-    call,
-    state,
-  )
-}
+stylex_call_predicate!(is_create_call, STYLEX_CREATE, ImportKind::Create);
+stylex_call_predicate!(is_props_call, STYLEX_PROPS, ImportKind::Props);
+stylex_call_predicate!(is_attrs_call, STYLEX_ATTRS, ImportKind::Attrs);
+stylex_var_decl_call_predicate!(is_keyframes_call, STYLEX_KEYFRAMES, ImportKind::Keyframes);
+stylex_var_decl_call_predicate!(
+  is_position_try_call,
+  STYLEX_POSITION_TRY,
+  ImportKind::PositionTry
+);
+stylex_call_predicate!(
+  is_default_marker_call,
+  STYLEX_DEFAULT_MARKER,
+  ImportKind::DefaultMarker
+);
+stylex_var_decl_call_predicate!(
+  is_view_transition_class_call,
+  STYLEX_VIEW_TRANSITION_CLASS,
+  ImportKind::ViewTransitionClass
+);
+stylex_call_predicate!(
+  is_create_theme_call,
+  STYLEX_CREATE_THEME,
+  ImportKind::CreateTheme
+);
+stylex_call_predicate!(
+  is_define_vars_call,
+  STYLEX_DEFINE_VARS,
+  ImportKind::DefineVars
+);
+stylex_call_predicate!(
+  is_define_consts_call,
+  STYLEX_DEFINE_CONSTS,
+  ImportKind::DefineConsts
+);
+stylex_call_predicate!(
+  is_define_marker_call,
+  STYLEX_DEFINE_MARKER,
+  ImportKind::DefineMarker
+);
 
-pub(crate) fn is_props_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(
-    (STYLEX_PROPS, state.get_stylex_api_import(ImportKind::Props)),
-    call,
-    state,
-  )
-}
-
-pub(crate) fn is_attrs_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(
-    (STYLEX_ATTRS, state.get_stylex_api_import(ImportKind::Attrs)),
-    call,
-    state,
-  )
-}
-
-pub(crate) fn is_keyframes_call(var_decl: &VarDeclarator, state: &StateManager) -> bool {
-  let init = var_decl.init.as_ref().and_then(|init| init.clone().call());
-
-  match init {
-    Some(call) => is_target_call(
-      (
-        STYLEX_KEYFRAMES,
-        state.get_stylex_api_import(ImportKind::Keyframes),
-      ),
-      &call,
-      state,
-    ),
-    _ => false,
-  }
-}
-
-pub(crate) fn is_position_try_call(var_decl: &VarDeclarator, state: &StateManager) -> bool {
-  let init = var_decl.init.as_ref().and_then(|init| init.clone().call());
-
-  match init {
-    Some(call) => is_target_call(
-      (
-        STYLEX_POSITION_TRY,
-        state.get_stylex_api_import(ImportKind::PositionTry),
-      ),
-      &call,
-      state,
-    ),
-    _ => false,
-  }
-}
-
-pub(crate) fn is_default_marker_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(
-    (
-      STYLEX_DEFAULT_MARKER,
-      state.get_stylex_api_import(ImportKind::DefaultMarker),
-    ),
-    call,
-    state,
-  )
-}
-
-pub(crate) fn is_view_transition_class_call(
-  var_decl: &VarDeclarator,
-  state: &StateManager,
-) -> bool {
-  let init = var_decl.init.as_ref().and_then(|init| init.clone().call());
-
-  match init {
-    Some(call) => is_target_call(
-      (
-        STYLEX_VIEW_TRANSITION_CLASS,
-        state.get_stylex_api_import(ImportKind::ViewTransitionClass),
-      ),
-      &call,
-      state,
-    ),
-    _ => false,
-  }
-}
-
-pub(crate) fn is_create_theme_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(
-    (
-      STYLEX_CREATE_THEME,
-      state.get_stylex_api_import(ImportKind::CreateTheme),
-    ),
-    call,
-    state,
-  )
-}
-
-pub(crate) fn is_define_vars_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(
-    (
-      STYLEX_DEFINE_VARS,
-      state.get_stylex_api_import(ImportKind::DefineVars),
-    ),
-    call,
-    state,
-  )
-}
-
-pub(crate) fn is_define_consts_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(
-    (
-      STYLEX_DEFINE_CONSTS,
-      state.get_stylex_api_import(ImportKind::DefineConsts),
-    ),
-    call,
-    state,
-  )
-}
-
-pub(crate) fn is_define_marker_call(call: &CallExpr, state: &StateManager) -> bool {
-  is_target_call(
-    (
-      STYLEX_DEFINE_MARKER,
-      state.get_stylex_api_import(ImportKind::DefineMarker),
-    ),
-    call,
-    state,
-  )
-}
 pub(crate) fn is_target_call(
   (call_name, imports_map): (&str, Option<&FxHashSet<Atom>>),
   call: &CallExpr,
@@ -637,14 +482,14 @@ pub(crate) fn is_target_call(
       member.obj.is_ident()
         && member.prop.as_ident().is_some_and(|ident| {
           ident.sym == call_name
-            && state.stylex_import_stringified().contains(
-              &match member.obj.as_ident() {
+            && state.is_stylex_namespace_import(
+              match member.obj.as_ident() {
                 Some(ident) => ident,
                 #[cfg_attr(coverage_nightly, coverage(off))]
                 None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
               }
               .sym
-              .to_string(),
+              .as_ref(),
             )
         })
     });
@@ -663,32 +508,24 @@ pub(crate) fn validate_namespace(
           lit,
           Lit::Str(_) | Lit::Null(_) | Lit::Num(_) | Lit::BigInt(_)
         ) {
-          build_code_frame_error_and_panic(
-            &Expr::Lit(lit.clone()),
-            &Expr::Lit(lit.clone()),
-            ILLEGAL_PROP_VALUE,
-            state,
-          );
+          let lit_expr = Expr::Lit(lit.clone());
+          build_code_frame_error_and_panic_at(&lit_expr, ILLEGAL_PROP_VALUE, state);
         }
       },
       Expr::Array(array) => {
         for elem in array.elems.iter().flatten() {
           if elem.spread.is_some() {
-            build_code_frame_error_and_panic(
-              &Expr::Array(array.clone()),
-              &Expr::Array(array.clone()),
+            let array_expr = Expr::Array(array.clone());
+            build_code_frame_error_and_panic_at(
+              &array_expr,
               "Spread operator not implemented",
               state,
             );
           }
 
           if !matches!(elem.expr.as_ref(), Expr::Lit(_)) {
-            build_code_frame_error_and_panic(
-              &Expr::Array(array.clone()),
-              &Expr::Array(array.clone()),
-              ILLEGAL_PROP_ARRAY_VALUE,
-              state,
-            );
+            let array_expr = Expr::Array(array.clone());
+            build_code_frame_error_and_panic_at(&array_expr, ILLEGAL_PROP_ARRAY_VALUE, state);
           }
         }
       },
@@ -697,12 +534,8 @@ pub(crate) fn validate_namespace(
 
         if key.starts_with('@') || key.starts_with(':') || key.starts_with('[') {
           if conditions.contains(&key) {
-            build_code_frame_error_and_panic(
-              &Expr::Object(object.clone()),
-              &Expr::Object(object.clone()),
-              DUPLICATE_CONDITIONAL,
-              state,
-            );
+            let object_expr = Expr::Object(object.clone());
+            build_code_frame_error_and_panic_at(&object_expr, DUPLICATE_CONDITIONAL, state);
           }
 
           let nested_key_values = get_key_values_from_object(object);
@@ -732,8 +565,7 @@ pub(crate) fn validate_dynamic_style_params(
   if params.iter().any(|param| !param.is_ident()) {
     let path_expr = Expr::Arrow(path.clone());
 
-    build_code_frame_error_and_panic(
-      &path_expr,
+    build_code_frame_error_and_panic_at(
       &path_expr,
       ONLY_NAMED_PARAMETERS_IN_DYNAMIC_STYLE_FUNCTIONS,
       state,
@@ -775,12 +607,10 @@ pub(crate) fn validate_conditional_styles(
       for elem in array.elems.iter().flatten() {
         match elem.expr.as_ref() {
           Expr::Lit(_) => {},
-          _ => build_code_frame_error_and_panic(
-            &Expr::Array(array.clone()),
-            &Expr::Array(array.clone()),
-            ILLEGAL_PROP_VALUE,
-            state,
-          ),
+          _ => {
+            let array_expr = Expr::Array(array.clone());
+            build_code_frame_error_and_panic_at(&array_expr, ILLEGAL_PROP_VALUE, state);
+          },
         }
       }
     },
@@ -795,7 +625,7 @@ pub(crate) fn validate_conditional_styles(
       }
     },
     Expr::Ident(_) => {},
-    _ => build_code_frame_error_and_panic(&inner_value, &inner_value, ILLEGAL_PROP_VALUE, state),
+    _ => build_code_frame_error_and_panic_at(&inner_value, ILLEGAL_PROP_VALUE, state),
   }
 }
 
@@ -809,13 +639,13 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue, state: &mut Stat
           match key_value.value.as_ref() {
             Expr::Object(_) => {},
             _ => {
-              build_code_frame_error_and_panic(expr, expr, NON_OBJECT_KEYFRAME, state);
+              build_code_frame_error_and_panic_at(expr, NON_OBJECT_KEYFRAME, state);
             },
           }
         }
       },
       _ => {
-        build_code_frame_error_and_panic(expr, expr, &non_style_object(STYLEX_KEYFRAMES), state);
+        build_code_frame_error_and_panic_at(expr, &non_style_object(STYLEX_KEYFRAMES), state);
       },
     },
     #[cfg_attr(coverage_nightly, coverage(off))]
@@ -837,7 +667,7 @@ pub(crate) fn assert_valid_properties(
     for key_value in key_values.iter() {
       let key = convert_key_value_to_str(key_value);
       if !valid_keys.contains(&key.as_str()) {
-        build_code_frame_error_and_panic(expr, expr, error_message, state);
+        build_code_frame_error_and_panic_at(expr, error_message, state);
       }
     }
   }
@@ -846,7 +676,7 @@ pub(crate) fn assert_valid_properties(
 fn assert_stylex_arg(value: &EvaluateResultValue, state: &mut StateManager, fn_name: &str) {
   if let EvaluateResultValue::Expr(expr) = value {
     if !expr.is_object() {
-      build_code_frame_error_and_panic(expr, expr, &non_style_object(fn_name), state);
+      build_code_frame_error_and_panic_at(expr, &non_style_object(fn_name), state);
     }
   } else {
     #[cfg_attr(coverage_nightly, coverage(off))]

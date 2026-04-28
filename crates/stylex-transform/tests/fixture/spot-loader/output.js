@@ -167,7 +167,7 @@ const styles = {
     size_small: {
         height: "height-xettwda",
         width: "width-xs5h3dt",
-        $$css: "tests/fixture/spot-loader/input.stylex.js:61"
+        $$css: "tests/fixture/spot-loader/input.stylex.js:49"
     },
     size_normal: {
         height: "height-x1sh0tsm",

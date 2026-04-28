@@ -279,6 +279,58 @@ impl StateManager {
       .any(|kind| self.has_stylex_api_import(*kind, sym))
   }
 
+  pub(crate) fn is_stylex_namespace_import(&self, ident_sym: &str) -> bool {
+    self
+      .stylex_import
+      .iter()
+      .any(|import_source| match import_source {
+        ImportSources::Regular(regular) => regular.as_str() == ident_sym,
+        ImportSources::Named(named) => named.r#as.as_str() == ident_sym,
+      })
+  }
+
+  pub(crate) fn is_stylex_import_for_kinds(&self, ident_sym: &str, kinds: &[ImportKind]) -> bool {
+    if self.is_stylex_namespace_import(ident_sym) {
+      return true;
+    }
+
+    self.any_stylex_api_import_contains(kinds, &Atom::from(ident_sym))
+  }
+
+  pub(crate) fn is_stylex_import_for_current_cycle(&self, ident_sym: &str) -> bool {
+    match self.cycle {
+      TransformationCycle::TransformEnter => {
+        use ImportKind::*;
+        self.is_stylex_import_for_kinds(
+          ident_sym,
+          &[
+            Create,
+            DefineVars,
+            DefineConsts,
+            DefineMarker,
+            CreateTheme,
+            PositionTry,
+            Keyframes,
+            FirstThatWorks,
+            Types,
+            DefaultMarker,
+            When,
+          ],
+        )
+      },
+      TransformationCycle::TransformExit => {
+        self.is_stylex_import_for_kinds(ident_sym, &[ImportKind::Attrs, ImportKind::Props])
+      },
+      _ => self.is_stylex_namespace_import(ident_sym),
+    }
+  }
+
+  pub(crate) fn are_imports_resolved(&self) -> bool {
+    self.styles_to_inject.is_empty()
+      || !self.stylex_import.is_empty()
+      || !self.stylex_api_imports.is_empty()
+  }
+
   /// Applies the `env` configuration to the given identifiers and
   /// member_expressions maps. This is the Rust equivalent of the JavaScript
   /// `applyStylexEnv` method.

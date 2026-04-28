@@ -47,24 +47,13 @@ where
         if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut()
           && let Some((declaration, member)) = self.process_declaration(call)
         {
-          let stylex_imports = self.state.stylex_import_stringified();
+          let declaration_name = declaration.0.as_str();
 
-          if let Some(declaration_string) = stylex_imports
-            .into_iter()
-            .find(|item| item.eq(declaration.0.as_str()))
-            .or_else(|| {
-              self
-                .state
-                .get_stylex_api_import(ImportKind::Create)
-                .and_then(|set| {
-                  set
-                    .iter()
-                    .find(|decl| decl.eq_ignore_span(&&declaration.0.clone()))
-                    .map(|decl| decl.to_string())
-                })
-            })
+          if self
+            .state
+            .is_stylex_import_for_kinds(declaration_name, &[ImportKind::Create])
             && self.state.cycle == TransformationCycle::StateFilling
-            && (member.as_str() == STYLEX_CREATE || member.eq(declaration_string.as_str()))
+            && (member.as_str() == STYLEX_CREATE || member == declaration_name)
           {
             self.props_declaration = var_declarator.name.as_ident().map(|ident| ident.to_id());
           }
@@ -76,17 +65,15 @@ where
         {
           let mut vars_to_keep: FxHashMap<Atom, NonNullProps> = FxHashMap::default();
 
-          for StyleVarsToKeep(var_name, namespace_name, _) in
-            self.state.style_vars_to_keep.clone().into_iter()
-          {
-            match vars_to_keep.entry(var_name) {
+          for StyleVarsToKeep(var_name, namespace_name, _) in self.state.style_vars_to_keep.iter() {
+            match vars_to_keep.entry(var_name.clone()) {
               Entry::Occupied(mut entry) => {
                 let entry_value = entry.get_mut();
 
                 if let NonNullProps::Vec(vec) = entry_value {
                   match namespace_name {
                     NonNullProp::Atom(id) => {
-                      vec.push(id);
+                      vec.push(id.clone());
                     },
                     _ => {
                       *entry_value = NonNullProps::True;
@@ -96,7 +83,9 @@ where
               },
               Entry::Vacant(entry) => {
                 let value = match namespace_name {
-                  NonNullProp::Atom(namespace_name) => NonNullProps::Vec(vec![namespace_name]),
+                  NonNullProp::Atom(namespace_name) => {
+                    NonNullProps::Vec(vec![namespace_name.clone()])
+                  },
                   NonNullProp::True => NonNullProps::True,
                 };
 
@@ -105,14 +94,14 @@ where
             }
           }
 
-          for (_, var_name) in self.state.style_vars.clone().into_iter() {
-            if !var_declarator.eq_ignore_span(&var_name) {
+          for (_, var_name) in self.state.style_vars.iter() {
+            if !var_declarator.eq_ignore_span(var_name) {
               continue;
             };
 
-            let top_level_expression = self.state.top_level_expressions.clone().into_iter().find(
-              |TopLevelExpression(_, expr, _)| match var_name.init.clone() {
-                Some(init) => init.eq_ignore_span(&Box::new(expr.clone())),
+            let top_level_expression = self.state.top_level_expressions.iter().find(
+              |TopLevelExpression(_, expr, _)| match var_name.init.as_ref() {
+                Some(init) => init.as_ref().eq_ignore_span(expr),
                 #[cfg_attr(coverage_nightly, coverage(off))]
                 None => {
                   stylex_panic!(
@@ -123,11 +112,11 @@ where
             );
 
             if let Some(TopLevelExpression(kind, _, _)) = top_level_expression
-              && kind == TopLevelExpressionKind::Stmt
+              && *kind == TopLevelExpressionKind::Stmt
               && let Some(object) = var_declarator
                 .init
                 .as_mut()
-                .and_then(|var_decl| var_decl.as_object())
+                .and_then(|var_decl| var_decl.as_mut_object())
             {
               let namespaces_to_keep = match vars_to_keep.get(&match var_name.name.as_ident() {
                 Some(i) => i.sym.clone(),
@@ -139,19 +128,7 @@ where
               };
 
               if !namespaces_to_keep.is_empty() {
-                let mut new_object = object.clone();
-
-                let props =
-                  self.retain_object_props(&mut new_object, namespaces_to_keep, &var_name);
-                new_object.props = props;
-
-                **match var_declarator.init.as_mut() {
-                  Some(init) => init,
-                  #[cfg_attr(coverage_nightly, coverage(off))]
-                  None => stylex_panic!(
-                    "Variable declaration must have an initializer when updating an object."
-                  ),
-                } = Expr::Object(new_object);
+                object.props = self.retain_object_props(object, &namespaces_to_keep, var_name);
               }
             }
           }
@@ -167,10 +144,10 @@ where
   fn retain_object_props(
     &self,
     object: &mut ObjectLit,
-    namespace_to_keep: Vec<Atom>,
+    namespace_to_keep: &[Atom],
     var_name: &VarDeclarator,
   ) -> Vec<PropOrSpread> {
-    let mut props: Vec<PropOrSpread> = vec![];
+    let mut props: Vec<PropOrSpread> = Vec::with_capacity(object.props.len());
 
     for object_prop in object.props.iter_mut() {
       assert!(object_prop.is_prop(), "Spread properties are not supported");
@@ -196,15 +173,7 @@ where
             None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
           }
           .sym;
-          let key_id = NonNullProp::Atom(
-            match key_as_ident {
-              Some(i) => i,
-              #[cfg_attr(coverage_nightly, coverage(off))]
-              None => stylex_panic!("key_as_ident is None"),
-            }
-            .clone()
-            .sym,
-          );
+          let key_id = NonNullProp::Atom(key_as_string.sym.clone());
 
           let all_nulls_to_keep = self
             .state
@@ -213,7 +182,7 @@ where
             .filter_map(|top_level_expression| {
               let StyleVarsToKeep(var, namespace_name, prop) = top_level_expression;
 
-              if var_id.eq_ignore_span(var) && namespace_name.eq(&key_id.clone()) {
+              if var_id.eq_ignore_span(var) && namespace_name == &key_id {
                 Some(prop.clone())
               } else {
                 None

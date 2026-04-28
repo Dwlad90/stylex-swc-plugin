@@ -5,7 +5,7 @@ use std::{
   fs,
   hash::{Hash, Hasher},
   path::Path,
-  sync::Arc,
+  sync::{Arc, OnceLock},
 };
 use stylex_macros::{panic_macros::__stylex_panic, stylex_error::StyleXError, stylex_panic};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
@@ -35,9 +35,14 @@ pub(crate) struct CodeFrame {
   handler: Handler,
 }
 
+static SOURCE_MAP: OnceLock<Arc<SourceMap>> = OnceLock::new();
+
 impl CodeFrame {
   pub(crate) fn new() -> Self {
-    let source_map = Arc::new(SourceMap::default());
+    let source_map = SOURCE_MAP
+      .get_or_init(|| Arc::new(SourceMap::default()))
+      .clone();
+
     let handler =
       Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(source_map.clone()));
 
@@ -492,4 +497,14 @@ pub(crate) fn build_code_frame_error_and_panic(
   };
 
   __stylex_panic(err)
+}
+
+#[track_caller]
+#[cold]
+pub(crate) fn build_code_frame_error_and_panic_at(
+  expr: &Expr,
+  error_message: &str,
+  state: &mut StateManager,
+) -> ! {
+  build_code_frame_error_and_panic(expr, expr, error_message, state)
 }

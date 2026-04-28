@@ -71,6 +71,10 @@ pub fn stylex_err_with_file(
   }
 }
 
+fn format_source_location(caller: &std::panic::Location<'_>) -> Cow<'static, str> {
+  format!("{}:{}", caller.file(), caller.line()).into()
+}
+
 // ---------------------------------------------------------------------------
 // Internal diverging functions (called by macros — not for direct use)
 //
@@ -85,7 +89,7 @@ pub fn __stylex_panic(mut err: StyleXError) -> ! {
   let caller = std::panic::Location::caller();
 
   if err.source_location.is_none() {
-    err.source_location = Some(format!("{}:{}", caller.file(), caller.line()).into());
+    err.source_location = Some(format_source_location(caller));
   }
 
   panic!("{}", err)
@@ -97,7 +101,7 @@ pub fn __stylex_panic(mut err: StyleXError) -> ! {
 pub fn __stylex_unimplemented(mut err: StyleXError) -> ! {
   let caller = std::panic::Location::caller();
   if err.source_location.is_none() {
-    err.source_location = Some(format!("{}:{}", caller.file(), caller.line()).into());
+    err.source_location = Some(format_source_location(caller));
   }
   err.message = format!("{} {}", "[UNIMPLEMENTED]".dimmed().magenta(), err.message).into();
 
@@ -110,7 +114,7 @@ pub fn __stylex_unimplemented(mut err: StyleXError) -> ! {
 pub fn __stylex_unreachable(mut err: StyleXError) -> ! {
   let caller = std::panic::Location::caller();
   if err.source_location.is_none() {
-    err.source_location = Some(format!("{}:{}", caller.file(), caller.line()).into());
+    err.source_location = Some(format_source_location(caller));
   }
   err.message = format!("{} {}", "[UNREACHABLE]".dimmed().blue(), err.message).into();
 
@@ -198,14 +202,7 @@ macro_rules! stylex_unreachable {
 macro_rules! stylex_bail {
   ($($arg:tt)*) => {
     return Err(anyhow::anyhow!(
-      $crate::panic_macros::StyleXError {
-        message: format!($($arg)*).into(),
-        file: None,
-        key_path: None,
-        line: None,
-        col: None,
-        source_location: None,
-      }
+      $crate::panic_macros::stylex_err(format!($($arg)*))
     ))
   };
 }
@@ -217,14 +214,7 @@ macro_rules! stylex_bail {
 macro_rules! stylex_anyhow {
   ($($arg:tt)*) => {
     anyhow::anyhow!(
-      $crate::panic_macros::StyleXError {
-        message: format!($($arg)*).into(),
-        file: None,
-        key_path: None,
-        line: None,
-        col: None,
-        source_location: None,
-      }
+      $crate::panic_macros::stylex_err(format!($($arg)*))
     )
   };
 }

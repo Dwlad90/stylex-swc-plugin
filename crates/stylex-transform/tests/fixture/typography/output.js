@@ -226,7 +226,7 @@ const styles = {
     },
     color_primary: {
         color: "color-xw3ogp8",
-        $$css: "tests/fixture/typography/input.stylex.js:99"
+        $$css: "tests/fixture/typography/input.stylex.js:85"
     },
     colorSecondary: {
         color: "color-x10gd8tk",

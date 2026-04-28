@@ -1,7 +1,6 @@
 use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
-  atoms::Atom,
   common::{EqIgnoreSpan, Mark, comments::Comments},
   ecma::{
     ast::{CallExpr, Callee, Expr, Id, MemberProp, Pass, VarDeclarator},
@@ -10,13 +9,10 @@ use swc_core::{
   },
 };
 
-use crate::shared::{
-  structures::state_manager::{ImportKind, StateManager},
-  utils::common::increase_ident_count,
-};
+use crate::shared::{structures::state_manager::StateManager, utils::common::increase_ident_count};
 use stylex_enums::{
-  core::TransformationCycle, property_validation_mode::PropertyValidationMode,
-  style_resolution::StyleResolution, sx_prop_name_param::SxPropNameParam,
+  property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
+  sx_prop_name_param::SxPropNameParam,
 };
 use stylex_structures::{
   named_import_source::{ImportSources, RuntimeInjection},
@@ -285,50 +281,14 @@ where
     }
   }
 
-  fn is_stylex_import(&self, ident_sym: &str) -> bool {
-    let state = &self.state;
-    let stylex_imports = state.stylex_import_stringified();
-
-    let ident_sym = Atom::from(ident_sym);
-
-    let ident_str = ident_sym.as_str();
-
-    if stylex_imports.iter().any(|s| s == ident_str) {
-      return true;
-    }
-
-    match state.cycle {
-      TransformationCycle::TransformEnter => {
-        use ImportKind::*;
-        state.any_stylex_api_import_contains(
-          &[
-            Create,
-            DefineVars,
-            DefineConsts,
-            DefineMarker,
-            CreateTheme,
-            PositionTry,
-            Keyframes,
-            FirstThatWorks,
-            Types,
-            DefaultMarker,
-            When,
-          ],
-          &ident_sym,
-        )
-      },
-      TransformationCycle::TransformExit => {
-        state.any_stylex_api_import_contains(&[ImportKind::Attrs, ImportKind::Props], &ident_sym)
-      },
-      _ => false,
-    }
-  }
-
   pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {
     if let Callee::Expr(callee) = &mut call_expr.callee {
       match callee.as_ref() {
         Expr::Ident(ident) => {
-          if self.is_stylex_import(ident.sym.as_ref()) {
+          if self
+            .state
+            .is_stylex_import_for_current_cycle(ident.sym.as_ref())
+          {
             increase_ident_count(&mut self.state, ident);
             return Some((ident.to_id(), ident.sym.to_string()));
           }
@@ -336,7 +296,9 @@ where
         Expr::Member(member) => {
           if let (Expr::Ident(obj_ident), MemberProp::Ident(prop_ident)) =
             (member.obj.as_ref(), &member.prop)
-            && self.is_stylex_import(obj_ident.sym.as_ref())
+            && self
+              .state
+              .is_stylex_import_for_current_cycle(obj_ident.sym.as_ref())
           {
             return Some((obj_ident.to_id(), prop_ident.sym.to_string()));
           }

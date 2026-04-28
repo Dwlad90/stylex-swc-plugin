@@ -114,6 +114,10 @@ where
         result_module_items.fold_children_with(self)
       },
       TransformationCycle::InjectStyles => {
+        // InjectStyles must run after import discovery because injected rules
+        // are keyed by declarations collected during earlier cycles.
+        debug_assert!(self.state.are_imports_resolved());
+
         let mut result_module_items: Vec<ModuleItem> =
           self.state.prepend_include_module_items.clone();
 
@@ -182,7 +186,7 @@ where
             _ => None,
           } {
             for decl in decls {
-              let key = match decl.init.clone() {
+              let key = match decl.init.as_ref() {
                 Some(k) => k,
                 #[cfg_attr(coverage_nightly, coverage(off))]
                 None => stylex_panic!("{}", VAR_DECL_INIT_REQUIRED),

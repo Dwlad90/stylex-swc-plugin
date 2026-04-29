@@ -1,5 +1,5 @@
 [package]
-description = "Rust port of Nicolas Gallagher's styleq class-name merging runtime"
+description = "StyleQ implementation for the StyleX system"
 edition.workspace = true
 license.workspace = true
 name = "stylex_styleq"

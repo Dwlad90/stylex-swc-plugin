@@ -1,15 +1,67 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{
+  cell::{Cell, RefCell},
+  rc::Rc,
+  sync::atomic::{AtomicUsize, Ordering},
+};
 
 use indexmap::IndexMap;
 use log::{Level, LevelFilter, Metadata, Record};
 use stylex_styleq::{
-  COMPILED_KEY, StyleMap, StyleValue, StyleqInput, StyleqOptions, create_styleq, styleq,
+  COMPILED_KEY, StyleMap, StyleValue, StyleqArgument, StyleqInput, StyleqOptions, StyleqValue,
+  create_styleq, styleq,
 };
 
 static STYLEQ_ERROR_COUNT: AtomicUsize = AtomicUsize::new(0);
 static TEST_LOGGER: TestLogger = TestLogger;
+const LOCALIZE_MARKER: &str = "$$css$localize";
 
 struct TestLogger;
+
+struct DefaultArgument;
+
+#[derive(Clone)]
+enum TestArgument {
+  Empty,
+  Skip,
+  Style {
+    style: StyleMap<StyleValue>,
+    cache_key: Option<usize>,
+  },
+  Nested(Vec<TestArgument>),
+}
+
+impl StyleqArgument<StyleValue> for DefaultArgument {
+  fn as_style(&self) -> Option<&StyleMap<StyleValue>> {
+    None
+  }
+}
+
+impl StyleqArgument<StyleValue> for TestArgument {
+  fn as_style(&self) -> Option<&StyleMap<StyleValue>> {
+    match self {
+      TestArgument::Style { style, .. } => Some(style),
+      TestArgument::Empty | TestArgument::Skip | TestArgument::Nested(_) => None,
+    }
+  }
+
+  fn cache_key(&self) -> Option<usize> {
+    match self {
+      TestArgument::Style { cache_key, .. } => *cache_key,
+      TestArgument::Empty | TestArgument::Skip | TestArgument::Nested(_) => None,
+    }
+  }
+
+  fn as_nested(&self) -> Option<&[Self]> {
+    match self {
+      TestArgument::Nested(styles) => Some(styles),
+      TestArgument::Empty | TestArgument::Skip | TestArgument::Style { .. } => None,
+    }
+  }
+
+  fn should_skip(&self) -> bool {
+    matches!(self, TestArgument::Skip)
+  }
+}
 
 impl log::Log for TestLogger {
   fn enabled(&self, metadata: &Metadata<'_>) -> bool {
@@ -57,8 +109,70 @@ fn inline(entries: &[(&str, StyleValue)]) -> StyleqInput<StyleValue> {
   )
 }
 
+fn compiled_map(entries: &[(&str, StyleValue)]) -> StyleMap<StyleValue> {
+  let mut style = IndexMap::new();
+  style.insert(COMPILED_KEY.to_string(), StyleValue::Bool(true));
+
+  for (key, value) in entries {
+    style.insert((*key).to_string(), value.clone());
+  }
+
+  style
+}
+
+fn inline_map(entries: &[(&str, StyleValue)]) -> StyleMap<StyleValue> {
+  entries
+    .iter()
+    .map(|(key, value)| ((*key).to_string(), value.clone()))
+    .collect()
+}
+
 fn string(value: &str) -> StyleValue {
   StyleValue::string(value)
+}
+
+fn transform_fixture() -> StyleMap<StyleValue> {
+  let mut fixture = IndexMap::new();
+  fixture.insert(COMPILED_KEY.to_string(), StyleValue::Bool(true));
+  fixture.insert(LOCALIZE_MARKER.to_string(), StyleValue::Bool(true));
+  fixture.insert("marginStart".to_string(), string("marginStart"));
+  fixture.insert("marginEnd".to_string(), string("marginEnd"));
+  fixture
+}
+
+fn opacity_style() -> StyleMap<StyleValue> {
+  StyleMap::from([("opacity".to_string(), StyleValue::Number(1))])
+}
+
+fn localize_style(style: StyleMap<StyleValue>, is_rtl: bool) -> StyleMap<StyleValue> {
+  style
+    .into_iter()
+    .filter_map(|(prop, value)| {
+      if prop == LOCALIZE_MARKER {
+        None
+      } else if prop == "marginStart" {
+        Some((
+          prop,
+          string(if is_rtl {
+            "margin-right-0px"
+          } else {
+            "margin-left-0px"
+          }),
+        ))
+      } else if prop == "marginEnd" {
+        Some((
+          prop,
+          string(if is_rtl {
+            "margin-left-10px"
+          } else {
+            "margin-right-10px"
+          }),
+        ))
+      } else {
+        Some((prop, value))
+      }
+    })
+    .collect()
 }
 
 fn stringify_inline_style(inline_style: &StyleMap<StyleValue>) -> String {
@@ -495,4 +609,265 @@ fn supports_generating_debug_strings() {
     result.data_style_src,
     "path/to/a:1; path/to/b:2; path/to/c:3"
   );
+}
+
+#[test]
+fn supports_style_transforms() {
+  let is_rtl = Rc::new(Cell::new(false));
+  let is_rtl_for_transform = Rc::clone(&is_rtl);
+  let styleq_with_transform = create_styleq(StyleqOptions {
+    transform: Some(Rc::new(move |style: StyleMap<StyleValue>| {
+      localize_style(style, is_rtl_for_transform.get())
+    })),
+    ..Default::default()
+  });
+
+  is_rtl.set(false);
+  let result = styleq_with_transform.styleq(&[
+    StyleqInput::Style(transform_fixture()),
+    StyleqInput::Style(opacity_style()),
+  ]);
+
+  assert_eq!(result.class_name, "margin-left-0px margin-right-10px");
+  assert_eq!(result.inline_style, Some(opacity_style()));
+
+  is_rtl.set(true);
+  let result = styleq_with_transform.styleq(&[
+    StyleqInput::Style(transform_fixture()),
+    StyleqInput::Style(opacity_style()),
+  ]);
+
+  assert_eq!(result.class_name, "margin-right-0px margin-left-10px");
+  assert_eq!(result.inline_style, Some(opacity_style()));
+}
+
+#[test]
+fn memoizes_transform_results() {
+  let cache = Rc::new(RefCell::new(
+    None::<(StyleMap<StyleValue>, StyleMap<StyleValue>)>,
+  ));
+  let compile_count = Rc::new(Cell::new(0));
+  let cache_for_transform = Rc::clone(&cache);
+  let compile_count_for_transform = Rc::clone(&compile_count);
+  let styleq_with_transform = create_styleq(StyleqOptions {
+    transform: Some(Rc::new(move |style: StyleMap<StyleValue>| {
+      {
+        let cache = cache_for_transform.borrow();
+        if let Some((cached_style, cached_result)) = cache.as_ref()
+          && cached_style == &style
+        {
+          return cached_result.clone();
+        }
+      }
+
+      compile_count_for_transform.set(compile_count_for_transform.get() + 1);
+      let localized_style = localize_style(style.clone(), false);
+      cache_for_transform
+        .borrow_mut()
+        .replace((style, localized_style.clone()));
+      localized_style
+    })),
+    ..Default::default()
+  });
+
+  let _ = styleq_with_transform.styleq(&[StyleqInput::Style(transform_fixture())]);
+  let _ = styleq_with_transform.styleq(&[StyleqInput::Style(transform_fixture())]);
+
+  assert_eq!(compile_count.get(), 1);
+}
+
+#[test]
+fn styleq_options_default_matches_runtime_defaults() {
+  let options = StyleqOptions::<StyleValue>::default();
+
+  assert!(!options.disable_cache);
+  assert!(!options.disable_mix);
+  assert!(!options.dedupe_class_name_chunks);
+  assert!(options.transform.is_none());
+}
+
+#[test]
+fn styleq_argument_default_methods_are_noops() {
+  let argument = DefaultArgument;
+
+  assert_eq!(argument.cache_key(), None);
+  assert!(argument.as_nested().is_none());
+  assert!(!argument.should_skip());
+}
+
+#[test]
+fn ignores_custom_argument_that_is_neither_style_nested_nor_skip() {
+  let result = create_styleq(StyleqOptions::default()).styleq(&[TestArgument::Empty]);
+
+  assert_eq!(result.class_name, "");
+  assert_eq!(result.inline_style, None);
+  assert_eq!(result.data_style_src, "");
+}
+
+#[test]
+fn custom_argument_covers_skip_nested_inline_and_disable_mix_paths() {
+  let styleq_default = create_styleq(StyleqOptions::default());
+  let result = styleq_default.styleq(&[
+    TestArgument::Skip,
+    TestArgument::Nested(vec![
+      TestArgument::Style {
+        style: compiled_map(&[("display", string("display-block"))]),
+        cache_key: None,
+      },
+      TestArgument::Style {
+        style: inline_map(&[("color", string("red"))]),
+        cache_key: None,
+      },
+    ]),
+    TestArgument::Empty,
+  ]);
+
+  assert_eq!(result.class_name, "display-block");
+  assert_eq!(
+    result.inline_style,
+    Some(StyleMap::from([("color".to_string(), string("red"))]))
+  );
+
+  let styleq_no_mix = create_styleq(StyleqOptions {
+    disable_mix: true,
+    ..Default::default()
+  });
+  let result = styleq_no_mix.styleq(&[
+    TestArgument::Style {
+      style: inline_map(&[("color", string("red"))]),
+      cache_key: None,
+    },
+    TestArgument::Style {
+      style: inline_map(&[("backgroundColor", string("blue"))]),
+      cache_key: None,
+    },
+  ]);
+
+  assert_eq!(
+    result.inline_style,
+    Some(StyleMap::from([
+      ("backgroundColor".to_string(), string("blue")),
+      ("color".to_string(), string("red")),
+    ]))
+  );
+}
+
+#[test]
+fn uses_identity_cache_key_when_argument_provides_stable_identity() {
+  let styleq_cached = create_styleq(StyleqOptions::default());
+  let argument = TestArgument::Style {
+    style: compiled_map(&[("display", string("display-block"))]),
+    cache_key: Some(42),
+  };
+
+  assert_eq!(
+    styleq_cached
+      .styleq(std::slice::from_ref(&argument))
+      .class_name,
+    "display-block"
+  );
+  assert_eq!(
+    styleq_cached.styleq(&[argument]).class_name,
+    "display-block"
+  );
+}
+
+#[test]
+fn ignores_identity_cache_key_when_transform_is_configured() {
+  let styleq_with_transform = create_styleq(StyleqOptions {
+    transform: Some(Rc::new(|style| style)),
+    ..Default::default()
+  });
+
+  assert_eq!(
+    styleq_with_transform
+      .styleq(&[TestArgument::Style {
+        style: compiled_map(&[("display", string("display-block"))]),
+        cache_key: Some(42),
+      }])
+      .class_name,
+    "display-block"
+  );
+}
+
+#[test]
+fn warns_if_compiled_marker_is_not_true_or_debug_string() {
+  init_error_logger();
+  STYLEQ_ERROR_COUNT.store(0, Ordering::SeqCst);
+
+  let _ = styleq(&[compiled_with_marker(
+    StyleValue::Number(1),
+    &[("a", string("aaa"))],
+  )]);
+
+  assert_eq!(STYLEQ_ERROR_COUNT.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn dedupes_repeated_class_name_chunks_when_option_is_enabled() {
+  let styleq_dedupe_chunks = create_styleq(StyleqOptions {
+    dedupe_class_name_chunks: true,
+    ..Default::default()
+  });
+  let style = compiled(&[("display", string("display-block"))]);
+
+  let result = styleq_dedupe_chunks.styleq(&[style.clone(), style]);
+
+  assert_eq!(result.class_name, "display-block");
+}
+
+#[test]
+fn keeps_distinct_class_name_chunks_when_chunk_deduping_is_enabled() {
+  let styleq_dedupe_chunks = create_styleq(StyleqOptions {
+    dedupe_class_name_chunks: true,
+    ..Default::default()
+  });
+  let a = compiled(&[("display", string("display-block"))]);
+  let b = compiled(&[("color", string("color-red"))]);
+
+  let result = styleq_dedupe_chunks.styleq(&[a, b]);
+
+  assert_eq!(result.class_name, "display-block color-red");
+}
+
+#[test]
+fn styleq_input_trait_methods_cover_all_variants() {
+  let style = inline(&[("color", string("red"))]);
+  let nested = StyleqInput::Nested(vec![style.clone()]);
+
+  assert!(style.as_style().is_some());
+  assert!(StyleqInput::<StyleValue>::Null.as_style().is_none());
+  assert!(StyleqInput::<StyleValue>::False.as_style().is_none());
+  assert!(nested.as_style().is_none());
+
+  assert!(matches!(nested.as_nested(), Some(values) if values == [style]));
+  assert!(
+    StyleqInput::<StyleValue>::Style(StyleMap::new())
+      .as_nested()
+      .is_none()
+  );
+  assert!(StyleqInput::<StyleValue>::Null.as_nested().is_none());
+  assert!(StyleqInput::<StyleValue>::False.as_nested().is_none());
+
+  assert!(StyleqInput::<StyleValue>::Null.should_skip());
+  assert!(StyleqInput::<StyleValue>::False.should_skip());
+  assert!(!StyleqInput::<StyleValue>::Style(StyleMap::new()).should_skip());
+}
+
+#[test]
+fn style_value_trait_methods_cover_all_value_kinds() {
+  let class_name = StyleValue::string("x1abc");
+  let class_name_rc = Rc::new(class_name.clone());
+
+  assert_eq!(class_name.as_class_name(), Some("x1abc"));
+  assert_eq!(class_name_rc.as_class_name(), Some("x1abc"));
+  assert!(!class_name.is_null());
+  assert!(!class_name_rc.is_null());
+  assert!(!class_name.is_true_bool());
+  assert!(!class_name_rc.is_true_bool());
+
+  assert_eq!(StyleValue::Number(1).as_class_name(), None);
+  assert!(StyleValue::Null.is_null());
+  assert!(!StyleValue::Bool(false).is_true_bool());
+  assert!(StyleValue::Bool(true).is_true_bool());
 }

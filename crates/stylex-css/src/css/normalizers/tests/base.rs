@@ -7,6 +7,10 @@ mod normalizers {
   use swc_core::{
     common::{BytePos, DUMMY_SP, Span},
     css::parser::error::{Error, ErrorKind},
+    css::{
+      ast::Function,
+      visit::{VisitMut, VisitMutWith},
+    },
   };
 
   use crate::css::{
@@ -397,6 +401,24 @@ mod normalizers {
       errors,
       vec![Error::new(DUMMY_SP, ErrorKind::InvalidSelector)]
     );
+  }
+
+  #[test]
+  fn empty_function_value_is_visited_without_panicking() {
+    struct ClearFunctionValues;
+
+    impl VisitMut for ClearFunctionValues {
+      fn visit_mut_function(&mut self, function: &mut Function) {
+        function.value.clear();
+      }
+    }
+
+    let (stylesheet, _) = swc_parse_css("* {{ color: var(--someVar); }}");
+    let mut stylesheet = stylesheet.unwrap();
+    stylesheet.visit_mut_with(&mut ClearFunctionValues);
+
+    let s = stringify(&base_normalizer(stylesheet, false, Some("color")));
+    assert!(s.contains("var("));
   }
 
   // ── Font-size px→rem conversion ────────────────────────────────

@@ -11,6 +11,7 @@
     "access": "public"
   },
   "scripts": {
+    "bench": "scripty",
     "clean": "del-cli dist",
     "do:nothing": "exit 0",
     "format": "run-p format:prettier format:rs format:toml",

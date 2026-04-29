@@ -122,10 +122,10 @@ impl<V: StyleqValue> Styleq<V> {
     use_cache: bool,
   ) {
     let mut class_name_chunk = String::new();
-    let cache_key = cache_key
-      .filter(|_| self.options.transform.is_none())
-      .map(CacheKey::Identity)
-      .unwrap_or_else(|| CacheKey::Hash(hash_style(style)));
+    let cache_key = match cache_key {
+      Some(cache_key) if self.options.transform.is_none() => CacheKey::Identity(cache_key),
+      _ => CacheKey::Hash(hash_style(style)),
+    };
 
     if use_cache && let Some(cache_entry) = self.cache.borrow().get(&cache_key).cloned() {
       class_name_chunk = cache_entry.class_name;

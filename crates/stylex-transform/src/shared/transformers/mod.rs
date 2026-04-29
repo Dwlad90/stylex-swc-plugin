@@ -8,4 +8,5 @@ pub(crate) mod stylex_keyframes;
 pub(crate) mod stylex_position_try;
 pub(crate) mod stylex_types;
 pub(crate) mod stylex_view_transition_class;
+#[cfg(test)]
 pub(crate) mod tests;

@@ -1,0 +1,52 @@
+{
+  "name": "@stylexswc/stylex-styleq",
+  "description": "StyleQ implementation for the StyleX system",
+  "version": "0.15.5",
+  "private": true,
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "bench": "scripty",
+    "clean": "del-cli dist",
+    "do:nothing": "exit 0",
+    "format": "run-p format:prettier format:rs format:toml",
+    "format:check": "run-p format:rs:check format:toml:check",
+    "format:prettier": "prettier . -w",
+    "format:rs": "cargo fmt --all",
+    "format:rs:check": "cargo fmt -- --check",
+    "format:toml": "taplo format",
+    "format:toml:check": "taplo format --check",
+    "lint": "eslint . --color",
+    "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
+    "precommit": "lint-staged",
+    "prepublishOnly": "pnpm run build",
+    "prepush": "lint-prepush",
+    "test": "scripty",
+    "test:coverage": "scripty",
+    "test:flamegraph": "scripty",
+    "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
+  },
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "devDependencies": {
+    "@stylexswc/constants": "0.15.5",
+    "@stylexswc/macros": "0.15.5",
+    "@stylexswc/stylex-enums": "0.15.5",
+    "@taplo/cli": "^0.7.0",
+    "npm-run-all2": "^8.0.4",
+    "prettier": "^3.8.1"
+  },
+  "keywords": [
+    "stylex",
+    "swc",
+    "swc-plugin"
+  ]
+}

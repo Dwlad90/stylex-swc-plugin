@@ -1,37 +1,61 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "extends": ["//"],
-  "tags": ["rust-crate"],
+  "extends": [
+    "//"
+  ],
+  "tags": [
+    "rust-crate"
+  ],
   "tasks": {
     "build": {
-      "dependsOn": ["^do:nothing"],
-      "outputs": ["dist/**/*"],
+      "dependsOn": [
+        "^do:nothing"
+      ],
+      "outputs": [
+        "dist/**/*"
+      ],
       "outputLogs": "errors-only"
     },
     "test": {
-      "dependsOn": ["^do:nothing"],
+      "dependsOn": [
+        "^do:nothing"
+      ],
       "outputLogs": "errors-only"
     },
     "typecheck": {
-      "dependsOn": ["^do:nothing"],
+      "dependsOn": [
+        "^do:nothing"
+      ],
       "outputs": [],
       "outputLogs": "errors-only"
     },
     "bench": {
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build"
+      ],
       "cache": false,
       "outputLogs": "errors-only"
     },
     "test:coverage": {
-      "dependsOn": ["^do:nothing"],
+      "dependsOn": [
+        "^do:nothing"
+      ],
       "cache": false,
-      "outputs": ["target/llvm-cov/**/*", "**/*.profraw"],
+      "outputs": [
+        "target/llvm-cov/**/*",
+        "**/*.profraw"
+      ],
       "outputLogs": "errors-only"
     },
     "test:flamegraph": {
-      "dependsOn": ["^do:nothing"],
+      "dependsOn": [
+        "^do:nothing"
+      ],
       "cache": false,
-      "outputs": ["**/flamegraph.svg", "target/flamegraph/**/*"],
+      "outputs": [
+        "**/flamegraph.svg",
+        "target/flamegraph/**/*"
+      ],
       "outputLogs": "errors-only"
     }
   }

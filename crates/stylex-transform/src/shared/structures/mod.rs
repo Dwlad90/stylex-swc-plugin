@@ -9,6 +9,7 @@ pub(crate) mod pre_rule_set;
 pub(crate) mod seen_value;
 pub mod state;
 pub mod state_manager;
+#[cfg(test)]
 pub(crate) mod tests;
 pub(crate) mod theme_ref;
 pub(crate) mod types;

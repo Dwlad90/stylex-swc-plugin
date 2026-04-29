@@ -45,63 +45,58 @@ fn measure_transform_time(input_path: &Path) -> (String, f64) {
   (output, duration)
 }
 
-#[cfg(test)]
-mod tests {
-  use super::*;
+#[test]
+fn stylex_transform_performance_test() {
+  // Paths to the theme files
+  let simple_theme_path = PathBuf::from("tests/performance_fixture/simpleTheme.js");
+  let complex_theme_path = PathBuf::from("tests/performance_fixture/colorThemes.js");
 
-  #[test]
-  fn stylex_transform_performance_test() {
-    // Paths to the theme files
-    let simple_theme_path = PathBuf::from("tests/performance_fixture/simpleTheme.js");
-    let complex_theme_path = PathBuf::from("tests/performance_fixture/colorThemes.js");
+  // Warm up the transformer with a simple transform
+  measure_transform_time(&simple_theme_path);
+  // Warm up the transformer with a complex transform
+  measure_transform_time(&complex_theme_path);
 
-    // Warm up the transformer with a simple transform
-    measure_transform_time(&simple_theme_path);
-    // Warm up the transformer with a complex transform
-    measure_transform_time(&complex_theme_path);
+  // Measure performance of simple theme transform
+  let (simple_result, simple_time) = measure_transform_time(&simple_theme_path);
 
-    // Measure performance of simple theme transform
-    let (simple_result, simple_time) = measure_transform_time(&simple_theme_path);
+  // Measure performance of complex theme transform
+  let (complex_result, complex_time) = measure_transform_time(&complex_theme_path);
 
-    // Measure performance of complex theme transform
-    let (complex_result, complex_time) = measure_transform_time(&complex_theme_path);
+  #[allow(clippy::explicit_write)]
+  writeln!(
+    std::io::stderr(),
+    "Simple theme transform took: {}ms",
+    simple_time
+  )
+  .unwrap();
 
-    #[allow(clippy::explicit_write)]
-    writeln!(
-      std::io::stderr(),
-      "Simple theme transform took: {}ms",
-      simple_time
-    )
-    .unwrap();
+  let simple_time = simple_time.max(2.0); // Ensure at least 2.0 ms
 
-    let simple_time = simple_time.max(2.0); // Ensure at least 2.0 ms
+  #[allow(clippy::explicit_write)]
+  writeln!(
+    std::io::stderr(),
+    "Complex theme transform took: {}ms",
+    complex_time
+  )
+  .unwrap();
+  std::io::stderr().flush().unwrap();
 
-    #[allow(clippy::explicit_write)]
-    writeln!(
-      std::io::stderr(),
-      "Complex theme transform took: {}ms",
-      complex_time
-    )
-    .unwrap();
-    std::io::stderr().flush().unwrap();
+  // Verify the results are non-empty
+  assert!(
+    !simple_result.is_empty(),
+    "Simple theme transformation result should not be empty"
+  );
+  assert!(
+    !complex_result.is_empty(),
+    "Complex theme transformation result should not be empty"
+  );
 
-    // Verify the results are non-empty
-    assert!(
-      !simple_result.is_empty(),
-      "Simple theme transformation result should not be empty"
-    );
-    assert!(
-      !complex_result.is_empty(),
-      "Complex theme transformation result should not be empty"
-    );
-
-    // Verify performance expectation (complex should be less than 23x slower than
-    // simple)
-    assert!(
-      complex_time < simple_time * 23.0,
-      "Complex theme transform took too long: {}ms (simple: {}ms)",
-      complex_time,
-      simple_time
-    );
-  }
+  // Verify performance expectation (complex should be less than 23x slower than
+  // simple)
+  assert!(
+    complex_time < simple_time * 23.0,
+    "Complex theme transform took too long: {}ms (simple: {}ms)",
+    complex_time,
+    simple_time
+  );
 }

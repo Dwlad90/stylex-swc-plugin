@@ -99,6 +99,42 @@ fn create_array_expression_wraps_in_expr() {
 }
 
 #[test]
+fn create_bin_expr_wraps_operands() {
+  let expr = create_bin_expr(
+    BinaryOp::Add,
+    create_number_expr(1.0),
+    create_number_expr(2.0),
+  );
+
+  match expr {
+    Expr::Bin(bin) => {
+      assert_eq!(bin.op, BinaryOp::Add);
+      assert!(matches!(*bin.left, Expr::Lit(Lit::Num(_))));
+      assert!(matches!(*bin.right, Expr::Lit(Lit::Num(_))));
+    },
+    _ => panic!("Expected binary expression"),
+  }
+}
+
+#[test]
+fn create_cond_expr_wraps_branches() {
+  let expr = create_cond_expr(
+    create_boolean_lit(true).into(),
+    create_string_expr("yes"),
+    create_string_expr("no"),
+  );
+
+  match expr {
+    Expr::Cond(cond) => {
+      assert!(matches!(*cond.test, Expr::Lit(Lit::Bool(_))));
+      assert!(matches!(*cond.cons, Expr::Lit(Lit::Str(_))));
+      assert!(matches!(*cond.alt, Expr::Lit(Lit::Str(_))));
+    },
+    _ => panic!("Expected conditional expression"),
+  }
+}
+
+#[test]
 fn create_key_value_prop_creates_prop() {
   let prop = create_key_value_prop("color", create_string_expr("red"));
   assert!(matches!(prop, PropOrSpread::Prop(_)));

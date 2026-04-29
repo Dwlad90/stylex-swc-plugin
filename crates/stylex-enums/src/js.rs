@@ -85,3 +85,7 @@ impl TryFrom<&str> for StringJS {
     }
   }
 }
+
+#[cfg(test)]
+#[path = "tests/js_test.rs"]
+mod tests;

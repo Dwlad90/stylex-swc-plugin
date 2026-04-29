@@ -116,6 +116,31 @@ fn from_stylex_options_params_cross_file_parsing_resolution() {
 }
 
 #[test]
+fn check_module_resolution_accessors_return_variant_values() {
+  let cases = [
+    CheckModuleResolution::CommonJs {
+      root_dir: Some("/common".into()),
+      theme_file_extension: Some(".common".into()),
+    },
+    CheckModuleResolution::Haste {
+      root_dir: Some("/haste".into()),
+      theme_file_extension: Some(".haste".into()),
+    },
+    CheckModuleResolution::CrossFileParsing {
+      root_dir: Some("/cross".into()),
+      theme_file_extension: Some(".cross".into()),
+    },
+  ];
+
+  assert_eq!(cases[0].root_dir(), Some("/common"));
+  assert_eq!(cases[0].theme_file_extension(), Some(".common"));
+  assert_eq!(cases[1].root_dir(), Some("/haste"));
+  assert_eq!(cases[1].theme_file_extension(), Some(".haste"));
+  assert_eq!(cases[2].root_dir(), Some("/cross"));
+  assert_eq!(cases[2].theme_file_extension(), Some(".cross"));
+}
+
+#[test]
 fn get_haste_module_resolution() {
   let res = ModuleResolution::haste(Some("/root".to_string()));
   assert_eq!(res.kind, ModuleResolutionKind::Haste);

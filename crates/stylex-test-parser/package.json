@@ -12,6 +12,7 @@
     "access": "public"
   },
   "scripts": {
+    "bench": "scripty",
     "build": "scripty --rust",
     "check:artifacts": "scripty ./dist/stylex_test_parser",
     "clean": "del-cli dist",

@@ -1676,6 +1676,27 @@ importers:
         specifier: ^3.8.1
         version: 3.8.1
 
+  crates/stylex-styleq:
+    devDependencies:
+      '@stylexswc/constants':
+        specifier: 0.15.5
+        version: link:../stylex-constants
+      '@stylexswc/macros':
+        specifier: 0.15.5
+        version: link:../stylex-macros
+      '@stylexswc/stylex-enums':
+        specifier: 0.15.5
+        version: link:../stylex-enums
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.1
+        version: 3.8.1
+
   crates/stylex-test-parser:
     devDependencies:
       '@taplo/cli':

@@ -3222,6 +3222,7 @@ dependencies = [
  "rustc-hash",
  "stylex_regex",
  "swc_core",
+ "swc_ecma_parser",
 ]
 
 [[package]]

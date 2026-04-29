@@ -1,5 +1,5 @@
 [package]
-description = "SWC Fold implementation, StateManager and transform orchestration for StyleX"
+description = "SWC VisitMut implementation, StateManager and transform orchestration for StyleX"
 edition.workspace = true
 license.workspace = true
 name = "stylex_transform"

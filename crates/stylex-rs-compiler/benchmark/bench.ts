@@ -1,10 +1,11 @@
-import { Bench, type BenchOptions, Task, TaskResultWithStatistics } from 'tinybench';
+import { Bench, type BenchOptions, type Task, type TaskResultWithStatistics } from 'tinybench';
 import { transform } from '../dist/index.js';
 import type { StyleXOptions } from '../dist/index.js';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import chalk from 'chalk';
+import { fileURLToPath } from 'url';
 
 const BENCHMARK_CONFIG: BenchOptions = {
   retainSamples: true,
@@ -19,7 +20,10 @@ const LOTS_OF_STYLES_CONFIG = {
   warmupTime: 100,
 };
 
-const rootDir = process.cwd();
+const benchmarkDir = path.dirname(fileURLToPath(import.meta.url));
+const packageDir = path.resolve(benchmarkDir, '..');
+const workspaceRoot = path.resolve(packageDir, '../..');
+const rootDir = packageDir;
 
 const benchRegular = new Bench({
   name: 'StyleX compiler - regular benchmark',
@@ -128,7 +132,7 @@ function formatLatency(milliseconds: number): string {
 function getSystemInfo(): string {
   let version = 'unknown';
   try {
-    const cargoToml = fs.readFileSync(path.join(rootDir, '../..', 'Cargo.toml'), 'utf-8');
+    const cargoToml = fs.readFileSync(path.join(workspaceRoot, 'Cargo.toml'), 'utf-8');
     const versionMatch = cargoToml.match(/version\s*=\s*"([^"]+)"/);
     if (versionMatch && versionMatch[1]) {
       version = versionMatch[1];
@@ -148,12 +152,12 @@ ${chalk.bold.yellow('📊 Benchmark Environment:')}
 `;
 }
 
-const stylexFixturePath = path.join(rootDir, '../../crates/stylex-transform/tests/fixture');
+const stylexFixturePath = path.join(workspaceRoot, 'crates/stylex-transform/tests/fixture');
 const fixtureFilePaths = getFixtureFilePaths(stylexFixturePath);
 
 addFixtureBenchmarks(benchRegular, fixtureFilePaths);
 
-const perfFixturesDir = path.join(rootDir, 'benchmark/perf_fixtures');
+const perfFixturesDir = path.join(benchmarkDir, 'perf_fixtures');
 const perfFixtures = [
   {
     path: path.join(perfFixturesDir, 'colors.stylex.js'),
@@ -184,7 +188,7 @@ perfFixtures.forEach(fixture => {
   });
 });
 
-const rollupPluginApp = path.join(rootDir, '../../apps/rollup-large-example');
+const rollupPluginApp = path.join(workspaceRoot, 'apps/rollup-large-example');
 const rollupPluginAppFiles = ['lotsOfStyles.js', 'lotsOfStylesDynamic.js'];
 
 rollupPluginAppFiles.forEach(file => {
@@ -196,7 +200,7 @@ rollupPluginAppFiles.forEach(file => {
   });
 });
 
-const resultsDir = path.resolve(rootDir, 'benchmark/results');
+const resultsDir = path.resolve(benchmarkDir, 'results');
 if (!fs.existsSync(resultsDir)) {
   fs.mkdirSync(resultsDir, { recursive: true });
 }

@@ -14,6 +14,7 @@ use swc_core::{
   common::{
     DUMMY_SP, EqIgnoreSpan, FileName, Mark, SourceMap, Span, Spanned, SyntaxContext,
     errors::{Handler, *},
+    util::take::Take,
   },
   ecma::{
     ast::*,
@@ -188,7 +189,8 @@ fn find_expression_span(program: Program, target_expression: &Expr) -> Span {
   }
 
   // Fallback: try finding after template literal conversion
-  let converted_target = target_expression.clone().fold_with(&mut TplConverter {});
+  let mut converted_target = target_expression.clone();
+  converted_target.visit_mut_with(&mut TplConverter {});
   let mut fallback_finder = ExpressionFinder::new(&converted_target);
   program.visit_with(&mut fallback_finder);
 
@@ -302,9 +304,8 @@ fn parse_and_normalize_program(
       let top_level_mark = Mark::new();
 
       // Clean and normalize: remove syntax contexts, convert template literals
-      let normalized = program
-        .apply(strip(unresolved_mark, top_level_mark))
-        .fold_with(&mut TplConverter {});
+      let mut normalized = program.apply(strip(unresolved_mark, top_level_mark));
+      normalized.visit_mut_with(&mut TplConverter {});
       Some(normalized)
     },
     Err(error) => {
@@ -419,13 +420,13 @@ impl ExpressionFinder {
 #[derive(Debug)]
 struct TplConverter {}
 
-impl Fold for TplConverter {
-  noop_fold_type!();
+impl VisitMut for TplConverter {
+  noop_visit_mut_type!();
 
-  fn fold_expr(&mut self, expr: Expr) -> Expr {
-    let expr = convert_concat_to_tpl_expr(expr);
-    let expr = convert_simple_tpl_to_str_expr(expr);
-    expr.fold_children_with(self)
+  fn visit_mut_expr(&mut self, expr: &mut Expr) {
+    let converted = convert_simple_tpl_to_str_expr(convert_concat_to_tpl_expr(expr.take()));
+    *expr = converted;
+    expr.visit_mut_children_with(self);
   }
 }
 

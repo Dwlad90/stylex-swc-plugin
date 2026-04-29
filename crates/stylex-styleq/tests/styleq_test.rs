@@ -6,6 +6,7 @@ use std::{
 
 use indexmap::IndexMap;
 use log::{Level, LevelFilter, Metadata, Record};
+use serial_test::serial;
 use stylex_styleq::{
   COMPILED_KEY, StyleMap, StyleValue, StyleqArgument, StyleqInput, StyleqOptions, StyleqValue,
   create_styleq, styleq,
@@ -204,6 +205,7 @@ fn stringify_inline_result(inline_style: &Option<StyleMap<StyleValue>>) -> Strin
 }
 
 #[test]
+#[serial]
 fn warns_if_extracted_property_values_are_not_strings_or_null() {
   init_error_logger();
   STYLEQ_ERROR_COUNT.store(0, Ordering::SeqCst);
@@ -791,6 +793,7 @@ fn ignores_identity_cache_key_when_transform_is_configured() {
 }
 
 #[test]
+#[serial]
 fn warns_if_compiled_marker_is_not_true_or_debug_string() {
   init_error_logger();
   STYLEQ_ERROR_COUNT.store(0, Ordering::SeqCst);

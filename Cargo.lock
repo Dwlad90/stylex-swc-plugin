@@ -3118,6 +3118,7 @@ dependencies = [
  "criterion",
  "indexmap",
  "log",
+ "serial_test",
 ]
 
 [[package]]

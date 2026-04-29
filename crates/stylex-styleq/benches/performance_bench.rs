@@ -1,4 +1,7 @@
-use std::{cell::RefCell, hint::black_box, rc::Rc};
+use std::{
+  hint::black_box,
+  sync::{Arc, Mutex},
+};
 
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use stylex_styleq::{
@@ -168,17 +171,24 @@ fn merged_inline_fixture() -> [StyleqInput<StyleValue>; 2] {
   ]
 }
 
+fn lock_transform_cache<T>(cache: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+  match cache.lock() {
+    Ok(cache) => cache,
+    Err(error) => panic!("transform cache mutex poisoned: {error:?}"),
+  }
+}
+
 fn styleq_transform() -> stylex_styleq::Styleq<StyleValue> {
-  let transform_cache = Rc::new(RefCell::new(Vec::<(
+  let transform_cache = Arc::new(Mutex::new(Vec::<(
     StyleMap<StyleValue>,
     StyleMap<StyleValue>,
   )>::new()));
-  let transform_cache_for_closure = Rc::clone(&transform_cache);
+  let transform_cache_for_closure = Arc::clone(&transform_cache);
 
   create_styleq(StyleqOptions {
-    transform: Some(Rc::new(move |style: StyleMap<StyleValue>| {
+    transform: Some(Arc::new(move |style: StyleMap<StyleValue>| {
       {
-        let transform_cache = transform_cache_for_closure.borrow();
+        let transform_cache = lock_transform_cache(&transform_cache_for_closure);
         if let Some((_, cached_style)) = transform_cache
           .iter()
           .find(|(cached_input, _)| cached_input == &style)
@@ -189,9 +199,7 @@ fn styleq_transform() -> stylex_styleq::Styleq<StyleValue> {
 
       let mut flex_style = style.clone();
       flex_style.insert("display".to_string(), string("display-flex"));
-      transform_cache_for_closure
-        .borrow_mut()
-        .push((style, flex_style.clone()));
+      lock_transform_cache(&transform_cache_for_closure).push((style, flex_style.clone()));
       flex_style
     })),
     ..Default::default()

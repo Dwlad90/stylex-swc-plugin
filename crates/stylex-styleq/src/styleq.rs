@@ -1,7 +1,7 @@
 use std::{
-  cell::RefCell,
   collections::hash_map::DefaultHasher,
   hash::{Hash, Hasher},
+  sync::{Mutex, MutexGuard},
 };
 
 use indexmap::IndexMap;
@@ -26,13 +26,13 @@ enum CacheKey {
 
 pub struct Styleq<V: StyleqValue> {
   options: StyleqOptions<V>,
-  cache: RefCell<IndexMap<CacheKey, CacheEntry>>,
+  cache: Mutex<IndexMap<CacheKey, CacheEntry>>,
 }
 
 pub fn create_styleq<V: StyleqValue>(options: StyleqOptions<V>) -> Styleq<V> {
   Styleq {
     options,
-    cache: RefCell::new(IndexMap::new()),
+    cache: Mutex::new(IndexMap::new()),
   }
 }
 
@@ -127,7 +127,7 @@ impl<V: StyleqValue> Styleq<V> {
       _ => CacheKey::Hash(hash_style(style)),
     };
 
-    if use_cache && let Some(cache_entry) = self.cache.borrow().get(&cache_key).cloned() {
+    if use_cache && let Some(cache_entry) = self.get_cache_entry(&cache_key) {
       class_name_chunk = cache_entry.class_name;
       *debug_string = cache_entry.debug_string;
       defined_properties.extend(cache_entry.defined_properties);
@@ -180,7 +180,7 @@ impl<V: StyleqValue> Styleq<V> {
       }
 
       if use_cache {
-        self.cache.borrow_mut().insert(
+        self.insert_cache_entry(
           cache_key,
           CacheEntry {
             class_name: class_name_chunk.clone(),
@@ -234,6 +234,24 @@ impl<V: StyleqValue> Styleq<V> {
 
       *inline_style = Some(sub_style);
     }
+  }
+
+  fn cache_lock(&self) -> MutexGuard<'_, IndexMap<CacheKey, CacheEntry>> {
+    match self.cache.lock() {
+      Ok(cache) => cache,
+      Err(poisoned) => {
+        error!("styleq: cache mutex was poisoned; continuing with inner cache.");
+        poisoned.into_inner()
+      },
+    }
+  }
+
+  fn get_cache_entry(&self, cache_key: &CacheKey) -> Option<CacheEntry> {
+    self.cache_lock().get(cache_key).cloned()
+  }
+
+  fn insert_cache_entry(&self, cache_key: CacheKey, cache_entry: CacheEntry) {
+    self.cache_lock().insert(cache_key, cache_entry);
   }
 }
 

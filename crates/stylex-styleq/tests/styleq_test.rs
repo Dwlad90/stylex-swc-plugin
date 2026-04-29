@@ -1,15 +1,17 @@
 use std::{
-  cell::{Cell, RefCell},
   rc::Rc,
-  sync::atomic::{AtomicUsize, Ordering},
+  sync::{
+    Arc, Mutex,
+    atomic::{AtomicBool, AtomicUsize, Ordering},
+  },
 };
 
 use indexmap::IndexMap;
 use log::{Level, LevelFilter, Metadata, Record};
 use serial_test::serial;
 use stylex_styleq::{
-  COMPILED_KEY, StyleMap, StyleValue, StyleqArgument, StyleqInput, StyleqOptions, StyleqValue,
-  create_styleq, styleq,
+  COMPILED_KEY, StyleMap, StyleValue, Styleq, StyleqArgument, StyleqInput, StyleqOptions,
+  StyleqResult, StyleqValue, create_styleq, styleq,
 };
 
 static STYLEQ_ERROR_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -201,6 +203,13 @@ fn stringify_inline_result(inline_style: &Option<StyleMap<StyleValue>>) -> Strin
   match inline_style {
     Some(inline_style) => stringify_inline_style(inline_style),
     None => String::new(),
+  }
+}
+
+fn lock_transform_cache<T>(cache: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+  match cache.lock() {
+    Ok(cache) => cache,
+    Err(error) => panic!("transform cache mutex poisoned: {error:?}"),
   }
 }
 
@@ -615,16 +624,16 @@ fn supports_generating_debug_strings() {
 
 #[test]
 fn supports_style_transforms() {
-  let is_rtl = Rc::new(Cell::new(false));
-  let is_rtl_for_transform = Rc::clone(&is_rtl);
+  let is_rtl = Arc::new(AtomicBool::new(false));
+  let is_rtl_for_transform = Arc::clone(&is_rtl);
   let styleq_with_transform = create_styleq(StyleqOptions {
-    transform: Some(Rc::new(move |style: StyleMap<StyleValue>| {
-      localize_style(style, is_rtl_for_transform.get())
+    transform: Some(Arc::new(move |style: StyleMap<StyleValue>| {
+      localize_style(style, is_rtl_for_transform.load(Ordering::SeqCst))
     })),
     ..Default::default()
   });
 
-  is_rtl.set(false);
+  is_rtl.store(false, Ordering::SeqCst);
   let result = styleq_with_transform.styleq(&[
     StyleqInput::Style(transform_fixture()),
     StyleqInput::Style(opacity_style()),
@@ -633,7 +642,7 @@ fn supports_style_transforms() {
   assert_eq!(result.class_name, "margin-left-0px margin-right-10px");
   assert_eq!(result.inline_style, Some(opacity_style()));
 
-  is_rtl.set(true);
+  is_rtl.store(true, Ordering::SeqCst);
   let result = styleq_with_transform.styleq(&[
     StyleqInput::Style(transform_fixture()),
     StyleqInput::Style(opacity_style()),
@@ -645,16 +654,16 @@ fn supports_style_transforms() {
 
 #[test]
 fn memoizes_transform_results() {
-  let cache = Rc::new(RefCell::new(
+  let cache = Arc::new(Mutex::new(
     None::<(StyleMap<StyleValue>, StyleMap<StyleValue>)>,
   ));
-  let compile_count = Rc::new(Cell::new(0));
-  let cache_for_transform = Rc::clone(&cache);
-  let compile_count_for_transform = Rc::clone(&compile_count);
+  let compile_count = Arc::new(AtomicUsize::new(0));
+  let cache_for_transform = Arc::clone(&cache);
+  let compile_count_for_transform = Arc::clone(&compile_count);
   let styleq_with_transform = create_styleq(StyleqOptions {
-    transform: Some(Rc::new(move |style: StyleMap<StyleValue>| {
+    transform: Some(Arc::new(move |style: StyleMap<StyleValue>| {
       {
-        let cache = cache_for_transform.borrow();
+        let cache = lock_transform_cache(&cache_for_transform);
         if let Some((cached_style, cached_result)) = cache.as_ref()
           && cached_style == &style
         {
@@ -662,11 +671,9 @@ fn memoizes_transform_results() {
         }
       }
 
-      compile_count_for_transform.set(compile_count_for_transform.get() + 1);
+      compile_count_for_transform.fetch_add(1, Ordering::SeqCst);
       let localized_style = localize_style(style.clone(), false);
-      cache_for_transform
-        .borrow_mut()
-        .replace((style, localized_style.clone()));
+      lock_transform_cache(&cache_for_transform).replace((style, localized_style.clone()));
       localized_style
     })),
     ..Default::default()
@@ -675,7 +682,7 @@ fn memoizes_transform_results() {
   let _ = styleq_with_transform.styleq(&[StyleqInput::Style(transform_fixture())]);
   let _ = styleq_with_transform.styleq(&[StyleqInput::Style(transform_fixture())]);
 
-  assert_eq!(compile_count.get(), 1);
+  assert_eq!(compile_count.load(Ordering::SeqCst), 1);
 }
 
 #[test]
@@ -777,7 +784,7 @@ fn uses_identity_cache_key_when_argument_provides_stable_identity() {
 #[test]
 fn ignores_identity_cache_key_when_transform_is_configured() {
   let styleq_with_transform = create_styleq(StyleqOptions {
-    transform: Some(Rc::new(|style| style)),
+    transform: Some(Arc::new(|style| style)),
     ..Default::default()
   });
 
@@ -861,16 +868,30 @@ fn styleq_input_trait_methods_cover_all_variants() {
 fn style_value_trait_methods_cover_all_value_kinds() {
   let class_name = StyleValue::string("x1abc");
   let class_name_rc = Rc::new(class_name.clone());
+  let class_name_arc = Arc::new(class_name.clone());
 
   assert_eq!(class_name.as_class_name(), Some("x1abc"));
   assert_eq!(class_name_rc.as_class_name(), Some("x1abc"));
+  assert_eq!(class_name_arc.as_class_name(), Some("x1abc"));
   assert!(!class_name.is_null());
   assert!(!class_name_rc.is_null());
+  assert!(!class_name_arc.is_null());
   assert!(!class_name.is_true_bool());
   assert!(!class_name_rc.is_true_bool());
+  assert!(!class_name_arc.is_true_bool());
 
   assert_eq!(StyleValue::Number(1).as_class_name(), None);
   assert!(StyleValue::Null.is_null());
   assert!(!StyleValue::Bool(false).is_true_bool());
   assert!(StyleValue::Bool(true).is_true_bool());
+}
+
+#[test]
+fn styleq_default_public_types_are_send_and_sync() {
+  fn assert_send_sync<T: Send + Sync>() {}
+
+  assert_send_sync::<Styleq<StyleValue>>();
+  assert_send_sync::<StyleqOptions<StyleValue>>();
+  assert_send_sync::<StyleqInput<StyleValue>>();
+  assert_send_sync::<StyleqResult<StyleValue>>();
 }

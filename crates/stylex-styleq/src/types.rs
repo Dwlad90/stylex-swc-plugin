@@ -1,11 +1,11 @@
-use std::{fmt::Debug, hash::Hash, rc::Rc};
+use std::{fmt::Debug, hash::Hash, rc::Rc, sync::Arc};
 
 use indexmap::IndexMap;
 
 pub const COMPILED_KEY: &str = "$$css";
 
 pub type StyleMap<V> = IndexMap<String, V>;
-pub type Transform<V> = Rc<dyn Fn(StyleMap<V>) -> StyleMap<V>>;
+pub type Transform<V> = Arc<dyn Fn(StyleMap<V>) -> StyleMap<V> + Send + Sync>;
 
 pub trait StyleqValue: Clone + Debug + Hash + 'static {
   fn as_class_name(&self) -> Option<&str>;
@@ -14,6 +14,20 @@ pub trait StyleqValue: Clone + Debug + Hash + 'static {
 }
 
 impl<V: StyleqValue> StyleqValue for Rc<V> {
+  fn as_class_name(&self) -> Option<&str> {
+    self.as_ref().as_class_name()
+  }
+
+  fn is_null(&self) -> bool {
+    self.as_ref().is_null()
+  }
+
+  fn is_true_bool(&self) -> bool {
+    self.as_ref().is_true_bool()
+  }
+}
+
+impl<V: StyleqValue> StyleqValue for Arc<V> {
   fn as_class_name(&self) -> Option<&str> {
     self.as_ref().as_class_name()
   }

@@ -23,6 +23,24 @@ fn parse_css_bad_string_is_tolerated() {
 }
 
 #[test]
+fn parse_css_characterizes_current_token_stream_outputs() {
+  let cases = [
+    ("rgb(255, 0, 0)", vec!["rgb(255,0,0)"]),
+    ("calc(100% - 20px)", vec!["calc(100% - 20px)"]),
+    ("a, b, c", vec!["a", "b", "c"]),
+    (
+      "color: red; margin: 0",
+      vec!["color", ":", "red", ";", "margin", ":", "0"],
+    ),
+    ("#007bff", vec!["#\\30 07bff"]),
+  ];
+
+  for (input, expected) in cases {
+    assert_eq!(parse_css(input), expected);
+  }
+}
+
+#[test]
 fn parse_css_supports_ident_and_nested_blocks() {
   // Cover identifier and all nested block token variants in one parse pass.
   let result = parse_css("foo(bar)[baz]{qux}");

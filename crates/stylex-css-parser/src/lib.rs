@@ -58,6 +58,7 @@ pub mod css_types;
 pub mod properties;
 pub mod token_parser;
 pub mod token_types;
+pub mod value_parser;
 
 pub mod css_value;
 pub mod flex_parser;

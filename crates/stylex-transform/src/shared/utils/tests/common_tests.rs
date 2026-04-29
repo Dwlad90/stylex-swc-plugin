@@ -12,17 +12,18 @@ use swc_core::{
 use crate::shared::{
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::common::{
-    deep_merge_props, downcast_style_options_to_state_manager, evaluate_bin_expr,
-    extract_filename_from_path, extract_filename_with_ext_from_path, extract_path,
-    fill_state_declarations, fill_top_level_expressions, gen_file_based_identifier, get_css_value,
-    get_expr_from_var_decl, get_import_from, get_key_values_from_object, get_var_decl_by_ident,
-    increase_ident_count, increase_ident_count_by_count, increase_member_ident,
-    increase_member_ident_count, increase_member_ident_count_by_count, js_object_to_json,
-    normalize_expr, reduce_ident_count, reduce_member_expression_count, reduce_member_ident_count,
-    remove_duplicates, serialize_value_to_json_string, type_of,
+    deep_merge_props, downcast_style_options_to_state_manager, extract_filename_from_path,
+    extract_filename_with_ext_from_path, extract_path, fill_state_declarations,
+    fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_expr_from_var_decl,
+    get_import_from, get_key_values_from_object, get_var_decl_by_ident, increase_ident_count,
+    increase_ident_count_by_count, increase_member_ident, increase_member_ident_count,
+    increase_member_ident_count_by_count, js_object_to_json, normalize_expr, reduce_ident_count,
+    reduce_member_expression_count, reduce_member_ident_count, remove_duplicates,
+    serialize_value_to_json_string, type_of,
   },
 };
 use stylex_enums::misc::VarDeclAction;
+use stylex_evaluator::common::evaluate_bin_expr;
 
 // ──────────────────────────────────────────────
 // Helpers
@@ -269,9 +270,27 @@ mod evaluate_bin_expr_tests {
   }
 
   #[test]
-  #[should_panic]
-  fn unsupported_operator_panics() {
-    evaluate_bin_expr(BinaryOp::Mod, 10.0, 3.0);
+  fn modulo_returns_remainder() {
+    assert_eq!(evaluate_bin_expr(BinaryOp::Mod, 10.0, 3.0), 1.0);
+  }
+
+  #[test]
+  fn exponentiation_returns_power() {
+    assert_eq!(evaluate_bin_expr(BinaryOp::Exp, 2.0, 10.0), 1024.0);
+  }
+
+  #[test]
+  fn bitwise_operators_match_numeric_results() {
+    assert_eq!(evaluate_bin_expr(BinaryOp::BitOr, 5.0, 3.0), 7.0);
+    assert_eq!(evaluate_bin_expr(BinaryOp::BitAnd, 5.0, 3.0), 1.0);
+    assert_eq!(evaluate_bin_expr(BinaryOp::BitXor, 5.0, 3.0), 6.0);
+  }
+
+  #[test]
+  fn shift_operators_match_numeric_results() {
+    assert_eq!(evaluate_bin_expr(BinaryOp::LShift, 1.0, 4.0), 16.0);
+    assert_eq!(evaluate_bin_expr(BinaryOp::RShift, 16.0, 2.0), 4.0);
+    assert_eq!(evaluate_bin_expr(BinaryOp::ZeroFillRShift, 16.0, 2.0), 4.0);
   }
 }
 
@@ -2101,9 +2120,9 @@ mod evaluate_bin_expr_panic_tests {
   use super::*;
 
   #[test]
-  #[should_panic]
-  fn panics_for_modulo_op() {
-    evaluate_bin_expr(BinaryOp::Mod, 10.0, 3.0);
+  #[should_panic(expected = "Unsupported binary operator")]
+  fn panics_for_unsupported_operator() {
+    evaluate_bin_expr(BinaryOp::EqEq, 10.0, 3.0);
   }
 }
 

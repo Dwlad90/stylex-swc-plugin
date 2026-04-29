@@ -8,9 +8,9 @@ use swc_core::{
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
   ecma::{
     ast::{
-      BinaryOp, Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module,
-      ModuleDecl, ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, Pat, Prop, PropName,
-      PropOrSpread, Stmt, VarDeclarator,
+      Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module, ModuleDecl,
+      ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, Pat, Prop, PropName, PropOrSpread,
+      Stmt, VarDeclarator,
     },
     utils::drop_span,
   },
@@ -235,15 +235,6 @@ pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
   }
 }
 
-pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
-  match &op {
-    BinaryOp::Add => left + right,
-    BinaryOp::Sub => left - right,
-    BinaryOp::Mul => left * right,
-    BinaryOp::Div => left / right,
-    _ => stylex_panic!("Operator '{}' is not supported", op),
-  }
-}
 #[allow(dead_code)]
 pub(crate) fn type_of<T>(_: T) -> &'static str {
   type_name::<T>()

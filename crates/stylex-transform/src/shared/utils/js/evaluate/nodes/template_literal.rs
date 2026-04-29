@@ -1,23 +1,13 @@
 use super::super::*;
 
 pub(in super::super) fn evaluate_quasis(
-  tpl_expr: &Expr,
+  exprs: &[Box<Expr>],
   quasis: &[TplElement],
   raw: bool,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
-  let exprs = match tpl_expr {
-    Expr::Tpl(tpl) => &tpl.exprs,
-    Expr::TaggedTpl(tagged_tpl) => &tagged_tpl.tpl.exprs,
-    _ => stylex_panic_with_context!(
-      tpl_expr,
-      traversal_state,
-      "Expected a template literal expression but received a different expression type."
-    ),
-  };
-
   let quasi_len = quasis
     .iter()
     .map(|elem| {

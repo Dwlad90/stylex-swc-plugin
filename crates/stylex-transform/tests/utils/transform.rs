@@ -26,7 +26,7 @@ use swc_core::{
       testing::{HygieneVisualizer, Tester},
     },
     utils::{DropSpan, ExprFactory, quote_ident, quote_str},
-    visit::{FoldWith, VisitMut, noop_visit_mut_type},
+    visit::{FoldWith, VisitMut, VisitMutWith, noop_visit_mut_type},
   },
 };
 use swc_ecma_parser::TsSyntax;
@@ -54,13 +54,13 @@ pub(crate) fn _parse_js(source_code: &str) -> Module {
   let mut parser = Parser::new_from(lexer);
 
   match parser.parse_module() {
-    Ok(module) => {
-      // Do something with the parsed module.
-      module.fold_with(
+    Ok(mut module) => {
+      module.visit_mut_with(
         &mut StyleXTransform::test(Rc::new(SingleThreadedComments::default()))
           .with_runtime_injection()
           .build(),
-      )
+      );
+      module
     },
     Err(err) => {
       handler

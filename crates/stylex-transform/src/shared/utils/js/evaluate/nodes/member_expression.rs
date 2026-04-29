@@ -168,7 +168,7 @@ pub(in super::super) fn evaluate(
                 })?;
 
             if let PropOrSpread::Prop(prop) = property {
-              return Some(EvaluateResultValue::Expr(
+              Some(EvaluateResultValue::Expr(
                 *match prop.as_key_value() {
                   Some(kv) => kv,
                   #[cfg_attr(coverage_nightly, coverage(off))]
@@ -176,7 +176,7 @@ pub(in super::super) fn evaluate(
                 }
                 .value
                 .clone(),
-              ));
+              ))
             } else {
               stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED);
             }
@@ -278,13 +278,13 @@ pub(in super::super) fn evaluate(
 
           let value = theme_ref.get(&key, traversal_state);
 
-          return Some(EvaluateResultValue::Expr(create_string_expr(
+          Some(EvaluateResultValue::Expr(create_string_expr(
             match value.as_css_var() {
               Some(css_var) => css_var,
               #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("{}", EXPECTED_CSS_VAR),
             },
-          )));
+          )))
         },
         EvaluateResultValue::EnvObject(env_map) => {
           let key = property
@@ -300,7 +300,7 @@ pub(in super::super) fn evaluate(
 
           match env_map.get(&key) {
             Some(entry) => match resolve_env_entry_to_result(entry, &env_map) {
-              Some(result) => return Some(result),
+              Some(result) => Some(result),
               None => stylex_panic_with_context!(
                 path,
                 traversal_state,

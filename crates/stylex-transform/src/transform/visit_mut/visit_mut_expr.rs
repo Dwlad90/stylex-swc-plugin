@@ -1,6 +1,6 @@
 use swc_core::{
   common::comments::Comments,
-  ecma::{ast::Expr, visit::FoldWith},
+  ecma::{ast::Expr, visit::VisitMutWith},
 };
 
 use crate::{StyleXTransform, shared::utils::common::normalize_expr};
@@ -10,12 +10,12 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_expr_impl(&mut self, mut expr: Expr) -> Expr {
+  pub(crate) fn visit_mut_expr_impl(&mut self, expr: &mut Expr) {
     if self.state.cycle == TransformationCycle::Skip {
-      return expr;
+      return;
     }
 
-    let normalized_expr = normalize_expr(&mut expr);
+    let normalized_expr = normalize_expr(expr);
 
     // During Initializing, transform compiled JSX/VDOM calls with sx prop:
     // React/Vue: _jsx("div", { sx: expr }) → _jsx("div", { ...stylex.props(expr) })
@@ -23,10 +23,14 @@ where
     // stylex.props(expr)), false, true)
     if self.state.cycle == TransformationCycle::Initializing {
       if let Some(transformed) = self.transform_sx_in_compiled_jsx(normalized_expr) {
-        return transformed.fold_children_with(self);
+        *expr = transformed;
+        expr.visit_mut_children_with(self);
+        return;
       }
       if let Some(transformed) = self.transform_sx_in_solid_set_attribute(normalized_expr) {
-        return transformed.fold_children_with(self);
+        *expr = transformed;
+        expr.visit_mut_children_with(self);
+        return;
       }
     }
 
@@ -40,9 +44,10 @@ where
       || self.state.cycle == TransformationCycle::TransformExit)
       && let Some(value) = self.transform_call_expression(normalized_expr)
     {
-      return value;
+      *expr = value;
+      return;
     }
 
-    expr.fold_children_with(self)
+    expr.visit_mut_children_with(self);
   }
 }

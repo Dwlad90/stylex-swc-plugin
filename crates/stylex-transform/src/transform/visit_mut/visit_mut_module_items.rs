@@ -6,7 +6,7 @@ use swc_core::{
       Decl, ExportDecl, Expr, Ident, ImportDecl, Lit, ModuleDecl, ModuleItem, Pat, Stmt, Str,
       VarDeclarator,
     },
-    visit::FoldWith,
+    visit::VisitMutWith,
   },
 };
 
@@ -24,20 +24,19 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_module_items(&mut self, module_items: Vec<ModuleItem>) -> Vec<ModuleItem> {
+  pub(crate) fn visit_mut_module_items_impl(&mut self, module_items: &mut Vec<ModuleItem>) {
     match self.state.cycle {
-      TransformationCycle::Skip => module_items,
+      TransformationCycle::Skip => {},
       TransformationCycle::Initializing => {
-        let mut transformed_module_items = module_items.fold_children_with(self);
+        module_items.visit_mut_children_with(self);
 
         if self.state.import_paths.is_empty() {
           self.state.cycle = TransformationCycle::Skip;
-
-          return transformed_module_items;
+          return;
         }
 
         if self.state.options.inject_stylex_side_effects {
-          let side_effect_imports: Vec<_> = transformed_module_items
+          let side_effect_imports: Vec<_> = module_items
             .iter()
             .filter_map(|module_item| {
               if let ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl)) = module_item {
@@ -65,10 +64,8 @@ where
             })
             .collect();
 
-          transformed_module_items.extend(side_effect_imports);
+          module_items.extend(side_effect_imports);
         }
-
-        transformed_module_items
       },
       TransformationCycle::StateFilling => {
         module_items.iter().for_each(|module_item| {
@@ -81,14 +78,15 @@ where
           }
         });
 
-        module_items.fold_children_with(self)
+        module_items.visit_mut_children_with(self);
       },
       TransformationCycle::TransformEnter
       | TransformationCycle::PreCleaning
-      | TransformationCycle::Recounting => module_items.fold_children_with(self),
+      | TransformationCycle::Recounting => module_items.visit_mut_children_with(self),
       TransformationCycle::TransformExit => {
         if self.state.hoisted_module_items.is_empty() {
-          return module_items.fold_children_with(self);
+          module_items.visit_mut_children_with(self);
+          return;
         }
 
         let import_end = module_items
@@ -99,19 +97,16 @@ where
           .map(|(idx, _)| idx)
           .unwrap_or(0);
 
-        let mut module_items = module_items;
-
-        let total_capacity = module_items.len() + self.state.hoisted_module_items.len();
-
+        let mut items = std::mem::take(module_items);
+        let total_capacity = items.len() + self.state.hoisted_module_items.len();
         let mut result_module_items = Vec::with_capacity(total_capacity);
 
-        result_module_items.extend(module_items.drain(..import_end));
-
+        result_module_items.extend(items.drain(..import_end));
         result_module_items.extend(self.state.hoisted_module_items.iter().cloned());
+        result_module_items.extend(items);
+        result_module_items.visit_mut_children_with(self);
 
-        result_module_items.extend(module_items);
-
-        result_module_items.fold_children_with(self)
+        *module_items = result_module_items;
       },
       TransformationCycle::InjectStyles => {
         // InjectStyles must run after import discovery because injected rules
@@ -148,14 +143,14 @@ where
               ModuleDecl::ExportDecl(export_decl) => export_decl.decl.as_var().map(|var_decl| {
                 var_decl
                   .decls
-                  .iter() // Use iter() to avoid cloning the entire collection
+                  .iter()
                   .filter(|decl| {
                     decl
                       .init
                       .as_ref()
                       .is_some_and(|init| init.is_object() || init.is_lit())
                   })
-                  .cloned() // Clone only the filtered elements
+                  .cloned()
                   .collect::<Vec<VarDeclarator>>()
               }),
               ModuleDecl::ExportDefaultExpr(export_default_expr) => {
@@ -204,11 +199,11 @@ where
           result_module_items.push(module_item.clone());
         }
 
-        result_module_items
+        *module_items = result_module_items;
       },
       TransformationCycle::Cleaning => {
         // We need it twice for a clear dead code after declaration transforms
-        let mut module_items = module_items.fold_children_with(self);
+        module_items.visit_mut_children_with(self);
 
         // We remove `Stmt::Empty` from the statement list.
         // This is optional, but it's required if you don't want extra `;` in output.
@@ -216,8 +211,6 @@ where
           !matches!(module_item, ModuleItem::Stmt(Stmt::Empty(..)))
             && !matches!(module_item, ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl { decl: Decl::Var(var), .. })) if var.decls.is_empty())
         });
-
-        module_items
       },
     }
   }

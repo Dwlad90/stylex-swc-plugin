@@ -3,7 +3,7 @@ use swc_core::{
   ecma::{
     ast::{Decl, Stmt},
     utils::IsDirective,
-    visit::FoldWith,
+    visit::VisitMutWith,
   },
 };
 
@@ -14,13 +14,13 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_stmt_impl(&mut self, stmt: Stmt) -> Stmt {
+  pub(crate) fn visit_mut_stmt_impl(&mut self, stmt: &mut Stmt) {
     if self.state.cycle == TransformationCycle::Skip {
-      return stmt;
+      return;
     }
 
     if self.state.cycle == TransformationCycle::Cleaning {
-      let mut stmt = stmt.fold_children_with(self);
+      stmt.visit_mut_children_with(self);
 
       if let Some(Stmt::Decl(Decl::Var(var))) = stmt.as_ref()
         && var.decls.is_empty()
@@ -30,10 +30,8 @@ where
         // After this, `stmt` becomes `Stmt::Empty`.
         stmt.take();
       }
-
-      stmt
     } else {
-      stmt.fold_children_with(self)
+      stmt.visit_mut_children_with(self);
     }
   }
 }

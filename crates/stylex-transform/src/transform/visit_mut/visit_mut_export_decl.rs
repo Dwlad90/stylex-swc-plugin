@@ -2,7 +2,7 @@ use swc_core::{
   common::comments::Comments,
   ecma::{
     ast::{Decl, ExportDecl},
-    visit::FoldWith,
+    visit::VisitMutWith,
   },
 };
 
@@ -13,9 +13,9 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_export_decl_impl(&mut self, export_decl: ExportDecl) -> ExportDecl {
+  pub(crate) fn visit_mut_export_decl_impl(&mut self, export_decl: &mut ExportDecl) {
     if self.state.cycle == TransformationCycle::Skip {
-      return export_decl;
+      return;
     }
 
     if self.state.cycle == TransformationCycle::StateFilling
@@ -30,6 +30,6 @@ where
       }
     }
 
-    export_decl.fold_children_with(self)
+    export_decl.visit_mut_children_with(self);
   }
 }

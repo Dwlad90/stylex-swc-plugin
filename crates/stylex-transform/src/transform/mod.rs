@@ -5,7 +5,7 @@ use swc_core::{
   ecma::{
     ast::{CallExpr, Callee, Expr, Id, MemberProp, Pass, VarDeclarator},
     transforms::{base::resolver, typescript::strip},
-    visit::fold_pass,
+    visit::visit_mut_pass,
   },
 };
 
@@ -21,8 +21,8 @@ use stylex_structures::{
   stylex_options::{ModuleResolution, StyleXOptionsParams},
 };
 
-mod fold;
 pub(crate) mod stylex;
+mod visit_mut;
 
 pub struct StyleXTransform<C>
 where
@@ -245,7 +245,7 @@ where
 
     (
       resolve_factory(unresolved_mark, top_level_mark),
-      fold_pass(self.build()),
+      visit_mut_pass(self.build()),
     )
   }
 }

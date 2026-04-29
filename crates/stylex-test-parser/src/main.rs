@@ -22,7 +22,7 @@ use swc_core::{
       CallExpr, Decl, EsVersion, Expr, ExprStmt, FnDecl, ModuleItem, Stmt, VarDecl, VarDeclKind,
       VarDeclarator,
     },
-    visit::{Fold, FoldWith},
+    visit::{Fold, FoldWith, VisitMut, VisitMutWith},
   },
 };
 use walkdir::WalkDir;
@@ -136,39 +136,25 @@ impl Fold for TestsTransformer {
 
 struct TypeScriptStripper;
 
-impl Fold for TypeScriptStripper {
-  fn fold_binding_ident(
-    &mut self,
-    mut node: swc_core::ecma::ast::BindingIdent,
-  ) -> swc_core::ecma::ast::BindingIdent {
+impl VisitMut for TypeScriptStripper {
+  fn visit_mut_binding_ident(&mut self, node: &mut swc_core::ecma::ast::BindingIdent) {
     node.type_ann = None;
-
     node.optional = false;
-
-    node
   }
 
-  fn fold_function(
-    &mut self,
-    mut node: swc_core::ecma::ast::Function,
-  ) -> swc_core::ecma::ast::Function {
+  fn visit_mut_function(&mut self, node: &mut swc_core::ecma::ast::Function) {
     node.return_type = None;
-
-    node.fold_children_with(self)
+    node.visit_mut_children_with(self);
   }
 
-  fn fold_key_value_prop(
-    &mut self,
-    mut node: swc_core::ecma::ast::KeyValueProp,
-  ) -> swc_core::ecma::ast::KeyValueProp {
-    let new_value = match node.value.as_ref() {
-      Expr::TsAs(ts_as) => Box::new((*ts_as.expr).clone()),
-      _ => node.value.clone(),
-    };
+  fn visit_mut_key_value_prop(&mut self, node: &mut swc_core::ecma::ast::KeyValueProp) {
+    if matches!(node.value.as_ref(), Expr::TsAs(_)) {
+      let value = std::mem::take(&mut node.value);
 
-    node.value = new_value;
-
-    node
+      if let Expr::TsAs(ts_as) = *value {
+        node.value = ts_as.expr;
+      }
+    }
   }
 }
 
@@ -207,7 +193,8 @@ fn transform_file(file_path: &Path, dir: &str) -> Result<(), std::io::Error> {
 
     // Strip TypeScript annotations first
     let mut typescript_stripper = TypeScriptStripper;
-    let mut program = program.fold_with(&mut typescript_stripper);
+    let mut program = program;
+    program.visit_mut_with(&mut typescript_stripper);
 
     program = program.fold_with(&mut transformer);
 

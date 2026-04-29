@@ -1,6 +1,6 @@
 use swc_core::{
   common::comments::Comments,
-  ecma::{ast::ExportDefaultExpr, visit::FoldWith},
+  ecma::{ast::ExportDefaultExpr, visit::VisitMutWith},
 };
 
 use crate::{StyleXTransform, shared::utils::common::normalize_expr};
@@ -10,16 +10,17 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_export_default_expr_impl(
+  pub(crate) fn visit_mut_export_default_expr_impl(
     &mut self,
-    mut export_default_expr: ExportDefaultExpr,
-  ) -> ExportDefaultExpr {
+    export_default_expr: &mut ExportDefaultExpr,
+  ) {
     if self.state.cycle == TransformationCycle::Skip {
-      return export_default_expr;
+      return;
     }
 
     if self.state.cycle == TransformationCycle::StateFilling {
-      return export_default_expr.fold_children_with(self);
+      export_default_expr.visit_mut_children_with(self);
+      return;
     }
 
     if self.state.cycle == TransformationCycle::TransformEnter
@@ -31,7 +32,5 @@ where
         *export_default_expr.expr = value;
       }
     }
-
-    export_default_expr
   }
 }

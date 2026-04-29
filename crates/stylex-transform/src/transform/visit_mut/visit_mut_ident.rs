@@ -10,17 +10,15 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_ident_impl(&mut self, ident: Ident) -> Ident {
+  pub(crate) fn visit_mut_ident_impl(&mut self, ident: &mut Ident) {
     match self.state.cycle {
       TransformationCycle::StateFilling => {
-        increase_ident_count(&mut self.state, &ident);
+        increase_ident_count(&mut self.state, ident);
       },
       TransformationCycle::Recounting => {
-        reduce_ident_count(&mut self.state, &ident);
+        reduce_ident_count(&mut self.state, ident);
       },
       _ => {},
     };
-
-    ident
   }
 }

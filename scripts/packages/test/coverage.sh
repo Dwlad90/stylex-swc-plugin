@@ -23,8 +23,7 @@ if grep -qRE --include="*.rs" "$PATTERNS" src tests; then
 
   IGNORE_REGEX="(tests?|benches?|examples)/"
 
-  NODE_ENV="test" cargo +nightly llvm-cov nextest \
-    --target-dir "$crate_target_dir" \
+  NODE_ENV="test" CARGO_TARGET_DIR="$crate_target_dir" cargo +nightly llvm-cov nextest \
     --all-features \
     --fail-uncovered-lines 0 \
     --fail-uncovered-regions 0 \

@@ -1,6 +1,6 @@
 use swc_core::{
   common::comments::Comments,
-  ecma::{ast::Stmt, visit::FoldWith},
+  ecma::{ast::Stmt, visit::VisitMutWith},
 };
 
 use crate::StyleXTransform;
@@ -10,9 +10,9 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_stmts_impl(&mut self, mut stmts: Vec<Stmt>) -> Vec<Stmt> {
+  pub(crate) fn visit_mut_stmts_impl(&mut self, stmts: &mut Vec<Stmt>) {
     if self.state.cycle == TransformationCycle::Skip {
-      return stmts;
+      return;
     }
 
     if self.state.cycle == TransformationCycle::Cleaning {
@@ -20,10 +20,8 @@ where
         // We use `matches` macro as this match is trivial.
         !matches!(stmt, Stmt::Empty(..))
       });
-
-      stmts
     } else {
-      stmts.fold_children_with(self)
+      stmts.visit_mut_children_with(self);
     }
   }
 }

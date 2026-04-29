@@ -1,6 +1,6 @@
 use swc_core::{
   common::comments::Comments,
-  ecma::{ast::PropName, visit::FoldWith},
+  ecma::{ast::PropName, visit::VisitMutWith},
 };
 
 use crate::StyleXTransform;
@@ -10,15 +10,12 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_prop_name_impl(&mut self, prop_name: PropName) -> PropName {
+  pub(crate) fn visit_mut_prop_name_impl(&mut self, prop_name: &mut PropName) {
     match self.state.cycle {
-      TransformationCycle::Skip => prop_name,
+      TransformationCycle::Skip => {},
       TransformationCycle::StateFilling | TransformationCycle::Recounting
-        if prop_name.is_ident() =>
-      {
-        prop_name
-      },
-      _ => prop_name.fold_children_with(self),
+        if prop_name.is_ident() => {},
+      _ => prop_name.visit_mut_children_with(self),
     }
   }
 }

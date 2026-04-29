@@ -193,7 +193,7 @@ pub(crate) fn evaluate_obj_key(
       let computed_result = evaluate(&computed.expr, state, functions);
       if computed_result.confident {
         match computed_result.value {
-          Some(EvaluateResultValue::Expr(ref value)) => value.clone(),
+          Some(EvaluateResultValue::Expr(value)) => value,
           #[cfg_attr(coverage_nightly, coverage(off))]
           _ => stylex_panic!("Expected an expression value from the evaluation result."),
         }
@@ -314,7 +314,7 @@ fn _evaluate(
     Expr::Seq(sec) => nodes::sequence_expression::evaluate(sec, state, traversal_state, fns),
     Expr::Lit(lit_path) => nodes::literal::evaluate(lit_path),
     Expr::Tpl(tpl) => nodes::template_literal::evaluate_quasis(
-      &Expr::Tpl(tpl.clone()),
+      &tpl.exprs,
       &tpl.quasis,
       false,
       state,
@@ -395,7 +395,7 @@ fn _evaluate(
       },
     );
 
-    if let Some(init) = binding.and_then(|var_decl| var_decl.init.clone()) {
+    if let Some(init) = binding.and_then(|mut var_decl| var_decl.init.take()) {
       return evaluate_cached(&init, state, traversal_state, fns);
     }
 
@@ -437,9 +437,7 @@ fn _evaluate(
           }
         });
 
-      let imported = imported
-        .clone()
-        .unwrap_or_else(|| ModuleExportName::Ident(local_name.clone()));
+      let imported = imported.unwrap_or_else(|| ModuleExportName::Ident(local_name.clone()));
 
       let abs_path = traversal_state.import_path_resolver(
         convert_atom_to_str_ref(&import_path.src.value),

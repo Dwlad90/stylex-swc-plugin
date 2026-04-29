@@ -1,6 +1,6 @@
 use swc_core::{
   common::comments::Comments,
-  ecma::{ast::Module, visit::FoldWith},
+  ecma::{ast::Module, visit::VisitMutWith},
 };
 
 use crate::{StyleXTransform, shared::utils::common::fill_top_level_expressions};
@@ -10,32 +10,32 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_module_impl(&mut self, module: Module) -> Module {
+  pub(crate) fn visit_mut_module_impl(&mut self, module: &mut Module) {
     if cfg!(debug_assertions) || !self.state.options.use_real_file_for_source {
-      self.state.set_seen_module_source_code(&module, None);
+      self.state.set_seen_module_source_code(module, None);
     }
 
-    let mut module = module.fold_children_with(self);
+    module.visit_mut_children_with(self);
 
     if !self.state.import_paths.is_empty() {
       self.state.cycle = TransformationCycle::StateFilling;
-      module = module.fold_children_with(self);
+      module.visit_mut_children_with(self);
 
-      fill_top_level_expressions(&module, &mut self.state);
+      fill_top_level_expressions(module, &mut self.state);
 
       self.state.cycle = TransformationCycle::TransformEnter;
-      module = module.fold_children_with(self);
+      module.visit_mut_children_with(self);
 
       self.state.cycle = TransformationCycle::TransformExit;
-      module = module.fold_children_with(self);
+      module.visit_mut_children_with(self);
 
       if self.state.options.runtime_injection.is_some() {
         self.state.cycle = TransformationCycle::InjectStyles;
-        module = module.fold_children_with(self);
+        module.visit_mut_children_with(self);
       }
 
       self.state.cycle = TransformationCycle::PreCleaning;
-      module = module.fold_children_with(self);
+      module.visit_mut_children_with(self);
 
       self.state.cycle = TransformationCycle::Cleaning;
 
@@ -45,14 +45,11 @@ where
       // original order
       module.body.reverse();
 
-      module = module.fold_children_with(self);
+      module.visit_mut_children_with(self);
 
       module.body.reverse();
-
-      module
     } else {
       self.state.cycle = TransformationCycle::Skip;
-      module
     }
   }
 }

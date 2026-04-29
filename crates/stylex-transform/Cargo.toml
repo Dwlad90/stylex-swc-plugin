@@ -75,8 +75,8 @@ swc_core = { workspace = true, features = [
 testing.workspace = true
 
 [[bench]]
-name = "evaluate_bench"
 harness = false
+name = "evaluate_bench"
 
 [lints]
 workspace = true

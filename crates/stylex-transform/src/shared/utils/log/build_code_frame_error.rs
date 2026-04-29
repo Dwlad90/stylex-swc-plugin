@@ -181,7 +181,7 @@ fn load_code_frame_from_cache(file_name: &FileName) -> Result<CodeFrame, Error> 
 /// Finds the span of a target expression within a program AST
 fn find_expression_span(program: Program, target_expression: &Expr) -> Span {
   let mut finder = ExpressionFinder::new(target_expression);
-  let program = program.fold_with(&mut finder);
+  program.visit_with(&mut finder);
 
   if let Some(span) = finder.get_span() {
     return span;
@@ -190,7 +190,7 @@ fn find_expression_span(program: Program, target_expression: &Expr) -> Span {
   // Fallback: try finding after template literal conversion
   let converted_target = target_expression.clone().fold_with(&mut TplConverter {});
   let mut fallback_finder = ExpressionFinder::new(&converted_target);
-  let _program = program.fold_with(&mut fallback_finder);
+  program.visit_with(&mut fallback_finder);
 
   fallback_finder
     .get_span()
@@ -379,24 +379,25 @@ struct ExpressionFinder {
 /// different parsing contexts.
 #[derive(Debug)]
 struct Cleaner {}
-impl Fold for Cleaner {
-  noop_fold_type!();
+impl VisitMut for Cleaner {
+  noop_visit_mut_type!();
 
-  fn fold_binding_ident(&mut self, mut node: BindingIdent) -> BindingIdent {
+  fn visit_mut_binding_ident(&mut self, node: &mut BindingIdent) {
     node.id.ctxt = SyntaxContext::empty();
     node.type_ann = None;
-    node.fold_children_with(self)
+    node.visit_mut_children_with(self);
   }
 
-  fn fold_ident(&mut self, mut ident: Ident) -> Ident {
+  fn visit_mut_ident(&mut self, ident: &mut Ident) {
     ident.ctxt = SyntaxContext::empty();
-    ident.fold_children_with(self)
+    ident.visit_mut_children_with(self);
   }
 }
 
 impl ExpressionFinder {
   fn new(target: &Expr) -> Self {
-    let cleaned_target = target.clone().fold_children_with(&mut Cleaner {});
+    let mut cleaned_target = target.clone();
+    cleaned_target.visit_mut_children_with(&mut Cleaner {});
     let target_discriminant = std::mem::discriminant(&cleaned_target);
 
     Self {
@@ -428,26 +429,27 @@ impl Fold for TplConverter {
   }
 }
 
-impl Fold for ExpressionFinder {
-  noop_fold_type!();
+impl Visit for ExpressionFinder {
+  noop_visit_type!();
 
-  fn fold_expr(&mut self, expr: Expr) -> Expr {
+  fn visit_expr(&mut self, expr: &Expr) {
     if self.found_expr.is_some() {
-      return expr;
+      return;
     }
 
     // Fast discriminant check filters expressions by variant type
-    if std::mem::discriminant(&expr) != self.target_discriminant {
-      return expr.fold_children_with(self);
+    if std::mem::discriminant(expr) != self.target_discriminant {
+      expr.visit_children_with(self);
+      return;
     }
 
     // Expensive structural comparison only for matching variants
-    if self.target.eq_ignore_span(&expr) {
+    if self.target.eq_ignore_span(expr) {
       self.found_expr = Some(expr.clone());
-      return expr;
+      return;
     }
 
-    expr.fold_children_with(self)
+    expr.visit_children_with(self);
   }
 }
 

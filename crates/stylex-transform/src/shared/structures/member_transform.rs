@@ -1,6 +1,6 @@
 use swc_core::ecma::{
   ast::{Expr, MemberExpr},
-  visit::{Fold, FoldWith, noop_fold_type},
+  visit::{VisitMut, VisitMutWith, noop_visit_mut_type},
 };
 
 use crate::shared::utils::core::member_expression::member_expression;
@@ -18,24 +18,22 @@ pub(crate) struct MemberTransform {
   pub(crate) functions: FunctionMap,
 }
 
-impl Fold for MemberTransform {
-  noop_fold_type!();
+impl VisitMut for MemberTransform {
+  noop_visit_mut_type!();
 
-  fn fold_expr(&mut self, expr: Expr) -> Expr {
-    self.parents.push(expr.to_owned());
-    expr.fold_children_with(self)
+  fn visit_mut_expr(&mut self, expr: &mut Expr) {
+    self.parents.push(expr.clone());
+    expr.visit_mut_children_with(self);
   }
 
-  fn fold_member_expr(&mut self, member: MemberExpr) -> MemberExpr {
+  fn visit_mut_member_expr(&mut self, member: &mut MemberExpr) {
     member_expression(
-      &member,
+      member,
       &mut self.index,
       &mut self.bail_out_index,
       &mut self.non_null_props,
       &mut self.state,
       &self.functions,
     );
-
-    member
   }
 }

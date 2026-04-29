@@ -3,7 +3,7 @@ use swc_core::{
   common::comments::Comments,
   ecma::{
     ast::{ComputedPropName, Ident},
-    visit::FoldWith,
+    visit::VisitMutWith,
   },
 };
 
@@ -18,12 +18,12 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_computed_prop_name_impl(
+  pub(crate) fn visit_mut_computed_prop_name_impl(
     &mut self,
-    computed_prop_name: ComputedPropName,
-  ) -> ComputedPropName {
+    computed_prop_name: &mut ComputedPropName,
+  ) {
     if self.state.cycle == TransformationCycle::Skip {
-      return computed_prop_name;
+      return;
     }
 
     if self.state.cycle == TransformationCycle::StateFilling && computed_prop_name.expr.is_lit() {
@@ -46,6 +46,6 @@ where
       );
     }
 
-    computed_prop_name.fold_children_with(self)
+    computed_prop_name.visit_mut_children_with(self);
   }
 }

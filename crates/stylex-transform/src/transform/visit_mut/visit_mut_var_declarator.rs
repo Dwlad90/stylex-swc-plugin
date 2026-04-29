@@ -7,7 +7,7 @@ use swc_core::{
   common::{EqIgnoreSpan, comments::Comments},
   ecma::{
     ast::{Expr, KeyValueProp, Lit, ObjectLit, Prop, PropName, PropOrSpread, VarDeclarator},
-    visit::FoldWith,
+    visit::VisitMutWith,
   },
 };
 
@@ -36,13 +36,10 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_var_declarator_impl(
-    &mut self,
-    mut var_declarator: VarDeclarator,
-  ) -> VarDeclarator {
+  pub(crate) fn visit_mut_var_declarator_impl(&mut self, var_declarator: &mut VarDeclarator) {
     match self.state.cycle {
       TransformationCycle::StateFilling => {
-        fill_state_declarations(&mut self.state, &var_declarator);
+        fill_state_declarations(&mut self.state, var_declarator);
 
         if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut()
           && let Some((declaration, member)) = self.process_declaration(call)
@@ -59,85 +56,81 @@ where
           }
         }
 
-        var_declarator.fold_children_with(self)
+        var_declarator.visit_mut_children_with(self);
       },
       TransformationCycle::Cleaning => {
-        {
-          let mut vars_to_keep: FxHashMap<Atom, NonNullProps> = FxHashMap::default();
+        let mut vars_to_keep: FxHashMap<Atom, NonNullProps> = FxHashMap::default();
 
-          for StyleVarsToKeep(var_name, namespace_name, _) in self.state.style_vars_to_keep.iter() {
-            match vars_to_keep.entry(var_name.clone()) {
-              Entry::Occupied(mut entry) => {
-                let entry_value = entry.get_mut();
+        for StyleVarsToKeep(var_name, namespace_name, _) in self.state.style_vars_to_keep.iter() {
+          match vars_to_keep.entry(var_name.clone()) {
+            Entry::Occupied(mut entry) => {
+              let entry_value = entry.get_mut();
 
-                if let NonNullProps::Vec(vec) = entry_value {
-                  match namespace_name {
-                    NonNullProp::Atom(id) => {
-                      vec.push(id.clone());
-                    },
-                    _ => {
-                      *entry_value = NonNullProps::True;
-                    },
-                  }
-                }
-              },
-              Entry::Vacant(entry) => {
-                let value = match namespace_name {
-                  NonNullProp::Atom(namespace_name) => {
-                    NonNullProps::Vec(vec![namespace_name.clone()])
+              if let NonNullProps::Vec(vec) = entry_value {
+                match namespace_name {
+                  NonNullProp::Atom(id) => {
+                    vec.push(id.clone());
                   },
-                  NonNullProp::True => NonNullProps::True,
-                };
-
-                entry.insert(value);
-              },
-            }
-          }
-
-          for (_, var_name) in self.state.style_vars.iter() {
-            if !var_declarator.eq_ignore_span(var_name) {
-              continue;
-            };
-
-            let top_level_expression = self.state.top_level_expressions.iter().find(
-              |TopLevelExpression(_, expr, _)| match var_name.init.as_ref() {
-                Some(init) => init.as_ref().eq_ignore_span(expr),
-                #[cfg_attr(coverage_nightly, coverage(off))]
-                None => {
-                  stylex_panic!(
-                    "Variable declaration must have an initializer for top-level expression lookup."
-                  )
+                  _ => {
+                    *entry_value = NonNullProps::True;
+                  },
+                }
+              }
+            },
+            Entry::Vacant(entry) => {
+              let value = match namespace_name {
+                NonNullProp::Atom(namespace_name) => {
+                  NonNullProps::Vec(vec![namespace_name.clone()])
                 },
-              },
-            );
-
-            if let Some(TopLevelExpression(kind, _, _)) = top_level_expression
-              && *kind == TopLevelExpressionKind::Stmt
-              && let Some(object) = var_declarator
-                .init
-                .as_mut()
-                .and_then(|var_decl| var_decl.as_mut_object())
-            {
-              let namespaces_to_keep = match vars_to_keep.get(&match var_name.name.as_ident() {
-                Some(i) => i.sym.clone(),
-                #[cfg_attr(coverage_nightly, coverage(off))]
-                None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
-              }) {
-                Some(NonNullProps::Vec(vec)) => vec.clone(),
-                _ => Vec::new(),
+                NonNullProp::True => NonNullProps::True,
               };
 
-              if !namespaces_to_keep.is_empty() {
-                object.props = self.retain_object_props(object, &namespaces_to_keep, var_name);
-              }
-            }
+              entry.insert(value);
+            },
           }
         }
 
-        var_declarator
+        for (_, var_name) in self.state.style_vars.iter() {
+          if !var_declarator.eq_ignore_span(var_name) {
+            continue;
+          };
+
+          let top_level_expression = self.state.top_level_expressions.iter().find(
+            |TopLevelExpression(_, expr, _)| match var_name.init.as_ref() {
+              Some(init) => init.as_ref().eq_ignore_span(expr),
+              #[cfg_attr(coverage_nightly, coverage(off))]
+              None => {
+                stylex_panic!(
+                  "Variable declaration must have an initializer for top-level expression lookup."
+                )
+              },
+            },
+          );
+
+          if let Some(TopLevelExpression(kind, _, _)) = top_level_expression
+            && *kind == TopLevelExpressionKind::Stmt
+            && let Some(object) = var_declarator
+              .init
+              .as_mut()
+              .and_then(|var_decl| var_decl.as_mut_object())
+          {
+            let namespaces_to_keep = match vars_to_keep.get(&match var_name.name.as_ident() {
+              Some(i) => i.sym.clone(),
+              #[cfg_attr(coverage_nightly, coverage(off))]
+              None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
+            }) {
+              Some(NonNullProps::Vec(vec)) => vec.clone(),
+              _ => Vec::new(),
+            };
+
+            if !namespaces_to_keep.is_empty() {
+              object.props = self.retain_object_props(object, &namespaces_to_keep, var_name);
+            }
+          }
+        }
       },
-      TransformationCycle::Skip | TransformationCycle::InjectStyles => var_declarator,
-      _ => var_declarator.fold_children_with(self),
+      TransformationCycle::Skip | TransformationCycle::InjectStyles => {},
+      _ => var_declarator.visit_mut_children_with(self),
     }
   }
 

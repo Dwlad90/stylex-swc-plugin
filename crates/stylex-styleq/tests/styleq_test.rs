@@ -117,7 +117,9 @@ fn combines_different_class_names() {
   });
 
   assert_eq!(
-    styleq_no_cache.styleq(&[style.clone()]).class_name,
+    styleq_no_cache
+      .styleq(std::slice::from_ref(&style))
+      .class_name,
     "aaa bbb"
   );
   assert_eq!(styleq(&[style]).class_name, "aaa bbb");
@@ -265,7 +267,7 @@ fn dedupes_class_names_in_complex_merges() {
     ]),
   ]);
 
-  let one_value = styleq(&[one.clone()]).class_name;
+  let one_value = styleq(std::slice::from_ref(&one)).class_name;
   let one_repeat = styleq(&[one]).class_name;
   assert_eq!(one_value, one_repeat);
   assert_eq!(
@@ -295,7 +297,7 @@ width-g active$transform-h"
     ]),
   ]);
 
-  let two_value = styleq(&[two.clone()]).class_name;
+  let two_value = styleq(std::slice::from_ref(&two)).class_name;
   let two_repeat = styleq(&[two]).class_name;
   assert_eq!(two_value, two_repeat);
   assert_eq!(

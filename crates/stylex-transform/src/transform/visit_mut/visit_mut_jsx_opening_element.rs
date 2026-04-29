@@ -7,7 +7,7 @@ use swc_core::{
       JSXElementName, JSXExpr, JSXOpeningElement, Lit, MemberExpr, MemberProp, Prop, PropName,
       PropOrSpread,
     },
-    visit::FoldWith,
+    visit::VisitMutWith,
   },
 };
 
@@ -23,19 +23,23 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_jsx_opening_element_impl(
+  pub(crate) fn visit_mut_jsx_opening_element_impl(
     &mut self,
-    mut jsx_opening_element: JSXOpeningElement,
-  ) -> JSXOpeningElement {
+    jsx_opening_element: &mut JSXOpeningElement,
+  ) {
     // Only transform during Initializing cycle
     if self.state.cycle != TransformationCycle::Initializing {
-      return jsx_opening_element.fold_children_with(self);
+      jsx_opening_element.visit_mut_children_with(self);
+      return;
     }
 
     // Check if sxPropName is enabled
     let sx_prop_name = match self.state.options.sx_prop_name.clone() {
       Some(name) => name,
-      None => return jsx_opening_element.fold_children_with(self),
+      None => {
+        jsx_opening_element.visit_mut_children_with(self);
+        return;
+      },
     };
 
     // Only transform lowercase JSX element names (HTML elements, not React
@@ -51,7 +55,8 @@ where
     };
 
     if !is_lowercase_element {
-      return jsx_opening_element.fold_children_with(self);
+      jsx_opening_element.visit_mut_children_with(self);
+      return;
     }
 
     // Find the sx attribute index
@@ -97,7 +102,7 @@ where
       }
     }
 
-    jsx_opening_element.fold_children_with(self)
+    jsx_opening_element.visit_mut_children_with(self);
   }
 
   /// Transform compiled JSX/VDOM calls with an `sx` prop during the

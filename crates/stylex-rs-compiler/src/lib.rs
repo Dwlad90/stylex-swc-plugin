@@ -23,7 +23,7 @@ use swc_core::{
       base::{fixer::fixer, hygiene::hygiene, resolver},
       typescript::strip as typescript_strip,
     },
-    visit::fold_pass,
+    visit::visit_mut_pass,
   },
   plugin::proxies::PluginCommentsProxy,
 };
@@ -130,7 +130,7 @@ pub fn transform(
         let program = program
           .apply(resolver(unresolved_mark, top_level_mark, true))
           .apply(typescript_strip(unresolved_mark, top_level_mark))
-          .apply(&mut fold_pass(&mut stylex))
+          .apply(&mut visit_mut_pass(&mut stylex))
           .apply(hygiene())
           .apply(&mut fixer(None));
 

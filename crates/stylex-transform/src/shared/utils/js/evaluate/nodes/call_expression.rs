@@ -1398,9 +1398,9 @@ pub(in super::super) fn evaluate(
     }
   }
 
-  return deopt(
+  deopt(
     path,
     state,
     &unsupported_expression(&format!("{:?}", path.get_type(get_default_expr_ctx()))),
-  );
+  )
 }

@@ -198,11 +198,10 @@ pub(crate) fn get_var_decl_from<'a>(
 }
 
 fn matches_ident_with_var_decl_name(ident: &Ident, var_declarator: &&VarDeclarator) -> bool {
-  var_declarator
-    .name
-    .clone()
-    .ident()
-    .is_some_and(|var_decl_ident| &var_decl_ident.id == ident)
+  matches!(
+    &var_declarator.name,
+    Pat::Ident(var_decl_ident) if &var_decl_ident.id == ident
+  )
 }
 
 pub(crate) fn get_import_from<'a>(
@@ -535,7 +534,7 @@ pub(crate) fn normalize_expr(expr: &mut Expr) -> &mut Expr {
   match expr {
     Expr::Paren(paren) => normalize_expr(paren.expr.as_mut()),
     _ => {
-      *expr = drop_span(expr.clone());
+      *expr = drop_span(std::mem::take(expr));
       expr
     },
   }

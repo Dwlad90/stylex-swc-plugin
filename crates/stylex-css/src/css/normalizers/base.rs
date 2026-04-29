@@ -5,7 +5,7 @@ use swc_core::{
       ComponentValue, Declaration, DeclarationName, Dimension, Function, Ident, Length,
       ListOfComponentValues, Number, Stylesheet,
     },
-    visit::{Fold, FoldWith},
+    visit::{VisitMut, VisitMutWith},
   },
 };
 
@@ -25,79 +25,69 @@ impl CssFolder {
       && (ident.value == "fontSize" || self.parent_key == Some("fontSize"))
     {
       self.parent_key = Some("fontSize");
-      declaration.value = declaration.value.clone().fold_children_with(self);
+      declaration.value.visit_mut_children_with(self);
       self.parent_key = None;
     }
   }
 }
 
-impl Fold for CssFolder {
-  fn fold_list_of_component_values(
-    &mut self,
-    list: ListOfComponentValues,
-  ) -> ListOfComponentValues {
-    list.fold_children_with(self)
+impl VisitMut for CssFolder {
+  fn visit_mut_list_of_component_values(&mut self, list: &mut ListOfComponentValues) {
+    list.visit_mut_children_with(self);
   }
 
-  fn fold_declaration(&mut self, mut declaration: Declaration) -> Declaration {
-    kebab_case_normalizer(&mut declaration);
+  fn visit_mut_declaration(&mut self, declaration: &mut Declaration) {
+    kebab_case_normalizer(declaration);
 
     if self.enable_font_size_px_to_rem {
-      self.convert_font_size_to_rem_normalizer(&mut declaration);
+      self.convert_font_size_to_rem_normalizer(declaration);
     }
 
-    declaration.fold_children_with(self)
+    declaration.visit_mut_children_with(self);
   }
 
-  fn fold_dimension(&mut self, mut dimension: Dimension) -> Dimension {
-    timing_normalizer(&mut dimension);
+  fn visit_mut_dimension(&mut self, dimension: &mut Dimension) {
+    timing_normalizer(dimension);
     zero_dimension_normalizer(
-      &mut dimension,
+      dimension,
       self.is_function_arg,
       self.current_property.as_deref(),
     );
 
-    dimension.fold_children_with(self)
+    dimension.visit_mut_children_with(self);
   }
 
-  fn fold_length(&mut self, mut length: Length) -> Length {
+  fn visit_mut_length(&mut self, length: &mut Length) {
     if self.parent_key == Some("fontSize")
       && length.unit.value.eq("px")
       && length.value.value != 0.0
     {
-      length = Length {
-        value: Number {
-          value: length.value.value / ROOT_FONT_SIZE as f64,
-          raw: None,
-          span: length.span,
-        },
-        unit: Ident {
-          value: "rem".into(),
-          raw: None,
-          span: length.span,
-        },
-        span: DUMMY_SP,
+      let span = length.span;
+      length.value = Number {
+        value: length.value.value / ROOT_FONT_SIZE as f64,
+        raw: None,
+        span,
       };
+      length.unit = Ident {
+        value: "rem".into(),
+        raw: None,
+        span,
+      };
+      length.span = DUMMY_SP;
     };
-
-    length
   }
 
-  fn fold_function(&mut self, func: Function) -> Function {
+  fn visit_mut_function(&mut self, func: &mut Function) {
     self.is_function_arg = true;
 
-    let mut fnc = func;
-
-    // NOTE: only last css function value should be folded.
+    // NOTE: only last css function value should be visited.
     // SWC always parses at least one component value inside a function,
     // so `last_mut()` practically always returns `Some`.
-    fnc.value.last_mut().into_iter().for_each(|last| {
-      *last = last.clone().fold_children_with(self);
-    });
+    if let Some(last) = func.value.last_mut() {
+      last.visit_mut_children_with(self);
+    }
 
     self.is_function_arg = false;
-
-    fnc
   }
 }
 
@@ -146,7 +136,7 @@ fn kebab_case_normalizer(declaration: &mut Declaration) {
 /// camelCase → kebab-case, and optional font-size px→rem conversion)
 /// to a parsed `Stylesheet` AST.
 pub fn base_normalizer(
-  ast: Stylesheet,
+  mut ast: Stylesheet,
   enable_font_size_px_to_rem: bool,
   current_property: Option<&str>,
 ) -> Stylesheet {
@@ -156,7 +146,8 @@ pub fn base_normalizer(
     is_function_arg: false,
     current_property: current_property.map(|p| p.to_string()),
   };
-  ast.fold_with(&mut folder)
+  ast.visit_mut_with(&mut folder);
+  ast
 }
 
 /// Shared zero value for all dimension types.
@@ -173,7 +164,7 @@ fn zero_value() -> Number {
 ///
 /// The `"%" => "%"` arm is theoretically correct but SWC's CSS parser
 /// emits `0%` as a `Percentage` node (not a `Dimension`), so this arm
-/// is unreachable via the normal fold path — it is covered by direct
+/// is unreachable via the normal visitor path — it is covered by direct
 /// unit tests only.
 pub(crate) fn zero_unit(unit: &Ident) -> Ident {
   let value = match unit.value.as_ref() {

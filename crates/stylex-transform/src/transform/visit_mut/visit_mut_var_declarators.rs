@@ -2,7 +2,7 @@ use swc_core::{
   common::comments::Comments,
   ecma::{
     ast::{Pat, VarDeclarator},
-    visit::FoldWith,
+    visit::VisitMutWith,
   },
 };
 
@@ -13,14 +13,14 @@ impl<C> StyleXTransform<C>
 where
   C: Comments,
 {
-  pub(crate) fn fold_var_declarators_impl(
+  pub(crate) fn visit_mut_var_declarators_impl(
     &mut self,
-    mut var_declarators: Vec<VarDeclarator>,
-  ) -> Vec<VarDeclarator> {
+    var_declarators: &mut Vec<VarDeclarator>,
+  ) {
     match self.state.cycle {
-      TransformationCycle::Skip => return var_declarators,
+      TransformationCycle::Skip => return,
       TransformationCycle::Cleaning => {
-        var_declarators.retain(|decl| {
+        var_declarators.retain_mut(|decl| {
           if let Pat::Ident(bind_ident) = &decl.name {
             let decl_id = &bind_ident.sym;
 
@@ -35,8 +35,7 @@ where
 
               if !is_used {
                 self.state.cycle = TransformationCycle::Recounting;
-
-                decl.clone().fold_children_with(self);
+                decl.visit_mut_children_with(self);
 
                 self.state.cycle = TransformationCycle::Cleaning;
               }
@@ -51,6 +50,6 @@ where
       _ => {},
     };
 
-    var_declarators.fold_children_with(self)
+    var_declarators.visit_mut_children_with(self);
   }
 }

@@ -196,7 +196,7 @@ pub(in super::super) fn evaluate(
     }
   }
 
-  return Some(EvaluateResultValue::Expr(Expr::Object(create_object_lit(
+  Some(EvaluateResultValue::Expr(Expr::Object(create_object_lit(
     remove_duplicates(props),
-  ))));
+  ))))
 }

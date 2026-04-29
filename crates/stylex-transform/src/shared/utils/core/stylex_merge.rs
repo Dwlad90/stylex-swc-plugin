@@ -6,7 +6,7 @@ use swc_core::ecma::{
     JSXAttrValue, Lit, MemberExpr, Prop, PropName, PropOrSpread,
   },
   utils::{ExprExt, drop_span},
-  visit::FoldWith,
+  visit::VisitMutWith,
 };
 
 use crate::shared::{
@@ -262,9 +262,7 @@ pub(crate) fn stylex_merge(
         functions: evaluate_path_fn_config.clone(),
       };
 
-      let transformed_expr = arg_path.expr.clone().fold_with(&mut member_transform);
-
-      arg_path.expr = transformed_expr;
+      arg_path.expr.visit_mut_with(&mut member_transform);
 
       index = member_transform.index;
       bail_out_index = member_transform.bail_out_index;

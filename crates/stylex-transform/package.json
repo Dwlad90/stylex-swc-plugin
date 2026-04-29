@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/transform",
-  "description": "SWC Fold implementation and transform orchestration for StyleX",
+  "description": "SWC VisitMut implementation and transform orchestration for StyleX",
   "version": "0.15.5",
   "private": true,
   "sideEffects": false,

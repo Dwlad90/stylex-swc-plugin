@@ -41,16 +41,16 @@ criterion.workspace = true
 proptest = "1.11"
 
 [[bench]]
+harness = false
 name = "css_types_bench"
-harness = false
 
 [[bench]]
+harness = false
 name = "properties_bench"
-harness = false
 
 [[bench]]
-name = "token_parser_bench"
 harness = false
+name = "token_parser_bench"
 
 [lints]
 workspace = true

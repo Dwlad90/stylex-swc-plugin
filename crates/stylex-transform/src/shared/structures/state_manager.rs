@@ -11,13 +11,13 @@ use stylex_path_resolver::{
 };
 use swc_core::{
   atoms::Atom,
-  common::{DUMMY_SP, EqIgnoreSpan, FileName, SyntaxContext},
+  common::{DUMMY_SP, EqIgnoreSpan, FileName, Span, SyntaxContext},
   ecma::{
     ast::{
       CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier,
-      ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread, Module, ModuleDecl,
-      ModuleExportName, ModuleItem, NamedExport, Pat, Program, Stmt, Str, VarDecl, VarDeclKind,
-      VarDeclarator,
+      ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread, MemberExpr, Module,
+      ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Program, Stmt, Str, VarDecl,
+      VarDeclKind, VarDeclarator,
     },
     utils::drop_span,
   },
@@ -141,29 +141,219 @@ pub(crate) struct SeenValueWithVarDeclCount {
   pub(crate) var_decl_count: Option<AtomHashMap>,
 }
 
+#[derive(Clone, Debug, Default)]
+pub(crate) struct ImportState {
+  import_paths: FxHashSet<String>,
+  stylex_import: FxHashSet<ImportSources>,
+  stylex_api_imports: FxHashMap<ImportKind, AtomHashSet>,
+}
+
+impl ImportState {
+  fn has_import_paths(&self) -> bool {
+    !self.import_paths.is_empty()
+  }
+
+  fn has_stylex_imports(&self) -> bool {
+    !self.stylex_import.is_empty()
+  }
+
+  fn has_stylex_api_imports(&self) -> bool {
+    !self.stylex_api_imports.is_empty()
+  }
+
+  fn insert_import_path(&mut self, source_path: String) {
+    self.import_paths.insert(source_path);
+  }
+
+  fn insert_stylex_import(&mut self, import_source: ImportSources) {
+    self.stylex_import.insert(import_source);
+  }
+
+  fn stylex_imports(&self) -> &FxHashSet<ImportSources> {
+    &self.stylex_import
+  }
+
+  fn has_stylex_api_import(&self, kind: ImportKind, sym: &Atom) -> bool {
+    self
+      .stylex_api_imports
+      .get(&kind)
+      .is_some_and(|set| set.contains(sym))
+  }
+
+  fn insert_stylex_api_import(&mut self, kind: ImportKind, sym: Atom) {
+    self.stylex_api_imports.entry(kind).or_default().insert(sym);
+  }
+
+  fn get_stylex_api_import(&self, kind: ImportKind) -> Option<&AtomHashSet> {
+    self.stylex_api_imports.get(&kind)
+  }
+
+  fn combine(&mut self, other: &Self) {
+    self.import_paths.extend(other.import_paths.iter().cloned());
+    self
+      .stylex_import
+      .extend(other.stylex_import.iter().cloned());
+
+    for kind in ImportKind::ALL {
+      if let Some(other_set) = other.stylex_api_imports.get(kind) {
+        let self_set = self.stylex_api_imports.entry(*kind).or_default();
+        for item in other_set {
+          self_set.insert(item.clone());
+        }
+      }
+    }
+  }
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct ModuleSourceState {
+  seen_module_source_code: Option<Box<SeenModuleSource>>,
+}
+
+impl ModuleSourceState {
+  fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
+    if let Some(seen_module_source) = self.seen_module_source_code.as_ref().map(|b| b.as_ref())
+      && let Program::Module(module) = &seen_module_source.program
+    {
+      return Some((module, &seen_module_source.source_code));
+    }
+
+    None
+  }
+
+  fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
+    self.seen_module_source_code = Some(Box::new(SeenModuleSource {
+      program: Program::Module(module.clone()),
+      source_code,
+    }));
+  }
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct CallExpressionState {
+  all_call_expressions: FxHashMap<u64, Callee>,
+}
+
+impl CallExpressionState {
+  fn add_call_expression(&mut self, call_expr: &CallExpr) {
+    self
+      .all_call_expressions
+      .insert(stable_hash(call_expr), call_expr.callee.clone());
+  }
+
+  fn is_member_callee(&self, member: &MemberExpr) -> bool {
+    self
+      .all_call_expressions
+      .values()
+      .any(|call_expr_callee| match call_expr_callee {
+        Callee::Expr(callee) => match callee.as_ref() {
+          Expr::Member(call_member) => call_member.eq_ignore_span(member),
+          _ => false,
+        },
+        _ => false,
+      })
+  }
+
+  fn replace_call_expression(&mut self, call: &CallExpr, ast: &Expr) {
+    self.all_call_expressions.remove(&stable_hash(call));
+
+    if let Some(call_expr) = ast.as_call() {
+      self.add_call_expression(call_expr);
+    }
+  }
+
+  fn combine(&mut self, other: &Self) {
+    extend_hash_map(&mut self.all_call_expressions, &other.all_call_expressions);
+  }
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct CacheState {
+  css_property_seen: FxHashMap<String, String>,
+  span_cache: FxHashMap<u64, Span>,
+}
+
+impl CacheState {
+  fn cached_span(&self, cache_key: u64) -> Option<Span> {
+    self.span_cache.get(&cache_key).copied()
+  }
+
+  fn insert_span(&mut self, cache_key: u64, span: Span) {
+    self.span_cache.insert(cache_key, span);
+  }
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct DeclarationState {
+  class_name_declarations: Vec<Ident>,
+  function_name_declarations: Vec<Ident>,
+}
+
+impl DeclarationState {
+  fn add_class_name_declaration(&mut self, ident: Ident) {
+    if !self.class_name_declarations.contains(&ident) {
+      self.class_name_declarations.push(ident);
+    }
+  }
+
+  fn add_function_name_declaration(&mut self, ident: Ident) {
+    if !self.function_name_declarations.contains(&ident) {
+      self.function_name_declarations.push(ident);
+    }
+  }
+
+  fn class_name_declarations(&self) -> &[Ident] {
+    &self.class_name_declarations
+  }
+
+  fn function_name_declarations(&self) -> &[Ident] {
+    &self.function_name_declarations
+  }
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct StyleInjectionState {
+  inject_import_inserted: Option<InjectImportIdents>,
+  metadata: IndexMap<String, IndexSet<MetaData>>,
+  styles_to_inject: IndexMap<u64, Vec<ModuleItem>>,
+}
+
+impl StyleInjectionState {
+  fn metadata(&self) -> &IndexMap<String, IndexSet<MetaData>> {
+    &self.metadata
+  }
+
+  fn styles_to_inject_for(&self, key_hash: &u64) -> Option<&Vec<ModuleItem>> {
+    self.styles_to_inject.get(key_hash)
+  }
+
+  fn combine(&mut self, other: &Self) {
+    if self.inject_import_inserted.is_none() {
+      self.inject_import_inserted = other.inject_import_inserted.clone();
+    }
+
+    extend_index_map(&mut self.metadata, &other.metadata);
+    extend_index_map(&mut self.styles_to_inject, &other.styles_to_inject);
+  }
+}
+
 #[derive(Clone, Debug)]
 pub struct StateManager {
   pub(crate) plugin_pass: PluginPass,
 
   // Imports
-  pub(crate) import_paths: FxHashSet<String>,
-  pub(crate) stylex_import: FxHashSet<ImportSources>,
-  pub(crate) import_specifiers: Vec<String>,
-  pub(crate) stylex_api_imports: FxHashMap<ImportKind, AtomHashSet>,
-  pub(crate) inject_import_inserted: Option<InjectImportIdents>,
+  pub(crate) imports: ImportState,
   pub(crate) export_id: Option<String>,
 
-  pub(crate) seen_module_source_code: Option<Box<SeenModuleSource>>,
+  pub(crate) module_source: ModuleSourceState,
 
-  pub(crate) class_name_declarations: Vec<Ident>,
-  pub(crate) function_name_declarations: Vec<Ident>,
+  pub(crate) declarations_state: DeclarationState,
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
-  pub(crate) all_call_expressions: FxHashMap<u64, Callee>,
+  pub(crate) call_expressions: CallExpressionState,
   pub(crate) var_decl_count_map: AtomHashMap,
   pub(crate) seen: FxHashMap<u64, Rc<SeenValueWithVarDeclCount>>,
-  pub(crate) css_property_seen: FxHashMap<String, String>,
-  pub(crate) span_cache: FxHashMap<u64, swc_core::common::Span>,
+  pub(crate) cache: CacheState,
   pub(crate) jsx_spread_attr_exprs_map: FxHashMap<Expr, Vec<JSXAttrOrSpread>>,
 
   // `stylex.create` calls
@@ -177,8 +367,7 @@ pub struct StateManager {
   pub(crate) in_stylex_create: bool,
 
   pub(crate) options: StyleXStateOptions,
-  pub(crate) metadata: IndexMap<String, IndexSet<MetaData>>,
-  pub(crate) styles_to_inject: IndexMap<u64, Vec<ModuleItem>>,
+  pub(crate) injection: StyleInjectionState,
   pub(crate) prepend_include_module_items: Vec<ModuleItem>,
   pub(crate) hoisted_module_items: Vec<ModuleItem>,
   pub(crate) prepend_import_module_items: Vec<ModuleItem>,
@@ -202,11 +391,7 @@ impl StateManager {
 
     Self {
       plugin_pass: PluginPass::default(),
-      import_paths: FxHashSet::default(),
-      stylex_import: FxHashSet::default(),
-      import_specifiers: vec![],
-      stylex_api_imports: FxHashMap::default(),
-      inject_import_inserted: None,
+      imports: ImportState::default(),
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
       style_vars_to_keep: IndexSet::default(),
@@ -214,26 +399,23 @@ impl StateManager {
       export_id: None,
 
       seen: FxHashMap::default(),
-      css_property_seen: FxHashMap::default(),
-      seen_module_source_code: None,
-      span_cache: FxHashMap::default(),
+      cache: CacheState::default(),
+      module_source: ModuleSourceState::default(),
 
       top_imports: vec![],
       named_exports: FxHashSet::default(),
 
       declarations: vec![],
-      class_name_declarations: vec![],
-      function_name_declarations: vec![],
+      declarations_state: DeclarationState::default(),
       top_level_expressions: vec![],
-      all_call_expressions: FxHashMap::default(),
+      call_expressions: CallExpressionState::default(),
       var_decl_count_map: FxHashMap::default(),
       jsx_spread_attr_exprs_map: FxHashMap::default(),
 
       in_stylex_create: false,
       options,
 
-      metadata: IndexMap::new(),
-      styles_to_inject: IndexMap::new(),
+      injection: StyleInjectionState::default(),
       prepend_include_module_items: vec![],
       prepend_import_module_items: vec![],
       hoisted_module_items: vec![],
@@ -249,31 +431,80 @@ impl StateManager {
   }
 
   pub fn metadata(&self) -> &IndexMap<String, IndexSet<MetaData>> {
-    &self.metadata
+    self.injection.metadata()
   }
 
   pub fn add_call_expression(&mut self, call_expr: &CallExpr) {
-    self
-      .all_call_expressions
-      .insert(stable_hash(call_expr), call_expr.callee.clone());
+    self.call_expressions.add_call_expression(call_expr);
+  }
+
+  pub(crate) fn is_member_call_callee(&self, member: &MemberExpr) -> bool {
+    self.call_expressions.is_member_callee(member)
+  }
+
+  pub(crate) fn styles_to_inject_for(&self, key_hash: &u64) -> Option<&Vec<ModuleItem>> {
+    self.injection.styles_to_inject_for(key_hash)
+  }
+
+  pub(crate) fn cached_span(&self, cache_key: u64) -> Option<Span> {
+    self.cache.cached_span(cache_key)
+  }
+
+  pub(crate) fn insert_cached_span(&mut self, cache_key: u64, span: Span) {
+    self.cache.insert_span(cache_key, span);
+  }
+
+  pub(crate) fn add_class_name_declaration(&mut self, ident: Ident) {
+    self.declarations_state.add_class_name_declaration(ident);
+  }
+
+  pub(crate) fn add_function_name_declaration(&mut self, ident: Ident) {
+    self.declarations_state.add_function_name_declaration(ident);
+  }
+
+  pub(crate) fn class_name_declarations(&self) -> &[Ident] {
+    self.declarations_state.class_name_declarations()
+  }
+
+  pub(crate) fn function_name_declarations(&self) -> &[Ident] {
+    self.declarations_state.function_name_declarations()
+  }
+
+  pub(crate) fn has_import_paths(&self) -> bool {
+    self.imports.has_import_paths()
+  }
+
+  pub(crate) fn insert_import_path(&mut self, source_path: String) {
+    self.imports.insert_import_path(source_path);
+  }
+
+  pub(crate) fn insert_stylex_import(&mut self, import_source: ImportSources) {
+    self.imports.insert_stylex_import(import_source);
+  }
+
+  pub(crate) fn stylex_imports(&self) -> &FxHashSet<ImportSources> {
+    self.imports.stylex_imports()
+  }
+
+  pub(crate) fn is_regular_stylex_import(&self, ident_sym: &str) -> bool {
+    self.stylex_imports().iter().any(|import_source| {
+      matches!(import_source, ImportSources::Regular(regular) if regular.as_str() == ident_sym)
+    })
   }
 
   /// Check if an import of the given kind contains the given symbol.
   pub(crate) fn has_stylex_api_import(&self, kind: ImportKind, sym: &Atom) -> bool {
-    self
-      .stylex_api_imports
-      .get(&kind)
-      .is_some_and(|set| set.contains(sym))
+    self.imports.has_stylex_api_import(kind, sym)
   }
 
   /// Insert a symbol into the import set for the given kind.
   pub(crate) fn insert_stylex_api_import(&mut self, kind: ImportKind, sym: Atom) {
-    self.stylex_api_imports.entry(kind).or_default().insert(sym);
+    self.imports.insert_stylex_api_import(kind, sym);
   }
 
   /// Get the import set for the given kind, if any entries exist.
   pub(crate) fn get_stylex_api_import(&self, kind: ImportKind) -> Option<&AtomHashSet> {
-    self.stylex_api_imports.get(&kind)
+    self.imports.get_stylex_api_import(kind)
   }
 
   /// Check if any import of the given kinds contains the given symbol.
@@ -285,7 +516,7 @@ impl StateManager {
 
   pub(crate) fn is_stylex_namespace_import(&self, ident_sym: &str) -> bool {
     self
-      .stylex_import
+      .stylex_imports()
       .iter()
       .any(|import_source| match import_source {
         ImportSources::Regular(regular) => regular.as_str() == ident_sym,
@@ -330,9 +561,9 @@ impl StateManager {
   }
 
   pub(crate) fn are_imports_resolved(&self) -> bool {
-    self.styles_to_inject.is_empty()
-      || !self.stylex_import.is_empty()
-      || !self.stylex_api_imports.is_empty()
+    self.injection.styles_to_inject.is_empty()
+      || self.imports.has_stylex_imports()
+      || self.imports.has_stylex_api_imports()
   }
 
   /// Applies the `env` configuration to the given identifiers and
@@ -351,7 +582,7 @@ impl StateManager {
 
     // For namespace imports (e.g., `import stylex from '@stylexjs/stylex'`),
     // add `env` to member_expressions so `stylex.env.x` resolves.
-    for name in &self.stylex_import {
+    for name in self.stylex_imports() {
       let member_expression = member_expressions.entry(name.clone()).or_default();
       member_expression.insert(
         STYLEX_ENV.into(),
@@ -373,13 +604,7 @@ impl StateManager {
 
   /// Gets the source code program if it exists and is not yet normalized
   pub(crate) fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
-    if let Some(seen_module_source) = self.seen_module_source_code.as_ref().map(|b| b.as_ref())
-      && let Program::Module(module) = &seen_module_source.program
-    {
-      return Some((module, &seen_module_source.source_code));
-    }
-
-    None
+    self.module_source.get_seen_module_source_code()
   }
 
   /// Sets the source code module (marks as not yet normalized)
@@ -388,19 +613,18 @@ impl StateManager {
     module: &Module,
     source_code: Option<String>,
   ) {
-    self.seen_module_source_code = Some(Box::new(SeenModuleSource {
-      program: Program::Module(module.clone()),
-      source_code,
-    }));
+    self
+      .module_source
+      .set_seen_module_source_code(module, source_code);
   }
 
-  pub fn import_as(&self, import: &str) -> Option<String> {
+  pub fn import_as(&self, import: &str) -> Option<&str> {
     for import_source in &self.options.import_sources {
       match import_source {
         ImportSources::Regular(_) => {},
         ImportSources::Named(named) => {
           if named.from.eq(import) {
-            return Some(named.r#as.to_string());
+            return Some(named.r#as.as_str());
           }
         },
       }
@@ -411,6 +635,17 @@ impl StateManager {
 
   pub fn import_sources(&self) -> Vec<ImportSources> {
     self.options.import_sources.to_vec()
+  }
+
+  pub fn is_import_source(&self, import: &str) -> bool {
+    self
+      .options
+      .import_sources
+      .iter()
+      .any(|import_source| match import_source {
+        ImportSources::Regular(regular) => regular.as_str() == import,
+        ImportSources::Named(named) => named.from.as_str() == import,
+      })
   }
 
   pub fn import_sources_stringified(&self) -> Vec<String> {
@@ -428,7 +663,7 @@ impl StateManager {
 
   pub fn stylex_import_stringified(&self) -> Vec<String> {
     self
-      .stylex_import
+      .stylex_imports()
       .iter()
       .map(|import_source| match &import_source {
         ImportSources::Regular(regular) => regular.as_str(),
@@ -697,7 +932,7 @@ impl StateManager {
 
   fn setup_injection_imports(&mut self) -> Ident {
     if !self.prepend_include_module_items.is_empty() {
-      return match self.inject_import_inserted.as_ref() {
+      return match self.injection.inject_import_inserted.as_ref() {
         Some(idents) => idents.var.clone(),
         None => stylex_panic!(
           "inject_import_inserted is None when prepend_include_module_items is non-empty"
@@ -713,7 +948,8 @@ impl StateManager {
       .cloned()
       .unwrap_or(RuntimeInjectionState::Boolean(true));
 
-    let (inject_module_ident, inject_var_ident) = match self.inject_import_inserted.take() {
+    let (inject_module_ident, inject_var_ident) = match self.injection.inject_import_inserted.take()
+    {
       Some(idents) => (idents.module, idents.var),
       None => {
         let module_ident = uid_generator.generate_ident();
@@ -732,7 +968,7 @@ impl StateManager {
           module: module_ident,
           var: var_ident,
         };
-        self.inject_import_inserted = Some(idents.clone());
+        self.injection.inject_import_inserted = Some(idents.clone());
 
         (idents.module, idents.var)
       },
@@ -782,22 +1018,16 @@ impl StateManager {
       top_level_expr.1 = ast.clone();
     }
 
-    let call_hash = stable_hash(call);
-
-    self.all_call_expressions.remove(&call_hash);
-
-    if let Some(call_expr) = ast.as_call() {
-      let new_call_hash = stable_hash(call_expr);
-
-      self
-        .all_call_expressions
-        .insert(new_call_hash, call_expr.callee.clone());
-    }
+    self.call_expressions.replace_call_expression(call, ast);
   }
 
   fn add_style(&mut self, metadata: &MetaData) {
     let var_name = "stylex";
-    let value = self.metadata.entry(var_name.to_string()).or_default();
+    let value = self
+      .injection
+      .metadata
+      .entry(var_name.to_string())
+      .or_default();
 
     if !value.contains(metadata) {
       value.insert(metadata.clone());
@@ -857,7 +1087,7 @@ impl StateManager {
 
     let ast_hash = stable_hash(ast);
 
-    let styles_to_inject = self.styles_to_inject.entry(ast_hash).or_default();
+    let styles_to_inject = self.injection.styles_to_inject.entry(ast_hash).or_default();
 
     let normalized_module = drop_span(module.clone());
 
@@ -868,7 +1098,11 @@ impl StateManager {
     if let Some(fallback_ast) = fallback_ast {
       let fallback_ast_hash = stable_hash(fallback_ast);
 
-      let fallback_styles_to_inject = self.styles_to_inject.entry(fallback_ast_hash).or_default();
+      let fallback_styles_to_inject = self
+        .injection
+        .styles_to_inject
+        .entry(fallback_ast_hash)
+        .or_default();
 
       if !fallback_styles_to_inject.contains(&normalized_module) {
         fallback_styles_to_inject.push(normalized_module);
@@ -882,26 +1116,9 @@ impl StateManager {
 
   // Now you can use these helper functions to simplify your function
   pub fn combine(&mut self, other: &Self) {
-    // Hash sets: extend in-place
-    self.import_paths.extend(other.import_paths.iter().cloned());
-    self
-      .stylex_import
-      .extend(other.stylex_import.iter().cloned());
-
-    // Combine all API import sets (fixes bug where 7 kinds were previously missing)
-    for kind in ImportKind::ALL {
-      if let Some(other_set) = other.stylex_api_imports.get(kind) {
-        let self_set = self.stylex_api_imports.entry(*kind).or_default();
-        for item in other_set {
-          self_set.insert(item.clone());
-        }
-      }
-    }
+    self.imports.combine(&other.imports);
 
     // Option fields: only clone from other if self is None
-    if self.inject_import_inserted.is_none() {
-      self.inject_import_inserted = other.inject_import_inserted.clone();
-    }
     if self.export_id.is_none() {
       self.export_id = other.export_id.clone();
     }
@@ -914,7 +1131,7 @@ impl StateManager {
     );
 
     // Hash maps: extend in-place (other values take precedence)
-    extend_hash_map(&mut self.all_call_expressions, &other.all_call_expressions);
+    self.call_expressions.combine(&other.call_expressions);
     extend_hash_map(&mut self.var_decl_count_map, &other.var_decl_count_map);
     extend_hash_map(&mut self.style_map, &other.style_map);
     extend_hash_map(&mut self.style_vars, &other.style_vars);
@@ -931,9 +1148,8 @@ impl StateManager {
     self.in_stylex_create = self.in_stylex_create || other.in_stylex_create;
 
     // Index maps: extend in-place
-    extend_index_map(&mut self.metadata, &other.metadata);
+    self.injection.combine(&other.injection);
     extend_hash_map(&mut self.seen, &other.seen);
-    extend_index_map(&mut self.styles_to_inject, &other.styles_to_inject);
 
     chain_collect_in_place(
       &mut self.prepend_include_module_items,
@@ -1131,11 +1347,11 @@ impl stylex_types::traits::StyleOptions for StateManager {
   }
 
   fn css_property_seen(&self) -> &FxHashMap<String, String> {
-    &self.css_property_seen
+    &self.cache.css_property_seen
   }
 
   fn css_property_seen_mut(&mut self) -> &mut FxHashMap<String, String> {
-    &mut self.css_property_seen
+    &mut self.cache.css_property_seen
   }
 
   fn other_injected_css_rules(&self) -> &stylex_types::traits::InjectableStylesMap {

@@ -22,7 +22,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable, unwrap_or_panic};
 use swc_core::{
   atoms::Atom,
-  common::EqIgnoreSpan,
   ecma::{
     ast::{
       ArrayLit, AssignTarget, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr,
@@ -487,11 +486,11 @@ fn _evaluate(
       &[
         (
           DeclarationType::Class,
-          &traversal_state.class_name_declarations,
+          traversal_state.class_name_declarations(),
         ),
         (
           DeclarationType::Function,
-          &traversal_state.function_name_declarations,
+          traversal_state.function_name_declarations(),
         ),
       ],
       state,

@@ -91,7 +91,7 @@ where
         }
       }
 
-      for name in &self.state.stylex_import {
+      for name in self.state.stylex_imports() {
         let member_expression = member_expressions.entry(name.clone()).or_default();
 
         member_expression.insert(

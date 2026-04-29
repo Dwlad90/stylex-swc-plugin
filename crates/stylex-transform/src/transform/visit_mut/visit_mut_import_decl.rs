@@ -27,88 +27,38 @@ where
         return;
       }
 
-      let src = &import_decl.src;
-      let declaration = &src.value;
-
-      let import_sources = self.state.import_sources_stringified();
-
       self.state.top_imports.push(drop_span(import_decl.clone()));
 
       let source_path = convert_atom_to_string(&import_decl.src.value);
+      let is_import_source = self.state.is_import_source(&source_path);
+      let has_named_import_source = self.state.import_as(&source_path).is_some();
 
       for specifier in &import_decl.specifiers {
         match &specifier {
           ImportSpecifier::Default(import_specifier) => {
-            let import_specifier_ident = import_specifier.local.clone();
-
-            let import_specifier_string = import_specifier_ident.sym.to_string();
-            if !self
-              .state
-              .import_specifiers
-              .contains(&import_specifier_string)
-            {
-              self.state.import_specifiers.push(import_specifier_string);
-            }
-
-            if import_sources.contains(&convert_atom_to_string(declaration))
-              && self
-                .state
-                .import_as(&convert_atom_to_string(&import_decl.src.value))
-                .is_none()
-            {
+            if is_import_source && !has_named_import_source {
               let local_name = import_specifier.local.sym.to_string();
 
-              self.state.import_paths.insert(source_path.clone());
+              self.state.insert_import_path(source_path.clone());
 
               self
                 .state
-                .stylex_import
-                .insert(ImportSources::Regular(local_name));
+                .insert_stylex_import(ImportSources::Regular(local_name));
             }
           },
           ImportSpecifier::Namespace(import_specifier) => {
-            let import_specifier_ident = import_specifier.local.clone();
-
-            let import_specifier_string = import_specifier_ident.sym.to_string();
-
-            if !self
-              .state
-              .import_specifiers
-              .contains(&import_specifier_string)
-            {
-              self.state.import_specifiers.push(import_specifier_string);
-            }
-
-            if import_sources.contains(&convert_atom_to_string(declaration))
-              && self
-                .state
-                .import_as(&convert_atom_to_string(&import_decl.src.value))
-                .is_none()
-            {
+            if is_import_source && !has_named_import_source {
               let local_name = import_specifier.local.sym.to_string();
 
-              self.state.import_paths.insert(source_path.clone());
+              self.state.insert_import_path(source_path.clone());
 
               self
                 .state
-                .stylex_import
-                .insert(ImportSources::Regular(local_name));
+                .insert_stylex_import(ImportSources::Regular(local_name));
             }
           },
           ImportSpecifier::Named(import_specifier) => {
-            let import_specifier_ident = import_specifier.local.clone();
-
-            let import_specifier_string = import_specifier_ident.sym.to_string();
-
-            if !self
-              .state
-              .import_specifiers
-              .contains(&import_specifier_string)
-            {
-              self.state.import_specifiers.push(import_specifier_string);
-            }
-
-            if import_sources.contains(&convert_atom_to_string(declaration)) {
+            if is_import_source {
               let local_name = import_specifier.local.sym.to_string();
 
               match &import_specifier.imported {
@@ -150,19 +100,20 @@ where
     local_name: &str,
     import_specifier: &ImportNamedSpecifier,
   ) {
-    if let Some(source_path) = self.state.import_as(source_path)
-      && source_path.eq(&imported_name)
-    {
-      self.state.import_paths.insert(source_path.clone());
+    let import_alias = self.state.import_as(source_path);
+    let has_import_alias = import_alias.is_some();
+    let import_alias_matches = import_alias.is_some_and(|alias| alias.eq(&imported_name));
+
+    if import_alias_matches {
+      self.state.insert_import_path(imported_name.clone());
 
       self
         .state
-        .stylex_import
-        .insert(ImportSources::Regular(local_name.to_string()));
+        .insert_stylex_import(ImportSources::Regular(local_name.to_string()));
     }
 
-    if self.state.import_as(source_path).is_none() {
-      self.state.import_paths.insert(source_path.to_string());
+    if !has_import_alias {
+      self.state.insert_import_path(source_path.to_string());
 
       let local_name_ident_atom = import_specifier.local.clone().sym;
 

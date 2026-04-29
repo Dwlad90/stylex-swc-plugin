@@ -9,16 +9,7 @@ pub(in super::super) fn evaluate(
 ) -> Option<EvaluateResultValue> {
   let path = Expr::Member(member.clone());
   let path = &path;
-  let parent_is_call_expr = traversal_state
-    .all_call_expressions
-    .values()
-    .any(|call_expr_callee| match call_expr_callee {
-      Callee::Expr(callee) => match callee.as_ref() {
-        Expr::Member(call_member) => call_member.eq_ignore_span(member),
-        _ => false,
-      },
-      _ => false,
-    });
+  let parent_is_call_expr = traversal_state.is_member_call_callee(member);
 
   let evaluated_value = if parent_is_call_expr {
     None

@@ -18,7 +18,7 @@ pub(crate) enum DeclarationType {
 
 pub(crate) fn check_ident_declaration(
   ident: &Ident,
-  declarations_map: &[(DeclarationType, &Vec<Ident>)],
+  declarations_map: &[(DeclarationType, &[Ident])],
   state: &mut EvaluationState,
   path: &Expr,
 ) -> Option<EvaluateResultValue> {

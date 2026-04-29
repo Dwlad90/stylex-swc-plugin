@@ -7,7 +7,6 @@ use crate::{
   StyleXTransform,
   shared::utils::core::{stylex::stylex, stylex_merge::stylex_merge},
 };
-use stylex_structures::named_import_source::ImportSources;
 
 impl<C> StyleXTransform<C>
 where
@@ -17,10 +16,7 @@ where
     match &call.callee {
       Callee::Expr(expr) => match expr.as_ref() {
         Expr::Ident(ident) => {
-          if self
-            .state
-            .stylex_import
-            .contains(&ImportSources::Regular(ident.sym.to_string()))
+          if self.state.is_regular_stylex_import(&ident.sym)
             && let Some(value) = stylex_merge(call, stylex, &mut self.state)
           {
             return Some(value);

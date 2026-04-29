@@ -77,7 +77,7 @@ where
     }
   }
 
-  for name in &transform.state.stylex_import {
+  for name in transform.state.stylex_imports() {
     member_expressions.entry(name.clone()).or_default();
 
     let member_expression = match member_expressions.get_mut(name) {

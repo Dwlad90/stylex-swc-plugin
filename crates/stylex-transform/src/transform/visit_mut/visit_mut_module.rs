@@ -17,7 +17,7 @@ where
 
     module.visit_mut_children_with(self);
 
-    if !self.state.import_paths.is_empty() {
+    if self.state.has_import_paths() {
       self.state.cycle = TransformationCycle::StateFilling;
       module.visit_mut_children_with(self);
 

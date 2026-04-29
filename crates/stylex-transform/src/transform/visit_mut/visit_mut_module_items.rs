@@ -30,7 +30,7 @@ where
       TransformationCycle::Initializing => {
         module_items.visit_mut_children_with(self);
 
-        if self.state.import_paths.is_empty() {
+        if !self.state.has_import_paths() {
           self.state.cycle = TransformationCycle::Skip;
           return;
         }
@@ -189,7 +189,7 @@ where
 
               let key_hash = stable_hash(key.as_ref());
 
-              if let Some(metadata_items) = self.state.styles_to_inject.get(&key_hash) {
+              if let Some(metadata_items) = self.state.styles_to_inject_for(&key_hash) {
                 for module_item in metadata_items.iter() {
                   result_module_items.push(module_item.clone());
                 }

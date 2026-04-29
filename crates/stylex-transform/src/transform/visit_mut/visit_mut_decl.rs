@@ -14,24 +14,12 @@ where
       Decl::Class(class_decl) => {
         let class_decl_ident = drop_span(class_decl.ident.clone());
 
-        if !self
-          .state
-          .class_name_declarations
-          .contains(&class_decl_ident)
-        {
-          self.state.class_name_declarations.push(class_decl_ident);
-        }
+        self.state.add_class_name_declaration(class_decl_ident);
       },
       Decl::Fn(fn_decl) => {
         let fn_decl_ident = drop_span(fn_decl.ident.clone());
 
-        if !self
-          .state
-          .function_name_declarations
-          .contains(&fn_decl_ident)
-        {
-          self.state.function_name_declarations.push(fn_decl_ident);
-        }
+        self.state.add_function_name_declaration(fn_decl_ident);
       },
       _ => {},
     }

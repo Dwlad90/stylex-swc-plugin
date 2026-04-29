@@ -1,5 +1,6 @@
 use crate::shared::structures::state_manager::StateManager;
 use stylex_constants::constants::common::{CSS_CONTENT_FUNCTIONS, CSS_CONTENT_KEYWORDS};
+use stylex_types::traits::StyleOptions;
 use stylex_utils::math::round_to_decimal_places;
 
 // Re-export moved functions from stylex_css so existing callers keep compiling.
@@ -53,7 +54,7 @@ pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> S
 pub(crate) fn transform_value_cached(key: &str, value: &str, state: &mut StateManager) -> String {
   let cache_key = format!("{}:{}", key, value);
 
-  let cache = state.css_property_seen.get(&cache_key);
+  let cache = state.css_property_seen().get(&cache_key);
 
   if let Some(result) = cache {
     return result.to_string();
@@ -61,7 +62,9 @@ pub(crate) fn transform_value_cached(key: &str, value: &str, state: &mut StateMa
 
   let result = transform_value(key, value, state);
 
-  state.css_property_seen.insert(cache_key, result.clone());
+  state
+    .css_property_seen_mut()
+    .insert(cache_key, result.clone());
 
   result
 }

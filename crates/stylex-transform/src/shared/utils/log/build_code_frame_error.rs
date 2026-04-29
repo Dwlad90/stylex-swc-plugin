@@ -137,7 +137,7 @@ pub(crate) fn get_span_from_source_code(
   let file_name = FileName::Custom(state.get_filename().to_owned());
 
   // Check cache first - avoid expensive AST operations if we've seen this before
-  if let Some(&cached_span) = state.span_cache.get(&cache_key) {
+  if let Some(cached_span) = state.cached_span(cache_key) {
     let code_frame = load_code_frame_from_cache(&file_name)?;
     return Ok((code_frame, cached_span));
   }
@@ -155,7 +155,7 @@ pub(crate) fn get_span_from_source_code(
   let span = find_expression_span(program, target_expression);
 
   // Cache the result for future lookups
-  state.span_cache.insert(cache_key, span);
+  state.insert_cached_span(cache_key, span);
 
   Ok((code_frame, span))
 }

@@ -954,7 +954,7 @@ impl<T: Clone + Debug + 'static> TokenOptionalParser<T> {
     Self { parser }
   }
 
-  /// Get the underlying parser as TokenParser<Option<T>>
+  /// Get the underlying parser as `TokenParser<Option<T>>`
   pub fn as_token_parser(self) -> TokenParser<Option<T>> {
     let parser_run = self.parser.run;
     let label = format!("Optional<{}>", self.parser.label);

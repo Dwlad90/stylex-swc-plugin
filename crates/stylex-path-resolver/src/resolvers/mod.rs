@@ -45,15 +45,18 @@ pub fn resolve_path(
   root_dir: &Path,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> String {
-  let is_match = FILE_PATTERN
-    .is_match(processing_file.to_str().unwrap())
+  let is_match = processing_file
+    .to_str()
+    .and_then(|s| FILE_PATTERN.is_match(s).ok())
     .unwrap_or(false);
   if !is_match {
     #[cfg(test)]
-    let processing_path = processing_file
-      .strip_prefix(root_dir.parent().unwrap().parent().unwrap())
-      .unwrap()
-      .to_path_buf();
+    let processing_path = root_dir
+      .parent()
+      .and_then(|p| p.parent())
+      .and_then(|root| processing_file.strip_prefix(root).ok())
+      .map(Path::to_path_buf)
+      .unwrap_or_else(|| processing_file.to_path_buf());
 
     #[cfg(not(test))]
     let processing_path = processing_file.to_path_buf();

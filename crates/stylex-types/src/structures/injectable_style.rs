@@ -55,7 +55,7 @@ impl From<InjectableStyle> for InjectableStyleBase {
 }
 
 impl InjectableStyle {
-  /// Creates a new InjectableStyle wrapped in Rc<InjectableStyleKind> with only
+  /// Creates a new `InjectableStyle` wrapped in `Rc<InjectableStyleKind>` with only
   /// LTR content.
   ///
   /// # Example
@@ -71,7 +71,7 @@ impl InjectableStyle {
     }))
   }
 
-  /// Creates a new InjectableStyle wrapped in Rc<InjectableStyleKind> with both
+  /// Creates a new `InjectableStyle` wrapped in `Rc<InjectableStyleKind>` with both
   /// LTR and RTL content.
   ///
   /// # Example

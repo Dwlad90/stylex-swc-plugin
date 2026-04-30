@@ -32,6 +32,17 @@ pub struct Styleq<V: StyleqValue> {
   cache: RwLock<FxHashMap<CacheKey, Arc<CacheEntry>>>,
 }
 
+// Compile-time guarantee that the cache layer is safe to share across threads
+// (relevant for parallel SWC processing of multiple files via Rayon/Tokio).
+const _: fn() = || {
+  fn assert_send<T: Send>() {}
+  fn assert_sync<T: Sync>() {}
+  assert_send::<CacheEntry>();
+  assert_sync::<CacheEntry>();
+  assert_send::<CacheKey>();
+  assert_sync::<CacheKey>();
+};
+
 pub fn create_styleq<V: StyleqValue>(options: StyleqOptions<V>) -> Styleq<V> {
   Styleq {
     options,

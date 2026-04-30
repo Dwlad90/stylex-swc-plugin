@@ -60,7 +60,9 @@ pub fn get_package_json(
         Some(json) => (json, manager),
         None => stylex_panic!(
           "Failed to read package.json file: {}/{}",
-          env::current_dir().unwrap().display(),
+          env::current_dir()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|_| "<unknown>".into()),
           file.display()
         ),
       }
@@ -88,7 +90,7 @@ pub fn find_closest_package_json(path: &Path) -> Option<PathBuf> {
 }
 
 pub fn find_closest_package_json_folder(path: &Path) -> Option<PathBuf> {
-  find_closest_package_json(path).map(|path| path.parent().unwrap().to_path_buf())
+  find_closest_package_json(path).and_then(|path| path.parent().map(Path::to_path_buf))
 }
 
 pub fn find_closest_node_modules(path: &Path) -> Option<PathBuf> {

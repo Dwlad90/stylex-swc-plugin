@@ -39,7 +39,7 @@ pub fn last_media_query_wins_transform(styles: &[KeyValueProp]) -> Vec<KeyValueP
 }
 
 /// Internal helper function for backwards compatibility with existing tests
-/// This preserves the old Vec<MediaQuery> -> Vec<MediaQuery> signature for
+/// This preserves the old `Vec<MediaQuery> -> Vec<MediaQuery>` signature for
 /// internal use
 pub fn last_media_query_wins_transform_internal(queries: Vec<MediaQuery>) -> Vec<MediaQuery> {
   // For now, just return the queries unchanged since the main tests are using

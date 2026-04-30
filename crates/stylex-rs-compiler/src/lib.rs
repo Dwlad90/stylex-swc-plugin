@@ -37,7 +37,7 @@ fn source_maps_config(source_map: Option<&SourceMaps>) -> SourceMapsConfig {
   match source_map {
     Some(SourceMaps::True) => SourceMapsConfig::Bool(true),
     Some(SourceMaps::False) => SourceMapsConfig::Bool(false),
-    Some(SourceMaps::Inline) => SourceMapsConfig::Str("inline".to_string()),
+    Some(SourceMaps::Inline) => SourceMapsConfig::Str("inline".into()),
     None => SourceMapsConfig::Bool(true),
   }
 }

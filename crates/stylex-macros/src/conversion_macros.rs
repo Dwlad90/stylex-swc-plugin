@@ -30,11 +30,10 @@ macro_rules! convert_expr_to_str_or_err {
   };
 }
 
-/// Macro to unwrap an Option<EvaluateResultValue> to Expr or return an error.
-/// Returns the expression on success, or returns Err(anyhow::Error) on failure.
+/// Macro to unwrap an `Option<EvaluateResultValue>` to `Expr` or return an error.
+/// Returns the expression on success, or returns `Err(anyhow::Error)` on failure.
 ///
-/// This macro is designed for use in functions that return Result<T,
-/// anyhow::Error>.
+/// This macro is designed for use in functions that return `Result<T, anyhow::Error>`.
 ///
 /// # Usage
 /// ```ignore
@@ -54,12 +53,11 @@ macro_rules! as_expr_or_err {
   };
 }
 
-/// Macro to unwrap an Option<EvaluateResultValue> to Expr for functions
-/// returning Option<Result>. Returns the expression on success, or returns
-/// Some(Err(anyhow::Error)) on failure.
+/// Macro to unwrap an `Option<EvaluateResultValue>` to `Expr` for functions
+/// returning `Option<Result>`. Returns the expression on success, or returns
+/// `Some(Err(anyhow::Error))` on failure.
 ///
-/// This macro is designed for use in functions that return Option<Result<T,
-/// anyhow::Error>>.
+/// This macro is designed for use in functions that return `Option<Result<T, anyhow::Error>>`.
 ///
 /// # Usage
 /// ```ignore
@@ -79,7 +77,7 @@ macro_rules! as_expr_or_opt_err {
   };
 }
 
-/// Macro to unwrap an Option<EvaluateResultValue> to Expr for functions
+/// Macro to unwrap an `Option<EvaluateResultValue>` to `Expr` for functions
 /// returning primitives. Returns the expression on success, or panics with the
 /// error message on failure.
 ///

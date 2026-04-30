@@ -115,8 +115,8 @@ pub fn is_panic_stderr_suppressed() -> bool {
 ///
 /// ```rust,ignore
 /// let _guard = SuppressPanicStderr::new();
-/// let result = std::panic::catch_unwind(|| { /* … */ });
-/// guard dropped here → suppression lifted
+/// let result = std::panic::catch_unwind(|| { /* ... */ });
+/// // guard dropped here -> suppression lifted
 /// ```
 pub struct SuppressPanicStderr;
 

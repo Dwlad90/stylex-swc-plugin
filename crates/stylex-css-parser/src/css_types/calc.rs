@@ -126,7 +126,7 @@ pub enum CalcValueOrOperator {
 pub enum CalcValue {
   /// number
   Number(f32),
-  /// TokenDimension[4]
+  /// `TokenDimension[4]`
   Dimension(CalcDimension),
   /// Percentage
   Percentage(Percentage),

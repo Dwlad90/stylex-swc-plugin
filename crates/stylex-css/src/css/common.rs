@@ -401,10 +401,7 @@ fn contains_css_function_call(value: &str, function_name: &str) -> bool {
 }
 
 /// Panics with a formatted CSS parse error.  Replaces unclosed-function
-/// messages with a friendlier lint message.  The non-paren error path
-/// is defensive — SWC rarely reports non-paren errors for declaration
-/// values — so the entire function is excluded from coverage.
-#[cfg_attr(coverage_nightly, coverage(off))]
+/// messages with a friendlier lint message.
 fn handle_css_parse_errors(errors: &[Error], css_rule: &str) -> ! {
   let mut error_message = errors[0].message().to_string();
   if error_message.ends_with("expected ')'") || error_message.ends_with("expected '('") {

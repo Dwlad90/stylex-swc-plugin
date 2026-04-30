@@ -349,6 +349,7 @@ mod get_priority_tests {
 #[cfg(test)]
 mod normalize_css_property_value_tests {
   use crate::css::common::normalize_css_property_value;
+  use std::panic::{AssertUnwindSafe, catch_unwind};
   use stylex_structures::stylex_state_options::StyleXStateOptions;
 
   fn default_options() -> StyleXStateOptions {
@@ -661,6 +662,26 @@ mod normalize_css_property_value_tests {
     let opts = default_options();
     let result = normalize_css_property_value("fontSize", "clamp(1rem, 2vw, 3rem)", &opts);
     assert_eq!(result, "clamp(1rem, 2vw, 3rem)");
+  }
+
+  #[test]
+  fn malformed_unclosed_function_panics() {
+    let opts = default_options();
+    let result = catch_unwind(AssertUnwindSafe(|| {
+      normalize_css_property_value("color", "var(--token", &opts)
+    }));
+
+    assert!(result.is_err());
+  }
+
+  #[test]
+  fn malformed_css_value_panics() {
+    let opts = default_options();
+    let result = catch_unwind(AssertUnwindSafe(|| {
+      normalize_css_property_value("color", "@", &opts)
+    }));
+
+    assert!(result.is_err());
   }
 }
 

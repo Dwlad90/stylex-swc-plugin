@@ -1,7 +1,7 @@
 use std::{
   collections::hash_map::DefaultHasher,
   hash::{Hash, Hasher},
-  sync::{Mutex, MutexGuard},
+  sync::{Mutex, MutexGuard, PoisonError},
 };
 
 use indexmap::IndexMap;
@@ -237,13 +237,7 @@ impl<V: StyleqValue> Styleq<V> {
   }
 
   fn cache_lock(&self) -> MutexGuard<'_, IndexMap<CacheKey, CacheEntry>> {
-    match self.cache.lock() {
-      Ok(cache) => cache,
-      Err(poisoned) => {
-        error!("styleq: cache mutex was poisoned; continuing with inner cache.");
-        poisoned.into_inner()
-      },
-    }
+    self.cache.lock().unwrap_or_else(recover_poisoned_cache)
   }
 
   fn get_cache_entry(&self, cache_key: &CacheKey) -> Option<CacheEntry> {
@@ -264,4 +258,30 @@ fn hash_style<V: StyleqValue>(style: &StyleMap<V>) -> u64 {
   }
 
   hasher.finish()
+}
+
+fn recover_poisoned_cache<'a>(
+  poisoned: PoisonError<MutexGuard<'a, IndexMap<CacheKey, CacheEntry>>>,
+) -> MutexGuard<'a, IndexMap<CacheKey, CacheEntry>> {
+  error!("styleq: cache mutex was poisoned; continuing with inner cache.");
+  poisoned.into_inner()
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use std::panic::{AssertUnwindSafe, catch_unwind};
+
+  #[test]
+  fn cache_lock_recovers_from_poisoned_mutex() {
+    let styleq = create_styleq::<crate::StyleValue>(StyleqOptions::default());
+
+    let result = catch_unwind(AssertUnwindSafe(|| {
+      let _guard = styleq.cache.lock();
+      panic!("poison cache mutex");
+    }));
+
+    assert!(result.is_err());
+    assert!(styleq.cache_lock().is_empty());
+  }
 }

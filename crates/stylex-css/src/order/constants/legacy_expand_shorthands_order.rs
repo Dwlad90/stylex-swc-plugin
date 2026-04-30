@@ -2,13 +2,6 @@ use crate::values::{common::split_value_required, parser::parse_css};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
 use stylex_structures::order_pair::OrderPair;
 
-/// `split_value_required` always yields ≥ 4 values, so `coll` always has
-/// ≥ 2 elements.  This fallback is defensive and practically unreachable.
-#[cfg_attr(coverage_nightly, coverage(off))]
-fn contain_intrinsic_size_height_fallback(width: &str) -> impl FnOnce() -> String + '_ {
-  move || width.to_owned()
-}
-
 /// Helper function to check if a string is a valid list-style-type value
 /// Matches: [a-z-]+ or quoted strings like "..." or '...'
 fn is_list_style_type(s: &str) -> bool {
@@ -174,12 +167,7 @@ impl Shorthands {
     }
 
     let width = coll.first().cloned().unwrap_or_default();
-    // `split_value_required` always returns 4 values, so `coll` always has
-    // ≥ 2 elements after processing.  The fallback is defensive only.
-    let height = coll
-      .get(1)
-      .cloned()
-      .unwrap_or_else(contain_intrinsic_size_height_fallback(&width));
+    let height = coll[1].clone();
 
     Ok(vec![
       OrderPair("containIntrinsicWidth".into(), Some(width)),
@@ -557,31 +545,6 @@ impl Aliases {
   }
   fn border_block_end_color(val: Option<String>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderBottomColor".into(), val)])
-  }
-
-  #[cfg_attr(coverage_nightly, coverage(off))]
-  fn border_inline_start_width(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineStartWidth".into(), val)])
-  }
-  #[cfg_attr(coverage_nightly, coverage(off))]
-  fn border_inline_start_style(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineStartStyle".into(), val)])
-  }
-  #[cfg_attr(coverage_nightly, coverage(off))]
-  fn border_inline_start_color(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineStartColor".into(), val)])
-  }
-  #[cfg_attr(coverage_nightly, coverage(off))]
-  fn border_inline_end_width(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineEndWidth".into(), val)])
-  }
-  #[cfg_attr(coverage_nightly, coverage(off))]
-  fn border_inline_end_style(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineEndStyle".into(), val)])
-  }
-  #[cfg_attr(coverage_nightly, coverage(off))]
-  fn border_inline_end_color(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineEndColor".into(), val)])
   }
   fn border_start_start_radius(val: Option<String>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderTopStartRadius".into(), val)])

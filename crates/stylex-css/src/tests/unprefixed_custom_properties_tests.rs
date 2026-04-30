@@ -2,8 +2,9 @@
 // references. Source: crates/stylex-css/src/css/validators/
 // unprefixed_custom_properties.rs
 
-use super::unprefixed_custom_properties_validator;
+use super::{as_declaration, unprefixed_custom_properties_validator};
 use crate::css::common::swc_parse_css;
+use swc_core::{common::DUMMY_SP, css::ast::ComponentValue};
 
 /// Ensures the validator rejects custom properties that are missing the `--`
 /// prefix.
@@ -26,4 +27,15 @@ fn dashed_ident_function_is_silently_skipped() {
   // `if let FunctionName::Ident` guard is false and the function
   // body is not entered.
   unprefixed_custom_properties_validator(&result.unwrap());
+}
+
+#[test]
+fn non_declaration_component_value_is_skipped() {
+  let component_value = ComponentValue::Integer(Box::new(swc_core::css::ast::Integer {
+    span: DUMMY_SP,
+    value: 1,
+    raw: None,
+  }));
+
+  assert!(as_declaration(&component_value).is_none());
 }

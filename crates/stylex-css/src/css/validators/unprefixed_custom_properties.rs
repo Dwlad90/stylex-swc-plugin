@@ -27,7 +27,6 @@ fn process_declaration(declaration: &Declaration) {
 
 /// SWC always emits `ComponentValue::Declaration` inside qualified-rule
 /// blocks, so the non-declaration arm is defensive only.
-#[cfg_attr(coverage_nightly, coverage(off))]
 fn as_declaration(cv: &ComponentValue) -> Option<&Declaration> {
   match cv {
     ComponentValue::Declaration(d) => Some(d),

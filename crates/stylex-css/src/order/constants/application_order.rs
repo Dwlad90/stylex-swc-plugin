@@ -4,11 +4,6 @@ use stylex_structures::order_pair::OrderPair;
 pub struct Shorthands;
 
 impl Shorthands {
-  /// All shorthand expansion functions return `Ok(…)` unconditionally;
-  /// the `Err` variant exists only for the shared function-pointer type.
-  /// This helper unwraps the infallible `Result`, excluding the dead
-  /// `Err` branch from coverage instrumentation.
-  #[cfg_attr(coverage_nightly, coverage(off))]
   fn infallible(result: Result<Vec<OrderPair>, String>) -> Vec<OrderPair> {
     match result {
       Ok(v) => v,
@@ -1322,12 +1317,6 @@ impl Shorthands {
 pub struct Aliases;
 
 impl Aliases {
-  #[allow(dead_code)]
-  #[cfg_attr(coverage_nightly, coverage(off))]
-  fn block_size(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("height".to_string(), value)])
-  }
-
   fn height(value: Option<String>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("height".to_string(), value)])
   }
@@ -1528,5 +1517,16 @@ impl Aliases {
       "end" => Shorthands::get("insetInlineEnd"),
       _ => None,
     }
+  }
+}
+
+#[cfg(test)]
+mod coverage_tests {
+  use super::Shorthands;
+
+  #[test]
+  #[should_panic(expected = "infallible shorthand returned Err")]
+  fn infallible_panics_on_unexpected_error() {
+    Shorthands::infallible(Err("boom".to_string()));
   }
 }

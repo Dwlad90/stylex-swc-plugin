@@ -1,7 +1,7 @@
 // Tests for CSS value token joining and parser edge cases.
 // Source: crates/stylex-css/src/values/parser.rs
 
-use super::{join_css, parse_css};
+use super::{_format_quoted_string, join_css, parse_css};
 
 #[test]
 fn join_css_avoids_space_around_slash_and_comma() {
@@ -14,6 +14,11 @@ fn join_css_avoids_space_around_slash_and_comma() {
   ];
 
   assert_eq!(join_css(&nodes), "10px/20px,30px");
+}
+
+#[test]
+fn format_quoted_string_serializes_css_string() {
+  assert_eq!(_format_quoted_string("hello"), "\"hello\"");
 }
 
 #[test]

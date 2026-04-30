@@ -13,12 +13,8 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-anyhow.workspace = true
-indexmap.workspace = true
-log.workspace = true
-md5.workspace = true
 node-resolve.workspace = true
-rustc-hash.workspace = true
+stylex_macros = { path = "../stylex-macros" }
 swc_core = { workspace = true, features = [
   "common",
   "ecma_codegen",
@@ -26,14 +22,6 @@ swc_core = { workspace = true, features = [
   "ecma_plugin_transform",
   "ecma_utils",
 ] }
-
-stylex_ast = { path = "../stylex-ast" }
-stylex_constants = { path = "../stylex-constants" }
-stylex_js = { path = "../stylex-js" }
-stylex_macros = { path = "../stylex-macros" }
-stylex_path_resolver = { path = "../stylex-path-resolver" }
-stylex_types = { path = "../stylex-types" }
-stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
 ctor.workspace = true

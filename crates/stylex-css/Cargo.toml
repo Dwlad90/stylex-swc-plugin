@@ -13,11 +13,16 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-cssparser.workspace = true
 fancy-regex.workspace = true
-indexmap.workspace = true
 log.workspace = true
-rustc-hash.workspace = true
+stylex_constants = { path = "../stylex-constants" }
+stylex_css_parser = { path = "../stylex-css-parser" }
+stylex_enums = { path = "../stylex-enums" }
+stylex_macros = { path = "../stylex-macros" }
+stylex_regex = { path = "../stylex-regex" }
+stylex_structures = { path = "../stylex-structures" }
+stylex_types = { path = "../stylex-types" }
+stylex_utils = { path = "../stylex-utils" }
 swc_core = { workspace = true, features = [
   "common",
   "css_ast",
@@ -29,17 +34,6 @@ swc_core = { workspace = true, features = [
   "ecma_plugin_transform",
   "ecma_utils",
 ] }
-
-stylex_ast = { path = "../stylex-ast" }
-stylex_constants = { path = "../stylex-constants" }
-stylex_css_parser = { path = "../stylex-css-parser" }
-stylex_enums = { path = "../stylex-enums" }
-stylex_evaluator = { path = "../stylex-evaluator" }
-stylex_macros = { path = "../stylex-macros" }
-stylex_regex = { path = "../stylex-regex" }
-stylex_structures = { path = "../stylex-structures" }
-stylex_types = { path = "../stylex-types" }
-stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
 criterion.workspace = true

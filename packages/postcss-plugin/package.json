@@ -39,14 +39,12 @@
     "postcss": "^8.5.10"
   },
   "devDependencies": {
-    "@babel/types": "^7.29.0",
     "@stylexswc/eslint-config": "0.15.5",
     "@stylexswc/typescript-config": "0.15.5",
     "@types/babel__core": "^7.20.5",
     "@types/glob-parent": "^5.1.3",
     "@types/is-glob": "^4.0.4",
     "@types/jest": "^30.0.0",
-    "@types/loader-utils": "^3.0.0",
     "@types/node": "^25.5.0",
     "jest": "^30.3.0",
     "jest-chain-transform": "^0.0.8",

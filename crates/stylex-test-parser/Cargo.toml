@@ -10,15 +10,11 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow.workspace = true
 color-backtrace.workspace = true
 ctor.workspace = true
-env_logger.workspace = true
 fancy-regex.workspace = true
 log.workspace = true
 pretty_env_logger.workspace = true
-serde.workspace = true
-serde_json.workspace = true
 swc_compiler_base = { workspace = true, features = ["node"] }
 swc_config.workspace = true
 swc_core = { workspace = true, features = [

@@ -22,7 +22,6 @@
     "@playwright/test": "^1.58.2",
     "@stylexswc/playwright": "0.15.5",
     "@vitejs/plugin-vue": "^6.0.5",
-    "@vitejs/plugin-vue-jsx": "^5.1.4",
     "serve": "^14.2.6",
     "typescript": "^6.0.2",
     "vite": "^8.0.5",

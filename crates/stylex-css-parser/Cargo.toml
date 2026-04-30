@@ -13,13 +13,9 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-anyhow.workspace = true
 cssparser.workspace = true
-fancy-regex.workspace = true
-indexmap.workspace = true
 log.workspace = true
 rustc-hash.workspace = true
-serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["preserve_order"] }
 swc_core = { workspace = true, features = [
   "common",
@@ -38,7 +34,6 @@ stylex_macros = { path = "../stylex-macros" }
 
 [dev-dependencies]
 criterion.workspace = true
-proptest = "1.11"
 
 [[bench]]
 harness = false

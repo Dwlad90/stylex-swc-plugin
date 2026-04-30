@@ -1,0 +1,36 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "ignoreDependencies": [
+        "husky",
+        "commitizen",
+        "cz-conventional-changelog",
+        "lint-staged",
+        "@commitlint/cli",
+        "scripty",
+        "shellcheck",
+        "prettier"
+      ]
+    },
+    "apps/*": {
+      "ignoreDependencies": [
+        "@stylexjs/eslint-plugin",
+        "eslint-config-next",
+        "react-refresh"
+      ]
+    },
+    "apps/farm-unplugin-example": {
+      "playwright": false,
+      "ignoreDependencies": ["@stylexjs/eslint-plugin", "eslint-config-next", "react-refresh"]
+    },
+    "apps/solid-unplugin-example": {
+      "playwright": false,
+      "ignoreDependencies": ["@stylexjs/eslint-plugin", "eslint-config-next", "react-refresh"]
+    },
+    "packages/*": {},
+    "crates/*": {}
+  },
+  "ignoreBinaries": ["lint-prepush", "cargo", "rustup", "scripty", "python3"],
+  "ignoreDependencies": ["@stylexswc/.*"]
+}

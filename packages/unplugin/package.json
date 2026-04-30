@@ -90,30 +90,21 @@
     "@stylexjs/babel-plugin": "^0.18.2",
     "@stylexswc/rs-compiler": "0.15.5",
     "unplugin": "^2.3.5",
-    "vite": "^8.0.5",
-    "vite-plugin-inspect": "^11.3.3"
+    "vite": "^8.0.5"
   },
   "devDependencies": {
     "@nuxt/kit": "^4.3.1",
     "@nuxt/schema": "^4.2.0",
     "@rollup/plugin-commonjs": "^28.0.6",
-    "@rollup/plugin-html": "^2.0.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
-    "@rollup/plugin-replace": "^6.0.3",
-    "@rollup/plugin-swc": "^0.4.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.5.0",
-    "chalk": "^5.6.2",
     "eslint": "^10.0.2",
     "esno": "^4.7.0",
-    "fast-glob": "^3.3.3",
     "jest": "^30.3.0",
-    "nodemon": "^3.1.14",
     "rollup": "^4.60.1",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.2",
-    "webpack": "^5.105.4"
+    "typescript": "^6.0.2"
   },
   "peerDependencies": {
     "@farmfe/core": ">=1.7.11 <2.0.0",

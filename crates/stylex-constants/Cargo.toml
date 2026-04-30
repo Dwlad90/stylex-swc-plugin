@@ -13,12 +13,9 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-fancy-regex.workspace = true
-lazy_static.workspace = true
 once_cell.workspace = true
 phf = { workspace = true, features = ["macros"] }
 rustc-hash.workspace = true
-swc_core = { workspace = true, features = ["common"] }
 
 [dev-dependencies]
 ctor.workspace = true

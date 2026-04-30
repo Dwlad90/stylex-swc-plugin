@@ -6,7 +6,7 @@
     "moduleResolution": "Bundler",
     "outDir": "lib",
     "rootDir": ".",
-    "isolatedModules": false,
+    "isolatedModules": false
   },
   "include": ["*.ts"],
   "exclude": ["lib"]

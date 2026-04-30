@@ -59,8 +59,6 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.5.1",
-    "@stylexjs/open-props": "^0.11.1",
-    "@stylexjs/stylex": "^0.18.2",
     "@stylexswc/ast": "0.15.5",
     "@stylexswc/logs": "0.15.5",
     "@stylexswc/macros": "0.15.5",

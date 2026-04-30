@@ -19,8 +19,6 @@ stylex_constants = { path = "../stylex-constants" }
 stylex_macros = { path = "../stylex-macros" }
 
 [dev-dependencies]
-ctor.workspace = true
-pretty_env_logger.workspace = true
 
 [lints]
 workspace = true

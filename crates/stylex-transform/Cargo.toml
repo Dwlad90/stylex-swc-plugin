@@ -15,22 +15,13 @@ doctest = false
 
 [dependencies]
 anyhow.workspace = true
-base62.workspace = true
-cssparser.workspace = true
 ctor.workspace = true
-derive_more.workspace = true
-fancy-regex.workspace = true
 indexmap.workspace = true
-lazy_static.workspace = true
 log.workspace = true
-md5.workspace = true
-murmur2.workspace = true
 node-resolve.workspace = true
-once_cell.workspace = true
 path-clean.workspace = true
 phf = { workspace = true, features = ["macros"] }
 pretty_env_logger.workspace = true
-radix_fmt.workspace = true
 rustc-hash.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
@@ -40,7 +31,6 @@ stylex_css = { path = "../stylex-css" }
 stylex_css_parser = { path = "../stylex-css-parser" }
 stylex_enums = { path = "../stylex-enums" }
 stylex_evaluator = { path = "../stylex-evaluator" }
-stylex_logs = { path = "../stylex-logs" }
 stylex_macros = { path = "../stylex-macros" }
 stylex_path_resolver = { path = "../stylex-path-resolver" }
 stylex_regex = { path = "../stylex-regex" }

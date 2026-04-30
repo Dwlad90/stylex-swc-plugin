@@ -14,8 +14,6 @@ doctest = false
 
 [dependencies]
 anyhow.workspace = true
-log.workspace = true
-swc_compiler_base = { workspace = true, features = ["node"] }
 swc_core = { workspace = true, features = [
   "common",
   "ecma_codegen",
@@ -26,7 +24,6 @@ swc_core = { workspace = true, features = [
 
 stylex_constants = { path = "../stylex-constants" }
 stylex_macros = { path = "../stylex-macros" }
-stylex_types = { path = "../stylex-types" }
 stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]

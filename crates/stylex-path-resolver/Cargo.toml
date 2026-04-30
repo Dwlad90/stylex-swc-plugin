@@ -13,9 +13,7 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-anyhow.workspace = true
 ctor.workspace = true
-env_logger.workspace = true
 fancy-regex.workspace = true
 indexmap.workspace = true
 log.workspace = true
@@ -25,7 +23,6 @@ pretty_env_logger.workspace = true
 rustc-hash.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-swc_core = { workspace = true, features = ["common", "ecma_loader_node"] }
 
 stylex_macros = { path = "../stylex-macros" }
 

@@ -17,7 +17,6 @@ doctest = false
 log.workspace = true
 rustc-hash.workspace = true
 serde.workspace = true
-serde_json.workspace = true
 serde_plain.workspace = true
 swc_compiler_base = { workspace = true, features = ["node"] }
 swc_core = { workspace = true, features = [
@@ -48,11 +47,13 @@ stylex_utils = { path = "../stylex-utils" }
 
 
 [dev-dependencies]
-napi-build = "2"
 
 
 [build-dependencies]
 napi-build = "2"
+
+[package.metadata.cargo-machete]
+ignored = ["napi-build"]
 
 [lints]
 workspace = true

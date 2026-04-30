@@ -79,7 +79,16 @@ function addFixtureBenchmarks(bench: Bench, fixtureFilePaths: string[]) {
   });
 }
 
-function formatBenchmarkSummary(task: Task): string {
+interface BenchmarkStats {
+  name: string;
+  opsPerSec: string;
+  rme: string;
+  samples: number;
+  median: string;
+  p95: string;
+}
+
+function getBenchmarkStats(task: Task): BenchmarkStats {
   const { name } = task;
 
   if (!('throughput' in task.result)) {
@@ -87,18 +96,42 @@ function formatBenchmarkSummary(task: Task): string {
   }
 
   const result = task.result as TaskResultWithStatistics;
-  if (!result) return chalk.red(`❌ ${name}: No results`);
+  if (!result) {
+    throw new Error(`❌ ${name}: No results`);
+  }
 
-  const opsPerSec = result.throughput.mean.toLocaleString('en-US', {
-    maximumFractionDigits: 2,
-  });
+  return {
+    name,
+    opsPerSec: result.throughput.mean.toLocaleString('en-US', {
+      maximumFractionDigits: 2,
+    }),
+    rme: result.latency.rme.toFixed(2),
+    samples: result.latency.samplesCount,
+    median: formatLatency(result.latency.p50),
+    p95: formatLatency(percentile(result.latency.samples, 95)),
+  };
+}
 
-  const median = formatLatency(result.latency.p50);
-  const p95 = formatLatency(percentile(result.latency.samples, 95));
-  const rme = result.latency.rme.toFixed(2);
-  const samples = result.latency.samplesCount;
+/**
+ * Strict Benchmark.js-compatible single-line summary.
+ *
+ * Required by `benchmark-action/github-action-benchmark` with
+ * `tool: 'benchmarkjs'`, whose parser regex is:
+ *   /^(.+) x ([0-9,.]+) ops\/sec ±([0-9.]+)% \((\d+) runs? sampled\)$/
+ *
+ * Any deviation (e.g. `:` instead of ` x `, extra median/p95 fields, or
+ * `0 runs sampled`) makes the action skip the line and ultimately fail with
+ * "No benchmark result was found in <output.txt>". This is the format the
+ * GitHub Action consumes; do not change it without updating the workflow.
+ */
+function formatBenchmarkjsLine(stats: BenchmarkStats): string {
+  const samples = stats.samples > 0 ? stats.samples : 1;
+  return `${stats.name} x ${stats.opsPerSec} ops/sec ±${stats.rme}% (${samples} runs sampled)`;
+}
 
-  return `${name}: median ${median}, p95 ${p95}, ${opsPerSec} ops/sec ±${rme}% (${samples} runs sampled)`;
+function formatBenchmarkSummary(task: Task): string {
+  const stats = getBenchmarkStats(task);
+  return `${stats.name}: median ${stats.median}, p95 ${stats.p95}, ${stats.opsPerSec} ops/sec ±${stats.rme}% (${stats.samples} runs sampled)`;
 }
 
 function percentile(samples: readonly number[] | undefined, percentile: number): number {
@@ -207,8 +240,9 @@ if (!fs.existsSync(resultsDir)) {
 
 async function runBenchmarks() {
   const benches = [benchRegular, benchPerformance, benchLotsOfStyles];
-  const benchesExtendedOutputs = [];
-  const benchesOutputs = [];
+  const benchesExtendedOutputs: string[] = [];
+  const benchesOutputs: string[] = [];
+  const benchmarkjsLines: string[] = [];
 
   console.log(chalk.bold('🚀 Running StyleX benchmarks...\n'));
 
@@ -237,6 +271,7 @@ async function runBenchmarks() {
 
     bench.tasks.forEach(task => {
       benchesExtendedOutputs.push(formatBenchmarkSummary(task));
+      benchmarkjsLines.push(formatBenchmarkjsLine(getBenchmarkStats(task)));
     });
 
     benchesOutputs.push(...bench.tasks.map(formatBenchmarkSummary));
@@ -245,14 +280,20 @@ async function runBenchmarks() {
   benchesExtendedOutputs.push(chalk.dim('\n⎯'));
   benchesExtendedOutputs.push(chalk.bold.green('✓ All benchmarks completed successfully!\n'));
 
-  const output = benchesOutputs.join('\n');
   const extendedOutput = benchesExtendedOutputs.join('\n');
   const outputPath = path.join(resultsDir, 'output.txt');
+  const extendedOutputPath = path.join(resultsDir, 'output-extended.txt');
 
   console.log(extendedOutput);
-  fs.writeFileSync(path.join(resultsDir, 'output.txt'), output, 'utf8');
 
-  console.log(`\n${chalk.green(`📊 Benchmark results saved to ${outputPath}`)}`);
+  // `output.txt` MUST be in strict Benchmark.js format — it is consumed by
+  // benchmark-action/github-action-benchmark (tool: 'benchmarkjs') in CI.
+  // Human-readable extended output (median/p95) is written separately.
+  fs.writeFileSync(outputPath, benchmarkjsLines.join('\n') + '\n', 'utf8');
+  fs.writeFileSync(extendedOutputPath, benchesOutputs.join('\n') + '\n', 'utf8');
+
+  console.log(`\n${chalk.green(`📊 Benchmark results (benchmarkjs) saved to ${outputPath}`)}`);
+  console.log(`${chalk.green(`📊 Extended results saved to ${extendedOutputPath}`)}`);
 }
 
 runBenchmarks().catch(err => {

@@ -19,30 +19,49 @@ pub enum CSSSyntax {
   TransformList,
 }
 
-#[cfg_attr(coverage_nightly, coverage(off))]
-impl fmt::Display for CSSSyntax {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match *self {
-      CSSSyntax::Angle => write!(f, "<angle>"),
-      CSSSyntax::Color => write!(f, "<color>"),
-      CSSSyntax::Image => write!(f, "<image>"),
-      CSSSyntax::Integer => write!(f, "<integer>"),
-      CSSSyntax::Length => write!(f, "<length>"),
-      CSSSyntax::LengthPercentage => write!(f, "<lengthPercentage>"),
-      CSSSyntax::Number => write!(f, "<number>"),
-      CSSSyntax::Percentage => write!(f, "<percentage>"),
-      CSSSyntax::Resolution => write!(f, "<resolution>"),
-      CSSSyntax::Time => write!(f, "<time>"),
-      CSSSyntax::TransformFunction => write!(f, "<transformFunction>"),
-      CSSSyntax::TransformList => write!(f, "<transformList>"),
-      CSSSyntax::Url => write!(f, "<url>"),
+impl CSSSyntax {
+  /// Returns the CSS-syntax token for this variant. Allocation-free; the
+  /// returned slice has `'static` lifetime so callers can use it without
+  /// forcing a `.to_string()`.
+  // JS-parity: stylex/packages/shared/lib/common-types.js — `CSSSyntax`
+  // string literals.
+  #[must_use]
+  pub const fn as_str(&self) -> &'static str {
+    match self {
+      CSSSyntax::Angle => "<angle>",
+      CSSSyntax::Color => "<color>",
+      CSSSyntax::Image => "<image>",
+      CSSSyntax::Integer => "<integer>",
+      CSSSyntax::Length => "<length>",
+      CSSSyntax::LengthPercentage => "<lengthPercentage>",
+      CSSSyntax::Number => "<number>",
+      CSSSyntax::Percentage => "<percentage>",
+      CSSSyntax::Resolution => "<resolution>",
+      CSSSyntax::Time => "<time>",
+      CSSSyntax::TransformFunction => "<transformFunction>",
+      CSSSyntax::TransformList => "<transformList>",
+      CSSSyntax::Url => "<url>",
     }
   }
 }
 
-impl From<String> for CSSSyntax {
-  fn from(value: String) -> Self {
-    match value.as_str() {
+impl AsRef<str> for CSSSyntax {
+  #[inline]
+  fn as_ref(&self) -> &str {
+    self.as_str()
+  }
+}
+
+#[cfg_attr(coverage_nightly, coverage(off))]
+impl fmt::Display for CSSSyntax {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl From<&str> for CSSSyntax {
+  fn from(value: &str) -> Self {
+    match value {
       "<angle>" => CSSSyntax::Angle,
       "<color>" => CSSSyntax::Color,
       "<image>" => CSSSyntax::Image,
@@ -56,8 +75,15 @@ impl From<String> for CSSSyntax {
       "<transformFunction>" => CSSSyntax::TransformFunction,
       "<transformList>" => CSSSyntax::TransformList,
       "<url>" => CSSSyntax::Url,
-      _ => stylex_panic!(r#"CSSSyntax "{}" not found"#, value),
+      other => stylex_panic!(r#"CSSSyntax "{}" not found"#, other),
     }
+  }
+}
+
+impl From<String> for CSSSyntax {
+  #[inline]
+  fn from(value: String) -> Self {
+    Self::from(value.as_str())
   }
 }
 

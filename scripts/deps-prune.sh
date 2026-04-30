@@ -24,6 +24,9 @@
 #   scripts/deps-prune.sh --apply        # actually remove unused deps + verify
 #   scripts/deps-prune.sh --node         # restrict to Node.js side
 #   scripts/deps-prune.sh --rust         # restrict to Rust side
+#   scripts/deps-prune.sh --apply --with-tests  # also run pnpm test in verify
+#                                                (slow, but catches string-ref
+#                                                 deps used only at test time)
 #   scripts/deps-prune.sh --apply --no-verify   # skip the safety verify step
 #                                                 (NOT recommended)
 #
@@ -42,6 +45,7 @@ MODE="dry-run"
 RUN_NODE=1
 RUN_RUST=1
 VERIFY=1
+WITH_TESTS=0
 
 for arg in "$@"; do
   case "$arg" in
@@ -50,7 +54,8 @@ for arg in "$@"; do
     --node)        RUN_RUST=0 ;;
     --rust)        RUN_NODE=0 ;;
     --no-verify)   VERIFY=0 ;;
-    -h|--help)     sed -n '2,32p' "$0"; exit 0 ;;
+    --with-tests)  WITH_TESTS=1 ;;
+    -h|--help)     sed -n '2,33p' "$0"; exit 0 ;;
     *) echo "Unknown arg: $arg" >&2; exit 3 ;;
   esac
 done
@@ -120,13 +125,22 @@ if [[ $RUN_NODE -eq 1 ]]; then
     pnpm exec knip "${KNIP_BASE[@]}" --fix || true
 
     if [[ $VERIFY -eq 1 ]]; then
-      c_section "Verifying Node.js workspace (pnpm install + pnpm typecheck)"
-      if pnpm install --prefer-offline >/dev/null 2>&1 \
-         && pnpm typecheck >/dev/null 2>&1; then
+      desc="install + typecheck + build"
+      [[ $WITH_TESTS -eq 1 ]] && desc="$desc + test"
+      c_section "Verifying Node.js workspace ($desc)"
+      verify_ok=1
+      pnpm install --prefer-offline >/dev/null 2>&1 || verify_ok=0
+      [[ $verify_ok -eq 1 ]] && { pnpm typecheck >/dev/null 2>&1 || verify_ok=0; }
+      [[ $verify_ok -eq 1 ]] && { pnpm build >/dev/null 2>&1 || verify_ok=0; }
+      if [[ $verify_ok -eq 1 && $WITH_TESTS -eq 1 ]]; then
+        pnpm test >/dev/null 2>&1 || verify_ok=0
+      fi
+      if [[ $verify_ok -eq 1 ]]; then
         c_ok "Node.js verification passed"
         rm -rf "$SNAP"
       else
         c_err "Node.js verification failed — reverting package.json changes"
+        c_warn "TIP: declare false positives in knip.json -> ignoreDependencies"
         restore_manifests "$SNAP" '*package.json'
         pnpm install --prefer-offline >/dev/null 2>&1 || true
         rm -rf "$SNAP"
@@ -158,8 +172,17 @@ if [[ $RUN_RUST -eq 1 ]]; then
     cargo machete --fix --with-metadata . || true
 
     if [[ $VERIFY -eq 1 ]]; then
-      c_section "Verifying Rust workspace (cargo check --tests --benches)"
-      if cargo check --workspace --all-features --tests --benches >/dev/null 2>&1; then
+      desc="cargo check --tests --benches"
+      [[ $WITH_TESTS -eq 1 ]] && desc="$desc + cargo test"
+      c_section "Verifying Rust workspace ($desc)"
+      verify_ok=1
+      cargo check --workspace --all-features --tests --benches >/dev/null 2>&1 \
+        || verify_ok=0
+      if [[ $verify_ok -eq 1 && $WITH_TESTS -eq 1 ]]; then
+        cargo test --workspace --all-features --no-fail-fast >/dev/null 2>&1 \
+          || verify_ok=0
+      fi
+      if [[ $verify_ok -eq 1 ]]; then
         c_ok "Rust verification passed"
         rm -rf "$SNAP"
       else

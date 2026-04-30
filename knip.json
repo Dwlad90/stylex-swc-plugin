@@ -17,16 +17,52 @@
       "ignoreDependencies": [
         "@stylexjs/eslint-plugin",
         "eslint-config-next",
-        "react-refresh"
+        "react-refresh",
+        "@swc/jest"
+      ]
+    },
+    "apps/example-storybook": {
+      "ignoreDependencies": [
+        "@stylexjs/eslint-plugin",
+        "eslint-config-next",
+        "react-refresh",
+        "@swc/jest",
+        "@storybook/addon-vitest",
+        "@typescript-eslint/eslint-plugin",
+        "@typescript-eslint/parser",
+        "@vitejs/plugin-react-swc",
+        "@vitest/browser",
+        "@vitest/browser-playwright",
+        "@vitest/coverage-v8",
+        "autoprefixer",
+        "eslint-plugin-import",
+        "postcss-nesting",
+        "prop-types",
+        "rollup-plugin-jsx-remove-attributes",
+        "rollup-plugin-node-externals",
+        "typescript-eslint",
+        "vite-plugin-dts"
       ]
     },
     "apps/farm-unplugin-example": {
       "playwright": false,
-      "ignoreDependencies": ["@stylexjs/eslint-plugin", "eslint-config-next", "react-refresh"]
+      "ignoreDependencies": [
+        "@stylexjs/eslint-plugin",
+        "eslint-config-next",
+        "react-refresh",
+        "@swc/jest",
+        "@farmfe/core",
+        "@farmfe/plugin-react"
+      ]
     },
     "apps/solid-unplugin-example": {
       "playwright": false,
-      "ignoreDependencies": ["@stylexjs/eslint-plugin", "eslint-config-next", "react-refresh"]
+      "ignoreDependencies": [
+        "@stylexjs/eslint-plugin",
+        "eslint-config-next",
+        "react-refresh",
+        "@swc/jest"
+      ]
     },
     "packages/*": {},
     "crates/*": {}

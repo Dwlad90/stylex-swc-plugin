@@ -8,8 +8,7 @@ StyleX is a JavaScript library developed by Meta for defining styles optimized
 for user interfaces. You can find the
 [official StyleX repository](https://www.github.com/facebook/stylex) here.
 
-> [!WARNING]
-> This is an unofficial style compiler for StyleX.
+> [!WARNING] This is an unofficial style compiler for StyleX.
 
 ## Overview
 
@@ -18,8 +17,7 @@ StyleX, a popular library from Meta for building optimized user interfaces. It
 is the top-level consumer crate that exposes the full StyleX pipeline to
 Node.js, leveraging SWC for parsing and transformation.
 
-> [!IMPORTANT]
-> The usage of StyleX does not change. All changes are internal.
+> [!IMPORTANT] The usage of StyleX does not change. All changes are internal.
 
 - Faster Build Times: By utilizing SWC instead of Babel, you can potentially
   experience significant speed improvements during StyleX processing.
@@ -77,6 +75,7 @@ graph TD
   subgraph L0["Primitives"]
     stylex_constants["constants"]
     stylex_regex["regex"]
+    stylex_styleq["styleq"]
     stylex_utils["utils"]
   end
 
@@ -120,6 +119,8 @@ graph TD
     stylex_compiler_rs["rs-compiler"]
   end
 
+  stylex_utils         --> stylex_regex
+
   stylex_macros        --> stylex_constants
 
   stylex_enums         --> stylex_macros
@@ -160,17 +161,20 @@ graph TD
   stylex_css           --> stylex_regex
   stylex_css           --> stylex_structures
   stylex_css           --> stylex_types
+  stylex_css           --> stylex_utils
 
   stylex_transform     --> stylex_ast
   stylex_transform     --> stylex_constants
   stylex_transform     --> stylex_css
   stylex_transform     --> stylex_css_parser
   stylex_transform     --> stylex_enums
+  stylex_transform     --> stylex_evaluator
   stylex_transform     --> stylex_logs
   stylex_transform     --> stylex_macros
   stylex_transform     --> stylex_path_resolver
   stylex_transform     --> stylex_regex
   stylex_transform     --> stylex_structures
+  stylex_transform     --> stylex_styleq
   stylex_transform     --> stylex_types
   stylex_transform     --> stylex_utils
 
@@ -195,7 +199,7 @@ graph TD
   classDef l8 fill:#fffdc0,stroke:#aaaa33,color:#333
   classDef l9 fill:#ffc0c0,stroke:#cc0000,color:#333
 
-  class stylex_constants,stylex_regex,stylex_utils l0
+  class stylex_constants,stylex_regex,stylex_styleq,stylex_utils l0
   class stylex_macros l1
   class stylex_enums,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
   class stylex_structures l3
@@ -238,8 +242,7 @@ const { code, metadata, sourcemap } = transform(
 
 ### Path Filtering
 
-> [!NOTE]
-> **New Feature:** The `include` and `exclude` options are exclusive to
+> [!NOTE] **New Feature:** The `include` and `exclude` options are exclusive to
 > this NAPI-RS compiler implementation and are not available in the official
 > StyleX Babel plugin. They provide powerful file filtering capabilities to
 > control which files are transformed.
@@ -332,8 +335,7 @@ shouldTransformFile(filePath, undefined, [/node_modules(?!\/@stylexjs)/]);
 
 ### SWC Plugin Support
 
-> [!NOTE]
-> **New Feature:** The compiler now supports running SWC WASM plugins
+> [!NOTE] **New Feature:** The compiler now supports running SWC WASM plugins
 > before StyleX transformation. This allows you to chain transformations and
 > integrate custom SWC plugins seamlessly.
 
@@ -477,8 +479,7 @@ const styleProps = {
 
 ## Compatibility
 
-> [!IMPORTANT]
-> The current resolution of the `exports` field from
+> [!IMPORTANT] The current resolution of the `exports` field from
 > `package. json` is only partially supported, so if you encounter problems,
 > please open an
 > [issue](https://github.com/Dwlad90/stylex-swc-plugin/issues/new) with an
@@ -556,8 +557,7 @@ const styles = {
 - ❌ **Use `false`** when StyleX runs **after** tree-shaking (e.g., webpack's
   `loaderOrder: 'last'`)
 
-> [!TIP]
-> This option is automatically enabled when using
+> [!TIP] This option is automatically enabled when using
 > `@stylexswc/webpack-plugin` with `loaderOrder: 'first'` (the default).
 
 ### `useRealFileForSource`
@@ -605,13 +605,11 @@ transform(filename, code, {
 - Performance optimization when error accuracy is less critical
 - Build pipelines where source files are not available
 
-> [!TIP]
-> Keep the default `true` value for most use cases. Only set it to
+> [!TIP] Keep the default `true` value for most use cases. Only set it to
 > `false` if you have specific requirements for in-memory transformations or
 > performance-critical scenarios where file I/O is a bottleneck.
 
-> [!WARNING]
-> When `useRealFileForSource` is set to `false`, error messages may
+> [!WARNING] When `useRealFileForSource` is set to `false`, error messages may
 > report **incorrect line numbers**. The compiler will use the transformed AST
 > representation instead of the original source code, which can lead to line
 > number mismatches. This happens because:

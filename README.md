@@ -1,23 +1,36 @@
 # StyleX in Rust &middot; [![GitHub license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE) [![npm version](https://img.shields.io/npm/v/@stylexswc/rs-compiler.svg?style=flat)](https://www.npmjs.com/package/@stylexswc/rs-compiler) ![GitHub tag check runs](https://img.shields.io/github/check-runs/Dwlad90/stylex-swc-plugin/0.15.5?label=Release%20status) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Dwlad90/stylex-swc-plugin/pr-validation.yml?branch=develop&label=Project%20Health)
 
-> **Community-driven, high-performance StyleX compiler and tooling ecosystem built with Rust**
+> **Community-driven, high-performance StyleX compiler and tooling ecosystem
+> built with Rust**
 
-> [!IMPORTANT]
-> This is a **community-written** implementation of StyleX tooling. Built with love by the open source community, it aims to provide a high-performance alternative to the official StyleX tooling while not being affiliated with or officially supported by Meta/Facebook.
+> [!IMPORTANT] This is a **community-written** implementation of StyleX tooling.
+> Built with love by the open source community, it aims to provide a
+> high-performance alternative to the official StyleX tooling while not being
+> affiliated with or officially supported by Meta/Facebook.
 
-A comprehensive monorepo providing a community-built [`napi-rs`](https://napi.rs/) compiler, [SWC](https://swc.rs/) plugin, and complete CSS parser for [StyleX](https://github.com/facebook/stylex). Built from the ground up in Rust for maximum performance and developer experience.
+A comprehensive monorepo providing a community-built
+[`napi-rs`](https://napi.rs/) compiler, [SWC](https://swc.rs/) plugin, and
+complete CSS parser for [StyleX](https://github.com/facebook/stylex). Built from
+the ground up in Rust for maximum performance and developer experience.
 
 ## 🚀 Why StyleX + Rust?
 
-- **⚡ Blazing Fast**: Significantly faster build times by leveraging NAPI-RS/SWC instead of Babel
-- **🔧 Performance-First Alternative**: Built from the ground up in Rust for maximum speed and efficiency
-- **🧩 Modular Architecture**: 17 atomic Rust crates with strict dependency layering for maximum parallel compilation and surgical rebuilds
-- **📦 Complete Ecosystem**: Community-built toolkit covering compilation to CSS parsing
-- **🌐 Universal Integration**: Works seamlessly with Next.js, Webpack, Vite, Rollup, and more
+- **⚡ Blazing Fast**: Significantly faster build times by leveraging
+  NAPI-RS/SWC instead of Babel
+- **🔧 Performance-First Alternative**: Built from the ground up in Rust for
+  maximum speed and efficiency
+- **🧩 Modular Architecture**: 17 atomic Rust crates with strict dependency
+  layering for maximum parallel compilation and surgical rebuilds
+- **📦 Complete Ecosystem**: Community-built toolkit covering compilation to CSS
+  parsing
+- **🌐 Universal Integration**: Works seamlessly with Next.js, Webpack, Vite,
+  Rollup, and more
 - **🛡️ Type Safe**: Full Rust implementation with comprehensive error handling
-- **🤝 Community Driven**: Open source with active community contributions and support
+- **🤝 Community Driven**: Open source with active community contributions and
+  support
 
-Perfect for developers who want blazing-fast StyleX compilation and are excited about Rust-powered tooling!
+Perfect for developers who want blazing-fast StyleX compilation and are excited
+about Rust-powered tooling!
 
 ## 📦 Quick Start
 
@@ -59,62 +72,79 @@ export default stylexPlugin({
 
 ## 📁 Project Architecture
 
-This monorepo is organized into a layered, strictly-scoped crate
-graph designed for maximum parallel compilation and clear domain
-boundaries. Each Rust crate owns exactly one concern — no re-export
-facades, no mixed-domain files.
+This monorepo is organized into a layered, strictly-scoped crate graph designed
+for maximum parallel compilation and clear domain boundaries. Each Rust crate
+owns exactly one concern — no re-export facades, no mixed-domain files.
 
 ### 🔥 Core Engines
 
-The compiler pipeline is built from 17 atomic Rust crates arranged in
-a strict dependency DAG. Higher layers depend only on lower layers —
-never the reverse.
+The compiler pipeline is built from 18 atomic Rust crates arranged in a strict
+dependency DAG. Higher layers depend only on lower layers — never the reverse.
 
 #### Layer 0 — Primitives (no internal dependencies)
 
-- **[`stylex-constants`](./crates/stylex-constants)** — Static lookup tables, keyword sets, and compile-time constants
-- **[`stylex-regex`](./crates/stylex-regex)** — Pre-compiled `lazy_static!` regex patterns for CSS value matching
+- **[`stylex-constants`](./crates/stylex-constants)** — Static lookup tables,
+  keyword sets, and compile-time constants
+- **[`stylex-regex`](./crates/stylex-regex)** — Pre-compiled `lazy_static!`
+  regex patterns for CSS value matching
+- **[`stylex-styleq`](./crates/stylex-styleq)** — Rust port of the runtime
+  [`styleq`](https://github.com/necolas/styleq) class-name merger
 - **[`stylex-utils`](./crates/stylex-utils)** — Lightweight SWC AST helpers
 
 #### Layer 1 — Macros
 
-- **[`stylex-macros`](./crates/stylex-macros)** — Error-handling and diagnostic macros (`stylex_panic!`, `stylex_bail!`, `stylex_unwrap!`, etc.)
+- **[`stylex-macros`](./crates/stylex-macros)** — Error-handling and diagnostic
+  macros (`stylex_panic!`, `stylex_bail!`, `stylex_unwrap!`, etc.)
 
 #### Layer 2 — Domain Leaves
 
-- **[`stylex-enums`](./crates/stylex-enums)** — 14 enum modules: `CSSSyntax`, `ValueWithDefault`, `ImportPathResolution`, `StyleVarsToKeep`, and more
-- **[`stylex-js`](./crates/stylex-js)** — JS runtime guard helpers (`is_valid_callee`, `is_mutation_expr`, `is_invalid_method`)
-- **[`stylex-logs`](./crates/stylex-logs)** — Structured logging with ANSI-colored `[StyleX]`-branded output for the NAPI-RS pipeline
-- **[`stylex-css-parser`](./crates/stylex-css-parser)** — High-performance CSS value parser with comprehensive type, property, and at-rule coverage
-- **[`stylex-path-resolver`](./crates/stylex-path-resolver)** — Import path resolution with partial `package.json` exports support
+- **[`stylex-enums`](./crates/stylex-enums)** — 14 enum modules: `CSSSyntax`,
+  `ValueWithDefault`, `ImportPathResolution`, `StyleVarsToKeep`, and more
+- **[`stylex-js`](./crates/stylex-js)** — JS runtime guard helpers
+  (`is_valid_callee`, `is_mutation_expr`, `is_invalid_method`)
+- **[`stylex-logs`](./crates/stylex-logs)** — Structured logging with
+  ANSI-colored `[StyleX]`-branded output for the NAPI-RS pipeline
+- **[`stylex-css-parser`](./crates/stylex-css-parser)** — High-performance CSS
+  value parser with comprehensive type, property, and at-rule coverage
+- **[`stylex-path-resolver`](./crates/stylex-path-resolver)** — Import path
+  resolution with partial `package.json` exports support
 
 #### Layer 3 — Core Data Structures
 
-- **[`stylex-structures`](./crates/stylex-structures)** — 15 foundational struct modules: `StylexOptions`, `UidGenerator`, `PluginPass`, `NamedImportSource`, `Order`, and more
+- **[`stylex-structures`](./crates/stylex-structures)** — 15 foundational struct
+  modules: `StylexOptions`, `UidGenerator`, `PluginPass`, `NamedImportSource`,
+  `Order`, and more
 
 #### Layer 4 — Type System
 
-- **[`stylex-types`](./crates/stylex-types)** — Cross-coupled core types (`InjectableStyle*`, `MetaData`) and the `StyleOptions` trait
+- **[`stylex-types`](./crates/stylex-types)** — Cross-coupled core types
+  (`InjectableStyle*`, `MetaData`) and the `StyleOptions` trait
 
 #### Layer 5 — AST Foundations
 
-- **[`stylex-ast`](./crates/stylex-ast)** — SWC AST factory and convertor functions (semantically named `create_*`, `convert_*`)
+- **[`stylex-ast`](./crates/stylex-ast)** — SWC AST factory and convertor
+  functions (semantically named `create_*`, `convert_*`)
 
 #### Layer 6 — Evaluation
 
-- **[`stylex-evaluator`](./crates/stylex-evaluator)** — Pure JS expression evaluator; no transform side effects
+- **[`stylex-evaluator`](./crates/stylex-evaluator)** — Pure JS expression
+  evaluator; no transform side effects
 
 #### Layer 7 — CSS Processing
 
-- **[`stylex-css`](./crates/stylex-css)** — Unified CSS processing: generation (LTR/RTL), whitespace normalization, value parsing, property ordering strategies, and pseudo-class selector utilities
+- **[`stylex-css`](./crates/stylex-css)** — Unified CSS processing: generation
+  (LTR/RTL), whitespace normalization, value parsing, property ordering
+  strategies, and pseudo-class selector utilities
 
 #### Layer 8 — StyleX Transform
 
-- **[`stylex-transform`](./crates/stylex-transform)** — Main SWC transform: `StyleXTransform`, `StateManager`, SWC `Fold` visitor, and all injection logic
+- **[`stylex-transform`](./crates/stylex-transform)** — Main SWC transform:
+  `StyleXTransform`, `StateManager`, SWC `Fold` visitor, and all injection logic
 
 #### Layer 9 — Compilers (top-level consumers)
 
-- **[`stylex-rs-compiler`](./crates/stylex-rs-compiler)** — NAPI-RS compiler exposing the full pipeline to Node.js
+- **[`stylex-rs-compiler`](./crates/stylex-rs-compiler)** — NAPI-RS compiler
+  exposing the full pipeline to Node.js
 
 <details>
 <summary><h2>Dependency Graph</h2></summary>
@@ -124,6 +154,7 @@ graph TD
   subgraph L0["Primitives"]
     stylex_constants["constants"]
     stylex_regex["regex"]
+    stylex_styleq["styleq"]
     stylex_utils["utils"]
   end
 
@@ -167,6 +198,8 @@ graph TD
     stylex_compiler_rs["rs-compiler"]
   end
 
+  stylex_utils         --> stylex_regex
+
   stylex_macros        --> stylex_constants
 
   stylex_enums         --> stylex_macros
@@ -207,17 +240,20 @@ graph TD
   stylex_css           --> stylex_regex
   stylex_css           --> stylex_structures
   stylex_css           --> stylex_types
+  stylex_css           --> stylex_utils
 
   stylex_transform     --> stylex_ast
   stylex_transform     --> stylex_constants
   stylex_transform     --> stylex_css
   stylex_transform     --> stylex_css_parser
   stylex_transform     --> stylex_enums
+  stylex_transform     --> stylex_evaluator
   stylex_transform     --> stylex_logs
   stylex_transform     --> stylex_macros
   stylex_transform     --> stylex_path_resolver
   stylex_transform     --> stylex_regex
   stylex_transform     --> stylex_structures
+  stylex_transform     --> stylex_styleq
   stylex_transform     --> stylex_types
   stylex_transform     --> stylex_utils
 
@@ -242,7 +278,7 @@ graph TD
   classDef l8 fill:#fffdc0,stroke:#aaaa33,color:#333
   classDef l9 fill:#ffc0c0,stroke:#cc0000,color:#333
 
-  class stylex_constants,stylex_regex,stylex_utils l0
+  class stylex_constants,stylex_regex,stylex_styleq,stylex_utils l0
   class stylex_macros l1
   class stylex_enums,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
   class stylex_structures l3
@@ -258,36 +294,43 @@ graph TD
 
 ### 🔌 Framework Integrations
 
-- **[`nextjs-plugin`](./packages/nextjs-plugin)** — Next.js configuration wrapper with seamless SWC integration
-- **[`turbopack-plugin`](./packages/turbopack-plugin)** — Turbopack loader for Next.js with high-performance StyleX compilation
-- **[`unplugin`](./packages/unplugin)** — Universal plugin supporting Vite, Webpack, Rollup, Rspack, and 8+ build tools
+- **[`nextjs-plugin`](./packages/nextjs-plugin)** — Next.js configuration
+  wrapper with seamless SWC integration
+- **[`turbopack-plugin`](./packages/turbopack-plugin)** — Turbopack loader for
+  Next.js with high-performance StyleX compilation
+- **[`unplugin`](./packages/unplugin)** — Universal plugin supporting Vite,
+  Webpack, Rollup, Rspack, and 8+ build tools
 - **[`jest`](./packages/jest)** — Jest transformer for StyleX testing workflows
-- **[`postcss-plugin`](./packages/postcss-plugin)** — PostCSS integration for existing CSS pipelines
+- **[`postcss-plugin`](./packages/postcss-plugin)** — PostCSS integration for
+  existing CSS pipelines
 
 ### ⚙️ Developer Tools
 
-- **[`test-parser`](./crates/stylex-test-parser)** — Jest test parser for maintaining compatibility with official StyleX
-- **[`design-system`](./packages/design-system)** — Internal design system for consistent workspace examples
+- **[`test-parser`](./crates/stylex-test-parser)** — Jest test parser for
+  maintaining compatibility with official StyleX
+- **[`design-system`](./packages/design-system)** — Internal design system for
+  consistent workspace examples
 
 ### 🏗️ Development Infrastructure
 
 - **[`eslint-config`](./packages/eslint-config)** — Shared ESLint configuration
-- **[`typescript-config`](./packages/typescript-config)** — TypeScript configuration presets
+- **[`typescript-config`](./packages/typescript-config)** — TypeScript
+  configuration presets
 - **[`playwright`](./packages/playwright)** — Visual regression testing setup
 
 ## 🎯 Build Tool Ecosystem
 
-| Tool | Package | Experience |
-|------|---------|------------|
-| Next.js (Webpack) | `@stylexswc/nextjs-plugin` | 🚀 Native SWC Integration |
-| Next.js (Turbopack) | `@stylexswc/nextjs-plugin/turbopack` | ⚡ Ultra-Fast Builds |
-| Vite | `@stylexswc/unplugin` | ⚡ Lightning Fast HMR |
-| Webpack | `@stylexswc/unplugin` | 🔧 Seamless Integration |
-| Rollup | `@stylexswc/unplugin` | 📦 Optimized Bundling |
-| Jest | `@stylexswc/jest` | 🧪 Reliable Testing |
-| PostCSS | `@stylexswc/postcss-plugin` | 🎨 CSS Pipeline Ready |
-| Rspack | `@stylexswc/unplugin` | 🚀 Rust-Powered Speed |
-| Farm, Rsbuild, Solid | `@stylexswc/unplugin` | 🌟 Modern Build Experience |
+| Tool                 | Package                              | Experience                 |
+| -------------------- | ------------------------------------ | -------------------------- |
+| Next.js (Webpack)    | `@stylexswc/nextjs-plugin`           | 🚀 Native SWC Integration  |
+| Next.js (Turbopack)  | `@stylexswc/nextjs-plugin/turbopack` | ⚡ Ultra-Fast Builds       |
+| Vite                 | `@stylexswc/unplugin`                | ⚡ Lightning Fast HMR      |
+| Webpack              | `@stylexswc/unplugin`                | 🔧 Seamless Integration    |
+| Rollup               | `@stylexswc/unplugin`                | 📦 Optimized Bundling      |
+| Jest                 | `@stylexswc/jest`                    | 🧪 Reliable Testing        |
+| PostCSS              | `@stylexswc/postcss-plugin`          | 🎨 CSS Pipeline Ready      |
+| Rspack               | `@stylexswc/unplugin`                | 🚀 Rust-Powered Speed      |
+| Farm, Rsbuild, Solid | `@stylexswc/unplugin`                | 🌟 Modern Build Experience |
 
 ## 🔧 Development
 
@@ -422,10 +465,9 @@ Each package has individual commands available in the format
 
 - **Node.js packages**: unplugin, nextjs, webpack, rollup, postcss, jest,
   design, playwright, eslint, typescript
-- **Rust crates**: compiler, transform, resolver, parser, and all atomic
-  crates (constants, regex, utils, macros, enums, js, logs,
-  css-parser, structures, types, ast, evaluator,
-  css, etc.)
+- **Rust crates**: compiler, transform, resolver, parser, and all atomic crates
+  (constants, regex, utils, macros, enums, js, logs, css-parser, structures,
+  types, ast, evaluator, css, etc.)
 - **Available actions**: build, lint, test, typecheck, clean (for Node.js) /
   build, format, lint, clean, docs (for Rust)
 
@@ -472,7 +514,8 @@ pnpm typecheck
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our contributing guidelines and submit pull requests to the `develop` branch.
+Contributions are welcome! Please read our contributing guidelines and submit
+pull requests to the `develop` branch.
 
 ## 📄 License
 

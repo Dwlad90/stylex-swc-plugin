@@ -71,6 +71,7 @@ graph TD
   subgraph L0["Primitives"]
     stylex_constants["constants"]
     stylex_regex["regex"]
+    stylex_styleq["styleq"]
     stylex_utils["utils"]
   end
 
@@ -114,6 +115,8 @@ graph TD
     stylex_compiler_rs["rs-compiler"]
   end
 
+  stylex_utils         --> stylex_regex
+
   stylex_macros        --> stylex_constants
 
   stylex_enums         --> stylex_macros
@@ -154,17 +157,20 @@ graph TD
   stylex_css           --> stylex_regex
   stylex_css           --> stylex_structures
   stylex_css           --> stylex_types
+  stylex_css           --> stylex_utils
 
   stylex_transform     --> stylex_ast
   stylex_transform     --> stylex_constants
   stylex_transform     --> stylex_css
   stylex_transform     --> stylex_css_parser
   stylex_transform     --> stylex_enums
+  stylex_transform     --> stylex_evaluator
   stylex_transform     --> stylex_logs
   stylex_transform     --> stylex_macros
   stylex_transform     --> stylex_path_resolver
   stylex_transform     --> stylex_regex
   stylex_transform     --> stylex_structures
+  stylex_transform     --> stylex_styleq
   stylex_transform     --> stylex_types
   stylex_transform     --> stylex_utils
 
@@ -189,7 +195,7 @@ graph TD
   classDef l8 fill:#fffdc0,stroke:#aaaa33,color:#333
   classDef l9 fill:#ffc0c0,stroke:#cc0000,color:#333
 
-  class stylex_constants,stylex_regex,stylex_utils l0
+  class stylex_constants,stylex_regex,stylex_styleq,stylex_utils l0
   class stylex_macros l1
   class stylex_enums,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
   class stylex_structures l3

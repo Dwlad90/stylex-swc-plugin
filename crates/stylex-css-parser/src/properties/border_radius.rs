@@ -36,7 +36,7 @@ impl BorderRadiusIndividual {
     // Use the WORKING pattern from BorderRadiusShorthand
     let first_value = length_percentage_parser();
     let second_value_optional = whitespace
-      .clone()
+      
       .flat_map(|_| length_percentage_parser(), Some("second_value"))
       .optional();
 
@@ -100,21 +100,21 @@ impl BorderRadiusShorthand {
   ) -> Self {
     // CSS shorthand expansion logic
     let h_top_right = horizontal_top_right
-      .clone()
+      
       .unwrap_or(horizontal_top_left.clone());
     let h_bottom_right = horizontal_bottom_right
-      .clone()
+      
       .unwrap_or(horizontal_top_left.clone());
     let h_bottom_left = horizontal_bottom_left
-      .clone()
+      
       .unwrap_or(h_top_right.clone());
 
     let v_top_left = vertical_top_left
-      .clone()
+      
       .unwrap_or(horizontal_top_left.clone());
-    let v_top_right = vertical_top_right.clone().unwrap_or(v_top_left.clone());
-    let v_bottom_right = vertical_bottom_right.clone().unwrap_or(v_top_left.clone());
-    let v_bottom_left = vertical_bottom_left.clone().unwrap_or(v_top_right.clone());
+    let v_top_right = vertical_top_right.unwrap_or(v_top_left.clone());
+    let v_bottom_right = vertical_bottom_right.unwrap_or(v_top_left.clone());
+    let v_bottom_left = vertical_bottom_left.unwrap_or(v_top_right.clone());
 
     Self {
       horizontal_top_left,
@@ -139,13 +139,13 @@ impl BorderRadiusShorthand {
       let first_value = length_percentage_parser();
       let remaining_values = TokenParser::<LengthPercentage>::zero_or_more(
         whitespace
-          .clone()
+          
           .flat_map(|_| length_percentage_parser(), Some("next_value")),
       );
 
       first_value.flat_map(
         move |first| {
-          let first_clone = first.clone();
+          let first_clone = first;
           remaining_values.clone().map(
             move |rest| {
               let mut all_values = vec![first_clone.clone()];
@@ -202,8 +202,8 @@ impl BorderRadiusShorthand {
     // Parse optional " / vertical-radii" part
     let slash_vertical = {
       let whitespace_before_slash = whitespace.clone().optional();
-      let whitespace_after_slash = whitespace.clone().optional();
-      let slash_clone = slash.clone();
+      let whitespace_after_slash = whitespace.optional();
+      let slash_clone = slash;
       let radii_clone = space_separated_radii.clone();
 
       whitespace_before_slash
@@ -217,9 +217,9 @@ impl BorderRadiusShorthand {
     };
 
     // Main parser: horizontal-radii [/ vertical-radii]?
-    space_separated_radii.clone().flat_map(
+    space_separated_radii.flat_map(
       move |horizontal_radii| {
-        let h_radii = horizontal_radii.clone();
+        let h_radii = horizontal_radii;
         slash_vertical.clone().map(
           move |vertical_opt| {
             let [h_tl, h_tr, h_br, h_bl] = h_radii.clone();
@@ -273,7 +273,7 @@ impl BorderRadiusShorthand {
       && h_bottom_right == h_bottom_left
     {
       // All four are the same
-      h_top_left.clone()
+      h_top_left
     } else if h_top_left == h_bottom_right && h_top_right == h_bottom_left {
       // TopLeft === BottomRight && TopRight === BottomLeft
       format!("{} {}", h_top_left, h_top_right)
@@ -299,7 +299,7 @@ impl BorderRadiusShorthand {
       && v_bottom_right == v_bottom_left
     {
       // All four are the same
-      v_top_left.clone()
+      v_top_left
     } else if v_top_left == v_bottom_right && v_top_right == v_bottom_left {
       // TopLeft === BottomRight && TopRight === BottomLeft
       format!("{} {}", v_top_left, v_top_right)

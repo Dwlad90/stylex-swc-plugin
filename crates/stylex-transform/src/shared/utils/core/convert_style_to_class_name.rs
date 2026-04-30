@@ -68,7 +68,7 @@ pub(crate) fn convert_style_to_class_name(
   };
 
   let value = match value {
-    PreRuleValue::String(value) => vec![value.to_string()],
+    PreRuleValue::String(value) => vec![value],
     PreRuleValue::Vec(values) => {
       if values
         .iter()

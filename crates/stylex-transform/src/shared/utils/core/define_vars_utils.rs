@@ -88,7 +88,7 @@ pub(crate) fn collect_vars_by_at_rules(
       Rc::new(FlatCompiledStylesValue::CSSType(
         hash_name.clone(),
         css_type.syntax,
-        initial_value.clone(),
+        initial_value,
       )),
     );
   }

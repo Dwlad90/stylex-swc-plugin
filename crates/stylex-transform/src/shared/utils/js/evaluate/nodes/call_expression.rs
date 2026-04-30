@@ -48,7 +48,7 @@ pub(in super::super) fn evaluate(
 
         if state.confident {
           match _maybe_function {
-            Some(EvaluateResultValue::FunctionConfig(fc)) => func = Some(Box::new(fc.clone())),
+            Some(EvaluateResultValue::FunctionConfig(fc)) => func = Some(Box::new(fc)),
             Some(EvaluateResultValue::Callback(cb)) => {
               return Some(EvaluateResultValue::Callback(cb));
             },
@@ -658,7 +658,7 @@ pub(in super::super) fn evaluate(
                   takes_path: false,
                 }));
 
-                context = Some(expr.clone())
+                context = Some(expr)
               },
               EvaluateResultValue::Expr(expr) => match expr {
                 Expr::Array(ArrayLit { elems, .. }) => {
@@ -1216,10 +1216,10 @@ pub(in super::super) fn evaluate(
 
               let result = match func.as_ref() {
                     CallbackType::Math(MathJS::Min) => {
-                      num_args.iter().cloned().min_by(sort_numbers_factory())
+                      num_args.iter().copied().min_by(sort_numbers_factory())
                     }
                     CallbackType::Math(MathJS::Max) => {
-                      num_args.iter().cloned().max_by(sort_numbers_factory())
+                      num_args.iter().copied().max_by(sort_numbers_factory())
                     }
                     #[cfg_attr(coverage_nightly, coverage(off))]
                     _ => stylex_unreachable!("Invalid function type"),

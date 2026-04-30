@@ -42,7 +42,7 @@ pub(crate) fn transform_value(key: &str, value: &str, state: &StateManager) -> S
     let has_matching_quotes = double_quote_count >= 2 || single_quote_count >= 2;
 
     if is_css_function || is_keyword || has_matching_quotes {
-      return value.to_string();
+      return value;
     }
 
     return format!("\"{}\"", value);

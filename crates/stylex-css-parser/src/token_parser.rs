@@ -389,7 +389,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
   {
     self.flat_map(
       move |output| {
-        let output_clone = output.clone();
+        let output_clone = output;
         skip_parser.map(move |_| output_clone.clone(), None)
       },
       Some("skip"),
@@ -417,7 +417,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
   {
     self.flat_map(
       move |output| {
-        let output_clone = output.clone();
+        let output_clone = output;
         suffix_parser.map(move |_| output_clone.clone(), None)
       },
       Some("suffix"),

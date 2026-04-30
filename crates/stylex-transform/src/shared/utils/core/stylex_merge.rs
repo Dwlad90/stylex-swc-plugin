@@ -331,7 +331,7 @@ pub(crate) fn stylex_merge(
                 });
 
                 attr_value.map(|attr_value| {
-                  create_jsx_attr_or_spread(create_jsx_attr(attr_name.as_str(), attr_value.clone()))
+                  create_jsx_attr_or_spread(create_jsx_attr(attr_name.as_str(), attr_value))
                 })
               } else {
                 None

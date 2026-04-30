@@ -76,7 +76,7 @@ pub(in super::super) fn evaluate(
               None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
             };
 
-            let ident = match eval_res {
+            let mut ident = match eval_res {
               EvaluateResultValue::Expr(ident) => ident,
               EvaluateResultValue::ThemeRef(theme) => {
                 // NOTE: it's a very edge case, but it's possible to have a theme ref as a key
@@ -109,7 +109,7 @@ pub(in super::super) fn evaluate(
               },
             };
 
-            let ident = &mut ident.to_owned();
+            let ident = &mut ident;
             let normalized_ident = normalize_expr(ident);
 
             let ident_string_name = match normalized_ident {
@@ -199,7 +199,7 @@ pub(in super::super) fn evaluate(
           let key = match property {
             Some(property) => match property {
               EvaluateResultValue::Expr(expr) => match expr {
-                Expr::Ident(ident) => Box::new(ident.clone()),
+                Expr::Ident(ident) => Box::new(ident),
                 _ => stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED),
               },
               _ => stylex_panic_with_context!(

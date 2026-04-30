@@ -156,7 +156,7 @@ where
     let args = sx_value_to_props_args(sx_value);
 
     // Replace the sx prop with: ...stylex.props(...args)
-    let mut new_props = obj_lit.props.clone();
+    let mut new_props = obj_lit.props;
     let call_expr = Expr::Call(build_stylex_props_call(
       stylex_ident_name,
       props_ident_name,

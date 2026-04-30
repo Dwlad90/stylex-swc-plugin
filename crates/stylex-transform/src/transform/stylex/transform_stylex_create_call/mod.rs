@@ -336,7 +336,7 @@ where
           self
             .state
             .style_vars
-            .insert(var_name.clone(), drop_span(parent_var_decl.clone()));
+            .insert(var_name.clone(), drop_span(parent_var_decl));
         } else {
           let call_expr = Expr::Call(call.clone());
 

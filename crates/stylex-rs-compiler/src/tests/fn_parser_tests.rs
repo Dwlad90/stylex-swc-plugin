@@ -195,7 +195,7 @@ fn prop_name_to_string_supports_negative_num() {
 #[test]
 fn prop_name_to_string_supports_empty_ident() {
   let ident = PropName::Ident(IdentName::new("".into(), DUMMY_SP));
-  assert_eq!(prop_name_to_string(&ident), Some("".to_string()));
+  assert_eq!(prop_name_to_string(&ident), Some(String::new()));
 }
 
 #[test]
@@ -205,7 +205,7 @@ fn prop_name_to_string_supports_empty_str() {
     value: "".into(),
     raw: None,
   });
-  assert_eq!(prop_name_to_string(&str_key), Some("".to_string()));
+  assert_eq!(prop_name_to_string(&str_key), Some(String::new()));
 }
 
 #[test]

@@ -3118,6 +3118,7 @@ dependencies = [
  "criterion",
  "indexmap",
  "log",
+ "rustc-hash",
  "serial_test",
 ]
 
@@ -3217,6 +3218,7 @@ version = "0.15.5"
 dependencies = [
  "base62",
  "ctor",
+ "indexmap",
  "murmur2",
  "pretty_env_logger",
  "radix_fmt",

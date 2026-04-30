@@ -269,7 +269,7 @@ where
                     if !conditional_props.is_empty(){
                       conditional_props.push(create_key_value_prop(
                         COMPILED_KEY,
-                        *css_tag_value.clone(),
+                        *css_tag_value,
                       ));
 
                       conditional_obj = Some(create_object_expression(conditional_props.clone()));

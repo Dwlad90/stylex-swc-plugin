@@ -25,7 +25,7 @@ pub fn sort_pseudos(pseudos: &[String]) -> Vec<String> {
     .into_iter()
     .flat_map(|pseudo| {
       if pseudo.len() > 1 {
-        let mut sorted_pseudo = pseudo.clone();
+        let mut sorted_pseudo = pseudo;
         sorted_pseudo.sort();
         sorted_pseudo
       } else {

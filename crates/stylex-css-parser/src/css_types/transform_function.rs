@@ -422,7 +422,7 @@ impl RotateXYZ {
     axis_parser
       .flat_map(
         move |axis| {
-          let axis_clone = axis.clone();
+          let axis_clone = axis;
           Angle::parser().map(move |angle| (axis_clone.clone(), angle), Some("with_angle"))
         },
         Some("angle"),
@@ -763,7 +763,7 @@ impl ScaleAxis {
     axis_parser
       .flat_map(
         move |axis| {
-          let axis_clone = axis.clone();
+          let axis_clone = axis;
           number_or_percentage_parser().map(move |s| (axis_clone.clone(), s), Some("with_scale"))
         },
         Some("scale"),
@@ -796,7 +796,7 @@ impl Skew {
       .flat_map(move |_| Angle::parser(), Some("ax"))
       .flat_map(
         move |ax| {
-          let ax_clone = ax.clone();
+          let ax_clone = ax;
           second_angle
             .clone()
             .map(move |ay_opt| (ax_clone.clone(), ay_opt), Some("ay"))
@@ -830,7 +830,7 @@ impl SkewAxis {
     axis_parser
       .flat_map(
         move |axis| {
-          let axis_clone = axis.clone();
+          let axis_clone = axis;
           Angle::parser().map(move |a| (axis_clone.clone(), a), Some("with_angle"))
         },
         Some("angle"),
@@ -941,15 +941,15 @@ impl Translate3d {
       .flat_map(|_| length_percentage_parser(), Some("tx"))
       .flat_map(
         |tx| {
-          let tx_clone = tx.clone();
+          let tx_clone = tx;
           length_percentage_parser().map(move |ty| (tx_clone.clone(), ty), Some("ty"))
         },
         Some("with_ty"),
       )
       .flat_map(
         |(tx, ty)| {
-          let tx_clone = tx.clone();
-          let ty_clone = ty.clone();
+          let tx_clone = tx;
+          let ty_clone = ty;
           Length::parser().map(
             move |tz| (tx_clone.clone(), ty_clone.clone(), tz),
             Some("tz"),
@@ -985,7 +985,7 @@ impl TranslateAxis {
     axis_parser
       .flat_map(
         move |axis| {
-          let axis_clone = axis.clone();
+          let axis_clone = axis;
           length_percentage_parser().map(move |t| (axis_clone.clone(), t), Some("with_translate"))
         },
         Some("translate"),

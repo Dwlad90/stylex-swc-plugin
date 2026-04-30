@@ -106,7 +106,7 @@ fn convert_simple_tpl_to_str_expr_converts() {
 #[test]
 fn convert_simple_tpl_to_str_expr_passthrough_non_tpl() {
   let expr = create_number_expr(5.0);
-  let result = convert_simple_tpl_to_str_expr(expr.clone());
+  let result = convert_simple_tpl_to_str_expr(expr);
   assert!(matches!(result, Expr::Lit(Lit::Num(_))));
 }
 

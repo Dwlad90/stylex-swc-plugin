@@ -877,7 +877,7 @@ fn media_rule_value_parser() -> TokenParser<MediaRuleValue> {
         if let SimpleToken::Ident(value) = token {
           MediaRuleValue::String(value)
         } else {
-          MediaRuleValue::String("".to_string())
+          MediaRuleValue::String(String::new())
         }
       },
       Some("ident_to_string"),

@@ -208,7 +208,6 @@ impl AdvancedColorParsers {
         |h| {
           tokens::comma().flat_map(
             {
-              let h = h.clone();
               move |_| {
                 Percentage::parser().map(
                   {
@@ -228,8 +227,6 @@ impl AdvancedColorParsers {
         |(h, s)| {
           tokens::comma().flat_map(
             {
-              let h = h.clone();
-              let s = s.clone();
               move |_| {
                 Percentage::parser().map(
                   {
@@ -264,7 +261,6 @@ impl AdvancedColorParsers {
         |h| {
           tokens::comma().flat_map(
             {
-              let h = h.clone();
               move |_| {
                 Percentage::parser().map(
                   {
@@ -284,8 +280,6 @@ impl AdvancedColorParsers {
         |(h, s)| {
           tokens::comma().flat_map(
             {
-              let h = h.clone();
-              let s = s.clone();
               move |_| {
                 Percentage::parser().map(
                   {
@@ -306,9 +300,6 @@ impl AdvancedColorParsers {
         |(h, s, l)| {
           tokens::comma().flat_map(
             {
-              let h = h.clone();
-              let s = s.clone();
-              let l = l.clone();
               move |_| {
                 alpha_as_number().map(
                   {

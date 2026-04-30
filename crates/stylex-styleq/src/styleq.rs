@@ -1,21 +1,24 @@
 use std::{
-  collections::hash_map::DefaultHasher,
   hash::{Hash, Hasher},
-  sync::{Mutex, MutexGuard, PoisonError},
+  sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
-use indexmap::IndexMap;
 use log::error;
+use rustc_hash::{FxHashMap, FxHasher};
 
 use crate::{
   COMPILED_KEY, StyleMap, StyleqArgument, StyleqInput, StyleqOptions, StyleqResult, StyleqValue,
 };
 
-#[derive(Clone)]
+// JS-parity: styleq/src/styleq.js — `compiledStyleCache` (a Map keyed by
+// either the source array reference or a structural hash). Order is never
+// observed downstream, so an unordered FxHashMap is appropriate. The entry
+// itself is wrapped in `Arc` so cache hits are a refcount bump rather than
+// a deep clone of three owned strings + a `Vec<Arc<str>>`.
 struct CacheEntry {
-  class_name: String,
-  defined_properties: Vec<String>,
-  debug_string: String,
+  class_name: Arc<str>,
+  defined_properties: Arc<[Arc<str>]>,
+  debug_string: Arc<str>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -26,13 +29,13 @@ enum CacheKey {
 
 pub struct Styleq<V: StyleqValue> {
   options: StyleqOptions<V>,
-  cache: Mutex<IndexMap<CacheKey, CacheEntry>>,
+  cache: RwLock<FxHashMap<CacheKey, Arc<CacheEntry>>>,
 }
 
 pub fn create_styleq<V: StyleqValue>(options: StyleqOptions<V>) -> Styleq<V> {
   Styleq {
     options,
-    cache: Mutex::new(IndexMap::new()),
+    cache: RwLock::new(FxHashMap::default()),
   }
 }
 
@@ -128,11 +131,12 @@ impl<V: StyleqValue> Styleq<V> {
     };
 
     if use_cache && let Some(cache_entry) = self.get_cache_entry(&cache_key) {
-      class_name_chunk = cache_entry.class_name;
-      *debug_string = cache_entry.debug_string;
-      defined_properties.extend(cache_entry.defined_properties);
+      class_name_chunk.push_str(&cache_entry.class_name);
+      debug_string.clear();
+      debug_string.push_str(&cache_entry.debug_string);
+      defined_properties.extend(cache_entry.defined_properties.iter().map(|s| s.to_string()));
     } else {
-      let mut defined_properties_chunk = Vec::new();
+      let mut defined_properties_chunk: Vec<Arc<str>> = Vec::new();
 
       for (prop, value) in style {
         if prop == COMPILED_KEY {
@@ -160,7 +164,7 @@ impl<V: StyleqValue> Styleq<V> {
             defined_properties.push(prop.clone());
 
             if use_cache {
-              defined_properties_chunk.push(prop.clone());
+              defined_properties_chunk.push(Arc::from(prop.as_str()));
             }
 
             if let Some(value) = value.as_class_name() {
@@ -183,9 +187,9 @@ impl<V: StyleqValue> Styleq<V> {
         self.insert_cache_entry(
           cache_key,
           CacheEntry {
-            class_name: class_name_chunk.clone(),
-            defined_properties: defined_properties_chunk,
-            debug_string: debug_string.clone(),
+            class_name: Arc::from(class_name_chunk.as_str()),
+            defined_properties: Arc::from(defined_properties_chunk.into_boxed_slice()),
+            debug_string: Arc::from(debug_string.as_str()),
           },
         );
       }
@@ -216,7 +220,7 @@ impl<V: StyleqValue> Styleq<V> {
       if !defined_properties.contains(prop) {
         if !value.is_null() {
           sub_style
-            .get_or_insert_with(IndexMap::new)
+            .get_or_insert_with(StyleMap::new)
             .insert(prop.clone(), value.clone());
         }
 
@@ -236,21 +240,34 @@ impl<V: StyleqValue> Styleq<V> {
     }
   }
 
-  fn cache_lock(&self) -> MutexGuard<'_, IndexMap<CacheKey, CacheEntry>> {
-    self.cache.lock().unwrap_or_else(recover_poisoned_cache)
+  fn cache_read(&self) -> RwLockReadGuard<'_, FxHashMap<CacheKey, Arc<CacheEntry>>> {
+    self
+      .cache
+      .read()
+      .unwrap_or_else(|poisoned| recover_poisoned_cache_read(poisoned))
   }
 
-  fn get_cache_entry(&self, cache_key: &CacheKey) -> Option<CacheEntry> {
-    self.cache_lock().get(cache_key).cloned()
+  fn cache_write(&self) -> RwLockWriteGuard<'_, FxHashMap<CacheKey, Arc<CacheEntry>>> {
+    self
+      .cache
+      .write()
+      .unwrap_or_else(|poisoned| recover_poisoned_cache_write(poisoned))
+  }
+
+  fn get_cache_entry(&self, cache_key: &CacheKey) -> Option<Arc<CacheEntry>> {
+    self.cache_read().get(cache_key).map(Arc::clone)
   }
 
   fn insert_cache_entry(&self, cache_key: CacheKey, cache_entry: CacheEntry) {
-    self.cache_lock().insert(cache_key, cache_entry);
+    self.cache_write().insert(cache_key, Arc::new(cache_entry));
   }
 }
 
+// JS-parity: styleq/src/styleq.js#L100 (structural hash branch). Switched
+// from `DefaultHasher` (SipHash-1-3) to `FxHasher` — keys are short and the
+// cache is process-local, so DOS resistance is unnecessary.
 fn hash_style<V: StyleqValue>(style: &StyleMap<V>) -> u64 {
-  let mut hasher = DefaultHasher::new();
+  let mut hasher = FxHasher::default();
 
   for (prop, value) in style {
     prop.hash(&mut hasher);
@@ -260,10 +277,17 @@ fn hash_style<V: StyleqValue>(style: &StyleMap<V>) -> u64 {
   hasher.finish()
 }
 
-fn recover_poisoned_cache<'a>(
-  poisoned: PoisonError<MutexGuard<'a, IndexMap<CacheKey, CacheEntry>>>,
-) -> MutexGuard<'a, IndexMap<CacheKey, CacheEntry>> {
-  error!("styleq: cache mutex was poisoned; continuing with inner cache.");
+fn recover_poisoned_cache_read<'a>(
+  poisoned: std::sync::PoisonError<RwLockReadGuard<'a, FxHashMap<CacheKey, Arc<CacheEntry>>>>,
+) -> RwLockReadGuard<'a, FxHashMap<CacheKey, Arc<CacheEntry>>> {
+  error!("styleq: cache RwLock was poisoned (read); continuing with inner cache.");
+  poisoned.into_inner()
+}
+
+fn recover_poisoned_cache_write<'a>(
+  poisoned: std::sync::PoisonError<RwLockWriteGuard<'a, FxHashMap<CacheKey, Arc<CacheEntry>>>>,
+) -> RwLockWriteGuard<'a, FxHashMap<CacheKey, Arc<CacheEntry>>> {
+  error!("styleq: cache RwLock was poisoned (write); continuing with inner cache.");
   poisoned.into_inner()
 }
 
@@ -273,15 +297,15 @@ mod tests {
   use std::panic::{AssertUnwindSafe, catch_unwind};
 
   #[test]
-  fn cache_lock_recovers_from_poisoned_mutex() {
+  fn cache_lock_recovers_from_poisoned_rwlock() {
     let styleq = create_styleq::<crate::StyleValue>(StyleqOptions::default());
 
     let result = catch_unwind(AssertUnwindSafe(|| {
-      let _guard = styleq.cache.lock();
-      panic!("poison cache mutex");
+      let _guard = styleq.cache.write();
+      panic!("poison cache rwlock");
     }));
 
     assert!(result.is_err());
-    assert!(styleq.cache_lock().is_empty());
+    assert!(styleq.cache_read().is_empty());
   }
 }

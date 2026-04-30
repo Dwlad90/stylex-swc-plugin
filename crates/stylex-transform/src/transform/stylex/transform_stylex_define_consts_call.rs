@@ -113,7 +113,7 @@ where
 
       let export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));
 
-      self.state.export_id = export_id.clone();
+      self.state.export_id = export_id;
 
       let (transformed_js_output, js_output) = stylex_define_consts(&value, &mut self.state);
 

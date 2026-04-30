@@ -95,7 +95,7 @@ impl InjectableStyle {
 impl Default for InjectableStyle {
   fn default() -> Self {
     InjectableStyle {
-      ltr: "".to_string(),
+      ltr: String::new(),
       rtl: None,
       priority: Some(0.0),
     }
@@ -115,11 +115,11 @@ impl From<InjectableConstStyle> for InjectableStyleConstBase {
 impl Default for InjectableConstStyle {
   fn default() -> Self {
     InjectableConstStyle {
-      ltr: "".to_string(),
+      ltr: String::new(),
       rtl: None,
       priority: Some(0.0),
-      const_key: "".to_string(),
-      const_value: "".to_string(),
+      const_key: String::new(),
+      const_value: String::new(),
     }
   }
 }

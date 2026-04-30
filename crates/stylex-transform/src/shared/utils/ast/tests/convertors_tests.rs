@@ -211,8 +211,8 @@ fn test_binary_expr_to_num_logical() {
   let right = Box::new(make_num_expr(5.0));
   let bin_or = BinExpr {
     op: BinaryOp::LogicalOr,
-    left: left.clone(),
-    right: right.clone(),
+    left,
+    right,
     span: Default::default(),
   };
   let res_or = binary_expr_to_num(&bin_or, &mut state, &mut traversal_state, &fns).unwrap();
@@ -224,8 +224,8 @@ fn test_binary_expr_to_num_logical() {
   let right = Box::new(make_num_expr(0.0));
   let bin_and = BinExpr {
     op: BinaryOp::LogicalAnd,
-    left: left.clone(),
-    right: right.clone(),
+    left,
+    right,
     span: Default::default(),
   };
   let res_and = binary_expr_to_num(&bin_and, &mut state, &mut traversal_state, &fns).unwrap();
@@ -237,8 +237,8 @@ fn test_binary_expr_to_num_logical() {
   let right = Box::new(make_num_expr(7.0));
   let bin_nullish = BinExpr {
     op: BinaryOp::NullishCoalescing,
-    left: left.clone(),
-    right: right.clone(),
+    left,
+    right,
     span: Default::default(),
   };
   let res_nullish =
@@ -595,7 +595,7 @@ fn test_convert_simple_tpl_to_str_expr_with_expressions() {
     ],
   };
 
-  let expr = Expr::Tpl(tpl.clone());
+  let expr = Expr::Tpl(tpl);
   let result = convert_simple_tpl_to_str_expr(expr);
 
   // Should remain as Tpl since it has expressions
@@ -729,7 +729,7 @@ fn test_convert_concat_to_tpl_expr_not_concat_method() {
     ..Default::default()
   };
 
-  let original_expr = Expr::Call(call_expr.clone());
+  let original_expr = Expr::Call(call_expr);
   let result = convert_concat_to_tpl_expr(original_expr);
 
   // Should remain as CallExpr since it's not concat

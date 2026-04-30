@@ -28,7 +28,7 @@ pub fn initialize() {
       } else if let Some(s) = info.payload().downcast_ref::<&str>() {
         s.to_string()
       } else {
-        format!("{} Unknown internal error", STYLEX_PREFIX).to_string()
+        format!("{} Unknown internal error", STYLEX_PREFIX)
       };
 
       // StyleX panics already carry the branded prefix in their Display output;

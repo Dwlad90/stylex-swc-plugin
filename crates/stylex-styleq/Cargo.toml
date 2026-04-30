@@ -13,6 +13,7 @@ doctest = false
 [dependencies]
 indexmap.workspace = true
 log.workspace = true
+rustc-hash.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true

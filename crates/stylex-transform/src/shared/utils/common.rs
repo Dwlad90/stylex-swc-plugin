@@ -50,7 +50,7 @@ pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
         None => stylex_panic!("{}", INVALID_UTF8),
       }
     },
-    _ => "".to_string(),
+    _ => String::new(),
   }
 }
 

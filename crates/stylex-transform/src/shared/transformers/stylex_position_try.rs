@@ -114,7 +114,7 @@ pub(crate) fn stylex_position_try(
   );
 
   let rtl_styles = obj_map(
-    ObjMapType::Object(extended_object.clone()),
+    ObjMapType::Object(extended_object),
     state,
     |style, _| {
       let Some(tuple) = style.as_tuple() else {

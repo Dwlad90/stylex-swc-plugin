@@ -82,3 +82,15 @@ thiserror = "2.0.18"
 unexpected_cfgs = { level = "warn", check-cfg = [
   'cfg(coverage_nightly)',
 ] }
+
+# Workspace-wide clippy gates. Rules enforced here:
+# - performance: avoid hidden allocations / clones in hot paths
+# - correctness: prefer explicit conversion paths and idiomatic iterators
+# Test code can opt out via `#[cfg_attr(test, allow(<lint>))]` on the offender.
+[workspace.lints.clippy]
+redundant_clone        = "warn"
+inefficient_to_string  = "warn"
+needless_collect       = "warn"
+cloned_instead_of_copied = "warn"
+manual_string_new      = "warn"
+format_in_format_args  = "warn"

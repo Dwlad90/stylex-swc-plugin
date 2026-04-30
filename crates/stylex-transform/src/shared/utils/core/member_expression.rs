@@ -97,10 +97,9 @@ pub(crate) fn member_expression(
                 "This property variant is not supported in member expression evaluation."
               ),
             },
-          })
-          .collect::<Vec<&Atom>>();
+          });
 
-        vec.extend(namespaces.into_iter().cloned());
+        vec.extend(namespaces.cloned());
       }
     }
   }
@@ -117,7 +116,7 @@ pub(crate) fn member_expression(
     let style_var_to_keep = StyleVarsToKeep(
       obj_name.clone(),
       match prop_name {
-        Some(prop_name) => NonNullProp::Atom(prop_name.clone()),
+        Some(prop_name) => NonNullProp::Atom(prop_name),
         None => NonNullProp::True,
       },
       style_non_null_props,

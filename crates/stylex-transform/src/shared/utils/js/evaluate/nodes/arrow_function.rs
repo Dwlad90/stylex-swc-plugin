@@ -47,7 +47,7 @@ pub(in super::super) fn evaluate(
                   };
                   identifiers.insert(
                     ident.clone(),
-                    Box::new(FunctionConfigType::Regular(function.clone())),
+                    Box::new(FunctionConfigType::Regular(function)),
                   );
 
                   member_expressions.insert(
@@ -73,7 +73,7 @@ pub(in super::super) fn evaluate(
 
               match value {
                 Some(res) => match res {
-                  EvaluateResultValue::Expr(expr) => expr.clone(),
+                  EvaluateResultValue::Expr(expr) => expr,
                   EvaluateResultValue::Vec(items) => evaluate_result_vec_to_array_expr(&items),
                   #[cfg_attr(coverage_nightly, coverage(off))]
                   _ => stylex_unimplemented!(

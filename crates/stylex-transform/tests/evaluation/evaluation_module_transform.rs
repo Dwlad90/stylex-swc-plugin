@@ -70,7 +70,7 @@ impl Fold for EvaluationStyleXFirstStatementTransform {
 
     match evaluate_result.value {
       Some(value) => match value {
-        EvaluateResultValue::Expr(expr) => expr.clone(),
+        EvaluateResultValue::Expr(expr) => expr,
         EvaluateResultValue::Vec(vec) => Expr::from(ArrayLit {
           span: DUMMY_SP,
           elems: vec
@@ -182,7 +182,7 @@ impl EvaluationStyleXLastStatementTransform {
 
     match evaluate_result.value {
       Some(value) => match value {
-        EvaluateResultValue::Expr(expr) => expr.clone(),
+        EvaluateResultValue::Expr(expr) => expr,
         EvaluateResultValue::Vec(vec) => Expr::from(ArrayLit {
           span: DUMMY_SP,
           elems: vec

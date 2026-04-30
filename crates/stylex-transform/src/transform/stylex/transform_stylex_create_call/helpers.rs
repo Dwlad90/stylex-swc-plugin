@@ -24,14 +24,14 @@ pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec
       Some(DynamicStyle {
         key: key.clone(),
         path: if that_dyn_style.path == that_dyn_style.key {
-          key.clone()
+          key
         } else if that_dyn_style
           .path
           .contains(&(that_dyn_style.key.clone() + "_"))
         {
           that_dyn_style
             .path
-            .replace(&(that_dyn_style.key.clone() + "_"), &(key.clone() + "_"))
+            .replace(&(that_dyn_style.key.clone() + "_"), &(key + "_"))
         } else {
           that_dyn_style.path.replace(
             &("_".to_string() + that_dyn_style.key.as_str()),

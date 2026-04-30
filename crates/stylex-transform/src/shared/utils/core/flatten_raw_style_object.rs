@@ -47,7 +47,7 @@ fn normalize_key_path(
       .map(|k| if k == key { property.clone() } else { k })
       .collect()
   } else {
-    let mut new_key_path = key_path.clone();
+    let mut new_key_path = key_path;
     new_key_path.push(property);
     new_key_path
   }

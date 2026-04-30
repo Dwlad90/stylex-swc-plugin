@@ -290,7 +290,7 @@ mod test_token_parser {
         .where_fn(|value: &String| value == "bar", None);
 
       // Test the bar parser on "baz" - should fail
-      let result = bar_parser.clone().parse("baz");
+      let result = bar_parser.parse("baz");
       println!("bar_parser on 'baz': {:?}", result);
       assert!(result.is_err());
 
@@ -303,7 +303,7 @@ mod test_token_parser {
 
       // Test with unwrap_or_default
       let optional_bar_with_default = bar_parser
-        .clone()
+        
         .optional()
         .map(|opt| opt.unwrap_or_default(), None);
       let result = optional_bar_with_default.parse("baz");
@@ -357,7 +357,7 @@ mod test_token_parser {
       let parser = TokenParser::<String>::sequence_with_separators(vec![
         foo_parser.map(|s| s, None),
         bar_parser
-          .clone()
+          
           .optional()
           .map(|opt| opt.unwrap_or_default(), None),
         baz_parser.map(|s| s, None),
@@ -366,7 +366,7 @@ mod test_token_parser {
 
       // Test with success case first
       println!("Testing 'foo bar baz'...");
-      let result = parser.clone().parse_to_end("foo bar baz");
+      let result = parser.parse_to_end("foo bar baz");
       println!("Result: {:?}", result);
       assert!(result.is_ok());
 

@@ -1089,7 +1089,7 @@ impl StateManager {
 
     let styles_to_inject = self.injection.styles_to_inject.entry(ast_hash).or_default();
 
-    let normalized_module = drop_span(module.clone());
+    let normalized_module = drop_span(module);
 
     if !styles_to_inject.contains(&normalized_module) {
       styles_to_inject.push(normalized_module.clone());

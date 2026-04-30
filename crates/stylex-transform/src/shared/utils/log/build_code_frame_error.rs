@@ -345,7 +345,7 @@ pub(crate) fn print_program(
     },
   )
   .unwrap_or_else(|_| TransformOutput {
-    code: "".to_string(),
+    code: String::new(),
     map: None,
     output: None,
     diagnostics: Vec::default(),

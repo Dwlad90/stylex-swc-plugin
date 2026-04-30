@@ -98,7 +98,7 @@ pub(crate) fn stylex_create_set(
 
           let class_name = unique_class_names
             .iter()
-            .cloned()
+            .copied()
             .collect::<Vec<&str>>()
             .join(" ");
 

@@ -100,7 +100,7 @@ fn test_border_radius_equality() {
   let value2 = LengthPercentage::Length(Length::new(5.0, "px".to_string()));
   let value3 = LengthPercentage::Length(Length::new(10.0, "px".to_string()));
 
-  let radius1 = BorderRadiusIndividual::new(value1.clone(), None);
+  let radius1 = BorderRadiusIndividual::new(value1, None);
   let radius2 = BorderRadiusIndividual::new(value2, None);
   let radius3 = BorderRadiusIndividual::new(value3, None);
 
@@ -187,7 +187,7 @@ fn test_border_radius_shorthand_no_slash_when_same() {
     None,
     None,
     None,
-    Some(value.clone()),
+    Some(value),
     None,
     None,
     None,

@@ -70,24 +70,24 @@ impl BoxShadow {
     let outer_shadow = {
       let offset_x = Length::parser();
       let offset_y = whitespace
-        .clone()
+        
         .flat_map(|_| Length::parser(), Some("offset_y"));
       let blur_radius = whitespace
-        .clone()
+        
         .flat_map(|_| Length::parser(), Some("blur_radius"))
         .optional();
       let spread_radius = whitespace
-        .clone()
+        
         .flat_map(|_| Length::parser(), Some("spread_radius"))
         .optional();
       let color = whitespace
-        .clone()
+        
         .flat_map(|_| Color::parse(), Some("color"));
 
       offset_x
         .flat_map(
           move |x| {
-            let x_clone = x.clone();
+            let x_clone = x;
             offset_y
               .clone()
               .map(move |y| (x_clone.clone(), y), Some("with_y"))
@@ -96,8 +96,8 @@ impl BoxShadow {
         )
         .flat_map(
           move |(x, y)| {
-            let x_clone = x.clone();
-            let y_clone = y.clone();
+            let x_clone = x;
+            let y_clone = y;
             blur_radius.clone().map(
               move |blur| (x_clone.clone(), y_clone.clone(), blur),
               Some("with_blur"),
@@ -107,9 +107,9 @@ impl BoxShadow {
         )
         .flat_map(
           move |(x, y, blur)| {
-            let x_clone = x.clone();
-            let y_clone = y.clone();
-            let blur_clone = blur.clone();
+            let x_clone = x;
+            let y_clone = y;
+            let blur_clone = blur;
             spread_radius.clone().map(
               move |spread| (x_clone.clone(), y_clone.clone(), blur_clone.clone(), spread),
               Some("with_spread"),
@@ -119,10 +119,10 @@ impl BoxShadow {
         )
         .flat_map(
           move |(x, y, blur, spread)| {
-            let x_clone = x.clone();
-            let y_clone = y.clone();
-            let blur_clone = blur.clone();
-            let spread_clone = spread.clone();
+            let x_clone = x;
+            let y_clone = y;
+            let blur_clone = blur;
+            let spread_clone = spread;
             color.clone().map(
               move |color| {
                 BoxShadow::new(
@@ -162,9 +162,9 @@ impl BoxShadow {
       let whitespace_for_inset = whitespace.clone();
       let inset_keyword_for_inset = inset_keyword.clone();
 
-      let shadow_then_inset = outer_shadow.clone().flat_map(
+      let shadow_then_inset = outer_shadow.flat_map(
         move |shadow| {
-          let shadow_clone = shadow.clone();
+          let shadow_clone = shadow;
           let whitespace_clone = whitespace_for_inset.clone();
           let inset_clone = inset_keyword_for_inset.clone();
 
@@ -191,7 +191,7 @@ impl BoxShadow {
         Some("shadow_then_inset"),
       );
 
-      let whitespace_for_prefix = whitespace.clone();
+      let whitespace_for_prefix = whitespace;
       let outer_shadow_for_prefix = outer_shadow.clone();
 
       let inset_then_shadow = inset_keyword.flat_map(
@@ -208,7 +208,7 @@ impl BoxShadow {
                     shadow.offset_y.clone(),
                     shadow.blur_radius.clone(),
                     shadow.spread_radius.clone(),
-                    shadow.color.clone(),
+                    shadow.color,
                     true,
                   )
                 },

@@ -133,7 +133,7 @@ pub(crate) fn stylex_keyframes(
   let options = state.options.clone();
 
   let rtl_styles = obj_map(
-    ObjMapType::Map(expanded_object.clone()),
+    ObjMapType::Map(expanded_object),
     state,
     |frame, _| {
       let Some(pairs) = frame.as_key_values() else {

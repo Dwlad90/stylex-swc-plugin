@@ -14,6 +14,7 @@ doctest = false
 
 [dependencies]
 base62.workspace = true
+indexmap.workspace = true
 murmur2.workspace = true
 radix_fmt.workspace = true
 rustc-hash.workspace = true
@@ -25,3 +26,6 @@ stylex_regex = { path = "../stylex-regex" }
 ctor.workspace = true
 pretty_env_logger.workspace = true
 swc_ecma_parser.workspace = true
+
+[lints]
+workspace = true

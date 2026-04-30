@@ -72,7 +72,7 @@ impl Fold for ArgsStyleXTransform {
 
     match evaluate_result.value {
       Some(value) => match value {
-        EvaluateResultValue::Expr(expr) => expr.clone(), //.fold_children_with(self),
+        EvaluateResultValue::Expr(expr) => expr, //.fold_children_with(self),
         EvaluateResultValue::Vec(vec) => create_array_expression(
           vec
             .iter()

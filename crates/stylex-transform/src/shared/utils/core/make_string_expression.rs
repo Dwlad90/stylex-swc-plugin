@@ -133,11 +133,10 @@ fn gen_bitwise_or_of_conditions(conditions: &[Expr]) -> Box<Expr> {
         right: Box::new(create_number_expr(shift as f64)),
         span: DUMMY_SP,
       })
-    })
-    .collect::<Vec<Expr>>();
+    });
 
   Box::new(
-    match binary_expressions.into_iter().reduce(|acc, expr| {
+    match binary_expressions.reduce(|acc, expr| {
       Expr::from(BinExpr {
         span: DUMMY_SP,
         op: BinaryOp::BitOr,

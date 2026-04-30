@@ -94,164 +94,164 @@ pub struct Aliases;
 
 impl Aliases {
   fn block_size(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("height".to_string(), val)])
+    Ok(vec![OrderPair("height".into(), val)])
   }
   fn inline_size(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("width".to_string(), val)])
+    Ok(vec![OrderPair("width".into(), val)])
   }
   fn min_block_size(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("minHeight".to_string(), val)])
+    Ok(vec![OrderPair("minHeight".into(), val)])
   }
   fn min_inline_size(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("minWidth".to_string(), val)])
+    Ok(vec![OrderPair("minWidth".into(), val)])
   }
   fn max_block_size(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("maxHeight".to_string(), val)])
+    Ok(vec![OrderPair("maxHeight".into(), val)])
   }
   fn max_inline_size(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("maxWidth".to_string(), val)])
+    Ok(vec![OrderPair("maxWidth".into(), val)])
   }
 
   fn border_horizontal_width(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineWidth".to_string(), val)])
+    Ok(vec![OrderPair("borderInlineWidth".into(), val)])
   }
   fn border_horizontal_style(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineStyle".to_string(), val)])
+    Ok(vec![OrderPair("borderInlineStyle".into(), val)])
   }
   fn border_horizontal_color(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineColor".to_string(), val)])
+    Ok(vec![OrderPair("borderInlineColor".into(), val)])
   }
   fn border_vertical_width(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderBlockWidth".to_string(), val)])
+    Ok(vec![OrderPair("borderBlockWidth".into(), val)])
   }
   fn border_vertical_style(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderBlockStyle".to_string(), val)])
+    Ok(vec![OrderPair("borderBlockStyle".into(), val)])
   }
   fn border_vertical_color(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderBlockColor".to_string(), val)])
+    Ok(vec![OrderPair("borderBlockColor".into(), val)])
   }
 
   fn border_block_start_color(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderTopColor".to_string(), value)])
+    Ok(vec![OrderPair("borderTopColor".into(), value)])
   }
   fn border_block_end_color(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderBottomColor".to_string(), value)])
+    Ok(vec![OrderPair("borderBottomColor".into(), value)])
   }
   fn border_block_start_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderTopStyle".to_string(), value)])
+    Ok(vec![OrderPair("borderTopStyle".into(), value)])
   }
   fn border_block_end_style(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderBottomStyle".to_string(), value)])
+    Ok(vec![OrderPair("borderBottomStyle".into(), value)])
   }
   fn border_block_start_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderTopWidth".to_string(), value)])
+    Ok(vec![OrderPair("borderTopWidth".into(), value)])
   }
   fn border_block_end_width(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderBottomWidth".to_string(), value)])
+    Ok(vec![OrderPair("borderBottomWidth".into(), value)])
   }
 
   fn border_start_color(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineStartColor".to_string(), val)])
+    Ok(vec![OrderPair("borderInlineStartColor".into(), val)])
   }
   fn border_end_color(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineEndColor".to_string(), val)])
+    Ok(vec![OrderPair("borderInlineEndColor".into(), val)])
   }
   fn border_start_style(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineStartStyle".to_string(), val)])
+    Ok(vec![OrderPair("borderInlineStartStyle".into(), val)])
   }
   fn border_end_style(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineEndStyle".to_string(), val)])
+    Ok(vec![OrderPair("borderInlineEndStyle".into(), val)])
   }
   fn border_start_width(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineStartWidth".to_string(), val)])
+    Ok(vec![OrderPair("borderInlineStartWidth".into(), val)])
   }
   fn border_end_width(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderInlineEndWidth".to_string(), val)])
+    Ok(vec![OrderPair("borderInlineEndWidth".into(), val)])
   }
 
   fn border_top_start_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderStartStartRadius".to_string(), value)])
+    Ok(vec![OrderPair("borderStartStartRadius".into(), value)])
   }
   fn border_top_end_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderStartEndRadius".to_string(), value)])
+    Ok(vec![OrderPair("borderStartEndRadius".into(), value)])
   }
   fn border_bottom_start_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderEndStartRadius".to_string(), value)])
+    Ok(vec![OrderPair("borderEndStartRadius".into(), value)])
   }
   fn border_bottom_end_radius(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("borderEndEndRadius".to_string(), value)])
+    Ok(vec![OrderPair("borderEndEndRadius".into(), value)])
   }
 
   fn contain_intrinsic_block_size(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("containIntrinsicHeight".to_string(), value)])
+    Ok(vec![OrderPair("containIntrinsicHeight".into(), value)])
   }
   fn contain_intrinsic_inline_size(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("containIntrinsicWidth".to_string(), value)])
+    Ok(vec![OrderPair("containIntrinsicWidth".into(), value)])
   }
 
   fn margin_block_start(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("marginTop".to_string(), value)])
+    Ok(vec![OrderPair("marginTop".into(), value)])
   }
   fn margin_block_end(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("marginBottom".to_string(), value)])
+    Ok(vec![OrderPair("marginBottom".into(), value)])
   }
   fn margin_start(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("marginInlineStart".to_string(), val)])
+    Ok(vec![OrderPair("marginInlineStart".into(), val)])
   }
   fn margin_end(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("marginInlineEnd".to_string(), val)])
+    Ok(vec![OrderPair("marginInlineEnd".into(), val)])
   }
   fn margin_horizontal(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("marginInline".to_string(), val)])
+    Ok(vec![OrderPair("marginInline".into(), val)])
   }
   fn margin_vertical(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("marginBlock".to_string(), val)])
+    Ok(vec![OrderPair("marginBlock".into(), val)])
   }
 
   fn overflow_block(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("overflowY".to_string(), value)])
+    Ok(vec![OrderPair("overflowY".into(), value)])
   }
   fn overflow_inline(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("overflowX".to_string(), value)])
+    Ok(vec![OrderPair("overflowX".into(), value)])
   }
 
   fn padding_block_start(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("paddingTop".to_string(), raw_value)])
+    Ok(vec![OrderPair("paddingTop".into(), raw_value)])
   }
   fn padding_block_end(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("paddingBottom".to_string(), raw_value)])
+    Ok(vec![OrderPair("paddingBottom".into(), raw_value)])
   }
   fn padding_start(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("paddingInlineStart".to_string(), val)])
+    Ok(vec![OrderPair("paddingInlineStart".into(), val)])
   }
   fn padding_end(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("paddingInlineEnd".to_string(), val)])
+    Ok(vec![OrderPair("paddingInlineEnd".into(), val)])
   }
   fn padding_horizontal(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("paddingInline".to_string(), val)])
+    Ok(vec![OrderPair("paddingInline".into(), val)])
   }
   fn padding_vertical(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("paddingBlock".to_string(), val)])
+    Ok(vec![OrderPair("paddingBlock".into(), val)])
   }
 
   fn scroll_margin_block_start(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("scrollMarginTop".to_string(), value)])
+    Ok(vec![OrderPair("scrollMarginTop".into(), value)])
   }
   fn scroll_margin_block_end(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("scrollMarginBottom".to_string(), value)])
+    Ok(vec![OrderPair("scrollMarginBottom".into(), value)])
   }
 
   fn inset_block_start(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("top".to_string(), value)])
+    Ok(vec![OrderPair("top".into(), value)])
   }
   fn inset_block_end(value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("bottom".to_string(), value)])
+    Ok(vec![OrderPair("bottom".into(), value)])
   }
   fn start(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("insetInlineStart".to_string(), val)])
+    Ok(vec![OrderPair("insetInlineStart".into(), val)])
   }
   fn end(val: Option<String>) -> Result<Vec<OrderPair>, String> {
-    Ok(vec![OrderPair("insetInlineEnd".to_string(), val)])
+    Ok(vec![OrderPair("insetInlineEnd".into(), val)])
   }
 
   pub fn get(name: &str) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {

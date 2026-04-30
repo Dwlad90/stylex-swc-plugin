@@ -102,7 +102,7 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, String
 
   for OrderPair(key, value) in entries {
     map.insert(
-      key.clone(),
+      key.to_string(),
       match value.as_ref() {
         Some(v) => v.clone(),
         #[cfg_attr(coverage_nightly, coverage(off))]

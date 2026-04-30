@@ -97,7 +97,7 @@ pub(crate) fn flat_map_expanded_shorthands(
     };
   }
 
-  let order_pair = OrderPair(key, value);
+  let order_pair = OrderPair(key.into(), value);
 
   let vec_order_pair: Vec<OrderPair> = vec![order_pair];
 

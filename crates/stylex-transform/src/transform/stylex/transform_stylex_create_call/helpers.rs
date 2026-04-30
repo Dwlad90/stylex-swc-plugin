@@ -21,6 +21,7 @@ pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec
       let index = value[1..].parse::<usize>().ok()?;
       let that_dyn_style = dynamic_styles.get(index)?;
 
+      let key = key.into_owned();
       Some(DynamicStyle {
         key: key.clone(),
         path: if that_dyn_style.path == that_dyn_style.key {

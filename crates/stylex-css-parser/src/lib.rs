@@ -100,15 +100,15 @@ mod lib_tests {
     // Test properties module access
     let _transform = properties::Transform::new(vec![]);
     let _box_shadow = properties::BoxShadow::new(
-      css_types::Length::new(0.0, "px".to_string()),
-      css_types::Length::new(0.0, "px".to_string()),
-      css_types::Length::new(0.0, "px".to_string()),
-      css_types::Length::new(0.0, "px".to_string()),
+      css_types::Length::new(0.0, "px"),
+      css_types::Length::new(0.0, "px"),
+      css_types::Length::new(0.0, "px"),
+      css_types::Length::new(0.0, "px"),
       css_types::Color::Named(css_types::NamedColor::new("black".to_string())),
       false,
     );
     let _border_radius = properties::BorderRadiusIndividual::new(
-      css_types::LengthPercentage::Length(css_types::Length::new(0.0, "px".to_string())),
+      css_types::LengthPercentage::Length(css_types::Length::new(0.0, "px")),
       None,
     );
 

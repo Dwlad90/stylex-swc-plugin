@@ -81,7 +81,7 @@ impl Angle {
         },
         Some("zero_value"),
       )
-      .map(|_| Angle::new(0.0, "deg".to_string()), Some("zero_angle"));
+      .map(|_| Angle::new(0.0, "deg"), Some("zero_angle"));
 
     // Combine both parsers
     TokenParser::one_of(vec![dimension_parser, zero_parser])

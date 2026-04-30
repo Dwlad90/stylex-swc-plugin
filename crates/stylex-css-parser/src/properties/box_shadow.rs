@@ -55,8 +55,8 @@ impl BoxShadow {
     Self::new(
       offset_x,
       offset_y,
-      blur_radius.unwrap_or(Length::new(0.0, "px".to_string())),
-      spread_radius.unwrap_or(Length::new(0.0, "px".to_string())),
+      blur_radius.unwrap_or(Length::new(0.0, "px")),
+      spread_radius.unwrap_or(Length::new(0.0, "px")),
       color,
       inset,
     )
@@ -130,10 +130,10 @@ impl BoxShadow {
                   y_clone.clone(),
                   blur_clone
                     .clone()
-                    .unwrap_or_else(|| Length::new(0.0, "px".to_string())),
+                    .unwrap_or_else(|| Length::new(0.0, "px")),
                   spread_clone
                     .clone()
-                    .unwrap_or_else(|| Length::new(0.0, "px".to_string())),
+                    .unwrap_or_else(|| Length::new(0.0, "px")),
                   color,
                   false,
                 )

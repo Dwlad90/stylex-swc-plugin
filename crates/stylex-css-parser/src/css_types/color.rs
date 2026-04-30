@@ -1211,7 +1211,7 @@ impl Hsl {
   /// Creates Hsl from primitive f32 values
   pub fn from_primitives(h: f32, s: f32, l: f32) -> Self {
     Self {
-      h: Angle::new(h, "deg".to_string()),
+      h: Angle::new(h, "deg"),
       s: Percentage::new(s),
       l: Percentage::new(l),
     }
@@ -1384,7 +1384,7 @@ impl Hsl {
       },
       SimpleToken::Number(value) => {
         // Treat numbers as degrees (CSS standard for HSL)
-        Ok(Angle::new(value as f32, "deg".to_string()))
+        Ok(Angle::new(value as f32, "deg"))
       },
       _ => Err(CssParseError::ParseError {
         message: format!(
@@ -1467,7 +1467,7 @@ impl Hsla {
   /// Creates Hsla from primitive f32 values
   pub fn from_primitives(h: f32, s: f32, l: f32, a: f32) -> Self {
     Self {
-      h: Angle::new(h, "deg".to_string()),
+      h: Angle::new(h, "deg"),
       s: Percentage::new(s),
       l: Percentage::new(l),
       a,
@@ -1662,7 +1662,7 @@ impl Hsla {
       },
       SimpleToken::Number(value) => {
         // Treat numbers as degrees (CSS standard for HSL/HSLA)
-        Ok(Angle::new(value as f32, "deg".to_string()))
+        Ok(Angle::new(value as f32, "deg"))
       },
       _ => Err(CssParseError::ParseError {
         message: format!(
@@ -2117,9 +2117,9 @@ impl Oklch {
           })
         }
       },
-      Some(SimpleToken::Number(n)) => Ok(Angle::new(n as f32, "deg".to_string())),
+      Some(SimpleToken::Number(n)) => Ok(Angle::new(n as f32, "deg")),
       Some(SimpleToken::Ident(keyword)) if keyword == "none" => {
-        Ok(Angle::new(0.0, "deg".to_string()))
+        Ok(Angle::new(0.0, "deg"))
       },
       _ => Err(CssParseError::ParseError {
         message: "Expected hue: angle, number, or 'none'".to_string(),

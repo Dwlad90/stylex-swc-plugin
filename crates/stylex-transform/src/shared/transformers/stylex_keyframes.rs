@@ -132,29 +132,25 @@ pub(crate) fn stylex_keyframes(
 
   let options = state.options.clone();
 
-  let rtl_styles = obj_map(
-    ObjMapType::Map(expanded_object),
-    state,
-    |frame, _| {
-      let Some(pairs) = frame.as_key_values() else {
-        #[cfg_attr(coverage_nightly, coverage(off))]
-        {
-          stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
-        }
-      };
+  let rtl_styles = obj_map(ObjMapType::Map(expanded_object), state, |frame, _| {
+    let Some(pairs) = frame.as_key_values() else {
+      #[cfg_attr(coverage_nightly, coverage(off))]
+      {
+        stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
+      }
+    };
 
-      let rtl_values = pairs
-        .iter()
-        .map(|pair| {
-          generate_rtl(pair, &options)
-            .map(|pair| pair.into_owned())
-            .unwrap_or_else(|| pair.clone())
-        })
-        .collect();
+    let rtl_values = pairs
+      .iter()
+      .map(|pair| {
+        generate_rtl(pair, &options)
+          .map(|pair| pair.into_owned())
+          .unwrap_or_else(|| pair.clone())
+      })
+      .collect();
 
-      Rc::new(FlatCompiledStylesValue::KeyValues(rtl_values))
-    },
-  );
+    Rc::new(FlatCompiledStylesValue::KeyValues(rtl_values))
+  });
 
   let ltr_string = construct_keyframes_obj(&ltr_styles);
   let rtl_string = construct_keyframes_obj(&rtl_styles);

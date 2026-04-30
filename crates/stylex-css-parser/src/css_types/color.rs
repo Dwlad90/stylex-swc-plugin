@@ -2118,9 +2118,7 @@ impl Oklch {
         }
       },
       Some(SimpleToken::Number(n)) => Ok(Angle::new(n as f32, "deg")),
-      Some(SimpleToken::Ident(keyword)) if keyword == "none" => {
-        Ok(Angle::new(0.0, "deg"))
-      },
+      Some(SimpleToken::Ident(keyword)) if keyword == "none" => Ok(Angle::new(0.0, "deg")),
       _ => Err(CssParseError::ParseError {
         message: "Expected hue: angle, number, or 'none'".to_string(),
       }),

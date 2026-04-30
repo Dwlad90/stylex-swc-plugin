@@ -69,20 +69,14 @@ impl BoxShadow {
     // Parse outer shadow: offsetX offsetY [blurRadius] [spreadRadius] color
     let outer_shadow = {
       let offset_x = Length::parser();
-      let offset_y = whitespace
-        
-        .flat_map(|_| Length::parser(), Some("offset_y"));
+      let offset_y = whitespace.flat_map(|_| Length::parser(), Some("offset_y"));
       let blur_radius = whitespace
-        
         .flat_map(|_| Length::parser(), Some("blur_radius"))
         .optional();
       let spread_radius = whitespace
-        
         .flat_map(|_| Length::parser(), Some("spread_radius"))
         .optional();
-      let color = whitespace
-        
-        .flat_map(|_| Color::parse(), Some("color"));
+      let color = whitespace.flat_map(|_| Color::parse(), Some("color"));
 
       offset_x
         .flat_map(
@@ -128,9 +122,7 @@ impl BoxShadow {
                 BoxShadow::new(
                   x_clone.clone(),
                   y_clone.clone(),
-                  blur_clone
-                    .clone()
-                    .unwrap_or_else(|| Length::new(0.0, "px")),
+                  blur_clone.clone().unwrap_or_else(|| Length::new(0.0, "px")),
                   spread_clone
                     .clone()
                     .unwrap_or_else(|| Length::new(0.0, "px")),

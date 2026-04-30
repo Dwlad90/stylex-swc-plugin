@@ -81,23 +81,21 @@ pub(crate) fn member_expression(
       if let NonNullProps::Vec(vec) = non_null_props
         && let Some(EvaluateResultValue::Expr(Expr::Object(ObjectLit { props, .. }))) = style_value
       {
-        let namespaces = props
-          .iter()
-          .filter_map(|item| match item {
-            PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-            PropOrSpread::Prop(prop) => match prop.as_ref() {
-              Prop::KeyValue(key_value) => match key_value.value.as_ref() {
-                Expr::Lit(Lit::Null(_)) => None,
-                _ => Some(match key_value.key.as_ident().map(|ident| &ident.sym) {
-                  Some(sym) => sym,
-                  None => stylex_panic!("{}", OBJECT_KEY_MUST_BE_IDENT),
-                }),
-              },
-              _ => stylex_unimplemented!(
-                "This property variant is not supported in member expression evaluation."
-              ),
+        let namespaces = props.iter().filter_map(|item| match item {
+          PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
+          PropOrSpread::Prop(prop) => match prop.as_ref() {
+            Prop::KeyValue(key_value) => match key_value.value.as_ref() {
+              Expr::Lit(Lit::Null(_)) => None,
+              _ => Some(match key_value.key.as_ident().map(|ident| &ident.sym) {
+                Some(sym) => sym,
+                None => stylex_panic!("{}", OBJECT_KEY_MUST_BE_IDENT),
+              }),
             },
-          });
+            _ => stylex_unimplemented!(
+              "This property variant is not supported in member expression evaluation."
+            ),
+          },
+        });
 
         vec.extend(namespaces.cloned());
       }

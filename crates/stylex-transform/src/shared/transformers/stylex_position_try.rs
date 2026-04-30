@@ -113,39 +113,35 @@ pub(crate) fn stylex_position_try(
     },
   );
 
-  let rtl_styles = obj_map(
-    ObjMapType::Object(extended_object),
-    state,
-    |style, _| {
-      let Some(tuple) = style.as_tuple() else {
-        #[cfg_attr(coverage_nightly, coverage(off))]
-        {
-          stylex_panic!("{}", THEME_VAR_TUPLE)
-        }
-      };
-
-      let value = convert_lit_to_string(match tuple.1.clone().as_lit() {
-        Some(lit) => lit,
-        #[cfg_attr(coverage_nightly, coverage(off))]
-        None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
-      })
-      .unwrap_or_default();
-
-      let key = tuple.0.clone();
-
-      let pair = Pair {
-        key: key.clone(),
-        value: value.clone(),
-      };
-
-      let rtl_values = generate_rtl(&pair, &options);
-
-      match rtl_values {
-        Some(rtl_value) => Rc::new(FlatCompiledStylesValue::KeyValue(rtl_value.into_owned())),
-        None => Rc::new(FlatCompiledStylesValue::KeyValue(Pair { key, value })),
+  let rtl_styles = obj_map(ObjMapType::Object(extended_object), state, |style, _| {
+    let Some(tuple) = style.as_tuple() else {
+      #[cfg_attr(coverage_nightly, coverage(off))]
+      {
+        stylex_panic!("{}", THEME_VAR_TUPLE)
       }
-    },
-  );
+    };
+
+    let value = convert_lit_to_string(match tuple.1.clone().as_lit() {
+      Some(lit) => lit,
+      #[cfg_attr(coverage_nightly, coverage(off))]
+      None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
+    })
+    .unwrap_or_default();
+
+    let key = tuple.0.clone();
+
+    let pair = Pair {
+      key: key.clone(),
+      value: value.clone(),
+    };
+
+    let rtl_values = generate_rtl(&pair, &options);
+
+    match rtl_values {
+      Some(rtl_value) => Rc::new(FlatCompiledStylesValue::KeyValue(rtl_value.into_owned())),
+      None => Rc::new(FlatCompiledStylesValue::KeyValue(Pair { key, value })),
+    }
+  });
 
   let ltr_string = construct_position_try_obj(ltr_styles);
   let rtl_string = construct_position_try_obj(rtl_styles);

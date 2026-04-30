@@ -36,7 +36,6 @@ impl BorderRadiusIndividual {
     // Use the WORKING pattern from BorderRadiusShorthand
     let first_value = length_percentage_parser();
     let second_value_optional = whitespace
-      
       .flat_map(|_| length_percentage_parser(), Some("second_value"))
       .optional();
 
@@ -99,19 +98,11 @@ impl BorderRadiusShorthand {
     vertical_bottom_left: Option<LengthPercentage>,
   ) -> Self {
     // CSS shorthand expansion logic
-    let h_top_right = horizontal_top_right
-      
-      .unwrap_or(horizontal_top_left.clone());
-    let h_bottom_right = horizontal_bottom_right
-      
-      .unwrap_or(horizontal_top_left.clone());
-    let h_bottom_left = horizontal_bottom_left
-      
-      .unwrap_or(h_top_right.clone());
+    let h_top_right = horizontal_top_right.unwrap_or(horizontal_top_left.clone());
+    let h_bottom_right = horizontal_bottom_right.unwrap_or(horizontal_top_left.clone());
+    let h_bottom_left = horizontal_bottom_left.unwrap_or(h_top_right.clone());
 
-    let v_top_left = vertical_top_left
-      
-      .unwrap_or(horizontal_top_left.clone());
+    let v_top_left = vertical_top_left.unwrap_or(horizontal_top_left.clone());
     let v_top_right = vertical_top_right.unwrap_or(v_top_left.clone());
     let v_bottom_right = vertical_bottom_right.unwrap_or(v_top_left.clone());
     let v_bottom_left = vertical_bottom_left.unwrap_or(v_top_right.clone());
@@ -138,9 +129,7 @@ impl BorderRadiusShorthand {
     let space_separated_radii = {
       let first_value = length_percentage_parser();
       let remaining_values = TokenParser::<LengthPercentage>::zero_or_more(
-        whitespace
-          
-          .flat_map(|_| length_percentage_parser(), Some("next_value")),
+        whitespace.flat_map(|_| length_percentage_parser(), Some("next_value")),
       );
 
       first_value.flat_map(

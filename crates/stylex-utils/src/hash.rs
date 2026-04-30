@@ -44,25 +44,30 @@ pub fn create_key_hash(namespace: &str, key: &str) -> String {
   create_hash(&value)
 }
 
+/// `u32::MAX` in base-36 is `"1z141z3"` (7 chars), so a 7-byte stack buffer
+/// is sufficient for every input. We write digits least-significant-first
+/// from the back of the buffer and `String::from(&str)` once at the end —
+/// avoiding both the special-case `"0".to_string()` allocation and the
+/// pre-loop divisor calculation in the previous implementation.
 fn to_base36(mut value: u32) -> String {
+  let mut buf = [0u8; 7];
+  let mut idx = buf.len();
+
   if value == 0 {
-    return "0".to_string();
+    idx -= 1;
+    buf[idx] = b'0';
+  } else {
+    while value > 0 {
+      idx -= 1;
+      buf[idx] = BASE36_DIGITS[(value % 36) as usize];
+      value /= 36;
+    }
   }
 
-  let mut divisor = 1;
-  while value / divisor >= 36 {
-    divisor *= 36;
-  }
-
-  let mut result = String::with_capacity(7);
-  while divisor > 0 {
-    let digit = value / divisor;
-    result.push(BASE36_DIGITS[digit as usize] as char);
-    value %= divisor;
-    divisor /= 36;
-  }
-
-  result
+  // SAFETY: `BASE36_DIGITS` only ever contains ASCII alphanumerics, so the
+  // populated slice is guaranteed valid UTF-8.
+  debug_assert!(std::str::from_utf8(&buf[idx..]).is_ok());
+  unsafe { std::str::from_utf8_unchecked(&buf[idx..]) }.to_owned()
 }
 
 /// Deterministic hash using `DefaultHasher` (SipHash-based).

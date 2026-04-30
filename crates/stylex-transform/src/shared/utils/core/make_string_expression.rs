@@ -113,27 +113,24 @@ pub(crate) fn make_string_expression(
 }
 
 fn gen_bitwise_or_of_conditions(conditions: &[Expr]) -> Box<Expr> {
-  let binary_expressions = conditions
-    .iter()
-    .enumerate()
-    .map(|(i, condition)| {
-      let shift = conditions.len() - i - 1;
+  let binary_expressions = conditions.iter().enumerate().map(|(i, condition)| {
+    let shift = conditions.len() - i - 1;
 
-      Expr::from(BinExpr {
-        left: Box::new(Expr::from(UnaryExpr {
+    Expr::from(BinExpr {
+      left: Box::new(Expr::from(UnaryExpr {
+        span: DUMMY_SP,
+        op: UnaryOp::Bang,
+        arg: Box::new(Expr::from(UnaryExpr {
           span: DUMMY_SP,
           op: UnaryOp::Bang,
-          arg: Box::new(Expr::from(UnaryExpr {
-            span: DUMMY_SP,
-            op: UnaryOp::Bang,
-            arg: Box::new(condition.clone()),
-          })),
+          arg: Box::new(condition.clone()),
         })),
-        op: BinaryOp::LShift,
-        right: Box::new(create_number_expr(shift as f64)),
-        span: DUMMY_SP,
-      })
-    });
+      })),
+      op: BinaryOp::LShift,
+      right: Box::new(create_number_expr(shift as f64)),
+      span: DUMMY_SP,
+    })
+  });
 
   Box::new(
     match binary_expressions.reduce(|acc, expr| {

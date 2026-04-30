@@ -207,3 +207,23 @@ fn resolve_file_path_returns_not_found_for_unknown_package() {
       .contains("stylex-lib-package-that-does-not-exist")
   );
 }
+
+/// `resolve_path` must fall back to the original `processing_file` (rather
+/// than the stripped path) when `processing_file` is **outside** of
+/// `root_dir.parent().parent()` and `strip_prefix` therefore returns `Err`.
+/// This exercises the `unwrap_or_else(|| processing_file.to_path_buf())`
+/// closure in `resolve_path`; without this test the closure body is never
+/// executed (the existing should_panic tests all live inside `root_dir`,
+/// so they hit `.map(Path::to_path_buf)` instead).
+#[test]
+#[should_panic(expected = "Resolve path must be a file, but got: /tmp/")]
+fn resolve_path_panics_when_strip_prefix_fails() {
+  // root_dir.parent().parent() == "/foo", which is *not* a prefix of
+  // `/tmp/...`, so `strip_prefix` returns `Err` and the unwrap_or_else
+  // fallback fires.
+  let root_dir = std::path::Path::new("/foo/bar/baz");
+  let processing_file = std::path::Path::new("/tmp/not-a-supported.extension");
+
+  let mut package_json_seen = FxHashMap::<String, PackageJsonExtended>::default();
+  let _ = crate::resolvers::resolve_path(processing_file, root_dir, &mut package_json_seen);
+}

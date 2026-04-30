@@ -216,11 +216,11 @@ pub fn generate_css_rule(
 
 /// Calculates priority for compound pseudo selectors (e.g. `:hover::after`).
 fn get_compound_pseudo_priority(key: &str) -> Option<f64> {
-  let mut parts: Vec<String> = vec![];
-
-  for mat in PSEUDO_PART_REGEX.find_iter(key).flatten() {
-    parts.push(mat.as_str().to_string());
-  }
+  let parts: Vec<&str> = PSEUDO_PART_REGEX
+    .find_iter(key)
+    .flatten()
+    .map(|m| m.as_str())
+    .collect();
 
   // Only handle chains of simple pseudo-classes and pseudo-elements.
   // Opt out if there's zero/one part or any functional pseudo-class.
@@ -228,15 +228,16 @@ fn get_compound_pseudo_priority(key: &str) -> Option<f64> {
     return None;
   }
 
-  let mut total: f64 = 0.0;
-
-  for part in parts.iter() {
-    total += if part.starts_with("::") {
-      PSEUDO_ELEMENT_PRIORITY
-    } else {
-      **PSEUDO_CLASS_PRIORITIES.get(part.as_str()).unwrap_or(&&40.0)
-    };
-  }
+  let total = parts
+    .iter()
+    .map(|part| {
+      if part.starts_with("::") {
+        PSEUDO_ELEMENT_PRIORITY
+      } else {
+        **PSEUDO_CLASS_PRIORITIES.get(*part).unwrap_or(&&40.0)
+      }
+    })
+    .sum();
 
   Some(total)
 }

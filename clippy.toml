@@ -2,18 +2,18 @@ cognitive-complexity-threshold = 50
 disallowed-names = [
   "bool",
   "char",
-  "str",
   "f32",
   "f64",
-  "i8",
   "i16",
   "i32",
   "i64",
-  "u8",
+  "i8",
+  "isize",
+  "str",
   "u16",
   "u32",
   "u64",
-  "isize",
+  "u8",
   "usize",
 ]
 ignore-interior-mutability = [

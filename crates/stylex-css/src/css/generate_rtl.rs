@@ -97,26 +97,32 @@ fn shadows_flip<'a>(key: &'a str, val: &str, options: &StyleXStateOptions) -> Op
 }
 
 fn flip_shadow(value: &str) -> Option<String> {
-  let defs: Vec<&str> = value.split(',').collect();
-  let mut built_defs = Vec::new();
+  let rtl = value
+    .split(',')
+    .map(|def| {
+      let parts: Vec<&str> = def.split_whitespace().collect();
+      // NOTE: temporary solution, need to implement unit parser
+      let flip_index = match parts.first() {
+        Some(first) if is_unit(first) => 0,
+        _ => 1,
+      };
 
-  for def in defs {
-    let mut parts = def
-      .split_whitespace()
-      .map(|x| x.to_string())
-      .collect::<Vec<String>>();
+      let mut out = String::with_capacity(def.len() + 1);
+      for (i, part) in parts.iter().enumerate() {
+        if i > 0 {
+          out.push(' ');
+        }
+        if i == flip_index {
+          out.push_str(&flip_sign(part));
+        } else {
+          out.push_str(part);
+        }
+      }
+      out
+    })
+    .collect::<Vec<_>>()
+    .join(",");
 
-    // NOTE: temporary solution, need to implement unit parser
-    let index = if is_unit(parts[0].as_str()) { 0 } else { 1 };
-
-    if index < parts.len() {
-      let flipped = flip_sign(&parts[index]);
-      parts[index] = flipped;
-    }
-    built_defs.push(parts.join(" "));
-  }
-
-  let rtl = built_defs.join(",");
   if rtl != value { Some(rtl) } else { None }
 }
 

@@ -57,7 +57,8 @@ _-p, --stylex-path `PATH`_ - Absolute or relative path to cloned
 [StyleX](https://github.com/facebook/stylex) repository. Default value:
 `../../../stylex/packages`
 
-> [!NOTE] All parsed tests are saved in the
+> [!NOTE]
+> All parsed tests are saved in the
 > [**tests**](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-test-parser/output/__tests__)
 > directory separated by the source package name.
 

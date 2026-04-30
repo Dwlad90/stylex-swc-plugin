@@ -1,16 +1,22 @@
+use std::fmt::Write;
+
 use cssparser::{
   ParseError, Parser, ParserInput, SourcePosition, Token, serialize_identifier, serialize_string,
 };
 use stylex_macros::stylex_unreachable;
 
 pub fn format_ident(ident: &str) -> String {
-  let mut result = String::default();
+  let mut result = String::with_capacity(ident.len());
+  // `serialize_identifier` only fails if the underlying writer fails;
+  // writing to a `String` is infallible.
   let _ = serialize_identifier(ident, &mut result);
-  result.trim_end().to_string()
+  result.truncate(result.trim_end().len());
+  result
 }
 
 pub fn format_quoted_string(string: &str) -> String {
-  let mut result = String::default();
+  let mut result = String::with_capacity(string.len() + 2);
+  // Same rationale as `format_ident`: infallible `String` writer.
   let _ = serialize_string(string, &mut result);
   result
 }
@@ -85,7 +91,7 @@ fn parse_css_inner<'a>(parser: &mut Parser) -> Result<Vec<String>, ParseError<'a
         if *has_sign && *value >= 0. {
           iter_result.push('+');
         }
-        iter_result.push_str(&value.to_string())
+        let _ = write!(iter_result, "{value}");
       },
       Token::Percentage {
         ref has_sign,
@@ -95,7 +101,7 @@ fn parse_css_inner<'a>(parser: &mut Parser) -> Result<Vec<String>, ParseError<'a
         if *has_sign && *unit_value >= 0. {
           iter_result.push('+');
         }
-        iter_result.push_str(&(unit_value * 100.0).to_string());
+        let _ = write!(iter_result, "{}", unit_value * 100.0);
         iter_result.push('%');
       },
       Token::Dimension {
@@ -107,7 +113,7 @@ fn parse_css_inner<'a>(parser: &mut Parser) -> Result<Vec<String>, ParseError<'a
         if *has_sign && *value >= 0. {
           iter_result.push('+');
         }
-        iter_result.push_str(&value.to_string());
+        let _ = write!(iter_result, "{value}");
         iter_result.push_str(unit.as_ref());
       },
       Token::UnquotedUrl(_) | Token::BadUrl(_) | Token::BadString(_) => {
@@ -122,11 +128,10 @@ fn parse_css_inner<'a>(parser: &mut Parser) -> Result<Vec<String>, ParseError<'a
       },
     }
 
-    if !iter_result.is_empty() && iter_result.trim().is_empty() {
-      iter_result = iter_result.trim().to_string()
-    }
-
-    if !iter_result.is_empty() {
+    // Drop tokens that consist purely of whitespace; preserve everything else
+    // verbatim. This collapses stray whitespace tokens emitted by the parser
+    // without disturbing meaningful content.
+    if !iter_result.trim().is_empty() {
       result.push(iter_result);
     }
   }
@@ -146,14 +151,8 @@ pub fn parse_css(css_string: &str) -> Vec<String> {
 
   nodes
     .into_iter()
-    .filter_map(|s| {
-      if !s.is_empty() && s != "," {
-        Some(s)
-      } else {
-        None
-      }
-    })
-    .collect::<Vec<String>>()
+    .filter(|s| !s.is_empty() && s != ",")
+    .collect()
 }
 
 pub fn join_css(nodes: &[String]) -> String {

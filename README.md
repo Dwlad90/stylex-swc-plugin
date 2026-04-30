@@ -3,7 +3,8 @@
 > **Community-driven, high-performance StyleX compiler and tooling ecosystem
 > built with Rust**
 
-> [!IMPORTANT] This is a **community-written** implementation of StyleX tooling.
+> [!IMPORTANT]
+> This is a **community-written** implementation of StyleX tooling.
 > Built with love by the open source community, it aims to provide a
 > high-performance alternative to the official StyleX tooling while not being
 > affiliated with or officially supported by Meta/Facebook.

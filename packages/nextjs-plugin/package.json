@@ -54,8 +54,8 @@
     "@types/node": "^25.6.0",
     "next": "^16.2.4",
     "postcss": "^8.5.10",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
     "webpack": "^5.106.2"
   },
   "peerDependencies": {

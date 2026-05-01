@@ -41,7 +41,7 @@
     "@types/loader-utils": "^3.0.0",
     "@types/node": "^25.6.0",
     "mini-css-extract-plugin": "^2.10.0",
-    "webpack": "^5.105.4"
+    "webpack": "^5.106.2"
   },
   "keywords": [
     "stylex",

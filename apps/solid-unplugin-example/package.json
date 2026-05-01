@@ -22,7 +22,7 @@
   "devDependencies": {
     "serve": "^14.2.6",
     "solid-js": "^1.9.11",
-    "vite": "^8.0.5",
+    "vite": "^8.0.10",
     "vite-plugin-solid": "^2.11.10"
   },
   "type": "module"

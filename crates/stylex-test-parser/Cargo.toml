@@ -26,7 +26,7 @@ swc_core = { workspace = true, features = [
 ] }
 swc_ecma_parser = { workspace = true, features = ["verify"] }
 
-clap = { version = "4.6.0", features = ["derive"] }
+clap = { version = "4.6.1", features = ["derive"] }
 walkdir = { version = "2.5.0" }
 
 [lints]

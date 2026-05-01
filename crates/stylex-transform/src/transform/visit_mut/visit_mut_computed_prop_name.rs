@@ -22,10 +22,6 @@ where
     &mut self,
     computed_prop_name: &mut ComputedPropName,
   ) {
-    if self.state.cycle == TransformationCycle::Skip {
-      return;
-    }
-
     if self.state.cycle == TransformationCycle::StateFilling && computed_prop_name.expr.is_lit() {
       let expt_str = convert_expr_to_str(
         &computed_prop_name.expr,

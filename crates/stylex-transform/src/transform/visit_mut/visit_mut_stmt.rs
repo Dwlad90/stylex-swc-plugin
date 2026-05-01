@@ -15,10 +15,6 @@ where
   C: Comments,
 {
   pub(crate) fn visit_mut_stmt_impl(&mut self, stmt: &mut Stmt) {
-    if self.state.cycle == TransformationCycle::Skip {
-      return;
-    }
-
     if self.state.cycle == TransformationCycle::Cleaning {
       stmt.visit_mut_children_with(self);
 

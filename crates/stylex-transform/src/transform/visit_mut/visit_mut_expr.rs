@@ -11,10 +11,6 @@ where
   C: Comments,
 {
   pub(crate) fn visit_mut_expr_impl(&mut self, expr: &mut Expr) {
-    if self.state.cycle == TransformationCycle::Skip {
-      return;
-    }
-
     let normalized_expr = normalize_expr(expr);
 
     // During Initializing, transform compiled JSX/VDOM calls with sx prop:

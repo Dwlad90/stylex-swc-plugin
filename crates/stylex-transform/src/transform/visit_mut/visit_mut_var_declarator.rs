@@ -129,7 +129,7 @@ where
           }
         }
       },
-      TransformationCycle::Skip | TransformationCycle::InjectStyles => {},
+      TransformationCycle::InjectStyles => {},
       _ => var_declarator.visit_mut_children_with(self),
     }
   }

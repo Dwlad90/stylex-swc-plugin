@@ -14,10 +14,6 @@ where
   C: Comments,
 {
   pub(crate) fn visit_mut_export_decl_impl(&mut self, export_decl: &mut ExportDecl) {
-    if self.state.cycle == TransformationCycle::Skip {
-      return;
-    }
-
     if self.state.cycle == TransformationCycle::StateFilling
       && let Decl::Var(var_decl) = &export_decl.decl
     {

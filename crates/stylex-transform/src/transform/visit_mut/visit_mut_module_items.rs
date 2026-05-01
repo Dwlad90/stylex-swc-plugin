@@ -26,12 +26,10 @@ where
 {
   pub(crate) fn visit_mut_module_items_impl(&mut self, module_items: &mut Vec<ModuleItem>) {
     match self.state.cycle {
-      TransformationCycle::Skip => {},
       TransformationCycle::Initializing => {
         module_items.visit_mut_children_with(self);
 
         if !self.state.has_import_paths() {
-          self.state.cycle = TransformationCycle::Skip;
           return;
         }
 

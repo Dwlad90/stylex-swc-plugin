@@ -18,7 +18,6 @@ where
     self.discover_module(module);
 
     if !self.state.has_import_paths() {
-      self.state.cycle = TransformationCycle::Skip;
       return;
     }
 

@@ -13,8 +13,6 @@ pub enum TransformationCycle {
   Initializing,
   // Fill the state with expressions data before transformation
   StateFilling,
-  // Skip the plugin if import does not exist
-  Skip,
   // Inject styles metadata to the file
   InjectStyles,
 }

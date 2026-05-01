@@ -18,10 +18,6 @@ where
   C: Comments,
 {
   pub(crate) fn visit_mut_import_decl_impl(&mut self, import_decl: &mut ImportDecl) {
-    if self.state.cycle == TransformationCycle::Skip {
-      return;
-    }
-
     if self.state.cycle == TransformationCycle::Initializing {
       if import_decl.type_only {
         return;

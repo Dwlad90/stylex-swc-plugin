@@ -958,6 +958,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "fancy-regex"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1e1dacd0d2082dfcf1351c4bdd566bbe89a2b263235a2b50058f1e130a47277"
+dependencies = [
+ "bit-set",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
 name = "fast-glob"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2159,7 +2170,7 @@ checksum = "5401c5598b8244888870c2f1e84bb7bc1976f01c0043f1a4070a268409276840"
 dependencies = [
  "byteorder",
  "concurrent_lru",
- "fancy-regex",
+ "fancy-regex 0.17.0",
  "flate2",
  "indexmap",
  "nodejs-built-in-modules",
@@ -2377,9 +2388,9 @@ dependencies = [
 
 [[package]]
 name = "regex-automata"
-version = "0.4.13"
+version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5276caf25ac86c8d810222b3dbb938e512c55c6831a10f3e6ed1c93b84041f1c"
+checksum = "6e1dd4122fc1595e8162618945476892eefca7b88c52820e74af6262213cae8f"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -2845,7 +2856,7 @@ version = "0.15.5"
 dependencies = [
  "criterion",
  "ctor",
- "fancy-regex",
+ "fancy-regex 0.18.0",
  "log",
  "pretty_env_logger",
  "stylex_constants",
@@ -2930,7 +2941,7 @@ name = "stylex_path_resolver"
 version = "0.15.5"
 dependencies = [
  "ctor",
- "fancy-regex",
+ "fancy-regex 0.18.0",
  "indexmap",
  "log",
  "once_cell",
@@ -2950,7 +2961,7 @@ dependencies = [
 name = "stylex_regex"
 version = "0.15.5"
 dependencies = [
- "fancy-regex",
+ "fancy-regex 0.18.0",
  "once_cell",
 ]
 
@@ -2986,7 +2997,7 @@ dependencies = [
  "clap",
  "color-backtrace",
  "ctor",
- "fancy-regex",
+ "fancy-regex 0.18.0",
  "log",
  "pretty_env_logger",
  "swc_compiler_base",

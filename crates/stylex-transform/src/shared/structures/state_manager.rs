@@ -1118,6 +1118,17 @@ impl StateManager {
     self.options.treeshake_compensation
   }
 
+  /// `true` when the file imports stylex and the visitor pipeline should run.
+  ///
+  /// During the cycle-state cleanup, this replaces the scattered
+  /// `if cycle == Skip { return; }` early-returns in individual visitors so
+  /// the driver can short-circuit a single time after discovery instead of
+  /// every visitor checking the cycle on every node.
+  #[allow(dead_code)] // wired up in a follow-up commit (eliminates Skip cycle)
+  pub(crate) fn is_active(&self) -> bool {
+    self.cycle != TransformationCycle::Skip
+  }
+
   /// Decrement reference counts for every ident and member-expr access inside
   /// the given declarator.
   ///

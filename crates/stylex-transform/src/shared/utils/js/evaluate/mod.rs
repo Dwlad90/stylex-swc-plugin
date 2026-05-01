@@ -77,7 +77,6 @@ use stylex_constants::constants::{
   },
 };
 use stylex_enums::{
-  core::TransformationCycle,
   import_path_resolution::ImportPathResolution,
   js::{ArrayJS, MathJS, ObjectJS, StringJS},
   misc::{BinaryExprType, VarDeclAction},
@@ -386,7 +385,7 @@ fn _evaluate(
       ident,
       traversal_state,
       &state.functions,
-      if traversal_state.cycle == TransformationCycle::TransformExit {
+      if traversal_state.evaluate_preserve_bindings {
         // NOTE: We don't want to reduce the binding count of stylex.props arguments
         VarDeclAction::None
       } else {

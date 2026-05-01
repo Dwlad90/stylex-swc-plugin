@@ -684,6 +684,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctor"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "400a21f1014a968ec518c7ccdf9b4a4ed0cac8c56ccb6d604f8b91f00110501e"
+
+[[package]]
 name = "ctor-proc-macro"
 version = "0.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1728,12 +1734,12 @@ checksum = "fb585ade2549a017db2e35978b77c319214fa4b37cede841e27954dd6e8f3ca8"
 
 [[package]]
 name = "napi"
-version = "3.8.4"
+version = "3.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb7848c221fb7bb789e02f01875287ebb1e078b92a6566a34de01ef8806e7c2b"
+checksum = "8e55037284865448ecf329baa86a4d05401f647ebde99f5747b640d32c2c5226"
 dependencies = [
  "bitflags",
- "ctor",
+ "ctor 0.11.1",
  "futures",
  "napi-build",
  "napi-sys",
@@ -1754,7 +1760,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60867ff9a6f76e82350e0c3420cb0736f5866091b61d7d8a024baa54b0ec17dd"
 dependencies = [
  "convert_case 0.11.0",
- "ctor",
+ "ctor 0.8.0",
  "napi-derive-backend",
  "proc-macro2",
  "quote",
@@ -2805,7 +2811,7 @@ name = "stylex_ast"
 version = "0.15.5"
 dependencies = [
  "anyhow",
- "ctor",
+ "ctor 0.8.0",
  "pretty_env_logger",
  "stylex_constants",
  "stylex_macros",
@@ -2843,7 +2849,7 @@ dependencies = [
 name = "stylex_constants"
 version = "0.15.5"
 dependencies = [
- "ctor",
+ "ctor 0.8.0",
  "once_cell",
  "phf 0.13.1",
  "pretty_env_logger",
@@ -2855,7 +2861,7 @@ name = "stylex_css"
 version = "0.15.5"
 dependencies = [
  "criterion",
- "ctor",
+ "ctor 0.8.0",
  "fancy-regex 0.18.0",
  "log",
  "pretty_env_logger",
@@ -2899,7 +2905,7 @@ dependencies = [
 name = "stylex_evaluator"
 version = "0.15.5"
 dependencies = [
- "ctor",
+ "ctor 0.8.0",
  "node-resolve",
  "pretty_env_logger",
  "stylex_macros",
@@ -2920,7 +2926,7 @@ name = "stylex_logs"
 version = "0.15.5"
 dependencies = [
  "colored",
- "ctor",
+ "ctor 0.8.0",
  "env_logger 0.11.10",
  "log",
  "pretty_env_logger",
@@ -2940,7 +2946,7 @@ dependencies = [
 name = "stylex_path_resolver"
 version = "0.15.5"
 dependencies = [
- "ctor",
+ "ctor 0.8.0",
  "fancy-regex 0.18.0",
  "indexmap",
  "log",
@@ -2996,7 +3002,7 @@ version = "0.15.5"
 dependencies = [
  "clap",
  "color-backtrace",
- "ctor",
+ "ctor 0.8.0",
  "fancy-regex 0.18.0",
  "log",
  "pretty_env_logger",
@@ -3013,7 +3019,7 @@ version = "0.15.5"
 dependencies = [
  "anyhow",
  "criterion",
- "ctor",
+ "ctor 0.8.0",
  "indexmap",
  "insta",
  "log",
@@ -3048,7 +3054,7 @@ dependencies = [
 name = "stylex_types"
 version = "0.15.5"
 dependencies = [
- "ctor",
+ "ctor 0.8.0",
  "derive_more",
  "indexmap",
  "pretty_env_logger",

@@ -13,6 +13,4 @@ pub enum TransformationCycle {
   Initializing,
   // Fill the state with expressions data before transformation
   StateFilling,
-  // Inject styles metadata to the file
-  InjectStyles,
 }

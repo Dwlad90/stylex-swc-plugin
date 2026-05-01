@@ -3,7 +3,11 @@ use swc_core::{
   ecma::{ast::Module, visit::VisitMutWith},
 };
 
-use crate::{StyleXTransform, shared::utils::common::fill_top_level_expressions};
+use crate::{
+  StyleXTransform,
+  shared::utils::common::fill_top_level_expressions,
+  transform::visit_mut::visit_mut_module_items::inject_runtime_styles,
+};
 use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
@@ -66,8 +70,7 @@ where
     self.state.evaluate_preserve_bindings = false;
 
     if self.state.options.runtime_injection.is_some() {
-      self.state.cycle = TransformationCycle::InjectStyles;
-      module.visit_mut_children_with(self);
+      inject_runtime_styles(&self.state, &mut module.body);
     }
   }
 

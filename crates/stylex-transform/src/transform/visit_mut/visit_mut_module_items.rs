@@ -12,7 +12,10 @@ use swc_core::{
 
 use crate::{
   StyleXTransform,
-  shared::utils::{ast::convertors::convert_atom_to_string, common::fill_state_declarations},
+  shared::{
+    structures::state_manager::StateManager,
+    utils::{ast::convertors::convert_atom_to_string, common::fill_state_declarations},
+  },
 };
 use stylex_ast::ast::factories::create_binding_ident;
 use stylex_constants::constants::messages::VAR_DECL_INIT_REQUIRED;
@@ -106,99 +109,6 @@ where
 
         *module_items = result_module_items;
       },
-      TransformationCycle::InjectStyles => {
-        // InjectStyles must run after import discovery because injected rules
-        // are keyed by declarations collected during earlier cycles.
-        debug_assert!(self.state.are_imports_resolved());
-
-        let mut result_module_items: Vec<ModuleItem> =
-          self.state.prepend_include_module_items.clone();
-
-        result_module_items.extend(self.state.prepend_import_module_items.clone());
-
-        let mut items_to_skip: usize = 0;
-
-        if let Some(first) = module_items
-          .first()
-          .and_then(|first| first.as_stmt())
-          .and_then(|stmp| stmp.as_expr())
-          && let Some(Lit::Str(_)) = first.expr.as_lit()
-        {
-          result_module_items.insert(
-            0,
-            match module_items.first() {
-              Some(item) => item.clone(),
-              #[cfg_attr(coverage_nightly, coverage(off))]
-              None => stylex_panic!("Module items list is unexpectedly empty."),
-            },
-          );
-          items_to_skip = 1;
-        }
-
-        for module_item in module_items.iter().skip(items_to_skip) {
-          if let Some(decls) = match &module_item {
-            ModuleItem::ModuleDecl(decl) => match decl {
-              ModuleDecl::ExportDecl(export_decl) => export_decl.decl.as_var().map(|var_decl| {
-                var_decl
-                  .decls
-                  .iter()
-                  .filter(|decl| {
-                    decl
-                      .init
-                      .as_ref()
-                      .is_some_and(|init| init.is_object() || init.is_lit())
-                  })
-                  .cloned()
-                  .collect::<Vec<VarDeclarator>>()
-              }),
-              ModuleDecl::ExportDefaultExpr(export_default_expr) => {
-                export_default_expr.expr.as_object().map(|obj| {
-                  vec![VarDeclarator {
-                    definite: true,
-                    span: DUMMY_SP,
-                    name: Pat::Ident(create_binding_ident(Ident::from("default"))),
-                    init: Some(Box::new(Expr::from(obj.clone()))),
-                  }]
-                })
-              },
-              _ => None,
-            },
-            ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => Some(
-              var_decl
-                .decls
-                .iter()
-                .filter(|decl| {
-                  decl
-                    .init
-                    .as_ref()
-                    .is_some_and(|init| init.is_object() || init.is_lit())
-                })
-                .cloned()
-                .collect::<Vec<VarDeclarator>>(),
-            ),
-            _ => None,
-          } {
-            for decl in decls {
-              let key = match decl.init.as_ref() {
-                Some(k) => k,
-                #[cfg_attr(coverage_nightly, coverage(off))]
-                None => stylex_panic!("{}", VAR_DECL_INIT_REQUIRED),
-              };
-
-              let key_hash = stable_hash(key.as_ref());
-
-              if let Some(metadata_items) = self.state.styles_to_inject_for(&key_hash) {
-                for module_item in metadata_items.iter() {
-                  result_module_items.push(module_item.clone());
-                }
-              }
-            }
-          }
-          result_module_items.push(module_item.clone());
-        }
-
-        *module_items = result_module_items;
-      },
       TransformationCycle::Cleaning => {
         // We need it twice for a clear dead code after declaration transforms
         module_items.visit_mut_children_with(self);
@@ -212,4 +122,105 @@ where
       },
     }
   }
+}
+
+/// Prepend the accumulated injection items and interleave per-decl style
+/// metadata into a module body.
+///
+/// Replaces the legacy `TransformationCycle::InjectStyles` walk: the work was
+/// always module-body-level (no per-node descent), so the plugin no longer
+/// needs a full `visit_mut_children_with` pass to do it. Called from
+/// `transform_consumers` after the consumer walk finishes when runtime
+/// injection is enabled.
+pub(crate) fn inject_runtime_styles(state: &StateManager, module_items: &mut Vec<ModuleItem>) {
+  // InjectStyles must run after import discovery because injected rules
+  // are keyed by declarations collected during earlier cycles.
+  debug_assert!(state.are_imports_resolved());
+
+  let mut result_module_items: Vec<ModuleItem> = state.prepend_include_module_items.clone();
+
+  result_module_items.extend(state.prepend_import_module_items.clone());
+
+  let mut items_to_skip: usize = 0;
+
+  if let Some(first) = module_items
+    .first()
+    .and_then(|first| first.as_stmt())
+    .and_then(|stmp| stmp.as_expr())
+    && let Some(Lit::Str(_)) = first.expr.as_lit()
+  {
+    result_module_items.insert(
+      0,
+      match module_items.first() {
+        Some(item) => item.clone(),
+        #[cfg_attr(coverage_nightly, coverage(off))]
+        None => stylex_panic!("Module items list is unexpectedly empty."),
+      },
+    );
+    items_to_skip = 1;
+  }
+
+  for module_item in module_items.iter().skip(items_to_skip) {
+    if let Some(decls) = match &module_item {
+      ModuleItem::ModuleDecl(decl) => match decl {
+        ModuleDecl::ExportDecl(export_decl) => export_decl.decl.as_var().map(|var_decl| {
+          var_decl
+            .decls
+            .iter()
+            .filter(|decl| {
+              decl
+                .init
+                .as_ref()
+                .is_some_and(|init| init.is_object() || init.is_lit())
+            })
+            .cloned()
+            .collect::<Vec<VarDeclarator>>()
+        }),
+        ModuleDecl::ExportDefaultExpr(export_default_expr) => {
+          export_default_expr.expr.as_object().map(|obj| {
+            vec![VarDeclarator {
+              definite: true,
+              span: DUMMY_SP,
+              name: Pat::Ident(create_binding_ident(Ident::from("default"))),
+              init: Some(Box::new(Expr::from(obj.clone()))),
+            }]
+          })
+        },
+        _ => None,
+      },
+      ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => Some(
+        var_decl
+          .decls
+          .iter()
+          .filter(|decl| {
+            decl
+              .init
+              .as_ref()
+              .is_some_and(|init| init.is_object() || init.is_lit())
+          })
+          .cloned()
+          .collect::<Vec<VarDeclarator>>(),
+      ),
+      _ => None,
+    } {
+      for decl in decls {
+        let key = match decl.init.as_ref() {
+          Some(k) => k,
+          #[cfg_attr(coverage_nightly, coverage(off))]
+          None => stylex_panic!("{}", VAR_DECL_INIT_REQUIRED),
+        };
+
+        let key_hash = stable_hash(key.as_ref());
+
+        if let Some(metadata_items) = state.styles_to_inject_for(&key_hash) {
+          for module_item in metadata_items.iter() {
+            result_module_items.push(module_item.clone());
+          }
+        }
+      }
+    }
+    result_module_items.push(module_item.clone());
+  }
+
+  *module_items = result_module_items;
 }

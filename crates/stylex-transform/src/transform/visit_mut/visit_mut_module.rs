@@ -27,7 +27,9 @@ where
       module.visit_mut_children_with(self);
 
       self.state.cycle = TransformationCycle::TransformExit;
+      self.state.evaluate_preserve_bindings = true;
       module.visit_mut_children_with(self);
+      self.state.evaluate_preserve_bindings = false;
 
       if self.state.options.runtime_injection.is_some() {
         self.state.cycle = TransformationCycle::InjectStyles;

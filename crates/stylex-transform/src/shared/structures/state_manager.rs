@@ -380,6 +380,16 @@ pub struct StateManager {
   pub(crate) top_imports: Vec<ImportDecl>,
   pub(crate) named_exports: FxHashSet<NamedExport>,
 
+  /// When `true`, the expression evaluator preserves variable binding
+  /// counts (returns `VarDeclAction::None`) instead of decrementing them.
+  ///
+  /// Set by the driver around the consumer transformation walk so that
+  /// arguments to `stylex.props` / `stylex.attrs` retain their references
+  /// for codegen. Replaces the legacy `cycle == TransformExit` check in
+  /// `shared/utils/js/evaluate/mod.rs`, decoupling the evaluator from the
+  /// pipeline state machine.
+  pub(crate) evaluate_preserve_bindings: bool,
+
   pub cycle: TransformationCycle,
 }
 
@@ -425,6 +435,8 @@ impl StateManager {
       hoisted_module_items: vec![],
 
       other_injected_css_rules: IndexMap::new(),
+
+      evaluate_preserve_bindings: false,
 
       cycle: TransformationCycle::Initializing,
     }

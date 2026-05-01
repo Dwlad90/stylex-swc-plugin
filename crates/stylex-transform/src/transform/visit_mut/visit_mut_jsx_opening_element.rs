@@ -27,8 +27,8 @@ where
     &mut self,
     jsx_opening_element: &mut JSXOpeningElement,
   ) {
-    // Only transform during Initializing cycle
-    if self.state.cycle != TransformationCycle::Initializing {
+    // Only transform during Discover cycle
+    if self.state.cycle != TransformationCycle::Discover {
       jsx_opening_element.visit_mut_children_with(self);
       return;
     }

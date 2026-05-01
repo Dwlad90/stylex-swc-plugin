@@ -8,7 +8,7 @@ where
   C: Comments,
 {
   pub(crate) fn visit_mut_ident_impl(&mut self, ident: &mut Ident) {
-    if self.state.cycle == TransformationCycle::StateFilling {
+    if self.state.cycle == TransformationCycle::Discover {
       increase_ident_count(&mut self.state, ident);
     }
   }

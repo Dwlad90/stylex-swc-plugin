@@ -18,7 +18,7 @@ where
   C: Comments,
 {
   pub(crate) fn visit_mut_import_decl_impl(&mut self, import_decl: &mut ImportDecl) {
-    if self.state.cycle == TransformationCycle::Initializing {
+    if self.state.cycle == TransformationCycle::Discover {
       if import_decl.type_only {
         return;
       }

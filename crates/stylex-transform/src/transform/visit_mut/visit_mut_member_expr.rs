@@ -23,7 +23,7 @@ where
 {
   pub(crate) fn visit_mut_member_expr_impl(&mut self, member_expression: &mut MemberExpr) {
     match self.state.cycle {
-      TransformationCycle::StateFilling => {
+      TransformationCycle::Discover => {
         if let Some(obj_ident) = member_expression.obj.as_ident() {
           increase_member_ident_count(&mut self.state, &obj_ident.sym);
         }

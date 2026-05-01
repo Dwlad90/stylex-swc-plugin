@@ -16,7 +16,7 @@ where
     jsx_attrs: &mut Vec<JSXAttrOrSpread>,
   ) {
     match self.state.cycle {
-      TransformationCycle::Initializing => {
+      TransformationCycle::Discover => {
         for jsx_attr in jsx_attrs.iter() {
           if let JSXAttrOrSpread::SpreadElement(spread) = jsx_attr {
             let expr = drop_span(spread.expr.as_ref().clone());

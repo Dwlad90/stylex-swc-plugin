@@ -124,7 +124,7 @@ impl Default for EvaluationStyleXLastStatementTransform {
 
 impl Fold for EvaluationStyleXLastStatementTransform {
   fn fold_module(&mut self, module: Module) -> Module {
-    self.state.cycle = TransformationCycle::StateFilling;
+    self.state.cycle = TransformationCycle::Discover;
     let module = module.fold_children_with(self);
 
     fill_top_level_expressions(&module, &mut self.state);

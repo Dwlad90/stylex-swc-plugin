@@ -29,7 +29,23 @@ where
 {
   pub(crate) fn visit_mut_module_items_impl(&mut self, module_items: &mut Vec<ModuleItem>) {
     match self.state.cycle {
-      TransformationCycle::Initializing => {
+      TransformationCycle::Discover => {
+        // Pre-fill `state.declarations` for top-level binding-pattern var
+        // decls so any subsequent lookup during the descent (or in later
+        // phases) can find them. The visit_mut_var_declarator hook will
+        // re-fill them per-decl, but `fill_state_declarations` is idempotent.
+        module_items.iter().for_each(|module_item| {
+          if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) = module_item {
+            var_decl.decls.iter().for_each(|decl| {
+              if let Pat::Ident(_) = &decl.name {
+                fill_state_declarations(&mut self.state, decl);
+              }
+            });
+          }
+        });
+
+        // Single descent: discovers stylex imports, transforms compiled-JSX
+        // sx attributes, and accumulates ident / member-expr counts.
         module_items.visit_mut_children_with(self);
 
         if !self.state.has_import_paths() {
@@ -67,19 +83,6 @@ where
 
           module_items.extend(side_effect_imports);
         }
-      },
-      TransformationCycle::StateFilling => {
-        module_items.iter().for_each(|module_item| {
-          if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) = module_item {
-            var_decl.decls.iter().for_each(|decl| {
-              if let Pat::Ident(_) = &decl.name {
-                fill_state_declarations(&mut self.state, decl);
-              }
-            });
-          }
-        });
-
-        module_items.visit_mut_children_with(self);
       },
       TransformationCycle::TransformEnter | TransformationCycle::PreCleaning => {
         module_items.visit_mut_children_with(self)

@@ -12,7 +12,7 @@ where
 {
   pub(crate) fn visit_mut_member_prop_impl(&mut self, member_prop: &mut MemberProp) {
     match self.state.cycle {
-      TransformationCycle::StateFilling if member_prop.is_ident() => {},
+      TransformationCycle::Discover if member_prop.is_ident() => {},
       _ => member_prop.visit_mut_children_with(self),
     }
   }

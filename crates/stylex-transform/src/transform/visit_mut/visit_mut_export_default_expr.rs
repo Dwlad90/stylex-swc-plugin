@@ -14,7 +14,7 @@ where
     &mut self,
     export_default_expr: &mut ExportDefaultExpr,
   ) {
-    if self.state.cycle == TransformationCycle::StateFilling {
+    if self.state.cycle == TransformationCycle::Discover {
       export_default_expr.visit_mut_children_with(self);
       return;
     }

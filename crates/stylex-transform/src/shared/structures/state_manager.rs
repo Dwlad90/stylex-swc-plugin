@@ -438,7 +438,7 @@ impl StateManager {
 
       evaluate_preserve_bindings: false,
 
-      cycle: TransformationCycle::Initializing,
+      cycle: TransformationCycle::Discover,
     }
   }
 

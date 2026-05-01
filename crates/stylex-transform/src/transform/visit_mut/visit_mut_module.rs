@@ -30,19 +30,19 @@ where
     self.finalize_module(module);
   }
 
-  /// Run the discovery pass (`Initializing` + `StateFilling`).
+  /// Run the discovery pass.
   ///
-  /// Walks the module once with the implicit `Initializing` cycle to populate
-  /// import/JSX-sx state, then — if stylex was actually imported — walks again
-  /// under `StateFilling` to fill var-decl counts, top-level expressions, and
-  /// related metadata.
+  /// Walks the module once under the `Discover` cycle, populating import
+  /// state, transforming compiled-JSX `sx` attributes, counting variable /
+  /// member-expression references, and pre-filling top-level declarations —
+  /// all the work the legacy `Initializing` + `StateFilling` two-pass split
+  /// used to do separately. Whenever stylex was imported, also captures the
+  /// top-level expressions consumed by later phases.
   pub(crate) fn discover_module(&mut self, module: &mut Module) {
+    self.state.cycle = TransformationCycle::Discover;
     module.visit_mut_children_with(self);
 
     if self.state.has_import_paths() {
-      self.state.cycle = TransformationCycle::StateFilling;
-      module.visit_mut_children_with(self);
-
       fill_top_level_expressions(module, &mut self.state);
     }
   }

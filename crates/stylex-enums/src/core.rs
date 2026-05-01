@@ -9,8 +9,8 @@ pub enum TransformationCycle {
   PreCleaning,
   // The file is being cleaned
   Cleaning,
-  // The file has been processed and the plugin is skipped
-  Initializing,
-  // Fill the state with expressions data before transformation
-  StateFilling,
+  // Discover stylex imports and fill the state with reference-count data in
+  // a single AST walk (replaces the legacy `Initializing` + `StateFilling`
+  // two-pass split).
+  Discover,
 }

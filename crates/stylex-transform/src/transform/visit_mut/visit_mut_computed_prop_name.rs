@@ -22,7 +22,7 @@ where
     &mut self,
     computed_prop_name: &mut ComputedPropName,
   ) {
-    if self.state.cycle == TransformationCycle::StateFilling && computed_prop_name.expr.is_lit() {
+    if self.state.cycle == TransformationCycle::Discover && computed_prop_name.expr.is_lit() {
       let expt_str = convert_expr_to_str(
         &computed_prop_name.expr,
         &mut self.state,

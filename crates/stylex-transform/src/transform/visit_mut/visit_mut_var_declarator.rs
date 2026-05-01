@@ -38,7 +38,7 @@ where
 {
   pub(crate) fn visit_mut_var_declarator_impl(&mut self, var_declarator: &mut VarDeclarator) {
     match self.state.cycle {
-      TransformationCycle::StateFilling => {
+      TransformationCycle::Discover => {
         fill_state_declarations(&mut self.state, var_declarator);
 
         if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut()
@@ -49,7 +49,6 @@ where
           if self
             .state
             .is_stylex_import_for_kinds(declaration_name, &[ImportKind::Create])
-            && self.state.cycle == TransformationCycle::StateFilling
             && (member.as_str() == STYLEX_CREATE || member == declaration_name)
           {
             self.props_declaration = var_declarator.name.as_ident().map(|ident| ident.to_id());

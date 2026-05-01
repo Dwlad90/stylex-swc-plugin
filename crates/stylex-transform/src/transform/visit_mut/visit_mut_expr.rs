@@ -13,11 +13,12 @@ where
   pub(crate) fn visit_mut_expr_impl(&mut self, expr: &mut Expr) {
     let normalized_expr = normalize_expr(expr);
 
-    // During Initializing, transform compiled JSX/VDOM calls with sx prop:
+    // During Discover, transform compiled JSX/VDOM calls with sx prop and
+    // register call expressions for downstream lookup:
     // React/Vue: _jsx("div", { sx: expr }) → _jsx("div", { ...stylex.props(expr) })
     // Solid.js:  _$setAttribute(el, "sx", expr) → _$spread(el, _$mergeProps(() =>
     // stylex.props(expr)), false, true)
-    if self.state.cycle == TransformationCycle::Initializing {
+    if self.state.cycle == TransformationCycle::Discover {
       if let Some(transformed) = self.transform_sx_in_compiled_jsx(normalized_expr) {
         *expr = transformed;
         expr.visit_mut_children_with(self);
@@ -28,12 +29,10 @@ where
         expr.visit_mut_children_with(self);
         return;
       }
-    }
 
-    if self.state.cycle == TransformationCycle::StateFilling
-      && let Some(call_expr) = normalized_expr.as_call()
-    {
-      self.state.add_call_expression(call_expr);
+      if let Some(call_expr) = normalized_expr.as_call() {
+        self.state.add_call_expression(call_expr);
+      }
     }
 
     if (self.state.cycle == TransformationCycle::TransformEnter

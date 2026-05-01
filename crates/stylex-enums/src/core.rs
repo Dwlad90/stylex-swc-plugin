@@ -9,8 +9,6 @@ pub enum TransformationCycle {
   PreCleaning,
   // The file is being cleaned
   Cleaning,
-  // Recounting variable links
-  Recounting,
   // The file has been processed and the plugin is skipped
   Initializing,
   // Fill the state with expressions data before transformation

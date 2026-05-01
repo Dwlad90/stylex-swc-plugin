@@ -1144,12 +1144,9 @@ impl StateManager {
   /// Decrement reference counts for every ident and member-expr access inside
   /// the given declarator.
   ///
-  /// Mirrors what the legacy `TransformationCycle::Recounting` pass did when it
-  /// re-traversed an unused declarator with the visitor's mutable hooks. The
-  /// read-only `Visit` walk used here avoids needing to set/reset cycle state
-  /// and lets cleanup code call this helper directly without piggybacking on the
-  /// driver.
-  #[allow(dead_code)] // wired up in a follow-up commit (eliminates Recounting cycle)
+  /// Used by the cleanup pass to keep `var_decl_count_map` and
+  /// `member_object_ident_count_map` symmetric when an unused declarator is
+  /// removed.
   pub(crate) fn decrement_decl_counts(&mut self, decl: &VarDeclarator) {
     let mut visitor = DecrementCountVisitor { state: self };
     decl.visit_with(&mut visitor);
@@ -1210,12 +1207,6 @@ impl StateManager {
 
 /// Read-only visitor used by [`StateManager::decrement_decl_counts`] to undo
 /// the increments produced during the discovery walk for an unused declarator.
-///
-/// Mirrors the legacy `TransformationCycle::Recounting` arms in
-/// `visit_mut_ident.rs`, `visit_mut_member_expr.rs`, `visit_mut_member_prop.rs`
-/// and `visit_mut_prop_name.rs` so reference counts stay symmetric without
-/// piggybacking on the cycle field.
-#[allow(dead_code)] // wired up in a follow-up commit (eliminates Recounting cycle)
 struct DecrementCountVisitor<'a> {
   state: &'a mut StateManager,
 }

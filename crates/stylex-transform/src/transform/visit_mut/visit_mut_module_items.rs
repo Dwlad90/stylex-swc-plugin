@@ -80,9 +80,9 @@ where
 
         module_items.visit_mut_children_with(self);
       },
-      TransformationCycle::TransformEnter
-      | TransformationCycle::PreCleaning
-      | TransformationCycle::Recounting => module_items.visit_mut_children_with(self),
+      TransformationCycle::TransformEnter | TransformationCycle::PreCleaning => {
+        module_items.visit_mut_children_with(self)
+      },
       TransformationCycle::TransformExit => {
         if self.state.hoisted_module_items.is_empty() {
           module_items.visit_mut_children_with(self);

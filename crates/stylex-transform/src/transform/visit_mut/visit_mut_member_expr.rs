@@ -14,9 +14,7 @@ use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
 use crate::{
   StyleXTransform,
-  shared::utils::common::{
-    increase_ident_count, increase_member_ident_count, reduce_member_ident_count,
-  },
+  shared::utils::common::{increase_ident_count, increase_member_ident_count},
 };
 
 impl<C> StyleXTransform<C>
@@ -29,12 +27,6 @@ where
       TransformationCycle::StateFilling => {
         if let Some(obj_ident) = member_expression.obj.as_ident() {
           increase_member_ident_count(&mut self.state, &obj_ident.sym);
-        }
-        member_expression.visit_mut_children_with(self);
-      },
-      TransformationCycle::Recounting => {
-        if let Some(obj_ident) = member_expression.obj.as_ident() {
-          reduce_member_ident_count(&mut self.state, &obj_ident.sym);
         }
         member_expression.visit_mut_children_with(self);
       },

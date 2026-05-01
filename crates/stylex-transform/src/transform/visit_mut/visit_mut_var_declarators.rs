@@ -34,10 +34,7 @@ where
                   .any(|style_var| &style_var.0 == decl_id);
 
               if !is_used {
-                self.state.cycle = TransformationCycle::Recounting;
-                decl.visit_mut_children_with(self);
-
-                self.state.cycle = TransformationCycle::Cleaning;
+                self.state.decrement_decl_counts(decl);
               }
 
               return is_used;

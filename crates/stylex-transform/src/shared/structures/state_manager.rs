@@ -20,7 +20,7 @@ use swc_core::{
       Str, VarDecl, VarDeclKind, VarDeclarator,
     },
     utils::drop_span,
-    visit::{Visit, VisitWith},
+    visit::{Visit, VisitMut, VisitMutWith, VisitWith},
   },
 };
 
@@ -30,13 +30,14 @@ use crate::shared::{
     ast::convertors::create_number_expr,
     common::{
       extract_filename_from_path, extract_filename_with_ext_from_path, extract_path,
-      reduce_ident_count, reduce_member_ident_count,
+      increase_ident_count, reduce_ident_count, reduce_member_ident_count,
     },
   },
 };
 use stylex_ast::ast::factories::{
-  create_binding_ident, create_expr_or_spread, create_key_value_prop, create_number_expr_or_spread,
-  create_object_expression, create_string_expr_or_spread, create_string_key_value_prop,
+  create_binding_ident, create_expr_or_spread, create_jsx_attr_or_spread, create_jsx_spread_attr,
+  create_key_value_prop, create_number_expr_or_spread, create_object_expression,
+  create_string_expr_or_spread, create_string_key_value_prop,
 };
 use stylex_constants::constants::{
   api_names::{
@@ -47,6 +48,7 @@ use stylex_constants::constants::{
   },
   common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH},
 };
+use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
 use stylex_enums::{
   core::TransformationCycle, counter_mode::CounterMode,
   import_path_resolution::ImportPathResolution, top_level_expression::TopLevelExpressionKind,
@@ -550,7 +552,7 @@ impl StateManager {
 
   pub(crate) fn is_stylex_import_for_current_cycle(&self, ident_sym: &str) -> bool {
     match self.cycle {
-      TransformationCycle::TransformEnter => {
+      TransformationCycle::TransformProducers => {
         use ImportKind::*;
         self.is_stylex_import_for_kinds(
           ident_sym,
@@ -569,7 +571,7 @@ impl StateManager {
           ],
         )
       },
-      TransformationCycle::TransformExit => {
+      TransformationCycle::TransformConsumers => {
         self.is_stylex_import_for_kinds(ident_sym, &[ImportKind::Attrs, ImportKind::Props])
       },
       _ => self.is_stylex_namespace_import(ident_sym),
@@ -1223,6 +1225,91 @@ impl Visit for DecrementCountVisitor<'_> {
       prop_name.visit_children_with(self);
     }
   }
+}
+
+/// Visitor used by [`mark_style_vars_to_keep`] to populate
+/// `state.style_vars_to_keep` from the surviving member-expression accesses
+/// on style namespaces and to materialize any JSX-spread replacements
+/// recorded during the discovery phase.
+///
+/// Replaces what the legacy `TransformationCycle::PreCleaning` arms in
+/// `visit_mut_member_expr.rs` and `visit_mut_jsx_attr_or_spread.rs` did,
+/// so the finalize phase can collapse to a single sweep cycle.
+struct MarkStyleVarsVisitor<'a> {
+  state: &'a mut StateManager,
+}
+
+impl VisitMut for MarkStyleVarsVisitor<'_> {
+  fn visit_mut_member_expr(&mut self, member_expression: &mut MemberExpr) {
+    if let Expr::Ident(ident) = member_expression.obj.as_ref()
+      && self.state.style_map.contains_key(ident.sym.as_ref())
+    {
+      if let MemberProp::Ident(prop_ident) = &member_expression.prop
+        && self
+          .state
+          .member_object_ident_count_map
+          .get(&ident.sym)
+          .is_some_and(|&c| c > 0)
+      {
+        increase_ident_count(self.state, ident);
+        self.state.style_vars_to_keep.insert(StyleVarsToKeep(
+          ident.sym.clone(),
+          NonNullProp::Atom(prop_ident.sym.clone()),
+          NonNullProps::True,
+        ));
+      };
+
+      if let MemberProp::Computed(_) = &member_expression.prop {
+        increase_ident_count(self.state, ident);
+        self.state.style_vars_to_keep.insert(StyleVarsToKeep(
+          ident.sym.clone(),
+          NonNullProp::True,
+          NonNullProps::True,
+        ));
+      }
+    }
+
+    member_expression.visit_mut_children_with(self);
+  }
+
+  fn visit_mut_jsx_attr_or_spreads(&mut self, jsx_attrs: &mut Vec<JSXAttrOrSpread>) {
+    let mut result: Vec<JSXAttrOrSpread> = jsx_attrs
+      .iter()
+      .flat_map(|jsx_attr| match jsx_attr {
+        JSXAttrOrSpread::SpreadElement(spread) => {
+          let expr = drop_span(spread.expr.as_ref().clone());
+          if let Some(updated_exprs) = self.state.jsx_spread_attr_exprs_map.get(&expr).cloned() {
+            if updated_exprs.is_empty() {
+              // If the spread was resolved to nothing, keep the original
+              vec![jsx_attr.clone()]
+            } else {
+              // Replace the spread with the updated expressions
+              updated_exprs
+            }
+          } else {
+            // If no replacement found, keep the original spread element
+            vec![create_jsx_spread_attr(*spread.expr.clone())]
+          }
+        },
+        JSXAttrOrSpread::JSXAttr(attr) => vec![create_jsx_attr_or_spread(attr.clone())],
+      })
+      .collect();
+
+    result.visit_mut_children_with(self);
+    *jsx_attrs = result;
+  }
+}
+
+/// Walk the module to populate `state.style_vars_to_keep` from surviving
+/// member-expr accesses on style namespaces, and to apply any deferred
+/// JSX-spread replacements collected during discovery.
+///
+/// This is the "mark" step of the finalize phase. The "sweep" step that
+/// actually deletes unused declarations runs afterwards under
+/// `TransformationCycle::Finalize` with `module.body` reversed.
+pub(crate) fn mark_style_vars_to_keep(module: &mut Module, state: &mut StateManager) {
+  let mut visitor = MarkStyleVarsVisitor { state };
+  module.visit_mut_with(&mut visitor);
 }
 
 fn add_inject_default_import_expression(ident: &Ident, inject_path: Option<&str>) -> ModuleItem {

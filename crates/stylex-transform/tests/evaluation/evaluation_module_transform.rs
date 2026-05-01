@@ -129,7 +129,7 @@ impl Fold for EvaluationStyleXLastStatementTransform {
 
     fill_top_level_expressions(&module, &mut self.state);
 
-    self.state.cycle = TransformationCycle::TransformEnter;
+    self.state.cycle = TransformationCycle::TransformProducers;
 
     module.fold_children_with(self)
   }
@@ -139,7 +139,7 @@ impl Fold for EvaluationStyleXLastStatementTransform {
       self.state.add_call_expression(call_expr);
     }
 
-    if self.state.cycle == TransformationCycle::TransformEnter {
+    if self.state.cycle == TransformationCycle::TransformProducers {
       return self.evaluate_expr(expr).fold_children_with(self);
     }
 

@@ -11,7 +11,7 @@ where
   C: Comments,
 {
   pub(crate) fn visit_mut_stmts_impl(&mut self, stmts: &mut Vec<Stmt>) {
-    if self.state.cycle == TransformationCycle::Cleaning {
+    if self.state.cycle == TransformationCycle::Finalize {
       stmts.retain(|stmt| {
         // We use `matches` macro as this match is trivial.
         !matches!(stmt, Stmt::Empty(..))

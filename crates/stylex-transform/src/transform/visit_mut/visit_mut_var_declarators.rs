@@ -17,7 +17,7 @@ where
     &mut self,
     var_declarators: &mut Vec<VarDeclarator>,
   ) {
-    if self.state.cycle == TransformationCycle::Cleaning {
+    if self.state.cycle == TransformationCycle::Finalize {
       var_declarators.retain_mut(|decl| {
         if let Pat::Ident(bind_ident) = &decl.name {
           let decl_id = &bind_ident.sym;

@@ -19,8 +19,8 @@ where
       return;
     }
 
-    if self.state.cycle == TransformationCycle::TransformEnter
-      || self.state.cycle == TransformationCycle::TransformExit
+    if self.state.cycle == TransformationCycle::TransformProducers
+      || self.state.cycle == TransformationCycle::TransformConsumers
     {
       let normalized_expr = normalize_expr(&mut export_default_expr.expr);
 

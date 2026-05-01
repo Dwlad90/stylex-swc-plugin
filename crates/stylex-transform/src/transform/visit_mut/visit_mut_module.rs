@@ -5,7 +5,9 @@ use swc_core::{
 
 use crate::{
   StyleXTransform,
-  shared::utils::common::fill_top_level_expressions,
+  shared::{
+    structures::state_manager::mark_style_vars_to_keep, utils::common::fill_top_level_expressions,
+  },
   transform::visit_mut::visit_mut_module_items::inject_runtime_styles,
 };
 use stylex_enums::core::TransformationCycle;
@@ -47,24 +49,25 @@ where
     }
   }
 
-  /// Run the producer transformation pass (`TransformEnter`).
+  /// Run the producer transformation pass.
   ///
   /// Transforms `stylex.create` / `defineVars` / `keyframes` / etc. — the calls
   /// that *produce* style namespaces consumed by later phases.
   pub(crate) fn transform_producers(&mut self, module: &mut Module) {
-    self.state.cycle = TransformationCycle::TransformEnter;
+    self.state.cycle = TransformationCycle::TransformProducers;
     module.visit_mut_children_with(self);
   }
 
   /// Run the consumer transformation pass plus runtime style injection.
   ///
   /// Transforms `stylex.props` / `stylex.attrs` (which consume the style
-  /// namespaces produced by the prior phase) under `TransformExit`, with the
+  /// namespaces produced by the prior phase) with the
   /// `evaluate_preserve_bindings` flag held for the duration of the walk so
   /// the evaluator does not decrement binding counts on call arguments. Then,
-  /// if runtime injection is enabled, runs the `InjectStyles` pass.
+  /// if runtime injection is enabled, prepends the accumulated style metadata
+  /// to the module body in place (no extra tree walk needed).
   pub(crate) fn transform_consumers(&mut self, module: &mut Module) {
-    self.state.cycle = TransformationCycle::TransformExit;
+    self.state.cycle = TransformationCycle::TransformConsumers;
     self.state.evaluate_preserve_bindings = true;
     module.visit_mut_children_with(self);
     self.state.evaluate_preserve_bindings = false;
@@ -74,23 +77,25 @@ where
     }
   }
 
-  /// Run the cleanup phases (`PreCleaning` + `Cleaning`).
+  /// Run the cleanup phase: mark surviving style accesses, then sweep
+  /// unused declarations.
   ///
-  /// First marks which style namespaces / object properties survive (member
-  /// accesses left after consumer transformation). Then runs the sweep with
-  /// the module body reversed so removing later declarations does not
-  /// invalidate the counts of earlier ones; the body is restored to original
-  /// order afterwards.
+  /// The mark step (formerly the `PreCleaning` cycle) is delegated to the
+  /// `mark_style_vars_to_keep` helper, which walks the module once and
+  /// populates `state.style_vars_to_keep` plus materializes any deferred
+  /// JSX-spread replacements. The sweep step then runs under
+  /// `TransformationCycle::Finalize` with `module.body` reversed so removing
+  /// later declarations does not invalidate the counts of earlier ones; the
+  /// body is restored to original order afterwards.
   pub(crate) fn finalize_module(&mut self, module: &mut Module) {
-    self.state.cycle = TransformationCycle::PreCleaning;
-    module.visit_mut_children_with(self);
+    mark_style_vars_to_keep(module, &mut self.state);
 
-    self.state.cycle = TransformationCycle::Cleaning;
+    self.state.cycle = TransformationCycle::Finalize;
 
     // NOTE: Reversing the module body to clean the module items in the correct
-    // order, so removing unused variable declarations will more efficient
-    // After cleaning the module items, the module body will be reversed back to
-    // its original order
+    // order, so removing unused variable declarations will more efficient.
+    // After cleaning the module items, the module body will be reversed back
+    // to its original order.
     module.body.reverse();
 
     module.visit_mut_children_with(self);

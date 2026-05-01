@@ -15,7 +15,7 @@ where
   C: Comments,
 {
   pub(crate) fn visit_mut_stmt_impl(&mut self, stmt: &mut Stmt) {
-    if self.state.cycle == TransformationCycle::Cleaning {
+    if self.state.cycle == TransformationCycle::Finalize {
       stmt.visit_mut_children_with(self);
 
       if let Some(Stmt::Decl(Decl::Var(var))) = stmt.as_ref()

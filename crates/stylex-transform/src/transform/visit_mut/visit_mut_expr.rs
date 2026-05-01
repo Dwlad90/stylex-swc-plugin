@@ -35,8 +35,8 @@ where
       }
     }
 
-    if (self.state.cycle == TransformationCycle::TransformEnter
-      || self.state.cycle == TransformationCycle::TransformExit)
+    if (self.state.cycle == TransformationCycle::TransformProducers
+      || self.state.cycle == TransformationCycle::TransformConsumers)
       && let Some(value) = self.transform_call_expression(normalized_expr)
     {
       *expr = value;

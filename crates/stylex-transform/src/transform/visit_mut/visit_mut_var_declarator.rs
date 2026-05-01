@@ -57,7 +57,7 @@ where
 
         var_declarator.visit_mut_children_with(self);
       },
-      TransformationCycle::Cleaning => {
+      TransformationCycle::Finalize => {
         let mut vars_to_keep: FxHashMap<Atom, NonNullProps> = FxHashMap::default();
 
         for StyleVarsToKeep(var_name, namespace_name, _) in self.state.style_vars_to_keep.iter() {

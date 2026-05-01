@@ -84,10 +84,8 @@ where
           module_items.extend(side_effect_imports);
         }
       },
-      TransformationCycle::TransformEnter | TransformationCycle::PreCleaning => {
-        module_items.visit_mut_children_with(self)
-      },
-      TransformationCycle::TransformExit => {
+      TransformationCycle::TransformProducers => module_items.visit_mut_children_with(self),
+      TransformationCycle::TransformConsumers => {
         if self.state.hoisted_module_items.is_empty() {
           module_items.visit_mut_children_with(self);
           return;
@@ -112,7 +110,7 @@ where
 
         *module_items = result_module_items;
       },
-      TransformationCycle::Cleaning => {
+      TransformationCycle::Finalize => {
         // We need it twice for a clear dead code after declaration transforms
         module_items.visit_mut_children_with(self);
 

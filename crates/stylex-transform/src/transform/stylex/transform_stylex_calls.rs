@@ -11,7 +11,7 @@ where
   C: Comments,
 {
   pub(crate) fn transform_stylex_fns(&mut self, call_expr: &mut CallExpr) -> Option<Expr> {
-    if self.state.cycle == TransformationCycle::TransformEnter {
+    if self.state.cycle == TransformationCycle::TransformProducers {
       let (_, parent_var_decl) = &self.get_call_var_name(call_expr);
 
       if let Some(parent_var_decl) = parent_var_decl {
@@ -53,7 +53,7 @@ where
       }
     }
 
-    if self.state.cycle == TransformationCycle::TransformExit {
+    if self.state.cycle == TransformationCycle::TransformConsumers {
       if let Some(value) = self.transform_stylex_attrs_call(call_expr) {
         return Some(value);
       }

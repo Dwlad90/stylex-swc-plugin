@@ -72,7 +72,7 @@
     "@swc-node/register": "^1.11.1",
     "@swc/core": "^1.15.11",
     "@taplo/cli": "^0.7.0",
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.6.0",
     "@types/picomatch": "^4.0.3",
     "ava": "^7.0.0",
     "benchmark": "^2.1.4",
@@ -82,7 +82,7 @@
     "oxlint": "^1.50.0",
     "prettier": "^3.8.3",
     "tinybench": "^6.0.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "@swc/core": "^1"

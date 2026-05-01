@@ -31,12 +31,12 @@
     }
   },
   "dependencies": {
-    "@stylexjs/babel-plugin": "^0.18.2",
+    "@stylexjs/babel-plugin": "^0.18.3",
     "@stylexswc/rs-compiler": "0.15.5",
     "fast-glob": "^3.3.3",
     "glob-parent": "^6.0.2",
     "is-glob": "^4.0.3",
-    "postcss": "^8.5.10"
+    "postcss": "^8.5.13"
   },
   "devDependencies": {
     "@stylexswc/eslint-config": "0.15.5",

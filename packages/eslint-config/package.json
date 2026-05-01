@@ -15,7 +15,7 @@
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.6.0",
     "@stylexjs/eslint-plugin": "^0.18.2",
-    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
     "@typescript-eslint/parser": "^8.56.1",
     "eslint-config-next": "^16.2.4",
     "eslint-config-prettier": "^10.1.8",

@@ -15,11 +15,12 @@ use swc_core::{
   ecma::{
     ast::{
       CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier,
-      ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread, MemberExpr, Module,
-      ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Program, Stmt, Str, VarDecl,
-      VarDeclKind, VarDeclarator,
+      ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread, MemberExpr, MemberProp,
+      Module, ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Program, PropName, Stmt,
+      Str, VarDecl, VarDeclKind, VarDeclarator,
     },
     utils::drop_span,
+    visit::{Visit, VisitWith},
   },
 };
 
@@ -27,7 +28,10 @@ use crate::shared::{
   structures::types::InjectableStylesMap,
   utils::{
     ast::convertors::create_number_expr,
-    common::{extract_filename_from_path, extract_filename_with_ext_from_path, extract_path},
+    common::{
+      extract_filename_from_path, extract_filename_with_ext_from_path, extract_path,
+      reduce_ident_count, reduce_member_ident_count,
+    },
   },
 };
 use stylex_ast::ast::factories::{
@@ -1114,6 +1118,20 @@ impl StateManager {
     self.options.treeshake_compensation
   }
 
+  /// Decrement reference counts for every ident and member-expr access inside
+  /// the given declarator.
+  ///
+  /// Mirrors what the legacy `TransformationCycle::Recounting` pass did when it
+  /// re-traversed an unused declarator with the visitor's mutable hooks. The
+  /// read-only `Visit` walk used here avoids needing to set/reset cycle state
+  /// and lets cleanup code call this helper directly without piggybacking on the
+  /// driver.
+  #[allow(dead_code)] // wired up in a follow-up commit (eliminates Recounting cycle)
+  pub(crate) fn decrement_decl_counts(&mut self, decl: &VarDeclarator) {
+    let mut visitor = DecrementCountVisitor { state: self };
+    decl.visit_with(&mut visitor);
+  }
+
   // Now you can use these helper functions to simplify your function
   pub fn combine(&mut self, other: &Self) {
     self.imports.combine(&other.imports);
@@ -1164,6 +1182,43 @@ impl StateManager {
       &other.other_injected_css_rules,
     );
     chain_collect_in_place(&mut self.top_imports, &other.top_imports);
+  }
+}
+
+/// Read-only visitor used by [`StateManager::decrement_decl_counts`] to undo
+/// the increments produced during the discovery walk for an unused declarator.
+///
+/// Mirrors the legacy `TransformationCycle::Recounting` arms in
+/// `visit_mut_ident.rs`, `visit_mut_member_expr.rs`, `visit_mut_member_prop.rs`
+/// and `visit_mut_prop_name.rs` so reference counts stay symmetric without
+/// piggybacking on the cycle field.
+#[allow(dead_code)] // wired up in a follow-up commit (eliminates Recounting cycle)
+struct DecrementCountVisitor<'a> {
+  state: &'a mut StateManager,
+}
+
+impl Visit for DecrementCountVisitor<'_> {
+  fn visit_ident(&mut self, ident: &Ident) {
+    reduce_ident_count(self.state, ident);
+  }
+
+  fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
+    if let Some(obj_ident) = member_expr.obj.as_ident() {
+      reduce_member_ident_count(self.state, &obj_ident.sym);
+    }
+    member_expr.visit_children_with(self);
+  }
+
+  fn visit_member_prop(&mut self, member_prop: &MemberProp) {
+    if !member_prop.is_ident() {
+      member_prop.visit_children_with(self);
+    }
+  }
+
+  fn visit_prop_name(&mut self, prop_name: &PropName) {
+    if !prop_name.is_ident() {
+      prop_name.visit_children_with(self);
+    }
   }
 }
 

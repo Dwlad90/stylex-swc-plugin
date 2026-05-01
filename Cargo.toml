@@ -45,7 +45,7 @@ cssparser = { version = "0.37.0" }
 ctor = "0.8.0"
 derive_more = { version = "2.1.1", features = ["display"] }
 env_logger = "0.11.10"
-fancy-regex = "0.17.0"
+fancy-regex = "0.18.0"
 glob = { version = "0.3.3" }
 indexmap = "2.14.0"
 insta = { version = "1.47.2" }

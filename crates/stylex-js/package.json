@@ -41,7 +41,7 @@
     "@stylexswc/macros": "0.15.5",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
-    "prettier": "^3.8.1"
+    "prettier": "^3.8.3"
   },
   "keywords": [
     "stylex",

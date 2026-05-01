@@ -93,7 +93,7 @@
     "vite": "^8.0.5"
   },
   "devDependencies": {
-    "@nuxt/kit": "^4.3.1",
+    "@nuxt/kit": "^4.4.4",
     "@nuxt/schema": "^4.4.4",
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-node-resolve": "^16.0.3",

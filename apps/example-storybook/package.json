@@ -29,7 +29,7 @@
     "@storybook/addon-links": "^10.2.13",
     "@storybook/addon-vitest": "^10.3.3",
     "@storybook/react": "^10.3.3",
-    "@storybook/react-vite": "^10.3.3",
+    "@storybook/react-vite": "^10.3.6",
     "@stylexjs/stylex": "^0.18.2",
     "@stylexswc/playwright": "0.15.5",
     "@stylexswc/postcss-plugin": "0.15.5",

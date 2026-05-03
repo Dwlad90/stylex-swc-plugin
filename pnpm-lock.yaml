@@ -1145,8 +1145,8 @@ importers:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.106.2)
       html-webpack-plugin:
-        specifier: ^5.6.6
-        version: 5.6.6(@rspack/core@1.7.6(@swc/helpers@0.5.19))(webpack@5.106.2)
+        specifier: ^5.6.7
+        version: 5.6.7(@rspack/core@1.7.6(@swc/helpers@0.5.19))(webpack@5.106.2)
       mini-css-extract-plugin:
         specifier: ^2.10.0
         version: 2.10.0(webpack@5.106.2)
@@ -1215,8 +1215,8 @@ importers:
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
       html-webpack-plugin:
-        specifier: ^5.6.6
-        version: 5.6.6(@rspack/core@1.7.6(@swc/helpers@0.5.19))(webpack@5.106.2)
+        specifier: ^5.6.7
+        version: 5.6.7(@rspack/core@1.7.6(@swc/helpers@0.5.19))(webpack@5.106.2)
       serve:
         specifier: ^14.2.6
         version: 14.2.6
@@ -1279,8 +1279,8 @@ importers:
         specifier: ^7.0.4
         version: 7.0.4(webpack@5.106.2)
       html-webpack-plugin:
-        specifier: ^5.6.6
-        version: 5.6.6(@rspack/core@1.7.6(@swc/helpers@0.5.19))(webpack@5.106.2)
+        specifier: ^5.6.7
+        version: 5.6.7(@rspack/core@1.7.6(@swc/helpers@0.5.19))(webpack@5.106.2)
       mini-css-extract-plugin:
         specifier: ^2.10.0
         version: 2.10.0(webpack@5.106.2)
@@ -8670,8 +8670,8 @@ packages:
     engines: {node: '>=12'}
     hasBin: true
 
-  html-webpack-plugin@5.6.6:
-    resolution: {integrity: sha512-bLjW01UTrvoWTJQL5LsMRo1SypHW80FTm12OJRSnr3v6YHNhfe+1r0MYUZJMACxnCHURVnBWRwAsWs2yPU9Ezw==}
+  html-webpack-plugin@5.6.7:
+    resolution: {integrity: sha512-md+vXtdCAe60s1k6AU3dUyMJnDxUyQAwfwPKoLisvgUF1IXjtlLsk2se54+qfL9Mdm26bbwvjJybpNx48NKRLw==}
     engines: {node: '>=10.13.0'}
     peerDependencies:
       '@rspack/core': 0.x || 1.x
@@ -11553,11 +11553,6 @@ packages:
         optional: true
       uglify-js:
         optional: true
-
-  terser@5.46.0:
-    resolution: {integrity: sha512-jTwoImyr/QbOWFFso3YoU3ik0jBBDJ6JTOQiy/J2YxVJdZCc+5u7skhNwiOR3FQIygFqVUPHl7qbbxtjW2K3Qg==}
-    engines: {node: '>=10'}
-    hasBin: true
 
   terser@5.46.1:
     resolution: {integrity: sha512-vzCjQO/rgUuK9sf8VJZvjqiqiHFaZLnOiimmUuOKODxWL8mm/xua7viT7aqX7dgPY60otQjUotzFMmCB4VdmqQ==}
@@ -19749,15 +19744,15 @@ snapshots:
       he: 1.2.0
       param-case: 3.0.4
       relateurl: 0.2.7
-      terser: 5.46.0
+      terser: 5.46.2
 
-  html-webpack-plugin@5.6.6(@rspack/core@1.7.6(@swc/helpers@0.5.19))(webpack@5.106.2):
+  html-webpack-plugin@5.6.7(@rspack/core@1.7.6(@swc/helpers@0.5.19))(webpack@5.106.2):
     dependencies:
       '@types/html-minifier-terser': 6.1.0
       html-minifier-terser: 6.1.0
       lodash: 4.18.1
       pretty-error: 4.0.0
-      tapable: 2.3.0
+      tapable: 2.3.3
     optionalDependencies:
       '@rspack/core': 1.7.6(@swc/helpers@0.5.19)
       webpack: 5.106.2(@swc/core@1.15.11(@swc/helpers@0.5.19))(webpack-cli@6.0.1)
@@ -23147,13 +23142,6 @@ snapshots:
       schema-utils: 4.3.3
       terser: 5.46.2
       webpack: 5.106.2
-
-  terser@5.46.0:
-    dependencies:
-      '@jridgewell/source-map': 0.3.11
-      acorn: 8.16.0
-      commander: 2.20.3
-      source-map-support: 0.5.21
 
   terser@5.46.1:
     dependencies:

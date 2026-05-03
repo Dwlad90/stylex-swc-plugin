@@ -33,7 +33,7 @@
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.18.3",
     "@stylexswc/rs-compiler": "0.15.5",
-    "lightningcss": "^1.31.1"
+    "lightningcss": "^1.32.0"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.6",

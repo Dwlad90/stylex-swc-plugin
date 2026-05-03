@@ -30,10 +30,10 @@ where
   pub(crate) fn visit_mut_module_items_impl(&mut self, module_items: &mut Vec<ModuleItem>) {
     match self.state.cycle {
       TransformationCycle::Discover => {
-        // Pre-fill `state.declarations` for top-level binding-pattern var
-        // decls so any subsequent lookup during the descent (or in later
-        // phases) can find them. The visit_mut_var_declarator hook will
-        // re-fill them per-decl, but `fill_state_declarations` is idempotent.
+        // Pre-fill `state.declarations` for top-level ident var decls so any
+        // subsequent lookup during the descent (or in later phases) can find
+        // them. The visit_mut_var_declarator hook will re-fill them
+        // per-decl, but `fill_state_declarations` is idempotent.
         module_items.iter().for_each(|module_item| {
           if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) = module_item {
             var_decl.decls.iter().for_each(|decl| {

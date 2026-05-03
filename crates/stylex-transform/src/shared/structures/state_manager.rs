@@ -1280,7 +1280,7 @@ impl VisitMut for MarkStyleVarsVisitor<'_> {
           let expr = drop_span(spread.expr.as_ref().clone());
           if let Some(updated_exprs) = self.state.jsx_spread_attr_exprs_map.get(&expr).cloned() {
             if updated_exprs.is_empty() {
-              // If the spread was resolved to nothing, keep the original
+              // If no replacement JSX attrs were recorded for this spread, keep the original
               vec![jsx_attr.clone()]
             } else {
               // Replace the spread with the updated expressions

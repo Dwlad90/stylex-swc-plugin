@@ -93,7 +93,7 @@ where
     self.state.cycle = TransformationCycle::Finalize;
 
     // NOTE: Reversing the module body to clean the module items in the correct
-    // order, so removing unused variable declarations will more efficient.
+    // order, so removing unused variable declarations will be more efficient.
     // After cleaning the module items, the module body will be reversed back
     // to its original order.
     module.body.reverse();

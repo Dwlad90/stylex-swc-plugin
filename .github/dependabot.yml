@@ -140,6 +140,10 @@ updates:
           - "testing"
           - "insta"
           - "ctor"
+      napi:
+        patterns:
+          - "napi"
+          - "napi-*"
     labels:
       - "dependencies"
       - "rust"

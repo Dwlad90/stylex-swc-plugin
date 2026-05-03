@@ -41,7 +41,7 @@
     "@commitlint/cli": "^20.5.3",
     "@stylexswc/eslint-config": "0.15.5",
     "@stylexswc/typescript-config": "0.15.5",
-    "@typescript-eslint/parser": "^8.56.1",
+    "@typescript-eslint/parser": "^8.59.1",
     "commitizen": "^4.3.1",
     "cz-conventional-changelog": "^3.3.0",
     "del-cli": "^7.0.0",

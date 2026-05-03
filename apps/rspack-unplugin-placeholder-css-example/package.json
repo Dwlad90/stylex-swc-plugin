@@ -22,7 +22,7 @@
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "@rspack/cli": "^1.7.11",
-    "@rspack/core": "^1.7.6",
+    "@rspack/core": "^2.0.1",
     "@stylexswc/playwright": "0.15.5",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

@@ -89,7 +89,7 @@
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.18.3",
     "@stylexswc/rs-compiler": "0.15.5",
-    "unplugin": "^2.3.5",
+    "unplugin": "^3.0.0",
     "vite": "^8.0.10"
   },
   "devDependencies": {

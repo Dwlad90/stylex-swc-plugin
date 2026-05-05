@@ -86,21 +86,27 @@ pub(crate) type DeclId = swc_core::ecma::ast::Id;
 /// Position in the final emitted module body where a [`PendingInsertion`]
 /// item should land. The enum is deliberately narrow — new variants
 /// land only when a real producer needs them.
-#[allow(dead_code)] // wired up in subsequent commits (Phase B onward)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum InsertionSlot {
-  /// Runtime injection helpers and theme side-effect imports.
-  /// Emitted after any leading directive prologue, before the existing
-  /// import block. Mirrors the legacy `prepend_include_module_items`
-  /// + `prepend_import_module_items` placement.
+  /// Runtime injection helpers (`import _inject` + `var _inject2`).
+  /// Emitted after any leading directive prologue, ahead of all
+  /// other imports. Mirrors the legacy `prepend_include_module_items`
+  /// placement.
   BeforeImports,
+  /// Theme side-effect imports added by `treeshake_compensation`.
+  /// Emitted between the runtime helpers and the existing import
+  /// block. Mirrors the legacy `prepend_import_module_items`
+  /// placement; the legacy code kept these separate from the
+  /// runtime helpers because they always followed them, regardless
+  /// of which producer ran first.
+  ThemeImports,
   /// Hoisted dynamic-style constants. Emitted after the existing
   /// import block, before the rest of the body. Mirrors the legacy
   /// `hoisted_module_items` placement.
   AfterImports,
   /// Per-declarator style metadata (the `_inject2(...)` calls) keyed
   /// by the stable hash of the originating var-decl initializer.
-  /// Emitted immediately before the matching declarator. Mirrors the
+  /// Emitted immediately before the matching declarator. Replaces the
   /// legacy `styles_to_inject` map.
   BeforeDecl(u64),
 }
@@ -338,7 +344,15 @@ impl DeclarationState {
 pub(crate) struct StyleInjectionState {
   inject_import_inserted: Option<InjectImportIdents>,
   metadata: IndexMap<String, IndexSet<MetaData>>,
-  styles_to_inject: IndexMap<u64, Vec<ModuleItem>>,
+  /// O(1) dedup index for theme side-effect imports queued under
+  /// `InsertionSlot::ThemeImports`. Keyed by `stable_hash(item)`.
+  /// Replaces the legacy `prepend_import_module_items.contains` gate.
+  theme_import_dedup: FxHashSet<u64>,
+  /// O(1) dedup index for per-decl style metadata queued under
+  /// `InsertionSlot::BeforeDecl(ast_hash)`. Keyed by
+  /// `(ast_hash, stable_hash(module_item))`. Replaces the legacy
+  /// `styles_to_inject[ast_hash].contains` gate.
+  pending_decl_dedup: FxHashSet<(u64, u64)>,
 }
 
 impl StyleInjectionState {
@@ -352,7 +366,12 @@ impl StyleInjectionState {
     }
 
     extend_index_map(&mut self.metadata, &other.metadata);
-    extend_index_map(&mut self.styles_to_inject, &other.styles_to_inject);
+    self
+      .theme_import_dedup
+      .extend(other.theme_import_dedup.iter().copied());
+    self
+      .pending_decl_dedup
+      .extend(other.pending_decl_dedup.iter().copied());
   }
 }
 
@@ -408,9 +427,6 @@ pub struct StateManager {
 
   pub(crate) options: StyleXStateOptions,
   pub(crate) injection: StyleInjectionState,
-  pub(crate) prepend_include_module_items: Vec<ModuleItem>,
-  pub(crate) hoisted_module_items: Vec<ModuleItem>,
-  pub(crate) prepend_import_module_items: Vec<ModuleItem>,
 
   /// Single ordered buffer of slot-tagged items waiting to be merged
   /// into the module body once consumer transforms complete.
@@ -467,9 +483,6 @@ impl StateManager {
       options,
 
       injection: StyleInjectionState::default(),
-      prepend_include_module_items: vec![],
-      prepend_import_module_items: vec![],
-      hoisted_module_items: vec![],
       pending_module_items: vec![],
 
       other_injected_css_rules: IndexMap::new(),
@@ -973,13 +986,11 @@ impl StateManager {
   }
 
   fn setup_injection_imports(&mut self) -> Ident {
-    if !self.prepend_include_module_items.is_empty() {
-      return match self.injection.inject_import_inserted.as_ref() {
-        Some(idents) => idents.var.clone(),
-        None => stylex_panic!(
-          "inject_import_inserted is None when prepend_include_module_items is non-empty"
-        ),
-      };
+    // Once the runtime helpers have been queued, the var-ident is
+    // cached on `inject_import_inserted` — return it on subsequent
+    // calls without re-queueing.
+    if let Some(idents) = self.injection.inject_import_inserted.as_ref() {
+      return idents.var.clone();
     }
     let mut uid_generator = UidGenerator::new("inject", CounterMode::Local);
 
@@ -1031,13 +1042,11 @@ impl StateManager {
       ],
     };
 
-    // Dual-write (Phase B1): queue into the new pending buffer
-    // alongside the legacy accumulator. Phase C will swap consumers
-    // to read from the buffer; Phase D will drop the legacy push.
-    for item in &module_items {
-      self.queue_insertion(InsertionSlot::BeforeImports, item.clone());
+    // Each call queues into the BeforeImports slot. The early
+    // return above guards against re-queueing on the second call.
+    for item in module_items {
+      self.queue_insertion(InsertionSlot::BeforeImports, item);
     }
-    self.prepend_include_module_items.extend(module_items);
     inject_var_ident
   }
 
@@ -1134,39 +1143,24 @@ impl StateManager {
     }));
 
     let ast_hash = stable_hash(ast);
-
-    let styles_to_inject = self.injection.styles_to_inject.entry(ast_hash).or_default();
-
     let normalized_module = drop_span(module);
+    let item_hash = stable_hash(&normalized_module);
 
-    let pushed_primary = !styles_to_inject.contains(&normalized_module);
-    if pushed_primary {
-      styles_to_inject.push(normalized_module.clone());
-    }
-
-    // Dual-write (Phase B2): mirror the legacy push into the new
-    // pending buffer. Only queue when the legacy path pushed —
-    // legacy dedups via Vec::contains, and the buffer must match
-    // its dedup semantics so Phase C swap is byte-identical.
-    if pushed_primary {
+    if self
+      .injection
+      .pending_decl_dedup
+      .insert((ast_hash, item_hash))
+    {
       self.queue_insertion(InsertionSlot::BeforeDecl(ast_hash), normalized_module.clone());
     }
 
     if let Some(fallback_ast) = fallback_ast {
       let fallback_ast_hash = stable_hash(fallback_ast);
-
-      let fallback_styles_to_inject = self
+      if self
         .injection
-        .styles_to_inject
-        .entry(fallback_ast_hash)
-        .or_default();
-
-      let pushed_fallback = !fallback_styles_to_inject.contains(&normalized_module);
-      if pushed_fallback {
-        fallback_styles_to_inject.push(normalized_module.clone());
-      }
-
-      if pushed_fallback {
+        .pending_decl_dedup
+        .insert((fallback_ast_hash, item_hash))
+      {
         self.queue_insertion(InsertionSlot::BeforeDecl(fallback_ast_hash), normalized_module);
       }
     }
@@ -1179,14 +1173,20 @@ impl StateManager {
   /// Queue a `ModuleItem` for placement in the final module body.
   /// `slot` decides where the linear merge in
   /// [`flush_pending_insertions`] will splice the item.
-  ///
-  /// Phase B will route the existing producer sites here in addition
-  /// to writing to the legacy accumulator vecs. Phase C swaps the
-  /// consumer to read from this buffer; Phase D removes the legacy
-  /// writes.
-  #[allow(dead_code)] // wired up in subsequent commits (Phase B onward)
   pub(crate) fn queue_insertion(&mut self, slot: InsertionSlot, item: ModuleItem) {
     self.pending_module_items.push(PendingInsertion { slot, item });
+  }
+
+  /// Queue a `ThemeImports` item, deduped by stable hash. Replaces
+  /// the legacy `prepend_import_module_items.contains` gate that the
+  /// theme side-effect import path used. Each evaluation invocation
+  /// gets its own `EvaluationState.added_imports` set; this hashset
+  /// lives on the StateManager so dedup works across evaluations.
+  pub(crate) fn queue_theme_import_if_absent(&mut self, item: ModuleItem) {
+    let item_hash = stable_hash(&item);
+    if self.injection.theme_import_dedup.insert(item_hash) {
+      self.queue_insertion(InsertionSlot::ThemeImports, item);
+    }
   }
 
   // Now you can use these helper functions to simplify your function
@@ -1235,14 +1235,6 @@ impl StateManager {
     self.injection.combine(&other.injection);
     extend_hash_map(&mut self.seen, &other.seen);
 
-    chain_collect_in_place(
-      &mut self.prepend_include_module_items,
-      &other.prepend_include_module_items,
-    );
-    chain_collect_in_place(
-      &mut self.prepend_import_module_items,
-      &other.prepend_import_module_items,
-    );
     self
       .pending_module_items
       .extend(other.pending_module_items.iter().cloned());
@@ -1472,25 +1464,27 @@ pub(crate) fn mark_style_vars_to_keep(module: &mut Module, state: &mut StateMana
 ///
 /// 1. The leading directive prologue (a string-literal `ExprStmt` at
 ///    position 0), if present, stays at position 0.
-/// 2. `BeforeImports` items follow the directive — they always
-///    precede the existing import block, matching the legacy
-///    `prepend_include_module_items` + `prepend_import_module_items`
-///    placement.
-/// 3. The existing import block follows.
-/// 4. `AfterImports` items follow the import block — matching the
+/// 2. `BeforeImports` items follow the directive — runtime helpers
+///    matching the legacy `prepend_include_module_items` placement.
+/// 3. `ThemeImports` items follow the runtime helpers, still ahead
+///    of the existing import block — matching the legacy
+///    `prepend_import_module_items` placement.
+/// 4. The existing import block follows.
+/// 5. `AfterImports` items follow the import block — matching the
 ///    legacy in-walk splice that placed `hoisted_module_items` after
 ///    imports during the consumer walk.
-/// 5. The remainder of the body follows. For each item, every
+/// 6. The remainder of the body follows. For each item, every
 ///    relevant initializer is hashed and any matching `BeforeDecl`
 ///    metadata is spliced before it.
 ///
 /// `runtime_injection` matches the legacy gate on
 /// `options.runtime_injection.is_some()`: when `false`, the runtime
-/// helpers (`BeforeImports`) and per-decl metadata (`BeforeDecl`)
-/// are dropped on the floor — exactly as the legacy
-/// `inject_runtime_styles` was simply not invoked. `AfterImports`
-/// (hoisted dynamic-style consts) always emits — the legacy in-walk
-/// splice did so regardless of the option.
+/// helpers (`BeforeImports`), theme side-effect imports
+/// (`ThemeImports`), and per-decl metadata (`BeforeDecl`) are
+/// dropped on the floor — exactly as the legacy
+/// `inject_runtime_styles` was simply not invoked.
+/// `AfterImports` always emits — the legacy in-walk hoisted splice
+/// ran regardless of the option.
 pub(crate) fn flush_pending_insertions(
   state: &mut StateManager,
   module_body: &mut Vec<ModuleItem>,
@@ -1503,6 +1497,7 @@ pub(crate) fn flush_pending_insertions(
   let pending = std::mem::take(&mut state.pending_module_items);
 
   let mut before_imports: Vec<ModuleItem> = Vec::new();
+  let mut theme_imports: Vec<ModuleItem> = Vec::new();
   let mut after_imports: Vec<ModuleItem> = Vec::new();
   let mut before_decl: FxHashMap<u64, Vec<ModuleItem>> = FxHashMap::default();
 
@@ -1511,6 +1506,11 @@ pub(crate) fn flush_pending_insertions(
       InsertionSlot::BeforeImports => {
         if runtime_injection {
           before_imports.push(item);
+        }
+      },
+      InsertionSlot::ThemeImports => {
+        if runtime_injection {
+          theme_imports.push(item);
         }
       },
       InsertionSlot::AfterImports => after_imports.push(item),
@@ -1566,9 +1566,13 @@ pub(crate) fn flush_pending_insertions(
     result.push(directive);
   }
 
+  // Step 3: theme side-effect imports go directly after the runtime
+  // helpers — preserving the legacy `prepend_include` -> `prepend_import`
+  // -> existing-imports order regardless of which producer queued first.
   result.extend(before_imports);
+  result.extend(theme_imports);
 
-  // Step 3: walk the rest, splicing BeforeDecl metadata before
+  // Step 4: walk the rest, splicing BeforeDecl metadata before
   // each matching var-decl initializer. Cloning per match (rather
   // than draining) is required because the same hash key can
   // legitimately match more than one declarator.

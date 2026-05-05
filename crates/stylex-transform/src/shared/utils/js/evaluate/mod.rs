@@ -40,7 +40,7 @@ use crate::shared::{
     functions::{CallbackType, FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
     seen_value::SeenValue,
     state::EvaluationState,
-    state_manager::{InsertionSlot, StateManager, add_import_expression},
+    state_manager::{StateManager, add_import_expression},
     theme_ref::ThemeRef,
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
@@ -447,27 +447,14 @@ fn _evaluate(
           && traversal_state.get_treeshake_compensation()
         {
           let prepend_import_module_item = add_import_expression(&import_path_src);
-
-          let pushed = !traversal_state
-            .prepend_import_module_items
-            .contains(&prepend_import_module_item);
-          if pushed {
-            traversal_state
-              .prepend_import_module_items
-              .push(prepend_import_module_item.clone());
-          }
-
-          // Dual-write (Phase B3): theme side-effect imports go
-          // under BeforeImports because the legacy
-          // `inject_runtime_styles` placed `prepend_import_module_items`
-          // before the existing import block (after the runtime
-          // helpers from `prepend_include_module_items`). Gated on
-          // the same dedup as the legacy push to keep the buffer
-          // and legacy vec in lockstep.
-          if pushed {
-            traversal_state
-              .queue_insertion(InsertionSlot::BeforeImports, prepend_import_module_item);
-          }
+          // Theme side-effect imports go under ThemeImports — the slot
+          // whose flush position matches the legacy
+          // `prepend_import_module_items` placement (between the
+          // runtime helpers and the existing import block,
+          // regardless of producer queue order). Dedup is by stable
+          // hash on the StateManager so it survives across
+          // evaluations.
+          traversal_state.queue_theme_import_if_absent(prepend_import_module_item);
 
           state.added_imports.insert(import_path_src);
         }

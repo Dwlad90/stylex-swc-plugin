@@ -163,15 +163,10 @@ pub(super) fn hoist_expression(
   };
 
   let module_item = ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(var_decl))));
-  // Dual-write (Phase B4): mirror the legacy hoisted-items push into
-  // the new pending buffer under InsertionSlot::AfterImports, the
-  // slot whose flush position matches the legacy in-walk splice
-  // that placed hoisted items between the import block and the body.
   state.queue_insertion(
     crate::shared::structures::state_manager::InsertionSlot::AfterImports,
-    module_item.clone(),
+    module_item,
   );
-  state.hoisted_module_items.push(module_item);
 
   Expr::Ident(hoisted_ident)
 }
@@ -197,13 +192,10 @@ pub(crate) fn path_replace_hoisted(
   };
 
   let module_item = ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(var_decl))));
-  // Dual-write (Phase B5): same pattern as B4 — queue under
-  // InsertionSlot::AfterImports alongside the legacy push.
   state.queue_insertion(
     crate::shared::structures::state_manager::InsertionSlot::AfterImports,
-    module_item.clone(),
+    module_item,
   );
-  state.hoisted_module_items.push(module_item);
 
   Expr::Ident(name_ident)
 }

@@ -6,7 +6,8 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    structures::state_manager::mark_style_vars_to_keep, utils::common::fill_top_level_expressions,
+    structures::state_manager::{build_decl_use_graph, compute_live_set, mark_style_vars_to_keep},
+    utils::common::fill_top_level_expressions,
   },
   transform::visit_mut::visit_mut_module_items::inject_runtime_styles,
 };
@@ -77,29 +78,40 @@ where
     }
   }
 
-  /// Run the cleanup phase: mark surviving style accesses, then sweep
-  /// unused declarations.
+  /// Run the cleanup phase: materialize deferred JSX-spread
+  /// replacements, build the decl-reference graph, compute the live
+  /// set, then sweep unused declarations in a single forward pass.
   ///
-  /// The mark step (formerly the `PreCleaning` cycle) is delegated to the
-  /// `mark_style_vars_to_keep` helper, which walks the module once and
-  /// populates `state.style_vars_to_keep` plus materializes any deferred
-  /// JSX-spread replacements. The sweep step then runs under
-  /// `TransformationCycle::Finalize` with `module.body` reversed so removing
-  /// later declarations does not invalidate the counts of earlier ones; the
-  /// body is restored to original order afterwards.
+  /// The mark step (`mark_style_vars_to_keep`) walks the module once
+  /// and populates `state.style_vars_to_keep` plus materializes any
+  /// deferred JSX-spread replacements. The graph is then captured at
+  /// G-PostHoc against the post-mark AST, fixing the live set used by
+  /// the sweep. The sweep itself runs under `TransformationCycle::Finalize`
+  /// in original module-body order — the live-set is computed up
+  /// front, so no body reversal is needed to handle transitive removal.
   pub(crate) fn finalize_module(&mut self, module: &mut Module) {
+    // The mark phase materializes any deferred JSX-spread replacements
+    // accumulated during the consumer walk; running it first ensures the
+    // subsequent graph capture sees the final JSX shape (no leftover
+    // `stylex.props(styles.X)` SpreadElement nodes).
     mark_style_vars_to_keep(module, &mut self.state);
+
+    // Capture the decl-reference graph after producer + consumer
+    // transforms — and the JSX-spread materialization above — have run.
+    // At this point inlined references (e.g. `styles.container` in JSX,
+    // replaced with literal class strings) are gone from the AST, so
+    // the graph reflects only the references that survive into the
+    // emitted module.
+    build_decl_use_graph(module, &mut self.state);
+
+    // Compute the live-set up front so the sweep filter has a single
+    // immutable membership check per declarator. Computation depends on
+    // `state.roots` and `state.decl_uses`, both finalized by the
+    // mark-phase pass above.
+    self.state.live_set = compute_live_set(&self.state);
 
     self.state.cycle = TransformationCycle::Finalize;
 
-    // NOTE: Reversing the module body to clean the module items in the correct
-    // order, so removing unused variable declarations will be more efficient.
-    // After cleaning the module items, the module body will be reversed back
-    // to its original order.
-    module.body.reverse();
-
     module.visit_mut_children_with(self);
-
-    module.body.reverse();
   }
 }

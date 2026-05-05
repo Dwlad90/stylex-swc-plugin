@@ -49,6 +49,36 @@ _inject2({
     ltr: ".x1mkdm3x{grid-template-columns:minmax(0,1fr)}",
     priority: 3000
 });
+export const styles = {
+    sidebar: {
+        "boxSizing-kB7OPa": "x9f619",
+        "gridArea-kJuA4N": "x1yc5d2u",
+        $$css: "js/FooBar.react.js:3"
+    },
+    content: {
+        "gridArea-kJuA4N": "x1fdo2jl",
+        $$css: "js/FooBar.react.js:7"
+    },
+    root: {
+        "display-k1xSpc": "xrvj5dj",
+        "gridTemplateRows-k9llMU": "x7k18q3",
+        "gridTemplateAreas-kC13JO": "x5gp9wm",
+        $$css: "js/FooBar.react.js:10"
+    },
+    withSidebar: {
+        "gridTemplateColumns-kumcoG": "x1rkzygb",
+        "gridTemplateRows-k9llMU": "x7k18q3",
+        "gridTemplateAreas-kC13JO": "x17lh93j",
+        "@media (max-width: 640px)_gridTemplateRows-k9pwkU": "xmr4b4k",
+        "@media (max-width: 640px)_gridTemplateAreas-kOnEH4": "xesbpuc",
+        "@media (max-width: 640px)_gridTemplateColumns-k1JLwA": "x15nfgh4",
+        $$css: "js/FooBar.react.js:15"
+    },
+    noSidebar: {
+        "gridTemplateColumns-kumcoG": "x1mkdm3x",
+        $$css: "js/FooBar.react.js:25"
+    }
+};
 export const complex = {
     0: {
         className: "xrvj5dj x1rkzygb x7k18q3 x17lh93j xmr4b4k xesbpuc x15nfgh4",

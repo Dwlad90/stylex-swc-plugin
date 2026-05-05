@@ -81,6 +81,11 @@ const TRANSFORMED_VARS_FILE_EXTENSION: &str = ".transformed";
 type AtomHashMap = FxHashMap<Atom, i16>;
 type AtomHashSet = FxHashSet<Atom>;
 
+/// Stable identifier for a top-level declarator. Carries the symbol's
+/// `Atom` together with its `SyntaxContext` so shadowed bindings remain
+/// distinguishable after SWC's `resolver` pass has run.
+pub(crate) type DeclId = swc_core::ecma::ast::Id;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum ImportKind {
   Props,
@@ -370,6 +375,33 @@ pub struct StateManager {
   pub(crate) style_vars_to_keep: IndexSet<StyleVarsToKeep>,
   pub(crate) member_object_ident_count_map: AtomHashMap,
 
+  /// Reference graph from each top-level declarator to the set of
+  /// declarators it directly references in its initializer / body.
+  ///
+  /// Built once at the start of `transform_consumers`
+  /// ([`build_decl_use_graph`]) and consumed by [`compute_live_set`] to
+  /// run a forward mark-and-sweep that replaces the legacy count-based
+  /// cleanup.
+  pub(crate) decl_uses: FxHashMap<DeclId, FxHashSet<DeclId>>,
+
+  /// Declarators that must always survive cleanup, regardless of
+  /// in-graph references. Populated from non-decl top-level usages
+  /// (function bodies, JSX, top-level expressions), exported declarators,
+  /// and the mark phase's surviving member-expr accesses on style
+  /// namespaces.
+  pub(crate) roots: FxHashSet<DeclId>,
+
+  /// Set of style-namespace member-expression objects observed during
+  /// the discovery walk. Replaces the legacy `count > 0` guard in the
+  /// mark phase with a single membership check.
+  pub(crate) member_obj_ident_seen: FxHashSet<DeclId>,
+
+  /// Transient live-set computed by [`compute_live_set`] at the start
+  /// of `finalize_module`. Each `DeclId` in the set must survive the
+  /// sweep; declarators absent from `decl_uses` entirely also survive
+  /// via the "not-in-graph ⇒ keep by default" fallback.
+  pub(crate) live_set: FxHashSet<DeclId>,
+
   pub(crate) in_stylex_create: bool,
 
   pub(crate) options: StyleXStateOptions,
@@ -412,6 +444,10 @@ impl StateManager {
       style_vars: FxHashMap::default(),
       style_vars_to_keep: IndexSet::default(),
       member_object_ident_count_map: FxHashMap::default(),
+      decl_uses: FxHashMap::default(),
+      roots: FxHashSet::default(),
+      member_obj_ident_seen: FxHashSet::default(),
+      live_set: FxHashSet::default(),
       export_id: None,
 
       seen: FxHashMap::default(),
@@ -1138,6 +1174,7 @@ impl StateManager {
   /// Used by the cleanup pass to keep `var_decl_count_map` and
   /// `member_object_ident_count_map` symmetric when an unused declarator is
   /// removed.
+  #[allow(dead_code, reason = "removed alongside count machinery in phase D")]
   pub(crate) fn decrement_decl_counts(&mut self, decl: &VarDeclarator) {
     let mut visitor = DecrementCountVisitor { state: self };
     decl.visit_with(&mut visitor);
@@ -1174,6 +1211,19 @@ impl StateManager {
       &mut self.member_object_ident_count_map,
       &other.member_object_ident_count_map,
     );
+
+    self.roots.extend(other.roots.iter().cloned());
+    self
+      .member_obj_ident_seen
+      .extend(other.member_obj_ident_seen.iter().cloned());
+    for (decl_id, uses) in &other.decl_uses {
+      self
+        .decl_uses
+        .entry(decl_id.clone())
+        .or_default()
+        .extend(uses.iter().cloned());
+    }
+
     self.in_stylex_create = self.in_stylex_create || other.in_stylex_create;
 
     // Index maps: extend in-place
@@ -1196,8 +1246,133 @@ impl StateManager {
   }
 }
 
+/// Read-only visitor used by [`build_decl_use_graph`] to collect every
+/// `Ident` referenced inside a top-level declarator's initializer (or
+/// the body of a non-`VarDecl` top-level item).
+///
+/// Skips identifier-shaped property keys (`{foo: …}`) and member props
+/// (`obj.foo`) so that property names do not pollute the reference set —
+/// only true variable references are recorded. Each captured ident is
+/// stored as its full `Id` (`(Atom, SyntaxContext)`) so resolver-aware
+/// shadowing is preserved.
+#[derive(Default)]
+struct CollectIdentsVisitor {
+  idents: FxHashSet<DeclId>,
+}
+
+impl Visit for CollectIdentsVisitor {
+  fn visit_ident(&mut self, ident: &Ident) {
+    self.idents.insert(ident.to_id());
+  }
+
+  fn visit_member_prop(&mut self, member_prop: &MemberProp) {
+    if !member_prop.is_ident() {
+      member_prop.visit_children_with(self);
+    }
+  }
+
+  fn visit_prop_name(&mut self, prop_name: &PropName) {
+    if !prop_name.is_ident() {
+      prop_name.visit_children_with(self);
+    }
+  }
+}
+
+/// Build the reference graph used by the new cleanup pass.
+///
+/// Walks `module.body` once. Top-level `VarDeclarator`s with a simple
+/// `Pat::Ident` binding contribute an edge from their `DeclId` to every
+/// `DeclId` referenced in their initializer. Top-level items that are
+/// not declarators (function decls, class decls, expression statements,
+/// non-`VarDecl` exports) are treated as observation points: every
+/// `DeclId` they reference is added to `state.roots` directly.
+///
+/// The graph is consumed by [`compute_live_set`] to compute reachability
+/// from `roots` and decide which declarators survive the sweep.
+pub(crate) fn build_decl_use_graph(module: &Module, state: &mut StateManager) {
+  for item in &module.body {
+    match item {
+      ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => {
+        for decl in &var_decl.decls {
+          collect_decl_uses(state, decl);
+        }
+      },
+      ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export_decl)) => match &export_decl.decl {
+        Decl::Var(var_decl) => {
+          for decl in &var_decl.decls {
+            collect_decl_uses(state, decl);
+          }
+        },
+        other_decl => {
+          let mut visitor = CollectIdentsVisitor::default();
+          other_decl.visit_with(&mut visitor);
+          state.roots.extend(visitor.idents);
+        },
+      },
+      _ => {
+        let mut visitor = CollectIdentsVisitor::default();
+        item.visit_with(&mut visitor);
+        state.roots.extend(visitor.idents);
+      },
+    }
+  }
+}
+
+/// Compute the transitive closure of `state.roots` over `state.decl_uses`.
+///
+/// Returns the set of `DeclId`s that are reachable from any root via the
+/// reference graph. The sweep keeps every declarator whose `DeclId` is
+/// either in the returned set or absent from `state.decl_uses` entirely
+/// (the "not-in-graph ⇒ keep by default" fallback).
+///
+/// Iterative breadth-first traversal with a worklist; cycles and
+/// self-references terminate naturally because already-marked nodes are
+/// not revisited.
+pub(crate) fn compute_live_set(state: &StateManager) -> FxHashSet<DeclId> {
+  let mut live: FxHashSet<DeclId> = FxHashSet::default();
+  let mut worklist: Vec<DeclId> = state.roots.iter().cloned().collect();
+
+  while let Some(node) = worklist.pop() {
+    if !live.insert(node.clone()) {
+      continue;
+    }
+    if let Some(targets) = state.decl_uses.get(&node) {
+      for target in targets {
+        if !live.contains(target) {
+          worklist.push(target.clone());
+        }
+      }
+    }
+  }
+
+  live
+}
+
+fn collect_decl_uses(state: &mut StateManager, decl: &VarDeclarator) {
+  let mut visitor = CollectIdentsVisitor::default();
+  if let Some(init) = &decl.init {
+    init.visit_with(&mut visitor);
+  }
+
+  if let Pat::Ident(bind_ident) = &decl.name {
+    let decl_id: DeclId = bind_ident.id.to_id();
+    state
+      .decl_uses
+      .entry(decl_id)
+      .or_default()
+      .extend(visitor.idents);
+  } else {
+    // Non-`Pat::Ident` declarators (destructuring, etc.) are not tracked
+    // by the graph; they fall through to the sweep's "absent ⇒ keep"
+    // fallback. Treat their referenced idents as roots so anything they
+    // depend on is preserved.
+    state.roots.extend(visitor.idents);
+  }
+}
+
 /// Read-only visitor used by [`StateManager::decrement_decl_counts`] to undo
 /// the increments produced during the discovery walk for an unused declarator.
+#[allow(dead_code, reason = "removed alongside count machinery in phase D")]
 struct DecrementCountVisitor<'a> {
   state: &'a mut StateManager,
 }
@@ -1252,6 +1427,7 @@ impl VisitMut for MarkStyleVarsVisitor<'_> {
           .is_some_and(|&c| c > 0)
       {
         increase_ident_count(self.state, ident);
+        self.state.roots.insert(ident.to_id());
         self.state.style_vars_to_keep.insert(StyleVarsToKeep(
           ident.sym.clone(),
           NonNullProp::Atom(prop_ident.sym.clone()),
@@ -1261,6 +1437,7 @@ impl VisitMut for MarkStyleVarsVisitor<'_> {
 
       if let MemberProp::Computed(_) = &member_expression.prop {
         increase_ident_count(self.state, ident);
+        self.state.roots.insert(ident.to_id());
         self.state.style_vars_to_keep.insert(StyleVarsToKeep(
           ident.sym.clone(),
           NonNullProp::True,

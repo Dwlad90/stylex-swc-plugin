@@ -22,6 +22,7 @@ where
           // HACK: For preventing removing named export declarations need to increase the
           // count by 2.
           increase_ident_count_by_count(&mut self.state, ident, 2);
+          self.state.roots.insert(ident.id.to_id());
         }
       }
     }

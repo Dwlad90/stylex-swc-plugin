@@ -6,7 +6,7 @@ use swc_core::{
   },
 };
 
-use crate::{StyleXTransform, shared::utils::common::increase_ident_count_by_count};
+use crate::StyleXTransform;
 use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
@@ -19,9 +19,6 @@ where
     {
       for decl in &var_decl.decls {
         if let Some(ident) = decl.name.as_ident() {
-          // HACK: For preventing removing named export declarations need to increase the
-          // count by 2.
-          increase_ident_count_by_count(&mut self.state, ident, 2);
           self.state.roots.insert(ident.id.to_id());
         }
       }

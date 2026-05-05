@@ -13,9 +13,7 @@ use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state_manager::StateManager},
-  utils::{
-    ast::convertors::convert_lit_to_string, common::increase_ident_count, js::evaluate::evaluate,
-  },
+  utils::{ast::convertors::convert_lit_to_string, js::evaluate::evaluate},
 };
 
 pub(crate) fn member_expression(
@@ -103,13 +101,9 @@ pub(crate) fn member_expression(
   }
 
   if let Some(obj_name) = obj_name {
-    increase_ident_count(
-      state,
-      match object.as_ident() {
-        Some(i) => i,
-        None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
-      },
-    );
+    if object.as_ident().is_none() {
+      stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT);
+    }
 
     let style_var_to_keep = StyleVarsToKeep(
       obj_name.clone(),

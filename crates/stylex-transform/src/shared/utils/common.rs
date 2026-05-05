@@ -30,7 +30,6 @@ use crate::shared::{
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_VALUE, INVALID_UTF8, SPREAD_NOT_SUPPORTED, VAR_DECL_NAME_NOT_IDENT,
 };
-use stylex_enums::misc::VarDeclAction;
 use stylex_regex::regex::JSON_REGEX;
 
 use super::ast::convertors::expand_shorthand_prop;
@@ -83,12 +82,6 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
   }
 }
 
-pub fn reduce_ident_count(state: &mut StateManager, ident: &Ident) {
-  if let Entry::Occupied(mut entry) = state.var_decl_count_map.entry(ident.sym.clone()) {
-    *entry.get_mut() -= 1;
-  }
-}
-
 pub fn increase_member_ident(state: &mut StateManager, member_obj: &MemberExpr) {
   if let Some(obj_ident) = member_obj.obj.as_ident() {
     increase_member_ident_count(state, &obj_ident.sym);
@@ -109,20 +102,9 @@ pub fn reduce_member_ident_count(state: &mut StateManager, ident_atom: &Atom) {
     *entry.get_mut() -= 1;
   }
 }
-pub fn increase_ident_count(state: &mut StateManager, ident: &Ident) {
-  increase_ident_count_by_count(state, ident, 1);
-}
 
 pub fn increase_member_ident_count(state: &mut StateManager, ident_atom: &Atom) {
   increase_member_ident_count_by_count(state, ident_atom, 1);
-}
-pub fn increase_ident_count_by_count(state: &mut StateManager, ident: &Ident, count: i16) {
-  let ident_id = &ident.sym;
-
-  *state
-    .var_decl_count_map
-    .entry(ident_id.clone())
-    .or_insert(0) += count;
 }
 
 pub fn increase_member_ident_count_by_count(
@@ -140,14 +122,7 @@ pub fn get_var_decl_by_ident<'a>(
   ident: &'a Ident,
   traversal_state: &'a mut StateManager,
   functions: &'a FunctionMap,
-  action: VarDeclAction,
 ) -> Option<VarDeclarator> {
-  match action {
-    VarDeclAction::Increase => increase_ident_count(traversal_state, ident),
-    VarDeclAction::Reduce => reduce_ident_count(traversal_state, ident),
-    VarDeclAction::None => {},
-  };
-
   if let Some(var_decl) = get_var_decl_from(traversal_state, ident) {
     return Some(var_decl.clone());
   }

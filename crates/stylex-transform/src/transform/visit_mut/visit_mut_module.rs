@@ -62,16 +62,12 @@ where
   /// Run the consumer transformation pass plus runtime style injection.
   ///
   /// Transforms `stylex.props` / `stylex.attrs` (which consume the style
-  /// namespaces produced by the prior phase) with the
-  /// `evaluate_preserve_bindings` flag held for the duration of the walk so
-  /// the evaluator does not decrement binding counts on call arguments. Then,
-  /// if runtime injection is enabled, prepends the accumulated style metadata
-  /// to the module body in place (no extra tree walk needed).
+  /// namespaces produced by the prior phase). If runtime injection is
+  /// enabled, prepends the accumulated style metadata to the module body
+  /// in place (no extra tree walk needed).
   pub(crate) fn transform_consumers(&mut self, module: &mut Module) {
     self.state.cycle = TransformationCycle::TransformConsumers;
-    self.state.evaluate_preserve_bindings = true;
     module.visit_mut_children_with(self);
-    self.state.evaluate_preserve_bindings = false;
 
     if self.state.options.runtime_injection.is_some() {
       inject_runtime_styles(&self.state, &mut module.body);

@@ -16,7 +16,6 @@ where
       && let Some(obj_ident) = member_expression.obj.as_ident()
     {
       increase_member_ident_count(&mut self.state, &obj_ident.sym);
-      self.state.member_obj_ident_seen.insert(obj_ident.to_id());
     }
 
     member_expression.visit_mut_children_with(self);

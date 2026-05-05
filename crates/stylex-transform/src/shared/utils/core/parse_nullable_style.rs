@@ -13,7 +13,6 @@ use crate::shared::{
     ast::convertors::{
       convert_expr_to_bool, convert_expr_to_str, convert_key_value_to_str, convert_lit_to_string,
     },
-    common::reduce_ident_count,
     js::evaluate::evaluate,
   },
 };
@@ -118,7 +117,6 @@ pub(crate) fn parse_nullable_style(
   path: &Expr,
   state: &mut StateManager,
   evaluate_path_fn_config: &FunctionMap,
-  should_reduce_count: bool,
 ) -> StyleObject {
   let result = match path {
     Expr::Lit(lit) => {
@@ -132,9 +130,6 @@ pub(crate) fn parse_nullable_style(
       if ident.sym == "undefined" {
         StyleObject::Nullable
       } else {
-        if should_reduce_count {
-          reduce_ident_count(state, ident);
-        }
         StyleObject::Other
       }
     },
@@ -145,10 +140,6 @@ pub(crate) fn parse_nullable_style(
       if let Some(obj_ident) = member.obj.as_ident()
         && state.style_map.contains_key(obj_ident.sym.as_str())
       {
-        if should_reduce_count && let Some(member_ident) = member.obj.as_ident() {
-          reduce_ident_count(state, member_ident);
-        }
-
         match &member.prop {
           MemberProp::Ident(prop_ident) => {
             obj_name = Some(obj_ident.sym.as_str().to_string());

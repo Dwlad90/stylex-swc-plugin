@@ -15,14 +15,13 @@ use crate::shared::{
     deep_merge_props, downcast_style_options_to_state_manager, extract_filename_from_path,
     extract_filename_with_ext_from_path, extract_path, fill_state_declarations,
     fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_expr_from_var_decl,
-    get_import_from, get_key_values_from_object, get_var_decl_by_ident, increase_ident_count,
-    increase_ident_count_by_count, increase_member_ident, increase_member_ident_count,
-    increase_member_ident_count_by_count, js_object_to_json, normalize_expr, reduce_ident_count,
+    get_import_from, get_key_values_from_object, get_var_decl_by_ident, increase_member_ident,
+    increase_member_ident_count, increase_member_ident_count_by_count, js_object_to_json,
+    normalize_expr,
     reduce_member_expression_count, reduce_member_ident_count, remove_duplicates,
     serialize_value_to_json_string, type_of,
   },
 };
-use stylex_enums::misc::VarDeclAction;
 use stylex_evaluator::common::evaluate_bin_expr;
 
 // ──────────────────────────────────────────────
@@ -536,84 +535,6 @@ mod remove_duplicates_tests {
     ];
     let result = remove_duplicates(props);
     assert_eq!(result.len(), 1);
-  }
-}
-
-// ──────────────────────────────────────────────
-// StateManager-dependent: ident count functions
-// ──────────────────────────────────────────────
-
-mod ident_count_tests {
-  use super::*;
-
-  #[test]
-  fn increase_ident_count_creates_entry() {
-    let mut state = StateManager::default();
-    let ident = make_ident("myVar");
-    increase_ident_count(&mut state, &ident);
-    assert_eq!(state.var_decl_count_map.get(&Atom::from("myVar")), Some(&1));
-  }
-
-  #[test]
-  fn increase_ident_count_increments_existing() {
-    let mut state = StateManager::default();
-    let ident = make_ident("myVar");
-    increase_ident_count(&mut state, &ident);
-    increase_ident_count(&mut state, &ident);
-    assert_eq!(state.var_decl_count_map.get(&Atom::from("myVar")), Some(&2));
-  }
-
-  #[test]
-  fn increase_ident_count_by_count_adds_correct_amount() {
-    let mut state = StateManager::default();
-    let ident = make_ident("counter");
-    increase_ident_count_by_count(&mut state, &ident, 5);
-    assert_eq!(
-      state.var_decl_count_map.get(&Atom::from("counter")),
-      Some(&5)
-    );
-  }
-
-  #[test]
-  fn increase_ident_count_by_count_accumulates() {
-    let mut state = StateManager::default();
-    let ident = make_ident("counter");
-    increase_ident_count_by_count(&mut state, &ident, 3);
-    increase_ident_count_by_count(&mut state, &ident, 2);
-    assert_eq!(
-      state.var_decl_count_map.get(&Atom::from("counter")),
-      Some(&5)
-    );
-  }
-
-  #[test]
-  fn reduce_ident_count_decrements() {
-    let mut state = StateManager::default();
-    let ident = make_ident("myVar");
-    increase_ident_count_by_count(&mut state, &ident, 3);
-    reduce_ident_count(&mut state, &ident);
-    assert_eq!(state.var_decl_count_map.get(&Atom::from("myVar")), Some(&2));
-  }
-
-  #[test]
-  fn reduce_ident_count_on_nonexistent_is_noop() {
-    let mut state = StateManager::default();
-    let ident = make_ident("ghost");
-    // Should not panic
-    reduce_ident_count(&mut state, &ident);
-    assert_eq!(state.var_decl_count_map.get(&Atom::from("ghost")), None);
-  }
-
-  #[test]
-  fn multiple_idents_tracked_independently() {
-    let mut state = StateManager::default();
-    let a = make_ident("a");
-    let b = make_ident("b");
-    increase_ident_count(&mut state, &a);
-    increase_ident_count(&mut state, &a);
-    increase_ident_count(&mut state, &b);
-    assert_eq!(state.var_decl_count_map.get(&Atom::from("a")), Some(&2));
-    assert_eq!(state.var_decl_count_map.get(&Atom::from("b")), Some(&1));
   }
 }
 
@@ -1471,40 +1392,14 @@ mod get_var_decl_by_ident_tests {
   use super::*;
 
   #[test]
-  fn with_increase_action_increments_count() {
+  fn returns_var_decl_for_known_ident() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
     let decl = make_var_declarator("x", make_num_expr(10.0));
     fill_state_declarations(&mut state, &decl);
     let ident = make_ident("x");
-    let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::Increase);
+    let result = get_var_decl_by_ident(&ident, &mut state, &fns);
     assert!(result.is_some());
-    assert_eq!(state.var_decl_count_map.get(&Atom::from("x")), Some(&1));
-  }
-
-  #[test]
-  fn with_none_action_does_not_change_count() {
-    let mut state = StateManager::default();
-    let fns = FunctionMap::default();
-    let decl = make_var_declarator("x", make_num_expr(10.0));
-    fill_state_declarations(&mut state, &decl);
-    let ident = make_ident("x");
-    let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
-    assert!(result.is_some());
-    assert_eq!(state.var_decl_count_map.get(&Atom::from("x")), None);
-  }
-
-  #[test]
-  fn with_reduce_action_decrements_count() {
-    let mut state = StateManager::default();
-    let fns = FunctionMap::default();
-    let decl = make_var_declarator("x", make_num_expr(10.0));
-    fill_state_declarations(&mut state, &decl);
-    state.var_decl_count_map.insert("x".into(), 3);
-    let ident = make_ident("x");
-    let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::Reduce);
-    assert!(result.is_some());
-    assert_eq!(state.var_decl_count_map.get(&Atom::from("x")), Some(&2));
   }
 
   #[test]
@@ -1512,7 +1407,7 @@ mod get_var_decl_by_ident_tests {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
     let ident = make_ident("nonexistent");
-    let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+    let result = get_var_decl_by_ident(&ident, &mut state, &fns);
     assert!(result.is_none());
   }
 }
@@ -1935,7 +1830,7 @@ mod get_var_decl_by_ident_function_map_tests {
       })),
     );
     let ident = make_ident("myMapper");
-    let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+    let result = get_var_decl_by_ident(&ident, &mut state, &fns);
     assert!(result.is_some());
   }
 
@@ -1949,7 +1844,7 @@ mod get_var_decl_by_ident_function_map_tests {
       Box::new(FunctionConfigType::EnvObject(IndexMap::new())),
     );
     let ident = make_ident("envObj");
-    let result = get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+    let result = get_var_decl_by_ident(&ident, &mut state, &fns);
     assert!(result.is_none());
   }
 }
@@ -2171,7 +2066,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
       })),
     );
     let ident = make_ident("arrFn");
-    get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+    get_var_decl_by_ident(&ident, &mut state, &fns);
   }
 
   #[test]
@@ -2184,7 +2079,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
       Box::new(FunctionConfigType::Map(Default::default())),
     );
     let ident = make_ident("mapFn");
-    get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+    get_var_decl_by_ident(&ident, &mut state, &fns);
   }
 
   #[test]
@@ -2197,7 +2092,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
       Box::new(FunctionConfigType::IndexMap(Default::default())),
     );
     let ident = make_ident("imapFn");
-    get_var_decl_by_ident(&ident, &mut state, &fns, VarDeclAction::None);
+    get_var_decl_by_ident(&ident, &mut state, &fns);
   }
 }
 

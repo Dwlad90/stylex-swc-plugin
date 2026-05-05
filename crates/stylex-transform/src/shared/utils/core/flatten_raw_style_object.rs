@@ -28,7 +28,6 @@ use crate::shared::{
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
 };
-use stylex_enums::misc::VarDeclAction;
 use stylex_regex::regex::CSS_VALUE_SPLIT_REGEX;
 use stylex_structures::order_pair::OrderPair;
 
@@ -242,7 +241,7 @@ pub(crate) fn flatten_raw_style_object_logic(
         flattened.insert(css_property_key, pre_rule);
       },
       Expr::Ident(ident) => {
-        match get_var_decl_by_ident(ident, traversal_state, fns, VarDeclAction::Reduce) {
+        match get_var_decl_by_ident(ident, traversal_state, fns) {
           Some(var_decl) => {
             let var_decl_expr = get_expr_from_var_decl(&var_decl);
 

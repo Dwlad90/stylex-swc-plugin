@@ -28,10 +28,7 @@ use crate::shared::{
   structures::types::InjectableStylesMap,
   utils::{
     ast::convertors::create_number_expr,
-    common::{
-      extract_filename_from_path, extract_filename_with_ext_from_path, extract_path,
-      increase_ident_count, reduce_ident_count, reduce_member_ident_count,
-    },
+    common::{extract_filename_from_path, extract_filename_with_ext_from_path, extract_path},
   },
 };
 use stylex_ast::ast::factories::{
@@ -144,12 +141,6 @@ impl ImportKind {
       _ => None,
     }
   }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) struct SeenValueWithVarDeclCount {
-  pub(crate) seen_value: SeenValue,
-  pub(crate) var_decl_count: Option<AtomHashMap>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -362,8 +353,7 @@ pub struct StateManager {
   pub(crate) declarations: Vec<VarDeclarator>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   pub(crate) call_expressions: CallExpressionState,
-  pub(crate) var_decl_count_map: AtomHashMap,
-  pub(crate) seen: FxHashMap<u64, Rc<SeenValueWithVarDeclCount>>,
+  pub(crate) seen: FxHashMap<u64, Rc<SeenValue>>,
   pub(crate) cache: CacheState,
   pub(crate) jsx_spread_attr_exprs_map: FxHashMap<Expr, Vec<JSXAttrOrSpread>>,
 
@@ -391,11 +381,6 @@ pub struct StateManager {
   /// namespaces.
   pub(crate) roots: FxHashSet<DeclId>,
 
-  /// Set of style-namespace member-expression objects observed during
-  /// the discovery walk. Replaces the legacy `count > 0` guard in the
-  /// mark phase with a single membership check.
-  pub(crate) member_obj_ident_seen: FxHashSet<DeclId>,
-
   /// Transient live-set computed by [`compute_live_set`] at the start
   /// of `finalize_module`. Each `DeclId` in the set must survive the
   /// sweep; declarators absent from `decl_uses` entirely also survive
@@ -413,16 +398,6 @@ pub struct StateManager {
   pub(crate) other_injected_css_rules: InjectableStylesMap,
   pub(crate) top_imports: Vec<ImportDecl>,
   pub(crate) named_exports: FxHashSet<NamedExport>,
-
-  /// When `true`, the expression evaluator preserves variable binding
-  /// counts (returns `VarDeclAction::None`) instead of decrementing them.
-  ///
-  /// Set by the driver around the consumer transformation walk so that
-  /// arguments to `stylex.props` / `stylex.attrs` retain their references
-  /// for codegen. Replaces the legacy `cycle == TransformExit` check in
-  /// `shared/utils/js/evaluate/mod.rs`, decoupling the evaluator from the
-  /// pipeline state machine.
-  pub(crate) evaluate_preserve_bindings: bool,
 
   pub cycle: TransformationCycle,
 }
@@ -446,7 +421,6 @@ impl StateManager {
       member_object_ident_count_map: FxHashMap::default(),
       decl_uses: FxHashMap::default(),
       roots: FxHashSet::default(),
-      member_obj_ident_seen: FxHashSet::default(),
       live_set: FxHashSet::default(),
       export_id: None,
 
@@ -461,7 +435,6 @@ impl StateManager {
       declarations_state: DeclarationState::default(),
       top_level_expressions: vec![],
       call_expressions: CallExpressionState::default(),
-      var_decl_count_map: FxHashMap::default(),
       jsx_spread_attr_exprs_map: FxHashMap::default(),
 
       in_stylex_create: false,
@@ -473,8 +446,6 @@ impl StateManager {
       hoisted_module_items: vec![],
 
       other_injected_css_rules: IndexMap::new(),
-
-      evaluate_preserve_bindings: false,
 
       cycle: TransformationCycle::Discover,
     }
@@ -1168,18 +1139,6 @@ impl StateManager {
     self.options.treeshake_compensation
   }
 
-  /// Decrement reference counts for every ident and member-expr access inside
-  /// the given declarator.
-  ///
-  /// Used by the cleanup pass to keep `var_decl_count_map` and
-  /// `member_object_ident_count_map` symmetric when an unused declarator is
-  /// removed.
-  #[allow(dead_code, reason = "removed alongside count machinery in phase D")]
-  pub(crate) fn decrement_decl_counts(&mut self, decl: &VarDeclarator) {
-    let mut visitor = DecrementCountVisitor { state: self };
-    decl.visit_with(&mut visitor);
-  }
-
   // Now you can use these helper functions to simplify your function
   pub fn combine(&mut self, other: &Self) {
     self.imports.combine(&other.imports);
@@ -1198,7 +1157,6 @@ impl StateManager {
 
     // Hash maps: extend in-place (other values take precedence)
     self.call_expressions.combine(&other.call_expressions);
-    extend_hash_map(&mut self.var_decl_count_map, &other.var_decl_count_map);
     extend_hash_map(&mut self.style_map, &other.style_map);
     extend_hash_map(&mut self.style_vars, &other.style_vars);
 
@@ -1213,9 +1171,6 @@ impl StateManager {
     );
 
     self.roots.extend(other.roots.iter().cloned());
-    self
-      .member_obj_ident_seen
-      .extend(other.member_obj_ident_seen.iter().cloned());
     for (decl_id, uses) in &other.decl_uses {
       self
         .decl_uses
@@ -1370,38 +1325,6 @@ fn collect_decl_uses(state: &mut StateManager, decl: &VarDeclarator) {
   }
 }
 
-/// Read-only visitor used by [`StateManager::decrement_decl_counts`] to undo
-/// the increments produced during the discovery walk for an unused declarator.
-#[allow(dead_code, reason = "removed alongside count machinery in phase D")]
-struct DecrementCountVisitor<'a> {
-  state: &'a mut StateManager,
-}
-
-impl Visit for DecrementCountVisitor<'_> {
-  fn visit_ident(&mut self, ident: &Ident) {
-    reduce_ident_count(self.state, ident);
-  }
-
-  fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
-    if let Some(obj_ident) = member_expr.obj.as_ident() {
-      reduce_member_ident_count(self.state, &obj_ident.sym);
-    }
-    member_expr.visit_children_with(self);
-  }
-
-  fn visit_member_prop(&mut self, member_prop: &MemberProp) {
-    if !member_prop.is_ident() {
-      member_prop.visit_children_with(self);
-    }
-  }
-
-  fn visit_prop_name(&mut self, prop_name: &PropName) {
-    if !prop_name.is_ident() {
-      prop_name.visit_children_with(self);
-    }
-  }
-}
-
 /// Visitor used by [`mark_style_vars_to_keep`] to populate
 /// `state.style_vars_to_keep` from the surviving member-expression accesses
 /// on style namespaces and to materialize any JSX-spread replacements
@@ -1426,7 +1349,6 @@ impl VisitMut for MarkStyleVarsVisitor<'_> {
           .get(&ident.sym)
           .is_some_and(|&c| c > 0)
       {
-        increase_ident_count(self.state, ident);
         self.state.roots.insert(ident.to_id());
         self.state.style_vars_to_keep.insert(StyleVarsToKeep(
           ident.sym.clone(),
@@ -1436,7 +1358,6 @@ impl VisitMut for MarkStyleVarsVisitor<'_> {
       };
 
       if let MemberProp::Computed(_) = &member_expression.prop {
-        increase_ident_count(self.state, ident);
         self.state.roots.insert(ident.to_id());
         self.state.style_vars_to_keep.insert(StyleVarsToKeep(
           ident.sym.clone(),

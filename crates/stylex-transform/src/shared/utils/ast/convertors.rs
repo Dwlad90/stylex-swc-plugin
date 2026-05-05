@@ -32,7 +32,7 @@ use crate::shared::{
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_VALUE, VAR_DECL_INIT_REQUIRED, non_static_value,
 };
-use stylex_enums::misc::{BinaryExprType, VarDeclAction};
+use stylex_enums::misc::BinaryExprType;
 use stylex_utils::{string::wrap_key_in_quotes, swc::get_default_expr_ctx};
 
 pub fn expr_to_num(
@@ -73,7 +73,7 @@ pub fn expr_to_num(
 }
 
 fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &FunctionMap) -> String {
-  let var_decl = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce);
+  let var_decl = get_var_decl_by_ident(ident, state, functions);
 
   match &var_decl {
     Some(var_decl) => {
@@ -101,7 +101,7 @@ pub fn convert_ident_to_expr(
   state: &mut StateManager,
   functions: &FunctionMap,
 ) -> Expr {
-  match get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce) {
+  match get_var_decl_by_ident(ident, state, functions) {
     Some(var_decl) => get_expr_from_var_decl(&var_decl).clone(),
     #[cfg_attr(coverage_nightly, coverage(off))]
     _ => {
@@ -493,7 +493,7 @@ pub fn ident_to_number(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> f64 {
-  let var_decl = get_var_decl_by_ident(ident, traversal_state, fns, VarDeclAction::Reduce);
+  let var_decl = get_var_decl_by_ident(ident, traversal_state, fns);
 
   match &var_decl {
     Some(var_decl) => {
@@ -549,7 +549,7 @@ pub fn handle_tpl_to_expression(
     // Check if the expression is an identifier
     if let Expr::Ident(ident) = expr.as_ref() {
       // Find the variable declaration for this identifier in the AST
-      let var_decl = get_var_decl_by_ident(ident, state, functions, VarDeclAction::Reduce);
+      let var_decl = get_var_decl_by_ident(ident, state, functions);
 
       // If a variable declaration was found
       if let Some(var_decl) = &var_decl {
@@ -581,7 +581,7 @@ pub fn expr_tpl_to_string(
     if i < tpl.exprs.len() {
       match &tpl.exprs[i].as_ref() {
         Expr::Ident(ident) => {
-          let ident = get_var_decl_by_ident(ident, traversal_state, fns, VarDeclAction::Reduce);
+          let ident = get_var_decl_by_ident(ident, traversal_state, fns);
 
           match ident {
             Some(var_decl) => {

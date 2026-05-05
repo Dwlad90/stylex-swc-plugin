@@ -40,7 +40,7 @@ use crate::shared::{
     functions::{CallbackType, FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
     seen_value::SeenValue,
     state::EvaluationState,
-    state_manager::{SeenValueWithVarDeclCount, StateManager, add_import_expression},
+    state_manager::{StateManager, add_import_expression},
     theme_ref::ThemeRef,
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
@@ -53,8 +53,7 @@ use crate::shared::{
     },
     common::{
       deep_merge_props, get_import_by_ident, get_key_values_from_object, get_var_decl_by_ident,
-      get_var_decl_from, normalize_expr, reduce_ident_count, reduce_member_expression_count,
-      remove_duplicates,
+      get_var_decl_from, normalize_expr, remove_duplicates,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
   },
@@ -79,17 +78,12 @@ use stylex_constants::constants::{
 use stylex_enums::{
   import_path_resolution::ImportPathResolution,
   js::{ArrayJS, MathJS, ObjectJS, StringJS},
-  misc::{BinaryExprType, VarDeclAction},
+  misc::BinaryExprType,
   value_with_default::ValueWithDefault,
 };
 use stylex_structures::{named_import_source::ImportSources, stylex_env::EnvEntry};
 use stylex_utils::{
-  collection::{
-    get_hash_map_difference, get_hash_map_value_difference, sort_numbers_factory,
-    sum_hash_map_values,
-  },
-  hash::stable_hash_unspanned,
-  string::char_code_at,
+  collection::sort_numbers_factory, hash::stable_hash_unspanned, string::char_code_at,
   swc::get_default_expr_ctx,
 };
 
@@ -381,17 +375,7 @@ fn _evaluate(
       )
     };
 
-    let binding = get_var_decl_by_ident(
-      ident,
-      traversal_state,
-      &state.functions,
-      if traversal_state.evaluate_preserve_bindings {
-        // NOTE: We don't want to reduce the binding count of stylex.props arguments
-        VarDeclAction::None
-      } else {
-        VarDeclAction::Reduce
-      },
-    );
+    let binding = get_var_decl_by_ident(ident, traversal_state, &state.functions);
 
     if let Some(init) = binding.and_then(|mut var_decl| var_decl.init.take()) {
       return evaluate_cached(&init, state, traversal_state, fns);

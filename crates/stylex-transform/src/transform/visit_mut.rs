@@ -3,7 +3,6 @@ mod visit_mut_decl;
 mod visit_mut_export_decl;
 mod visit_mut_export_default_expr;
 mod visit_mut_expr;
-mod visit_mut_ident;
 mod visit_mut_import_decl;
 mod visit_mut_jsx_attr_or_spread;
 mod visit_mut_jsx_opening_element;
@@ -23,9 +22,8 @@ use swc_core::{
   common::comments::Comments,
   ecma::{
     ast::{
-      ComputedPropName, Decl, ExportDecl, ExportDefaultExpr, Expr, Ident, ImportDecl,
-      JSXOpeningElement, MemberExpr, MemberProp, Module, ModuleItem, NamedExport, PropName, Stmt,
-      VarDeclarator,
+      ComputedPropName, Decl, ExportDecl, ExportDefaultExpr, Expr, ImportDecl, JSXOpeningElement,
+      MemberExpr, MemberProp, Module, ModuleItem, NamedExport, PropName, Stmt, VarDeclarator,
     },
     visit::{VisitMut, noop_visit_mut_type},
   },
@@ -95,10 +93,6 @@ where
 
   fn visit_mut_named_export(&mut self, named_export: &mut NamedExport) {
     self.visit_mut_named_export_impl(named_export);
-  }
-
-  fn visit_mut_ident(&mut self, ident: &mut Ident) {
-    self.visit_mut_ident_impl(ident);
   }
 
   fn visit_mut_decl(&mut self, decl: &mut Decl) {

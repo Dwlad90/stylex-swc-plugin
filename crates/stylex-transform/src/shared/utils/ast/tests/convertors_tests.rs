@@ -940,7 +940,6 @@ mod convert_ident_to_expr_tests {
     let decl = make_var_declarator("myNum", make_num_expr(42.0));
     fill_state_declarations(&mut state, &decl);
     // Set count so reduce doesn't underflow
-    state.var_decl_count_map.insert("myNum".into(), 2);
 
     let ident = Ident {
       span: Default::default(),
@@ -963,7 +962,6 @@ mod convert_ident_to_expr_tests {
 
     let decl = make_var_declarator("myStr", make_str_expr("hello"));
     fill_state_declarations(&mut state, &decl);
-    state.var_decl_count_map.insert("myStr".into(), 2);
 
     let ident = Ident {
       span: Default::default(),
@@ -1266,7 +1264,6 @@ mod convert_expr_to_bool_tests {
       })),
     );
     fill_state_declarations(&mut state, &decl);
-    state.var_decl_count_map.insert("flag".into(), 2);
 
     let expr = make_ident_expr("flag");
     assert!(convert_expr_to_bool(&expr, &mut state, &fns));
@@ -1418,7 +1415,6 @@ mod expr_tpl_to_string_tests {
 
     let decl = make_var_declarator("size", make_str_expr("16px"));
     fill_state_declarations(&mut traversal_state, &decl);
-    traversal_state.var_decl_count_map.insert("size".into(), 2);
 
     let tpl = Tpl {
       span: Default::default(),
@@ -1508,7 +1504,6 @@ mod handle_tpl_to_expression_tests {
 
     let decl = make_var_declarator("myVar", make_str_expr("replaced"));
     fill_state_declarations(&mut state, &decl);
-    state.var_decl_count_map.insert("myVar".into(), 2);
 
     let tpl = Tpl {
       span: Default::default(),
@@ -1614,7 +1609,6 @@ mod ident_to_number_tests {
 
     let decl = make_var_declarator("myNum", make_num_expr(42.0));
     fill_state_declarations(&mut traversal_state, &decl);
-    traversal_state.var_decl_count_map.insert("myNum".into(), 2);
 
     let ident = Ident {
       span: Default::default(),
@@ -1689,7 +1683,6 @@ mod expr_to_num_tests {
 
     let decl = make_var_declarator("val", make_num_expr(99.0));
     fill_state_declarations(&mut traversal_state, &decl);
-    traversal_state.var_decl_count_map.insert("val".into(), 2);
 
     let expr = make_ident_expr("val");
     let result = expr_to_num(&expr, &mut state, &mut traversal_state, &fns).unwrap();
@@ -1769,7 +1762,6 @@ mod convert_expr_to_str_tests {
     let fns = FunctionMap::default();
     let decl = make_var_declarator("color", make_str_expr("red"));
     fill_state_declarations(&mut state, &decl);
-    state.var_decl_count_map.insert("color".into(), 2);
     let expr = make_ident_expr("color");
     let result = convert_expr_to_str(&expr, &mut state, &fns);
     assert_eq!(result, Some("red".to_string()));
@@ -1848,7 +1840,6 @@ mod ident_to_number_extended_tests {
     });
     let decl = make_var_declarator("sum", bin_expr);
     fill_state_declarations(&mut traversal_state, &decl);
-    traversal_state.var_decl_count_map.insert("sum".into(), 2);
     let ident = Ident {
       span: Default::default(),
       sym: "sum".into(),
@@ -1871,7 +1862,6 @@ mod ident_to_number_extended_tests {
     });
     let decl = make_var_declarator("neg", unary_expr);
     fill_state_declarations(&mut traversal_state, &decl);
-    traversal_state.var_decl_count_map.insert("neg".into(), 2);
     let ident = Ident {
       span: Default::default(),
       sym: "neg".into(),
@@ -1905,7 +1895,6 @@ mod ident_to_number_extended_tests {
     let fns = FunctionMap::default();
     let decl = make_var_declarator("s", make_str_expr("hello"));
     fill_state_declarations(&mut traversal_state, &decl);
-    traversal_state.var_decl_count_map.insert("s".into(), 2);
     let ident = Ident {
       span: Default::default(),
       sym: "s".into(),
@@ -1950,7 +1939,6 @@ mod handle_tpl_to_expression_extended_tests {
     let fns = FunctionMap::default();
     let decl = make_var_declarator("val", make_num_expr(42.0));
     fill_state_declarations(&mut state, &decl);
-    state.var_decl_count_map.insert("val".into(), 2);
 
     let tpl = Tpl {
       span: Default::default(),
@@ -2095,7 +2083,6 @@ mod expr_tpl_to_string_extended_tests {
     let fns = FunctionMap::default();
     let decl = make_var_declarator("unit", make_str_expr("em"));
     fill_state_declarations(&mut traversal_state, &decl);
-    traversal_state.var_decl_count_map.insert("unit".into(), 2);
     let tpl = Tpl {
       span: Default::default(),
       exprs: vec![Box::new(make_ident_expr("unit"))],
@@ -2432,7 +2419,6 @@ mod convert_ident_to_expr_extended_tests {
     let fns = FunctionMap::default();
     let decl = make_var_declarator("x", make_num_expr(42.0));
     fill_state_declarations(&mut state, &decl);
-    state.var_decl_count_map.insert("x".into(), 2);
     let ident = Ident {
       span: Default::default(),
       sym: "x".into(),
@@ -2611,7 +2597,6 @@ mod ident_to_number_edge_tests {
     // Declare val = 42 (as number literal)
     let decl = make_var_declarator("val", make_num_expr(42.0));
     fill_state_declarations(&mut traversal_state, &decl);
-    traversal_state.var_decl_count_map.insert("val".into(), 2);
     let ident = Ident {
       span: Default::default(),
       sym: "val".into(),
@@ -2635,7 +2620,6 @@ mod ident_to_number_edge_tests {
     });
     let decl = make_var_declarator("obj", obj_expr);
     fill_state_declarations(&mut traversal_state, &decl);
-    traversal_state.var_decl_count_map.insert("obj".into(), 2);
     let ident = Ident {
       span: Default::default(),
       sym: "obj".into(),
@@ -2682,11 +2666,9 @@ mod convert_expr_to_str_ident_chain_tests {
     // inner = "red"
     let inner_decl = make_var_declarator("inner", make_str_expr("red"));
     fill_state_declarations(&mut state, &inner_decl);
-    state.var_decl_count_map.insert("inner".into(), 3);
     // outer = inner (ident)
     let outer_decl = make_var_declarator("outer", make_ident_expr("inner"));
     fill_state_declarations(&mut state, &outer_decl);
-    state.var_decl_count_map.insert("outer".into(), 2);
 
     let expr = make_ident_expr("outer");
     let result = convert_expr_to_str(&expr, &mut state, &fns);

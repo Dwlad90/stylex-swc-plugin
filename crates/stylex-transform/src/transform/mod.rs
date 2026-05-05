@@ -9,7 +9,7 @@ use swc_core::{
   },
 };
 
-use crate::shared::{structures::state_manager::StateManager, utils::common::increase_ident_count};
+use crate::shared::structures::state_manager::StateManager;
 use stylex_enums::{
   property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
   sx_prop_name_param::SxPropNameParam,
@@ -288,7 +288,6 @@ where
             .state
             .is_stylex_import_for_current_cycle(ident.sym.as_ref())
           {
-            increase_ident_count(&mut self.state, ident);
             return Some((ident.to_id(), ident.sym.to_string()));
           }
         },

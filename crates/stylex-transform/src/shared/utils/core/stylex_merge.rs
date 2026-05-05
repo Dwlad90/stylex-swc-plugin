@@ -20,7 +20,7 @@ use crate::shared::{
   transformers::stylex_default_marker,
   utils::{
     ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
-    common::{reduce_ident_count, reduce_member_expression_count},
+    common::reduce_member_expression_count,
     core::{
       make_string_expression::make_string_expression,
       parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
@@ -104,7 +104,7 @@ pub(crate) fn stylex_merge(
     let arg = arg_path.expr.as_ref();
 
     let resolved = if arg.is_object() || arg.is_ident() || arg.is_member() {
-      let resolved = parse_nullable_style(arg, state, &evaluate_path_fn_config, false);
+      let resolved = parse_nullable_style(arg, state, &evaluate_path_fn_config);
 
       if let StyleObject::Other = resolved {
         bail_out_index = Some(current_index);
@@ -155,8 +155,8 @@ pub(crate) fn stylex_merge(
         alt: alternate,
         ..
       }) => {
-        let primary = parse_nullable_style(consequent, state, &evaluate_path_fn_config, true);
-        let fallback = parse_nullable_style(alternate, state, &evaluate_path_fn_config, true);
+        let primary = parse_nullable_style(consequent, state, &evaluate_path_fn_config);
+        let fallback = parse_nullable_style(alternate, state, &evaluate_path_fn_config);
 
         if primary.eq(&StyleObject::Other) || fallback.eq(&StyleObject::Other) {
           bail_out_index = Some(current_index);
@@ -188,9 +188,8 @@ pub(crate) fn stylex_merge(
           break;
         }
 
-        let left_resolved = parse_nullable_style(left_path, state, &evaluate_path_fn_config, true);
-        let right_resolved =
-          parse_nullable_style(right_path, state, &evaluate_path_fn_config, true);
+        let left_resolved = parse_nullable_style(left_path, state, &evaluate_path_fn_config);
+        let right_resolved = parse_nullable_style(right_path, state, &evaluate_path_fn_config);
 
         if !left_resolved.eq(&StyleObject::Other) || right_resolved.eq(&StyleObject::Other) {
           bail_out_index = Some(current_index);
@@ -281,19 +280,12 @@ pub(crate) fn stylex_merge(
 
     for arg in &resolved_args {
       match arg {
-        ResolvedArg::StyleObject(_, idents, member_expr) => {
-          for ident in idents {
-            reduce_ident_count(state, ident);
-          }
-
+        ResolvedArg::StyleObject(_, _idents, member_expr) => {
           for member_expr in member_expr {
             reduce_member_expression_count(state, member_expr);
           }
         },
-        ResolvedArg::ConditionalStyle(_, _, _, idents, member_expr) => {
-          for ident in idents {
-            reduce_ident_count(state, ident);
-          }
+        ResolvedArg::ConditionalStyle(_, _, _, _idents, member_expr) => {
           for member_expr in member_expr {
             reduce_member_expression_count(state, member_expr);
           }

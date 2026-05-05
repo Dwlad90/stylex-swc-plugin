@@ -35,7 +35,8 @@
   ],
   "source": [
     "package.json",
-    "*/*/package.json"
+    "*/*/package.json",
+    "!*/fixtures/*"
   ],
   "versionGroups": [
     {
@@ -49,5 +50,11 @@
       ],
       "isIgnored": true
     }
-  ]
+  ],
+  "customTypes": {
+    "pnpmOverridesLegacy": {
+      "strategy": "versionsByName",
+      "path": "pnpm.overrides"
+    }
+  }
 }

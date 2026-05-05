@@ -184,14 +184,6 @@ impl ImportState {
     !self.import_paths.is_empty()
   }
 
-  fn has_stylex_imports(&self) -> bool {
-    !self.stylex_import.is_empty()
-  }
-
-  fn has_stylex_api_imports(&self) -> bool {
-    !self.stylex_api_imports.is_empty()
-  }
-
   fn insert_import_path(&mut self, source_path: String) {
     self.import_paths.insert(source_path);
   }
@@ -354,10 +346,6 @@ impl StyleInjectionState {
     &self.metadata
   }
 
-  fn styles_to_inject_for(&self, key_hash: &u64) -> Option<&Vec<ModuleItem>> {
-    self.styles_to_inject.get(key_hash)
-  }
-
   fn combine(&mut self, other: &Self) {
     if self.inject_import_inserted.is_none() {
       self.inject_import_inserted = other.inject_import_inserted.clone();
@@ -506,10 +494,6 @@ impl StateManager {
     self.call_expressions.is_member_callee(member)
   }
 
-  pub(crate) fn styles_to_inject_for(&self, key_hash: &u64) -> Option<&Vec<ModuleItem>> {
-    self.injection.styles_to_inject_for(key_hash)
-  }
-
   pub(crate) fn cached_span(&self, cache_key: u64) -> Option<Span> {
     self.cache.cached_span(cache_key)
   }
@@ -622,12 +606,6 @@ impl StateManager {
       },
       _ => self.is_stylex_namespace_import(ident_sym),
     }
-  }
-
-  pub(crate) fn are_imports_resolved(&self) -> bool {
-    self.injection.styles_to_inject.is_empty()
-      || self.imports.has_stylex_imports()
-      || self.imports.has_stylex_api_imports()
   }
 
   /// Applies the `env` configuration to the given identifiers and
@@ -1053,6 +1031,12 @@ impl StateManager {
       ],
     };
 
+    // Dual-write (Phase B1): queue into the new pending buffer
+    // alongside the legacy accumulator. Phase C will swap consumers
+    // to read from the buffer; Phase D will drop the legacy push.
+    for item in &module_items {
+      self.queue_insertion(InsertionSlot::BeforeImports, item.clone());
+    }
     self.prepend_include_module_items.extend(module_items);
     inject_var_ident
   }
@@ -1155,8 +1139,17 @@ impl StateManager {
 
     let normalized_module = drop_span(module);
 
-    if !styles_to_inject.contains(&normalized_module) {
+    let pushed_primary = !styles_to_inject.contains(&normalized_module);
+    if pushed_primary {
       styles_to_inject.push(normalized_module.clone());
+    }
+
+    // Dual-write (Phase B2): mirror the legacy push into the new
+    // pending buffer. Only queue when the legacy path pushed —
+    // legacy dedups via Vec::contains, and the buffer must match
+    // its dedup semantics so Phase C swap is byte-identical.
+    if pushed_primary {
+      self.queue_insertion(InsertionSlot::BeforeDecl(ast_hash), normalized_module.clone());
     }
 
     if let Some(fallback_ast) = fallback_ast {
@@ -1168,8 +1161,13 @@ impl StateManager {
         .entry(fallback_ast_hash)
         .or_default();
 
-      if !fallback_styles_to_inject.contains(&normalized_module) {
-        fallback_styles_to_inject.push(normalized_module);
+      let pushed_fallback = !fallback_styles_to_inject.contains(&normalized_module);
+      if pushed_fallback {
+        fallback_styles_to_inject.push(normalized_module.clone());
+      }
+
+      if pushed_fallback {
+        self.queue_insertion(InsertionSlot::BeforeDecl(fallback_ast_hash), normalized_module);
       }
     }
   }
@@ -1486,11 +1484,18 @@ pub(crate) fn mark_style_vars_to_keep(module: &mut Module, state: &mut StateMana
 ///    relevant initializer is hashed and any matching `BeforeDecl`
 ///    metadata is spliced before it.
 ///
-/// This helper is intentionally a no-op until Phase B/C wires
-/// producers and consumer; today it can be unit-tested in isolation
-/// against synthetic inputs.
-#[allow(dead_code)] // wired up in Phase C
-pub(crate) fn flush_pending_insertions(state: &mut StateManager, module_body: &mut Vec<ModuleItem>) {
+/// `runtime_injection` matches the legacy gate on
+/// `options.runtime_injection.is_some()`: when `false`, the runtime
+/// helpers (`BeforeImports`) and per-decl metadata (`BeforeDecl`)
+/// are dropped on the floor — exactly as the legacy
+/// `inject_runtime_styles` was simply not invoked. `AfterImports`
+/// (hoisted dynamic-style consts) always emits — the legacy in-walk
+/// splice did so regardless of the option.
+pub(crate) fn flush_pending_insertions(
+  state: &mut StateManager,
+  module_body: &mut Vec<ModuleItem>,
+  runtime_injection: bool,
+) {
   if state.pending_module_items.is_empty() {
     return;
   }
@@ -1503,9 +1508,17 @@ pub(crate) fn flush_pending_insertions(state: &mut StateManager, module_body: &m
 
   for PendingInsertion { slot, item } in pending {
     match slot {
-      InsertionSlot::BeforeImports => before_imports.push(item),
+      InsertionSlot::BeforeImports => {
+        if runtime_injection {
+          before_imports.push(item);
+        }
+      },
       InsertionSlot::AfterImports => after_imports.push(item),
-      InsertionSlot::BeforeDecl(hash) => before_decl.entry(hash).or_default().push(item),
+      InsertionSlot::BeforeDecl(hash) => {
+        if runtime_injection {
+          before_decl.entry(hash).or_default().push(item);
+        }
+      },
     }
   }
 

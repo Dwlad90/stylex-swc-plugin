@@ -6,10 +6,11 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    structures::state_manager::{build_decl_use_graph, compute_live_set, mark_style_vars_to_keep},
+    structures::state_manager::{
+      build_decl_use_graph, compute_live_set, flush_pending_insertions, mark_style_vars_to_keep,
+    },
     utils::common::fill_top_level_expressions,
   },
-  transform::visit_mut::visit_mut_module_items::inject_runtime_styles,
 };
 use stylex_enums::core::TransformationCycle;
 
@@ -59,19 +60,21 @@ where
     module.visit_mut_children_with(self);
   }
 
-  /// Run the consumer transformation pass plus runtime style injection.
+  /// Run the consumer transformation pass plus pending-insertion flush.
   ///
   /// Transforms `stylex.props` / `stylex.attrs` (which consume the style
-  /// namespaces produced by the prior phase). If runtime injection is
-  /// enabled, prepends the accumulated style metadata to the module body
-  /// in place (no extra tree walk needed).
+  /// namespaces produced by the prior phase). After the consumer walk
+  /// completes, drains the pending-insertion buffer with a single
+  /// linear merge into the module body. Runtime helpers and per-decl
+  /// metadata are gated on `options.runtime_injection.is_some()`,
+  /// matching the legacy gate; hoisted dynamic-style consts always
+  /// emit.
   pub(crate) fn transform_consumers(&mut self, module: &mut Module) {
     self.state.cycle = TransformationCycle::TransformConsumers;
     module.visit_mut_children_with(self);
 
-    if self.state.options.runtime_injection.is_some() {
-      inject_runtime_styles(&self.state, &mut module.body);
-    }
+    let runtime_injection = self.state.options.runtime_injection.is_some();
+    flush_pending_insertions(&mut self.state, &mut module.body, runtime_injection);
   }
 
   /// Run the cleanup phase: materialize deferred JSX-spread

@@ -40,7 +40,7 @@ use crate::shared::{
     functions::{CallbackType, FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
     seen_value::SeenValue,
     state::EvaluationState,
-    state_manager::{StateManager, add_import_expression},
+    state_manager::{InsertionSlot, StateManager, add_import_expression},
     theme_ref::ThemeRef,
     types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
@@ -448,13 +448,25 @@ fn _evaluate(
         {
           let prepend_import_module_item = add_import_expression(&import_path_src);
 
-          if !traversal_state
+          let pushed = !traversal_state
             .prepend_import_module_items
-            .contains(&prepend_import_module_item)
-          {
+            .contains(&prepend_import_module_item);
+          if pushed {
             traversal_state
               .prepend_import_module_items
-              .push(prepend_import_module_item);
+              .push(prepend_import_module_item.clone());
+          }
+
+          // Dual-write (Phase B3): theme side-effect imports go
+          // under BeforeImports because the legacy
+          // `inject_runtime_styles` placed `prepend_import_module_items`
+          // before the existing import block (after the runtime
+          // helpers from `prepend_include_module_items`). Gated on
+          // the same dedup as the legacy push to keep the buffer
+          // and legacy vec in lockstep.
+          if pushed {
+            traversal_state
+              .queue_insertion(InsertionSlot::BeforeImports, prepend_import_module_item);
           }
 
           state.added_imports.insert(import_path_src);

@@ -344,15 +344,24 @@ impl DeclarationState {
 pub(crate) struct StyleInjectionState {
   inject_import_inserted: Option<InjectImportIdents>,
   metadata: IndexMap<String, IndexSet<MetaData>>,
-  /// O(1) dedup index for theme side-effect imports queued under
-  /// `InsertionSlot::ThemeImports`. Keyed by `stable_hash(item)`.
-  /// Replaces the legacy `prepend_import_module_items.contains` gate.
-  theme_import_dedup: FxHashSet<u64>,
-  /// O(1) dedup index for per-decl style metadata queued under
-  /// `InsertionSlot::BeforeDecl(ast_hash)`. Keyed by
-  /// `(ast_hash, stable_hash(module_item))`. Replaces the legacy
-  /// `styles_to_inject[ast_hash].contains` gate.
-  pending_decl_dedup: FxHashSet<(u64, u64)>,
+  /// Transient dedup map for theme side-effect imports queued
+  /// under `InsertionSlot::ThemeImports`. Tracks the imports that
+  /// have already been queued so duplicates from later evaluations
+  /// can be skipped. Lookups use `Vec::contains` via SWC's
+  /// `PartialEq` on `ModuleItem`, which short-circuits on the
+  /// first differing field — significantly cheaper in the typical
+  /// case than a full `stable_hash` walk over the AST. Replaces
+  /// the legacy `prepend_import_module_items` field's dual role
+  /// (storage + dedup); the storage half is now in
+  /// `pending_module_items`.
+  queued_theme_imports: Vec<ModuleItem>,
+  /// Transient dedup map for per-decl style metadata queued under
+  /// `InsertionSlot::BeforeDecl(ast_hash)`. Same rationale as
+  /// `queued_theme_imports`: keying by `ast_hash` keeps the
+  /// per-bucket `Vec` small (typically 1–2 entries), so
+  /// `Vec::contains` short-circuits early on PartialEq mismatches.
+  /// Replaces the legacy `styles_to_inject` field's dual role.
+  queued_decl_items: IndexMap<u64, Vec<ModuleItem>>,
 }
 
 impl StyleInjectionState {
@@ -367,11 +376,9 @@ impl StyleInjectionState {
 
     extend_index_map(&mut self.metadata, &other.metadata);
     self
-      .theme_import_dedup
-      .extend(other.theme_import_dedup.iter().copied());
-    self
-      .pending_decl_dedup
-      .extend(other.pending_decl_dedup.iter().copied());
+      .queued_theme_imports
+      .extend(other.queued_theme_imports.iter().cloned());
+    extend_index_map(&mut self.queued_decl_items, &other.queued_decl_items);
   }
 }
 
@@ -1144,25 +1151,51 @@ impl StateManager {
 
     let ast_hash = stable_hash(ast);
     let normalized_module = drop_span(module);
-    let item_hash = stable_hash(&normalized_module);
 
-    if self
+    // Per-decl dedup: keying by `ast_hash` keeps the per-bucket
+    // `Vec` small (typically 1–2 entries), so `Vec::contains`'s
+    // PartialEq short-circuit is significantly cheaper than a full
+    // `stable_hash` walk over the AST. Items go in the bucket
+    // (owned) while a clone goes into the pending buffer; the
+    // bucket clone is then reused by the fallback path so the
+    // total clone count matches the legacy
+    // `Vec::contains` + `push(normalized_module.clone())` shape.
+    let bucket = self
       .injection
-      .pending_decl_dedup
-      .insert((ast_hash, item_hash))
-    {
-      self.queue_insertion(InsertionSlot::BeforeDecl(ast_hash), normalized_module.clone());
+      .queued_decl_items
+      .entry(ast_hash)
+      .or_default();
+    let needs_primary_queue = !bucket.contains(&normalized_module);
+    if needs_primary_queue {
+      bucket.push(normalized_module.clone());
     }
 
     if let Some(fallback_ast) = fallback_ast {
       let fallback_ast_hash = stable_hash(fallback_ast);
-      if self
+      let fallback_bucket = self
         .injection
-        .pending_decl_dedup
-        .insert((fallback_ast_hash, item_hash))
-      {
-        self.queue_insertion(InsertionSlot::BeforeDecl(fallback_ast_hash), normalized_module);
+        .queued_decl_items
+        .entry(fallback_ast_hash)
+        .or_default();
+      let needs_fallback_queue = !fallback_bucket.contains(&normalized_module);
+      if needs_fallback_queue {
+        fallback_bucket.push(normalized_module.clone());
       }
+
+      if needs_primary_queue {
+        self.queue_insertion(
+          InsertionSlot::BeforeDecl(ast_hash),
+          normalized_module.clone(),
+        );
+      }
+      if needs_fallback_queue {
+        self.queue_insertion(
+          InsertionSlot::BeforeDecl(fallback_ast_hash),
+          normalized_module,
+        );
+      }
+    } else if needs_primary_queue {
+      self.queue_insertion(InsertionSlot::BeforeDecl(ast_hash), normalized_module);
     }
   }
 
@@ -1174,17 +1207,24 @@ impl StateManager {
   /// `slot` decides where the linear merge in
   /// [`flush_pending_insertions`] will splice the item.
   pub(crate) fn queue_insertion(&mut self, slot: InsertionSlot, item: ModuleItem) {
-    self.pending_module_items.push(PendingInsertion { slot, item });
+    self
+      .pending_module_items
+      .push(PendingInsertion { slot, item });
   }
 
-  /// Queue a `ThemeImports` item, deduped by stable hash. Replaces
-  /// the legacy `prepend_import_module_items.contains` gate that the
-  /// theme side-effect import path used. Each evaluation invocation
-  /// gets its own `EvaluationState.added_imports` set; this hashset
-  /// lives on the StateManager so dedup works across evaluations.
+  /// Queue a `ThemeImports` item, deduped against earlier queues
+  /// of the same import. Replaces the legacy
+  /// `prepend_import_module_items.contains` gate that the theme
+  /// side-effect import path used. Each evaluation gets its own
+  /// `EvaluationState.added_imports` set; this dedup lives on the
+  /// StateManager so it works across evaluations.
+  ///
+  /// `Vec::contains` short-circuits on PartialEq mismatch, which
+  /// is significantly cheaper than a full `stable_hash` walk over
+  /// the AST in the typical case.
   pub(crate) fn queue_theme_import_if_absent(&mut self, item: ModuleItem) {
-    let item_hash = stable_hash(&item);
-    if self.injection.theme_import_dedup.insert(item_hash) {
+    if !self.injection.queued_theme_imports.contains(&item) {
+      self.injection.queued_theme_imports.push(item.clone());
       self.queue_insertion(InsertionSlot::ThemeImports, item);
     }
   }
@@ -1560,9 +1600,7 @@ pub(crate) fn flush_pending_insertions(
     .and_then(|stmt| stmt.as_expr())
     .is_some_and(|expr_stmt| matches!(expr_stmt.expr.as_lit(), Some(Lit::Str(_))));
 
-  if leading_directive
-    && let Some(directive) = iter.next()
-  {
+  if leading_directive && let Some(directive) = iter.next() {
     result.push(directive);
   }
 
@@ -1609,9 +1647,7 @@ fn decl_init_hashes(item: &ModuleItem) -> Vec<u64> {
       }
       None
     },
-    ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => {
-      Some(var_decl.decls.iter().collect())
-    },
+    ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => Some(var_decl.decls.iter().collect()),
     _ => None,
   };
 

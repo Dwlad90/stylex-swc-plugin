@@ -20,27 +20,26 @@ where
     var_declarators: &mut Vec<VarDeclarator>,
   ) {
     if self.state.cycle == TransformationCycle::Finalize {
-      // Project the live-set down to bare `Atom`s. The original
-      // count-based cleanup keyed reference counts on `Atom` only, so
-      // shadowed-but-unused top-level decls (an outer `const x = …` with
-      // an inner `const x = …` inside a function) survived if *any*
-      // binding sharing the atom had references. The graph-based pass
-      // tracks `(Atom, SyntaxContext)` precisely; this projection
-      // restores the legacy "keep if any same-name binding is live"
-      // semantics so the snapshot suite stays byte-identical.
-      let live_atoms: FxHashSet<Atom> =
-        self.state.live_set.iter().map(|(sym, _)| sym.clone()).collect();
+      // Snapshot compatibility: legacy cleanup keyed references by `Atom`,
+      // so a top-level binding survives when any same-name shadowed binding
+      // is live. The id-precise sweep is tracked as a follow-up because it
+      // intentionally drops those currently snapshotted declarations.
+      let live_atoms: FxHashSet<Atom> = self
+        .state
+        .live_set
+        .iter()
+        .map(|(sym, _)| sym.clone())
+        .collect();
 
       var_declarators.retain(|decl| {
         if let Pat::Ident(bind_ident) = &decl.name {
           let decl_id = bind_ident.id.to_id();
 
           // Drop only declarators that the graph captured (`decl_uses`
-          // is the observable-set) but whose name does not appear in
-          // any live binding. Anything outside the graph — non
-          // `Pat::Ident` patterns, helpers introduced after graph
-          // capture, etc. — falls through to the "keep by default"
-          // fallback.
+          // is the observable-set) but whose atom is not live. Anything
+          // outside the graph — non `Pat::Ident` patterns, helpers
+          // introduced after graph capture, etc. — falls through to the
+          // "keep by default" fallback.
           if self.state.decl_uses.contains_key(&decl_id) {
             return live_atoms.contains(&decl_id.0);
           }

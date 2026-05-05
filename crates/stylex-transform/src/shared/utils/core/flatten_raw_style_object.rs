@@ -240,28 +240,26 @@ pub(crate) fn flatten_raw_style_object_logic(
 
         flattened.insert(css_property_key, pre_rule);
       },
-      Expr::Ident(ident) => {
-        match get_var_decl_by_ident(ident, traversal_state, fns) {
-          Some(var_decl) => {
-            let var_decl_expr = get_expr_from_var_decl(&var_decl);
+      Expr::Ident(ident) => match get_var_decl_by_ident(ident, traversal_state, fns) {
+        Some(var_decl) => {
+          let var_decl_expr = get_expr_from_var_decl(&var_decl);
 
-            let mut property_cloned = property.clone();
-            property_cloned.value = Box::new(var_decl_expr.clone());
+          let mut property_cloned = property.clone();
+          property_cloned.value = Box::new(var_decl_expr.clone());
 
-            let inner_flattened = flatten_raw_style_object_logic(
-              &[property_cloned],
-              key_path,
-              state,
-              traversal_state,
-              fns,
-            );
+          let inner_flattened = flatten_raw_style_object_logic(
+            &[property_cloned],
+            key_path,
+            state,
+            traversal_state,
+            fns,
+          );
 
-            flattened.extend(inner_flattened);
-          },
-          _ => {
-            stylex_panic!("{}", non_static_value("stylex"));
-          },
-        }
+          flattened.extend(inner_flattened);
+        },
+        _ => {
+          stylex_panic!("{}", non_static_value("stylex"));
+        },
       },
       Expr::Bin(bin) => {
         let result = transform_bin_expr_to_number(bin, state, traversal_state, fns);

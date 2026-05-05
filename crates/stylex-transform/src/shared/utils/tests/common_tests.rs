@@ -17,8 +17,7 @@ use crate::shared::{
     fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_expr_from_var_decl,
     get_import_from, get_key_values_from_object, get_var_decl_by_ident, increase_member_ident,
     increase_member_ident_count, increase_member_ident_count_by_count, js_object_to_json,
-    normalize_expr,
-    reduce_member_expression_count, reduce_member_ident_count, remove_duplicates,
+    normalize_expr, reduce_member_expression_count, reduce_member_ident_count, remove_duplicates,
     serialize_value_to_json_string, type_of,
   },
 };

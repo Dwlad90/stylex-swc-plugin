@@ -1,5 +1,5 @@
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{hash::Hash, option::Option, path::Path, rc::Rc};
+use std::{option::Option, path::Path, rc::Rc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
 use indexmap::{IndexMap, IndexSet};
@@ -111,7 +111,6 @@ pub(crate) enum InsertionSlot {
   BeforeDecl(u64),
 }
 
-#[allow(dead_code)] // wired up in subsequent commits (Phase B onward)
 #[derive(Debug, Clone)]
 pub(crate) struct PendingInsertion {
   pub(crate) slot: InsertionSlot,
@@ -138,24 +137,6 @@ pub(crate) enum ImportKind {
 }
 
 impl ImportKind {
-  pub(crate) const ALL: &[ImportKind] = &[
-    ImportKind::Props,
-    ImportKind::Attrs,
-    ImportKind::Create,
-    ImportKind::FirstThatWorks,
-    ImportKind::Keyframes,
-    ImportKind::DefineVars,
-    ImportKind::DefineMarker,
-    ImportKind::DefineConsts,
-    ImportKind::CreateTheme,
-    ImportKind::PositionTry,
-    ImportKind::ViewTransitionClass,
-    ImportKind::DefaultMarker,
-    ImportKind::When,
-    ImportKind::Types,
-    ImportKind::Env,
-  ];
-
   pub(crate) fn from_import_name(name: &str) -> Option<ImportKind> {
     match name {
       STYLEX_CREATE => Some(ImportKind::Create),
@@ -216,22 +197,6 @@ impl ImportState {
   fn get_stylex_api_import(&self, kind: ImportKind) -> Option<&AtomHashSet> {
     self.stylex_api_imports.get(&kind)
   }
-
-  fn combine(&mut self, other: &Self) {
-    self.import_paths.extend(other.import_paths.iter().cloned());
-    self
-      .stylex_import
-      .extend(other.stylex_import.iter().cloned());
-
-    for kind in ImportKind::ALL {
-      if let Some(other_set) = other.stylex_api_imports.get(kind) {
-        let self_set = self.stylex_api_imports.entry(*kind).or_default();
-        for item in other_set {
-          self_set.insert(item.clone());
-        }
-      }
-    }
-  }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -290,10 +255,6 @@ impl CallExpressionState {
       self.add_call_expression(call_expr);
     }
   }
-
-  fn combine(&mut self, other: &Self) {
-    extend_hash_map(&mut self.all_call_expressions, &other.all_call_expressions);
-  }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -346,8 +307,8 @@ pub(crate) struct StyleInjectionState {
   metadata: IndexMap<String, IndexSet<MetaData>>,
   /// Transient dedup map for theme side-effect imports queued
   /// under `InsertionSlot::ThemeImports`. Tracks the imports that
-  /// have already been queued so duplicates from later evaluations
-  /// can be skipped. Lookups use `Vec::contains` via SWC's
+  /// have already been queued so duplicates can be skipped. Lookups
+  /// use `Vec::contains` via SWC's
   /// `PartialEq` on `ModuleItem`, which short-circuits on the
   /// first differing field — significantly cheaper in the typical
   /// case than a full `stable_hash` walk over the AST. Replaces
@@ -367,18 +328,6 @@ pub(crate) struct StyleInjectionState {
 impl StyleInjectionState {
   fn metadata(&self) -> &IndexMap<String, IndexSet<MetaData>> {
     &self.metadata
-  }
-
-  fn combine(&mut self, other: &Self) {
-    if self.inject_import_inserted.is_none() {
-      self.inject_import_inserted = other.inject_import_inserted.clone();
-    }
-
-    extend_index_map(&mut self.metadata, &other.metadata);
-    self
-      .queued_theme_imports
-      .extend(other.queued_theme_imports.iter().cloned());
-    extend_index_map(&mut self.queued_decl_items, &other.queued_decl_items);
   }
 }
 
@@ -411,7 +360,7 @@ pub struct StateManager {
   /// Reference graph from each top-level declarator to the set of
   /// declarators it directly references in its initializer / body.
   ///
-  /// Built once at the start of `transform_consumers`
+  /// Built during `finalize_module` after the mark phase
   /// ([`build_decl_use_graph`]) and consumed by [`compute_live_set`] to
   /// run a forward mark-and-sweep that replaces the legacy count-based
   /// cleanup.
@@ -441,7 +390,6 @@ pub struct StateManager {
   /// `flush_pending_insertions` drains this and splices each item
   /// into the right slot in the final body. Replaces the trio of
   /// accumulator vecs above plus the per-decl `styles_to_inject` map.
-  #[allow(dead_code)] // wired up in subsequent commits (Phase B onward)
   pub(crate) pending_module_items: Vec<PendingInsertion>,
 
   pub(crate) other_injected_css_rules: InjectableStylesMap,
@@ -1228,62 +1176,6 @@ impl StateManager {
       self.queue_insertion(InsertionSlot::ThemeImports, item);
     }
   }
-
-  // Now you can use these helper functions to simplify your function
-  pub fn combine(&mut self, other: &Self) {
-    self.imports.combine(&other.imports);
-
-    // Option fields: only clone from other if self is None
-    if self.export_id.is_none() {
-      self.export_id = other.export_id.clone();
-    }
-
-    // Vecs: merge in-place
-    chain_collect_in_place(&mut self.declarations, &other.declarations);
-    chain_collect_in_place(
-      &mut self.top_level_expressions,
-      &other.top_level_expressions,
-    );
-
-    // Hash maps: extend in-place (other values take precedence)
-    self.call_expressions.combine(&other.call_expressions);
-    extend_hash_map(&mut self.style_map, &other.style_map);
-    extend_hash_map(&mut self.style_vars, &other.style_vars);
-
-    // Index set: extend in-place
-    self
-      .style_vars_to_keep
-      .extend(other.style_vars_to_keep.iter().cloned());
-
-    extend_hash_map(
-      &mut self.member_object_ident_count_map,
-      &other.member_object_ident_count_map,
-    );
-
-    self.roots.extend(other.roots.iter().cloned());
-    for (decl_id, uses) in &other.decl_uses {
-      self
-        .decl_uses
-        .entry(decl_id.clone())
-        .or_default()
-        .extend(uses.iter().cloned());
-    }
-
-    self.in_stylex_create = self.in_stylex_create || other.in_stylex_create;
-
-    // Index maps: extend in-place
-    self.injection.combine(&other.injection);
-    extend_hash_map(&mut self.seen, &other.seen);
-
-    self
-      .pending_module_items
-      .extend(other.pending_module_items.iter().cloned());
-    extend_index_map(
-      &mut self.other_injected_css_rules,
-      &other.other_injected_css_rules,
-    );
-    chain_collect_in_place(&mut self.top_imports, &other.top_imports);
-  }
 }
 
 /// Read-only visitor used by [`build_decl_use_graph`] to collect every
@@ -1378,9 +1270,7 @@ pub(crate) fn compute_live_set(state: &StateManager) -> FxHashSet<DeclId> {
     }
     if let Some(targets) = state.decl_uses.get(&node) {
       for target in targets {
-        if !live.contains(target) {
-          worklist.push(target.clone());
-        }
+        worklist.push(target.clone());
       }
     }
   }
@@ -1489,7 +1379,7 @@ impl VisitMut for MarkStyleVarsVisitor<'_> {
 ///
 /// This is the "mark" step of the finalize phase. The "sweep" step that
 /// actually deletes unused declarations runs afterwards under
-/// `TransformationCycle::Finalize` with `module.body` reversed.
+/// `TransformationCycle::Finalize`.
 pub(crate) fn mark_style_vars_to_keep(module: &mut Module, state: &mut StateManager) {
   let mut visitor = MarkStyleVarsVisitor { state };
   module.visit_mut_with(&mut visitor);
@@ -1564,7 +1454,7 @@ pub(crate) fn flush_pending_insertions(
 
   // Step 1: replicate the legacy in-walk splice that placed
   // hoisted items between the import block and the rest of the
-  // body. Doing it here keeps the BeforeDecl iteration in step 3
+  // body. Doing it here keeps the BeforeDecl iteration in step 4
   // walking the same shape the legacy `inject_runtime_styles` saw.
   let original = std::mem::take(module_body);
   let body_with_after_imports = if after_imports.is_empty() {
@@ -1611,13 +1501,13 @@ pub(crate) fn flush_pending_insertions(
   result.extend(theme_imports);
 
   // Step 4: walk the rest, splicing BeforeDecl metadata before
-  // each matching var-decl initializer. Cloning per match (rather
-  // than draining) is required because the same hash key can
-  // legitimately match more than one declarator.
+  // the first matching var-decl initializer. Consuming the bucket
+  // preserves deterministic first-match-wins behavior for duplicate
+  // initializer hashes.
   for item in iter {
     for hash in decl_init_hashes(&item) {
-      if let Some(metas) = before_decl.get(&hash) {
-        result.extend(metas.iter().cloned());
+      if let Some(metas) = before_decl.remove(&hash) {
+        result.extend(metas);
       }
     }
     result.push(item);
@@ -1765,59 +1655,6 @@ fn add_file_extension(imported_file_path: &str, source_file: &str) -> String {
   }
 
   format!("{}.{}", imported_file_path, file_extension)
-}
-
-/// Merge `source` items into `target` Vec, deduplicating.
-/// Preserves original combine() semantics: when target is shorter than source
-/// and target is a prefix of source, takes source directly. Otherwise merges.
-fn chain_collect_in_place<T: Clone + Eq>(target: &mut Vec<T>, source: &[T]) {
-  if target.as_slice() == source {
-    return;
-  }
-
-  if target.len() < source.len() {
-    if source.iter().take(target.len()).eq(target.iter()) {
-      *target = source.to_vec();
-      return;
-    }
-
-    target.retain(|item| source.contains(item));
-    let new_items: Vec<_> = source
-      .iter()
-      .filter(|item| !target.contains(item))
-      .cloned()
-      .collect();
-    target.extend(new_items);
-    return;
-  }
-
-  target.retain(|item| !source.contains(item));
-  let new_items: Vec<_> = source
-    .iter()
-    .filter(|item| !target.contains(item))
-    .cloned()
-    .collect();
-  target.extend(new_items);
-}
-
-/// Extend a FxHashMap in-place. Source values take precedence on key conflicts.
-fn extend_hash_map<K: Clone + Eq + Hash, V: Clone + PartialEq>(
-  target: &mut FxHashMap<K, V>,
-  source: &FxHashMap<K, V>,
-) {
-  if target != source {
-    target.extend(source.iter().map(|(k, v)| (k.clone(), v.clone())));
-  }
-}
-
-/// Extend an IndexMap in-place. Source values take precedence on key conflicts.
-fn extend_index_map<K: Clone + Eq + Hash, V: Clone + PartialEq>(
-  target: &mut IndexMap<K, V>,
-  source: &IndexMap<K, V>,
-) {
-  if target != source {
-    target.extend(source.iter().map(|(k, v)| (k.clone(), v.clone())));
-  }
 }
 
 fn file_path_resolver(

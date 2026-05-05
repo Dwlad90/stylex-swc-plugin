@@ -273,3 +273,105 @@ stylex_test!(
     }
   "#
 );
+
+stylex_test!(
+  stylex_call_props_with_varians_dynamic_key_directly_v3,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      title: {
+        color: 'hotpink',
+      },
+    });
+
+    export function Text({ children, variant: v}) {
+      const variant = {
+        title: [styles.title],
+      };
+
+      return <div {...stylex.props(...variant.title)}>{children}</div>;
+    }
+  "#
+);
+
+stylex_test!(
+  stylex_call_props_with_varians_dynamic_key_directly_v4,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      title: {
+        color: 'hotpink',
+      },
+    });
+
+    export function Text({ children, variant: { title }}) {
+      return <div {...stylex.props(...title)}>{children}</div>;
+    }
+  "#
+);
+
+stylex_test!(
+  stylex_call_props_with_varians_dynamic_key_directly_v5,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      title: {
+        color: 'hotpink',
+      },
+    });
+
+    export function Text({ children, variant: { title: t }}) {
+      return <div {...stylex.props(...t)}>{children}</div>;
+    }
+  "#
+);
+
+stylex_test!(
+  stylex_call_props_with_varians_dynamic_key_directly_v6,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      title: {
+        color: 'hotpink',
+      },
+    });
+
+    const variant = {
+      title: [styles.title],
+    };
+
+    export function Text({ children, variant: v}) {
+      return <div {...stylex.props(...variant.title)}>{children}</div>;
+    }
+  "#
+);
+
+stylex_test!(
+  stylex_call_props_with_varians_dynamic_key_directly_v7,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      title: {
+        color: 'hotpink',
+      },
+    });
+
+    const variant = {
+      title: [styles.title],
+    };
+
+    export function Text({ children, variant: v}) {
+      return <div {...stylex.props(...v.title)}>{children}</div>;
+    }
+  "#
+);

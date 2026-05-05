@@ -7,7 +7,6 @@ const fn = ()=>({
         arg: ()=>{}
     });
 function func() {}
-const declare = null;
 export const Component = ()=>{
     const declare = null;
     return declare;

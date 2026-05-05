@@ -11,6 +11,11 @@ const styles = {
         $$css: true
     }
 };
-export function Text({ children, variant }) {
+export function Text({ children, variant: v }) {
+    const variant = {
+        title: [
+            styles.title
+        ]
+    };
     return <div {...stylex.props(...variant.title)}>{children}</div>;
 }

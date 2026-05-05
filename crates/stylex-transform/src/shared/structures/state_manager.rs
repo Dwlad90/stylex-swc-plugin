@@ -15,9 +15,9 @@ use swc_core::{
   ecma::{
     ast::{
       CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier,
-      ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread, MemberExpr, MemberProp,
-      Module, ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Program, PropName, Stmt,
-      Str, VarDecl, VarDeclKind, VarDeclarator,
+      ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread, Lit, MemberExpr,
+      MemberProp, Module, ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Program,
+      PropName, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
     },
     utils::drop_span,
     visit::{Visit, VisitMut, VisitMutWith, VisitWith},
@@ -82,6 +82,35 @@ type AtomHashSet = FxHashSet<Atom>;
 /// `Atom` together with its `SyntaxContext` so shadowed bindings remain
 /// distinguishable after SWC's `resolver` pass has run.
 pub(crate) type DeclId = swc_core::ecma::ast::Id;
+
+/// Position in the final emitted module body where a [`PendingInsertion`]
+/// item should land. The enum is deliberately narrow — new variants
+/// land only when a real producer needs them.
+#[allow(dead_code)] // wired up in subsequent commits (Phase B onward)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum InsertionSlot {
+  /// Runtime injection helpers and theme side-effect imports.
+  /// Emitted after any leading directive prologue, before the existing
+  /// import block. Mirrors the legacy `prepend_include_module_items`
+  /// + `prepend_import_module_items` placement.
+  BeforeImports,
+  /// Hoisted dynamic-style constants. Emitted after the existing
+  /// import block, before the rest of the body. Mirrors the legacy
+  /// `hoisted_module_items` placement.
+  AfterImports,
+  /// Per-declarator style metadata (the `_inject2(...)` calls) keyed
+  /// by the stable hash of the originating var-decl initializer.
+  /// Emitted immediately before the matching declarator. Mirrors the
+  /// legacy `styles_to_inject` map.
+  BeforeDecl(u64),
+}
+
+#[allow(dead_code)] // wired up in subsequent commits (Phase B onward)
+#[derive(Debug, Clone)]
+pub(crate) struct PendingInsertion {
+  pub(crate) slot: InsertionSlot,
+  pub(crate) item: ModuleItem,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum ImportKind {
@@ -395,6 +424,15 @@ pub struct StateManager {
   pub(crate) hoisted_module_items: Vec<ModuleItem>,
   pub(crate) prepend_import_module_items: Vec<ModuleItem>,
 
+  /// Single ordered buffer of slot-tagged items waiting to be merged
+  /// into the module body once consumer transforms complete.
+  /// Producers append via `queue_insertion`;
+  /// `flush_pending_insertions` drains this and splices each item
+  /// into the right slot in the final body. Replaces the trio of
+  /// accumulator vecs above plus the per-decl `styles_to_inject` map.
+  #[allow(dead_code)] // wired up in subsequent commits (Phase B onward)
+  pub(crate) pending_module_items: Vec<PendingInsertion>,
+
   pub(crate) other_injected_css_rules: InjectableStylesMap,
   pub(crate) top_imports: Vec<ImportDecl>,
   pub(crate) named_exports: FxHashSet<NamedExport>,
@@ -444,6 +482,7 @@ impl StateManager {
       prepend_include_module_items: vec![],
       prepend_import_module_items: vec![],
       hoisted_module_items: vec![],
+      pending_module_items: vec![],
 
       other_injected_css_rules: IndexMap::new(),
 
@@ -1139,6 +1178,19 @@ impl StateManager {
     self.options.treeshake_compensation
   }
 
+  /// Queue a `ModuleItem` for placement in the final module body.
+  /// `slot` decides where the linear merge in
+  /// [`flush_pending_insertions`] will splice the item.
+  ///
+  /// Phase B will route the existing producer sites here in addition
+  /// to writing to the legacy accumulator vecs. Phase C swaps the
+  /// consumer to read from this buffer; Phase D removes the legacy
+  /// writes.
+  #[allow(dead_code)] // wired up in subsequent commits (Phase B onward)
+  pub(crate) fn queue_insertion(&mut self, slot: InsertionSlot, item: ModuleItem) {
+    self.pending_module_items.push(PendingInsertion { slot, item });
+  }
+
   // Now you can use these helper functions to simplify your function
   pub fn combine(&mut self, other: &Self) {
     self.imports.combine(&other.imports);
@@ -1193,6 +1245,9 @@ impl StateManager {
       &mut self.prepend_import_module_items,
       &other.prepend_import_module_items,
     );
+    self
+      .pending_module_items
+      .extend(other.pending_module_items.iter().cloned());
     extend_index_map(
       &mut self.other_injected_css_rules,
       &other.other_injected_css_rules,
@@ -1408,6 +1463,152 @@ impl VisitMut for MarkStyleVarsVisitor<'_> {
 pub(crate) fn mark_style_vars_to_keep(module: &mut Module, state: &mut StateManager) {
   let mut visitor = MarkStyleVarsVisitor { state };
   module.visit_mut_with(&mut visitor);
+}
+
+/// Drain `state.pending_module_items` and splice every queued
+/// [`PendingInsertion`] into `module_body` according to its slot.
+///
+/// Output ordering mirrors the legacy split between
+/// `inject_runtime_styles` and the in-walk hoisted-items splice in
+/// `visit_mut_module_items::TransformConsumers`:
+///
+/// 1. The leading directive prologue (a string-literal `ExprStmt` at
+///    position 0), if present, stays at position 0.
+/// 2. `BeforeImports` items follow the directive — they always
+///    precede the existing import block, matching the legacy
+///    `prepend_include_module_items` + `prepend_import_module_items`
+///    placement.
+/// 3. The existing import block follows.
+/// 4. `AfterImports` items follow the import block — matching the
+///    legacy in-walk splice that placed `hoisted_module_items` after
+///    imports during the consumer walk.
+/// 5. The remainder of the body follows. For each item, every
+///    relevant initializer is hashed and any matching `BeforeDecl`
+///    metadata is spliced before it.
+///
+/// This helper is intentionally a no-op until Phase B/C wires
+/// producers and consumer; today it can be unit-tested in isolation
+/// against synthetic inputs.
+#[allow(dead_code)] // wired up in Phase C
+pub(crate) fn flush_pending_insertions(state: &mut StateManager, module_body: &mut Vec<ModuleItem>) {
+  if state.pending_module_items.is_empty() {
+    return;
+  }
+
+  let pending = std::mem::take(&mut state.pending_module_items);
+
+  let mut before_imports: Vec<ModuleItem> = Vec::new();
+  let mut after_imports: Vec<ModuleItem> = Vec::new();
+  let mut before_decl: FxHashMap<u64, Vec<ModuleItem>> = FxHashMap::default();
+
+  for PendingInsertion { slot, item } in pending {
+    match slot {
+      InsertionSlot::BeforeImports => before_imports.push(item),
+      InsertionSlot::AfterImports => after_imports.push(item),
+      InsertionSlot::BeforeDecl(hash) => before_decl.entry(hash).or_default().push(item),
+    }
+  }
+
+  // Step 1: replicate the legacy in-walk splice that placed
+  // hoisted items between the import block and the rest of the
+  // body. Doing it here keeps the BeforeDecl iteration in step 3
+  // walking the same shape the legacy `inject_runtime_styles` saw.
+  let original = std::mem::take(module_body);
+  let body_with_after_imports = if after_imports.is_empty() {
+    original
+  } else {
+    let import_end = original
+      .iter()
+      .enumerate()
+      .skip(1)
+      .find(|(_, item)| !matches!(item, ModuleItem::ModuleDecl(ModuleDecl::Import(_))))
+      .map(|(idx, _)| idx)
+      .unwrap_or(0);
+    let mut merged = Vec::with_capacity(original.len() + after_imports.len());
+    let mut iter = original.into_iter();
+    for _ in 0..import_end {
+      if let Some(item) = iter.next() {
+        merged.push(item);
+      }
+    }
+    merged.extend(after_imports);
+    merged.extend(iter);
+    merged
+  };
+
+  // Step 2: peel a leading directive prologue so BeforeImports
+  // items splice in *after* it (matching legacy `inject_runtime_styles`).
+  let mut iter = body_with_after_imports.into_iter().peekable();
+  let mut result: Vec<ModuleItem> = Vec::new();
+
+  let leading_directive = iter
+    .peek()
+    .and_then(|item| item.as_stmt())
+    .and_then(|stmt| stmt.as_expr())
+    .is_some_and(|expr_stmt| matches!(expr_stmt.expr.as_lit(), Some(Lit::Str(_))));
+
+  if leading_directive
+    && let Some(directive) = iter.next()
+  {
+    result.push(directive);
+  }
+
+  result.extend(before_imports);
+
+  // Step 3: walk the rest, splicing BeforeDecl metadata before
+  // each matching var-decl initializer. Cloning per match (rather
+  // than draining) is required because the same hash key can
+  // legitimately match more than one declarator.
+  for item in iter {
+    for hash in decl_init_hashes(&item) {
+      if let Some(metas) = before_decl.get(&hash) {
+        result.extend(metas.iter().cloned());
+      }
+    }
+    result.push(item);
+  }
+
+  *module_body = result;
+}
+
+/// Stable hashes of every relevant var-decl initializer reachable from
+/// `item`, matching the keys [`StateManager::queue_insertion`] uses
+/// under [`InsertionSlot::BeforeDecl`].
+fn decl_init_hashes(item: &ModuleItem) -> Vec<u64> {
+  let mut hashes: Vec<u64> = Vec::new();
+
+  let var_decls: Option<Vec<&VarDeclarator>> = match item {
+    ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export_decl)) => export_decl
+      .decl
+      .as_var()
+      .map(|var_decl| var_decl.decls.iter().collect()),
+    ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(export_default_expr)) => {
+      // `export default { ... }` is treated by the legacy code as a
+      // synthetic `default = <obj>` declarator whose init is the
+      // object expression — so its style metadata can splice in
+      // front of the export.
+      if export_default_expr.expr.is_object() {
+        hashes.push(stable_hash(export_default_expr.expr.as_ref()));
+      }
+      None
+    },
+    ModuleItem::Stmt(Stmt::Decl(Decl::Var(var_decl))) => {
+      Some(var_decl.decls.iter().collect())
+    },
+    _ => None,
+  };
+
+  if let Some(decls) = var_decls {
+    for decl in decls {
+      if let Some(init) = decl.init.as_ref()
+        && (init.is_object() || init.is_lit())
+      {
+        hashes.push(stable_hash(init.as_ref()));
+      }
+    }
+  }
+
+  hashes
 }
 
 fn add_inject_default_import_expression(ident: &Ident, inject_path: Option<&str>) -> ModuleItem {

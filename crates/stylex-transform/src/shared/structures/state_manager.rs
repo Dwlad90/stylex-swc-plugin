@@ -1460,13 +1460,22 @@ pub(crate) fn flush_pending_insertions(
   let body_with_after_imports = if after_imports.is_empty() {
     original
   } else {
+    let directive_end = original
+      .iter()
+      .take_while(|item| {
+        item
+          .as_stmt()
+          .and_then(|stmt| stmt.as_expr())
+          .is_some_and(|expr_stmt| matches!(expr_stmt.expr.as_lit(), Some(Lit::Str(_))))
+      })
+      .count();
     let import_end = original
       .iter()
       .enumerate()
-      .skip(1)
+      .skip(directive_end)
       .find(|(_, item)| !matches!(item, ModuleItem::ModuleDecl(ModuleDecl::Import(_))))
       .map(|(idx, _)| idx)
-      .unwrap_or(0);
+      .unwrap_or(original.len());
     let mut merged = Vec::with_capacity(original.len() + after_imports.len());
     let mut iter = original.into_iter();
     for _ in 0..import_end {

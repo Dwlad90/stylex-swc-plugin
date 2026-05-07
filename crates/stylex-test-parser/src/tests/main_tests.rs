@@ -14,7 +14,7 @@ static CWD_LOCK: Mutex<()> = Mutex::new(());
 
 #[ctor]
 fn init_color_backtrace() {
-  let _ = pretty_env_logger::formatted_builder().try_init();
+  let _ = pretty_env_logger::formatted_builder().try_init().ok();
   color_backtrace::install();
 }
 

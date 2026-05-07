@@ -1,0 +1,17 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`@stylexswc/unplugin > writes fallback CSS asset when no CSS bundle entry exists 1`] = `".x1e2nbdu{color:red}"`;
+
+exports[`@stylexswc/unplugin > writes fallback CSS asset when no CSS bundle entry exists 2`] = `
+"import '@stylexjs/stylex';
+
+const styles = {
+    foo: {
+        kMwMTN: "x1e2nbdu",
+        $$css: true
+    }
+};
+
+export { styles as default };
+"
+`;

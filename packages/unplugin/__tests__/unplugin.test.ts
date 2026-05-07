@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import rollup from 'rollup';
+import * as rollup from 'rollup';
 import type { UnpluginBuildContext, UnpluginContext } from 'unplugin';
+import { vi, describe, expect, test } from 'vitest';
 
 import unplugin from '../src';
 import stylexPlugin from '../src/rollup';
@@ -71,11 +72,13 @@ describe('@stylexswc/unplugin', () => {
         dir: tempDir,
       });
 
-      let cssAsset;
+      let cssAsset, jsCode;
       for (const chunkOrAsset of output) {
         if (chunkOrAsset.type === 'asset' && chunkOrAsset.fileName.endsWith('.css')) {
           cssAsset = chunkOrAsset;
           break;
+        } else if (chunkOrAsset.fileName.endsWith('input.js')) {
+          jsCode = (chunkOrAsset as rollup.OutputChunk).code;
         }
       }
 
@@ -83,7 +86,8 @@ describe('@stylexswc/unplugin', () => {
       expect(cssAsset?.source).toContain('color:red');
       const cssContent = cssAsset?.source.toString().trim();
       // CSS should be in compact format like .x1e2nbdu{color:red}
-      expect(cssContent).toMatch(/^\.[a-z0-9]+\{color:red\}$/i);
+      expect(cssContent).toMatchSnapshot();
+      expect(jsCode).toMatchSnapshot();
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -98,7 +102,7 @@ describe('@stylexswc/unplugin', () => {
     }
 
     let capturedError: Error | string | undefined;
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const mockContext: Partial<UnpluginBuildContext & UnpluginContext> = {
       addWatchFile: () => {},
       emitFile: () => '',

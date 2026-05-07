@@ -675,25 +675,20 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "352d39c2f7bef1d6ad73db6f5160efcaed66d94ef8c6c573a8410c00bf909a98"
-dependencies = [
- "ctor-proc-macro",
- "dtor",
-]
-
-[[package]]
-name = "ctor"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "400a21f1014a968ec518c7ccdf9b4a4ed0cac8c56ccb6d604f8b91f00110501e"
+dependencies = [
+ "ctor-proc-macro",
+ "dtor",
+ "link-section",
+]
 
 [[package]]
 name = "ctor-proc-macro"
-version = "0.0.7"
+version = "0.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52560adf09603e58c9a7ee1fe1dcb95a16927b17c127f0ac02d6e768a0e25bc1"
+checksum = "7a949c44fcacbbbb7ada007dc7acb34603dd97cd47de5d054f2b6493ecebb483"
 
 [[package]]
 name = "darling"
@@ -869,18 +864,18 @@ dependencies = [
 
 [[package]]
 name = "dtor"
-version = "0.3.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1057d6c64987086ff8ed0fd3fbf377a6b7d205cc7715868cd401705f715cbe4"
+checksum = "96eb86b441d67a711e6e76b410de7135385fec1b8cd304e99d11c56ae542e2fc"
 dependencies = [
  "dtor-proc-macro",
 ]
 
 [[package]]
 name = "dtor-proc-macro"
-version = "0.0.6"
+version = "0.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f678cf4a922c215c63e0de95eb1ff08a958a81d47e485cf9da1e27bf6305cfa5"
+checksum = "2647271c92754afcb174e758003cfd1cbf1e43e5a7853d7b1813e63e19e39a73"
 
 [[package]]
 name = "either"
@@ -1630,6 +1625,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "link-section"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8acde40189b7f4b102f876f43a98ec1f5899f96e9a144945d36d9ce0be7f99c7"
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1739,7 +1740,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e55037284865448ecf329baa86a4d05401f647ebde99f5747b640d32c2c5226"
 dependencies = [
  "bitflags",
- "ctor 0.11.1",
+ "ctor",
  "futures",
  "napi-build",
  "napi-sys",
@@ -1760,7 +1761,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4ba740fe4c9524d86fd90798fd8ccdb23402b3eef7e7c30897a8a369b529fcf"
 dependencies = [
  "convert_case 0.11.0",
- "ctor 0.11.1",
+ "ctor",
  "napi-derive-backend",
  "proc-macro2",
  "quote",
@@ -2811,7 +2812,7 @@ name = "stylex_ast"
 version = "0.15.5"
 dependencies = [
  "anyhow",
- "ctor 0.8.0",
+ "ctor",
  "pretty_env_logger",
  "stylex_constants",
  "stylex_macros",
@@ -2849,7 +2850,7 @@ dependencies = [
 name = "stylex_constants"
 version = "0.15.5"
 dependencies = [
- "ctor 0.8.0",
+ "ctor",
  "once_cell",
  "phf 0.13.1",
  "pretty_env_logger",
@@ -2861,7 +2862,7 @@ name = "stylex_css"
 version = "0.15.5"
 dependencies = [
  "criterion",
- "ctor 0.8.0",
+ "ctor",
  "fancy-regex 0.18.0",
  "log",
  "pretty_env_logger",
@@ -2905,7 +2906,7 @@ dependencies = [
 name = "stylex_evaluator"
 version = "0.15.5"
 dependencies = [
- "ctor 0.8.0",
+ "ctor",
  "node-resolve",
  "pretty_env_logger",
  "stylex_macros",
@@ -2926,7 +2927,7 @@ name = "stylex_logs"
 version = "0.15.5"
 dependencies = [
  "colored",
- "ctor 0.8.0",
+ "ctor",
  "env_logger 0.11.10",
  "log",
  "pretty_env_logger",
@@ -2946,7 +2947,7 @@ dependencies = [
 name = "stylex_path_resolver"
 version = "0.15.5"
 dependencies = [
- "ctor 0.8.0",
+ "ctor",
  "fancy-regex 0.18.0",
  "indexmap",
  "log",
@@ -3002,7 +3003,7 @@ version = "0.15.5"
 dependencies = [
  "clap",
  "color-backtrace",
- "ctor 0.8.0",
+ "ctor",
  "fancy-regex 0.18.0",
  "log",
  "pretty_env_logger",
@@ -3019,7 +3020,7 @@ version = "0.15.5"
 dependencies = [
  "anyhow",
  "criterion",
- "ctor 0.8.0",
+ "ctor",
  "indexmap",
  "insta",
  "log",
@@ -3047,14 +3048,14 @@ dependencies = [
  "swc_config",
  "swc_core",
  "swc_ecma_parser",
- "testing 21.0.0",
+ "testing 22.0.0",
 ]
 
 [[package]]
 name = "stylex_types"
 version = "0.15.5"
 dependencies = [
- "ctor 0.8.0",
+ "ctor",
  "derive_more",
  "indexmap",
  "pretty_env_logger",
@@ -3140,9 +3141,9 @@ dependencies = [
 
 [[package]]
 name = "swc_common"
-version = "20.0.0"
+version = "21.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "990735f1c65fac4d0f2748113f3bc8a799fd31501efbd254eb7cc5e877c50660"
+checksum = "078f2144aa2c33ff8485773f1b81b9985fa2d00f4ad60879158ad6897db2de88"
 dependencies = [
  "anyhow",
  "ast_node",
@@ -3666,15 +3667,15 @@ dependencies = [
 
 [[package]]
 name = "swc_error_reporters"
-version = "22.0.0"
+version = "23.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fb5ada996de9c498dc0eb0f189641cd5ec70463789119e565abe6d162959aa3"
+checksum = "a901e41bea44b4ec8237b1cde1d2e7ae0a3b5c87c6d1100103de45caf440f972"
 dependencies = [
  "anyhow",
  "miette",
  "once_cell",
  "serde",
- "swc_common 20.0.0",
+ "swc_common 21.0.1",
 ]
 
 [[package]]
@@ -3856,9 +3857,9 @@ dependencies = [
 
 [[package]]
 name = "testing"
-version = "21.0.0"
+version = "22.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5170326fd0f67d59f9b0e78d2406758a2f067469438f4579f44acd2524f3c6fe"
+checksum = "bd50c53833442165fa5bf385497986c6ca501e8cf2df442919f5475aded14134"
 dependencies = [
  "cargo_metadata 0.18.1",
  "difference",
@@ -3868,8 +3869,8 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
- "swc_common 20.0.0",
- "swc_error_reporters 22.0.0",
+ "swc_common 21.0.1",
+ "swc_error_reporters 23.0.0",
  "testing_macros",
  "tracing",
  "tracing-subscriber",

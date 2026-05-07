@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use swc_core::{
-  atoms::Atom,
   common::{DUMMY_SP, FileName, SyntaxContext},
   ecma::ast::{
     BinaryOp, BindingIdent, Decl, ExportDecl, Expr, Ident, Lit, Module, ModuleDecl, ModuleItem,
@@ -15,10 +14,8 @@ use crate::shared::{
     deep_merge_props, downcast_style_options_to_state_manager, extract_filename_from_path,
     extract_filename_with_ext_from_path, extract_path, fill_state_declarations,
     fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_expr_from_var_decl,
-    get_import_from, get_key_values_from_object, get_var_decl_by_ident, increase_member_ident,
-    increase_member_ident_count, increase_member_ident_count_by_count, js_object_to_json,
-    normalize_expr, reduce_member_expression_count, reduce_member_ident_count, remove_duplicates,
-    serialize_value_to_json_string, type_of,
+    get_import_from, get_key_values_from_object, get_var_decl_by_ident, js_object_to_json,
+    normalize_expr, remove_duplicates, serialize_value_to_json_string, type_of,
   },
 };
 use stylex_evaluator::common::evaluate_bin_expr;
@@ -534,77 +531,6 @@ mod remove_duplicates_tests {
     ];
     let result = remove_duplicates(props);
     assert_eq!(result.len(), 1);
-  }
-}
-
-// ──────────────────────────────────────────────
-// Member ident count functions
-// ──────────────────────────────────────────────
-
-mod member_ident_count_tests {
-  use super::*;
-
-  #[test]
-  fn increase_member_ident_count_creates_entry() {
-    let mut state = StateManager::default();
-    let atom: Atom = "obj".into();
-    increase_member_ident_count(&mut state, &atom);
-    assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&1));
-  }
-
-  #[test]
-  fn increase_member_ident_count_increments_existing() {
-    let mut state = StateManager::default();
-    let atom: Atom = "obj".into();
-    increase_member_ident_count(&mut state, &atom);
-    increase_member_ident_count(&mut state, &atom);
-    assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&2));
-  }
-
-  #[test]
-  fn increase_member_ident_count_by_count_adds_correct_amount() {
-    let mut state = StateManager::default();
-    let atom: Atom = "member".into();
-    increase_member_ident_count_by_count(&mut state, &atom, 5);
-    assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&5));
-  }
-
-  #[test]
-  fn increase_member_ident_count_by_count_accumulates() {
-    let mut state = StateManager::default();
-    let atom: Atom = "member".into();
-    increase_member_ident_count_by_count(&mut state, &atom, 3);
-    increase_member_ident_count_by_count(&mut state, &atom, 2);
-    assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&5));
-  }
-
-  #[test]
-  fn reduce_member_ident_count_decrements() {
-    let mut state = StateManager::default();
-    let atom: Atom = "member".into();
-    increase_member_ident_count_by_count(&mut state, &atom, 3);
-    reduce_member_ident_count(&mut state, &atom);
-    assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&2));
-  }
-
-  #[test]
-  fn reduce_member_ident_count_on_nonexistent_is_noop() {
-    let mut state = StateManager::default();
-    let atom: Atom = "ghost".into();
-    reduce_member_ident_count(&mut state, &atom);
-    assert_eq!(state.member_object_ident_count_map.get(&atom), None);
-  }
-
-  #[test]
-  fn multiple_member_idents_tracked_independently() {
-    let mut state = StateManager::default();
-    let a: Atom = "a".into();
-    let b: Atom = "b".into();
-    increase_member_ident_count(&mut state, &a);
-    increase_member_ident_count(&mut state, &a);
-    increase_member_ident_count(&mut state, &b);
-    assert_eq!(state.member_object_ident_count_map.get(&a), Some(&2));
-    assert_eq!(state.member_object_ident_count_map.get(&b), Some(&1));
   }
 }
 
@@ -1313,73 +1239,6 @@ mod type_of_tests {
   fn returns_type_name_for_bool() {
     let result = type_of(true);
     assert_eq!(result, "bool");
-  }
-}
-
-// ──────────────────────────────────────────────
-// increase_member_ident / reduce_member_expression_count
-// (MemberExpr-based wrappers)
-// ──────────────────────────────────────────────
-
-mod member_expr_wrapper_tests {
-  use super::*;
-  use swc_core::ecma::ast::{MemberExpr, MemberProp};
-
-  fn make_member_expr_with_ident_obj(name: &str) -> MemberExpr {
-    MemberExpr {
-      span: DUMMY_SP,
-      obj: Box::new(Expr::Ident(make_ident(name))),
-      prop: MemberProp::Ident(swc_core::ecma::ast::IdentName {
-        span: DUMMY_SP,
-        sym: "prop".into(),
-      }),
-    }
-  }
-
-  fn make_member_expr_with_non_ident_obj() -> MemberExpr {
-    MemberExpr {
-      span: DUMMY_SP,
-      obj: Box::new(make_num_expr(42.0)),
-      prop: MemberProp::Ident(swc_core::ecma::ast::IdentName {
-        span: DUMMY_SP,
-        sym: "prop".into(),
-      }),
-    }
-  }
-
-  #[test]
-  fn increase_member_ident_with_ident_obj() {
-    let mut state = StateManager::default();
-    let member = make_member_expr_with_ident_obj("obj");
-    increase_member_ident(&mut state, &member);
-    let atom: Atom = "obj".into();
-    assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&1));
-  }
-
-  #[test]
-  fn increase_member_ident_with_non_ident_obj_is_noop() {
-    let mut state = StateManager::default();
-    let member = make_member_expr_with_non_ident_obj();
-    increase_member_ident(&mut state, &member);
-    assert!(state.member_object_ident_count_map.is_empty());
-  }
-
-  #[test]
-  fn reduce_member_expression_count_with_ident_obj() {
-    let mut state = StateManager::default();
-    let atom: Atom = "obj".into();
-    increase_member_ident_count_by_count(&mut state, &atom, 3);
-    let member = make_member_expr_with_ident_obj("obj");
-    reduce_member_expression_count(&mut state, &member);
-    assert_eq!(state.member_object_ident_count_map.get(&atom), Some(&2));
-  }
-
-  #[test]
-  fn reduce_member_expression_count_with_non_ident_obj_is_noop() {
-    let mut state = StateManager::default();
-    let member = make_member_expr_with_non_ident_obj();
-    reduce_member_expression_count(&mut state, &member);
-    assert!(state.member_object_ident_count_map.is_empty());
   }
 }
 

@@ -2,18 +2,11 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_constants::constants::common::COMPILED_KEY;
-use swc_core::{
-  common::DUMMY_SP,
-  ecma::{
-    ast::{MemberExpr, MemberProp},
-    utils::quote_ident,
-  },
-};
 
 use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   utils::{
-    ast::convertors::{convert_lit_to_string, create_string_expr},
+    ast::convertors::convert_lit_to_string,
     core::{
       attrs::attrs,
       js_to_ast::NestedStringObject,
@@ -23,7 +16,6 @@ use crate::shared::{
     },
   },
 };
-use stylex_ast::ast::factories::create_ident;
 
 fn create_style_object_args(args: &[&[(&str, FlatCompiledStylesValue)]]) -> Vec<ResolvedArg> {
   let mut result_args = vec![];
@@ -35,15 +27,7 @@ fn create_style_object_args(args: &[&[(&str, FlatCompiledStylesValue)]]) -> Vec<
       object.insert(key.to_string(), Rc::new(value.clone()));
     }
 
-    result_args.push(ResolvedArg::StyleObject(
-      StyleObject::Style(object),
-      vec![create_ident("test")],
-      vec![MemberExpr {
-        span: DUMMY_SP,
-        obj: Box::new(create_string_expr("test")),
-        prop: MemberProp::Ident(quote_ident!("test")),
-      }],
-    ))
+    result_args.push(ResolvedArg::StyleObject(StyleObject::Style(object)))
   }
 
   result_args
@@ -553,24 +537,8 @@ fn props_with_dynamic_styles() {
   );
 
   let args = vec![
-    ResolvedArg::StyleObject(
-      StyleObject::Style(compiled),
-      vec![create_ident("test")],
-      vec![MemberExpr {
-        span: DUMMY_SP,
-        obj: Box::new(create_string_expr("test")),
-        prop: MemberProp::Ident(quote_ident!("test")),
-      }],
-    ),
-    ResolvedArg::StyleObject(
-      StyleObject::Style(dynamic_style),
-      vec![create_ident("test")],
-      vec![MemberExpr {
-        span: DUMMY_SP,
-        obj: Box::new(create_string_expr("test")),
-        prop: MemberProp::Ident(quote_ident!("test")),
-      }],
-    ),
+    ResolvedArg::StyleObject(StyleObject::Style(compiled)),
+    ResolvedArg::StyleObject(StyleObject::Style(dynamic_style)),
   ];
 
   let binding = props(&args).expect("Expected result to be Some");
@@ -682,24 +650,8 @@ fn attrs_with_dynamic_styles() {
   );
 
   let args = vec![
-    ResolvedArg::StyleObject(
-      StyleObject::Style(compiled),
-      vec![create_ident("test")],
-      vec![MemberExpr {
-        span: DUMMY_SP,
-        obj: Box::new(create_string_expr("test")),
-        prop: MemberProp::Ident(quote_ident!("test")),
-      }],
-    ),
-    ResolvedArg::StyleObject(
-      StyleObject::Style(dynamic_style),
-      vec![create_ident("test")],
-      vec![MemberExpr {
-        span: DUMMY_SP,
-        obj: Box::new(create_string_expr("test")),
-        prop: MemberProp::Ident(quote_ident!("test")),
-      }],
-    ),
+    ResolvedArg::StyleObject(StyleObject::Style(compiled)),
+    ResolvedArg::StyleObject(StyleObject::Style(dynamic_style)),
   ];
 
   let binding = attrs(&args).expect("Expected result to be Some");

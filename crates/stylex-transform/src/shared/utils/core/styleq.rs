@@ -35,11 +35,11 @@ impl StyleqValue for FlatCompiledStylesValue {
 impl StyleqArgument<Rc<FlatCompiledStylesValue>> for ResolvedArg {
   fn as_style(&self) -> Option<&StyleMap<Rc<FlatCompiledStylesValue>>> {
     match self {
-      ResolvedArg::StyleObject(style_object, _, _) => style_object_as_style(style_object),
-      ResolvedArg::ConditionalStyle(_, Some(style_object), _, _, _) => {
+      ResolvedArg::StyleObject(style_object) => style_object_as_style(style_object),
+      ResolvedArg::ConditionalStyle(_, Some(style_object), _) => {
         style_object_as_style(style_object)
       },
-      ResolvedArg::ConditionalStyle(_, None, _, _, _) => None,
+      ResolvedArg::ConditionalStyle(_, None, _) => None,
     }
   }
 
@@ -52,8 +52,7 @@ impl StyleqArgument<Rc<FlatCompiledStylesValue>> for ResolvedArg {
   fn should_skip(&self) -> bool {
     matches!(
       self,
-      ResolvedArg::StyleObject(StyleObject::Nullable, _, _)
-        | ResolvedArg::ConditionalStyle(_, None, _, _, _)
+      ResolvedArg::StyleObject(StyleObject::Nullable) | ResolvedArg::ConditionalStyle(_, None, _)
     )
   }
 }

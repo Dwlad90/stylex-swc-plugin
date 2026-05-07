@@ -2,10 +2,10 @@ use rustc_hash::FxHashMap;
 use stylex_macros::{stylex_panic, stylex_unreachable};
 use swc_core::ecma::{
   ast::{
-    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, Ident, JSXAttrOrSpread,
-    JSXAttrValue, Lit, MemberExpr, Prop, PropName, PropOrSpread,
+    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, JSXAttrOrSpread, JSXAttrValue, Prop,
+    PropName, PropOrSpread,
   },
-  utils::{ExprExt, drop_span},
+  utils::drop_span,
   visit::VisitMutWith,
 };
 
@@ -20,7 +20,6 @@ use crate::shared::{
   transformers::stylex_default_marker,
   utils::{
     ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
-    common::reduce_member_expression_count,
     core::{
       make_string_expression::make_string_expression,
       parse_nullable_style::{ResolvedArg, StyleObject, parse_nullable_style},
@@ -29,11 +28,9 @@ use crate::shared::{
 };
 use stylex_ast::ast::factories::{create_jsx_attr, create_jsx_attr_or_spread};
 use stylex_constants::constants::{
-  api_names::STYLEX_DEFAULT_MARKER,
-  messages::{EXPECTED_COMPILED_STYLES, MEMBER_OBJ_NOT_IDENT},
+  api_names::STYLEX_DEFAULT_MARKER, messages::EXPECTED_COMPILED_STYLES,
 };
 use stylex_enums::style_vars_to_keep::NonNullProps;
-use stylex_utils::swc::get_default_expr_ctx;
 
 pub(crate) fn stylex_merge(
   call: &mut CallExpr,
@@ -120,29 +117,17 @@ pub(crate) fn stylex_merge(
       Expr::Object(_) => {
         resolved_args.push(ResolvedArg::style_object(resolved));
       },
-      Expr::Ident(ident) => {
-        resolved_args.push(ResolvedArg::style_object_with_ident(
-          resolved,
-          vec![ident.clone()],
-        ));
+      Expr::Ident(_) => {
+        resolved_args.push(ResolvedArg::style_object(resolved));
       },
-      Expr::Member(member) => {
+      Expr::Member(_) => {
         match resolved {
           StyleObject::Other => {
             //  Already processed in the conditional block above; bail_out flag
             // set if needed.
           },
           StyleObject::Style(_) | StyleObject::Nullable => {
-            let ident = match member.obj.as_ident() {
-              Some(i) => i.clone(),
-              None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
-            };
-
-            resolved_args.push(ResolvedArg::style_object_full(
-              resolved,
-              vec![ident],
-              vec![member.clone()],
-            ));
+            resolved_args.push(ResolvedArg::style_object(resolved));
           },
           StyleObject::Unreachable => {
             stylex_unreachable!("StyleObject::Unreachable");
@@ -162,15 +147,10 @@ pub(crate) fn stylex_merge(
           bail_out_index = Some(current_index);
           bail_out = true;
         } else {
-          let idents = get_conditional_expr_idents(alternate.as_ref())?;
-          let members = get_conditional_expr_members(alternate.as_ref())?;
-
           resolved_args.push(ResolvedArg::conditional(
             *test.clone(),
             Some(primary),
             Some(fallback),
-            idents,
-            members,
           ));
 
           conditional += 1;
@@ -195,32 +175,10 @@ pub(crate) fn stylex_merge(
           bail_out_index = Some(current_index);
           bail_out = true;
         } else {
-          let ident = match right_path.as_ref() {
-            Expr::Ident(ident) => ident,
-            Expr::Member(member) => match member.obj.as_ident() {
-              Some(i) => i,
-              None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
-            },
-            _ => stylex_panic!(
-              "Illegal argument: {:?}",
-              right_path.get_type(get_default_expr_ctx())
-            ),
-          };
-
-          let member = match right_path.as_ref() {
-            Expr::Member(member) => member,
-            _ => stylex_panic!(
-              "Illegal argument: {:?}",
-              right_path.get_type(get_default_expr_ctx())
-            ),
-          };
-
           resolved_args.push(ResolvedArg::conditional(
             *left_path.clone(),
             Some(right_resolved),
             None,
-            vec![ident.clone()],
-            vec![member.clone()],
           ));
 
           conditional += 1;
@@ -256,42 +214,18 @@ pub(crate) fn stylex_merge(
         index,
         bail_out_index,
         non_null_props: non_null_props.clone(),
-        state: state.clone(),
-        parents: vec![],
-        functions: evaluate_path_fn_config.clone(),
+        state: &mut *state,
+        functions: &evaluate_path_fn_config,
       };
 
       arg_path.expr.visit_mut_with(&mut member_transform);
 
       index = member_transform.index;
       bail_out_index = member_transform.bail_out_index;
-      non_null_props = member_transform.non_null_props;
-
-      *state = member_transform.state;
-    }
-
-    for arg in args_path.iter() {
-      if let Expr::Member(member_expression) = arg.expr.as_ref() {
-        reduce_member_expression_count(state, member_expression)
-      }
+      non_null_props = member_transform.non_null_props.clone();
     }
   } else {
     let string_expression = make_string_expression(&resolved_args, transform);
-
-    for arg in &resolved_args {
-      match arg {
-        ResolvedArg::StyleObject(_, _idents, member_expr) => {
-          for member_expr in member_expr {
-            reduce_member_expression_count(state, member_expr);
-          }
-        },
-        ResolvedArg::ConditionalStyle(_, _, _, _idents, member_expr) => {
-          for member_expr in member_expr {
-            reduce_member_expression_count(state, member_expr);
-          }
-        },
-      }
-    }
 
     if let Some(Expr::Object(string_expression)) = string_expression.as_ref() {
       let attr_expr = drop_span(Expr::Call(call.clone()));
@@ -349,81 +283,4 @@ pub(crate) fn stylex_merge(
   }
 
   None
-}
-
-fn get_conditional_expr_idents(alternate: &Expr) -> Option<Vec<Ident>> {
-  match alternate {
-    Expr::Ident(ident) => {
-      if ident.sym == "undefined" {
-        return None;
-      }
-
-      Some(vec![ident.clone()])
-    },
-    Expr::Member(member) => Some(vec![match member.obj.as_ident() {
-      Some(i) => i.clone(),
-      None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
-    }]),
-    Expr::Lit(Lit::Null(_) | Lit::Bool(_)) => None,
-    Expr::Array(array) => {
-      let mut idents = Vec::with_capacity(array.elems.len());
-
-      for elem in array.elems.iter().flatten() {
-        match get_conditional_expr_idents(&elem.expr) {
-          Some(mut elem_idents) => {
-            idents.append(&mut elem_idents);
-          },
-          None => {
-            return None;
-          },
-        }
-      }
-
-      Some(idents)
-    },
-    Expr::Cond(cond_expr) => {
-      let mut idents = Vec::with_capacity(1);
-
-      match get_conditional_expr_idents(&cond_expr.alt) {
-        Some(mut alt_idents) => {
-          idents.append(&mut alt_idents);
-        },
-        None => {
-          return None;
-        },
-      }
-
-      Some(idents)
-    },
-    _ => {
-      stylex_panic!(
-        "Illegal argument: {:?}",
-        alternate.get_type(get_default_expr_ctx())
-      )
-    },
-  }
-}
-
-fn get_conditional_expr_members(alternate: &Expr) -> Option<Vec<MemberExpr>> {
-  match alternate {
-    Expr::Member(member) => Some(vec![member.clone()]),
-    Expr::Array(array) => {
-      let mut members = Vec::with_capacity(array.elems.len());
-
-      for elem in array.elems.iter().flatten() {
-        if let Some(mut elem_members) = get_conditional_expr_members(&elem.expr) {
-          members.append(&mut elem_members);
-        }
-      }
-
-      Some(members)
-    },
-    Expr::Cond(cond_expr) => get_conditional_expr_members(&cond_expr.alt),
-    _ => {
-      stylex_panic!(
-        "Illegal argument in get_conditional_expr_member: {:?}",
-        alternate.get_type(get_default_expr_ctx())
-      )
-    },
-  }
 }

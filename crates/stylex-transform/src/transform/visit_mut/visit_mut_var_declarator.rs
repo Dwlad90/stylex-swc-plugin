@@ -22,7 +22,7 @@ use stylex_structures::{
 use crate::{
   StyleXTransform,
   shared::{
-    structures::state_manager::ImportKind,
+    structures::state_manager::{DeclId, ImportKind},
     utils::{ast::convertors::expand_shorthand_prop, common::fill_state_declarations},
   },
 };
@@ -58,10 +58,10 @@ where
         var_declarator.visit_mut_children_with(self);
       },
       TransformationCycle::Finalize => {
-        let mut vars_to_keep: FxHashMap<Atom, NonNullProps> = FxHashMap::default();
+        let mut vars_to_keep: FxHashMap<DeclId, NonNullProps> = FxHashMap::default();
 
-        for StyleVarsToKeep(var_name, namespace_name, _) in self.state.style_vars_to_keep.iter() {
-          match vars_to_keep.entry(var_name.clone()) {
+        for StyleVarsToKeep(var_id, namespace_name, _) in self.state.style_vars_to_keep.iter() {
+          match vars_to_keep.entry(var_id.clone()) {
             Entry::Occupied(mut entry) => {
               let entry_value = entry.get_mut();
 
@@ -113,17 +113,19 @@ where
               .as_mut()
               .and_then(|var_decl| var_decl.as_mut_object())
           {
-            let namespaces_to_keep = match vars_to_keep.get(&match var_name.name.as_ident() {
-              Some(i) => i.sym.clone(),
+            let var_id = match var_name.name.as_ident() {
+              Some(i) => i.id.to_id(),
               #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
-            }) {
+            };
+
+            let namespaces_to_keep = match vars_to_keep.get(&var_id) {
               Some(NonNullProps::Vec(vec)) => vec.clone(),
               _ => Vec::new(),
             };
 
             if !namespaces_to_keep.is_empty() {
-              object.props = self.retain_object_props(object, &namespaces_to_keep, var_name);
+              object.props = self.retain_object_props(object, &namespaces_to_keep, &var_id);
             }
           }
         }
@@ -136,7 +138,7 @@ where
     &self,
     object: &mut ObjectLit,
     namespace_to_keep: &[Atom],
-    var_name: &VarDeclarator,
+    var_id: &DeclId,
   ) -> Vec<PropOrSpread> {
     let mut props: Vec<PropOrSpread> = Vec::with_capacity(object.props.len());
 
@@ -158,12 +160,6 @@ where
         if let Some(key_as_string) = key_as_ident
           && namespace_to_keep.contains(&key_as_string.sym)
         {
-          let var_id = &match var_name.name.as_ident() {
-            Some(i) => i,
-            #[cfg_attr(coverage_nightly, coverage(off))]
-            None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
-          }
-          .sym;
           let key_id = NonNullProp::Atom(key_as_string.sym.clone());
 
           let all_nulls_to_keep = self
@@ -173,7 +169,7 @@ where
             .filter_map(|top_level_expression| {
               let StyleVarsToKeep(var, namespace_name, prop) = top_level_expression;
 
-              if var_id.eq_ignore_span(var) && namespace_name == &key_id {
+              if var == var_id && namespace_name == &key_id {
                 Some(prop.clone())
               } else {
                 None

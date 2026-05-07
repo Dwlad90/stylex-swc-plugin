@@ -1,6 +1,4 @@
-use stylex_constants::constants::messages::{
-  MEMBER_OBJ_NOT_IDENT, OBJECT_KEY_MUST_BE_IDENT, SPREAD_NOT_SUPPORTED,
-};
+use stylex_constants::constants::messages::{OBJECT_KEY_MUST_BE_IDENT, SPREAD_NOT_SUPPORTED};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   atoms::Atom,
@@ -12,7 +10,10 @@ use stylex_structures::style_vars_to_keep::StyleVarsToKeep;
 
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
-  structures::{functions::FunctionMap, state_manager::StateManager},
+  structures::{
+    functions::FunctionMap,
+    state_manager::{DeclId, StateManager},
+  },
   utils::{ast::convertors::convert_lit_to_string, js::evaluate::evaluate},
 };
 
@@ -27,26 +28,23 @@ pub(crate) fn member_expression(
   let object = member.obj.as_ref();
   let property = &member.prop;
 
-  let mut obj_name: Option<&Atom> = None;
+  let mut obj_id: Option<DeclId> = None;
   let mut prop_name: Option<Atom> = None;
 
-  if let Expr::Ident(ident) = object {
-    let obj_ident_name = &ident.sym;
-
-    obj_name = Some(&ident.sym);
-
-    if state.style_map.contains_key(&obj_ident_name.to_string()) {
-      match property {
-        MemberProp::Ident(ident) => {
-          prop_name = Some(ident.sym.clone());
-        },
-        MemberProp::Computed(computed) => {
-          if let Expr::Lit(lit) = computed.expr.as_ref() {
-            prop_name = convert_lit_to_string(lit).map(Atom::from);
-          }
-        },
-        _ => {},
-      }
+  if let Expr::Ident(ident) = object
+    && state.is_style_var_ident(ident)
+  {
+    obj_id = Some(ident.to_id());
+    match property {
+      MemberProp::Ident(ident) => {
+        prop_name = Some(ident.sym.clone());
+      },
+      MemberProp::Computed(computed) => {
+        if let Expr::Lit(lit @ (Lit::Str(_) | Lit::Num(_))) = computed.expr.as_ref() {
+          prop_name = convert_lit_to_string(lit).map(Atom::from);
+        }
+      },
+      _ => {},
     }
   }
 
@@ -100,13 +98,9 @@ pub(crate) fn member_expression(
     }
   }
 
-  if let Some(obj_name) = obj_name {
-    if object.as_ident().is_none() {
-      stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT);
-    }
-
+  if let Some(obj_id) = obj_id {
     let style_var_to_keep = StyleVarsToKeep(
-      obj_name.clone(),
+      obj_id,
       match prop_name {
         Some(prop_name) => NonNullProp::Atom(prop_name),
         None => NonNullProp::True,

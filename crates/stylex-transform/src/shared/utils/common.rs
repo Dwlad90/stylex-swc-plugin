@@ -1,14 +1,13 @@
 use rustc_hash::FxHashSet;
-use std::{any::type_name, collections::hash_map::Entry, ops::Deref, path::PathBuf};
+use std::{any::type_name, ops::Deref, path::PathBuf};
 use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 use stylex_types::traits::StyleOptions;
 use stylex_utils::string::remove_quotes;
 use swc_core::{
-  atoms::Atom,
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
   ecma::{
     ast::{
-      Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, MemberExpr, Module, ModuleDecl,
+      Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Module, ModuleDecl,
       ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, Pat, Prop, PropName, PropOrSpread,
       Stmt, VarDeclarator,
     },
@@ -80,42 +79,6 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
     },
     _ => None,
   }
-}
-
-pub fn increase_member_ident(state: &mut StateManager, member_obj: &MemberExpr) {
-  if let Some(obj_ident) = member_obj.obj.as_ident() {
-    increase_member_ident_count(state, &obj_ident.sym);
-  }
-}
-
-pub fn reduce_member_expression_count(state: &mut StateManager, member_expression: &MemberExpr) {
-  if let Some(obj_ident) = member_expression.obj.as_ident() {
-    reduce_member_ident_count(state, &obj_ident.sym);
-  }
-}
-
-pub fn reduce_member_ident_count(state: &mut StateManager, ident_atom: &Atom) {
-  if let Entry::Occupied(mut entry) = state
-    .member_object_ident_count_map
-    .entry(ident_atom.clone())
-  {
-    *entry.get_mut() -= 1;
-  }
-}
-
-pub fn increase_member_ident_count(state: &mut StateManager, ident_atom: &Atom) {
-  increase_member_ident_count_by_count(state, ident_atom, 1);
-}
-
-pub fn increase_member_ident_count_by_count(
-  state: &mut StateManager,
-  ident_atom: &Atom,
-  count: i16,
-) {
-  *state
-    .member_object_ident_count_map
-    .entry(ident_atom.clone())
-    .or_insert(0) += count;
 }
 
 pub fn get_var_decl_by_ident<'a>(

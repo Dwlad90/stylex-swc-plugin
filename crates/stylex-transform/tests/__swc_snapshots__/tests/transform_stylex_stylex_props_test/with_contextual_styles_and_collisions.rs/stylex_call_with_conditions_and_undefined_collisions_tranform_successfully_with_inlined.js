@@ -5,15 +5,24 @@ _inject2({
     ltr: ".x1e2nbdu{color:red}",
     priority: 3000
 });
-const styles = {
-    red: {
-        kMwMTN: "x1e2nbdu",
-        $$css: true
+({
+    0: {},
+    1: {
+        className: "x1e2nbdu"
     }
-};
-stylex.props(Math.random() > 1 ? styles.red : undefined);
-stylex.props(true ? styles.red : undefined);
-stylex.props(false ? styles.red : undefined);
+})[!!(Math.random() > 1) << 0];
+({
+    0: {},
+    1: {
+        className: "x1e2nbdu"
+    }
+})[!!true << 0];
+({
+    0: {},
+    1: {
+        className: "x1e2nbdu"
+    }
+})[!!false << 0];
 ({
     0: {
         className: "x1e2nbdu"
@@ -45,9 +54,24 @@ stylex.props(false ? styles.red : undefined);
     1: {}
 })[!!true << 0];
 export function TestComponent({ removeStyle, isAnimation }) {
-    stylex.props(Math.random() > 1 ? styles.red : undefined);
-    stylex.props(true ? styles.red : undefined);
-    stylex.props(false ? styles.red : undefined);
+    ({
+        0: {},
+        1: {
+            className: "x1e2nbdu"
+        }
+    })[!!(Math.random() > 1) << 0];
+    ({
+        0: {},
+        1: {
+            className: "x1e2nbdu"
+        }
+    })[!!true << 0];
+    ({
+        0: {},
+        1: {
+            className: "x1e2nbdu"
+        }
+    })[!!false << 0];
     ({
         0: {
             className: "x1e2nbdu"

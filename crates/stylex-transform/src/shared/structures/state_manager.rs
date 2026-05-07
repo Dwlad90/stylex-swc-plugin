@@ -27,8 +27,9 @@ use swc_core::{
 use crate::shared::{
   structures::types::InjectableStylesMap,
   utils::{
-    ast::convertors::create_number_expr,
+    ast::convertors::{convert_lit_to_string, create_number_expr},
     common::{extract_filename_from_path, extract_filename_with_ext_from_path, extract_path},
+    validators::{is_attrs_call, is_props_call},
   },
 };
 use stylex_ast::ast::factories::{
@@ -75,7 +76,6 @@ use stylex_types::structures::meta_data::MetaData;
 // Arc<T> would add atomic-RMW on every clone with no benefit.
 const TRANSFORMED_VARS_FILE_EXTENSION: &str = ".transformed";
 
-type AtomHashMap = FxHashMap<Atom, i16>;
 type AtomHashSet = FxHashSet<Atom>;
 
 /// Stable identifier for a top-level declarator. Carries the symbol's
@@ -355,7 +355,6 @@ pub struct StateManager {
 
   // results of `stylex.create` calls that should be kept
   pub(crate) style_vars_to_keep: IndexSet<StyleVarsToKeep>,
-  pub(crate) member_object_ident_count_map: AtomHashMap,
 
   /// Reference graph from each top-level declarator to the set of
   /// declarators it directly references in its initializer / body.
@@ -415,7 +414,6 @@ impl StateManager {
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
       style_vars_to_keep: IndexSet::default(),
-      member_object_ident_count_map: FxHashMap::default(),
       decl_uses: FxHashMap::default(),
       roots: FxHashSet::default(),
       live_set: FxHashSet::default(),
@@ -506,6 +504,15 @@ impl StateManager {
     self.stylex_imports().iter().any(|import_source| {
       matches!(import_source, ImportSources::Regular(regular) if regular.as_str() == ident_sym)
     })
+  }
+
+  pub(crate) fn is_style_var_ident(&self, ident: &Ident) -> bool {
+    self.style_map.contains_key(ident.sym.as_ref())
+      && self
+        .style_vars
+        .get(ident.sym.as_ref())
+        .and_then(|decl| decl.name.as_ident())
+        .is_some_and(|bind_ident| bind_ident.id.to_id() == ident.to_id())
   }
 
   /// Check if an import of the given kind contains the given symbol.
@@ -1313,33 +1320,26 @@ struct MarkStyleVarsVisitor<'a> {
 }
 
 impl VisitMut for MarkStyleVarsVisitor<'_> {
+  fn visit_mut_call_expr(&mut self, call: &mut CallExpr) {
+    if is_stylex_consumer_call(call, self.state) {
+      return;
+    }
+
+    call.visit_mut_children_with(self);
+  }
+
   fn visit_mut_member_expr(&mut self, member_expression: &mut MemberExpr) {
     if let Expr::Ident(ident) = member_expression.obj.as_ref()
-      && self.state.style_map.contains_key(ident.sym.as_ref())
+      && self.state.is_style_var_ident(ident)
+      && let Some(namespace_name) = member_namespace_name(&member_expression.prop)
     {
-      if let MemberProp::Ident(prop_ident) = &member_expression.prop
-        && self
-          .state
-          .member_object_ident_count_map
-          .get(&ident.sym)
-          .is_some_and(|&c| c > 0)
-      {
-        self.state.roots.insert(ident.to_id());
-        self.state.style_vars_to_keep.insert(StyleVarsToKeep(
-          ident.sym.clone(),
-          NonNullProp::Atom(prop_ident.sym.clone()),
-          NonNullProps::True,
-        ));
-      };
-
-      if let MemberProp::Computed(_) = &member_expression.prop {
-        self.state.roots.insert(ident.to_id());
-        self.state.style_vars_to_keep.insert(StyleVarsToKeep(
-          ident.sym.clone(),
-          NonNullProp::True,
-          NonNullProps::True,
-        ));
-      }
+      let decl_id = ident.to_id();
+      self.state.roots.insert(decl_id.clone());
+      self.state.style_vars_to_keep.insert(StyleVarsToKeep(
+        decl_id,
+        namespace_name,
+        NonNullProps::True,
+      ));
     }
 
     member_expression.visit_mut_children_with(self);
@@ -1370,6 +1370,29 @@ impl VisitMut for MarkStyleVarsVisitor<'_> {
 
     result.visit_mut_children_with(self);
     *jsx_attrs = result;
+  }
+}
+
+fn is_stylex_consumer_call(call: &CallExpr, state: &StateManager) -> bool {
+  is_props_call(call, state)
+    || is_attrs_call(call, state)
+    || call
+      .callee
+      .as_expr()
+      .and_then(|callee| callee.as_ident())
+      .is_some_and(|ident| state.is_regular_stylex_import(&ident.sym))
+}
+
+fn member_namespace_name(member_prop: &MemberProp) -> Option<NonNullProp> {
+  match member_prop {
+    MemberProp::Ident(prop_ident) => Some(NonNullProp::Atom(prop_ident.sym.clone())),
+    MemberProp::Computed(computed) => match computed.expr.as_lit() {
+      Some(lit @ (Lit::Str(_) | Lit::Num(_))) => {
+        convert_lit_to_string(lit).map(|value| NonNullProp::Atom(value.into()))
+      },
+      _ => Some(NonNullProp::True),
+    },
+    MemberProp::PrivateName(_) => None,
   }
 }
 

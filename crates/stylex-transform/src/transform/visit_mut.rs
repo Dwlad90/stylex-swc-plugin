@@ -6,7 +6,6 @@ mod visit_mut_expr;
 mod visit_mut_import_decl;
 mod visit_mut_jsx_attr_or_spread;
 mod visit_mut_jsx_opening_element;
-mod visit_mut_member_expr;
 mod visit_mut_member_prop;
 mod visit_mut_module;
 mod visit_mut_module_items;
@@ -23,7 +22,7 @@ use swc_core::{
   ecma::{
     ast::{
       ComputedPropName, Decl, ExportDecl, ExportDefaultExpr, Expr, ImportDecl, JSXOpeningElement,
-      MemberExpr, MemberProp, Module, ModuleItem, NamedExport, PropName, Stmt, VarDeclarator,
+      MemberProp, Module, ModuleItem, NamedExport, PropName, Stmt, VarDeclarator,
     },
     visit::{VisitMut, noop_visit_mut_type},
   },
@@ -77,10 +76,6 @@ where
 
   fn visit_mut_member_prop(&mut self, member_prop: &mut MemberProp) {
     self.visit_mut_member_prop_impl(member_prop);
-  }
-
-  fn visit_mut_member_expr(&mut self, member_expression: &mut MemberExpr) {
-    self.visit_mut_member_expr_impl(member_expression);
   }
 
   fn visit_mut_computed_prop_name(&mut self, computed_prop_name: &mut ComputedPropName) {

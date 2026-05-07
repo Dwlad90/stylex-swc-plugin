@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
-use swc_core::ecma::ast::{Expr, Ident, Lit, MemberExpr, MemberProp, ObjectLit};
+use swc_core::ecma::ast::{Expr, Lit, MemberProp, ObjectLit};
 
 use crate::shared::{
   enums::data_structures::{
@@ -27,18 +27,12 @@ pub(crate) enum StyleObject {
 
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum ResolvedArg {
-  StyleObject(StyleObject, Vec<Ident>, Vec<MemberExpr>),
-  ConditionalStyle(
-    Expr,
-    Option<StyleObject>,
-    Option<StyleObject>,
-    Vec<Ident>,
-    Vec<MemberExpr>,
-  ),
+  StyleObject(StyleObject),
+  ConditionalStyle(Expr, Option<StyleObject>, Option<StyleObject>),
 }
 
 impl ResolvedArg {
-  /// Creates a `ResolvedArg::StyleObject` with empty ident and member vectors.
+  /// Creates a `ResolvedArg::StyleObject`.
   ///
   /// # Arguments
   /// * `style_obj` - The resolved style object
@@ -49,67 +43,27 @@ impl ResolvedArg {
   /// ```
   #[inline]
   pub(crate) fn style_object(style_obj: StyleObject) -> Self {
-    ResolvedArg::StyleObject(style_obj, Vec::default(), Vec::default())
+    ResolvedArg::StyleObject(style_obj)
   }
 
-  /// Creates a `ResolvedArg::StyleObject` with identifier tracking.
-  ///
-  /// # Arguments
-  /// * `style_obj` - The resolved style object
-  /// * `idents` - Vector of identifiers
-  ///
-  /// # Example
-  /// ```ignore
-  /// let arg = ResolvedArg::style_object_with_ident(StyleObject::Style(...), vec![ident]);
-  /// ```
-  #[inline]
-  pub(crate) fn style_object_with_ident(style_obj: StyleObject, idents: Vec<Ident>) -> Self {
-    ResolvedArg::StyleObject(style_obj, idents, Vec::default())
-  }
-
-  /// Creates a `ResolvedArg::StyleObject` with both identifier and member
-  /// tracking.
-  ///
-  /// # Arguments
-  /// * `style_obj` - The resolved style object
-  /// * `idents` - Vector of identifiers
-  /// * `members` - Vector of member expressions
-  ///
-  /// # Example
-  /// ```ignore
-  /// let arg = ResolvedArg::style_object_full(StyleObject::Style(...), vec![ident], vec![member]);
-  /// ```
-  #[inline]
-  pub(crate) fn style_object_full(
-    style_obj: StyleObject,
-    idents: Vec<Ident>,
-    members: Vec<MemberExpr>,
-  ) -> Self {
-    ResolvedArg::StyleObject(style_obj, idents, members)
-  }
-
-  /// Creates a `ResolvedArg::ConditionalStyle` with full parameters.
+  /// Creates a `ResolvedArg::ConditionalStyle`.
   ///
   /// # Arguments
   /// * `test` - The test expression
   /// * `primary` - Primary style object
   /// * `fallback` - Fallback style object
-  /// * `idents` - Vector of identifiers
-  /// * `members` - Vector of member expressions
   ///
   /// # Example
   /// ```ignore
-  /// let arg = ResolvedArg::conditional(test, Some(primary), Some(fallback), idents, members);
+  /// let arg = ResolvedArg::conditional(test, Some(primary), Some(fallback));
   /// ```
   #[inline]
   pub(crate) fn conditional(
     test: Expr,
     primary: Option<StyleObject>,
     fallback: Option<StyleObject>,
-    idents: Vec<Ident>,
-    members: Vec<MemberExpr>,
   ) -> Self {
-    ResolvedArg::ConditionalStyle(test, primary, fallback, idents, members)
+    ResolvedArg::ConditionalStyle(test, primary, fallback)
   }
 }
 
@@ -138,7 +92,7 @@ pub(crate) fn parse_nullable_style(
       let mut prop_name: Option<String> = None;
 
       if let Some(obj_ident) = member.obj.as_ident()
-        && state.style_map.contains_key(obj_ident.sym.as_str())
+        && state.is_style_var_ident(obj_ident)
       {
         match &member.prop {
           MemberProp::Ident(prop_ident) => {

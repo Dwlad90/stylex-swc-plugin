@@ -1,11 +1,12 @@
 'use strict';
 
 import path from 'path';
-import rollup from 'rollup';
+import * as rollup from 'rollup';
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
-import stylexPlugin from '../src/rollup';
-import type { UnpluginStylexRSOptions } from '../src/index';
+import stylexPlugin from '../src/rollup.js';
+import { describe, expect, test } from 'vitest';
+import type { UnpluginStylexRSOptions } from '../src/index.js';
 
 describe('@stylexswc/unplugin/rollup', () => {
   async function runStylex(options: UnpluginStylexRSOptions) {
@@ -46,7 +47,7 @@ describe('@stylexswc/unplugin/rollup', () => {
     return { css, js, output };
   }
 
-  it('extracts CSS and removes stylex.inject calls', async () => {
+  test('extracts CSS and removes stylex.inject calls', async () => {
     const { css, js } = await runStylex({ fileName: 'stylex.css' });
 
     expect(css).toMatchSnapshot();
@@ -55,7 +56,7 @@ describe('@stylexswc/unplugin/rollup', () => {
   });
 
   describe('runtimeInjection:true', () => {
-    it('preserves stylex.inject calls and does not extract CSS', async () => {
+    test('preserves stylex.inject calls and does not extract CSS', async () => {
       const { css, js } = await runStylex({
         rsOptions: {
           debug: true,
@@ -69,7 +70,7 @@ describe('@stylexswc/unplugin/rollup', () => {
       expect(js).toMatchSnapshot();
     });
   });
-  it('output filename match pattern', async () => {
+  test('output filename match pattern', async () => {
     const { output } = await runStylex({ fileName: 'stylex.[hash].css' });
     const css = output.find(
       chunkOrAsset =>

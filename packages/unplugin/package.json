@@ -78,7 +78,7 @@
     "postbuild": "pnpm run check:artifacts",
     "prepublishOnly": "pnpm run build",
     "start": "esno src/index.ts",
-    "test": "jest",
+    "test": "vitest",
     "typecheck": "scripty --ts"
   },
   "config": {
@@ -97,14 +97,13 @@
     "@nuxt/schema": "^4.4.4",
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-node-resolve": "^16.0.3",
-    "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
     "eslint": "^10.3.0",
     "esno": "^4.7.0",
-    "jest": "^30.3.0",
     "rollup": "^4.60.2",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   },
   "peerDependencies": {
     "@farmfe/core": ">=1.7.11 <2.0.0",

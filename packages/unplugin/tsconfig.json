@@ -10,7 +10,7 @@
     "module": "esnext",
     "types": [
       "node",
-      "jest"
+      "vitest"
     ],
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,

@@ -2,14 +2,6 @@
   "name": "@stylexswc/rspack-unplugin-example",
   "description": "A simple rspack unplugin example to test @stylexswc/unplugin/rspack",
   "version": "0.15.5",
-  "private": true,
-  "license": "MIT",
-  "scripts": {
-    "build": "rspack build",
-    "dev": "rspack serve",
-    "serve": "serve --listen 3006 ./dist",
-    "test:visual": "playwright test"
-  },
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.18.3",
@@ -21,11 +13,20 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "@rspack/cli": "^2.0.1",
-    "@rspack/core": "^1.7.6",
+    "@rspack/cli": "^2.0.2",
+    "@rspack/core": "^2.0.2",
+    "@rspack/dev-server": "^2.0.1",
     "@stylexswc/playwright": "0.15.5",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "serve": "^14.2.6"
+  },
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "rspack build",
+    "dev": "rspack serve",
+    "serve": "serve --listen 3006 ./dist",
+    "test:visual": "playwright test"
   }
 }

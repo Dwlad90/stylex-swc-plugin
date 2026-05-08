@@ -2,14 +2,6 @@
   "name": "@stylexswc/rsbuild-unplugin-placeholder-css-example",
   "description": "A simple rsbuild unplugin placeholder css example to test @stylexswc/unplugin/rspack",
   "version": "0.15.5",
-  "private": true,
-  "license": "MIT",
-  "scripts": {
-    "build": "rsbuild build",
-    "dev": "rsbuild dev",
-    "serve": "serve --listen 3018 ./dist",
-    "test:visual": "playwright test"
-  },
   "dependencies": {
     "@stylexjs/open-props": "^0.11.1",
     "@stylexjs/stylex": "^0.18.3",
@@ -22,10 +14,19 @@
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "@rsbuild/core": "^2.0.5",
-    "@rsbuild/plugin-react": "^1.4.6",
+    "@rsbuild/plugin-react": "^2.0.0",
+    "@rspack/dev-server": "^2.0.1",
     "@stylexswc/playwright": "0.15.5",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "serve": "^14.2.6"
+  },
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "build": "rsbuild build",
+    "dev": "rsbuild dev",
+    "serve": "serve --listen 3018 ./dist",
+    "test:visual": "playwright test"
   }
 }

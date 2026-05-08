@@ -28,7 +28,7 @@ runs:
       name: Install pnpm
       id: pnpm-install
       with:
-        version: 10.30.3
+        version: 11.0.8
 
     - uses: actions/setup-node@v6
       if: ${{ inputs['node-architecture'] == '' }}

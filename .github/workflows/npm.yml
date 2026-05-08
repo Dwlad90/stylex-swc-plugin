@@ -41,14 +41,14 @@ jobs:
             docker: stylex-debian-builder
             dockerfile: .github/docker/debian.Dockerfile
             build: |
-              corepack prepare pnpm@10.30.3 --activate
+              corepack prepare pnpm@11.0.8 --activate
               pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-unknown-linux-gnu
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: stylex-alpine-builder
             dockerfile: .github/docker/alpine.Dockerfile
             build: |
-              corepack prepare pnpm@10.30.3 --activate
+              corepack prepare pnpm@11.0.8 --activate
               pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-unknown-linux-musl
           - host: macos-latest
             target: aarch64-apple-darwin
@@ -59,7 +59,7 @@ jobs:
             docker: stylex-debian-aarch64-builder
             dockerfile: .github/docker/debian-aarch64.Dockerfile
             build: |
-              corepack prepare pnpm@10.30.3 --activate
+              corepack prepare pnpm@11.0.8 --activate
               pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-unknown-linux-gnu
         node:
           - '24.14.0'

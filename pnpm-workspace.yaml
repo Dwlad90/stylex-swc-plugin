@@ -68,3 +68,26 @@ onlyBuiltDependencies:
   - 'oxc-resolver'
   - 'sharp'
   - 'unrs-resolver'
+
+minimumReleaseAgeExclude:
+  - file-type@21.3.1
+  - file-type@21.3.2
+  - yaml@2.8.3
+  - esbuild@0.24.3
+  - tmp@0.2.4
+  - lodash@4.17.23
+  - minimatch@10.2.1
+  - minimatch@10.2.3
+  - serialize-javascript@7.0.3
+  - ajv@8.18.0
+  - serialize-javascript@7.0.5
+  - lodash@4.17.24
+  - postcss@8.5.10
+
+allowBuilds:
+  '@swc/core': true
+  core-js: true
+  core-js-pure: true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true

@@ -2,11 +2,31 @@
   "name": "@stylexswc/unplugin",
   "description": "Unplugin for StyleX RS compiler",
   "version": "0.15.5",
-  "private": false,
-  "license": "MIT",
-  "sideEffects": false,
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "dependencies": {
+    "@stylexjs/babel-plugin": "^0.18.3",
+    "@stylexswc/rs-compiler": "0.15.5",
+    "unplugin": "^3.0.0",
+    "vite": "^8.0.10"
+  },
+  "devDependencies": {
+    "@nuxt/kit": "^4.4.4",
+    "@nuxt/schema": "^4.4.4",
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@types/node": "^25.6.0",
+    "eslint": "^10.3.0",
+    "esno": "^4.7.0",
+    "rollup": "^4.60.2",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -63,58 +83,6 @@
   "files": [
     "dist"
   ],
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
-  "scripts": {
-    "build": "tsup",
-    "build:fix": "esno scripts/postbuild.ts",
-    "check:artifacts": "scripty",
-    "dev": "tsup --watch src",
-    "lint": "eslint . --color",
-    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
-    "play": "pnpm -C playground run dev",
-    "postbuild": "pnpm run check:artifacts",
-    "prepublishOnly": "pnpm run build",
-    "start": "esno src/index.ts",
-    "test": "vitest",
-    "typecheck": "scripty --ts"
-  },
-  "config": {
-    "scripty": {
-      "path": "../../scripts/packages"
-    }
-  },
-  "dependencies": {
-    "@stylexjs/babel-plugin": "^0.18.3",
-    "@stylexswc/rs-compiler": "0.15.5",
-    "unplugin": "^3.0.0",
-    "vite": "^8.0.10"
-  },
-  "devDependencies": {
-    "@nuxt/kit": "^4.4.4",
-    "@nuxt/schema": "^4.4.4",
-    "@rollup/plugin-commonjs": "^28.0.6",
-    "@rollup/plugin-node-resolve": "^16.0.3",
-    "@types/node": "^25.6.0",
-    "eslint": "^10.3.0",
-    "esno": "^4.7.0",
-    "rollup": "^4.60.2",
-    "tsup": "^8.5.1",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.5"
-  },
-  "peerDependencies": {
-    "@farmfe/core": ">=1.7.11 <2.0.0",
-    "@nuxt/kit": ">=3.0.0",
-    "@nuxt/schema": ">=3.0.0",
-    "esbuild": ">=0.25.0",
-    "rollup": ">=3.0.0",
-    "vite": ">=4.0.0",
-    "webpack": ">=5.0.0"
-  },
-  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/unplugin#readme",
   "keywords": [
     "esbuild",
@@ -129,8 +97,19 @@
     "vite",
     "webpack"
   ],
+  "license": "MIT",
   "main": "./dist/index.js",
-  "packageManager": "pnpm@10.30.3",
+  "module": "./dist/index.js",
+  "packageManager": "pnpm@11.0.8",
+  "peerDependencies": {
+    "@farmfe/core": ">=1.7.11 <2.0.0",
+    "@nuxt/kit": ">=3.0.0",
+    "@nuxt/schema": ">=3.0.0",
+    "esbuild": ">=0.25.0",
+    "rollup": ">=3.0.0",
+    "vite": ">=4.0.0",
+    "webpack": ">=5.0.0"
+  },
   "peerDependenciesMeta": {
     "@farmfe/core": {
       "optional": true
@@ -154,8 +133,29 @@
       "optional": true
     }
   },
+  "private": false,
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
   "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
+  "scripts": {
+    "build": "tsup",
+    "build:fix": "esno scripts/postbuild.ts",
+    "check:artifacts": "scripty",
+    "dev": "tsup --watch src",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
+    "play": "pnpm -C playground run dev",
+    "postbuild": "pnpm run check:artifacts",
+    "prepublishOnly": "pnpm run build",
+    "start": "esno src/index.ts",
+    "test": "vitest",
+    "typecheck": "scripty --ts"
+  },
+  "sideEffects": false,
   "type": "module",
+  "types": "./dist/index.d.ts",
   "typesVersions": {
     "*": {
       "*": [

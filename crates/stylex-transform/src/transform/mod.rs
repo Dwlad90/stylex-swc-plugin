@@ -283,13 +283,12 @@ where
   pub(crate) fn process_declaration(&mut self, call_expr: &mut CallExpr) -> Option<(Id, String)> {
     if let Callee::Expr(callee) = &mut call_expr.callee {
       match callee.as_ref() {
-        Expr::Ident(ident) => {
+        Expr::Ident(ident)
           if self
             .state
-            .is_stylex_import_for_current_cycle(ident.sym.as_ref())
-          {
-            return Some((ident.to_id(), ident.sym.to_string()));
-          }
+            .is_stylex_import_for_current_cycle(ident.sym.as_ref()) =>
+        {
+          return Some((ident.to_id(), ident.sym.to_string()));
         },
         Expr::Member(member) => {
           if let (Expr::Ident(obj_ident), MemberProp::Ident(prop_ident)) =

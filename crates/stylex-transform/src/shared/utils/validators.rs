@@ -503,14 +503,14 @@ pub(crate) fn validate_namespace(
 ) {
   for namespace in namespaces {
     match namespace.value.as_ref() {
-      Expr::Lit(lit) => {
+      Expr::Lit(lit)
         if !matches!(
           lit,
           Lit::Str(_) | Lit::Null(_) | Lit::Num(_) | Lit::BigInt(_)
-        ) {
-          let lit_expr = Expr::Lit(lit.clone());
-          build_code_frame_error_and_panic_at(&lit_expr, ILLEGAL_PROP_VALUE, state);
-        }
+        ) =>
+      {
+        let lit_expr = Expr::Lit(lit.clone());
+        build_code_frame_error_and_panic_at(&lit_expr, ILLEGAL_PROP_VALUE, state);
       },
       Expr::Array(array) => {
         for elem in array.elems.iter().flatten() {

@@ -12,7 +12,7 @@ use ctor::ctor;
 
 static CWD_LOCK: Mutex<()> = Mutex::new(());
 
-#[ctor]
+#[ctor(unsafe)]
 fn init_color_backtrace() {
   let _ = pretty_env_logger::formatted_builder().try_init().ok();
   color_backtrace::install();

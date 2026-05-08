@@ -42,7 +42,7 @@ color-backtrace = { version = "0.7.2" }
 colored = { version = "3.1.1" }
 criterion = { version = "0.8", features = ["html_reports"] }
 cssparser = { version = "0.37.0" }
-ctor = "0.11.1"
+ctor = "1.0.3"
 derive_more = { version = "2.1.1", features = ["display"] }
 env_logger = "0.11.10"
 fancy-regex = "0.18.0"
@@ -59,13 +59,13 @@ path-clean = { version = "1.0.1" }
 phf = { version = "0.13.1" }
 pretty_env_logger = "0.5.0"
 radix_fmt = { version = "1.0.0" }
-rust_decimal = { version = "1.39.0", features = ["serde"] }
+rust_decimal = { version = "1.42.0", features = ["serde"] }
 rustc-hash = "2.1.2"
 serde = "1.0.228"
 serde_json = "1.0.149"
 serde_plain = "1.0.2"
 serial_test = { version = "3.4.0" }
-swc_compiler_base = { version = "53.0.0" }
+swc_compiler_base = { version = "55.0.0" }
 swc_config = { version = "4.0.1" }
 swc_core = { version = "65.0.3" }
 swc_ecma_parser = { version = "39.0.2" }

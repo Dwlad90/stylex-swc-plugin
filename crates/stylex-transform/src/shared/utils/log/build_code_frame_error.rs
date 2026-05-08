@@ -349,6 +349,7 @@ pub(crate) fn print_program(
     map: None,
     output: None,
     diagnostics: Vec::default(),
+    extracted_comments: None,
   });
 
   printed_source_code.code

@@ -24,7 +24,7 @@
     "test:coverage:workspace": "cargo +nightly llvm-cov nextest --workspace --all-features --exclude stylex_logs --exclude stylex_compiler_rs --exclude stylex_test_parser --exclude stylex_css_parser --exclude stylex_transform --fail-uncovered-lines 0 --fail-uncovered-regions 0 --fail-under-functions 0 --ignore-filename-regex '(tests?|benches?|examples)/'",
     "test:crates:workspace": "turbo run test:crates:workspace:regular test:crates:workspace:doc --filter=// --continue",
     "test:crates:workspace:doc": "cargo test --doc --workspace --all-features",
-    "test:crates:workspace:regular": "cargo nextest run --workspace --all-features",
+    "test:crates:workspace:regular": "cargo nextest run --workspace --all-features --profile ci",
     "test:flamegraph": "turbo run test:flamegraph --continue",
     "test:visual": "turbo run test:visual",
     "typecheck": "turbo run typecheck --continue"

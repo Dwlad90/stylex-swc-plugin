@@ -105,3 +105,102 @@ fn normalize_spacing_opening_quote_after_non_quote_content() {
   let result = normalize_spacing(r#""a" x "b""#);
   assert_eq!(result, r#""a" x "b""#);
 }
+
+#[test]
+fn normalize_spacing_unicode_character() {
+  let result = normalize_spacing("•");
+  assert_eq!(result, "•");
+}
+
+#[test]
+fn normalize_spacing_preserves_multibyte_utf8_sequences() {
+  for value in ["•", "✓", "日本語", "привет", "שלום", "مرحبا", "😀"] {
+    assert_eq!(normalize_spacing(value), value);
+  }
+}
+
+#[test]
+fn normalize_spacing_preserves_utf8_inside_double_quoted_strings() {
+  let value = r#""•✓日本語😀""#;
+  assert_eq!(normalize_spacing(value), value);
+}
+
+#[test]
+fn normalize_spacing_preserves_utf8_inside_single_quoted_strings() {
+  let value = r#"'•✓日本語😀'"#;
+  assert_eq!(normalize_spacing(value), value);
+}
+
+#[test]
+fn normalize_spacing_does_not_apply_spacing_rules_inside_double_quotes() {
+  let value = r##""a)b#c%d.5/1*2(""##;
+  assert_eq!(normalize_spacing(value), value);
+}
+
+#[test]
+fn normalize_spacing_does_not_apply_spacing_rules_inside_single_quotes() {
+  let value = r##"'a)b#c%d.5/1*2('"##;
+  assert_eq!(normalize_spacing(value), value);
+}
+
+#[test]
+fn normalize_spacing_handles_escaped_double_quotes() {
+  let value = r##""a\"b#c""##;
+  assert_eq!(normalize_spacing(value), value);
+}
+
+#[test]
+fn normalize_spacing_handles_escaped_single_quotes() {
+  let value = r##"'a\'b#c'"##;
+  assert_eq!(normalize_spacing(value), value);
+}
+
+#[test]
+fn normalize_spacing_inserts_space_between_adjacent_quoted_strings() {
+  assert_eq!(normalize_spacing(r#""a""b""#), r#""a" "b""#);
+  assert_eq!(normalize_spacing(r#"'a''b'"#), r#"'a' 'b'"#);
+  assert_eq!(normalize_spacing(r#""a"'b'"#), r#""a" 'b'"#);
+}
+
+#[test]
+fn normalize_spacing_keeps_url_values_byte_for_byte() {
+  let value = r#"url("/icons/•#hash.svg")calc(1px)rgb(0,0,0)"#;
+  assert_eq!(normalize_spacing(value), value);
+}
+
+#[test]
+fn normalize_spacing_applies_all_spacing_rules_outside_quotes() {
+  let cases = [
+    (")a )Z )0 )# )(", ") a ) Z ) 0 ) # ) ("),
+    (")/1 )*.5", ") / 1 ) * .5"),
+    ("a#fff Z#fff 1#fff %#fff", "a #fff Z #fff 1 #fff % #fff"),
+    ("50%10 40%.5", "50% 10 40% .5"),
+    ("/.5 /-1 *( *3", "/ .5 / -1 * ( * 3"),
+  ];
+
+  for (input, expected) in cases {
+    assert_eq!(normalize_spacing(input), expected);
+  }
+}
+
+#[test]
+fn normalize_spacing_does_not_insert_space_before_css_units() {
+  for unit in [
+    "px", "cm", "mm", "in", "pt", "pc", "Q", "em", "rem", "ex", "ch", "lh", "rlh", "cap", "ic",
+    "vw", "vh", "vi", "vb", "vmin", "vmax", "dvw", "dvh", "lvw", "lvh", "svw", "svh", "cqw", "cqh",
+    "cqi", "cqb", "cqmin", "cqmax", "ms", "s", "deg", "rad", "grad", "turn", "dpi", "dpcm", "dppx",
+    "fr", "Hz", "kHz",
+  ] {
+    let value = format!("var(--x){unit}");
+    assert_eq!(normalize_spacing(&value), value);
+  }
+}
+
+#[test]
+fn normalize_spacing_inserts_space_before_non_unit_ascii_words() {
+  for word in ["auto", "calc", "rgb", "translate3d", "ABC"] {
+    let value = format!("var(--x){word}");
+    let expected = format!("var(--x) {word}");
+    assert_eq!(normalize_spacing(&value), expected);
+  }
+}

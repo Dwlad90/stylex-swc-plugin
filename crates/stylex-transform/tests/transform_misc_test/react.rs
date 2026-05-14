@@ -279,3 +279,15 @@ stylex_test!(
     });
   "#
 );
+
+stylex_test!(
+  transform_style_create_with_unicode,
+  |tr| { build_test_transform(tr.comments.clone(), move |b| { b.with_runtime_injection() }) },
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    export const styles = stylex.create({
+      shape: { '--shape': `"•"` },
+    });
+  "#
+);

@@ -110,42 +110,62 @@ pub fn normalize_spacing(css: &str) -> String {
     return css.to_string();
   }
 
-  let bytes = css.as_bytes();
-  let len = bytes.len();
-  if len == 0 {
+  let chars = css.chars().collect::<Vec<_>>();
+  if chars.is_empty() {
     return String::new();
   }
 
-  let mut result = String::with_capacity(len + 16);
-  // Track whether we're inside a `"`-delimited string so we skip spacing
-  // rules for string contents, and whether the previous `"` was a closing
-  // quote (used to detect adjacent strings like `"a""b"` → `"a" "b"`).
-  let mut in_string = bytes[0] == b'"';
+  let mut result = String::with_capacity(css.len() + 16);
+  // Track quoted strings so spacing rules are not applied to string contents.
+  let mut in_quote = if chars[0] == '"' || chars[0] == '\'' {
+    Some(chars[0])
+  } else {
+    None
+  };
+  let mut escaped = false;
   let mut after_closing_quote = false;
-  result.push(bytes[0] as char);
+  result.push(chars[0]);
 
   let mut i = 1;
-  while i < len {
-    let prev = bytes[i - 1];
-    let cur = bytes[i];
+  while i < chars.len() {
+    let prev = chars[i - 1];
+    let cur = chars[i];
 
-    // Handle quote tracking
-    if cur == b'"' {
-      if in_string {
-        // Closing quote
-        in_string = false;
-        after_closing_quote = true;
-        result.push(cur as char);
+    if let Some(quote) = in_quote {
+      if escaped {
+        escaped = false;
+        result.push(cur);
         i += 1;
         continue;
       }
-      // Opening quote: insert space if previous was a closing quote
+
+      if cur == '\\' {
+        escaped = true;
+        result.push(cur);
+        i += 1;
+        continue;
+      }
+
+      if cur == quote {
+        in_quote = None;
+        after_closing_quote = true;
+        result.push(cur);
+        i += 1;
+        continue;
+      }
+
+      result.push(cur);
+      i += 1;
+      continue;
+    }
+
+    if cur == '"' || cur == '\'' {
       if after_closing_quote {
         result.push(' ');
       }
-      in_string = true;
+      in_quote = Some(cur);
       after_closing_quote = false;
-      result.push(cur as char);
+      result.push(cur);
       i += 1;
       continue;
     }
@@ -153,40 +173,33 @@ pub fn normalize_spacing(css: &str) -> String {
     // Non-quote character clears the closing-quote flag
     after_closing_quote = false;
 
-    // Inside a string: no spacing rules apply
-    if in_string {
-      result.push(cur as char);
-      i += 1;
-      continue;
-    }
-
     let need_space = match (prev, cur) {
       // After `)` before a letter: space unless followed by a CSS unit
-      (b')', b'a'..=b'z' | b'A'..=b'Z') => {
-        let word_end = bytes[i..]
+      (')', 'a'..='z' | 'A'..='Z') => {
+        let word_end = chars[i..]
           .iter()
-          .position(|&b| !b.is_ascii_alphanumeric())
-          .unwrap_or(len - i);
-        let word = &css[i..i + word_end];
-        !is_css_unit(word)
+          .position(|c| !c.is_ascii_alphanumeric())
+          .unwrap_or(chars.len() - i);
+        let word = chars[i..i + word_end].iter().collect::<String>();
+        !is_css_unit(&word)
       },
       // After `)` before digit, `#`, or `(`
-      (b')', b'0'..=b'9' | b'#' | b'(') => true,
+      (')', '0'..='9' | '#' | '(') => true,
       // After `)` before `/` or `*` (calc operators)
-      (b')', b'/' | b'*') => true,
+      (')', '/' | '*') => true,
       // After alphanumeric or `%` before `#` (hex color)
-      (b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'%', b'#') => true,
+      ('a'..='z' | 'A'..='Z' | '0'..='9' | '%', '#') => true,
       // After `%` before a number (e.g. `40.101%.1147` → `40.101% .1147`)
-      (b'%', b'0'..=b'9' | b'.') => true,
+      ('%', '0'..='9' | '.') => true,
       // After `/` or `*` before operand (calc context)
-      (b'/' | b'*', b'0'..=b'9' | b'.' | b'(' | b'-') => true,
+      ('/' | '*', '0'..='9' | '.' | '(' | '-') => true,
       _ => false,
     };
 
     if need_space {
       result.push(' ');
     }
-    result.push(cur as char);
+    result.push(cur);
     i += 1;
   }
 

@@ -349,6 +349,11 @@ fn string_contents_preserved() {
   assert_eq!(normalize_spacing(r#""hello)world""#), r#""hello)world""#);
 }
 
+#[test]
+fn unicode_string_contents_preserved() {
+  assert_eq!(normalize_spacing(r#""•""#), r#""•""#);
+}
+
 // Multiple functions chained
 #[test]
 fn multiple_chained_functions() {

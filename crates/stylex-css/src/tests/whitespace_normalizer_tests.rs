@@ -204,3 +204,13 @@ fn normalize_spacing_inserts_space_before_non_unit_ascii_words() {
     assert_eq!(normalize_spacing(&value), expected);
   }
 }
+
+#[test]
+fn normalize_spacing_inserts_space_before_non_ascii_words() {
+  assert_eq!(normalize_spacing("var(--x)日本語"), "var(--x) 日本語");
+}
+
+#[test]
+fn normalize_spacing_inserts_space_between_non_ascii_word_and_hash() {
+  assert_eq!(normalize_spacing("日本語#fff"), "日本語 #fff");
+}

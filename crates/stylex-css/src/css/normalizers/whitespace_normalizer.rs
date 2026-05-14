@@ -110,39 +110,36 @@ pub fn normalize_spacing(css: &str) -> String {
     return css.to_string();
   }
 
-  let chars = css.chars().collect::<Vec<_>>();
-  if chars.is_empty() {
+  let mut chars = css.char_indices();
+  let Some((_, first)) = chars.next() else {
     return String::new();
-  }
+  };
 
   let mut result = String::with_capacity(css.len() + 16);
   // Track quoted strings so spacing rules are not applied to string contents.
-  let mut in_quote = if chars[0] == '"' || chars[0] == '\'' {
-    Some(chars[0])
+  let mut in_quote = if first == '"' || first == '\'' {
+    Some(first)
   } else {
     None
   };
   let mut escaped = false;
   let mut after_closing_quote = false;
-  result.push(chars[0]);
+  result.push(first);
 
-  let mut i = 1;
-  while i < chars.len() {
-    let prev = chars[i - 1];
-    let cur = chars[i];
-
+  let mut prev = first;
+  for (idx, cur) in chars {
     if let Some(quote) = in_quote {
       if escaped {
         escaped = false;
         result.push(cur);
-        i += 1;
+        prev = cur;
         continue;
       }
 
       if cur == '\\' {
         escaped = true;
         result.push(cur);
-        i += 1;
+        prev = cur;
         continue;
       }
 
@@ -150,12 +147,12 @@ pub fn normalize_spacing(css: &str) -> String {
         in_quote = None;
         after_closing_quote = true;
         result.push(cur);
-        i += 1;
+        prev = cur;
         continue;
       }
 
       result.push(cur);
-      i += 1;
+      prev = cur;
       continue;
     }
 
@@ -166,7 +163,7 @@ pub fn normalize_spacing(css: &str) -> String {
       in_quote = Some(cur);
       after_closing_quote = false;
       result.push(cur);
-      i += 1;
+      prev = cur;
       continue;
     }
 
@@ -175,20 +172,22 @@ pub fn normalize_spacing(css: &str) -> String {
 
     let need_space = match (prev, cur) {
       // After `)` before a letter: space unless followed by a CSS unit
-      (')', 'a'..='z' | 'A'..='Z') => {
-        let word_end = chars[i..]
-          .iter()
-          .position(|c| !c.is_ascii_alphanumeric())
-          .unwrap_or(chars.len() - i);
-        let word = chars[i..i + word_end].iter().collect::<String>();
-        !is_css_unit(&word)
+      (')', c) if c.is_alphabetic() => {
+        if !c.is_ascii_alphabetic() {
+          true
+        } else {
+          let word_end = css[idx..]
+            .find(|c: char| !c.is_ascii_alphanumeric())
+            .map_or(css.len(), |offset| idx + offset);
+          !is_css_unit(&css[idx..word_end])
+        }
       },
       // After `)` before digit, `#`, or `(`
       (')', '0'..='9' | '#' | '(') => true,
       // After `)` before `/` or `*` (calc operators)
       (')', '/' | '*') => true,
       // After alphanumeric or `%` before `#` (hex color)
-      ('a'..='z' | 'A'..='Z' | '0'..='9' | '%', '#') => true,
+      (c, '#') if c.is_alphanumeric() || c == '%' => true,
       // After `%` before a number (e.g. `40.101%.1147` → `40.101% .1147`)
       ('%', '0'..='9' | '.') => true,
       // After `/` or `*` before operand (calc context)
@@ -200,7 +199,7 @@ pub fn normalize_spacing(css: &str) -> String {
       result.push(' ');
     }
     result.push(cur);
-    i += 1;
+    prev = cur;
   }
 
   result

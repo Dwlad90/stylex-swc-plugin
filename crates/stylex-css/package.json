@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/css",
   "description": "CSS generation, normalization and validation for StyleX SWC plugin",
-  "version": "0.16.0",
+  "version": "0.16.1-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -37,15 +37,15 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/ast": "0.16.0",
-    "@stylexswc/constants": "0.16.0",
-    "@stylexswc/css-parser": "0.16.0",
-    "@stylexswc/evaluator": "0.16.0",
-    "@stylexswc/macros": "0.16.0",
-    "@stylexswc/regex": "0.16.0",
-    "@stylexswc/stylex-enums": "0.16.0",
-    "@stylexswc/stylex-structures": "0.16.0",
-    "@stylexswc/types": "0.16.0",
+    "@stylexswc/ast": "0.16.1-rc.1",
+    "@stylexswc/constants": "0.16.1-rc.1",
+    "@stylexswc/css-parser": "0.16.1-rc.1",
+    "@stylexswc/evaluator": "0.16.1-rc.1",
+    "@stylexswc/macros": "0.16.1-rc.1",
+    "@stylexswc/regex": "0.16.1-rc.1",
+    "@stylexswc/stylex-enums": "0.16.1-rc.1",
+    "@stylexswc/stylex-structures": "0.16.1-rc.1",
+    "@stylexswc/types": "0.16.1-rc.1",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.3"

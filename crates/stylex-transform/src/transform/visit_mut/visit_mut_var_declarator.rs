@@ -23,7 +23,10 @@ use crate::{
   StyleXTransform,
   shared::{
     structures::state_manager::{DeclId, ImportKind},
-    utils::{ast::convertors::expand_shorthand_prop, common::fill_state_declarations},
+    utils::{
+      ast::{convertors::expand_shorthand_prop, helpers::namespace_name_from_prop_key},
+      common::fill_state_declarations,
+    },
   },
 };
 use stylex_constants::constants::{
@@ -152,15 +155,10 @@ where
       };
 
       if let Some(KeyValueProp { key, .. }) = prop.as_key_value() {
-        let key_as_ident = match key {
-          PropName::Ident(ident) => Some(ident),
-          _ => None,
-        };
-
-        if let Some(key_as_string) = key_as_ident
-          && namespace_to_keep.contains(&key_as_string.sym)
+        if let Some(namespace_name) = namespace_name_from_prop_key(key)
+          && namespace_to_keep.contains(&namespace_name)
         {
-          let key_id = NonNullProp::Atom(key_as_string.sym.clone());
+          let key_id = NonNullProp::Atom(namespace_name);
 
           let all_nulls_to_keep = self
             .state

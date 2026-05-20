@@ -1,8 +1,13 @@
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
 use stylex_structures::top_level_expression::TopLevelExpression;
-use swc_core::ecma::ast::{ExportSpecifier, Expr, ModuleExportName, PropName, PropOrSpread};
+use swc_core::{
+  atoms::Atom,
+  ecma::ast::{ExportSpecifier, Expr, ModuleExportName, PropName, PropOrSpread},
+};
 
 use crate::shared::structures::state_manager::StateManager;
+
+use super::convertors::{convert_atom_to_string, convert_lit_to_string};
 
 pub(crate) fn is_variable_named_exported(
   TopLevelExpression(kind, _, variable_name): &TopLevelExpression,
@@ -48,5 +53,19 @@ pub fn get_property_by_key<'a>(expr: &'a Expr, key: &str) -> Option<&'a Expr> {
       None
     },
     _ => None,
+  }
+}
+
+pub(crate) fn namespace_name_from_prop_key(key: &PropName) -> Option<Atom> {
+  match key {
+    PropName::Ident(ident) => Some(ident.sym.clone()),
+    PropName::Str(strng) => Some(Atom::from(convert_atom_to_string(&strng.value))),
+    PropName::Num(num) => Some(Atom::from(num.value.to_string())),
+    PropName::BigInt(big_int) => Some(Atom::from(big_int.value.to_string())),
+    PropName::Computed(computed) => computed
+      .expr
+      .as_lit()
+      .and_then(convert_lit_to_string)
+      .map(Atom::from),
   }
 }

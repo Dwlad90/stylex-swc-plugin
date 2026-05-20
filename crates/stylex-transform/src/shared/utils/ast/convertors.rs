@@ -729,14 +729,21 @@ pub(crate) fn convert_key_value_to_str(key_value: &KeyValueProp) -> String {
       should_wrap_in_quotes = false;
       big_int.value.to_string()
     },
-    PropName::Computed(computed) => match computed.expr.as_lit() {
-      Some(lit) => match convert_lit_to_string(lit) {
+    PropName::Computed(computed) => match computed.expr.as_ref() {
+      Expr::Lit(lit) => match convert_lit_to_string(lit) {
         Some(s) => s,
         #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("Computed property key must be a string or number literal."),
       },
+      Expr::Tpl(tpl) => {
+        match convert_tpl_to_string_lit(tpl).and_then(|lit| convert_lit_to_string(&lit)) {
+          Some(s) => s,
+          #[cfg_attr(coverage_nightly, coverage(off))]
+          None => stylex_unimplemented!("Computed key is not a literal"),
+        }
+      },
       #[cfg_attr(coverage_nightly, coverage(off))]
-      None => stylex_unimplemented!("Computed key is not a literal"),
+      _ => stylex_unimplemented!("Computed key is not a literal"),
     },
   };
 

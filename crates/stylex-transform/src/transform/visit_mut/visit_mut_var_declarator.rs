@@ -145,6 +145,20 @@ where
   ) -> Vec<PropOrSpread> {
     let mut props: Vec<PropOrSpread> = Vec::with_capacity(object.props.len());
 
+    for object_prop in object.props.iter() {
+      let Some(prop) = object_prop.as_prop() else {
+        return object.props.clone();
+      };
+
+      let Some(key_value) = prop.as_key_value() else {
+        return object.props.clone();
+      };
+
+      if namespace_name_from_prop_key(&key_value.key).is_none() {
+        return object.props.clone();
+      }
+    }
+
     for object_prop in object.props.iter_mut() {
       assert!(object_prop.is_prop(), "Spread properties are not supported");
 
@@ -155,11 +169,11 @@ where
       };
 
       let Some(KeyValueProp { key, .. }) = prop.as_key_value() else {
-        continue;
+        return object.props.clone();
       };
 
       let Some(namespace_name) = namespace_name_from_prop_key(key) else {
-        continue;
+        return object.props.clone();
       };
 
       if namespace_to_keep.contains(&namespace_name) {

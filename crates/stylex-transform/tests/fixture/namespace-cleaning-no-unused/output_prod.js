@@ -1,7 +1,6 @@
 import React from 'react';
 import * as sx from '@stylexjs/stylex';
 import { useMediaQuery } from '@hooks/useMediaQuery';
-const MULTIPLIER = 5;
 const c = {
     wrapper: {
         k1xSpc: "xjp7ctv",
@@ -42,14 +41,6 @@ const c = {
     "p+4": {
         kGuDYH: "x1n9uav1",
         $$css: true
-    },
-    "p+5": {
-        kGuDYH: "xjq8x2s",
-        $$css: true
-    },
-    unused: {
-        kMwMTN: "x1e2nbdu",
-        $$css: true
     }
 };
 const pClasses = [
@@ -61,8 +52,7 @@ const pClasses = [
     c[1],
     c[2n],
     c["p+3"],
-    c[`p+4`],
-    c[`p+${MULTIPLIER}`]
+    c[`p+4`]
 ];
 export default function NamespaceCleaning({ children }) {
     const [fontSizeIdx] = React.useState(2);

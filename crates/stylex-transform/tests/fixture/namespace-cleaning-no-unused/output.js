@@ -3,7 +3,6 @@ var _inject2 = _inject;
 import React from 'react';
 import * as sx from '@stylexjs/stylex';
 import { useMediaQuery } from '@hooks/useMediaQuery';
-const MULTIPLIER = 5;
 _inject2({
     ltr: ".display-xjp7ctv{display:contents}",
     priority: 3000
@@ -45,61 +44,49 @@ _inject2({
     priority: 3200
 });
 _inject2({
-    ltr: "@media all and (max-width:1067px){.fontSize-xjq8x2s.fontSize-xjq8x2s{font-size:3rem}}",
-    priority: 3200
-});
-_inject2({
     ltr: ".color-x1e2nbdu{color:red}",
     priority: 3000
 });
 const c = {
     wrapper: {
         display: "display-xjp7ctv",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:6"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:6"
     },
     "p-2": {
         fontSize: "fontSize-x1r6akvx",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:9"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:9"
     },
     "p-1": {
         fontSize: "fontSize-xfpxvwb",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:15"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:15"
     },
     p: {
         fontSize: "fontSize-xc57lpn",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:21"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:21"
     },
     "p+1": {
         fontSize: "fontSize-x10gvik0",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:27"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:27"
     },
     "p+2": {
         fontSize: "fontSize-xsqjmrb",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:33"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:33"
     },
     "1": {
         fontSize: "fontSize-x1unjt1s",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:39"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:39"
     },
     "2": {
         fontSize: "fontSize-xcmgggk",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:45"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:45"
     },
     "p+3": {
         fontSize: "fontSize-xwq55y6",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:51"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:51"
     },
     "p+4": {
         fontSize: "fontSize-x1n9uav1",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:57"
-    },
-    "p+5": {
-        fontSize: "fontSize-xjq8x2s",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:63"
-    },
-    unused: {
-        color: "color-x1e2nbdu",
-        $$css: "tests/fixture/namespace-cleaning/input.stylex.js:69"
+        $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:57"
     }
 };
 const pClasses = [
@@ -111,8 +98,7 @@ const pClasses = [
     c[1],
     c[2n],
     c["p+3"],
-    c[`p+4`],
-    c[`p+${MULTIPLIER}`]
+    c[`p+4`]
 ];
 export default function NamespaceCleaning({ children }) {
     const [fontSizeIdx] = React.useState(2);

@@ -62,12 +62,6 @@ const c = sx.create({
       ["@media all and (max-width:1067px)"]: "2.75rem"
     },
   },
-  [`p+${MULTIPLIER}`]: {
-    fontSize: {
-      default: null,
-      ["@media all and (max-width:1067px)"]: "3rem"
-    },
-  },
   unused: {
     color: 'red'
   }
@@ -82,7 +76,6 @@ const pClasses = [
   c[2n],
   c["p+3"],
   c[`p+4`],
-  c[`p+${MULTIPLIER}`]
 ];
 
 export default function NamespaceCleaning({ children }) {

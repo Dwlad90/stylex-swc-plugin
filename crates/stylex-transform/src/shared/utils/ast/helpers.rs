@@ -7,7 +7,7 @@ use swc_core::{
 
 use crate::shared::structures::state_manager::StateManager;
 
-use super::convertors::convert_str_lit_to_atom;
+use super::convertors::{convert_str_lit_to_atom, convert_tpl_to_string_lit};
 
 pub(crate) fn is_variable_named_exported(
   TopLevelExpression(kind, _, variable_name): &TopLevelExpression,
@@ -62,14 +62,14 @@ pub(crate) fn namespace_name_from_prop_key(key: &PropName) -> Option<Atom> {
     PropName::Str(strng) => Some(convert_str_lit_to_atom(strng)),
     PropName::Num(num) => Some(Atom::from(num.value.to_string())),
     PropName::BigInt(big_int) => Some(Atom::from(big_int.value.to_string())),
-    PropName::Computed(computed) => computed.expr.as_lit().and_then(namespace_name_from_lit),
+    PropName::Computed(computed) => namespace_name_from_expr(computed.expr.as_ref()),
   }
 }
 
 pub(crate) fn namespace_name_from_member_prop(prop: &MemberProp) -> Option<Atom> {
   match prop {
     MemberProp::Ident(ident) => Some(ident.sym.clone()),
-    MemberProp::Computed(computed) => computed.expr.as_lit().and_then(namespace_name_from_lit),
+    MemberProp::Computed(computed) => namespace_name_from_expr(computed.expr.as_ref()),
     MemberProp::PrivateName(_) => None,
   }
 }
@@ -79,6 +79,16 @@ fn namespace_name_from_lit(lit: &Lit) -> Option<Atom> {
     Lit::Str(strng) => Some(convert_str_lit_to_atom(strng)),
     Lit::Num(num) => Some(Atom::from(num.value.to_string())),
     Lit::BigInt(big_int) => Some(Atom::from(big_int.value.to_string())),
+    _ => None,
+  }
+}
+
+fn namespace_name_from_expr(expr: &Expr) -> Option<Atom> {
+  match expr {
+    Expr::Lit(lit) => namespace_name_from_lit(lit),
+    Expr::Tpl(tpl) => convert_tpl_to_string_lit(tpl)
+      .as_ref()
+      .and_then(namespace_name_from_lit),
     _ => None,
   }
 }

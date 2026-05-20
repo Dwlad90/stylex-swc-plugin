@@ -14,8 +14,9 @@ use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::{functions::FunctionMap, state_manager::StateManager, types::StylesObjectMap},
   utils::{
-    ast::convertors::{convert_expr_to_str, convert_key_value_to_str, create_string_expr},
+    ast::convertors::{convert_expr_to_str, create_string_expr},
     common::get_key_values_from_object,
+    js::evaluate::evaluate_obj_key,
     log::build_code_frame_error::get_span_from_source_code,
   },
 };
@@ -41,127 +42,123 @@ pub(crate) fn add_source_map_data(
   functions: &FunctionMap,
 ) -> StylesObjectMap {
   let mut result: StylesObjectMap = IndexMap::new();
+  let mut style_node_paths: FxHashMap<String, KeyValueProp> = FxHashMap::default();
+
+  match call_expr.args.first() {
+    Some(arg) => match arg.expr.as_ref() {
+      Expr::Object(object) => {
+        let key_values = get_key_values_from_object(object);
+
+        for key_value in key_values {
+          let key_string = evaluate_obj_key(&key_value, state, functions)
+            .value
+            .as_ref()
+            .and_then(|value| value.as_expr())
+            .and_then(|expr| convert_expr_to_str(expr, state, functions));
+
+          if let Some(key_string) = key_string {
+            style_node_paths.entry(key_string).or_insert(key_value);
+          }
+        }
+      },
+      #[cfg_attr(coverage_nightly, coverage(off))]
+      _ => stylex_panic!("{}", EXPECTED_OBJECT_EXPRESSION),
+    },
+    #[cfg_attr(coverage_nightly, coverage(off))]
+    _ => {
+      stylex_panic!("{}", illegal_argument_length("add_source_map_data", 1));
+    },
+  };
 
   for (key, value) in obj {
-    let mut style_node_path: Option<KeyValueProp> = None;
+    let mut inner_map = IndexMap::new();
 
-    match call_expr.args.first() {
-      Some(arg) => {
-        match arg.expr.as_ref() {
-          Expr::Object(object) => {
-            let key_values = get_key_values_from_object(object);
+    inner_map.extend((**value).clone());
 
-            for key_value in key_values {
-              let key_string = convert_key_value_to_str(&key_value);
+    match style_node_paths.remove(key) {
+      Some(style_node_path) => {
+        let source_code_frame_and_span = get_span_from_source_code(
+          &Expr::Call(call_expr.clone()),
+          &style_node_path.value,
+          state,
+        );
 
-              if key == &key_string {
-                style_node_path = Some(key_value.clone());
+        match source_code_frame_and_span {
+          Ok((code_frame, span)) => {
+            if span.eq(&DUMMY_SP) {
+              if log::log_enabled!(log::Level::Debug) {
+                debug!(
+                  "Could not find span for style node path. File: {}, Style node path: {:?}.{}",
+                  state.get_filename(),
+                  style_node_path,
+                  &*NEXTJS_HYDRATION_WARNING
+                );
+              } else {
+                info!(
+                  "Could not find span for style node path. File: {}. For more information enable debug logging.{}",
+                  state.get_filename(),
+                  &*NEXTJS_HYDRATION_WARNING
+                );
+              };
+            } else {
+              let original_line_number = code_frame.get_span_line_number(span);
+              let filename = state.get_filename().to_string();
+              let raw_short_filename = create_short_filename(&filename, state, package_json_seen);
+              let short_filename_expr = if let Some(ref f) = state.options.debug_file_path {
+                f.call(vec![create_string_expr(&raw_short_filename)])
+              } else {
+                create_string_expr(&raw_short_filename)
+              };
 
-                break;
+              let short_filename = convert_expr_to_str(&short_filename_expr, state, functions);
+
+              if original_line_number > 0
+                && let Some(short_filename) = short_filename
+                && !short_filename.is_empty()
+              {
+                let source_map = format!("{}:{}", short_filename, original_line_number);
+                inner_map.insert(
+                  COMPILED_KEY.to_owned(),
+                  Rc::new(FlatCompiledStylesValue::String(source_map)),
+                );
+              } else {
+                inner_map.insert(
+                  COMPILED_KEY.to_owned(),
+                  Rc::new(FlatCompiledStylesValue::Bool(true)),
+                );
               }
             }
           },
-          #[cfg_attr(coverage_nightly, coverage(off))]
-          _ => stylex_panic!("{}", EXPECTED_OBJECT_EXPRESSION),
-        };
-        let mut inner_map = IndexMap::new();
-
-        inner_map.extend((**value).clone());
-
-        match style_node_path {
-          Some(style_node_path) => {
-            let source_code_frame_and_span = get_span_from_source_code(
-              &Expr::Call(call_expr.clone()),
-              &style_node_path.value,
-              state,
-            );
-
-            match source_code_frame_and_span {
-              Ok((code_frame, span)) => {
-                if span.eq(&DUMMY_SP) {
-                  if log::log_enabled!(log::Level::Debug) {
-                    debug!(
-                      "Could not find span for style node path. File: {}, Style node path: {:?}.{}",
-                      state.get_filename(),
-                      style_node_path,
-                      &*NEXTJS_HYDRATION_WARNING
-                    );
-                  } else {
-                    info!(
-                      "Could not find span for style node path. File: {}. For more information enable debug logging.{}",
-                      state.get_filename(),
-                      &*NEXTJS_HYDRATION_WARNING
-                    );
-                  };
-                } else {
-                  let original_line_number = code_frame.get_span_line_number(span);
-                  let filename = state.get_filename().to_string();
-                  let raw_short_filename =
-                    create_short_filename(&filename, state, package_json_seen);
-                  let short_filename_expr = if let Some(ref f) = state.options.debug_file_path {
-                    f.call(vec![create_string_expr(&raw_short_filename)])
-                  } else {
-                    create_string_expr(&raw_short_filename)
-                  };
-
-                  let short_filename = convert_expr_to_str(&short_filename_expr, state, functions);
-
-                  if original_line_number > 0
-                    && let Some(short_filename) = short_filename
-                    && !short_filename.is_empty()
-                  {
-                    let source_map = format!("{}:{}", short_filename, original_line_number);
-                    inner_map.insert(
-                      COMPILED_KEY.to_owned(),
-                      Rc::new(FlatCompiledStylesValue::String(source_map)),
-                    );
-                  } else {
-                    inner_map.insert(
-                      COMPILED_KEY.to_owned(),
-                      Rc::new(FlatCompiledStylesValue::Bool(true)),
-                    );
-                  }
-                }
-              },
-              Err(e) => {
-                if log::log_enabled!(log::Level::Debug) {
-                  debug!(
-                    "Could not retrieve source code frame: {}. File: {}. Style node path: {:?}",
-                    e,
-                    state.get_filename(),
-                    style_node_path
-                  );
-                } else {
-                  warn!(
-                    "Could not retrieve source code frame: {}. File: {}. For more information enable debug logging.",
-                    e,
-                    state.get_filename()
-                  );
-                };
-              },
-            }
-
-            if !inner_map.contains_key(&COMPILED_KEY.to_owned()) {
-              inner_map.insert(
-                COMPILED_KEY.to_owned(),
-                Rc::new(FlatCompiledStylesValue::Bool(true)),
+          Err(e) => {
+            if log::log_enabled!(log::Level::Debug) {
+              debug!(
+                "Could not retrieve source code frame: {}. File: {}. Style node path: {:?}",
+                e,
+                state.get_filename(),
+                style_node_path
               );
-            }
-
-            result.insert(key.clone(), Rc::new(inner_map));
+            } else {
+              warn!(
+                "Could not retrieve source code frame: {}. File: {}. For more information enable debug logging.",
+                e,
+                state.get_filename()
+              );
+            };
           },
-          _ => {
-            // Fallback in case no sourcemap data is found
+        }
 
-            inner_map.extend((**value).clone());
+        if !inner_map.contains_key(&COMPILED_KEY.to_owned()) {
+          inner_map.insert(
+            COMPILED_KEY.to_owned(),
+            Rc::new(FlatCompiledStylesValue::Bool(true)),
+          );
+        }
 
-            result.insert(key.clone(), Rc::new(inner_map));
-          },
-        };
+        result.insert(key.clone(), Rc::new(inner_map));
       },
-      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => {
-        stylex_panic!("{}", illegal_argument_length("add_source_map_data", 1));
+        // Fallback in case no sourcemap data is found
+        result.insert(key.clone(), Rc::new(inner_map));
       },
     };
   }

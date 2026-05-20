@@ -154,51 +154,55 @@ where
         None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
       };
 
-      if let Some(KeyValueProp { key, .. }) = prop.as_key_value() {
-        if let Some(namespace_name) = namespace_name_from_prop_key(key)
-          && namespace_to_keep.contains(&namespace_name)
-        {
-          let key_id = NonNullProp::Atom(namespace_name);
+      let Some(KeyValueProp { key, .. }) = prop.as_key_value() else {
+        continue;
+      };
 
-          let all_nulls_to_keep = self
-            .state
-            .style_vars_to_keep
-            .iter()
-            .filter_map(|top_level_expression| {
-              let StyleVarsToKeep(var, namespace_name, prop) = top_level_expression;
+      let Some(namespace_name) = namespace_name_from_prop_key(key) else {
+        continue;
+      };
 
-              if var == var_id && namespace_name == &key_id {
-                Some(prop.clone())
-              } else {
-                None
-              }
+      if namespace_to_keep.contains(&namespace_name) {
+        let key_id = NonNullProp::Atom(namespace_name);
+
+        let all_nulls_to_keep = self
+          .state
+          .style_vars_to_keep
+          .iter()
+          .filter_map(|top_level_expression| {
+            let StyleVarsToKeep(var, namespace_name, prop) = top_level_expression;
+
+            if var == var_id && namespace_name == &key_id {
+              Some(prop.clone())
+            } else {
+              None
+            }
+          })
+          .collect::<Vec<NonNullProps>>();
+
+        if !all_nulls_to_keep.contains(&NonNullProps::True) {
+          let nulls_to_keep = all_nulls_to_keep
+            .into_iter()
+            .filter_map(|item| match item {
+              NonNullProps::Vec(vec) => Some(vec),
+              NonNullProps::True => None,
             })
-            .collect::<Vec<NonNullProps>>();
+            .flatten()
+            .collect::<Vec<Atom>>();
 
-          if !all_nulls_to_keep.contains(&NonNullProps::True) {
-            let nulls_to_keep = all_nulls_to_keep
-              .into_iter()
-              .filter_map(|item| match item {
-                NonNullProps::Vec(vec) => Some(vec),
-                NonNullProps::True => None,
-              })
-              .flatten()
-              .collect::<Vec<Atom>>();
-
-            if let Some(style_object) = match prop.as_mut_key_value() {
-              Some(kv) => kv,
-              #[cfg_attr(coverage_nightly, coverage(off))]
-              None => stylex_panic!("{}", KEY_VALUE_EXPECTED),
-            }
-            .value
-            .as_mut_object()
-            {
-              retain_style_props(style_object, nulls_to_keep);
-            }
+          if let Some(style_object) = match prop.as_mut_key_value() {
+            Some(kv) => kv,
+            #[cfg_attr(coverage_nightly, coverage(off))]
+            None => stylex_panic!("{}", KEY_VALUE_EXPECTED),
           }
-
-          props.push(object_prop.clone())
+          .value
+          .as_mut_object()
+          {
+            retain_style_props(style_object, nulls_to_keep);
+          }
         }
+
+        props.push(object_prop.clone())
       }
     }
 

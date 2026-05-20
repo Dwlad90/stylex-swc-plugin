@@ -27,7 +27,7 @@ use swc_core::{
 use crate::shared::{
   structures::types::InjectableStylesMap,
   utils::{
-    ast::convertors::{convert_lit_to_string, create_number_expr},
+    ast::{convertors::create_number_expr, helpers::namespace_name_from_member_prop},
     common::{extract_filename_from_path, extract_filename_with_ext_from_path, extract_path},
     validators::{is_attrs_call, is_props_call},
   },
@@ -1384,15 +1384,12 @@ fn is_stylex_consumer_call(call: &CallExpr, state: &StateManager) -> bool {
 }
 
 fn member_namespace_name(member_prop: &MemberProp) -> Option<NonNullProp> {
-  match member_prop {
-    MemberProp::Ident(prop_ident) => Some(NonNullProp::Atom(prop_ident.sym.clone())),
-    MemberProp::Computed(computed) => match computed.expr.as_lit() {
-      Some(lit @ (Lit::Str(_) | Lit::Num(_))) => {
-        convert_lit_to_string(lit).map(|value| NonNullProp::Atom(value.into()))
-      },
-      _ => Some(NonNullProp::True),
-    },
-    MemberProp::PrivateName(_) => None,
+  if let Some(namespace_name) = namespace_name_from_member_prop(member_prop) {
+    Some(NonNullProp::Atom(namespace_name))
+  } else if member_prop.is_computed() {
+    Some(NonNullProp::True)
+  } else {
+    None
   }
 }
 

@@ -2,7 +2,7 @@ use stylex_constants::constants::messages::{OBJECT_KEY_MUST_BE_IDENT, SPREAD_NOT
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{Expr, Lit, MemberExpr, MemberProp, ObjectLit, Prop, PropOrSpread},
+  ecma::ast::{Expr, Lit, MemberExpr, ObjectLit, Prop, PropOrSpread},
 };
 
 use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
@@ -14,7 +14,7 @@ use crate::shared::{
     functions::FunctionMap,
     state_manager::{DeclId, StateManager},
   },
-  utils::{ast::convertors::convert_lit_to_string, js::evaluate::evaluate},
+  utils::{ast::helpers::namespace_name_from_member_prop, js::evaluate::evaluate},
 };
 
 pub(crate) fn member_expression(
@@ -35,17 +35,7 @@ pub(crate) fn member_expression(
     && state.is_style_var_ident(ident)
   {
     obj_id = Some(ident.to_id());
-    match property {
-      MemberProp::Ident(ident) => {
-        prop_name = Some(ident.sym.clone());
-      },
-      MemberProp::Computed(computed) => {
-        if let Expr::Lit(lit @ (Lit::Str(_) | Lit::Num(_))) = computed.expr.as_ref() {
-          prop_name = convert_lit_to_string(lit).map(Atom::from);
-        }
-      },
-      _ => {},
-    }
+    prop_name = namespace_name_from_member_prop(property);
   }
 
   let style_non_null_props: NonNullProps;

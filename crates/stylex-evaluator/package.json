@@ -39,8 +39,10 @@
   "devDependencies": {
     "@stylexswc/ast": "0.16.2",
     "@stylexswc/constants": "0.16.2",
+    "@stylexswc/enums": "0.16.2",
     "@stylexswc/macros": "0.16.2",
     "@stylexswc/path-resolver": "0.16.2",
+    "@stylexswc/structures": "0.16.2",
     "@stylexswc/stylex-js": "0.16.2",
     "@stylexswc/types": "0.16.2",
     "@taplo/cli": "^0.7.0",

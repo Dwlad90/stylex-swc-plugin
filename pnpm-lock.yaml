@@ -1322,12 +1322,9 @@ importers:
       '@stylexswc/macros':
         specifier: 0.16.2
         version: link:../stylex-macros
-      '@stylexswc/misc':
+      '@stylexswc/utils':
         specifier: 0.16.2
         version: link:../stylex-utils
-      '@stylexswc/types':
-        specifier: 0.16.2
-        version: link:../stylex-types
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
@@ -1361,6 +1358,9 @@ importers:
       '@stylexswc/css-parser':
         specifier: 0.16.2
         version: link:../stylex-css-parser
+      '@stylexswc/enums':
+        specifier: 0.16.2
+        version: link:../stylex-enums
       '@stylexswc/evaluator':
         specifier: 0.16.2
         version: link:../stylex-evaluator
@@ -1370,10 +1370,7 @@ importers:
       '@stylexswc/regex':
         specifier: 0.16.2
         version: link:../stylex-regex
-      '@stylexswc/stylex-enums':
-        specifier: 0.16.2
-        version: link:../stylex-enums
-      '@stylexswc/stylex-structures':
+      '@stylexswc/structures':
         specifier: 0.16.2
         version: link:../stylex-structures
       '@stylexswc/types':
@@ -1427,12 +1424,18 @@ importers:
       '@stylexswc/constants':
         specifier: 0.16.2
         version: link:../stylex-constants
+      '@stylexswc/enums':
+        specifier: 0.16.2
+        version: link:../stylex-enums
       '@stylexswc/macros':
         specifier: 0.16.2
         version: link:../stylex-macros
       '@stylexswc/path-resolver':
         specifier: 0.16.2
         version: link:../stylex-path-resolver
+      '@stylexswc/structures':
+        specifier: 0.16.2
+        version: link:../stylex-structures
       '@stylexswc/stylex-js':
         specifier: 0.16.2
         version: link:../stylex-js
@@ -1536,22 +1539,19 @@ importers:
       '@stylexswc/ast':
         specifier: 0.16.2
         version: link:../stylex-ast
+      '@stylexswc/enums':
+        specifier: 0.16.2
+        version: link:../stylex-enums
       '@stylexswc/logs':
         specifier: 0.16.2
         version: link:../stylex-logs
       '@stylexswc/macros':
         specifier: 0.16.2
         version: link:../stylex-macros
-      '@stylexswc/misc':
-        specifier: 0.16.2
-        version: link:../stylex-utils
       '@stylexswc/regex':
         specifier: 0.16.2
         version: link:../stylex-regex
-      '@stylexswc/stylex-enums':
-        specifier: 0.16.2
-        version: link:../stylex-enums
-      '@stylexswc/stylex-structures':
+      '@stylexswc/structures':
         specifier: 0.16.2
         version: link:../stylex-structures
       '@stylexswc/transform':
@@ -1563,6 +1563,9 @@ importers:
       '@stylexswc/typescript-config':
         specifier: 0.16.2
         version: link:../../packages/typescript-config
+      '@stylexswc/utils':
+        specifier: 0.16.2
+        version: link:../stylex-utils
       '@swc-node/register':
         specifier: ^1.11.1
         version: 1.11.1(@swc/core@1.15.13(@swc/helpers@0.5.21))(@swc/types@0.1.25)(typescript@6.0.3)
@@ -1608,15 +1611,21 @@ importers:
 
   crates/stylex-structures:
     devDependencies:
+      '@stylexswc/ast':
+        specifier: 0.16.2
+        version: link:../stylex-ast
       '@stylexswc/constants':
         specifier: 0.16.2
         version: link:../stylex-constants
+      '@stylexswc/enums':
+        specifier: 0.16.2
+        version: link:../stylex-enums
       '@stylexswc/macros':
         specifier: 0.16.2
         version: link:../stylex-macros
-      '@stylexswc/stylex-enums':
+      '@stylexswc/utils':
         specifier: 0.16.2
-        version: link:../stylex-enums
+        version: link:../stylex-utils
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
@@ -1632,12 +1641,12 @@ importers:
       '@stylexswc/constants':
         specifier: 0.16.2
         version: link:../stylex-constants
+      '@stylexswc/enums':
+        specifier: 0.16.2
+        version: link:../stylex-enums
       '@stylexswc/macros':
         specifier: 0.16.2
         version: link:../stylex-macros
-      '@stylexswc/stylex-enums':
-        specifier: 0.16.2
-        version: link:../stylex-enums
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
@@ -1674,30 +1683,30 @@ importers:
       '@stylexswc/css-parser':
         specifier: 0.16.2
         version: link:../stylex-css-parser
+      '@stylexswc/enums':
+        specifier: 0.16.2
+        version: link:../stylex-enums
       '@stylexswc/logs':
         specifier: 0.16.2
         version: link:../stylex-logs
       '@stylexswc/macros':
         specifier: 0.16.2
         version: link:../stylex-macros
-      '@stylexswc/misc':
-        specifier: 0.16.2
-        version: link:../stylex-utils
       '@stylexswc/path-resolver':
         specifier: 0.16.2
         version: link:../stylex-path-resolver
       '@stylexswc/regex':
         specifier: 0.16.2
         version: link:../stylex-regex
-      '@stylexswc/stylex-enums':
-        specifier: 0.16.2
-        version: link:../stylex-enums
-      '@stylexswc/stylex-structures':
+      '@stylexswc/structures':
         specifier: 0.16.2
         version: link:../stylex-structures
       '@stylexswc/types':
         specifier: 0.16.2
         version: link:../stylex-types
+      '@stylexswc/utils':
+        specifier: 0.16.2
+        version: link:../stylex-utils
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
@@ -1710,21 +1719,12 @@ importers:
 
   crates/stylex-types:
     devDependencies:
-      '@stylexswc/constants':
-        specifier: 0.16.2
-        version: link:../stylex-constants
-      '@stylexswc/macros':
-        specifier: 0.16.2
-        version: link:../stylex-macros
-      '@stylexswc/misc':
-        specifier: 0.16.2
-        version: link:../stylex-utils
-      '@stylexswc/stylex-enums':
-        specifier: 0.16.2
-        version: link:../stylex-enums
-      '@stylexswc/stylex-structures':
+      '@stylexswc/structures':
         specifier: 0.16.2
         version: link:../stylex-structures
+      '@stylexswc/utils':
+        specifier: 0.16.2
+        version: link:../stylex-utils
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0

@@ -41,15 +41,18 @@ use stylex_constants::constants::{
   api_names::{
     STYLEX_ATTRS, STYLEX_CREATE, STYLEX_CREATE_THEME, STYLEX_DEFAULT_MARKER, STYLEX_DEFINE_CONSTS,
     STYLEX_DEFINE_MARKER, STYLEX_DEFINE_VARS, STYLEX_ENV, STYLEX_FIRST_THAT_WORKS,
-    STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_PROPS, STYLEX_TYPES,
-    STYLEX_VIEW_TRANSITION_CLASS, STYLEX_WHEN,
+    STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_PROPS, STYLEX_TYPES, STYLEX_UNSTABLE_CONDITIONAL,
+    STYLEX_UNSTABLE_CREATE_THEME_NESTED, STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED,
+    STYLEX_UNSTABLE_DEFINE_VARS_NESTED, STYLEX_VIEW_TRANSITION_CLASS, STYLEX_WHEN,
   },
   common::{CONSTS_FILE_EXTENSION, DEFAULT_INJECT_PATH},
 };
-use stylex_enums::style_vars_to_keep::{NonNullProp, NonNullProps};
 use stylex_enums::{
-  core::TransformationCycle, counter_mode::CounterMode,
-  import_path_resolution::ImportPathResolution, top_level_expression::TopLevelExpressionKind,
+  core::TransformationCycle,
+  counter_mode::CounterMode,
+  import_path_resolution::ImportPathResolution,
+  style_vars_to_keep::{NonNullProp, NonNullProps},
+  top_level_expression::TopLevelExpressionKind,
 };
 use stylex_structures::{
   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
@@ -125,9 +128,13 @@ pub(crate) enum ImportKind {
   FirstThatWorks,
   Keyframes,
   DefineVars,
+  DefineVarsNested,
   DefineMarker,
   DefineConsts,
+  DefineConstsNested,
   CreateTheme,
+  CreateThemeNested,
+  Conditional,
   PositionTry,
   ViewTransitionClass,
   DefaultMarker,
@@ -145,9 +152,13 @@ impl ImportKind {
       STYLEX_KEYFRAMES => Some(ImportKind::Keyframes),
       STYLEX_FIRST_THAT_WORKS => Some(ImportKind::FirstThatWorks),
       STYLEX_DEFINE_VARS => Some(ImportKind::DefineVars),
+      STYLEX_UNSTABLE_DEFINE_VARS_NESTED => Some(ImportKind::DefineVarsNested),
       STYLEX_DEFINE_CONSTS => Some(ImportKind::DefineConsts),
+      STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED => Some(ImportKind::DefineConstsNested),
       STYLEX_DEFINE_MARKER => Some(ImportKind::DefineMarker),
       STYLEX_CREATE_THEME => Some(ImportKind::CreateTheme),
+      STYLEX_UNSTABLE_CREATE_THEME_NESTED => Some(ImportKind::CreateThemeNested),
+      STYLEX_UNSTABLE_CONDITIONAL => Some(ImportKind::Conditional),
       STYLEX_POSITION_TRY => Some(ImportKind::PositionTry),
       STYLEX_VIEW_TRANSITION_CLASS => Some(ImportKind::ViewTransitionClass),
       STYLEX_TYPES => Some(ImportKind::Types),
@@ -564,15 +575,19 @@ impl StateManager {
           &[
             Create,
             DefineVars,
+            DefineVarsNested,
             DefineConsts,
+            DefineConstsNested,
             DefineMarker,
             CreateTheme,
+            CreateThemeNested,
             PositionTry,
             Keyframes,
             FirstThatWorks,
             Types,
             DefaultMarker,
             When,
+            Conditional,
           ],
         )
       },
@@ -1412,20 +1427,20 @@ pub(crate) fn mark_style_vars_to_keep(module: &mut Module, state: &mut StateMana
 /// `inject_runtime_styles` and the in-walk hoisted-items splice in
 /// `visit_mut_module_items::TransformConsumers`:
 ///
-/// 1. The leading directive prologue (a string-literal `ExprStmt` at
-///    position 0), if present, stays at position 0.
-/// 2. `BeforeImports` items follow the directive — runtime helpers
-///    matching the legacy `prepend_include_module_items` placement.
-/// 3. `ThemeImports` items follow the runtime helpers, still ahead
-///    of the existing import block — matching the legacy
-///    `prepend_import_module_items` placement.
+/// 1. The leading directive prologue (a string-literal `ExprStmt` at position
+///    0), if present, stays at position 0.
+/// 2. `BeforeImports` items follow the directive — runtime helpers matching the
+///    legacy `prepend_include_module_items` placement.
+/// 3. `ThemeImports` items follow the runtime helpers, still ahead of the
+///    existing import block — matching the legacy `prepend_import_module_items`
+///    placement.
 /// 4. The existing import block follows.
-/// 5. `AfterImports` items follow the import block — matching the
-///    legacy in-walk splice that placed `hoisted_module_items` after
-///    imports during the consumer walk.
-/// 6. The remainder of the body follows. For each item, every
-///    relevant initializer is hashed and any matching `BeforeDecl`
-///    metadata is spliced before it.
+/// 5. `AfterImports` items follow the import block — matching the legacy
+///    in-walk splice that placed `hoisted_module_items` after imports during
+///    the consumer walk.
+/// 6. The remainder of the body follows. For each item, every relevant
+///    initializer is hashed and any matching `BeforeDecl` metadata is spliced
+///    before it.
 ///
 /// `runtime_injection` matches the legacy gate on
 /// `options.runtime_injection.is_some()`: when `false`, the runtime

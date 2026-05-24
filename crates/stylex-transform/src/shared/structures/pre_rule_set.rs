@@ -30,7 +30,6 @@ impl PreRuleSet {
       0 => PreRules::NullPreRule(NullPreRule::new()),
       1 => match flat_rules.first() {
         Some(rule) => rule.to_owned(),
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", RULE_SET_EMPTY),
       },
       _ => PreRules::PreRuleSet(PreRuleSet { rules: flat_rules }),

@@ -30,7 +30,6 @@ pub(in super::super) fn evaluate(
       FunctionConfigType::Map(func_map) => {
         return Some(EvaluateResultValue::FunctionConfigMap(func_map.clone()));
       },
-      #[cfg_attr(coverage_nightly, coverage(off))]
       FunctionConfigType::IndexMap(_func_map) => {
         stylex_unimplemented!("IndexMap values are not supported in this context.");
       },

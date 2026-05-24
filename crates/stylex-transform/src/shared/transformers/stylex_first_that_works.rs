@@ -18,7 +18,6 @@ use stylex_regex::regex::IS_CSS_VAR;
 fn is_var(arg: &Expr, state: &mut StateManager, functions: &FunctionMap) -> bool {
   let str_arg = match convert_expr_to_str(arg, state, functions) {
     Some(s) => s,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
   };
 
@@ -66,7 +65,6 @@ pub(crate) fn stylex_first_that_works(
           if is_var(arg, state, functions) {
             let str_arg = match convert_expr_to_str(arg, state, functions) {
               Some(s) => s,
-              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("Argument is not a string"),
             };
             let cleared_str_arg = &str_arg[4..str_arg.len() - 1];
@@ -82,7 +80,6 @@ pub(crate) fn stylex_first_that_works(
         for var_name in vars.iter() {
           let var_name_str = match convert_expr_to_str(var_name, state, functions) {
             Some(s) => s,
-            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
           };
 

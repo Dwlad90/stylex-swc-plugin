@@ -31,9 +31,12 @@ use crate::{
       },
     },
   },
+  transform::stylex::visitor_utils::apply_unstable_conditional,
 };
-use stylex_constants::constants::api_names::{STYLEX_CREATE_THEME, STYLEX_KEYFRAMES, STYLEX_TYPES};
-use stylex_constants::constants::messages::{non_static_value, non_style_object};
+use stylex_constants::constants::{
+  api_names::{STYLEX_CREATE_THEME, STYLEX_KEYFRAMES, STYLEX_TYPES},
+  messages::{non_static_value, non_style_object},
+};
 
 impl<C> StyleXTransform<C>
 where
@@ -48,7 +51,6 @@ where
       validate_stylex_create_theme_indent(parent_var_decl, call, &mut self.state);
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        #[cfg_attr(coverage_nightly, coverage(off))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -57,7 +59,6 @@ where
         .args
         .get(1)
         .map(|second_arg| match &second_arg.spread {
-          #[cfg_attr(coverage_nightly, coverage(off))]
           Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
           None => second_arg.expr.clone(),
         })?;
@@ -113,6 +114,8 @@ where
         }
       }
 
+      apply_unstable_conditional(&self.state, &mut identifiers, &mut member_expressions);
+
       self
         .state
         .apply_stylex_env(&mut identifiers, &mut member_expressions);
@@ -158,7 +161,6 @@ where
           validate_theme_variables(value, &self.state);
           value.clone()
         },
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "{}",
           build_code_frame_error(
@@ -191,7 +193,6 @@ where
           );
           value.clone()
         },
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "{}",
           build_code_frame_error(

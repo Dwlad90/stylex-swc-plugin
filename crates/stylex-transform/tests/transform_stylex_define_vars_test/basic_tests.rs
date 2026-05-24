@@ -54,6 +54,20 @@ stylex_test!(
 );
 
 stylex_test!(
+  tokens_object_with_unstable_conditional_identity,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      color: stylex.unstable_conditional({
+        default: 'blue',
+        '@media (prefers-color-scheme: dark)': 'lightblue',
+      }),
+    });
+  "#
+);
+
+stylex_test!(
   tokens_object_haste,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_unstable_module_resolution(ModuleResolution::haste(None))
@@ -238,6 +252,21 @@ stylex_test!(
     import * as stylex from '@stylexjs/stylex';
     export const otherVars = stylex.defineVars({
       otherColor: 'orange'
+    });
+  "#
+);
+
+stylex_test!(
+  self_referencing_variables,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_runtime_injection_option(RuntimeInjection::Boolean(true))
+  }),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const colors = stylex.defineVars({
+      text: 'white',
+      textMuted: ()=>`color-mix(in srgb, ${colors.text}, transparent 50%)`,
+      textSubtle: ()=>`color-mix(in srgb, ${colors.textMuted}, transparent 50%)`,
     });
   "#
 );

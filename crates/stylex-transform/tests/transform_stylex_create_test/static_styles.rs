@@ -126,6 +126,19 @@ stylex_test!(
 );
 
 stylex_test!(
+  style_object_with_system_font_family_list,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: {
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      },
+    });
+  "#
+);
+
+stylex_test!(
   style_object_with_shortform_properties,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"

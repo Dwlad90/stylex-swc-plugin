@@ -1,13 +1,10 @@
-use crate::shared::structures::{
-  base_css_type::BaseCSSType,
-  functions::{FunctionConfig, FunctionType},
-};
+use crate::shared::structures::functions::{FunctionConfig, FunctionType};
 use indexmap::IndexMap;
 use phf::phf_map;
 use std::rc::Rc;
-use stylex_ast::ast::factories::{create_object_expression, create_string_key_value_prop};
 use stylex_enums::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault};
 use stylex_macros::stylex_panic;
+use stylex_structures::base_css_type::BaseCSSType;
 use swc_core::ecma::ast::Expr;
 
 pub trait HasBase {
@@ -349,18 +346,6 @@ impl From<Url> for BaseCSSType {
   }
 }
 
-impl From<BaseCSSType> for Expr {
-  fn from(instance: BaseCSSType) -> Self {
-    let syntax_prop =
-      create_string_key_value_prop("syntax", format!("{}", instance.syntax).as_str());
-
-    let mut props = vec![syntax_prop];
-
-    props.extend(BaseCSSType::value_to_props(instance.value, None));
-
-    create_object_expression(props)
-  }
-}
 fn angle(value: ValueWithDefault) -> Expr {
   let base_css_type: BaseCSSType = Angle::new(value).into();
 
@@ -460,12 +445,11 @@ pub(crate) fn get_types_fn() -> FunctionConfig {
   FunctionConfig {
     fn_ptr: FunctionType::StylexFnsFactory(
       |prop_name| -> Rc<dyn Fn(ValueWithDefault) -> Expr + 'static> {
-        Rc::new(*FN_MAP.get(prop_name.as_str()).unwrap_or_else(|| {
-          #[cfg_attr(coverage_nightly, coverage(off))]
-          {
-            stylex_panic!(r#"Function "{}" not found"#, prop_name)
-          }
-        }))
+        Rc::new(
+          *FN_MAP
+            .get(prop_name.as_str())
+            .unwrap_or_else(|| stylex_panic!(r#"Function "{}" not found"#, prop_name)),
+        )
       },
     ),
     takes_path: false,

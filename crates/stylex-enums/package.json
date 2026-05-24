@@ -1,5 +1,5 @@
 {
-  "name": "@stylexswc/stylex-enums",
+  "name": "@stylexswc/enums",
   "description": "Enum definitions for the StyleX system",
   "version": "0.16.2",
   "private": true,

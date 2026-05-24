@@ -2886,9 +2886,13 @@ name = "stylex_evaluator"
 version = "0.16.2"
 dependencies = [
  "ctor 1.0.3",
+ "indexmap",
  "node-resolve",
  "pretty_env_logger",
+ "stylex_ast",
+ "stylex_enums",
  "stylex_macros",
+ "stylex_structures",
  "swc_core",
 ]
 
@@ -2959,9 +2963,11 @@ dependencies = [
  "once_cell",
  "rustc-hash",
  "serde",
+ "stylex_ast",
  "stylex_constants",
  "stylex_enums",
  "stylex_macros",
+ "stylex_utils",
  "swc_core",
 ]
 

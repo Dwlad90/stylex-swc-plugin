@@ -9,7 +9,6 @@ pub(in super::super) fn evaluate(
 ) -> Option<EvaluateResultValue> {
   let expr = match sec.exprs.last() {
     Some(e) => e,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("Sequence expression must contain at least one expression."),
   };
 

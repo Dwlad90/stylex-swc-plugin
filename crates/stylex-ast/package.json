@@ -39,8 +39,7 @@
   "devDependencies": {
     "@stylexswc/constants": "0.16.2",
     "@stylexswc/macros": "0.16.2",
-    "@stylexswc/misc": "0.16.2",
-    "@stylexswc/types": "0.16.2",
+    "@stylexswc/utils": "0.16.2",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.3"

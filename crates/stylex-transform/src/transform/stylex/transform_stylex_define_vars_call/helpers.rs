@@ -30,14 +30,17 @@ use crate::shared::{
 
 /// Walks the `defineVars` object once and collects:
 /// (1) the set of top-level keys, and
-/// (2) the dependency map `key -> set of same-group keys referenced in its arrow body`.
+/// (2) the dependency map `key -> set of same-group keys referenced in its
+/// arrow body`.
 ///
 /// Also validates:
 /// - Arrow functions must have zero parameters.
 /// - Arrow functions must use an expression body, not a block body.
-/// - Referenced same-group keys must exist (panics with `unknown_define_vars_reference`).
+/// - Referenced same-group keys must exist (panics with
+///   `unknown_define_vars_reference`).
 ///
-/// Returns `(all_keys, dependency_map)`. Fuses what used to be two separate passes.
+/// Returns `(all_keys, dependency_map)`. Fuses what used to be two separate
+/// passes.
 pub(super) fn collect_keys_and_dependencies(
   expr: &Expr,
   export_name: &str,
@@ -118,7 +121,7 @@ struct DependencyVisitor<'a> {
 
 impl<'a> Visit for DependencyVisitor<'a> {
   fn visit_member_expr(&mut self, member: &MemberExpr) {
-    if let Expr::Ident(obj_ident) = member.obj.as_ref()
+    if let Expr::Ident(obj_ident) = unwrap_parens(member.obj.as_ref())
       && obj_ident.sym.as_ref() == self.export_name
     {
       match &member.prop {
@@ -126,7 +129,7 @@ impl<'a> Visit for DependencyVisitor<'a> {
           self.deps.insert(prop_ident.sym.clone());
         },
         MemberProp::Computed(computed) => {
-          if let Expr::Lit(Lit::Str(s)) = computed.expr.as_ref()
+          if let Expr::Lit(Lit::Str(s)) = unwrap_parens(computed.expr.as_ref())
             && let Some(s) = s.value.as_str()
           {
             self.deps.insert(Atom::from(s));
@@ -137,6 +140,17 @@ impl<'a> Visit for DependencyVisitor<'a> {
     }
     member.visit_children_with(self);
   }
+}
+
+/// Walks through any number of `Expr::Paren` wrappers and returns the inner
+/// expression. Mirrors the read-only side of `normalize_expr` so visitors that
+/// pattern-match on specific expression kinds don't miss parenthesized forms
+/// like `(colors).text`.
+fn unwrap_parens(mut expr: &Expr) -> &Expr {
+  while let Expr::Paren(p) = expr {
+    expr = p.expr.as_ref();
+  }
+  expr
 }
 
 /// DFS-based cycle detection on the dependency graph.
@@ -155,7 +169,6 @@ pub(super) fn assert_no_define_vars_cycles(dependency_map: &FxHashMap<Atom, FxHa
       if detect_cycle(key, dependency_map, &mut visited, &mut in_stack, &mut stack) {
         let back_edge = match stack.last() {
           Some(e) => e.clone(),
-          #[cfg_attr(coverage_nightly, coverage(off))]
           None => return,
         };
         if let Some(cycle_start) = stack.iter().position(|k| k == &back_edge) {
@@ -167,7 +180,8 @@ pub(super) fn assert_no_define_vars_cycles(dependency_map: &FxHashMap<Atom, FxHa
   }
 }
 
-/// Recursive DFS helper for cycle detection. Returns `true` if a cycle is found.
+/// Recursive DFS helper for cycle detection. Returns `true` if a cycle is
+/// found.
 fn detect_cycle(
   node: &Atom,
   dependency_map: &FxHashMap<Atom, FxHashSet<Atom>>,
@@ -200,13 +214,14 @@ fn detect_cycle(
   false
 }
 
-/// Walks the evaluated `defineVars` object and expands zero-param arrow function
-/// values by evaluating their bodies (mirrors `normalizeDefineVarsObject` from the
-/// TypeScript implementation). Nested arrow functions (i.e. arrows appearing
-/// anywhere below the top-level property value) are rejected — only the top-level
-/// `key: () => …` shape is supported, matching the TypeScript behaviour where
-/// `normalizeDefineVarsValue` is called recursively with `allowCSSType = false`
-/// and a function value at depth > 0 triggers `invalidDefineVarsFunctionValue`.
+/// Walks the evaluated `defineVars` object and expands zero-param arrow
+/// function values by evaluating their bodies (mirrors
+/// `normalizeDefineVarsObject` from the TypeScript implementation). Nested
+/// arrow functions (i.e. arrows appearing anywhere below the top-level property
+/// value) are rejected — only the top-level `key: () => …` shape is supported,
+/// matching the TypeScript behaviour where `normalizeDefineVarsValue` is called
+/// recursively with `allowCSSType = false` and a function value at depth > 0
+/// triggers `invalidDefineVarsFunctionValue`.
 ///
 /// Returns the input `value` unchanged when no rewriting is necessary, avoiding
 /// the per-property clone on the warm path.
@@ -217,7 +232,8 @@ pub(super) fn normalize_define_vars_functions(
   call: &CallExpr,
   first_arg: &Expr,
 ) -> EvaluateResultValue {
-  // Borrow the object literal without cloning until we know we have rewriting to do.
+  // Borrow the object literal without cloning until we know we have rewriting to
+  // do.
   let needs_rewrite = match value.as_expr().and_then(|e| e.as_object()) {
     Some(obj) => obj.props.iter().any(prop_contains_arrow),
     None => return value,
@@ -267,7 +283,6 @@ pub(super) fn normalize_define_vars_functions(
             assert_no_nested_arrows(&expr);
             expr
           },
-          #[cfg_attr(coverage_nightly, coverage(off))]
           _ => stylex_panic!("{}", non_static_value(STYLEX_DEFINE_VARS)),
         }
       },
@@ -295,21 +310,34 @@ pub(super) fn normalize_define_vars_functions(
   }))
 }
 
-/// Panics with `invalid_define_vars_function_value` if any `Expr::Arrow` appears
-/// inside `expr` (after evaluation). Mirrors TypeScript's recursive call to
-/// `normalizeDefineVarsValue` with `allowCSSType = false`, which rejects
-/// `typeof value === 'function'` at depth > 0.
+/// Panics with `invalid_define_vars_function_value` if any `Expr::Arrow`
+/// appears anywhere inside `expr` (after evaluation). Mirrors TypeScript's
+/// recursive call to `normalizeDefineVarsValue` with `allowCSSType = false`,
+/// which rejects `typeof value === 'function'` at depth > 0.
+///
+/// Uses an SWC `Visit` traversal so any expression subtree (parens, arrays,
+/// conditionals, calls, sequences, …) is covered, not just object literals.
 fn assert_no_nested_arrows(expr: &Expr) {
-  if let Expr::Object(obj) = expr {
-    for prop in &obj.props {
-      if let PropOrSpread::Prop(p) = prop
-        && let Prop::KeyValue(kv) = p.as_ref()
-      {
-        if matches!(kv.value.as_ref(), Expr::Arrow(_)) {
-          stylex_panic!("{}", invalid_define_vars_function_value());
-        }
-        assert_no_nested_arrows(&kv.value);
-      }
+  let mut detector = NestedArrowDetector { found: false };
+  expr.visit_with(&mut detector);
+  if detector.found {
+    stylex_panic!("{}", invalid_define_vars_function_value());
+  }
+}
+
+struct NestedArrowDetector {
+  found: bool,
+}
+
+impl Visit for NestedArrowDetector {
+  fn visit_arrow_expr(&mut self, _: &ArrowExpr) {
+    self.found = true;
+  }
+
+  fn visit_expr(&mut self, expr: &Expr) {
+    if self.found {
+      return;
     }
+    expr.visit_children_with(self);
   }
 }

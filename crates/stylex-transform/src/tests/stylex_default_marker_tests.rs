@@ -1,5 +1,6 @@
 // Tests for default marker object shape and prefix behavior.
-// Source: crates/stylex-transform/src/shared/transformers/stylex_default_marker.rs
+// Source: crates/stylex-transform/src/shared/transformers/
+// stylex_default_marker.rs
 
 use super::*;
 

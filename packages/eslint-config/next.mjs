@@ -6,7 +6,6 @@ import nextVitals from 'eslint-config-next/core-web-vitals'
 import nextTypescript from 'eslint-config-next/typescript'
 import { globalIgnores } from 'eslint/config'
 
-
 const filteredBaseConfig = baseConfig.map(config => {
   if (config.plugins?.['@typescript-eslint']) {
     // Remove the typescript-eslint plugin from the base config
@@ -65,6 +64,7 @@ const nextBaseEslintConfig = [
     'out/**',
     'build/**',
     'next-env.d.ts',
+    "jest.setup.js",
   ]),
 ];
 

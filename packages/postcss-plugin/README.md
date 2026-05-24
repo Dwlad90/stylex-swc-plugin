@@ -23,7 +23,7 @@ Modify `postcss.config.js`. For example:
 ```js
 module.exports = {
   plugins: {
-    '@stylexjs/postcss-plugin': {
+    '@stylexswc/postcss-plugin': {
       include: ['src/**/*.{js,jsx,ts,tsx}'],
     },
     autoprefixer: {},
@@ -90,7 +90,7 @@ Add the following CSS file to your project:
 /*[fileName].css*/
 
 /**
- * The @stylex directive is used by the @stylexjs/postcss-plugin.
+ * The @stylex directive is used by the @stylexswc/postcss-plugin.
  * It is automatically replaced with generated CSS during builds.
  */
 @stylex;

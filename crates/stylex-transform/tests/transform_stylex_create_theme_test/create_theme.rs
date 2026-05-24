@@ -43,6 +43,25 @@ stylex_test!(
 );
 
 stylex_test!(
+  theme_object_with_unstable_conditional_identity,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = {
+      color: "var(--xt4ziaz)",
+      __varGroupHash__: "x1xohuxq"
+    };
+
+    export const theme = stylex.createTheme(vars, {
+      color: stylex.unstable_conditional({
+        default: 'green',
+        '@media (prefers-color-scheme: dark)': 'lightgreen',
+      }),
+    });
+  "#
+);
+
+stylex_test!(
   theme_object_haste,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_unstable_module_resolution(ModuleResolution::haste(None))

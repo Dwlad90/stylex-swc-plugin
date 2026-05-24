@@ -28,8 +28,10 @@ use crate::{
     },
   },
 };
-use stylex_constants::constants::api_names::{STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES};
-use stylex_constants::constants::messages::{non_static_value, non_style_object};
+use stylex_constants::constants::{
+  api_names::{STYLEX_FIRST_THAT_WORKS, STYLEX_KEYFRAMES},
+  messages::{non_static_value, non_style_object},
+};
 
 impl<C> StyleXTransform<C>
 where
@@ -46,12 +48,10 @@ where
 
       let call = match var_decl.init.as_ref().and_then(|decl| decl.as_call()) {
         Some(call) => call,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", expected_call_expression(STYLEX_KEYFRAMES)),
       };
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        #[cfg_attr(coverage_nightly, coverage(off))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -122,7 +122,6 @@ where
           );
           value
         },
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "{}",
           build_code_frame_error(

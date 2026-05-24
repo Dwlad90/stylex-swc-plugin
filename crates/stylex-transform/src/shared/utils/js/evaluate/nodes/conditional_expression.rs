@@ -15,7 +15,6 @@ pub(in super::super) fn evaluate(
 
   let test_result = match match test_result {
     Some(v) => v,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     None => {
       stylex_panic!("The test condition of a conditional expression must be a static expression.")
     },

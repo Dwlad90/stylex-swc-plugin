@@ -179,7 +179,6 @@ pub(in super::super) fn evaluate(
               props.push(create_ident_key_value_prop(
                 &match key {
                   Some(k) => k,
-                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!("Property key must be present in the style object."),
                 },
                 value,

@@ -59,6 +59,32 @@ fn importing_file_with_stylex_suffix_works() {
 }
 
 #[test]
+fn importing_nested_vars_with_stylex_suffix_works() {
+  let input = r#"import stylex from 'stylex';
+    import { MyTheme } from 'otherFile.stylex';
+    const styles = stylex.create({
+        red: {
+            color: MyTheme.button.primary.background,
+        }
+    });
+    stylex(styles.red);"#;
+
+  let transformation = tranform(input);
+
+  let expected_var_name = format!(
+    "var(--{}{})",
+    OPTIONS.class_name_prefix,
+    create_hash("otherFile.stylex.js//MyTheme.button.primary.background")
+  );
+
+  assert_eq!(expected_var_name, "var(--__hashed_var__1xr9ovx)");
+
+  assert!(transformation.contains(&expected_var_name));
+
+  assert_snapshot!(transformation);
+}
+
+#[test]
 fn importing_file_with_dot_stylex_and_reading_var_group_hash_returns_a_class_name() {
   let input = r#"import stylex from 'stylex';
         import { MyTheme } from 'otherFile.stylex';

@@ -1,5 +1,4 @@
 // Kept locally (depend on StateManager, functions, or utils)
-pub(crate) mod base_css_type;
 pub mod evaluate_result;
 pub mod functions;
 pub(crate) mod member_transform;

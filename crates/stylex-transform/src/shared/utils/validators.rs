@@ -80,7 +80,6 @@ fn validate_single_object_arg_indent(
 ) {
   let init_expr = match var_decl.init.as_deref() {
     Some(init) => init,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", non_static_value(fn_name)),
   };
 
@@ -485,7 +484,6 @@ pub(crate) fn is_target_call(
             && state.is_stylex_namespace_import(
               match member.obj.as_ident() {
                 Some(ident) => ident,
-                #[cfg_attr(coverage_nightly, coverage(off))]
                 None => stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT),
               }
               .sym
@@ -496,6 +494,37 @@ pub(crate) fn is_target_call(
 
   is_create_ident || is_create_member
 }
+
+pub(crate) fn validate_define_call(
+  call: &CallExpr,
+  api_name: &str,
+  arg_count: usize,
+  require_export: bool,
+  state: &mut StateManager,
+) -> TopLevelExpression {
+  let call_expr = Expr::Call(call.clone());
+  let top_level_expr = state
+    .find_top_level_expr(call, |_| false, None)
+    .cloned()
+    .unwrap_or_else(|| {
+      build_code_frame_error_and_panic_at(&call_expr, &unbound_call_value(api_name), state)
+    });
+
+  if require_export && !is_variable_named_exported(&top_level_expr, state) {
+    build_code_frame_error_and_panic_at(&call_expr, &non_export_named_declaration(api_name), state);
+  }
+
+  if call.args.len() != arg_count {
+    build_code_frame_error_and_panic_at(
+      &call_expr,
+      &illegal_argument_length(api_name, arg_count),
+      state,
+    );
+  }
+
+  top_level_expr
+}
+
 pub(crate) fn validate_namespace(
   namespaces: &[KeyValueProp],
   conditions: &[String],
@@ -588,14 +617,12 @@ pub(crate) fn validate_conditional_styles(
       || inner_key.starts_with("var(--")
       || inner_key == "default")
   {
-    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", INVALID_PSEUDO_OR_AT_RULE);
     }
   }
 
   if conditions.contains(&inner_key) {
-    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", DUPLICATE_CONDITIONAL);
     }
@@ -648,7 +675,6 @@ pub(crate) fn assert_valid_keyframes(obj: &EvaluateResultValue, state: &mut Stat
         build_code_frame_error_and_panic_at(expr, &non_style_object(STYLEX_KEYFRAMES), state);
       },
     },
-    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => stylex_panic!("{}", non_static_value(STYLEX_KEYFRAMES)),
   }
 }
@@ -679,7 +705,6 @@ fn assert_stylex_arg(value: &EvaluateResultValue, state: &mut StateManager, fn_n
       build_code_frame_error_and_panic_at(expr, &non_style_object(fn_name), state);
     }
   } else {
-    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", non_static_value(fn_name));
     }
@@ -718,7 +743,6 @@ pub(crate) fn validate_theme_variables(
   }
 
   if !variables.as_expr().is_some_and(|expr| expr.is_object()) {
-    #[cfg_attr(coverage_nightly, coverage(off))]
     {
       stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS);
     }
@@ -748,7 +772,6 @@ pub(crate) fn validate_theme_variables(
       None
     }) {
     Some(key_value) => key_value,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", ONLY_OVERRIDE_DEFINE_VARS),
   }
 }

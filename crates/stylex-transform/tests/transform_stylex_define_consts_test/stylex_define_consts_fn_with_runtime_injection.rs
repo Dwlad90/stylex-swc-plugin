@@ -76,6 +76,24 @@ stylex_test!(
 );
 
 stylex_test!(
+  system_font_family_constant_with_runtime_injection_true,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_unstable_module_resolution(ModuleResolution {
+      root_dir: Some("/stylex/packages/".to_string()),
+      theme_file_extension: None,
+      ..ModuleResolution::common_js(None)
+    })
+    .with_runtime_injection()
+  }),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const fonts = stylex.defineConsts({
+      sans: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    });
+  "#
+);
+
+stylex_test!(
   mixed_string_and_numeric_constants_with_runtime_injection_true,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_unstable_module_resolution(ModuleResolution {

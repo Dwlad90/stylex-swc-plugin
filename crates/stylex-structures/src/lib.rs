@@ -1,9 +1,11 @@
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
+pub mod base_css_type;
 pub mod core_stylex_options;
 pub mod dynamic_style;
 pub mod inline_style;
 pub mod named_import_source;
+pub mod nested;
 pub mod order;
 pub mod order_pair;
 pub mod pair;

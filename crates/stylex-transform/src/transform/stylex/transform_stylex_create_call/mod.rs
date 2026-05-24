@@ -104,12 +104,10 @@ static STYLEX_WHEN_MAP: LazyLock<Arc<IndexMap<String, StylexExprFn>>> = LazyLock
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("stylex.when ancestor: expression is not a string"),
       };
       let result = match stylex_when::ancestor(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         Err(e) => stylex_panic!("stylex.when ancestor error: {}", e),
       };
       create_string_expr(&result)
@@ -122,12 +120,10 @@ static STYLEX_WHEN_MAP: LazyLock<Arc<IndexMap<String, StylexExprFn>>> = LazyLock
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("stylex.when descendant: expression is not a string"),
       };
       let result = match stylex_when::descendant(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         Err(e) => stylex_panic!("stylex.when descendant error: {}", e),
       };
       create_string_expr(&result)
@@ -140,12 +136,10 @@ static STYLEX_WHEN_MAP: LazyLock<Arc<IndexMap<String, StylexExprFn>>> = LazyLock
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("stylex.when siblingBefore: expression is not a string"),
       };
       let result = match stylex_when::sibling_before(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         Err(e) => stylex_panic!("stylex.when siblingBefore error: {}", e),
       };
       create_string_expr(&result)
@@ -158,12 +152,10 @@ static STYLEX_WHEN_MAP: LazyLock<Arc<IndexMap<String, StylexExprFn>>> = LazyLock
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("stylex.when siblingAfter: expression is not a string"),
       };
       let result = match stylex_when::sibling_after(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         Err(e) => stylex_panic!("stylex.when siblingAfter error: {}", e),
       };
       create_string_expr(&result)
@@ -176,12 +168,10 @@ static STYLEX_WHEN_MAP: LazyLock<Arc<IndexMap<String, StylexExprFn>>> = LazyLock
       let state = downcast_style_options_to_state_manager(state);
       let expr_str = match convert_expr_to_str(&expr, state, &FunctionMap::default()) {
         Some(s) => s,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("stylex.when anySibling: expression is not a string"),
       };
       let result = match stylex_when::any_sibling(&expr_str, Some(&state.options)) {
         Ok(v) => v,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         Err(e) => stylex_panic!("stylex.when anySibling error: {}", e),
       };
       create_string_expr(&result)
@@ -237,7 +227,6 @@ where
 
       let value = match evaluated_arg.value {
         Some(v) => v,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", non_static_value(STYLEX_CREATE)),
       };
 

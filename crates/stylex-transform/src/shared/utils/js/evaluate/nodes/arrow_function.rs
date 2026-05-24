@@ -31,12 +31,9 @@ pub(in super::super) fn evaluate(
 
               ident_params.iter().enumerate().for_each(|(index, ident)| {
                 if let Some(arg) = cb_args.get(index) {
-                  let expr = arg.as_expr().unwrap_or_else(|| {
-                    #[cfg_attr(coverage_nightly, coverage(off))]
-                    {
-                      stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION)
-                    }
-                  });
+                  let expr = arg
+                    .as_expr()
+                    .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION));
 
                   let cl = |arg: Expr| move || arg.clone();
 
@@ -75,7 +72,6 @@ pub(in super::super) fn evaluate(
                 Some(res) => match res {
                   EvaluateResultValue::Expr(expr) => expr,
                   EvaluateResultValue::Vec(items) => evaluate_result_vec_to_array_expr(&items),
-                  #[cfg_attr(coverage_nightly, coverage(off))]
                   _ => stylex_unimplemented!(
                     "The evaluation result must resolve to a static expression."
                   ),

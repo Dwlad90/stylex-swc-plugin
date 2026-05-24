@@ -2,11 +2,37 @@
   "name": "@stylexswc/transform",
   "description": "SWC VisitMut implementation and transform orchestration for StyleX",
   "version": "0.16.2",
-  "private": true,
-  "sideEffects": false,
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "devDependencies": {
+    "@stylexswc/ast": "0.16.2",
+    "@stylexswc/constants": "0.16.2",
+    "@stylexswc/css": "0.16.2",
+    "@stylexswc/css-parser": "0.16.2",
+    "@stylexswc/logs": "0.16.2",
+    "@stylexswc/macros": "0.16.2",
+    "@stylexswc/utils": "0.16.2",
+    "@stylexswc/path-resolver": "0.16.2",
+    "@stylexswc/regex": "0.16.2",
+    "@stylexswc/enums": "0.16.2",
+    "@stylexswc/structures": "0.16.2",
+    "@stylexswc/types": "0.16.2",
+    "@taplo/cli": "^0.7.0",
+    "npm-run-all2": "^8.0.4",
+    "prettier": "^3.8.3"
+  },
   "files": [
     "dist"
   ],
+  "keywords": [
+    "stylex",
+    "swc",
+    "swc-plugin"
+  ],
+  "private": true,
   "publishConfig": {
     "access": "public"
   },
@@ -32,31 +58,5 @@
     "test:flamegraph": "scripty",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
   },
-  "config": {
-    "scripty": {
-      "path": "../../scripts/packages"
-    }
-  },
-  "devDependencies": {
-    "@stylexswc/ast": "0.16.2",
-    "@stylexswc/constants": "0.16.2",
-    "@stylexswc/css": "0.16.2",
-    "@stylexswc/css-parser": "0.16.2",
-    "@stylexswc/logs": "0.16.2",
-    "@stylexswc/macros": "0.16.2",
-    "@stylexswc/misc": "0.16.2",
-    "@stylexswc/path-resolver": "0.16.2",
-    "@stylexswc/regex": "0.16.2",
-    "@stylexswc/stylex-enums": "0.16.2",
-    "@stylexswc/stylex-structures": "0.16.2",
-    "@stylexswc/types": "0.16.2",
-    "@taplo/cli": "^0.7.0",
-    "npm-run-all2": "^8.0.4",
-    "prettier": "^3.8.3"
-  },
-  "keywords": [
-    "stylex",
-    "swc",
-    "swc-plugin"
-  ]
+  "sideEffects": false
 }

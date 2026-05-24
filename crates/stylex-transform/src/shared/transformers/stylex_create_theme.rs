@@ -43,7 +43,6 @@ pub(crate) fn stylex_create_theme(
 
   let variables_obj = match variables.as_expr().and_then(|expr| expr.as_object()) {
     Some(obj) => obj,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", THEME_VARS_MUST_BE_OBJECT),
   };
   let mut variables_key_values = Box::new(get_key_values_from_object(variables_obj));
@@ -57,7 +56,6 @@ pub(crate) fn stylex_create_theme(
     EvaluateResultValue::Expr(expr) => {
       let theme_obj = match expr.as_object() {
         Some(obj) => obj,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", THEME_VARS_MUST_BE_OBJECT),
       };
       theme_vars_key_values = get_key_values_from_object(theme_obj);
@@ -68,7 +66,6 @@ pub(crate) fn stylex_create_theme(
         .map(|key_value| {
           match convert_expr_to_str(&key_value.value, state, &FunctionMap::default()) {
             Some(s) => s,
-            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
           }
         })
@@ -78,11 +75,9 @@ pub(crate) fn stylex_create_theme(
       theme_vars_key_values = Vec::new();
       var_group_hash = match theme_ref.get(VAR_GROUP_HASH_KEY, state).as_css_var() {
         Some(v) => v.to_owned(),
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", EXPECTED_CSS_VAR),
       };
     },
-    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => {
       stylex_unimplemented!("Unsupported theme vars type {:?}", theme_vars)
     },
@@ -97,7 +92,6 @@ pub(crate) fn stylex_create_theme(
           convert_key_value_to_str(key_value) == key
         }) {
           Some(item) => item,
-          #[cfg_attr(coverage_nightly, coverage(off))]
           None => stylex_panic!(
             "The referenced theme variable was not found. Ensure it was declared in defineVars()."
           ),
@@ -109,7 +103,6 @@ pub(crate) fn stylex_create_theme(
           &FunctionMap::default(),
         ) {
           Some(s) => s,
-          #[cfg_attr(coverage_nightly, coverage(off))]
           None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
         }
       },
@@ -119,7 +112,6 @@ pub(crate) fn stylex_create_theme(
           None => stylex_panic!("{}", EXPECTED_CSS_VAR),
         }
       },
-      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => stylex_unimplemented!("Unsupported theme vars type"),
     };
 
@@ -151,7 +143,6 @@ pub(crate) fn stylex_create_theme(
     .map(|at_rule| {
       let rule_by_at_rule = match rules_by_at_rule.get(*at_rule) {
         Some(v) => v.join(""),
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", AT_RULE_NOT_FOUND),
       };
 
@@ -173,7 +164,6 @@ pub(crate) fn stylex_create_theme(
   for at_rule in sorted_at_rules.into_iter() {
     let decls = match rules_by_at_rule.get(at_rule) {
       Some(v) => v.join(""),
-      #[cfg_attr(coverage_nightly, coverage(off))]
       None => stylex_panic!("{}", AT_RULE_NOT_FOUND),
     };
     let rule = format!(".{override_class_name}, .{override_class_name}:root{{{decls}}}");
@@ -203,18 +193,15 @@ pub(crate) fn stylex_create_theme(
         &FunctionMap::default(),
       ) {
         Some(s) => s,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", EXPRESSION_IS_NOT_A_STRING),
       }
     },
     EvaluateResultValue::ThemeRef(theme_ref) => {
       match theme_ref.get(VAR_GROUP_HASH_KEY, state).as_css_var() {
         Some(v) => v.to_owned(),
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", EXPECTED_CSS_VAR),
       }
     },
-    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => stylex_unimplemented!("Unsupported theme vars type"),
   };
 

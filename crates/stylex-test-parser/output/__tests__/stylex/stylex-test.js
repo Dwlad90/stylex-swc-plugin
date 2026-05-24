@@ -10,7 +10,11 @@ describe('stylex', ()=>{
             'positionTry',
             'viewTransitionClass',
             'defaultMarker',
-            'defineMarker'
+            'defineMarker',
+            'unstable_conditional',
+            'unstable_defineVarsNested',
+            'unstable_defineConstsNested',
+            'unstable_createThemeNested'
         ].forEach((api)=>{
             test(`stylex.${api}`, ()=>{
                 expect(()=>stylex[api]()).toThrow();
@@ -288,6 +292,15 @@ describe('stylex', ()=>{
           "style": "color:red;margin-top:10px;opacity:0.5;--foo:2;-ms-transition:none;-webkit-tap-highlight-color:transparent",
         }
       `);
+        });
+        test('legacyMerge merges classNames', ()=>{
+            expect(stylex.legacyMerge({
+                color: 'color-red',
+                $$css: true
+            }, {
+                backgroundColor: 'bg-blue',
+                $$css: true
+            })).toBe('color-red bg-blue');
         });
         test('legacyMerge exposes attrs', ()=>{
             expect(stylex.legacyMerge.attrs({

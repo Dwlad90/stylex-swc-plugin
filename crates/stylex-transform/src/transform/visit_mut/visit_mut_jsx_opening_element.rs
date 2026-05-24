@@ -308,12 +308,9 @@ fn build_stylex_props_call(
   } else if let Some(props_ident_name) = props_ident_name {
     create_ident_call_expr(&props_ident_name, args)
   } else {
-    #[cfg_attr(coverage_nightly, coverage(off))]
-    {
-      stylex_panic!(
-        "Could not resolve StyleX import. Ensure you have imported stylex or the props function."
-      );
-    }
+    stylex_panic!(
+      "Could not resolve StyleX import. Ensure you have imported stylex or the props function."
+    );
   }
 }
 

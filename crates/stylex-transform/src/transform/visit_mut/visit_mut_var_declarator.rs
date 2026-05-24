@@ -6,7 +6,10 @@ use swc_core::{
   atoms::Atom,
   common::{EqIgnoreSpan, comments::Comments},
   ecma::{
-    ast::{Expr, KeyValueProp, Lit, ObjectLit, Prop, PropName, PropOrSpread, VarDeclarator},
+    ast::{
+      CallExpr, Callee, Expr, KeyValueProp, Lit, ObjectLit, ObjectPatProp, Pat, Prop, PropName,
+      PropOrSpread, VarDeclarator,
+    },
     visit::VisitMutWith,
   },
 };
@@ -24,7 +27,10 @@ use crate::{
   shared::{
     structures::state_manager::{DeclId, ImportKind},
     utils::{
-      ast::{convertors::expand_shorthand_prop, helpers::namespace_name_from_prop_key},
+      ast::{
+        convertors::{convert_str_lit_to_string, expand_shorthand_prop},
+        helpers::namespace_name_from_prop_key,
+      },
       common::fill_state_declarations,
     },
   },
@@ -34,6 +40,7 @@ use stylex_constants::constants::{
   messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND, VAR_DECL_NAME_NOT_IDENT},
 };
 use stylex_enums::core::TransformationCycle;
+use stylex_structures::named_import_source::ImportSources;
 
 impl<C> StyleXTransform<C>
 where
@@ -43,6 +50,7 @@ where
     match self.state.cycle {
       TransformationCycle::Discover => {
         fill_state_declarations(&mut self.state, var_declarator);
+        self.discover_commonjs_stylex_require(var_declarator);
 
         if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut()
           && let Some((declaration, member)) = self.process_declaration(call)
@@ -100,7 +108,6 @@ where
           let top_level_expression = self.state.top_level_expressions.iter().find(
             |TopLevelExpression(_, expr, _)| match var_name.init.as_ref() {
               Some(init) => init.as_ref().eq_ignore_span(expr),
-              #[cfg_attr(coverage_nightly, coverage(off))]
               None => {
                 stylex_panic!(
                   "Variable declaration must have an initializer for top-level expression lookup."
@@ -118,7 +125,6 @@ where
           {
             let var_id = match var_name.name.as_ident() {
               Some(i) => i.id.to_id(),
-              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
             };
 
@@ -134,6 +140,62 @@ where
         }
       },
       _ => var_declarator.visit_mut_children_with(self),
+    }
+  }
+
+  fn discover_commonjs_stylex_require(&mut self, var_declarator: &VarDeclarator) {
+    let Some(call) = var_declarator.init.as_deref().and_then(Expr::as_call) else {
+      return;
+    };
+
+    let Some(source_path) = get_stylex_require_source(call, &self.state) else {
+      return;
+    };
+
+    let has_named_import_source = self.state.import_as(&source_path).is_some();
+
+    let import_alias = self.state.import_as(&source_path).map(str::to_string);
+
+    match &var_declarator.name {
+      Pat::Ident(local) if !has_named_import_source => {
+        self.state.insert_import_path(source_path);
+        self
+          .state
+          .insert_stylex_import(ImportSources::Regular(local.id.sym.to_string()));
+      },
+      Pat::Ident(_) => {},
+      Pat::Object(object) => {
+        // Mirror the ES `import { foo } from 'stylex'` named-import path: when an
+        // `import_sources: [{ from, as }]` alias is configured, a destructured
+        // require whose imported name matches the alias should still register the
+        // local binding as the StyleX namespace handle. Other destructured props
+        // are skipped in that mode (the alias narrows what counts as a StyleX
+        // import). Without an alias, fall back to the original behaviour of
+        // tracking every prop that maps to a known `ImportKind`.
+        self.state.insert_import_path(source_path);
+
+        for prop in &object.props {
+          let Some((imported_name, local_name)) = destructured_require_prop(prop) else {
+            continue;
+          };
+
+          match &import_alias {
+            Some(alias) => {
+              if imported_name == *alias {
+                self
+                  .state
+                  .insert_stylex_import(ImportSources::Regular(local_name.to_string()));
+              }
+            },
+            None => {
+              if let Some(kind) = ImportKind::from_import_name(imported_name.as_str()) {
+                self.state.insert_stylex_api_import(kind, local_name);
+              }
+            },
+          }
+        }
+      },
+      _ => {},
     }
   }
 
@@ -164,7 +226,6 @@ where
 
       let prop = match object_prop.as_mut_prop() {
         Some(p) => p.as_mut(),
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
       };
 
@@ -206,7 +267,6 @@ where
 
           if let Some(style_object) = match prop.as_mut_key_value() {
             Some(kv) => kv,
-            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("{}", KEY_VALUE_EXPECTED),
           }
           .value
@@ -221,6 +281,57 @@ where
     }
 
     props
+  }
+}
+
+fn get_stylex_require_source(
+  call: &CallExpr,
+  state: &crate::shared::structures::state_manager::StateManager,
+) -> Option<String> {
+  let is_require_call = matches!(
+    &call.callee,
+    Callee::Expr(callee) if callee.as_ident().is_some_and(|ident| ident.sym == "require")
+  );
+
+  if !is_require_call {
+    return None;
+  }
+
+  let first_arg = call.args.first()?;
+
+  if first_arg.spread.is_some() {
+    return None;
+  }
+
+  let source_path = match first_arg.expr.as_lit()? {
+    Lit::Str(strng) => convert_str_lit_to_string(strng),
+    _ => return None,
+  };
+
+  state.is_import_source(&source_path).then_some(source_path)
+}
+
+fn destructured_require_prop(prop: &ObjectPatProp) -> Option<(String, swc_core::atoms::Atom)> {
+  match prop {
+    ObjectPatProp::Assign(assign) => {
+      let name = assign.key.id.sym.clone();
+      Some((name.to_string(), name))
+    },
+    ObjectPatProp::KeyValue(key_value) => {
+      let imported_name = namespace_name_from_prop_key(&key_value.key)?;
+      let local_name = local_atom_from_pat(&key_value.value)?;
+
+      Some((imported_name.to_string(), local_name))
+    },
+    ObjectPatProp::Rest(_) => None,
+  }
+}
+
+fn local_atom_from_pat(pat: &Pat) -> Option<swc_core::atoms::Atom> {
+  match pat {
+    Pat::Ident(local) => Some(local.id.sym.clone()),
+    Pat::Assign(assign) => local_atom_from_pat(&assign.left),
+    _ => None,
   }
 }
 

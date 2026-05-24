@@ -43,10 +43,7 @@ pub(crate) fn stylex_position_try(
   }
 
   let Some(styles) = styles.as_expr().and_then(|expr| expr.as_object()) else {
-    #[cfg_attr(coverage_nightly, coverage(off))]
-    {
-      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
-    }
+    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
   let extended_object = {
@@ -61,7 +58,6 @@ pub(crate) fn stylex_position_try(
             FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
               transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
             )),
-            #[cfg_attr(coverage_nightly, coverage(off))]
             _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
           },
         )
@@ -74,7 +70,6 @@ pub(crate) fn stylex_position_try(
         .map(|(key, value)| {
           let value = match value.as_string() {
             Some(s) => s.clone(),
-            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
           };
 
@@ -91,17 +86,13 @@ pub(crate) fn stylex_position_try(
     state,
     |style, _| {
       let Some(tuple) = style.as_tuple() else {
-        #[cfg_attr(coverage_nightly, coverage(off))]
-        {
-          stylex_panic!("{}", THEME_VAR_TUPLE)
-        }
+        stylex_panic!("{}", THEME_VAR_TUPLE)
       };
 
       let pair = Pair {
         key: tuple.0.clone(),
         value: convert_lit_to_string(match tuple.1.clone().as_lit() {
           Some(lit) => lit,
-          #[cfg_attr(coverage_nightly, coverage(off))]
           None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
         })
         .unwrap_or_default(),
@@ -115,15 +106,11 @@ pub(crate) fn stylex_position_try(
 
   let rtl_styles = obj_map(ObjMapType::Object(extended_object), state, |style, _| {
     let Some(tuple) = style.as_tuple() else {
-      #[cfg_attr(coverage_nightly, coverage(off))]
-      {
-        stylex_panic!("{}", THEME_VAR_TUPLE)
-      }
+      stylex_panic!("{}", THEME_VAR_TUPLE)
     };
 
     let value = convert_lit_to_string(match tuple.1.clone().as_lit() {
       Some(lit) => lit,
-      #[cfg_attr(coverage_nightly, coverage(off))]
       None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
     })
     .unwrap_or_default();
@@ -198,7 +185,6 @@ fn construct_position_try_obj(styles: FlatCompiledStyles) -> String {
   for k in sorted_keys {
     let v = match styles.get(&k) {
       Some(v) => v,
-      #[cfg_attr(coverage_nightly, coverage(off))]
       None => stylex_panic!("Expected property key to exist in compiled styles."),
     };
 

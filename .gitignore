@@ -50,7 +50,8 @@ yarn-error.log*
 
 # Test fixtures
 !crates/stylex-path-resolver/fixtures/**/node_modules
-!crates/stylex-path-resolver/fixtures/**/dist
+!crates/stylex-path-resolver/fixtures/**/node_modules
+!crates/stylex-transform/tests/__virtual__/**/node_modules
 
 
 # Dev containers

@@ -1,7 +1,6 @@
 use swc_core::ecma::ast::Expr;
 
-use crate::shared::structures::base_css_type::BaseCSSType;
-use stylex_structures::pair::Pair;
+use stylex_structures::{base_css_type::BaseCSSType, pair::Pair};
 use stylex_types::structures::injectable_style::InjectableStyle;
 
 use stylex_enums::css_syntax::CSSSyntax;

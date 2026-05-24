@@ -31,7 +31,6 @@ pub(in super::super) fn evaluate(
 
   let arg = match match arg {
     Some(v) => v,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("The operand of a unary expression must be a static expression."),
   } {
     EvaluateResultValue::Expr(expr) => expr,

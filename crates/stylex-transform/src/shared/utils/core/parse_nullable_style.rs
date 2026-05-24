@@ -158,7 +158,6 @@ fn parse_compiled_styles(
             parse_compiled_styles(compiled_styles, &EvaluateResultValue::Vec(arr.clone()));
           },
           EvaluateResultValue::Null => {},
-          #[cfg_attr(coverage_nightly, coverage(off))]
           _ => {
             stylex_unimplemented!(
               "Encountered an unsupported evaluation result while parsing a nullable style array."
@@ -180,7 +179,6 @@ fn parse_compiled_styles(
     EvaluateResultValue::ThemeRef(_) => {
       return Some(StyleObject::Other);
     },
-    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => {
       stylex_unimplemented!(
         "Encountered an unsupported evaluation result while parsing a nullable style."
@@ -202,7 +200,6 @@ fn parse_nullable_object(
           match key_value.value.as_ref() {
             Expr::Lit(lit) => parse_nullable_key_value(compiled_styles, key, lit),
 
-            #[cfg_attr(coverage_nightly, coverage(off))]
             _ => {
               stylex_unimplemented!(
                 "Encountered an unsupported expression type while parsing a nullable style array."
@@ -212,7 +209,6 @@ fn parse_nullable_object(
         }
       }
     },
-    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => {
       stylex_unimplemented!(
         "Encountered an unsupported expression type while parsing a nullable style array."
@@ -230,7 +226,6 @@ fn parse_nullable_key_value(
     Lit::Str(_) => {
       let value = match convert_lit_to_string(lit) {
         Some(s) => s,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("Failed to convert literal value to string in style parsing."),
       };
 
@@ -243,7 +238,6 @@ fn parse_nullable_key_value(
     Lit::Null(_) => {
       compiled_styles.insert(key, Rc::new(FlatCompiledStylesValue::Null));
     },
-    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => {
       stylex_panic!("Unhandled literal type in nullable style parsing array");
     },

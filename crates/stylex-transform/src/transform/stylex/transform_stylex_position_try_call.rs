@@ -52,12 +52,10 @@ where
 
       let call = match var_decl.init.as_ref().and_then(|decl| decl.as_call()) {
         Some(call) => call,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", expected_call_expression(STYLEX_POSITION_TRY)),
       };
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        #[cfg_attr(coverage_nightly, coverage(off))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -128,7 +126,6 @@ where
           );
           value
         },
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "{}",
           build_code_frame_error(

@@ -13,8 +13,12 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
+indexmap.workspace = true
 node-resolve.workspace = true
+stylex_ast = { path = "../stylex-ast" }
+stylex_enums = { path = "../stylex-enums" }
 stylex_macros = { path = "../stylex-macros" }
+stylex_structures = { path = "../stylex-structures" }
 swc_core = { workspace = true, features = [
   "common",
   "ecma_codegen",

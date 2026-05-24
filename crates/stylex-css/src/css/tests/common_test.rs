@@ -1146,6 +1146,84 @@ mod normalize_css_property_value_error_tests {
   }
 
   #[test]
+  #[should_panic(expected = "Rule contains an unclosed string")]
+  fn panics_on_unclosed_double_quoted_string() {
+    normalize_css_property_value("fontFamily", r#""Helvetica Neue"#, &opts());
+  }
+
+  #[test]
+  #[should_panic(expected = "Rule contains an unclosed string")]
+  fn panics_on_unclosed_single_quoted_string() {
+    normalize_css_property_value("fontFamily", "'Helvetica Neue", &opts());
+  }
+
+  #[test]
+  #[should_panic(expected = "Rule contains an unclosed string")]
+  fn panics_on_unclosed_string_in_multi_value_property() {
+    normalize_css_property_value("fontFamily", r#""Helvetica Neue, sans-serif"#, &opts());
+  }
+
+  #[test]
+  #[should_panic(expected = "Rule contains an unclosed function")]
+  fn panics_on_unclosed_function_before_unclosed_string() {
+    normalize_css_property_value("backgroundImage", r#"url("foo)"#, &opts());
+  }
+
+  #[test]
+  #[should_panic(expected = "Rule contains an unclosed function")]
+  fn panics_on_unclosed_spacing_only_function() {
+    normalize_css_property_value("color", "hsl(0 0% 0%", &opts());
+  }
+
+  #[test]
+  #[should_panic(expected = "Rule contains an unclosed string")]
+  fn panics_on_stray_apostrophe_in_font_family_list() {
+    normalize_css_property_value(
+      "fontFamily",
+      "'SF Pro Text', 'SF Pro Icons', Helvetica Neue', 'Helvetica', sans-serif",
+      &opts(),
+    );
+  }
+
+  #[test]
+  fn normalizes_closed_double_quoted_string() {
+    let r = normalize_css_property_value("fontFamily", r#""Helvetica Neue", sans-serif"#, &opts());
+    assert_eq!(r, r#""Helvetica Neue",sans-serif"#);
+  }
+
+  #[test]
+  fn normalizes_closed_single_quoted_string() {
+    let r = normalize_css_property_value("fontFamily", "'Helvetica Neue', sans-serif", &opts());
+    assert_eq!(r, r#""Helvetica Neue",sans-serif"#);
+  }
+
+  #[test]
+  fn normalizes_system_font_family_list() {
+    let r = normalize_css_property_value(
+      "fontFamily",
+      r#"-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif"#,
+      &opts(),
+    );
+    assert_eq!(
+      r,
+      r#"-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif"#
+    );
+  }
+
+  #[test]
+  fn normalizes_escaped_quote_in_string() {
+    let r =
+      normalize_css_property_value("fontFamily", r#""Helvetica \"Neue", sans-serif"#, &opts());
+    assert!(r.contains("Helvetica"));
+  }
+
+  #[test]
+  fn normalizes_quote_inside_comment() {
+    let r = normalize_css_property_value("color", "red /* \" */", &opts());
+    assert!(r.contains("red"));
+  }
+
+  #[test]
   fn css_variable_property_uses_color_for_parsing() {
     // --foo is a CSS variable, so it uses "color" as the parsing property
     let r = normalize_css_property_value("--xSomething", "10px", &opts());

@@ -41,7 +41,6 @@ pub(super) fn normalize_js_object_method_args(
               return None;
             },
             EvaluateResultValue::Vec(vec) => normalize_js_object_method_nested_vector_arg(vec),
-            #[cfg_attr(coverage_nightly, coverage(off))]
             _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
           };
 
@@ -107,7 +106,6 @@ fn normalize_js_object_method_nested_vector_arg(vec: &[EvaluateResultValue]) -> 
             .map(|item| {
               let expr = match item.as_expr() {
                 Some(e) => e,
-                #[cfg_attr(coverage_nightly, coverage(off))]
                 None => stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION),
               };
               Some(create_expr_or_spread(expr.clone()))
@@ -117,12 +115,7 @@ fn normalize_js_object_method_nested_vector_arg(vec: &[EvaluateResultValue]) -> 
           create_array_expression(nested_elems)
         })
         .or_else(|| entry.as_expr().cloned())
-        .unwrap_or_else(|| {
-          #[cfg_attr(coverage_nightly, coverage(off))]
-          {
-            stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE)
-          }
-        });
+        .unwrap_or_else(|| stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE));
 
       Some(create_expr_or_spread(expr))
     })
@@ -173,7 +166,6 @@ fn push_args_to_numbers(
         push_args_to_numbers(vec, state, traversal_state, fns, numbers);
       },
       EvaluateResultValue::Null => {},
-      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => stylex_unreachable!("Math.min/max requires a number"),
     }
   }
@@ -200,7 +192,6 @@ pub(super) fn is_valid_callee(callee: &Expr) -> bool {
 pub(super) fn get_callee_name(callee: &Expr) -> &str {
   match callee {
     Expr::Ident(ident) => &ident.sym,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => stylex_panic!("The function being called must be a static identifier."),
   }
 }
@@ -269,7 +260,6 @@ pub(super) fn is_mutation_expr(expr: &Expr) -> bool {
 pub(super) fn get_method_name(prop: &MemberProp) -> &str {
   match prop {
     MemberProp::Ident(ident_prop) => &ident_prop.sym,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => stylex_panic!("The method name in a call expression must be a static identifier."),
   }
 }
@@ -280,7 +270,6 @@ pub(super) fn is_id_prop(prop: &MemberProp) -> Option<&Atom> {
   {
     return Some(match strng.value.as_atom() {
       Some(a) => a,
-      #[cfg_attr(coverage_nightly, coverage(off))]
       None => stylex_panic!("{}", INVALID_UTF8),
     });
   }

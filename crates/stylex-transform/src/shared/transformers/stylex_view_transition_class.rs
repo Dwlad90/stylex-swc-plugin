@@ -36,17 +36,11 @@ pub(crate) fn stylex_view_transition_class(
   }
 
   let Some(styles) = styles.as_expr().and_then(|expr| expr.as_object()) else {
-    #[cfg_attr(coverage_nightly, coverage(off))]
-    {
-      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
-    }
+    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
   let preprocessed_object = obj_map(ObjMapType::Object(styles.clone()), state, |style, state| {
     let Some((_, style, _)) = style.as_tuple() else {
-      #[cfg_attr(coverage_nightly, coverage(off))]
-      {
-        stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
-      }
+      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
     };
 
     let pipe_result = Pipe::create(style.clone())
@@ -60,7 +54,6 @@ pub(crate) fn stylex_view_transition_class(
             FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
               transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
             )),
-            #[cfg_attr(coverage_nightly, coverage(off))]
             _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
           },
         )
@@ -131,7 +124,6 @@ fn construct_view_transition_class_style_str(
       Rc::new(FlatCompiledStylesValue::String(result_string))
     },
     FlatCompiledStylesValue::String(s) => Rc::new(FlatCompiledStylesValue::String(s.clone())),
-    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => stylex_panic!("Expected KeyValues"),
   }
 }
@@ -142,7 +134,6 @@ fn construct_final_view_transition_css_str(styles: FlatCompiledStyles, class_nam
     .map(|(key, value)| {
       let style_str = match value.as_ref() {
         FlatCompiledStylesValue::String(s) => s.as_str(),
-        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_panic!("{}", VALUE_MUST_BE_STRING),
       };
 
@@ -153,7 +144,6 @@ fn construct_final_view_transition_css_str(styles: FlatCompiledStyles, class_nam
   for (key, value) in styles.iter() {
     let style_str = match value.as_ref() {
       FlatCompiledStylesValue::String(s) => s,
-      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => stylex_panic!("{}", VALUE_MUST_BE_STRING),
     };
     let _ = write!(result, "{}(*.{}){{{}}}", key, class_name, style_str);
@@ -171,7 +161,6 @@ fn concat_view_transition_class_style_str(
     let style_str_val = construct_view_transition_class_style_str(Rc::clone(v), state);
     let style_str = match style_str_val.as_ref() {
       FlatCompiledStylesValue::String(s) => s,
-      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => stylex_panic!("{}", VALUE_MUST_BE_STRING),
     };
     let _ = write!(result, "{}:{};", k, style_str);

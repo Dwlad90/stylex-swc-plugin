@@ -11,7 +11,6 @@ mod stylex_define_vars {
       flat_compiled_styles_value::FlatCompiledStylesValue,
     },
     structures::{
-      base_css_type::BaseCSSType,
       functions::FunctionType,
       state_manager::StateManager,
       types::{FlatCompiledStyles, InjectableStylesMap},
@@ -23,7 +22,7 @@ mod stylex_define_vars {
     create_key_value_prop, create_nested_object_prop, create_object_expression,
   };
   use stylex_enums::value_with_default::ValueWithDefault;
-  use stylex_structures::stylex_state_options::StyleXStateOptions;
+  use stylex_structures::{base_css_type::BaseCSSType, stylex_state_options::StyleXStateOptions};
   use stylex_types::structures::injectable_style::InjectableStyle;
   use stylex_utils::hash::create_hash;
 

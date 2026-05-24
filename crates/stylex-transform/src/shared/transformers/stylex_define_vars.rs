@@ -33,7 +33,6 @@ pub(crate) fn stylex_define_vars(
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
   let export_id = match state.export_id.as_ref() {
     Some(id) => id.clone(),
-    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
   };
 
@@ -46,10 +45,7 @@ pub(crate) fn stylex_define_vars(
   let mut typed_variables: FlatCompiledStyles = IndexMap::new();
 
   let Some(variables) = variables.as_expr().and_then(|expr| expr.as_object()) else {
-    #[cfg_attr(coverage_nightly, coverage(off))]
-    {
-      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
-    }
+    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
   let variables_map = obj_map(
@@ -57,7 +53,6 @@ pub(crate) fn stylex_define_vars(
     state,
     |item, state| -> Rc<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
-        #[cfg_attr(coverage_nightly, coverage(off))]
         FlatCompiledStylesValue::InjectableStyle(_) => {
           stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
         },
@@ -99,7 +94,6 @@ pub(crate) fn stylex_define_vars(
 
           FlatCompiledStylesValue::Tuple(name_hash, css_value, css_type)
         },
-        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_unimplemented!("Unsupported value type in define vars"),
       };
 
@@ -111,14 +105,12 @@ pub(crate) fn stylex_define_vars(
     ObjMapType::Map(variables_map.clone()),
     state,
     |item, _| match item.as_ref() {
-      #[cfg_attr(coverage_nightly, coverage(off))]
       FlatCompiledStylesValue::InjectableStyle(_) => {
         stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
       },
       FlatCompiledStylesValue::Tuple(key, _, _) => {
         Rc::new(FlatCompiledStylesValue::String(format!("var(--{})", key)))
       },
-      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => stylex_unreachable!("Unsupported value type"),
     },
   );
@@ -142,7 +134,6 @@ pub(crate) fn stylex_define_vars(
             ..Default::default()
           })
         },
-        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_unreachable!("Unsupported value type"),
       };
 

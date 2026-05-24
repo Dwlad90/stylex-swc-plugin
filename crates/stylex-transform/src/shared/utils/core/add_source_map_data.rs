@@ -61,10 +61,8 @@ pub(crate) fn add_source_map_data(
           }
         }
       },
-      #[cfg_attr(coverage_nightly, coverage(off))]
       _ => stylex_panic!("{}", EXPECTED_OBJECT_EXPRESSION),
     },
-    #[cfg_attr(coverage_nightly, coverage(off))]
     _ => {
       stylex_panic!("{}", illegal_argument_length("add_source_map_data", 1));
     },
@@ -224,7 +222,6 @@ fn create_short_filename(
 
   let cwd_str = match cwd.to_str() {
     Some(s) => s,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", INVALID_UTF8),
   };
   let cwd_package = StateManager::get_package_name_and_path(cwd_str, package_json_seen);

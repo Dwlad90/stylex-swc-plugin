@@ -205,7 +205,6 @@ where
                                   .into_iter()
                                   .reduce(|acc, curr| create_bin_expr(BinaryOp::Add, acc, curr))
                                   .unwrap_or_else(|| {
-                                    #[cfg_attr(coverage_nightly, coverage(off))]
                                     {
                                       stylex_panic!(
                                         "Expected at least one expression to reduce in class name concatenation."
@@ -298,7 +297,6 @@ where
 
                         let hoist_ident_expr = match hoist_ident.expr.as_ident() {
                           Some(ident) => ident.clone(),
-                          #[cfg_attr(coverage_nightly, coverage(off))]
                           None => stylex_panic!("Expected an identifier for the hoisted style variable."),
                         };
                         transform.state.declarations.push(

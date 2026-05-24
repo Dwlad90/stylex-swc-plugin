@@ -21,7 +21,6 @@ pub(in super::super) fn evaluate(
       if state.functions.identifiers.contains_key(&ident_id.0) {
         match match state.functions.identifiers.get(&ident_id.0) {
               Some(v) => v,
-              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!(
                 "Could not resolve the function identifier. Ensure the function is defined and in scope."
               ),
@@ -34,7 +33,6 @@ pub(in super::super) fn evaluate(
                 "Map-type function configurations are not yet supported in this context."
               ),
               FunctionConfigType::Regular(fc) => func = Some(Box::new(fc.clone())),
-              #[cfg_attr(coverage_nightly, coverage(off))]
               FunctionConfigType::IndexMap(_) => {
                 stylex_unimplemented!("IndexMap values are not supported in this context.")
               }
@@ -69,7 +67,6 @@ pub(in super::super) fn evaluate(
       if object.is_ident() {
         let obj_ident = match object.as_ident() {
           Some(ident) => ident,
-          #[cfg_attr(coverage_nightly, coverage(off))]
           None => {
             stylex_panic!("{}", MEMBER_OBJ_NOT_IDENT)
           },
@@ -86,12 +83,10 @@ pub(in super::super) fn evaluate(
 
             match callee_name {
               "Math" => {
-                let first_arg = call.args.first().unwrap_or_else(|| {
-                  #[cfg_attr(coverage_nightly, coverage(off))]
-                  {
-                    stylex_panic!("Math.{} requires an argument", method_name)
-                  }
-                });
+                let first_arg = call
+                  .args
+                  .first()
+                  .unwrap_or_else(|| stylex_panic!("Math.{} requires an argument", method_name));
 
                 if first_arg.spread.is_some() {
                   stylex_panic_with_context!(path, traversal_state, SPREAD_NOT_SUPPORTED);
@@ -106,7 +101,6 @@ pub(in super::super) fn evaluate(
 
                     let second_arg = match call.args.get(1) {
                       Some(arg) => arg,
-                      #[cfg_attr(coverage_nightly, coverage(off))]
                       None => stylex_panic!("Math.pow() requires a second numeric argument."),
                     };
 
@@ -148,12 +142,7 @@ pub(in super::super) fn evaluate(
                       context = Some(vec![EvaluateResultValue::Expr(
                         cached_first_arg
                           .as_expr()
-                          .unwrap_or_else(|| {
-                            #[cfg_attr(coverage_nightly, coverage(off))]
-                            {
-                              stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION)
-                            }
-                          })
+                          .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION))
                           .clone(),
                       )]);
                     }
@@ -199,17 +188,11 @@ pub(in super::super) fn evaluate(
                       context = Some(vec![EvaluateResultValue::Expr(
                         cached_first_arg
                           .as_expr()
-                          .unwrap_or_else(|| {
-                            #[cfg_attr(coverage_nightly, coverage(off))]
-                            {
-                              stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION)
-                            }
-                          })
+                          .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION))
                           .clone(),
                       )]);
                     }
                   },
-                  #[cfg_attr(coverage_nightly, coverage(off))]
                   _ => {
                     stylex_panic!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name)
                   },
@@ -218,12 +201,9 @@ pub(in super::super) fn evaluate(
               "Object" => {
                 let args = &call.args;
 
-                let arg = args.first().unwrap_or_else(|| {
-                  #[cfg_attr(coverage_nightly, coverage(off))]
-                  {
-                    stylex_panic!("Object.{} requires an argument", method_name)
-                  }
-                });
+                let arg = args
+                  .first()
+                  .unwrap_or_else(|| stylex_panic!("Object.{} requires an argument", method_name));
 
                 if arg.spread.is_some() {
                   stylex_panic_with_context!(path, traversal_state, SPREAD_NOT_SUPPORTED);
@@ -253,14 +233,12 @@ pub(in super::super) fn evaluate(
 
                     match match cached_arg {
                       Some(v) => v,
-                      #[cfg_attr(coverage_nightly, coverage(off))]
                       None => stylex_panic!(
                         "Object.fromEntries() requires an array of [key, value] entries."
                       ),
                     } {
                       EvaluateResultValue::Expr(expr) => {
                         let array = expr.as_array().cloned().unwrap_or_else(|| {
-                          #[cfg_attr(coverage_nightly, coverage(off))]
                           {
                             stylex_panic!(
                               "Object.fromEntries() requires an array of [key, value] entries."
@@ -273,7 +251,6 @@ pub(in super::super) fn evaluate(
 
                           let array = match entry.expr.as_array() {
                             Some(a) => a,
-                            #[cfg_attr(coverage_nightly, coverage(off))]
                             None => stylex_panic!(
                               "Each entry in Object.fromEntries() must be a [key, value] array."
                             ),
@@ -286,7 +263,6 @@ pub(in super::super) fn evaluate(
                               .next()
                               .and_then(|e| e.expr.as_lit())
                               .unwrap_or_else(|| {
-                                #[cfg_attr(coverage_nightly, coverage(off))]
                                 {
                                   stylex_panic!(
                                     "Object key must be a static literal (identifier or string)."
@@ -294,12 +270,10 @@ pub(in super::super) fn evaluate(
                                 }
                               });
 
-                          let value = elems.next().map(|e| e.expr.clone()).unwrap_or_else(|| {
-                            #[cfg_attr(coverage_nightly, coverage(off))]
-                            {
-                              stylex_panic!("{}", VALUE_MUST_BE_LITERAL)
-                            }
-                          });
+                          let value = elems
+                            .next()
+                            .map(|e| e.expr.clone())
+                            .unwrap_or_else(|| stylex_panic!("{}", VALUE_MUST_BE_LITERAL));
 
                           from_entries_result.insert(key.clone(), value.clone());
                         }
@@ -307,7 +281,6 @@ pub(in super::super) fn evaluate(
                       EvaluateResultValue::Vec(vec) => {
                         for entry in vec {
                           let entry = entry.as_vec().cloned().unwrap_or_else(|| {
-                            #[cfg_attr(coverage_nightly, coverage(off))]
                             {
                               stylex_panic!(
                                 "Expected an array element but found a hole (empty slot)."
@@ -320,7 +293,6 @@ pub(in super::super) fn evaluate(
                             .and_then(|item| item.as_expr().cloned())
                             .and_then(|expr| expr.as_lit().cloned())
                             .unwrap_or_else(|| {
-                              #[cfg_attr(coverage_nightly, coverage(off))]
                               {
                                 stylex_panic!(
                                   "Object key must be a static literal (identifier or string)."
@@ -331,17 +303,11 @@ pub(in super::super) fn evaluate(
                           let value = entry
                             .get(1)
                             .and_then(|item| item.as_expr().cloned())
-                            .unwrap_or_else(|| {
-                              #[cfg_attr(coverage_nightly, coverage(off))]
-                              {
-                                stylex_panic!("{}", VALUE_MUST_BE_LITERAL)
-                              }
-                            });
+                            .unwrap_or_else(|| stylex_panic!("{}", VALUE_MUST_BE_LITERAL));
 
                           from_entries_result.insert(key.clone(), Box::new(value.clone()));
                         }
                       },
-                      #[cfg_attr(coverage_nightly, coverage(off))]
                       _ => {
                         stylex_panic!(
                           "Object.fromEntries() requires an array of [key, value] entries."
@@ -375,13 +341,11 @@ pub(in super::super) fn evaluate(
                       for prop in &object.props {
                         let expr = match prop.as_prop().cloned() {
                           Some(p) => p,
-                          #[cfg_attr(coverage_nightly, coverage(off))]
                           None => stylex_panic!("{}", SPREAD_NOT_SUPPORTED),
                         };
 
                         let key_values = match expr.as_key_value() {
                           Some(kv) => kv,
-                          #[cfg_attr(coverage_nightly, coverage(off))]
                           None => stylex_panic!("Object.keys() requires an object argument."),
                         };
 
@@ -425,13 +389,11 @@ pub(in super::super) fn evaluate(
                       for prop in &object.props {
                         let prop = match prop.as_prop().cloned() {
                           Some(p) => p,
-                          #[cfg_attr(coverage_nightly, coverage(off))]
                           None => stylex_panic!("{}", SPREAD_NOT_SUPPORTED),
                         };
 
                         let key_values = match prop.as_key_value() {
                           Some(kv) => kv,
-                          #[cfg_attr(coverage_nightly, coverage(off))]
                           None => stylex_panic!("Object.values() requires an object argument."),
                         };
 
@@ -471,13 +433,11 @@ pub(in super::super) fn evaluate(
                       for prop in &object.props {
                         let expr = match prop.as_prop().map(|prop| *prop.clone()) {
                           Some(p) => p,
-                          #[cfg_attr(coverage_nightly, coverage(off))]
                           None => stylex_panic!("{}", SPREAD_NOT_SUPPORTED),
                         };
 
                         let key_values = match expr.as_key_value() {
                           Some(kv) => kv,
-                          #[cfg_attr(coverage_nightly, coverage(off))]
                           None => {
                             stylex_panic!("Object.entries() requires an object argument.")
                           },
@@ -493,19 +453,16 @@ pub(in super::super) fn evaluate(
 
                     context = Some(vec![EvaluateResultValue::Entries(entries)]);
                   },
-                  #[cfg_attr(coverage_nightly, coverage(off))]
                   Err(()) => {
                     stylex_panic!("{} - {}:{}", BUILT_IN_FUNCTION, callee_name, method_name)
                   },
                 }
               },
-              #[cfg_attr(coverage_nightly, coverage(off))]
               _ => stylex_panic!("{} - {}", BUILT_IN_FUNCTION, callee_name),
             }
           } else {
             let prop_ident = match property.as_ident() {
               Some(ident) => ident,
-              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!(
                 "Property key must be a static identifier, not a computed expression."
               ),
@@ -529,7 +486,6 @@ pub(in super::super) fn evaluate(
                   traversal_state,
                   "Map-type function configurations are not yet supported in this context."
                 ),
-                #[cfg_attr(coverage_nightly, coverage(off))]
                 FunctionConfigType::IndexMap(_) => {
                   stylex_unimplemented!("IndexMap values are not supported in this context.")
                 },
@@ -574,7 +530,6 @@ pub(in super::super) fn evaluate(
       if object.is_lit() {
         let obj_lit = match object.as_lit() {
           Some(lit) => lit,
-          #[cfg_attr(coverage_nightly, coverage(off))]
           None => stylex_panic!("Expected a static object literal."),
         };
 
@@ -597,7 +552,6 @@ pub(in super::super) fn evaluate(
           if property.is_ident() {
             let prop_ident = match property.as_ident() {
               Some(ident) => ident,
-              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!(
                 "Property key must be a static identifier, not a computed expression."
               ),
@@ -690,7 +644,6 @@ pub(in super::super) fn evaluate(
                     .map(|elem| {
                       let elem = match elem.clone() {
                         Some(e) => e,
-                        #[cfg_attr(coverage_nightly, coverage(off))]
                         None => {
                           stylex_panic!("Array element must be present (no empty slots allowed).")
                         },
@@ -898,7 +851,6 @@ pub(in super::super) fn evaluate(
           let func_result = (func)(
             (**match args.first() {
               Some(a) => a,
-              #[cfg_attr(coverage_nightly, coverage(off))]
               None => {
                 stylex_panic!("StyleX expression function requires at least one argument.")
               },
@@ -968,7 +920,6 @@ pub(in super::super) fn evaluate(
               .into_iter()
               .map(|arg| match arg.as_expr().cloned() {
                 Some(e) => e,
-                #[cfg_attr(coverage_nightly, coverage(off))]
                 None => stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION),
               })
               .collect(),
@@ -984,10 +935,7 @@ pub(in super::super) fn evaluate(
               .first()
               .and_then(|arg| arg.as_expr().cloned())
               .unwrap_or_else(|| {
-                #[cfg_attr(coverage_nightly, coverage(off))]
-                {
-                  stylex_panic!("StyleX expression function requires an expression argument.")
-                }
+                stylex_panic!("StyleX expression function requires an expression argument.")
               }),
             traversal_state,
           );
@@ -999,36 +947,27 @@ pub(in super::super) fn evaluate(
           let expr = args
             .first()
             .and_then(|expr| expr.as_expr())
-            .unwrap_or_else(|| {
-              #[cfg_attr(coverage_nightly, coverage(off))]
-              {
-                stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION)
-              }
-            });
+            .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION));
 
           match expr {
             Expr::Object(obj) => {
               for prop in &obj.props {
                 let prop = match prop.as_prop() {
                   Some(p) => p,
-                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!("{}", SPREAD_NOT_SUPPORTED),
                 };
                 let key_value = match prop.as_key_value() {
                   Some(kv) => kv,
-                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!("{}", KEY_VALUE_EXPECTED),
                 };
 
                 let key = match key_value.key.as_ident() {
                   Some(ident) => ident.sym.to_string(),
-                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!("{}", OBJECT_KEY_MUST_BE_IDENT),
                 };
 
                 let value = match key_value.value.as_lit() {
                   Some(lit) => lit,
-                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!("{}", VALUE_MUST_BE_LITERAL),
                 };
 
@@ -1053,7 +992,6 @@ pub(in super::super) fn evaluate(
         FunctionType::Callback(func) => {
           let context = match context {
             Some(c) => c,
-            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("Object.entries() requires an object argument."),
           };
 
@@ -1168,18 +1106,12 @@ pub(in super::super) fn evaluate(
                   arg
                     .as_expr()
                     .map(|expr| unwrap_or_panic!(expr_to_num(expr, state, traversal_state, fns)))
-                    .unwrap_or_else(|| {
-                      #[cfg_attr(coverage_nightly, coverage(off))]
-                      {
-                        stylex_panic!("All arguments must be numeric values.")
-                      }
-                    })
+                    .unwrap_or_else(|| stylex_panic!("All arguments must be numeric values."))
                 })
                 .collect::<Vec<f64>>();
 
               let result = match (num_args.first(), num_args.get(1)) {
                 (Some(base), Some(exp)) => base.powf(*exp),
-                #[cfg_attr(coverage_nightly, coverage(off))]
                 _ => stylex_panic!("Math.pow() requires two numeric arguments."),
               };
 
@@ -1202,7 +1134,6 @@ pub(in super::super) fn evaluate(
                 CallbackType::Math(MathJS::Round) => num.round(),
                 CallbackType::Math(MathJS::Ceil) => num.ceil(),
                 CallbackType::Math(MathJS::Floor) => num.floor(),
-                #[cfg_attr(coverage_nightly, coverage(off))]
                 _ => stylex_unreachable!("Invalid function type"),
               };
 
@@ -1226,11 +1157,9 @@ pub(in super::super) fn evaluate(
                     CallbackType::Math(MathJS::Max) => {
                       num_args.iter().copied().max_by(sort_numbers_factory())
                     }
-                    #[cfg_attr(coverage_nightly, coverage(off))]
                     _ => stylex_unreachable!("Invalid function type"),
                   }
                   .unwrap_or_else(|| {
-                    #[cfg_attr(coverage_nightly, coverage(off))]
                     {
                       stylex_panic!(
                       "Math.min()/Math.max() returned no result. Ensure numeric arguments are provided."
@@ -1325,27 +1254,16 @@ pub(in super::super) fn evaluate(
                   arg
                     .as_expr()
                     .map(|expr| unwrap_or_panic!(expr_to_num(expr, state, traversal_state, fns)))
-                    .unwrap_or_else(|| {
-                      #[cfg_attr(coverage_nightly, coverage(off))]
-                      {
-                        stylex_panic!("The first argument must be a numeric value.")
-                      }
-                    })
+                    .unwrap_or_else(|| stylex_panic!("The first argument must be a numeric value."))
                 })
                 .collect::<Vec<f64>>();
 
               let char_index = num_args.first().unwrap_or_else(|| {
-                #[cfg_attr(coverage_nightly, coverage(off))]
-                {
-                  stylex_panic!("The first argument of String.charCodeAt() must be a number.")
-                }
+                stylex_panic!("The first argument of String.charCodeAt() must be a number.")
               });
 
               let char_code = char_code_at(&base_str, *char_index as usize).unwrap_or_else(|| {
-                #[cfg_attr(coverage_nightly, coverage(off))]
-                {
-                  stylex_panic!("String.charCodeAt() returned no result for the given index.")
-                }
+                stylex_panic!("String.charCodeAt() returned no result for the given index.")
               });
 
               return Some(EvaluateResultValue::Expr(create_number_expr(
@@ -1385,7 +1303,6 @@ pub(in super::super) fn evaluate(
             .map(|arg| {
               match arg.as_expr() {
                 Some(e) => e,
-                #[cfg_attr(coverage_nightly, coverage(off))]
                 None => stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION),
               }
               .clone()

@@ -9,16 +9,18 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::StyleXTransform;
-use crate::shared::{
-  structures::functions::FunctionMap,
-  transformers::stylex_define_consts::stylex_define_consts,
-  utils::{
-    common::gen_file_based_identifier,
-    core::js_to_ast::{NestedStringObject, convert_object_to_ast},
-    js::evaluate::evaluate,
-    log::build_code_frame_error::build_code_frame_error,
-    validators::{find_and_validate_stylex_define_consts, is_define_consts_call},
+use crate::{
+  StyleXTransform,
+  shared::{
+    structures::functions::FunctionMap,
+    transformers::stylex_define_consts::stylex_define_consts,
+    utils::{
+      common::gen_file_based_identifier,
+      core::js_to_ast::{NestedStringObject, convert_object_to_ast},
+      js::evaluate::evaluate,
+      log::build_code_frame_error::build_code_frame_error,
+      validators::{find_and_validate_stylex_define_consts, is_define_consts_call},
+    },
   },
 };
 use stylex_structures::top_level_expression::TopLevelExpression;
@@ -34,7 +36,6 @@ where
       let top_level_expr_defined_consts =
         match find_and_validate_stylex_define_consts(call, &mut self.state) {
           Some(expr) => expr,
-          #[cfg_attr(coverage_nightly, coverage(off))]
           None => {
             stylex_panic!("defineConsts(): Could not find the top-level variable declaration.")
           },
@@ -43,7 +44,6 @@ where
       let TopLevelExpression(_, _, var_id) = top_level_expr_defined_consts;
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        #[cfg_attr(coverage_nightly, coverage(off))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -90,7 +90,6 @@ where
           );
           value
         },
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", non_static_value(STYLEX_DEFINE_CONSTS)),
       };
 
@@ -99,13 +98,11 @@ where
         .get_filename_for_hashing(&mut FxHashMap::default())
       {
         Some(name) => name,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", cannot_generate_hash(STYLEX_DEFINE_CONSTS)),
       };
 
       let export_name = match var_id {
         Some(name) => name,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "defineConsts(): The export variable could not be found. Ensure the call is bound to a named export."
         ),

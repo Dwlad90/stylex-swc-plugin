@@ -48,13 +48,11 @@ where
       .get_filename_for_hashing(&mut FxHashMap::default())
     {
       Some(name) => name,
-      #[cfg_attr(coverage_nightly, coverage(off))]
       None => stylex_panic!("{}", cannot_generate_hash(STYLEX_DEFINE_MARKER)),
     };
 
     let export_name = match var_name {
       Some(name) => name,
-      #[cfg_attr(coverage_nightly, coverage(off))]
       None => stylex_panic!(
         "defineMarker(): The variable name could not be determined. Ensure the call is bound to a named variable."
       ),

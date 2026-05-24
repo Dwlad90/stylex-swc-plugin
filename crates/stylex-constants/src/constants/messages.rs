@@ -9,9 +9,25 @@ pub fn illegal_argument_length(fn_name: &str, arg_length: usize) -> String {
 
 pub fn non_static_value(fn_name: &str) -> String {
   format!(
-    "Only static values are allowed inside of a {}() call.",
+    "Only static values are allowed inside of {} {}() call.",
+    indefinite_article(fn_name),
     fn_name
   )
+}
+
+/// Picks `"a"` vs `"an"` based on the first letter of `name` so callers can
+/// stitch together user-facing error messages without manual grammar checks.
+/// We pick by the spelled letter (not phonetic sound), which is fine for the
+/// API names we expose (`create`, `defineVars`, `unstable_defineVarsNested`, …)
+/// — all of those follow the literal-letter rule.
+fn indefinite_article(name: &str) -> &'static str {
+  match name.chars().next() {
+    Some(c) => match c.to_ascii_lowercase() {
+      'a' | 'e' | 'i' | 'o' | 'u' => "an",
+      _ => "a",
+    },
+    None => "a",
+  }
 }
 
 pub fn non_style_object(fn_name: &str) -> String {
@@ -103,6 +119,8 @@ pub static INJECTABLE_STYLE_NOT_SUPPORTED: &str =
 
 pub static ONLY_OVERRIDE_DEFINE_VARS: &str =
   "Can only override variables theme created with defineVars().";
+pub static ONLY_OVERRIDE_DEFINE_VARS_NESTED: &str =
+  "Can only override variables theme created with unstable_defineVarsNested().";
 
 pub static MEMBER_NOT_RESOLVED: &str =
   "Could not resolve the member expression. Ensure the object and property are statically known.";

@@ -13,25 +13,28 @@ use swc_core::{
   ecma::ast::{CallExpr, Expr},
 };
 
-use crate::StyleXTransform;
-use crate::shared::{
-  structures::{
-    functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
-    state_manager::ImportKind,
-    theme_ref::ThemeRef,
-    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+use crate::{
+  StyleXTransform,
+  shared::{
+    structures::{
+      functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
+      state_manager::ImportKind,
+      theme_ref::ThemeRef,
+      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+    },
+    transformers::{
+      stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,
+      stylex_position_try::get_position_try_fn, stylex_types::get_types_fn,
+    },
+    utils::{
+      common::gen_file_based_identifier,
+      core::js_to_ast::{NestedStringObject, convert_object_to_ast},
+      js::evaluate::evaluate,
+      log::build_code_frame_error::build_code_frame_error,
+      validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
+    },
   },
-  transformers::{
-    stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,
-    stylex_position_try::get_position_try_fn, stylex_types::get_types_fn,
-  },
-  utils::{
-    common::gen_file_based_identifier,
-    core::js_to_ast::{NestedStringObject, convert_object_to_ast},
-    js::evaluate::evaluate,
-    log::build_code_frame_error::build_code_frame_error,
-    validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
-  },
+  transform::stylex::visitor_utils::apply_unstable_conditional,
 };
 use stylex_structures::top_level_expression::TopLevelExpression;
 
@@ -50,14 +53,12 @@ where
       let stylex_create_theme_top_level_expr =
         match find_and_validate_stylex_define_vars(call, &mut self.state) {
           Some(expr) => expr,
-          #[cfg_attr(coverage_nightly, coverage(off))]
           None => stylex_panic!("defineVars(): Could not find the top-level variable declaration."),
         };
 
       let TopLevelExpression(_, _, var_id) = stylex_create_theme_top_level_expr;
 
       let first_arg = call.args.first().map(|first_arg| match &first_arg.spread {
-        #[cfg_attr(coverage_nightly, coverage(off))]
         Some(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
         None => first_arg.expr.clone(),
       })?;
@@ -118,6 +119,8 @@ where
         }
       }
 
+      apply_unstable_conditional(&self.state, &mut identifiers, &mut member_expressions);
+
       self
         .state
         .apply_stylex_env(&mut identifiers, &mut member_expressions);
@@ -130,26 +133,17 @@ where
         .get_filename_for_hashing(&mut FxHashMap::default())
       {
         Some(name) => name,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", cannot_generate_hash(STYLEX_DEFINE_VARS)),
       };
 
       let export_name = match var_id.map(|decl| decl.to_string()) {
         Some(name) => name,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!(
           "defineVars(): The export variable could not be found. Ensure the call is bound to a named export."
         ),
       };
 
       self.state.export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));
-
-      // Static analysis: validate arrow function values and build the dependency
-      // graph so cycles and unknown references can be caught before evaluation.
-      // A single fused pass collects the top-level keys and arrow dependencies,
-      // and the Visit-based collector ensures all expression kinds are covered.
-      let (_all_keys, dependency_map) = collect_keys_and_dependencies(&first_arg, &export_name);
-      assert_no_define_vars_cycles(&dependency_map);
 
       // Inject a ThemeRef factory under the export variable name so that arrow
       // function bodies can resolve `exportName.property` to `var(--hash)` during
@@ -216,9 +210,21 @@ where
           }
           value
         },
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", non_static_value(STYLEX_DEFINE_VARS)),
       };
+
+      // Static analysis: validate arrow function values and build the dependency
+      // graph so cycles and unknown references can be caught before normalization.
+      // We run this on the *evaluated* object literal so that all statically
+      // resolvable forms — inline object literals, identifier-bound constants
+      // (`defineVars(tokens)`), object spreads, computed keys — go through the
+      // same cycle/unknown-ref checks. A single fused pass collects the
+      // top-level keys and arrow dependencies, and the Visit-based collector
+      // ensures all expression kinds are covered.
+      if let Some(value_expr) = value.as_expr() {
+        let (_all_keys, dependency_map) = collect_keys_and_dependencies(value_expr, &export_name);
+        assert_no_define_vars_cycles(&dependency_map);
+      }
 
       // Normalize: evaluate zero-param arrow function values in the defineVars object
       // (mirrors TypeScript's `normalizeDefineVarsObject`).

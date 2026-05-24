@@ -14,5 +14,6 @@ pub(crate) mod props;
 pub(crate) mod styleq;
 pub(crate) mod stylex;
 pub(crate) mod stylex_merge;
+pub(crate) mod stylex_nested_utils;
 #[cfg(test)]
 pub(crate) mod tests;

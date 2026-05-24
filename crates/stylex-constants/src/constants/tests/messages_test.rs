@@ -28,6 +28,25 @@ fn test_non_static_value() {
 }
 
 #[test]
+fn test_non_static_value_with_vowel_api_name() {
+  assert_eq!(
+    non_static_value("unstable_defineVarsNested"),
+    "Only static values are allowed inside of an unstable_defineVarsNested() call."
+  );
+}
+
+#[test]
+fn test_non_static_value_with_empty_api_name_falls_back_to_a() {
+  // Defensive: covers the `None` branch of `indefinite_article` so an empty
+  // API name still produces a grammatically valid (if useless) sentence rather
+  // than panicking.
+  assert_eq!(
+    non_static_value(""),
+    "Only static values are allowed inside of a () call."
+  );
+}
+
+#[test]
 fn test_non_style_object() {
   assert_eq!(
     non_style_object("create"),

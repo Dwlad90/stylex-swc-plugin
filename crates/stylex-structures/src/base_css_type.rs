@@ -1,20 +1,31 @@
 use indexmap::IndexMap;
-use stylex_macros::stylex_panic;
-use swc_core::ecma::{
-  ast::{Expr, ObjectLit, PropOrSpread},
-  utils::ExprExt,
-};
-
-use crate::shared::utils::{
-  ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
-  common::get_key_values_from_object,
+use stylex_ast::ast::convertors::{
+  convert_key_value_to_str, convert_lit_to_string, get_key_values_from_object,
 };
 use stylex_ast::ast::factories::{
   create_key_value_prop, create_object_expression, create_object_lit, create_string_key_value_prop,
 };
 use stylex_constants::constants::messages::VALUE_MUST_BE_STRING;
 use stylex_enums::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault};
+use stylex_macros::stylex_panic;
 use stylex_utils::swc::get_default_expr_ctx;
+use swc_core::ecma::{
+  ast::{Expr, ObjectLit, PropOrSpread},
+  utils::ExprExt,
+};
+
+impl From<BaseCSSType> for Expr {
+  fn from(instance: BaseCSSType) -> Self {
+    let syntax_prop =
+      create_string_key_value_prop("syntax", format!("{}", instance.syntax).as_str());
+
+    let mut props = vec![syntax_prop];
+
+    props.extend(BaseCSSType::value_to_props(instance.value, None));
+
+    create_object_expression(props)
+  }
+}
 
 #[derive(Debug, PartialEq, Clone, Hash)]
 pub struct BaseCSSType {
@@ -30,24 +41,20 @@ impl BaseCSSType {
           top_key.unwrap_or(String::from("value")).as_str(),
           n.to_string().as_str(),
         );
-        let props = vec![value_prop];
-        props
+        vec![value_prop]
       },
       ValueWithDefault::String(s) => {
         let value_prop = create_string_key_value_prop(
           top_key.unwrap_or(String::from("value")).as_str(),
           s.as_str(),
         );
-        let props = vec![value_prop];
-
-        props
+        vec![value_prop]
       },
       ValueWithDefault::Map(map) => {
         let mut local_props = Vec::with_capacity(map.len());
 
         for (key, val) in map {
           let props_to_extend = BaseCSSType::value_to_props(val, Some(key));
-
           local_props.extend(props_to_extend);
         }
 
@@ -60,6 +67,10 @@ impl BaseCSSType {
     }
   }
 }
+
+#[cfg(test)]
+#[path = "tests/base_css_type_test.rs"]
+mod tests;
 
 impl From<ObjectLit> for BaseCSSType {
   fn from(obj: ObjectLit) -> BaseCSSType {
@@ -85,7 +96,6 @@ impl From<ObjectLit> for BaseCSSType {
             Expr::Lit(obj) => {
               let value = match convert_lit_to_string(obj) {
                 Some(v) => v,
-                #[cfg_attr(coverage_nightly, coverage(off))]
                 None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
               };
 
@@ -93,7 +103,6 @@ impl From<ObjectLit> for BaseCSSType {
 
               &create_object_lit(vec![prop])
             },
-            #[cfg_attr(coverage_nightly, coverage(off))]
             _ => stylex_panic!(
               "Value must be an object or string, but got: {:?}",
               key_value.value.get_type(get_default_expr_ctx())
@@ -116,13 +125,11 @@ impl From<ObjectLit> for BaseCSSType {
                     Expr::Lit(lit) => {
                       let value = match convert_lit_to_string(lit) {
                         Some(v) => v,
-                        #[cfg_attr(coverage_nightly, coverage(off))]
                         None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
                       };
 
                       obj_map.insert(key, ValueWithDefault::String(value));
                     },
-                    #[cfg_attr(coverage_nightly, coverage(off))]
                     _ => stylex_panic!(
                       "Value must be a string, but got: {:?}",
                       key_value.value.get_type(get_default_expr_ctx())
@@ -142,7 +149,6 @@ impl From<ObjectLit> for BaseCSSType {
 
                 values.insert(key, ValueWithDefault::String(value));
               },
-              #[cfg_attr(coverage_nightly, coverage(off))]
               _ => stylex_panic!(
                 "Value must be a string or object, but got: {:?}",
                 key_value.value.get_type(get_default_expr_ctx())
@@ -150,7 +156,6 @@ impl From<ObjectLit> for BaseCSSType {
             }
           }
         },
-        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => {
           stylex_panic!(r#"Key "{}" not support by BaseCSSType"#, key)
         },
@@ -168,7 +173,6 @@ impl From<ObjectLit> for BaseCSSType {
       value: ValueWithDefault::Map(values),
       syntax: match syntax {
         Some(s) => s,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("CSS syntax definition is required for this type."),
       },
     }

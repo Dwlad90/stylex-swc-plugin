@@ -83,11 +83,9 @@ fn style_object_as_style(style_object: &StyleObject) -> Option<&FlatCompiledStyl
   match style_object {
     StyleObject::Style(style) => Some(style),
     StyleObject::Nullable => None,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     StyleObject::Other => {
       stylex_panic!("Only compiled StyleX style objects are allowed in styleq().")
     },
-    #[cfg_attr(coverage_nightly, coverage(off))]
     StyleObject::Unreachable => {
       stylex_unreachable!("Encountered an unexpected style object variant in styleq processing.")
     },

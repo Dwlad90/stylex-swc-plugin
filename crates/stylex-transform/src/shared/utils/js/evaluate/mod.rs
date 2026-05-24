@@ -119,19 +119,13 @@ fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -> Expr {
         .as_vec()
         .map(|vec| evaluate_result_vec_to_array_expr(vec))
         .or_else(|| entry.as_expr().cloned())
-        .unwrap_or_else(|| {
-          #[cfg_attr(coverage_nightly, coverage(off))]
-          {
-            stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE)
-          }
-        });
+        .unwrap_or_else(|| stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE));
 
       let expr = match expr {
         Expr::Array(array) => Expr::Array(array),
         Expr::Object(obj) => Expr::Object(obj),
         Expr::Lit(lit) => Expr::Lit(lit),
         Expr::Ident(ident) => Expr::Ident(ident),
-        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
       };
 
@@ -186,7 +180,6 @@ pub(crate) fn evaluate_obj_key(
       if computed_result.confident {
         match computed_result.value {
           Some(EvaluateResultValue::Expr(value)) => value,
-          #[cfg_attr(coverage_nightly, coverage(off))]
           _ => stylex_panic!("Expected an expression value from the evaluation result."),
         }
       } else {
@@ -413,10 +406,7 @@ fn _evaluate(
           }
         })
         .unwrap_or_else(|| {
-          #[cfg_attr(coverage_nightly, coverage(off))]
-          {
-            stylex_panic!("Could not resolve the import specifier. Ensure the import is correct.")
-          }
+          stylex_panic!("Could not resolve the import specifier. Ensure the import is correct.")
         });
 
       let imported = imported.unwrap_or_else(|| ModuleExportName::Ident(local_name.clone()));

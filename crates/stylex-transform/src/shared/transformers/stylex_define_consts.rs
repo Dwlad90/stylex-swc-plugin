@@ -11,7 +11,11 @@ use crate::shared::{
     state_manager::StateManager,
     types::{FlatCompiledStyles, InjectableStylesMap},
   },
-  utils::{common::serialize_value_to_json_string, object::obj_map},
+  utils::{
+    ast::convertors::{convert_lit_to_string, convert_tpl_to_string_lit},
+    common::serialize_value_to_json_string,
+    object::obj_map,
+  },
 };
 use stylex_constants::constants::messages::{
   EXPORT_ID_NOT_SET, INJECTABLE_STYLE_NOT_SUPPORTED, VALUES_MUST_BE_OBJECT,
@@ -21,16 +25,25 @@ use stylex_types::{
   structures::injectable_style::InjectableConstStyle,
 };
 use stylex_utils::hash::create_key_hash;
+use swc_core::ecma::ast::Expr;
+
+fn serialize_define_const_value(value: &Expr) -> String {
+  match value {
+    Expr::Lit(lit) => convert_lit_to_string(lit)
+      .unwrap_or_else(|| serialize_value_to_json_string(EvaluateResultValue::Expr(value.clone()))),
+    Expr::Tpl(tpl) => convert_tpl_to_string_lit(tpl)
+      .and_then(|lit| convert_lit_to_string(&lit))
+      .unwrap_or_else(|| serialize_value_to_json_string(EvaluateResultValue::Expr(value.clone()))),
+    _ => serialize_value_to_json_string(EvaluateResultValue::Expr(value.clone())),
+  }
+}
 
 pub(crate) fn stylex_define_consts(
   constants: &EvaluateResultValue,
   state: &mut StateManager,
 ) -> (FlatCompiledStyles, InjectableStylesMap) {
   let Some(constants) = constants.as_expr().and_then(|expr| expr.as_object()) else {
-    #[cfg_attr(coverage_nightly, coverage(off))]
-    {
-      stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
-    }
+    stylex_panic!("{}", VALUES_MUST_BE_OBJECT)
   };
 
   let class_name_prefix = state.options.class_name_prefix.clone();
@@ -38,7 +51,6 @@ pub(crate) fn stylex_define_consts(
   let enable_debug_class_names = state.options.enable_debug_class_names;
   let export_id = match state.export_id.clone() {
     Some(id) => id,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("{}", EXPORT_ID_NOT_SET),
   };
 
@@ -47,17 +59,14 @@ pub(crate) fn stylex_define_consts(
     state,
     |item, _| -> Rc<FlatCompiledStylesValue> {
       let result = match item.as_ref() {
-        #[cfg_attr(coverage_nightly, coverage(off))]
         FlatCompiledStylesValue::InjectableStyle(_) => {
           stylex_panic!("{}", INJECTABLE_STYLE_NOT_SUPPORTED)
         },
         FlatCompiledStylesValue::Tuple(_key, value, _) => {
-          let serialized_value =
-            serialize_value_to_json_string(EvaluateResultValue::Expr(*value.clone()));
+          let serialized_value = serialize_define_const_value(value);
 
           FlatCompiledStylesValue::String(serialized_value)
         },
-        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_unimplemented!(
           "FlatCompiledStylesValue variant not supported in stylex_define_consts"
         ),

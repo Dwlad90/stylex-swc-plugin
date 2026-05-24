@@ -16,18 +16,17 @@ use swc_core::{
 };
 
 use stylex_enums::top_level_expression::TopLevelExpressionKind;
-use stylex_structures::top_level_expression::TopLevelExpression;
+use stylex_structures::{base_css_type::BaseCSSType, top_level_expression::TopLevelExpression};
 
 use crate::shared::{
   structures::{
-    base_css_type::BaseCSSType,
     functions::{FunctionConfigType, FunctionMap, FunctionType},
     state_manager::StateManager,
   },
   utils::ast::convertors::{convert_str_lit_to_atom, convert_wtf8_to_atom},
 };
 use stylex_constants::constants::messages::{
-  ILLEGAL_PROP_VALUE, INVALID_UTF8, SPREAD_NOT_SUPPORTED, VAR_DECL_NAME_NOT_IDENT,
+  INVALID_UTF8, SPREAD_NOT_SUPPORTED, VAR_DECL_NAME_NOT_IDENT,
 };
 use stylex_regex::regex::JSON_REGEX;
 
@@ -39,12 +38,10 @@ pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
     FileName::Real(path_buf) => {
       let stem = match path_buf.file_stem() {
         Some(s) => s,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("File path has no file stem component."),
       };
       match stem.to_str() {
         Some(s) => s.to_string(),
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", INVALID_UTF8),
       }
     },
@@ -56,7 +53,6 @@ pub(crate) fn extract_path(path: &FileName) -> &str {
   match path {
     FileName::Real(path_buf) => match path_buf.to_str() {
       Some(s) => s,
-      #[cfg_attr(coverage_nightly, coverage(off))]
       None => stylex_panic!("{}", INVALID_UTF8),
     },
     _ => "",
@@ -68,12 +64,10 @@ pub(crate) fn extract_filename_with_ext_from_path(path: &FileName) -> Option<&st
     FileName::Real(path_buf) => {
       let name = match path_buf.file_name() {
         Some(n) => n,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("File path has no file name component."),
       };
       Some(match name.to_str() {
         Some(s) => s,
-        #[cfg_attr(coverage_nightly, coverage(off))]
         None => stylex_panic!("{}", INVALID_UTF8),
       })
     },
@@ -100,14 +94,11 @@ pub fn get_var_decl_by_ident<'a>(
 
           return Some(var_decl);
         },
-        #[cfg_attr(coverage_nightly, coverage(off))]
         _ => stylex_panic!("Function type not supported: {:?}", func),
       },
-      #[cfg_attr(coverage_nightly, coverage(off))]
       FunctionConfigType::Map(_) => {
         stylex_unimplemented!("Map values are not supported in this context.")
       },
-      #[cfg_attr(coverage_nightly, coverage(off))]
       FunctionConfigType::IndexMap(_) => {
         stylex_unimplemented!("IndexMap values are not supported in this context.")
       },
@@ -168,7 +159,6 @@ pub(crate) fn get_import_from<'a>(
 pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
   match &var_decl.init {
     Some(var_decl_init) => var_decl_init,
-    #[cfg_attr(coverage_nightly, coverage(off))]
     None => stylex_panic!("Variable declaration must be initialized with an expression."),
   }
 }
@@ -262,7 +252,6 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
   for prop in obj.props.clone().into_iter() {
     match prop {
-      #[cfg_attr(coverage_nightly, coverage(off))]
       PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
       PropOrSpread::Prop(mut prop) => {
         expand_shorthand_prop(&mut prop);
@@ -274,7 +263,6 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
             {
               let value = obj.props.iter().find(|prop| {
                 match prop {
-                  #[cfg_attr(coverage_nightly, coverage(off))]
                   PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
                   PropOrSpread::Prop(prop) => {
                     let mut prop = prop.clone();
@@ -286,7 +274,6 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
                           return ident.sym == "value";
                         }
                       },
-                      #[cfg_attr(coverage_nightly, coverage(off))]
                       _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
                     }
                   },
@@ -298,7 +285,6 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
               if let Some(value) = value {
                 let result_key_value = match value.as_prop().and_then(|prop| prop.as_key_value()) {
                   Some(kv) => kv,
-                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!("Expected key-value property"),
                 };
 
@@ -306,7 +292,6 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
               }
             }
           },
-          #[cfg_attr(coverage_nightly, coverage(off))]
           _ => stylex_unimplemented!("Unsupported prop type in CSS value"),
         }
       },
@@ -316,25 +301,11 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
   (key_value.value, None)
 }
 
-pub(crate) fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {
-  object
-    .props
-    .iter()
-    .map(|prop| match prop {
-      PropOrSpread::Spread(_) => stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED),
-      PropOrSpread::Prop(prop) => {
-        let mut prop = prop.clone();
-
-        expand_shorthand_prop(&mut prop);
-
-        match prop.as_ref() {
-          Prop::KeyValue(key_value) => key_value.clone(),
-          _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
-        }
-      },
-    })
-    .collect()
-}
+// `get_key_values_from_object` was hoisted to `stylex-ast`; re-exported here so
+// existing `crate::shared::utils::common::get_key_values_from_object` import
+// sites keep working without churn (project convention — see also
+// `shared/utils/ast/convertors.rs`'s `pub use` block).
+pub use stylex_ast::ast::convertors::get_key_values_from_object;
 
 pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
   module.body.iter().for_each(|item| match item {
@@ -344,7 +315,6 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
           if let Some(decl_init) = decl.init.as_ref() {
             let ident_sym = match decl.name.as_ident() {
               Some(i) => i.sym.clone(),
-              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
             };
             state.top_level_expressions.push(TopLevelExpression(
@@ -382,7 +352,6 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
         {
           let stmt_ident_sym = match decl.name.as_ident() {
             Some(i) => i.sym.clone(),
-            #[cfg_attr(coverage_nightly, coverage(off))]
             None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
           };
           state.top_level_expressions.push(TopLevelExpression(
@@ -492,10 +461,7 @@ pub(crate) fn serialize_value_to_json_string<T: serde::Serialize>(value: T) -> S
       }
     },
     Err(err) => {
-      #[cfg_attr(coverage_nightly, coverage(off))]
-      {
-        stylex_panic!("Failed to serialize value. Error: {}", err)
-      }
+      stylex_panic!("Failed to serialize value. Error: {}", err)
     },
   }
 }

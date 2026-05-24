@@ -82,7 +82,6 @@ where
 
     let member_expression = match member_expressions.get_mut(name) {
       Some(me) => me,
-      #[cfg_attr(coverage_nightly, coverage(off))]
       None => stylex_panic!("Could not resolve the member expression for the StyleX import."),
     };
 
@@ -106,12 +105,7 @@ where
       Box::new(FunctionConfigType::IndexMap(
         stylex_default_marker::stylex_default_marker(&transform.state.options)
           .as_values()
-          .unwrap_or_else(|| {
-            #[cfg_attr(coverage_nightly, coverage(off))]
-            {
-              stylex_panic!("{}", EXPECTED_COMPILED_STYLES)
-            }
-          })
+          .unwrap_or_else(|| stylex_panic!("{}", EXPECTED_COMPILED_STYLES))
           .clone(),
       )),
     );

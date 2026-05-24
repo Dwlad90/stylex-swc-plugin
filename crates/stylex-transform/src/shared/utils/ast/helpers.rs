@@ -2,9 +2,12 @@ use stylex_enums::top_level_expression::TopLevelExpressionKind;
 use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{
-    ExportSpecifier, Expr, KeyValueProp, Lit, MemberProp, ModuleExportName, Prop, PropName,
-    PropOrSpread,
+  ecma::{
+    ast::{
+      ArrowExpr, ExportSpecifier, Expr, KeyValueProp, Lit, MemberProp, ModuleExportName, Prop,
+      PropName, PropOrSpread,
+    },
+    visit::{Visit, VisitWith},
   },
 };
 
@@ -96,9 +99,10 @@ fn namespace_name_from_expr(expr: &Expr) -> Option<Atom> {
   }
 }
 
-/// Returns `Some(kv)` only for `PropOrSpread::Prop(Box<Prop::KeyValue>)` shapes;
-/// any other variant (spread, method, getter, setter, shorthand, …) yields `None`.
-/// Callers typically use this to skip props they can't handle in a single pass.
+/// Returns `Some(kv)` only for `PropOrSpread::Prop(Box<Prop::KeyValue>)`
+/// shapes; any other variant (spread, method, getter, setter, shorthand, …)
+/// yields `None`. Callers typically use this to skip props they can't handle in
+/// a single pass.
 pub(crate) fn prop_as_key_value(prop: &PropOrSpread) -> Option<&KeyValueProp> {
   match prop {
     PropOrSpread::Prop(p) => match p.as_ref() {
@@ -109,16 +113,14 @@ pub(crate) fn prop_as_key_value(prop: &PropOrSpread) -> Option<&KeyValueProp> {
   }
 }
 
-/// Returns `true` if `expr` contains any `Expr::Arrow` at any depth (object
-/// values, parens, …). Used to decide whether a rewrite pass is necessary
-/// without paying the cost of cloning the AST eagerly.
+/// Returns `true` if `expr` contains any `Expr::Arrow` anywhere in its subtree
+/// (object values, parens, conditionals, arrays, calls, template literals, …).
+/// Used to decide whether a rewrite pass is necessary without paying the cost
+/// of cloning the AST eagerly.
 pub(crate) fn expr_contains_arrow(expr: &Expr) -> bool {
-  match expr {
-    Expr::Arrow(_) => true,
-    Expr::Object(obj) => obj.props.iter().any(prop_contains_arrow),
-    Expr::Paren(p) => expr_contains_arrow(&p.expr),
-    _ => false,
-  }
+  let mut finder = ArrowFinder { found: false };
+  expr.visit_with(&mut finder);
+  finder.found
 }
 
 /// Returns `true` if `prop`'s value (or anything nested inside it) is an
@@ -127,5 +129,26 @@ pub(crate) fn prop_contains_arrow(prop: &PropOrSpread) -> bool {
   match prop_as_key_value(prop) {
     Some(kv) => expr_contains_arrow(&kv.value),
     None => false,
+  }
+}
+
+/// SWC `Visit` implementation that flags `true` on the first `ArrowExpr` it
+/// encounters, regardless of the surrounding expression kind. Default
+/// `visit_children_with` dispatch covers all variants (Cond, Logical, Array,
+/// Seq, TaggedTpl, New, Call, …) so the check is exhaustive.
+struct ArrowFinder {
+  found: bool,
+}
+
+impl Visit for ArrowFinder {
+  fn visit_arrow_expr(&mut self, _: &ArrowExpr) {
+    self.found = true;
+  }
+
+  fn visit_expr(&mut self, expr: &Expr) {
+    if self.found {
+      return;
+    }
+    expr.visit_children_with(self);
   }
 }

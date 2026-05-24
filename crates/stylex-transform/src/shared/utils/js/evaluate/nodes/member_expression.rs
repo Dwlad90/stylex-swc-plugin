@@ -14,6 +14,34 @@ pub(in super::super) fn evaluate(
   let evaluated_value = if parent_is_call_expr {
     None
   } else {
+    // ThemeRef fast-path. Only run for member chains whose base is a plain
+    // identifier — the only shape that can resolve to a `ThemeRef` (either a
+    // local `ThemeRefMapper` registered in `fns.identifiers` or a cross-file
+    // `*.stylex.js` import). Skipping computed / call / object bases avoids
+    // paying for a speculative `evaluate_cached` that can never produce a
+    // ThemeRef and may early-deopt via `state.confident` for unrelated deep
+    // member accesses.
+    if let Some((base_path, parts)) = get_full_member_path(member)
+      && is_theme_ref_base(&base_path)
+    {
+      let base_object = evaluate_cached(&base_path, state, traversal_state, fns);
+
+      if !state.confident {
+        return None;
+      }
+
+      if let Some(EvaluateResultValue::ThemeRef(mut theme_ref)) = base_object {
+        let value = theme_ref.get(&parts.join("."), traversal_state);
+
+        return Some(EvaluateResultValue::Expr(create_string_expr(
+          match value.as_css_var() {
+            Some(css_var) => css_var,
+            None => stylex_panic!("{}", EXPECTED_CSS_VAR),
+          },
+        )));
+      }
+    }
+
     evaluate_cached(&member.obj, state, traversal_state, fns)
   };
   match evaluated_value {
@@ -45,7 +73,6 @@ pub(in super::super) fn evaluate(
           Expr::Array(ArrayLit { elems, .. }) => {
             let eval_res = match property {
               Some(p) => p,
-              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
             };
 
@@ -72,7 +99,6 @@ pub(in super::super) fn evaluate(
           Expr::Object(ObjectLit { props, .. }) => {
             let eval_res = match property {
               Some(p) => p,
-              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
             };
 
@@ -155,6 +181,7 @@ pub(in super::super) fn evaluate(
                         );
                       }
                     }
+
                   }
                 })?;
 
@@ -162,7 +189,6 @@ pub(in super::super) fn evaluate(
               Some(EvaluateResultValue::Expr(
                 *match prop.as_key_value() {
                   Some(kv) => kv,
-                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!("{}", KEY_VALUE_EXPECTED),
                 }
                 .value
@@ -247,7 +273,6 @@ pub(in super::super) fn evaluate(
                 Expr::Ident(Ident { sym, .. }) => sym.to_string(),
                 Expr::Lit(lit) => match convert_lit_to_string(&lit) {
                   Some(s) => s,
-                  #[cfg_attr(coverage_nightly, coverage(off))]
                   None => stylex_panic!("Property key must be a string value."),
                 },
                 _ => stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED),
@@ -272,7 +297,6 @@ pub(in super::super) fn evaluate(
           Some(EvaluateResultValue::Expr(create_string_expr(
             match value.as_css_var() {
               Some(css_var) => css_var,
-              #[cfg_attr(coverage_nightly, coverage(off))]
               None => stylex_panic!("{}", EXPECTED_CSS_VAR),
             },
           )))
@@ -319,5 +343,50 @@ pub(in super::super) fn evaluate(
       }
     },
     _ => None,
+  }
+}
+
+fn get_full_member_path(member: &MemberExpr) -> Option<(Expr, Vec<String>)> {
+  let mut parts = Vec::new();
+  let mut current = member;
+
+  loop {
+    parts.insert(0, static_member_prop_key(&current.prop)?);
+
+    match current.obj.as_ref() {
+      Expr::Member(member) => {
+        current = member;
+      },
+      base => {
+        if parts.len() < 2 {
+          return None;
+        }
+
+        return Some((base.clone(), parts));
+      },
+    }
+  }
+}
+
+/// Returns `true` when `base` is a plain identifier — the only shape that can
+/// resolve to a `ThemeRef` in our evaluator (either via `fns.identifiers` for
+/// in-file `defineVars` exports, or via cross-file `*.stylex.js` imports
+/// handled in `evaluate::mod`). Any other expression kind (`Member`, `Call`,
+/// `Object`, `Array`, …) is guaranteed not to produce a `ThemeRef`, so we
+/// skip the fast-path eval to avoid the speculative work the Copilot review
+/// flagged.
+fn is_theme_ref_base(base: &Expr) -> bool {
+  matches!(base, Expr::Ident(_))
+}
+
+fn static_member_prop_key(prop: &MemberProp) -> Option<String> {
+  match prop {
+    MemberProp::Ident(ident) => Some(ident.sym.to_string()),
+    MemberProp::Computed(computed) => match computed.expr.as_ref() {
+      Expr::Lit(Lit::Str(strng)) => strng.value.as_str().map(str::to_string),
+      Expr::Lit(Lit::Num(num)) => Some(num.value.to_string()),
+      _ => None,
+    },
+    MemberProp::PrivateName(_) => None,
   }
 }

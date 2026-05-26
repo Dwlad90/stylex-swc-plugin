@@ -13,7 +13,7 @@ use stylex_constants::constants::{
   },
   long_hand_logical::LONG_HAND_LOGICAL,
   long_hand_physical::LONG_HAND_PHYSICAL,
-  messages::LINT_UNCLOSED_FUNCTION,
+  messages::{LINT_UNCLOSED_FUNCTION, LINT_UNCLOSED_STRING},
   number_properties::NUMBER_PROPERTY_SUFFIXIES,
   priorities::{
     AT_RULE_PRIORITIES, CAMEL_CASE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY,
@@ -401,13 +401,119 @@ fn contains_css_function_call(value: &str, function_name: &str) -> bool {
   false
 }
 
-/// Panics with a formatted CSS parse error.  Replaces unclosed-function
-/// messages with a friendlier lint message.
-fn handle_css_parse_errors(errors: &[Error], css_rule: &str) -> ! {
-  let mut error_message = errors[0].message().to_string();
-  if error_message.ends_with("expected ')'") || error_message.ends_with("expected '('") {
-    error_message = LINT_UNCLOSED_FUNCTION.to_string();
+fn is_escaped(value: &[u8], index: usize) -> bool {
+  let mut backslash_count = 0;
+  let mut cursor = index;
+
+  while cursor > 0 && value[cursor - 1] == b'\\' {
+    backslash_count += 1;
+    cursor -= 1;
   }
+
+  backslash_count % 2 == 1
+}
+
+fn detect_unclosed_strings(css_property_value: &str) {
+  let value = css_property_value.as_bytes();
+  let mut quote: Option<u8> = None;
+  let mut is_comment = false;
+  let mut index = 0;
+
+  while index < value.len() {
+    let byte = value[index];
+
+    if quote.is_none() {
+      if is_comment {
+        if byte == b'*' && value.get(index + 1) == Some(&b'/') {
+          is_comment = false;
+          index += 2;
+          continue;
+        }
+
+        index += 1;
+        continue;
+      }
+
+      if byte == b'/' && value.get(index + 1) == Some(&b'*') {
+        is_comment = true;
+        index += 2;
+        continue;
+      }
+    }
+
+    match quote {
+      Some(current_quote) if byte == current_quote && !is_escaped(value, index) => {
+        quote = None;
+      },
+      None if (byte == b'\'' || byte == b'"') && !is_escaped(value, index) => {
+        quote = Some(byte);
+      },
+      _ => {},
+    }
+
+    index += 1;
+  }
+
+  if quote.is_some() {
+    stylex_panic!("{}", LINT_UNCLOSED_STRING);
+  }
+}
+
+fn has_unclosed_function(css_property_value: &str) -> bool {
+  let value = css_property_value.as_bytes();
+  let mut quote: Option<u8> = None;
+  let mut is_comment = false;
+  let mut paren_depth = 0;
+  let mut index = 0;
+
+  while index < value.len() {
+    let byte = value[index];
+
+    if quote.is_none() {
+      if is_comment {
+        if byte == b'*' && value.get(index + 1) == Some(&b'/') {
+          is_comment = false;
+          index += 2;
+          continue;
+        }
+
+        index += 1;
+        continue;
+      }
+
+      if byte == b'/' && value.get(index + 1) == Some(&b'*') {
+        is_comment = true;
+        index += 2;
+        continue;
+      }
+    }
+
+    match quote {
+      Some(current_quote) if byte == current_quote && !is_escaped(value, index) => {
+        quote = None;
+      },
+      Some(_) => {},
+      None if (byte == b'\'' || byte == b'"') && !is_escaped(value, index) => {
+        quote = Some(byte);
+      },
+      None if byte == b'(' => {
+        paren_depth += 1;
+      },
+      None if byte == b')' && paren_depth > 0 => {
+        paren_depth -= 1;
+      },
+      _ => {},
+    }
+
+    index += 1;
+  }
+
+  paren_depth > 0
+}
+
+/// Panics with a formatted CSS parse error.
+fn handle_css_parse_errors(errors: &[Error], css_rule: &str) -> ! {
+  let error_message = errors[0].message().to_string();
   stylex_panic!("{}, css rule: {}", error_message, css_rule)
 }
 
@@ -431,13 +537,10 @@ pub fn normalize_css_property_value(
   css_property_value: &str,
   options: &StyleXStateOptions,
 ) -> String {
-  if COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES
+  let should_normalize_spacing_only = COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES
     .iter()
     .chain(COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES.iter())
-    .any(|css_fnc| contains_css_function_call(css_property_value, css_fnc))
-  {
-    return MANY_SPACES.replace_all(css_property_value, " ").to_string();
-  }
+    .any(|css_fnc| contains_css_function_call(css_property_value, css_fnc));
 
   let is_css_variable = css_property.starts_with("--");
 
@@ -464,6 +567,18 @@ pub fn normalize_css_property_value(
     rule.push_str(" }");
     rule
   };
+
+  let is_unclosed_function = has_unclosed_function(css_property_value);
+
+  if is_unclosed_function {
+    stylex_panic!("{}, css rule: {}", LINT_UNCLOSED_FUNCTION, css_rule);
+  }
+
+  detect_unclosed_strings(css_property_value);
+
+  if should_normalize_spacing_only {
+    return MANY_SPACES.replace_all(css_property_value, " ").to_string();
+  }
 
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
 

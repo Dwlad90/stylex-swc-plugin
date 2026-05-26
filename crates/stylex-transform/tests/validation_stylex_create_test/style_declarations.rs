@@ -342,6 +342,82 @@ stylex_test_panic!(
 );
 
 stylex_test_panic!(
+  invalid_value_unclosed_double_quoted_string,
+  "Rule contains an unclosed string",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        fontFamily: '"Helvetica Neue'
+      }
+    });
+  "#
+);
+
+stylex_test_panic!(
+  invalid_value_unclosed_single_quoted_string,
+  "Rule contains an unclosed string",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        fontFamily: "'Helvetica Neue"
+      }
+    });
+  "#
+);
+
+stylex_test_panic!(
+  invalid_value_unclosed_string_in_multi_value_property,
+  "Rule contains an unclosed string",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        fontFamily: '"Helvetica Neue, sans-serif'
+      }
+    });
+  "#
+);
+
+stylex_test_panic!(
+  invalid_value_stray_apostrophe_in_font_family_list,
+  "Rule contains an unclosed string",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        fontFamily: "'SF Pro Text', 'SF Pro Icons', Helvetica Neue', 'Helvetica', sans-serif",
+      }
+    });
+  "#
+);
+
+stylex_test!(
+  valid_value_properly_closed_strings_do_not_throw,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        fontFamily: '"Helvetica Neue", sans-serif',
+      }
+    });
+  "#
+);
+
+stylex_test!(
+  valid_value_properly_closed_single_quoted_string,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        fontFamily: "'Helvetica Neue', sans-serif",
+      }
+    });
+  "#
+);
+
+stylex_test_panic!(
   invalid_css_variable_unprefixed_custom_property,
   "Rule contains an unclosed function",
   |tr| {

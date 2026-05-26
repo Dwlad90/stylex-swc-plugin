@@ -73,6 +73,8 @@ pub static INVALID_PSEUDO_OR_AT_RULE: &str = "Invalid pseudo or at-rule.";
 
 pub static LINT_UNCLOSED_FUNCTION: &str = "Rule contains an unclosed function";
 
+pub static LINT_UNCLOSED_STRING: &str = "Rule contains an unclosed string";
+
 pub static LOCAL_ONLY: &str = "The return value of create() should not be exported.";
 
 pub static NON_OBJECT_KEYFRAME: &str = "Every frame within a keyframes() call must be an object.";

@@ -1,7 +1,10 @@
 use rustc_hash::FxHashMap;
 use stylex_constants::constants::{
   api_names::STYLEX_UNSTABLE_DEFINE_VARS_NESTED,
-  messages::{SPREAD_NOT_SUPPORTED, cannot_generate_hash, non_static_value, non_style_object},
+  messages::{
+    SPREAD_NOT_SUPPORTED, cannot_generate_hash, export_variable_not_found, non_static_value,
+    non_style_object,
+  },
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
@@ -107,7 +110,8 @@ where
     let export_name = match var_id.map(|decl| decl.to_string()) {
       Some(name) => name,
       None => stylex_panic!(
-        "unstable_defineVarsNested(): The export variable could not be found. Ensure the call is bound to a named export."
+        "{}",
+        export_variable_not_found(STYLEX_UNSTABLE_DEFINE_VARS_NESTED)
       ),
     };
 

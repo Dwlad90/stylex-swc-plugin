@@ -1,7 +1,10 @@
 use rustc_hash::FxHashMap;
 use stylex_constants::constants::{
   api_names::STYLEX_DEFINE_CONSTS,
-  messages::{SPREAD_NOT_SUPPORTED, cannot_generate_hash, non_static_value, non_style_object},
+  messages::{
+    SPREAD_NOT_SUPPORTED, cannot_generate_hash, export_variable_not_found, non_static_value,
+    non_style_object,
+  },
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
@@ -12,7 +15,6 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    structures::functions::FunctionMap,
     transformers::stylex_define_consts::stylex_define_consts,
     utils::{
       common::gen_file_based_identifier,
@@ -22,6 +24,7 @@ use crate::{
       validators::{find_and_validate_stylex_define_consts, is_define_consts_call},
     },
   },
+  transform::stylex::visitor_utils::build_env_only_eval_config,
 };
 use stylex_structures::top_level_expression::TopLevelExpression;
 
@@ -48,17 +51,7 @@ where
         None => first_arg.expr.clone(),
       })?;
 
-      let mut identifiers = rustc_hash::FxHashMap::default();
-      let mut member_expressions = rustc_hash::FxHashMap::default();
-      self
-        .state
-        .apply_stylex_env(&mut identifiers, &mut member_expressions);
-
-      let function_map = FunctionMap {
-        identifiers,
-        member_expressions,
-        disable_imports: true,
-      };
+      let function_map = build_env_only_eval_config(&mut self.state);
 
       let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
@@ -103,9 +96,7 @@ where
 
       let export_name = match var_id {
         Some(name) => name,
-        None => stylex_panic!(
-          "defineConsts(): The export variable could not be found. Ensure the call is bound to a named export."
-        ),
+        None => stylex_panic!("{}", export_variable_not_found(STYLEX_DEFINE_CONSTS)),
       };
 
       let export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));

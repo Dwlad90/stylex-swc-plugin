@@ -6,7 +6,7 @@ inputs:
     required: false
     default: ''
   restore-cache-scope:
-    description: 'Optional secondary scope restored after the primary scope'
+    description: 'Optional scope to restore before the save/cache scope'
     required: false
     default: ''
   allow-global-fallback:
@@ -21,6 +21,12 @@ outputs:
   cache-key:
     description: 'Primary cache key used for saving after job steps'
     value: ${{ steps.turbo-cache-key.outputs.cache_key }}
+  preferred-cache-key:
+    description: 'Preferred cache key used for the first restore attempt'
+    value: ${{ steps.turbo-cache-key.outputs.preferred_cache_key }}
+  preferred-cache-matched-key:
+    description: 'Cache key matched by the first restore attempt'
+    value: ${{ steps.turbo-cache-restore-preferred.outputs.cache-matched-key }}
 runs:
   using: 'composite'
   steps:
@@ -28,7 +34,7 @@ runs:
       id: turbo-cache-key
       shell: bash
       env:
-        CACHE_PREFIX: ${{ format('{0}-turbo', runner.os) }}
+        CACHE_PREFIX: ${{ format('{0}-{1}-turbo', runner.os, runner.arch) }}
         CACHE_SCOPE: ${{ inputs['cache-scope'] != '' && inputs['cache-scope'] || github.job }}
         RESTORE_SCOPE_INPUT: ${{ inputs['restore-cache-scope'] }}
         CACHE_SHA: ${{ github.sha }}
@@ -40,24 +46,52 @@ runs:
 
         secondary_restore_scope=''
         if [[ "$preferred_restore_scope" != "$CACHE_SCOPE" ]]; then
-          secondary_restore_scope="$preferred_restore_scope"
+          secondary_restore_scope="$CACHE_SCOPE"
         fi
 
         echo "cache_prefix=$CACHE_PREFIX" >> "$GITHUB_OUTPUT"
         echo "cache_scope=$CACHE_SCOPE" >> "$GITHUB_OUTPUT"
+        echo "preferred_restore_scope=$preferred_restore_scope" >> "$GITHUB_OUTPUT"
         echo "secondary_restore_scope=$secondary_restore_scope" >> "$GITHUB_OUTPUT"
         echo "cache_key=$CACHE_PREFIX-$CACHE_SCOPE-$CACHE_SHA" >> "$GITHUB_OUTPUT"
+        echo "preferred_cache_key=$CACHE_PREFIX-$preferred_restore_scope-$CACHE_SHA" >> "$GITHUB_OUTPUT"
 
-    - name: Restore turbo build cache (primary scope)
-      id: turbo-cache-restore-primary
+    - name: Ensure zstd cache support
+      if: ${{ runner.os == 'Linux' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if command -v zstd >/dev/null 2>&1; then
+          zstd --version
+          exit 0
+        fi
+
+        if ! command -v apt-get >/dev/null 2>&1; then
+          echo "::error::zstd is required for Linux Turbo caches, but apt-get is unavailable."
+          exit 1
+        fi
+
+        if command -v sudo >/dev/null 2>&1; then
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends zstd
+        else
+          apt-get update
+          apt-get install -y --no-install-recommends zstd
+        fi
+
+        zstd --version
+
+    - name: Restore turbo build cache (preferred scope)
+      id: turbo-cache-restore-preferred
       uses: actions/cache/restore@v5
       with:
         path: ${{ inputs['cache-path'] }}
-        key: ${{ steps.turbo-cache-key.outputs.cache_key }}
+        key: ${{ steps.turbo-cache-key.outputs.preferred_cache_key }}
         restore-keys: |
-          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ steps.turbo-cache-key.outputs.cache_scope }}-${{ github.sha }}-
-          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ steps.turbo-cache-key.outputs.cache_scope }}-
-          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ github.sha }}-${{ steps.turbo-cache-key.outputs.cache_scope }}-
+          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ steps.turbo-cache-key.outputs.preferred_restore_scope }}-${{ github.sha }}-
+          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ steps.turbo-cache-key.outputs.preferred_restore_scope }}-
+          ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ github.sha }}-${{ steps.turbo-cache-key.outputs.preferred_restore_scope }}-
 
     - name: Restore turbo build cache (secondary scope)
       if: ${{ steps.turbo-cache-key.outputs.secondary_restore_scope != '' }}
@@ -65,7 +99,7 @@ runs:
       uses: actions/cache/restore@v5
       with:
         path: ${{ inputs['cache-path'] }}
-        key:
+        key: >-
           ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{
           steps.turbo-cache-key.outputs.secondary_restore_scope }}-${{ github.sha }}
         restore-keys: |
@@ -76,7 +110,7 @@ runs:
     - name: Restore turbo build cache (global fallback)
       if:
         ${{ inputs['allow-global-fallback'] == 'true' &&
-        steps.turbo-cache-restore-primary.outputs.cache-matched-key == '' &&
+        steps.turbo-cache-restore-preferred.outputs.cache-matched-key == '' &&
         (steps.turbo-cache-key.outputs.secondary_restore_scope == '' ||
         steps.turbo-cache-restore-secondary.outputs.cache-matched-key == '') }}
       id: turbo-cache-restore-global
@@ -87,4 +121,3 @@ runs:
         restore-keys: |
           ${{ steps.turbo-cache-key.outputs.cache_prefix }}-${{ github.sha }}-
           ${{ steps.turbo-cache-key.outputs.cache_prefix }}-
-          ${{ runner.os }}-turbo-

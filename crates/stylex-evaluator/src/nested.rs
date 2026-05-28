@@ -7,7 +7,9 @@ use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression
 use stylex_enums::value_with_default::ValueWithDefault;
 use stylex_macros::{stylex_panic, stylex_unreachable};
 use stylex_structures::base_css_type::BaseCSSType;
-use stylex_structures::nested::{NestedConstsValue, NestedNamespace, NestedStringValue, SEPARATOR};
+use stylex_structures::nested::{
+  KEY_SEPARATOR_ERROR_SUFFIX, NestedConstsValue, NestedNamespace, NestedStringValue, SEPARATOR,
+};
 use swc_core::ecma::ast::{Expr, Lit, ObjectLit};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -42,7 +44,7 @@ fn flatten_nested_vars_impl(
 ) {
   for (key, value) in obj {
     if key.contains(SEPARATOR) {
-      stylex_panic!("Key \"{key}\" {}", key_separator_error());
+      stylex_panic!("Key \"{key}\" {}", KEY_SEPARATOR_ERROR_SUFFIX);
     }
 
     let full_key = if prefix.is_empty() {
@@ -69,7 +71,7 @@ fn flatten_nested_consts_impl(
 ) {
   for (key, value) in obj {
     if key.contains(SEPARATOR) {
-      stylex_panic!("Key \"{key}\" {}", key_separator_error());
+      stylex_panic!("Key \"{key}\" {}", KEY_SEPARATOR_ERROR_SUFFIX);
     }
 
     let full_key = if prefix.is_empty() {
@@ -89,27 +91,17 @@ fn flatten_nested_consts_impl(
   }
 }
 
-fn key_separator_error() -> &'static str {
-  "must not contain the \".\" character. Use nested objects instead of dots in key names. See: https://www.designtokens.org/tr/drafts/format/#character-restrictions"
-}
-
 // The `Namespace` arm is statically unreachable: the flattening helpers invoke
 // the transform on values that `is_vars_leaf` accepts, which excludes Namespace.
-fn transform_vars_namespace_unreachable() -> Expr {
-  stylex_unreachable!("Nested namespace cannot be transformed as a vars leaf.")
-}
-
 fn transform_vars_leaf(value: &NestedVarsValue) -> Expr {
   match value {
     NestedVarsValue::Str(value) => create_string_expr(value),
     NestedVarsValue::CssType(value) => value.clone().into(),
     NestedVarsValue::Conditional(_) => to_vars_config_value(value),
-    NestedVarsValue::Namespace(_) => transform_vars_namespace_unreachable(),
+    NestedVarsValue::Namespace(_) => {
+      stylex_unreachable!("Nested namespace cannot be transformed as a vars leaf.")
+    },
   }
-}
-
-fn transform_overrides_namespace_unreachable() -> Expr {
-  stylex_unreachable!("Nested namespace cannot be transformed as an overrides leaf.")
 }
 
 fn transform_overrides_leaf(value: &NestedVarsValue) -> Expr {
@@ -117,7 +109,9 @@ fn transform_overrides_leaf(value: &NestedVarsValue) -> Expr {
     NestedVarsValue::Str(value) => create_string_expr(value),
     NestedVarsValue::CssType(value) => value_with_default_to_expr(&value.value),
     NestedVarsValue::Conditional(_) => to_vars_config_value(value),
-    NestedVarsValue::Namespace(_) => transform_overrides_namespace_unreachable(),
+    NestedVarsValue::Namespace(_) => {
+      stylex_unreachable!("Nested namespace cannot be transformed as an overrides leaf.")
+    },
   }
 }
 
@@ -152,15 +146,13 @@ pub fn flatten_nested_overrides_config(
   result
 }
 
-fn flatten_nested_consts_namespace_unreachable() -> Expr {
-  stylex_unreachable!("Nested namespace cannot be transformed as a consts leaf.")
-}
-
 fn flatten_nested_consts_leaf(value: &NestedConstsValue) -> Expr {
   match value {
     NestedConstsValue::Str(value) => create_string_expr(value),
     NestedConstsValue::Num(value) => create_number_expr(*value),
-    NestedConstsValue::Namespace(_) => flatten_nested_consts_namespace_unreachable(),
+    NestedConstsValue::Namespace(_) => {
+      stylex_unreachable!("Nested namespace cannot be transformed as a consts leaf.")
+    },
   }
 }
 

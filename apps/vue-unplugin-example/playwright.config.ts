@@ -11,7 +11,7 @@ export default defineConfig({
   },
   webServer: defaultConfig.webServer
     ? {
-        ...(defaultConfig.webServer || {}),
+        ...defaultConfig.webServer,
         port: PORT,
       }
     : undefined,

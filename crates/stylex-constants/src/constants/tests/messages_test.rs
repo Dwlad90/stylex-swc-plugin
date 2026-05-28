@@ -71,6 +71,21 @@ fn test_unbound_call_value() {
 }
 
 #[test]
+fn test_export_variable_not_found() {
+  assert_eq!(
+    export_variable_not_found("defineVars"),
+    "defineVars(): The export variable could not be found. Ensure the call is bound to a named export."
+  );
+}
+
+#[test]
+fn test_export_variable_not_found_nested_api() {
+  let result = export_variable_not_found("unstable_defineVarsNested");
+  assert!(result.starts_with("unstable_defineVarsNested():"));
+  assert!(result.contains("export variable could not be found"));
+}
+
+#[test]
 fn test_cannot_generate_hash() {
   let result = cannot_generate_hash("create");
   assert!(result.starts_with("Unable to generate hash for create()"));

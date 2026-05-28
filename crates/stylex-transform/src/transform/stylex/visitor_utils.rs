@@ -117,6 +117,17 @@ pub(crate) fn apply_unstable_conditional(
   }
 }
 
+pub(crate) fn build_env_only_eval_config(state: &mut StateManager) -> FunctionMap {
+  let mut identifiers = FxHashMap::default();
+  let mut member_expressions = FxHashMap::default();
+  state.apply_stylex_env(&mut identifiers, &mut member_expressions);
+  FunctionMap {
+    identifiers,
+    member_expressions,
+    disable_imports: true,
+  }
+}
+
 fn get_conditional_fn() -> FunctionConfig {
   FunctionConfig {
     fn_ptr: FunctionType::StylexExprFn(conditional_identity),

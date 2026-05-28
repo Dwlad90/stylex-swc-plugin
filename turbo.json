@@ -71,7 +71,9 @@
     },
     "test:visual": {
       "dependsOn": ["^build", "build"],
-      "outputs": ["**/.playwright-snapshots"],
+      "env": ["PLAYWRIGHT_UPDATE_SNAPSHOTS"],
+      "passThroughEnv": ["PLAYWRIGHT_BROWSERS_PATH"],
+      "outputs": ["**/.playwright-snapshots/**"],
       "outputLogs": "errors-only"
     },
     "do:nothing": {

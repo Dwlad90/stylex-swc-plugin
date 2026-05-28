@@ -5,7 +5,10 @@ use std::rc::Rc;
 use rustc_hash::FxHashMap;
 use stylex_constants::constants::{
   api_names::{STYLEX_DEFINE_VARS, STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_TYPES},
-  messages::{SPREAD_NOT_SUPPORTED, cannot_generate_hash, non_static_value, non_style_object},
+  messages::{
+    SPREAD_NOT_SUPPORTED, cannot_generate_hash, export_variable_not_found, non_static_value,
+    non_style_object,
+  },
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
@@ -138,9 +141,7 @@ where
 
       let export_name = match var_id.map(|decl| decl.to_string()) {
         Some(name) => name,
-        None => stylex_panic!(
-          "defineVars(): The export variable could not be found. Ensure the call is bound to a named export."
-        ),
+        None => stylex_panic!("{}", export_variable_not_found(STYLEX_DEFINE_VARS)),
       };
 
       self.state.export_id = Some(gen_file_based_identifier(&file_name, &export_name, None));

@@ -27,6 +27,7 @@
     "test:crates:workspace:regular": "cargo nextest run --workspace --all-features --profile ci",
     "test:flamegraph": "turbo run test:flamegraph --continue",
     "test:visual": "turbo run test:visual",
+    "test:visual:update": "./scripts/visual/snap.sh",
     "typecheck": "turbo run typecheck --continue"
   },
   "config": {

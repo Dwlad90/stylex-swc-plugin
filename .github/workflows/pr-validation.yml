@@ -42,11 +42,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# Add restricted permissions to GITHUB_TOKEN
 permissions:
-  contents: write
-  pull-requests: write
-  repository-projects: write
+  contents: read
+  pull-requests: read
 
 jobs:
   build-public-packages:
@@ -54,7 +52,7 @@ jobs:
     if: >-
       (github.event_name != 'schedule' || github.ref_name == 'develop') &&
       (github.event.pull_request.number == null || !github.event.pull_request.draft)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
         uses: actions/checkout@v6.0.2
@@ -90,7 +88,7 @@ jobs:
     if: >-
       (github.event_name != 'schedule' || github.ref_name == 'develop') &&
       (github.event.pull_request.number == null || !github.event.pull_request.draft)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     strategy:
       matrix:
         check:
@@ -125,7 +123,7 @@ jobs:
     if: >-
       (github.event_name != 'schedule' || github.ref_name == 'develop') &&
       (github.event.pull_request.number == null || !github.event.pull_request.draft)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     needs:
       - build-public-packages
       - basic-checks
@@ -206,15 +204,46 @@ jobs:
         with:
           cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
 
+  playwright-image:
+    name: Resolve Playwright image
+    if: >-
+      (github.event_name != 'schedule' || github.ref_name == 'develop') &&
+      (github.event.pull_request.number == null || !github.event.pull_request.draft)
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      image: ${{ steps.detect.outputs.image }}
+      version: ${{ steps.detect.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+          fetch-depth: 1
+          fetch-tags: false
+          sparse-checkout: |
+            pnpm-lock.yaml
+            .github/actions/playwright-version
+          sparse-checkout-cone-mode: false
+
+      - name: Detect Playwright version
+        id: detect
+        uses: ./.github/actions/playwright-version
+
   visual-tests:
     name: Run visual comparison tests
     if: >-
       (github.event_name != 'schedule' || github.ref_name == 'develop') &&
       (github.event.pull_request.number == null || !github.event.pull_request.draft)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     needs:
       - build-public-packages
       - basic-checks
+      - playwright-image
+    container:
+      image: ${{ needs.playwright-image.outputs.image }}
+      options: --ipc=host
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
     steps:
       - name: Checkout code
         uses: actions/checkout@v6.0.2
@@ -234,34 +263,23 @@ jobs:
         with:
           cache-scope: visual-tests
           restore-cache-scope: build-public-packages
+          allow-global-fallback: 'false'
 
-      - name: Get Playwright version
-        id: playwright-version
-        run:
-          echo "PLAYWRIGHT_VERSION=$(pnpm list playwright --depth=0 | grep playwright | awk '{print
-          $2}' |  sed 's/playwright@//')" >> $GITHUB_ENV
+      - name: Verify public package build cache
+        env:
+          RESTORED_TURBO_CACHE_KEY: ${{ steps.turbo-cache.outputs.preferred-cache-matched-key }}
+        run: |
+          if [ -z "$RESTORED_TURBO_CACHE_KEY" ]; then
+            echo "::error::No build-public-packages Turbo cache was restored."
+            exit 1
+          fi
 
-      - name: Cache Playwright Browsers
-        uses: actions/cache@v5
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
-      - name: Install Playwright Browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm playwright install --with-deps chromium webkit --only-shell
-
-      - name: Install Playwright OS Dependencies (Always)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm playwright install-deps chromium webkit
+          echo "Restored $RESTORED_TURBO_CACHE_KEY"
 
       - name: Run visual comparison tests
         run:
           pnpm run test:visual --filter="./apps/*" --filter="!@stylexswc/rollup-large-example"
-          --filter="!@stylexswc/webpack-example" --continue
+          --continue
 
       - name: Save turbo build cache
         if: always()
@@ -277,10 +295,12 @@ jobs:
     needs:
       - build-public-packages
       - basic-checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
     env:
       BENCHMARK_CACHE_KEY_PREFIX: >-
-        x86_64-unknown-linux-gnu-benchmark-${{
+        aarch64-unknown-linux-gnu-benchmark-${{
           github.event.pull_request.number != null
           && format('pr-{0}', github.event.pull_request.number)
           || github.ref_name
@@ -313,8 +333,8 @@ jobs:
           key: ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-${{ github.run_attempt }}
           restore-keys: |
             ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-
-            x86_64-unknown-linux-gnu-benchmark-pr-
-            x86_64-unknown-linux-gnu-benchmark-
+            aarch64-unknown-linux-gnu-benchmark-pr-
+            aarch64-unknown-linux-gnu-benchmark-
 
       - name: Run benchmarks
         run: pnpm run bench --filter @stylexswc/rs-compiler
@@ -357,9 +377,10 @@ jobs:
       - build-public-packages
       - basic-checks
       - checks
+      - playwright-image
       - visual-tests
       - benchmark
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Verify validation jobs
         env:
@@ -367,7 +388,7 @@ jobs:
         run: |
           echo "$NEEDS_JSON" | jq .
 
-          for job in basic-checks checks build-public-packages visual-tests benchmark; do
+          for job in basic-checks checks build-public-packages playwright-image visual-tests benchmark; do
             result=$(echo "$NEEDS_JSON" | jq -r --arg job "$job" '.[$job].result')
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               echo "::error::Validation job '$job' finished with status '$result'."
@@ -378,11 +399,15 @@ jobs:
           echo "All validation jobs passed"
 
   dependabot:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     needs: [pr-validation]
     if:
       github.event_name != 'schedule' && github.event.pull_request.number != null &&
       github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v6.0.2

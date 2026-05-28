@@ -1,0 +1,180 @@
+name: Update Visual Snapshots
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CI: true
+  TURBO_TELEMETRY_DISABLED: 1
+  DO_NOT_TRACK: 1
+  PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+
+jobs:
+  playwright-image:
+    name: Resolve Playwright image
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      image: ${{ steps.detect.outputs.image }}
+      version: ${{ steps.detect.outputs.version }}
+    steps:
+      - name: Guard protected branches
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+          REF_PROTECTED: ${{ github.ref_protected }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          if [ "$REF_TYPE" != "branch" ]; then
+            echo "::error::Visual snapshots can only be updated from a branch."
+            exit 1
+          fi
+
+          if [ "$REF_PROTECTED" = "true" ]; then
+            echo "::error::Ref '$BRANCH_NAME' is protected. Use a feature or PR branch."
+            exit 1
+          fi
+
+          case "$BRANCH_NAME" in
+            develop|main|master|trunk|prod|production|staging|release|release/*)
+              echo "::error::Ref '$BRANCH_NAME' is a protected core branch. Use a feature or PR branch."
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout code
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 1
+          fetch-tags: false
+          sparse-checkout: |
+            pnpm-lock.yaml
+            .github/actions/playwright-version
+          sparse-checkout-cone-mode: false
+
+      - name: Detect Playwright version
+        id: detect
+        uses: ./.github/actions/playwright-version
+
+  build-public-packages:
+    name: Build all public packages
+    runs-on: ubuntu-24.04-arm
+    needs: playwright-image
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          rust-target: 'wasm32-wasip1'
+
+      - name: Cache turbo build setup
+        id: turbo-cache
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: build-public-packages
+          restore-cache-scope: build-public-packages
+          allow-global-fallback: 'false'
+
+      - name: Build all public packages
+        run: pnpm run build --filter "{./packages/*}..." --filter "{./crates/*}..." --continue
+
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+
+  update-visual-snapshots:
+    name: Update visual snapshots
+    runs-on: ubuntu-24.04-arm
+    needs:
+      - playwright-image
+      - build-public-packages
+    container:
+      image: ${{ needs.playwright-image.outputs.image }}
+      options: --ipc=host
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+          fetch-tags: false
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          setup-rust: 'false'
+
+      - name: Cache turbo build setup
+        id: turbo-cache
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: visual-tests
+          restore-cache-scope: build-public-packages
+          allow-global-fallback: 'false'
+
+      - name: Verify public package build cache
+        env:
+          RESTORED_TURBO_CACHE_KEY: ${{ steps.turbo-cache.outputs.preferred-cache-matched-key }}
+        run: |
+          if [ -z "$RESTORED_TURBO_CACHE_KEY" ]; then
+            echo "::error::No build-public-packages Turbo cache was restored."
+            exit 1
+          fi
+
+          echo "Restored $RESTORED_TURBO_CACHE_KEY"
+
+      - name: Update visual snapshots
+        env:
+          PLAYWRIGHT_UPDATE_SNAPSHOTS: 'true'
+        # PLAYWRIGHT_UPDATE_SNAPSHOTS is declared in the test:visual task's
+        # `env` in turbo.json, so setting it to "true" busts the task hash and
+        # forces playwright to re-run + overwrite snapshots even if the source
+        # is unchanged. PLAYWRIGHT_BROWSERS_PATH is in passThroughEnv so it
+        # reaches the playwright process without affecting the hash.
+        run: |
+          pnpm test:visual --filter="./apps/*" \
+            --filter="!@stylexswc/rollup-large-example" \
+            --continue
+
+      - name: Git config
+        uses: ./.github/actions/gitconfig
+
+      - name: Mark workspace as safe for Git
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Commit updated visual snapshots
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          snapshot_status="$(git status --short -- ':(glob)apps/**/visual-tests/.playwright-snapshots/**')"
+
+          if [ -z "$snapshot_status" ]; then
+            echo "No visual snapshot changes detected."
+            exit 0
+          fi
+
+          echo "$snapshot_status"
+
+          git add -- ':(glob)apps/**/visual-tests/.playwright-snapshots/**'
+          git commit -m "chore: update visual test snapshots [skip ci]"
+          git push origin "HEAD:$BRANCH_NAME"
+
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}

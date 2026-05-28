@@ -22,9 +22,11 @@ pub trait NestedNamespace {
     Self: Sized;
 }
 
-fn key_separator_error() -> &'static str {
-  "must not contain the \".\" character. Use nested objects instead of dots in key names. See: https://www.designtokens.org/tr/drafts/format/#character-restrictions"
-}
+pub const KEY_SEPARATOR_ERROR_SUFFIX: &str = concat!(
+  "must not contain the \".\" character. ",
+  "Use nested objects instead of dots in key names. ",
+  "See: https://www.designtokens.org/tr/drafts/format/#character-restrictions"
+);
 
 impl NestedNamespace for NestedStringValue {
   fn as_namespace(&self) -> Option<&IndexMap<String, Self>> {
@@ -65,7 +67,7 @@ fn flatten_nested_string_impl(
 ) {
   for (key, value) in obj {
     if key.contains(SEPARATOR) {
-      stylex_panic!("Key \"{key}\" {}", key_separator_error());
+      stylex_panic!("Key \"{key}\" {}", KEY_SEPARATOR_ERROR_SUFFIX);
     }
 
     let full_key = if prefix.is_empty() {

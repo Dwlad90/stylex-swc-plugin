@@ -7,6 +7,9 @@ const snapshotDir = process.env.SNAPSHOT_DIR || 'visual-tests/.playwright-snapsh
 const PORT = +(process.env.PORT || 3000);
 
 const isCI = !!process.env.CI;
+const shouldUpdateSnapshots =
+  process.env.PLAYWRIGHT_UPDATE_SNAPSHOTS === 'true' ||
+  process.env.PLAYWRIGHT_UPDATE_SNAPSHOTS === '1';
 
 export default defineConfig({
   testDir: './visual-tests',
@@ -48,31 +51,24 @@ export default defineConfig({
   },
   expect: {
     toHaveScreenshot: {
-      maxDiffPixelRatio: 0.03,
-      threshold: 0.2,
-      pathTemplate: `${snapshotDir}/{testFilePath}_{projectName}_{arg}{ext}`,
+      maxDiffPixelRatio: 0,
+      threshold: 0,
+      pathTemplate: `${snapshotDir}/{platform}/{testFilePath}_{projectName}_{arg}{ext}`,
     },
   },
-  updateSnapshots: isCI ? 'none' : 'missing',
+  updateSnapshots: shouldUpdateSnapshots ? 'all' : isCI ? 'none' : 'missing',
 });
 
 export const test = base.extend<{
   screenshotOptions: PageAssertionsToHaveScreenshotOptions;
 }>({
-  screenshotOptions: async ({ browser }, use) => {
-    const isMobile = browser.browserType().name() === 'webkit';
-
+  // eslint-disable-next-line no-empty-pattern
+  screenshotOptions: async ({}, use) => {
     const options: PageAssertionsToHaveScreenshotOptions = {
       fullPage: true,
       animations: 'disabled',
-      threshold: 0.2,
-      ...(isMobile
-        ? {
-            maxDiffPixelRatio: 0.06,
-          }
-        : {
-            maxDiffPixelRatio: 0.03,
-          }),
+      maxDiffPixelRatio: 0,
+      threshold: 0,
     };
 
     await use(options);

@@ -1,7 +1,10 @@
 use rustc_hash::FxHashMap;
 use stylex_constants::constants::{
   api_names::STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED,
-  messages::{SPREAD_NOT_SUPPORTED, cannot_generate_hash, non_static_value, non_style_object},
+  messages::{
+    SPREAD_NOT_SUPPORTED, cannot_generate_hash, export_variable_not_found, non_static_value,
+    non_style_object,
+  },
 };
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
@@ -12,10 +15,7 @@ use swc_core::{
 use crate::{
   StyleXTransform,
   shared::{
-    structures::{
-      functions::FunctionMap,
-      state_manager::{ImportKind, StateManager},
-    },
+    structures::state_manager::ImportKind,
     transformers::stylex_define_consts_nested::stylex_define_consts_nested,
     utils::{
       common::gen_file_based_identifier,
@@ -23,7 +23,7 @@ use crate::{
       log::build_code_frame_error::build_code_frame_error, validators::validate_define_call,
     },
   },
-  transform::stylex::visitor_utils::is_call_to,
+  transform::stylex::visitor_utils::{build_env_only_eval_config, is_call_to},
 };
 use stylex_structures::top_level_expression::TopLevelExpression;
 
@@ -55,7 +55,7 @@ where
       None => first_arg.expr.clone(),
     })?;
 
-    let function_map = build_define_consts_nested_eval_config(&mut self.state);
+    let function_map = build_env_only_eval_config(&mut self.state);
     let evaluated_arg = evaluate(&first_arg, &mut self.state, &function_map);
 
     if !evaluated_arg.confident {
@@ -108,7 +108,8 @@ where
     let export_name = match var_id.map(|decl| decl.to_string()) {
       Some(name) => name,
       None => stylex_panic!(
-        "unstable_defineConstsNested(): The export variable could not be found. Ensure the call is bound to a named export."
+        "{}",
+        export_variable_not_found(STYLEX_UNSTABLE_DEFINE_CONSTS_NESTED)
       ),
     };
 
@@ -122,18 +123,5 @@ where
       .register_styles(call, &js_output, &result_ast, None);
 
     Some(result_ast)
-  }
-}
-
-fn build_define_consts_nested_eval_config(state: &mut StateManager) -> FunctionMap {
-  let mut identifiers = FxHashMap::default();
-  let mut member_expressions = FxHashMap::default();
-
-  state.apply_stylex_env(&mut identifiers, &mut member_expressions);
-
-  FunctionMap {
-    identifiers,
-    member_expressions,
-    disable_imports: true,
   }
 }

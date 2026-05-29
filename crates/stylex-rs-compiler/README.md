@@ -4,6 +4,11 @@
 > [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
 > workspace
 
+<!-- stylex-compatibility:start -->
+> [!NOTE] Compatibility target: this package has been updated through official
+> StyleX v0.18.3. This is not an official Meta support guarantee.
+<!-- stylex-compatibility:end -->
+
 StyleX is a JavaScript library developed by Meta for defining styles optimized
 for user interfaces. You can find the
 [official StyleX repository](https://www.github.com/facebook/stylex) here.

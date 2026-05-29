@@ -29,6 +29,10 @@ on:
         description: 'Prerelease tag'
         required: false
         type: string
+      stylex-version:
+        description: 'Optional official StyleX version compatibility target'
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}
@@ -41,15 +45,26 @@ jobs:
     steps:
       - name: 🧪 Validate inputs
         id: validate
+        env:
+          STYLEX_VERSION: "${{ github.event.inputs['stylex-version'] }}"
         run: |
           if [ "${{ github.event.inputs.prerelease }}" = "true" ] && [ -z "${{ github.event.inputs.prerelease-type }}" ]; then
             echo "Error: prerelease-type is required when prerelease is checked"
             exit 1
           fi
 
-          if [ "${{ github.event.inputs.prerelease }}" = "false" ] && [ ! -z "${{ github.event.inputs.prerelease-type }}" ]; then
+          if [ "${{ github.event.inputs.prerelease }}" = "false" ] && [ -n "${{ github.event.inputs.prerelease-type }}" ]; then
             echo "Error: prerelease-type is not allowed when prerelease is not checked"
             exit 1
+          fi
+
+          if [ -n "$STYLEX_VERSION" ]; then
+            normalized_stylex_version="${STYLEX_VERSION#v}"
+
+            if ! echo "$normalized_stylex_version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "Error: stylex-version must be semver in the form 0.18.3 or v0.18.3"
+              exit 1
+            fi
           fi
 
           echo "All inputs are valid"
@@ -145,6 +160,15 @@ jobs:
 
       - name: 🔧 Bump version
         run: ./scripts/git/bump-version.sh ${{ needs.calculate-version.outputs.new_version }}
+
+      - name: 🎯 Update StyleX compatibility target
+        if: ${{ github.event.inputs['stylex-version'] != '' }}
+        env:
+          STYLEX_VERSION: "${{ github.event.inputs['stylex-version'] }}"
+        run: |
+          ./scripts/git/update-stylex-compatibility.sh \
+            --version "$STYLEX_VERSION" \
+            --yes
 
       - name: 🛠️ Setup environment
         uses: ./.github/actions/setup
@@ -270,7 +294,7 @@ jobs:
               --json databaseId,status \
               -q 'map(select(.status == "in_progress" or .status == "queued" or .status == "waiting")) | .[0].databaseId')
 
-            if [ ! -z "$run_id" ]; then
+            if [ -n "$run_id" ]; then
               break
             fi
           done

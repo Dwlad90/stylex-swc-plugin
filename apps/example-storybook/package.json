@@ -47,7 +47,7 @@
     "eslint": "^10.3.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-storybook": "^10.3.6",
-    "jsdom": "^27.4.0",
+    "jsdom": "^29.1.1",
     "playwright": "^1.60.0",
     "postcss-nesting": "^14.0.0",
     "prop-types": "^15.8.1",

@@ -36,7 +36,7 @@
     "fast-glob": "^3.3.3",
     "glob-parent": "^6.0.2",
     "is-glob": "^4.0.3",
-    "postcss": "^8.5.13"
+    "postcss": "^8.5.15"
   },
   "devDependencies": {
     "@stylexswc/eslint-config": "0.16.3",

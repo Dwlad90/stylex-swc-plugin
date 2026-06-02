@@ -736,8 +736,8 @@ importers:
         specifier: ^2.0.9
         version: 2.0.9(core-js@3.48.0)
       '@rsbuild/plugin-react':
-        specifier: ^2.0.0
-        version: 2.0.0(@rsbuild/core@2.0.9(core-js@3.48.0))(@rspack/core@2.0.5(@swc/helpers@0.5.23))
+        specifier: ^2.0.1
+        version: 2.0.1(@rsbuild/core@2.0.9(core-js@3.48.0))(@rspack/core@2.0.5(@swc/helpers@0.5.23))
       '@rspack/dev-server':
         specifier: ^2.0.1
         version: 2.0.1(@rspack/core@2.0.5(@swc/helpers@0.5.23))(selfsigned@5.5.0)
@@ -785,8 +785,8 @@ importers:
         specifier: ^2.0.9
         version: 2.0.9(core-js@3.48.0)
       '@rsbuild/plugin-react':
-        specifier: ^2.0.0
-        version: 2.0.0(@rsbuild/core@2.0.9(core-js@3.48.0))(@rspack/core@2.0.5(@swc/helpers@0.5.23))
+        specifier: ^2.0.1
+        version: 2.0.1(@rsbuild/core@2.0.9(core-js@3.48.0))(@rspack/core@2.0.5(@swc/helpers@0.5.23))
       '@rspack/dev-server':
         specifier: ^2.0.1
         version: 2.0.1(@rspack/core@2.0.5(@swc/helpers@0.5.23))(selfsigned@5.5.0)
@@ -5143,8 +5143,8 @@ packages:
       core-js:
         optional: true
 
-  '@rsbuild/plugin-react@2.0.0':
-    resolution: {integrity: sha512-/1gzt39EGUSFEqB83g46QoOwsgv172HI18i6au1b6lgIaX4sv9stuX4ijdHbHCp8PqYEq+MyQ99jIQMO6I+etg==}
+  '@rsbuild/plugin-react@2.0.1':
+    resolution: {integrity: sha512-n5m3VxEm6m3Dv1VkI0WnxsildySJ6M+QjGIzkZDy5UebRCIJ1Q/hlQVyhofBL6C+AcsF9fGjlHQkeiteXJSr3Q==}
     peerDependencies:
       '@rsbuild/core': ^2.0.0-0
     peerDependenciesMeta:
@@ -15476,7 +15476,7 @@ snapshots:
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/plugin-react@2.0.0(@rsbuild/core@2.0.9(core-js@3.48.0))(@rspack/core@2.0.5(@swc/helpers@0.5.23))':
+  '@rsbuild/plugin-react@2.0.1(@rsbuild/core@2.0.9(core-js@3.48.0))(@rspack/core@2.0.5(@swc/helpers@0.5.23))':
     dependencies:
       '@rspack/plugin-react-refresh': 2.0.0(@rspack/core@2.0.5(@swc/helpers@0.5.23))(react-refresh@0.18.0)
       react-refresh: 0.18.0

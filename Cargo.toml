@@ -42,7 +42,7 @@ color-backtrace = { version = "0.7.2" }
 colored = { version = "3.1.1" }
 criterion = { version = "0.8", features = ["html_reports"] }
 cssparser = { version = "0.37.0" }
-ctor = "1.0.3"
+ctor = "1.0.7"
 derive_more = { version = "2.1.1", features = ["display"] }
 env_logger = "0.11.10"
 fancy-regex = "0.18.0"
@@ -69,7 +69,7 @@ swc_compiler_base = { version = "55.0.0" }
 swc_config = { version = "4.0.1" }
 swc_core = { version = "65.0.3" }
 swc_ecma_parser = { version = "39.0.2" }
-testing = "22.0.0"
+testing = "24.0.0"
 thiserror = "2.0.18"
 # convert_case = { version = "0.11.0" }
 # .cargo/config defines few alias to build plugin.

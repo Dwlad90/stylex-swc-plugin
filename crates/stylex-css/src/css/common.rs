@@ -485,6 +485,27 @@ fn has_relative_color_call(value: &str, function_name: &str) -> bool {
   })
 }
 
+fn normalize_spacing_only_value(value: &str) -> String {
+  let value = MANY_SPACES.replace_all(value, " ");
+  let mut normalized = String::with_capacity(value.len());
+  let mut previous_char: Option<char> = None;
+  let mut chars = value.chars().peekable();
+
+  while let Some(ch) = chars.next() {
+    if ch == ' ' {
+      match (previous_char, chars.peek()) {
+        (Some('('), _) | (_, Some(')')) => continue,
+        _ => {},
+      }
+    }
+
+    normalized.push(ch);
+    previous_char = Some(ch);
+  }
+
+  normalized
+}
+
 fn is_escaped(value: &[u8], index: usize) -> bool {
   let mut backslash_count = 0;
   let mut cursor = index;
@@ -661,9 +682,7 @@ pub fn normalize_css_property_value(
   detect_unclosed_strings(css_property_value);
 
   if should_normalize_spacing_only {
-    return MANY_SPACES
-      .replace_all(css_property_value, " ")
-      .replace("( ", "(");
+    return normalize_spacing_only_value(css_property_value);
   }
 
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());

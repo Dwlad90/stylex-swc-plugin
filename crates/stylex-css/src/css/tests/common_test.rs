@@ -624,7 +624,7 @@ mod normalize_css_property_value_tests {
   #[test]
   fn relative_rgb_color_collapses_whitespace_after_open_paren() {
     let opts = default_options();
-    let result = normalize_css_property_value("color", "rgb(   from red r g b)", &opts);
+    let result = normalize_css_property_value("color", "rgb(   from red r g b   )", &opts);
     assert_eq!(result, "rgb(from red r g b)");
   }
 

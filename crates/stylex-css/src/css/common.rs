@@ -379,7 +379,21 @@ pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
   (parse_string_input(input, None, config, &mut errors), errors)
 }
 
+/// A byte that may appear in a CSS identifier (used to ensure a matched
+/// function name is not a suffix of a longer identifier).
+fn is_ident_byte(byte: u8) -> bool {
+  byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_'
+}
+
 fn contains_css_function_call(value: &str, function_name: &str) -> bool {
+  find_css_function_call(value, function_name, |_, _| true)
+}
+
+fn find_css_function_call(
+  value: &str,
+  function_name: &str,
+  mut matches_after_open_paren: impl FnMut(&[u8], usize) -> bool,
+) -> bool {
   let value_bytes = value.as_bytes();
   let function_bytes = function_name.as_bytes();
 
@@ -387,21 +401,57 @@ fn contains_css_function_call(value: &str, function_name: &str) -> bool {
     return false;
   }
 
-  for i in 0..=(value_bytes.len() - function_bytes.len() - 1) {
-    if value_bytes[i..i + function_bytes.len()].eq_ignore_ascii_case(function_bytes)
-      && value_bytes[i + function_bytes.len()] == b'('
-    {
-      return true;
+  let mut quote: Option<u8> = None;
+  let mut is_comment = false;
+  let mut index = 0;
+
+  while index < value_bytes.len() {
+    let byte = value_bytes[index];
+
+    if quote.is_none() {
+      if is_comment {
+        if byte == b'*' && value_bytes.get(index + 1) == Some(&b'/') {
+          is_comment = false;
+          index += 2;
+          continue;
+        }
+
+        index += 1;
+        continue;
+      }
+
+      if byte == b'/' && value_bytes.get(index + 1) == Some(&b'*') {
+        is_comment = true;
+        index += 2;
+        continue;
+      }
     }
+
+    match quote {
+      Some(current_quote) if byte == current_quote && !is_escaped(value_bytes, index) => {
+        quote = None;
+      },
+      Some(_) => {},
+      None if (byte == b'\'' || byte == b'"') && !is_escaped(value_bytes, index) => {
+        quote = Some(byte);
+      },
+      None
+        if index + function_bytes.len() < value_bytes.len()
+          && value_bytes[index..index + function_bytes.len()]
+            .eq_ignore_ascii_case(function_bytes)
+          && value_bytes[index + function_bytes.len()] == b'('
+          && (index == 0 || !is_ident_byte(value_bytes[index - 1]))
+          && matches_after_open_paren(value_bytes, index + function_bytes.len() + 1) =>
+      {
+        return true;
+      },
+      _ => {},
+    }
+
+    index += 1;
   }
 
   false
-}
-
-/// A byte that may appear in a CSS identifier (used to ensure a matched
-/// function name is not a suffix of a longer identifier).
-fn is_ident_byte(byte: u8) -> bool {
-  byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_'
 }
 
 /// Detects CSS relative color syntax, e.g. `rgb(from red r g b)`.
@@ -420,46 +470,19 @@ fn contains_relative_color_function(value: &str) -> bool {
 /// `(` and, after any whitespace, the `from` keyword (the relative color
 /// marker).
 fn has_relative_color_call(value: &str, function_name: &str) -> bool {
-  let value_bytes = value.as_bytes();
-  let name_bytes = function_name.as_bytes();
-
-  if value_bytes.len() <= name_bytes.len() {
-    return false;
-  }
-
   const FROM: &[u8] = b"from";
 
-  for i in 0..=(value_bytes.len() - name_bytes.len() - 1) {
-    if !value_bytes[i..i + name_bytes.len()].eq_ignore_ascii_case(name_bytes) {
-      continue;
-    }
-
-    // The function name must be immediately followed by `(`.
-    if value_bytes[i + name_bytes.len()] != b'(' {
-      continue;
-    }
-
-    // Avoid matching a suffix of a longer identifier (e.g. `srgb(` for `rgb`).
-    if i > 0 && is_ident_byte(value_bytes[i - 1]) {
-      continue;
-    }
-
+  find_css_function_call(value, function_name, |value_bytes, mut cursor| {
     // Skip whitespace after `(`, then look for the `from` keyword followed by a
     // whitespace boundary.
-    let mut cursor = i + name_bytes.len() + 1;
     while cursor < value_bytes.len() && value_bytes[cursor].is_ascii_whitespace() {
       cursor += 1;
     }
 
-    if cursor + FROM.len() < value_bytes.len()
+    cursor + FROM.len() < value_bytes.len()
       && value_bytes[cursor..cursor + FROM.len()].eq_ignore_ascii_case(FROM)
       && value_bytes[cursor + FROM.len()].is_ascii_whitespace()
-    {
-      return true;
-    }
-  }
-
-  false
+  })
 }
 
 fn is_escaped(value: &[u8], index: usize) -> bool {
@@ -638,7 +661,9 @@ pub fn normalize_css_property_value(
   detect_unclosed_strings(css_property_value);
 
   if should_normalize_spacing_only {
-    return MANY_SPACES.replace_all(css_property_value, " ").to_string();
+    return MANY_SPACES
+      .replace_all(css_property_value, " ")
+      .replace("( ", "(");
   }
 
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());

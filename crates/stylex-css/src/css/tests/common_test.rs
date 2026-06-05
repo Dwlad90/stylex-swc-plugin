@@ -622,6 +622,13 @@ mod normalize_css_property_value_tests {
   }
 
   #[test]
+  fn relative_rgb_color_collapses_whitespace_after_open_paren() {
+    let opts = default_options();
+    let result = normalize_css_property_value("color", "rgb(   from red r g b)", &opts);
+    assert_eq!(result, "rgb(from red r g b)");
+  }
+
+  #[test]
   fn relative_color_function_returns_early() {
     let opts = default_options();
     let result = normalize_css_property_value("color", "color(from green srgb r g b)", &opts);
@@ -640,6 +647,13 @@ mod normalize_css_property_value_tests {
       result,
       "linear-gradient(to right, rgb(from red r g b), blue)"
     );
+  }
+
+  #[test]
+  fn relative_rgb_inside_string_does_not_trigger_spacing_only_path() {
+    let opts = default_options();
+    let result = normalize_css_property_value("content", r#""rgb(from   red   r g b)""#, &opts);
+    assert_eq!(result, r#""rgb(from   red   r g b)""#);
   }
 
   #[test]

@@ -36,7 +36,7 @@
     "lightningcss": "^1.32.0"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-commonjs": "^29.0.3",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.9.1",

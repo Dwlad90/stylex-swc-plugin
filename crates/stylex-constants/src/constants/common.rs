@@ -61,8 +61,15 @@ pub static COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 9]> = L
   ]
 });
 
-pub static COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES: Lazy<[&str; 7]> =
-  Lazy::new(|| [" a ", " b ", " c ", " l ", " h ", " s ", " w "]);
+/// CSS color functions that support relative color syntax, e.g.
+/// `rgb(from red r g b)`. SWC's CSS parser cannot parse the relative form, so
+/// values using it are normalized via spacing only (like the functions in
+/// `COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES`).
+pub static COLOR_RELATIVE_VALUE_FUNCTIONS: Lazy<[&str; 10]> = Lazy::new(|| {
+  [
+    "rgb", "rgba", "hsl", "hsla", "hwb", "lab", "lch", "oklab", "oklch", "color",
+  ]
+});
 
 pub static CSS_CONTENT_FUNCTIONS: Lazy<[&str; 7]> = Lazy::new(|| {
   [

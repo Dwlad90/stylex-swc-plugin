@@ -595,6 +595,61 @@ mod normalize_css_property_value_tests {
     assert!(result.contains("0") || result.contains("rgba"));
   }
 
+  // --- Relative color syntax (spacing-only path) ---
+  // SWC's CSS parser cannot parse relative color syntax, so these values are
+  // normalized via spacing only. See issue #1041.
+
+  #[test]
+  fn relative_rgb_color_returns_early() {
+    let opts = default_options();
+    let result = normalize_css_property_value("backgroundColor", "rgb(from red r g b)", &opts);
+    assert_eq!(result, "rgb(from red r g b)");
+  }
+
+  #[test]
+  fn relative_rgba_color_returns_early() {
+    let opts = default_options();
+    let result =
+      normalize_css_property_value("backgroundColor", "rgba(from red r g b / 0.5)", &opts);
+    assert_eq!(result, "rgba(from red r g b / 0.5)");
+  }
+
+  #[test]
+  fn relative_rgb_color_collapses_extra_whitespace() {
+    let opts = default_options();
+    let result = normalize_css_property_value("color", "rgb(from   red   r g b)", &opts);
+    assert_eq!(result, "rgb(from red r g b)");
+  }
+
+  #[test]
+  fn relative_color_function_returns_early() {
+    let opts = default_options();
+    let result = normalize_css_property_value("color", "color(from green srgb r g b)", &opts);
+    assert_eq!(result, "color(from green srgb r g b)");
+  }
+
+  #[test]
+  fn relative_rgb_inside_gradient_returns_early() {
+    let opts = default_options();
+    let result = normalize_css_property_value(
+      "backgroundImage",
+      "linear-gradient(to right, rgb(from red r g b), blue)",
+      &opts,
+    );
+    assert_eq!(
+      result,
+      "linear-gradient(to right, rgb(from red r g b), blue)"
+    );
+  }
+
+  #[test]
+  fn non_relative_rgb_still_parsed_by_swc() {
+    let opts = default_options();
+    // Without the `from` keyword, regular rgb() keeps going through SWC.
+    let result = normalize_css_property_value("color", "rgb(255, 0, 0)", &opts);
+    assert_eq!(result, "rgb(255,0,0)");
+  }
+
   // --- Whitespace handling ---
 
   #[test]

@@ -231,6 +231,34 @@ mod css_tests {
   }
 
   #[test]
+  fn relative_rgb_colors() {
+    assert_eq!(
+      transform_value_cached(
+        "backgroundColor",
+        r#"rgb(from red r g b)"#,
+        &mut StateManager::default()
+      ),
+      r#"rgb(from red r g b)"#
+    );
+    assert_eq!(
+      transform_value_cached(
+        "backgroundColor",
+        r#"rgba(from red r g b  /  0.5)"#,
+        &mut StateManager::default()
+      ),
+      r#"rgba(from red r g b / 0.5)"#
+    );
+    assert_eq!(
+      transform_value_cached(
+        "color",
+        r#"rgb(from var(--xColor) calc(r * 2) g b)"#,
+        &mut StateManager::default()
+      ),
+      r#"rgb(from var(--xColor) calc(r * 2) g b)"#
+    );
+  }
+
+  #[test]
   fn oklab_colors() {
     assert_eq!(
       transform_value_cached(

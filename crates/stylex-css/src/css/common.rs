@@ -7,10 +7,7 @@ use crate::css::{
   validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
 };
 use stylex_constants::constants::{
-  common::{
-    COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES,
-    COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES,
-  },
+  common::{COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES, COLOR_RELATIVE_VALUE_FUNCTIONS},
   long_hand_logical::LONG_HAND_LOGICAL,
   long_hand_physical::LONG_HAND_PHYSICAL,
   messages::{LINT_UNCLOSED_FUNCTION, LINT_UNCLOSED_STRING},
@@ -401,6 +398,70 @@ fn contains_css_function_call(value: &str, function_name: &str) -> bool {
   false
 }
 
+/// A byte that may appear in a CSS identifier (used to ensure a matched
+/// function name is not a suffix of a longer identifier).
+fn is_ident_byte(byte: u8) -> bool {
+  byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_'
+}
+
+/// Detects CSS relative color syntax, e.g. `rgb(from red r g b)`.
+///
+/// A relative color function is any color function (see
+/// `COLOR_RELATIVE_VALUE_FUNCTIONS`) whose first argument is the `from`
+/// keyword. SWC's CSS parser cannot parse this form, so such values are
+/// normalized via spacing only instead of being parsed and re-serialized.
+fn contains_relative_color_function(value: &str) -> bool {
+  COLOR_RELATIVE_VALUE_FUNCTIONS
+    .iter()
+    .any(|name| has_relative_color_call(value, name))
+}
+
+/// Returns `true` if `value` contains `function_name` immediately followed by
+/// `(` and, after any whitespace, the `from` keyword (the relative color
+/// marker).
+fn has_relative_color_call(value: &str, function_name: &str) -> bool {
+  let value_bytes = value.as_bytes();
+  let name_bytes = function_name.as_bytes();
+
+  if value_bytes.len() <= name_bytes.len() {
+    return false;
+  }
+
+  const FROM: &[u8] = b"from";
+
+  for i in 0..=(value_bytes.len() - name_bytes.len() - 1) {
+    if !value_bytes[i..i + name_bytes.len()].eq_ignore_ascii_case(name_bytes) {
+      continue;
+    }
+
+    // The function name must be immediately followed by `(`.
+    if value_bytes[i + name_bytes.len()] != b'(' {
+      continue;
+    }
+
+    // Avoid matching a suffix of a longer identifier (e.g. `srgb(` for `rgb`).
+    if i > 0 && is_ident_byte(value_bytes[i - 1]) {
+      continue;
+    }
+
+    // Skip whitespace after `(`, then look for the `from` keyword followed by a
+    // whitespace boundary.
+    let mut cursor = i + name_bytes.len() + 1;
+    while cursor < value_bytes.len() && value_bytes[cursor].is_ascii_whitespace() {
+      cursor += 1;
+    }
+
+    if cursor + FROM.len() < value_bytes.len()
+      && value_bytes[cursor..cursor + FROM.len()].eq_ignore_ascii_case(FROM)
+      && value_bytes[cursor + FROM.len()].is_ascii_whitespace()
+    {
+      return true;
+    }
+  }
+
+  false
+}
+
 fn is_escaped(value: &[u8], index: usize) -> bool {
   let mut backslash_count = 0;
   let mut cursor = index;
@@ -539,8 +600,8 @@ pub fn normalize_css_property_value(
 ) -> String {
   let should_normalize_spacing_only = COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES
     .iter()
-    .chain(COLOR_RELATIVE_VALUES_LISTED_NORMALIZED_PROPERTY_VALUES.iter())
-    .any(|css_fnc| contains_css_function_call(css_property_value, css_fnc));
+    .any(|css_fnc| contains_css_function_call(css_property_value, css_fnc))
+    || contains_relative_color_function(css_property_value);
 
   let is_css_variable = css_property.starts_with("--");
 

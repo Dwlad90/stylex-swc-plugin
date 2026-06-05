@@ -44,7 +44,7 @@
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.5.0",
     "eslint-config-next": "^16.2.7",
-    "jest": "^30.3.0",
+    "jest": "^30.4.2",
     "jest-chain-transform": "^0.0.8",
     "jest-environment-jsdom": "30.3.0",
     "rimraf": "^6.1.3",

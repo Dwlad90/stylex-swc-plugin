@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/evaluator",
   "description": "JS expression evaluation engine for StyleX SWC plugin",
-  "version": "0.16.3",
+  "version": "0.16.4-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -37,14 +37,14 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/ast": "0.16.3",
-    "@stylexswc/constants": "0.16.3",
-    "@stylexswc/enums": "0.16.3",
-    "@stylexswc/macros": "0.16.3",
-    "@stylexswc/path-resolver": "0.16.3",
-    "@stylexswc/structures": "0.16.3",
-    "@stylexswc/stylex-js": "0.16.3",
-    "@stylexswc/types": "0.16.3",
+    "@stylexswc/ast": "0.16.4-rc.1",
+    "@stylexswc/constants": "0.16.4-rc.1",
+    "@stylexswc/enums": "0.16.4-rc.1",
+    "@stylexswc/macros": "0.16.4-rc.1",
+    "@stylexswc/path-resolver": "0.16.4-rc.1",
+    "@stylexswc/structures": "0.16.4-rc.1",
+    "@stylexswc/stylex-js": "0.16.4-rc.1",
+    "@stylexswc/types": "0.16.4-rc.1",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.3"

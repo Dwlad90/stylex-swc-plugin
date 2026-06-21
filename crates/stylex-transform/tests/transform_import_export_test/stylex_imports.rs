@@ -158,7 +158,7 @@ fn transform_with_options(
   })
 }
 
-// Tests matching the JS file structure
+// Import/export structure tests
 
 #[test]
 fn import_none() {

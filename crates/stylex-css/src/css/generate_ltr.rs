@@ -44,9 +44,8 @@ fn property_to_ltr(pair: &Pair) -> PairCow<'_> {
       // a redundant owned copy (the common case, e.g. `center`).
       //
       // NOTE: `split_whitespace()` collapses runs of whitespace and drops empty
-      // tokens, unlike the upstream JS `val.split(' ')` which preserves them.
-      // The values reaching here are already single-space normalized, so the two
-      // are equivalent in practice; the divergence is intentional.
+      // tokens. The values reaching here are already single-space normalized, so
+      // this has no observable effect in practice.
       if !pair.value.split_whitespace().any(|word| {
         matches!(
           word,

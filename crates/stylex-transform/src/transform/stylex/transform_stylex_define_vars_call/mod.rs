@@ -227,8 +227,7 @@ where
         assert_no_define_vars_cycles(&dependency_map);
       }
 
-      // Normalize: evaluate zero-param arrow function values in the defineVars object
-      // (mirrors TypeScript's `normalizeDefineVarsObject`).
+      // Normalize: evaluate zero-param arrow function values in the defineVars object.
       let value =
         normalize_define_vars_functions(value, &mut self.state, &function_map, call, &first_arg);
 

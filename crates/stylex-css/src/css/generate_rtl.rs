@@ -30,20 +30,19 @@ fn property_to_rtl<'a>(pair: &'a Pair, options: &StyleXStateOptions) -> Option<P
       value: Cow::Borrowed(value),
     }),
     "background-position" => {
-      // Bail out (yielding `null`) unless the value carries a logical
-      // `start`/`end` keyword. Directional-neutral values such as `center`
-      // or physical values such as `left top` must not emit a redundant
-      // `rtl` rule. The guard matches only the bare
-      // `start`/`end` keywords, so those are the only words flipped.
+      // Bail out unless the value carries a bare `start`/`end` keyword.
+      // Directional-neutral values such as `center` or physical values such as
+      // `left top` must not emit a redundant, higher-specificity `rtl` rule.
+      // Once a logical keyword is present, also flip camel-case
+      // `insetInlineStart`/`insetInlineEnd` tokens that appear in the same value.
       //
       // NOTE: `split_whitespace()` collapses runs of whitespace and drops empty
-      // tokens, unlike the upstream JS `val.split(' ')` which preserves them.
-      // The values reaching here are already single-space normalized, so the two
-      // are equivalent in practice; the divergence is intentional.
+      // tokens. The values reaching here are already single-space normalized, so
+      // this has no observable effect in practice.
       if !pair
         .value
         .split_whitespace()
-        .any(|word| word == "start" || word == "end")
+        .any(|word| matches!(word, "start" | "end"))
       {
         return None;
       }
@@ -55,8 +54,8 @@ fn property_to_rtl<'a>(pair: &'a Pair, options: &StyleXStateOptions) -> Option<P
         }
 
         new_val.push_str(match word {
-          "start" => "right",
-          "end" => "left",
+          "start" | "insetInlineStart" => "right",
+          "end" | "insetInlineEnd" => "left",
           other => other,
         });
       }

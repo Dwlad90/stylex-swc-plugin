@@ -842,7 +842,7 @@ fn restore_negative_leading_zero_test() {
   // Leading sign at the very start of the value.
   assert_eq!(restore("-.5"), "-0.5");
 
-  // Positive decimals keep the stripped leading zero (matches Babel).
+  // Positive decimals keep the stripped leading zero.
   assert_eq!(restore(".5px"), ".5px");
 
   // Restores negatives inside functions and lists.

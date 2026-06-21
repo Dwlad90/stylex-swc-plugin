@@ -215,8 +215,7 @@ fn detect_cycle(
 }
 
 /// Walks the evaluated `defineVars` object and expands zero-param arrow
-/// function values by evaluating their bodies (mirrors
-/// `normalizeDefineVarsObject` from the TypeScript implementation). Nested
+/// function values by evaluating their bodies. Nested
 /// arrow functions (i.e. arrows appearing anywhere below the top-level property
 /// value) are rejected — only the top-level `key: () => …` shape is supported,
 /// matching the TypeScript behaviour where `normalizeDefineVarsValue` is called
@@ -311,9 +310,8 @@ pub(super) fn normalize_define_vars_functions(
 }
 
 /// Panics with `invalid_define_vars_function_value` if any `Expr::Arrow`
-/// appears anywhere inside `expr` (after evaluation). Mirrors TypeScript's
-/// recursive call to `normalizeDefineVarsValue` with `allowCSSType = false`,
-/// which rejects `typeof value === 'function'` at depth > 0.
+/// appears anywhere inside `expr` (after evaluation). Function values are
+/// rejected at depth > 0; only top-level zero-param arrows are expanded.
 ///
 /// Uses an SWC `Visit` traversal so any expression subtree (parens, arrays,
 /// conditionals, calls, sequences, …) is covered, not just object literals.

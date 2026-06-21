@@ -25,7 +25,7 @@ use stylex_constants::constants::messages::{
   ENTRY_MUST_BE_TUPLE, THEME_VAR_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
 };
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
-use stylex_structures::pair::Pair;
+use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableStyle,
@@ -79,7 +79,7 @@ pub(crate) fn stylex_position_try(
     )
   };
 
-  let options = state.options.clone();
+  let state_options = StyleXStateOptions::default();
 
   let ltr_styles = obj_map(
     ObjMapType::Object(extended_object.clone()),
@@ -87,7 +87,7 @@ pub(crate) fn stylex_position_try(
     |style, _| {
       let pair = tuple_to_pair(style.as_ref());
 
-      let ltr_values = generate_ltr(&pair, &options).into_owned();
+      let ltr_values = generate_ltr(&pair, &state_options).into_owned();
 
       Rc::new(FlatCompiledStylesValue::KeyValue(ltr_values))
     },
@@ -96,11 +96,10 @@ pub(crate) fn stylex_position_try(
   let rtl_styles = obj_map(ObjMapType::Object(extended_object), state, |style, _| {
     let pair = tuple_to_pair(style.as_ref());
 
-    // Mirror the JS impl: `generateRtl([key, value]) ?? value`. When no RTL
-    // transform applies, the fallback is the bare value (a string), which
-    // serializes to `key:value;` rather than the doubled `key:key;key:value;`
-    // form produced for the LTR `[key, value]` tuple.
-    match generate_rtl(&pair, &options) {
+    // When no RTL transform applies, fall back to the bare value (a string),
+    // which serializes to `key:value;` rather than the doubled
+    // `key:key;key:value;` form produced for the LTR `[key, value]` tuple.
+    match generate_rtl(&pair, &state_options) {
       Some(rtl_value) => Rc::new(FlatCompiledStylesValue::KeyValue(rtl_value.into_owned())),
       None => Rc::new(FlatCompiledStylesValue::String(pair.value)),
     }
@@ -187,7 +186,7 @@ fn construct_position_try_obj(styles: &FlatCompiledStyles) -> String {
         let _ = write!(output, "{}:{};", k, val);
       },
       // A `[key, value]` tuple serializes each element as a value under the
-      // outer key, matching the JS `(Array.isArray(v) ? v : [v]).map(...)`.
+      // outer key.
       FlatCompiledStylesValue::KeyValue(pair) => {
         let _ = write!(output, "{}:{};{}:{};", k, pair.key, k, pair.value);
       },

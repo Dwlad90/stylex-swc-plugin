@@ -262,12 +262,11 @@ fn is_sign_position(prev: Option<char>) -> bool {
 /// decimals (e.g. `-.24px` → `-0.24px`).
 ///
 /// SWC's `minify_numeric` removes the leading zero from every decimal,
-/// including negative ones. The official StyleX `@stylexjs/babel-plugin`, by
-/// contrast, only strips leading zeros from positive values in the `[0, 1)`
-/// range (via its `normalizeLeadingZero` normalizer) and leaves negative
+/// including negative ones. The expected normalization only strips leading
+/// zeros from positive values in the `[0, 1)` range and leaves negative
 /// decimals untouched. Class names are hashed from the normalized value, so
-/// this divergence yields mismatched class names between the two compilers.
-/// Restoring the leading zero on negative decimals keeps them aligned.
+/// stripping the zero from a negative decimal yields the wrong class name.
+/// Restoring the leading zero on negative decimals keeps the output correct.
 ///
 /// Scans the string once over Unicode scalar values so multibyte characters
 /// (e.g. emoji inside `content`) are preserved. Quoted strings are skipped so

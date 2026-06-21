@@ -248,11 +248,27 @@ mod generate_rtl_tests {
   }
 
   #[test]
+  fn background_position_start_with_inset_inline_end_flips() {
+    let pair = Pair::new("background-position", "start insetInlineEnd");
+    let result = generate_rtl(&pair, &default_options());
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().value, "right left");
+  }
+
+  #[test]
+  fn background_position_end_with_inset_inline_start_flips() {
+    let pair = Pair::new("background-position", "end insetInlineStart");
+    let result = generate_rtl(&pair, &default_options());
+    assert!(result.is_some());
+    assert_eq!(result.unwrap().value, "left right");
+  }
+
+  #[test]
   fn background_position_no_logical_no_rtl() {
     let pair = Pair::new("background-position", "center bottom");
     let result = generate_rtl(&pair, &default_options());
-    // No `start`/`end` keyword → no directional flip → no `rtl` rule, matching
-    // the official plugin (avoids a redundant, higher-specificity duplicate).
+    // No `start`/`end` keyword → no directional flip → no `rtl` rule
+    // (avoids a redundant, higher-specificity duplicate).
     assert!(result.is_none());
   }
 
@@ -493,8 +509,8 @@ mod generate_rtl_tests {
   fn background_position_inset_inline_start_no_rtl() {
     let pair = Pair::new("background-position", "inset-inline-start center");
     let result = generate_rtl(&pair, &default_options());
-    // The official plugin's guard only matches the bare `start`/`end` keywords,
-    // so `inset-inline-*` values produce no `rtl` rule.
+    // The guard only matches the bare `start`/`end` keywords, so
+    // `inset-inline-*` values produce no `rtl` rule.
     assert!(result.is_none());
   }
 

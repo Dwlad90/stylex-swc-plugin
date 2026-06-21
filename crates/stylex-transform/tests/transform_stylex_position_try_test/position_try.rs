@@ -77,14 +77,12 @@ stylex_test!(
   "#
 );
 
-// Legacy shorthand expansion + the logical-styles polyfill is the only mode in
-// which a `@position-try` property's key actually flips (e.g. `inset-inline-start`
-// -> `left` for LTR, `-> right` for RTL). This exercises the `[key, value]` tuple
-// serialization in `construct_position_try_obj`, where the flipped key differs from
-// the outer property key, so the LTR/RTL strings diverge and a distinct RTL rule is
-// emitted.
+// `positionTry()` uses the active transform options while preprocessing
+// properties, but default options for LTR/RTL pair generation. Legacy logical
+// polyfill settings therefore do not flip the generated `@position-try`
+// declaration keys during direction generation.
 stylex_test!(
-  position_try_object_legacy_logical_rtl,
+  position_try_object_uses_default_direction_options,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_style_resolution(StyleResolution::LegacyExpandShorthands)
       .with_enable_logical_styles_polyfill(true)

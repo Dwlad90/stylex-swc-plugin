@@ -859,3 +859,14 @@ stylex_test!(
     });
   "#
 );
+
+stylex_test!(
+  create_with_position_try_object_rtl,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const positionTryObject = stylex.positionTry({ top: '0', left: '10px' });
+
+    export const styles = stylex.create({ foo: { positionTryFallbacks: positionTryObject } });
+  "#
+);

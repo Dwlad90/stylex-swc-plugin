@@ -115,18 +115,17 @@ pub(crate) fn stylex_position_try(
     })
     .unwrap_or_default();
 
-    let key = tuple.0.clone();
-
     let pair = Pair {
-      key: key.clone(),
+      key: tuple.0.clone(),
       value: value.clone(),
     };
 
-    let rtl_values = generate_rtl(&pair, &options);
-
-    match rtl_values {
+    // When no RTL transform applies, the fallback is the bare value (a string),
+    // which serializes to `key:value;` rather than the doubled `key:key;key:value;`
+    // form produced for the LTR `[key, value]` tuple.
+    match generate_rtl(&pair, &options) {
       Some(rtl_value) => Rc::new(FlatCompiledStylesValue::KeyValue(rtl_value.into_owned())),
-      None => Rc::new(FlatCompiledStylesValue::KeyValue(Pair { key, value })),
+      None => Rc::new(FlatCompiledStylesValue::String(value)),
     }
   });
 
@@ -192,12 +191,13 @@ fn construct_position_try_obj(styles: FlatCompiledStyles) -> String {
       FlatCompiledStylesValue::String(val) => {
         let _ = write!(output, "{}:{};", k, val);
       },
+      // A `[key, value]` tuple serializes each element as a value under the outer key
       FlatCompiledStylesValue::KeyValue(pair) => {
-        let _ = write!(output, "{}:{};{}:{};", k, k, pair.key, pair.value);
+        let _ = write!(output, "{}:{};{}:{};", k, pair.key, k, pair.value);
       },
       FlatCompiledStylesValue::KeyValues(pairs) => {
         for pair in pairs {
-          let _ = write!(output, "{}:{};{}:{};", k, k, pair.key, pair.value);
+          let _ = write!(output, "{}:{};{}:{};", k, pair.key, k, pair.value);
         }
       },
       _ => {},

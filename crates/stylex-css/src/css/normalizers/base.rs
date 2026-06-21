@@ -9,6 +9,8 @@ use swc_core::{
   },
 };
 
+use std::borrow::Cow;
+
 use stylex_constants::constants::common::ROOT_FONT_SIZE;
 use stylex_utils::string::dashify;
 
@@ -252,7 +254,7 @@ fn zero_dimension_normalizer(
 fn is_sign_position(prev: Option<char>) -> bool {
   match prev {
     None => true,
-    Some(c) => c.is_whitespace() || matches!(c, '(' | ',' | '+' | '-' | '*' | '/'),
+    Some(c) => c.is_ascii_whitespace() || matches!(c, '(' | ',' | '+' | '-' | '*' | '/'),
   }
 }
 
@@ -270,9 +272,14 @@ fn is_sign_position(prev: Option<char>) -> bool {
 /// Scans the string once over Unicode scalar values so multibyte characters
 /// (e.g. emoji inside `content`) are preserved. Quoted strings are skipped so
 /// values such as `content: "-.5"` are left untouched.
-pub(crate) fn restore_negative_leading_zero(value: &str) -> String {
+///
+/// Returns [`Cow::Borrowed`] when nothing needs changing — the overwhelmingly
+/// common case — so the hot path (every normalized CSS value) allocates only
+/// when a leading zero is actually restored.
+pub(crate) fn restore_negative_leading_zero(value: &str) -> Cow<'_, str> {
+  // Fast path: a leading zero can only be missing where a `-.` substring exists.
   if !value.contains("-.") {
-    return value.to_string();
+    return Cow::Borrowed(value);
   }
 
   let mut result = String::with_capacity(value.len() + 2);
@@ -281,6 +288,7 @@ pub(crate) fn restore_negative_leading_zero(value: &str) -> String {
   // The previous character, used to tell a sign `-` (start of a negative
   // number) from a `-` that follows a number or identifier.
   let mut prev: Option<char> = None;
+  let mut modified = false;
 
   for (idx, cur) in value.char_indices() {
     if let Some(quote) = in_quote {
@@ -311,6 +319,7 @@ pub(crate) fn restore_negative_leading_zero(value: &str) -> String {
       if rest.first() == Some(&b'.') && rest.get(1).is_some_and(u8::is_ascii_digit) {
         result.push('-');
         result.push('0');
+        modified = true;
         prev = Some('-');
         continue;
       }
@@ -320,5 +329,11 @@ pub(crate) fn restore_negative_leading_zero(value: &str) -> String {
     prev = Some(cur);
   }
 
-  result
+  // The `-.` substring may have been inside a quoted string or otherwise not a
+  // sign position, in which case the scan produced an identical copy.
+  if modified {
+    Cow::Owned(result)
+  } else {
+    Cow::Borrowed(value)
+  }
 }

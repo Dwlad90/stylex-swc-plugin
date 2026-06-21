@@ -78,7 +78,8 @@
     "postbuild": "pnpm run check:artifacts",
     "prepublishOnly": "pnpm run build",
     "start": "esno src/index.ts",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "typecheck": "scripty --ts"
   },
   "config": {

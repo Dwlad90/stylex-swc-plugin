@@ -28,17 +28,33 @@ set -euo pipefail
 
 # Crates excluded from workspace coverage, kept in sync with the
 # `test:coverage:workspace` script in the root package.json.
-WORKSPACE_EXCLUDES="--exclude stylex_logs \
-  --exclude stylex_compiler_rs \
-  --exclude stylex_test_parser \
-  --exclude stylex_css_parser \
-  --exclude stylex_transform"
+WORKSPACE_EXCLUDES=(
+  --exclude stylex_logs
+  --exclude stylex_compiler_rs
+  --exclude stylex_test_parser
+  --exclude stylex_css_parser
+  --exclude stylex_transform
+)
 
 # Generated test/bench/example files are never counted, matching CI.
 IGNORE_REGEX='(tests?|benches?|examples)/'
 
 usage() {
-  sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
+  cat <<'EOF'
+coverage-missing.sh — pinpoint uncovered lines in the Rust workspace.
+
+USAGE
+  scripts/coverage-missing.sh                 # whole workspace (matches CI excludes)
+  scripts/coverage-missing.sh stylex_css      # single crate (fast iteration)
+  scripts/coverage-missing.sh -p stylex_css   # same, explicit flag
+  scripts/coverage-missing.sh --html          # also write an HTML report, print its path
+  scripts/coverage-missing.sh --open          # write + open the HTML report in a browser
+  scripts/coverage-missing.sh -h | --help
+
+EXIT STATUS
+  0  every measured line is covered
+  1  one or more lines are uncovered (the `file: line` list is printed above)
+EOF
   exit "${1:-0}"
 }
 
@@ -72,28 +88,28 @@ while [ $# -gt 0 ]; do
 done
 
 # Select scope: a single crate (fast) or the whole workspace (CI parity).
+# Arrays keep each argument a distinct word, so no `shellcheck disable=SC2086`.
+scope=()
 if [ -n "$package" ]; then
-  scope="-p $package"
+  scope=(-p "$package")
   echo "==> Coverage for crate: $package"
 else
-  # shellcheck disable=SC2086
-  scope="--workspace $WORKSPACE_EXCLUDES"
+  scope=(--workspace "${WORKSPACE_EXCLUDES[@]}")
   echo "==> Coverage for workspace (excluding non-instrumented crates)"
 fi
 
 # `--show-missing-lines` prints the uncovered `file: line` list.
 # `--fail-uncovered-lines 0` makes the command exit non-zero if any remain,
 # so this script is CI-friendly and usable as a pre-commit gate.
-report_flags="--show-missing-lines --fail-uncovered-lines 0"
+report_flags=(--show-missing-lines --fail-uncovered-lines 0)
 
 if [ "$html" -eq 1 ]; then
-  report_flags="$report_flags --html"
-  [ "$open" -eq 1 ] && report_flags="$report_flags --open"
+  report_flags+=(--html)
+  [ "$open" -eq 1 ] && report_flags+=(--open)
 fi
 
-# shellcheck disable=SC2086
 cargo +nightly llvm-cov nextest \
-  $scope \
+  "${scope[@]}" \
   --all-features \
   --ignore-filename-regex "$IGNORE_REGEX" \
-  $report_flags
+  "${report_flags[@]}"

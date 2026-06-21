@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use swc_core::{common::DUMMY_SP, css::ast::Ident};
 
 use crate::css::normalizers::base::{restore_negative_leading_zero, zero_unit};
@@ -831,69 +833,71 @@ fn zero_unit_test() {
 
 #[test]
 fn restore_negative_leading_zero_test() {
+  // Compare the result as a plain string regardless of the `Cow` variant.
+  let restore = |value: &str| restore_negative_leading_zero(value).into_owned();
+
   // Negative decimals get their leading zero restored (the reported bug).
-  assert_eq!(restore_negative_leading_zero("-.24px"), "-0.24px");
-  assert_eq!(restore_negative_leading_zero("-.9s"), "-0.9s");
+  assert_eq!(restore("-.24px"), "-0.24px");
+  assert_eq!(restore("-.9s"), "-0.9s");
   // Leading sign at the very start of the value.
-  assert_eq!(restore_negative_leading_zero("-.5"), "-0.5");
+  assert_eq!(restore("-.5"), "-0.5");
 
   // Positive decimals keep the stripped leading zero (matches Babel).
-  assert_eq!(restore_negative_leading_zero(".5px"), ".5px");
+  assert_eq!(restore(".5px"), ".5px");
 
   // Restores negatives inside functions and lists.
+  assert_eq!(restore("calc(-.5px + 1px)"), "calc(-0.5px + 1px)");
   assert_eq!(
-    restore_negative_leading_zero("calc(-.5px + 1px)"),
-    "calc(-0.5px + 1px)"
-  );
-  assert_eq!(
-    restore_negative_leading_zero("translate(-.5px,-.25px)"),
+    restore("translate(-.5px,-.25px)"),
     "translate(-0.5px,-0.25px)"
   );
 
   // Subtraction operators are left alone, whatever token precedes them:
   // a unit/ident, a closing paren, or a percentage (common calc patterns).
-  assert_eq!(
-    restore_negative_leading_zero("calc(1px-.5px)"),
-    "calc(1px-.5px)"
-  );
-  assert_eq!(
-    restore_negative_leading_zero("calc(var(--x)-.5px)"),
-    "calc(var(--x)-.5px)"
-  );
-  assert_eq!(restore_negative_leading_zero("10%-.5px"), "10%-.5px");
+  assert_eq!(restore("calc(1px-.5px)"), "calc(1px-.5px)");
+  assert_eq!(restore("calc(var(--x)-.5px)"), "calc(var(--x)-.5px)");
+  assert_eq!(restore("10%-.5px"), "10%-.5px");
 
   // A sign-position `-` not followed by `.<digit>` (e.g. a negative integer)
   // is left untouched, while a later `-.<digit>` is still restored.
-  assert_eq!(restore_negative_leading_zero("-5px -.5px"), "-5px -0.5px");
+  assert_eq!(restore("-5px -.5px"), "-5px -0.5px");
 
   // Quoted strings are never touched, even when they contain the pattern.
-  assert_eq!(
-    restore_negative_leading_zero(r#"content:"-.5""#),
-    r#"content:"-.5""#
-  );
-  assert_eq!(
-    restore_negative_leading_zero(r#"content:'-.5'"#),
-    r#"content:'-.5'"#
-  );
+  assert_eq!(restore(r#"content:"-.5""#), r#"content:"-.5""#);
+  assert_eq!(restore(r#"content:'-.5'"#), r#"content:'-.5'"#);
 
   // Escaped quote inside a string does not prematurely end the string, so the
   // `-.5` stays protected.
-  assert_eq!(
-    restore_negative_leading_zero(r#"content:"a\"-.5""#),
-    r#"content:"a\"-.5""#
-  );
+  assert_eq!(restore(r#"content:"a\"-.5""#), r#"content:"a\"-.5""#);
 
   // Multibyte UTF-8 (emoji) is preserved verbatim, inside and outside quotes.
-  assert_eq!(
-    restore_negative_leading_zero(r#"content:"🎉 -.5""#),
-    r#"content:"🎉 -.5""#
-  );
-  assert_eq!(
-    restore_negative_leading_zero("translate(🎉,-.5px)"),
-    "translate(🎉,-0.5px)"
-  );
+  assert_eq!(restore(r#"content:"🎉 -.5""#), r#"content:"🎉 -.5""#);
+  assert_eq!(restore("translate(🎉,-.5px)"), "translate(🎉,-0.5px)");
 
   // Values without a candidate pattern are returned unchanged.
-  assert_eq!(restore_negative_leading_zero("10px"), "10px");
-  assert_eq!(restore_negative_leading_zero("🎉"), "🎉");
+  assert_eq!(restore("10px"), "10px");
+  assert_eq!(restore("🎉"), "🎉");
+
+  // Allocation contract: only borrow when nothing changes. An unchanged value
+  // (including a `-.` that turns out not to be a sign) must not allocate; a
+  // genuine restoration must return an owned string.
+  assert!(matches!(
+    restore_negative_leading_zero("10px"),
+    Cow::Borrowed(_)
+  ));
+  assert!(matches!(
+    restore_negative_leading_zero("calc(1px-.5px)"),
+    Cow::Borrowed(_)
+  ));
+  assert!(matches!(
+    restore_negative_leading_zero("-.5px"),
+    Cow::Owned(_)
+  ));
+
+  // Idempotence: restoring an already-restored value is a no-op (and borrows).
+  let once = restore("translate(-.5px,-.25px)");
+  assert!(matches!(
+    restore_negative_leading_zero(&once),
+    Cow::Borrowed(_)
+  ));
 }

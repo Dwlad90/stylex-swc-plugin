@@ -711,10 +711,10 @@ pub fn normalize_css_property_value(
 
   let stringified = stringify(&parsed_ast);
   let value = extract_css_value(&stringified);
-  let normalized = normalize_spacing(value);
-  let normalized = restore_negative_leading_zero(&normalized);
+  let normalized_spacing = normalize_spacing(value);
+  let negative_leading_zero_restored = restore_negative_leading_zero(&normalized_spacing);
 
-  convert_css_function_to_camel_case(&normalized)
+  convert_css_function_to_camel_case(&negative_leading_zero_restored)
 }
 
 /// Returns the numeric suffix for a CSS property (`"px"`, `"ms"`, `""`, etc.).

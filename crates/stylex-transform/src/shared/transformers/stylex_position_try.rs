@@ -96,8 +96,9 @@ pub(crate) fn stylex_position_try(
   let rtl_styles = obj_map(ObjMapType::Object(extended_object), state, |style, _| {
     let pair = tuple_to_pair(style.as_ref());
 
-    // When no RTL transform applies, the fallback is the bare value (a string),
-    // which serializes to `key:value;` rather than the doubled `key:key;key:value;`
+    // Mirror the JS impl: `generateRtl([key, value]) ?? value`. When no RTL
+    // transform applies, the fallback is the bare value (a string), which
+    // serializes to `key:value;` rather than the doubled `key:key;key:value;`
     // form produced for the LTR `[key, value]` tuple.
     match generate_rtl(&pair, &options) {
       Some(rtl_value) => Rc::new(FlatCompiledStylesValue::KeyValue(rtl_value.into_owned())),
@@ -185,7 +186,8 @@ fn construct_position_try_obj(styles: &FlatCompiledStyles) -> String {
       FlatCompiledStylesValue::String(val) => {
         let _ = write!(output, "{}:{};", k, val);
       },
-      // Array values are serialized as repeated values under the outer key.
+      // A `[key, value]` tuple serializes each element as a value under the
+      // outer key, matching the JS `(Array.isArray(v) ? v : [v]).map(...)`.
       FlatCompiledStylesValue::KeyValue(pair) => {
         let _ = write!(output, "{}:{};{}:{};", k, pair.key, k, pair.value);
       },

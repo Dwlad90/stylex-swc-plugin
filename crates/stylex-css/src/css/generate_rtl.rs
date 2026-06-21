@@ -11,9 +11,11 @@ use stylex_structures::{
 };
 
 fn logical_to_physical_rtl(input: &str) -> Option<Cow<'_, str>> {
-  Some(Cow::Borrowed(
-    LOGICAL_VALUE_TO_RTL.get(input).copied().unwrap_or(input),
-  ))
+  // Only logical keywords (start/end/inline-start/inline-end) flip; physical values
+  // such as `left`/`right` yield `null`, leaving `rtl` unset.
+  LOGICAL_VALUE_TO_RTL
+    .get(input)
+    .map(|&value| Cow::Borrowed(value))
 }
 
 fn property_to_rtl<'a>(pair: &'a Pair, options: &StyleXStateOptions) -> Option<PairCow<'a>> {
@@ -30,9 +32,17 @@ fn property_to_rtl<'a>(pair: &'a Pair, options: &StyleXStateOptions) -> Option<P
       value,
     }),
     "background-position" => {
-      let new_val = pair
-        .value
-        .split_whitespace()
+      let words = pair.value.split_whitespace().collect::<Vec<_>>();
+
+      // Bail out (yielding `null`) unless the value carries
+      // a logical `start`/`end` keyword. Directional-neutral values such as
+      // `center` or `left top` must not emit a redundant `rtl` rule.
+      if !words.contains(&"start") && !words.contains(&"end") {
+        return None;
+      }
+
+      let new_val = words
+        .into_iter()
         .map(|word| match word {
           "start" | "inset-inline-start" => "right",
           "end" | "inset-inline-end" => "left",

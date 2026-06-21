@@ -881,3 +881,23 @@ stylex_test!(
     export const styles = stylex.create({ foo: { positionTryFallbacks: positionTryObject } });
   "#
 );
+
+stylex_test!(
+  create_background_position_without_rtl,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ foo: { backgroundPosition: 'center' } });
+  "#
+);
+
+stylex_test!(
+  create_within_first_that_works_and_rtl,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({
+      foo: { float: stylex.firstThatWorks('inline-start', 'left') },
+    });
+  "#
+);

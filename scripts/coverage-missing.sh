@@ -101,7 +101,12 @@ fi
 # `--show-missing-lines` prints the uncovered `file: line` list.
 # `--fail-uncovered-lines 0` makes the command exit non-zero if any remain,
 # so this script is CI-friendly and usable as a pre-commit gate.
-report_flags=(--show-missing-lines --fail-uncovered-lines 0)
+report_flags=(
+  --show-missing-lines
+  --fail-uncovered-lines 0
+  --fail-uncovered-regions 0
+  --fail-under-functions 0
+)
 
 if [ "$html" -eq 1 ]; then
   report_flags+=(--html)

@@ -282,17 +282,19 @@ pub(crate) fn restore_negative_leading_zero(value: &str) -> Cow<'_, str> {
     return Cow::Borrowed(value);
   }
 
-  let mut result = String::with_capacity(value.len() + 2);
+  let mut result: Option<String> = None;
   let mut in_quote: Option<char> = None;
   let mut escaped = false;
   // The previous character, used to tell a sign `-` (start of a negative
   // number) from a `-` that follows a number or identifier.
   let mut prev: Option<char> = None;
-  let mut modified = false;
 
   for (idx, cur) in value.char_indices() {
     if let Some(quote) = in_quote {
-      result.push(cur);
+      if let Some(result) = result.as_mut() {
+        result.push(cur);
+      }
+
       if escaped {
         escaped = false;
       } else if cur == '\\' {
@@ -306,7 +308,11 @@ pub(crate) fn restore_negative_leading_zero(value: &str) -> Cow<'_, str> {
 
     if cur == '"' || cur == '\'' {
       in_quote = Some(cur);
-      result.push(cur);
+
+      if let Some(result) = result.as_mut() {
+        result.push(cur);
+      }
+
       prev = Some(cur);
       continue;
     }
@@ -317,23 +323,30 @@ pub(crate) fn restore_negative_leading_zero(value: &str) -> Cow<'_, str> {
     if cur == '-' && is_sign_position(prev) {
       let rest = &value.as_bytes()[idx + 1..];
       if rest.first() == Some(&b'.') && rest.get(1).is_some_and(u8::is_ascii_digit) {
+        let result = result.get_or_insert_with(|| {
+          let mut result = String::with_capacity(value.len() + 1);
+          result.push_str(&value[..idx]);
+          result
+        });
+
         result.push('-');
         result.push('0');
-        modified = true;
         prev = Some('-');
         continue;
       }
     }
 
-    result.push(cur);
+    if let Some(result) = result.as_mut() {
+      result.push(cur);
+    }
+
     prev = Some(cur);
   }
 
   // The `-.` substring may have been inside a quoted string or otherwise not a
   // sign position, in which case the scan produced an identical copy.
-  if modified {
-    Cow::Owned(result)
-  } else {
-    Cow::Borrowed(value)
+  match result {
+    Some(result) => Cow::Owned(result),
+    None => Cow::Borrowed(value),
   }
 }

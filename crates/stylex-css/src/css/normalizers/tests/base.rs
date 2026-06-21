@@ -851,6 +851,10 @@ fn restore_negative_leading_zero_test() {
     restore("translate(-.5px,-.25px)"),
     "translate(-0.5px,-0.25px)"
   );
+  assert_eq!(
+    restore(r#"translate(-.5px,"-.25px")"#),
+    r#"translate(-0.5px,"-.25px")"#
+  );
 
   // Subtraction operators are left alone, whatever token precedes them:
   // a unit/ident, a closing paren, or a percentage (common calc patterns).

@@ -414,6 +414,21 @@ mod normalize_css_property_value_tests {
     assert_eq!(result, "0");
   }
 
+  #[test]
+  fn keeps_leading_zero_on_negative_decimals() {
+    let opts = default_options();
+
+    assert_eq!(
+      normalize_css_property_value("letterSpacing", "-0.24px", &opts),
+      "-0.24px"
+    );
+
+    assert_eq!(
+      normalize_css_property_value("marginTop", "-0.5px", &opts),
+      "-0.5px"
+    );
+  }
+
   // --- Calc expressions ---
 
   #[test]

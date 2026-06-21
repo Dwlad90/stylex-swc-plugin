@@ -26,7 +26,7 @@ pub fn sort_pseudos(pseudos: &[String]) -> Vec<String> {
     .flat_map(|pseudo| {
       if pseudo.len() > 1 {
         let mut sorted_pseudo = pseudo;
-        sorted_pseudo.sort();
+        sorted_pseudo.sort_unstable();
         sorted_pseudo
       } else {
         pseudo
@@ -38,7 +38,7 @@ pub fn sort_pseudos(pseudos: &[String]) -> Vec<String> {
 pub fn sort_at_rules(at_rules: &[String]) -> Vec<String> {
   let mut unsorted_at_rules = at_rules.to_vec();
 
-  unsorted_at_rules.sort_by(|a, b| string_comparator(a, b));
+  unsorted_at_rules.sort_unstable_by(|a, b| string_comparator(a, b));
 
   unsorted_at_rules
 }

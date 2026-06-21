@@ -111,7 +111,7 @@ pub(crate) fn collect_vars_by_at_rules(
         "default".to_string()
       } else {
         let mut keys = at_rules.to_vec();
-        keys.sort();
+        keys.sort_unstable();
         keys.join(SPLIT_TOKEN)
       };
 

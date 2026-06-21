@@ -411,11 +411,11 @@ fn with_complicated_set_of_arguments() {
   assert_eq!(classname_string, repeat_classname_string);
 
   let mut parts: Vec<_> = classname_string.split_whitespace().collect();
-  parts.sort();
+  parts.sort_unstable();
   let result_classname_string = parts.join(" ");
 
   let mut parts: Vec<_> = "g5ia77u1 tpe1esc0 gewhe1h2 gcovof34 bdao358l a8c37x1j s5oniofx kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a qt6c0cv9 a8nywdso oajrlxb2 i1ao9s8h myohyog2 n3t5jt4f gh25dzvf g4tp4svg nhd2j8a9 f1sip0of icdlwmnq e4t7hp5w gmql0nx0 ihxqhq3m l94mrbxd aenfhxwr k4urcfbm gofk2cf1 ksdfmwjs tm8avpzi bj9fd4vl".split_whitespace().collect();
-  parts.sort();
+  parts.sort_unstable();
   let expected_classname_string = parts.join(" ");
 
   assert_eq!(result_classname_string, expected_classname_string);

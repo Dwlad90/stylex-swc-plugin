@@ -161,7 +161,7 @@ pub(super) fn assert_no_define_vars_cycles(dependency_map: &FxHashMap<Atom, FxHa
 
   // Sort keys for deterministic error messages across platforms.
   let mut keys: Vec<&Atom> = dependency_map.keys().collect();
-  keys.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
+  keys.sort_unstable_by(|a, b| a.as_ref().cmp(b.as_ref()));
 
   for key in keys {
     if !visited.contains(key) {
@@ -195,7 +195,7 @@ fn detect_cycle(
 
   if let Some(deps) = dependency_map.get(node) {
     let mut sorted_deps: Vec<&Atom> = deps.iter().collect();
-    sorted_deps.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
+    sorted_deps.sort_unstable_by(|a, b| a.as_ref().cmp(b.as_ref()));
 
     for dep in sorted_deps {
       if !visited.contains(dep) {

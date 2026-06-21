@@ -47,7 +47,7 @@ pub(crate) fn stylex_create_theme(
   };
   let mut variables_key_values = Box::new(get_key_values_from_object(variables_obj));
 
-  variables_key_values.sort_by_key(convert_key_value_to_str);
+  variables_key_values.sort_unstable_by_key(convert_key_value_to_str);
 
   let var_group_hash: String;
   let mut theme_vars_key_values: Vec<KeyValueProp>;
@@ -128,7 +128,7 @@ pub(crate) fn stylex_create_theme(
   // But also put "default" first
   let mut sorted_at_rules = rules_by_at_rule.keys().collect::<Vec<&String>>();
 
-  sorted_at_rules.sort_by(|a, b| {
+  sorted_at_rules.sort_unstable_by(|a, b| {
     if a.as_str() == "default" {
       Ordering::Less
     } else if b.as_str() == "default" {

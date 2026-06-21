@@ -870,3 +870,14 @@ stylex_test!(
     export const styles = stylex.create({ foo: { positionTryFallbacks: positionTryObject } });
   "#
 );
+
+stylex_test!(
+  create_with_position_try_object_logical_rtl,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const positionTryObject = stylex.positionTry({ insetInlineStart: '0', top: '10px' });
+
+    export const styles = stylex.create({ foo: { positionTryFallbacks: positionTryObject } });
+  "#
+);

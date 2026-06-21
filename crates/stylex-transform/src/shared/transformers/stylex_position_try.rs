@@ -91,7 +91,7 @@ pub(crate) fn stylex_position_try(
 
       let pair = Pair {
         key: tuple.0.clone(),
-        value: convert_lit_to_string(match tuple.1.clone().as_lit() {
+        value: convert_lit_to_string(match tuple.1.as_lit() {
           Some(lit) => lit,
           None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
         })
@@ -109,7 +109,7 @@ pub(crate) fn stylex_position_try(
       stylex_panic!("{}", THEME_VAR_TUPLE)
     };
 
-    let value = convert_lit_to_string(match tuple.1.clone().as_lit() {
+    let value = convert_lit_to_string(match tuple.1.as_lit() {
       Some(lit) => lit,
       None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
     })
@@ -117,7 +117,7 @@ pub(crate) fn stylex_position_try(
 
     let pair = Pair {
       key: tuple.0.clone(),
-      value: value.clone(),
+      value,
     };
 
     // When no RTL transform applies, the fallback is the bare value (a string),
@@ -125,7 +125,7 @@ pub(crate) fn stylex_position_try(
     // form produced for the LTR `[key, value]` tuple.
     match generate_rtl(&pair, &options) {
       Some(rtl_value) => Rc::new(FlatCompiledStylesValue::KeyValue(rtl_value.into_owned())),
-      None => Rc::new(FlatCompiledStylesValue::String(value)),
+      None => Rc::new(FlatCompiledStylesValue::String(pair.value)),
     }
   });
 

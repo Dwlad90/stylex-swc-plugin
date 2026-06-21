@@ -10,12 +10,10 @@ use stylex_structures::{
   stylex_state_options::StyleXStateOptions,
 };
 
-fn logical_to_physical_rtl(input: &str) -> Option<Cow<'_, str>> {
+fn logical_to_physical_rtl(input: &str) -> Option<&'static str> {
   // Only logical keywords (start/end/inline-start/inline-end) flip; physical values
-  // such as `left`/`right` yield `null`, leaving `rtl` unset.
-  LOGICAL_VALUE_TO_RTL
-    .get(input)
-    .map(|&value| Cow::Borrowed(value))
+  // such as `left`/`right` yield `None`, leaving `rtl` unset.
+  LOGICAL_VALUE_TO_RTL.get(input).copied()
 }
 
 fn property_to_rtl<'a>(pair: &'a Pair, options: &StyleXStateOptions) -> Option<PairCow<'a>> {
@@ -29,7 +27,7 @@ fn property_to_rtl<'a>(pair: &'a Pair, options: &StyleXStateOptions) -> Option<P
   match pair.key.as_str() {
     "float" | "clear" => logical_to_physical_rtl(pair.value.as_str()).map(|value| PairCow {
       key: Cow::Borrowed(pair.key.as_str()),
-      value,
+      value: Cow::Borrowed(value),
     }),
     "background-position" => {
       // Bail out (yielding `null`) unless the value carries a logical
@@ -37,6 +35,11 @@ fn property_to_rtl<'a>(pair: &'a Pair, options: &StyleXStateOptions) -> Option<P
       // or physical values such as `left top` must not emit a redundant
       // `rtl` rule. The guard matches only the bare
       // `start`/`end` keywords, so those are the only words flipped.
+      //
+      // NOTE: `split_whitespace()` collapses runs of whitespace and drops empty
+      // tokens, unlike the upstream JS `val.split(' ')` which preserves them.
+      // The values reaching here are already single-space normalized, so the two
+      // are equivalent in practice; the divergence is intentional.
       if !pair
         .value
         .split_whitespace()

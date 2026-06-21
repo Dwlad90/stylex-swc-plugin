@@ -76,3 +76,29 @@ stylex_test!(
     });
   "#
 );
+
+// Legacy shorthand expansion + the logical-styles polyfill is the only mode in
+// which a `@position-try` property's key actually flips (e.g. `inset-inline-start`
+// -> `left` for LTR, `-> right` for RTL). This exercises the `[key, value]` tuple
+// serialization in `construct_position_try_obj`, where the flipped key differs from
+// the outer property key, so the LTR/RTL strings diverge and a distinct RTL rule is
+// emitted.
+stylex_test!(
+  position_try_object_legacy_logical_rtl,
+  |tr| stylex_transform(tr.comments.clone(), |b| {
+    b.with_style_resolution(StyleResolution::LegacyExpandShorthands)
+      .with_enable_logical_styles_polyfill(true)
+      .with_runtime_injection()
+  }),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: {
+        positionTryFallbacks: stylex.positionTry({
+          insetInlineStart: '10px',
+          top: '0',
+        }),
+      },
+    });
+  "#
+);

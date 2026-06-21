@@ -32,24 +32,32 @@ fn property_to_rtl<'a>(pair: &'a Pair, options: &StyleXStateOptions) -> Option<P
       value,
     }),
     "background-position" => {
-      let words = pair.value.split_whitespace().collect::<Vec<_>>();
-
-      // Bail out (yielding `null`) unless the value carries
-      // a logical `start`/`end` keyword. Directional-neutral values such as
-      // `center` or `left top` must not emit a redundant `rtl` rule.
-      if !words.contains(&"start") && !words.contains(&"end") {
+      // Bail out (yielding `null`) unless the value carries a logical
+      // `start`/`end` keyword. Directional-neutral values such as `center`
+      // or physical values such as `left top` must not emit a redundant
+      // `rtl` rule. The guard matches only the bare
+      // `start`/`end` keywords, so those are the only words flipped.
+      if !pair
+        .value
+        .split_whitespace()
+        .any(|word| word == "start" || word == "end")
+      {
         return None;
       }
 
-      let new_val = words
-        .into_iter()
-        .map(|word| match word {
-          "start" | "inset-inline-start" => "right",
-          "end" | "inset-inline-end" => "left",
-          _ => word,
-        })
-        .collect::<Vec<_>>()
-        .join(" ");
+      let mut new_val = String::with_capacity(pair.value.len());
+      for word in pair.value.split_whitespace() {
+        if !new_val.is_empty() {
+          new_val.push(' ');
+        }
+
+        new_val.push_str(match word {
+          "start" => "right",
+          "end" => "left",
+          other => other,
+        });
+      }
+
       Some(PairCow {
         key: Cow::Borrowed(pair.key.as_str()),
         value: Cow::Owned(new_val),

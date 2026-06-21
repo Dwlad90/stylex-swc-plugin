@@ -85,18 +85,7 @@ pub(crate) fn stylex_position_try(
     ObjMapType::Object(extended_object.clone()),
     state,
     |style, _| {
-      let Some(tuple) = style.as_tuple() else {
-        stylex_panic!("{}", THEME_VAR_TUPLE)
-      };
-
-      let pair = Pair {
-        key: tuple.0.clone(),
-        value: convert_lit_to_string(match tuple.1.as_lit() {
-          Some(lit) => lit,
-          None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
-        })
-        .unwrap_or_default(),
-      };
+      let pair = tuple_to_pair(style.as_ref());
 
       let ltr_values = generate_ltr(&pair, &options).into_owned();
 
@@ -105,20 +94,7 @@ pub(crate) fn stylex_position_try(
   );
 
   let rtl_styles = obj_map(ObjMapType::Object(extended_object), state, |style, _| {
-    let Some(tuple) = style.as_tuple() else {
-      stylex_panic!("{}", THEME_VAR_TUPLE)
-    };
-
-    let value = convert_lit_to_string(match tuple.1.as_lit() {
-      Some(lit) => lit,
-      None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
-    })
-    .unwrap_or_default();
-
-    let pair = Pair {
-      key: tuple.0.clone(),
-      value,
-    };
+    let pair = tuple_to_pair(style.as_ref());
 
     // When no RTL transform applies, the fallback is the bare value (a string),
     // which serializes to `key:value;` rather than the doubled `key:key;key:value;`
@@ -129,8 +105,8 @@ pub(crate) fn stylex_position_try(
     }
   });
 
-  let ltr_string = construct_position_try_obj(ltr_styles);
-  let rtl_string = construct_position_try_obj(rtl_styles);
+  let ltr_string = construct_position_try_obj(&ltr_styles);
+  let rtl_string = construct_position_try_obj(&rtl_styles);
 
   let position_try_name = format!("--{}{}", class_name_prefix, create_hash(&ltr_string));
 
@@ -174,15 +150,33 @@ pub(crate) fn get_position_try_fn() -> FunctionConfig {
   }
 }
 
-fn construct_position_try_obj(styles: FlatCompiledStyles) -> String {
-  // Collect and sort keys for deterministic output
-  let mut sorted_keys = styles.keys().cloned().collect::<Vec<String>>();
-  sorted_keys.sort();
+fn tuple_to_pair(style: &FlatCompiledStylesValue) -> Pair {
+  let Some(tuple) = style.as_tuple() else {
+    stylex_panic!("{}", THEME_VAR_TUPLE)
+  };
+
+  let Some(lit) = tuple.1.as_lit() else {
+    stylex_panic!("{}", VALUE_MUST_BE_STRING)
+  };
+
+  let Some(value) = convert_lit_to_string(lit) else {
+    stylex_panic!("{}", VALUE_MUST_BE_STRING)
+  };
+
+  Pair {
+    key: tuple.0.clone(),
+    value,
+  }
+}
+
+fn construct_position_try_obj(styles: &FlatCompiledStyles) -> String {
+  let mut sorted_keys = styles.keys().collect::<Vec<_>>();
+  sorted_keys.sort_unstable();
 
   let mut output = String::with_capacity(sorted_keys.len().saturating_mul(32));
 
   for k in sorted_keys {
-    let v = match styles.get(&k) {
+    let v = match styles.get(k) {
       Some(v) => v,
       None => stylex_panic!("Expected property key to exist in compiled styles."),
     };
@@ -191,7 +185,7 @@ fn construct_position_try_obj(styles: FlatCompiledStyles) -> String {
       FlatCompiledStylesValue::String(val) => {
         let _ = write!(output, "{}:{};", k, val);
       },
-      // A `[key, value]` tuple serializes each element as a value under the outer key
+      // Array values are serialized as repeated values under the outer key.
       FlatCompiledStylesValue::KeyValue(pair) => {
         let _ = write!(output, "{}:{};{}:{};", k, pair.key, k, pair.value);
       },

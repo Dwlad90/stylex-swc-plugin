@@ -850,11 +850,17 @@ fn restore_negative_leading_zero_test() {
     "translate(-0.5px,-0.25px)"
   );
 
-  // Subtraction operators (a `-` preceded by a number/ident) are left alone.
+  // Subtraction operators are left alone, whatever token precedes them:
+  // a unit/ident, a closing paren, or a percentage (common calc patterns).
   assert_eq!(
     restore_negative_leading_zero("calc(1px-.5px)"),
     "calc(1px-.5px)"
   );
+  assert_eq!(
+    restore_negative_leading_zero("calc(var(--x)-.5px)"),
+    "calc(var(--x)-.5px)"
+  );
+  assert_eq!(restore_negative_leading_zero("10%-.5px"), "10%-.5px");
 
   // A sign-position `-` not followed by `.<digit>` (e.g. a negative integer)
   // is left untouched, while a later `-.<digit>` is still restored.

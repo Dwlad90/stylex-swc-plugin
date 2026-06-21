@@ -24,7 +24,7 @@
 #   0  every measured line is covered
 #   1  one or more lines are uncovered (the `file: line` list is printed above)
 
-set -eu
+set -euo pipefail
 
 # Crates excluded from workspace coverage, kept in sync with the
 # `test:coverage:workspace` script in the root package.json.

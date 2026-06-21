@@ -240,23 +240,32 @@ fn zero_dimension_normalizer(
   }
 }
 
-/// Returns `true` when `c` is part of a number or identifier, meaning a
-/// following `-` is an operator/suffix rather than the sign of a standalone
-/// negative number (e.g. the `-` in `1px-.5px` or `a-.5`).
-fn is_number_part(c: char) -> bool {
-  c.is_alphanumeric() || c == '_' || c == '.'
+/// Returns `true` when a `-` whose preceding character is `prev` starts a
+/// negative number (a sign) rather than acting as a subtraction operator or
+/// being part of an identifier/dimension.
+///
+/// A sign only appears at the very start of the value or right after an opening
+/// parenthesis, an argument/list separator, or a math operator. Anything else —
+/// a letter, digit, `%`, `)`, `.` … — means the `-` continues an existing token
+/// or subtracts from it, so e.g. `calc(var(--x)-.5px)` and `10%-.5px` are left
+/// untouched.
+fn is_sign_position(prev: Option<char>) -> bool {
+  match prev {
+    None => true,
+    Some(c) => c.is_whitespace() || matches!(c, '(' | ',' | '+' | '-' | '*' | '/'),
+  }
 }
 
 /// Restores the leading zero that SWC's CSS minifier strips from negative
 /// decimals (e.g. `-.24px` → `-0.24px`).
 ///
 /// SWC's `minify_numeric` removes the leading zero from every decimal,
-/// including negative ones. Should only strip leading zeros from positive values
-/// in the `[0, 1)` range (via its `normalizeLeadingZero` normalizer) and leaves
-/// negative decimals untouched.
-/// Class names are hashed from the normalized value, so this divergence yields
-/// mismatched class names between the two compilers. Restoring the leading zero
-/// on negative decimals keeps them aligned.
+/// including negative ones. The official StyleX `@stylexjs/babel-plugin`, by
+/// contrast, only strips leading zeros from positive values in the `[0, 1)`
+/// range (via its `normalizeLeadingZero` normalizer) and leaves negative
+/// decimals untouched. Class names are hashed from the normalized value, so
+/// this divergence yields mismatched class names between the two compilers.
+/// Restoring the leading zero on negative decimals keeps them aligned.
 ///
 /// Scans the string once over Unicode scalar values so multibyte characters
 /// (e.g. emoji inside `content`) are preserved. Quoted strings are skipped so
@@ -297,7 +306,7 @@ pub(crate) fn restore_negative_leading_zero(value: &str) -> String {
     // A sign-position `-` immediately followed by `.<digit>` lost its leading
     // zero to the minifier; restore it. `.` and digits are single-byte ASCII,
     // so inspecting the raw bytes after `-` is UTF-8 safe.
-    if cur == '-' && !prev.is_some_and(is_number_part) {
+    if cur == '-' && is_sign_position(prev) {
       let rest = &value.as_bytes()[idx + 1..];
       if rest.first() == Some(&b'.') && rest.get(1).is_some_and(u8::is_ascii_digit) {
         result.push('-');

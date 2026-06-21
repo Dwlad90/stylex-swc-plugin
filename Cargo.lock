@@ -2767,7 +2767,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "stylex_ast"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "anyhow",
  "ctor",
@@ -2780,7 +2780,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_compiler_rs"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "indexmap",
  "log",
@@ -2806,7 +2806,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_constants"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "ctor",
  "once_cell",
@@ -2817,7 +2817,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_css"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "criterion",
  "ctor",
@@ -2837,7 +2837,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_css_parser"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "criterion",
  "cssparser",
@@ -2851,7 +2851,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_enums"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "indexmap",
  "rustc-hash",
@@ -2862,7 +2862,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_evaluator"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "ctor",
  "indexmap",
@@ -2877,7 +2877,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_js"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "stylex_constants",
  "stylex_macros",
@@ -2886,7 +2886,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_logs"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "colored",
  "ctor",
@@ -2898,7 +2898,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_macros"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "colored",
  "log",
@@ -2907,7 +2907,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_path_resolver"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "ctor",
  "fancy-regex 0.18.0",
@@ -2928,7 +2928,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_regex"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "fancy-regex 0.18.0",
  "once_cell",
@@ -2936,7 +2936,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_structures"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "indexmap",
  "once_cell",
@@ -2952,7 +2952,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_styleq"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "criterion",
  "indexmap",
@@ -2963,7 +2963,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_test_parser"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "clap",
  "color-backtrace",
@@ -2980,7 +2980,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_transform"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "anyhow",
  "criterion",
@@ -3017,7 +3017,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_types"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "ctor",
  "derive_more",
@@ -3032,7 +3032,7 @@ dependencies = [
 
 [[package]]
 name = "stylex_utils"
-version = "0.16.4"
+version = "0.16.5-rc.1"
 dependencies = [
  "base62",
  "indexmap",

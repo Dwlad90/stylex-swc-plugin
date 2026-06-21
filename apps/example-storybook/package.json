@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/example-storybook",
-  "version": "0.16.4",
+  "version": "0.16.5-rc.1",
   "private": true,
   "scripts": {
     "build": "storybook build",
@@ -31,9 +31,9 @@
     "@storybook/react": "^10.3.6",
     "@storybook/react-vite": "^10.3.6",
     "@stylexjs/stylex": "^0.18.3",
-    "@stylexswc/playwright": "0.16.4",
-    "@stylexswc/postcss-plugin": "0.16.4",
-    "@stylexswc/unplugin": "0.16.4",
+    "@stylexswc/playwright": "0.16.5-rc.1",
+    "@stylexswc/postcss-plugin": "0.16.5-rc.1",
+    "@stylexswc/unplugin": "0.16.5-rc.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.16",
     "@types/react-dom": "^19.2.3",

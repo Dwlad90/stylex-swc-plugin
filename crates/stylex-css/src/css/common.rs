@@ -3,7 +3,10 @@ use std::borrow::Cow;
 use crate::css::{
   generate_ltr::generate_ltr,
   generate_rtl::generate_rtl,
-  normalizers::{base::base_normalizer, extract_css_value, normalize_spacing},
+  normalizers::{
+    base::{base_normalizer, restore_negative_leading_zero},
+    extract_css_value, normalize_spacing,
+  },
   validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
 };
 use stylex_constants::constants::{
@@ -709,6 +712,7 @@ pub fn normalize_css_property_value(
   let stringified = stringify(&parsed_ast);
   let value = extract_css_value(&stringified);
   let normalized = normalize_spacing(value);
+  let normalized = restore_negative_leading_zero(&normalized);
 
   convert_css_function_to_camel_case(&normalized)
 }

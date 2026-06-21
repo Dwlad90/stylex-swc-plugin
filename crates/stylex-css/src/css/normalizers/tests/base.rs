@@ -1,6 +1,6 @@
 use swc_core::{common::DUMMY_SP, css::ast::Ident};
 
-use crate::css::normalizers::base::zero_unit;
+use crate::css::normalizers::base::{restore_negative_leading_zero, zero_unit};
 
 #[cfg(test)]
 mod normalizers {
@@ -827,4 +827,67 @@ fn zero_unit_test() {
       raw: None
     }
   );
+}
+
+#[test]
+fn restore_negative_leading_zero_test() {
+  // Negative decimals get their leading zero restored (the reported bug).
+  assert_eq!(restore_negative_leading_zero("-.24px"), "-0.24px");
+  assert_eq!(restore_negative_leading_zero("-.9s"), "-0.9s");
+  // Leading sign at the very start of the value.
+  assert_eq!(restore_negative_leading_zero("-.5"), "-0.5");
+
+  // Positive decimals keep the stripped leading zero (matches Babel).
+  assert_eq!(restore_negative_leading_zero(".5px"), ".5px");
+
+  // Restores negatives inside functions and lists.
+  assert_eq!(
+    restore_negative_leading_zero("calc(-.5px + 1px)"),
+    "calc(-0.5px + 1px)"
+  );
+  assert_eq!(
+    restore_negative_leading_zero("translate(-.5px,-.25px)"),
+    "translate(-0.5px,-0.25px)"
+  );
+
+  // Subtraction operators (a `-` preceded by a number/ident) are left alone.
+  assert_eq!(
+    restore_negative_leading_zero("calc(1px-.5px)"),
+    "calc(1px-.5px)"
+  );
+
+  // A sign-position `-` not followed by `.<digit>` (e.g. a negative integer)
+  // is left untouched, while a later `-.<digit>` is still restored.
+  assert_eq!(restore_negative_leading_zero("-5px -.5px"), "-5px -0.5px");
+
+  // Quoted strings are never touched, even when they contain the pattern.
+  assert_eq!(
+    restore_negative_leading_zero(r#"content:"-.5""#),
+    r#"content:"-.5""#
+  );
+  assert_eq!(
+    restore_negative_leading_zero(r#"content:'-.5'"#),
+    r#"content:'-.5'"#
+  );
+
+  // Escaped quote inside a string does not prematurely end the string, so the
+  // `-.5` stays protected.
+  assert_eq!(
+    restore_negative_leading_zero(r#"content:"a\"-.5""#),
+    r#"content:"a\"-.5""#
+  );
+
+  // Multibyte UTF-8 (emoji) is preserved verbatim, inside and outside quotes.
+  assert_eq!(
+    restore_negative_leading_zero(r#"content:"🎉 -.5""#),
+    r#"content:"🎉 -.5""#
+  );
+  assert_eq!(
+    restore_negative_leading_zero("translate(🎉,-.5px)"),
+    "translate(🎉,-0.5px)"
+  );
+
+  // Values without a candidate pattern are returned unchanged.
+  assert_eq!(restore_negative_leading_zero("10px"), "10px");
+  assert_eq!(restore_negative_leading_zero("🎉"), "🎉");
 }

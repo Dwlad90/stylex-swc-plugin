@@ -98,6 +98,21 @@ stylex_test!(
   "#
 );
 
+// Negative decimals between -1 and 0 must keep their leading zero.
+// The class name hash is derived from the normalized value, so a divergence here
+// produces mismatched class names across compilers (issue #1049).
+stylex_test!(
+  keep_leading_zero_on_negative_decimals,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: {
+        letterSpacing: '-0.24px',
+        marginTop: '-0.5px'
+      } });
+  "#
+);
+
 stylex_test!(
   use_double_quotes_in_empty_strings,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

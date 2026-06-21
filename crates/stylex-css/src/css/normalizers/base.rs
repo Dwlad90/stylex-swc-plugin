@@ -239,3 +239,77 @@ fn zero_dimension_normalizer(
     },
   }
 }
+
+/// Returns `true` when `c` is part of a number or identifier, meaning a
+/// following `-` is an operator/suffix rather than the sign of a standalone
+/// negative number (e.g. the `-` in `1px-.5px` or `a-.5`).
+fn is_number_part(c: char) -> bool {
+  c.is_alphanumeric() || c == '_' || c == '.'
+}
+
+/// Restores the leading zero that SWC's CSS minifier strips from negative
+/// decimals (e.g. `-.24px` → `-0.24px`).
+///
+/// SWC's `minify_numeric` removes the leading zero from every decimal,
+/// including negative ones. Should only strip leading zeros from positive values
+/// in the `[0, 1)` range (via its `normalizeLeadingZero` normalizer) and leaves
+/// negative decimals untouched.
+/// Class names are hashed from the normalized value, so this divergence yields
+/// mismatched class names between the two compilers. Restoring the leading zero
+/// on negative decimals keeps them aligned.
+///
+/// Scans the string once over Unicode scalar values so multibyte characters
+/// (e.g. emoji inside `content`) are preserved. Quoted strings are skipped so
+/// values such as `content: "-.5"` are left untouched.
+pub(crate) fn restore_negative_leading_zero(value: &str) -> String {
+  if !value.contains("-.") {
+    return value.to_string();
+  }
+
+  let mut result = String::with_capacity(value.len() + 2);
+  let mut in_quote: Option<char> = None;
+  let mut escaped = false;
+  // The previous character, used to tell a sign `-` (start of a negative
+  // number) from a `-` that follows a number or identifier.
+  let mut prev: Option<char> = None;
+
+  for (idx, cur) in value.char_indices() {
+    if let Some(quote) = in_quote {
+      result.push(cur);
+      if escaped {
+        escaped = false;
+      } else if cur == '\\' {
+        escaped = true;
+      } else if cur == quote {
+        in_quote = None;
+      }
+      prev = Some(cur);
+      continue;
+    }
+
+    if cur == '"' || cur == '\'' {
+      in_quote = Some(cur);
+      result.push(cur);
+      prev = Some(cur);
+      continue;
+    }
+
+    // A sign-position `-` immediately followed by `.<digit>` lost its leading
+    // zero to the minifier; restore it. `.` and digits are single-byte ASCII,
+    // so inspecting the raw bytes after `-` is UTF-8 safe.
+    if cur == '-' && !prev.is_some_and(is_number_part) {
+      let rest = &value.as_bytes()[idx + 1..];
+      if rest.first() == Some(&b'.') && rest.get(1).is_some_and(u8::is_ascii_digit) {
+        result.push('-');
+        result.push('0');
+        prev = Some('-');
+        continue;
+      }
+    }
+
+    result.push(cur);
+    prev = Some(cur);
+  }
+
+  result
+}

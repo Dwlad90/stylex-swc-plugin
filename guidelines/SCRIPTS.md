@@ -68,3 +68,34 @@ pnpm run test:coverage:workspace
 # Per-crate coverage (from crate directory)
 pnpm run test:coverage
 ```
+
+### Finding uncovered lines
+
+`test:coverage:workspace` only reports pass/fail percentages. When it fails, use
+`scripts/coverage-missing.sh` to print the exact `file: line` ranges that no
+test exercises, so you know precisely what needs a test.
+
+```sh
+# Whole workspace (same crate excludes as test:coverage:workspace)
+scripts/coverage-missing.sh
+
+# Single crate — much faster while iterating on one module
+scripts/coverage-missing.sh stylex_css
+scripts/coverage-missing.sh -p stylex_css   # equivalent, explicit flag
+
+# Also emit an HTML report (and open it in a browser with --open)
+scripts/coverage-missing.sh stylex_css --html
+scripts/coverage-missing.sh stylex_css --open
+
+scripts/coverage-missing.sh --help
+```
+
+The uncovered `file: line` list is printed beneath the per-file table. The
+script exits `0` when every measured line is covered and `1` otherwise, so it
+doubles as a local gate. It requires the nightly toolchain plus `cargo-llvm-cov`
+and `cargo-nextest`:
+
+```sh
+rustup toolchain install nightly
+cargo install cargo-llvm-cov cargo-nextest --locked
+```

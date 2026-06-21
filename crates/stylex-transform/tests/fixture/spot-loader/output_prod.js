@@ -35,13 +35,13 @@ const styles = {
         $$css: true
     },
     rect4: {
-        kKxzle: "x1olj69",
+        kKxzle: "x1ba7lo8",
         kWkggS: "xb4ade6",
         kZKoxP: "x1lnynta",
         $$css: true
     },
     rect5: {
-        kKxzle: "x1ryhrx7",
+        kKxzle: "xdwblqi",
         kZKoxP: "x10buj8t",
         $$css: true
     },

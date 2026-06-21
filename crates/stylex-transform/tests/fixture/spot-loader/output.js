@@ -79,7 +79,7 @@ _inject2({
     priority: 4000
 });
 _inject2({
-    ltr: ".animationDelay-x1olj69{animation-delay:-.9s}",
+    ltr: ".animationDelay-x1ba7lo8{animation-delay:-0.9s}",
     priority: 3000
 });
 _inject2({
@@ -87,7 +87,7 @@ _inject2({
     priority: 3000
 });
 _inject2({
-    ltr: ".animationDelay-x1ryhrx7{animation-delay:-.8s}",
+    ltr: ".animationDelay-xdwblqi{animation-delay:-0.8s}",
     priority: 3000
 });
 _inject2({
@@ -149,13 +149,13 @@ const styles = {
         $$css: "tests/fixture/spot-loader/input.stylex.js:36"
     },
     rect4: {
-        animationDelay: "animationDelay-x1olj69",
+        animationDelay: "animationDelay-x1ba7lo8",
         backgroundColor: "backgroundColor-xb4ade6",
         height: "height-x1lnynta",
         $$css: "tests/fixture/spot-loader/input.stylex.js:40"
     },
     rect5: {
-        animationDelay: "animationDelay-x1ryhrx7",
+        animationDelay: "animationDelay-xdwblqi",
         height: "height-x10buj8t",
         $$css: "tests/fixture/spot-loader/input.stylex.js:45"
     },

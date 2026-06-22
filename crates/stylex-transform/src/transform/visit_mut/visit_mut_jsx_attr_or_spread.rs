@@ -1,10 +1,11 @@
 use swc_core::{
-  common::comments::Comments,
-  ecma::{ast::JSXAttrOrSpread, utils::drop_span, visit::VisitMutWith},
+  common::{EqIgnoreSpan, comments::Comments},
+  ecma::{ast::JSXAttrOrSpread, visit::VisitMutWith},
 };
 
 use crate::StyleXTransform;
 use stylex_enums::core::TransformationCycle;
+use stylex_utils::hash::stable_hash_unspanned;
 
 impl<C> StyleXTransform<C>
 where
@@ -17,12 +18,18 @@ where
     if self.state.cycle == TransformationCycle::Discover {
       for jsx_attr in jsx_attrs.iter() {
         if let JSXAttrOrSpread::SpreadElement(spread) = jsx_attr {
-          let expr = drop_span(spread.expr.as_ref().clone());
-          self
+          let expr_key = stable_hash_unspanned(spread.expr.as_ref());
+          let bucket = self
             .state
             .jsx_spread_attr_exprs_map
-            .entry(expr)
+            .entry(expr_key)
             .or_default();
+          if !bucket
+            .iter()
+            .any(|(expr, _)| expr.eq_ignore_span(spread.expr.as_ref()))
+          {
+            bucket.push((spread.expr.as_ref().clone(), Vec::new()));
+          }
         }
       }
     }

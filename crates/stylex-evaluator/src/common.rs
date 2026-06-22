@@ -1,10 +1,7 @@
 use std::path::PathBuf;
 
 use stylex_macros::stylex_panic;
-use swc_core::ecma::{
-  ast::{BinaryOp, Expr, VarDeclarator},
-  utils::drop_span,
-};
+use swc_core::ecma::ast::{BinaryOp, Expr, VarDeclarator};
 
 /// Extracts the initializer expression from a variable declarator, panicking
 /// if no initializer is present.
@@ -34,14 +31,13 @@ pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
   }
 }
 
-/// Unwraps parenthesized expressions and drops source spans.
+/// Unwraps parenthesized expressions, returning a reference to the innermost
+/// non-paren expression. Spans are preserved; callers needing span-insensitive
+/// comparison or hashing use `eq_ignore_span` / `stable_hash_unspanned`.
 pub fn normalize_expr(expr: &mut Expr) -> &mut Expr {
   match expr {
     Expr::Paren(paren) => normalize_expr(paren.expr.as_mut()),
-    _ => {
-      *expr = drop_span(expr.clone());
-      expr
-    },
+    _ => expr,
   }
 }
 

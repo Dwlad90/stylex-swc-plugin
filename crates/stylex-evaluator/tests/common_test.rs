@@ -1,5 +1,5 @@
 use swc_core::{
-  common::DUMMY_SP,
+  common::{BytePos, DUMMY_SP, Span},
   ecma::ast::{
     BinaryOp, BindingIdent, Expr, Ident, Lit, Number, ParenExpr, Pat, Str, VarDeclarator,
   },
@@ -277,13 +277,21 @@ mod normalize_expr_tests {
   }
 
   #[test]
-  fn span_is_dropped_for_non_paren() {
-    let mut expr = make_num_expr(1.0);
+  fn span_is_preserved_for_non_paren() {
+    let original_span = Span::new(BytePos(10), BytePos(20));
+    let mut expr = Expr::Lit(Lit::Num(Number {
+      span: original_span,
+      value: 1.0,
+      raw: None,
+    }));
     let result = normalize_expr(&mut expr);
 
     match result {
       Expr::Lit(Lit::Num(n)) => {
-        assert_eq!(n.span, DUMMY_SP, "Span should be DUMMY_SP after drop_span");
+        assert_eq!(
+          n.span, original_span,
+          "normalize_expr must preserve the span of a non-paren expression"
+        );
       },
       _ => panic!("Expected numeric literal"),
     }

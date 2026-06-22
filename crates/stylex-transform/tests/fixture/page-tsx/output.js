@@ -10,7 +10,8 @@ const HOMEPAGE = 'https://stylexjs.com';
 interface Props {
 }
 export default function Home(_props: Props) {
-    return <main className="display-x78zum5 flexDirection-xdt5ytf alignItems-x6s0dn4 justifyContent-x1qughib minHeight-xg6iff7 paddingTop-x1llwu7x paddingBottom-xjfnvzm paddingBottom-x191vjuz" data-style-src="tests/fixture/page-tsx/input.stylex.js:58">
+    return(// @ts-expect-error - sx is not correctly typed
+    <main className="display-x78zum5 flexDirection-xdt5ytf alignItems-x6s0dn4 justifyContent-x1qughib minHeight-xg6iff7 paddingTop-x1llwu7x paddingBottom-xjfnvzm paddingBottom-x191vjuz" data-style-src="tests/fixture/page-tsx/input.stylex.js:58">
       <div className="display-x1jfb8zj justifyContent-xarpa2k alignItems-x1h91t0o fontSize-xmit1kp maxWidth-xmrzitl width-xh8yej3 zIndex-xhtitgo fontFamily-xh1z4oz" data-style-src="tests/fixture/page-tsx/input.stylex.js:104">
         <p className="display-xjg0vao position-x1n2onr6 position-x15f3dyk justifyContent-xo5s888 alignItems-xu8adaz width-x1v68ji2 margin-x1ghz6dp paddingInline-x1fvqwet paddingTop-x1eq7djj paddingTop-xrmelco paddingBottom-x1hsyo9t paddingBottom-x191vjuz backgroundColor-x1lz9bv1 backgroundImage-x1n7lvf9 borderWidth-xmkeg23 borderWidth-x1m60m6i borderStyle-x1y0btm7 borderColor-x1hydj5d borderBottomColor-xslp3sd borderRadius-x1nklt0o borderRadius-xd22jv inset-x1los6se" data-style-src="tests/fixture/page-tsx/input.stylex.js:123">
           Get started by editing&nbsp;
@@ -30,7 +31,7 @@ export default function Home(_props: Props) {
         <Card body="Play with StyleX and look at the compile outputs" href={`${HOMEPAGE}/playground/`} title="Playground"/>
         <Card body="Get started with a NextJS+StyleX project" href="https://github.com/nmn/nextjs-app-dir-stylex" title="Templates"/>
       </div>
-    </main>;
+    </main>);
 }
 _inject2({
     ltr: "@keyframes xhab9pt-B{0%{transform:var(--medium-x1m1o2d4);}10%{transform:var(--large-x13z98d3);}20%{transform:var(--medium-x1m1o2d4);}30%{transform:var(--large-x13z98d3);}40%{transform:var(--medium-x1m1o2d4);}90%{transform:var(--small-xrkhmu4);}100%{transform:var(--medium-x1m1o2d4);}}",

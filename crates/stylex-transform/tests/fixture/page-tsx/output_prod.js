@@ -7,7 +7,8 @@ const HOMEPAGE = 'https://stylexjs.com';
 interface Props {
 }
 export default function Home(_props: Props) {
-    return <main className="x78zum5 xdt5ytf x6s0dn4 x1qughib xg6iff7 x5zw9ho x1jlena x1hs85sq">
+    return(// @ts-expect-error - sx is not correctly typed
+    <main className="x78zum5 xdt5ytf x6s0dn4 x1qughib xg6iff7 x5zw9ho x1jlena x1hs85sq">
       <div className="x1jfb8zj xarpa2k x1h91t0o x1m46db1 xlql8t6 xh8yej3 xhtitgo xum72dy">
         <p className="xjg0vao x1n2onr6 x15f3dyk xo5s888 xu8adaz x1v68ji2 x1ghz6dp x2jueht xx1ocoh xzfjryi x1xwseyw x1hs85sq xhxofkm x1rgf71s xmkeg23 x1m60m6i x1y0btm7 xbc1r81 x1e6d3oi xvm41bv xd22jv x1los6se">
           Get started by editing&nbsp;
@@ -27,5 +28,5 @@ export default function Home(_props: Props) {
         <Card body="Play with StyleX and look at the compile outputs" href={`${HOMEPAGE}/playground/`} title="Playground"/>
         <Card body="Get started with a NextJS+StyleX project" href="https://github.com/nmn/nextjs-app-dir-stylex" title="Templates"/>
       </div>
-    </main>;
+    </main>);
 }

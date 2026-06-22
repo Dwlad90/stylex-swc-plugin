@@ -4,16 +4,19 @@ use std::{
   mem::discriminant,
 };
 
-use swc_core::ecma::{
-  ast::{
-    ArrayLit, ArrowExpr, AwaitExpr, BigInt, BinExpr, BlockStmtOrExpr, Bool, CallExpr, Callee,
-    ComputedPropName, CondExpr, Expr, ExprOrSpread, Ident, IdentName, Import, Lit, MemberExpr,
-    MemberProp, MetaPropExpr, NewExpr, Null, Number, ObjectLit, OptCall, OptChainBase,
-    OptChainExpr, ParenExpr, Pat, PrivateName, Prop, PropName, PropOrSpread, Regex, SeqExpr, Str,
-    Super, SuperProp, SuperPropExpr, TaggedTpl, ThisExpr, Tpl, TplElement, UnaryExpr, UpdateExpr,
-    YieldExpr,
+use swc_core::{
+  common::{DUMMY_SP, SyntaxContext},
+  ecma::{
+    ast::{
+      ArrayLit, ArrowExpr, AwaitExpr, BigInt, BinExpr, BlockStmtOrExpr, Bool, CallExpr, Callee,
+      ComputedPropName, CondExpr, Expr, ExprOrSpread, Ident, IdentName, Import, Lit, MemberExpr,
+      MemberProp, MetaPropExpr, NewExpr, Null, Number, ObjectLit, OptCall, OptChainBase,
+      OptChainExpr, ParenExpr, Pat, PrivateName, Prop, PropName, PropOrSpread, Regex, SeqExpr, Str,
+      Super, SuperProp, SuperPropExpr, TaggedTpl, ThisExpr, Tpl, TplElement, UnaryExpr, UpdateExpr,
+      YieldExpr,
+    },
+    utils::drop_span,
   },
-  utils::drop_span,
 };
 
 const MAX_UNSPANNED_HASH_COLLECTION_LEN: usize = 128;
@@ -77,11 +80,16 @@ pub fn stable_hash<T: Hash>(t: &T) -> u64 {
   hasher.finish()
 }
 
-/// Hashes an expression while treating all spans as `DUMMY_SP`.
+/// Hashes an expression into a stable structural key for the evaluator cache,
+/// treating spans as insignificant for the common expression shapes.
 ///
-/// The evaluator cache only needs a stable structural key. This avoids
-/// materializing a cloned, span-stripped expression for common expression
-/// shapes; unsupported shapes fall back to the previous `drop_span` path.
+/// Common shapes are hashed span-insensitively in place (no clone, no
+/// span-stripping) — this is the hot path that keeps structurally-equal
+/// expressions at different source positions sharing a cache entry. The rare
+/// unsupported shapes (functions, classes, JSX, TS-only nodes, oversized
+/// collections) fall back to hashing a span-stripped clone so the public
+/// contract stays span-insensitive for every expression shape.
+#[inline]
 pub fn stable_hash_unspanned(path: &Expr) -> u64 {
   let mut hasher = DefaultHasher::new();
 
@@ -89,6 +97,39 @@ pub fn stable_hash_unspanned(path: &Expr) -> u64 {
     hasher.finish()
   } else {
     stable_hash(&drop_span(path.clone()))
+  }
+}
+
+/// Hashes a [`CallExpr`] producing the exact same key as
+/// `stable_hash_unspanned(&Expr::Call(call.clone()))` — so a call can be looked
+/// up against a map keyed by whole-`Expr` spread hashes — without cloning the
+/// call into an owned `Expr` on the common, fully-hashable path.
+///
+/// It reproduces [`stable_hash_unspanned`]'s layout for the `Expr::Call`
+/// variant: the variant discriminant followed by the call body. The owned
+/// `Expr::Call` is only materialized on the rare fallback path (a call whose
+/// argument has a shape the in-place hasher does not cover), keeping the key
+/// identical in every case.
+#[inline]
+pub fn stable_hash_unspanned_call(call: &CallExpr) -> u64 {
+  let mut hasher = DefaultHasher::new();
+
+  // `discriminant` over the `Expr::Call` variant is independent of the call's
+  // contents, so a throwaway stack value (no heap allocation) yields the same
+  // discriminant `hash_expr_unspanned` writes for a real `Expr::Call`.
+  let call_variant = Expr::Call(CallExpr {
+    span: DUMMY_SP,
+    ctxt: SyntaxContext::empty(),
+    callee: Callee::Super(Super { span: DUMMY_SP }),
+    args: Vec::new(),
+    type_args: None,
+  });
+  discriminant(&call_variant).hash(&mut hasher);
+
+  if hash_call_expr_unspanned(call, &mut hasher) {
+    hasher.finish()
+  } else {
+    stable_hash(&drop_span(Expr::Call(call.clone())))
   }
 }
 

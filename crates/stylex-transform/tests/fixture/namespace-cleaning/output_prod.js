@@ -68,7 +68,7 @@ export default function NamespaceCleaning({ children }) {
     const [fontSizeIdx] = React.useState(2);
     const isMobile = useMediaQuery('(max-width: 1067px)');
     const props = sx.props(c.wrapper, isMobile && pClasses[fontSizeIdx]);
-    return _jsxs("div", {
+    return /*#__PURE__*/ _jsxs("div", {
         ...props,
         children
     });

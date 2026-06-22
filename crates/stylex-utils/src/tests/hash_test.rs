@@ -188,7 +188,9 @@ mod hash_f64_tests {
 
 #[cfg(test)]
 mod unspanned_fast_path_tests {
-  use super::super::{create_hash, stable_hash, stable_hash_unspanned, to_base36};
+  use super::super::{
+    create_hash, stable_hash, stable_hash_unspanned, stable_hash_unspanned_call, to_base36,
+  };
   use swc_core::{
     common::{DUMMY_SP, FileName, SourceMap, SyntaxContext, input::StringInput, sync::Lrc},
     ecma::{
@@ -499,6 +501,60 @@ mod unspanned_fast_path_tests {
     for expr in unsupported {
       assert_eq!(stable_hash_unspanned(&expr), stable_hash(&drop_span(expr)));
     }
+  }
+
+  #[test]
+  fn unspanned_call_hash_matches_whole_expr_and_ignores_spans() {
+    let expr = parse_expr("foo(bar, 1)");
+    let Expr::Call(call) = &expr else {
+      panic!("expected a call expression");
+    };
+
+    // The dedicated call hasher must produce exactly the same key as hashing
+    // the call wrapped in a whole `Expr` (the form used on the insertion side).
+    assert_eq!(
+      stable_hash_unspanned_call(call),
+      stable_hash_unspanned(&expr)
+    );
+
+    // ...and it must stay span-insensitive: the same call at a different source
+    // position hashes identically.
+    let shifted = parse_expr("      foo(bar, 1)");
+    let Expr::Call(shifted_call) = &shifted else {
+      panic!("expected a call expression");
+    };
+    assert_eq!(
+      stable_hash_unspanned_call(call),
+      stable_hash_unspanned_call(shifted_call)
+    );
+  }
+
+  #[test]
+  fn unspanned_call_hash_fallback_matches_whole_expr() {
+    // A function-expression argument is a shape the in-place call hasher does
+    // not cover, so `stable_hash_unspanned_call` takes its fallback branch
+    // (delegating to `stable_hash(&Expr::Call(..))`). On that branch it must
+    // still produce the same key as `stable_hash_unspanned` over the whole
+    // `Expr::Call`, which falls back identically — keeping the insertion-side
+    // and lookup-side keys aligned for exotic calls too.
+    let expr = parse_expr("foo(function () {})");
+    let Expr::Call(call) = &expr else {
+      panic!("expected a call expression");
+    };
+
+    assert_eq!(
+      stable_hash_unspanned_call(call),
+      stable_hash_unspanned(&expr)
+    );
+
+    let shifted = parse_expr("      foo(function () {})");
+    let Expr::Call(shifted_call) = &shifted else {
+      panic!("expected a call expression");
+    };
+    assert_eq!(
+      stable_hash_unspanned_call(call),
+      stable_hash_unspanned_call(shifted_call)
+    );
   }
 
   fn parse_expr(source: &str) -> Expr {

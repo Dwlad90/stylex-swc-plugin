@@ -10,16 +10,19 @@ const styles = stylex.create({
     }
 });
 export const Button = (props)=>{
+    // this doesn't work
     return <button {...stylex.props(buttonTheme[props.theme])}>
       {children}
     </button>;
 };
 export const Button2 = (props)=>{
+    // this works
     return <button {...stylex.props(styles.bg, buttonTheme[props.theme])}>
       {children}
     </button>;
 };
 export const Button3 = (props)=>{
+    // this works
     return <button {...stylex.props(undefined, buttonTheme[props.theme])}>
       {children}
     </button>;

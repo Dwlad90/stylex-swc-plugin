@@ -1,12 +1,15 @@
 use rustc_hash::FxHashMap;
 use stylex_macros::{stylex_panic, stylex_unreachable};
-use swc_core::ecma::{
-  ast::{
-    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, JSXAttrOrSpread, JSXAttrValue, Lit,
-    ObjectLit, Prop, PropName, PropOrSpread,
+use stylex_utils::hash::stable_hash_unspanned_call;
+use swc_core::{
+  common::EqIgnoreSpan,
+  ecma::{
+    ast::{
+      BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, JSXAttrOrSpread, JSXAttrValue,
+      Lit, ObjectLit, Prop, PropName, PropOrSpread,
+    },
+    visit::{VisitMut, VisitMutWith},
   },
-  utils::drop_span,
-  visit::{VisitMut, VisitMutWith},
 };
 
 use crate::shared::{
@@ -247,8 +250,7 @@ pub(crate) fn stylex_merge(
 
       // Hoist any inline compiled-style objects (produced by atoms) to module
       // scope so the runtime `stylex.props` receives a stable reference instead
-      // of a re-created object literal. Mirrors the `ObjectExpression` hoisting
-      // added to the babel `stylex-props` visitor.
+      // of a re-created object literal.
       let mut object_hoister = CompiledStyleObjectHoister { state: &mut *state };
       arg_path.expr.visit_mut_with(&mut object_hoister);
     }
@@ -256,9 +258,17 @@ pub(crate) fn stylex_merge(
     let string_expression = make_string_expression(&resolved_args, transform);
 
     if let Some(Expr::Object(string_expression)) = string_expression.as_ref() {
-      let attr_expr = drop_span(Expr::Call(call.clone()));
+      let attr_key = stable_hash_unspanned_call(call);
+      let attr_expr = Expr::Call(call.clone());
 
-      if state.jsx_spread_attr_exprs_map.contains_key(&attr_expr)
+      if state
+        .jsx_spread_attr_exprs_map
+        .get(&attr_key)
+        .is_some_and(|bucket| {
+          bucket
+            .iter()
+            .any(|(expr, _)| expr.eq_ignore_span(&attr_expr))
+        })
         && !string_expression.props.is_empty()
         && string_expression.props.iter().all(|prop| {
           matches!(prop, PropOrSpread::Prop(prop)
@@ -298,9 +308,17 @@ pub(crate) fn stylex_merge(
 
         // Store the JSX attributes to replace the spread element
         if !jsx_attr_expressions.is_empty() {
-          state
+          if let Some((_, replacement)) = state
             .jsx_spread_attr_exprs_map
-            .insert(attr_expr, jsx_attr_expressions);
+            .get_mut(&attr_key)
+            .and_then(|bucket| {
+              bucket
+                .iter_mut()
+                .find(|(expr, _)| expr.eq_ignore_span(&attr_expr))
+            })
+          {
+            *replacement = jsx_attr_expressions;
+          }
 
           return None; // Early return to skip normal object creation
         }

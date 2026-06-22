@@ -1,9 +1,6 @@
 use swc_core::{
   common::comments::Comments,
-  ecma::{
-    ast::{ImportDecl, ImportNamedSpecifier, ImportSpecifier, ModuleExportName},
-    utils::drop_span,
-  },
+  ecma::ast::{ImportDecl, ImportNamedSpecifier, ImportSpecifier, ModuleExportName},
 };
 
 use crate::{
@@ -24,7 +21,7 @@ where
         return;
       }
 
-      self.state.top_imports.push(drop_span(import_decl.clone()));
+      self.state.top_imports.push(import_decl.clone());
 
       let source_path = convert_atom_to_string(&import_decl.src.value);
 

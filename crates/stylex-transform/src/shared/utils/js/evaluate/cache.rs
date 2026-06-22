@@ -21,7 +21,9 @@ pub(crate) fn evaluate_cached(
       deopt(path, state, PATH_WITHOUT_NODE)
     },
     None => {
-      let mut cleaned_path = drop_span(path.clone());
+      // Evaluate on a clone so the live AST is never mutated; spans are kept
+      // (the cache key above is span-insensitive via `stable_hash_unspanned`).
+      let mut cleaned_path = path.clone();
 
       let val = _evaluate(&mut cleaned_path, state, traversal_state, fns);
 

@@ -5,13 +5,10 @@ use stylex_types::traits::StyleOptions;
 use stylex_utils::string::remove_quotes;
 use swc_core::{
   common::{DUMMY_SP, EqIgnoreSpan, FileName},
-  ecma::{
-    ast::{
-      Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Module, ModuleDecl,
-      ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, Pat, Prop, PropName, PropOrSpread,
-      Stmt, VarDeclarator,
-    },
-    utils::drop_span,
+  ecma::ast::{
+    Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Module, ModuleDecl,
+    ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, Pat, Prop, PropName, PropOrSpread,
+    Stmt, VarDeclarator,
   },
 };
 
@@ -129,7 +126,7 @@ pub(crate) fn get_var_decl_from<'a>(
 fn matches_ident_with_var_decl_name(ident: &Ident, var_declarator: &&VarDeclarator) -> bool {
   matches!(
     &var_declarator.name,
-    Pat::Ident(var_decl_ident) if &var_decl_ident.id == ident
+    Pat::Ident(var_decl_ident) if var_decl_ident.id.eq_ignore_span(ident)
   )
 }
 
@@ -319,7 +316,7 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
             };
             state.top_level_expressions.push(TopLevelExpression(
               TopLevelExpressionKind::NamedExport,
-              drop_span(decl_init.as_ref().clone()),
+              decl_init.as_ref().clone(),
               Some(ident_sym),
             ));
             fill_state_declarations(state, decl);
@@ -332,14 +329,14 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
         Some(paren) => {
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::DefaultExport,
-            drop_span(paren.expr.as_ref().clone()),
+            paren.expr.as_ref().clone(),
             None,
           ));
         },
         _ => {
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::DefaultExport,
-            drop_span(export_decl.expr.as_ref().clone()),
+            export_decl.expr.as_ref().clone(),
             None,
           ));
         },
@@ -356,7 +353,7 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
           };
           state.top_level_expressions.push(TopLevelExpression(
             TopLevelExpressionKind::Stmt,
-            drop_span(decl_init.as_ref().clone()),
+            decl_init.as_ref().clone(),
             Some(stmt_ident_sym),
           ));
 
@@ -369,10 +366,14 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
 }
 
 pub fn fill_state_declarations(state: &mut StateManager, decl: &VarDeclarator) {
-  let normalized_decl = drop_span(decl.clone());
-
-  if !state.declarations.contains(&normalized_decl) {
-    state.declarations.push(normalized_decl);
+  // Dedup span-insensitively so the same declaration seen on multiple passes
+  // is stored once, while the live AST's spans are kept intact.
+  if !state
+    .declarations
+    .iter()
+    .any(|existing| existing.eq_ignore_span(decl))
+  {
+    state.declarations.push(decl.clone());
   }
 }
 
@@ -428,13 +429,16 @@ pub(crate) fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, S
   }
 }
 
+/// Unwraps parenthesized expressions, returning a reference to the innermost
+/// non-paren expression. Spans are preserved — span-insensitive comparison and
+/// hashing are handled on demand via `eq_ignore_span` / `stable_hash_unspanned`,
+/// so the live AST keeps the position information later passes depend on — in
+/// particular `get_stylex_runtime_binding`, which resolves an `sx` site's
+/// runtime binding by span containment against the site's own span.
 pub(crate) fn normalize_expr(expr: &mut Expr) -> &mut Expr {
   match expr {
     Expr::Paren(paren) => normalize_expr(paren.expr.as_mut()),
-    _ => {
-      *expr = drop_span(std::mem::take(expr));
-      expr
-    },
+    _ => expr,
   }
 }
 

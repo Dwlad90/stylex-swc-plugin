@@ -15,7 +15,7 @@ mod state_manager {
     DeclId, InsertionSlot, StateManager, build_decl_use_graph, compute_live_set,
     flush_pending_insertions,
   };
-  use stylex_utils::hash::stable_hash;
+  use stylex_utils::hash::stable_hash_unspanned;
 
   fn ident(name: &str) -> Ident {
     Ident {
@@ -183,7 +183,7 @@ mod state_manager {
       span: DUMMY_SP,
       props: vec![],
     });
-    let before_decl_hash = stable_hash(&styles_init);
+    let before_decl_hash = stable_hash_unspanned(&styles_init);
     let mut body = vec![
       expr_stmt("use strict"),
       import_stmt("existing"),
@@ -221,7 +221,7 @@ mod state_manager {
       span: DUMMY_SP,
       props: vec![],
     });
-    let before_decl_hash = stable_hash(&styles_init);
+    let before_decl_hash = stable_hash_unspanned(&styles_init);
     let mut body = vec![
       expr_stmt("use strict"),
       import_stmt("existing"),

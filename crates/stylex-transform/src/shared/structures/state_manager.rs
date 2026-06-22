@@ -19,7 +19,6 @@ use swc_core::{
       MemberProp, Module, ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Program,
       PropName, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
     },
-    utils::drop_span,
     visit::{Visit, VisitMut, VisitMutWith, VisitWith},
   },
 };
@@ -58,7 +57,10 @@ use stylex_structures::{
   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
 };
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-use stylex_utils::{hash::stable_hash, math::round_f64};
+use stylex_utils::{
+  hash::{stable_hash_unspanned, stable_hash_unspanned_call},
+  math::round_f64,
+};
 
 use super::{
   seen_value::SeenValue,
@@ -251,9 +253,10 @@ pub(crate) struct CallExpressionState {
 
 impl CallExpressionState {
   fn add_call_expression(&mut self, call_expr: &CallExpr) {
-    self
-      .all_call_expressions
-      .insert(stable_hash(call_expr), call_expr.callee.clone());
+    self.all_call_expressions.insert(
+      stable_hash_unspanned_call(call_expr),
+      call_expr.callee.clone(),
+    );
   }
 
   fn is_member_callee(&self, member: &MemberExpr) -> bool {
@@ -270,7 +273,9 @@ impl CallExpressionState {
   }
 
   fn replace_call_expression(&mut self, call: &CallExpr, ast: &Expr) {
-    self.all_call_expressions.remove(&stable_hash(call));
+    self
+      .all_call_expressions
+      .remove(&stable_hash_unspanned_call(call));
 
     if let Some(call_expr) = ast.as_call() {
       self.add_call_expression(call_expr);
@@ -302,13 +307,21 @@ pub(crate) struct DeclarationState {
 
 impl DeclarationState {
   fn add_class_name_declaration(&mut self, ident: Ident) {
-    if !self.class_name_declarations.contains(&ident) {
+    if !self
+      .class_name_declarations
+      .iter()
+      .any(|existing| existing.eq_ignore_span(&ident))
+    {
       self.class_name_declarations.push(ident);
     }
   }
 
   fn add_function_name_declaration(&mut self, ident: Ident) {
-    if !self.function_name_declarations.contains(&ident) {
+    if !self
+      .function_name_declarations
+      .iter()
+      .any(|existing| existing.eq_ignore_span(&ident))
+    {
       self.function_name_declarations.push(ident);
     }
   }
@@ -384,14 +397,6 @@ pub struct StateManager {
   /// span containment against the `sx` site.
   pub(crate) local_rebinding_scopes: FxHashMap<String, Vec<Span>>,
 
-  /// Best currently-known source span for the `sx` site being visited.
-  /// Maintained as a restored stack value by statement/expression visitors and
-  /// used as a fallback when the immediate JSX opening element or call span is
-  /// dummy in SWC test input.
-  /// TODO: Will be removed in next commit.
-  #[deprecated(note = "Will be removed in next commit.")]
-  pub(crate) current_site_span: Span,
-
   pub(crate) module_source: ModuleSourceState,
 
   pub(crate) declarations_state: DeclarationState,
@@ -400,7 +405,11 @@ pub struct StateManager {
   pub(crate) call_expressions: CallExpressionState,
   pub(crate) seen: FxHashMap<u64, Rc<SeenValue>>,
   pub(crate) cache: CacheState,
-  pub(crate) jsx_spread_attr_exprs_map: FxHashMap<Expr, Vec<JSXAttrOrSpread>>,
+  /// Maps JSX spread expressions to the JSX attributes that replace them.
+  /// Bucketing by [`stable_hash_unspanned`] keeps lookups cheap, while the
+  /// stored expression preserves equality checks inside each bucket so hash
+  /// collisions cannot rewrite an unrelated spread.
+  pub(crate) jsx_spread_attr_exprs_map: FxHashMap<u64, Vec<(Expr, Vec<JSXAttrOrSpread>)>>,
 
   // `stylex.create` calls
   pub(crate) style_map: FxHashMap<String, Rc<StylesObjectMap>>,
@@ -479,7 +488,6 @@ impl StateManager {
       existing_import_sources: vec![],
       bound_names: FxHashSet::default(),
       local_rebinding_scopes: FxHashMap::default(),
-      current_site_span: DUMMY_SP,
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
       atom_imports: FxHashMap::default(),
@@ -745,10 +753,6 @@ impl StateManager {
     None
   }
 
-  pub fn import_sources(&self) -> Vec<ImportSources> {
-    self.options.import_sources.iter().cloned().collect()
-  }
-
   pub fn is_import_source(&self, import: &str) -> bool {
     self
       .options
@@ -760,7 +764,9 @@ impl StateManager {
       })
   }
 
-  pub fn import_sources_stringified(&self) -> Vec<String> {
+  /// Borrowing iterator over configured import-source module paths, in order.
+  /// Avoids allocating a `Vec<String>` for callers that only scan for a match.
+  pub(crate) fn import_source_names(&self) -> impl Iterator<Item = &str> {
     self
       .options
       .import_sources
@@ -769,20 +775,19 @@ impl StateManager {
         ImportSources::Regular(regular) => regular.as_str(),
         ImportSources::Named(named) => named.from.as_str(),
       })
-      .map(ToString::to_string)
-      .collect()
   }
 
-  pub fn stylex_import_stringified(&self) -> Vec<String> {
+  /// Borrowing iterator over the local names of discovered value-level stylex
+  /// namespace/default imports, in discovery order. Avoids allocating a
+  /// `Vec<String>` for callers that only scan for a match.
+  pub(crate) fn stylex_import_names(&self) -> impl Iterator<Item = &str> {
     self
       .stylex_imports()
       .iter()
-      .map(|import_source| match &import_source {
+      .map(|import_source| match import_source {
         ImportSources::Regular(regular) => regular.as_str(),
         ImportSources::Named(named) => named.r#as.as_str(),
       })
-      .map(ToString::to_string)
-      .collect()
   }
 
   pub(crate) fn is_test(&self) -> bool {
@@ -1157,26 +1162,24 @@ impl StateManager {
 
   fn update_references(&mut self, call: &CallExpr, ast: &Expr, _fallback_ast: Option<&Expr>) {
     if let Some(item) = self.declarations.iter_mut().find(|decl| {
-      decl.init.as_ref().is_some_and(
-        |expr| matches!(**expr, Expr::Call(ref existing_call) if existing_call == call),
-      )
+      decl.init.as_ref().is_some_and(|expr| {
+        matches!(**expr, Expr::Call(ref existing_call) if existing_call.eq_ignore_span(call))
+      })
     }) {
       item.init = Some(Box::new(ast.clone()));
     }
 
     if let Some((_, item)) = self.style_vars.iter_mut().find(|(_, decl)| {
-      decl.init.as_ref().is_some_and(
-        |expr| matches!(**expr, Expr::Call(ref existing_call) if existing_call == call),
-      )
+      decl.init.as_ref().is_some_and(|expr| {
+        matches!(**expr, Expr::Call(ref existing_call) if existing_call.eq_ignore_span(call))
+      })
     }) {
       item.init = Some(Box::new(ast.clone()));
     }
 
-    if let Some(top_level_expr) = self
-      .top_level_expressions
-      .iter_mut()
-      .find(|TopLevelExpression(_, expr, _)| matches!(expr, Expr::Call(c) if c == call))
-    {
+    if let Some(top_level_expr) = self.top_level_expressions.iter_mut().find(
+      |TopLevelExpression(_, expr, _)| matches!(expr, Expr::Call(c) if c.eq_ignore_span(call)),
+    ) {
       top_level_expr.1 = ast.clone();
     }
 
@@ -1247,35 +1250,37 @@ impl StateManager {
       expr: Box::new(stylex_call),
     }));
 
-    let ast_hash = stable_hash(ast);
-    let normalized_module = drop_span(module);
+    let ast_hash = stable_hash_unspanned(ast);
+    let normalized_module = module;
 
     // Per-decl dedup: keying by `ast_hash` keeps the per-bucket
-    // `Vec` small (typically 1–2 entries), so `Vec::contains`'s
-    // PartialEq short-circuit is significantly cheaper than a full
-    // `stable_hash` walk over the AST. Items go in the bucket
+    // `Vec` small (typically 1–2 entries), so the span-insensitive
+    // `eq_ignore_span` scan short-circuits cheaply rather than walking
+    // a full `stable_hash` over the AST. Items go in the bucket
     // (owned) while a clone goes into the pending buffer; the
-    // bucket clone is then reused by the fallback path so the
-    // total clone count matches the legacy
-    // `Vec::contains` + `push(normalized_module.clone())` shape.
+    // bucket clone is then reused by the fallback path.
     let bucket = self
       .injection
       .queued_decl_items
       .entry(ast_hash)
       .or_default();
-    let needs_primary_queue = !bucket.contains(&normalized_module);
+    let needs_primary_queue = !bucket
+      .iter()
+      .any(|item| item.eq_ignore_span(&normalized_module));
     if needs_primary_queue {
       bucket.push(normalized_module.clone());
     }
 
     if let Some(fallback_ast) = fallback_ast {
-      let fallback_ast_hash = stable_hash(fallback_ast);
+      let fallback_ast_hash = stable_hash_unspanned(fallback_ast);
       let fallback_bucket = self
         .injection
         .queued_decl_items
         .entry(fallback_ast_hash)
         .or_default();
-      let needs_fallback_queue = !fallback_bucket.contains(&normalized_module);
+      let needs_fallback_queue = !fallback_bucket
+        .iter()
+        .any(|item| item.eq_ignore_span(&normalized_module));
       if needs_fallback_queue {
         fallback_bucket.push(normalized_module.clone());
       }
@@ -1493,8 +1498,18 @@ impl VisitMut for MarkStyleVarsVisitor<'_> {
       .iter()
       .flat_map(|jsx_attr| match jsx_attr {
         JSXAttrOrSpread::SpreadElement(spread) => {
-          let expr = drop_span(spread.expr.as_ref().clone());
-          if let Some(updated_exprs) = self.state.jsx_spread_attr_exprs_map.get(&expr).cloned() {
+          let expr_key = stable_hash_unspanned(spread.expr.as_ref());
+          if let Some(updated_exprs) = self
+            .state
+            .jsx_spread_attr_exprs_map
+            .get(&expr_key)
+            .and_then(|bucket| {
+              bucket
+                .iter()
+                .find(|(expr, _)| expr.eq_ignore_span(spread.expr.as_ref()))
+            })
+            .map(|(_, updated_exprs)| updated_exprs.clone())
+          {
             if updated_exprs.is_empty() {
               // If no replacement JSX attrs were recorded for this spread, keep the original
               vec![jsx_attr.clone()]
@@ -1710,7 +1725,7 @@ fn decl_init_hashes(item: &ModuleItem) -> Vec<u64> {
       // object expression — so its style metadata can splice in
       // front of the export.
       if export_default_expr.expr.is_object() {
-        hashes.push(stable_hash(export_default_expr.expr.as_ref()));
+        hashes.push(stable_hash_unspanned(export_default_expr.expr.as_ref()));
       }
       None
     },
@@ -1723,7 +1738,7 @@ fn decl_init_hashes(item: &ModuleItem) -> Vec<u64> {
       if let Some(init) = decl.init.as_ref()
         && (init.is_object() || init.is_lit())
       {
-        hashes.push(stable_hash(init.as_ref()));
+        hashes.push(stable_hash_unspanned(init.as_ref()));
       }
     }
   }

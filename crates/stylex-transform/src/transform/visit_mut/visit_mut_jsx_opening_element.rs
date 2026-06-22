@@ -1,5 +1,5 @@
 use swc_core::{
-  common::{DUMMY_SP, Span, Spanned, comments::Comments},
+  common::{DUMMY_SP, Span, comments::Comments},
   ecma::{
     ast::{
       Bool, CallExpr, Callee, Expr, ExprOrSpread, JSXAttrName, JSXAttrOrSpread, JSXAttrValue,
@@ -33,6 +33,10 @@ where
       jsx_opening_element.visit_mut_children_with(self);
       return;
     }
+
+    // The `sx` site span — used to resolve the runtime binding against any
+    // local binding that shadows the imported `stylex` name at this position.
+    let element_span = jsx_opening_element.span;
 
     // Check if sxPropName is enabled
     let sx_prop_name = match self.state.options.sx_prop_name.clone() {
@@ -76,7 +80,7 @@ where
         if let Some(JSXAttrValue::JSXExprContainer(container)) = &jsx_attr.value {
           if let JSXExpr::Expr(expr) = &container.expr {
             let value_expr = *expr.clone();
-            let stylex_local_name = self.get_stylex_runtime_binding(jsx_opening_element.span);
+            let stylex_local_name = self.get_stylex_runtime_binding(element_span);
 
             // sx={[styles.a, styles.b]} → {...stylex.props(styles.a, styles.b)}
             let args = sx_value_to_props_args(value_expr);
@@ -147,7 +151,7 @@ where
 
     // Extract the sx value and build args
     let sx_value = extract_prop_value(&obj_lit.props[sx_prop_idx])?;
-    let stylex_local_name = self.get_stylex_runtime_binding(expr.span());
+    let stylex_local_name = self.get_stylex_runtime_binding(call.span);
     let args = sx_value_to_props_args(sx_value);
 
     // Replace the sx prop with: ...stylex.props(...args)
@@ -206,7 +210,7 @@ where
     let el_arg = call.args[0].clone();
     let value_expr = *call.args[2].expr.clone();
 
-    let stylex_local_name = self.get_stylex_runtime_binding(expr.span());
+    let stylex_local_name = self.get_stylex_runtime_binding(call.span);
     let args = sx_value_to_props_args(value_expr);
 
     // Build: () => stylex.props(args...)
@@ -256,21 +260,27 @@ where
   ///    otherwise plain `stylex`.
   /// 5. Prepend the namespace import, register it, and return the local name.
   fn get_stylex_runtime_binding(&mut self, site: Span) -> String {
-    let site = if site.is_dummy() {
-      self.state.current_site_span
-    } else {
-      site
+    let local_rebinding_shadows_site = |name: &str| {
+      if site.is_dummy() {
+        // Generated compiled-JSX/Solid calls can carry DUMMY spans. Without a
+        // reliable position, do not reuse an imported name that has any local
+        // non-import re-binding; over-injecting a uid import is safer than
+        // emitting `stylex.props(...)` against a shadowed binding.
+        self.state.local_rebinding_scopes.contains_key(name)
+      } else {
+        self.state.is_locally_rebound_at(name, site)
+      }
     };
 
     // 1. Reuse an existing value-level namespace/default import, skipping any
     //    whose local name is shadowed by a non-import binding in scope at the
     //    `sx` site. The shadow check is position-aware, using the pre-scanned
-    //    scope spans and the current `sx` site position.
+    //    scope spans and the `sx` site span.
     if let Some(local_name) = self
       .state
-      .stylex_import_stringified()
-      .into_iter()
-      .find(|name| !self.state.is_locally_rebound_at(name, site))
+      .stylex_import_names()
+      .find(|name| !local_rebinding_shadows_site(name))
+      .map(str::to_string)
     {
       return local_name;
     }
@@ -288,9 +298,9 @@ where
     let import_source = existing_import_source.clone().unwrap_or_else(|| {
       self
         .state
-        .import_sources_stringified()
-        .into_iter()
+        .import_source_names()
         .find(|source| !is_default_import_source(source))
+        .map(str::to_string)
         .unwrap_or_else(|| "@stylexjs/stylex".to_string())
     });
 

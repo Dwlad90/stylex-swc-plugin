@@ -17,12 +17,9 @@ use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   common::{DUMMY_SP, SyntaxContext, comments::Comments},
-  ecma::{
-    ast::{
-      ArrowExpr, BinaryOp, BlockStmtOrExpr, Bool, CallExpr, Decl, Expr, Lit, ModuleItem, ParenExpr,
-      Pat, Prop, PropName, PropOrSpread, Stmt, UnaryOp, VarDecl, VarDeclKind,
-    },
-    utils::drop_span,
+  ecma::ast::{
+    ArrowExpr, BinaryOp, BlockStmtOrExpr, Bool, CallExpr, Decl, Expr, Lit, ModuleItem, ParenExpr,
+    Pat, Prop, PropName, PropOrSpread, Stmt, UnaryOp, VarDecl, VarDeclKind,
   },
 };
 
@@ -340,7 +337,7 @@ where
           self
             .state
             .style_vars
-            .insert(var_name.clone(), drop_span(parent_var_decl));
+            .insert(var_name.clone(), parent_var_decl);
         } else {
           let call_expr = Expr::Call(call.clone());
 

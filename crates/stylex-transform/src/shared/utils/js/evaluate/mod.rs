@@ -29,7 +29,7 @@ use swc_core::{
       Number, ObjectLit, OptChainBase, Pat, Prop, PropName, PropOrSpread, SimpleAssignTarget,
       TplElement, UnaryOp, VarDeclarator,
     },
-    utils::{ExprExt, drop_span, ident::IdentLike},
+    utils::{ExprExt, ident::IdentLike},
   },
 };
 

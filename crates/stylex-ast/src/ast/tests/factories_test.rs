@@ -318,3 +318,23 @@ fn create_string_var_declarator_works() {
   let decl = create_string_var_declarator(id, "hello");
   assert!(decl.init.is_some());
 }
+
+#[test]
+fn create_import_namespace_decl_works() {
+  let item = create_import_namespace_decl("_stylex", "@stylexjs/stylex");
+
+  let ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl)) = item else {
+    panic!("Expected an import declaration");
+  };
+
+  assert!(!import_decl.type_only);
+  assert_eq!(import_decl.src.value.as_str(), Some("@stylexjs/stylex"));
+  assert_eq!(import_decl.specifiers.len(), 1);
+
+  match &import_decl.specifiers[0] {
+    ImportSpecifier::Namespace(namespace) => {
+      assert_eq!(namespace.local.sym.as_ref(), "_stylex");
+    },
+    _ => panic!("Expected a namespace import specifier"),
+  }
+}

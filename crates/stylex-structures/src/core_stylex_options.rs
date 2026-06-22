@@ -1,4 +1,4 @@
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
@@ -37,7 +37,11 @@ pub struct CoreStyleXOptions {
   pub use_real_file_for_source: bool,
   pub class_name_prefix: String,
   pub style_resolution: StyleResolution,
-  pub import_sources: Vec<ImportSources>,
+  /// Configured StyleX import sources in fixed order
+  /// (`[@stylexjs/stylex, stylex, ...configured]`). An insertion-ordered
+  /// `IndexSet` so selection stays deterministic (first-configured-wins)
+  /// while preserving the dedup the previous `FxHashSet` provided.
+  pub import_sources: IndexSet<ImportSources>,
   pub treeshake_compensation: bool,
   pub inject_stylex_side_effects: bool,
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
@@ -69,7 +73,7 @@ impl Default for CoreStyleXOptions {
       use_real_file_for_source: true,
       class_name_prefix: "x".to_string(),
       style_resolution: StyleResolution::PropertySpecificity,
-      import_sources: vec![],
+      import_sources: IndexSet::new(),
       treeshake_compensation: false,
       inject_stylex_side_effects: false,
       aliases: None,
@@ -174,7 +178,7 @@ impl CoreStyleXOptions {
   }
 
   pub fn with_import_sources(mut self, sources: Vec<ImportSources>) -> Self {
-    self.import_sources = sources;
+    self.import_sources = sources.into_iter().collect();
     self
   }
 

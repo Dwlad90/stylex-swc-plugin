@@ -5,7 +5,8 @@
 > workspace
 
 <!-- stylex-compatibility:start -->
-> [!NOTE] Compatibility target: this package has been updated through official
+> [!NOTE]
+> Compatibility target: this package has been updated through official
 > StyleX v0.18.3. This is not an official Meta support guarantee.
 <!-- stylex-compatibility:end -->
 
@@ -20,7 +21,6 @@ for user interfaces. You can find the
 
 This package provides an unofficial, high-performance NAPI-RS compiler for
 StyleX, a popular library from Meta for building optimized user interfaces. It
-is the top-level consumer crate that exposes the full StyleX pipeline to
 Node.js, leveraging SWC for parsing and transformation.
 
 > [!IMPORTANT]

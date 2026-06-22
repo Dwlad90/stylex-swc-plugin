@@ -1,6 +1,5 @@
-use stylex_macros::stylex_panic;
 use swc_core::{
-  common::{DUMMY_SP, comments::Comments},
+  common::{DUMMY_SP, Span, Spanned, comments::Comments},
   ecma::{
     ast::{
       Bool, CallExpr, Callee, Expr, ExprOrSpread, JSXAttrName, JSXAttrOrSpread, JSXAttrValue,
@@ -11,13 +10,15 @@ use swc_core::{
   },
 };
 
-use crate::{StyleXTransform, shared::structures::state_manager::ImportKind};
+use crate::{StyleXTransform, shared::structures::state_manager::InsertionSlot};
 use stylex_ast::ast::factories::{
   create_arrow_expression, create_ident, create_ident_call_expr, create_ident_name,
-  create_jsx_spread_attr, create_member_call_expr, create_object_lit, create_spread_prop,
+  create_import_namespace_decl, create_jsx_spread_attr, create_member_call_expr, create_object_lit,
+  create_spread_prop,
 };
 use stylex_constants::constants::{api_names::STYLEX_PROPS, common::RUNTIME_JSX_CALL_NAMES};
-use stylex_enums::core::TransformationCycle;
+use stylex_enums::{core::TransformationCycle, counter_mode::CounterMode};
+use stylex_structures::{named_import_source::ImportSources, uid_generator::UidGenerator};
 
 impl<C> StyleXTransform<C>
 where
@@ -75,16 +76,11 @@ where
         if let Some(JSXAttrValue::JSXExprContainer(container)) = &jsx_attr.value {
           if let JSXExpr::Expr(expr) = &container.expr {
             let value_expr = *expr.clone();
-            let stylex_ident_name = self.get_stylex_ident_name();
-            let props_ident_name = self.get_props_ident_name();
+            let stylex_local_name = self.get_stylex_runtime_binding(jsx_opening_element.span);
 
             // sx={[styles.a, styles.b]} → {...stylex.props(styles.a, styles.b)}
             let args = sx_value_to_props_args(value_expr);
-            let call = Expr::Call(build_stylex_props_call(
-              stylex_ident_name,
-              props_ident_name,
-              args,
-            ));
+            let call = Expr::Call(build_stylex_props_call(stylex_local_name, args));
 
             Some(create_jsx_spread_attr(call))
           } else {
@@ -115,7 +111,7 @@ where
   ///   `_createElementVNode("div", { sx: expr })`
   ///
   /// Transforms to: `fn("div", { ...stylex.props(expr), ... })`
-  pub(crate) fn transform_sx_in_compiled_jsx(&self, expr: &Expr) -> Option<Expr> {
+  pub(crate) fn transform_sx_in_compiled_jsx(&mut self, expr: &Expr) -> Option<Expr> {
     let sx_prop_name = self.state.options.sx_prop_name.as_deref()?;
 
     let call = expr.as_call()?;
@@ -127,7 +123,7 @@ where
     // First arg must be a lowercase string literal (HTML element)
     let first_arg = call.args.first()?;
     let element_name = match first_arg.expr.as_ref() {
-      Expr::Lit(Lit::Str(s)) => s.value.as_str().unwrap_or("").to_string(),
+      Expr::Lit(Lit::Str(s)) => s.value.as_str().unwrap_or(""),
       _ => return None,
     };
     if !element_name
@@ -151,17 +147,12 @@ where
 
     // Extract the sx value and build args
     let sx_value = extract_prop_value(&obj_lit.props[sx_prop_idx])?;
-    let stylex_ident_name = self.get_stylex_ident_name();
-    let props_ident_name = self.get_props_ident_name();
+    let stylex_local_name = self.get_stylex_runtime_binding(expr.span());
     let args = sx_value_to_props_args(sx_value);
 
     // Replace the sx prop with: ...stylex.props(...args)
     let mut new_props = obj_lit.props;
-    let call_expr = Expr::Call(build_stylex_props_call(
-      stylex_ident_name,
-      props_ident_name,
-      args,
-    ));
+    let call_expr = Expr::Call(build_stylex_props_call(stylex_local_name, args));
     new_props[sx_prop_idx] = create_spread_prop(call_expr);
 
     let mut new_call = call.clone();
@@ -181,7 +172,7 @@ where
   /// We transform it to:
   /// `_$spread(_el$, _$mergeProps(() => stylex.props(styles.main)), false,
   /// true)`
-  pub(crate) fn transform_sx_in_solid_set_attribute(&self, expr: &Expr) -> Option<Expr> {
+  pub(crate) fn transform_sx_in_solid_set_attribute(&mut self, expr: &Expr) -> Option<Expr> {
     let sx_prop_name = self.state.options.sx_prop_name.as_deref()?;
 
     let call = expr.as_call()?;
@@ -205,7 +196,7 @@ where
 
     // Args[1] must be the string matching sx_prop_name
     let attr_name = match call.args[1].expr.as_ref() {
-      Expr::Lit(Lit::Str(s)) => s.value.as_str().unwrap_or("").to_string(),
+      Expr::Lit(Lit::Str(s)) => s.value.as_str().unwrap_or(""),
       _ => return None,
     };
     if attr_name != sx_prop_name {
@@ -215,16 +206,11 @@ where
     let el_arg = call.args[0].clone();
     let value_expr = *call.args[2].expr.clone();
 
-    let stylex_ident_name = self.get_stylex_ident_name();
-    let props_ident_name = self.get_props_ident_name();
+    let stylex_local_name = self.get_stylex_runtime_binding(expr.span());
     let args = sx_value_to_props_args(value_expr);
 
     // Build: () => stylex.props(args...)
-    let props_call = Expr::Call(build_stylex_props_call(
-      stylex_ident_name,
-      props_ident_name,
-      args,
-    ));
+    let props_call = Expr::Call(build_stylex_props_call(stylex_local_name, args));
     let arrow_fn = create_arrow_expression(props_call);
 
     // Build: _$mergeProps(() => stylex.props(...))
@@ -255,33 +241,104 @@ where
     )))
   }
 
-  /// Get the stylex ident name from the import paths.
-  /// Returns the first stylex import name from the import paths.
-  fn get_stylex_ident_name(&self) -> Option<String> {
-    self.state.stylex_import_stringified().into_iter().next()
-  }
+  /// Resolve the local name of the value-level `stylex` namespace binding to
+  /// use for an `sx` runtime call, injecting an `import * as <name> from
+  /// '<source>'` declaration when none exists.
+  ///
+  /// 1. Reuse an existing value-level namespace/default import if present and
+  ///    not shadowed by a local binding in scope at the `sx` site.
+  /// 2. Otherwise find the first existing import declaration (including
+  ///    type-only) whose source is a configured import source.
+  /// 3. Pick the import source: existing import source, else the first
+  ///    configured custom source, else the default `@stylexjs/stylex`.
+  /// 4. Pick the local name: a generated uid (`_stylex`) when an existing
+  ///    import source was found or a `stylex` binding already exists,
+  ///    otherwise plain `stylex`.
+  /// 5. Prepend the namespace import, register it, and return the local name.
+  fn get_stylex_runtime_binding(&mut self, site: Span) -> String {
+    let site = if site.is_dummy() {
+      self.state.current_site_span
+    } else {
+      site
+    };
 
-  /// Get the props ident name from the import paths.
-  /// Returns the first props import name from the import paths.
-  fn get_props_ident_name(&self) -> Option<String> {
+    // 1. Reuse an existing value-level namespace/default import, skipping any
+    //    whose local name is shadowed by a non-import binding in scope at the
+    //    `sx` site. The shadow check is position-aware, using the pre-scanned
+    //    scope spans and the current `sx` site position.
+    if let Some(local_name) = self
+      .state
+      .stylex_import_stringified()
+      .into_iter()
+      .find(|name| !self.state.is_locally_rebound_at(name, site))
+    {
+      return local_name;
+    }
+
+    // 2. First existing import declaration (incl. type-only) whose source is
+    //    a configured import source.
+    let existing_import_source = self
+      .state
+      .existing_import_sources
+      .iter()
+      .find(|source| self.state.is_import_source(source))
+      .cloned();
+
+    // 3. importSource = existing ?? first configured custom ?? default.
+    let import_source = existing_import_source.clone().unwrap_or_else(|| {
+      self
+        .state
+        .import_sources_stringified()
+        .into_iter()
+        .find(|source| !is_default_import_source(source))
+        .unwrap_or_else(|| "@stylexjs/stylex".to_string())
+    });
+
+    // 4. localName = uid when an existing import source was found or a
+    //    `stylex` binding already exists, else plain `stylex`. The uid is
+    //    `_stylex`, then `_stylex2`, ..., skipping any name already bound in
+    //    the module.
+    let stylex_local_name = if existing_import_source.is_some() || self.state.has_binding("stylex")
+    {
+      let uid_generator = UidGenerator::new("stylex", CounterMode::Local);
+      let mut candidate = uid_generator.generate();
+      while self.state.has_binding(&candidate) {
+        candidate = uid_generator.generate();
+      }
+      candidate
+    } else {
+      "stylex".to_string()
+    };
+
+    // 5. Prepend `import * as <local> from '<source>'`, register it so the
+    //    pipeline proceeds (the module visitor bails when no import path was
+    //    discovered) and subsequent `sx` attributes reuse this binding.
+    let import_item = create_import_namespace_decl(&stylex_local_name, &import_source);
     self
       .state
-      .get_stylex_api_import(ImportKind::Props)
-      .and_then(|set| set.iter().next())
-      .map(|ident| ident.to_string())
+      .queue_insertion(InsertionSlot::PrependImport, import_item);
+    self.state.insert_import_path(import_source);
+    self
+      .state
+      .insert_stylex_import(ImportSources::Regular(stylex_local_name.clone()));
+
+    stylex_local_name
   }
+}
+
+/// Whether `source` is one of the default StyleX import sources (`stylex` /
+/// `@stylexjs/stylex`) seeded into every configuration, as opposed to a
+/// user-configured custom source.
+fn is_default_import_source(source: &str) -> bool {
+  source == "stylex" || source == "@stylexjs/stylex"
 }
 
 /// Convert an `sx` value expression into args for `stylex.props(...)`.
 /// Array literals are unpacked: `[a, b]` → `[a, b]` as separate args.
 /// Other expressions are wrapped: `expr` → `[expr]`.
 fn sx_value_to_props_args(value_expr: Expr) -> Vec<ExprOrSpread> {
-  match &value_expr {
-    Expr::Array(array_lit) => array_lit
-      .elems
-      .iter()
-      .filter_map(|elem| elem.clone())
-      .collect(),
+  match value_expr {
+    Expr::Array(array_lit) => array_lit.elems.into_iter().flatten().collect(),
     _ => vec![ExprOrSpread {
       spread: None,
       expr: Box::new(value_expr),
@@ -289,29 +346,16 @@ fn sx_value_to_props_args(value_expr: Expr) -> Vec<ExprOrSpread> {
   }
 }
 
-/// Build a call expression for stylex props:
-/// - `stylex.props(args...)` when `stylex_ident_name` is available
-/// - `<props_ident_name>(args...)` (e.g. `props(args...)` or `sx(args...)`)
-///   otherwise
-fn build_stylex_props_call(
-  stylex_ident_name: Option<String>,
-  props_ident_name: Option<String>,
-  args: Vec<ExprOrSpread>,
-) -> CallExpr {
-  if let Some(stylex_ident_name) = stylex_ident_name {
-    let member = MemberExpr {
-      span: DUMMY_SP,
-      obj: Box::new(Expr::Ident(create_ident(&stylex_ident_name))),
-      prop: MemberProp::Ident(create_ident_name(STYLEX_PROPS)),
-    };
-    create_member_call_expr(member, args)
-  } else if let Some(props_ident_name) = props_ident_name {
-    create_ident_call_expr(&props_ident_name, args)
-  } else {
-    stylex_panic!(
-      "Could not resolve StyleX import. Ensure you have imported stylex or the props function."
-    );
-  }
+/// Build a `<stylex_local_name>.props(args...)` call expression, where
+/// `stylex_local_name` is the value-level namespace binding resolved by
+/// [`StyleXTransform::get_stylex_runtime_binding`].
+fn build_stylex_props_call(stylex_local_name: String, args: Vec<ExprOrSpread>) -> CallExpr {
+  let member = MemberExpr {
+    span: DUMMY_SP,
+    obj: Box::new(Expr::Ident(create_ident(&stylex_local_name))),
+    prop: MemberProp::Ident(create_ident_name(STYLEX_PROPS)),
+  };
+  create_member_call_expr(member, args)
 }
 
 /// Find the index of the prop with key matching `sx_prop_name` in a props list.

@@ -3,9 +3,10 @@ use swc_core::{
   common::{DUMMY_SP, Span, SyntaxContext},
   ecma::ast::{
     ArrayLit, ArrowExpr, BigInt, BinExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr,
-    Callee, CondExpr, Expr, ExprOrSpread, Ident, IdentName, JSXAttr, JSXAttrName, JSXAttrOrSpread,
-    JSXAttrValue, KeyValueProp, Lit, MemberExpr, Null, ObjectLit, ParenExpr, Pat, Prop, PropName,
-    PropOrSpread, SpreadElement, VarDeclarator,
+    Callee, CondExpr, Expr, ExprOrSpread, Ident, IdentName, ImportDecl, ImportPhase,
+    ImportSpecifier, ImportStarAsSpecifier, JSXAttr, JSXAttrName, JSXAttrOrSpread, JSXAttrValue,
+    KeyValueProp, Lit, MemberExpr, ModuleDecl, ModuleItem, Null, ObjectLit, ParenExpr, Pat, Prop,
+    PropName, PropOrSpread, SpreadElement, Str, VarDeclarator,
   },
 };
 
@@ -617,4 +618,34 @@ pub fn create_null_var_declarator(ident: Ident) -> VarDeclarator {
 #[inline]
 pub fn create_string_var_declarator(ident: Ident, value: &str) -> VarDeclarator {
   create_var_declarator(ident, create_string_expr(value))
+}
+
+/// Creates a namespace import declaration `import * as <local> from
+/// '<source>'` as a `ModuleItem`.
+///
+/// # Arguments
+/// * `local` - The local namespace binding name (e.g. `stylex` or `_stylex`)
+/// * `source` - The module source path (e.g. `@stylexjs/stylex`)
+///
+/// # Example
+/// ```ignore
+/// let item = create_import_namespace_decl("stylex", "@stylexjs/stylex");
+/// ```
+#[inline]
+pub fn create_import_namespace_decl(local: &str, source: &str) -> ModuleItem {
+  ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+    span: DUMMY_SP,
+    specifiers: vec![ImportSpecifier::Namespace(ImportStarAsSpecifier {
+      span: DUMMY_SP,
+      local: create_ident(local),
+    })],
+    src: Box::new(Str {
+      span: DUMMY_SP,
+      value: source.into(),
+      raw: None,
+    }),
+    type_only: false,
+    with: None,
+    phase: ImportPhase::Evaluation,
+  }))
 }

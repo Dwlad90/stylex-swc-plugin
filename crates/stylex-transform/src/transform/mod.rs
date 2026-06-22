@@ -1,5 +1,5 @@
-use indexmap::IndexMap;
-use rustc_hash::{FxHashMap, FxHashSet};
+use indexmap::{IndexMap, IndexSet};
+use rustc_hash::FxHashMap;
 use swc_core::{
   common::{EqIgnoreSpan, Mark, comments::Comments},
   ecma::{
@@ -351,7 +351,7 @@ where
   }
 }
 
-fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> FxHashSet<ImportSources> {
+fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> IndexSet<ImportSources> {
   let mut stylex_imports = fill_stylex_imports_default();
 
   if let Some(stylex_imports_extends) = match config {
@@ -364,14 +364,20 @@ fn fill_stylex_imports(config: &Option<&mut StyleXOptionsParams>) -> FxHashSet<I
   stylex_imports
 }
 
-fn fill_stylex_imports_default() -> FxHashSet<ImportSources> {
-  let mut stylex_imports = FxHashSet::default();
-  stylex_imports.insert(ImportSources::Regular("stylex".to_string()));
+/// Seed the default StyleX import sources in a fixed order: the
+/// `@stylexjs/stylex` package source first, then the bare `stylex` alias.
+/// Returns an insertion-ordered `IndexSet` so callers that `extend` it with
+/// user-configured sources keep those at the tail (index 2+), which is where
+/// the first configured custom source is looked up when injecting the `sx`
+/// runtime binding.
+fn fill_stylex_imports_default() -> IndexSet<ImportSources> {
+  let mut stylex_imports = IndexSet::new();
   stylex_imports.insert(ImportSources::Regular("@stylexjs/stylex".to_string()));
+  stylex_imports.insert(ImportSources::Regular("stylex".to_string()));
   stylex_imports
 }
 
-fn fill_stylex_imports_from_params(config: &StyleXOptionsParams) -> FxHashSet<ImportSources> {
+fn fill_stylex_imports_from_params(config: &StyleXOptionsParams) -> IndexSet<ImportSources> {
   let mut stylex_imports = fill_stylex_imports_default();
 
   if let Some(ref extends) = config.import_sources {

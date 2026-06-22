@@ -1,5 +1,5 @@
 use swc_core::{
-  common::{comments::Comments, util::take::Take},
+  common::{Spanned, comments::Comments, util::take::Take},
   ecma::{
     ast::{Decl, Stmt},
     utils::IsDirective,
@@ -15,6 +15,14 @@ where
   C: Comments,
 {
   pub(crate) fn visit_mut_stmt_impl(&mut self, stmt: &mut Stmt) {
+    let previous_site_span = self.state.current_site_span;
+    if self.state.cycle == TransformationCycle::Discover {
+      let span = stmt.span();
+      if !span.is_dummy() {
+        self.state.current_site_span = span;
+      }
+    }
+
     if self.state.cycle == TransformationCycle::Finalize {
       stmt.visit_mut_children_with(self);
 
@@ -28,6 +36,10 @@ where
       }
     } else {
       stmt.visit_mut_children_with(self);
+    }
+
+    if self.state.cycle == TransformationCycle::Discover {
+      self.state.current_site_span = previous_site_span;
     }
   }
 }

@@ -1,3 +1,4 @@
+import * as _stylex from "@stylexjs/stylex";
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
 import { create, props } from '@stylexjs/stylex';
@@ -12,5 +13,5 @@ const styles = {
     }
 };
 function Foo({ overrideProps = [] }) {
-    return <div {...props(styles.red, ...overrideProps)}>Hello World</div>;
+    return <div {..._stylex.props(styles.red, ...overrideProps)}>Hello World</div>;
 }

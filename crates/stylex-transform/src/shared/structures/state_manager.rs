@@ -91,6 +91,12 @@ pub(crate) type DeclId = swc_core::ecma::ast::Id;
 /// land only when a real producer needs them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum InsertionSlot {
+  /// Value-level namespace imports injected so an `sx` attribute can
+  /// reference the `stylex` runtime (`import * as stylex from '...'`).
+  /// Emitted after any leading directive prologue, ahead of all other
+  /// imports — prepended to the module body. Always emitted, regardless of
+  /// `runtime_injection`.
+  PrependImport,
   /// Runtime injection helpers (`import _inject` + `var _inject2`).
   /// Emitted after any leading directive prologue, ahead of all
   /// other imports. Mirrors the legacy `prepend_include_module_items`
@@ -173,7 +179,11 @@ impl ImportKind {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ImportState {
   import_paths: FxHashSet<String>,
-  stylex_import: FxHashSet<ImportSources>,
+  /// Local names bound to a value-level `stylex` namespace/default import,
+  /// in discovery order. Insertion-ordered (`IndexSet`) so the `sx` runtime
+  /// binding reuse (`get_stylex_runtime_binding`) picks the first candidate
+  /// deterministically.
+  stylex_import: IndexSet<ImportSources>,
   stylex_api_imports: FxHashMap<ImportKind, AtomHashSet>,
 }
 
@@ -190,7 +200,7 @@ impl ImportState {
     self.stylex_import.insert(import_source);
   }
 
-  fn stylex_imports(&self) -> &FxHashSet<ImportSources> {
+  fn stylex_imports(&self) -> &IndexSet<ImportSources> {
     &self.stylex_import
   }
 
@@ -350,6 +360,38 @@ pub struct StateManager {
   pub(crate) imports: ImportState,
   pub(crate) export_id: Option<String>,
 
+  /// Sources of every import declaration in the module, in body order and
+  /// including type-only imports. Captured by a one-time pre-scan at the
+  /// start of the `Discover` cycle and consumed by
+  /// `get_stylex_runtime_binding` to find an existing import source when
+  /// injecting the `sx` runtime binding (SWC visitors have no parent
+  /// pointers, so this pre-scanned list stands in for a walk of the module
+  /// body).
+  pub(crate) existing_import_sources: Vec<String>,
+
+  /// Names of every identifier bound anywhere in the module (import locals,
+  /// var/let/const declarators, function/class names, params). Captured by
+  /// the same pre-scan and consumed by `get_stylex_runtime_binding` to test
+  /// whether a name is already bound in the module.
+  pub(crate) bound_names: FxHashSet<String>,
+
+  /// For each name bound by a non-import declaration (var/let/const,
+  /// function/class names, params), the source spans of the scopes in which
+  /// it is bound. Consumed by `get_stylex_runtime_binding` to avoid reusing
+  /// an imported `stylex` name that a local binding shadows. SWC visitors
+  /// expose no scope chain, so the scope span is recorded during the pre-scan
+  /// and `is_locally_rebound_at` performs the position-aware shadow check via
+  /// span containment against the `sx` site.
+  pub(crate) local_rebinding_scopes: FxHashMap<String, Vec<Span>>,
+
+  /// Best currently-known source span for the `sx` site being visited.
+  /// Maintained as a restored stack value by statement/expression visitors and
+  /// used as a fallback when the immediate JSX opening element or call span is
+  /// dummy in SWC test input.
+  /// TODO: Will be removed in next commit.
+  #[deprecated(note = "Will be removed in next commit.")]
+  pub(crate) current_site_span: Span,
+
   pub(crate) module_source: ModuleSourceState,
 
   pub(crate) declarations_state: DeclarationState,
@@ -434,6 +476,10 @@ impl StateManager {
     Self {
       plugin_pass: PluginPass::default(),
       imports: ImportState::default(),
+      existing_import_sources: vec![],
+      bound_names: FxHashSet::default(),
+      local_rebinding_scopes: FxHashMap::default(),
+      current_site_span: DUMMY_SP,
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
       atom_imports: FxHashMap::default(),
@@ -513,6 +559,26 @@ impl StateManager {
     self.imports.has_import_paths()
   }
 
+  /// Whether any identifier named `name` is bound anywhere in the module.
+  /// Backed by the [`StateManager::bound_names`] pre-scan.
+  pub(crate) fn has_binding(&self, name: &str) -> bool {
+    self.bound_names.contains(name)
+  }
+
+  /// Whether `name` is bound by a non-import declaration whose scope encloses
+  /// `site` — i.e. a local binding that shadows an imported `stylex` name at
+  /// that `sx` site. The check is position-aware: reuse is blocked only when
+  /// the re-binding actually covers the `sx` site, not merely when it exists
+  /// somewhere in the module. Backed by the
+  /// [`StateManager::local_rebinding_scopes`] pre-scan.
+  pub(crate) fn is_locally_rebound_at(&self, name: &str, site: Span) -> bool {
+    self.local_rebinding_scopes.get(name).is_some_and(|scopes| {
+      scopes
+        .iter()
+        .any(|scope| scope.lo <= site.lo && scope.hi >= site.hi)
+    })
+  }
+
   pub(crate) fn insert_import_path(&mut self, source_path: String) {
     self.imports.insert_import_path(source_path);
   }
@@ -521,7 +587,7 @@ impl StateManager {
     self.imports.insert_stylex_import(import_source);
   }
 
-  pub(crate) fn stylex_imports(&self) -> &FxHashSet<ImportSources> {
+  pub(crate) fn stylex_imports(&self) -> &IndexSet<ImportSources> {
     self.imports.stylex_imports()
   }
 
@@ -680,7 +746,7 @@ impl StateManager {
   }
 
   pub fn import_sources(&self) -> Vec<ImportSources> {
-    self.options.import_sources.to_vec()
+    self.options.import_sources.iter().cloned().collect()
   }
 
   pub fn is_import_source(&self, import: &str) -> bool {
@@ -1523,6 +1589,7 @@ pub(crate) fn flush_pending_insertions(
 
   let pending = std::mem::take(&mut state.pending_module_items);
 
+  let mut prepend_imports: Vec<ModuleItem> = Vec::new();
   let mut before_imports: Vec<ModuleItem> = Vec::new();
   let mut theme_imports: Vec<ModuleItem> = Vec::new();
   let mut after_imports: Vec<ModuleItem> = Vec::new();
@@ -1530,6 +1597,7 @@ pub(crate) fn flush_pending_insertions(
 
   for PendingInsertion { slot, item } in pending {
     match slot {
+      InsertionSlot::PrependImport => prepend_imports.push(item),
       InsertionSlot::BeforeImports => {
         if runtime_injection {
           before_imports.push(item);
@@ -1600,9 +1668,12 @@ pub(crate) fn flush_pending_insertions(
     result.push(directive);
   }
 
-  // Step 3: theme side-effect imports go directly after the runtime
-  // helpers — preserving the legacy `prepend_include` -> `prepend_import`
-  // -> existing-imports order regardless of which producer queued first.
+  // Step 3: injected `sx` runtime imports go first (ahead of the runtime
+  // helpers and existing imports), then theme side-effect imports go
+  // directly after the runtime helpers — preserving the legacy
+  // `prepend_include` -> `prepend_import` -> existing-imports order
+  // regardless of which producer queued first.
+  result.extend(prepend_imports);
   result.extend(before_imports);
   result.extend(theme_imports);
 

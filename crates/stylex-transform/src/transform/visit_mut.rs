@@ -22,7 +22,7 @@ use swc_core::{
   ecma::{
     ast::{
       ComputedPropName, Decl, ExportDecl, ExportDefaultExpr, Expr, ImportDecl, JSXOpeningElement,
-      MemberProp, Module, ModuleItem, NamedExport, PropName, Stmt, VarDeclarator,
+      MemberProp, Module, ModuleItem, NamedExport, Program, PropName, Stmt, VarDeclarator,
     },
     visit::{VisitMut, noop_visit_mut_type},
   },
@@ -33,6 +33,10 @@ where
   C: Comments,
 {
   noop_visit_mut_type!();
+
+  fn visit_mut_program(&mut self, program: &mut Program) {
+    self.visit_mut_program_impl(program);
+  }
 
   fn visit_mut_module(&mut self, module: &mut Module) {
     self.visit_mut_module_impl(module);

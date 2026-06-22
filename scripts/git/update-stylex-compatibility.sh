@@ -154,7 +154,8 @@ write_rs_compiler_callout() {
 
   cat >"$output_file" <<EOF
 
-> [!NOTE] Compatibility target: this package has been updated through official
+> [!NOTE]
+> Compatibility target: this package has been updated through official
 > StyleX v${version}. This is not an official Meta support guarantee.
 EOF
 }

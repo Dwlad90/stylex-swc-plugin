@@ -119,7 +119,54 @@ mod style_value_parser_at_queries {
           _ => stylex_panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media only (print) and (color)");
+        assert_eq!(parsed.to_string(), "@media only print and (color)");
+      }
+
+      #[test]
+      fn media_only_screen_and_max_width_38em() {
+        let parsed = MediaQuery::parser()
+          .parse_to_end("@media only screen and (max-width: 38em)")
+          .unwrap();
+
+        match &parsed.queries {
+          crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
+            assert_eq!(and_rules.r#type, "and");
+            assert_eq!(and_rules.rules.len(), 2);
+
+            // First rule should be the keyword
+            match &and_rules.rules[0] {
+              crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
+                assert_eq!(keyword.r#type, "media-keyword");
+                assert_eq!(keyword.key, "screen");
+                assert!(!keyword.not);
+                assert!(keyword.only);
+              },
+              _ => stylex_panic!("Expected MediaKeyword rule for screen"),
+            }
+
+            // Second rule should be the max-width pair
+            match &and_rules.rules[1] {
+              crate::at_queries::media_query::MediaQueryRule::Pair(pair) => {
+                assert_eq!(pair.r#type, "pair");
+                assert_eq!(pair.key, "max-width");
+                match &pair.value {
+                  crate::at_queries::media_query::MediaRuleValue::Length(length) => {
+                    assert_eq!(length.value, 38.0);
+                    assert_eq!(length.unit, "em");
+                  },
+                  _ => stylex_panic!("Expected Length value"),
+                }
+              },
+              _ => stylex_panic!("Expected Pair rule for max-width"),
+            }
+          },
+          _ => stylex_panic!("Expected And rule"),
+        }
+
+        assert_eq!(
+          parsed.to_string(),
+          "@media only screen and (max-width: 38em)"
+        );
       }
 
       #[test]
@@ -139,6 +186,15 @@ mod style_value_parser_at_queries {
         }
 
         assert_eq!(parsed.to_string(), "@media not screen");
+      }
+
+      #[test]
+      fn media_rejects_combined_not_and_only_modifiers() {
+        assert!(
+          MediaQuery::parser()
+            .parse_to_end("@media not only screen")
+            .is_err()
+        );
       }
 
       #[test]
@@ -175,7 +231,7 @@ mod style_value_parser_at_queries {
           _ => stylex_panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media not (all) and (monochrome)");
+        assert_eq!(parsed.to_string(), "@media not all and (monochrome)");
       }
     }
 
@@ -1245,7 +1301,7 @@ mod style_value_parser_at_queries {
           _ => stylex_panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media not (all) and (monochrome)");
+        assert_eq!(parsed.to_string(), "@media not all and (monochrome)");
       }
 
       #[test]
@@ -2487,7 +2543,7 @@ mod style_value_parser_at_queries {
 
         assert_eq!(
           parsed.to_string(),
-          "@media not (all) and (monochrome) and (min-width: 600px)"
+          "@media not all and (monochrome) and (min-width: 600px)"
         );
       }
 
@@ -2897,7 +2953,7 @@ mod style_value_parser_at_queries {
           _ => stylex_panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media not (all)");
+        assert_eq!(parsed.to_string(), "@media not all");
       }
 
       #[test]
@@ -3135,7 +3191,7 @@ mod style_value_parser_at_queries {
           _ => stylex_panic!("Expected And rule"),
         }
 
-        assert_eq!(parsed.to_string(), "@media not (all)");
+        assert_eq!(parsed.to_string(), "@media not all");
       }
 
       #[test]

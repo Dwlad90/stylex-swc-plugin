@@ -1241,4 +1241,31 @@ mod media_query_transformer {
       serde_json::to_string(&expected_styles).unwrap()
     );
   }
+
+  #[test]
+  fn handles_only_screen_media_queries_without_parenthesizing_the_media_type() {
+    let original_styles = json!({
+      "color": {
+        "default": null,
+        "@media only screen and (max-width: 600px)": "red",
+        "@media only screen and (max-width: 400px)": "blue"
+      }
+    });
+
+    let input_props = if let Value::Object(obj) = original_styles {
+      obj
+        .into_iter()
+        .map(|(k, v)| create_key_value_prop(&k, v))
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    };
+
+    let result = last_media_query_wins_transform(&input_props);
+    let result_json = key_value_prop_to_json(&result);
+    let result_str = serde_json::to_string(&result_json).unwrap();
+
+    assert!(!result_str.contains("only (screen)"));
+    assert!(result_str.contains("only screen"));
+  }
 }

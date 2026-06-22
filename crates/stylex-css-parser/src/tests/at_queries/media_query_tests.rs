@@ -77,26 +77,33 @@ fn test_media_query_clone() {
 
 #[test]
 fn test_common_media_queries() {
-  // Test currently implemented media query features
+  // Test currently implemented media query features.
+  // Each tuple is (input, expected serialization).
   let implemented_queries = vec![
-    "@media screen",
-    "@media print",
-    "@media (min-width: 768px)",
-    "@media screen and (min-width: 768px)", // Now implemented!
-    "@media (min-width: 768px) and (max-width: 1024px)", // Now implemented!
-    "@media not screen",
-    "@media only screen and (min-width: 768px)", // Now implemented!
+    ("@media screen", "@media screen"),
+    ("@media print", "@media print"),
+    ("@media (min-width: 768px)", "@media (min-width: 768px)"),
+    (
+      "@media screen and (min-width: 768px)",
+      "@media (screen) and (min-width: 768px)",
+    ),
+    (
+      "@media (min-width: 768px) and (max-width: 1024px)",
+      "@media (min-width: 768px) and (max-width: 1024px)",
+    ),
+    ("@media not screen", "@media not screen"),
+    (
+      "@media only screen and (min-width: 768px)",
+      "@media only screen and (min-width: 768px)",
+    ),
   ];
 
-  for query_str in implemented_queries {
+  for (query_str, expected) in implemented_queries {
     let result = validate_media_query(query_str);
     assert!(result.is_ok(), "Failed to validate: {}", query_str);
 
     let query = result.unwrap();
-    assert_eq!(
-      query.to_string(),
-      query_str.replace(" screen and", " (screen) and")
-    );
+    assert_eq!(query.to_string(), expected);
     println!("✅ Validated: {}", query_str);
   }
 
@@ -225,4 +232,25 @@ fn test_nested_unbalanced_parentheses() {
     let result = validate_media_query(query_str);
     assert!(result.is_err(), "Should have failed: {}", query_str);
   }
+}
+
+#[test]
+fn test_or_rule_with_only_empty_nested_or_serializes_to_not_all() {
+  // An `or` rule whose only members are empty `or` rules has every member
+  // filtered out, so it serializes to `not all`.
+  let query = MediaQuery::new(MediaQueryRule::Or(MediaOrRules::new(vec![
+    MediaQueryRule::Or(MediaOrRules::new(vec![])),
+  ])));
+  assert_eq!(query.to_string(), "@media not all");
+}
+
+#[test]
+fn test_or_rule_filters_out_empty_nested_or() {
+  // Empty `or` rules are filtered out; a single remaining rule is serialized
+  // on its own, without `or` wrapping.
+  let query = MediaQuery::new(MediaQueryRule::Or(MediaOrRules::new(vec![
+    MediaQueryRule::Or(MediaOrRules::new(vec![])),
+    MediaQueryRule::MediaKeyword(MediaKeyword::new("screen", false, false)),
+  ])));
+  assert_eq!(query.to_string(), "@media screen");
 }

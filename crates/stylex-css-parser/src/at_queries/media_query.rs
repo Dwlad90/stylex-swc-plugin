@@ -359,7 +359,6 @@ impl Display for MediaQuery {
 }
 
 impl MediaQuery {
-  #[cfg_attr(coverage_nightly, coverage(off))]
   fn format_queries(queries: &MediaQueryRule, is_top_level: bool) -> String {
     match queries {
       MediaQueryRule::MediaKeyword(keyword) => {
@@ -370,15 +369,12 @@ impl MediaQuery {
         } else {
           ""
         };
-        format!(
-          "{}{}",
-          prefix,
-          if is_top_level {
-            keyword.key.clone()
-          } else {
-            format!("({})", keyword.key)
-          }
-        )
+        let should_parenthesize = !is_top_level && !keyword.only && !keyword.not;
+        if should_parenthesize {
+          format!("{}({})", prefix, keyword.key)
+        } else {
+          format!("{}{}", prefix, keyword.key)
+        }
       },
       MediaQueryRule::WordRule(word_rule) => {
         format!("({})", word_rule.key_value)
@@ -537,6 +533,17 @@ fn is_numeric_length(val: &MediaRuleValue) -> bool {
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
+fn is_numeric_width_or_height_pair(rule: &MediaQueryRule) -> bool {
+  matches!(
+    rule,
+    MediaQueryRule::Pair(pair) if matches!(
+      pair.key.as_str(),
+      "min-width" | "max-width" | "min-height" | "max-height"
+    ) && is_numeric_length(&pair.value)
+  )
+}
+
+#[cfg_attr(coverage_nightly, coverage(off))]
 fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
   match merge_intervals_for_and(rules.clone()) {
     Ok(merged) => {
@@ -688,26 +695,15 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
     }
 
     // Check if this rule contains only width/height media query rules
-    if !matches!(
-      rule,
-      MediaQueryRule::Pair(pair) if (
-        pair.key == "min-width" ||
-        pair.key == "max-width" ||
-        pair.key == "min-height" ||
-        pair.key == "max-height"
-      ) && is_numeric_length(&pair.value)
-    ) && !matches!(
-      rule,
-      MediaQueryRule::Not(not_rule) if matches!(
-        not_rule.rule.as_ref(),
-        MediaQueryRule::Pair(pair) if (
-          pair.key == "min-width" ||
-          pair.key == "max-width" ||
-          pair.key == "min-height" ||
-          pair.key == "max-height"
-        ) && is_numeric_length(&pair.value)
+    if !is_numeric_width_or_height_pair(rule)
+      && !matches!(
+        rule,
+        MediaQueryRule::Not(not_rule) if matches!(
+          not_rule.rule.as_ref(),
+          nested_rule if is_numeric_width_or_height_pair(nested_rule)
+        )
       )
-    ) {
+    {
       return Ok(rules);
     }
   }
@@ -807,6 +803,12 @@ fn media_keyword_parser() -> TokenParser<MediaQueryRule> {
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
           tokens.consume_next_token()?;
         }
+      }
+
+      if not_value && only_value {
+        return Err(CssParseError::ParseError {
+          message: "Media query modifiers 'not' and 'only' cannot be combined".to_string(),
+        });
       }
 
       // Parse the media type (required)
@@ -1592,6 +1594,14 @@ fn leading_not_parser() -> TokenParser<MediaQueryRule> {
         });
       }
 
+      if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
+        && keyword == "only"
+      {
+        return Err(CssParseError::ParseError {
+          message: "Media query modifiers 'not' and 'only' cannot be combined".to_string(),
+        });
+      }
+
       // Parse the rule that follows "not" using normal rule parser
       let inner_rule = (normal_rule_parser().run)(tokens)?;
       Ok(MediaQueryRule::Not(MediaNotRule::new(inner_rule)))
@@ -1624,6 +1634,14 @@ fn parenthesized_not_parser() -> TokenParser<MediaQueryRule> {
             } else {
               return Err(CssParseError::ParseError {
                 message: "Expected whitespace after 'not' in parenthesized expression".to_string(),
+              });
+            }
+
+            if let Ok(Some(SimpleToken::Ident(keyword))) = tokens.peek()
+              && keyword == "only"
+            {
+              return Err(CssParseError::ParseError {
+                message: "Media query modifiers 'not' and 'only' cannot be combined".to_string(),
               });
             }
 

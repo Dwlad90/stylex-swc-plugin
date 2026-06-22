@@ -35,6 +35,7 @@ use crate::{
     },
   },
 };
+use stylex_atoms::transform::ATOMS_SOURCE;
 use stylex_constants::constants::{
   api_names::STYLEX_CREATE,
   messages::{KEY_VALUE_EXPECTED, PROPERTY_NOT_FOUND, VAR_DECL_NAME_NOT_IDENT},
@@ -51,6 +52,7 @@ where
       TransformationCycle::Discover => {
         fill_state_declarations(&mut self.state, var_declarator);
         self.discover_commonjs_stylex_require(var_declarator);
+        self.discover_commonjs_atoms_require(var_declarator);
 
         if let Some(Expr::Call(call)) = var_declarator.init.as_deref_mut()
           && let Some((declaration, member)) = self.process_declaration(call)
@@ -175,7 +177,7 @@ where
         self.state.insert_import_path(source_path);
 
         for prop in &object.props {
-          let Some((imported_name, local_name)) = destructured_require_prop(prop) else {
+          let Some((imported_name, local_name, _local_id)) = destructured_require_prop(prop) else {
             continue;
           };
 
@@ -192,6 +194,38 @@ where
                 self.state.insert_stylex_api_import(kind, local_name);
               }
             },
+          }
+        }
+      },
+      _ => {},
+    }
+  }
+
+  /// Records `@stylexjs/atoms` imports introduced via CommonJS `require`.
+  ///
+  /// - `const css = require('@stylexjs/atoms')` → `css` maps to `"*"`
+  /// - `const { color, padding: p } = require('@stylexjs/atoms')` → `color`
+  ///   maps to `"color"` and `p` maps to `"padding"`
+  fn discover_commonjs_atoms_require(&mut self, var_declarator: &VarDeclarator) {
+    let Some(call) = var_declarator.init.as_deref().and_then(Expr::as_call) else {
+      return;
+    };
+
+    if !is_atoms_require(call) {
+      return;
+    }
+
+    match &var_declarator.name {
+      Pat::Ident(local) => {
+        self
+          .state
+          .atom_imports
+          .insert(local.id.to_id(), "*".to_string());
+      },
+      Pat::Object(object) => {
+        for prop in &object.props {
+          if let Some((imported_name, _local_name, local_id)) = destructured_require_prop(prop) {
+            self.state.atom_imports.insert(local_id, imported_name);
           }
         }
       },
@@ -311,26 +345,53 @@ fn get_stylex_require_source(
   state.is_import_source(&source_path).then_some(source_path)
 }
 
-fn destructured_require_prop(prop: &ObjectPatProp) -> Option<(String, swc_core::atoms::Atom)> {
+/// Whether a call expression is `require('@stylexjs/atoms')`.
+fn is_atoms_require(call: &CallExpr) -> bool {
+  let is_require_call = matches!(
+    &call.callee,
+    Callee::Expr(callee) if callee.as_ident().is_some_and(|ident| ident.sym == "require")
+  );
+
+  if !is_require_call {
+    return false;
+  }
+
+  let Some(first_arg) = call.args.first() else {
+    return false;
+  };
+
+  if first_arg.spread.is_some() {
+    return false;
+  }
+
+  matches!(
+    first_arg.expr.as_lit(),
+    Some(Lit::Str(strng)) if convert_str_lit_to_string(strng) == ATOMS_SOURCE
+  )
+}
+
+fn destructured_require_prop(
+  prop: &ObjectPatProp,
+) -> Option<(String, swc_core::atoms::Atom, swc_core::ecma::ast::Id)> {
   match prop {
     ObjectPatProp::Assign(assign) => {
       let name = assign.key.id.sym.clone();
-      Some((name.to_string(), name))
+      Some((name.to_string(), name, assign.key.id.to_id()))
     },
     ObjectPatProp::KeyValue(key_value) => {
       let imported_name = namespace_name_from_prop_key(&key_value.key)?;
-      let local_name = local_atom_from_pat(&key_value.value)?;
+      let (local_name, local_id) = local_binding_from_pat(&key_value.value)?;
 
-      Some((imported_name.to_string(), local_name))
+      Some((imported_name.to_string(), local_name, local_id))
     },
     ObjectPatProp::Rest(_) => None,
   }
 }
 
-fn local_atom_from_pat(pat: &Pat) -> Option<swc_core::atoms::Atom> {
+fn local_binding_from_pat(pat: &Pat) -> Option<(swc_core::atoms::Atom, swc_core::ecma::ast::Id)> {
   match pat {
-    Pat::Ident(local) => Some(local.id.sym.clone()),
-    Pat::Assign(assign) => local_atom_from_pat(&assign.left),
+    Pat::Ident(local) => Some((local.id.sym.clone(), local.id.to_id())),
+    Pat::Assign(assign) => local_binding_from_pat(&assign.left),
     _ => None,
   }
 }

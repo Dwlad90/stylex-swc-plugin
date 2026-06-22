@@ -30,6 +30,7 @@ where
     }
 
     self.transform_producers(module);
+    self.transform_atoms(module);
     self.transform_consumers(module);
     self.finalize_module(module);
   }

@@ -1,0 +1,10 @@
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
+var _inject2 = _inject;
+import stylex from 'stylex';
+_inject2({
+    ltr: ".x78zum5{display:flex}",
+    priority: 3000
+});
+({
+    className: "x78zum5"
+});

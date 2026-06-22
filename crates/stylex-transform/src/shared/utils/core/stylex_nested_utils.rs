@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use stylex_ast::ast::factories::{
   create_key_value_prop, create_object_expression, create_string_key_value_prop,
 };
-use stylex_constants::constants::common::VAR_GROUP_HASH_KEY;
+use stylex_constants::constants::common::{COMPILED_KEY, VAR_GROUP_HASH_KEY};
 use stylex_macros::stylex_unreachable;
 use stylex_structures::nested::SEPARATOR;
 use swc_core::ecma::ast::Expr;
@@ -18,8 +18,6 @@ use crate::shared::{
     create_bool_expr, create_null_expr, create_number_expr, create_string_expr,
   },
 };
-
-const COMPILED_SPECIAL_KEY: &str = "$$css";
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum UnflattenedCompiledStylesValue {
@@ -125,5 +123,5 @@ fn unflattened_value_to_ast(value: &UnflattenedCompiledStylesValue) -> Expr {
 }
 
 fn is_special_key(key: &str) -> bool {
-  key == VAR_GROUP_HASH_KEY || key == COMPILED_SPECIAL_KEY
+  key == VAR_GROUP_HASH_KEY || key == COMPILED_KEY
 }

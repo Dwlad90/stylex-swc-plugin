@@ -2,11 +2,11 @@ use rustc_hash::FxHashMap;
 use stylex_macros::{stylex_panic, stylex_unreachable};
 use swc_core::ecma::{
   ast::{
-    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, JSXAttrOrSpread, JSXAttrValue, Prop,
-    PropName, PropOrSpread,
+    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, JSXAttrOrSpread, JSXAttrValue, Lit,
+    ObjectLit, Prop, PropName, PropOrSpread,
   },
   utils::drop_span,
-  visit::VisitMutWith,
+  visit::{VisitMut, VisitMutWith},
 };
 
 use crate::shared::{
@@ -26,9 +26,10 @@ use crate::shared::{
     },
   },
 };
+use crate::transform::stylex::transform_stylex_create_call::hoist_expression;
 use stylex_ast::ast::factories::{create_jsx_attr, create_jsx_attr_or_spread};
 use stylex_constants::constants::{
-  api_names::STYLEX_DEFAULT_MARKER, messages::EXPECTED_COMPILED_STYLES,
+  api_names::STYLEX_DEFAULT_MARKER, common::COMPILED_KEY, messages::EXPECTED_COMPILED_STYLES,
 };
 use stylex_enums::style_vars_to_keep::NonNullProps;
 
@@ -100,11 +101,13 @@ pub(crate) fn stylex_merge(
 
     let arg = arg_path.expr.as_ref();
 
-    let resolved = if arg.is_object() || arg.is_ident() || arg.is_member() {
+    let resolved = if arg.is_object() || arg.is_ident() || arg.is_member() || arg.is_call() {
       let resolved = parse_nullable_style(arg, state, &evaluate_path_fn_config);
 
       if let StyleObject::Other = resolved {
-        bail_out_index = Some(current_index);
+        if bail_out_index.is_none() {
+          bail_out_index = Some(current_index);
+        }
         bail_out = true;
       }
 
@@ -134,6 +137,11 @@ pub(crate) fn stylex_merge(
           },
         }
       },
+      Expr::Call(_) => {
+        // A call argument (dynamic atom `_temp.color(c)`, dynamic create style
+        // `styles.opacity(1)`, etc.) cannot be statically merged. The bail-out
+        // recorded above keeps it in the runtime `stylex.props` call.
+      },
       Expr::Cond(CondExpr {
         test,
         cons: consequent,
@@ -144,7 +152,9 @@ pub(crate) fn stylex_merge(
         let fallback = parse_nullable_style(alternate, state, &evaluate_path_fn_config);
 
         if primary.eq(&StyleObject::Other) || fallback.eq(&StyleObject::Other) {
-          bail_out_index = Some(current_index);
+          if bail_out_index.is_none() {
+            bail_out_index = Some(current_index);
+          }
           bail_out = true;
         } else {
           resolved_args.push(ResolvedArg::conditional(
@@ -163,29 +173,34 @@ pub(crate) fn stylex_merge(
         ..
       }) => {
         if !op.eq(&BinaryOp::LogicalAnd) {
-          bail_out_index = Some(current_index);
-          bail_out = true;
-          break;
-        }
-
-        let left_resolved = parse_nullable_style(left_path, state, &evaluate_path_fn_config);
-        let right_resolved = parse_nullable_style(right_path, state, &evaluate_path_fn_config);
-
-        if !left_resolved.eq(&StyleObject::Other) || right_resolved.eq(&StyleObject::Other) {
-          bail_out_index = Some(current_index);
+          if bail_out_index.is_none() {
+            bail_out_index = Some(current_index);
+          }
           bail_out = true;
         } else {
-          resolved_args.push(ResolvedArg::conditional(
-            *left_path.clone(),
-            Some(right_resolved),
-            None,
-          ));
+          let left_resolved = parse_nullable_style(left_path, state, &evaluate_path_fn_config);
+          let right_resolved = parse_nullable_style(right_path, state, &evaluate_path_fn_config);
 
-          conditional += 1;
+          if !left_resolved.eq(&StyleObject::Other) || right_resolved.eq(&StyleObject::Other) {
+            if bail_out_index.is_none() {
+              bail_out_index = Some(current_index);
+            }
+            bail_out = true;
+          } else {
+            resolved_args.push(ResolvedArg::conditional(
+              *left_path.clone(),
+              Some(right_resolved),
+              None,
+            ));
+
+            conditional += 1;
+          }
         }
       },
       _ => {
-        bail_out_index = Some(current_index);
+        if bail_out_index.is_none() {
+          bail_out_index = Some(current_index);
+        }
         bail_out = true;
       },
     }
@@ -195,7 +210,13 @@ pub(crate) fn stylex_merge(
     }
 
     if bail_out {
-      break;
+      // Keep scanning the remaining args rather than `break`ing: once any arg
+      // bails out the merged `resolved_args`/`conditional` are discarded (the
+      // bail branch below re-walks `call.args` via `MemberTransform`), but later
+      // member-style args must still be visited so their `stylex.create` styles
+      // are registered and kept. `bail_out_index` is pinned to the first bail
+      // via the `is_none()` guards above.
+      continue;
     }
   }
 
@@ -223,6 +244,13 @@ pub(crate) fn stylex_merge(
       index = member_transform.index;
       bail_out_index = member_transform.bail_out_index;
       non_null_props = member_transform.non_null_props.clone();
+
+      // Hoist any inline compiled-style objects (produced by atoms) to module
+      // scope so the runtime `stylex.props` receives a stable reference instead
+      // of a re-created object literal. Mirrors the `ObjectExpression` hoisting
+      // added to the babel `stylex-props` visitor.
+      let mut object_hoister = CompiledStyleObjectHoister { state: &mut *state };
+      arg_path.expr.visit_mut_with(&mut object_hoister);
     }
   } else {
     let string_expression = make_string_expression(&resolved_args, transform);
@@ -283,4 +311,47 @@ pub(crate) fn stylex_merge(
   }
 
   None
+}
+
+/// Hoists inline compiled-style objects (those carrying the `$$css: true`
+/// marker, produced by the atoms transform) out of a `stylex.props(...)`
+/// argument and into a module-scoped `const`, replacing the object with a
+/// reference to it.
+struct CompiledStyleObjectHoister<'a> {
+  state: &'a mut StateManager,
+}
+
+impl VisitMut for CompiledStyleObjectHoister<'_> {
+  fn visit_mut_expr(&mut self, expr: &mut Expr) {
+    expr.visit_mut_children_with(self);
+
+    if let Expr::Object(object) = expr
+      && object_has_css_marker(object)
+    {
+      let hoisted = hoist_expression(expr.clone(), self.state);
+      *expr = hoisted;
+    }
+  }
+}
+
+/// Whether an object literal carries a `$$css: true` property, marking it as a
+/// compiled StyleX style object.
+fn object_has_css_marker(object: &ObjectLit) -> bool {
+  object.props.iter().any(|prop| {
+    let PropOrSpread::Prop(prop) = prop else {
+      return false;
+    };
+    let Prop::KeyValue(key_value) = prop.as_ref() else {
+      return false;
+    };
+
+    let is_css_key = match &key_value.key {
+      PropName::Ident(ident) => ident.sym == *COMPILED_KEY,
+      PropName::Str(strng) => strng.value.as_str() == Some(COMPILED_KEY),
+      _ => false,
+    };
+
+    is_css_key
+      && matches!(key_value.value.as_ref(), Expr::Lit(Lit::Bool(bool_lit)) if bool_lit.value)
+  })
 }

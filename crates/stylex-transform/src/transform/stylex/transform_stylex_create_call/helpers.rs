@@ -147,7 +147,7 @@ pub(super) fn extract_expr_from_rule(
 ///
 /// # Returns
 /// An identifier referencing the hoisted variable
-pub(super) fn hoist_expression(
+pub(crate) fn hoist_expression(
   ast_expression: Expr,
   state: &mut crate::shared::structures::state_manager::StateManager,
 ) -> Expr {

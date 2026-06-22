@@ -1335,6 +1335,21 @@ importers:
         specifier: ^3.8.3
         version: 3.8.3
 
+  crates/stylex-atoms:
+    devDependencies:
+      '@stylexswc/constants':
+        specifier: 0.16.5
+        version: link:../stylex-constants
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: ^3.8.3
+        version: 3.8.3
+
   crates/stylex-constants:
     devDependencies:
       '@taplo/cli':
@@ -1674,6 +1689,9 @@ importers:
       '@stylexswc/ast':
         specifier: 0.16.5
         version: link:../stylex-ast
+      '@stylexswc/atoms':
+        specifier: 0.16.5
+        version: link:../stylex-atoms
       '@stylexswc/constants':
         specifier: 0.16.5
         version: link:../stylex-constants

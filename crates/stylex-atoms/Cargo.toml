@@ -1,29 +1,31 @@
 [package]
-description = "StyleQ implementation for the StyleX system"
+description = "StyleX atoms for the StyleX SWC plugin"
 edition.workspace = true
 license.workspace = true
-name = "stylex_styleq"
+name = "stylex_atoms"
 repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+
 [lib]
+crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-indexmap.workspace = true
-log.workspace = true
 rustc-hash.workspace = true
+swc_core = { workspace = true, features = [
+  "common",
+  "ecma_ast",
+  "ecma_utils",
+  "ecma_visit",
+] }
 
 stylex_constants = { path = "../stylex-constants" }
 
 [dev-dependencies]
-criterion.workspace = true
-serial_test.workspace = true
-
-[[bench]]
-harness = false
-name = "performance_bench"
+ctor.workspace = true
+pretty_env_logger.workspace = true
 
 [lints]
 workspace = true

@@ -9,9 +9,10 @@ use std::{
 use indexmap::IndexMap;
 use log::{Level, LevelFilter, Metadata, Record};
 use serial_test::serial;
+use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_styleq::{
-  COMPILED_KEY, StyleMap, StyleValue, Styleq, StyleqArgument, StyleqInput, StyleqOptions,
-  StyleqResult, StyleqValue, create_styleq, styleq,
+  StyleMap, StyleValue, Styleq, StyleqArgument, StyleqInput, StyleqOptions, StyleqResult,
+  StyleqValue, create_styleq, styleq,
 };
 
 static STYLEQ_ERROR_COUNT: AtomicUsize = AtomicUsize::new(0);

@@ -8,10 +8,9 @@ use std::{
 
 use log::{debug, error};
 use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+use stylex_constants::constants::common::COMPILED_KEY;
 
-use crate::{
-  COMPILED_KEY, StyleMap, StyleqArgument, StyleqInput, StyleqOptions, StyleqResult, StyleqValue,
-};
+use crate::{StyleMap, StyleqArgument, StyleqInput, StyleqOptions, StyleqResult, StyleqValue};
 
 // JS-parity: styleq/src/styleq.js — `compiledStyleCache` (a Map keyed by
 // either the source array reference or a structural hash). Order is never

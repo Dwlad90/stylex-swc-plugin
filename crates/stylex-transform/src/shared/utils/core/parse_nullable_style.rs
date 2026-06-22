@@ -72,6 +72,13 @@ pub(crate) fn parse_nullable_style(
   state: &mut StateManager,
   evaluate_path_fn_config: &FunctionMap,
 ) -> StyleObject {
+  // Call expressions (dynamic atom `_temp.color(c)`, dynamic create style
+  // `styles.opacity(1)`, etc.) always bail out to runtime so the props merge
+  // keeps the conditional class / inline-var semantics intact.
+  if path.is_call() {
+    return StyleObject::Other;
+  }
+
   let result = match path {
     Expr::Lit(lit) => {
       if let Lit::Null(_) = lit {
@@ -112,6 +119,16 @@ pub(crate) fn parse_nullable_style(
       if let Some(obj_name) = obj_name
         && let Some(prop_name) = prop_name
       {
+        // Dynamic style functions (e.g. `styles.opacity` where `opacity` is a
+        // dynamic style) must bail out so runtime props handling stays intact.
+        if state
+          .dynamic_style_namespaces
+          .get(&obj_name)
+          .is_some_and(|namespaces| namespaces.contains(&prop_name))
+        {
+          return StyleObject::Other;
+        }
+
         let style = state.style_map.get(&obj_name);
 
         if let Some(style) = style {

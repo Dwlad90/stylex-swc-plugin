@@ -1,6 +1,6 @@
 {
-  "name": "@stylexswc/transform",
-  "description": "SWC VisitMut implementation and transform orchestration for StyleX",
+  "name": "@stylexswc/atoms",
+  "description": "StyleX atoms for the StyleX SWC plugin",
   "version": "0.16.5",
   "config": {
     "scripty": {
@@ -8,19 +8,7 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/ast": "0.16.5",
-    "@stylexswc/atoms": "0.16.5",
     "@stylexswc/constants": "0.16.5",
-    "@stylexswc/css": "0.16.5",
-    "@stylexswc/css-parser": "0.16.5",
-    "@stylexswc/logs": "0.16.5",
-    "@stylexswc/macros": "0.16.5",
-    "@stylexswc/utils": "0.16.5",
-    "@stylexswc/path-resolver": "0.16.5",
-    "@stylexswc/regex": "0.16.5",
-    "@stylexswc/enums": "0.16.5",
-    "@stylexswc/structures": "0.16.5",
-    "@stylexswc/types": "0.16.5",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.8.3"
@@ -47,7 +35,7 @@
     "format:rs": "cargo fmt --all",
     "format:rs:check": "cargo fmt -- --check",
     "format:toml": "taplo format",
-    "format:toml:check": "taplo format  --check",
+    "format:toml:check": "taplo format --check",
     "lint": "eslint . --color",
     "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
     "precommit": "lint-staged",
@@ -55,7 +43,6 @@
     "prepush": "lint-prepush",
     "test": "scripty",
     "test:coverage": "scripty",
-    "test:fix-indent": "python3 ../../scripts/fix-test-indent.py",
     "test:flamegraph": "scripty",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
   },

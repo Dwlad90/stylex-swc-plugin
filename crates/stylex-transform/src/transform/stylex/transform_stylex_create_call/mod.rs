@@ -2,8 +2,9 @@ mod dynamic_style_functions;
 mod helpers;
 mod runtime_function_map;
 use dynamic_style_functions::apply_dynamic_style_functions;
+pub(crate) use helpers::hoist_expression;
 use helpers::*;
-use runtime_function_map::build_runtime_function_map;
+pub(crate) use runtime_function_map::build_runtime_function_map;
 use std::{
   fmt::Write,
   rc::Rc,
@@ -13,7 +14,7 @@ use stylex_macros::stylex_panic;
 use stylex_path_resolver::package_json::PackageJsonExtended;
 
 use indexmap::IndexMap;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   common::{DUMMY_SP, SyntaxContext, comments::Comments},
   ecma::{
@@ -320,6 +321,20 @@ where
           .state
           .style_map
           .insert(var_name.clone(), Rc::new(styles_to_remember));
+
+        // Remember which namespaces are dynamic style functions so an uncalled
+        // member access (`styles.opacity`) bails out to runtime in
+        // `parse_nullable_style`.
+        if let Some(fns) = evaluated_arg.fns.as_ref() {
+          let dynamic_namespaces: FxHashSet<String> = fns.keys().cloned().collect();
+
+          if !dynamic_namespaces.is_empty() {
+            self
+              .state
+              .dynamic_style_namespaces
+              .insert(var_name.clone(), dynamic_namespaces);
+          }
+        }
 
         if let Some(parent_var_decl) = parent_var_decl {
           self

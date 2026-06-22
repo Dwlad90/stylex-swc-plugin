@@ -2779,6 +2779,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "stylex_atoms"
+version = "0.16.5"
+dependencies = [
+ "ctor",
+ "pretty_env_logger",
+ "rustc-hash",
+ "stylex_constants",
+ "swc_core",
+]
+
+[[package]]
 name = "stylex_compiler_rs"
 version = "0.16.5"
 dependencies = [
@@ -2959,6 +2970,7 @@ dependencies = [
  "log",
  "rustc-hash",
  "serial_test",
+ "stylex_constants",
 ]
 
 [[package]]
@@ -2996,6 +3008,7 @@ dependencies = [
  "serde",
  "serde_json",
  "stylex_ast",
+ "stylex_atoms",
  "stylex_constants",
  "stylex_css",
  "stylex_css_parser",

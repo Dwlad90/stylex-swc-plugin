@@ -10,6 +10,7 @@ use crate::{
   StyleXTransform,
   shared::{structures::state_manager::ImportKind, utils::ast::convertors::convert_atom_to_string},
 };
+use stylex_atoms::transform::ATOMS_SOURCE;
 use stylex_enums::core::TransformationCycle;
 use stylex_structures::named_import_source::ImportSources;
 
@@ -26,6 +27,42 @@ where
       self.state.top_imports.push(drop_span(import_decl.clone()));
 
       let source_path = convert_atom_to_string(&import_decl.src.value);
+
+      // Record `@stylexjs/atoms` imports for the atoms transform pass. These
+      // are not treated as a StyleX API import source.
+      if source_path == ATOMS_SOURCE {
+        for specifier in &import_decl.specifiers {
+          match specifier {
+            ImportSpecifier::Namespace(import_specifier) => {
+              self
+                .state
+                .atom_imports
+                .insert(import_specifier.local.to_id(), "*".to_string());
+            },
+            ImportSpecifier::Default(import_specifier) => {
+              self
+                .state
+                .atom_imports
+                .insert(import_specifier.local.to_id(), "*".to_string());
+            },
+            ImportSpecifier::Named(import_specifier) => {
+              let local_name = import_specifier.local.sym.to_string();
+              let imported_name = match &import_specifier.imported {
+                Some(ModuleExportName::Ident(ident)) => ident.sym.to_string(),
+                Some(ModuleExportName::Str(strng)) => convert_atom_to_string(&strng.value),
+                None => local_name.clone(),
+              };
+              self
+                .state
+                .atom_imports
+                .insert(import_specifier.local.to_id(), imported_name);
+            },
+          }
+        }
+
+        return;
+      }
+
       let is_import_source = self.state.is_import_source(&source_path);
       let has_named_import_source = self.state.import_as(&source_path).is_some();
 

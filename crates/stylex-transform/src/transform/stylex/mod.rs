@@ -1,9 +1,10 @@
 pub(crate) mod transform_default_marker_call;
 pub(crate) mod transform_define_marker_call;
+pub(crate) mod transform_stylex_atoms;
 pub(crate) mod transform_stylex_attrs_call;
 pub(crate) mod transform_stylex_call;
 pub(crate) mod transform_stylex_calls;
-mod transform_stylex_create_call;
+pub(crate) mod transform_stylex_create_call;
 pub(crate) mod transform_stylex_create_theme_call;
 pub(crate) mod transform_stylex_create_theme_nested_call;
 pub(crate) mod transform_stylex_define_consts_call;

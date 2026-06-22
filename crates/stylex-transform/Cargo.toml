@@ -26,6 +26,7 @@ rustc-hash.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
 stylex_ast = { path = "../stylex-ast" }
+stylex_atoms = { path = "../stylex-atoms" }
 stylex_constants = { path = "../stylex-constants" }
 stylex_css = { path = "../stylex-css" }
 stylex_css_parser = { path = "../stylex-css-parser" }

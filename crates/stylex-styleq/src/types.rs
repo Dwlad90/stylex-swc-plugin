@@ -2,8 +2,6 @@ use std::{fmt::Debug, hash::Hash, rc::Rc, sync::Arc};
 
 use indexmap::IndexMap;
 
-pub const COMPILED_KEY: &str = "$$css";
-
 pub type StyleMap<V> = IndexMap<String, V>;
 pub type Transform<V> = Arc<dyn Fn(StyleMap<V>) -> StyleMap<V> + Send + Sync>;
 

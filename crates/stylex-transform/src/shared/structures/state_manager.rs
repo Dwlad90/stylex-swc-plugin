@@ -14,7 +14,7 @@ use swc_core::{
   common::{DUMMY_SP, EqIgnoreSpan, FileName, Span, SyntaxContext},
   ecma::{
     ast::{
-      CallExpr, Callee, Decl, Expr, ExprStmt, Ident, ImportDecl, ImportDefaultSpecifier,
+      CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl, ImportDefaultSpecifier,
       ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread, Lit, MemberExpr,
       MemberProp, Module, ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Program,
       PropName, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
@@ -364,6 +364,18 @@ pub struct StateManager {
   pub(crate) style_map: FxHashMap<String, Rc<StylesObjectMap>>,
   pub(crate) style_vars: FxHashMap<String, VarDeclarator>,
 
+  /// Map of local identifier -> imported name for `@stylexjs/atoms` imports.
+  /// The key includes `SyntaxContext`, so shadowed bindings with the same symbol
+  /// text remain distinct after SWC's resolver pass. Namespace/default imports
+  /// store `"*"`. Populated during `Discover` and consumed by the atoms pass.
+  pub(crate) atom_imports: FxHashMap<Id, String>,
+
+  /// Map of `stylex.create` variable name -> set of namespace names that are
+  /// dynamic style functions (e.g. `opacity: (o) => ({ opacity: o })`). Used so
+  /// an uncalled dynamic-style member access (`styles.opacity`) bails out to
+  /// runtime instead of being inlined.
+  pub(crate) dynamic_style_namespaces: FxHashMap<String, FxHashSet<String>>,
+
   // results of `stylex.create` calls that should be kept
   pub(crate) style_vars_to_keep: IndexSet<StyleVarsToKeep>,
 
@@ -424,6 +436,8 @@ impl StateManager {
       imports: ImportState::default(),
       style_map: FxHashMap::default(),
       style_vars: FxHashMap::default(),
+      atom_imports: FxHashMap::default(),
+      dynamic_style_namespaces: FxHashMap::default(),
       style_vars_to_keep: IndexSet::default(),
       decl_uses: FxHashMap::default(),
       roots: FxHashSet::default(),
@@ -960,6 +974,53 @@ impl StateManager {
 
     // Update all references to this call expression with the new AST
     self.update_references(call, ast, fallback_ast);
+  }
+
+  /// Registers injected styles produced by the atoms transform.
+  ///
+  /// Unlike [`register_styles`], atom styles are compiled inline into
+  /// `stylex.props(...)` arguments that are consumed before the pending
+  /// insertions are flushed, so there is no surviving declarator to anchor
+  /// `_inject2(...)` calls to. Instead the runtime injection calls are queued
+  /// to [`InsertionSlot::AfterImports`] — right after the import block and
+  /// before the module body that uses them. Metadata is deduplicated against
+  /// already-registered styles, so an atom that re-uses a class produced by a
+  /// `stylex.create` call (or another atom) does not emit a duplicate.
+  ///
+  /// [`register_styles`]: StateManager::register_styles
+  pub(crate) fn register_atom_styles(&mut self, style: &InjectableStylesMap) {
+    if style.is_empty() {
+      return;
+    }
+
+    let metadatas = MetaData::convert_from_injected_styles_map(style);
+    if metadatas.is_empty() {
+      return;
+    }
+
+    let inject_var_ident = if self.options.runtime_injection.is_some() {
+      Some(self.setup_injection_imports())
+    } else {
+      None
+    };
+
+    for metadata in metadatas {
+      let bucket = self
+        .injection
+        .metadata
+        .entry("stylex".to_string())
+        .or_default();
+
+      let is_new = !bucket.contains(&metadata);
+      if is_new {
+        bucket.insert(metadata.clone());
+      }
+
+      if is_new && let Some(ref inject_var_ident) = inject_var_ident {
+        let item = build_atom_inject_item(&metadata, inject_var_ident);
+        self.queue_insertion(InsertionSlot::AfterImports, item);
+      }
+    }
   }
 
   fn setup_injection_imports(&mut self) -> Ident {
@@ -1596,6 +1657,40 @@ fn decl_init_hashes(item: &ModuleItem) -> Vec<u64> {
   }
 
   hashes
+}
+
+/// Builds an `_inject2({ ltr, priority, [rtl] })` statement for an atom style.
+/// Mirrors the object construction in [`StateManager::add_style_to_inject`] but
+/// produces a free-standing `ModuleItem` (atom injections do not carry
+/// `constKey` / `constVal`).
+fn build_atom_inject_item(metadata: &MetaData, inject_var_ident: &Ident) -> ModuleItem {
+  let priority = metadata.get_priority();
+  let css_ltr = metadata.get_css();
+  let css_rtl = metadata.get_css_rtl();
+
+  let mut stylex_inject_args = vec![
+    create_string_key_value_prop("ltr", css_ltr),
+    create_key_value_prop("priority", create_number_expr(round_f64(*priority, 1))),
+  ];
+
+  if let Some(rtl) = css_rtl {
+    stylex_inject_args.push(create_string_key_value_prop("rtl", rtl));
+  }
+
+  let stylex_inject_obj = create_object_expression(stylex_inject_args);
+
+  let stylex_call_expr = CallExpr {
+    span: DUMMY_SP,
+    type_args: None,
+    callee: Callee::Expr(Box::new(Expr::Ident(inject_var_ident.clone()))),
+    args: vec![create_expr_or_spread(stylex_inject_obj)],
+    ctxt: SyntaxContext::empty(),
+  };
+
+  ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+    span: DUMMY_SP,
+    expr: Box::new(Expr::Call(stylex_call_expr)),
+  }))
 }
 
 fn add_inject_default_import_expression(ident: &Ident, inject_path: Option<&str>) -> ModuleItem {

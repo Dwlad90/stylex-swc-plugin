@@ -1,3 +1,4 @@
 plans/
 reports/
 settings.local.json
+scheduled_tasks.lock

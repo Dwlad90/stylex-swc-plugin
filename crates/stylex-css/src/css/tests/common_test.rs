@@ -1380,8 +1380,25 @@ mod build_nested_css_rule_extended_tests {
       &mut [],
       &mut [],
     );
-    assert!(result.contains("::-webkit-slider-thumb"));
-    assert!(result.contains(":hover"));
+    assert_eq!(
+      result,
+      ".xtp:hover::-webkit-slider-thumb, .xtp:hover::-moz-range-thumb, \
+       .xtp:hover::-ms-thumb{color:red}"
+    );
+  }
+
+  #[test]
+  fn builds_rule_with_pseudo_classes_before_pseudo_element() {
+    // Pseudo-elements (::before, ::after, etc.) must come after pseudo-classes
+    // in the selector. e.g. `.class:hover::after` not `.class::after:hover`.
+    let result = build_nested_css_rule(
+      "xpe",
+      "color:red".into(),
+      &mut ["::after".into(), ":hover".into(), ":active".into()],
+      &mut [],
+      &mut [],
+    );
+    assert_eq!(result, ".xpe:hover:active::after{color:red}");
   }
 
   #[test]

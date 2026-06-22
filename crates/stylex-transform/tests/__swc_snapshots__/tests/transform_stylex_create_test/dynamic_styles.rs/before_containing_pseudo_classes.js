@@ -10,7 +10,7 @@ _inject2({
     priority: 8000
 });
 _inject2({
-    ltr: ".xndy4z1::before:hover{color:var(--x-6bge3v)}",
+    ltr: ".xndy4z1:hover::before{color:var(--x-6bge3v)}",
     priority: 8130
 });
 _inject2({

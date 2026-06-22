@@ -6,7 +6,7 @@ _inject2({
     priority: 8000
 });
 _inject2({
-    ltr: ".xeb2lg0::before:hover{color:blue}",
+    ltr: ".xeb2lg0:hover::before{color:blue}",
     priority: 8130
 });
 export const styles = {

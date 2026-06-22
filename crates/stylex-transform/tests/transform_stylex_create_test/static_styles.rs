@@ -685,7 +685,6 @@ stylex_test!(
   "#
 );
 
-// BUG: Generates invalid CSS, need to revisit this API
 stylex_test!(
   before_containing_pseudo_classes,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
@@ -698,6 +697,25 @@ stylex_test!(
             default: 'red',
             ':hover': 'blue',
           }
+        },
+      },
+    });
+  "#
+);
+
+stylex_test!(
+  after_with_multiple_pseudo_class_conditions,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      button: {
+        '::after': {
+          content: '""',
+          boxShadow: {
+            default: '0 0 0 1px gray',
+            ':hover': '0 0 0 1px blue',
+            ':active': '0 0 0 1px darkblue',
+          },
         },
       },
     });

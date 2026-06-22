@@ -147,7 +147,18 @@ fn push_selector(
     result.push_str(class_name);
   }
 
-  for pseudo in pseudos.iter().filter(|pseudo| pseudo.as_str() != "::thumb") {
+  // Pseudo-elements (::before, ::after, etc.) must come after pseudo-classes
+  // in the selector. e.g. `.class:hover::before` not `.class::before:hover`.
+  // Pseudo-classes first (`::`-prefixed entries are excluded, which also
+  // drops `::thumb`)...
+  for pseudo in pseudos.iter().filter(|pseudo| !pseudo.starts_with("::")) {
+    result.push_str(pseudo);
+  }
+  // ...then pseudo-elements, still skipping the expanded `::thumb`.
+  for pseudo in pseudos
+    .iter()
+    .filter(|pseudo| pseudo.starts_with("::") && pseudo.as_str() != "::thumb")
+  {
     result.push_str(pseudo);
   }
 }

@@ -2222,7 +2222,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 [
                   "xeb2lg0",
                   {
-                    "ltr": ".xeb2lg0::before:hover{color:blue}",
+                    "ltr": ".xeb2lg0:hover::before{color:blue}",
                     "rtl": null,
                   },
                   8130,
@@ -2299,6 +2299,32 @@ describe('@stylexjs/babel-plugin', ()=>{
                 ],
               ],
             }
+          `);
+                });
+                test('"::after" with multiple pseudo-class conditions', ()=>{
+                    const { metadata } = transform(`
+            import * as stylex from '@stylexjs/stylex';
+            export const styles = stylex.create({
+              button: {
+                '::after': {
+                  content: '""',
+                  boxShadow: {
+                    default: '0 0 0 1px gray',
+                    ':hover': '0 0 0 1px blue',
+                    ':active': '0 0 0 1px darkblue',
+                  },
+                },
+              },
+            });
+          `);
+                    const rules = metadata.stylex.map(([_className, { ltr }])=>ltr);
+                    expect(rules).toMatchInlineSnapshot(`
+            [
+              ".x1s928wv::after{content:""}",
+              ".x5fy8b7::after{box-shadow:0 0 0 1px gray}",
+              ".xgazanr:hover::after{box-shadow:0 0 0 1px blue}",
+              ".x136huz6:active::after{box-shadow:0 0 0 1px darkblue}",
+            ]
           `);
                 });
             });
@@ -4755,7 +4781,7 @@ describe('@stylexjs/babel-plugin', ()=>{
                 [
                   "xndy4z1",
                   {
-                    "ltr": ".xndy4z1::before:hover{color:var(--x-6bge3v)}",
+                    "ltr": ".xndy4z1:hover::before{color:var(--x-6bge3v)}",
                     "rtl": null,
                   },
                   8130,
@@ -5568,7 +5594,7 @@ describe('@stylexjs/babel-plugin', ()=>{
             priority: 8000
           });
           _inject2({
-            ltr: ".xeb2lg0::before:hover{color:blue}",
+            ltr: ".xeb2lg0:hover::before{color:blue}",
             priority: 8130
           });
           export const styles = {
@@ -5648,11 +5674,11 @@ describe('@stylexjs/babel-plugin', ()=>{
             priority: 8130
           });
           _inject2({
-            ltr: ".x1gobd9t:hover::before:hover{color:green}",
+            ltr: ".x1gobd9t:hover:hover::before{color:green}",
             priority: 8260
           });
           _inject2({
-            ltr: ".xs8jp5:hover::before:active{color:purple}",
+            ltr: ".xs8jp5:hover:active::before{color:purple}",
             priority: 8300
           });
           export const styles = {

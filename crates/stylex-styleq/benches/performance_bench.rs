@@ -4,9 +4,8 @@ use std::{
 };
 
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
-use stylex_styleq::{
-  COMPILED_KEY, StyleMap, StyleValue, StyleqInput, StyleqOptions, create_styleq,
-};
+use stylex_constants::constants::common::COMPILED_KEY;
+use stylex_styleq::{StyleMap, StyleValue, StyleqInput, StyleqOptions, create_styleq};
 
 fn string(value: &str) -> StyleValue {
   StyleValue::string(value)

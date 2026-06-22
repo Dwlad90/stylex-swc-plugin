@@ -821,7 +821,7 @@ mod stylex_create {
             ),
             (
               "color-xeb2lg0",
-              (".color-xeb2lg0::before:hover{color:blue}", 8130.0),
+              (".color-xeb2lg0:hover::before{color:blue}", 8130.0),
             ),
           ],
         )],
@@ -875,7 +875,7 @@ mod stylex_create {
             ),
             (
               "color-xeb2lg0",
-              (".color-xeb2lg0::before:hover{color:blue}", 8130.0),
+              (".color-xeb2lg0:hover::before{color:blue}", 8130.0),
             ),
           ],
         )],
@@ -939,11 +939,11 @@ mod stylex_create {
             ),
             (
               "color-x1gobd9t",
-              (".color-x1gobd9t:hover::before:hover{color:green}", 8260.0),
+              (".color-x1gobd9t:hover:hover::before{color:green}", 8260.0),
             ),
             (
               "color-x1lvqgcc",
-              (".color-x1lvqgcc:hover::before:active{color:yellow}", 8300.0),
+              (".color-x1lvqgcc:hover:active::before{color:yellow}", 8300.0),
             ),
             (
               "color-xzzpreb",

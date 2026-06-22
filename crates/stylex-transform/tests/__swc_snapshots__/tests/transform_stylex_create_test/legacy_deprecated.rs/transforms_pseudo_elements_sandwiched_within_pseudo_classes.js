@@ -10,11 +10,11 @@ _inject2({
     priority: 8130
 });
 _inject2({
-    ltr: ".x1gobd9t:hover::before:hover{color:green}",
+    ltr: ".x1gobd9t:hover:hover::before{color:green}",
     priority: 8260
 });
 _inject2({
-    ltr: ".xs8jp5:hover::before:active{color:purple}",
+    ltr: ".xs8jp5:hover:active::before{color:purple}",
     priority: 8300
 });
 export const styles = {

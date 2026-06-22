@@ -17,7 +17,9 @@ use stylex_styleq::{
 
 static STYLEQ_ERROR_COUNT: AtomicUsize = AtomicUsize::new(0);
 static TEST_LOGGER: TestLogger = TestLogger;
-const LOCALIZE_MARKER: &str = "$$css$localize";
+fn localize_marker() -> String {
+  format!("{COMPILED_KEY}$localize")
+}
 
 struct TestLogger;
 
@@ -138,7 +140,7 @@ fn string(value: &str) -> StyleValue {
 fn transform_fixture() -> StyleMap<StyleValue> {
   let mut fixture = IndexMap::new();
   fixture.insert(COMPILED_KEY.to_string(), StyleValue::Bool(true));
-  fixture.insert(LOCALIZE_MARKER.to_string(), StyleValue::Bool(true));
+  fixture.insert(localize_marker(), StyleValue::Bool(true));
   fixture.insert("marginStart".to_string(), string("marginStart"));
   fixture.insert("marginEnd".to_string(), string("marginEnd"));
   fixture
@@ -149,10 +151,12 @@ fn opacity_style() -> StyleMap<StyleValue> {
 }
 
 fn localize_style(style: StyleMap<StyleValue>, is_rtl: bool) -> StyleMap<StyleValue> {
+  // Compute the marker once rather than re-allocating it for every property.
+  let localize_marker = localize_marker();
   style
     .into_iter()
     .filter_map(|(prop, value)| {
-      if prop == LOCALIZE_MARKER {
+      if prop == localize_marker {
         None
       } else if prop == "marginStart" {
         Some((

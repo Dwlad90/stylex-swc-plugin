@@ -885,6 +885,7 @@ impl StateManager {
           source_file_path,
           &root_dir,
           &aliases,
+          self.options.unstable_module_resolution.root_dir(),
           package_json_seen,
         ) {
           Ok(resolved_file_path) => resolved_file_path,
@@ -1801,6 +1802,7 @@ fn file_path_resolver(
   source_file_path: &str,
   root_path: &str,
   aliases: &FxHashMap<String, Vec<String>>,
+  root_dir: Option<&str>,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> anyhow::Result<String> {
   let resolved_path = resolve_file_path(
@@ -1808,6 +1810,7 @@ fn file_path_resolver(
     source_file_path,
     root_path,
     aliases,
+    root_dir,
     package_json_seen,
   )?;
 

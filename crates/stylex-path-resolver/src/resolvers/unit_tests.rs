@@ -103,6 +103,7 @@ fn resolve_file_path_resolves_relative_import_without_extension() {
     source_file.to_str().unwrap(),
     root.to_str().unwrap(),
     &aliases,
+    None,
     &mut package_json_seen,
   )
   .unwrap();
@@ -124,6 +125,7 @@ fn resolve_file_path_returns_not_found_for_missing_relative_import() {
     source_file.to_str().unwrap(),
     root.to_str().unwrap(),
     &aliases,
+    None,
     &mut package_json_seen,
   )
   .unwrap_err();
@@ -144,6 +146,7 @@ fn resolve_file_path_rejects_source_path_without_parent() {
     "/",
     root.to_str().unwrap(),
     &aliases,
+    None,
     &mut package_json_seen,
   )
   .unwrap_err();
@@ -169,6 +172,7 @@ fn resolve_file_path_falls_back_to_root_resolver() {
     source_file.to_str().unwrap(),
     root.to_str().unwrap(),
     &aliases,
+    None,
     &mut package_json_seen,
   )
   .unwrap();
@@ -196,6 +200,7 @@ fn resolve_file_path_returns_not_found_for_unknown_package() {
     source_file.to_str().unwrap(),
     root.to_str().unwrap(),
     &aliases,
+    None,
     &mut package_json_seen,
   )
   .unwrap_err();
@@ -206,6 +211,106 @@ fn resolve_file_path_returns_not_found_for_unknown_package() {
       .to_string()
       .contains("stylex-lib-package-that-does-not-exist")
   );
+}
+
+/// Aliases that expand to Turbopack's `/ROOT/` placeholder should be resolved
+/// against the configured `root_dir`, mirroring how Turbopack rewrites project
+/// paths. The `/ROOT/` prefix is replaced with `root_dir` and the remainder is
+/// resolved with extensions.
+#[test]
+fn resolve_file_path_resolves_root_placeholder_alias() {
+  let root = fixture_root("application-pnpm");
+
+  let mut package_json_seen = FxHashMap::<String, PackageJsonExtended>::default();
+  let mut aliases = FxHashMap::<String, Vec<String>>::default();
+  aliases.insert("@consts/*".to_string(), vec!["/ROOT/src/*".to_string()]);
+
+  let resolved = resolve_file_path(
+    "@consts/colors.stylex",
+    root.join("src/pages/home.js").to_str().unwrap(),
+    root.to_str().unwrap(),
+    &aliases,
+    root.to_str(),
+    &mut package_json_seen,
+  )
+  .unwrap();
+
+  assert_eq!(resolved, root.join("src/colors.stylex.js"));
+}
+
+/// Windows-style separators in alias values should still be recognized as the
+/// Turbopack `/ROOT/` placeholder after normalization.
+#[test]
+fn resolve_file_path_resolves_backslash_root_placeholder_alias() {
+  let root = fixture_root("application-pnpm");
+
+  let mut package_json_seen = FxHashMap::<String, PackageJsonExtended>::default();
+  let mut aliases = FxHashMap::<String, Vec<String>>::default();
+  aliases.insert("@consts/*".to_string(), vec!["\\ROOT\\src\\*".to_string()]);
+
+  let resolved = resolve_file_path(
+    "@consts/colors.stylex",
+    root.join("src/pages/home.js").to_str().unwrap(),
+    root.to_str().unwrap(),
+    &aliases,
+    root.to_str(),
+    &mut package_json_seen,
+  )
+  .unwrap();
+
+  assert_eq!(resolved, root.join("src/colors.stylex.js"));
+}
+
+/// When an alias expands to a `/ROOT/` placeholder but no `root_dir` is
+/// configured, the placeholder cannot be rewritten. The literal `/ROOT/...`
+/// path does not exist on disk, so resolution falls through and ultimately
+/// fails with a NotFound error.
+#[test]
+fn resolve_file_path_root_placeholder_without_root_dir_is_not_found() {
+  let root = fixture_root("application-pnpm");
+
+  let mut package_json_seen = FxHashMap::<String, PackageJsonExtended>::default();
+  let mut aliases = FxHashMap::<String, Vec<String>>::default();
+  aliases.insert("@consts/*".to_string(), vec!["/ROOT/src/*".to_string()]);
+
+  let err = resolve_file_path(
+    "@consts/colors.stylex",
+    root.join("src/pages/home.js").to_str().unwrap(),
+    root.to_str().unwrap(),
+    &aliases,
+    None,
+    &mut package_json_seen,
+  )
+  .unwrap_err();
+
+  assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
+  assert!(err.to_string().contains("@consts/colors.stylex"));
+}
+
+/// When a `/ROOT/` alias is rewritten against a configured `root_dir` but the
+/// target file does not exist under it, resolution must fail with NotFound. In
+/// particular it must NOT silently fall back to probing the literal `/ROOT/...`
+/// path on disk.
+#[test]
+fn resolve_file_path_root_placeholder_missing_target_is_not_found() {
+  let root = fixture_root("application-pnpm");
+
+  let mut package_json_seen = FxHashMap::<String, PackageJsonExtended>::default();
+  let mut aliases = FxHashMap::<String, Vec<String>>::default();
+  aliases.insert("@consts/*".to_string(), vec!["/ROOT/src/*".to_string()]);
+
+  let err = resolve_file_path(
+    "@consts/does-not-exist.stylex",
+    root.join("src/pages/home.js").to_str().unwrap(),
+    root.to_str().unwrap(),
+    &aliases,
+    root.to_str(),
+    &mut package_json_seen,
+  )
+  .unwrap_err();
+
+  assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
+  assert!(err.to_string().contains("@consts/does-not-exist.stylex"));
 }
 
 /// `resolve_path` must fall back to the original `processing_file` (rather

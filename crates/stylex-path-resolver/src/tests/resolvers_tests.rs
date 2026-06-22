@@ -672,6 +672,7 @@ mod resolve_path_exports_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -691,6 +692,7 @@ mod resolve_path_exports_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -710,6 +712,7 @@ mod resolve_path_exports_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1084,6 +1087,7 @@ mod resolve_path_application_pnpm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1114,6 +1118,7 @@ mod resolve_path_application_pnpm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1145,6 +1150,7 @@ mod resolve_path_application_pnpm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1174,6 +1180,7 @@ mod resolve_path_application_pnpm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1205,6 +1212,7 @@ mod resolve_path_application_pnpm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1236,6 +1244,7 @@ mod resolve_path_application_pnpm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1282,6 +1291,7 @@ mod resolve_path_application_pnpm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1315,6 +1325,7 @@ mod resolve_path_application_pnpm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1347,6 +1358,7 @@ mod resolve_path_application_pnpm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1381,6 +1393,7 @@ mod resolve_path_application_pnpm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1415,6 +1428,7 @@ mod resolve_path_application_pnpm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1449,6 +1463,7 @@ mod resolve_path_application_pnpm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1491,6 +1506,7 @@ mod resolve_path_application_npm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1521,6 +1537,7 @@ mod resolve_path_application_npm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1552,6 +1569,7 @@ mod resolve_path_application_npm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1598,6 +1616,7 @@ mod resolve_path_application_npm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1632,6 +1651,7 @@ mod resolve_path_application_npm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1668,6 +1688,7 @@ mod resolve_path_application_npm_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1812,6 +1833,7 @@ mod resolve_file_path_aliases_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1843,6 +1865,7 @@ mod resolve_file_path_aliases_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1875,6 +1898,7 @@ mod resolve_file_path_aliases_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1925,6 +1949,7 @@ mod resolve_nested_external_imports_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -1961,6 +1986,7 @@ mod resolve_nested_external_imports_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -2011,6 +2037,7 @@ mod resolve_nested_external_imports_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()
@@ -2061,6 +2088,7 @@ mod resolve_nested_external_imports_tests {
         source_file_path.as_str(),
         root_path.as_str(),
         &aliases,
+        None,
         &mut HashMap::default(),
       )
       .unwrap_or_default()

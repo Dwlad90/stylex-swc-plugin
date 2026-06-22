@@ -244,14 +244,30 @@ pub(crate) fn file_not_found_error(import_path: &str) -> std::io::Error {
 /// particular extensions, node_modules layouts, symlinks, etc.) that cannot
 /// be reproduced deterministically in unit tests without an elaborate
 /// in-memory FS. Excluded from coverage instrumentation for that reason.
+///
+/// # Arguments
+///
+/// * `root_path` — the project root used as the base for module resolution.
+/// * `root_dir` — the optional `unstable_module_resolution.rootDir` option,
+///   used **only** to rewrite Turbopack's `/ROOT/` placeholder in aliased
+///   paths. Distinct from `root_path`; when `None`, `/ROOT/` aliases cannot be
+///   resolved.
+///
+/// # Errors
+///
+/// Returns an [`std::io::Error`] when the source file path has no parent
+/// directory, or [`std::io::ErrorKind::NotFound`] when the import cannot be
+/// resolved to an existing file through any alias, package, or resolver branch.
 #[cfg_attr(coverage_nightly, coverage(off))]
 pub fn resolve_file_path(
   import_path_str: &str,
   source_file_path: &str,
   root_path: &str,
   aliases: &FxHashMap<String, Vec<String>>,
+  root_dir: Option<&str>,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
 ) -> std::io::Result<PathBuf> {
+  let root_dir = root_dir.map(Path::new);
   let source_file_dir = Path::new(source_file_path).parent().ok_or_else(|| {
     std::io::Error::new(
       std::io::ErrorKind::InvalidInput,
@@ -305,7 +321,7 @@ pub fn resolve_file_path(
 
     // First try aliased paths
     for aliased_path in possible_aliased_paths(import_path_str, aliases) {
-      if let Some(resolved) = try_resolve_with_extensions(&aliased_path) {
+      if let Some(resolved) = try_resolve_aliased_path(&aliased_path, root_dir) {
         return Ok(resolved);
       }
     }
@@ -320,7 +336,7 @@ pub fn resolve_file_path(
   // Handle aliased imports (skip the first one which is the original path)
   let aliased_paths = possible_aliased_paths(import_path_str, aliases);
   for aliased_path in aliased_paths.iter().skip(1) {
-    if let Some(resolved) = try_resolve_with_extensions(aliased_path) {
+    if let Some(resolved) = try_resolve_aliased_path(aliased_path, root_dir) {
       return Ok(resolved);
     }
   }
@@ -475,6 +491,44 @@ fn try_resolve_pnpm_path(resolved_path: &Path) -> PathBuf {
   }
 
   resolved_path.to_path_buf()
+}
+
+/// Resolves a single aliased candidate path against the filesystem.
+///
+/// Aliases that expand to absolute filesystem paths or to Turbopack's `/ROOT/`
+/// placeholder are resolved directly against the filesystem rather than going
+/// through module resolution, which expects relative or module-style paths.
+fn try_resolve_aliased_path(aliased_path: &Path, root_dir: Option<&Path>) -> Option<PathBuf> {
+  let aliased_str = aliased_path.to_string_lossy();
+  let normalized_aliased_str = aliased_str.replace('\\', "/");
+
+  // Handle /ROOT/ placeholder paths (used by Turbopack).
+  // Replace /ROOT/ with the configured rootDir.
+  if let Some(rest) = normalized_aliased_str.strip_prefix("/ROOT/") {
+    let Some(root_dir) = root_dir else {
+      // The placeholder cannot be rewritten without a configured `rootDir`. The
+      // literal `/ROOT/...` path will not exist on disk, so resolution fails;
+      // log it so the cause is visible rather than a silent NotFound.
+      debug!(
+        "skipping /ROOT/ aliased path {}: no rootDir configured in \
+         unstable_module_resolution",
+        aliased_str
+      );
+      return None;
+    };
+
+    let real_path = root_dir.join(rest);
+    let real_path_display = real_path.display().to_string();
+    debug!(
+      "rewrote /ROOT/ aliased path {} -> {}",
+      aliased_str, real_path_display
+    );
+    return try_resolve_with_extensions(&real_path);
+  }
+
+  // Absolute and relative aliased paths alike resolve via extension probing:
+  // an absolute path is checked directly, a relative one against the cwd.
+  try_resolve_with_extensions(aliased_path)
 }
 
 /// Tries to resolve a path by checking various file extensions.

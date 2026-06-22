@@ -1,0 +1,12 @@
+---
+source: crates/stylex-transform/tests/transform_stylex_define_consts_test/aliased_paths.rs
+expression: output
+---
+import * as stylex from '@stylexjs/stylex';
+import { breakpoints } from '~fixture/constants.stylex';
+export const styles = {
+    root: {
+        kMwMTN: "x1e2nbdu xvagyc5",
+        $$css: true
+    }
+};

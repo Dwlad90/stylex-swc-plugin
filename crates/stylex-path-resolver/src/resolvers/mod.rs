@@ -339,6 +339,14 @@ pub fn resolve_file_path(
     if let Some(resolved) = try_resolve_aliased_path(aliased_path, root_dir) {
       return Ok(resolved);
     }
+
+    if let Some(resolved) = try_resolve_as_module(aliased_path, source_file_dir) {
+      return Ok(resolved);
+    }
+
+    if let Some(resolved) = try_resolve_as_module(aliased_path, root_path) {
+      return Ok(resolved);
+    }
   }
 
   // Use oxc_resolver for node_modules resolution
@@ -493,6 +501,14 @@ fn try_resolve_pnpm_path(resolved_path: &Path) -> PathBuf {
   resolved_path.to_path_buf()
 }
 
+fn try_resolve_as_module(import_path: &Path, base_dir: &Path) -> Option<PathBuf> {
+  let import_path = import_path.to_str()?;
+  RESOLVER
+    .resolve(base_dir, import_path)
+    .ok()
+    .map(|resolution| try_resolve_pnpm_path(&resolution.full_path()).clean())
+}
+
 /// Resolves a single aliased candidate path against the filesystem.
 ///
 /// Aliases that expand to absolute filesystem paths or to Turbopack's `/ROOT/`
@@ -526,9 +542,11 @@ fn try_resolve_aliased_path(aliased_path: &Path, root_dir: Option<&Path>) -> Opt
     return try_resolve_with_extensions(&real_path);
   }
 
-  // Absolute and relative aliased paths alike resolve via extension probing:
-  // an absolute path is checked directly, a relative one against the cwd.
-  try_resolve_with_extensions(aliased_path)
+  if aliased_path.is_absolute() {
+    return try_resolve_with_extensions(aliased_path);
+  }
+
+  None
 }
 
 /// Tries to resolve a path by checking various file extensions.

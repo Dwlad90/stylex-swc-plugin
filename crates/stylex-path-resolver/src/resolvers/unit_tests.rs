@@ -261,6 +261,41 @@ fn resolve_file_path_resolves_backslash_root_placeholder_alias() {
   assert_eq!(resolved, root.join("src/colors.stylex.js"));
 }
 
+/// Relative aliases should resolve with normal module resolution from the
+/// source file directory, not by probing paths relative to the process cwd.
+#[test]
+fn resolve_file_path_resolves_relative_alias_via_module_resolver() {
+  let root = fixture_root("application-pnpm");
+
+  let mut package_json_seen = FxHashMap::<String, PackageJsonExtended>::default();
+  let mut aliases = FxHashMap::<String, Vec<String>>::default();
+  aliases.insert("@consts/*".to_string(), vec!["../*".to_string()]);
+
+  let resolved = resolve_file_path(
+    "@consts/colors.stylex",
+    root.join("src/pages/home.js").to_str().unwrap(),
+    root.to_str().unwrap(),
+    &aliases,
+    None,
+    &mut package_json_seen,
+  )
+  .unwrap();
+
+  assert_eq!(resolved, root.join("src/colors.stylex.js"));
+}
+
+/// Module-resolution aliases must ignore paths that cannot be represented as
+/// UTF-8 import specifiers.
+#[cfg(unix)]
+#[test]
+fn try_resolve_as_module_returns_none_for_non_utf8_path() {
+  use std::{ffi::OsStr, os::unix::ffi::OsStrExt, path::Path};
+
+  let invalid = Path::new(OsStr::from_bytes(b"\xff"));
+
+  assert!(super::try_resolve_as_module(invalid, &fixture_root("application-pnpm")).is_none());
+}
+
 /// No-op `log` sink whose only purpose is to let `debug!` calls fire so their
 /// (lazily-evaluated) arguments are exercised. Installed once per test binary.
 struct DebugSink;

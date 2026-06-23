@@ -103,10 +103,7 @@ where
     }
     self.state.in_stylex_create = prev_in_stylex_create;
 
-    let namespace: FlatCompiledStyles = compiled
-      .get("__inline__")
-      .map(|ns| (**ns).clone())
-      .unwrap_or_default();
+    let namespace: FlatCompiledStyles = compiled.get("__inline__").map(|ns| (**ns).clone())?;
 
     let compiled_ast = convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(
       namespace.clone(),

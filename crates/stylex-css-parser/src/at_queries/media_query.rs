@@ -532,7 +532,6 @@ fn is_numeric_length(val: &MediaRuleValue) -> bool {
   matches!(val, MediaRuleValue::Length(_))
 }
 
-#[cfg_attr(coverage_nightly, coverage(off))]
 fn is_numeric_width_or_height_pair(rule: &MediaQueryRule) -> bool {
   matches!(
     rule,

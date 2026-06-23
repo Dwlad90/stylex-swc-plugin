@@ -332,6 +332,12 @@ where
       .state
       .insert_stylex_import(ImportSources::Regular(stylex_local_name.clone()));
 
+    // Reserve the injected name so a later `sx` site that is forced down the uid
+    // path again (e.g. this binding is itself shadowed there) cannot regenerate
+    // the same name and emit a duplicate `import * as <name>`. The pre-scan
+    // `bound_names` does not see injected imports otherwise.
+    self.state.bound_names.insert(stylex_local_name.clone());
+
     stylex_local_name
   }
 }

@@ -665,6 +665,116 @@ fn visitor_visits_nested_args_without_compiling_the_callee() {
 }
 
 #[test]
+fn visitor_leaves_non_expression_callee_untouched() {
+  let mut compiler = MockCompiler::new(default_imports());
+  let mut expr = Expr::Call(CallExpr {
+    span: DUMMY_SP,
+    ctxt: SyntaxContext::empty(),
+    callee: Callee::Super(Super { span: DUMMY_SP }),
+    args: vec![],
+    type_args: None,
+  });
+
+  let mut visitor = create_utility_styles_visitor(&mut compiler);
+  expr.visit_mut_with(&mut visitor);
+
+  let call = match &expr {
+    Expr::Call(call) => call,
+    other => panic!("expected call expression, got {:?}", other),
+  };
+  assert!(matches!(&call.callee, Callee::Super(_)));
+  assert_eq!(compiler.registered.len(), 0);
+  assert_eq!(compiler.hoist_count, 0);
+}
+
+#[test]
+fn visitor_leaves_bad_arity_two_level_atom_callee_untouched() {
+  let mut compiler = MockCompiler::new(default_imports());
+  let mut call = call_two_level(
+    "css",
+    ident_prop("display"),
+    ident_prop("flex"),
+    Expr::Ident(ident("first")),
+  );
+  call.args.push(ExprOrSpread {
+    spread: None,
+    expr: Box::new(Expr::Ident(ident("second"))),
+  });
+  let mut expr = Expr::Call(call);
+
+  let mut visitor = create_utility_styles_visitor(&mut compiler);
+  expr.visit_mut_with(&mut visitor);
+
+  let call = match &expr {
+    Expr::Call(call) => call,
+    other => panic!("expected call expression, got {:?}", other),
+  };
+  let callee = match &call.callee {
+    Callee::Expr(callee) => callee,
+    other => panic!("expected expression callee, got {:?}", other),
+  };
+
+  match callee.as_ref() {
+    Expr::Member(member) => match member.obj.as_ref() {
+      Expr::Member(parent) => {
+        assert!(matches!(parent.obj.as_ref(), Expr::Ident(id) if id.sym == *"css"));
+        assert!(matches!(&parent.prop, MemberProp::Ident(id) if id.sym == *"display"));
+        assert!(matches!(&member.prop, MemberProp::Ident(id) if id.sym == *"flex"));
+      },
+      other => panic!("expected nested member object, got {:?}", other),
+    },
+    other => panic!("expected member callee, got {:?}", other),
+  }
+  assert_eq!(compiler.registered.len(), 0);
+  assert_eq!(compiler.hoist_count, 0);
+}
+
+#[test]
+fn visitor_compiles_atoms_nested_in_computed_callee_keys() {
+  let mut compiler = MockCompiler::new(default_imports());
+  let computed_key = Expr::Member(two_level_member(
+    "css",
+    ident_prop("display"),
+    ident_prop("flex"),
+  ));
+  let mut expr = Expr::Call(CallExpr {
+    span: DUMMY_SP,
+    ctxt: SyntaxContext::empty(),
+    callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
+      span: DUMMY_SP,
+      obj: Box::new(Expr::Ident(ident("handlers"))),
+      prop: MemberProp::Computed(ComputedPropName {
+        span: DUMMY_SP,
+        expr: Box::new(computed_key),
+      }),
+    }))),
+    args: vec![],
+    type_args: None,
+  });
+
+  let mut visitor = create_utility_styles_visitor(&mut compiler);
+  expr.visit_mut_with(&mut visitor);
+
+  let call = match &expr {
+    Expr::Call(call) => call,
+    other => panic!("expected call expression, got {:?}", other),
+  };
+  let callee = match &call.callee {
+    Callee::Expr(callee) => callee,
+    other => panic!("expected expression callee, got {:?}", other),
+  };
+
+  match callee.as_ref() {
+    Expr::Member(member) => match &member.prop {
+      MemberProp::Computed(computed) => assert!(matches!(computed.expr.as_ref(), Expr::Object(_))),
+      other => panic!("expected computed property, got {:?}", other),
+    },
+    other => panic!("expected member callee, got {:?}", other),
+  }
+  assert_eq!(compiler.registered.len(), 1);
+}
+
+#[test]
 fn get_static_style_returns_none_for_unkeyable_value_prop() {
   // `css[dyn]` — the value key cannot be resolved, so detection bails out.
   let imports = default_imports();

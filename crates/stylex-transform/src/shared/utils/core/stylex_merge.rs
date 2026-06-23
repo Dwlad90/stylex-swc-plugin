@@ -104,9 +104,7 @@ pub(crate) fn stylex_merge(
       let resolved = parse_nullable_style(arg, state, &evaluate_path_fn_config);
 
       if let StyleObject::Other = resolved {
-        if bail_out_index.is_none() {
-          bail_out_index = Some(current_index);
-        }
+        bail_out_index = Some(current_index);
         bail_out = true;
       }
 
@@ -151,9 +149,7 @@ pub(crate) fn stylex_merge(
         let fallback = parse_nullable_style(alternate, state, &evaluate_path_fn_config);
 
         if primary.eq(&StyleObject::Other) || fallback.eq(&StyleObject::Other) {
-          if bail_out_index.is_none() {
-            bail_out_index = Some(current_index);
-          }
+          bail_out_index = Some(current_index);
           bail_out = true;
         } else {
           resolved_args.push(ResolvedArg::conditional(
@@ -172,18 +168,14 @@ pub(crate) fn stylex_merge(
         ..
       }) => {
         if !op.eq(&BinaryOp::LogicalAnd) {
-          if bail_out_index.is_none() {
-            bail_out_index = Some(current_index);
-          }
+          bail_out_index = Some(current_index);
           bail_out = true;
         } else {
           let left_resolved = parse_nullable_style(left_path, state, &evaluate_path_fn_config);
           let right_resolved = parse_nullable_style(right_path, state, &evaluate_path_fn_config);
 
           if !left_resolved.eq(&StyleObject::Other) || right_resolved.eq(&StyleObject::Other) {
-            if bail_out_index.is_none() {
-              bail_out_index = Some(current_index);
-            }
+            bail_out_index = Some(current_index);
             bail_out = true;
           } else {
             resolved_args.push(ResolvedArg::conditional(
@@ -197,9 +189,7 @@ pub(crate) fn stylex_merge(
         }
       },
       _ => {
-        if bail_out_index.is_none() {
-          bail_out_index = Some(current_index);
-        }
+        bail_out_index = Some(current_index);
         bail_out = true;
       },
     }
@@ -209,13 +199,13 @@ pub(crate) fn stylex_merge(
     }
 
     if bail_out {
-      // Keep scanning the remaining args rather than `break`ing: once any arg
-      // bails out the merged `resolved_args`/`conditional` are discarded (the
-      // bail branch below re-walks `call.args` via `MemberTransform`), but later
-      // member-style args must still be visited so their `stylex.create` styles
-      // are registered and kept. `bail_out_index` is pinned to the first bail
-      // via the `is_none()` guards above.
-      continue;
+      // Stop at the first bail. On the bail path `resolved_args`/`conditional`
+      // are discarded entirely and the output is produced by the
+      // `MemberTransform` re-walk over *all* `call.args` below — which already
+      // registers and keeps every member arg's `stylex.create` styles. Scanning
+      // further here would only repeat `parse_nullable_style`/`evaluate` work on
+      // args past the bail and risk choking on a shape only that path rejects.
+      break;
     }
   }
 

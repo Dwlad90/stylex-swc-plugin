@@ -74,15 +74,20 @@ where
 
     let function_map = build_runtime_function_map(self);
 
+    // Save/restore rather than force `false`, so a future re-entrant caller that
+    // was already mid-create is not silently knocked out of create mode. (Today
+    // the atoms pass runs between the create and props passes, so the prior
+    // value is always `false`.)
+    let prev_in_stylex_create = self.state.in_stylex_create;
     self.state.in_stylex_create = true;
     let evaluated = evaluate_stylex_create_arg(&mut first_arg, &mut self.state, &function_map);
 
     // Bail out gracefully (leaving the original expression for runtime) instead
-    // of panicking when the inline style is not statically evaluable. Reset the
+    // of panicking when the inline style is not statically evaluable. Restore the
     // `in_stylex_create` flag on this early-return path too, so a later pass is
     // not left in create mode.
     let Some(value_result) = evaluated.value else {
-      self.state.in_stylex_create = false;
+      self.state.in_stylex_create = prev_in_stylex_create;
       return None;
     };
 
@@ -96,7 +101,7 @@ where
     if self.state.is_dev() && self.state.options.enable_dev_class_names {
       compiled = inject_dev_class_names(&compiled, &None, &self.state);
     }
-    self.state.in_stylex_create = false;
+    self.state.in_stylex_create = prev_in_stylex_create;
 
     let namespace: FlatCompiledStyles = compiled
       .get("__inline__")

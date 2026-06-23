@@ -149,6 +149,11 @@ fn push_selector(
 
   // Pseudo-elements (::before, ::after, etc.) must come after pseudo-classes
   // in the selector. e.g. `.class:hover::before` not `.class::before:hover`.
+  // Classification keys on the `::` prefix; this assumes pseudo-elements are
+  // normalized to the modern double-colon form (StyleX does this upstream).
+  // Legacy single-colon elements (`:before`, `:after`, `:first-line`,
+  // `:first-letter`) would be mis-sorted into the pseudo-class group — not a
+  // concern given the normalization, but noted here so it is not a surprise.
   // Pseudo-classes first (`::`-prefixed entries are excluded, which also
   // drops `::thumb`)...
   for pseudo in pseudos.iter().filter(|pseudo| !pseudo.starts_with("::")) {

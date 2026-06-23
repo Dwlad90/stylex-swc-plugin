@@ -384,10 +384,16 @@ impl<T: Compile> VisitMut for UtilityStylesVisitor<'_, T> {
           return;
         }
 
-        // Not a dynamic atom call — still descend into the callee so atoms
-        // nested there (e.g. a computed callee) are compiled. Args were already
-        // visited above.
-        call.callee.visit_mut_with(self);
+        // Not a dynamic atom call. Descend into computed callee keys so atoms
+        // nested there are compiled, but never compile any member in the callee
+        // chain itself as a static atom: a member carrying call arguments is not
+        // a static style. Args were already visited above.
+        if let Callee::Expr(callee_expr) = &mut call.callee {
+          match callee_expr.as_mut() {
+            Expr::Member(member) => visit_member_callee(member, self),
+            other => other.visit_mut_with(self),
+          }
+        }
         return;
       },
       Expr::Member(member) => {
@@ -403,12 +409,26 @@ impl<T: Compile> VisitMut for UtilityStylesVisitor<'_, T> {
   }
 }
 
+fn visit_member_callee<T: Compile>(member: &mut MemberExpr, visitor: &mut UtilityStylesVisitor<T>) {
+  match member.obj.as_mut() {
+    Expr::Member(parent) => visit_member_callee(parent, visitor),
+    other => other.visit_mut_with(visitor),
+  }
+
+  if let MemberProp::Computed(computed) = &mut member.prop {
+    computed.expr.visit_mut_with(visitor);
+  }
+}
+
 /// Renders a numeric member key as a string from its parsed value, never the
 /// raw source token: `css[0x10]` keys on `"16"`, matching `String(prop.value)`.
 ///
-/// Mirrors JS `String(Number)` for the edge values too: `NaN`/`Infinity`
-/// render as in JS, and only safe-integer-range whole numbers take the integer
-/// path (larger magnitudes keep the float rendering to avoid a saturating cast).
+/// Matches JS `String(Number)` for the cases that occur in practice: `NaN` /
+/// `Infinity` render as in JS, and only safe-integer-range whole numbers take
+/// the integer path (larger magnitudes keep the float rendering to avoid a
+/// saturating cast). Note this still diverges from JS for extreme magnitudes
+/// (`String(1e21)` is `"1e+21"`, while this yields the expanded digits) — only
+/// reachable via an absurd computed key like `css[1e21]`, so it is left as-is.
 fn number_to_string(n: &Number) -> String {
   let value = n.value;
 

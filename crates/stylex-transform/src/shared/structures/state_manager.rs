@@ -405,10 +405,16 @@ pub struct StateManager {
   pub(crate) call_expressions: CallExpressionState,
   pub(crate) seen: FxHashMap<u64, Rc<SeenValue>>,
   pub(crate) cache: CacheState,
-  /// Maps JSX spread expressions to the JSX attributes that replace them.
-  /// Bucketing by [`stable_hash_unspanned`] keeps lookups cheap, while the
-  /// stored expression preserves equality checks inside each bucket so hash
-  /// collisions cannot rewrite an unrelated spread.
+  /// Maps a JSX spread expression to the JSX attributes that replace it.
+  ///
+  /// Bucketed by the [`stable_hash_unspanned`] structural hash of the spread
+  /// expression so lookups stay span-insensitive and clone-free on the hot
+  /// path, but each bucket stores the source expression alongside its
+  /// replacement. Reads confirm a structural match with `eq_ignore_span` before
+  /// substituting, so a 64-bit hash collision can never apply one spread's
+  /// attributes to a structurally-different spread — the hash only narrows the
+  /// candidate set; equality decides. Buckets are size-1 in the absence of a
+  /// collision, so the extra check is a single comparison.
   pub(crate) jsx_spread_attr_exprs_map: FxHashMap<u64, Vec<(Expr, Vec<JSXAttrOrSpread>)>>,
 
   // `stylex.create` calls
@@ -585,6 +591,71 @@ impl StateManager {
         .iter()
         .any(|scope| scope.lo <= site.lo && scope.hi >= site.hi)
     })
+  }
+
+  /// Seeds an empty replacement entry for a JSX spread expression seen during
+  /// discovery. The expression is stored alongside its (initially empty)
+  /// replacement so later lookups can confirm structural equality and never act
+  /// on a bare hash collision. A structurally-identical spread already present
+  /// in the bucket is not duplicated.
+  pub(crate) fn seed_jsx_spread_expr(&mut self, expr: &Expr) {
+    let key = stable_hash_unspanned(expr);
+    let bucket = self.jsx_spread_attr_exprs_map.entry(key).or_default();
+
+    if !bucket.iter().any(|(seen, _)| seen.eq_ignore_span(expr)) {
+      bucket.push((expr.clone(), Vec::new()));
+    }
+  }
+
+  /// Whether `call` was recorded as a JSX spread expression during discovery,
+  /// confirmed by structural (`eq_ignore_span`) match, not just a hash hit.
+  pub(crate) fn has_jsx_spread_call(&self, call: &CallExpr) -> bool {
+    let key = stable_hash_unspanned_call(call);
+    self
+      .jsx_spread_attr_exprs_map
+      .get(&key)
+      .is_some_and(|bucket| {
+        bucket
+          .iter()
+          .any(|(seen, _)| matches!(seen, Expr::Call(seen_call) if seen_call.eq_ignore_span(call)))
+      })
+  }
+
+  /// Records the replacement JSX attributes for a `stylex.props(...)` call
+  /// previously seeded as a JSX spread. Returns `true` when a matching entry
+  /// (hash + structural match) was found and updated.
+  pub(crate) fn set_jsx_spread_replacement(
+    &mut self,
+    call: &CallExpr,
+    attrs: Vec<JSXAttrOrSpread>,
+  ) -> bool {
+    let key = stable_hash_unspanned_call(call);
+    let Some(bucket) = self.jsx_spread_attr_exprs_map.get_mut(&key) else {
+      return false;
+    };
+
+    for (seen, replacement) in bucket.iter_mut() {
+      if matches!(seen, Expr::Call(seen_call) if seen_call.eq_ignore_span(call)) {
+        *replacement = attrs;
+        return true;
+      }
+    }
+
+    false
+  }
+
+  /// Looks up the replacement JSX attributes recorded for a spread expression,
+  /// confirming structural equality so a hash collision can never return a
+  /// different expression's attributes. An entry that exists but has no
+  /// recorded replacement yields `Some(&[])`.
+  pub(crate) fn jsx_spread_replacement(&self, expr: &Expr) -> Option<&[JSXAttrOrSpread]> {
+    let key = stable_hash_unspanned(expr);
+    self
+      .jsx_spread_attr_exprs_map
+      .get(&key)?
+      .iter()
+      .find(|(seen, _)| seen.eq_ignore_span(expr))
+      .map(|(_, replacement)| replacement.as_slice())
   }
 
   pub(crate) fn insert_import_path(&mut self, source_path: String) {
@@ -1498,28 +1569,13 @@ impl VisitMut for MarkStyleVarsVisitor<'_> {
       .iter()
       .flat_map(|jsx_attr| match jsx_attr {
         JSXAttrOrSpread::SpreadElement(spread) => {
-          let expr_key = stable_hash_unspanned(spread.expr.as_ref());
-          if let Some(updated_exprs) = self
-            .state
-            .jsx_spread_attr_exprs_map
-            .get(&expr_key)
-            .and_then(|bucket| {
-              bucket
-                .iter()
-                .find(|(expr, _)| expr.eq_ignore_span(spread.expr.as_ref()))
-            })
-            .map(|(_, updated_exprs)| updated_exprs.clone())
-          {
-            if updated_exprs.is_empty() {
-              // If no replacement JSX attrs were recorded for this spread, keep the original
-              vec![jsx_attr.clone()]
-            } else {
-              // Replace the spread with the updated expressions
-              updated_exprs
-            }
-          } else {
-            // If no replacement found, keep the original spread element
-            vec![create_jsx_spread_attr(*spread.expr.clone())]
+          match self.state.jsx_spread_replacement(spread.expr.as_ref()) {
+            // A recorded spread with replacement attrs — substitute them.
+            Some(updated_exprs) if !updated_exprs.is_empty() => updated_exprs.to_vec(),
+            // A recorded spread with no replacement attrs — keep the original.
+            Some(_) => vec![jsx_attr.clone()],
+            // Not a recorded spread — keep the original spread element.
+            None => vec![create_jsx_spread_attr(*spread.expr.clone())],
           }
         },
         JSXAttrOrSpread::JSXAttr(attr) => vec![create_jsx_attr_or_spread(attr.clone())],

@@ -65,6 +65,25 @@ stylex_test!(
 );
 
 stylex_test!(
+  jsx_spread_keeps_style_object_for_mixed_static_and_dynamic_styles,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      red: {
+        color: 'red',
+      },
+      opacity: (opacity) => ({
+        opacity
+      })
+    });
+    function Foo() {
+      return <div {...stylex.props(styles.red, styles.opacity(0.5))} />;
+    }
+  "#
+);
+
+stylex_test!(
   non_local_styles,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"

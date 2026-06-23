@@ -261,6 +261,52 @@ fn resolve_file_path_resolves_backslash_root_placeholder_alias() {
   assert_eq!(resolved, root.join("src/colors.stylex.js"));
 }
 
+/// No-op `log` sink whose only purpose is to let `debug!` calls fire so their
+/// (lazily-evaluated) arguments are exercised. Installed once per test binary.
+struct DebugSink;
+
+impl log::Log for DebugSink {
+  fn enabled(&self, _metadata: &log::Metadata) -> bool {
+    true
+  }
+  fn log(&self, _record: &log::Record) {}
+  fn flush(&self) {}
+}
+
+static DEBUG_SINK: DebugSink = DebugSink;
+
+/// Same successful `/ROOT/` rewrite as above, but with debug logging enabled so
+/// the `debug!("rewrote /ROOT/ aliased path …")` in `try_resolve_aliased_path`
+/// actually formats its arguments. `debug!` is lazy — its argument expressions
+/// only run when the active level admits `Debug` — so this is the path that
+/// exercises the rewritten-path log line.
+#[test]
+#[serial_test::serial]
+fn resolve_file_path_root_placeholder_rewrite_logs_at_debug() {
+  let previous_level = log::max_level();
+  let _ = log::set_logger(&DEBUG_SINK);
+  log::set_max_level(log::LevelFilter::Debug);
+
+  let root = fixture_root("application-pnpm");
+
+  let mut package_json_seen = FxHashMap::<String, PackageJsonExtended>::default();
+  let mut aliases = FxHashMap::<String, Vec<String>>::default();
+  aliases.insert("@consts/*".to_string(), vec!["/ROOT/src/*".to_string()]);
+
+  let resolved = resolve_file_path(
+    "@consts/colors.stylex",
+    root.join("src/pages/home.js").to_str().unwrap(),
+    root.to_str().unwrap(),
+    &aliases,
+    root.to_str(),
+    &mut package_json_seen,
+  )
+  .unwrap();
+
+  assert_eq!(resolved, root.join("src/colors.stylex.js"));
+  log::set_max_level(previous_level);
+}
+
 /// When an alias expands to a `/ROOT/` placeholder but no `root_dir` is
 /// configured, the placeholder cannot be rewritten. The literal `/ROOT/...`
 /// path does not exist on disk, so resolution falls through and ultimately

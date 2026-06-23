@@ -1,15 +1,11 @@
 use rustc_hash::FxHashMap;
 use stylex_macros::{stylex_panic, stylex_unreachable};
-use stylex_utils::hash::stable_hash_unspanned_call;
-use swc_core::{
-  common::EqIgnoreSpan,
-  ecma::{
-    ast::{
-      BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, JSXAttrOrSpread, JSXAttrValue,
-      Lit, ObjectLit, Prop, PropName, PropOrSpread,
-    },
-    visit::{VisitMut, VisitMutWith},
+use swc_core::ecma::{
+  ast::{
+    BinExpr, BinaryOp, CallExpr, CondExpr, Expr, ExprOrSpread, JSXAttrOrSpread, JSXAttrValue, Lit,
+    ObjectLit, Prop, PropName, PropOrSpread,
   },
+  visit::{VisitMut, VisitMutWith},
 };
 
 use crate::shared::{
@@ -257,71 +253,21 @@ pub(crate) fn stylex_merge(
   } else {
     let string_expression = make_string_expression(&resolved_args, transform);
 
-    if let Some(Expr::Object(string_expression)) = string_expression.as_ref() {
-      let attr_key = stable_hash_unspanned_call(call);
-      let attr_expr = Expr::Call(call.clone());
+    if let Some(Expr::Object(string_expression)) = string_expression.as_ref()
+      && state.has_jsx_spread_call(call)
+      && !string_expression.props.is_empty()
+    {
+      let jsx_attr_expressions = string_expression
+        .props
+        .iter()
+        .map(static_jsx_attr_from_prop)
+        .collect::<Option<Vec<_>>>();
 
-      if state
-        .jsx_spread_attr_exprs_map
-        .get(&attr_key)
-        .is_some_and(|bucket| {
-          bucket
-            .iter()
-            .any(|(expr, _)| expr.eq_ignore_span(&attr_expr))
-        })
-        && !string_expression.props.is_empty()
-        && string_expression.props.iter().all(|prop| {
-          matches!(prop, PropOrSpread::Prop(prop)
-            if matches!(prop.as_ref(), Prop::KeyValue(kv)
-              if !matches!(kv.key, PropName::Computed(_))))
-        })
-      {
-        // Check if this is used as a JSX spread attribute and optimize
-        // Convert each property to JSX attributes for direct use
-        let jsx_attr_expressions: Vec<JSXAttrOrSpread> = string_expression
-          .props
-          .iter()
-          .filter_map(|prop| {
-            if let PropOrSpread::Prop(prop) = prop {
-              if let Prop::KeyValue(key_value) = prop.as_ref() {
-                // Create JSX attribute directly
-                let attr_name = convert_key_value_to_str(key_value);
-                let attr_value = key_value.value.as_lit().map(|lit| {
-                  let s = match convert_lit_to_string(&lit.clone()) {
-                    Some(s) => s,
-                    None => stylex_panic!("Expected a string class name in compiled styles."),
-                  };
-                  JSXAttrValue::Str(s.into())
-                });
+      // Store the JSX attributes to replace the spread element
+      if let Some(jsx_attr_expressions) = jsx_attr_expressions {
+        state.set_jsx_spread_replacement(call, jsx_attr_expressions);
 
-                attr_value.map(|attr_value| {
-                  create_jsx_attr_or_spread(create_jsx_attr(attr_name.as_str(), attr_value))
-                })
-              } else {
-                None
-              }
-            } else {
-              None
-            }
-          })
-          .collect();
-
-        // Store the JSX attributes to replace the spread element
-        if !jsx_attr_expressions.is_empty() {
-          if let Some((_, replacement)) = state
-            .jsx_spread_attr_exprs_map
-            .get_mut(&attr_key)
-            .and_then(|bucket| {
-              bucket
-                .iter_mut()
-                .find(|(expr, _)| expr.eq_ignore_span(&attr_expr))
-            })
-          {
-            *replacement = jsx_attr_expressions;
-          }
-
-          return None; // Early return to skip normal object creation
-        }
+        return None; // Early return to skip normal object creation
       }
     }
 
@@ -329,6 +275,30 @@ pub(crate) fn stylex_merge(
   }
 
   None
+}
+
+fn static_jsx_attr_from_prop(prop: &PropOrSpread) -> Option<JSXAttrOrSpread> {
+  let PropOrSpread::Prop(prop) = prop else {
+    return None;
+  };
+  let Prop::KeyValue(key_value) = prop.as_ref() else {
+    return None;
+  };
+  if matches!(key_value.key, PropName::Computed(_)) {
+    return None;
+  }
+
+  let value = key_value
+    .value
+    .as_lit()
+    .and_then(convert_lit_to_string)
+    .map(|value| JSXAttrValue::Str(value.into()))?;
+  let attr_name = convert_key_value_to_str(key_value);
+
+  Some(create_jsx_attr_or_spread(create_jsx_attr(
+    attr_name.as_str(),
+    value,
+  )))
 }
 
 /// Hoists inline compiled-style objects (those carrying the `$$css: true`

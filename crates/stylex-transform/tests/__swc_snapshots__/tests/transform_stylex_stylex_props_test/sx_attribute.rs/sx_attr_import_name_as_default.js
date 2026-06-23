@@ -12,5 +12,8 @@ const styles = {
     }
 };
 function Foo({ overrideProps = [] }) {
-    return <div {...sx.props(styles.red, ...overrideProps)}>Hello World</div>;
+    return <div {...sx.props([
+        styles.red,
+        ...overrideProps
+    ])}>Hello World</div>;
 }

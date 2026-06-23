@@ -13,5 +13,8 @@ const styles = {
     }
 };
 function Foo({ overrideProps = [] }) {
-    return <div {..._stylex.props(styles.red, ...overrideProps)}>Hello World</div>;
+    return <div {..._stylex.props([
+        styles.red,
+        ...overrideProps
+    ])}>Hello World</div>;
 }

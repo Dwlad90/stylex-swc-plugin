@@ -93,8 +93,7 @@ stylex_test!(
   "#
 );
 
-// sx={[styles.a, styles.b]} — array syntax maps to stylex.props(styles.a,
-// styles.b)
+// sx={[styles.a, styles.b]} passes the array expression through to stylex.props.
 stylex_test!(
   sx_attr_array_syntax,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

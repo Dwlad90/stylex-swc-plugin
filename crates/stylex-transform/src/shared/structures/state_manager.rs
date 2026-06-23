@@ -1121,14 +1121,11 @@ impl StateManager {
 
   /// Registers injected styles produced by the atoms transform.
   ///
-  /// Unlike [`register_styles`], atom styles are compiled inline into
-  /// `stylex.props(...)` arguments that are consumed before the pending
-  /// insertions are flushed, so there is no surviving declarator to anchor
-  /// `_inject2(...)` calls to. Instead the runtime injection calls are queued
-  /// to [`InsertionSlot::AfterImports`] — right after the import block and
-  /// before the module body that uses them. Metadata is deduplicated against
-  /// already-registered styles, so an atom that re-uses a class produced by a
-  /// `stylex.create` call (or another atom) does not emit a duplicate.
+  /// Atom styles are compiled inline into `stylex.props(...)` arguments that
+  /// are consumed before pending insertions are flushed, so there is no
+  /// surviving declarator to anchor `_inject2(...)` calls to. Runtime injection
+  /// calls are queued to [`InsertionSlot::AfterImports`] — right after the
+  /// import block and before the module body that uses them.
   ///
   /// [`register_styles`]: StateManager::register_styles
   pub(crate) fn register_atom_styles(&mut self, style: &InjectableStylesMap) {
@@ -1148,18 +1145,9 @@ impl StateManager {
     };
 
     for metadata in metadatas {
-      let bucket = self
-        .injection
-        .metadata
-        .entry("stylex".to_string())
-        .or_default();
+      self.add_style(&metadata);
 
-      let is_new = !bucket.contains(&metadata);
-      if is_new {
-        bucket.insert(metadata.clone());
-      }
-
-      if is_new && let Some(ref inject_var_ident) = inject_var_ident {
+      if let Some(ref inject_var_ident) = inject_var_ident {
         let item = build_atom_inject_item(&metadata, inject_var_ident);
         self.queue_insertion(InsertionSlot::AfterImports, item);
       }

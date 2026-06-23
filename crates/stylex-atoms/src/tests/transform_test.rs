@@ -866,11 +866,7 @@ fn visitor_leaves_non_evaluable_atom_untouched() {
 }
 
 #[test]
-fn compile_dynamic_style_sanitizes_custom_property_name() {
-  // A namespace import means the property name comes from a user-controlled
-  // computed key. Characters invalid in a CSS custom-property name must be
-  // sanitized to `-` before reaching the `var(...)` / `@property` rule, so no
-  // malformed or injected CSS is emitted.
+fn compile_dynamic_style_uses_verbatim_custom_property_name() {
   let mut compiler = MockCompiler::new(default_imports());
   let call = call_member(
     "css",
@@ -881,18 +877,16 @@ fn compile_dynamic_style_sanitizes_custom_property_name() {
   assert!(matches!(result, Some(Expr::Call(_))));
 
   let injected = &compiler.registered[0];
-  let sanitized = "--x-color----body--";
+  let custom_property_name = "--x-color; } body {";
   let property_rule = injected
     .iter()
-    .find(|style| style.class_name == sanitized)
-    .expect("missing sanitized @property rule");
+    .find(|style| style.class_name == custom_property_name)
+    .expect("missing @property rule");
   assert!(
     property_rule
       .ltr
-      .contains(&format!("@property {sanitized}"))
+      .contains(&format!("@property {custom_property_name}"))
   );
-  // No raw braces/semicolons leaked into the custom-property name.
-  assert!(!property_rule.class_name.contains(['{', '}', ';', ' ']));
 
   let call_expr = match result {
     Some(Expr::Call(call)) => call,

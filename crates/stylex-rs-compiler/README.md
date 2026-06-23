@@ -250,7 +250,7 @@ const { code, metadata, sourcemap } = transform(
 ### Path Filtering
 
 > [!NOTE]
-> **New Feature:** The `include` and `exclude` options are exclusive to
+> The `include` and `exclude` options are exclusive to
 > this NAPI-RS compiler implementation and are not available in the official
 > StyleX Babel plugin. They provide powerful file filtering capabilities to
 > control which files are transformed.

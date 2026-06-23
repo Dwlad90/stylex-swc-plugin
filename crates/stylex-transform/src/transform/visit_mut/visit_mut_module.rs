@@ -295,7 +295,7 @@ where
 
     self.discover_module(module);
 
-    if !self.state.has_import_paths() {
+    if !self.state.has_import_paths() && self.state.atom_imports.is_empty() {
       return;
     }
 

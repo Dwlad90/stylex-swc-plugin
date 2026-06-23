@@ -82,7 +82,6 @@ where
             let value_expr = *expr.clone();
             let stylex_local_name = self.get_stylex_runtime_binding(element_span);
 
-            // sx={[styles.a, styles.b]} → {...stylex.props(styles.a, styles.b)}
             let args = sx_value_to_props_args(value_expr);
             let call = Expr::Call(build_stylex_props_call(stylex_local_name, args));
 
@@ -294,12 +293,13 @@ where
       .find(|source| self.state.is_import_source(source))
       .cloned();
 
-    // 3. importSource = existing ?? first configured custom ?? default.
+    // 3. importSource = existing ?? third configured source ?? first source.
     let import_source = existing_import_source.clone().unwrap_or_else(|| {
       self
         .state
         .import_source_names()
-        .find(|source| !is_default_import_source(source))
+        .nth(2)
+        .or_else(|| self.state.import_source_names().next())
         .map(str::to_string)
         .unwrap_or_else(|| "@stylexjs/stylex".to_string())
     });
@@ -342,24 +342,13 @@ where
   }
 }
 
-/// Whether `source` is one of the default StyleX import sources (`stylex` /
-/// `@stylexjs/stylex`) seeded into every configuration, as opposed to a
-/// user-configured custom source.
-fn is_default_import_source(source: &str) -> bool {
-  source == "stylex" || source == "@stylexjs/stylex"
-}
-
 /// Convert an `sx` value expression into args for `stylex.props(...)`.
-/// Array literals are unpacked: `[a, b]` → `[a, b]` as separate args.
-/// Other expressions are wrapped: `expr` → `[expr]`.
+/// The value is passed through as-is: `expr` → `[expr]`.
 fn sx_value_to_props_args(value_expr: Expr) -> Vec<ExprOrSpread> {
-  match value_expr {
-    Expr::Array(array_lit) => array_lit.elems.into_iter().flatten().collect(),
-    _ => vec![ExprOrSpread {
-      spread: None,
-      expr: Box::new(value_expr),
-    }],
-  }
+  vec![ExprOrSpread {
+    spread: None,
+    expr: Box::new(value_expr),
+  }]
 }
 
 /// Build a `<stylex_local_name>.props(args...)` call expression, where

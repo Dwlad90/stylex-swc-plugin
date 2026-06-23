@@ -249,7 +249,7 @@ pub fn compile_dynamic_style<T: Compile>(compiler: &mut T, call: &CallExpr) -> O
   let style = get_dynamic_style_from_path(call, compiler.atom_imports())?;
   let property = style.property;
 
-  let var_name = sanitize_custom_property(&property);
+  let var_name = format!("--x-{property}");
   let css_value = format!("var({var_name})");
 
   let mut result = compiler.style_x_create_set(&property, &css_value)?;
@@ -372,13 +372,6 @@ impl<T: Compile> VisitMut for UtilityStylesVisitor<'_, T> {
   fn visit_mut_expr(&mut self, expr: &mut Expr) {
     match expr {
       Expr::Call(call) => {
-        // Compile atoms nested in the arguments first; the callee is
-        // intentionally skipped for the atom-call check so an atom member used
-        // as a call callee is not compiled as a static style.
-        // `compile_dynamic_style` then clones the already-compiled argument into
-        // the hoisted call.
-        call.args.visit_mut_with(self);
-
         if let Some(replacement) = compile_dynamic_style(self.compiler, call) {
           *expr = replacement;
           return;
@@ -387,7 +380,8 @@ impl<T: Compile> VisitMut for UtilityStylesVisitor<'_, T> {
         // Not a dynamic atom call. Descend into computed callee keys so atoms
         // nested there are compiled, but never compile any member in the callee
         // chain itself as a static atom: a member carrying call arguments is not
-        // a static style. Args were already visited above.
+        // a static style.
+        call.args.visit_mut_with(self);
         if let Callee::Expr(callee_expr) = &mut call.callee {
           match callee_expr.as_mut() {
             Expr::Member(member) => visit_member_callee(member, self),
@@ -448,28 +442,6 @@ fn number_to_string(n: &Number) -> String {
   } else {
     format!("{value}")
   }
-}
-
-/// Renders a property name safe for use inside a CSS custom-property name.
-///
-/// Property names from namespace/default imports come from user-controlled
-/// computed member keys (`css['weird; }'](v)`), so any character outside
-/// `[A-Za-z0-9_-]` is replaced with `-` before being interpolated into the
-/// `var(...)` reference and the `@property` at-rule, preventing malformed or
-/// injected CSS.
-fn sanitize_custom_property(property: &str) -> String {
-  let cleaned: String = property
-    .chars()
-    .map(|c| {
-      if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
-        c
-      } else {
-        '-'
-      }
-    })
-    .collect();
-
-  format!("--x-{cleaned}")
 }
 
 fn ident(name: &str) -> Ident {

@@ -124,8 +124,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -198,8 +198,8 @@ importers:
         specifier: ^10.3.6
         version: 10.3.6(esbuild@0.28.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(rollup@4.61.0)(storybook@10.3.6(@testing-library/dom@10.4.1)(prettier@3.8.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)(vite@8.0.16(@types/node@26.0.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.48.0)(tsx@4.19.2)(yaml@2.9.0))(webpack@5.107.2(esbuild@0.28.1)(postcss@8.5.15))
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/playwright':
         specifier: 0.16.5
         version: link:../../packages/playwright
@@ -294,8 +294,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -346,8 +346,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -368,8 +368,8 @@ importers:
         specifier: ^1.60.0
         version: 1.60.0
       '@stylexjs/eslint-plugin':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/jest':
         specifier: 0.16.5
         version: link:../../packages/jest
@@ -428,8 +428,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -453,8 +453,8 @@ importers:
         specifier: ^1.60.0
         version: 1.60.0
       '@stylexjs/eslint-plugin':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/jest':
         specifier: 0.16.5
         version: link:../../packages/jest
@@ -513,8 +513,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -538,8 +538,8 @@ importers:
         specifier: ^1.60.0
         version: 1.60.0
       '@stylexjs/eslint-plugin':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/jest':
         specifier: 0.16.5
         version: link:../../packages/jest
@@ -598,8 +598,8 @@ importers:
   apps/rollup-example:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       react:
         specifier: ^19.2.7
         version: 19.2.7
@@ -644,8 +644,8 @@ importers:
   apps/rollup-large-example:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/rollup-plugin':
         specifier: 0.16.5
         version: link:../../packages/rollup-plugin
@@ -656,8 +656,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -711,8 +711,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -760,8 +760,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -809,8 +809,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -858,8 +858,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -910,8 +910,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -947,8 +947,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -993,8 +993,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -1036,8 +1036,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -1079,8 +1079,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -1119,8 +1119,8 @@ importers:
   apps/webpack-example:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       react:
         specifier: ^19.2.7
         version: 19.2.7
@@ -1135,8 +1135,8 @@ importers:
         specifier: ^0.6.2
         version: 0.6.2(react-refresh@0.18.0)(type-fest@4.41.0)(webpack-dev-server@5.2.5)(webpack@5.107.2)
       '@stylexjs/eslint-plugin':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/playwright':
         specifier: 0.16.5
         version: link:../../packages/playwright
@@ -1195,8 +1195,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -1253,8 +1253,8 @@ importers:
         specifier: ^0.11.1
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/design-system':
         specifier: 0.16.5
         version: link:../../packages/design-system
@@ -1750,8 +1750,8 @@ importers:
   packages/design-system:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/rs-compiler':
         specifier: 0.16.5
         version: link:../../crates/stylex-rs-compiler
@@ -1779,8 +1779,8 @@ importers:
         specifier: ^4.7.1
         version: 4.7.1(eslint@10.4.1(jiti@2.6.1))
       '@stylexjs/eslint-plugin':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.60.1
         version: 8.60.1(@typescript-eslint/parser@8.59.1(eslint@10.4.1(jiti@2.6.1))(typescript@6.0.3))(eslint@10.4.1(jiti@2.6.1))(typescript@6.0.3)
@@ -1886,8 +1886,8 @@ importers:
   packages/postcss-plugin:
     dependencies:
       '@stylexjs/babel-plugin':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/rs-compiler':
         specifier: 0.16.5
         version: link:../../crates/stylex-rs-compiler
@@ -1938,8 +1938,8 @@ importers:
   packages/rollup-plugin:
     dependencies:
       '@stylexjs/babel-plugin':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/rs-compiler':
         specifier: 0.16.5
         version: link:../../crates/stylex-rs-compiler
@@ -2005,8 +2005,8 @@ importers:
         specifier: '>=1.7.11 <2.0.0'
         version: 1.7.11
       '@stylexjs/babel-plugin':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/rs-compiler':
         specifier: 0.16.5
         version: link:../../crates/stylex-rs-compiler
@@ -2060,8 +2060,8 @@ importers:
   packages/webpack-plugin:
     dependencies:
       '@stylexjs/babel-plugin':
-        specifier: ^0.18.3
-        version: 0.18.3
+        specifier: ^0.19.0
+        version: 0.19.0
       '@stylexswc/rs-compiler':
         specifier: 0.16.5
         version: link:../../crates/stylex-rs-compiler
@@ -5684,21 +5684,21 @@ packages:
       typescript:
         optional: true
 
-  '@stylexjs/babel-plugin@0.18.3':
-    resolution: {integrity: sha512-5VeMIChNaXWlizLUL6c7WrMfuhydHXl3ASTlbj3O0qlEkNOlcgZMH3zzZ0iUrOSFTSgbHAOWUsVJKX5bFeZk4A==}
+  '@stylexjs/babel-plugin@0.19.0':
+    resolution: {integrity: sha512-2SnVZIl047TtqKW0nRTn7Irz0kmoot1bxdGDE/HwfwfF7dJYHqwkIFg92s87v3hj7zxJobrHWwDx1p3qvQXW4g==}
 
-  '@stylexjs/eslint-plugin@0.18.3':
-    resolution: {integrity: sha512-EHRBi0GkdlZFbO5/ZkBc7o5gIzMT7240Q8ebqkZIvZjQ2IbNajt25fHflv6nZ6kVxxKntJNQxn6hsJAANG0iDg==}
+  '@stylexjs/eslint-plugin@0.19.0':
+    resolution: {integrity: sha512-zZ6bCYcciaj2YYO0cG2nyCfjX5rclmW+WkcW/84gx4wCtpLvfr9+zYd3oqESr48suFlr8p6hrxGwnjYSLTDD4g==}
 
   '@stylexjs/open-props@0.11.1':
     resolution: {integrity: sha512-UYeJV34LOmDZ1igQknB+iM3JMg+lbncHr/zG7i1tBwwQslNNWOMM7iR4hwSUvczQYcW5G8vMAorP/2j4T8XBjA==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
-  '@stylexjs/shared@0.18.3':
-    resolution: {integrity: sha512-g72AKGGhLTFsaez19zod2je9IQeaub2eM85jwJPvfmxymKW8Aleoxm5/pYIsnyxx3MZNOB5AVN6khfo90f9Lgw==}
+  '@stylexjs/shared@0.19.0':
+    resolution: {integrity: sha512-7Yym70cQH5sPzJHgzJX3FkL9ZCptbC3IbiRijN9YLYU/5OywB/3c519Xv1DOzvxqjv8urSxh98/9HxLaPG7sDg==}
 
-  '@stylexjs/stylex@0.18.3':
-    resolution: {integrity: sha512-15gDzAJAorOE0yzxaWLNxldW2aqdmCiLG5QcPD8nmVCVqvrWp0Asgv45zk7LtN86WJb/4Ym9eQ6qT5MJW59tWQ==}
+  '@stylexjs/stylex@0.19.0':
+    resolution: {integrity: sha512-CnUFp7YMaDLDeemsWOfJgoC/gKM5P/yBNMcpJaE6ChJmXr7s0DJwSeGTTlHJcqqwN9OW1qGtmARWLFhGZN1pTA==}
 
   '@swc-node/core@1.14.1':
     resolution: {integrity: sha512-jrt5GUaZUU6cmMS+WTJEvGvaB6j1YNKPHPzC2PUi2BjaFbtxURHj6641Az6xN7b665hNniAIdvjxWcRml5yCnw==}
@@ -13112,9 +13112,9 @@ snapshots:
   '@babel/helper-module-transforms@7.28.6(@babel/core@7.29.0)':
     dependencies:
       '@babel/core': 7.29.0
-      '@babel/helper-module-imports': 7.28.6
+      '@babel/helper-module-imports': 7.29.7
       '@babel/helper-validator-identifier': 7.28.5
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.7
     transitivePeerDependencies:
       - supports-color
 
@@ -16356,33 +16356,33 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@stylexjs/babel-plugin@0.18.3':
+  '@stylexjs/babel-plugin@0.19.0':
     dependencies:
-      '@babel/core': 7.29.0
-      '@babel/helper-module-imports': 7.28.6
-      '@babel/traverse': 7.29.0
-      '@babel/types': 7.29.0
+      '@babel/core': 7.29.7
+      '@babel/helper-module-imports': 7.29.7
+      '@babel/traverse': 7.29.7
+      '@babel/types': 7.29.7
       '@dual-bundle/import-meta-resolve': 4.2.1
-      '@stylexjs/shared': 0.18.3
-      '@stylexjs/stylex': 0.18.3
+      '@stylexjs/shared': 0.19.0
+      '@stylexjs/stylex': 0.19.0
       postcss-value-parser: 4.2.0
     transitivePeerDependencies:
       - supports-color
 
-  '@stylexjs/eslint-plugin@0.18.3':
+  '@stylexjs/eslint-plugin@0.19.0':
     dependencies:
       '@csstools/css-tokenizer': 3.0.4
-      '@stylexjs/shared': 0.18.3
+      '@stylexjs/shared': 0.19.0
       micromatch: 4.0.8
       postcss-value-parser: 4.2.0
 
   '@stylexjs/open-props@0.11.1':
     dependencies:
-      '@stylexjs/stylex': 0.18.3
+      '@stylexjs/stylex': 0.19.0
 
-  '@stylexjs/shared@0.18.3': {}
+  '@stylexjs/shared@0.19.0': {}
 
-  '@stylexjs/stylex@0.18.3':
+  '@stylexjs/stylex@0.19.0':
     dependencies:
       css-mediaquery: 0.1.2
       invariant: 2.2.4
@@ -21009,7 +21009,7 @@ snapshots:
 
   istanbul-lib-instrument@6.0.3:
     dependencies:
-      '@babel/core': 7.29.0
+      '@babel/core': 7.29.7
       '@babel/parser': 7.29.7
       '@istanbuljs/schema': 0.1.6
       istanbul-lib-coverage: 3.2.2

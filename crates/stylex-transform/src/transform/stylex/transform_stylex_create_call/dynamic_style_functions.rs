@@ -1,5 +1,6 @@
 use super::*;
 use crate::shared::structures::types::{ClassPathsMap, DynamicFns};
+use stylex_ast::ast::factories::create_arrow_expression_with_params;
 
 pub(super) fn apply_dynamic_style_functions<C>(
   transform: &mut StyleXTransform<C>,
@@ -317,16 +318,10 @@ where
 
                     value.props = conditional_props;
 
-                    let value = Expr::from(ArrowExpr {
-                      span: DUMMY_SP,
-                      params: params.iter().map(|arg| Pat::Ident(arg.clone())).collect(),
-                      body: Box::new(BlockStmtOrExpr::from(Box::new(final_fn_value))),
-                      is_async: false,
-                      is_generator: false,
-                      type_params: None,
-                      return_type: None,
-                      ctxt: SyntaxContext::empty(),
-                    });
+                    let value = create_arrow_expression_with_params(
+                      params.iter().map(|arg| Pat::Ident(arg.clone())).collect(),
+                      final_fn_value,
+                    );
 
                     prop = Some(create_key_value_prop(orig_key.as_str(), value));
                   }

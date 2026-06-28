@@ -11,17 +11,19 @@
 //! `stylex-transform`.
 
 use rustc_hash::FxHashMap;
-use stylex_constants::constants::common::COMPILED_KEY;
-use swc_core::{
-  common::{DUMMY_SP, SyntaxContext},
-  ecma::{
-    ast::{
-      ArrayLit, ArrowExpr, BinExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, Bool, CallExpr,
-      Callee, ComputedPropName, CondExpr, Expr, ExprOrSpread, Id, Ident, IdentName, KeyValueProp,
-      Lit, MemberExpr, MemberProp, Null, Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Str,
-    },
-    visit::{VisitMut, VisitMutWith},
+use stylex_ast::ast::{
+  convertors::{create_bool_expr, create_ident_expr, create_null_expr, create_string_expr},
+  factories::{
+    create_array_expression, create_arrow_expression_with_params, create_bin_expr,
+    create_binding_ident, create_cond_expr, create_expr_or_spread, create_ident,
+    create_key_value_prop, create_member_call_expr, create_member_expr,
+    create_member_prop_from_key, create_object_expression, create_str_key_value_prop,
   },
+};
+use stylex_constants::constants::common::COMPILED_KEY;
+use swc_core::ecma::{
+  ast::{BinaryOp, CallExpr, Callee, Expr, Id, Ident, MemberExpr, MemberProp, Pat},
+  visit::{VisitMut, VisitMutWith},
 };
 
 /// The npm package name that marks an import as an atoms source.
@@ -99,22 +101,11 @@ pub trait Compile {
   fn hoist_expression(&mut self, expr: Expr) -> Expr;
 }
 
-/// Extracts the key/value name from a member property.
+/// Reads the static key of a member property (`css.display` → `"display"`).
 ///
-/// - non-computed identifier → the identifier name
-/// - computed string literal → the string value
-/// - computed numeric literal → the number rendered as a string
-pub fn get_prop_key(prop: &MemberProp) -> Option<String> {
-  match prop {
-    MemberProp::Ident(ident) => Some(ident.sym.to_string()),
-    MemberProp::Computed(computed) => match computed.expr.as_ref() {
-      Expr::Lit(Lit::Str(s)) => s.value.as_str().map(|value| value.to_string()),
-      Expr::Lit(Lit::Num(n)) => Some(number_to_string(n)),
-      _ => None,
-    },
-    MemberProp::PrivateName(_) => None,
-  }
-}
+/// This is the generic AST reader [`convert_member_prop_to_string`], re-exported
+/// under the atoms-local name; its canonical home is `stylex-ast`.
+pub use stylex_ast::ast::convertors::convert_member_prop_to_string as get_prop_key;
 
 /// Strips a single leading underscore from CSS values. This allows using
 /// underscore-prefixed identifiers for CSS values that conflict with JS
@@ -281,83 +272,41 @@ pub fn compile_dynamic_style<T: Compile>(compiler: &mut T, call: &CallExpr) -> O
 
   compiler.register_styles(&result.injected);
 
-  let param = ident("_v");
+  let param = create_ident("_v");
   let param_expr = || Expr::Ident(param.clone());
-  let null_check = || {
-    Expr::Bin(BinExpr {
-      span: DUMMY_SP,
-      op: BinaryOp::NotEq,
-      left: Box::new(param_expr()),
-      right: Box::new(Expr::Lit(Lit::Null(Null { span: DUMMY_SP }))),
-    })
-  };
+  let null_check = || create_bin_expr(BinaryOp::NotEq, param_expr(), create_null_expr());
 
-  let compiled_obj = object_expr(vec![
-    string_key_value(
+  let compiled_obj = create_object_expression(vec![
+    create_str_key_value_prop(
       &prop_key,
-      Expr::Cond(CondExpr {
-        span: DUMMY_SP,
-        test: Box::new(null_check()),
-        cons: Box::new(string_expr(&class_name)),
-        alt: Box::new(param_expr()),
-      }),
+      create_cond_expr(null_check(), create_string_expr(&class_name), param_expr()),
     ),
-    string_key_value(
-      COMPILED_KEY,
-      Expr::Lit(Lit::Bool(Bool {
-        span: DUMMY_SP,
-        value: true,
-      })),
-    ),
+    create_str_key_value_prop(COMPILED_KEY, create_bool_expr(true)),
   ]);
 
-  let inline_vars_obj = object_expr(vec![string_key_value(
+  let inline_vars_obj = create_object_expression(vec![create_str_key_value_prop(
     &var_name,
-    Expr::Cond(CondExpr {
-      span: DUMMY_SP,
-      test: Box::new(null_check()),
-      cons: Box::new(param_expr()),
-      alt: Box::new(Expr::Ident(ident("undefined"))),
-    }),
+    create_cond_expr(null_check(), param_expr(), create_ident_expr("undefined")),
   )]);
 
-  let fn_body = Expr::Array(ArrayLit {
-    span: DUMMY_SP,
-    elems: vec![
-      Some(expr_or_spread(compiled_obj)),
-      Some(expr_or_spread(inline_vars_obj)),
-    ],
-  });
+  let fn_body = create_array_expression(vec![
+    Some(create_expr_or_spread(compiled_obj)),
+    Some(create_expr_or_spread(inline_vars_obj)),
+  ]);
 
-  let arrow_fn = Expr::Arrow(ArrowExpr {
-    span: DUMMY_SP,
-    ctxt: SyntaxContext::empty(),
-    params: vec![Pat::Ident(BindingIdent {
-      id: param,
-      type_ann: None,
-    })],
-    body: Box::new(BlockStmtOrExpr::Expr(Box::new(fn_body))),
-    is_async: false,
-    is_generator: false,
-    type_params: None,
-    return_type: None,
-  });
+  let arrow_fn =
+    create_arrow_expression_with_params(vec![Pat::Ident(create_binding_ident(param))], fn_body);
 
-  let styles_obj = object_expr(vec![style_key_value(&property, arrow_fn)]);
+  let styles_obj = create_object_expression(vec![create_key_value_prop(&property, arrow_fn)]);
 
   let hoisted_id = compiler.hoist_expression(styles_obj);
 
-  Some(Expr::Call(CallExpr {
-    span: DUMMY_SP,
-    ctxt: SyntaxContext::empty(),
-    callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
-      span: DUMMY_SP,
-      obj: Box::new(hoisted_id),
-      prop: member_prop_from_key(&property),
-    }))),
-    args: vec![expr_or_spread(*style.value)],
-    type_args: None,
-  }))
+  let callee_member = create_member_expr(hoisted_id, create_member_prop_from_key(&property));
+
+  Some(Expr::Call(create_member_call_expr(
+    callee_member,
+    vec![create_expr_or_spread(*style.value)],
+  )))
 }
 
 /// A `VisitMut` pass that transforms utility style expressions into compiled
@@ -416,120 +365,6 @@ fn visit_member_callee<T: Compile>(member: &mut MemberExpr, visitor: &mut Utilit
   if let MemberProp::Computed(computed) = &mut member.prop {
     computed.expr.visit_mut_with(visitor);
   }
-}
-
-/// Renders a numeric member key as a string from its parsed value, never the
-/// raw source token: `css[0x10]` keys on `"16"`, matching `String(prop.value)`.
-///
-/// Matches JS `String(Number)` for the cases that occur in practice: `NaN` /
-/// `Infinity` render as in JS, and only safe-integer-range whole numbers take
-/// the integer path (larger magnitudes keep the float rendering to avoid a
-/// saturating cast). Note this still diverges from JS for extreme magnitudes
-/// (`String(1e21)` is `"1e+21"`, while this yields the expanded digits) — only
-/// reachable via an absurd computed key like `css[1e21]`, so it is left as-is.
-fn number_to_string(n: &Number) -> String {
-  let value = n.value;
-
-  if value.is_nan() {
-    return "NaN".to_string();
-  }
-  if value.is_infinite() {
-    return if value > 0.0 { "Infinity" } else { "-Infinity" }.to_string();
-  }
-
-  // 2^53 — beyond this an f64 can no longer represent consecutive integers, and
-  // `as i64` would start saturating/rounding, so fall back to float rendering.
-  const MAX_SAFE_INTEGER: f64 = 9_007_199_254_740_992.0;
-
-  if value.fract() == 0.0 && value.abs() < MAX_SAFE_INTEGER {
-    format!("{}", value as i64)
-  } else {
-    format!("{value}")
-  }
-}
-
-fn ident(name: &str) -> Ident {
-  Ident {
-    span: DUMMY_SP,
-    ctxt: SyntaxContext::empty(),
-    sym: name.into(),
-    optional: false,
-  }
-}
-
-fn string_expr(value: &str) -> Expr {
-  Expr::Lit(Lit::Str(Str {
-    span: DUMMY_SP,
-    value: value.into(),
-    raw: None,
-  }))
-}
-
-fn string_member_prop(value: &str) -> MemberProp {
-  MemberProp::Computed(ComputedPropName {
-    span: DUMMY_SP,
-    expr: Box::new(string_expr(value)),
-  })
-}
-
-fn member_prop_from_key(key: &str) -> MemberProp {
-  if is_ascii_identifier_name(key) {
-    MemberProp::Ident(IdentName {
-      span: DUMMY_SP,
-      sym: key.into(),
-    })
-  } else {
-    string_member_prop(key)
-  }
-}
-
-fn object_expr(props: Vec<PropOrSpread>) -> Expr {
-  Expr::Object(ObjectLit {
-    span: DUMMY_SP,
-    props,
-  })
-}
-
-fn expr_or_spread(expr: Expr) -> ExprOrSpread {
-  ExprOrSpread {
-    spread: None,
-    expr: Box::new(expr),
-  }
-}
-
-fn string_key_value(key: &str, value: Expr) -> PropOrSpread {
-  PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-    key: PropName::Str(Str {
-      span: DUMMY_SP,
-      value: key.into(),
-      raw: None,
-    }),
-    value: Box::new(value),
-  })))
-}
-
-fn style_key_value(key: &str, value: Expr) -> PropOrSpread {
-  if is_ascii_identifier_name(key) {
-    PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-      key: PropName::Ident(IdentName {
-        span: DUMMY_SP,
-        sym: key.into(),
-      }),
-      value: Box::new(value),
-    })))
-  } else {
-    string_key_value(key, value)
-  }
-}
-
-fn is_ascii_identifier_name(value: &str) -> bool {
-  let mut chars = value.chars();
-  match chars.next() {
-    Some(first) if first.is_ascii_alphabetic() || first == '_' || first == '$' => {},
-    _ => return false,
-  }
-
-  chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$')
 }
 
 fn is_safe_css_property_fragment(value: &str) -> bool {

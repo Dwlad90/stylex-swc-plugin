@@ -30,6 +30,12 @@ use stylex_regex::regex::JSON_REGEX;
 use super::ast::convertors::expand_shorthand_prop;
 use stylex_ast::ast::factories::create_var_declarator;
 
+// `get_expr_from_var_decl` and `normalize_expr` are generic AST helpers whose
+// canonical home is `stylex-ast`. Re-exported here so existing `common::…` call
+// sites and tests keep their local path.
+pub use stylex_ast::ast::convertors::get_expr_from_var_decl;
+pub(crate) use stylex_ast::ast::convertors::normalize_expr;
+
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {
     FileName::Real(path_buf) => {
@@ -151,13 +157,6 @@ pub(crate) fn get_import_from<'a>(
       ImportSpecifier::Namespace(namespace_import) => namespace_import.local.eq_ignore_span(ident),
     })
   })
-}
-
-pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
-  match &var_decl.init {
-    Some(var_decl_init) => var_decl_init,
-    None => stylex_panic!("Variable declaration must be initialized with an expression."),
-  }
 }
 
 #[allow(dead_code)]
@@ -426,19 +425,6 @@ pub(crate) fn resolve_node_package_path(package_name: &str) -> Result<PathBuf, S
       "Error resolving package {}: {:?}",
       package_name, error
     )),
-  }
-}
-
-/// Unwraps parenthesized expressions, returning a reference to the innermost
-/// non-paren expression. Spans are preserved — span-insensitive comparison and
-/// hashing are handled on demand via `eq_ignore_span` / `stable_hash_unspanned`,
-/// so the live AST keeps the position information later passes depend on — in
-/// particular `get_stylex_runtime_binding`, which resolves an `sx` site's
-/// runtime binding by span containment against the site's own span.
-pub(crate) fn normalize_expr(expr: &mut Expr) -> &mut Expr {
-  match expr {
-    Expr::Paren(paren) => normalize_expr(paren.expr.as_mut()),
-    _ => expr,
   }
 }
 

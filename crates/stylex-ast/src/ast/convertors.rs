@@ -5,8 +5,8 @@ use swc_core::{
   atoms::{Atom, Wtf8Atom},
   ecma::{
     ast::{
-      BigInt, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, ObjectLit, Prop, PropName,
-      PropOrSpread, Str, Tpl, TplElement,
+      BigInt, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, MemberProp, Number, ObjectLit, Prop,
+      PropName, PropOrSpread, Str, Tpl, TplElement, VarDeclarator,
     },
     parser::Context,
     utils::{ExprExt, quote_ident, quote_str},
@@ -21,6 +21,56 @@ use super::factories::{
   create_big_int_lit, create_boolean_lit, create_ident, create_null_lit, create_number_lit,
   create_string_lit,
 };
+
+/// Renders a numeric AST literal as a string the way JS `String(Number)` would,
+/// from its parsed value rather than the raw source token (e.g. `0x10` →
+/// `"16"`).
+///
+/// Matches JS `String(Number)` for the cases that occur in practice: `NaN` /
+/// `Infinity` render as in JS, and only safe-integer-range whole numbers take
+/// the integer path (larger magnitudes keep the float rendering to avoid a
+/// saturating cast). Note this still diverges from JS for extreme magnitudes
+/// (`String(1e21)` is `"1e+21"`, while this yields the expanded digits) — only
+/// reachable via an absurd computed key like `obj[1e21]`, so it is left as-is.
+pub fn convert_number_to_js_string(n: &Number) -> String {
+  let value = n.value;
+
+  if value.is_nan() {
+    return "NaN".to_string();
+  }
+  if value.is_infinite() {
+    return if value > 0.0 { "Infinity" } else { "-Infinity" }.to_string();
+  }
+
+  // 2^53 — beyond this an f64 can no longer represent consecutive integers, and
+  // `as i64` would start saturating/rounding, so fall back to float rendering.
+  const MAX_SAFE_INTEGER: f64 = 9_007_199_254_740_992.0;
+
+  if value.fract() == 0.0 && value.abs() < MAX_SAFE_INTEGER {
+    format!("{}", value as i64)
+  } else {
+    format!("{value}")
+  }
+}
+
+/// Reads the static key of a member property as a string:
+/// - non-computed identifier → the identifier name
+/// - computed string literal → the string value (`None` on invalid UTF-8)
+/// - computed numeric literal → JS `String(Number)` rendering
+///
+/// Returns `None` for private names and non-literal computed keys, so callers
+/// can treat a dynamic key as "not statically resolvable".
+pub fn convert_member_prop_to_string(prop: &MemberProp) -> Option<String> {
+  match prop {
+    MemberProp::Ident(ident) => Some(ident.sym.to_string()),
+    MemberProp::Computed(computed) => match computed.expr.as_ref() {
+      Expr::Lit(Lit::Str(s)) => s.value.as_str().map(|value| value.to_string()),
+      Expr::Lit(Lit::Num(n)) => Some(convert_number_to_js_string(n)),
+      _ => None,
+    },
+    MemberProp::PrivateName(_) => None,
+  }
+}
 
 pub fn convert_lit_to_number(lit_num: &Lit) -> Result<f64, anyhow::Error> {
   match lit_num {
@@ -277,4 +327,29 @@ pub fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {
       },
     })
     .collect()
+}
+
+/// Unwraps parenthesized expressions, returning a reference to the innermost
+/// non-paren expression. Spans are preserved, so callers that depend on
+/// position information (span containment, or span-insensitive comparison via
+/// `eq_ignore_span`) keep working on the returned node. This is the read/mutate
+/// counterpart to [`crate::ast::factories::wrap_in_paren`].
+pub fn normalize_expr(expr: &mut Expr) -> &mut Expr {
+  match expr {
+    Expr::Paren(paren) => normalize_expr(paren.expr.as_mut()),
+    _ => expr,
+  }
+}
+
+/// Extracts the initializer expression from a variable declarator.
+///
+/// # Panics
+/// Panics (via `stylex_panic!`) when the declarator has no initializer, e.g.
+/// `let x;`. Callers that may encounter uninitialized declarators must guard on
+/// `var_decl.init.is_some()` first.
+pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
+  match &var_decl.init {
+    Some(var_decl_init) => var_decl_init,
+    None => stylex_panic!("Variable declaration must be initialized with an expression."),
+  }
 }

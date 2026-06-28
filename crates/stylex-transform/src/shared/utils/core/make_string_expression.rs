@@ -2,10 +2,7 @@ use stylex_macros::stylex_panic;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
-    ast::{
-      BinExpr, BinaryOp, ComputedPropName, Expr, KeyValueProp, MemberExpr, MemberProp, Prop,
-      PropName, PropOrSpread, UnaryExpr, UnaryOp,
-    },
+    ast::{BinaryOp, Expr, KeyValueProp, Prop, PropName, PropOrSpread, UnaryExpr, UnaryOp},
     utils::quote_ident,
   },
 };
@@ -14,7 +11,9 @@ use crate::shared::{
   enums::data_structures::fn_result::FnResult,
   utils::ast::convertors::{create_number_expr, create_string_expr},
 };
-use stylex_ast::ast::factories::create_object_expression;
+use stylex_ast::ast::factories::{
+  create_bin_expr, create_computed_member_prop, create_member_expr, create_object_expression,
+};
 
 use super::{js_to_ast::convert_object_to_ast, parse_nullable_style::ResolvedArg};
 
@@ -102,22 +101,19 @@ pub(crate) fn make_string_expression(
   let conditions_to_key =
     gen_bitwise_or_of_conditions(&conditions.into_iter().cloned().collect::<Vec<_>>());
 
-  Some(Expr::from(MemberExpr {
-    span: DUMMY_SP,
-    obj: Box::new(obj_expressions),
-    prop: MemberProp::Computed(ComputedPropName {
-      span: DUMMY_SP,
-      expr: conditions_to_key,
-    }),
-  }))
+  Some(Expr::from(create_member_expr(
+    obj_expressions,
+    create_computed_member_prop(*conditions_to_key),
+  )))
 }
 
 fn gen_bitwise_or_of_conditions(conditions: &[Expr]) -> Box<Expr> {
   let binary_expressions = conditions.iter().enumerate().map(|(i, condition)| {
     let shift = conditions.len() - i - 1;
 
-    Expr::from(BinExpr {
-      left: Box::new(Expr::from(UnaryExpr {
+    create_bin_expr(
+      BinaryOp::LShift,
+      Expr::from(UnaryExpr {
         span: DUMMY_SP,
         op: UnaryOp::Bang,
         arg: Box::new(Expr::from(UnaryExpr {
@@ -125,22 +121,13 @@ fn gen_bitwise_or_of_conditions(conditions: &[Expr]) -> Box<Expr> {
           op: UnaryOp::Bang,
           arg: Box::new(condition.clone()),
         })),
-      })),
-      op: BinaryOp::LShift,
-      right: Box::new(create_number_expr(shift as f64)),
-      span: DUMMY_SP,
-    })
+      }),
+      create_number_expr(shift as f64),
+    )
   });
 
   Box::new(
-    match binary_expressions.reduce(|acc, expr| {
-      Expr::from(BinExpr {
-        span: DUMMY_SP,
-        op: BinaryOp::BitOr,
-        left: Box::new(acc),
-        right: Box::new(expr),
-      })
-    }) {
+    match binary_expressions.reduce(|acc, expr| create_bin_expr(BinaryOp::BitOr, acc, expr)) {
       Some(expr) => expr,
       None => stylex_panic!("Cannot generate condition mask from an empty conditions list."),
     },

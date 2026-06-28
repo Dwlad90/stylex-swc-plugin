@@ -346,3 +346,112 @@ fn create_big_int_expr_produces_big_int_lit() {
     Expr::Lit(Lit::BigInt(_))
   ));
 }
+
+fn ident_member_prop(name: &str) -> MemberProp {
+  MemberProp::Ident(create_ident_name(name))
+}
+
+fn computed_str_member_prop(value: &str) -> MemberProp {
+  create_computed_member_prop(create_string_expr(value))
+}
+
+fn computed_num_member_prop(value: f64, raw: Option<&str>) -> MemberProp {
+  create_computed_member_prop(Expr::Lit(Lit::Num(Number {
+    span: DUMMY_SP,
+    value,
+    raw: raw.map(|raw| raw.into()),
+  })))
+}
+
+#[test]
+fn convert_member_prop_to_string_ident_and_computed_str() {
+  assert_eq!(
+    convert_member_prop_to_string(&ident_member_prop("flex")).as_deref(),
+    Some("flex")
+  );
+  assert_eq!(
+    convert_member_prop_to_string(&computed_str_member_prop("calc(100% - 20px)")).as_deref(),
+    Some("calc(100% - 20px)")
+  );
+}
+
+#[test]
+fn convert_member_prop_to_string_numeric_uses_parsed_value_not_raw() {
+  // Renders from the parsed value, ignoring the raw source token.
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(16.0, Some("0x10"))).as_deref(),
+    Some("16")
+  );
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(1.5, None)).as_deref(),
+    Some("1.5")
+  );
+}
+
+#[test]
+fn convert_member_prop_to_string_numeric_js_edge_values() {
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(f64::NAN, None)).as_deref(),
+    Some("NaN")
+  );
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(f64::INFINITY, None)).as_deref(),
+    Some("Infinity")
+  );
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(f64::NEG_INFINITY, None)).as_deref(),
+    Some("-Infinity")
+  );
+}
+
+#[test]
+fn convert_member_prop_to_string_returns_none_for_non_literal_and_private() {
+  let computed_ident = create_computed_member_prop(create_ident_expr("dynamic"));
+  assert_eq!(convert_member_prop_to_string(&computed_ident), None);
+
+  let private = MemberProp::PrivateName(PrivateName {
+    span: DUMMY_SP,
+    name: "secret".into(),
+  });
+  assert_eq!(convert_member_prop_to_string(&private), None);
+}
+
+#[test]
+fn normalize_expr_unwraps_nested_parens() {
+  let inner = create_string_expr("x");
+  let mut expr = Expr::Paren(ParenExpr {
+    span: DUMMY_SP,
+    expr: Box::new(Expr::Paren(ParenExpr {
+      span: DUMMY_SP,
+      expr: Box::new(inner),
+    })),
+  });
+  assert!(matches!(normalize_expr(&mut expr), Expr::Lit(Lit::Str(_))));
+}
+
+#[test]
+fn normalize_expr_passthrough_non_paren() {
+  let mut expr = create_string_expr("x");
+  assert!(matches!(normalize_expr(&mut expr), Expr::Lit(Lit::Str(_))));
+}
+
+#[test]
+fn get_expr_from_var_decl_returns_initializer() {
+  let decl = create_var_declarator(create_ident("a"), create_string_expr("v"));
+  assert!(matches!(
+    get_expr_from_var_decl(&decl),
+    Expr::Lit(Lit::Str(_))
+  ));
+}
+
+#[test]
+#[should_panic(expected = "Variable declaration must be initialized")]
+fn get_expr_from_var_decl_panics_without_initializer() {
+  let decl = VarDeclarator {
+    span: DUMMY_SP,
+    name: Pat::Ident(create_binding_ident(create_ident("a"))),
+    init: None,
+    definite: false,
+  };
+  get_expr_from_var_decl(&decl);
+}

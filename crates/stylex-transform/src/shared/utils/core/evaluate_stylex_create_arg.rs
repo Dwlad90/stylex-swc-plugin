@@ -1,11 +1,11 @@
 use indexmap::IndexMap;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::{
-  common::{DUMMY_SP, SyntaxContext},
+  common::DUMMY_SP,
   ecma::{
     ast::{
-      ArrowExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr, Callee, Expr, KeyValueProp,
-      ObjectLit, Pat, Prop, PropOrSpread, UnaryExpr, UnaryOp,
+      BinaryOp, BindingIdent, BlockStmtOrExpr, Expr, KeyValueProp, ObjectLit, Pat, Prop,
+      PropOrSpread, UnaryExpr, UnaryOp,
     },
     utils::quote_ident,
   },
@@ -31,8 +31,8 @@ use crate::shared::{
   },
 };
 use stylex_ast::ast::factories::{
-  create_bin_expr, create_cond_expr, create_expr_or_spread, create_key_value_prop,
-  create_object_expression,
+  create_arrow_expression_with_params, create_bin_expr, create_call_expr, create_cond_expr,
+  create_expr_or_spread, create_key_value_prop, create_object_expression,
 };
 use stylex_constants::constants::{
   length_units::LENGTH_UNITS,
@@ -374,12 +374,10 @@ fn evaluate_partial_object_recursively(
 
                   let inline_style_expression = if !unit.is_empty() {
                     let val_ident = create_ident_expr("val");
-                    Expr::from(CallExpr {
-                      span: DUMMY_SP,
-                      callee: Callee::Expr(Box::new(Expr::Arrow(ArrowExpr {
-                        span: DUMMY_SP,
-                        params: vec![Pat::Ident(BindingIdent::from(quote_ident!("val")))],
-                        body: Box::new(BlockStmtOrExpr::Expr(Box::new(create_cond_expr(
+                    Expr::from(create_call_expr(
+                      create_arrow_expression_with_params(
+                        vec![Pat::Ident(BindingIdent::from(quote_ident!("val")))],
+                        create_cond_expr(
                           create_bin_expr(
                             BinaryOp::EqEqEq,
                             Expr::from(UnaryExpr {
@@ -399,17 +397,10 @@ fn evaluate_partial_object_recursively(
                             val_ident,
                             create_ident_expr("undefined"),
                           ),
-                        )))),
-                        is_async: false,
-                        is_generator: false,
-                        type_params: None,
-                        return_type: None,
-                        ctxt: SyntaxContext::empty(),
-                      }))),
-                      args: vec![create_expr_or_spread(*value_path.clone())],
-                      type_args: None,
-                      ctxt: SyntaxContext::empty(),
-                    })
+                        ),
+                      ),
+                      vec![create_expr_or_spread(*value_path.clone())],
+                    ))
                   } else {
                     create_cond_expr(
                       create_bin_expr(BinaryOp::NotEq, *value_path.clone(), create_null_expr()),

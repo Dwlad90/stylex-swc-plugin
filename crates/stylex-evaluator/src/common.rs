@@ -1,16 +1,12 @@
 use std::path::PathBuf;
 
 use stylex_macros::stylex_panic;
-use swc_core::ecma::ast::{BinaryOp, Expr, VarDeclarator};
+use swc_core::ecma::ast::BinaryOp;
 
-/// Extracts the initializer expression from a variable declarator, panicking
-/// if no initializer is present.
-pub fn get_expr_from_var_decl(var_decl: &VarDeclarator) -> &Expr {
-  match &var_decl.init {
-    Some(var_decl_init) => var_decl_init,
-    None => stylex_panic!("Variable declaration must be initialized with an expression."),
-  }
-}
+// `get_expr_from_var_decl` and `normalize_expr` are generic AST helpers whose
+// canonical home is `stylex-ast`. Re-exported here so existing `common::…` call
+// sites and tests keep their local path.
+pub use stylex_ast::ast::convertors::{get_expr_from_var_decl, normalize_expr};
 
 /// Evaluates a binary expression with the given operator and numeric operands.
 pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
@@ -28,16 +24,6 @@ pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
     BinaryOp::RShift => ((left as i64) >> (right as u64)) as f64,
     BinaryOp::ZeroFillRShift => ((left as u64) >> (right as u64)) as f64,
     _ => stylex_panic!("Unsupported binary operator: {:?}", op),
-  }
-}
-
-/// Unwraps parenthesized expressions, returning a reference to the innermost
-/// non-paren expression. Spans are preserved; callers needing span-insensitive
-/// comparison or hashing use `eq_ignore_span` / `stable_hash_unspanned`.
-pub fn normalize_expr(expr: &mut Expr) -> &mut Expr {
-  match expr {
-    Expr::Paren(paren) => normalize_expr(paren.expr.as_mut()),
-    _ => expr,
   }
 }
 

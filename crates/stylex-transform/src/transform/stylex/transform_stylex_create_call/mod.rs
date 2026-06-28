@@ -16,10 +16,10 @@ use stylex_path_resolver::package_json::PackageJsonExtended;
 use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
-  common::{DUMMY_SP, SyntaxContext, comments::Comments},
+  common::{DUMMY_SP, comments::Comments},
   ecma::ast::{
-    ArrowExpr, BinaryOp, BlockStmtOrExpr, Bool, CallExpr, Decl, Expr, Lit, ModuleItem, ParenExpr,
-    Pat, Prop, PropName, PropOrSpread, Stmt, UnaryOp, VarDecl, VarDeclKind,
+    BinaryOp, Bool, CallExpr, Decl, Expr, Lit, ModuleItem, Pat, Prop, PropName, PropOrSpread, Stmt,
+    UnaryOp, VarDecl, VarDeclKind,
   },
 };
 
@@ -64,7 +64,7 @@ use crate::{
 use stylex_ast::ast::factories::{
   create_array_expression, create_bin_expr, create_cond_expr, create_expr_or_spread,
   create_key_value_prop, create_object_expression, create_prop_from_name,
-  create_string_var_declarator, create_var_declarator,
+  create_string_var_declarator, create_var_declarator, wrap_in_paren_ref,
 };
 use stylex_constants::constants::{
   api_names::{
@@ -342,10 +342,7 @@ where
           let call_expr = Expr::Call(call.clone());
 
           build_code_frame_error_and_panic(
-            &Expr::Paren(ParenExpr {
-              span: DUMMY_SP,
-              expr: Box::new(call_expr.clone()),
-            }),
+            &wrap_in_paren_ref(&call_expr),
             &call_expr,
             "Function type",
             &mut self.state,

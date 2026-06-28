@@ -3,10 +3,10 @@ use swc_core::{
   common::{DUMMY_SP, Span, SyntaxContext},
   ecma::ast::{
     ArrayLit, ArrowExpr, BigInt, BinExpr, BinaryOp, BindingIdent, BlockStmtOrExpr, CallExpr,
-    Callee, CondExpr, Expr, ExprOrSpread, Ident, IdentName, ImportDecl, ImportPhase,
-    ImportSpecifier, ImportStarAsSpecifier, JSXAttr, JSXAttrName, JSXAttrOrSpread, JSXAttrValue,
-    KeyValueProp, Lit, MemberExpr, ModuleDecl, ModuleItem, Null, ObjectLit, ParenExpr, Pat, Prop,
-    PropName, PropOrSpread, SpreadElement, Str, VarDeclarator,
+    Callee, ComputedPropName, CondExpr, Expr, ExprOrSpread, Ident, IdentName, ImportDecl,
+    ImportPhase, ImportSpecifier, ImportStarAsSpecifier, JSXAttr, JSXAttrName, JSXAttrOrSpread,
+    JSXAttrValue, KeyValueProp, Lit, MemberExpr, MemberProp, ModuleDecl, ModuleItem, Null,
+    ObjectLit, ParenExpr, Pat, Prop, PropName, PropOrSpread, SpreadElement, Str, VarDeclarator,
   },
 };
 
@@ -280,7 +280,35 @@ pub fn create_ident_key_value_prop(key: &str, value: Expr) -> PropOrSpread {
   }))
 }
 
-/// Creates a `PropOrSpread` with a string key and value.
+/// Creates a `PropOrSpread` with an unconditional `PropName::Str` key and an
+/// expression value.
+///
+/// Unlike `create_key_value_prop`, this always emits a quoted string key,
+/// preserving keys that would otherwise be rendered as bare identifiers (e.g.
+/// `$$css` or `--custom-prop`). Use this wherever the generated object must keep
+/// string-literal keys regardless of whether they are valid identifiers.
+///
+/// # Arguments
+/// * `key` - The string key
+/// * `value` - The expression value of the property
+///
+/// # Example
+/// ```ignore
+/// let prop_or_spread = create_str_key_value_prop("$$css", create_bool_expr(true));
+/// ```
+#[inline]
+pub fn create_str_key_value_prop(key: &str, value: Expr) -> PropOrSpread {
+  PropOrSpread::from(Prop::from(KeyValueProp {
+    key: PropName::Str(Str {
+      span: DUMMY_SP,
+      value: key.into(),
+      raw: None,
+    }),
+    value: Box::new(value),
+  }))
+}
+
+/// Creates a `PropOrSpread` with a string key and string value.
 ///
 /// # Arguments
 /// * `key` - The string key
@@ -450,6 +478,67 @@ pub fn create_spread_prop(expr: Expr) -> PropOrSpread {
   PropOrSpread::Spread(create_spread_element(expr))
 }
 
+/// Creates a `MemberExpr` from an object expression and a member property
+/// (e.g., `obj.prop` or `obj[expr]`).
+///
+/// # Arguments
+/// * `obj` - The object expression being accessed
+/// * `prop` - The member property (ident or computed)
+///
+/// # Example
+/// ```ignore
+/// let member = create_member_expr(obj_expr, create_computed_member_prop(key_expr));
+/// ```
+#[inline]
+pub fn create_member_expr(obj: Expr, prop: MemberProp) -> MemberExpr {
+  MemberExpr {
+    span: DUMMY_SP,
+    obj: Box::new(obj),
+    prop,
+  }
+}
+
+/// Builds a `MemberProp` for accessing `obj.<key>`: a bare ident property when
+/// `key` is a valid identifier, otherwise a computed string key `obj["<key>"]`.
+///
+/// The ident-vs-computed decision uses the same canonical rule as
+/// [`convert_string_to_prop_name`], keeping object keys and member accesses
+/// consistent.
+///
+/// # Arguments
+/// * `key` - The property key
+///
+/// # Example
+/// ```ignore
+/// let prop = create_member_prop_from_key("color"); // -> obj.color
+/// let prop = create_member_prop_from_key("--c");    // -> obj["--c"]
+/// ```
+#[inline]
+pub fn create_member_prop_from_key(key: &str) -> MemberProp {
+  match convert_string_to_prop_name(key) {
+    PropName::Ident(ident) => MemberProp::Ident(ident),
+    _ => create_computed_member_prop(create_string_expr(key)),
+  }
+}
+
+/// Creates a computed `MemberProp` from an expression (e.g., the `[expr]` in
+/// `obj[expr]`).
+///
+/// # Arguments
+/// * `expr` - The computed key expression
+///
+/// # Example
+/// ```ignore
+/// let prop = create_computed_member_prop(create_string_expr("--custom-prop"));
+/// ```
+#[inline]
+pub fn create_computed_member_prop(expr: Expr) -> MemberProp {
+  MemberProp::Computed(ComputedPropName {
+    span: DUMMY_SP,
+    expr: Box::new(expr),
+  })
+}
+
 /// Creates a `CallExpr` with a member expression callee (e.g.,
 /// `obj.method(...args)`).
 ///
@@ -464,9 +553,24 @@ pub fn create_spread_prop(expr: Expr) -> PropOrSpread {
 /// ```
 #[inline]
 pub fn create_member_call_expr(callee_member: MemberExpr, args: Vec<ExprOrSpread>) -> CallExpr {
+  create_call_expr(Expr::Member(callee_member), args)
+}
+
+/// Creates a `CallExpr` from an arbitrary callee expression (e.g.
+/// `(<callee>)(...args)`).
+///
+/// Use this when the callee is neither a bare identifier name nor a freshly
+/// built member access — for example an arrow function, or an existing `Ident`
+/// value whose span/context must be preserved.
+///
+/// # Arguments
+/// * `callee` - The expression being called
+/// * `args` - The call arguments
+#[inline]
+pub fn create_call_expr(callee: Expr, args: Vec<ExprOrSpread>) -> CallExpr {
   CallExpr {
     span: DUMMY_SP,
-    callee: Callee::Expr(Box::new(Expr::Member(callee_member))),
+    callee: Callee::Expr(Box::new(callee)),
     args,
     type_args: None,
     ctxt: SyntaxContext::empty(),
@@ -485,13 +589,7 @@ pub fn create_member_call_expr(callee_member: MemberExpr, args: Vec<ExprOrSpread
 /// ```
 #[inline]
 pub fn create_ident_call_expr(callee_ident: &str, args: Vec<ExprOrSpread>) -> CallExpr {
-  CallExpr {
-    span: DUMMY_SP,
-    callee: Callee::Expr(Box::new(Expr::Ident(create_ident(callee_ident)))),
-    args,
-    type_args: None,
-    ctxt: SyntaxContext::empty(),
-  }
+  create_call_expr(Expr::Ident(create_ident(callee_ident)), args)
 }
 
 /// Creates an arrow expression `() => expr`.
@@ -505,10 +603,27 @@ pub fn create_ident_call_expr(callee_ident: &str, args: Vec<ExprOrSpread>) -> Ca
 /// ```
 #[inline]
 pub fn create_arrow_expression(body_expr: Expr) -> Expr {
-  use ArrowExpr;
+  create_arrow_expression_with_params(vec![], body_expr)
+}
+
+/// Creates an arrow expression with parameters `(params) => expr`.
+///
+/// # Arguments
+/// * `params` - The arrow function parameters
+/// * `body_expr` - The expression to return
+///
+/// # Example
+/// ```ignore
+/// let arrow = create_arrow_expression_with_params(
+///   vec![Pat::Ident(create_binding_ident(create_ident("_v")))],
+///   body_expr,
+/// );
+/// ```
+#[inline]
+pub fn create_arrow_expression_with_params(params: Vec<Pat>, body_expr: Expr) -> Expr {
   Expr::Arrow(ArrowExpr {
     span: DUMMY_SP,
-    params: vec![],
+    params,
     body: Box::new(BlockStmtOrExpr::Expr(Box::new(body_expr))),
     is_async: false,
     is_generator: false,

@@ -2785,6 +2785,7 @@ dependencies = [
  "ctor",
  "pretty_env_logger",
  "rustc-hash",
+ "stylex_ast",
  "stylex_constants",
  "swc_core",
 ]

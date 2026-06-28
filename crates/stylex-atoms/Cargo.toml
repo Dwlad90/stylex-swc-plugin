@@ -21,6 +21,7 @@ swc_core = { workspace = true, features = [
   "ecma_visit",
 ] }
 
+stylex_ast = { path = "../stylex-ast" }
 stylex_constants = { path = "../stylex-constants" }
 
 [dev-dependencies]

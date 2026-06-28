@@ -1,4 +1,5 @@
 use super::super::*;
+use stylex_ast::ast::convertors::convert_member_prop_to_string;
 use swc_core::ecma::ast::MemberExpr;
 
 pub(in super::super) fn evaluate(
@@ -351,7 +352,7 @@ fn get_full_member_path(member: &MemberExpr) -> Option<(Expr, Vec<String>)> {
   let mut current = member;
 
   loop {
-    parts.insert(0, static_member_prop_key(&current.prop)?);
+    parts.insert(0, convert_member_prop_to_string(&current.prop)?);
 
     match current.obj.as_ref() {
       Expr::Member(member) => {
@@ -377,16 +378,4 @@ fn get_full_member_path(member: &MemberExpr) -> Option<(Expr, Vec<String>)> {
 /// flagged.
 fn is_theme_ref_base(base: &Expr) -> bool {
   matches!(base, Expr::Ident(_))
-}
-
-fn static_member_prop_key(prop: &MemberProp) -> Option<String> {
-  match prop {
-    MemberProp::Ident(ident) => Some(ident.sym.to_string()),
-    MemberProp::Computed(computed) => match computed.expr.as_ref() {
-      Expr::Lit(Lit::Str(strng)) => strng.value.as_str().map(str::to_string),
-      Expr::Lit(Lit::Num(num)) => Some(num.value.to_string()),
-      _ => None,
-    },
-    MemberProp::PrivateName(_) => None,
-  }
 }

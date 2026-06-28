@@ -32,9 +32,9 @@ use crate::shared::{
   },
 };
 use stylex_ast::ast::factories::{
-  create_binding_ident, create_expr_or_spread, create_jsx_attr_or_spread, create_jsx_spread_attr,
-  create_key_value_prop, create_number_expr_or_spread, create_object_expression,
-  create_string_expr_or_spread, create_string_key_value_prop,
+  create_binding_ident, create_call_expr, create_expr_or_spread, create_jsx_attr_or_spread,
+  create_jsx_spread_attr, create_key_value_prop, create_number_expr_or_spread,
+  create_object_expression, create_string_expr_or_spread, create_string_key_value_prop,
 };
 use stylex_constants::constants::{
   api_names::{
@@ -1294,13 +1294,10 @@ impl StateManager {
 
     let stylex_inject_obj = create_object_expression(stylex_inject_args);
 
-    let stylex_call_expr = CallExpr {
-      span: DUMMY_SP,
-      type_args: None,
-      callee: Callee::Expr(Box::new(Expr::Ident(inject_var_ident.clone()))),
-      args: vec![create_expr_or_spread(stylex_inject_obj)],
-      ctxt: SyntaxContext::empty(),
-    };
+    let stylex_call_expr = create_call_expr(
+      Expr::Ident(inject_var_ident.clone()),
+      vec![create_expr_or_spread(stylex_inject_obj)],
+    );
 
     let stylex_call = Expr::Call(stylex_call_expr);
 
@@ -1810,13 +1807,10 @@ fn build_atom_inject_item(metadata: &MetaData, inject_var_ident: &Ident) -> Modu
 
   let stylex_inject_obj = create_object_expression(stylex_inject_args);
 
-  let stylex_call_expr = CallExpr {
-    span: DUMMY_SP,
-    type_args: None,
-    callee: Callee::Expr(Box::new(Expr::Ident(inject_var_ident.clone()))),
-    args: vec![create_expr_or_spread(stylex_inject_obj)],
-    ctxt: SyntaxContext::empty(),
-  };
+  let stylex_call_expr = create_call_expr(
+    Expr::Ident(inject_var_ident.clone()),
+    vec![create_expr_or_spread(stylex_inject_obj)],
+  );
 
   ModuleItem::Stmt(Stmt::Expr(ExprStmt {
     span: DUMMY_SP,

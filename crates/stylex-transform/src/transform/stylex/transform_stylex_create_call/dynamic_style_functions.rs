@@ -1,5 +1,6 @@
 use super::*;
 use crate::shared::structures::types::{ClassPathsMap, DynamicFns};
+use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_ast::ast::factories::create_arrow_expression_with_params;
 
 pub(super) fn apply_dynamic_style_functions<C>(

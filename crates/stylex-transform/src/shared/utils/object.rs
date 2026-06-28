@@ -10,11 +10,9 @@ use crate::shared::{
     flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
   },
   structures::{pre_rule::PreRuleValue, state_manager::StateManager, types::FlatCompiledStyles},
-  utils::{
-    common::get_key_values_from_object,
-    core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-  },
+  utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
 };
+use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_structures::{order_pair::OrderPair, pair::Pair};
 
 use super::ast::convertors::convert_key_value_to_str;

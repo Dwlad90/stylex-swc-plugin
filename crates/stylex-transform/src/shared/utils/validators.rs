@@ -34,10 +34,8 @@ use stylex_constants::constants::{
   },
 };
 
-use super::{
-  ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
-  common::get_key_values_from_object,
-};
+use super::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
+use stylex_ast::ast::convertors::get_key_values_from_object;
 
 fn validate_arg_count_for_expr(
   wrapped_expr: &Expr,

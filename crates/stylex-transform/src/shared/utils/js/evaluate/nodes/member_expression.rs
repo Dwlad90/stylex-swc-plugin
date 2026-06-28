@@ -1,5 +1,5 @@
 use super::super::*;
-use stylex_ast::ast::convertors::convert_member_prop_to_string;
+use stylex_ast::ast::convertors::{convert_member_prop_to_string, normalize_expr};
 use swc_core::ecma::ast::MemberExpr;
 
 pub(in super::super) fn evaluate(

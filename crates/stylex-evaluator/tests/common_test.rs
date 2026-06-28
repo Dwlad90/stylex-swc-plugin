@@ -5,9 +5,8 @@ use swc_core::{
   },
 };
 
-use stylex_evaluator::common::{
-  evaluate_bin_expr, get_expr_from_var_decl, normalize_expr, resolve_node_package_path,
-};
+use stylex_ast::ast::convertors::{get_expr_from_var_decl, normalize_expr};
+use stylex_evaluator::common::{evaluate_bin_expr, resolve_node_package_path};
 
 // ---------------------------------------------------------------------------
 // evaluate_bin_expr

@@ -7,11 +7,9 @@ use swc_core::ecma::ast::{Expr, Lit};
 use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::types::{ClassPathsInNamespace, FlatCompiledStyles, InjectableStylesMap},
-  utils::{
-    ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
-    common::get_key_values_from_object,
-  },
+  utils::ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
 };
+use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_constants::constants::{
   common::SPLIT_TOKEN,
   messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT},

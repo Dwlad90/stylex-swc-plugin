@@ -13,9 +13,10 @@ use swc_core::{
 use crate::transform::{
   AtomCompileResult, AtomFlatValue, Compile, DynamicStyle, InjectedAtomStyle, StaticStyle,
   compile_dynamic_style, compile_static_style, create_utility_styles_visitor,
-  get_dynamic_style_from_path, get_prop_key, get_static_style_from_path,
-  is_utility_styles_identifier, normalize_value,
+  get_dynamic_style_from_path, get_static_style_from_path, is_utility_styles_identifier,
+  normalize_value,
 };
+use stylex_ast::ast::convertors::convert_member_prop_to_string;
 
 fn ident(name: &str) -> Ident {
   ident_with_ctxt(name, SyntaxContext::empty())
@@ -179,10 +180,13 @@ fn normalize_value_strips_single_leading_underscore() {
 }
 
 #[test]
-fn get_prop_key_handles_ident_and_computed() {
-  assert_eq!(get_prop_key(&ident_prop("flex")).as_deref(), Some("flex"));
+fn convert_member_prop_to_string_handles_ident_and_computed() {
   assert_eq!(
-    get_prop_key(&computed_str_prop("calc(100% - 20px)")).as_deref(),
+    convert_member_prop_to_string(&ident_prop("flex")).as_deref(),
+    Some("flex")
+  );
+  assert_eq!(
+    convert_member_prop_to_string(&computed_str_prop("calc(100% - 20px)")).as_deref(),
     Some("calc(100% - 20px)")
   );
   let num = MemberProp::Computed(ComputedPropName {
@@ -193,7 +197,7 @@ fn get_prop_key_handles_ident_and_computed() {
       raw: None,
     }))),
   });
-  assert_eq!(get_prop_key(&num).as_deref(), Some("16"));
+  assert_eq!(convert_member_prop_to_string(&num).as_deref(), Some("16"));
 }
 
 #[test]
@@ -365,7 +369,7 @@ fn str_expr(value: &str) -> Expr {
 }
 
 /// A computed member key whose expression is a non-literal (e.g. `css[dyn]`),
-/// which `get_prop_key` cannot resolve to a name.
+/// which `convert_member_prop_to_string` cannot resolve to a name.
 fn computed_ident_prop(name: &str) -> MemberProp {
   MemberProp::Computed(ComputedPropName {
     span: DUMMY_SP,
@@ -401,38 +405,38 @@ fn call_two_level(base: &str, first: MemberProp, second: MemberProp, arg: Expr) 
 }
 
 #[test]
-fn get_prop_key_returns_none_for_computed_non_literal_and_private_name() {
+fn convert_member_prop_to_string_returns_none_for_computed_non_literal_and_private_name() {
   // A computed key whose expression is not a literal (e.g. `css[dynamic]`).
   let computed_ident = MemberProp::Computed(ComputedPropName {
     span: DUMMY_SP,
     expr: Box::new(Expr::Ident(ident("dynamic"))),
   });
-  assert_eq!(get_prop_key(&computed_ident), None);
+  assert_eq!(convert_member_prop_to_string(&computed_ident), None);
 
   // A private name (`css.#secret`).
   let private = MemberProp::PrivateName(PrivateName {
     span: DUMMY_SP,
     name: "secret".into(),
   });
-  assert_eq!(get_prop_key(&private), None);
+  assert_eq!(convert_member_prop_to_string(&private), None);
 }
 
 #[test]
-fn get_prop_key_numeric_renders_value_ignoring_raw() {
+fn convert_member_prop_to_string_numeric_renders_value_ignoring_raw() {
   // The numeric *value* is rendered, never the raw source token (matching
   // `String(prop.value)`): `css[0x10]` keys on "16", not "0x10".
   assert_eq!(
-    get_prop_key(&computed_num_prop(16.0, Some("0x10"))).as_deref(),
+    convert_member_prop_to_string(&computed_num_prop(16.0, Some("0x10"))).as_deref(),
     Some("16")
   );
   // A whole number renders as an integer.
   assert_eq!(
-    get_prop_key(&computed_num_prop(16.0, None)).as_deref(),
+    convert_member_prop_to_string(&computed_num_prop(16.0, None)).as_deref(),
     Some("16")
   );
   // A fractional number renders as a float.
   assert_eq!(
-    get_prop_key(&computed_num_prop(1.5, None)).as_deref(),
+    convert_member_prop_to_string(&computed_num_prop(1.5, None)).as_deref(),
     Some("1.5")
   );
 }
@@ -981,25 +985,27 @@ fn compile_dynamic_style_emits_computed_member_for_invalid_identifier_start() {
 }
 
 #[test]
-fn get_prop_key_numeric_renders_js_edge_values() {
+fn convert_member_prop_to_string_numeric_renders_js_edge_values() {
   // Non-finite numeric keys render exactly as JS `String(Number)` does, never
   // a saturated integer cast or Rust's `inf`/`NaN` lowercase spellings.
   assert_eq!(
-    get_prop_key(&computed_num_prop(f64::NAN, None)).as_deref(),
+    convert_member_prop_to_string(&computed_num_prop(f64::NAN, None)).as_deref(),
     Some("NaN")
   );
   assert_eq!(
-    get_prop_key(&computed_num_prop(f64::INFINITY, None)).as_deref(),
+    convert_member_prop_to_string(&computed_num_prop(f64::INFINITY, None)).as_deref(),
     Some("Infinity")
   );
   assert_eq!(
-    get_prop_key(&computed_num_prop(f64::NEG_INFINITY, None)).as_deref(),
+    convert_member_prop_to_string(&computed_num_prop(f64::NEG_INFINITY, None)).as_deref(),
     Some("-Infinity")
   );
   // A magnitude beyond the safe-integer range stays on the float path rather
-  // than going through a saturating `as i64` cast.
+  // than going through a saturating `as i64` cast. It renders via the shortest
+  // round-tripping decimal (not JS's `"1e+21"` spelling), which is still a valid
+  // JS literal that parses to the same value.
   assert_eq!(
-    get_prop_key(&computed_num_prop(1e21, None)).as_deref(),
+    convert_member_prop_to_string(&computed_num_prop(1e21, None)).as_deref(),
     Some("1000000000000000000000")
   );
 }

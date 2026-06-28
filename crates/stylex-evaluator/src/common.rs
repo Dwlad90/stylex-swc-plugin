@@ -3,11 +3,6 @@ use std::path::PathBuf;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::BinaryOp;
 
-// `get_expr_from_var_decl` and `normalize_expr` are generic AST helpers whose
-// canonical home is `stylex-ast`. Re-exported here so existing `common::…` call
-// sites and tests keep their local path.
-pub use stylex_ast::ast::convertors::{get_expr_from_var_decl, normalize_expr};
-
 /// Evaluates a binary expression with the given operator and numeric operands.
 pub fn evaluate_bin_expr(op: BinaryOp, left: f64, right: f64) -> f64 {
   match &op {

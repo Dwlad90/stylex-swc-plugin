@@ -3,7 +3,8 @@ use swc_core::{
   ecma::{ast::ExportDefaultExpr, visit::VisitMutWith},
 };
 
-use crate::{StyleXTransform, shared::utils::common::normalize_expr};
+use crate::StyleXTransform;
+use stylex_ast::ast::convertors::normalize_expr;
 use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>

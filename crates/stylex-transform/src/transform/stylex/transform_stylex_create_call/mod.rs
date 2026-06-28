@@ -45,9 +45,7 @@ use crate::{
         convert_atom_to_string, convert_expr_to_str, convert_key_value_to_str,
         convert_lit_to_string, create_null_expr, create_string_expr,
       },
-      common::{
-        downcast_style_options_to_state_manager, get_key_values_from_object, normalize_expr,
-      },
+      common::downcast_style_options_to_state_manager,
       core::{
         add_source_map_data::add_source_map_data,
         dev_class_name::{convert_to_test_styles, inject_dev_class_names},

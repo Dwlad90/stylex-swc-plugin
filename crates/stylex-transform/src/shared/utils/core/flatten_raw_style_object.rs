@@ -22,9 +22,10 @@ use crate::shared::{
       convert_key_value_to_str, convert_lit_to_string, create_number_expr, expand_shorthand_prop,
       expr_tpl_to_string, handle_tpl_to_expression, transform_bin_expr_to_number,
     },
-    common::{get_expr_from_var_decl, get_key_values_from_object, get_var_decl_by_ident},
+    common::get_var_decl_by_ident,
   },
 };
+use stylex_ast::ast::convertors::{get_expr_from_var_decl, get_key_values_from_object};
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
 };

@@ -15,11 +15,12 @@ use crate::shared::{
   },
   utils::{
     ast::convertors::{convert_expr_to_str, convert_key_value_to_str},
-    common::{get_css_value, get_key_values_from_object},
+    common::get_css_value,
     core::define_vars_utils::{collect_vars_by_at_rules, priority_for_at_rule, wrap_with_at_rules},
     validators::validate_theme_variables,
   },
 };
+use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_constants::constants::{
   common::{COMPILED_KEY, VAR_GROUP_HASH_KEY},
   messages::{

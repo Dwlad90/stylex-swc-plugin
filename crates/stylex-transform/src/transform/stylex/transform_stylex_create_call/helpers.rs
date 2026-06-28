@@ -1,4 +1,5 @@
 use super::*;
+use stylex_ast::ast::convertors::normalize_expr;
 
 pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicStyle> {
   let expanded_keys_to_key_paths: Vec<DynamicStyle> = dynamic_styles

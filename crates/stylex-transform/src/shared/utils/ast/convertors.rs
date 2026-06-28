@@ -25,10 +25,11 @@ use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
   utils::{
-    common::{get_expr_from_var_decl, get_var_decl_by_ident},
+    common::get_var_decl_by_ident,
     js::evaluate::{deopt, evaluate_cached},
   },
 };
+use stylex_ast::ast::convertors::get_expr_from_var_decl;
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_VALUE, VAR_DECL_INIT_REQUIRED, non_static_value,
 };

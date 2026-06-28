@@ -12,7 +12,10 @@
 
 use rustc_hash::FxHashMap;
 use stylex_ast::ast::{
-  convertors::{create_bool_expr, create_ident_expr, create_null_expr, create_string_expr},
+  convertors::{
+    convert_member_prop_to_string, create_bool_expr, create_ident_expr, create_null_expr,
+    create_string_expr,
+  },
   factories::{
     create_array_expression, create_arrow_expression_with_params, create_bin_expr,
     create_binding_ident, create_cond_expr, create_expr_or_spread, create_ident,
@@ -101,12 +104,6 @@ pub trait Compile {
   fn hoist_expression(&mut self, expr: Expr) -> Expr;
 }
 
-/// Reads the static key of a member property (`css.display` → `"display"`).
-///
-/// This is the generic AST reader [`convert_member_prop_to_string`], re-exported
-/// under the atoms-local name; its canonical home is `stylex-ast`.
-pub use stylex_ast::ast::convertors::convert_member_prop_to_string as get_prop_key;
-
 /// Strips a single leading underscore from CSS values. This allows using
 /// underscore-prefixed identifiers for CSS values that conflict with JS
 /// reserved words or start with a digit (e.g., `css.display._flex` or
@@ -134,11 +131,11 @@ pub fn get_static_style_from_path(
   member: &MemberExpr,
   atom_imports: &FxHashMap<Id, String>,
 ) -> Option<StaticStyle> {
-  let value_key = get_prop_key(&member.prop)?;
+  let value_key = convert_member_prop_to_string(&member.prop)?;
 
   match member.obj.as_ref() {
     Expr::Member(parent) => {
-      let prop_name = get_prop_key(&parent.prop)?;
+      let prop_name = convert_member_prop_to_string(&parent.prop)?;
       if let Expr::Ident(base) = parent.obj.as_ref()
         && is_utility_styles_identifier(base, atom_imports)
       {
@@ -183,7 +180,7 @@ pub fn get_dynamic_style_from_path(
     _ => return None,
   };
 
-  let value_key = get_prop_key(&callee_member.prop)?;
+  let value_key = convert_member_prop_to_string(&callee_member.prop)?;
 
   if call.args.len() != 1 {
     return None;
@@ -201,7 +198,7 @@ pub fn get_dynamic_style_from_path(
       value,
     }),
     Expr::Member(parent) => {
-      let prop_name = get_prop_key(&parent.prop)?;
+      let prop_name = convert_member_prop_to_string(&parent.prop)?;
       if let Expr::Ident(base) = parent.obj.as_ref()
         && is_utility_styles_identifier(base, atom_imports)
       {

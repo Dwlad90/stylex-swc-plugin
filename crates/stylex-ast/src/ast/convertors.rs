@@ -22,16 +22,18 @@ use super::factories::{
   create_string_lit,
 };
 
-/// Renders a numeric AST literal as a string the way JS `String(Number)` would,
-/// from its parsed value rather than the raw source token (e.g. `0x10` →
-/// `"16"`).
+/// Renders a numeric AST literal as a valid JS numeric literal, derived from
+/// its parsed value rather than the raw source token (e.g. `0x10` -> `"16"`).
 ///
-/// Matches JS `String(Number)` for the cases that occur in practice: `NaN` /
-/// `Infinity` render as in JS, and only safe-integer-range whole numbers take
-/// the integer path (larger magnitudes keep the float rendering to avoid a
-/// saturating cast). Note this still diverges from JS for extreme magnitudes
-/// (`String(1e21)` is `"1e+21"`, while this yields the expanded digits) — only
-/// reachable via an absurd computed key like `obj[1e21]`, so it is left as-is.
+/// This relies on Rust's `f64` `Display`, which emits the shortest decimal that
+/// round-trips back to the same value. The output is always a valid JS literal
+/// that parses to the identical `f64`; it does **not** reproduce JS's exact
+/// `String(Number)` spelling for extreme magnitudes — e.g. `1e21` renders as
+/// `"1000000000000000000000"` rather than `"1e+21"` — but the two are
+/// equivalent as generated code. The cases that do need special handling are
+/// the ones where Rust's `Display` diverges from a usable JS token:
+/// `NaN`/`±Infinity` (Rust prints `NaN`/`inf`/`-inf`) and negative zero (Rust
+/// prints `-0`, but the JS property key is `"0"`).
 pub fn convert_number_to_js_string(n: &Number) -> String {
   let value = n.value;
 
@@ -41,16 +43,11 @@ pub fn convert_number_to_js_string(n: &Number) -> String {
   if value.is_infinite() {
     return if value > 0.0 { "Infinity" } else { "-Infinity" }.to_string();
   }
-
-  // 2^53 — beyond this an f64 can no longer represent consecutive integers, and
-  // `as i64` would start saturating/rounding, so fall back to float rendering.
-  const MAX_SAFE_INTEGER: f64 = 9_007_199_254_740_992.0;
-
-  if value.fract() == 0.0 && value.abs() < MAX_SAFE_INTEGER {
-    format!("{}", value as i64)
-  } else {
-    format!("{value}")
+  if value == 0.0 {
+    return "0".to_string();
   }
+
+  value.to_string()
 }
 
 /// Reads the static key of a member property as a string:
@@ -63,12 +60,27 @@ pub fn convert_number_to_js_string(n: &Number) -> String {
 pub fn convert_member_prop_to_string(prop: &MemberProp) -> Option<String> {
   match prop {
     MemberProp::Ident(ident) => Some(ident.sym.to_string()),
-    MemberProp::Computed(computed) => match computed.expr.as_ref() {
-      Expr::Lit(Lit::Str(s)) => s.value.as_str().map(|value| value.to_string()),
-      Expr::Lit(Lit::Num(n)) => Some(convert_number_to_js_string(n)),
-      _ => None,
+    MemberProp::Computed(computed) => {
+      convert_static_member_key_expr_to_string(normalize_expr_ref(computed.expr.as_ref()))
     },
     MemberProp::PrivateName(_) => None,
+  }
+}
+
+fn normalize_expr_ref(expr: &Expr) -> &Expr {
+  match expr {
+    Expr::Paren(paren) => normalize_expr_ref(paren.expr.as_ref()),
+    _ => expr,
+  }
+}
+
+fn convert_static_member_key_expr_to_string(expr: &Expr) -> Option<String> {
+  match expr {
+    Expr::Lit(Lit::Str(s)) => s.value.as_str().map(|value| value.to_string()),
+    Expr::Lit(Lit::Num(n)) => Some(convert_number_to_js_string(n)),
+    Expr::Lit(Lit::BigInt(big_int)) => Some(big_int.value.to_string()),
+    Expr::Tpl(tpl) => convert_tpl_to_string_lit(tpl).and_then(|lit| convert_lit_to_string(&lit)),
+    _ => None,
   }
 }
 
@@ -270,7 +282,7 @@ pub fn convert_atom_to_str_ref(atom: &swc_core::atoms::Wtf8Atom) -> &str {
 pub fn convert_lit_to_string(value: &Lit) -> Option<String> {
   match value {
     Lit::Str(strng) => Some(convert_str_lit_to_string(strng)),
-    Lit::Num(num) => Some(format!("{}", num.value)),
+    Lit::Num(num) => Some(convert_number_to_js_string(num)),
     Lit::BigInt(big_int) => Some(format!("{}", big_int.value)),
     _ => None,
   }

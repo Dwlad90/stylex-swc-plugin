@@ -13,10 +13,13 @@ use crate::shared::{
   utils::common::{
     deep_merge_props, downcast_style_options_to_state_manager, extract_filename_from_path,
     extract_filename_with_ext_from_path, extract_path, fill_state_declarations,
-    fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_expr_from_var_decl,
-    get_import_from, get_key_values_from_object, get_var_decl_by_ident, js_object_to_json,
-    normalize_expr, remove_duplicates, serialize_value_to_json_string, type_of,
+    fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_import_from,
+    get_var_decl_by_ident, js_object_to_json, remove_duplicates, serialize_value_to_json_string,
+    type_of,
   },
+};
+use stylex_ast::ast::convertors::{
+  get_expr_from_var_decl, get_key_values_from_object, normalize_expr,
 };
 use stylex_evaluator::common::evaluate_bin_expr;
 

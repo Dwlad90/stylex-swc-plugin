@@ -363,6 +363,27 @@ fn computed_num_member_prop(value: f64, raw: Option<&str>) -> MemberProp {
   })))
 }
 
+fn computed_bigint_member_prop(value: i64) -> MemberProp {
+  create_computed_member_prop(Expr::Lit(Lit::BigInt(BigInt {
+    span: DUMMY_SP,
+    value: Box::new(value.into()),
+    raw: None,
+  })))
+}
+
+fn computed_tpl_member_prop(value: &str) -> MemberProp {
+  create_computed_member_prop(Expr::Tpl(Tpl {
+    span: DUMMY_SP,
+    exprs: vec![],
+    quasis: vec![TplElement {
+      span: DUMMY_SP,
+      tail: true,
+      cooked: Some(value.into()),
+      raw: value.into(),
+    }],
+  }))
+}
+
 #[test]
 fn convert_member_prop_to_string_ident_and_computed_str() {
   assert_eq!(
@@ -389,6 +410,33 @@ fn convert_member_prop_to_string_numeric_uses_parsed_value_not_raw() {
 }
 
 #[test]
+fn convert_member_prop_to_string_numeric_zero() {
+  // JS `String(0)` (and `String(-0)`) is "0"; the zero fast-path returns it
+  // without going through exponential rendering.
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(0.0, None)).as_deref(),
+    Some("0")
+  );
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(-0.0, None)).as_deref(),
+    Some("0")
+  );
+}
+
+#[test]
+fn convert_member_prop_to_string_bigint() {
+  // A computed BigInt key (`obj[123n]`) renders as its decimal digits.
+  assert_eq!(
+    convert_member_prop_to_string(&computed_bigint_member_prop(123)).as_deref(),
+    Some("123")
+  );
+  assert_eq!(
+    convert_member_prop_to_string(&computed_bigint_member_prop(-45)).as_deref(),
+    Some("-45")
+  );
+}
+
+#[test]
 fn convert_member_prop_to_string_numeric_js_edge_values() {
   assert_eq!(
     convert_member_prop_to_string(&computed_num_member_prop(f64::NAN, None)).as_deref(),
@@ -401,6 +449,63 @@ fn convert_member_prop_to_string_numeric_js_edge_values() {
   assert_eq!(
     convert_member_prop_to_string(&computed_num_member_prop(f64::NEG_INFINITY, None)).as_deref(),
     Some("-Infinity")
+  );
+}
+
+#[test]
+fn convert_member_prop_to_string_numeric_renders_shortest_decimal() {
+  // Rendered via Rust's shortest round-tripping `f64` `Display`: always a valid
+  // JS literal, but plain decimal rather than JS's exponential spelling for
+  // extreme magnitudes. Each output still parses back to the same `f64`.
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(1e-7, None)).as_deref(),
+    Some("0.0000001")
+  );
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(1.23e-7, None)).as_deref(),
+    Some("0.000000123")
+  );
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(1e-6, None)).as_deref(),
+    Some("0.000001")
+  );
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(1e20, None)).as_deref(),
+    Some("100000000000000000000")
+  );
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(1e21, None)).as_deref(),
+    Some("1000000000000000000000")
+  );
+  assert_eq!(
+    convert_member_prop_to_string(&computed_num_member_prop(-1e21, None)).as_deref(),
+    Some("-1000000000000000000000")
+  );
+}
+
+#[test]
+fn convert_member_prop_to_string_unwraps_static_parens_and_templates() {
+  let parenthesized_str = create_computed_member_prop(Expr::Paren(ParenExpr {
+    span: DUMMY_SP,
+    expr: Box::new(create_string_expr("wrapped")),
+  }));
+  assert_eq!(
+    convert_member_prop_to_string(&parenthesized_str).as_deref(),
+    Some("wrapped")
+  );
+
+  let parenthesized_num = create_computed_member_prop(Expr::Paren(ParenExpr {
+    span: DUMMY_SP,
+    expr: Box::new(create_number_expr(123.0)),
+  }));
+  assert_eq!(
+    convert_member_prop_to_string(&parenthesized_num).as_deref(),
+    Some("123")
+  );
+
+  assert_eq!(
+    convert_member_prop_to_string(&computed_tpl_member_prop("template-key")).as_deref(),
+    Some("template-key")
   );
 }
 

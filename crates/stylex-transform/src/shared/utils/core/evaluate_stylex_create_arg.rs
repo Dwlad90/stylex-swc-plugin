@@ -24,12 +24,12 @@ use crate::shared::{
       convert_expr_to_str, create_ident_expr, create_null_expr, create_string_expr,
       expand_shorthand_prop,
     },
-    common::normalize_expr,
     css::common::get_number_suffix,
     js::evaluate::{evaluate, evaluate_obj_key},
     validators::validate_dynamic_style_params,
   },
 };
+use stylex_ast::ast::convertors::normalize_expr;
 use stylex_ast::ast::factories::{
   create_arrow_expression_with_params, create_bin_expr, create_call_expr, create_cond_expr,
   create_expr_or_spread, create_key_value_prop, create_object_expression,

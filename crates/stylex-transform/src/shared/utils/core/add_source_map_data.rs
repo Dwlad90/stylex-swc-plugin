@@ -15,11 +15,11 @@ use crate::shared::{
   structures::{functions::FunctionMap, state_manager::StateManager, types::StylesObjectMap},
   utils::{
     ast::convertors::{convert_expr_to_str, create_string_expr},
-    common::get_key_values_from_object,
     js::evaluate::evaluate_obj_key,
     log::build_code_frame_error::get_span_from_source_code,
   },
 };
+use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_constants::constants::{
   common::COMPILED_KEY,
   messages::{EXPECTED_OBJECT_EXPRESSION, INVALID_UTF8, illegal_argument_length},

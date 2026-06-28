@@ -30,12 +30,6 @@ use stylex_regex::regex::JSON_REGEX;
 use super::ast::convertors::expand_shorthand_prop;
 use stylex_ast::ast::factories::create_var_declarator;
 
-// `get_expr_from_var_decl` and `normalize_expr` are generic AST helpers whose
-// canonical home is `stylex-ast`. Re-exported here so existing `common::…` call
-// sites and tests keep their local path.
-pub use stylex_ast::ast::convertors::get_expr_from_var_decl;
-pub(crate) use stylex_ast::ast::convertors::normalize_expr;
-
 pub(crate) fn extract_filename_from_path(path: &FileName) -> String {
   match path {
     FileName::Real(path_buf) => {
@@ -296,12 +290,6 @@ pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseC
 
   (key_value.value, None)
 }
-
-// `get_key_values_from_object` was hoisted to `stylex-ast`; re-exported here so
-// existing `crate::shared::utils::common::get_key_values_from_object` import
-// sites keep working without churn (project convention — see also
-// `shared/utils/ast/convertors.rs`'s `pub use` block).
-pub use stylex_ast::ast::convertors::get_key_values_from_object;
 
 pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
   module.body.iter().for_each(|item| match item {

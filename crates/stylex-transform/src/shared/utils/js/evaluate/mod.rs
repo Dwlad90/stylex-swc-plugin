@@ -52,12 +52,13 @@ use crate::shared::{
       expand_shorthand_prop, expr_to_num, extract_tpl_cooked_value,
     },
     common::{
-      deep_merge_props, get_import_by_ident, get_key_values_from_object, get_var_decl_by_ident,
-      get_var_decl_from, normalize_expr, remove_duplicates,
+      deep_merge_props, get_import_by_ident, get_var_decl_by_ident, get_var_decl_from,
+      remove_duplicates,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
   },
 };
+use stylex_ast::ast::convertors::normalize_expr;
 use stylex_ast::ast::factories::{
   create_array_expression, create_expr_or_spread, create_ident_key_value_prop,
   create_object_expression, create_object_lit, create_string_lit,

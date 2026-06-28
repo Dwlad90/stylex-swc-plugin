@@ -1,7 +1,10 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
-use stylex_ast::ast::factories::{create_key_value_prop, create_object_expression};
+use stylex_ast::ast::{
+  convertors::get_key_values_from_object,
+  factories::{create_key_value_prop, create_object_expression},
+};
 use stylex_evaluator::nested::{
   NestedVarsValue, flatten_nested_consts_config, flatten_nested_overrides_config,
   flatten_nested_vars_config, object_lit_to_nested_vars_config,
@@ -16,7 +19,6 @@ use crate::shared::{
   structures::types::FlatCompiledStyles,
   utils::{
     ast::convertors::{convert_lit_to_number, convert_lit_to_string, create_string_expr},
-    common::get_key_values_from_object,
     core::stylex_nested_utils::{
       UnflattenedCompiledStylesValue, convert_unflattened_object_to_ast, unflatten_object,
     },

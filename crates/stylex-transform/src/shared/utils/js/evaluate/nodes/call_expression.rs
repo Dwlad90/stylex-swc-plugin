@@ -1,4 +1,5 @@
 use super::super::*;
+use stylex_ast::ast::convertors::get_key_values_from_object;
 use swc_core::ecma::ast::CallExpr;
 
 pub(in super::super) fn evaluate(

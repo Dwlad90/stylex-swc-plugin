@@ -249,19 +249,14 @@ pub fn compile_dynamic_style<T: Compile>(compiler: &mut T, call: &CallExpr) -> O
   let style = get_dynamic_style_from_path(call, compiler.atom_imports())?;
   let property = style.property;
 
+  if !is_safe_css_property_fragment(&property) {
+    return None;
+  }
+
   let var_name = format!("--x-{property}");
   let css_value = format!("var({var_name})");
 
   let mut result = compiler.style_x_create_set(&property, &css_value)?;
-
-  result.injected.push(InjectedAtomStyle {
-    class_name: var_name.clone(),
-    priority: 0.0,
-    ltr: format!("@property {var_name} {{ syntax: \"*\"; inherits: false;}}"),
-    rtl: None,
-  });
-
-  compiler.register_styles(&result.injected);
 
   // compiled_flat has: [($$css, true), (prop-hash, "xAbc123"), maybe (devClass, devClass)].
   // We need the prop-hash key (not $$css, not the dev class name where key === value).
@@ -276,6 +271,15 @@ pub fn compile_dynamic_style<T: Compile>(compiler: &mut T, call: &CallExpr) -> O
       _ => None,
     }
   })?;
+
+  result.injected.push(InjectedAtomStyle {
+    class_name: var_name.clone(),
+    priority: 0.0,
+    ltr: format!("@property {var_name} {{ syntax: \"*\"; inherits: false;}}"),
+    rtl: None,
+  });
+
+  compiler.register_styles(&result.injected);
 
   let param = ident("_v");
   let param_expr = || Expr::Ident(param.clone());
@@ -526,4 +530,11 @@ fn is_ascii_identifier_name(value: &str) -> bool {
   }
 
   chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$')
+}
+
+fn is_safe_css_property_fragment(value: &str) -> bool {
+  !value.is_empty()
+    && value
+      .chars()
+      .all(|c| !c.is_whitespace() && !matches!(c, ';' | '{' | '}'))
 }

@@ -324,7 +324,7 @@ fn object_has_css_marker(object: &ObjectLit) -> bool {
     };
 
     let is_css_key = match &key_value.key {
-      PropName::Ident(ident) => ident.sym == *COMPILED_KEY,
+      PropName::Ident(ident) => ident.sym.as_ref() == COMPILED_KEY,
       PropName::Str(strng) => strng.value.as_str() == Some(COMPILED_KEY),
       _ => false,
     };

@@ -831,6 +831,16 @@ fn compile_dynamic_style_returns_none_without_property_hash() {
 }
 
 #[test]
+fn compile_dynamic_style_does_not_register_styles_without_property_hash() {
+  let mut compiler = MockCompiler::with_shape(default_imports(), FlatShape::MarkerOnly);
+  let call = call_member("css", ident_prop("color"), Expr::Ident(ident("value")));
+
+  assert!(compile_dynamic_style(&mut compiler, &call).is_none());
+  assert!(compiler.registered.is_empty());
+  assert_eq!(compiler.hoist_count, 0);
+}
+
+#[test]
 fn compile_static_style_returns_none_when_not_evaluable() {
   // `style_x_create_set` returns `None` (the inline style is not statically
   // evaluable): `compile_static_style` must bail out instead of panicking.
@@ -870,14 +880,14 @@ fn compile_dynamic_style_uses_verbatim_custom_property_name() {
   let mut compiler = MockCompiler::new(default_imports());
   let call = call_member(
     "css",
-    computed_str_prop("color; } body {"),
+    computed_str_prop("accent-color"),
     Expr::Ident(ident("value")),
   );
   let result = compile_dynamic_style(&mut compiler, &call);
   assert!(matches!(result, Some(Expr::Call(_))));
 
   let injected = &compiler.registered[0];
-  let custom_property_name = "--x-color; } body {";
+  let custom_property_name = "--x-accent-color";
   let property_rule = injected
     .iter()
     .find(|style| style.class_name == custom_property_name)
@@ -900,6 +910,20 @@ fn compile_dynamic_style_uses_verbatim_custom_property_name() {
     Expr::Member(member) => assert!(matches!(&member.prop, MemberProp::Computed(_))),
     other => panic!("expected member callee, got {:?}", other),
   }
+}
+
+#[test]
+fn compile_dynamic_style_rejects_unsafe_computed_property_name() {
+  let mut compiler = MockCompiler::new(default_imports());
+  let call = call_member(
+    "css",
+    computed_str_prop("color; } body {"),
+    Expr::Ident(ident("value")),
+  );
+
+  assert!(compile_dynamic_style(&mut compiler, &call).is_none());
+  assert!(compiler.registered.is_empty());
+  assert_eq!(compiler.hoist_count, 0);
 }
 
 #[test]

@@ -21,6 +21,7 @@ for user interfaces. You can find the
 
 This package provides an unofficial, high-performance NAPI-RS compiler for
 StyleX, a popular library from Meta for building optimized user interfaces. It
+is the top-level consumer crate that exposes the full StyleX pipeline to
 Node.js, leveraging SWC for parsing and transformation.
 
 > [!IMPORTANT]

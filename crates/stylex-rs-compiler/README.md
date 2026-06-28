@@ -7,7 +7,7 @@
 <!-- stylex-compatibility:start -->
 > [!NOTE]
 > Compatibility target: this package has been updated through official
-> StyleX v0.18.3. This is not an official Meta support guarantee.
+> StyleX v0.19.0. This is not an official Meta support guarantee.
 <!-- stylex-compatibility:end -->
 
 StyleX is a JavaScript library developed by Meta for defining styles optimized

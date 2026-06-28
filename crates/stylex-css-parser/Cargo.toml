@@ -1,11 +1,11 @@
 [package]
 description = "CSS value parser"
-edition = "2024"
-license = "MIT"
+edition.workspace = true
+license.workspace = true
 name = "stylex_css_parser"
-repository = "https://github.com/Dwlad90/stylex-swc-plugin.git"
-rust-version = "1.95.0"
-version = "0.16.5"
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 
 [lib]

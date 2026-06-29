@@ -5,6 +5,8 @@ Handles border-radius property syntax including individual values and shorthand 
 Supports both horizontal and vertical radius values with proper fallback logic.
 */
 
+use stylex_macros::stylex_unreachable;
+
 use crate::{
   css_types::{LengthPercentage, length_percentage_parser},
   token_parser::TokenParser,
@@ -85,6 +87,41 @@ pub struct BorderRadiusShorthand {
 }
 
 impl BorderRadiusShorthand {
+  /// Apply CSS shorthand expansion to a list of 1-4 (clamped) radii values.
+  /// Panics if `values` is empty (unreachable through the public parser).
+  fn expand_radii(values: Vec<LengthPercentage>) -> [LengthPercentage; 4] {
+    match values.len() {
+      1 => [
+        values[0].clone(),
+        values[0].clone(),
+        values[0].clone(),
+        values[0].clone(),
+      ],
+      2 => [
+        values[0].clone(),
+        values[1].clone(),
+        values[0].clone(),
+        values[1].clone(),
+      ],
+      3 => [
+        values[0].clone(),
+        values[1].clone(),
+        values[2].clone(),
+        values[1].clone(),
+      ],
+      4 => [
+        values[0].clone(),
+        values[1].clone(),
+        values[2].clone(),
+        values[3].clone(),
+      ],
+      // TODO: This arm is unreachable: `values` is clamped to at most 4
+      // elements before calling this function (see parser), so len() can
+      // only be 1, 2, 3, or 4. The arm exists to satisfy exhaustiveness.
+      _ => stylex_unreachable!(),
+    }
+  }
+
   /// Create a new BorderRadiusShorthand with CSS shorthand expansion logic
   #[allow(clippy::too_many_arguments)]
   pub fn new(
@@ -140,46 +177,14 @@ impl BorderRadiusShorthand {
               let mut all_values = vec![first_clone.clone()];
               all_values.extend(rest);
 
-              // Limit to 4 values and apply CSS shorthand expansion
+              // Limit to 4 values and apply CSS shorthand expansion.
               let values = if all_values.len() > 4 {
                 all_values[..4].to_vec()
               } else {
                 all_values
               };
 
-              // Apply CSS shorthand rules
-              match values.len() {
-                1 => [
-                  values[0].clone(),
-                  values[0].clone(),
-                  values[0].clone(),
-                  values[0].clone(),
-                ],
-                2 => [
-                  values[0].clone(),
-                  values[1].clone(),
-                  values[0].clone(),
-                  values[1].clone(),
-                ],
-                3 => [
-                  values[0].clone(),
-                  values[1].clone(),
-                  values[2].clone(),
-                  values[1].clone(),
-                ],
-                4 => [
-                  values[0].clone(),
-                  values[1].clone(),
-                  values[2].clone(),
-                  values[3].clone(),
-                ],
-                _ => [
-                  values[0].clone(),
-                  values[0].clone(),
-                  values[0].clone(),
-                  values[0].clone(),
-                ],
-              }
+              Self::expand_radii(values)
             },
             Some("expand_radii"),
           )
@@ -326,3 +331,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/properties/border_radius_test.rs"]
 mod border_radius_test;
+
+#[cfg(test)]
+#[path = "../tests/properties/border_radius_coverage_test.rs"]
+mod border_radius_coverage_test;

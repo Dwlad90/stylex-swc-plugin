@@ -10,7 +10,10 @@ use crate::token_types::SimpleToken;
 fn extract_ident_token_returns_value_for_ident() {
   // Happy path: a proper Ident token yields its string value.
   let token = SimpleToken::Ident("--custom-prop".to_string());
-  assert_eq!(DashedIdentifier::extract_ident_token(token), "--custom-prop");
+  assert_eq!(
+    DashedIdentifier::extract_ident_token(token),
+    "--custom-prop"
+  );
 }
 
 #[test]

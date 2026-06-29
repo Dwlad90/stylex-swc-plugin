@@ -73,7 +73,10 @@ impl Resolution {
       },
       Some("Dimension"),
     )
-    .where_fn(Self::is_valid_resolution_dimension, Some("valid_resolution_unit"))
+    .where_fn(
+      Self::is_valid_resolution_dimension,
+      Some("valid_resolution_unit"),
+    )
     .map(Self::extract_dimension_token, Some("to_resolution"))
   }
 }

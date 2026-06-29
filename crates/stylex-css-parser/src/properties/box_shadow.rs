@@ -12,6 +12,22 @@ use crate::{
 };
 use std::fmt::{self, Display};
 
+fn is_inset_ident(token: &SimpleToken) -> bool {
+  if let SimpleToken::Ident(value) = token {
+    value == "inset"
+  } else {
+    false
+  }
+}
+
+fn is_none_ident(token: &SimpleToken) -> bool {
+  if let SimpleToken::Ident(value) = token {
+    value == "none"
+  } else {
+    false
+  }
+}
+
 /// Individual box shadow value
 #[derive(Debug, Clone, PartialEq)]
 pub struct BoxShadow {
@@ -140,16 +156,7 @@ impl BoxShadow {
     let inset_shadow = {
       let inset_keyword =
         TokenParser::<SimpleToken>::token(SimpleToken::Ident("inset".to_string()), Some("Ident"))
-          .where_fn(
-            |token| {
-              if let SimpleToken::Ident(value) = token {
-                value == "inset"
-              } else {
-                false
-              }
-            },
-            Some("inset_check"),
-          );
+          .where_fn(is_inset_ident, Some("inset_check"));
 
       let whitespace_for_inset = whitespace.clone();
       let inset_keyword_for_inset = inset_keyword.clone();
@@ -266,16 +273,7 @@ impl BoxShadowList {
     // Parse "none" keyword
     let none_parser =
       TokenParser::<SimpleToken>::token(SimpleToken::Ident("none".to_string()), Some("none_ident"))
-        .where_fn(
-          |token| {
-            if let SimpleToken::Ident(value) = token {
-              value == "none"
-            } else {
-              false
-            }
-          },
-          Some("none_check"),
-        )
+        .where_fn(is_none_ident, Some("none_check"))
         .map(
           |_| BoxShadowList::new(Vec::new()),
           Some("empty_shadow_list"),
@@ -318,3 +316,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/properties/box_shadow_test.rs"]
 mod box_shadow_test;
+
+#[cfg(test)]
+#[path = "../tests/properties/box_shadow_coverage_test.rs"]
+mod box_shadow_coverage_test;

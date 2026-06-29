@@ -63,7 +63,10 @@ impl Frequency {
       },
       Some("Dimension"),
     )
-    .map(Self::extract_frequency_token, Some("extract_frequency_dimension"))
+    .map(
+      Self::extract_frequency_token,
+      Some("extract_frequency_dimension"),
+    )
     .where_fn(|opt| opt.is_some(), Some("valid_frequency"))
     .map(
       |opt| {

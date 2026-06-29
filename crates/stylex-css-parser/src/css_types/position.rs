@@ -124,62 +124,61 @@ impl Position {
     }
   }
 
+  fn is_horizontal_ident(token: &SimpleToken) -> bool {
+    if let SimpleToken::Ident(value) = token {
+      matches!(value.as_str(), "left" | "center" | "right")
+    } else {
+      false
+    }
+  }
+
+  fn token_to_horizontal_keyword(token: SimpleToken) -> HorizontalKeyword {
+    if let SimpleToken::Ident(value) = token {
+      match value.as_str() {
+        "left" => HorizontalKeyword::Left,
+        "center" => HorizontalKeyword::Center,
+        "right" => HorizontalKeyword::Right,
+        _ => stylex_unreachable!(),
+      }
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
   fn horizontal_keyword_parser() -> TokenParser<HorizontalKeyword> {
     TokenParser::<SimpleToken>::token(SimpleToken::Ident(String::new()), Some("Ident"))
-      .where_fn(
-        |token| {
-          if let SimpleToken::Ident(value) = token {
-            matches!(value.as_str(), "left" | "center" | "right")
-          } else {
-            false
-          }
-        },
-        Some("horizontal_keyword"),
-      )
+      .where_fn(Self::is_horizontal_ident, Some("horizontal_keyword"))
       .map(
-        |token| {
-          if let SimpleToken::Ident(value) = token {
-            match value.as_str() {
-              "left" => HorizontalKeyword::Left,
-              "center" => HorizontalKeyword::Center,
-              "right" => HorizontalKeyword::Right,
-              _ => stylex_unreachable!(),
-            }
-          } else {
-            stylex_unreachable!()
-          }
-        },
+        Self::token_to_horizontal_keyword,
         Some("to_horizontal_keyword"),
       )
   }
 
+  fn is_vertical_ident(token: &SimpleToken) -> bool {
+    if let SimpleToken::Ident(value) = token {
+      matches!(value.as_str(), "top" | "center" | "bottom")
+    } else {
+      false
+    }
+  }
+
+  fn token_to_vertical_keyword(token: SimpleToken) -> VerticalKeyword {
+    if let SimpleToken::Ident(value) = token {
+      match value.as_str() {
+        "top" => VerticalKeyword::Top,
+        "center" => VerticalKeyword::Center,
+        "bottom" => VerticalKeyword::Bottom,
+        _ => stylex_unreachable!(),
+      }
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
   fn vertical_keyword_parser() -> TokenParser<VerticalKeyword> {
     TokenParser::<SimpleToken>::token(SimpleToken::Ident(String::new()), Some("Ident"))
-      .where_fn(
-        |token| {
-          if let SimpleToken::Ident(value) = token {
-            matches!(value.as_str(), "top" | "center" | "bottom")
-          } else {
-            false
-          }
-        },
-        Some("vertical_keyword"),
-      )
-      .map(
-        |token| {
-          if let SimpleToken::Ident(value) = token {
-            match value.as_str() {
-              "top" => VerticalKeyword::Top,
-              "center" => VerticalKeyword::Center,
-              "bottom" => VerticalKeyword::Bottom,
-              _ => stylex_unreachable!(),
-            }
-          } else {
-            stylex_unreachable!()
-          }
-        },
-        Some("to_vertical_keyword"),
-      )
+      .where_fn(Self::is_vertical_ident, Some("vertical_keyword"))
+      .map(Self::token_to_vertical_keyword, Some("to_vertical_keyword"))
   }
 
   /// Covers these key scenarios:
@@ -362,3 +361,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/position_test.rs"]
 mod position_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/position_coverage_test.rs"]
+mod position_coverage_test;

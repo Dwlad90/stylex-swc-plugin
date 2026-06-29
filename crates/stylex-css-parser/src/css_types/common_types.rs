@@ -35,33 +35,33 @@ impl Display for CssWideKeyword {
 }
 
 impl CssWideKeyword {
+  fn extract_ident(token: SimpleToken) -> String {
+    if let SimpleToken::Ident(value) = token {
+      value
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
+  fn ident_to_keyword(value: String) -> CssWideKeyword {
+    match value.as_str() {
+      "inherit" => CssWideKeyword::Inherit,
+      "initial" => CssWideKeyword::Initial,
+      "unset" => CssWideKeyword::Unset,
+      "revert" => CssWideKeyword::Revert,
+      _ => stylex_unreachable!(),
+    }
+  }
+
   /// Parser for CSS-wide keywords
   pub fn parser() -> TokenParser<CssWideKeyword> {
     tokens::ident()
-      .map(
-        |token| {
-          if let SimpleToken::Ident(value) = token {
-            value
-          } else {
-            stylex_unreachable!()
-          }
-        },
-        Some(".value"),
-      )
+      .map(Self::extract_ident, Some(".value"))
       .where_fn(
         |value| matches!(value.as_str(), "inherit" | "initial" | "unset" | "revert"),
         Some("css_wide_keyword"),
       )
-      .map(
-        |value| match value.as_str() {
-          "inherit" => CssWideKeyword::Inherit,
-          "initial" => CssWideKeyword::Initial,
-          "unset" => CssWideKeyword::Unset,
-          "revert" => CssWideKeyword::Revert,
-          _ => stylex_unreachable!(),
-        },
-        Some("to_keyword"),
-      )
+      .map(Self::ident_to_keyword, Some("to_keyword"))
   }
 
   /// Parser specifically for 'inherit'
@@ -113,6 +113,14 @@ impl CssVariable {
     Self { name: name.into() }
   }
 
+  fn extract_ident_string(tok: SimpleToken) -> String {
+    if let SimpleToken::Ident(s) = tok {
+      s
+    } else {
+      String::new()
+    }
+  }
+
   /// Parser for CSS variables: var(--name)
   pub fn parser() -> TokenParser<CssVariable> {
     // var(
@@ -123,16 +131,7 @@ impl CssVariable {
       crate::token_types::SimpleToken::Ident(String::new()),
       Some("Ident"),
     )
-    .map(
-      |tok| {
-        if let crate::token_types::SimpleToken::Ident(s) = tok {
-          s
-        } else {
-          String::new()
-        }
-      },
-      Some(".value"),
-    )
+    .map(Self::extract_ident_string, Some(".value"))
     .where_fn(|s| s.starts_with("--"), Some("starts_with_--"));
 
     // )
@@ -169,20 +168,18 @@ impl Percentage {
     Self { value }
   }
 
+  fn token_to_percentage(token: SimpleToken) -> Percentage {
+    if let SimpleToken::Percentage(value) = token {
+      // cssparser stores percentage as unit_value (already converted: 50% = 0.50)
+      Percentage::new((value * 100.0) as f32)
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
   /// Parser for percentage values
   pub fn parser() -> TokenParser<Percentage> {
-    tokens::percentage().map(
-      |token| {
-        if let SimpleToken::Percentage(value) = token {
-          // cssparser stores percentage as unit_value (already converted: 50% = 0.50)
-
-          Percentage::new((value * 100.0) as f32)
-        } else {
-          stylex_unreachable!()
-        }
-      },
-      Some("to_percentage"),
-    )
+    tokens::percentage().map(Self::token_to_percentage, Some("to_percentage"))
   }
 }
 
@@ -204,18 +201,17 @@ impl Number {
     Self { value }
   }
 
+  fn token_to_number(token: SimpleToken) -> Number {
+    if let SimpleToken::Number(value) = token {
+      Number::new(value as f32)
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
   /// Parser for number values
   pub fn parser() -> TokenParser<Number> {
-    tokens::number().map(
-      |token| {
-        if let SimpleToken::Number(value) = token {
-          Number::new(value as f32)
-        } else {
-          stylex_unreachable!()
-        }
-      },
-      Some("to_number"),
-    )
+    tokens::number().map(Self::token_to_number, Some("to_number"))
   }
 }
 
@@ -254,3 +250,7 @@ pub fn number_or_percentage_parser() -> TokenParser<NumberOrPercentage> {
 #[cfg(test)]
 #[path = "../tests/css_types/common_types_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "../tests/css_types/common_types_coverage_test.rs"]
+mod common_types_coverage_test;

@@ -91,3 +91,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/length_percentage_test.rs"]
 mod length_percentage_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/length_percentage_coverage_test.rs"]
+mod length_percentage_coverage_test;

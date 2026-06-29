@@ -112,6 +112,9 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
         tokens.push(SimpleToken::LeftParen);
 
         // Parse the nested parenthesis content recursively
+        // TODO: lines 115 (cols 20-21), 119-120 — the `Err(e)` variable binding and
+        // error body are unreachable: the inner closure always returns Ok(()) so
+        // parse_nested_block never returns Err here.
         if let Err(e) = parser.parse_nested_block(|nested_parser| {
           tokenize_nested_content(nested_parser, tokens);
           Ok::<(), cssparser::ParseError<()>>(())
@@ -129,6 +132,8 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
         tokens.push(SimpleToken::Function(func_name.as_ref().to_string()));
 
         // Parse the function content recursively
+        // TODO: lines 132 (cols 20-21), 136-137 — same as above; inner closure
+        // always succeeds so the Err arm is dead code.
         if let Err(e) = parser.parse_nested_block(|nested_parser| {
           tokenize_nested_content(nested_parser, tokens);
           Ok::<(), cssparser::ParseError<()>>(())
@@ -142,6 +147,9 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
       },
       // Handle all other tokens normally
       _ => {
+        // TODO: line 147 (cols 9-10) — the None branch of `if let Some(mapped_inner)`
+        // is unreachable: map_css_token always returns Some(_) (its last arm is
+        // `_ => Some(T::Unknown(...))`), so the implicit else is dead code.
         if let Some(mapped_inner) = map_css_token(inner_token) {
           tokens.push(mapped_inner);
         }
@@ -163,6 +171,9 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
         tokens.push(SimpleToken::Function(func_name.as_ref().to_string()));
 
         // Parse the function content to get individual argument tokens
+        // TODO: lines 166 (cols 20-21), 171-172 — the `Err(e)` binding and error body
+        // are unreachable: the inner closure always returns Ok(()) so parse_nested_block
+        // never returns Err.
         if let Err(e) = parser.parse_nested_block(|nested_parser| {
           // Recursively tokenize everything inside the function parentheses
           tokenize_nested_content(nested_parser, &mut tokens);
@@ -181,6 +192,8 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
         tokens.push(SimpleToken::LeftParen);
 
         // Parse the parenthesis content to get individual tokens
+        // TODO: lines 184 (cols 20-21), 190-191 — same as above; the Err arm is dead
+        // code because the inner closure always succeeds.
         if let Err(e) = parser.parse_nested_block(|nested_parser| {
           // Recursively tokenize everything inside the parentheses, handling nested
           // structures
@@ -196,6 +209,9 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
       },
       // Handle all other tokens normally
       _ => {
+        // TODO: line 201 (cols 9-10) — the None branch of `if let Some(mapped)` is
+        // unreachable: map_css_token always returns Some(_) (its wildcard arm returns
+        // Some(T::Unknown(...))), so the implicit else is dead code.
         if let Some(mapped) = map_css_token(t) {
           tokens.push(mapped);
         }
@@ -299,3 +315,7 @@ mod tests;
 #[cfg(test)]
 #[path = "tests/token_types_test.rs"]
 mod token_types_test;
+
+#[cfg(test)]
+#[path = "tests/token_types_coverage_test.rs"]
+mod token_types_coverage_test;

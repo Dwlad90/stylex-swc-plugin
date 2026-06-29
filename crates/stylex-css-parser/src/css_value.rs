@@ -313,3 +313,7 @@ impl From<SimpleToken> for CssValue {
 #[cfg(test)]
 #[path = "tests/css_value_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/css_value_coverage_test.rs"]
+mod css_value_coverage_test;

@@ -185,3 +185,7 @@ fn parse_nested_joined(parser: &mut Parser) -> String {
 #[cfg(test)]
 #[path = "tests/value_parser_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/value_parser_coverage_test.rs"]
+mod value_parser_coverage_test;

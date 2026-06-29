@@ -17,7 +17,7 @@ use super::*;
 fn expand_radii_one_value() {
   use crate::css_types::length_percentage::length_percentage_parser;
   let v = length_percentage_parser().parse_to_end("10px").unwrap();
-  let result = BorderRadiusShorthand::expand_radii(vec![v.clone()]);
+  let result = BorderRadiusShorthand::expand_radii(vec![v]);
   assert_eq!(result[0].to_string(), "10px");
   assert_eq!(result[1].to_string(), "10px");
   assert_eq!(result[2].to_string(), "10px");
@@ -178,8 +178,6 @@ fn to_string_two_value_horizontal_shorthand() {
 #[test]
 fn shorthand_new_with_all_vertical_explicit() {
   // Drive all the `unwrap_or` paths in ::new by providing all 8 values.
-  use crate::css_types::LengthPercentage;
-  use crate::css_types::length_percentage::length_percentage_parser;
 
   let px = |v: &str| length_percentage_parser().parse_to_end(v).unwrap();
   let shorthand = BorderRadiusShorthand::new(

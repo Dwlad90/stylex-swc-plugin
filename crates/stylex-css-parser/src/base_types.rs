@@ -96,3 +96,7 @@ mod tests;
 #[cfg(test)]
 #[path = "tests/base_types_test.rs"]
 mod base_types_test;
+
+#[cfg(test)]
+#[path = "tests/base_types_coverage_test.rs"]
+mod base_types_coverage_test;

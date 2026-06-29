@@ -30,18 +30,24 @@ impl DashedIdentifier {
   }
 
   /// Parser for CSS dashed identifiers
+  /// Extract the identifier string from a `SimpleToken::Ident`.
+  ///
+  /// Panics via `stylex_unreachable!` when given any other token variant, which
+  /// cannot occur through the public parser because the `Ident` token matcher
+  /// guarantees the token variant. The named function makes that defensive branch
+  /// reachable from coverage tests without modifying existing tests.
+  pub(crate) fn extract_ident_token(token: SimpleToken) -> String {
+    if let SimpleToken::Ident(value) = token {
+      value
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
+  /// Parser for CSS dashed identifiers
   pub fn parser() -> TokenParser<DashedIdentifier> {
     TokenParser::<SimpleToken>::token(SimpleToken::Ident(String::new()), Some("Ident"))
-      .map(
-        |token| {
-          if let SimpleToken::Ident(value) = token {
-            value
-          } else {
-            stylex_unreachable!()
-          }
-        },
-        Some("extract_ident"),
-      )
+      .map(Self::extract_ident_token, Some("extract_ident"))
       .where_fn(
         |value| Self::is_valid_dashed_ident(value),
         Some("valid_dashed_ident"),
@@ -64,3 +70,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/dashed_ident_test.rs"]
 mod dashed_ident_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/dashed_ident_coverage_test.rs"]
+mod dashed_ident_coverage_test;

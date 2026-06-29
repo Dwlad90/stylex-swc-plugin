@@ -45,21 +45,27 @@ impl Dimension {
     }
   }
 
+  /// Extract a `Dimension` from a `SimpleToken::Dimension`, returning `None` for
+  /// any other token variant.
+  ///
+  /// The `else` branch returning `None` cannot be reached through the public
+  /// parser because `tokens::dimension()` guarantees the token is a `Dimension`
+  /// variant. The named function makes that branch reachable from coverage tests
+  /// without modifying existing tests.
+  pub(crate) fn extract_dimension_token(token: SimpleToken) -> Option<Dimension> {
+    if let SimpleToken::Dimension { value, unit } = token {
+      Self::from_value_and_unit(value as f32, unit)
+    } else {
+      None
+    }
+  }
+
   /// Parser for dimensional values
   pub fn parse() -> TokenParser<Dimension> {
     use crate::token_parser::tokens;
 
     tokens::dimension()
-      .map(
-        |token| {
-          if let SimpleToken::Dimension { value, unit } = token {
-            Self::from_value_and_unit(value as f32, unit)
-          } else {
-            None
-          }
-        },
-        Some("extract_dimension"),
-      )
+      .map(Self::extract_dimension_token, Some("extract_dimension"))
       .where_fn(|opt| opt.is_some(), Some("valid_dimension"))
       .map(|opt| opt.unwrap(), Some("unwrap_dimension"))
   }
@@ -88,3 +94,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/dimension_test.rs"]
 mod dimension_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/dimension_coverage_test.rs"]
+mod dimension_coverage_test;

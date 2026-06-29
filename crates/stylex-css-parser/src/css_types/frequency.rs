@@ -36,6 +36,24 @@ impl Frequency {
     FREQUENCY_UNITS.contains(&unit)
   }
 
+  /// Extract a frequency `(value, unit)` pair from a `SimpleToken`.
+  ///
+  /// Returns `Some` when the token is a `Dimension` with a valid frequency unit,
+  /// `None` for an unrecognised unit, and `None` for any non-`Dimension` variant
+  /// (the latter branch is unreachable through the public parser, which guarantees
+  /// a `Dimension` token, but the named function makes it coverable from tests).
+  pub(crate) fn extract_frequency_token(token: SimpleToken) -> Option<(f32, String)> {
+    if let SimpleToken::Dimension { value, unit } = token {
+      if Self::is_valid_unit(&unit) {
+        Some((value as f32, unit))
+      } else {
+        None
+      }
+    } else {
+      None
+    }
+  }
+
   /// Parser for CSS frequency values
   pub fn parser() -> TokenParser<Frequency> {
     TokenParser::<SimpleToken>::token(
@@ -45,20 +63,7 @@ impl Frequency {
       },
       Some("Dimension"),
     )
-    .map(
-      |token| {
-        if let SimpleToken::Dimension { value, unit } = token {
-          if Self::is_valid_unit(&unit) {
-            Some((value as f32, unit))
-          } else {
-            None
-          }
-        } else {
-          None
-        }
-      },
-      Some("extract_frequency_dimension"),
-    )
+    .map(Self::extract_frequency_token, Some("extract_frequency_dimension"))
     .where_fn(|opt| opt.is_some(), Some("valid_frequency"))
     .map(
       |opt| {
@@ -88,3 +93,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/frequency_test.rs"]
 mod frequency_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/frequency_coverage_test.rs"]
+mod frequency_coverage_test;

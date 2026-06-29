@@ -21,35 +21,46 @@ impl AlphaValue {
     Self { value }
   }
 
+  /// Extract an `AlphaValue` from a `SimpleToken::Percentage`.
+  ///
+  /// Panics via `stylex_unreachable!` for any other token variant, which cannot
+  /// occur through the public parser because the token combinator guarantees a
+  /// `Percentage` token. The named function makes that defensive branch reachable
+  /// from coverage tests.
+  pub(crate) fn extract_percentage_token(token: SimpleToken) -> AlphaValue {
+    if let SimpleToken::Percentage(value) = token {
+      // Handle sign and convert to alpha value (0.0-1.0)
+      // cssparser stores percentage as unit_value (already converted: 50% = 0.50)
+      AlphaValue::new(value as f32)
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
+  /// Extract an `AlphaValue` from a `SimpleToken::Number`.
+  ///
+  /// Panics via `stylex_unreachable!` for any other token variant, which cannot
+  /// occur through the public parser because the token combinator guarantees a
+  /// `Number` token. The named function makes that defensive branch reachable
+  /// from coverage tests.
+  pub(crate) fn extract_number_token(token: SimpleToken) -> AlphaValue {
+    if let SimpleToken::Number(value) = token {
+      // Handle sign and use directly as alpha value
+      AlphaValue::new(value as f32)
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
   /// Parser for alpha values
   pub fn parser() -> TokenParser<AlphaValue> {
     TokenParser::one_of(vec![
       // Percentage: v[4].signCharacter === '-' ? -1 : 1) * v[4].value) / 100
-      TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage")).map(
-        |token| {
-          if let SimpleToken::Percentage(value) = token {
-            // Handle sign and convert to alpha value (0.0-1.0)
-            // cssparser stores percentage as unit_value (already converted: 50% = 0.50)
-
-            AlphaValue::new(value as f32)
-          } else {
-            stylex_unreachable!()
-          }
-        },
-        Some("percentage_to_alpha"),
-      ),
+      TokenParser::<SimpleToken>::token(SimpleToken::Percentage(0.0), Some("Percentage"))
+        .map(Self::extract_percentage_token, Some("percentage_to_alpha")),
       // Number: (v[4].signCharacter === '-' ? -1 : 1) * v[4].value
-      TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number")).map(
-        |token| {
-          if let SimpleToken::Number(value) = token {
-            // Handle sign and use directly as alpha value
-            AlphaValue::new(value as f32)
-          } else {
-            stylex_unreachable!()
-          }
-        },
-        Some("number_to_alpha"),
-      ),
+      TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+        .map(Self::extract_number_token, Some("number_to_alpha")),
     ])
   }
 }
@@ -73,3 +84,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/alpha_value_test.rs"]
 mod alpha_value_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/alpha_value_coverage_test.rs"]
+mod alpha_value_coverage_test;

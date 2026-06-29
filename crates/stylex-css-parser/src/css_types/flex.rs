@@ -27,6 +27,33 @@ impl Flex {
     fraction >= 0.0
   }
 
+  /// Return `true` when `token` is a `Dimension` with unit `"fr"` and a
+  /// non-negative value.
+  ///
+  /// Returns `false` for any non-`Dimension` variant. This branch is unreachable
+  /// through the public parser (the combinator only yields `Dimension` tokens),
+  /// but the named function makes it coverable from tests.
+  pub(crate) fn is_valid_fr_dimension(token: &SimpleToken) -> bool {
+    if let SimpleToken::Dimension { value, unit } = token {
+      unit == "fr" && *value >= 0.0
+    } else {
+      false
+    }
+  }
+
+  /// Extract a `Flex` from a `SimpleToken::Dimension`.
+  ///
+  /// Panics via `stylex_unreachable!` for any other token variant, which cannot
+  /// occur through the public parser. The named function makes that defensive
+  /// branch reachable from coverage tests.
+  pub(crate) fn extract_dimension_token(token: SimpleToken) -> Flex {
+    if let SimpleToken::Dimension { value, unit: _ } = token {
+      Flex::new(value as f32)
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
   /// Parser for flex fraction values
   pub fn parser() -> TokenParser<Flex> {
     TokenParser::<SimpleToken>::token(
@@ -36,26 +63,8 @@ impl Flex {
       },
       Some("Dimension"),
     )
-    .where_fn(
-      |token| {
-        if let SimpleToken::Dimension { value, unit } = token {
-          unit == "fr" && *value >= 0.0
-        } else {
-          false
-        }
-      },
-      Some("valid_fr_unit"),
-    )
-    .map(
-      |token| {
-        if let SimpleToken::Dimension { value, unit: _ } = token {
-          Flex::new(value as f32)
-        } else {
-          stylex_unreachable!()
-        }
-      },
-      Some("to_flex"),
-    )
+    .where_fn(Self::is_valid_fr_dimension, Some("valid_fr_unit"))
+    .map(Self::extract_dimension_token, Some("to_flex"))
   }
 }
 
@@ -73,3 +82,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/flex_test.rs"]
 mod flex_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/flex_coverage_test.rs"]
+mod flex_coverage_test;

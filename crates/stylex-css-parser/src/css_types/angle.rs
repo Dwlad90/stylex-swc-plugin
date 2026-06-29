@@ -38,6 +38,45 @@ impl Angle {
     ANGLE_UNITS.contains(&unit)
   }
 
+  /// Return `true` when `token` is a `Dimension` with a valid angle unit.
+  ///
+  /// Returns `false` for any non-`Dimension` variant. This branch is unreachable
+  /// through the public parser (the combinator only yields `Dimension` tokens),
+  /// but the named function makes it coverable from tests.
+  pub(crate) fn is_valid_angle_dimension(token: &SimpleToken) -> bool {
+    if let SimpleToken::Dimension { unit, .. } = token {
+      Self::is_valid_unit(unit)
+    } else {
+      false
+    }
+  }
+
+  /// Extract an `Angle` from a `SimpleToken::Dimension`.
+  ///
+  /// Panics via `stylex_unreachable!` for any other token variant, which cannot
+  /// occur through the public parser. The named function makes that defensive
+  /// branch reachable from coverage tests.
+  pub(crate) fn extract_dimension_token(token: SimpleToken) -> Angle {
+    if let SimpleToken::Dimension { value, unit } = token {
+      Angle::new(value as f32, unit)
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
+  /// Return `true` when `token` is a `Number` with value `0.0`.
+  ///
+  /// Returns `false` for any non-`Number` variant. This branch is unreachable
+  /// through the public parser (the combinator only yields `Number` tokens),
+  /// but the named function makes it coverable from tests.
+  pub(crate) fn is_zero_number(token: &SimpleToken) -> bool {
+    if let SimpleToken::Number(value) = token {
+      *value == 0.0
+    } else {
+      false
+    }
+  }
+
   /// Parser for CSS angle values
   pub fn parser() -> TokenParser<Angle> {
     // Parser for dimension tokens with valid angle units
@@ -48,39 +87,12 @@ impl Angle {
       },
       Some("Dimension"),
     )
-    .where_fn(
-      |token| {
-        if let SimpleToken::Dimension { unit, .. } = token {
-          Self::is_valid_unit(unit)
-        } else {
-          false
-        }
-      },
-      Some("valid_angle_unit"),
-    )
-    .map(
-      |token| {
-        if let SimpleToken::Dimension { value, unit } = token {
-          Angle::new(value as f32, unit)
-        } else {
-          stylex_unreachable!()
-        }
-      },
-      Some("to_angle"),
-    );
+    .where_fn(Self::is_valid_angle_dimension, Some("valid_angle_unit"))
+    .map(Self::extract_dimension_token, Some("to_angle"));
 
     // Parser for zero without unit (special case for angles - defaults to 'deg')
     let zero_parser = TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
-      .where_fn(
-        |token| {
-          if let SimpleToken::Number(value) = token {
-            *value == 0.0
-          } else {
-            false
-          }
-        },
-        Some("zero_value"),
-      )
+      .where_fn(Self::is_zero_number, Some("zero_value"))
       .map(|_| Angle::new(0.0, "deg"), Some("zero_angle"));
 
     // Combine both parsers
@@ -102,3 +114,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/angle_test.rs"]
 mod angle_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/angle_coverage_test.rs"]
+mod angle_coverage_test;

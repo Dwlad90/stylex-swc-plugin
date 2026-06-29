@@ -36,6 +36,24 @@ impl Time {
     TIME_UNITS.contains(&unit)
   }
 
+  /// Extract a time `(value, unit)` pair from a `SimpleToken`.
+  ///
+  /// Returns `Some` when the token is a `Dimension` with a valid time unit,
+  /// `None` for an unrecognised unit, and `None` for any non-`Dimension` variant
+  /// (the latter branch is unreachable through the public parser, which guarantees
+  /// a `Dimension` token, but the named function makes it coverable from tests).
+  pub(crate) fn extract_time_token(token: SimpleToken) -> Option<(f32, String)> {
+    if let SimpleToken::Dimension { value, unit } = token {
+      if Self::is_valid_unit(&unit) {
+        Some((value as f32, unit))
+      } else {
+        None
+      }
+    } else {
+      None
+    }
+  }
+
   /// Parser for CSS time values
   pub fn parser() -> TokenParser<Time> {
     TokenParser::<SimpleToken>::token(
@@ -45,20 +63,7 @@ impl Time {
       },
       Some("Dimension"),
     )
-    .map(
-      |token| {
-        if let SimpleToken::Dimension { value, unit } = token {
-          if Self::is_valid_unit(&unit) {
-            Some((value as f32, unit))
-          } else {
-            None
-          }
-        } else {
-          None
-        }
-      },
-      Some("extract_time_dimension"),
-    )
+    .map(Self::extract_time_token, Some("extract_time_dimension"))
     .where_fn(|opt| opt.is_some(), Some("valid_time"))
     .map(
       |opt| {
@@ -88,3 +93,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/time_test.rs"]
 mod time_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/time_coverage_test.rs"]
+mod time_coverage_test;

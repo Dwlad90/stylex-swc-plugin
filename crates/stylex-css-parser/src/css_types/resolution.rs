@@ -38,6 +38,32 @@ impl Resolution {
     RESOLUTION_UNITS.contains(&unit)
   }
 
+  /// Return `true` when `token` is a `Dimension` with a valid resolution unit.
+  ///
+  /// Returns `false` for any non-`Dimension` variant. This branch is unreachable
+  /// through the public parser (the combinator only yields `Dimension` tokens),
+  /// but the named function makes it coverable from tests.
+  pub(crate) fn is_valid_resolution_dimension(token: &SimpleToken) -> bool {
+    if let SimpleToken::Dimension { unit, .. } = token {
+      Self::is_valid_unit(unit)
+    } else {
+      false
+    }
+  }
+
+  /// Extract a `Resolution` from a `SimpleToken::Dimension`.
+  ///
+  /// Panics via `stylex_unreachable!` for any other token variant, which cannot
+  /// occur through the public parser. The named function makes that defensive
+  /// branch reachable from coverage tests.
+  pub(crate) fn extract_dimension_token(token: SimpleToken) -> Resolution {
+    if let SimpleToken::Dimension { value, unit } = token {
+      Resolution::new(value as f32, unit)
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
   /// Parser for CSS resolution values
   pub fn parser() -> TokenParser<Resolution> {
     TokenParser::<SimpleToken>::token(
@@ -47,26 +73,8 @@ impl Resolution {
       },
       Some("Dimension"),
     )
-    .where_fn(
-      |token| {
-        if let SimpleToken::Dimension { unit, .. } = token {
-          Self::is_valid_unit(unit)
-        } else {
-          false
-        }
-      },
-      Some("valid_resolution_unit"),
-    )
-    .map(
-      |token| {
-        if let SimpleToken::Dimension { value, unit } = token {
-          Resolution::new(value as f32, unit)
-        } else {
-          stylex_unreachable!()
-        }
-      },
-      Some("to_resolution"),
-    )
+    .where_fn(Self::is_valid_resolution_dimension, Some("valid_resolution_unit"))
+    .map(Self::extract_dimension_token, Some("to_resolution"))
   }
 }
 
@@ -84,3 +92,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/resolution_test.rs"]
 mod resolution_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/resolution_coverage_test.rs"]
+mod resolution_coverage_test;

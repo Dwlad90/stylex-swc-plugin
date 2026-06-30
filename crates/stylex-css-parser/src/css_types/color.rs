@@ -37,27 +37,6 @@ fn alpha_as_number() -> TokenParser<f32> {
   crate::css_types::alpha_value::alpha_as_number()
 }
 
-/// Advance the token list by one and return the consumed token, or `None` at
-/// end-of-input.
-///
-/// `TokenList::consume_next_token` always returns `Ok(Some(...))` or
-/// `Ok(None)`. Using `.ok().flatten()` instead of `?` converts the infallible
-/// `Result` to a plain `Option`, eliminating the uncovered Err-propagation
-/// region that `?` would generate.
-pub(crate) fn next_token(tokens: &mut TokenList) -> Option<SimpleToken> {
-  tokens.consume_next_token().ok().flatten()
-}
-
-/// Peek at the next token without consuming it, returning `None` at
-/// end-of-input.
-///
-/// `TokenList::peek()` always returns `Ok(Some(...))` or `Ok(None)`.
-/// `.ok().flatten()` converts the infallible `Result` to a plain `Option`,
-/// avoiding an uncovered Err-propagation region.
-pub(crate) fn peek_token(tokens: &mut TokenList) -> Option<SimpleToken> {
-  tokens.peek().ok().flatten()
-}
-
 /// Returns true when `token` is a Function token with the given name. Returns
 /// false for all other token kinds (defensive fallback — guarded by
 /// tokens::function() in callers).
@@ -737,9 +716,12 @@ impl Rgb {
     TokenParser::new(
       |tokens| {
         // Expect Function("rgb")
-        let function_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected RGB function".to_string(),
-        })?;
+        let function_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected RGB function".to_string(),
+            })?;
 
         if let SimpleToken::Function(name) = function_token {
           if name.to_lowercase() != "rgb" {
@@ -754,8 +736,8 @@ impl Rgb {
         }
 
         // Skip optional whitespace before first value
-        while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-          next_token(tokens);
+        while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+          tokens.consume_next_token_infallible();
         }
 
         // Parse r value
@@ -774,14 +756,17 @@ impl Rgb {
         let b = Self::parse_rgb_number_token(tokens)?;
 
         // Skip optional whitespace before closing paren
-        while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-          next_token(tokens);
+        while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+          tokens.consume_next_token_infallible();
         }
 
         // Expect closing paren
-        let close_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+        let close_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if !matches!(close_token, SimpleToken::RightParen) {
           return Err(CssParseError::ParseError {
@@ -800,9 +785,12 @@ impl Rgb {
     TokenParser::new(
       |tokens| {
         // Expect Function("rgb")
-        let function_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected RGB function".to_string(),
-        })?;
+        let function_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected RGB function".to_string(),
+            })?;
 
         if let SimpleToken::Function(name) = function_token {
           if name.to_lowercase() != "rgb" {
@@ -820,9 +808,12 @@ impl Rgb {
         let r = Self::parse_rgb_number_token(tokens)?;
 
         // Expect whitespace
-        let whitespace_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected whitespace".to_string(),
-        })?;
+        let whitespace_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected whitespace".to_string(),
+            })?;
         if !matches!(whitespace_token, SimpleToken::Whitespace) {
           return Err(CssParseError::ParseError {
             message: format!("Expected whitespace token, got {:?}", whitespace_token),
@@ -833,9 +824,12 @@ impl Rgb {
         let g = Self::parse_rgb_number_token(tokens)?;
 
         // Expect whitespace
-        let whitespace_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected whitespace".to_string(),
-        })?;
+        let whitespace_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected whitespace".to_string(),
+            })?;
         if !matches!(whitespace_token, SimpleToken::Whitespace) {
           return Err(CssParseError::ParseError {
             message: format!("Expected whitespace token, got {:?}", whitespace_token),
@@ -846,9 +840,12 @@ impl Rgb {
         let b = Self::parse_rgb_number_token(tokens)?;
 
         // Expect closing paren
-        let close_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+        let close_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if !matches!(close_token, SimpleToken::RightParen) {
           return Err(CssParseError::ParseError {
@@ -864,9 +861,11 @@ impl Rgb {
 
   /// Helper: Parse RGB number token (0-255)
   fn parse_rgb_number_token(tokens: &mut TokenList) -> Result<u8, CssParseError> {
-    let token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected number token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected number token".to_string(),
+      })?;
 
     if let SimpleToken::Number(value) = token {
       if (0.0..=255.0).contains(&value) {
@@ -885,14 +884,16 @@ impl Rgb {
 
   fn consume_comma_with_optional_whitespace(tokens: &mut TokenList) -> Result<(), CssParseError> {
     // Skip optional whitespace before comma
-    while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-      next_token(tokens);
+    while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+      tokens.consume_next_token_infallible();
     }
 
     // Expect comma
-    let comma_token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected comma".to_string(),
-    })?;
+    let comma_token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected comma".to_string(),
+      })?;
 
     if !matches!(comma_token, SimpleToken::Comma) {
       return Err(CssParseError::ParseError {
@@ -901,8 +902,8 @@ impl Rgb {
     }
 
     // Skip optional whitespace after comma
-    while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-      next_token(tokens);
+    while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+      tokens.consume_next_token_infallible();
     }
 
     Ok(())
@@ -939,9 +940,12 @@ impl Rgba {
     TokenParser::new(
       |tokens| {
         // Expect Function("rgba")
-        let function_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected RGBA function".to_string(),
-        })?;
+        let function_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected RGBA function".to_string(),
+            })?;
 
         if let SimpleToken::Function(name) = function_token {
           if name.to_lowercase() != "rgba" {
@@ -956,8 +960,8 @@ impl Rgba {
         }
 
         // Skip optional whitespace before first value
-        while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-          next_token(tokens);
+        while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+          tokens.consume_next_token_infallible();
         }
 
         // Parse r value
@@ -982,14 +986,17 @@ impl Rgba {
         let a = Self::parse_alpha_value_token(tokens)?;
 
         // Skip optional whitespace before closing paren
-        while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-          next_token(tokens);
+        while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+          tokens.consume_next_token_infallible();
         }
 
         // Expect closing paren
-        let close_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+        let close_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if !matches!(close_token, SimpleToken::RightParen) {
           return Err(CssParseError::ParseError {
@@ -1009,9 +1016,12 @@ impl Rgba {
     TokenParser::new(
       |tokens| {
         // Expect Function("rgb" or "rgba")
-        let function_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected RGB/RGBA function".to_string(),
-        })?;
+        let function_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected RGB/RGBA function".to_string(),
+            })?;
 
         if let SimpleToken::Function(name) = function_token {
           if name.to_lowercase() != "rgb" && name.to_lowercase() != "rgba" {
@@ -1029,9 +1039,12 @@ impl Rgba {
         let r = Self::parse_rgba_number_token(tokens)?;
 
         // Expect whitespace
-        let whitespace_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected whitespace".to_string(),
-        })?;
+        let whitespace_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected whitespace".to_string(),
+            })?;
         if !matches!(whitespace_token, SimpleToken::Whitespace) {
           return Err(CssParseError::ParseError {
             message: format!("Expected whitespace token, got {:?}", whitespace_token),
@@ -1042,9 +1055,12 @@ impl Rgba {
         let g = Self::parse_rgba_number_token(tokens)?;
 
         // Expect whitespace
-        let whitespace_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected whitespace".to_string(),
-        })?;
+        let whitespace_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected whitespace".to_string(),
+            })?;
         if !matches!(whitespace_token, SimpleToken::Whitespace) {
           return Err(CssParseError::ParseError {
             message: format!("Expected whitespace token, got {:?}", whitespace_token),
@@ -1055,14 +1071,17 @@ impl Rgba {
         let b = Self::parse_rgba_number_token(tokens)?;
 
         // Expect whitespace before slash (optional)
-        if let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-          next_token(tokens);
+        if let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+          tokens.consume_next_token_infallible();
         }
 
         // Expect slash
-        let slash_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected slash".to_string(),
-        })?;
+        let slash_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected slash".to_string(),
+            })?;
         if !matches!(slash_token, SimpleToken::Delim('/')) {
           return Err(CssParseError::ParseError {
             message: format!("Expected '/' token, got {:?}", slash_token),
@@ -1070,17 +1089,20 @@ impl Rgba {
         }
 
         // Expect whitespace after slash (optional)
-        if let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-          next_token(tokens);
+        if let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+          tokens.consume_next_token_infallible();
         }
 
         // Parse alpha value
         let a = Self::parse_alpha_value_token(tokens)?;
 
         // Expect closing paren
-        let close_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+        let close_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if !matches!(close_token, SimpleToken::RightParen) {
           return Err(CssParseError::ParseError {
@@ -1096,9 +1118,11 @@ impl Rgba {
 
   /// Helper: Parse RGBA number token (0-255) - same as RGB
   fn parse_rgba_number_token(tokens: &mut TokenList) -> Result<u8, CssParseError> {
-    let token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected number token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected number token".to_string(),
+      })?;
 
     if let SimpleToken::Number(value) = token {
       if (0.0..=255.0).contains(&value) {
@@ -1117,9 +1141,11 @@ impl Rgba {
 
   /// Helper: Parse alpha value token (0.0-1.0 or 0%-100%)
   fn parse_alpha_value_token(tokens: &mut TokenList) -> Result<f32, CssParseError> {
-    let token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected alpha value token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected alpha value token".to_string(),
+      })?;
 
     match token {
       SimpleToken::Number(value) => {
@@ -1156,14 +1182,16 @@ impl Rgba {
 
   fn consume_comma_with_optional_whitespace(tokens: &mut TokenList) -> Result<(), CssParseError> {
     // Skip optional whitespace before comma
-    while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-      next_token(tokens);
+    while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+      tokens.consume_next_token_infallible();
     }
 
     // Expect comma
-    let comma_token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected comma".to_string(),
-    })?;
+    let comma_token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected comma".to_string(),
+      })?;
 
     if !matches!(comma_token, SimpleToken::Comma) {
       return Err(CssParseError::ParseError {
@@ -1172,8 +1200,8 @@ impl Rgba {
     }
 
     // Skip optional whitespace after comma
-    while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-      next_token(tokens);
+    while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+      tokens.consume_next_token_infallible();
     }
 
     Ok(())
@@ -1219,9 +1247,12 @@ impl Hsl {
     TokenParser::new(
       |tokens| {
         // Expect Function("hsl")
-        let function_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected HSL function".to_string(),
-        })?;
+        let function_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected HSL function".to_string(),
+            })?;
 
         if let SimpleToken::Function(name) = function_token {
           if name.to_lowercase() != "hsl" {
@@ -1236,8 +1267,8 @@ impl Hsl {
         }
 
         // Skip optional whitespace before first value
-        while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-          next_token(tokens);
+        while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+          tokens.consume_next_token_infallible();
         }
 
         // Parse hue value (angle or number)
@@ -1256,14 +1287,17 @@ impl Hsl {
         let l = Self::parse_hsl_percentage_token(tokens)?;
 
         // Skip optional whitespace before closing paren
-        while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-          next_token(tokens);
+        while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+          tokens.consume_next_token_infallible();
         }
 
         // Expect closing paren
-        let close_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+        let close_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if !matches!(close_token, SimpleToken::RightParen) {
           return Err(CssParseError::ParseError {
@@ -1282,9 +1316,12 @@ impl Hsl {
     TokenParser::new(
       |tokens| {
         // Expect Function("hsl")
-        let function_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected HSL function".to_string(),
-        })?;
+        let function_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected HSL function".to_string(),
+            })?;
 
         if let SimpleToken::Function(name) = function_token {
           if name.to_lowercase() != "hsl" {
@@ -1302,9 +1339,12 @@ impl Hsl {
         let h = Self::parse_hsl_hue_token(tokens)?;
 
         // Expect whitespace
-        let whitespace_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected whitespace".to_string(),
-        })?;
+        let whitespace_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected whitespace".to_string(),
+            })?;
         if !matches!(whitespace_token, SimpleToken::Whitespace) {
           return Err(CssParseError::ParseError {
             message: format!("Expected whitespace token, got {:?}", whitespace_token),
@@ -1315,9 +1355,12 @@ impl Hsl {
         let s = Self::parse_hsl_percentage_token(tokens)?;
 
         // Expect whitespace
-        let whitespace_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected whitespace".to_string(),
-        })?;
+        let whitespace_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected whitespace".to_string(),
+            })?;
         if !matches!(whitespace_token, SimpleToken::Whitespace) {
           return Err(CssParseError::ParseError {
             message: format!("Expected whitespace token, got {:?}", whitespace_token),
@@ -1328,9 +1371,12 @@ impl Hsl {
         let l = Self::parse_hsl_percentage_token(tokens)?;
 
         // Expect closing paren
-        let close_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+        let close_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if !matches!(close_token, SimpleToken::RightParen) {
           return Err(CssParseError::ParseError {
@@ -1346,9 +1392,11 @@ impl Hsl {
 
   /// Helper: Parse HSL hue token (angle or number treated as degrees)
   fn parse_hsl_hue_token(tokens: &mut TokenList) -> Result<Angle, CssParseError> {
-    let token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected hue value token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected hue value token".to_string(),
+      })?;
 
     match token {
       SimpleToken::Dimension { value, unit } => {
@@ -1376,9 +1424,11 @@ impl Hsl {
 
   /// Helper: Parse HSL percentage token
   fn parse_hsl_percentage_token(tokens: &mut TokenList) -> Result<Percentage, CssParseError> {
-    let token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected percentage token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected percentage token".to_string(),
+      })?;
 
     if let SimpleToken::Percentage(value) = token {
       // cssparser stores percentage as already converted (0.5 for 50%)
@@ -1393,14 +1443,16 @@ impl Hsl {
 
   fn consume_comma_with_optional_whitespace(tokens: &mut TokenList) -> Result<(), CssParseError> {
     // Skip optional whitespace before comma
-    while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-      next_token(tokens);
+    while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+      tokens.consume_next_token_infallible();
     }
 
     // Expect comma
-    let comma_token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected comma".to_string(),
-    })?;
+    let comma_token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected comma".to_string(),
+      })?;
 
     if !matches!(comma_token, SimpleToken::Comma) {
       return Err(CssParseError::ParseError {
@@ -1409,8 +1461,8 @@ impl Hsl {
     }
 
     // Skip optional whitespace after comma
-    while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-      next_token(tokens);
+    while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+      tokens.consume_next_token_infallible();
     }
 
     Ok(())
@@ -1458,9 +1510,12 @@ impl Hsla {
     TokenParser::new(
       |tokens| {
         // Expect Function("hsla")
-        let function_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected HSLA function".to_string(),
-        })?;
+        let function_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected HSLA function".to_string(),
+            })?;
 
         if let SimpleToken::Function(name) = function_token {
           if name.to_lowercase() != "hsla" {
@@ -1496,9 +1551,12 @@ impl Hsla {
         let a = Self::parse_hsla_alpha_token(tokens)?;
 
         // Expect closing paren
-        let close_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+        let close_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if !matches!(close_token, SimpleToken::RightParen) {
           return Err(CssParseError::ParseError {
@@ -1517,9 +1575,12 @@ impl Hsla {
     TokenParser::new(
       |tokens| {
         // Expect Function("hsl") - note: hsl, not hsla!
-        let function_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected HSL function".to_string(),
-        })?;
+        let function_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected HSL function".to_string(),
+            })?;
 
         if let SimpleToken::Function(name) = function_token {
           if name.to_lowercase() != "hsl" {
@@ -1537,9 +1598,12 @@ impl Hsla {
         let h = Self::parse_hsla_hue_token(tokens)?;
 
         // Expect whitespace
-        let whitespace_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected whitespace".to_string(),
-        })?;
+        let whitespace_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected whitespace".to_string(),
+            })?;
         if !matches!(whitespace_token, SimpleToken::Whitespace) {
           return Err(CssParseError::ParseError {
             message: format!("Expected whitespace token, got {:?}", whitespace_token),
@@ -1550,9 +1614,12 @@ impl Hsla {
         let s = Self::parse_hsla_percentage_token(tokens)?;
 
         // Expect whitespace
-        let whitespace_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected whitespace".to_string(),
-        })?;
+        let whitespace_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected whitespace".to_string(),
+            })?;
         if !matches!(whitespace_token, SimpleToken::Whitespace) {
           return Err(CssParseError::ParseError {
             message: format!("Expected whitespace token, got {:?}", whitespace_token),
@@ -1563,14 +1630,17 @@ impl Hsla {
         let l = Self::parse_hsla_percentage_token(tokens)?;
 
         // Expect whitespace before slash (optional)
-        if let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-          next_token(tokens);
+        if let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+          tokens.consume_next_token_infallible();
         }
 
         // Expect slash
-        let slash_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected slash".to_string(),
-        })?;
+        let slash_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected slash".to_string(),
+            })?;
         if !matches!(slash_token, SimpleToken::Delim('/')) {
           return Err(CssParseError::ParseError {
             message: format!("Expected '/' token, got {:?}", slash_token),
@@ -1578,17 +1648,20 @@ impl Hsla {
         }
 
         // Expect whitespace after slash (optional)
-        if let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-          next_token(tokens);
+        if let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+          tokens.consume_next_token_infallible();
         }
 
         // Parse alpha value
         let a = Self::parse_hsla_alpha_token(tokens)?;
 
         // Expect closing paren
-        let close_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+        let close_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if !matches!(close_token, SimpleToken::RightParen) {
           return Err(CssParseError::ParseError {
@@ -1604,9 +1677,11 @@ impl Hsla {
 
   /// Helper: Parse HSLA hue token (angle or number treated as degrees)
   fn parse_hsla_hue_token(tokens: &mut TokenList) -> Result<Angle, CssParseError> {
-    let token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected hue value token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected hue value token".to_string(),
+      })?;
 
     match token {
       SimpleToken::Dimension { value, unit } => {
@@ -1634,9 +1709,11 @@ impl Hsla {
 
   /// Helper: Parse HSLA percentage token
   fn parse_hsla_percentage_token(tokens: &mut TokenList) -> Result<Percentage, CssParseError> {
-    let token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected percentage token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected percentage token".to_string(),
+      })?;
 
     if let SimpleToken::Percentage(value) = token {
       // cssparser stores percentage as already converted (0.5 for 50%)
@@ -1651,9 +1728,11 @@ impl Hsla {
 
   /// Helper: Parse HSLA alpha value token (0.0-1.0 or 0%-100%)
   fn parse_hsla_alpha_token(tokens: &mut TokenList) -> Result<f32, CssParseError> {
-    let token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected alpha value token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected alpha value token".to_string(),
+      })?;
 
     match token {
       SimpleToken::Number(value) => {
@@ -1689,14 +1768,16 @@ impl Hsla {
 
   fn consume_comma_with_optional_whitespace(tokens: &mut TokenList) -> Result<(), CssParseError> {
     // Skip optional whitespace before comma
-    while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-      next_token(tokens);
+    while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+      tokens.consume_next_token_infallible();
     }
 
     // Expect comma
-    let comma_token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected comma".to_string(),
-    })?;
+    let comma_token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected comma".to_string(),
+      })?;
 
     if !matches!(comma_token, SimpleToken::Comma) {
       return Err(CssParseError::ParseError {
@@ -1705,8 +1786,8 @@ impl Hsla {
     }
 
     // Skip optional whitespace after comma
-    while let Some(SimpleToken::Whitespace) = peek_token(tokens) {
-      next_token(tokens);
+    while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+      tokens.consume_next_token_infallible();
     }
 
     Ok(())
@@ -1774,9 +1855,12 @@ impl Lch {
     TokenParser::new(
       |tokens| {
         // Expect Function("lch")
-        let function_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected LCH function".to_string(),
-        })?;
+        let function_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected LCH function".to_string(),
+            })?;
 
         if let SimpleToken::Function(name) = function_token {
           if name.to_lowercase() != "lch" {
@@ -1794,9 +1878,12 @@ impl Lch {
         let l = Self::parse_lch_lightness_token(tokens)?;
 
         // Expect whitespace
-        let whitespace_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected whitespace".to_string(),
-        })?;
+        let whitespace_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected whitespace".to_string(),
+            })?;
         if !matches!(whitespace_token, SimpleToken::Whitespace) {
           return Err(CssParseError::ParseError {
             message: format!("Expected whitespace token, got {:?}", whitespace_token),
@@ -1807,9 +1894,12 @@ impl Lch {
         let c = Self::parse_lch_chroma_token(tokens)?;
 
         // Expect whitespace
-        let whitespace_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected whitespace".to_string(),
-        })?;
+        let whitespace_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected whitespace".to_string(),
+            })?;
         if !matches!(whitespace_token, SimpleToken::Whitespace) {
           return Err(CssParseError::ParseError {
             message: format!("Expected whitespace token, got {:?}", whitespace_token),
@@ -1823,9 +1913,12 @@ impl Lch {
         let alpha = Self::parse_optional_alpha(tokens)?;
 
         // Expect closing paren
-        let close_token = next_token(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+        let close_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if !matches!(close_token, SimpleToken::RightParen) {
           return Err(CssParseError::ParseError {
@@ -1847,17 +1940,17 @@ impl Lch {
     let checkpoint = input.current_index;
 
     // Skip optional whitespace
-    if let Some(SimpleToken::Whitespace) = peek_token(input) {
-      next_token(input);
+    if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
+      input.consume_next_token_infallible();
     }
 
-    match peek_token(input) {
+    match input.peek_infallible() {
       Some(SimpleToken::Delim('/')) => {
-        next_token(input); // consume '/'
+        input.consume_next_token_infallible(); // consume '/'
 
         // Skip optional whitespace after slash
-        if let Some(SimpleToken::Whitespace) = peek_token(input) {
-          next_token(input);
+        if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
+          input.consume_next_token_infallible();
         }
 
         // Parse alpha value using enhanced alpha parser
@@ -1877,9 +1970,11 @@ impl Lch {
 
   /// Helper: Parse LCH lightness token (percentage or number)
   fn parse_lch_lightness_token(tokens: &mut TokenList) -> Result<f32, CssParseError> {
-    let token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected lightness value token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected lightness value token".to_string(),
+      })?;
 
     match token {
       SimpleToken::Percentage(value) => {
@@ -1898,9 +1993,11 @@ impl Lch {
 
   /// Helper: Parse LCH chroma token (number)
   fn parse_lch_chroma_token(tokens: &mut TokenList) -> Result<f32, CssParseError> {
-    let token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected chroma value token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected chroma value token".to_string(),
+      })?;
 
     if let SimpleToken::Number(value) = token {
       Ok(value as f32)
@@ -1913,9 +2010,11 @@ impl Lch {
 
   /// Helper: Parse LCH hue token (angle or number)
   fn parse_lch_hue_token(tokens: &mut TokenList) -> Result<LchHue, CssParseError> {
-    let token = next_token(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected hue value token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected hue value token".to_string(),
+      })?;
 
     match token {
       SimpleToken::Dimension { value, unit } => {
@@ -1975,7 +2074,7 @@ impl Oklch {
     TokenParser::new(
       move |input| {
         // Parse 'oklch(' function start
-        match next_token(input) {
+        match input.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name.to_lowercase() == "oklch" => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -1988,7 +2087,7 @@ impl Oklch {
         let l = Self::parse_oklch_lc_value(input)?;
 
         // Parse whitespace
-        match next_token(input) {
+        match input.consume_next_token_infallible() {
           Some(SimpleToken::Whitespace) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -2001,7 +2100,7 @@ impl Oklch {
         let c = Self::parse_oklch_lc_value(input)?;
 
         // Parse whitespace
-        match next_token(input) {
+        match input.consume_next_token_infallible() {
           Some(SimpleToken::Whitespace) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -2017,7 +2116,7 @@ impl Oklch {
         let alpha = Self::parse_optional_alpha(input)?;
 
         // Parse closing paren
-        match next_token(input) {
+        match input.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -2034,7 +2133,7 @@ impl Oklch {
 
   /// Parse OKLCH lightness/chroma value: number | 'none'
   fn parse_oklch_lc_value(input: &mut crate::token_types::TokenList) -> Result<f32, CssParseError> {
-    match next_token(input) {
+    match input.consume_next_token_infallible() {
       Some(SimpleToken::Number(n)) => Ok(n as f32),
       Some(SimpleToken::Ident(keyword)) if keyword == "none" => Ok(0.0),
       _ => Err(CssParseError::ParseError {
@@ -2045,7 +2144,7 @@ impl Oklch {
 
   /// Parse OKLCH hue: angle | number (interpreted as degrees) | 'none'
   fn parse_oklch_hue(input: &mut crate::token_types::TokenList) -> Result<Angle, CssParseError> {
-    match next_token(input) {
+    match input.consume_next_token_infallible() {
       Some(SimpleToken::Dimension { value, unit }) => {
         // Try to parse as angle
         if Angle::is_valid_unit(&unit) {
@@ -2072,17 +2171,17 @@ impl Oklch {
     let checkpoint = input.current_index;
 
     // Skip optional whitespace
-    if let Some(SimpleToken::Whitespace) = peek_token(input) {
-      next_token(input);
+    if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
+      input.consume_next_token_infallible();
     }
 
-    match peek_token(input) {
+    match input.peek_infallible() {
       Some(SimpleToken::Delim('/')) => {
-        next_token(input); // consume '/'
+        input.consume_next_token_infallible(); // consume '/'
 
         // Skip optional whitespace after slash
-        if let Some(SimpleToken::Whitespace) = peek_token(input) {
-          next_token(input);
+        if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
+          input.consume_next_token_infallible();
         }
 
         // Parse alpha value using enhanced alpha parser
@@ -2132,7 +2231,7 @@ impl Oklab {
     TokenParser::new(
       move |input| {
         // Parse 'oklab(' function start
-        match next_token(input) {
+        match input.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name.to_lowercase() == "oklab" => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -2145,7 +2244,7 @@ impl Oklab {
         let l = Self::parse_oklab_lab_value(input)?;
 
         // Parse whitespace
-        match next_token(input) {
+        match input.consume_next_token_infallible() {
           Some(SimpleToken::Whitespace) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -2158,7 +2257,7 @@ impl Oklab {
         let a = Self::parse_oklab_lab_value(input)?;
 
         // Parse whitespace
-        match next_token(input) {
+        match input.consume_next_token_infallible() {
           Some(SimpleToken::Whitespace) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -2174,7 +2273,7 @@ impl Oklab {
         let alpha = Self::parse_optional_alpha(input)?;
 
         // Parse closing paren
-        match next_token(input) {
+        match input.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -2193,7 +2292,7 @@ impl Oklab {
   fn parse_oklab_lab_value(
     input: &mut crate::token_types::TokenList,
   ) -> Result<f32, CssParseError> {
-    match next_token(input) {
+    match input.consume_next_token_infallible() {
       Some(SimpleToken::Number(n)) => Ok(n as f32),
       Some(SimpleToken::Ident(keyword)) if keyword == "none" => Ok(0.0),
       _ => Err(CssParseError::ParseError {
@@ -2210,17 +2309,17 @@ impl Oklab {
     let checkpoint = input.current_index;
 
     // Skip optional whitespace
-    if let Some(SimpleToken::Whitespace) = peek_token(input) {
-      next_token(input);
+    if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
+      input.consume_next_token_infallible();
     }
 
-    match peek_token(input) {
+    match input.peek_infallible() {
       Some(SimpleToken::Delim('/')) => {
-        next_token(input); // consume '/'
+        input.consume_next_token_infallible(); // consume '/'
 
         // Skip optional whitespace after slash
-        if let Some(SimpleToken::Whitespace) = peek_token(input) {
-          next_token(input);
+        if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
+          input.consume_next_token_infallible();
         }
 
         // Parse alpha value using enhanced alpha parser

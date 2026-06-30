@@ -176,7 +176,7 @@ fn skip_optional_whitespace(tokens: &mut TokenList) {
 fn consume_comma(tokens: &mut TokenList, message: &str) -> Result<(), CssParseError> {
   skip_optional_whitespace(tokens);
 
-  match tokens.consume_next_token().ok().flatten() {
+  match tokens.consume_next_token_infallible() {
     Some(SimpleToken::Comma) => {
       skip_optional_whitespace(tokens);
       Ok(())
@@ -193,7 +193,7 @@ fn consume_comma(tokens: &mut TokenList, message: &str) -> Result<(), CssParseEr
 fn consume_right_paren(tokens: &mut TokenList, message: &str) -> Result<(), CssParseError> {
   skip_optional_whitespace(tokens);
 
-  match tokens.consume_next_token().ok().flatten() {
+  match tokens.consume_next_token_infallible() {
     Some(SimpleToken::RightParen) => Ok(()),
     Some(token) => Err(CssParseError::ParseError {
       message: format!("{}, got {:?}", message, token),
@@ -347,7 +347,7 @@ impl Matrix3d {
       |tokens| {
         // Expect "matrix3d" function
         // consume_next_token() is infallible; ok().flatten() removes the Err sub-region.
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(name)) if name == "matrix3d" => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -365,7 +365,7 @@ impl Matrix3d {
           }
 
           // Parse number
-          match tokens.consume_next_token().ok().flatten() {
+          match tokens.consume_next_token_infallible() {
             Some(SimpleToken::Number(v)) => {
               *value = v;
             },
@@ -383,7 +383,7 @@ impl Matrix3d {
               let _ = tokens.consume_next_token();
             }
 
-            match tokens.consume_next_token().ok().flatten() {
+            match tokens.consume_next_token_infallible() {
               Some(SimpleToken::Comma) => {},
               _ => {
                 return Err(CssParseError::ParseError {
@@ -400,7 +400,7 @@ impl Matrix3d {
         }
 
         // Expect closing parenthesis
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -508,7 +508,7 @@ impl Rotate3d {
       |tokens| {
         // Expect "rotate3d" function
         // consume_next_token() is infallible; ok().flatten() removes the Err sub-region.
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(name)) if name == "rotate3d" => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -531,7 +531,7 @@ impl Rotate3d {
         }
 
         // Expect comma
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -554,7 +554,7 @@ impl Rotate3d {
         }
 
         // Expect comma
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -577,7 +577,7 @@ impl Rotate3d {
         }
 
         // Expect comma
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -600,7 +600,7 @@ impl Rotate3d {
         }
 
         // Expect closing parenthesis
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -721,7 +721,7 @@ impl Scale3d {
       |tokens| {
         // Expect "scale3d" function
         // consume_next_token() is infallible; ok().flatten() removes the Err sub-region.
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(name)) if name == "scale3d" => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -744,7 +744,7 @@ impl Scale3d {
         }
 
         // Expect comma
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -767,7 +767,7 @@ impl Scale3d {
         }
 
         // Expect comma
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -790,7 +790,7 @@ impl Scale3d {
         }
 
         // Expect closing parenthesis
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -853,7 +853,7 @@ impl Skew {
   pub fn parse() -> TokenParser<Skew> {
     TokenParser::new(
       |tokens| {
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(name)) if name == "skew" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -1016,7 +1016,7 @@ impl Translate3d {
   pub fn parse() -> TokenParser<Translate3d> {
     TokenParser::new(
       |tokens| {
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(name)) if name == "translate3d" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {

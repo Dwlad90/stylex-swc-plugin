@@ -90,7 +90,7 @@ impl LinearEasingFunction {
     tokens: &mut TokenList,
   ) -> Result<LinearEasingFunction, CssParseError> {
     // Parse 'linear(' function start
-    match tokens.consume_next_token().ok().flatten() {
+    match tokens.consume_next_token_infallible() {
       Some(SimpleToken::Function(fn_name)) if fn_name == "linear" => {},
       Some(token) => {
         return Err(CssParseError::ParseError {
@@ -123,7 +123,7 @@ impl LinearEasingFunction {
 
     loop {
       // Parse number
-      let number = match tokens.consume_next_token().ok().flatten() {
+      let number = match tokens.consume_next_token_infallible() {
         Some(SimpleToken::Number(value)) => value,
         Some(token) => {
           return Err(CssParseError::ParseError {
@@ -145,7 +145,7 @@ impl LinearEasingFunction {
       }
 
       // Consume comma (more numbers) or closing paren (end)
-      match tokens.consume_next_token().ok().flatten() {
+      match tokens.consume_next_token_infallible() {
         Some(SimpleToken::Comma) => {
           // Skip optional whitespace after comma
           while matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace))) {
@@ -189,7 +189,7 @@ impl CubicBezierEasingFunction {
     tokens: &mut TokenList,
   ) -> Result<CubicBezierEasingFunction, CssParseError> {
     // Parse 'cubic-bezier(' function start
-    match tokens.consume_next_token().ok().flatten() {
+    match tokens.consume_next_token_infallible() {
       Some(SimpleToken::Function(fn_name)) if fn_name == "cubic-bezier" => {},
       Some(token) => {
         return Err(CssParseError::ParseError {
@@ -219,7 +219,7 @@ impl CubicBezierEasingFunction {
         }
 
         // Expect comma
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Comma) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -240,7 +240,7 @@ impl CubicBezierEasingFunction {
       }
 
       // Parse number
-      let number = match tokens.consume_next_token().ok().flatten() {
+      let number = match tokens.consume_next_token_infallible() {
         Some(SimpleToken::Number(value)) => value,
         Some(token) => {
           return Err(CssParseError::ParseError {
@@ -263,7 +263,7 @@ impl CubicBezierEasingFunction {
     }
 
     // Parse closing paren
-    match tokens.consume_next_token().ok().flatten() {
+    match tokens.consume_next_token_infallible() {
       Some(SimpleToken::RightParen) => {},
       Some(token) => {
         return Err(CssParseError::ParseError {
@@ -348,7 +348,7 @@ impl StepsEasingFunction {
 
   pub(crate) fn parse_tokens(tokens: &mut TokenList) -> Result<StepsEasingFunction, CssParseError> {
     // Parse 'steps(' function start
-    match tokens.consume_next_token().ok().flatten() {
+    match tokens.consume_next_token_infallible() {
       Some(SimpleToken::Function(fn_name)) if fn_name == "steps" => {},
       Some(token) => {
         return Err(CssParseError::ParseError {
@@ -368,7 +368,7 @@ impl StepsEasingFunction {
     }
 
     // Parse step count (integer number)
-    let steps = match tokens.consume_next_token().ok().flatten() {
+    let steps = match tokens.consume_next_token_infallible() {
       Some(SimpleToken::Number(value)) => {
         let int_value = value as u32;
         if int_value as f64 == value && value >= 0.0 {
@@ -397,7 +397,7 @@ impl StepsEasingFunction {
     }
 
     // Expect comma
-    match tokens.consume_next_token().ok().flatten() {
+    match tokens.consume_next_token_infallible() {
       Some(SimpleToken::Comma) => {},
       Some(token) => {
         return Err(CssParseError::ParseError {
@@ -417,7 +417,7 @@ impl StepsEasingFunction {
     }
 
     // Parse start/end type
-    let start_type = match tokens.consume_next_token().ok().flatten() {
+    let start_type = match tokens.consume_next_token_infallible() {
       Some(SimpleToken::Ident(value)) => match value.as_str() {
         "start" => StepsStartType::Start,
         "end" => StepsStartType::End,
@@ -451,7 +451,7 @@ impl StepsEasingFunction {
     }
 
     // Parse closing paren
-    match tokens.consume_next_token().ok().flatten() {
+    match tokens.consume_next_token_infallible() {
       Some(SimpleToken::RightParen) => {},
       Some(token) => {
         return Err(CssParseError::ParseError {

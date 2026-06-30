@@ -144,20 +144,10 @@ pub enum CalcValue {
   Group(Group),
 }
 
-/// Consume the next token from an in-memory TokenList.
-///
-/// TokenList::consume_next_token is backed by a Vec<SimpleToken> and always
-/// returns Ok(…); the Result wrapper exists only for trait compatibility.
-/// This wrapper makes the infallibility explicit so call sites don't need a
-/// `?` operator whose Err branch can never be reached.
-fn consume_next(tokens: &mut TokenList) -> Option<SimpleToken> {
-  tokens.consume_next_token().ok().flatten()
-}
-
 fn skip_whitespace(tokens: &mut TokenList) -> bool {
   let mut consumed = false;
   while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-    consume_next(tokens);
+    tokens.consume_next_token_infallible();
     consumed = true;
   }
   consumed
@@ -172,9 +162,11 @@ impl CalcValue {
   /// Helper: Parse a basic calc value (number, dimension, percentage, or
   /// constant)
   fn parse_calc_value(tokens: &mut TokenList) -> Result<CalcValue, CssParseError> {
-    let token = consume_next(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected Number, Dimension, Percentage, or Constant token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected Number, Dimension, Percentage, or Constant token".to_string(),
+      })?;
 
     match token {
       SimpleToken::Number(value) => Ok(CalcValue::Number(value as f32)),
@@ -199,9 +191,12 @@ impl CalcValue {
       },
       SimpleToken::Function(name) if name == "calc" => {
         let value = Self::parse_calc_expression(tokens)?;
-        let close_token = consume_next(tokens).ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+        let close_token =
+          tokens
+            .consume_next_token_infallible()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if matches!(close_token, SimpleToken::RightParen) {
           Ok(value)
@@ -433,9 +428,12 @@ impl CalcValue {
     let checkpoint = tokens.current_index;
 
     // Expect '('
-    let open_paren_token = consume_next(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected opening parenthesis".to_string(),
-    })?;
+    let open_paren_token =
+      tokens
+        .consume_next_token_infallible()
+        .ok_or(CssParseError::ParseError {
+          message: "Expected opening parenthesis".to_string(),
+        })?;
 
     if !matches!(open_paren_token, SimpleToken::LeftParen) {
       // Rollback and return error
@@ -454,9 +452,12 @@ impl CalcValue {
     let inner_expr = Self::parse_calc_expression(tokens)?;
 
     // Expect ')'
-    let close_paren_token = consume_next(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected closing parenthesis".to_string(),
-    })?;
+    let close_paren_token =
+      tokens
+        .consume_next_token_infallible()
+        .ok_or(CssParseError::ParseError {
+          message: "Expected closing parenthesis".to_string(),
+        })?;
 
     if !matches!(close_paren_token, SimpleToken::RightParen) {
       return Err(CssParseError::ParseError {
@@ -469,9 +470,11 @@ impl CalcValue {
 
   /// Try to parse an operator token
   fn try_parse_operator(tokens: &mut TokenList) -> Result<String, CssParseError> {
-    let token = consume_next(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected operator token".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected operator token".to_string(),
+      })?;
 
     match token {
       SimpleToken::Delim('+') => Ok("+".to_string()),
@@ -529,9 +532,11 @@ impl Calc {
   /// then the closing parenthesis.
   fn parse_calc(tokens: &mut TokenList) -> Result<Calc, CssParseError> {
     // First, expect Function("calc")
-    let token = consume_next(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected calc function".to_string(),
-    })?;
+    let token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected calc function".to_string(),
+      })?;
 
     if let SimpleToken::Function(fn_name) = token {
       if fn_name != "calc" {
@@ -549,9 +554,11 @@ impl Calc {
     let calc_value = CalcValue::parse_calc_expression(tokens)?;
 
     // Consume the closing RightParen token
-    let close_token = consume_next(tokens).ok_or(CssParseError::ParseError {
-      message: "Expected closing parenthesis".to_string(),
-    })?;
+    let close_token = tokens
+      .consume_next_token_infallible()
+      .ok_or(CssParseError::ParseError {
+        message: "Expected closing parenthesis".to_string(),
+      })?;
 
     if !matches!(close_token, SimpleToken::RightParen) {
       return Err(CssParseError::ParseError {

@@ -142,7 +142,7 @@ impl BasicShape {
     TokenParser::new(
       |tokens| {
         // Parse 'inset(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "inset" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -224,7 +224,7 @@ impl BasicShape {
         };
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -254,7 +254,7 @@ impl BasicShape {
     TokenParser::new(
       |tokens| {
         // Parse 'circle(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "circle" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -269,7 +269,7 @@ impl BasicShape {
         }
 
         // Parse radius: length-percentage | closest-side | farthest-side
-        let radius = if let Some(token) = tokens.peek().ok().flatten() {
+        let radius = if let Some(token) = tokens.peek_infallible() {
           match token {
             SimpleToken::Ident(value) if value == "closest-side" => {
               let _ = tokens.consume_next_token(); // consume the ident
@@ -300,7 +300,7 @@ impl BasicShape {
         let position = Self::parse_optional_position(tokens)?;
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -324,7 +324,7 @@ impl BasicShape {
     TokenParser::new(
       |tokens| {
         // Parse 'ellipse(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "ellipse" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -340,7 +340,7 @@ impl BasicShape {
 
         // Helper function to parse radius
         let parse_radius = |tokens: &mut TokenList| -> Result<CircleRadius, CssParseError> {
-          if let Some(token) = tokens.peek().ok().flatten() {
+          if let Some(token) = tokens.peek_infallible() {
             match token {
               SimpleToken::Ident(value) if value == "closest-side" => {
                 let _ = tokens.consume_next_token();
@@ -382,7 +382,7 @@ impl BasicShape {
         let position = Self::parse_optional_position(tokens)?;
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -410,7 +410,7 @@ impl BasicShape {
     TokenParser::new(
       |tokens| {
         // Parse 'polygon(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "polygon" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -531,7 +531,7 @@ impl BasicShape {
     TokenParser::new(
       |tokens| {
         // Parse 'path(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "path" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -579,7 +579,7 @@ impl BasicShape {
         // fill-rule block's own trailing whitespace skip.
 
         // Parse path string literal
-        let path = match tokens.consume_next_token().ok().flatten() {
+        let path = match tokens.consume_next_token_infallible() {
           Some(SimpleToken::String(s)) => s,
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -599,7 +599,7 @@ impl BasicShape {
         }
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -632,7 +632,7 @@ impl BasicShape {
     }
 
     // Check for "at" keyword
-    match tokens.peek().ok().flatten() {
+    match tokens.peek_infallible() {
       Some(SimpleToken::Ident(keyword)) if keyword == "at" => {
         let _ = tokens.consume_next_token(); // consume "at"
 

@@ -1412,14 +1412,14 @@ fn parse_to_end_tokens_remain_via_always() {
 #[test]
 fn peek_remaining_some_when_tokens_present() {
   let mut tl = tl(vec![SimpleToken::Ident("foo".to_string())]);
-  let result = peek_remaining(&mut tl);
+  let result = tl.peek_infallible();
   assert_eq!(result, Some(SimpleToken::Ident("foo".to_string())));
 }
 
 #[test]
 fn peek_remaining_none_when_exhausted() {
   let mut tl = tl(vec![]);
-  let result = peek_remaining(&mut tl);
+  let result = tl.peek_infallible();
   assert_eq!(result, None);
 }
 

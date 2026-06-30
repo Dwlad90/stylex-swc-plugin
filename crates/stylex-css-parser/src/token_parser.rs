@@ -1491,16 +1491,6 @@ pub fn match_next_token(
   }
 }
 
-/// Peek at the next token in the list, returning `Some(token)` if there is one
-/// or `None` if the list is exhausted.
-///
-/// `TokenList::peek()` always returns `Ok(Some(...))` or `Ok(None)`.
-/// `.ok().flatten()` converts `Ok(opt)` → `opt` and the impossible `Err`
-/// case → `None`, without generating an uncovered error-propagation region.
-pub fn peek_remaining(tokens: &mut TokenList) -> Option<SimpleToken> {
-  tokens.peek().ok().flatten()
-}
-
 /// Decide whether a `parse_to_end` run failed, returning the error to surface or
 /// `None` when the whole input was consumed successfully.
 ///
@@ -1531,7 +1521,7 @@ fn parse_to_end_error(
 
   // No parse error: ensure all input was consumed. `peek_remaining` avoids the
   // `?`-on-`Ok` region since `TokenList::peek` is structurally infallible.
-  if let Some(token) = peek_remaining(tokens) {
+  if let Some(token) = tokens.peek_infallible() {
     let consumed_tokens = tokens.slice(initial_index, Some(tokens.current_index));
     return Some(CssParseError::ParseError {
       message: format!(

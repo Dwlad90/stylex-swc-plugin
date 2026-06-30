@@ -96,7 +96,7 @@ impl BlurFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'blur(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "blur" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -124,7 +124,7 @@ impl BlurFilterFunction {
         }
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -154,7 +154,7 @@ impl BrightnessFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'brightness(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "brightness" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -192,7 +192,7 @@ impl BrightnessFilterFunction {
         }
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -222,7 +222,7 @@ impl ContrastFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'contrast(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "contrast" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -254,7 +254,7 @@ impl ContrastFilterFunction {
         }
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -284,7 +284,7 @@ impl GrayscaleFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'grayscale(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "grayscale" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -316,7 +316,7 @@ impl GrayscaleFilterFunction {
         }
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -346,7 +346,7 @@ impl HueRotateFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'hue-rotate(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "hue-rotate" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -374,7 +374,7 @@ impl HueRotateFilterFunction {
         }
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -404,7 +404,7 @@ impl InvertFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'invert(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "invert" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -436,7 +436,7 @@ impl InvertFilterFunction {
         }
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -466,7 +466,7 @@ impl OpacityFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'opacity(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "opacity" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -498,7 +498,7 @@ impl OpacityFilterFunction {
         }
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -528,7 +528,7 @@ impl SaturateFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'saturate(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "saturate" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -560,7 +560,7 @@ impl SaturateFilterFunction {
         }
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -590,7 +590,7 @@ impl SepiaFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'sepia(' function start
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "sepia" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -622,7 +622,7 @@ impl SepiaFilterFunction {
         }
 
         // Parse closing paren
-        match tokens.consume_next_token().ok().flatten() {
+        match tokens.consume_next_token_infallible() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {

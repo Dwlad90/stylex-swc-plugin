@@ -247,6 +247,26 @@ impl TokenList {
     }
   }
 
+  /// Consume the next token from an in-memory TokenList.
+  ///
+  /// TokenList::consume_next_token is backed by a Vec<SimpleToken> and always
+  /// returns Ok(…); the Result wrapper exists only for trait compatibility.
+  /// This wrapper makes the infallibility explicit so call sites don't need a
+  /// `?` operator whose Err branch can never be reached.
+  pub fn consume_next_token_infallible(&mut self) -> Option<SimpleToken> {
+    self.consume_next_token().ok().flatten()
+  }
+
+  /// Peek at the next token without consuming it, returning `None` at
+  /// end-of-input.
+  ///
+  /// `TokenList::peek()` always returns `Ok(Some(...))` or `Ok(None)`.
+  /// `.ok().flatten()` converts the infallible `Result` to a plain `Option`,
+  /// avoiding an uncovered Err-propagation region.
+  pub fn peek_infallible(&mut self) -> Option<SimpleToken> {
+    self.peek().ok().flatten()
+  }
+
   /// Peek at the next token without consuming it
   pub fn peek(&mut self) -> CssResult<Option<SimpleToken>> {
     if self.current_index < self.tokens.len() {

@@ -477,8 +477,8 @@ fn one_or_more_static_fails_on_empty() {
 // The Err(e) arm (line 771-773) is exercised when consume_next_token returns
 // Err — this is structurally unreachable with the current TokenList impl since
 // consume_next_token always returns Ok.
-// TODO: line 771-773 — consume_next_token always returns Ok(Some) or Ok(None),
-// never Err, so the Err(e) arm on line 771-773 is structurally unreachable.
+// Coverage note: consume_next_token always returns Ok(Some) or Ok(None), never
+// Err, so the defensive Err arm is structurally unreachable.
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
@@ -1310,7 +1310,7 @@ fn match_next_token_err_arm_via_err_result() {
   // consume_next_token — which can only be done if we implement a surrogate.
   // Since we cannot override consume_next_token, we instead test the helper
   // function's behavior for the Ok branches above, and document this arm as
-  // structurally unreachable via the TODO comment in the source.
+  // structurally unreachable through the public parser entry points.
   // The arm IS covered by the extract (it's new code now), so coverage of
   // the extract's Err arm requires a mock TokenList that returns Err.
   // We simulate by directly calling the match pattern:
@@ -1420,27 +1420,24 @@ fn flexible_sequence_first_right_err_path() {
 // implementation: `results[parser_index] = Some(value)` is always called when
 // found=true, and if found=false, the function returns early with an error.
 // Therefore the ok_or_else Err branch can never fire.
-// TODO: line 1147-1157 — the `SetOf incomplete` error path in separated_by is
+// Coverage note: the `SetOf incomplete` error path in separated_by is
 // structurally unreachable: the loop returns early (Err) whenever !found, so
 // every results[i] is either Some (matched) or the function has already returned.
-// The ok_or_else lambda will never produce Err here.
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SetOfParsers::as_token_parser — "incomplete" Err path (lines 1217-1227)
 // Same structural analysis as separated_by incomplete path above.
-// TODO: line 1217-1227 — same structural unreachability as the separated_by
-// incomplete path: if !found, the loop already returned Err, so no None entry
-// can survive to be collected by ok_or_else.
+// Coverage note: same structural unreachability as the separated_by incomplete
+// path: if !found, the loop already returned Err, so no None entry can survive.
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════
 // token() — Err from consume_next_token (lines 771-773)
 // TokenList::consume_next_token always returns Ok(...), never Err.
-// TODO: lines 771-773 — the Err(e) arm from consume_next_token is structurally
-// unreachable: TokenList::consume_next_token is implemented to always return
-// Ok(Some(...)) or Ok(None). The Err branch was written defensively but can
-// never fire with the current TokenList implementation.
+// Coverage note: the Err(e) arm from consume_next_token is structurally
+// unreachable because TokenList::consume_next_token always returns Ok(Some(...))
+// or Ok(None).
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -496,7 +496,7 @@ fn calc_dimension_new_stores_value_and_unit() {
 #[test]
 fn calc_new_wraps_value() {
   let val = CalcValue::Number(1.0);
-  let calc = Calc::new(val.clone());
+  let calc = Calc::new(val);
   assert!(matches!(calc.value, CalcValue::Number(n) if (n - 1.0).abs() < 0.001));
 }
 

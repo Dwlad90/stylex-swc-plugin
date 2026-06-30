@@ -26,8 +26,8 @@ fn dim(value: f64, unit: &str) -> SimpleToken {
 // Happy path: a Number token returns its value.
 #[test]
 fn extract_number_value_returns_value_for_number_token() {
-  let result = extract_number_value(SimpleToken::Number(3.14));
-  assert!((result - 3.14_f64).abs() < 1e-9);
+  let result = extract_number_value(SimpleToken::Number(3.125));
+  assert!((result - 3.125_f64).abs() < 1e-9);
 }
 
 // Defensive else-arm (line 171 in original; covers the `else { 0.0 }` branch).
@@ -37,6 +37,34 @@ fn extract_number_value_returns_value_for_number_token() {
 fn extract_number_value_returns_zero_for_non_number_token() {
   let result = extract_number_value(SimpleToken::Ident("foo".to_string()));
   assert_eq!(result, 0.0_f64);
+}
+
+#[test]
+fn consume_comma_errors_on_wrong_token() {
+  let mut tl = make_token_list(vec![SimpleToken::Ident("not-comma".to_string())]);
+  let result = consume_comma(&mut tl, "Expected comma");
+  assert!(result.is_err());
+}
+
+#[test]
+fn consume_comma_errors_on_eof() {
+  let mut tl = make_token_list(vec![]);
+  let result = consume_comma(&mut tl, "Expected comma");
+  assert!(result.is_err());
+}
+
+#[test]
+fn consume_right_paren_errors_on_wrong_token() {
+  let mut tl = make_token_list(vec![SimpleToken::Comma]);
+  let result = consume_right_paren(&mut tl, "Expected right paren");
+  assert!(result.is_err());
+}
+
+#[test]
+fn consume_right_paren_errors_on_eof() {
+  let mut tl = make_token_list(vec![]);
+  let result = consume_right_paren(&mut tl, "Expected right paren");
+  assert!(result.is_err());
 }
 
 // ── number_or_percentage_to_f64 — Percentage arm ─────────────────────────
@@ -1067,27 +1095,177 @@ fn translate_parse_error_wrong_close_token() {
   assert!(result.is_err());
 }
 
-// ── Translate3d::parse() — flat_map closure coverage ─────────────────────
+// ── Translate3d::parse() ──────────────────────────────────────────────────
 
-// The Translate3d parser is combinator-based (flat_map chains). The test that
-// uses real CSS is #[ignore]d because the tokenizer's comma-separated form
-// doesn't work with the combinator chain. We drive it via raw token list (no
-// commas) to exercise lines 943-966.
 #[test]
-fn translate3d_parse_exercises_flat_map_closures() {
-  // The translate3d combinator reads: fn_name → tx → ty → tz → close.
-  // No commas — the combinators read tokens sequentially.
+fn skew_parse_errors_on_eof() {
+  let mut tl = make_token_list(vec![]);
+  let result = (Skew::parse().run)(&mut tl);
+  assert!(result.is_err());
+}
+
+#[test]
+fn skew_parse_accepts_whitespace_and_second_angle() {
+  let mut tl = make_token_list(vec![
+    SimpleToken::Function("skew".to_string()),
+    SimpleToken::Whitespace,
+    dim(10.0, "deg"),
+    SimpleToken::Whitespace,
+    SimpleToken::Comma,
+    SimpleToken::Whitespace,
+    dim(20.0, "deg"),
+    SimpleToken::Whitespace,
+    SimpleToken::RightParen,
+  ]);
+
+  let result = (Skew::parse().run)(&mut tl).unwrap();
+  assert!(result.ay.is_some());
+}
+
+#[test]
+fn skew_parse_propagates_first_angle_error() {
+  let mut tl = make_token_list(vec![
+    SimpleToken::Function("skew".to_string()),
+    SimpleToken::Ident("bad-angle".to_string()),
+  ]);
+
+  let result = (Skew::parse().run)(&mut tl);
+  assert!(result.is_err());
+}
+
+#[test]
+fn skew_parse_propagates_second_angle_error() {
+  let mut tl = make_token_list(vec![
+    SimpleToken::Function("skew".to_string()),
+    dim(10.0, "deg"),
+    SimpleToken::Comma,
+    SimpleToken::Ident("bad-angle".to_string()),
+  ]);
+
+  let result = (Skew::parse().run)(&mut tl);
+  assert!(result.is_err());
+}
+
+#[test]
+fn skew_parse_propagates_close_paren_error() {
+  let mut tl = make_token_list(vec![
+    SimpleToken::Function("skew".to_string()),
+    dim(10.0, "deg"),
+    SimpleToken::Ident("not-close".to_string()),
+  ]);
+
+  let result = (Skew::parse().run)(&mut tl);
+  assert!(result.is_err());
+}
+
+#[test]
+fn translate3d_parse_errors_on_eof() {
+  let mut tl = make_token_list(vec![]);
+  let result = (Translate3d::parse().run)(&mut tl);
+  assert!(result.is_err());
+}
+
+#[test]
+fn translate3d_parse_accepts_comma_separated_values() {
   let mut tl = make_token_list(vec![
     SimpleToken::Function("translate3d".to_string()),
+    SimpleToken::Whitespace,
     dim(10.0, "px"),
+    SimpleToken::Whitespace,
+    SimpleToken::Comma,
+    SimpleToken::Whitespace,
     dim(20.0, "px"),
+    SimpleToken::Whitespace,
+    SimpleToken::Comma,
+    SimpleToken::Whitespace,
     dim(30.0, "px"),
+    SimpleToken::Whitespace,
     SimpleToken::RightParen,
   ]);
   let result = (Translate3d::parse().run)(&mut tl).unwrap();
-  // Verify the closures ran — tx is a LengthPercentage::Length
   assert!(result.tx.is_length());
   assert!(result.ty.is_length());
+}
+
+#[test]
+fn translate3d_parse_propagates_tx_error() {
+  let mut tl = make_token_list(vec![
+    SimpleToken::Function("translate3d".to_string()),
+    SimpleToken::Ident("bad-length".to_string()),
+  ]);
+
+  let result = (Translate3d::parse().run)(&mut tl);
+  assert!(result.is_err());
+}
+
+#[test]
+fn translate3d_parse_propagates_first_comma_error() {
+  let mut tl = make_token_list(vec![
+    SimpleToken::Function("translate3d".to_string()),
+    dim(10.0, "px"),
+    SimpleToken::Ident("not-comma".to_string()),
+  ]);
+
+  let result = (Translate3d::parse().run)(&mut tl);
+  assert!(result.is_err());
+}
+
+#[test]
+fn translate3d_parse_propagates_ty_error() {
+  let mut tl = make_token_list(vec![
+    SimpleToken::Function("translate3d".to_string()),
+    dim(10.0, "px"),
+    SimpleToken::Comma,
+    SimpleToken::Ident("bad-length".to_string()),
+  ]);
+
+  let result = (Translate3d::parse().run)(&mut tl);
+  assert!(result.is_err());
+}
+
+#[test]
+fn translate3d_parse_propagates_second_comma_error() {
+  let mut tl = make_token_list(vec![
+    SimpleToken::Function("translate3d".to_string()),
+    dim(10.0, "px"),
+    SimpleToken::Comma,
+    dim(20.0, "px"),
+    SimpleToken::Ident("not-comma".to_string()),
+  ]);
+
+  let result = (Translate3d::parse().run)(&mut tl);
+  assert!(result.is_err());
+}
+
+#[test]
+fn translate3d_parse_propagates_tz_error() {
+  let mut tl = make_token_list(vec![
+    SimpleToken::Function("translate3d".to_string()),
+    dim(10.0, "px"),
+    SimpleToken::Comma,
+    dim(20.0, "px"),
+    SimpleToken::Comma,
+    SimpleToken::Ident("bad-length".to_string()),
+  ]);
+
+  let result = (Translate3d::parse().run)(&mut tl);
+  assert!(result.is_err());
+}
+
+#[test]
+fn translate3d_parse_propagates_close_paren_error() {
+  let mut tl = make_token_list(vec![
+    SimpleToken::Function("translate3d".to_string()),
+    dim(10.0, "px"),
+    SimpleToken::Comma,
+    dim(20.0, "px"),
+    SimpleToken::Comma,
+    dim(30.0, "px"),
+    SimpleToken::Ident("not-close".to_string()),
+  ]);
+
+  let result = (Translate3d::parse().run)(&mut tl);
+  assert!(result.is_err());
 }
 
 // Translate3d new() constructor (lines 934-936).
@@ -1102,7 +1280,7 @@ fn translate3d_new_constructor() {
     value: 10.0,
     unit: "px".to_string(),
   };
-  let t3d = Translate3d::new(tx.clone(), ty.clone(), tz.clone());
+  let t3d = Translate3d::new(tx, ty, tz);
   assert_eq!(t3d.tz.unit, "px");
   // Also verify Display works via TransformFunction wrapper.
   let tf = TransformFunction::Translate3d(t3d);

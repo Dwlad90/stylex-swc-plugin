@@ -185,7 +185,7 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
         let current_index = tokens.current_index;
         let r = (run_fn)(tokens);
         rewind_if_err(tokens, current_index, r.is_err());
-        r.map(|v| f(v))
+        r.map(&f)
       },
       &new_label,
     )
@@ -504,10 +504,6 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
 
   /// Parse a sequence of parsers (without separators)
   ///
-  /// De-branched: the Err rewind is delegated to `rewind_if_err`; the
-  /// Ok-to-push vs Err-return dispatch uses `Result::ok` + `extend` and an
-  /// early return on `failed` — the `is_err`/`ok`/`extend` calls are all core
-  /// methods with no measured branch region in this crate.
   pub fn sequence<U: Clone + Debug + 'static>(parsers: Vec<TokenParser<U>>) -> TokenParser<Vec<U>> {
     TokenParser::new(
       move |tokens| {
@@ -515,13 +511,13 @@ impl<T: Clone + Debug + 'static> TokenParser<T> {
         let mut results = Vec::new();
 
         for parser in &parsers {
-          let r = (parser.run)(tokens);
-          let failed = r.is_err();
-          rewind_if_err(tokens, current_index, failed);
-          if failed {
-            return r.map(|_| unreachable!());
+          match (parser.run)(tokens) {
+            Ok(value) => results.push(value),
+            Err(error) => {
+              tokens.set_current_index(current_index);
+              return Err(error);
+            },
           }
-          results.extend(r.ok());
         }
 
         Ok(results)
@@ -1157,8 +1153,6 @@ impl<T: Clone + Debug + 'static> SequenceParsers<T> {
 
   /// Parse a sequence without separators (consecutive parsing)
   ///
-  /// De-branched: uses the same `Result::ok`/`extend`/`rewind_if_err` pattern
-  /// as `TokenParser::sequence`.
   pub fn as_token_parser(self) -> TokenParser<Vec<T>> {
     let parsers = self.parsers;
     TokenParser::new(
@@ -1167,13 +1161,13 @@ impl<T: Clone + Debug + 'static> SequenceParsers<T> {
         let mut results = Vec::new();
 
         for parser in &parsers {
-          let r = (parser.run)(tokens);
-          let failed = r.is_err();
-          rewind_if_err(tokens, current_index, failed);
-          if failed {
-            return r.map(|_| unreachable!());
+          match (parser.run)(tokens) {
+            Ok(value) => results.push(value),
+            Err(error) => {
+              tokens.set_current_index(current_index);
+              return Err(error);
+            },
           }
-          results.extend(r.ok());
         }
 
         Ok(results)

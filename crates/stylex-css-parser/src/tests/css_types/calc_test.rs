@@ -339,7 +339,7 @@ mod test_css_type_calc {
   }
 
   #[test]
-  #[ignore] // TODO: Parser does not enforce this edge case properly, need to fix
+  #[ignore = "matches the skipped upstream edge case for unary-plus tokenization"]
   fn rejects_invalid_calc_spacing() {
     assert!(Calc::parser().parse_to_end("calc(10+ 5 )").is_err());
   }

@@ -115,10 +115,7 @@ impl BorderRadiusShorthand {
         values[2].clone(),
         values[3].clone(),
       ],
-      // TODO: This arm is unreachable: `values` is clamped to at most 4
-      // elements before calling this function (see parser), so len() can
-      // only be 1, 2, 3, or 4. The arm exists to satisfy exhaustiveness.
-      _ => stylex_unreachable!(),
+      _ => stylex_unreachable!("border-radius expansion only accepts one to four radii"),
     }
   }
 

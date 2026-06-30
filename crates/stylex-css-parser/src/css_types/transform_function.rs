@@ -12,7 +12,7 @@ use crate::{
     length_percentage_parser,
   },
   token_parser::TokenParser,
-  token_types::SimpleToken,
+  token_types::{SimpleToken, TokenList},
 };
 use std::fmt::{self, Display};
 
@@ -165,6 +165,43 @@ fn number_or_percentage_to_f64(n: NumberOrPercentage) -> f64 {
 fn number_parser() -> TokenParser<f64> {
   TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
     .map(extract_number_value, Some("to_f64"))
+}
+
+fn skip_optional_whitespace(tokens: &mut TokenList) {
+  while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+    let _ = tokens.consume_next_token();
+  }
+}
+
+fn consume_comma(tokens: &mut TokenList, message: &str) -> Result<(), CssParseError> {
+  skip_optional_whitespace(tokens);
+
+  match tokens.consume_next_token().ok().flatten() {
+    Some(SimpleToken::Comma) => {
+      skip_optional_whitespace(tokens);
+      Ok(())
+    },
+    Some(token) => Err(CssParseError::ParseError {
+      message: format!("{}, got {:?}", message, token),
+    }),
+    None => Err(CssParseError::ParseError {
+      message: message.to_string(),
+    }),
+  }
+}
+
+fn consume_right_paren(tokens: &mut TokenList, message: &str) -> Result<(), CssParseError> {
+  skip_optional_whitespace(tokens);
+
+  match tokens.consume_next_token().ok().flatten() {
+    Some(SimpleToken::RightParen) => Ok(()),
+    Some(token) => Err(CssParseError::ParseError {
+      message: format!("{}, got {:?}", message, token),
+    }),
+    None => Err(CssParseError::ParseError {
+      message: message.to_string(),
+    }),
+  }
 }
 
 // Extracted from the inline closure in number_parser so the defensive else-arm
@@ -814,31 +851,40 @@ impl Skew {
   }
 
   pub fn parse() -> TokenParser<Skew> {
-    let fn_name = TokenParser::<String>::fn_name("skew");
-    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+    TokenParser::new(
+      |tokens| {
+        match tokens.consume_next_token().ok().flatten() {
+          Some(SimpleToken::Function(name)) if name == "skew" => {},
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected 'skew' function, got {:?}", token),
+            });
+          },
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected 'skew' function".to_string(),
+            });
+          },
+        }
 
-    let second_angle = Angle::parser().optional();
+        skip_optional_whitespace(tokens);
+        let ax = (Angle::parser().run)(tokens)?;
+        skip_optional_whitespace(tokens);
 
-    fn_name
-      .flat_map(move |_| Angle::parser(), Some("ax"))
-      .flat_map(
-        move |ax| {
-          let ax_clone = ax;
-          second_angle
-            .clone()
-            .map(move |ay_opt| (ax_clone.clone(), ay_opt), Some("ay"))
-        },
-        Some("with_ay"),
-      )
-      .flat_map(
-        move |(ax, ay_opt)| {
-          close.clone().map(
-            move |_| Skew::new(ax.clone(), ay_opt.clone()),
-            Some("to_skew"),
-          )
-        },
-        Some("close"),
-      )
+        let ay = if matches!(tokens.peek(), Ok(Some(SimpleToken::Comma))) {
+          let _ = tokens.consume_next_token();
+          skip_optional_whitespace(tokens);
+          Some((Angle::parser().run)(tokens)?)
+        } else {
+          None
+        };
+
+        consume_right_paren(tokens, "Expected ')' after skew values")?;
+
+        Ok(Skew::new(ax, ay))
+      },
+      "skew",
+    )
   }
 }
 
@@ -968,38 +1014,34 @@ impl Translate3d {
   }
 
   pub fn parse() -> TokenParser<Translate3d> {
-    let fn_name = TokenParser::<String>::fn_name("translate3d");
-    let close = TokenParser::<SimpleToken>::token(SimpleToken::RightParen, Some("RightParen"));
+    TokenParser::new(
+      |tokens| {
+        match tokens.consume_next_token().ok().flatten() {
+          Some(SimpleToken::Function(name)) if name == "translate3d" => {},
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected 'translate3d' function, got {:?}", token),
+            });
+          },
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected 'translate3d' function".to_string(),
+            });
+          },
+        }
 
-    fn_name
-      .flat_map(|_| length_percentage_parser(), Some("tx"))
-      .flat_map(
-        |tx| {
-          let tx_clone = tx;
-          length_percentage_parser().map(move |ty| (tx_clone.clone(), ty), Some("ty"))
-        },
-        Some("with_ty"),
-      )
-      .flat_map(
-        |(tx, ty)| {
-          let tx_clone = tx;
-          let ty_clone = ty;
-          Length::parser().map(
-            move |tz| (tx_clone.clone(), ty_clone.clone(), tz),
-            Some("tz"),
-          )
-        },
-        Some("with_tz"),
-      )
-      .flat_map(
-        move |(tx, ty, tz)| {
-          close.map(
-            move |_| Translate3d::new(tx.clone(), ty.clone(), tz.clone()),
-            Some("to_translate3d"),
-          )
-        },
-        Some("close"),
-      )
+        skip_optional_whitespace(tokens);
+        let tx = (length_percentage_parser().run)(tokens)?;
+        consume_comma(tokens, "Expected comma after translate3d tx value")?;
+        let ty = (length_percentage_parser().run)(tokens)?;
+        consume_comma(tokens, "Expected comma after translate3d ty value")?;
+        let tz = (Length::parser().run)(tokens)?;
+        consume_right_paren(tokens, "Expected ')' after translate3d values")?;
+
+        Ok(Translate3d::new(tx, ty, tz))
+      },
+      "translate3d",
+    )
   }
 }
 

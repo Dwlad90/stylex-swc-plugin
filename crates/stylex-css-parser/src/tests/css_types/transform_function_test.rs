@@ -84,7 +84,6 @@ mod test_css_type_transform_function {
     use super::*;
 
     #[test]
-    #[ignore] // Matrix3d not yet fully implemented
     fn valid_uses() {
       let result = TransformFunction::parse()
         .parse_to_end("matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)")
@@ -93,7 +92,6 @@ mod test_css_type_transform_function {
     }
 
     #[test]
-    #[ignore] // Matrix3d not yet fully implemented
     fn invalid_uses() {
       assert!(
         TransformFunction::parse()
@@ -290,16 +288,14 @@ mod test_css_type_transform_function {
     use super::*;
 
     #[test]
-    #[ignore] // Rotate3d not yet fully implemented
     fn valid_uses() {
       let result = TransformFunction::parse()
         .parse_to_end("rotate3d(1, 0, 0, 90deg)")
         .unwrap();
-      assert!(result.to_string().contains("rotate3d"));
+      assert_eq!(result.to_string(), "rotateX(90deg)");
     }
 
     #[test]
-    #[ignore] // Rotate3d not yet fully implemented
     fn invalid_uses() {
       assert!(
         TransformFunction::parse()
@@ -440,7 +436,6 @@ mod test_css_type_transform_function {
     use super::*;
 
     #[test]
-    #[ignore] // Translate3d parser does not yet handle separators between arguments
     fn translate3d_with_px_values() {
       assert_eq!(
         TransformFunction::parse()
@@ -517,7 +512,6 @@ mod test_css_type_transform_function {
     }
 
     #[test]
-    #[ignore] // Skew parser does not yet handle second angle argument
     fn skew_two_angles() {
       assert_eq!(
         TransformFunction::parse()

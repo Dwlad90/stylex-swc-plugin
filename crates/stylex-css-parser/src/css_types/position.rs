@@ -6,10 +6,11 @@ use stylex_macros::stylex_unreachable;
  * Provides comprehensive position parsing for CSS layout properties.
  * Covers all major CSS position parsing scenarios with Rust type safety.
  */
-use crate::token_parser::TokenParser;
 use crate::{
+  CssParseError,
   css_types::length_percentage::{LengthPercentage, length_percentage_parser},
-  token_types::SimpleToken,
+  token_parser::TokenParser,
+  token_types::{SimpleToken, TokenList},
 };
 use std::fmt;
 
@@ -181,6 +182,182 @@ impl Position {
       .map(Self::token_to_vertical_keyword, Some("to_vertical_keyword"))
   }
 
+  fn skip_required_whitespace(tokens: &mut TokenList) -> bool {
+    let start = tokens.current_index;
+    let mut consumed = false;
+
+    while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+      let _ = tokens.consume_next_token();
+      consumed = true;
+    }
+
+    if !consumed {
+      tokens.set_current_index(start);
+    }
+
+    consumed
+  }
+
+  fn parse_length_percentage(tokens: &mut TokenList) -> Result<LengthPercentage, CssParseError> {
+    (length_percentage_parser().run)(tokens)
+  }
+
+  fn parse_horizontal(tokens: &mut TokenList) -> Result<Horizontal, CssParseError> {
+    let keyword = (Self::horizontal_keyword_parser().run)(tokens)?;
+    let after_keyword = tokens.current_index;
+
+    if Self::skip_required_whitespace(tokens) {
+      match Self::parse_length_percentage(tokens) {
+        Ok(offset) => return Ok(Horizontal::KeywordWithOffset(keyword, offset)),
+        Err(_) => tokens.set_current_index(after_keyword),
+      }
+    }
+
+    Ok(Horizontal::Keyword(keyword))
+  }
+
+  fn parse_vertical(tokens: &mut TokenList) -> Result<Vertical, CssParseError> {
+    let keyword = (Self::vertical_keyword_parser().run)(tokens)?;
+    let after_keyword = tokens.current_index;
+
+    if Self::skip_required_whitespace(tokens) {
+      match Self::parse_length_percentage(tokens) {
+        Ok(offset) => return Ok(Vertical::KeywordWithOffset(keyword, offset)),
+        Err(_) => tokens.set_current_index(after_keyword),
+      }
+    }
+
+    Ok(Vertical::Keyword(keyword))
+  }
+
+  fn parse_both_keywords(tokens: &mut TokenList) -> Result<Position, CssParseError> {
+    let start = tokens.current_index;
+
+    if let Ok(horizontal) = Self::parse_horizontal(tokens) {
+      if Self::skip_required_whitespace(tokens) {
+        match Self::parse_vertical(tokens) {
+          Ok(vertical) => return Ok(Position::new(Some(horizontal), Some(vertical))),
+          Err(_) => tokens.set_current_index(start),
+        }
+      } else {
+        tokens.set_current_index(start);
+      }
+    } else {
+      tokens.set_current_index(start);
+    }
+
+    if let Ok(vertical) = Self::parse_vertical(tokens) {
+      if Self::skip_required_whitespace(tokens) {
+        match Self::parse_horizontal(tokens) {
+          Ok(horizontal) => return Ok(Position::new(Some(horizontal), Some(vertical))),
+          Err(_) => tokens.set_current_index(start),
+        }
+      } else {
+        tokens.set_current_index(start);
+      }
+    } else {
+      tokens.set_current_index(start);
+    }
+
+    Err(CssParseError::ParseError {
+      message: "Expected horizontal and vertical position keywords".to_string(),
+    })
+  }
+
+  fn parse_length_plus_vertical(tokens: &mut TokenList) -> Result<Position, CssParseError> {
+    let start = tokens.current_index;
+    let length = Self::parse_length_percentage(tokens)?;
+
+    if !Self::skip_required_whitespace(tokens) {
+      tokens.set_current_index(start);
+      return Err(CssParseError::ParseError {
+        message: "Expected whitespace after position length".to_string(),
+      });
+    }
+
+    match Self::parse_vertical(tokens) {
+      Ok(vertical) => Ok(Position::new(
+        Some(Horizontal::Length(length)),
+        Some(vertical),
+      )),
+      Err(error) => {
+        tokens.set_current_index(start);
+        Err(error)
+      },
+    }
+  }
+
+  fn parse_length_plus_horizontal(tokens: &mut TokenList) -> Result<Position, CssParseError> {
+    let start = tokens.current_index;
+    let length = Self::parse_length_percentage(tokens)?;
+
+    if !Self::skip_required_whitespace(tokens) {
+      tokens.set_current_index(start);
+      return Err(CssParseError::ParseError {
+        message: "Expected whitespace after position length".to_string(),
+      });
+    }
+
+    match Self::parse_horizontal(tokens) {
+      Ok(horizontal) => Ok(Position::new(
+        Some(horizontal),
+        Some(Vertical::Length(length)),
+      )),
+      Err(error) => {
+        tokens.set_current_index(start);
+        Err(error)
+      },
+    }
+  }
+
+  fn parse_numbers_only(tokens: &mut TokenList) -> Result<Position, CssParseError> {
+    let first = Self::parse_length_percentage(tokens)?;
+    let after_first = tokens.current_index;
+    let second = if Self::skip_required_whitespace(tokens) {
+      match Self::parse_length_percentage(tokens) {
+        Ok(length) => length,
+        Err(_) => {
+          tokens.set_current_index(after_first);
+          first.clone()
+        },
+      }
+    } else {
+      first.clone()
+    };
+
+    Ok(Position::new(
+      Some(Horizontal::Length(first)),
+      Some(Vertical::Length(second)),
+    ))
+  }
+
+  fn parse_position(tokens: &mut TokenList) -> Result<Position, CssParseError> {
+    let start = tokens.current_index;
+
+    for parser in [
+      Self::parse_both_keywords,
+      Self::parse_length_plus_vertical,
+      Self::parse_length_plus_horizontal,
+    ] {
+      match parser(tokens) {
+        Ok(position) => return Ok(position),
+        Err(_) => tokens.set_current_index(start),
+      }
+    }
+
+    match Self::parse_horizontal(tokens) {
+      Ok(horizontal) => return Ok(Position::new(Some(horizontal), None)),
+      Err(_) => tokens.set_current_index(start),
+    }
+
+    match Self::parse_vertical(tokens) {
+      Ok(vertical) => return Ok(Position::new(None, Some(vertical))),
+      Err(_) => tokens.set_current_index(start),
+    }
+
+    Self::parse_numbers_only(tokens)
+  }
+
   /// Covers these key scenarios:
   /// 1. Single keywords: "left", "top", "center", etc.
   /// 2. Single lengths: "50%", "10px", etc.
@@ -189,149 +366,7 @@ impl Position {
   ///
   /// while being much simpler and more maintainable in Rust.
   pub fn parser() -> TokenParser<Position> {
-    // Strategy 1: Two-value positions (most common case)
-    // This covers: "left top", "50% 25%", "center 10px", etc.
-    let two_values = TokenParser::one_of(vec![
-      // Horizontal keyword then vertical keyword: "left top"
-      Self::horizontal_keyword_parser().flat_map(
-        |h| {
-          TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("ws")).flat_map(
-            move |_| {
-              let h_clone = h.clone();
-              Self::vertical_keyword_parser().map(
-                move |v| {
-                  Position::new(
-                    Some(Horizontal::Keyword(h_clone.clone())),
-                    Some(Vertical::Keyword(v)),
-                  )
-                },
-                Some("h_kw_v_kw"),
-              )
-            },
-            Some("ws_to_v_kw"),
-          )
-        },
-        Some("horizontal_vertical_keywords"),
-      ),
-      // Vertical keyword then horizontal keyword: "top left"
-      Self::vertical_keyword_parser().flat_map(
-        |v| {
-          TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("ws")).flat_map(
-            move |_| {
-              let v_clone = v.clone();
-              Self::horizontal_keyword_parser().map(
-                move |h| {
-                  Position::new(
-                    Some(Horizontal::Keyword(h)),
-                    Some(Vertical::Keyword(v_clone.clone())),
-                  )
-                },
-                Some("v_kw_h_kw"),
-              )
-            },
-            Some("ws_to_h_kw"),
-          )
-        },
-        Some("vertical_horizontal_keywords"),
-      ),
-      // Two length values: "50% 25%"
-      length_percentage_parser().flat_map(
-        |first| {
-          TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("ws")).flat_map(
-            move |_| {
-              let first_clone = first.clone();
-              length_percentage_parser().map(
-                move |second| {
-                  Position::new(
-                    Some(Horizontal::Length(first_clone.clone())),
-                    Some(Vertical::Length(second)),
-                  )
-                },
-                Some("two_lengths"),
-              )
-            },
-            Some("ws_to_second_length"),
-          )
-        },
-        Some("length_length"),
-      ),
-      // Length then vertical keyword: "50% top"
-      length_percentage_parser().flat_map(
-        |length| {
-          TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("ws")).flat_map(
-            move |_| {
-              let len_clone = length.clone();
-              Self::vertical_keyword_parser().map(
-                move |v| {
-                  Position::new(
-                    Some(Horizontal::Length(len_clone.clone())),
-                    Some(Vertical::Keyword(v)),
-                  )
-                },
-                Some("length_v_kw"),
-              )
-            },
-            Some("ws_to_v_kw"),
-          )
-        },
-        Some("length_vertical"),
-      ),
-      // Horizontal keyword then length: "left 25%"
-      Self::horizontal_keyword_parser().flat_map(
-        |h| {
-          TokenParser::<SimpleToken>::token(SimpleToken::Whitespace, Some("ws")).flat_map(
-            move |_| {
-              let h_clone = h.clone();
-              length_percentage_parser().map(
-                move |length| {
-                  Position::new(
-                    Some(Horizontal::Keyword(h_clone.clone())),
-                    Some(Vertical::Length(length)),
-                  )
-                },
-                Some("h_kw_length"),
-              )
-            },
-            Some("ws_to_length"),
-          )
-        },
-        Some("horizontal_length"),
-      ),
-    ]);
-
-    // Strategy 2: Single values
-    let single_values = TokenParser::one_of(vec![
-      // Single horizontal keyword: "left"
-      Self::horizontal_keyword_parser().map(
-        |h| Position::new(Some(Horizontal::Keyword(h)), None),
-        Some("single_h_keyword"),
-      ),
-      // Single vertical keyword: "top"
-      Self::vertical_keyword_parser().map(
-        |v| Position::new(None, Some(Vertical::Keyword(v))),
-        Some("single_v_keyword"),
-      ),
-      // Single length (applies to horizontal): "50%"
-      length_percentage_parser().map(
-        |lp| {
-          Position::new(
-            Some(Horizontal::Length(lp.clone())),
-            Some(Vertical::Length(lp)),
-          )
-        },
-        Some("single_length"),
-      ),
-    ]);
-
-    // Try two-value patterns first, then fall back to single values
-
-    two_values.or(single_values).map(
-      |either| match either {
-        crate::token_parser::Either::Left(pos) => pos,
-        crate::token_parser::Either::Right(pos) => pos,
-      },
-      Some("position_result"),
-    )
+    TokenParser::new(Self::parse_position, "position")
   }
 }
 

@@ -1,4 +1,12 @@
 use super::*;
+use crate::token_types::TokenList;
+
+fn token_list(tokens: Vec<SimpleToken>) -> TokenList {
+  TokenList {
+    tokens,
+    current_index: 0,
+  }
+}
 
 // ── VerticalKeyword::as_str center arm (line 68) ─────────────────────────
 
@@ -156,6 +164,48 @@ fn parses_bottom_right_vertical_then_horizontal() {
     result.vertical,
     Some(Vertical::Keyword(VerticalKeyword::Bottom))
   ));
+}
+
+#[test]
+fn both_keywords_rewinds_when_vertical_first_second_component_fails() {
+  let mut tokens = token_list(vec![
+    SimpleToken::Ident("top".to_string()),
+    SimpleToken::Whitespace,
+    SimpleToken::Ident("bottom".to_string()),
+  ]);
+
+  let result = Position::parse_both_keywords(&mut tokens);
+
+  assert!(result.is_err());
+  assert_eq!(tokens.current_index, 0);
+}
+
+#[test]
+fn parses_length_plus_horizontal() {
+  let result = Position::parser().parse_to_end("10px left").unwrap();
+
+  assert!(matches!(
+    result.horizontal,
+    Some(Horizontal::Keyword(HorizontalKeyword::Left))
+  ));
+  assert!(matches!(result.vertical, Some(Vertical::Length(_))));
+}
+
+#[test]
+fn numbers_only_rewinds_trailing_whitespace_without_second_length() {
+  let mut tokens = token_list(vec![
+    SimpleToken::Dimension {
+      value: 10.0,
+      unit: "px".to_string(),
+    },
+    SimpleToken::Whitespace,
+  ]);
+
+  let result = Position::parse_numbers_only(&mut tokens).unwrap();
+
+  assert!(matches!(result.horizontal, Some(Horizontal::Length(_))));
+  assert!(matches!(result.vertical, Some(Vertical::Length(_))));
+  assert_eq!(tokens.current_index, 1);
 }
 
 // ── position_parser convenience fn (lines 354-356) ───────────────────────

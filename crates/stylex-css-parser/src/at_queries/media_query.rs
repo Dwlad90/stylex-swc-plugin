@@ -831,13 +831,7 @@ fn select_double_inequality_values(
   lower: MediaRuleValue,
   upper: MediaRuleValue,
 ) -> (MediaRuleValue, MediaRuleValue) {
-  if !eq1 && !eq2 {
-    if op1 == '>' {
-      (upper, lower)
-    } else {
-      (lower, upper)
-    }
-  } else if !eq1 {
+  if !eq1 {
     if op1 == '>' {
       (upper, lower)
     } else {

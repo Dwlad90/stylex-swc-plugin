@@ -728,7 +728,7 @@ fn polygon_parser_whitespace_after_fill_rule_comma() {
 // If consume returns Some(non-Ident), the else arm fires.
 // In practice TokenList::consume_next_token always returns whatever peek() showed,
 // so this branch is unreachable through normal execution.
-// TODO: Line 453 — the `else { Some("nonzero".to_string()) }` fallback after
+// Coverage note: Line 453 — the `else { Some("nonzero".to_string()) }` fallback after
 // `if let SimpleToken::Ident(fill_rule_str) = rule_value` is dead code: the
 // outer `if let Ok(Some(SimpleToken::Ident(rule))) = tokens.peek()` guard
 // guarantees `rule_value` is always an Ident when we reach this destructure.
@@ -902,7 +902,7 @@ fn polygon_parser_wrong_closing_token_after_loop() {
   // match *after* the loop, which can only be reached if the loop somehow exited without
   // consuming the RightParen. The loop exits only by the break-on-RightParen. So those
   // arms are unreachable in practice through the public polygon parser.
-  // TODO: Lines 522-523 — the `Some(token) => Err(...)` and `None => Err(...)` arms of
+  // Coverage note: Lines 522-523 — the `Some(token) => Err(...)` and `None => Err(...)` arms of
   // the closing-paren match at line 520 are unreachable: the loop above only breaks when
   // `tokens.peek()` returns `Some(SimpleToken::RightParen)`, so by the time the outer
   // `consume_next_token()` runs, it will always consume that same RightParen successfully.
@@ -917,7 +917,7 @@ fn polygon_parser_wrong_closing_token_after_loop() {
 // x-coordinate inside the loop; if there's no valid point token, it fails before
 // adding anything to `points`. The `is_empty()` check at line 534 is dead code:
 // either parsing fails earlier, or at least one point is successfully parsed.
-// TODO: Line 535 — the `if points.is_empty()` guard is unreachable dead code:
+// Coverage note: Line 535 — the `if points.is_empty()` guard is unreachable dead code:
 // the loop body always calls `length_percentage_parser().run(tokens)?` which returns
 // `Err` (propagated immediately) before `points.push(...)` if no valid x-coordinate
 // is present. So the only way `points` is non-empty at the guard is if the loop ran
@@ -1035,7 +1035,7 @@ fn path_parser_whitespace_after_fill_rule_comma() {
 // Line 584: Some(fill_rule_str) in path — already covered by all fill-rule tests above.
 
 // Line 587: else fallback in path ("nonzero") — same dead-code situation as polygon line 453.
-// TODO: Line 587 — the `else { Some("nonzero".to_string()) }` fallback in path_parser is
+// Coverage note: Line 587 — the `else { Some("nonzero".to_string()) }` fallback in path_parser is
 // dead code for the same reason as polygon_parser line 453: the outer guard guarantees
 // the consumed token is an Ident, so the destructure always succeeds.
 
@@ -1225,7 +1225,7 @@ fn parse_optional_position_whitespace_after_at() {
 // for complex positions). The rewind path (line 670) is the None case.
 
 // Line 664/665: Ok(Some(position)) return after successful position parse.
-// TODO: Lines 664-665 — the `Ok(Some(position))` return in parse_optional_position
+// Coverage note: Lines 664-665 — the `Ok(Some(position))` return in parse_optional_position
 // is only reachable when Position::parser() successfully parses a position after "at".
 // The existing tests have #[ignore] for "at <position>" because it is not yet fully
 // implemented. This path will be coverable once Position parsing is implemented.
@@ -1687,7 +1687,7 @@ fn polygon_parser_fill_rule_without_comma() {
 }
 
 // Line 458 (shifted): `Some("nonzero")` fallback in polygon — dead code.
-// TODO: Line 458 — the `else { Some("nonzero".to_string()) }` fallback after
+// Coverage note: Line 458 — the `else { Some("nonzero".to_string()) }` fallback after
 // `if let SimpleToken::Ident(fill_rule_str) = rule_value` is dead code: the
 // outer guard `if let Ok(Some(SimpleToken::Ident(rule))) = tokens.peek()` plus
 // `if rule == "nonzero" || rule == "evenodd"` guarantees the consumed token is
@@ -1704,7 +1704,7 @@ fn polygon_parser_immediate_right_paren_after_fill_rule() {
   // But this would then fail at `points.is_empty()` check... which is dead code.
   // Actually: the loop peeks RightParen, breaks, then the closing match consumes RP.
   // Then `points.is_empty()` returns true → Err("Polygon must have at least one point").
-  // TODO: Lines 533-535 — the `if points.is_empty()` check is unreachable through a
+  // Coverage note: Lines 533-535 — the `if points.is_empty()` check is unreachable through a
   // token-list that exercises the RightParen-break in the loop: the loop body itself
   // tries to parse a point before adding it to `points`, so if no valid x-coordinate
   // is present, the loop fails with a parse error before `points.push`. The only path
@@ -1745,7 +1745,7 @@ fn polygon_parser_invalid_y_coordinate() {
 // outer match consumes it). But we can still trigger it via the early-break path:
 // if the loop breaks on RightParen peek, then consume_next_token gives RightParen
 // which hits the Ok arm, not the Err arm.
-// TODO: Lines 527-535 — the `Some(token) => Err(...)` and `None => Err(...)` arms
+// Coverage note: Lines 527-535 — the `Some(token) => Err(...)` and `None => Err(...)` arms
 // of the polygon closing-paren match at line 525 are unreachable: the loop above
 // only breaks when `tokens.peek()` returns `Some(SimpleToken::RightParen)`, so
 // `consume_next_token()` will always yield that same RightParen, taking the
@@ -1773,7 +1773,7 @@ fn path_parser_fill_rule_without_comma() {
 }
 
 // Line 592 (shifted): `Some("nonzero")` fallback in path — dead code.
-// TODO: Line 592 — same dead-code reasoning as polygon line 458: the guard
+// Coverage note: Line 592 — same dead-code reasoning as polygon line 458: the guard
 // guarantees the consumed token is always a SimpleToken::Ident, so the
 // `else { Some("nonzero") }` branch never fires through the public API.
 
@@ -1840,7 +1840,7 @@ fn path_parser_whitespace_before_string_explicit() {
 // fire if circle's WS loop ran zero times (no WS at all after radius) AND "at" is
 // preceded by... wait, there IS no WS then.
 //
-// TODO: Line 653 — the body of `if let Ok(Some(SimpleToken::Whitespace)) = tokens.peek()`
+// Coverage note: Line 653 — the body of `if let Ok(Some(SimpleToken::Whitespace)) = tokens.peek()`
 // in parse_optional_position is unreachable through the circle and ellipse parsers:
 // the callers' whitespace-skip loops greedily consume ALL whitespace tokens between
 // the radius and the optional "at" keyword, leaving no whitespace for line 653 to consume.

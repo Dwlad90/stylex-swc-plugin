@@ -207,7 +207,7 @@ fn linear_parse_error_unexpected_token_after_number() {
 fn linear_parse_accepts_missing_closing_paren() {
   // The cssparser tokenizer synthesizes a RightParen for unbalanced function
   // parentheses, so "linear(1,2" is accepted as if the paren were present.
-  // TODO: The parser silently accepts input with missing closing parens because
+  // Coverage note: The parser silently accepts input with missing closing parens because
   // the underlying CSS tokenizer (cssparser) auto-closes open function blocks.
   let result = LinearEasingFunction::parse().parse_to_end("linear(1,2");
   assert!(result.is_ok());
@@ -469,7 +469,7 @@ fn cubic_bezier_parse_error_too_few_args() {
 fn cubic_bezier_parse_accepts_missing_closing_paren() {
   // The cssparser tokenizer synthesizes a RightParen for unbalanced function
   // parentheses, so the parser accepts input without an explicit closing paren.
-  // TODO: The parser silently accepts input with missing closing parens because
+  // Coverage note: The parser silently accepts input with missing closing parens because
   // the underlying CSS tokenizer (cssparser) auto-closes open function blocks.
   let result = CubicBezierEasingFunction::parse().parse_to_end("cubic-bezier(0.25, 0.1, 0.25, 1");
   assert!(result.is_ok());
@@ -870,7 +870,7 @@ fn steps_parse_error_eof_after_comma() {
 fn steps_parse_accepts_missing_closing_paren() {
   // The cssparser tokenizer synthesizes a RightParen for unbalanced function
   // parentheses, so the parser accepts input without an explicit closing paren.
-  // TODO: The parser silently accepts input with missing closing parens because
+  // Coverage note: The parser silently accepts input with missing closing parens because
   // the underlying CSS tokenizer (cssparser) auto-closes open function blocks.
   let result = StepsEasingFunction::parse().parse_to_end("steps(4, start");
   assert!(result.is_ok());

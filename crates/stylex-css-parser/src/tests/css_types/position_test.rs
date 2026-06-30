@@ -111,10 +111,7 @@ mod test_css_type_position {
   }
 
   #[test]
-  #[ignore] // Advanced position parsing with keywords and offsets
   fn parses_keyword_with_length_percentage() {
-    // These tests need more sophisticated position parsing implementation
-
     assert!(Position::parser().parse_to_end("left 50% top 20px").is_ok());
 
     assert!(Position::parser().parse_to_end("right 20px").is_ok());
@@ -125,7 +122,6 @@ mod test_css_type_position {
   }
 
   #[test]
-  #[ignore] // Length and percentage parsing needs implementation improvements
   fn parses_length_percentage_combinations() {
     assert!(Position::parser().parse_to_end("50% 50%").is_ok());
 
@@ -135,7 +131,6 @@ mod test_css_type_position {
   }
 
   #[test]
-  #[ignore] // Keyword with offset parsing needs implementation
   fn parses_keyword_with_offset() {
     assert!(Position::parser().parse_to_end("left 20% top 30%").is_ok());
 
@@ -147,7 +142,6 @@ mod test_css_type_position {
   }
 
   #[test]
-  #[ignore] // Invalid position rejection needs implementation
   fn rejects_invalid_positions() {
     assert!(Position::parser().parse_to_end("invalid").is_err());
     assert!(Position::parser().parse_to_end("left left").is_err());
@@ -219,9 +213,9 @@ mod test_css_type_position {
     let result = Position::parser().parse_to_end("left 10px").unwrap();
     assert!(matches!(
       result.horizontal,
-      Some(Horizontal::Keyword(HorizontalKeyword::Left))
+      Some(Horizontal::KeywordWithOffset(HorizontalKeyword::Left, _))
     ));
-    assert!(matches!(result.vertical, Some(Vertical::Length(_))));
+    assert!(result.vertical.is_none());
   }
 
   #[test]

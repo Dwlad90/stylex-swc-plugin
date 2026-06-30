@@ -945,7 +945,7 @@ fn fraction_display() {
 
 #[test]
 fn media_rule_value_display_all_variants() {
-  let num = MediaRuleValue::Number(3.14);
+  let num = MediaRuleValue::Number(3.125);
   let _ = format!("{}", num);
 
   let len = MediaRuleValue::Length(crate::css_types::Length::new(100.0, "px".to_string()));

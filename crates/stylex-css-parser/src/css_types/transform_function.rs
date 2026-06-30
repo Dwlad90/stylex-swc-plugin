@@ -191,13 +191,14 @@ impl Matrix {
         // Expect Function("matrix")
         // consume_next_token() is infallible (always Ok); use ok().flatten() to
         // remove the unreachable Err sub-region from coverage.
-        let function_token = tokens
-          .consume_next_token()
-          .ok()
-          .flatten()
-          .ok_or(CssParseError::ParseError {
-            message: "Expected matrix function".to_string(),
-          })?;
+        let function_token =
+          tokens
+            .consume_next_token()
+            .ok()
+            .flatten()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected matrix function".to_string(),
+            })?;
 
         if let SimpleToken::Function(name) = function_token {
           if name != "matrix" {
@@ -221,13 +222,14 @@ impl Matrix {
             }
 
             // Expect comma
-            let comma_token = tokens
-              .consume_next_token()
-              .ok()
-              .flatten()
-              .ok_or(CssParseError::ParseError {
-                message: "Expected comma".to_string(),
-              })?;
+            let comma_token =
+              tokens
+                .consume_next_token()
+                .ok()
+                .flatten()
+                .ok_or(CssParseError::ParseError {
+                  message: "Expected comma".to_string(),
+                })?;
             if !matches!(comma_token, SimpleToken::Comma) {
               return Err(CssParseError::ParseError {
                 message: format!("Expected comma, got {:?}", comma_token),
@@ -242,13 +244,14 @@ impl Matrix {
           }
 
           // Parse number
-          let num_token = tokens
-            .consume_next_token()
-            .ok()
-            .flatten()
-            .ok_or(CssParseError::ParseError {
-              message: "Expected number".to_string(),
-            })?;
+          let num_token =
+            tokens
+              .consume_next_token()
+              .ok()
+              .flatten()
+              .ok_or(CssParseError::ParseError {
+                message: "Expected number".to_string(),
+              })?;
 
           if let SimpleToken::Number(value) = num_token {
             numbers.push(value);
@@ -265,13 +268,14 @@ impl Matrix {
         }
 
         // Expect closing paren
-        let close_token = tokens
-          .consume_next_token()
-          .ok()
-          .flatten()
-          .ok_or(CssParseError::ParseError {
-            message: "Expected closing parenthesis".to_string(),
-          })?;
+        let close_token =
+          tokens
+            .consume_next_token()
+            .ok()
+            .flatten()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if !matches!(close_token, SimpleToken::RightParen) {
           return Err(CssParseError::ParseError {
@@ -587,13 +591,14 @@ impl Scale {
 
         // Expect Function("scale")
         // consume_next_token() is infallible; ok().flatten() removes the Err sub-region.
-        let function_token = tokens
-          .consume_next_token()
-          .ok()
-          .flatten()
-          .ok_or(CssParseError::ParseError {
-            message: "Expected scale function".to_string(),
-          })?;
+        let function_token =
+          tokens
+            .consume_next_token()
+            .ok()
+            .flatten()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected scale function".to_string(),
+            })?;
 
         if let SimpleToken::Function(name) = function_token {
           if name != "scale" {
@@ -640,13 +645,14 @@ impl Scale {
         }
 
         // Expect closing parenthesis
-        let close_token = tokens
-          .consume_next_token()
-          .ok()
-          .flatten()
-          .ok_or(CssParseError::ParseError {
-            message: "Expected closing parenthesis".to_string(),
-          })?;
+        let close_token =
+          tokens
+            .consume_next_token()
+            .ok()
+            .flatten()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if !matches!(close_token, SimpleToken::RightParen) {
           return Err(CssParseError::ParseError {
@@ -880,13 +886,14 @@ impl Translate {
 
         // Expect Function("translate")
         // consume_next_token() is infallible; ok().flatten() removes the Err sub-region.
-        let function_token = tokens
-          .consume_next_token()
-          .ok()
-          .flatten()
-          .ok_or(CssParseError::ParseError {
-            message: "Expected translate function".to_string(),
-          })?;
+        let function_token =
+          tokens
+            .consume_next_token()
+            .ok()
+            .flatten()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected translate function".to_string(),
+            })?;
 
         if let SimpleToken::Function(name) = function_token {
           if name != "translate" {
@@ -933,13 +940,14 @@ impl Translate {
         }
 
         // Expect closing parenthesis
-        let close_token = tokens
-          .consume_next_token()
-          .ok()
-          .flatten()
-          .ok_or(CssParseError::ParseError {
-            message: "Expected closing parenthesis".to_string(),
-          })?;
+        let close_token =
+          tokens
+            .consume_next_token()
+            .ok()
+            .flatten()
+            .ok_or(CssParseError::ParseError {
+              message: "Expected closing parenthesis".to_string(),
+            })?;
 
         if !matches!(close_token, SimpleToken::RightParen) {
           return Err(CssParseError::ParseError {

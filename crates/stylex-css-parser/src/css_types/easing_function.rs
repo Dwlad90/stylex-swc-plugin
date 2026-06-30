@@ -4,7 +4,11 @@ CSS easing function parser.
 
 use stylex_macros::stylex_unreachable;
 
-use crate::{CssParseError, token_parser::TokenParser, token_types::{SimpleToken, TokenList}};
+use crate::{
+  CssParseError,
+  token_parser::TokenParser,
+  token_types::{SimpleToken, TokenList},
+};
 use std::fmt::{self, Display};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -82,7 +86,9 @@ impl LinearEasingFunction {
     Self { points }
   }
 
-  pub(crate) fn parse_tokens(tokens: &mut TokenList) -> Result<LinearEasingFunction, CssParseError> {
+  pub(crate) fn parse_tokens(
+    tokens: &mut TokenList,
+  ) -> Result<LinearEasingFunction, CssParseError> {
     // Parse 'linear(' function start
     match tokens.consume_next_token().ok().flatten() {
       Some(SimpleToken::Function(fn_name)) if fn_name == "linear" => {},

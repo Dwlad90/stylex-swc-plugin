@@ -114,7 +114,20 @@ fn parse_nested_or_panic<'i, 't, F>(parser: &mut Parser<'i, 't>, parse: F)
 where
   F: for<'tt> FnOnce(&mut Parser<'i, 'tt>) -> Result<(), cssparser::ParseError<'i, ()>>,
 {
-  if let Err(e) = parser.parse_nested_block(parse) {
+  // The error-handling branch is deliberately kept in a non-generic helper. If
+  // it lived here, every monomorphization of this function (one per closure
+  // type at each call site) would report the unreached arm as an uncovered
+  // region — a "phantom" gap that no single instantiation covers. Routing the
+  // `Result` through one non-generic function collapses that coverage into a
+  // single instantiation exercised by both the success and the error path.
+  handle_nested_block_result(parser.parse_nested_block(parse));
+}
+
+/// Panic (with diagnostics) when a nested `cssparser` block failed to parse.
+///
+/// Non-generic on purpose — see `parse_nested_or_panic`.
+fn handle_nested_block_result(result: Result<(), cssparser::ParseError<'_, ()>>) {
+  if let Err(e) = result {
     error!("Error parsing nested content: {:?}", e);
     stylex_panic!("Error parsing nested content: {:?}", e); // Exit on error
   }

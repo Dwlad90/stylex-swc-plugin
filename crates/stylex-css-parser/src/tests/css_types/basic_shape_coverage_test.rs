@@ -1234,10 +1234,9 @@ fn parse_optional_position_whitespace_after_at() {
 // that don't have an "at" keyword.
 
 // ════════════════════════════════════════════════════════════════════════════
-// basic_shape_parser() free function — lines 687-689
+// basic_shape_parser() free function
 // ════════════════════════════════════════════════════════════════════════════
 
-// Lines 687/688/689: basic_shape_parser() free function
 #[test]
 fn basic_shape_parser_free_function_inset() {
   let result = basic_shape_parser().parse_to_end("inset(10px)");

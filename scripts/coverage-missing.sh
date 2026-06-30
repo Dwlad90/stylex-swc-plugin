@@ -282,9 +282,19 @@ CODE_KIND = 0
 
 # Sum execution counts per distinct source region across every instantiation. A
 # region is genuinely unexercised only when that sum is zero.
+#
+# `region_zero_insts` additionally records, for each source region, the set of
+# monomorphized instantiations (mangled function symbols) in which that region
+# is *not* executed. When a region's total is > 0 but this set is non-empty, the
+# region is a "phantom": covered in aggregate, yet left unexercised in some
+# generic instantiation. Surfacing those locations is what lets a maintainer act
+# on the per-instantiation gap (drive that instantiation through the branch, or
+# collapse the redundant instantiations into one).
 region_total = defaultdict(int)
+region_zero_insts = defaultdict(set)
 for function in export.get("functions", []):
     filenames = function.get("filenames", [])
+    fn_name = function.get("name", "")
     for region in function.get("regions", []):
         # region = [line_start, col_start, line_end, col_end, count, file_id,
         #           expanded_file_id, kind]
@@ -296,8 +306,51 @@ for function in export.get("functions", []):
             continue
         key = (filename, region[0], region[1], region[2], region[3])
         region_total[key] += region[4]
+        if region[4] == 0:
+            region_zero_insts[key].add(fn_name)
 
 uncovered = sorted(key for key, count in region_total.items() if count == 0)
+
+# Phantom regions: exercised in aggregate (total > 0) but missed by at least one
+# monomorphization. These are exactly the instances llvm-cov tallies in
+# `raw_notcovered` beyond the genuinely-unexercised `uncovered` set.
+phantoms = sorted(
+    (key, region_zero_insts[key])
+    for key, count in region_total.items()
+    if count > 0 and region_zero_insts.get(key)
+)
+
+
+_IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_SNAKE = re.compile(r"[a-z][a-z0-9_]*")
+_CAMEL = re.compile(r"[A-Z][a-z][A-Za-z0-9]*")
+# Std/crate-root path noise we drop to keep the hint focused on our own code.
+_DROP = {"core", "alloc", "std", "option", "result", "string", "stylex_css_parser"}
+
+
+def readable_symbol(sym):
+    """Best-effort human hint for a Rust v0 mangled symbol.
+
+    We avoid a hard dependency on rustc-demangle: walk the v0 `<len><ident>`
+    path components, keep the clean snake_case fns/modules and CamelCase types,
+    and drop backref/lifetime/hash noise (`B19_`, `Cs<hash>`) plus std path
+    roots — leaving e.g. `token_parser::TokenParser::SimpleToken::surrounded_by`."""
+    comps = []
+    i, n = 0, len(sym)
+    while i < n:
+        if sym[i].isdigit():
+            j = i
+            while j < n and sym[j].isdigit():
+                j += 1
+            length = int(sym[i:j])
+            ident = sym[j : j + length]
+            i = j + length
+            if _IDENT.fullmatch(ident) and (_SNAKE.fullmatch(ident) or _CAMEL.fullmatch(ident)):
+                if ident not in _DROP and ident not in comps:
+                    comps.append(ident)
+        else:
+            i += 1
+    return "::".join(comps[:8]) if comps else "<unknown>"
 
 # llvm-cov's own (per-instantiation) uncovered-region tally, for the note below.
 raw_notcovered = sum(
@@ -312,18 +365,55 @@ if raw_notcovered > len(uncovered):
         "type that\n"
         "      bails out early (often a test mock) leaves per-instantiation gaps that "
         "vanish once\n"
-        "      instantiations are merged. Consolidating such mocks into one type removes "
-        "the phantoms."
+        "      instantiations are merged. The per-instantiation gaps are listed below."
     )
+
+
+def print_phantoms():
+    """Surface phantom regions: source code exercised in aggregate, yet missed by
+    at least one monomorphization. These are the per-instantiation gaps behind
+    llvm-cov's `notcovered` tally. We report them compactly — the distinct source
+    lines per file, plus the functions whose instantiations leave gaps — so they
+    are greppable without drowning the output in one entry per monomorphization."""
+    if not phantoms:
+        return
+    lines_by_file = defaultdict(set)
+    fns_by_file = defaultdict(set)
+    for (filename, ls, cs, le, ce), insts in phantoms:
+        lines_by_file[filename].add(ls)
+        for sym in insts:
+            hint = readable_symbol(sym)
+            if hint != "<unknown>":
+                fns_by_file[filename].add(hint)
+    distinct = sum(len(v) for v in lines_by_file.values())
+    print(
+        "\nPhantom regions — source executed in the merged coverage (the crate is at\n"
+        "100% line/region coverage once monomorphizations are combined), yet skipped by\n"
+        "at least one generic instantiation. To drive llvm-cov's per-instantiation tally\n"
+        "to zero, exercise the listed function for the missing type, or collapse the\n"
+        "redundant instantiations into one. Source lines with gaps, per file:\n"
+    )
+    for filename in sorted(lines_by_file):
+        lines = ", ".join(str(n) for n in sorted(lines_by_file[filename]))
+        print(f"  {rel(filename)}: {lines}")
+        for hint in sorted(fns_by_file[filename])[:12]:
+            print(f"      fn: {hint}")
+        extra = len(fns_by_file[filename]) - 12
+        if extra > 0:
+            print(f"      ... and {extra} more function(s)")
+        print()
+    print(f"{distinct} distinct source line(s) carry per-instantiation gaps.")
+
 
 if raw_notcovered == 0:
     print("\n✓ No uncovered regions — every measured source region is exercised.")
     sys.exit(0)
 
 if not uncovered:
+    print_phantoms()
     print(
-        f"\nllvm-cov reports {raw_notcovered} uncovered region instance(s), "
-        "so this run does not satisfy the CI coverage gate."
+        f"\nllvm-cov reports {raw_notcovered} uncovered region instance(s) "
+        "(all phantom — see above), so this run does not satisfy the CI coverage gate."
     )
     sys.exit(1)
 
@@ -349,6 +439,7 @@ for filename in sorted(by_file):
 
 region_count = sum(len(v) for v in by_file.values())
 print(f"\n{region_count} uncovered region(s) across {len(by_file)} file(s).")
+print_phantoms()
 sys.exit(1)
 PY
 else

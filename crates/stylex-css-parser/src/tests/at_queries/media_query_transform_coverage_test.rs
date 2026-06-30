@@ -88,7 +88,7 @@ mod key_value_to_str_coverage {
 }
 
 // ---------------------------------------------------------------------------
-// dfs_process_queries_with_depth — lines 70, 72 (Expr::Array arm) and 82
+// dfs_process_queries_with_depth
 // (ObjectLit with non-KeyValue prop, hitting else of let-chain condition)
 // ---------------------------------------------------------------------------
 
@@ -96,7 +96,7 @@ mod key_value_to_str_coverage {
 mod dfs_coverage {
   use super::*;
 
-  /// Covers lines 70 and 72: when a top-level prop's value is an Array expression,
+  /// Covers Expr::Array arm: when a top-level prop's value is an Array expression,
   /// dfs_process_queries_with_depth passes it through unchanged.
   #[test]
   fn array_valued_prop_passes_through_unchanged() {
@@ -128,10 +128,10 @@ mod dfs_coverage {
     assert!(matches!(&*result[0].value, Expr::Array(_)));
   }
 
-  /// Covers line 82: the else path of the let-chain for a non-KeyValue prop inside an ObjectLit.
+  /// Covers the else path of the let-chain for a non-KeyValue prop inside an ObjectLit.
   /// When an ObjectLit contains a Prop::Shorthand (not KeyValue), the let-chain condition
   /// `let Prop::KeyValue(kv) = &**p` fails, so `key_values.push` is NOT called for it.
-  /// This exercises the else path of the second condition in the let-chain at line 79.
+  /// This exercises the else path of the second condition in the let-chain.
   #[test]
   fn object_with_shorthand_prop_skips_non_key_value() {
     // Build a shorthand prop: `{ foo }` (Prop::Shorthand) — Ident::from(&str) works
@@ -166,7 +166,7 @@ mod dfs_coverage {
     }
   }
 
-  /// Covers line 82 via PropOrSpread::Spread (not a Prop at all).
+  /// Covers PropOrSpread::Spread (not a Prop at all).
   /// The first condition `if let PropOrSpread::Prop(p) = obj_prop` fails.
   #[test]
   fn object_with_spread_prop_is_skipped() {
@@ -208,7 +208,7 @@ mod dfs_coverage {
 }
 
 // ---------------------------------------------------------------------------
-// transform_media_queries_in_result — line 151 (accumulated_negations.push)
+// transform_media_queries_in_result
 // and lines 189, 222-223 (let-chain else paths when media key parse fails or
 // original_kv not found)
 // ---------------------------------------------------------------------------
@@ -217,7 +217,7 @@ mod dfs_coverage {
 mod transform_media_coverage {
   use super::*;
 
-  /// Covers line 151: accumulated_negations.push(negations.clone()) is called
+  /// Covers accumulated_negations.push(negations.clone()) is called
   /// when there are multiple parseable media queries.
   /// Explicitly calls transform_media_queries_in_result directly to ensure the
   /// negation accumulation loop body is exercised.
@@ -251,7 +251,7 @@ mod transform_media_coverage {
     );
   }
 
-  /// Covers line 151 more directly: 3 media queries so the loop runs 2 iterations,
+  /// Covers 3 media queries so the loop runs 2 iterations,
   /// producing multiple accumulated_negations entries.
   #[test]
   fn three_media_queries_produce_multiple_accumulated_negation_entries() {
@@ -267,7 +267,7 @@ mod transform_media_coverage {
     assert_eq!(result.len(), 3);
   }
 
-  /// Covers lines 189 and 222-223: when a media key cannot be parsed by
+  /// Covers when a media key cannot be parsed by
   /// MediaQuery::parser().parse_to_end(), the let-chain `&& let Ok(base_mq)` condition
   /// at line 170 and at line 205 fails, skipping the block bodies at 172-188 and 208-221.
   ///
@@ -446,8 +446,7 @@ mod ident_key_integration {
     let inner_obj = ObjectLit {
       span: DUMMY_SP,
       props: vec![PropOrSpread::Prop(Box::new(Prop::KeyValue(ident_kv(
-        "default",
-        "1 / 2",
+        "default", "1 / 2",
       ))))],
     };
 
@@ -508,4 +507,3 @@ mod ident_key_integration {
     }
   }
 }
-

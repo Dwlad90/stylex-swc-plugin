@@ -1117,13 +1117,14 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
   TokenParser::new(
     |tokens| {
       // Expect opening paren
-      let open_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected opening parenthesis".to_string(),
-        })?;
+      let open_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected opening parenthesis".to_string(),
+          })?;
       if !matches!(open_token, SimpleToken::LeftParen) {
         return Err(CssParseError::ParseError {
           message: format!("Expected '(' token, got {:?}", open_token),
@@ -1136,13 +1137,14 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Parse property name (width or height)
-      let key_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected property name".to_string(),
-        })?;
+      let key_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected property name".to_string(),
+          })?;
       let key = if let SimpleToken::Ident(name) = key_token {
         if name == "width" || name == "height" {
           name
@@ -1163,13 +1165,14 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Parse operator (< or >)
-      let op_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected comparison operator".to_string(),
-        })?;
+      let op_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected comparison operator".to_string(),
+          })?;
       let op = if let SimpleToken::Delim(op_char) = op_token {
         if op_char == '<' || op_char == '>' {
           op_char
@@ -1203,13 +1206,14 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Parse dimension value
-      let dim_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected dimension value".to_string(),
-        })?;
+      let dim_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected dimension value".to_string(),
+          })?;
       let mut dimension = if let SimpleToken::Dimension { value, unit } = dim_token {
         Length::new(value as f32, unit)
       } else {
@@ -1224,13 +1228,14 @@ fn media_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Expect closing paren
-      let close_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+      let close_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected closing parenthesis".to_string(),
+          })?;
       if !matches!(close_token, SimpleToken::RightParen) {
         return Err(CssParseError::ParseError {
           message: format!("Expected ')' token, got {:?}", close_token),
@@ -1269,13 +1274,14 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
   TokenParser::new(
     |tokens| {
       // Expect opening paren
-      let open_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected opening parenthesis".to_string(),
-        })?;
+      let open_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected opening parenthesis".to_string(),
+          })?;
       if !matches!(open_token, SimpleToken::LeftParen) {
         return Err(CssParseError::ParseError {
           message: format!("Expected '(' token, got {:?}", open_token),
@@ -1288,13 +1294,14 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
       }
 
       // Parse dimension value first
-      let dim_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected dimension value".to_string(),
-        })?;
+      let dim_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected dimension value".to_string(),
+          })?;
       let dimension = if let SimpleToken::Dimension { value, unit } = dim_token {
         MediaRuleValue::Length(Length::new(value as f32, unit))
       } else {
@@ -1309,13 +1316,14 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
       }
 
       // Parse operator (< or >)
-      let op_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected comparison operator".to_string(),
-        })?;
+      let op_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected comparison operator".to_string(),
+          })?;
       let op = if let SimpleToken::Delim(op_char) = op_token {
         if op_char == '<' || op_char == '>' {
           op_char
@@ -1349,13 +1357,14 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
       }
 
       // Parse property name (width or height)
-      let key_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected property name".to_string(),
-        })?;
+      let key_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected property name".to_string(),
+          })?;
       let key = if let SimpleToken::Ident(name) = key_token {
         if name == "width" || name == "height" {
           name
@@ -1376,13 +1385,14 @@ fn media_inequality_rule_parser_reversed() -> TokenParser<MediaQueryRule> {
       }
 
       // Expect closing paren
-      let close_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+      let close_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected closing parenthesis".to_string(),
+          })?;
       if !matches!(close_token, SimpleToken::RightParen) {
         return Err(CssParseError::ParseError {
           message: format!("Expected ')' token, got {:?}", close_token),
@@ -1416,13 +1426,14 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
   TokenParser::new(
     |tokens| {
       // Expect opening paren
-      let open_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected opening parenthesis".to_string(),
-        })?;
+      let open_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected opening parenthesis".to_string(),
+          })?;
       if !matches!(open_token, SimpleToken::LeftParen) {
         return Err(CssParseError::ParseError {
           message: format!("Expected '(' token, got {:?}", open_token),
@@ -1435,13 +1446,14 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Parse lower bound dimension
-      let lower_dim_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected lower bound dimension".to_string(),
-        })?;
+      let lower_dim_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected lower bound dimension".to_string(),
+          })?;
       let lower_dimension = if let SimpleToken::Dimension { value, unit } = lower_dim_token {
         MediaRuleValue::Length(Length::new(value as f32, unit))
       } else {
@@ -1456,13 +1468,14 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Parse first operator (< or >)
-      let op1_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected first comparison operator".to_string(),
-        })?;
+      let op1_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected first comparison operator".to_string(),
+          })?;
       let _op1 = if let SimpleToken::Delim(op_char) = op1_token {
         if op_char == '<' || op_char == '>' {
           op_char
@@ -1496,13 +1509,14 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Parse property name (width or height)
-      let key_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected property name".to_string(),
-        })?;
+      let key_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected property name".to_string(),
+          })?;
       let key = if let SimpleToken::Ident(name) = key_token {
         if name == "width" || name == "height" {
           name
@@ -1523,13 +1537,14 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Parse second operator (< or >)
-      let op2_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected second comparison operator".to_string(),
-        })?;
+      let op2_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected second comparison operator".to_string(),
+          })?;
       let _op2 = if let SimpleToken::Delim(op_char) = op2_token {
         if op_char == '<' || op_char == '>' {
           op_char
@@ -1563,13 +1578,14 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Parse upper bound dimension
-      let upper_dim_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected upper bound dimension".to_string(),
-        })?;
+      let upper_dim_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected upper bound dimension".to_string(),
+          })?;
       let upper_dimension = if let SimpleToken::Dimension { value, unit } = upper_dim_token {
         MediaRuleValue::Length(Length::new(value as f32, unit))
       } else {
@@ -1584,13 +1600,14 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Expect closing paren
-      let close_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected closing parenthesis".to_string(),
-        })?;
+      let close_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected closing parenthesis".to_string(),
+          })?;
       if !matches!(close_token, SimpleToken::RightParen) {
         return Err(CssParseError::ParseError {
           message: format!("Expected ')' token, got {:?}", close_token),
@@ -1608,14 +1625,8 @@ fn double_inequality_rule_parser() -> TokenParser<MediaQueryRule> {
       // Determine which dimension is min vs max based on the operators
       // For (A op1 width op2 B), we need to map to min/max constraints
 
-      let (mut min_value, mut max_value) = select_double_inequality_values(
-        _op1,
-        _eq1,
-        _op2,
-        _eq2,
-        lower_dimension,
-        upper_dimension,
-      );
+      let (mut min_value, mut max_value) =
+        select_double_inequality_values(_op1, _eq1, _op2, _eq2, lower_dimension, upper_dimension);
 
       // Apply epsilon for strict (non-inclusive) operators
       if (_op1 == '<' && !_eq1) || (_op2 == '>' && !_eq2) {
@@ -1639,13 +1650,14 @@ fn leading_not_parser() -> TokenParser<MediaQueryRule> {
   TokenParser::new(
     |tokens| {
       // Expect "not" keyword
-      let not_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected 'not' keyword".to_string(),
-        })?;
+      let not_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected 'not' keyword".to_string(),
+          })?;
       if let SimpleToken::Ident(keyword) = not_token {
         if keyword != "not" {
           return Err(CssParseError::ParseError {
@@ -1659,13 +1671,14 @@ fn leading_not_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // Skip whitespace after "not"
-      let whitespace_token = tokens
-        .consume_next_token()
-        .ok()
-        .flatten()
-        .ok_or(CssParseError::ParseError {
-          message: "Expected whitespace after 'not'".to_string(),
-        })?;
+      let whitespace_token =
+        tokens
+          .consume_next_token()
+          .ok()
+          .flatten()
+          .ok_or(CssParseError::ParseError {
+            message: "Expected whitespace after 'not'".to_string(),
+          })?;
       if !matches!(whitespace_token, SimpleToken::Whitespace) {
         return Err(CssParseError::ParseError {
           message: format!("Expected whitespace, got {:?}", whitespace_token),

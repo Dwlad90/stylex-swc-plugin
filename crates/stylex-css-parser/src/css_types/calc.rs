@@ -270,9 +270,7 @@ impl CalcValue {
   /// Extract the CalcValue from a single CalcValueOrOperator.
   /// The first element of values_and_operators is always a Value (guaranteed by
   /// the parser), so the else arm is a defensive `stylex_unreachable!`.
-  fn extract_single_calc_value(
-    item: &CalcValueOrOperator,
-  ) -> Result<CalcValue, CssParseError> {
+  fn extract_single_calc_value(item: &CalcValueOrOperator) -> Result<CalcValue, CssParseError> {
     if let CalcValueOrOperator::Value(value) = item {
       Ok(value.clone())
     } else {
@@ -339,9 +337,7 @@ impl CalcValue {
         ),
       },
       CalcValueOrOperator::Value(_) => {
-        stylex_unreachable!(
-          "position() guarantees a CalcValueOrOperator::Operator at op_index"
-        )
+        stylex_unreachable!("position() guarantees a CalcValueOrOperator::Operator at op_index")
       },
     }
   }
@@ -403,9 +399,7 @@ impl CalcValue {
         ),
       },
       CalcValueOrOperator::Value(_) => {
-        stylex_unreachable!(
-          "position() guarantees a CalcValueOrOperator::Operator at op_index"
-        )
+        stylex_unreachable!("position() guarantees a CalcValueOrOperator::Operator at op_index")
       },
     }
   }
@@ -416,10 +410,9 @@ impl CalcValue {
     let checkpoint = tokens.current_index;
 
     // Expect '('
-    let open_paren_token =
-      consume_next(tokens).ok_or(CssParseError::ParseError {
-        message: "Expected opening parenthesis".to_string(),
-      })?;
+    let open_paren_token = consume_next(tokens).ok_or(CssParseError::ParseError {
+      message: "Expected opening parenthesis".to_string(),
+    })?;
 
     if !matches!(open_paren_token, SimpleToken::LeftParen) {
       // Rollback and return error
@@ -440,10 +433,9 @@ impl CalcValue {
     let inner_expr = Self::parse_calc_expression(tokens)?;
 
     // Expect ')'
-    let close_paren_token =
-      consume_next(tokens).ok_or(CssParseError::ParseError {
-        message: "Expected closing parenthesis".to_string(),
-      })?;
+    let close_paren_token = consume_next(tokens).ok_or(CssParseError::ParseError {
+      message: "Expected closing parenthesis".to_string(),
+    })?;
 
     if !matches!(close_paren_token, SimpleToken::RightParen) {
       return Err(CssParseError::ParseError {

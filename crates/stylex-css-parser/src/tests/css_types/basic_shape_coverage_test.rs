@@ -390,9 +390,7 @@ fn circle_parser_whitespace_after_radius() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 303: parse_optional_position call (covered via circle_parser whitespace test,
-// but the position = None path is already covered; the "at" path needs coverage too —
-// however the position parser is not yet fully implemented so we only cover the None path)
+// Line 303: parse_optional_position call (covered via circle_parser whitespace test).
 
 // Line 306/308/314: closing paren error arm (Some(token)) and EOF arm
 #[test]
@@ -1226,9 +1224,7 @@ fn parse_optional_position_whitespace_after_at() {
 
 // Line 664/665: Ok(Some(position)) return after successful position parse.
 // Coverage note: Lines 664-665 — the `Ok(Some(position))` return in parse_optional_position
-// is only reachable when Position::parser() successfully parses a position after "at".
-// The existing tests have #[ignore] for "at <position>" because it is not yet fully
-// implemented. This path will be coverable once Position parsing is implemented.
+// is reachable when Position::parser() successfully parses a position after "at".
 
 // Line 670: rewind branch (no "at" keyword) — covered by all circle/ellipse tests
 // that don't have an "at" keyword.

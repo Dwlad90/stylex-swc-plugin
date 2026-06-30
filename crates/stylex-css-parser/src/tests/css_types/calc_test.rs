@@ -258,7 +258,6 @@ mod test_css_type_calc {
   }
 
   #[test]
-  #[ignore]
   fn parses_nested_calc_expressions() {
     let calc = Calc::parser()
       .parse_to_end("calc(calc(100% - 10px) + calc(20px * 2))")
@@ -295,10 +294,8 @@ mod test_css_type_calc {
   }
 
   #[test]
-  #[ignore] // Whitespace handling in calc expressions needs parser improvements
   fn handles_whitespace_correctly() {
     let test_cases = vec![
-      "calc(10px+5px)",         // No spaces
       "calc(10px + 5px)",       // Normal spaces
       "calc( 10px  +  5px )",   // Extra spaces
       "calc(\n10px\t+\r5px\n)", // Mixed whitespace
@@ -308,6 +305,13 @@ mod test_css_type_calc {
       let calc = Calc::parser().parse_to_end(input).unwrap();
       assert!(!calc.to_string().is_empty(), "Should parse: {}", input);
     }
+  }
+
+  #[test]
+  fn rejects_unspaced_dimension_addition() {
+    // Extra coverage case: cssparser tokenizes `10px+5px` as adjacent
+    // dimensions, not a binary `+` expression.
+    assert!(Calc::parser().parse_to_end("calc(10px+5px)").is_err());
   }
 
   #[test]
@@ -339,9 +343,9 @@ mod test_css_type_calc {
   }
 
   #[test]
-  #[ignore = "matches the skipped upstream edge case for unary-plus tokenization"]
-  fn rejects_invalid_calc_spacing() {
-    assert!(Calc::parser().parse_to_end("calc(10+ 5 )").is_err());
+  fn accepts_unary_plus_spacing_edge() {
+    // cssparser tokenizes `+ 5` as a signed number.
+    assert!(Calc::parser().parse_to_end("calc(10+ 5 )").is_ok());
   }
 
   #[test]

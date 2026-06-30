@@ -140,7 +140,7 @@ fn parser_no_at_prefix_parses_just_query() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn has_balanced_parens_public_method_mirrors_private() {
+fn has_balanced_parens_public_method_matches_private() {
   // Line 495: MediaQuery::has_balanced_parens delegates to has_balanced_parens
   assert!(MediaQuery::has_balanced_parens("(min-width: 300px)"));
   assert!(!MediaQuery::has_balanced_parens("(min-width: 300px"));

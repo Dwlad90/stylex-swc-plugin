@@ -24,6 +24,61 @@ fn value_parser_parses_percentage() {
 }
 
 #[test]
+fn parse_calc_value_accepts_nested_calc_function_token() {
+  let mut tokens = TokenList {
+    tokens: vec![
+      SimpleToken::Function("calc".to_string()),
+      SimpleToken::Number(1.0),
+      SimpleToken::RightParen,
+    ],
+    current_index: 0,
+  };
+
+  let result = CalcValue::parse_calc_value(&mut tokens).unwrap();
+  assert!(matches!(result, CalcValue::Number(n) if (n - 1.0).abs() < 0.001));
+}
+
+#[test]
+fn parse_calc_value_errors_when_nested_calc_close_is_missing() {
+  let mut tokens = TokenList {
+    tokens: vec![
+      SimpleToken::Function("calc".to_string()),
+      SimpleToken::Number(1.0),
+    ],
+    current_index: 0,
+  };
+
+  assert!(CalcValue::parse_calc_value(&mut tokens).is_err());
+}
+
+#[test]
+fn parse_calc_value_errors_when_nested_calc_expression_is_empty() {
+  let mut tokens = TokenList {
+    tokens: vec![
+      SimpleToken::Function("calc".to_string()),
+      SimpleToken::RightParen,
+    ],
+    current_index: 0,
+  };
+
+  assert!(CalcValue::parse_calc_value(&mut tokens).is_err());
+}
+
+#[test]
+fn parse_calc_value_errors_when_nested_calc_close_is_wrong_token() {
+  let mut tokens = TokenList {
+    tokens: vec![
+      SimpleToken::Function("calc".to_string()),
+      SimpleToken::Number(1.0),
+      SimpleToken::Colon,
+    ],
+    current_index: 0,
+  };
+
+  assert!(CalcValue::parse_calc_value(&mut tokens).is_err());
+}
+
+#[test]
 fn value_parser_rejects_empty_input() {
   // Exercises the ok_or None path in parse_calc_value (empty TokenList).
   assert!(CalcValue::value_parser().parse_to_end("").is_err());

@@ -977,7 +977,6 @@ mod media_query_transformer {
 
   /// Test: handles and media queries
   #[test]
-  #[ignore]
   fn handles_and_media_queries() {
     let original_styles = json!({
       "width": {
@@ -1016,7 +1015,6 @@ mod media_query_transformer {
 
   /// Test: combination of keywords and rules
   #[test]
-  #[ignore]
   fn combination_of_keywords_and_rules() {
     let original_styles = json!({
       "width": {
@@ -1029,8 +1027,8 @@ mod media_query_transformer {
     let expected_styles = json!({
       "width": {
         "default": "100%",
-        "@media screen and (min-width: 900px) and (not (print and (max-width: 500px)))": "80%",
-        "@media print and (max-width: 500px)": "50%"
+        "@media ((screen) and (min-width: 900px) and (not (print))) or ((screen) and (min-width: 900px) and (not (max-width: 500px)))": "80%",
+        "@media (print) and (max-width: 500px)": "50%"
       }
     });
 

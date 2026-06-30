@@ -249,7 +249,6 @@ mod test_css_type_basic_shape {
     }
 
     #[test]
-    #[ignore] // Position parsing with "at" not yet fully implemented
     fn should_parse_circle_with_position() {
       let result = BasicShape::parse().parse_to_end("circle(10px at top left)");
       if let Ok(BasicShape::Circle { radius, position }) = result {
@@ -331,7 +330,6 @@ mod test_css_type_basic_shape {
     }
 
     #[test]
-    #[ignore] // Position parsing with "at" not yet fully implemented
     fn should_parse_ellipse_with_position() {
       let result = BasicShape::parse().parse_to_end("ellipse(10px 20px at top left)");
       if let Ok(BasicShape::Ellipse {
@@ -534,7 +532,6 @@ mod test_css_type_basic_shape {
     }
 
     #[test]
-    #[ignore] // Position parsing with "at" not yet fully implemented
     fn circle_with_position() {
       assert_eq!(
         BasicShape::parse()
@@ -557,7 +554,6 @@ mod test_css_type_basic_shape {
     }
 
     #[test]
-    #[ignore] // Position parsing with "at" not yet fully implemented
     fn ellipse_with_position() {
       assert_eq!(
         BasicShape::parse()

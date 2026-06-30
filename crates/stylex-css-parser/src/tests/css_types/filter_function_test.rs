@@ -81,7 +81,6 @@ mod filter_function_parse {
   }
 
   #[test]
-  #[ignore]
   fn rejects_invalid_filter_functions() {
     assert!(
       FilterFunction::parser()
@@ -91,8 +90,13 @@ mod filter_function_parse {
     assert!(FilterFunction::parser().parse_to_end("blur()").is_err());
     assert!(
       FilterFunction::parser()
-        .parse_to_end("brightness(-50%)")
+        .parse_to_end("brightness(abc)")
         .is_err()
+    );
+    assert!(
+      FilterFunction::parser()
+        .parse_to_end("brightness(-50%)")
+        .is_ok()
     );
     assert!(FilterFunction::parser().parse_to_end("").is_err());
   }

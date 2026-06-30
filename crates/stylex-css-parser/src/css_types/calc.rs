@@ -188,6 +188,20 @@ impl CalcValue {
           }),
         }
       },
+      SimpleToken::Function(name) if name == "calc" => {
+        let value = Self::parse_calc_expression(tokens)?;
+        let close_token = consume_next(tokens).ok_or(CssParseError::ParseError {
+          message: "Expected closing parenthesis".to_string(),
+        })?;
+
+        if matches!(close_token, SimpleToken::RightParen) {
+          Ok(value)
+        } else {
+          Err(CssParseError::ParseError {
+            message: "Expected closing parenthesis".to_string(),
+          })
+        }
+      },
       _ => Err(CssParseError::ParseError {
         message: format!(
           "Expected Number, Dimension, Percentage, or Constant token, got {:?}",

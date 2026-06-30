@@ -1416,7 +1416,7 @@ fn translate_axis_display_all_variants() {
   assert_eq!(tz.to_string(), "translateZ(30px)");
 }
 
-// Skew display — with second angle (via hand-built Skew to avoid ignored parser).
+// Skew display — with second angle.
 #[test]
 fn skew_display_with_two_angles() {
   use crate::css_types::angle::Angle;

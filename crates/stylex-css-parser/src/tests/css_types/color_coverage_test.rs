@@ -1630,7 +1630,7 @@ fn lch_parser_whitespace_after_hue_no_slash() {
   }
 }
 
-// ── Rgba: whitespace skip loop coverage (lines 956-958 and 982-984) ──────────
+// ── Rgba: whitespace skip loop coverage ──────────
 
 #[test]
 fn rgba_comma_parser_with_leading_whitespace() {
@@ -1660,7 +1660,7 @@ fn rgba_comma_parser_with_trailing_whitespace_before_close() {
   }
 }
 
-// ── Rgb comma_parser: wrong close token (line 769-770) ───────────────────────
+// ── Rgb comma_parser: wrong close token ───────────────────────
 
 #[test]
 fn rgb_comma_parser_wrong_close_token() {
@@ -1669,7 +1669,7 @@ fn rgb_comma_parser_wrong_close_token() {
   assert!(Color::parse().parse_to_end("rgb(255, 0, 0 extra)").is_err());
 }
 
-// ── Rgb space_parser: wrong close token (line ~842) ──────────────────────────
+// ── Rgb space_parser: wrong close token ──────────────────────────
 
 #[test]
 fn rgb_space_parser_wrong_close_token_explicit() {
@@ -1677,7 +1677,7 @@ fn rgb_space_parser_wrong_close_token_explicit() {
   assert!(Color::parse().parse_to_end("rgb(255 0 0 extra)").is_err());
 }
 
-// ── Rgba comma_parser: wrong close token (line ~993-994) ─────────────────────
+// ── Rgba comma_parser: wrong close token ─────────────────────
 
 #[test]
 fn rgba_comma_parser_wrong_close_token() {
@@ -2288,7 +2288,7 @@ fn lch_parse_optional_alpha_with_whitespace_before_slash() {
   // The alpha_as_number parser runs on the remaining tokens
   let result = Lch::parse_optional_alpha(&mut tl);
   // It may succeed or fail depending on alpha_as_number implementation details,
-  // but we exercise the whitespace-consuming path at line 1914
+  // but we exercise the whitespace-consuming path
   let _ = result;
 }
 
@@ -2441,7 +2441,7 @@ fn rgba_space_slash_parser_out_of_range_alpha() {
 
 #[test]
 fn rgba_space_slash_parser_no_whitespace_before_slash() {
-  // No whitespace before '/' exercises the "else path" of the if-let at line 1063
+  // No whitespace before '/' exercises the "else path" of the if-let
   let c = Color::parse().parse_to_end("rgba(255 0 0/0.5)").unwrap();
   if let Color::Rgba(rgba) = c {
     assert_eq!(rgba.r, 255);
@@ -2453,7 +2453,7 @@ fn rgba_space_slash_parser_no_whitespace_before_slash() {
 
 #[test]
 fn rgba_space_slash_parser_no_whitespace_after_slash() {
-  // No whitespace after '/' exercises the "else path" of if-let at line 1080
+  // No whitespace after '/' exercises the "else path" of if-let
   let c = Color::parse().parse_to_end("rgba(255 0 0 /0.5)").unwrap();
   if let Color::Rgba(rgba) = c {
     assert_eq!(rgba.r, 255);
@@ -2465,7 +2465,7 @@ fn rgba_space_slash_parser_no_whitespace_after_slash() {
 
 #[test]
 fn hsla_comma_parser_missing_second_comma_between_s_and_l() {
-  // Exercises the second consume_comma failure at line 1522 col 61-62
+  // Exercises the second consume_comma failure col 61-62
   // h, comma, s, then MISSING second comma before l
   assert!(
     Hsla::parse()
@@ -2476,7 +2476,7 @@ fn hsla_comma_parser_missing_second_comma_between_s_and_l() {
 
 #[test]
 fn hsla_space_slash_parser_out_of_range_alpha() {
-  // Exercises parse_hsla_alpha_token failure in space_slash_parser (line 1631)
+  // Exercises parse_hsla_alpha_token failure in space_slash_parser
   assert!(
     Hsla::parse()
       .parse_to_end("hsl(180deg 50% 50% / 1.5)")
@@ -2509,7 +2509,7 @@ fn hsla_space_slash_parser_no_whitespace_before_slash() {
 
 #[test]
 fn hsla_space_slash_parser_no_whitespace_after_slash() {
-  // No whitespace after / exercises the else path of the if-let at line ~1627
+  // No whitespace after / exercises the else path of the if-let
   let c = Color::parse()
     .parse_to_end("hsl(180deg 50% 50% /0.5)")
     .unwrap();
@@ -2633,7 +2633,7 @@ fn rgb_space_parser_rejects_non_whitespace_after_g() {
 
 #[test]
 fn rgb_comma_parser_eof_before_close_paren() {
-  // Line 784: ok_or fires when token list exhausted before close paren.
+  // : ok_or fires when token list exhausted before close paren.
   // Build a TokenList with rgb(255,0,0 but no closing paren.
   let mut tl = TokenList {
     tokens: vec![
@@ -2653,7 +2653,7 @@ fn rgb_comma_parser_eof_before_close_paren() {
 
 #[test]
 fn rgb_space_parser_eof_before_whitespace_after_r() {
-  // Line 825: ok_or fires when token list exhausted after r, before whitespace.
+  // : ok_or fires when token list exhausted after r, before whitespace.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("rgb".to_string()),
@@ -2668,7 +2668,7 @@ fn rgb_space_parser_eof_before_whitespace_after_r() {
 
 #[test]
 fn rgb_space_parser_eof_before_whitespace_after_g() {
-  // Line 838: ok_or fires when token list exhausted after g, before second whitespace.
+  // : ok_or fires when token list exhausted after g, before second whitespace.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("rgb".to_string()),
@@ -2685,7 +2685,7 @@ fn rgb_space_parser_eof_before_whitespace_after_g() {
 
 #[test]
 fn rgb_space_parser_eof_before_close_paren() {
-  // Line 851: ok_or fires when token list exhausted before close paren.
+  // : ok_or fires when token list exhausted before close paren.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("rgb".to_string()),
@@ -2704,7 +2704,7 @@ fn rgb_space_parser_eof_before_close_paren() {
 
 #[test]
 fn rgba_comma_parser_eof_before_close_paren() {
-  // Line 992: ok_or fires when token list exhausted before close paren.
+  // : ok_or fires when token list exhausted before close paren.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("rgba".to_string()),
@@ -2725,7 +2725,7 @@ fn rgba_comma_parser_eof_before_close_paren() {
 
 #[test]
 fn rgba_space_slash_parser_eof_before_whitespace_after_r() {
-  // Line 1034: ok_or fires when token list exhausted after r, before whitespace.
+  // : ok_or fires when token list exhausted after r, before whitespace.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("rgb".to_string()),
@@ -2740,7 +2740,7 @@ fn rgba_space_slash_parser_eof_before_whitespace_after_r() {
 
 #[test]
 fn rgba_space_slash_parser_eof_before_whitespace_after_g() {
-  // Line 1047: ok_or fires when token list exhausted after g, before second whitespace.
+  // : ok_or fires when token list exhausted after g, before second whitespace.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("rgb".to_string()),
@@ -2757,7 +2757,7 @@ fn rgba_space_slash_parser_eof_before_whitespace_after_g() {
 
 #[test]
 fn rgba_space_slash_parser_eof_before_slash() {
-  // Line 1065: ok_or fires when token list exhausted before slash.
+  // : ok_or fires when token list exhausted before slash.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("rgb".to_string()),
@@ -2776,7 +2776,7 @@ fn rgba_space_slash_parser_eof_before_slash() {
 
 #[test]
 fn rgba_space_slash_parser_eof_before_close_paren() {
-  // Line 1083: ok_or fires when token list exhausted before close paren.
+  // : ok_or fires when token list exhausted before close paren.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("rgb".to_string()),
@@ -2797,7 +2797,7 @@ fn rgba_space_slash_parser_eof_before_close_paren() {
 
 #[test]
 fn hsl_comma_parser_eof_before_close_paren() {
-  // Line 1266: ok_or fires when token list exhausted before close paren.
+  // : ok_or fires when token list exhausted before close paren.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("hsl".to_string()),
@@ -2816,7 +2816,7 @@ fn hsl_comma_parser_eof_before_close_paren() {
 
 #[test]
 fn hsl_space_parser_eof_before_whitespace_after_h() {
-  // Line 1307: ok_or fires when token list exhausted after h.
+  // : ok_or fires when token list exhausted after h.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("hsl".to_string()),
@@ -2831,7 +2831,7 @@ fn hsl_space_parser_eof_before_whitespace_after_h() {
 
 #[test]
 fn hsl_space_parser_eof_before_whitespace_after_s() {
-  // Line 1320: ok_or fires when token list exhausted after s.
+  // : ok_or fires when token list exhausted after s.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("hsl".to_string()),
@@ -2848,7 +2848,7 @@ fn hsl_space_parser_eof_before_whitespace_after_s() {
 
 #[test]
 fn hsl_space_parser_eof_before_close_paren() {
-  // Line 1333: ok_or fires when token list exhausted before close paren.
+  // : ok_or fires when token list exhausted before close paren.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("hsl".to_string()),
@@ -2867,7 +2867,7 @@ fn hsl_space_parser_eof_before_close_paren() {
 
 #[test]
 fn hsla_comma_parser_eof_before_close_paren() {
-  // Line 1501: ok_or fires when token list exhausted before close paren.
+  // : ok_or fires when token list exhausted before close paren.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("hsla".to_string()),
@@ -2888,7 +2888,7 @@ fn hsla_comma_parser_eof_before_close_paren() {
 
 #[test]
 fn hsla_space_slash_parser_eof_before_whitespace_after_h() {
-  // Line 1542: ok_or fires when token list exhausted after h.
+  // : ok_or fires when token list exhausted after h.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("hsl".to_string()),
@@ -2903,7 +2903,7 @@ fn hsla_space_slash_parser_eof_before_whitespace_after_h() {
 
 #[test]
 fn hsla_space_slash_parser_eof_before_whitespace_after_s() {
-  // Line 1555: ok_or fires when token list exhausted after s.
+  // : ok_or fires when token list exhausted after s.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("hsl".to_string()),
@@ -2920,7 +2920,7 @@ fn hsla_space_slash_parser_eof_before_whitespace_after_s() {
 
 #[test]
 fn hsla_space_slash_parser_eof_before_slash() {
-  // Line 1573: ok_or fires when token list exhausted before slash.
+  // : ok_or fires when token list exhausted before slash.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("hsl".to_string()),
@@ -2939,7 +2939,7 @@ fn hsla_space_slash_parser_eof_before_slash() {
 
 #[test]
 fn hsla_space_slash_parser_eof_before_close_paren() {
-  // Line 1591: ok_or fires when token list exhausted before close paren.
+  // : ok_or fires when token list exhausted before close paren.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("hsl".to_string()),
@@ -2960,7 +2960,7 @@ fn hsla_space_slash_parser_eof_before_close_paren() {
 
 #[test]
 fn lch_parse_eof_before_whitespace_after_l() {
-  // Line 1799: ok_or fires when token list exhausted after l.
+  // : ok_or fires when token list exhausted after l.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("lch".to_string()),
@@ -2975,7 +2975,7 @@ fn lch_parse_eof_before_whitespace_after_l() {
 
 #[test]
 fn lch_parse_eof_before_whitespace_after_c() {
-  // Line 1812: ok_or fires when token list exhausted after c.
+  // : ok_or fires when token list exhausted after c.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("lch".to_string()),
@@ -2992,7 +2992,7 @@ fn lch_parse_eof_before_whitespace_after_c() {
 
 #[test]
 fn lch_parse_eof_before_close_paren() {
-  // Line 1828: ok_or fires when token list exhausted before close paren.
+  // : ok_or fires when token list exhausted before close paren.
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Function("lch".to_string()),

@@ -11,7 +11,7 @@ use cssparser::Token as CssToken;
 
 #[test]
 fn map_css_token_function_variant_produces_function_token() {
-  // CssToken::Function arm (line 80) — map_css_token is reachable from child
+  // CssToken::Function arm — map_css_token is reachable from child
   // modules as a private fn. This variant never reaches map_css_token through
   // tokenize_all/tokenize_nested_content (both handle Function explicitly), so
   // we exercise it by calling map_css_token directly.
@@ -23,7 +23,7 @@ fn map_css_token_function_variant_produces_function_token() {
 
 #[test]
 fn map_css_token_delim_open_paren_produces_left_paren() {
-  // CssToken::Delim('(') arm (line 82) — cssparser never emits this variant
+  // CssToken::Delim('(') arm — cssparser never emits this variant
   // at the token level (it emits ParenthesisBlock instead), so we call
   // map_css_token directly.
   let token = CssToken::Delim('(');
@@ -33,7 +33,7 @@ fn map_css_token_delim_open_paren_produces_left_paren() {
 
 #[test]
 fn map_css_token_delim_close_paren_produces_right_paren() {
-  // CssToken::Delim(')') arm (line 83) — cssparser emits CloseParenthesis
+  // CssToken::Delim(')') arm — cssparser emits CloseParenthesis
   // instead; we call map_css_token directly.
   let token = CssToken::Delim(')');
   let result = super::map_css_token(&token);
@@ -47,7 +47,7 @@ fn map_css_token_delim_close_paren_produces_right_paren() {
 
 #[test]
 fn map_css_token_unquoted_url_produces_string_token() {
-  // url(foo) => CssToken::UnquotedUrl => SimpleToken::String   (line 90)
+  // url(foo) => CssToken::UnquotedUrl => SimpleToken::String
   let list = TokenList::new("url(foo)");
   // The tokenizer sees url( and produces UnquotedUrl for bare-word urls
   assert!(!list.tokens.is_empty());
@@ -64,7 +64,7 @@ fn map_css_token_unquoted_url_produces_string_token() {
 
 #[test]
 fn map_css_token_bad_url_produces_unknown_token() {
-  // url(bad url) => CssToken::BadUrl => SimpleToken::Unknown   (line 89)
+  // url(bad url) => CssToken::BadUrl => SimpleToken::Unknown
   let list = TokenList::new("url(bad url)");
   assert!(!list.tokens.is_empty());
   let has_unknown = list
@@ -79,7 +79,7 @@ fn map_css_token_bad_url_produces_unknown_token() {
 
 #[test]
 fn map_css_token_bad_string_produces_unknown_token() {
-  // "bad\nstring" => CssToken::BadString => SimpleToken::Unknown   (line 89)
+  // "bad\nstring" => CssToken::BadString => SimpleToken::Unknown
   let list = TokenList::new("\"bad\nstring\"");
   assert!(!list.tokens.is_empty());
   let has_unknown = list
@@ -94,7 +94,7 @@ fn map_css_token_bad_string_produces_unknown_token() {
 
 #[test]
 fn map_css_token_close_parenthesis_produces_right_paren() {
-  // Unmatched ) at top level => CssToken::CloseParenthesis => SimpleToken::RightParen   (line 91)
+  // Unmatched ) at top level => CssToken::CloseParenthesis => SimpleToken::RightParen
   let list = TokenList::new(")");
   assert!(!list.tokens.is_empty());
   assert_eq!(
@@ -106,7 +106,7 @@ fn map_css_token_close_parenthesis_produces_right_paren() {
 
 #[test]
 fn map_css_token_square_bracket_block_produces_delim_bracket() {
-  // [a] => CssToken::SquareBracketBlock => SimpleToken::Delim('[')   (line 92)
+  // [a] => CssToken::SquareBracketBlock => SimpleToken::Delim('[')
   let list = TokenList::new("[a]");
   assert!(!list.tokens.is_empty());
   assert_eq!(
@@ -118,7 +118,7 @@ fn map_css_token_square_bracket_block_produces_delim_bracket() {
 
 #[test]
 fn map_css_token_close_square_bracket_produces_delim_close() {
-  // Unmatched ] at top level => CssToken::CloseSquareBracket => SimpleToken::Delim(']')  (line 93)
+  // Unmatched ] at top level => CssToken::CloseSquareBracket => SimpleToken::Delim(']')
   let list = TokenList::new("]");
   assert!(!list.tokens.is_empty());
   assert_eq!(
@@ -130,7 +130,7 @@ fn map_css_token_close_square_bracket_produces_delim_close() {
 
 #[test]
 fn map_css_token_curly_bracket_block_produces_delim_brace() {
-  // {a} => CssToken::CurlyBracketBlock => SimpleToken::Delim('{')   (line 94)
+  // {a} => CssToken::CurlyBracketBlock => SimpleToken::Delim('{')
   let list = TokenList::new("{a}");
   assert!(!list.tokens.is_empty());
   assert_eq!(
@@ -142,7 +142,7 @@ fn map_css_token_curly_bracket_block_produces_delim_brace() {
 
 #[test]
 fn map_css_token_close_curly_bracket_produces_delim_close_brace() {
-  // Unmatched } at top level => CssToken::CloseCurlyBracket => SimpleToken::Delim('}')  (line 95)
+  // Unmatched } at top level => CssToken::CloseCurlyBracket => SimpleToken::Delim('}')
   let list = TokenList::new("}");
   assert!(!list.tokens.is_empty());
   assert_eq!(
@@ -154,7 +154,7 @@ fn map_css_token_close_curly_bracket_produces_delim_close_brace() {
 
 #[test]
 fn map_css_token_cdc_produces_delim_gt() {
-  // --> (CSS comment-close) => CssToken::CDC => SimpleToken::Delim('>')   (line 96)
+  // --> (CSS comment-close) => CssToken::CDC => SimpleToken::Delim('>')
   let list = TokenList::new("-->");
   assert!(!list.tokens.is_empty());
   assert_eq!(
@@ -166,7 +166,7 @@ fn map_css_token_cdc_produces_delim_gt() {
 
 #[test]
 fn map_css_token_cdo_produces_delim_lt() {
-  // <!-- (HTML comment-open) => CssToken::CDO => SimpleToken::Delim('<')   (line 97)
+  // <!-- (HTML comment-open) => CssToken::CDO => SimpleToken::Delim('<')
   let list = TokenList::new("<!--");
   assert!(!list.tokens.is_empty());
   assert_eq!(
@@ -178,7 +178,7 @@ fn map_css_token_cdo_produces_delim_lt() {
 
 #[test]
 fn map_css_token_wildcard_produces_unknown_for_comment() {
-  // /* comment */ => CssToken::Comment (no explicit arm) => SimpleToken::Unknown   (line 100)
+  // /* comment */ => CssToken::Comment (no explicit arm) => SimpleToken::Unknown
   let list = TokenList::new("/* hello */");
   assert!(!list.tokens.is_empty());
   let has_unknown = list
@@ -193,7 +193,7 @@ fn map_css_token_wildcard_produces_unknown_for_comment() {
 
 #[test]
 fn map_css_token_wildcard_produces_unknown_for_include_match() {
-  // ~= => CssToken::IncludeMatch (no explicit arm) => SimpleToken::Unknown   (line 100)
+  // ~= => CssToken::IncludeMatch (no explicit arm) => SimpleToken::Unknown
   let list = TokenList::new("~=");
   assert!(!list.tokens.is_empty());
   let has_unknown = list
@@ -207,13 +207,13 @@ fn map_css_token_wildcard_produces_unknown_for_include_match() {
 }
 
 // ---------------------------------------------------------------------------
-// tokenize_nested_content: nested ParenthesisBlock inside a function (line 115)
+// tokenize_nested_content: nested ParenthesisBlock inside a function
 // ---------------------------------------------------------------------------
 
 #[test]
 fn nested_paren_inside_function_is_tokenized() {
   // rgb((1), 0, 0) — the outer Function token triggers tokenize_nested_content,
-  // then the inner ( triggers the ParenthesisBlock arm (line 115).
+  // then the inner ( triggers the ParenthesisBlock arm.
   let list = TokenList::new("rgb((1), 0, 0)");
   assert!(!list.tokens.is_empty());
   // Expect tokens: Function("rgb"), LeftParen, Number(1.0), RightParen, ...
@@ -228,13 +228,13 @@ fn nested_paren_inside_function_is_tokenized() {
 }
 
 // ---------------------------------------------------------------------------
-// tokenize_nested_content: nested Function inside a function (line 132)
+// tokenize_nested_content: nested Function inside a function
 // ---------------------------------------------------------------------------
 
 #[test]
 fn nested_function_inside_function_is_tokenized() {
   // rgb(calc(1px + 2em), 0, 0) — the outer Function triggers tokenize_nested_content,
-  // then the inner calc( triggers the Function arm (line 132).
+  // then the inner calc( triggers the Function arm.
   let list = TokenList::new("rgb(calc(1px + 2em), 0, 0)");
   assert!(!list.tokens.is_empty());
   assert_eq!(list.tokens[0], SimpleToken::Function("rgb".to_string()));
@@ -250,7 +250,7 @@ fn nested_function_inside_function_is_tokenized() {
 }
 
 // ---------------------------------------------------------------------------
-// tokenize_nested_content: `_ =>` arm called with misc tokens (line 147)
+// tokenize_nested_content: `_ =>` arm called with misc tokens
 // This is already exercised by rgb(1, 2, 3) but we add an explicit assertion
 // for the Whitespace and Comma tokens that appear in the nested block.
 // ---------------------------------------------------------------------------
@@ -258,7 +258,7 @@ fn nested_function_inside_function_is_tokenized() {
 #[test]
 fn nested_content_misc_tokens_mapped_via_map_css_token() {
   // Inside rgb(255 0 0), the whitespace tokens fall to the `_ =>` arm which
-  // calls map_css_token — exercising line 147.
+  // calls map_css_token.
   let list = TokenList::new("rgb(255 0 0)");
   let has_whitespace = list.tokens.contains(&SimpleToken::Whitespace);
   assert!(
@@ -268,7 +268,7 @@ fn nested_content_misc_tokens_mapped_via_map_css_token() {
 }
 
 // ---------------------------------------------------------------------------
-// TokenList::first() — alias for peek() (lines 261-263)
+// TokenList::first() — alias for peek()
 // ---------------------------------------------------------------------------
 
 #[test]

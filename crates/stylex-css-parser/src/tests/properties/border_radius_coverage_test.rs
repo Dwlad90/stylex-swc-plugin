@@ -61,7 +61,7 @@ fn expand_radii_zero_values_panics() {
   BorderRadiusShorthand::expand_radii(vec![]);
 }
 
-// ── line 145: more than 4 values are clamped ─────────────────────────────
+// ── more than 4 values are clamped ─────────────────────────────
 
 #[test]
 fn parser_clamps_more_than_four_values_to_first_four() {
@@ -80,7 +80,7 @@ fn parser_clamps_more_than_four_values_to_first_four() {
 
 // ── to_shortest_string horizontal branches ────────────────────────────────
 
-// Line 269+271: three-value horizontal — requires result.to_string()
+// three-value horizontal — requires result.to_string()
 // For "10px 20px 30px": after expansion h_tl=10px h_tr=20px h_br=30px h_bl=20px
 // h_tr==h_bl (20px==20px) → horizontal_str = "10px 20px 30px"
 // Vertical defaults to h_top_left only → vertical_str = "10px"
@@ -90,12 +90,12 @@ fn to_string_three_value_horizontal_shorthand() {
   let result = BorderRadiusShorthand::parser()
     .parse_to_end("10px 20px 30px")
     .unwrap();
-  // h_tr == h_bl (20px == 20px) exercises the three-value branch (line 271).
+  // h_tr == h_bl (20px == 20px) exercises the three-value branch.
   // Vertical defaults to h_top_left ("10px"), so the "/" separator is added.
   assert_eq!(result.to_string(), "10px 20px 30px / 10px");
 }
 
-// Line 274: four-distinct-value horizontal — all four values different.
+// four-distinct-value horizontal — all four values different.
 // For "10px 20px 30px 40px": h_tl=10px h_tr=20px h_br=30px h_bl=40px,
 // none of the shorthand conditions match → horizontal_str = "10px 20px 30px 40px"
 // Vertical defaults to h_top_left → vertical_str = "10px"
@@ -105,16 +105,16 @@ fn to_string_four_distinct_value_horizontal_shorthand() {
   let result = BorderRadiusShorthand::parser()
     .parse_to_end("10px 20px 30px 40px")
     .unwrap();
-  // All four horizontal values are distinct (line 274).
+  // All four horizontal values are distinct.
   assert_eq!(result.to_string(), "10px 20px 30px 40px / 10px");
 }
 
 // ── to_shortest_string vertical branches ─────────────────────────────────
 
-// The vertical branches (lines 292-300) require a "/" separator so that
+// The vertical branches require a "/" separator so that
 // horizontal and vertical radii differ.
 
-// Line 292/294: two-value vertical shorthand (v_tl==v_br && v_tr==v_bl)
+// two-value vertical shorthand (v_tl==v_br && v_tr==v_bl)
 // Parse "10px / 20px 30px": v_tl=20px v_tr=30px v_br=20px v_bl=30px
 // v_tl==v_br (20==20) && v_tr==v_bl (30==30) → "20px 30px"
 #[test]
@@ -126,7 +126,7 @@ fn to_string_two_value_vertical_shorthand() {
   assert_eq!(result.to_string(), "10px / 20px 30px");
 }
 
-// Line 295/297: three-value vertical shorthand (v_tr==v_bl)
+// three-value vertical shorthand (v_tr==v_bl)
 // Parse "10px / 20px 30px 40px": v_tl=20px v_tr=30px v_br=40px v_bl=30px
 // v_tr==v_bl (30==30) → "20px 30px 40px"
 #[test]
@@ -137,7 +137,7 @@ fn to_string_three_value_vertical_shorthand() {
   assert_eq!(result.to_string(), "10px / 20px 30px 40px");
 }
 
-// Line 298/300: four-distinct-value vertical shorthand
+// four-distinct-value vertical shorthand
 // Parse "10px / 20px 30px 40px 50px": v_tl=20 v_tr=30 v_br=40 v_bl=50
 // All different → "20px 30px 40px 50px"
 #[test]
@@ -148,7 +148,7 @@ fn to_string_four_distinct_value_vertical_shorthand() {
   assert_eq!(result.to_string(), "10px / 20px 30px 40px 50px");
 }
 
-// ── Confirm two-value horizontal branch (line 266/268) is also exercised ──
+// ── Confirm two-value horizontal branch is also exercised ──
 
 #[test]
 fn to_string_two_value_horizontal_shorthand() {

@@ -1,13 +1,13 @@
 use super::*;
 
 // ---------------------------------------------------------------------------
-// normalize() edge cases (lines 285, 307-309, 325)
+// normalize() edge cases
 // ---------------------------------------------------------------------------
 
 #[test]
 fn normalize_not_of_not_all_returns_all() {
   // Builds: Not(MediaKeyword("all", not=true))
-  // normalize() matches the arm at line 308-313 and returns MediaKeyword("all", not=false)
+  // normalize() matches the arm and returns MediaKeyword("all", not=false)
   let inner = MediaQueryRule::MediaKeyword(MediaKeyword::new("all", true, false));
   let not_rule = MediaQueryRule::Not(MediaNotRule::new(inner));
   let normalized = MediaQuery::normalize(not_rule);
@@ -24,7 +24,7 @@ fn normalize_not_of_not_all_returns_all() {
 #[test]
 fn normalize_not_of_and_single_not_all_returns_all() {
   // Builds: Not(And([MediaKeyword("all", not=true)]))
-  // normalize() matches line 315 arm and returns MediaKeyword("all", not=false)
+  // normalize() arm and returns MediaKeyword("all", not=false)
   let keyword = MediaQueryRule::MediaKeyword(MediaKeyword::new("all", true, false));
   let and_rule = MediaQueryRule::And(MediaAndRules::new(vec![keyword]));
   let not_rule = MediaQueryRule::Not(MediaNotRule::new(and_rule));
@@ -62,7 +62,7 @@ fn normalize_and_with_only_and_children_flattens_and_returns_and() {
 fn normalize_and_with_empty_result_after_merge_returns_and_with_not_all() {
   // Contradictory min-width/max-width that cause merge to return empty vec
   // Parsed: (min-width: 1000px) and (max-width: 500px) → contradiction → empty merged
-  // normalize() hits the `merged.is_empty()` branch at line 289-293
+  // normalize() hits the `merged.is_empty()` branch
   let min_rule = MediaQueryRule::Pair(MediaRulePair::new(
     "min-width",
     MediaRuleValue::Length(crate::css_types::Length::new(1000.0, "px".to_string())),
@@ -91,7 +91,7 @@ fn normalize_and_with_empty_result_after_merge_returns_and_with_not_all() {
 
 #[test]
 fn normalize_and_empty_flattened_returns_not_all_keyword() {
-  // Construct AND([]) which produces is_empty() → line 285
+  // Construct AND([]) which produces is_empty()
   // We need to trigger the empty AND path. An AND with inner-ANDs that yield nothing.
   // Actually the only path to flattened.is_empty() is if and_rules.rules itself is empty.
   let and_rule = MediaQueryRule::And(MediaAndRules::new(vec![]));
@@ -109,19 +109,19 @@ fn normalize_and_empty_flattened_returns_not_all_keyword() {
 }
 
 // ---------------------------------------------------------------------------
-// MediaQuery::parser() error paths (lines 465, 469, 477, 481)
+// MediaQuery::parser() error paths
 // ---------------------------------------------------------------------------
 
 #[test]
 fn parser_error_at_keyword_not_media() {
-  // line 477: at-keyword is present but not "media"
+  // at-keyword is present but not "media"
   let result = MediaQuery::parser().parse_to_end("@print screen");
   assert!(result.is_err());
 }
 
 #[test]
 fn parser_error_media_without_whitespace() {
-  // line 472: @media with no whitespace or content after
+  // @media with no whitespace or content after
   // Tokenizer produces AtKeyword("media") then EOF → no whitespace → error
   let result = MediaQuery::parser().parse_to_end("@media");
   assert!(result.is_err());
@@ -129,26 +129,26 @@ fn parser_error_media_without_whitespace() {
 
 #[test]
 fn parser_no_at_prefix_parses_just_query() {
-  // line 481-485: No @media prefix → parse just the query part (backwards compat)
+  // No @media prefix → parse just the query part (backwards compat)
   let result = MediaQuery::parser().parse_to_end("screen");
   assert!(result.is_ok());
   assert_eq!(result.unwrap().to_string(), "@media screen");
 }
 
 // ---------------------------------------------------------------------------
-// has_balanced_parens (line 495) and validate_media_query (lines 495-497)
+// has_balanced_parens and validate_media_query
 // ---------------------------------------------------------------------------
 
 #[test]
 fn has_balanced_parens_public_method_matches_private() {
-  // Line 495: MediaQuery::has_balanced_parens delegates to has_balanced_parens
+  // : MediaQuery::has_balanced_parens delegates to has_balanced_parens
   assert!(MediaQuery::has_balanced_parens("(min-width: 300px)"));
   assert!(!MediaQuery::has_balanced_parens("(min-width: 300px"));
 }
 
 #[test]
 fn validate_media_query_syntax_error_path() {
-  // Line 495-497: parse fails → SYNTAX_ERROR
+  // : parse fails → SYNTAX_ERROR
   let result = validate_media_query("@media (badtoken: [])");
   assert!(result.is_err());
 }
@@ -166,7 +166,7 @@ fn new_from_rule_produces_same_as_new() {
 }
 
 // ---------------------------------------------------------------------------
-// normalize() Or branch (line 296-302)
+// normalize() Or branch
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -194,7 +194,7 @@ fn normalize_or_normalizes_children() {
 }
 
 // ---------------------------------------------------------------------------
-// normalize() Not-Not double negation (line 327-329)
+// normalize() Not-Not double negation
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -267,12 +267,12 @@ fn format_queries_keyword_without_prefix_not_at_top_level_gets_parens() {
 }
 
 // ---------------------------------------------------------------------------
-// Fraction parser error paths (lines 906, 918, 925)
+// Fraction parser error paths
 // ---------------------------------------------------------------------------
 
 #[test]
 fn fraction_wrong_delimiter_errors() {
-  // line 906: slash expected, got something else
+  // slash expected, got something else
   // Use a fraction with wrong delimiter: "(aspect-ratio: 16 + 9)" won't parse as fraction
   // but the fraction parser will try and fail on the "+" character.
   // The whole pair parser is tried via one_of so this eventually falls through to error.
@@ -283,7 +283,7 @@ fn fraction_wrong_delimiter_errors() {
 }
 
 // ---------------------------------------------------------------------------
-// Simple pair parser error paths (lines 962, 975, 989, 1004, 1011)
+// Simple pair parser error paths
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -318,7 +318,7 @@ fn simple_pair_parser_no_closing_paren_characterization() {
 }
 
 // ---------------------------------------------------------------------------
-// Forward inequality parser error paths (lines 1036-1140)
+// Forward inequality parser error paths
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -363,7 +363,7 @@ fn forward_inequality_no_closing_paren_characterization() {
 
 #[test]
 fn forward_inequality_wrong_closing_token_errors() {
-  // Line 1139-1140: Not ')' at close → error
+  // : Not ')' at close → error
   // (width <= 100px] won't tokenize cleanly; use parse_to_end with mismatched
   let result = MediaQuery::parser().parse_to_end("@media (width <= 100px]");
   assert!(result.is_err());
@@ -438,7 +438,7 @@ fn forward_inequality_height_less_equal_succeeds() {
 }
 
 // ---------------------------------------------------------------------------
-// Reversed inequality parser error paths (lines 1178-1314)
+// Reversed inequality parser error paths
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -545,7 +545,7 @@ fn reversed_inequality_height_succeeds() {
 }
 
 // ---------------------------------------------------------------------------
-// Double inequality parser (lines 1317-1560)
+// Double inequality parser
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -664,7 +664,7 @@ fn double_inequality_height_succeeds() {
 }
 
 // ---------------------------------------------------------------------------
-// Leading not parser error paths (lines 1562-1610)
+// Leading not parser error paths
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -683,7 +683,7 @@ fn leading_not_keyword_no_whitespace_fails() {
 }
 
 // ---------------------------------------------------------------------------
-// Parenthesized not parser (lines 1612-1683)
+// Parenthesized not parser
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -703,7 +703,7 @@ fn parenthesized_not_only_combo_errors() {
 #[test]
 fn parenthesized_not_no_whitespace_after_not_errors() {
   // "(not(min-width: 100px))" → no whitespace after "not" within parenthesized expression
-  // parenthesized_not_parser checks for whitespace at line 1631-1637
+  // parenthesized_not_parser checks for whitespace
   let result = MediaQuery::parser().parse_to_end("@media (not(min-width: 100px))");
   assert!(result.is_err());
 }
@@ -718,7 +718,7 @@ fn parenthesized_not_no_closing_paren_characterization() {
 }
 
 // ---------------------------------------------------------------------------
-// Or combinator parser (lines 1690-1753)
+// Or combinator parser
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -788,7 +788,7 @@ fn and_combinator_no_ident_after_whitespace_stops() {
 }
 
 // ---------------------------------------------------------------------------
-// Parenthesized expression parser (lines 1836-1897)
+// Parenthesized expression parser
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -878,7 +878,7 @@ fn pair_with_fraction_no_spaces_succeeds() {
 #[test]
 fn demorgan_not_and_rule_expands_to_or() {
   // not (min-width: 400px) and (max-width: 700px) triggers DeMorgan's law
-  // This causes the branch at line 577 to fire.
+  // This causes the branch to fire.
   let result =
     MediaQuery::parser().parse_to_end("@media (not ((min-width: 400px) and (max-width: 700px)))");
   // Accept either Ok or Err - we want the code path executed
@@ -1083,7 +1083,7 @@ fn format_queries_not_wrapping_or_gets_parenthesized() {
 }
 
 // ---------------------------------------------------------------------------
-// format_queries Or with single valid rule (line 430-431)
+// format_queries Or with single valid rule
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1100,7 +1100,7 @@ fn format_queries_or_single_valid_rule_returns_unwrapped() {
 }
 
 // ---------------------------------------------------------------------------
-// format_queries Or with And/Or members not at top level (line 437-443)
+// format_queries Or with And/Or members not at top level
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1307,7 +1307,7 @@ fn parser_at_keyword_wrong_then_falls_back() {
 
 #[test]
 fn not_only_combined_in_keyword_parser_errors() {
-  // "not only screen" exercises line 807-810 in media_keyword_parser
+  // "not only screen" in media_keyword_parser
   // (not_value=true AND only_value=true → error)
   let result = MediaQuery::parser().parse_to_end("@media not only screen");
   assert!(result.is_err());
@@ -1668,7 +1668,7 @@ fn number_to_media_rule_value_else_returns_zero() {
 }
 
 // ---------------------------------------------------------------------------
-// normalize() line 325 - And arm with single non-not-all keyword (else of if-let)
+// normalize() - And arm with single non-not-all keyword (else of if-let)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1680,7 +1680,7 @@ fn normalize_not_of_and_single_keyword_not_not_all_stays_as_not() {
   let not_rule = MediaQueryRule::Not(MediaNotRule::new(and_rule));
   let normalized = MediaQuery::normalize(not_rule);
   // After normalization, should be a Not containing And([screen])
-  // This exercises line 325 (the closing } of the if-let guard that didn't match)
+  // This exercises (the closing } of the if-let guard that didn't match)
   let s = format!("{:?}", normalized);
   assert!(s.contains("Not") || s.contains("screen") || s.contains("And"));
 }
@@ -1724,7 +1724,7 @@ fn or_combinator_with_or_keyword_no_whitespace() {
 }
 
 // ---------------------------------------------------------------------------
-// Test the `_ => {}` arm in normalize (line 330) for Or/And normalization
+// Test the `_ => {}` arm in normalize for Or/And normalization
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -1783,13 +1783,13 @@ fn merge_intervals_not_rule_non_width_height_pair_returns_original() {
 }
 
 // ---------------------------------------------------------------------------
-// Test the `1510, 1517, 1531` lines in double_inequality (both-strict branches)
+// Test the both-strict branches in double_inequality
 // ---------------------------------------------------------------------------
 
 #[test]
 fn double_inequality_reverse_gt_strict_both() {
   // (700px > width > 400px) - _op1='>', _eq1=false, _eq2=false
-  // Line 1510: (upper_dimension, lower_dimension) strict both with '>'
+  // : (upper_dimension, lower_dimension) strict both with '>'
   let result = MediaQuery::parser().parse_to_end("@media (700px > width > 400px)");
   assert!(result.is_ok());
 }
@@ -1797,7 +1797,7 @@ fn double_inequality_reverse_gt_strict_both() {
 #[test]
 fn double_inequality_forward_lt_strict_both() {
   // (400px < width < 700px) - _op1='<', _eq1=false, _eq2=false
-  // Line 1517: (lower_dimension, upper_dimension)
+  // : (lower_dimension, upper_dimension)
   let result = MediaQuery::parser().parse_to_end("@media (400px < width < 700px)");
   assert!(result.is_ok());
 }
@@ -1805,7 +1805,7 @@ fn double_inequality_forward_lt_strict_both() {
 #[test]
 fn double_inequality_gt_strict_op1_inclusive_op2() {
   // (700px > width >= 400px) - _op1='>', _eq1=false, _eq2=true
-  // Line 1531: op1 strict op2 inclusive with '>'
+  // : op1 strict op2 inclusive with '>'
   let result = MediaQuery::parser().parse_to_end("@media (700px > width >= 400px)");
   assert!(result.is_ok());
 }
@@ -1820,7 +1820,7 @@ fn double_inequality_lt_strict_op1_inclusive_op2() {
 #[test]
 fn double_inequality_gt_inclusive_op1_strict_op2() {
   // (700px >= width > 400px) - _op1='>', _eq1=true, _eq2=false
-  // Line 1544: op2 is strict with '>'
+  // : op2 is strict with '>'
   let result = MediaQuery::parser().parse_to_end("@media (700px >= width > 400px)");
   assert!(result.is_ok());
 }
@@ -1828,14 +1828,14 @@ fn double_inequality_gt_inclusive_op1_strict_op2() {
 #[test]
 fn double_inequality_lt_inclusive_op1_strict_op2() {
   // (400px <= width < 700px) - _op1='<', _eq1=true, _eq2=false
-  // Line 1551: op2 is strict with '<'
+  // : op2 is strict with '<'
   let result = MediaQuery::parser().parse_to_end("@media (400px <= width < 700px)");
   assert!(result.is_ok());
 }
 
 #[test]
 fn double_inequality_fallback_branch() {
-  // Test the fallback branch in double_inequality (lines 1547-1549)
+  // Test the fallback branch in double_inequality
   // This requires both ops to be inclusive and op1 to be neither '>' nor '<'
   // which is impossible via normal parsing. Just exercise what we can.
   let result = MediaQuery::parser().parse_to_end("@media (700px >= width >= 400px)");
@@ -1894,28 +1894,27 @@ fn token_list_from(tokens: Vec<SimpleToken>) -> crate::token_types::TokenList {
 }
 
 // ---------------------------------------------------------------------------
-// Line 940: fraction parser — second number is missing
-// (aspect-ratio: 16/) — the ')' is not a Number, triggering the else at line 940
+// fraction parser — second number is missing
+// (aspect-ratio: 16/) — the ')' is not a Number, triggering the else
 // ---------------------------------------------------------------------------
 
 #[test]
 fn fraction_parser_missing_second_number() {
   // (aspect-ratio: 16/) — fraction parser consumes 16 and /, then finds ')' not a Number
   let result = MediaQuery::parser().parse_to_end("@media (aspect-ratio: 16/)");
-  // The fraction parser hits the Err branch for missing second number (line 940),
+  // The fraction parser hits the Err branch for missing second number,
   // then one_of tries tokens::number() which returns 16, then simple_pair_parser
   // fails because '/' is not ')'. Overall parse fails.
   assert!(result.is_err());
 }
 
 // ---------------------------------------------------------------------------
-// Forward inequality parser — EOF paths and whitespace path (lines 1066, 1093,
-// 1133, 1143-1145, 1154) — use custom TokenList to bypass auto-close behavior
+// Forward inequality parser — EOF paths and whitespace path — use custom TokenList to bypass auto-close behavior
 // ---------------------------------------------------------------------------
 
 #[test]
 fn forward_inequality_eof_at_property_name() {
-  // LeftParen then EOF — key_token consume returns None → ok_or Err at line 1066
+  // LeftParen then EOF — key_token consume returns None → ok_or Err
   let parser = media_inequality_rule_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -1927,7 +1926,7 @@ fn forward_inequality_eof_at_property_name() {
 
 #[test]
 fn forward_inequality_eof_at_operator() {
-  // (width then EOF — op_token consume returns None → ok_or Err at line 1093
+  // (width then EOF — op_token consume returns None → ok_or Err
   let parser = media_inequality_rule_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -1940,7 +1939,7 @@ fn forward_inequality_eof_at_operator() {
 
 #[test]
 fn forward_inequality_eof_at_dimension() {
-  // (width < then EOF — dim_token consume returns None → ok_or Err at line 1133
+  // (width < then EOF — dim_token consume returns None → ok_or Err
   let parser = media_inequality_rule_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -1955,14 +1954,14 @@ fn forward_inequality_eof_at_dimension() {
 #[test]
 fn forward_inequality_whitespace_before_close_paren_covered() {
   // '(width <= 100px )' — whitespace before ')' exercises the while-let loop body
-  // at lines 1143-1145
+  //
   let result = media_inequality_rule_parser().parse_to_end("(width <= 100px )");
   assert!(result.is_ok());
 }
 
 #[test]
 fn forward_inequality_eof_at_close_paren() {
-  // (width < 100px then EOF — close_token consume returns None → ok_or Err at line 1154
+  // (width < 100px then EOF — close_token consume returns None → ok_or Err
   let parser = media_inequality_rule_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -1979,13 +1978,12 @@ fn forward_inequality_eof_at_close_paren() {
 }
 
 // ---------------------------------------------------------------------------
-// Reversed inequality parser — EOF and error paths (lines 1218, 1239, 1249-1251,
-// 1279, 1289-1291, 1306, 1324) — use custom TokenList where needed
+// Reversed inequality parser — EOF and error paths — use custom TokenList where needed
 // ---------------------------------------------------------------------------
 
 #[test]
 fn reversed_inequality_eof_at_dimension() {
-  // LeftParen then EOF — dim_token consume returns None → ok_or Err at line 1218
+  // LeftParen then EOF — dim_token consume returns None → ok_or Err
   let parser = media_inequality_rule_parser_reversed();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -1997,7 +1995,7 @@ fn reversed_inequality_eof_at_dimension() {
 
 #[test]
 fn reversed_inequality_eof_at_operator() {
-  // (100px then EOF — op_token consume returns None → ok_or Err at line 1239
+  // (100px then EOF — op_token consume returns None → ok_or Err
   let parser = media_inequality_rule_parser_reversed();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2013,14 +2011,14 @@ fn reversed_inequality_eof_at_operator() {
 
 #[test]
 fn reversed_inequality_non_delim_operator() {
-  // '(100px foo width)' — op_token is an Ident not a Delim → else Err at lines 1249-1251
+  // '(100px foo width)' — op_token is an Ident not a Delim → else Err
   let result = media_inequality_rule_parser_reversed().parse_to_end("(100px foo width)");
   assert!(result.is_err());
 }
 
 #[test]
 fn reversed_inequality_eof_at_property_name() {
-  // (100px > then EOF — key_token consume returns None → ok_or Err at line 1279
+  // (100px > then EOF — key_token consume returns None → ok_or Err
   let parser = media_inequality_rule_parser_reversed();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2037,14 +2035,14 @@ fn reversed_inequality_eof_at_property_name() {
 
 #[test]
 fn reversed_inequality_non_ident_property_name() {
-  // '(100px >= 200px)' — key_token is Dimension not Ident → else Err at lines 1289-1291
+  // '(100px >= 200px)' — key_token is Dimension not Ident → else Err
   let result = media_inequality_rule_parser_reversed().parse_to_end("(100px >= 200px)");
   assert!(result.is_err());
 }
 
 #[test]
 fn reversed_inequality_eof_at_close_paren() {
-  // (100px >= width then EOF — close_token consume returns None → ok_or Err at line 1306
+  // (100px >= width then EOF — close_token consume returns None → ok_or Err
   let parser = media_inequality_rule_parser_reversed();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2063,13 +2061,13 @@ fn reversed_inequality_eof_at_close_paren() {
 
 #[test]
 fn reversed_inequality_wrong_close_token() {
-  // '(100px >= width extra)' — close_token is Ident("extra") → Err at line 1307-1310
+  // '(100px >= width extra)' — close_token is Ident("extra") → Err
   let result = media_inequality_rule_parser_reversed().parse_to_end("(100px >= width extra)");
   assert!(result.is_err());
 }
 
 // ---------------------------------------------------------------------------
-// adjust_reversed_inequality_dimension helper — covers the implicit else (line 1324)
+// adjust_reversed_inequality_dimension helper — covers the implicit else
 // which fires when 'value' is not a MediaRuleValue::Length
 // ---------------------------------------------------------------------------
 
@@ -2099,7 +2097,7 @@ fn adjust_reversed_inequality_dimension_lt_adjusts_up() {
 
 #[test]
 fn adjust_reversed_inequality_dimension_non_length_is_noop() {
-  // Passing a non-Length value exercises the implicit else branch (line 1324)
+  // Passing a non-Length value exercises the implicit else branch
   let mut value = MediaRuleValue::Number(42.0);
   adjust_reversed_inequality_dimension(&mut value, '>', 0.01);
   // Number is unchanged — non-Length defensive arm
@@ -2112,14 +2110,13 @@ fn adjust_reversed_inequality_dimension_non_length_is_noop() {
 }
 
 // ---------------------------------------------------------------------------
-// Double inequality parser — EOF and error paths (lines 1373, 1394, 1404-1406,
-// 1434, 1444-1446, 1461, 1501, 1511-1513, 1522, 1523-1524)
+// Double inequality parser — EOF and error paths
 // Use custom TokenList for EOF paths to bypass CSS tokenizer auto-close
 // ---------------------------------------------------------------------------
 
 #[test]
 fn double_inequality_eof_at_lower_bound() {
-  // LeftParen then EOF — lower_dim_token returns None → ok_or Err at line 1373
+  // LeftParen then EOF — lower_dim_token returns None → ok_or Err
   let parser = double_inequality_rule_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2131,7 +2128,7 @@ fn double_inequality_eof_at_lower_bound() {
 
 #[test]
 fn double_inequality_eof_at_first_operator() {
-  // (100px then EOF — op1_token returns None → ok_or Err at line 1394
+  // (100px then EOF — op1_token returns None → ok_or Err
   let parser = double_inequality_rule_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2147,14 +2144,14 @@ fn double_inequality_eof_at_first_operator() {
 
 #[test]
 fn double_inequality_non_delim_first_operator() {
-  // '(100px foo width < 700px)' — op1 is Ident not Delim → else Err at lines 1404-1406
+  // '(100px foo width < 700px)' — op1 is Ident not Delim → else Err
   let result = double_inequality_rule_parser().parse_to_end("(100px foo width < 700px)");
   assert!(result.is_err());
 }
 
 #[test]
 fn double_inequality_eof_at_property_name() {
-  // (100px < then EOF — key_token returns None → ok_or Err at line 1434
+  // (100px < then EOF — key_token returns None → ok_or Err
   let parser = double_inequality_rule_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2178,7 +2175,7 @@ fn double_inequality_non_ident_property_name() {
 
 #[test]
 fn double_inequality_eof_at_second_operator() {
-  // (100px < width then EOF — op2_token returns None → ok_or Err at line 1461
+  // (100px < width then EOF — op2_token returns None → ok_or Err
   let parser = double_inequality_rule_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2196,7 +2193,7 @@ fn double_inequality_eof_at_second_operator() {
 
 #[test]
 fn double_inequality_eof_at_upper_bound() {
-  // (100px < width < then EOF — upper_dim_token returns None → ok_or Err at line 1501
+  // (100px < width < then EOF — upper_dim_token returns None → ok_or Err
   let parser = double_inequality_rule_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2222,7 +2219,7 @@ fn double_inequality_whitespace_before_close_paren_covered() {
 
 #[test]
 fn double_inequality_eof_at_close_paren() {
-  // (100px < width < 700px then EOF → ok_or Err at line 1522
+  // (100px < width < 700px then EOF → ok_or Err
   let parser = double_inequality_rule_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2245,19 +2242,19 @@ fn double_inequality_eof_at_close_paren() {
 
 #[test]
 fn double_inequality_wrong_close_token() {
-  // '(100px <= width <= 700px]' — close_token is Delim(']') → Err at lines 1523-1524
+  // '(100px <= width <= 700px]' — close_token is Delim(']') → Err
   let result = double_inequality_rule_parser().parse_to_end("(100px <= width <= 700px]");
   assert!(result.is_err());
 }
 
 // ---------------------------------------------------------------------------
-// select_double_inequality_values helper — covers the fallback branch (line 1571)
+// select_double_inequality_values helper — covers the fallback branch
 // which fires when both ops are inclusive but op1 is neither '<' nor '>'
 // ---------------------------------------------------------------------------
 
 #[test]
 fn select_double_inequality_values_fallback_branch() {
-  // op1='=' is impossible via normal parsing; exercises the fallback else at line 1571
+  // op1='=' is impossible via normal parsing; exercises the fallback else
   let lower = MediaRuleValue::Length(crate::css_types::Length::new(100.0, "px".to_string()));
   let upper = MediaRuleValue::Length(crate::css_types::Length::new(700.0, "px".to_string()));
   let (min, max) =
@@ -2268,7 +2265,7 @@ fn select_double_inequality_values_fallback_branch() {
 
 // ---------------------------------------------------------------------------
 // apply_epsilon_to_min_value and apply_epsilon_to_max_value helpers —
-// covers the implicit else branches (lines 1584, 1591) for non-Length values
+// covers the implicit else branches for non-Length values
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -2285,7 +2282,7 @@ fn apply_epsilon_to_min_value_adds_epsilon() {
 
 #[test]
 fn apply_epsilon_to_min_value_non_length_is_noop() {
-  // Passing a non-Length value exercises the implicit else branch (line 1584)
+  // Passing a non-Length value exercises the implicit else branch
   let mut value = MediaRuleValue::Number(5.0);
   apply_epsilon_to_min_value(&mut value, 0.01);
   match value {
@@ -2308,7 +2305,7 @@ fn apply_epsilon_to_max_value_subtracts_epsilon() {
 
 #[test]
 fn apply_epsilon_to_max_value_non_length_is_noop() {
-  // Passing a non-Length value exercises the implicit else branch (line 1591)
+  // Passing a non-Length value exercises the implicit else branch
   let mut value = MediaRuleValue::String("landscape".to_string());
   apply_epsilon_to_max_value(&mut value, 0.01);
   match value {
@@ -2318,13 +2315,13 @@ fn apply_epsilon_to_max_value_non_length_is_noop() {
 }
 
 // ---------------------------------------------------------------------------
-// leading_not_parser — EOF and non-whitespace paths (lines 1633, 1634-1635)
+// leading_not_parser — EOF and non-whitespace paths
 // Use custom TokenList to get precise control over the token stream
 // ---------------------------------------------------------------------------
 
 #[test]
 fn leading_not_parser_eof_after_not_keyword() {
-  // 'not' then EOF — whitespace_token consume returns None → ok_or Err at line 1633
+  // 'not' then EOF — whitespace_token consume returns None → ok_or Err
   let parser = leading_not_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::Ident("not".to_string()),
@@ -2336,7 +2333,7 @@ fn leading_not_parser_eof_after_not_keyword() {
 
 #[test]
 fn leading_not_parser_non_whitespace_after_not() {
-  // 'not' then LeftParen (not whitespace) → Err at lines 1634-1635
+  // 'not' then LeftParen (not whitespace) → Err
   let parser = leading_not_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::Ident("not".to_string()),
@@ -2348,14 +2345,14 @@ fn leading_not_parser_non_whitespace_after_not() {
 
 // ---------------------------------------------------------------------------
 // parenthesized_not_parser — missing-whitespace, inner-rule-fail, whitespace-loop,
-// missing-close-paren paths (lines 1678, 1692, 1695-1697, 1704-1707)
+// missing-close-paren paths
 // Use direct parser calls or custom TokenList
 // ---------------------------------------------------------------------------
 
 #[test]
 fn parenthesized_not_parser_no_whitespace_after_not_direct() {
   // Custom token list: ( not screen_ident — no whitespace between 'not' and next token
-  // → triggers the else at lines 1713-1715 (Expected whitespace after 'not')
+  // → triggers the else (Expected whitespace after 'not')
   let parser = parenthesized_not_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2369,21 +2366,21 @@ fn parenthesized_not_parser_no_whitespace_after_not_direct() {
 
 #[test]
 fn parenthesized_not_parser_inner_rule_fails() {
-  // '(not 100px)' — 100px is not a valid media rule → inner rule Err → ? at line 1692
+  // '(not 100px)' — 100px is not a valid media rule → inner rule Err → ?
   let result = parenthesized_not_parser().parse_to_end("(not 100px)");
   assert!(result.is_err());
 }
 
 #[test]
 fn parenthesized_not_parser_whitespace_before_close_paren() {
-  // '(not screen )' — whitespace before ')' exercises loop body at lines 1695-1697
+  // '(not screen )' — whitespace before ')' exercises loop body
   let result = parenthesized_not_parser().parse_to_end("(not screen )");
   assert!(result.is_ok());
 }
 
 #[test]
 fn parenthesized_not_parser_missing_close_paren() {
-  // Custom token list: (not screen — EOF without ')' → Err at lines 1704-1707
+  // Custom token list: (not screen — EOF without ')' → Err
   let parser = parenthesized_not_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2397,27 +2394,26 @@ fn parenthesized_not_parser_missing_close_paren() {
 }
 
 // ---------------------------------------------------------------------------
-// or_combinator_parser — after-comma failure (line 1762)
+// or_combinator_parser — after-comma failure
 // ---------------------------------------------------------------------------
 
 #[test]
 fn or_combinator_trailing_comma_fails() {
   // '@media screen,' — comma at end, no rule after → and_combinator fails →
-  // ? Err branch at line 1762
+  // ? Err branch
   let result = MediaQuery::parser().parse_to_end("@media screen,");
   assert!(result.is_err());
 }
 
 // ---------------------------------------------------------------------------
-// parenthesized_expression_parser — NOT branch paths (lines 1897, 1900-1902,
-// 1905-1907, 1909-1912) and main-branch paths (lines 1920-1922, 1929-1931)
+// parenthesized_expression_parser — NOT branch paths and main-branch paths
 // Call parenthesized_expression_parser() directly to bypass one_of ordering
 // ---------------------------------------------------------------------------
 
 #[test]
 fn parenthesized_expression_not_branch_no_whitespace_after_not() {
   // Custom token list: ( not screen — no whitespace between 'not' and 'screen'
-  // triggers the else at lines 1713-1715 (Expected whitespace after 'not')
+  // triggers the else (Expected whitespace after 'not')
   let parser = parenthesized_expression_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2431,14 +2427,14 @@ fn parenthesized_expression_not_branch_no_whitespace_after_not() {
 
 #[test]
 fn parenthesized_expression_not_branch_leading_not_fails() {
-  // '(not 100px)' — leading_not_parser fails for '100px' → ? Err at line 1897
+  // '(not 100px)' — leading_not_parser fails for '100px' → ? Err
   let result = parenthesized_expression_parser().parse_to_end("(not 100px)");
   assert!(result.is_err());
 }
 
 #[test]
 fn parenthesized_expression_not_branch_whitespace_before_close_paren() {
-  // '(not screen )' — whitespace before ')' exercises loop body at lines 1900-1902
+  // '(not screen )' — whitespace before ')' exercises loop body
   // Direct call bypasses parenthesized_not_parser (which also handles this case)
   let result = parenthesized_expression_parser().parse_to_end("(not screen )");
   assert!(result.is_ok());
@@ -2453,7 +2449,7 @@ fn parenthesized_expression_not_branch_whitespace_before_close_paren() {
 
 #[test]
 fn parenthesized_expression_not_branch_with_close_paren() {
-  // '(not screen)' — direct call exercises success path at lines 1905-1907
+  // '(not screen)' — direct call exercises success path
   let result = parenthesized_expression_parser().parse_to_end("(not screen)");
   assert!(result.is_ok());
   match result.unwrap() {
@@ -2467,7 +2463,7 @@ fn parenthesized_expression_not_branch_with_close_paren() {
 
 #[test]
 fn parenthesized_expression_not_branch_missing_close_paren() {
-  // Custom token list: (not screen — EOF without ')' → Err at lines 1909-1912
+  // Custom token list: (not screen — EOF without ')' → Err
   let parser = parenthesized_expression_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,
@@ -2489,7 +2485,7 @@ fn parenthesized_expression_main_branch_whitespace_before_close_paren() {
 
 #[test]
 fn parenthesized_expression_main_branch_missing_close_paren() {
-  // Custom token list: ((min-width: 100px) — EOF without outer ')' → Err at lines 1929-1931
+  // Custom token list: ((min-width: 100px) — EOF without outer ')' → Err
   let parser = parenthesized_expression_parser();
   let mut token_list = token_list_from(vec![
     SimpleToken::LeftParen,

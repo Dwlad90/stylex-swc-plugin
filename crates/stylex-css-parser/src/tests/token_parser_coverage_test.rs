@@ -19,7 +19,6 @@ fn tl(tokens: Vec<SimpleToken>) -> TokenList {
 
 #[test]
 fn tokens_semicolon_success() {
-  // line 51-53
   let mut tl = tl(vec![SimpleToken::Semicolon]);
   let parser = tokens::semicolon();
   let result = (parser.run)(&mut tl);
@@ -29,7 +28,6 @@ fn tokens_semicolon_success() {
 
 #[test]
 fn tokens_function_success() {
-  // line 73-75
   let mut tl = self::tl(vec![
     SimpleToken::Function("rgb".to_string()),
     SimpleToken::RightParen,
@@ -42,7 +40,6 @@ fn tokens_function_success() {
 
 #[test]
 fn tokens_string_success() {
-  // line 77-79
   let mut tl = tl(vec![SimpleToken::String("hello".to_string())]);
   let parser = tokens::string();
   let result = (parser.run)(&mut tl);
@@ -52,7 +49,7 @@ fn tokens_string_success() {
 
 #[test]
 fn tokens_hash_success() {
-  // line 81-83 (already in range, ensuring call)
+  // (already in range, ensuring call)
   let result = tokens::hash().parse("#abc");
   assert!(result.is_ok());
   assert!(matches!(result.unwrap(), SimpleToken::Hash(_)));
@@ -60,7 +57,6 @@ fn tokens_hash_success() {
 
 #[test]
 fn tokens_url_success() {
-  // line 85-87
   let mut tl = tl(vec![SimpleToken::Url("https://example.com".to_string())]);
   let parser = tokens::url();
   let result = (parser.run)(&mut tl);
@@ -70,7 +66,6 @@ fn tokens_url_success() {
 
 #[test]
 fn tokens_open_paren_success() {
-  // line 89-91
   let mut tl = tl(vec![SimpleToken::LeftParen]);
   let parser = tokens::open_paren();
   let result = (parser.run)(&mut tl);
@@ -80,7 +75,6 @@ fn tokens_open_paren_success() {
 
 #[test]
 fn tokens_close_paren_success() {
-  // line 93-95
   let mut tl = tl(vec![SimpleToken::RightParen]);
   let parser = tokens::close_paren();
   let result = (parser.run)(&mut tl);
@@ -90,7 +84,6 @@ fn tokens_close_paren_success() {
 
 #[test]
 fn tokens_open_square_success() {
-  // line 97-99
   let mut tl = tl(vec![SimpleToken::LeftBracket]);
   let parser = tokens::open_square();
   let result = (parser.run)(&mut tl);
@@ -100,7 +93,6 @@ fn tokens_open_square_success() {
 
 #[test]
 fn tokens_close_square_success() {
-  // line 101-103
   let mut tl = tl(vec![SimpleToken::RightBracket]);
   let parser = tokens::close_square();
   let result = (parser.run)(&mut tl);
@@ -110,7 +102,6 @@ fn tokens_close_square_success() {
 
 #[test]
 fn tokens_open_curly_success() {
-  // line 105-107
   let mut tl = tl(vec![SimpleToken::LeftBrace]);
   let parser = tokens::open_curly();
   let result = (parser.run)(&mut tl);
@@ -120,7 +111,6 @@ fn tokens_open_curly_success() {
 
 #[test]
 fn tokens_close_curly_success() {
-  // line 109-111
   let mut tl = tl(vec![SimpleToken::RightBrace]);
   let parser = tokens::close_curly();
   let result = (parser.run)(&mut tl);
@@ -130,7 +120,6 @@ fn tokens_close_curly_success() {
 
 #[test]
 fn tokens_delim_success() {
-  // line 113-115
   let mut tl = tl(vec![SimpleToken::Delim('+')]);
   let parser = tokens::delim('+');
   let result = (parser.run)(&mut tl);
@@ -139,12 +128,12 @@ fn tokens_delim_success() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// parse_to_end — line 161: parser succeeds but tokens remain (not end)
+// parse_to_end — parser succeeds but tokens remain (not end)
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
 fn parse_to_end_fails_when_tokens_remain() {
-  // line 161-168: the "Expected end of input" error path
+  // the "Expected end of input" error path
   let parser = tokens::ident();
   // parse_to_end "foo bar": parser matches "foo" but "bar" remains
   let result = parser.parse_to_end("foo bar");
@@ -157,12 +146,12 @@ fn parse_to_end_fails_when_tokens_remain() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// flat_map — line 251: second parser fails
+// flat_map — second parser fails
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
 fn flat_map_second_parser_fails_rewinds() {
-  // line 233-237: second parser Err branch, rewinds to current_index
+  // second parser Err branch, rewinds to current_index
   let parser = tokens::ident().flat_map(
     |_| tokens::colon(), // expect a colon next, but there won't be one
     Some("then_colon"),
@@ -178,7 +167,7 @@ fn flat_map_second_parser_fails_rewinds() {
 
 #[test]
 fn surrounded_by_none_suffix_success() {
-  // line 349-381: the None arm where suffix = prefix (same parser used both sides)
+  // the None arm where suffix = prefix (same parser used both sides)
   // Content is an ident surrounded on both sides by colon
   let content_parser = tokens::ident();
   let prefix_parser = tokens::colon();
@@ -205,7 +194,7 @@ fn surrounded_by_none_suffix_success() {
 
 #[test]
 fn surrounded_by_none_suffix_prefix_fails() {
-  // line 358-361: prefix_run fails in None branch
+  // prefix_run fails in None branch
   let content_parser = tokens::ident();
   let prefix_parser = tokens::colon();
   let surrounded = content_parser.surrounded_by(prefix_parser, None::<TokenParser<SimpleToken>>);
@@ -230,7 +219,7 @@ fn surrounded_by_none_suffix_prefix_fails() {
 
 #[test]
 fn surrounded_by_none_suffix_main_fails() {
-  // line 363-368: prefix consumed, main_run fails in None branch
+  // prefix consumed, main_run fails in None branch
   let content_parser = tokens::colon(); // we'll give it no colon after the bracket
   let prefix_parser = tokens::ident();
   let surrounded = content_parser.surrounded_by(prefix_parser, None::<TokenParser<SimpleToken>>);
@@ -259,7 +248,7 @@ fn surrounded_by_none_suffix_main_fails() {
 
 #[test]
 fn surrounded_by_none_suffix_suffix_fails() {
-  // line 371-377: prefix ok, main ok, suffix_run fails in None branch
+  // prefix ok, main ok, suffix_run fails in None branch
   // The suffix reuses the prefix parser (ident), but we only provide one ident at the end
   let content_parser = tokens::colon();
   let prefix_parser = tokens::ident();
@@ -290,12 +279,12 @@ fn surrounded_by_none_suffix_suffix_fails() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// surrounded_by with Some suffix — error paths lines 324-342
+// surrounded_by with Some suffix —
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
 fn surrounded_by_some_suffix_prefix_fails() {
-  // line 324-327: prefix fails in Some(suffix) branch
+  // prefix fails in Some(suffix) branch
   let content = tokens::ident();
   let prefix = tokens::colon();
   let suffix = tokens::semicolon();
@@ -321,7 +310,7 @@ fn surrounded_by_some_suffix_prefix_fails() {
 
 #[test]
 fn surrounded_by_some_suffix_main_fails() {
-  // line 329-334: prefix ok, main fails in Some(suffix) branch
+  // prefix ok, main fails in Some(suffix) branch
   let content = tokens::semicolon(); // expects semicolon as content
   let prefix = tokens::colon();
   let suffix = tokens::colon();
@@ -348,7 +337,7 @@ fn surrounded_by_some_suffix_main_fails() {
 
 #[test]
 fn surrounded_by_some_suffix_suffix_fails() {
-  // line 337-342: prefix ok, main ok, suffix fails
+  // prefix ok, main ok, suffix fails
   let content = tokens::ident();
   let prefix = tokens::colon();
   let suffix = tokens::semicolon();
@@ -374,12 +363,10 @@ fn surrounded_by_some_suffix_suffix_fails() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// label() method — line 439-441
-// ═══════════════════════════════════════════════════════════════════════════
+// label() method — // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
 fn label_method_returns_label() {
-  // line 439-441
   let parser = tokens::ident();
   assert_eq!(parser.label(), "Ident");
 
@@ -393,7 +380,7 @@ fn label_method_returns_label() {
 
 #[test]
 fn debug_method_success() {
-  // line 445-463: debug on a successful parse
+  // debug on a successful parse
   let parser = tokens::ident();
   let result = parser.debug("foo");
   assert!(result.is_ok());
@@ -402,7 +389,7 @@ fn debug_method_success() {
 
 #[test]
 fn debug_method_failure() {
-  // line 456-459: the Err arm of the match inside debug
+  // the Err arm of the match inside debug
   let parser = tokens::colon();
   let result = parser.debug("foo"); // ident is not a colon
   assert!(result.is_err());
@@ -414,7 +401,7 @@ fn debug_method_failure() {
 
 #[test]
 fn parse_with_context_success() {
-  // line 485: Ok branch
+  // Ok branch
   let parser = tokens::ident();
   let result = parser.parse_with_context("foo");
   assert!(result.is_ok());
@@ -422,7 +409,7 @@ fn parse_with_context_success() {
 
 #[test]
 fn parse_with_context_error() {
-  // lines 471-484: the Err branch with context message
+  // the Err branch with context message
   let parser = tokens::colon();
   let result = parser.parse_with_context("foo");
   assert!(result.is_err());
@@ -440,7 +427,6 @@ fn parse_with_context_error() {
 
 #[test]
 fn with_label_changes_label() {
-  // line 490-493
   let parser = tokens::ident().with_label("my_custom_label");
   assert_eq!(parser.label, "my_custom_label");
 }
@@ -451,7 +437,7 @@ fn with_label_changes_label() {
 
 #[test]
 fn always_unit_type_uses_optional_label() {
-  // line 497-501: std::any::type_name::<T>() == "()" branch
+  // std::any::type_name::<T>() == "()" branch
   let parser: TokenParser<()> = TokenParser::always(());
   assert_eq!(parser.label, "optional");
 }
@@ -462,7 +448,7 @@ fn always_unit_type_uses_optional_label() {
 
 #[test]
 fn separated_by_optional_whitespace_single() {
-  // line 517-524: one_or_more with optional whitespace separator
+  // one_or_more with optional whitespace separator
   let parser = tokens::ident().map(
     |t| {
       if let SimpleToken::Ident(v) = t {
@@ -482,7 +468,7 @@ fn separated_by_optional_whitespace_single() {
 
 #[test]
 fn separated_by_optional_whitespace_multiple_with_whitespace() {
-  // line 517-524: multiple idents with whitespace
+  // multiple idents with whitespace
   let parser = tokens::ident().map(
     |t| {
       if let SimpleToken::Ident(v) = t {
@@ -506,7 +492,7 @@ fn separated_by_optional_whitespace_multiple_with_whitespace() {
 
 #[test]
 fn zero_or_more_static_empty() {
-  // line 710-706: ZeroOrMore on no matching tokens
+  // ZeroOrMore on no matching tokens
   let parser = TokenParser::zero_or_more(tokens::colon());
   let result = parser.parse("foo");
   assert!(result.is_ok());
@@ -515,7 +501,7 @@ fn zero_or_more_static_empty() {
 
 #[test]
 fn zero_or_more_static_multiple() {
-  // line 695-700: push value in loop, then break
+  // push value in loop, then break
   let parser = TokenParser::zero_or_more(tokens::colon());
   let mut tl = tl(vec![
     SimpleToken::Colon,
@@ -533,7 +519,7 @@ fn zero_or_more_static_multiple() {
 
 #[test]
 fn one_or_more_static_single() {
-  // lines 718-724: first match, then loop exits
+  // first match, then loop exits
   let parser = TokenParser::one_or_more(tokens::ident());
   let mut tl = tl(vec![SimpleToken::Ident("foo".to_string())]);
   let result = (parser.run)(&mut tl);
@@ -543,7 +529,7 @@ fn one_or_more_static_single() {
 
 #[test]
 fn one_or_more_static_multiple() {
-  // lines 729-735: second match in loop
+  // second match in loop
   let parser = TokenParser::one_or_more(tokens::ident());
   let mut tl = tl(vec![
     SimpleToken::Ident("a".to_string()),
@@ -557,7 +543,7 @@ fn one_or_more_static_multiple() {
 
 #[test]
 fn one_or_more_static_fails_on_empty() {
-  // lines 720-723: the Err path on the first required match
+  // the Err path on the first required match
   let parser = TokenParser::one_or_more(tokens::colon());
   let result = parser.parse("foo");
   assert!(result.is_err());
@@ -566,7 +552,7 @@ fn one_or_more_static_fails_on_empty() {
 // ═══════════════════════════════════════════════════════════════════════════
 // This path cannot be triggered via TokenList::new() (it never returns Err).
 // However, we can still confirm the parser handles the Ok(None) path (EOF).
-// The Err(e) arm (line 771-773) is exercised when consume_next_token returns
+// The Err(e) arm is exercised when consume_next_token returns
 // Err — this is structurally unreachable with the current TokenList impl since
 // consume_next_token always returns Ok.
 // Coverage note: consume_next_token always returns Ok(Some) or Ok(None), never
@@ -575,7 +561,7 @@ fn one_or_more_static_fails_on_empty() {
 
 #[test]
 fn token_parser_eof_returns_error() {
-  // line 765-770: the Ok(None) arm when input is exhausted
+  // the Ok(None) arm when input is exhausted
   let parser = tokens::ident();
   let result = parser.parse("");
   assert!(result.is_err());
@@ -587,12 +573,10 @@ fn token_parser_eof_returns_error() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// string() extract_ident_value unreachable arm — line 790
-// fn_name() extract_function_value unreachable arm — line 809
-//
+// string() extract_ident_value unreachable arm — // fn_name() extract_function_value unreachable arm — //
 // Per SPEC: extract named functions and call with mismatched tokens.
 // extract_ident_value and extract_function_value are already extracted to
-// named fns in the source (lines 790, 809 are inside named fns after refactor).
+// named fns in the source.
 // We call them directly here to cover the else/stylex_unreachable!() arms.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -606,7 +590,7 @@ fn extract_ident_value_happy_path() {
 #[test]
 #[should_panic]
 fn extract_ident_value_unreachable_arm() {
-  // covers the else { stylex_unreachable!() } arm on line 790
+  // covers the else { stylex_unreachable!() } arm
   extract_ident_value(SimpleToken::Colon);
 }
 
@@ -620,7 +604,7 @@ fn extract_function_value_happy_path() {
 #[test]
 #[should_panic]
 fn extract_function_value_unreachable_arm() {
-  // covers the else { stylex_unreachable!() } arm on line 809
+  // covers the else { stylex_unreachable!() } arm
   extract_function_value(SimpleToken::Colon);
 }
 
@@ -630,7 +614,7 @@ fn extract_function_value_unreachable_arm() {
 
 #[test]
 fn separated_parser_as_token_parser() {
-  // line 1005-1007: as_token_parser delegates to one_or_more
+  // as_token_parser delegates to one_or_more
   let parser = tokens::ident()
     .map(
       |t| {
@@ -676,7 +660,7 @@ fn flexible_sequence_separated_by_required_missing_separator() {
   assert!(result.is_err());
 }
 
-// Line 618-621: required parser at position 1, separator consumed, required parser fails
+// required parser at position 1, separator consumed, required parser fails
 #[test]
 fn flexible_sequence_separated_by_required_parser_fails() {
   let foo = TokenParser::<String>::string("foo");
@@ -695,11 +679,11 @@ fn flexible_sequence_separated_by_required_parser_fails() {
   assert!(result.is_err());
 }
 
-// Lines 629-637: optional parser at position 1, separator consumed, parser succeeded,
+// optional parser at position 1, separator consumed, parser succeeded,
 // but !separator_consumed — this is the case where optional matched without sep
 #[test]
 fn flexible_sequence_separated_by_optional_matched_without_separator() {
-  // To trigger line 629-637: optional parser at i>0, separator NOT consumed, but
+  // To trigger: optional parser at i>0, separator NOT consumed, but
   // the optional parser returned Some(value). We need to make separator fail
   // (so separator_consumed = false) but optional parser succeed.
   // Use never() as separator so it always fails (separator_consumed = false),
@@ -711,13 +695,13 @@ fn flexible_sequence_separated_by_optional_matched_without_separator() {
     TokenParser::<SimpleToken>::never().map(|_| SimpleToken::Whitespace, None), // separator always fails
   );
   // Input: just "foo". First is required, second is optional with always-Some.
-  // separator_consumed = false, optional matched → triggers error at line 629-637
+  // separator_consumed = false, optional matched → triggers error
   let mut tl = tl(vec![SimpleToken::Ident("foo".to_string())]);
   let result = (parser.run)(&mut tl);
   assert!(result.is_err());
 }
 
-// Line 640-645: optional parser returned None, separator was consumed → rewind separator
+// optional parser returned None, separator was consumed → rewind separator
 #[test]
 fn flexible_sequence_separated_by_optional_none_rewinds_separator() {
   // optional parser at i>0: separator consumed, optional returns None → rewind
@@ -747,7 +731,7 @@ fn flexible_sequence_separated_by_optional_none_rewinds_separator() {
   let _ = result; // may succeed or fail — we only care about exercising the path
 }
 
-// Line 647-653: optional parser Err, separator consumed → rewind
+// optional parser Err, separator consumed → rewind
 #[test]
 fn flexible_sequence_separated_by_optional_err_rewinds_separator() {
   let foo = TokenParser::<String>::string("foo");
@@ -767,10 +751,10 @@ fn flexible_sequence_separated_by_optional_err_rewinds_separator() {
   assert!(result.is_ok()); // optional None pushed, result=[Some("foo"), None]
 }
 
-// Lines 667-670: first parser is Right (optional), first position — no separator needed
+// first parser is Right (optional), first position — no separator needed
 #[test]
 fn flexible_sequence_first_parser_is_optional_success() {
-  // line 667-669: first parser is Right (optional), returns Some
+  // first parser is Right (optional), returns Some
   let bar_opt: TokenParser<Option<String>> = TokenParser::<String>::string("bar").optional();
   let parser = TokenParser::<String>::flexible_sequence_separated_by(
     vec![Either::Right(bar_opt)],
@@ -784,7 +768,7 @@ fn flexible_sequence_first_parser_is_optional_success() {
 
 #[test]
 fn flexible_sequence_first_parser_is_optional_err() {
-  // line 669: first parser Right, Err → push None
+  // first parser Right, Err → push None
   let never_opt: TokenParser<Option<String>> = TokenParser::<String>::never().optional();
   let parser = TokenParser::<String>::flexible_sequence_separated_by(
     vec![Either::Right(never_opt)],
@@ -800,7 +784,7 @@ fn flexible_sequence_first_parser_is_optional_err() {
 // SetOfParsers::separated_by — error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Lines 1114-1122: no separator found at position > 0
+// no separator found at position > 0
 #[test]
 fn set_of_separated_by_missing_separator_error() {
   // SetOf with separator, but input doesn't have separator between elements
@@ -808,7 +792,7 @@ fn set_of_separated_by_missing_separator_error() {
   let p_bar = TokenParser::<String>::string("bar");
   let parser = TokenParser::<String>::set_of(vec![p_foo, p_bar]).separated_by(tokens::whitespace()); // requires whitespace between elements
 
-  // "foobar" — no whitespace → separator fails → error at lines 1114-1122
+  // "foobar" — no whitespace → separator fails → error
   let mut tl = tl(vec![
     SimpleToken::Ident("foo".to_string()),
     // no whitespace
@@ -823,7 +807,7 @@ fn set_of_separated_by_missing_separator_error() {
   );
 }
 
-// Lines 1148-1157: no parser found at position (all parsers fail)
+// no parser found at position (all parsers fail)
 #[test]
 fn set_of_separated_by_no_parser_matches() {
   // Both parsers expect specific strings; input doesn't match any
@@ -840,7 +824,7 @@ fn set_of_separated_by_no_parser_matches() {
 // SetOfParsers::as_token_parser — error paths
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Lines 1218-1227: no parser matches at position
+// no parser matches at position
 #[test]
 fn set_of_as_token_parser_no_match() {
   let p_foo = TokenParser::<String>::string("foo");
@@ -851,12 +835,12 @@ fn set_of_as_token_parser_no_match() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SequenceParsers::as_token_parser — error path line 1274-1276
+// SequenceParsers::as_token_parser — error path
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
 fn sequence_parsers_as_token_parser_fails() {
-  // line 1274-1276: a parser in the sequence fails
+  // a parser in the sequence fails
   let p_foo = TokenParser::<String>::string("foo");
   let p_bar = TokenParser::<String>::string("bar");
   let parser =
@@ -874,10 +858,10 @@ fn sequence_parsers_as_token_parser_fails() {
 // SequenceParsers::separated_by
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Lines 1315-1330: parser fails after separator consumed → rewind and retry
+// parser fails after separator consumed → rewind and retry
 #[test]
 fn sequence_separated_by_retry_after_separator_consumed() {
-  // Lines 1315-1330: separator consumed, parser fails → rewind to separator_index,
+  // : separator consumed, parser fails → rewind to separator_index,
   // retry parser without separator → succeeds (handles optional-separator case)
   let p_foo = TokenParser::<String>::string("foo");
   // second parser: always succeeds regardless (simulates optional-like behavior
@@ -895,7 +879,7 @@ fn sequence_separated_by_retry_after_separator_consumed() {
   assert!(result.is_ok());
 }
 
-// Lines 1327-1330: after rewind, second attempt also fails → real error
+// after rewind, second attempt also fails → real error
 #[test]
 fn sequence_separated_by_both_attempts_fail() {
   // separator consumed, parser fails, rewind, retry also fails → error
@@ -914,10 +898,10 @@ fn sequence_separated_by_both_attempts_fail() {
   assert!(result.is_err());
 }
 
-// Lines 1333-1341: no separator and parser fails → error path (else branch)
+// no separator and parser fails → error path (else branch)
 #[test]
 fn sequence_separated_by_no_separator_and_parser_fails() {
-  // i>0, separator not consumed, parser fails → error (else branch lines 1333-1341)
+  // i>0, separator not consumed, parser fails → error ()
   let p_foo = TokenParser::<String>::string("foo");
   let p_bar = TokenParser::<String>::string("bar");
   let parser = TokenParser::<String>::sequence_with_separators(vec![p_foo, p_bar])
@@ -934,10 +918,10 @@ fn sequence_separated_by_no_separator_and_parser_fails() {
   assert!(result.is_err());
 }
 
-// Lines 1349-1352: first parser in separated_by fails
+// first parser in separated_by fails
 #[test]
 fn sequence_separated_by_first_parser_fails() {
-  // line 1349-1352: i==0, parser fails
+  // i==0, parser fails
   let p_foo = TokenParser::<String>::string("foo");
   let p_bar = TokenParser::<String>::string("bar");
   let parser = TokenParser::<String>::sequence_with_separators(vec![p_foo, p_bar])
@@ -953,7 +937,6 @@ fn sequence_separated_by_first_parser_fails() {
 
 #[test]
 fn tokens_struct_ident() {
-  // line 1430-1432
   let parser = Tokens::ident();
   let result = parser.parse("foo");
   assert!(result.is_ok());
@@ -961,7 +944,6 @@ fn tokens_struct_ident() {
 
 #[test]
 fn tokens_struct_comma() {
-  // line 1435-1437
   let parser = Tokens::comma();
   let mut tl = tl(vec![SimpleToken::Comma]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -969,7 +951,6 @@ fn tokens_struct_comma() {
 
 #[test]
 fn tokens_struct_colon() {
-  // line 1440-1442
   let parser = Tokens::colon();
   let mut tl = tl(vec![SimpleToken::Colon]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -977,7 +958,6 @@ fn tokens_struct_colon() {
 
 #[test]
 fn tokens_struct_semicolon() {
-  // line 1445-1447
   let parser = Tokens::semicolon();
   let mut tl = tl(vec![SimpleToken::Semicolon]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -985,7 +965,6 @@ fn tokens_struct_semicolon() {
 
 #[test]
 fn tokens_struct_open_paren() {
-  // line 1450-1452
   let parser = Tokens::open_paren();
   let mut tl = tl(vec![SimpleToken::LeftParen]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -993,7 +972,6 @@ fn tokens_struct_open_paren() {
 
 #[test]
 fn tokens_struct_close_paren() {
-  // line 1455-1457
   let parser = Tokens::close_paren();
   let mut tl = tl(vec![SimpleToken::RightParen]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -1001,7 +979,6 @@ fn tokens_struct_close_paren() {
 
 #[test]
 fn tokens_struct_open_square() {
-  // line 1460-1462
   let parser = Tokens::open_square();
   let mut tl = tl(vec![SimpleToken::LeftBracket]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -1009,7 +986,6 @@ fn tokens_struct_open_square() {
 
 #[test]
 fn tokens_struct_close_square() {
-  // line 1465-1467
   let parser = Tokens::close_square();
   let mut tl = tl(vec![SimpleToken::RightBracket]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -1017,7 +993,6 @@ fn tokens_struct_close_square() {
 
 #[test]
 fn tokens_struct_open_curly() {
-  // line 1470-1472
   let parser = Tokens::open_curly();
   let mut tl = tl(vec![SimpleToken::LeftBrace]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -1025,7 +1000,6 @@ fn tokens_struct_open_curly() {
 
 #[test]
 fn tokens_struct_close_curly() {
-  // line 1475-1477
   let parser = Tokens::close_curly();
   let mut tl = tl(vec![SimpleToken::RightBrace]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -1033,7 +1007,6 @@ fn tokens_struct_close_curly() {
 
 #[test]
 fn tokens_struct_number() {
-  // line 1480-1482
   let parser = Tokens::number();
   let result = parser.parse("42");
   assert!(result.is_ok());
@@ -1041,7 +1014,6 @@ fn tokens_struct_number() {
 
 #[test]
 fn tokens_struct_percentage() {
-  // line 1485-1487
   let parser = Tokens::percentage();
   let result = parser.parse("50%");
   assert!(result.is_ok());
@@ -1049,7 +1021,6 @@ fn tokens_struct_percentage() {
 
 #[test]
 fn tokens_struct_dimension() {
-  // line 1490-1498
   let parser = Tokens::dimension();
   let result = parser.parse("10px");
   assert!(result.is_ok());
@@ -1057,7 +1028,6 @@ fn tokens_struct_dimension() {
 
 #[test]
 fn tokens_struct_string() {
-  // line 1501-1503
   let parser = Tokens::string();
   let mut tl = tl(vec![SimpleToken::String("hello".to_string())]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -1065,7 +1035,6 @@ fn tokens_struct_string() {
 
 #[test]
 fn tokens_struct_function() {
-  // line 1506-1508
   let parser = Tokens::function();
   let mut tl = tl(vec![SimpleToken::Function("rgb".to_string())]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -1073,7 +1042,6 @@ fn tokens_struct_function() {
 
 #[test]
 fn tokens_struct_hash() {
-  // line 1511-1513
   let parser = Tokens::hash();
   let result = parser.parse("#fff");
   assert!(result.is_ok());
@@ -1081,7 +1049,6 @@ fn tokens_struct_hash() {
 
 #[test]
 fn tokens_struct_delim() {
-  // line 1516-1518
   let parser = Tokens::delim('+');
   let mut tl = tl(vec![SimpleToken::Delim('+')]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -1089,7 +1056,6 @@ fn tokens_struct_delim() {
 
 #[test]
 fn tokens_struct_whitespace() {
-  // line 1521-1523
   let parser = Tokens::whitespace();
   let mut tl = tl(vec![SimpleToken::Whitespace]);
   assert!((parser.run)(&mut tl).is_ok());
@@ -1097,19 +1063,17 @@ fn tokens_struct_whitespace() {
 
 #[test]
 fn tokens_struct_at_keyword() {
-  // line 1526-1528
   let parser = Tokens::at_keyword();
   let mut tl = tl(vec![SimpleToken::AtKeyword("media".to_string())]);
   assert!((parser.run)(&mut tl).is_ok());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TokenParser::tokens() accessor — line 1532-1534
-// ═══════════════════════════════════════════════════════════════════════════
+// TokenParser::tokens() accessor — // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
 fn token_parser_tokens_accessor() {
-  // line 1532-1534: returns a Tokens struct
+  // returns a Tokens struct
   let _tokens = TokenParser::<SimpleToken>::tokens();
   // Verify it works by using one of its methods
   let parser = TokenParser::<SimpleToken>::tokens();
@@ -1268,7 +1232,7 @@ fn fn_name_parser_wrong_name_fails() {
 
 #[test]
 fn or_right_branch() {
-  // line 264-268: first fails → try second, second succeeds → Either::Right
+  // first fails → try second, second succeeds → Either::Right
   let parser = tokens::colon().or(tokens::ident());
   let mut tl = tl(vec![SimpleToken::Ident("foo".to_string())]);
   let result = (parser.run)(&mut tl);
@@ -1278,7 +1242,7 @@ fn or_right_branch() {
 
 #[test]
 fn or_both_fail() {
-  // line 266-270: both fail
+  // both fail
   let parser = tokens::colon().or(tokens::semicolon());
   let mut tl = tl(vec![SimpleToken::Ident("foo".to_string())]);
   let result = (parser.run)(&mut tl);
@@ -1291,7 +1255,7 @@ fn or_both_fail() {
 
 #[test]
 fn or_label_optional_when_other_is_optional_label() {
-  // line 250-253: other.label == "optional" → format "Optional<{}>
+  // other.label == "optional" → format "Optional<{}>
   // The always(()) parser has label "optional"
   let always_unit: TokenParser<()> = TokenParser::always(());
   assert_eq!(always_unit.label, "optional");
@@ -1310,7 +1274,7 @@ fn or_label_optional_when_other_is_optional_label() {
 
 #[test]
 fn or_label_one_of_when_other_is_not_optional() {
-  // line 253-254: other.label != "optional" → format "OneOf<{}, {}>"
+  // other.label != "optional" → format "OneOf<{}, {}>"
   let parser1 = tokens::ident();
   let parser2 = tokens::colon();
   let combined = parser1.or(parser2);
@@ -1327,7 +1291,7 @@ fn or_label_one_of_when_other_is_not_optional() {
 
 #[test]
 fn map_error_path_rewinds() {
-  // line 199-202: run_fn returns Err → rewind current_index
+  // run_fn returns Err → rewind current_index
   let parser = tokens::colon().map(|_| "colon".to_string(), Some("to_str"));
   let result = parser.parse("foo"); // ident is not colon → error
   assert!(result.is_err());
@@ -1339,7 +1303,7 @@ fn map_error_path_rewinds() {
 
 #[test]
 fn parse_to_end_error_formats_message() {
-  // lines 172-181: parser returns Err → wraps in ParseError with consumed context
+  // parser returns Err → wraps in ParseError with consumed context
   let parser = tokens::colon();
   let result = parser.parse_to_end("foo");
   assert!(result.is_err());
@@ -1369,7 +1333,7 @@ fn optional_method_produces_optional_label() {
 
 #[test]
 fn sequence_separated_by_separator_consumed_retry_success() {
-  // lines 1320-1325: We consumed separator, parser failed WITHOUT it (first try),
+  // We consumed separator, parser failed WITHOUT it (first try),
   // then we rewind separator and the parser succeeds without it.
   // This is tricky: the parser succeeds WITHOUT the separator.
   // Scenario: optional parser that always succeeds (never fails), separator present.
@@ -1546,7 +1510,7 @@ fn match_next_token_err_arm_via_err_result() {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // flexible_sequence_separated_by — separator NOT consumed, optional returns None
-// Line 642-644: if separator_consumed { ... } — need the else path (separator NOT consumed)
+// if separator_consumed { ... } — need the else path (separator NOT consumed)
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
@@ -1561,8 +1525,8 @@ fn flexible_sequence_optional_none_no_separator() {
     TokenParser::<SimpleToken>::never().map(|_| SimpleToken::Whitespace, None), // separator always fails → separator_consumed=false
   );
   // foo matches at i=0; at i=1 separator fails (separator_consumed=false),
-  // optional returns Ok(None) → lines 640-645, but separator_consumed=false
-  // so the if body (line 643-644) is NOT taken → covers the else/fall-through
+  // optional returns Ok(None)but separator_consumed=false
+  // so the if body is NOT taken → covers the else/fall-through
   let mut tl = tl(vec![SimpleToken::Ident("foo".to_string())]);
   let result = (parser.run)(&mut tl);
   assert!(result.is_ok());
@@ -1572,7 +1536,7 @@ fn flexible_sequence_optional_none_no_separator() {
 #[test]
 fn flexible_sequence_optional_err_no_separator() {
   // At i>0: separator_consumed=false AND optional returns Err.
-  // Lines 647-653 when separator_consumed=false → else/fall-through path.
+  // When separator_consumed=false → else/fall-through path.
   let foo = TokenParser::<String>::string("foo");
   // A parser typed as TokenParser<Option<String>> that always Err's
   let opt_err: TokenParser<Option<String>> = TokenParser::new(
@@ -1595,13 +1559,13 @@ fn flexible_sequence_optional_err_no_separator() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// flexible_sequence_separated_by — first position Right, Err → push None (line 669)
+// flexible_sequence_separated_by — first position Right, Err → push None
 // We need a parser typed as TokenParser<Option<T>> that returns Err (not Ok(None))
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
 fn flexible_sequence_first_right_err_path() {
-  // line 669: i==0, Either::Right, optional_parser returns Err
+  // i==0, Either::Right, optional_parser returns Err
   // Use a never() that is typed as TokenParser<Option<String>> (raw never, not .optional())
   let opt_err: TokenParser<Option<String>> = TokenParser::new(
     |_| {
@@ -1617,13 +1581,13 @@ fn flexible_sequence_first_right_err_path() {
   );
   let mut tl = tl(vec![]);
   let result = (parser.run)(&mut tl);
-  // line 669: Err(_) → results.push(None)
+  // Err(_) → results.push(None)
   assert!(result.is_ok());
   assert_eq!(result.unwrap(), vec![None]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SetOfParsers::separated_by — "incomplete" Err path (lines 1147-1157)
+// SetOfParsers::separated_by — "incomplete" Err path
 // This path is reached when final_results.collect() yields Err(string), i.e.
 // some entry in `results` is still None after the loop.
 // Due to the algorithm logic, this is structurally unreachable in the current
@@ -1636,14 +1600,14 @@ fn flexible_sequence_first_right_err_path() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SetOfParsers::as_token_parser — "incomplete" Err path (lines 1217-1227)
+// SetOfParsers::as_token_parser — "incomplete" Err path
 // Same structural analysis as separated_by incomplete path above.
 // Coverage note: same structural unreachability as the separated_by incomplete
 // path: if !found, the loop already returned Err, so no None entry can survive.
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════
-// token() — Err from consume_next_token (lines 771-773)
+// token() — Err from consume_next_token
 // TokenList::consume_next_token always returns Ok(...), never Err.
 // Coverage note: the Err(e) arm from consume_next_token is structurally
 // unreachable because TokenList::consume_next_token always returns Ok(Some(...))
@@ -1664,8 +1628,8 @@ fn sequence_separated_by_retry_ok_value_path() {
   // Construct: p_foo, then p_that_fails_at_after_whitespace_but_succeeds_at_current_pos.
   // The trick: use a stateful-index-sensitive parser. However, we can use "always" as the
   // second parser — it always succeeds. When separator consumed + parser succeeds, the code
-  // takes the Ok(value) arm at line 1293 (no retry needed). To force retry:
-  // separator consumed → parser FAILS at line 1292 → rewind → parser succeeds at 1303.
+  // takes the Ok(value) arm (no retry needed). To force retry:
+  // separator consumed → parser FAILS → rewind → parser succeeds.
   //
   // We need a parser that fails when the token list is past the whitespace but succeeds
   // at the whitespace position. Use a parser that checks for whitespace as its input:
@@ -1679,7 +1643,7 @@ fn sequence_separated_by_retry_ok_value_path() {
   // p_needs_whitespace called (after separator consumed) on empty → fails.
   // Rewind to separator_index (whitespace position).
   // p_needs_whitespace called again WITH whitespace at current pos → succeeds!
-  // This exercises the Ok(value) arm at lines 1304-1305.
+  // This exercises the Ok(value) arm .
   let mut tl = tl(vec![
     SimpleToken::Ident("foo".to_string()),
     SimpleToken::Whitespace,
@@ -1693,14 +1657,14 @@ fn sequence_separated_by_retry_ok_value_path() {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SetOfParsers::separated_by — trigger incomplete via manipulated results
-// To hit lines 1147-1157 we need some result[i] to remain None after the loop.
+// To hit these paths we need some result[i] to remain None after the loop.
 // This is structurally impossible with the current algorithm as noted above.
 // Verify the algorithm is correct by a comprehensive test instead.
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[test]
 fn set_of_separated_by_two_elements_complete() {
-  // Exercises the Ok(values) arm at line 1151 (full match)
+  // Exercises the Ok(values) arm (full match)
   let p_a = TokenParser::<String>::string("alpha");
   let p_b = TokenParser::<String>::string("beta");
   let parser = TokenParser::<String>::set_of(vec![p_a, p_b]).separated_by(tokens::whitespace());
@@ -1713,7 +1677,7 @@ fn set_of_separated_by_two_elements_complete() {
 
 #[test]
 fn set_of_as_token_parser_two_elements_complete() {
-  // Exercises the Ok(values) arm at line 1221 (full match)
+  // Exercises the Ok(values) arm (full match)
   let p_a = TokenParser::<String>::string("x");
   let p_b = TokenParser::<String>::string("y");
   let parser = TokenParser::<String>::set_of(vec![p_a, p_b]).as_token_parser();
@@ -1733,7 +1697,7 @@ fn set_of_as_token_parser_two_elements_complete() {
 
 #[test]
 fn flexible_sequence_optional_none_with_separator_consumed() {
-  // separator_consumed=true, optional returns Ok(None) → line 643 runs (rewind separator)
+  // separator_consumed=true, optional returns Ok(None)runs (rewind separator)
   // After rewind, baz's turn: separator is tried again from separator_index, consumed,
   // then baz matches Ident("baz") → full success.
   let foo = TokenParser::<String>::string("foo");
@@ -1748,10 +1712,10 @@ fn flexible_sequence_optional_none_with_separator_consumed() {
     tokens::whitespace(),
   );
   // [Ident("foo"), Whitespace, Ident("baz")]:
-  //   i=0: foo matches (index→1)
-  //   i=1: sep_index=1, whitespace consumed (index→2), opt_none→Ok(None),
-  //        separator_consumed=true → rewind to sep_index=1 (index→1), push None
-  //   i=2: sep_index=1, whitespace consumed again (index→2), baz matches (index→3)
+  // i=0: foo matches (index→1)
+  // i=1: sep_index=1, whitespace consumed (index→2), opt_none→Ok(None),
+  // separator_consumed=true → rewind to sep_index=1 (index→1), push None
+  // i=2: sep_index=1, whitespace consumed again (index→2), baz matches (index→3)
   // Result: [Some("foo"), None, Some("baz")]
   let mut tl = tl(vec![
     SimpleToken::Ident("foo".to_string()),
@@ -1768,7 +1732,7 @@ fn flexible_sequence_optional_none_with_separator_consumed() {
 
 #[test]
 fn flexible_sequence_optional_err_with_separator_consumed() {
-  // separator_consumed=true, optional returns Err → line 650 runs (rewind separator)
+  // separator_consumed=true, optional returns Errruns (rewind separator)
   // Same flow as the Ok(None) case but optional returns Err(_) instead.
   let foo = TokenParser::<String>::string("foo");
   let opt_err: TokenParser<Option<String>> = TokenParser::new(

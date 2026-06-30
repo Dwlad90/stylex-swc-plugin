@@ -55,14 +55,14 @@ fn num_kv(key: f64, value: &str) -> KeyValueProp {
 }
 
 // ---------------------------------------------------------------------------
-// key_value_to_str — line 31 (PropName::Ident) and line 32 (_ arm)
+// key_value_to_str — (PropName::Ident) and (_ arm)
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod key_value_to_str_coverage {
   use super::*;
 
-  /// Covers line 31: PropName::Ident branch of key_value_to_str.
+  /// Covers PropName::Ident branch of key_value_to_str.
   #[test]
   fn ident_key_returns_sym_string() {
     let kv = ident_kv("gridColumn", "1 / 2");
@@ -70,7 +70,7 @@ mod key_value_to_str_coverage {
     assert_eq!(result, "gridColumn");
   }
 
-  /// Covers line 32: _ arm of key_value_to_str (PropName::Num, which is neither Str nor Ident).
+  /// Covers _ arm of key_value_to_str (PropName::Num, which is neither Str nor Ident).
   #[test]
   fn numeric_key_returns_empty_string() {
     let kv = num_kv(42.0, "value");
@@ -368,14 +368,14 @@ mod are_media_queries_disjoint_coverage {
 }
 
 // ---------------------------------------------------------------------------
-// normalize_media_query_syntax — line 394 (kv else branch when key fails to parse)
+// normalize_media_query_syntax — (kv else branch when key fails to parse)
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod normalize_media_coverage {
   use super::*;
 
-  /// Covers line 394: when a key starts with "@media " but parse_to_end fails,
+  /// Covers when a key starts with "@media " but parse_to_end fails,
   /// normalize_media_query_syntax returns the kv unchanged (the `else { kv }` arm).
   /// Calls normalize_media_query_syntax directly since it's in scope (private fn).
   #[test]
@@ -388,7 +388,7 @@ mod normalize_media_coverage {
 
     // With a single prop that fails to parse, it should be returned unchanged
     assert_eq!(result.len(), 1);
-    // The key should be unchanged (the else { kv } branch at line 394)
+    // The key should be unchanged (the else { kv } branch )
     if let PropName::Str(s) = &result[0].key {
       assert_eq!(s.value.as_str().unwrap(), invalid_key);
     } else {
@@ -438,7 +438,7 @@ mod normalize_media_coverage {
 mod ident_key_integration {
   use super::*;
 
-  /// Covers line 31 via last_media_query_wins_transform: an Ident-keyed prop
+  /// Covers via last_media_query_wins_transform: an Ident-keyed prop
   /// at depth=1 calls key_value_to_str which hits the PropName::Ident arm.
   #[test]
   fn ident_keyed_style_prop_passes_through() {
@@ -470,7 +470,7 @@ mod ident_key_integration {
     }
   }
 
-  /// Covers line 32 via last_media_query_wins_transform: a Num-keyed prop
+  /// Covers via last_media_query_wins_transform: a Num-keyed prop
   /// at depth=1 calls key_value_to_str which hits the _ arm, returning "".
   /// The empty string "" doesn't start with "@media ", so it's treated as a
   /// non-media prop and passes through unchanged.

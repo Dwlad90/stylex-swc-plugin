@@ -6,28 +6,28 @@ use super::*;
 
 #[test]
 fn as_number_returns_some_for_percentage() {
-  // CssValue::Percentage arm (line 67)
+  // CssValue::Percentage arm
   let val = CssValue::percentage(75.0);
   assert_eq!(val.as_number(), Some(75.0));
 }
 
 #[test]
 fn as_number_returns_some_for_dimension() {
-  // CssValue::Dimension arm (line 68)
+  // CssValue::Dimension arm
   let val = CssValue::dimension(10.0, "px");
   assert_eq!(val.as_number(), Some(10.0));
 }
 
 #[test]
 fn as_number_returns_none_for_ident() {
-  // _ => None arm (line 69)
+  // _ => None arm
   let val = CssValue::ident("auto");
   assert_eq!(val.as_number(), None);
 }
 
 #[test]
 fn as_number_returns_none_for_none_variant() {
-  // _ => None arm (line 69)
+  // _ => None arm
   assert_eq!(CssValue::None.as_number(), None);
 }
 
@@ -37,7 +37,7 @@ fn as_number_returns_none_for_none_variant() {
 
 #[test]
 fn as_percentage_returns_none_for_number() {
-  // _ => None arm (line 77)
+  // _ => None arm
   let val = CssValue::number(42.0);
   assert_eq!(val.as_percentage(), None);
 }
@@ -54,7 +54,7 @@ fn as_percentage_returns_none_for_dimension() {
 
 #[test]
 fn as_string_returns_none_for_number() {
-  // _ => None arm (line 85)
+  // _ => None arm
   let val = CssValue::number(42.0);
   assert!(val.as_string().is_none());
 }
@@ -70,7 +70,7 @@ fn as_string_returns_none_for_none_variant() {
 
 #[test]
 fn as_angle_returns_some_for_angle_variant() {
-  // CssValue::Angle(a) => Some(a) arm (line 92)
+  // CssValue::Angle(a) => Some(a) arm
   use crate::css_types::Angle;
   let angle = Angle::new(45.0, "deg");
   let val = CssValue::Angle(angle.clone());
@@ -84,7 +84,7 @@ fn as_angle_returns_some_for_angle_variant() {
 
 #[test]
 fn as_angle_returns_none_for_number() {
-  // _ => None arm (line 93)
+  // _ => None arm
   assert!(CssValue::number(42.0).as_angle().is_none());
 }
 
@@ -99,7 +99,7 @@ fn as_angle_returns_none_for_ident() {
 
 #[test]
 fn as_color_returns_some_for_color_variant() {
-  // CssValue::Color(c) => Some(c) arm (line 100)
+  // CssValue::Color(c) => Some(c) arm
   use crate::css_types::color::{Color, NamedColor};
   let color = Color::Named(NamedColor::new("blue".to_string()));
   let val = CssValue::Color(color);
@@ -112,7 +112,7 @@ fn as_color_returns_some_for_color_variant() {
 
 #[test]
 fn as_color_returns_none_for_number() {
-  // _ => None arm (line 101)
+  // _ => None arm
   assert!(CssValue::number(0.0).as_color().is_none());
 }
 
@@ -127,7 +127,7 @@ fn as_color_returns_none_for_string() {
 
 #[test]
 fn as_dimension_returns_none_for_number() {
-  // _ => None arm (line 109)
+  // _ => None arm
   assert!(CssValue::number(42.0).as_dimension().is_none());
 }
 
@@ -142,7 +142,6 @@ fn as_dimension_returns_none_for_percentage() {
 
 #[test]
 fn is_string_true_for_string_variant() {
-  // line 142
   assert!(CssValue::string("hello").is_string());
 }
 
@@ -153,7 +152,6 @@ fn is_string_false_for_ident() {
 
 #[test]
 fn is_ident_true_for_ident_variant() {
-  // line 146
   assert!(CssValue::ident("inherit").is_ident());
 }
 
@@ -164,7 +162,6 @@ fn is_ident_false_for_string() {
 
 #[test]
 fn is_function_true_for_function_variant() {
-  // line 150
   let func = CssValue::function("rgb", vec![]);
   assert!(func.is_function());
 }
@@ -176,7 +173,6 @@ fn is_function_false_for_ident() {
 
 #[test]
 fn is_sequence_true_for_sequence_variant() {
-  // line 154
   let seq = CssValue::sequence(vec![CssValue::number(1.0)]);
   assert!(seq.is_sequence());
 }
@@ -188,7 +184,6 @@ fn is_sequence_false_for_number() {
 
 #[test]
 fn is_angle_true_for_angle_variant() {
-  // line 158
   use crate::css_types::Angle;
   let angle: CssValue = Angle::new(45.0, "deg").into();
   assert!(angle.is_angle());
@@ -201,7 +196,6 @@ fn is_angle_false_for_dimension() {
 
 #[test]
 fn is_color_true_for_color_variant() {
-  // line 162
   use crate::css_types::color::{Color, NamedColor};
   let color: CssValue = Color::Named(NamedColor::new("blue".to_string())).into();
   assert!(color.is_color());
@@ -218,7 +212,7 @@ fn is_color_false_for_string() {
 
 #[test]
 fn has_unit_returns_false_for_number() {
-  // _ => false arm (line 173)
+  // _ => false arm
   assert!(!CssValue::number(42.0).has_unit("px"));
 }
 
@@ -239,14 +233,13 @@ fn has_unit_returns_false_for_wrong_unit() {
 
 #[test]
 fn display_string_variant_wraps_in_quotes() {
-  // CssValue::String (line 227)
+  // CssValue::String
   let val = CssValue::String("hello".to_string());
   assert_eq!(val.to_string(), "\"hello\"");
 }
 
 #[test]
 fn display_function_with_args_formats_correctly() {
-  // lines 229-237
   let val = CssValue::function(
     "rgb",
     vec![
@@ -260,28 +253,28 @@ fn display_function_with_args_formats_correctly() {
 
 #[test]
 fn display_function_single_arg_no_comma() {
-  // Exercises the i == 0 path (no comma) inside the Function Display loop (line 232)
+  // Exercises the i == 0 path (no comma) inside the Function Display loop
   let val = CssValue::function("var", vec![CssValue::ident("--color")]);
   assert_eq!(val.to_string(), "var(--color)");
 }
 
 #[test]
 fn display_function_zero_args() {
-  // Empty args list — the loop body is never entered (line 231 loop with 0 iters)
+  // Empty args list — the loop body is never entered
   let val = CssValue::function("none", vec![]);
   assert_eq!(val.to_string(), "none()");
 }
 
 #[test]
 fn display_sequence_single_item_no_space() {
-  // CssValue::Sequence with one item — no leading space (lines 239-246, i == 0)
+  // CssValue::Sequence with one item — no leading space
   let val = CssValue::sequence(vec![CssValue::number(1.0)]);
   assert_eq!(val.to_string(), "1");
 }
 
 #[test]
 fn display_sequence_multiple_items_space_separated() {
-  // lines 239-246: i > 0 path adds a space
+  // i > 0 path adds a space
   let val = CssValue::sequence(vec![
     CssValue::dimension(1.0, "px"),
     CssValue::ident("solid"),
@@ -292,7 +285,7 @@ fn display_sequence_multiple_items_space_separated() {
 
 #[test]
 fn display_angle_variant() {
-  // CssValue::Angle (line 248)
+  // CssValue::Angle
   use crate::css_types::Angle;
   let val: CssValue = Angle::new(90.0, "deg").into();
   assert_eq!(val.to_string(), "90deg");
@@ -300,7 +293,7 @@ fn display_angle_variant() {
 
 #[test]
 fn display_color_variant() {
-  // CssValue::Color (line 249)
+  // CssValue::Color
   use crate::css_types::color::{Color, NamedColor};
   let val: CssValue = Color::Named(NamedColor::new("red".to_string())).into();
   assert_eq!(val.to_string(), "red");
@@ -308,7 +301,7 @@ fn display_color_variant() {
 
 #[test]
 fn display_length_variant() {
-  // CssValue::Length (line 250)
+  // CssValue::Length
   use crate::css_types::Length;
   let val: CssValue = Length::new(10.0, "px".to_string()).into();
   assert_eq!(val.to_string(), "10px");
@@ -316,7 +309,7 @@ fn display_length_variant() {
 
 #[test]
 fn display_token_variant_uses_debug_format() {
-  // CssValue::Token (line 251)
+  // CssValue::Token
   use crate::token_types::SimpleToken;
   let val = CssValue::Token(SimpleToken::Comma);
   let formatted = val.to_string();
@@ -329,17 +322,17 @@ fn display_token_variant_uses_debug_format() {
 
 #[test]
 fn display_none_variant() {
-  // CssValue::None (line 252)
+  // CssValue::None
   assert_eq!(CssValue::None.to_string(), "none");
 }
 
 // ---------------------------------------------------------------------------
-// From<SimpleToken> for CssValue: String arm (line 306)
+// From<SimpleToken> for CssValue: String arm
 // ---------------------------------------------------------------------------
 
 #[test]
 fn from_simple_token_string_becomes_css_value_string() {
-  // SimpleToken::String => CssValue::String (line 306)
+  // SimpleToken::String => CssValue::String
   use crate::token_types::SimpleToken;
   let token = SimpleToken::String("Arial".to_string());
   let val: CssValue = token.into();
@@ -352,7 +345,7 @@ fn from_simple_token_string_becomes_css_value_string() {
 
 #[test]
 fn from_simple_token_dimension_becomes_css_value_dimension() {
-  // SimpleToken::Dimension => CssValue::Dimension (line 305)
+  // SimpleToken::Dimension => CssValue::Dimension
   use crate::token_types::SimpleToken;
   let token = SimpleToken::Dimension {
     value: 10.0,
@@ -365,7 +358,7 @@ fn from_simple_token_dimension_becomes_css_value_dimension() {
 
 #[test]
 fn from_simple_token_percentage_becomes_css_value_percentage() {
-  // SimpleToken::Percentage => CssValue::Percentage (line 304)
+  // SimpleToken::Percentage => CssValue::Percentage
   use crate::token_types::SimpleToken;
   let token = SimpleToken::Percentage(0.5);
   let val: CssValue = token.into();

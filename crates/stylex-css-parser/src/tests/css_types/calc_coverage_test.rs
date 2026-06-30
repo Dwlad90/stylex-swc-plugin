@@ -177,7 +177,7 @@ fn calc_parser_rejects_empty_input() {
   assert!(Calc::parser().parse_to_end("").is_err());
 }
 
-// ── extract_single_calc_value (named extracted fn for line 280 branch) ───────
+// ── extract_single_calc_value (named extracted fnbranch) ───────
 
 #[test]
 fn extract_single_calc_value_happy_path() {
@@ -505,8 +505,8 @@ fn calc_parses_subtraction_via_parser() {
 
 #[test]
 fn calc_parses_multiplication_and_addition() {
-  // Exercises compose_add_and_subtraction left/right recursive calls (lines 367-368)
-  // and split_by_mult with * (lines 315-316).
+  // Exercises compose_add_and_subtraction left/right recursive calls
+  // and split_by_mult with *.
   // Tokens: [2px, +, 3px, *, 4]. split_by_multiplication_or_division finds '*' first
   // (index 3), so left=[2px,+,3px] → Addition(2px,3px), right=[4] → 4.
   // Result: Multiplication(Addition(2px, 3px), 4).
@@ -516,14 +516,14 @@ fn calc_parses_multiplication_and_addition() {
 
 #[test]
 fn calc_parses_three_term_addition() {
-  // Exercises compose_add_and_subtraction recursive left/right calls (lines 367-368).
+  // Exercises compose_add_and_subtraction recursive left/right calls.
   let result = Calc::parse().parse_to_end("calc(1px + 2px + 3px)").unwrap();
   assert!(matches!(result.value, CalcValue::Addition(_)));
 }
 
 #[test]
 fn calc_rejects_invalid_inner_expression() {
-  // Exercises the Err path of parse_calc_value after operator (line ~243):
+  // Exercises the Err path of parse_calc_value after operator:
   // `calc(10px + )` — after parsing `+`, there's `)` which is not a valid value.
   assert!(Calc::parse().parse_to_end("calc(10px + )").is_err());
 }
@@ -658,7 +658,7 @@ fn split_by_mult_err_when_right_slice_is_single_operator() {
   // Input: [Value(2.0), Operator("*"), Operator("*")].
   // position() finds "*" at index 1, right_slice = [Operator("*")].
   // split_by_multiplication_or_division([Operator("*")]) →
-  //   single-element → Operator arm → Err.
+  // single-element → Operator arm → Err.
   let vec = vec![
     CalcValueOrOperator::Value(CalcValue::Number(2.0)),
     CalcValueOrOperator::Operator("*".to_string()),

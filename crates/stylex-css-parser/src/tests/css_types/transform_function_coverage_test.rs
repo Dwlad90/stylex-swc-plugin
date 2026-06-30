@@ -30,7 +30,7 @@ fn extract_number_value_returns_value_for_number_token() {
   assert!((result - 3.125_f64).abs() < 1e-9);
 }
 
-// Defensive else-arm (line 171 in original; covers the `else { 0.0 }` branch).
+// Defensive else-arm.
 // The token parser always provides a Number token, so this arm can only be
 // reached by calling the extracted function directly with a non-Number token.
 #[test]
@@ -69,7 +69,7 @@ fn consume_right_paren_errors_on_eof() {
 
 // ── number_or_percentage_to_f64 — Percentage arm ─────────────────────────
 
-// The Percentage arm (line 160) is exercised by scale(50%) or any parser that
+// The Percentage arm is exercised by scale(50%) or any parser that
 // accepts a percentage.
 #[test]
 fn scale_with_percentage_covers_percentage_to_f64_arm() {
@@ -85,7 +85,7 @@ fn scale_with_percentage_covers_percentage_to_f64_arm() {
 
 // ── Matrix::parse() — error branches ─────────────────────────────────────
 
-// EOF at start (lines 190-193 .ok_or Err region).
+// EOF at start.
 #[test]
 fn matrix_parse_error_eof_at_start() {
   let mut tl = make_token_list(vec![]);
@@ -93,7 +93,7 @@ fn matrix_parse_error_eof_at_start() {
   assert!(result.is_err());
 }
 
-// Wrong function name (lines 196-200 if arm).
+// Wrong function name.
 #[test]
 fn matrix_parse_error_wrong_function_name() {
   let mut tl = make_token_list(vec![
@@ -105,7 +105,7 @@ fn matrix_parse_error_wrong_function_name() {
   assert!(result.unwrap_err().to_string().contains("matrix"));
 }
 
-// Non-Function token (lines 201-204 else arm).
+// Non-Function token.
 #[test]
 fn matrix_parse_error_non_function_token() {
   let mut tl = make_token_list(vec![SimpleToken::Ident("matrix".to_string())]);
@@ -113,7 +113,7 @@ fn matrix_parse_error_non_function_token() {
   assert!(result.is_err());
 }
 
-// Whitespace before first number (lines 231-233 whitespace skip loop).
+// Whitespace before first number.
 #[test]
 fn matrix_parse_whitespace_before_first_number() {
   let mut tl = make_token_list(vec![
@@ -136,7 +136,7 @@ fn matrix_parse_whitespace_before_first_number() {
   assert_eq!(result.a, 1.0);
 }
 
-// Whitespace before comma (lines 211-214 whitespace-before-comma loop).
+// Whitespace before comma.
 #[test]
 fn matrix_parse_whitespace_before_comma() {
   let mut tl = make_token_list(vec![
@@ -159,7 +159,7 @@ fn matrix_parse_whitespace_before_comma() {
   assert_eq!(result.a, 1.0);
 }
 
-// EOF before comma (lines 217-221 .ok_or Err region for comma).
+// EOF before comma.
 #[test]
 fn matrix_parse_error_eof_before_comma() {
   let mut tl = make_token_list(vec![
@@ -171,7 +171,7 @@ fn matrix_parse_error_eof_before_comma() {
   assert!(result.is_err());
 }
 
-// Non-comma separator (lines 222-226 if !matches comma).
+// Non-comma separator.
 #[test]
 fn matrix_parse_error_wrong_separator() {
   let mut tl = make_token_list(vec![
@@ -183,7 +183,7 @@ fn matrix_parse_error_wrong_separator() {
   assert!(result.is_err());
 }
 
-// EOF before number (lines 236-240 .ok_or Err region for number).
+// EOF before number.
 #[test]
 fn matrix_parse_error_eof_before_number() {
   let mut tl = make_token_list(vec![
@@ -196,7 +196,7 @@ fn matrix_parse_error_eof_before_number() {
   assert!(result.is_err());
 }
 
-// Non-number token where number expected (lines 242-247 else arm).
+// Non-number token where number expected.
 #[test]
 fn matrix_parse_error_non_number_in_args() {
   let mut tl = make_token_list(vec![
@@ -209,7 +209,7 @@ fn matrix_parse_error_non_number_in_args() {
   assert!(result.is_err());
 }
 
-// Whitespace before closing paren (lines 251-254 whitespace-before-close loop).
+// Whitespace before closing paren.
 #[test]
 fn matrix_parse_whitespace_before_close() {
   let mut tl = make_token_list(vec![
@@ -232,7 +232,7 @@ fn matrix_parse_whitespace_before_close() {
   assert_eq!(result.tx, 0.0);
 }
 
-// EOF before closing paren (lines 257-261 .ok_or region for close).
+// EOF before closing paren.
 #[test]
 fn matrix_parse_error_eof_before_close() {
   let mut tl = make_token_list(vec![
@@ -254,7 +254,7 @@ fn matrix_parse_error_eof_before_close() {
   assert!(result.is_err());
 }
 
-// Wrong closing token (lines 263-266 if !matches RightParen).
+// Wrong closing token.
 #[test]
 fn matrix_parse_error_wrong_close_token() {
   let mut tl = make_token_list(vec![
@@ -278,7 +278,7 @@ fn matrix_parse_error_wrong_close_token() {
 
 // ── Matrix3d::parse() — error branches ───────────────────────────────────
 
-// Wrong function name (line 297-299 _ => Err arm).
+// Wrong function name.
 #[test]
 fn matrix3d_parse_error_wrong_function_name() {
   let mut tl = make_token_list(vec![
@@ -290,7 +290,7 @@ fn matrix3d_parse_error_wrong_function_name() {
   assert!(result.unwrap_err().to_string().contains("matrix3d"));
 }
 
-// EOF at start (line 297-299 _ => Err arm for None).
+// EOF at start.
 #[test]
 fn matrix3d_parse_error_eof_at_start() {
   let mut tl = make_token_list(vec![]);
@@ -298,7 +298,7 @@ fn matrix3d_parse_error_eof_at_start() {
   assert!(result.is_err());
 }
 
-// Whitespace before value (lines 307-309 whitespace loop body).
+// Whitespace before value.
 #[test]
 fn matrix3d_parse_whitespace_before_values() {
   // Build a valid matrix3d token list with whitespace before the first value.
@@ -320,7 +320,7 @@ fn matrix3d_parse_whitespace_before_values() {
   assert_eq!(result.args[15], 15.0);
 }
 
-// Non-number at first position (lines 316-320 _ => Err arm).
+// Non-number at first position.
 #[test]
 fn matrix3d_parse_error_non_number_at_pos_1() {
   let mut tl = make_token_list(vec![
@@ -332,7 +332,7 @@ fn matrix3d_parse_error_non_number_at_pos_1() {
   assert!(result.unwrap_err().to_string().contains("position 1"));
 }
 
-// Whitespace before comma (lines 326-329 whitespace-before-comma loop).
+// Whitespace before comma.
 #[test]
 fn matrix3d_parse_whitespace_before_comma() {
   let mut tokens = vec![SimpleToken::Function("matrix3d".to_string())];
@@ -349,7 +349,7 @@ fn matrix3d_parse_whitespace_before_comma() {
   assert_eq!(result.args[0], 0.0);
 }
 
-// Non-comma after value (lines 331-336 _ => Err arm for comma).
+// Non-comma after value.
 #[test]
 fn matrix3d_parse_error_missing_comma() {
   let mut tl = make_token_list(vec![
@@ -362,7 +362,7 @@ fn matrix3d_parse_error_missing_comma() {
   assert!(result.unwrap_err().to_string().contains("comma"));
 }
 
-// Whitespace before closing paren (lines 342-345 whitespace-before-close loop).
+// Whitespace before closing paren.
 #[test]
 fn matrix3d_parse_whitespace_before_close() {
   let mut tokens = vec![SimpleToken::Function("matrix3d".to_string())];
@@ -379,7 +379,7 @@ fn matrix3d_parse_whitespace_before_close() {
   assert_eq!(result.args[15], 15.0);
 }
 
-// Wrong closing token (lines 348-352 _ => Err for closing paren).
+// Wrong closing token.
 #[test]
 fn matrix3d_parse_error_wrong_close_token() {
   let mut tokens = vec![SimpleToken::Function("matrix3d".to_string())];
@@ -398,7 +398,7 @@ fn matrix3d_parse_error_wrong_close_token() {
 
 // ── Rotate3d::parse() — whitespace and error branches ────────────────────
 
-// Whitespace before x value (lines 465-467 whitespace loop).
+// Whitespace before x value.
 #[test]
 fn rotate3d_parse_whitespace_before_x() {
   let mut tl = make_token_list(vec![
@@ -417,7 +417,7 @@ fn rotate3d_parse_whitespace_before_x() {
   assert_eq!(result.x, 1.0);
 }
 
-// Whitespace before comma after x (lines 473-475 whitespace loop).
+// Whitespace before comma after x.
 #[test]
 fn rotate3d_parse_whitespace_before_first_comma() {
   let mut tl = make_token_list(vec![
@@ -436,7 +436,7 @@ fn rotate3d_parse_whitespace_before_first_comma() {
   assert_eq!(result.x, 1.0);
 }
 
-// Wrong token instead of first comma (lines 478-483 _ => Err for comma after x).
+// Wrong token instead of first comma.
 #[test]
 fn rotate3d_parse_error_missing_first_comma() {
   let mut tl = make_token_list(vec![
@@ -449,7 +449,7 @@ fn rotate3d_parse_error_missing_first_comma() {
   assert!(result.unwrap_err().to_string().contains("x value"));
 }
 
-// Whitespace before y value (lines 487-489 whitespace loop).
+// Whitespace before y value.
 #[test]
 fn rotate3d_parse_whitespace_before_y() {
   let mut tl = make_token_list(vec![
@@ -468,7 +468,7 @@ fn rotate3d_parse_whitespace_before_y() {
   assert_eq!(result.y, 0.0);
 }
 
-// Whitespace before comma after y (lines 495-497 whitespace loop).
+// Whitespace before comma after y.
 #[test]
 fn rotate3d_parse_whitespace_before_second_comma() {
   let mut tl = make_token_list(vec![
@@ -487,7 +487,7 @@ fn rotate3d_parse_whitespace_before_second_comma() {
   assert_eq!(result.y, 0.0);
 }
 
-// Wrong token instead of second comma (lines 501-506 _ => Err for comma after y).
+// Wrong token instead of second comma.
 #[test]
 fn rotate3d_parse_error_missing_second_comma() {
   let mut tl = make_token_list(vec![
@@ -502,7 +502,7 @@ fn rotate3d_parse_error_missing_second_comma() {
   assert!(result.unwrap_err().to_string().contains("y value"));
 }
 
-// Whitespace before z value (lines 510-512 whitespace loop).
+// Whitespace before z value.
 #[test]
 fn rotate3d_parse_whitespace_before_z() {
   let mut tl = make_token_list(vec![
@@ -521,7 +521,7 @@ fn rotate3d_parse_whitespace_before_z() {
   assert_eq!(result.z, 0.0);
 }
 
-// Whitespace before comma after z (lines 518-520 whitespace loop).
+// Whitespace before comma after z.
 #[test]
 fn rotate3d_parse_whitespace_before_third_comma() {
   let mut tl = make_token_list(vec![
@@ -540,7 +540,7 @@ fn rotate3d_parse_whitespace_before_third_comma() {
   assert_eq!(result.z, 0.0);
 }
 
-// Wrong token instead of third comma (lines 524-529 _ => Err for comma after z).
+// Wrong token instead of third comma.
 #[test]
 fn rotate3d_parse_error_missing_third_comma() {
   let mut tl = make_token_list(vec![
@@ -557,7 +557,7 @@ fn rotate3d_parse_error_missing_third_comma() {
   assert!(result.unwrap_err().to_string().contains("z value"));
 }
 
-// Whitespace before angle (lines 533-535 whitespace loop).
+// Whitespace before angle.
 #[test]
 fn rotate3d_parse_whitespace_before_angle() {
   let mut tl = make_token_list(vec![
@@ -576,7 +576,7 @@ fn rotate3d_parse_whitespace_before_angle() {
   assert_eq!(result.x, 1.0);
 }
 
-// Whitespace before closing paren of rotate3d (lines 541-543 whitespace loop).
+// Whitespace before closing paren of rotate3d.
 #[test]
 fn rotate3d_parse_whitespace_before_close() {
   let mut tl = make_token_list(vec![
@@ -595,7 +595,7 @@ fn rotate3d_parse_whitespace_before_close() {
   assert_eq!(result.x, 1.0);
 }
 
-// Wrong closing token for rotate3d (lines 547-551 _ => Err).
+// Wrong closing token for rotate3d.
 #[test]
 fn rotate3d_parse_error_wrong_close_token() {
   let mut tl = make_token_list(vec![
@@ -667,7 +667,7 @@ fn rotate3d_display_generic_case() {
 
 // ── Scale::parse() — error branches ──────────────────────────────────────
 
-// EOF at start (lines 575-578 .ok_or region).
+// EOF at start.
 #[test]
 fn scale_parse_error_eof_at_start() {
   let mut tl = make_token_list(vec![]);
@@ -675,7 +675,7 @@ fn scale_parse_error_eof_at_start() {
   assert!(result.is_err());
 }
 
-// Wrong function name (lines 581-585 if name != "scale").
+// Wrong function name.
 #[test]
 fn scale_parse_error_wrong_function_name() {
   let mut tl = make_token_list(vec![
@@ -687,7 +687,7 @@ fn scale_parse_error_wrong_function_name() {
   assert!(result.unwrap_err().to_string().contains("scale"));
 }
 
-// Non-Function token (lines 586-590 else arm).
+// Non-Function token.
 #[test]
 fn scale_parse_error_non_function_token() {
   let mut tl = make_token_list(vec![SimpleToken::Ident("scale".to_string())]);
@@ -695,7 +695,7 @@ fn scale_parse_error_non_function_token() {
   assert!(result.is_err());
 }
 
-// Whitespace before closing paren (lines 619-621 whitespace-before-close loop).
+// Whitespace before closing paren.
 #[test]
 fn scale_parse_whitespace_before_close() {
   let mut tl = make_token_list(vec![
@@ -708,7 +708,7 @@ fn scale_parse_whitespace_before_close() {
   assert!((result.sx - 2.0_f64).abs() < 1e-9);
 }
 
-// Whitespace then comma then whitespace (lines 597-609 optional sy path).
+// Whitespace then comma then whitespace.
 #[test]
 fn scale_parse_whitespace_before_comma_and_sy() {
   let mut tl = make_token_list(vec![
@@ -725,7 +725,7 @@ fn scale_parse_whitespace_before_comma_and_sy() {
   assert_eq!(result.sy, Some(3.0_f64));
 }
 
-// EOF before closing paren (lines 624-628 .ok_or region).
+// EOF before closing paren.
 #[test]
 fn scale_parse_error_eof_before_close() {
   let mut tl = make_token_list(vec![
@@ -737,7 +737,7 @@ fn scale_parse_error_eof_before_close() {
   assert!(result.is_err());
 }
 
-// Wrong closing token (lines 629-633 if !matches RightParen).
+// Wrong closing token.
 #[test]
 fn scale_parse_error_wrong_close_token() {
   let mut tl = make_token_list(vec![
@@ -751,7 +751,7 @@ fn scale_parse_error_wrong_close_token() {
 
 // ── Scale3d::parse() — whitespace and error branches ─────────────────────
 
-// EOF at start (lines 660-663 _ => Err for wrong function).
+// EOF at start.
 #[test]
 fn scale3d_parse_error_eof_at_start() {
   let mut tl = make_token_list(vec![]);
@@ -771,7 +771,7 @@ fn scale3d_parse_error_wrong_function_name() {
   assert!(result.unwrap_err().to_string().contains("scale3d"));
 }
 
-// Whitespace before sx (lines 671-673 whitespace loop body).
+// Whitespace before sx.
 #[test]
 fn scale3d_parse_whitespace_before_sx() {
   let mut tl = make_token_list(vec![
@@ -788,7 +788,7 @@ fn scale3d_parse_whitespace_before_sx() {
   assert_eq!(result.sx, 1.0);
 }
 
-// Whitespace before first comma (lines 678-680 whitespace loop).
+// Whitespace before first comma.
 #[test]
 fn scale3d_parse_whitespace_before_first_comma() {
   let mut tl = make_token_list(vec![
@@ -805,7 +805,7 @@ fn scale3d_parse_whitespace_before_first_comma() {
   assert_eq!(result.sx, 1.0);
 }
 
-// Wrong first comma (lines 683-687 _ => Err for first comma).
+// Wrong first comma.
 #[test]
 fn scale3d_parse_error_missing_first_comma() {
   let mut tl = make_token_list(vec![
@@ -818,7 +818,7 @@ fn scale3d_parse_error_missing_first_comma() {
   assert!(result.unwrap_err().to_string().contains("sx"));
 }
 
-// Whitespace before sy (lines 692-694 whitespace loop).
+// Whitespace before sy.
 #[test]
 fn scale3d_parse_whitespace_before_sy() {
   let mut tl = make_token_list(vec![
@@ -835,7 +835,7 @@ fn scale3d_parse_whitespace_before_sy() {
   assert_eq!(result.sy, 2.0);
 }
 
-// Whitespace before second comma (lines 700-702 whitespace loop).
+// Whitespace before second comma.
 #[test]
 fn scale3d_parse_whitespace_before_second_comma() {
   let mut tl = make_token_list(vec![
@@ -852,7 +852,7 @@ fn scale3d_parse_whitespace_before_second_comma() {
   assert_eq!(result.sy, 2.0);
 }
 
-// Wrong second comma (lines 706-710 _ => Err for second comma).
+// Wrong second comma.
 #[test]
 fn scale3d_parse_error_missing_second_comma() {
   let mut tl = make_token_list(vec![
@@ -867,7 +867,7 @@ fn scale3d_parse_error_missing_second_comma() {
   assert!(result.unwrap_err().to_string().contains("sy"));
 }
 
-// Whitespace before sz (lines 715-717 whitespace loop).
+// Whitespace before sz.
 #[test]
 fn scale3d_parse_whitespace_before_sz() {
   let mut tl = make_token_list(vec![
@@ -884,7 +884,7 @@ fn scale3d_parse_whitespace_before_sz() {
   assert_eq!(result.sz, 3.0);
 }
 
-// Whitespace before close paren (lines 723-725 whitespace loop).
+// Whitespace before close paren.
 #[test]
 fn scale3d_parse_whitespace_before_close() {
   let mut tl = make_token_list(vec![
@@ -901,7 +901,7 @@ fn scale3d_parse_whitespace_before_close() {
   assert_eq!(result.sz, 3.0);
 }
 
-// Wrong closing token (lines 729-733 _ => Err for close).
+// Wrong closing token.
 #[test]
 fn scale3d_parse_error_wrong_close_token() {
   let mut tl = make_token_list(vec![
@@ -941,7 +941,7 @@ fn scale3d_parse_percentage_values() {
 
 // ── ScaleAxis::parse() — flat_map closure coverage ───────────────────────
 
-// scaleX, scaleY, scaleZ each exercise the flat_map closures at lines 764-778.
+// scaleX, scaleY, scaleZ each exercise the flat_map closures .
 #[test]
 fn scale_axis_x_exercises_flat_map_closures() {
   let result = TransformFunction::parse()
@@ -1000,7 +1000,7 @@ fn scale_axis_x_percentage_value() {
 
 // ── Translate::parse() — error branches ──────────────────────────────────
 
-// EOF at start (lines 862-865 .ok_or region).
+// EOF at start.
 #[test]
 fn translate_parse_error_eof_at_start() {
   let mut tl = make_token_list(vec![]);
@@ -1008,7 +1008,7 @@ fn translate_parse_error_eof_at_start() {
   assert!(result.is_err());
 }
 
-// Wrong function name (lines 868-872 if name != "translate").
+// Wrong function name.
 #[test]
 fn translate_parse_error_wrong_function_name() {
   let mut tl = make_token_list(vec![
@@ -1020,7 +1020,7 @@ fn translate_parse_error_wrong_function_name() {
   assert!(result.unwrap_err().to_string().contains("translate"));
 }
 
-// Non-Function token (lines 873-877 else arm).
+// Non-Function token.
 #[test]
 fn translate_parse_error_non_function_token() {
   let mut tl = make_token_list(vec![SimpleToken::Ident("translate".to_string())]);
@@ -1028,7 +1028,7 @@ fn translate_parse_error_non_function_token() {
   assert!(result.is_err());
 }
 
-// Whitespace before closing paren after tx (lines 907-909 whitespace loop).
+// Whitespace before closing paren after tx.
 #[test]
 fn translate_parse_whitespace_before_close() {
   let mut tl = make_token_list(vec![
@@ -1041,7 +1041,7 @@ fn translate_parse_whitespace_before_close() {
   assert!(result.ty.is_none());
 }
 
-// Whitespace before comma (lines 885-887 whitespace loop before comma check).
+// Whitespace before comma.
 #[test]
 fn translate_parse_whitespace_before_comma_check() {
   let mut tl = make_token_list(vec![
@@ -1056,7 +1056,7 @@ fn translate_parse_whitespace_before_comma_check() {
   assert!(result.ty.is_some());
 }
 
-// Whitespace after comma before ty (lines 895-897 whitespace loop after comma).
+// Whitespace after comma before ty.
 #[test]
 fn translate_parse_whitespace_after_comma() {
   let mut tl = make_token_list(vec![
@@ -1071,7 +1071,7 @@ fn translate_parse_whitespace_after_comma() {
   assert!(result.ty.is_some());
 }
 
-// EOF before closing paren (lines 912-916 .ok_or region).
+// EOF before closing paren.
 #[test]
 fn translate_parse_error_eof_before_close() {
   let mut tl = make_token_list(vec![
@@ -1083,7 +1083,7 @@ fn translate_parse_error_eof_before_close() {
   assert!(result.is_err());
 }
 
-// Wrong closing token (lines 918-921 if !matches RightParen).
+// Wrong closing token.
 #[test]
 fn translate_parse_error_wrong_close_token() {
   let mut tl = make_token_list(vec![
@@ -1268,7 +1268,7 @@ fn translate3d_parse_propagates_close_paren_error() {
   assert!(result.is_err());
 }
 
-// Translate3d new() constructor (lines 934-936).
+// Translate3d new() constructor.
 #[test]
 fn translate3d_new_constructor() {
   use crate::css_types::{
@@ -1291,7 +1291,7 @@ fn translate3d_new_constructor() {
 // ── TranslateAxis::parse() — flat_map closure coverage ───────────────────
 
 // translateX, translateY, translateZ each exercise the flat_map closures
-// at lines 987-999.
+// .
 #[test]
 fn translate_axis_x_exercises_flat_map_closures() {
   let result = TransformFunction::parse()
@@ -1445,7 +1445,7 @@ fn skew_axis_display_x_and_y() {
 
 // ── Fallible-parser ? Err paths — covered by injecting invalid tokens ─────
 
-// Rotate3d: x number parse fails (line 485 ? Err path).
+// Rotate3d: x number parse fails.
 #[test]
 fn rotate3d_parse_error_x_not_a_number() {
   let mut tl = make_token_list(vec![
@@ -1456,7 +1456,7 @@ fn rotate3d_parse_error_x_not_a_number() {
   assert!(result.is_err());
 }
 
-// Rotate3d: y number parse fails (line 508 ? Err path).
+// Rotate3d: y number parse fails.
 #[test]
 fn rotate3d_parse_error_y_not_a_number() {
   let mut tl = make_token_list(vec![
@@ -1469,7 +1469,7 @@ fn rotate3d_parse_error_y_not_a_number() {
   assert!(result.is_err());
 }
 
-// Rotate3d: z number parse fails (line 531 ? Err path).
+// Rotate3d: z number parse fails.
 #[test]
 fn rotate3d_parse_error_z_not_a_number() {
   let mut tl = make_token_list(vec![
@@ -1484,7 +1484,7 @@ fn rotate3d_parse_error_z_not_a_number() {
   assert!(result.is_err());
 }
 
-// Rotate3d: angle parse fails (line 554 ? Err path).
+// Rotate3d: angle parse fails.
 #[test]
 fn rotate3d_parse_error_angle_not_an_angle() {
   let mut tl = make_token_list(vec![
@@ -1501,7 +1501,7 @@ fn rotate3d_parse_error_angle_not_an_angle() {
   assert!(result.is_err());
 }
 
-// Scale: sy parse fails after comma (line 631 ? Err path).
+// Scale: sy parse fails after comma.
 #[test]
 fn scale_parse_error_sy_not_a_number() {
   let mut tl = make_token_list(vec![
@@ -1514,7 +1514,7 @@ fn scale_parse_error_sy_not_a_number() {
   assert!(result.is_err());
 }
 
-// Scale: whitespace before close paren when sy is present (line 638 loop body).
+// Scale: whitespace before close paren when sy is present.
 // The close-whitespace loop is only reached AFTER sy is parsed. If sy is
 // present and followed by whitespace before RightParen, the loop body executes.
 #[test]
@@ -1524,7 +1524,7 @@ fn scale_parse_whitespace_before_close_with_sy() {
     SimpleToken::Number(2.0),
     SimpleToken::Comma,
     SimpleToken::Number(3.0),
-    SimpleToken::Whitespace, // whitespace before close — exercises line 638/639
+    SimpleToken::Whitespace, // whitespace before close —
     SimpleToken::RightParen,
   ]);
   let result = (Scale::parse().run)(&mut tl).unwrap();
@@ -1532,7 +1532,7 @@ fn scale_parse_whitespace_before_close_with_sy() {
   assert_eq!(result.sy, Some(3.0_f64));
 }
 
-// Scale3d: sx parse fails (line 696 ? Err path).
+// Scale3d: sx parse fails.
 #[test]
 fn scale3d_parse_error_sx_not_a_number() {
   let mut tl = make_token_list(vec![
@@ -1543,7 +1543,7 @@ fn scale3d_parse_error_sx_not_a_number() {
   assert!(result.is_err());
 }
 
-// Scale3d: sy parse fails (line 719 ? Err path).
+// Scale3d: sy parse fails.
 #[test]
 fn scale3d_parse_error_sy_not_a_number() {
   let mut tl = make_token_list(vec![
@@ -1556,7 +1556,7 @@ fn scale3d_parse_error_sy_not_a_number() {
   assert!(result.is_err());
 }
 
-// Scale3d: sz parse fails (line 742 ? Err path).
+// Scale3d: sz parse fails.
 #[test]
 fn scale3d_parse_error_sz_not_a_number() {
   let mut tl = make_token_list(vec![
@@ -1571,7 +1571,7 @@ fn scale3d_parse_error_sz_not_a_number() {
   assert!(result.is_err());
 }
 
-// Translate: ty parse fails after comma (line 924 ? Err path).
+// Translate: ty parse fails after comma.
 #[test]
 fn translate_parse_error_ty_not_a_length() {
   let mut tl = make_token_list(vec![
@@ -1584,7 +1584,7 @@ fn translate_parse_error_ty_not_a_length() {
   assert!(result.is_err());
 }
 
-// Translate: whitespace before close when ty is present (line 931 loop body).
+// Translate: whitespace before close when ty is present.
 #[test]
 fn translate_parse_whitespace_before_close_with_ty() {
   let mut tl = make_token_list(vec![
@@ -1592,7 +1592,7 @@ fn translate_parse_whitespace_before_close_with_ty() {
     dim(10.0, "px"),
     SimpleToken::Comma,
     dim(20.0, "px"),
-    SimpleToken::Whitespace, // whitespace before close — exercises line 931/932
+    SimpleToken::Whitespace, // whitespace before close —
     SimpleToken::RightParen,
   ]);
   let result = (Translate::parse().run)(&mut tl).unwrap();

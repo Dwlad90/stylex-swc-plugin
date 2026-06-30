@@ -45,9 +45,9 @@ fn pct(v: f32) -> crate::css_types::length_percentage::LengthPercentage {
 // inset_parser — error and whitespace branches
 // ════════════════════════════════════════════════════════════════════════════
 
-// Line 145: the `?` on consume_next_token is infallible (TokenList::consume_next_token
+// the `?` on consume_next_token is infallible (TokenList::consume_next_token
 // never returns Err), so the Err-propagation branch is covered via the match arms below.
-// Line 147/148: Some(token) arm — wrong function name
+// Some(token) arm — wrong function name
 #[test]
 fn inset_parser_wrong_function_name() {
   let mut tl = make_token_list(vec![
@@ -60,7 +60,7 @@ fn inset_parser_wrong_function_name() {
   assert!(msg.contains("Expected inset"), "msg: {msg}");
 }
 
-// Line 152/153: None arm — EOF at start of inset
+// None arm — EOF at start of inset
 #[test]
 fn inset_parser_eof_at_start() {
   let mut tl = make_token_list(vec![]);
@@ -70,10 +70,10 @@ fn inset_parser_eof_at_start() {
   assert!(msg.contains("end of input"), "msg: {msg}");
 }
 
-// Line 164: whitespace-skip loop body after top (before right)
+// whitespace-skip loop body after top (before right)
 #[test]
 fn inset_parser_whitespace_after_top() {
-  // inset( 10px  20px ) — whitespace between values exercises the loop at line 163-165
+  // inset( 10px 20px ) — whitespace between values exercises the loop
   let mut tl = make_token_list(vec![
     SimpleToken::Function("inset".to_string()),
     SimpleToken::Dimension {
@@ -92,7 +92,7 @@ fn inset_parser_whitespace_after_top() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 172: whitespace-skip loop body after right (before bottom)
+// whitespace-skip loop body after right (before bottom)
 #[test]
 fn inset_parser_whitespace_after_right() {
   let mut tl = make_token_list(vec![
@@ -118,7 +118,7 @@ fn inset_parser_whitespace_after_right() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 184: whitespace-skip loop body after bottom (before left)
+// whitespace-skip loop body after bottom (before left)
 #[test]
 fn inset_parser_whitespace_after_bottom() {
   let mut tl = make_token_list(vec![
@@ -149,7 +149,7 @@ fn inset_parser_whitespace_after_bottom() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 196: whitespace-skip loop body after left (before round check)
+// whitespace-skip loop body after left (before round check)
 #[test]
 fn inset_parser_whitespace_after_left() {
   let mut tl = make_token_list(vec![
@@ -181,7 +181,7 @@ fn inset_parser_whitespace_after_left() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 206: whitespace-skip loop before the round-keyword check
+// whitespace-skip loop before the round-keyword check
 // (already implicitly covered by inset(10px round 5px) — add explicit token form)
 #[test]
 fn inset_parser_whitespace_before_round_check() {
@@ -204,11 +204,11 @@ fn inset_parser_whitespace_before_round_check() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 212: consume the "round" keyword branch + line 216 whitespace after round
-// + line 220 radius_value parse + line 221 Some(radius_value)
+// consume the "round" keyword branch + whitespace after round
+// + radius_value parse + Some(radius_value)
 #[test]
 fn inset_parser_round_with_whitespace_after_keyword() {
-  // whitespace after "round" keyword: covers line 216
+  // whitespace after "round" keyword: Covers
   let mut tl = make_token_list(vec![
     SimpleToken::Function("inset".to_string()),
     SimpleToken::Dimension {
@@ -232,10 +232,10 @@ fn inset_parser_round_with_whitespace_after_keyword() {
   }
 }
 
-// Line 223: None branch — ident that is not "round"
+// None branch — ident that is not "round"
 #[test]
 fn inset_parser_non_round_keyword_gives_none_round() {
-  // "other" keyword — not "round" — exercises the `else { None }` arm at line 223
+  // "other" keyword — not "round" — exercises the `else { None }` arm
   let mut tl = make_token_list(vec![
     SimpleToken::Function("inset".to_string()),
     SimpleToken::Dimension {
@@ -256,7 +256,7 @@ fn inset_parser_non_round_keyword_gives_none_round() {
   );
 }
 
-// Line 230/232/238: closing paren match — wrong token + EOF
+// closing paren match — wrong token + EOF
 #[test]
 fn inset_parser_wrong_closing_token() {
   let mut tl = make_token_list(vec![
@@ -293,7 +293,7 @@ fn inset_parser_eof_on_closing_paren() {
 // circle_parser — error and whitespace branches
 // ════════════════════════════════════════════════════════════════════════════
 
-// Line 260: wrong function name (Some(token) arm)
+// wrong function name (Some(token) arm)
 #[test]
 fn circle_parser_wrong_function_name() {
   let mut tl = make_token_list(vec![
@@ -306,7 +306,7 @@ fn circle_parser_wrong_function_name() {
   assert!(msg.contains("Expected circle"), "msg: {msg}");
 }
 
-// Line 268: None arm — EOF at start of circle
+// None arm — EOF at start of circle
 #[test]
 fn circle_parser_eof_at_start() {
   let mut tl = make_token_list(vec![]);
@@ -316,7 +316,7 @@ fn circle_parser_eof_at_start() {
   assert!(msg.contains("end of input"), "msg: {msg}");
 }
 
-// Line 275: tokens.peek()? — None branch (empty token stream after function token)
+// tokens.peek()? — None branch (empty token stream after function token)
 #[test]
 fn circle_parser_eof_after_function_token() {
   let mut tl = make_token_list(vec![
@@ -332,7 +332,7 @@ fn circle_parser_eof_after_function_token() {
   );
 }
 
-// Line 278: closest-side branch
+// closest-side branch
 #[test]
 fn circle_parser_closest_side_via_tokens() {
   let mut tl = make_token_list(vec![
@@ -351,7 +351,7 @@ fn circle_parser_closest_side_via_tokens() {
   );
 }
 
-// Line 282: farthest-side branch
+// farthest-side branch
 #[test]
 fn circle_parser_farthest_side_via_tokens() {
   let mut tl = make_token_list(vec![
@@ -370,10 +370,10 @@ fn circle_parser_farthest_side_via_tokens() {
   );
 }
 
-// Line 292: None arm in radius if-let — empty after function (same as line 275 EOF but explicit)
+// None arm in radius if-let — empty after function (same as EOF but explicit)
 // The peek() Ok(None) path is exercised by eof_after_function_token above.
 
-// Line 299: whitespace-skip loop after radius
+// whitespace-skip loop after radius
 #[test]
 fn circle_parser_whitespace_after_radius() {
   let mut tl = make_token_list(vec![
@@ -390,9 +390,9 @@ fn circle_parser_whitespace_after_radius() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 303: parse_optional_position call (covered via circle_parser whitespace test).
+// parse_optional_position call (covered via circle_parser whitespace test).
 
-// Line 306/308/314: closing paren error arm (Some(token)) and EOF arm
+// closing paren error arm (Some(token)) and EOF arm
 #[test]
 fn circle_parser_wrong_closing_token() {
   let mut tl = make_token_list(vec![
@@ -429,7 +429,7 @@ fn circle_parser_eof_on_closing_paren() {
 // ellipse_parser — error and whitespace branches
 // ════════════════════════════════════════════════════════════════════════════
 
-// Line 330: wrong function name
+// wrong function name
 #[test]
 fn ellipse_parser_wrong_function_name() {
   let mut tl = make_token_list(vec![
@@ -442,7 +442,7 @@ fn ellipse_parser_wrong_function_name() {
   assert!(msg.contains("Expected ellipse"), "msg: {msg}");
 }
 
-// Line 338: EOF at start of ellipse
+// EOF at start of ellipse
 #[test]
 fn ellipse_parser_eof_at_start() {
   let mut tl = make_token_list(vec![]);
@@ -452,7 +452,7 @@ fn ellipse_parser_eof_at_start() {
   assert!(msg.contains("end of input"), "msg: {msg}");
 }
 
-// Line 346/348: radius_x — closest-side
+// radius_x — closest-side
 #[test]
 fn ellipse_parser_closest_side_radius_x() {
   let mut tl = make_token_list(vec![
@@ -473,7 +473,7 @@ fn ellipse_parser_closest_side_radius_x() {
   }
 }
 
-// Line 349: consume closest-side and Line 353: farthest-side for radius_x
+// consume closest-side and farthest-side for radius_x
 #[test]
 fn ellipse_parser_farthest_side_radius_x() {
   let mut tl = make_token_list(vec![
@@ -494,7 +494,7 @@ fn ellipse_parser_farthest_side_radius_x() {
   }
 }
 
-// Line 362: radius EOF inside parse_radius (None arm)
+// radius EOF inside parse_radius (None arm)
 #[test]
 fn ellipse_parser_eof_for_radius() {
   let mut tl = make_token_list(vec![
@@ -510,7 +510,7 @@ fn ellipse_parser_eof_for_radius() {
   );
 }
 
-// Line 373: whitespace between radius_x and radius_y
+// whitespace between radius_x and radius_y
 #[test]
 fn ellipse_parser_whitespace_between_radii() {
   let mut tl = make_token_list(vec![
@@ -531,7 +531,7 @@ fn ellipse_parser_whitespace_between_radii() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 381: whitespace after radius_y (before optional position)
+// whitespace after radius_y (before optional position)
 #[test]
 fn ellipse_parser_whitespace_after_radius_y() {
   let mut tl = make_token_list(vec![
@@ -553,10 +553,10 @@ fn ellipse_parser_whitespace_after_radius_y() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 385: parse_optional_position in ellipse (None path)
+// parse_optional_position in ellipse (None path)
 // already covered via whitespace tests above
 
-// Line 388/390: closing paren Some(token) error arm
+// closing paren Some(token) error arm
 #[test]
 fn ellipse_parser_wrong_closing_token() {
   let mut tl = make_token_list(vec![
@@ -578,7 +578,7 @@ fn ellipse_parser_wrong_closing_token() {
   assert!(msg.contains("Expected closing paren"), "msg: {msg}");
 }
 
-// Line 391/395: closing paren None arm
+// closing paren None arm
 #[test]
 fn ellipse_parser_eof_on_closing_paren() {
   let mut tl = make_token_list(vec![
@@ -604,7 +604,7 @@ fn ellipse_parser_eof_on_closing_paren() {
 // polygon_parser — error and whitespace branches
 // ════════════════════════════════════════════════════════════════════════════
 
-// Line 416: wrong function name
+// wrong function name
 #[test]
 fn polygon_parser_wrong_function_name() {
   let mut tl = make_token_list(vec![
@@ -617,7 +617,7 @@ fn polygon_parser_wrong_function_name() {
   assert!(msg.contains("Expected polygon"), "msg: {msg}");
 }
 
-// Line 424: EOF at start of polygon
+// EOF at start of polygon
 #[test]
 fn polygon_parser_eof_at_start() {
   let mut tl = make_token_list(vec![]);
@@ -627,7 +627,7 @@ fn polygon_parser_eof_at_start() {
   assert!(msg.contains("end of input"), "msg: {msg}");
 }
 
-// Line 433: whitespace after polygon( before fill-rule check
+// whitespace after polygon( before fill-rule check
 #[test]
 fn polygon_parser_whitespace_after_open_paren() {
   let mut tl = make_token_list(vec![
@@ -642,7 +642,7 @@ fn polygon_parser_whitespace_after_open_paren() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 439: fill_rule "nonzero" explicit
+// fill_rule "nonzero" explicit
 #[test]
 fn polygon_parser_nonzero_fill_rule() {
   let mut tl = make_token_list(vec![
@@ -662,7 +662,7 @@ fn polygon_parser_nonzero_fill_rule() {
   }
 }
 
-// Line 443: whitespace after fill-rule ident (before comma)
+// whitespace after fill-rule ident (before comma)
 #[test]
 fn polygon_parser_whitespace_after_fill_rule_before_comma() {
   let mut tl = make_token_list(vec![
@@ -682,10 +682,10 @@ fn polygon_parser_whitespace_after_fill_rule_before_comma() {
   }
 }
 
-// Line 446: comma after fill-rule
+// comma after fill-rule
 #[test]
 fn polygon_parser_comma_after_fill_rule() {
-  // nonzero, <space>0% 0% — exercises comma consumption at line 446
+  // nonzero, <space>0% 0% — exercises comma consumption
   let mut tl = make_token_list(vec![
     SimpleToken::Function("polygon".to_string()),
     SimpleToken::Ident("nonzero".to_string()),
@@ -699,7 +699,7 @@ fn polygon_parser_comma_after_fill_rule() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 448: whitespace after comma in fill-rule
+// whitespace after comma in fill-rule
 #[test]
 fn polygon_parser_whitespace_after_fill_rule_comma() {
   let mut tl = make_token_list(vec![
@@ -717,22 +717,22 @@ fn polygon_parser_whitespace_after_fill_rule_comma() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 450: Some(fill_rule_str) return
+// Some(fill_rule_str) return
 // (covered by all nonzero/evenodd tests above)
 
-// Line 453: else fallback "nonzero" — token consumed was NOT an Ident somehow.
+// else fallback "nonzero" — token consumed was NOT an Ident somehow.
 // This branch is a defensive fallback: the code first checks that the peeked ident
 // is "nonzero" or "evenodd", then consumes it with .unwrap() and destructures it.
 // If consume returns Some(non-Ident), the else arm fires.
 // In practice TokenList::consume_next_token always returns whatever peek() showed,
 // so this branch is unreachable through normal execution.
-// Coverage note: Line 453 — the `else { Some("nonzero".to_string()) }` fallback after
+// Coverage note: — the `else { Some("nonzero".to_string()) }` fallback after
 // `if let SimpleToken::Ident(fill_rule_str) = rule_value` is dead code: the
 // outer `if let Ok(Some(SimpleToken::Ident(rule))) = tokens.peek()` guard
 // guarantees `rule_value` is always an Ident when we reach this destructure.
 // This branch cannot be exercised without unsound token-list mutation.
 
-// Line 456: else-branch — ident that is NOT nonzero/evenodd defaults fill_rule
+// else-branch — ident that is NOT nonzero/evenodd defaults fill_rule
 #[test]
 fn polygon_parser_unknown_ident_defaults_fill_rule() {
   // An ident that is not nonzero/evenodd: the parser skips fill-rule extraction
@@ -747,7 +747,7 @@ fn polygon_parser_unknown_ident_defaults_fill_rule() {
   let _ = result;
 }
 
-// Line 459: else-branch — non-ident token defaults fill_rule to "nonzero"
+// else-branch — non-ident token defaults fill_rule to "nonzero"
 #[test]
 fn polygon_parser_no_ident_defaults_fill_rule() {
   // When peek returns something other than an Ident (e.g. Percentage), fill_rule defaults
@@ -765,7 +765,7 @@ fn polygon_parser_no_ident_defaults_fill_rule() {
   }
 }
 
-// Line 468: whitespace inside point loop (before x)
+// whitespace inside point loop (before x)
 #[test]
 fn polygon_parser_whitespace_inside_point_loop() {
   // whitespace before first point (inside the loop)
@@ -781,10 +781,10 @@ fn polygon_parser_whitespace_inside_point_loop() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 473: RightParen check (break) at line 472-474
+// RightParen check (break)
 // covered by all polygon parse-to-end tests
 
-// Line 481: whitespace between x and y of a point
+// whitespace between x and y of a point
 #[test]
 fn polygon_parser_whitespace_between_x_and_y() {
   let mut tl = make_token_list(vec![
@@ -799,10 +799,10 @@ fn polygon_parser_whitespace_between_x_and_y() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 484: y coordinate parse
+// y coordinate parse
 // covered by all polygon tests
 
-// Line 490: whitespace after point (before comma/paren check)
+// whitespace after point (before comma/paren check)
 #[test]
 fn polygon_parser_whitespace_after_point() {
   let mut tl = make_token_list(vec![
@@ -818,7 +818,7 @@ fn polygon_parser_whitespace_after_point() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 497: Comma arm — consume and continue
+// Comma arm — consume and continue
 #[test]
 fn polygon_parser_comma_between_points() {
   let mut tl = make_token_list(vec![
@@ -839,10 +839,10 @@ fn polygon_parser_comma_between_points() {
   }
 }
 
-// Line 500: RightParen arm — break from inner match
+// RightParen arm — break from inner match
 // covered by all polygon tests that end with RightParen
 
-// Line 504: _ arm in inner match — unexpected token
+// _ arm in inner match — unexpected token
 #[test]
 fn polygon_parser_unexpected_token_after_point() {
   let mut tl = make_token_list(vec![
@@ -861,7 +861,7 @@ fn polygon_parser_unexpected_token_after_point() {
   );
 }
 
-// Line 513: else branch — EOF in inner if-let (unexpected end in polygon)
+// else branch — EOF in inner if-let (unexpected end in polygon)
 #[test]
 fn polygon_parser_eof_after_point() {
   let mut tl = make_token_list(vec![
@@ -880,7 +880,7 @@ fn polygon_parser_eof_after_point() {
   );
 }
 
-// Line 520/522/523: closing paren match after loop — Some(RightParen) is the happy path,
+// closing paren match after loop — Some(RightParen) is the happy path,
 // but Some(other) and None are the error arms
 #[test]
 fn polygon_parser_wrong_closing_token_after_loop() {
@@ -896,12 +896,12 @@ fn polygon_parser_wrong_closing_token_after_loop() {
   // the `tokens.peek()` match for comma/RightParen/other. An Ident would hit the `_` arm.
   // So to get to the closing paren match with a wrong token, we need to exit the loop via
   // RightParen-break but then have a different token there... which is contradictory.
-  // Therefore lines 522/523 are the `Some(token)` and `None` arms of the closing-paren
+  // Therefore are the `Some(token)` and `None` arms of the closing-paren
   // match *after* the loop, which can only be reached if the loop somehow exited without
   // consuming the RightParen. The loop exits only by the break-on-RightParen. So those
   // arms are unreachable in practice through the public polygon parser.
-  // Coverage note: Lines 522-523 — the `Some(token) => Err(...)` and `None => Err(...)` arms of
-  // the closing-paren match at line 520 are unreachable: the loop above only breaks when
+  // Coverage note: — the `Some(token) => Err(...)` and `None => Err(...)` arms of
+  // the closing-paren match are unreachable: the loop above only breaks when
   // `tokens.peek()` returns `Some(SimpleToken::RightParen)`, so by the time the outer
   // `consume_next_token()` runs, it will always consume that same RightParen successfully.
   // No test can exercise these arms without directly mutating the TokenList between the
@@ -910,23 +910,23 @@ fn polygon_parser_wrong_closing_token_after_loop() {
   assert!(result.is_ok());
 }
 
-// Line 528/535: empty polygon (zero points) error — points.is_empty()
+// empty polygon (zero points) error — points.is_empty()
 // This is unreachable because the parser immediately tries to parse the first
 // x-coordinate inside the loop; if there's no valid point token, it fails before
-// adding anything to `points`. The `is_empty()` check at line 534 is dead code:
+// adding anything to `points`. The `is_empty()` check is dead code:
 // either parsing fails earlier, or at least one point is successfully parsed.
-// Coverage note: Line 535 — the `if points.is_empty()` guard is unreachable dead code:
+// Coverage note: — the `if points.is_empty()` guard is unreachable dead code:
 // the loop body always calls `length_percentage_parser().run(tokens)?` which returns
 // `Err` (propagated immediately) before `points.push(...)` if no valid x-coordinate
 // is present. So the only way `points` is non-empty at the guard is if the loop ran
 // at least once, and the only way `points` is still empty at the guard is if parsing
-// failed earlier. No input string can make points empty while also reaching line 534.
+// failed earlier. No input string can make points empty while also reaching that guard.
 
 // ════════════════════════════════════════════════════════════════════════════
 // path_parser — error and whitespace branches
 // ════════════════════════════════════════════════════════════════════════════
 
-// Line 550: wrong function name
+// wrong function name
 #[test]
 fn path_parser_wrong_function_name() {
   let mut tl = make_token_list(vec![
@@ -939,7 +939,7 @@ fn path_parser_wrong_function_name() {
   assert!(msg.contains("Expected path"), "msg: {msg}");
 }
 
-// Line 558: EOF at start of path
+// EOF at start of path
 #[test]
 fn path_parser_eof_at_start() {
   let mut tl = make_token_list(vec![]);
@@ -949,7 +949,7 @@ fn path_parser_eof_at_start() {
   assert!(msg.contains("end of input"), "msg: {msg}");
 }
 
-// Line 567: whitespace after path( before fill-rule check
+// whitespace after path( before fill-rule check
 #[test]
 fn path_parser_whitespace_after_open_paren() {
   let mut tl = make_token_list(vec![
@@ -965,7 +965,7 @@ fn path_parser_whitespace_after_open_paren() {
   }
 }
 
-// Line 573: fill_rule "nonzero" for path
+// fill_rule "nonzero" for path
 #[test]
 fn path_parser_nonzero_fill_rule() {
   let mut tl = make_token_list(vec![
@@ -982,7 +982,7 @@ fn path_parser_nonzero_fill_rule() {
   }
 }
 
-// Line 577: whitespace after fill_rule ident before comma in path
+// whitespace after fill_rule ident before comma in path
 #[test]
 fn path_parser_whitespace_after_fill_rule_before_comma() {
   let mut tl = make_token_list(vec![
@@ -1000,7 +1000,7 @@ fn path_parser_whitespace_after_fill_rule_before_comma() {
   }
 }
 
-// Line 580: comma after fill-rule in path
+// comma after fill-rule in path
 #[test]
 fn path_parser_comma_after_fill_rule() {
   let mut tl = make_token_list(vec![
@@ -1014,7 +1014,7 @@ fn path_parser_comma_after_fill_rule() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 582: whitespace after comma in path fill-rule
+// whitespace after comma in path fill-rule
 #[test]
 fn path_parser_whitespace_after_fill_rule_comma() {
   let mut tl = make_token_list(vec![
@@ -1030,14 +1030,14 @@ fn path_parser_whitespace_after_fill_rule_comma() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 584: Some(fill_rule_str) in path — already covered by all fill-rule tests above.
+// Some(fill_rule_str) in path — already covered by all fill-rule tests above.
 
-// Line 587: else fallback in path ("nonzero") — same dead-code situation as polygon line 453.
-// Coverage note: Line 587 — the `else { Some("nonzero".to_string()) }` fallback in path_parser is
-// dead code for the same reason as polygon_parser line 453: the outer guard guarantees
+// else fallback in path ("nonzero") — same dead-code situation as polygon.
+// Coverage note: — the `else { Some("nonzero".to_string()) }` fallback in path_parser is
+// dead code for the same reason as polygon_parser the outer guard guarantees
 // the consumed token is an Ident, so the destructure always succeeds.
 
-// Line 590/591: else for unknown ident (not nonzero/evenodd) defaults fill_rule in path
+// else for unknown ident (not nonzero/evenodd) defaults fill_rule in path
 #[test]
 fn path_parser_unknown_ident_defaults_fill_rule() {
   // An ident that is not nonzero/evenodd — the parser defaults fill_rule and tries to
@@ -1045,11 +1045,11 @@ fn path_parser_unknown_ident_defaults_fill_rule() {
   let result = BasicShape::parse().parse_to_end("path(other, \"M0 0\")");
   // The exact result depends on whether "other" is a known fill-rule; it isn't,
   // so fill_rule defaults and the parser tries to parse "other" as a String → fails.
-  // Just verify the else-branch fires (exercises line 590 regardless).
+  // Just verify the else-branch fires (exercises regardless).
   let _ = result;
 }
 
-// Line 594: else for non-ident token in path defaults fill_rule
+// else for non-ident token in path defaults fill_rule
 #[test]
 fn path_parser_non_ident_defaults_fill_rule() {
   let mut tl = make_token_list(vec![
@@ -1066,7 +1066,7 @@ fn path_parser_non_ident_defaults_fill_rule() {
   }
 }
 
-// Line 598: whitespace after fill-rule block before string
+// whitespace after fill-rule block before string
 #[test]
 fn path_parser_whitespace_before_string() {
   let mut tl = make_token_list(vec![
@@ -1080,10 +1080,10 @@ fn path_parser_whitespace_before_string() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 602: String(s) — happy path parse
+// String(s) — happy path parse
 // covered by all path parser tests
 
-// Line 604/610: wrong token / EOF at string position
+// wrong token / EOF at string position
 #[test]
 fn path_parser_wrong_token_at_string() {
   let mut tl = make_token_list(vec![
@@ -1120,7 +1120,7 @@ fn path_parser_eof_at_string() {
   );
 }
 
-// Line 618: whitespace after string before closing paren
+// whitespace after string before closing paren
 #[test]
 fn path_parser_whitespace_after_string() {
   let mut tl = make_token_list(vec![
@@ -1134,7 +1134,7 @@ fn path_parser_whitespace_after_string() {
   assert!(result.is_ok(), "err: {:?}", result);
 }
 
-// Line 622/624/625: closing paren match in path — wrong token and EOF
+// closing paren match in path — wrong token and EOF
 #[test]
 fn path_parser_wrong_closing_token() {
   let mut tl = make_token_list(vec![
@@ -1165,17 +1165,17 @@ fn path_parser_eof_on_closing_paren() {
 // parse_optional_position — whitespace and "at" keyword branches
 // ════════════════════════════════════════════════════════════════════════════
 
-// Line 649: the peek()? call — its Err path is infallible from TokenList; covered
+// the peek()? call — its Err path is infallible from TokenList; covered
 // by None => rewind branch below.
 
-// Line 653/654/655: "at" keyword consumed, whitespace after "at", position parser call.
+// "at" keyword consumed, whitespace after "at", position parser call.
 // These are covered when parse_optional_position is invoked from circle/ellipse parsers
 // when an "at" keyword appears. However, Position::parser() is not fully implemented
 // for the "at" syntax, so parsing after "at" will fail and the Err is returned.
 // We exercise the "at" branch by injecting it directly:
 #[test]
 fn parse_optional_position_at_keyword_exercises_position_parser() {
-  // circle with "at" — exercises lines 649-665 of parse_optional_position.
+  // circle with "at" — exercises of parse_optional_position.
   // The position parser will fail (not fully implemented), so we check for an error.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("circle".to_string()),
@@ -1196,7 +1196,7 @@ fn parse_optional_position_at_keyword_exercises_position_parser() {
   let _ = result;
 }
 
-// Line 658/659: whitespace after "at" keyword
+// whitespace after "at" keyword
 #[test]
 fn parse_optional_position_whitespace_after_at() {
   let mut tl = make_token_list(vec![
@@ -1217,16 +1217,16 @@ fn parse_optional_position_whitespace_after_at() {
   let _ = result;
 }
 
-// Line 660/662/663: position_parser.run — Ok and Err paths
+// position_parser.run — Ok and Err paths
 // The Ok(position) path would require a fully-implemented Position parser.
 // The Err(e) path is exercised when position parser fails (which it currently does
-// for complex positions). The rewind path (line 670) is the None case.
+// for complex positions). The rewind path is the None case.
 
-// Line 664/665: Ok(Some(position)) return after successful position parse.
-// Coverage note: Lines 664-665 — the `Ok(Some(position))` return in parse_optional_position
+// Ok(Some(position)) return after successful position parse.
+// Coverage note: — the `Ok(Some(position))` return in parse_optional_position
 // is reachable when Position::parser() successfully parses a position after "at".
 
-// Line 670: rewind branch (no "at" keyword) — covered by all circle/ellipse tests
+// rewind branch (no "at" keyword) — covered by all circle/ellipse tests
 // that don't have an "at" keyword.
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1269,7 +1269,7 @@ fn basic_shape_parser_free_function_path() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Display ?-error-propagation sweep (covers all write!(...)?  Err branches)
+// Display ?-error-propagation sweep (covers all write!(...)? Err branches)
 // ════════════════════════════════════════════════════════════════════════════
 
 #[test]
@@ -1583,7 +1583,7 @@ fn circle_radius_display_all_variants() {
 // Additional tests for remaining uncovered regions (second pass)
 // ════════════════════════════════════════════════════════════════════════════
 
-// Line 225 (shifted): `?` Err-path on round-radius parse.
+// (shifted): `?` Err-path on round-radius parse.
 // Consume "inset" and parse top successfully, then consume "round" keyword,
 // then fail to parse the radius value after "round".
 #[test]
@@ -1610,9 +1610,9 @@ fn inset_parser_round_keyword_then_invalid_radius() {
   );
 }
 
-// Line 390 (shifted): `?` Err-path on parse_optional_position in ellipse.
+// (shifted): `?` Err-path on parse_optional_position in ellipse.
 // We inject "at" keyword inside an ellipse token stream, forcing the position
-// parser to run and fail, which propagates through the `?` at line 390.
+// parser to run and fail, which propagates through the `?` .
 #[test]
 fn ellipse_parser_at_position_propagates_error() {
   let mut tl = make_token_list(vec![
@@ -1637,7 +1637,7 @@ fn ellipse_parser_at_position_propagates_error() {
   let _ = result;
 }
 
-// Line 390: also cover the Err propagation path explicitly by using a token
+// also cover the Err propagation path explicitly by using a token
 // sequence where position parser definitely fails
 #[test]
 fn ellipse_parser_at_with_failing_position() {
@@ -1658,8 +1658,8 @@ fn ellipse_parser_at_with_failing_position() {
   let _ = result;
 }
 
-// Line 455 (shifted): polygon fill-rule block WITHOUT comma.
-// The `if let Ok(Some(SimpleToken::Comma))` check at line 450 returns false
+// (shifted): polygon fill-rule block WITHOUT comma.
+// The `if let Ok(Some(SimpleToken::Comma))` check returns false
 // when the next token is not a comma. This exercises the false-branch closing }.
 #[test]
 fn polygon_parser_fill_rule_without_comma() {
@@ -1682,14 +1682,14 @@ fn polygon_parser_fill_rule_without_comma() {
   }
 }
 
-// Line 458 (shifted): `Some("nonzero")` fallback in polygon — dead code.
-// Coverage note: Line 458 — the `else { Some("nonzero".to_string()) }` fallback after
+// (shifted): `Some("nonzero")` fallback in polygon — dead code.
+// Coverage note: — the `else { Some("nonzero".to_string()) }` fallback after
 // `if let SimpleToken::Ident(fill_rule_str) = rule_value` is dead code: the
 // outer guard `if let Ok(Some(SimpleToken::Ident(rule))) = tokens.peek()` plus
 // `if rule == "nonzero" || rule == "evenodd"` guarantees the consumed token is
 // always an Ident. The else arm cannot fire through the public API.
 
-// Line 478 (shifted): `break` in `if let Ok(Some(RightParen)) = tokens.peek()`
+// (shifted): `break` in `if let Ok(Some(RightParen)) = tokens.peek()`
 // inside the polygon loop. This fires when peek returns RightParen at the top
 // of the loop (empty polygon body or after consuming the last fill-rule).
 // Exercised by polygon with empty points body: after fill-rule, immediately RP.
@@ -1700,7 +1700,7 @@ fn polygon_parser_immediate_right_paren_after_fill_rule() {
   // But this would then fail at `points.is_empty()` check... which is dead code.
   // Actually: the loop peeks RightParen, breaks, then the closing match consumes RP.
   // Then `points.is_empty()` returns true → Err("Polygon must have at least one point").
-  // Coverage note: Lines 533-535 — the `if points.is_empty()` check is unreachable through a
+  // Coverage note: — the `if points.is_empty()` check is unreachable through a
   // token-list that exercises the RightParen-break in the loop: the loop body itself
   // tries to parse a point before adding it to `points`, so if no valid x-coordinate
   // is present, the loop fails with a parse error before `points.push`. The only path
@@ -1720,7 +1720,7 @@ fn polygon_parser_immediate_right_paren_after_fill_rule() {
   );
 }
 
-// Line 489 (shifted): `?` Err-path on y-coordinate parse.
+// (shifted): `?` Err-path on y-coordinate parse.
 // Parse x successfully, then inject a non-length token as y.
 #[test]
 fn polygon_parser_invalid_y_coordinate() {
@@ -1735,20 +1735,20 @@ fn polygon_parser_invalid_y_coordinate() {
   assert!(result.is_err(), "expected error for invalid y coordinate");
 }
 
-// Line 527 (shifted): polygon closing paren match — Some(token) error arm.
+// (shifted): polygon closing paren match — Some(token) error arm.
 // As noted in the earlier test comment, this is unreachable via public API
 // because the loop only breaks when RightParen is peeked (and then the
 // outer match consumes it). But we can still trigger it via the early-break path:
 // if the loop breaks on RightParen peek, then consume_next_token gives RightParen
 // which hits the Ok arm, not the Err arm.
-// Coverage note: Lines 527-535 — the `Some(token) => Err(...)` and `None => Err(...)` arms
-// of the polygon closing-paren match at line 525 are unreachable: the loop above
+// Coverage note: — the `Some(token) => Err(...)` and `None => Err(...)` arms
+// of the polygon closing-paren match are unreachable: the loop above
 // only breaks when `tokens.peek()` returns `Some(SimpleToken::RightParen)`, so
 // `consume_next_token()` will always yield that same RightParen, taking the
 // `Some(SimpleToken::RightParen) => {}` arm. No test can exercise these arms
 // without mutating the TokenList between the loop's `break` and the match.
 
-// Line 589 (shifted): polygon closing-paren comma block false-branch in path.
+// (shifted): polygon closing-paren comma block false-branch in path.
 // Path fill-rule WITHOUT comma (same logic as polygon fill-rule without comma).
 #[test]
 fn path_parser_fill_rule_without_comma() {
@@ -1768,30 +1768,30 @@ fn path_parser_fill_rule_without_comma() {
   }
 }
 
-// Line 592 (shifted): `Some("nonzero")` fallback in path — dead code.
-// Coverage note: Line 592 — same dead-code reasoning as polygon line 458: the guard
+// (shifted): `Some("nonzero")` fallback in path — dead code.
+// Coverage note: — same dead-code reasoning as polygon the guard
 // guarantees the consumed token is always a SimpleToken::Ident, so the
 // `else { Some("nonzero") }` branch never fires through the public API.
 
-// Line 602 (shifted): whitespace loop before string in path.
-// Exercises the loop at line 602 `while let Ok(Some(SimpleToken::Whitespace))`.
+// (shifted): whitespace loop before string in path.
+// Exercises the loop `while let Ok(Some(SimpleToken::Whitespace))`.
 // The loop body fires when there's whitespace between the fill-rule block and
 // the string literal. Our earlier test `path_parser_whitespace_before_string`
 // sends `[Fn("path"), WS, WS, String, RP]`. The whitespace is between the
 // function token and the string. In that test:
 // - fill_rule defaults (non-ident token = WS causes `else { Some("nonzero") }`)
-// - WS loop at line 602 sees the remaining WS...
+// - WS loop sees the remaining WS...
 // Wait — let's trace: peek → WS (is-ident? no, is-nonzero/evenodd? no) → else branch.
 // fill_rule = Some("nonzero") (default else). Then WS loop at 602 sees WS... BUT
 // the peek for fill_rule check saw WS and didn't consume it. So:
 // - peek → WS → not Ident → fill_rule = Some("nonzero")
 // - WS loop at 602: peek → WS → consume, peek → WS → consume
 // - Then consume_next_token → String("M0 0") ← this should work!
-// So `path_parser_whitespace_before_string` SHOULD cover line 602 loop body.
+// So `path_parser_whitespace_before_string` SHOULD cover loop body.
 // Let's verify the test is working by adding explicit assertion:
 #[test]
 fn path_parser_whitespace_before_string_explicit() {
-  // Explicitly test the whitespace loop at line 602 fires
+  // Explicitly test the whitespace loop fires
   let mut tl = make_token_list(vec![
     SimpleToken::Function("path".to_string()),
     // Non-ident first → fill_rule defaults
@@ -1808,8 +1808,8 @@ fn path_parser_whitespace_before_string_explicit() {
   }
 }
 
-// Line 653 (shifted): `if let Ok(Some(SimpleToken::Whitespace))` in parse_optional_position.
-// The body (line 654 `let _ = tokens.consume_next_token()`) fires when there's
+// (shifted): `if let Ok(Some(SimpleToken::Whitespace))` in parse_optional_position.
+// The body`) fires when there's
 // whitespace BEFORE the "at" keyword. This is different from whitespace AFTER "at".
 // Our tests inject whitespace after the radius but the question is whether
 // parse_optional_position sees that first whitespace.
@@ -1836,13 +1836,13 @@ fn path_parser_whitespace_before_string_explicit() {
 // fire if circle's WS loop ran zero times (no WS at all after radius) AND "at" is
 // preceded by... wait, there IS no WS then.
 //
-// Coverage note: Line 653 — the body of `if let Ok(Some(SimpleToken::Whitespace)) = tokens.peek()`
+// Coverage note: — the body of `if let Ok(Some(SimpleToken::Whitespace)) = tokens.peek()`
 // in parse_optional_position is unreachable through the circle and ellipse parsers:
 // the callers' whitespace-skip loops greedily consume ALL whitespace tokens between
-// the radius and the optional "at" keyword, leaving no whitespace for line 653 to consume.
+// the radius and the optional "at" keyword, leaving no whitespace for to consume.
 // This defensive if is kept for safety but cannot be exercised via the public parsers.
 
-// Line 665 (shifted): `let _ = tokens.consume_next_token()` (whitespace after "at").
+// (shifted): `let _ = tokens.consume_next_token()` (whitespace after "at").
 // This fires when there's a whitespace token between "at" and the position.
 // Our test `parse_optional_position_whitespace_after_at` injects:
 // [Fn("circle"), Dim(10px), WS, Ident("at"), WS, WS, Ident("center"), RP]
@@ -1851,21 +1851,21 @@ fn path_parser_whitespace_before_string_explicit() {
 // - peek → Dim(10px) → CircleRadius::Length
 // - WS loop (circle): consume WS
 // - parse_optional_position:
-//   - 653 if: peek → Ident("at") → not WS → body NOT fired
-//   - 658 match: peek → Ident("at") → matches "at" → consume
-//   - 663 if: peek → WS → YES → consume (line 665 FIRES!)
-//   - position parser runs on [WS, Ident("center"), RP]...
-// Wait, after consuming the first WS at line 665, peek → 2nd WS? No:
+// - 653 if: peek → Ident("at") → not WS → body NOT fired
+// - 658 match: peek → Ident("at") → matches "at" → consume
+// - 663 if: peek → WS → YES → consume
+// - position parser runs on [WS, Ident("center"), RP]...
+// Wait, after consuming the first WS peek → 2nd WS? No:
 // [Fn("circle"), Dim(10px), WS, Ident("at"), WS, WS, Ident("center"), RP]
-// Index after "at" consumption: at WS(1). peek → WS → consume (line 665). Now at WS(2)?
+// Index after "at" consumption: at WS(1). peek → WS → consume. Now at WS(2)?
 // Wait, the `if let` only consumes ONE whitespace. Then position parser sees WS, Ident, RP.
-// This covers line 665.
+// This Covers .
 // Our existing test `parse_optional_position_whitespace_after_at` should cover this.
 // Let's add another explicit version to make sure.
 #[test]
 fn parse_optional_position_whitespace_after_at_explicit() {
   // circle with "at" preceded by whitespace consumed by circle WS loop,
-  // then whitespace AFTER "at" consumed by line 665 in parse_optional_position.
+  // then whitespace AFTER "at" consumed by in parse_optional_position.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("circle".to_string()),
     SimpleToken::Dimension {

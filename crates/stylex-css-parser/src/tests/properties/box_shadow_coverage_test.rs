@@ -1,7 +1,7 @@
 use super::*;
 use crate::css_types::Color;
 
-// ── is_inset_ident (extracted from line 148) ─────────────────────────────
+// ── is_inset_ident ─────────────────────────────
 
 #[test]
 fn is_inset_ident_returns_true_for_inset() {
@@ -15,12 +15,12 @@ fn is_inset_ident_returns_false_for_other_ident() {
 
 #[test]
 fn is_inset_ident_returns_false_for_non_ident() {
-  // Exercises `else { false }` arm (was line 148).
+  // Exercises `else { false }` arm.
   assert!(!is_inset_ident(&SimpleToken::Whitespace));
   assert!(!is_inset_ident(&SimpleToken::Comma));
 }
 
-// ── is_none_ident (extracted from line 274) ──────────────────────────────
+// ── is_none_ident ──────────────────────────────
 
 #[test]
 fn is_none_ident_returns_true_for_none() {
@@ -34,7 +34,7 @@ fn is_none_ident_returns_false_for_other_ident() {
 
 #[test]
 fn is_none_ident_returns_false_for_non_ident() {
-  // Exercises `else { false }` arm (was line 274).
+  // Exercises `else { false }` arm.
   assert!(!is_none_ident(&SimpleToken::Whitespace));
   assert!(!is_none_ident(&SimpleToken::Comma));
 }

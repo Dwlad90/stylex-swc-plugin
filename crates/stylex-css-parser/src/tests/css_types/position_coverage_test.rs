@@ -8,7 +8,7 @@ fn token_list(tokens: Vec<SimpleToken>) -> TokenList {
   }
 }
 
-// ── VerticalKeyword::as_str center arm (line 68) ─────────────────────────
+// ── VerticalKeyword::as_str center arm ─────────────────────────
 
 #[test]
 fn vertical_keyword_as_str_center() {
@@ -16,7 +16,7 @@ fn vertical_keyword_as_str_center() {
   assert_eq!(VerticalKeyword::Center.as_str(), "center");
 }
 
-// ── Position::is_horizontal_ident — non-Ident branch (line 134) ──────────
+// ── Position::is_horizontal_ident — non-Ident branch ──────────
 
 #[test]
 fn is_horizontal_ident_returns_false_for_non_ident() {
@@ -66,18 +66,18 @@ fn token_to_horizontal_keyword_happy_path() {
 #[test]
 #[should_panic]
 fn token_to_horizontal_keyword_wildcard_panics() {
-  // Exercises `_ => stylex_unreachable!()` (line 146).
+  // Exercises `_ => stylex_unreachable!()`.
   Position::token_to_horizontal_keyword(SimpleToken::Ident("top".to_string()));
 }
 
 #[test]
 #[should_panic]
 fn token_to_horizontal_keyword_non_ident_panics() {
-  // Exercises `else { stylex_unreachable!() }` (line 149).
+  // Exercises `else { stylex_unreachable!() }`.
   Position::token_to_horizontal_keyword(SimpleToken::Whitespace);
 }
 
-// ── Position::is_vertical_ident — non-Ident branch (line 163) ───────────
+// ── Position::is_vertical_ident — non-Ident branch ───────────
 
 #[test]
 fn is_vertical_ident_returns_false_for_non_ident() {
@@ -126,22 +126,22 @@ fn token_to_vertical_keyword_happy_path() {
 #[test]
 #[should_panic]
 fn token_to_vertical_keyword_wildcard_panics() {
-  // Exercises `_ => stylex_unreachable!()` (line 175).
+  // Exercises `_ => stylex_unreachable!()`.
   Position::token_to_vertical_keyword(SimpleToken::Ident("left".to_string()));
 }
 
 #[test]
 #[should_panic]
 fn token_to_vertical_keyword_non_ident_panics() {
-  // Exercises `else { stylex_unreachable!() }` (line 178).
+  // Exercises `else { stylex_unreachable!() }`.
   Position::token_to_vertical_keyword(SimpleToken::Whitespace);
 }
 
-// ── Vertical-then-horizontal parser (lines 221-232) ──────────────────────
+// ── Vertical-then-horizontal parser ──────────────────────
 
 #[test]
 fn parses_top_left_vertical_then_horizontal() {
-  // "top left" exercises the vertical_horizontal_keywords branch (lines 221-232).
+  // "top left" exercises the vertical_horizontal_keywords branch.
   let result = Position::parser().parse_to_end("top left").unwrap();
   assert!(matches!(
     result.horizontal,
@@ -202,7 +202,7 @@ fn numbers_only_rewinds_trailing_whitespace_without_second_length() {
   assert_eq!(tokens.current_index, 1);
 }
 
-// ── position_parser convenience fn (lines 354-356) ───────────────────────
+// ── position_parser convenience fn ───────────────────────
 
 #[test]
 fn position_parser_fn_works() {

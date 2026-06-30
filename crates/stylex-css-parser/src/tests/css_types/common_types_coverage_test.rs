@@ -111,7 +111,7 @@ fn css_variable_extract_ident_string_happy_path() {
 
 #[test]
 fn css_variable_extract_ident_string_non_ident_returns_empty() {
-  // The else branch returns String::new() — this exercises line 131.
+  // The else branch returns String::new().
   let result = CssVariable::extract_ident_string(SimpleToken::Whitespace);
   assert_eq!(result, "");
 }
@@ -129,7 +129,7 @@ fn token_to_percentage_happy_path() {
 #[test]
 #[should_panic]
 fn token_to_percentage_unreachable_arm_panics() {
-  // Exercises the `else { stylex_unreachable!() }` arm (line 181).
+  // Exercises the `else { stylex_unreachable!() }` arm.
   Percentage::token_to_percentage(SimpleToken::Whitespace);
 }
 
@@ -145,6 +145,6 @@ fn token_to_number_happy_path() {
 #[test]
 #[should_panic]
 fn token_to_number_unreachable_arm_panics() {
-  // Exercises the `else { stylex_unreachable!() }` arm (line 214).
+  // Exercises the `else { stylex_unreachable!() }` arm.
   Number::token_to_number(SimpleToken::Whitespace);
 }

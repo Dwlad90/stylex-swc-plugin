@@ -39,6 +39,8 @@
 #   scripts/coverage-missing.sh                 # whole workspace (matches CI excludes)
 #   scripts/coverage-missing.sh stylex_css      # single crate (fast iteration)
 #   scripts/coverage-missing.sh -p stylex_css   # same, explicit flag
+#   scripts/coverage-missing.sh --show-phantoms # also print generic per-instantiation gaps
+#   scripts/coverage-missing.sh --strict-phantoms # fail on generic per-instantiation gaps too
 #   scripts/coverage-missing.sh --html          # also write an HTML report (second run)
 #   scripts/coverage-missing.sh --open          # write + open the HTML report in a browser
 #   scripts/coverage-missing.sh -h | --help
@@ -46,7 +48,7 @@
 # EXIT STATUS
 #   0  every measured source region is exercised by at least one test
 #   1  one or more source regions are unexercised (the `file:line:col` list is
-#      printed above)
+#      printed above), or --strict-phantoms found uncovered generic instantiations
 
 set -euo pipefail
 
@@ -77,13 +79,16 @@ USAGE
   scripts/coverage-missing.sh                 # whole workspace (matches CI excludes)
   scripts/coverage-missing.sh stylex_css      # single crate (fast iteration)
   scripts/coverage-missing.sh -p stylex_css   # same, explicit flag
+  scripts/coverage-missing.sh --show-phantoms # also print generic per-instantiation gaps
+  scripts/coverage-missing.sh --strict-phantoms # fail on generic per-instantiation gaps too
   scripts/coverage-missing.sh --html          # also write an HTML report (second run)
   scripts/coverage-missing.sh --open          # write + open the HTML report in a browser
   scripts/coverage-missing.sh -h | --help
 
 EXIT STATUS
   0  every measured source region is exercised by at least one test
-  1  one or more source regions are unexercised (the file:line:col list is printed above)
+  1  one or more source regions are unexercised (the file:line:col list is printed above),
+     or --strict-phantoms found uncovered generic instantiations
 EOF
   exit "${1:-0}"
 }
@@ -91,10 +96,17 @@ EOF
 package=""
 html=0
 open=0
+show_phantoms=0
+strict_phantoms=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
     -h | --help) usage 0 ;;
+    --show-phantoms) show_phantoms=1 ;;
+    --strict-phantoms)
+      show_phantoms=1
+      strict_phantoms=1
+      ;;
     --html) html=1 ;;
     --open)
       html=1
@@ -194,15 +206,17 @@ fi
 # Render the summary table and the exact uncovered locations, and set the exit
 # status, all from the JSON export.
 if command -v python3 >/dev/null 2>&1; then
-  python3 - "$tmp_json" "$REPO_ROOT" "$IGNORE_REGEX" "$scope_mode" "$scope_value" <<'PY'
+  python3 - "$tmp_json" "$REPO_ROOT" "$IGNORE_REGEX" "$scope_mode" "$scope_value" "$show_phantoms" "$strict_phantoms" <<'PY'
 import json
 import os
 import re
 import sys
 from collections import defaultdict
 
-json_path, repo_root, ignore_regex, scope_mode, scope_value = sys.argv[1:6]
+json_path, repo_root, ignore_regex, scope_mode, scope_value, show_phantoms_arg, strict_phantoms_arg = sys.argv[1:8]
 ignore = re.compile(ignore_regex)
+show_phantoms_enabled = show_phantoms_arg == "1"
+strict_phantoms_enabled = strict_phantoms_arg == "1"
 
 with open(json_path) as fh:
     report = json.load(fh)
@@ -358,6 +372,9 @@ raw_notcovered = sum(
 )
 
 if raw_notcovered > len(uncovered):
+    suffix = ""
+    if not show_phantoms_enabled:
+        suffix = "\n      Re-run with --show-phantoms to print those generic instantiation gaps."
     print(
         f"\nnote: llvm-cov counts {raw_notcovered} uncovered region instance(s), but "
         f"{len(uncovered)} distinct source region(s) are truly unexercised.\n"
@@ -365,7 +382,7 @@ if raw_notcovered > len(uncovered):
         "type that\n"
         "      bails out early (often a test mock) leaves per-instantiation gaps that "
         "vanish once\n"
-        "      instantiations are merged. The per-instantiation gaps are listed below."
+        f"      instantiations are merged.{suffix}"
     )
 
 
@@ -410,10 +427,17 @@ if raw_notcovered == 0:
     sys.exit(0)
 
 if not uncovered:
-    print_phantoms()
+    if show_phantoms_enabled:
+        print_phantoms()
+    if strict_phantoms_enabled and raw_notcovered > 0:
+        print(
+            f"\n✗ No distinct uncovered source regions, but llvm-cov reports "
+            f"{raw_notcovered} uncovered generic instantiation gap(s)."
+        )
+        sys.exit(1)
     print(
         f"\n✓ No distinct uncovered source regions. llvm-cov reports {raw_notcovered} "
-        "uncovered region instance(s), all phantom monomorphization gaps listed above."
+        "uncovered generic instantiation gap(s), treated as phantom by default."
     )
     sys.exit(0)
 
@@ -439,7 +463,8 @@ for filename in sorted(by_file):
 
 region_count = sum(len(v) for v in by_file.values())
 print(f"\n{region_count} uncovered region(s) across {len(by_file)} file(s).")
-print_phantoms()
+if show_phantoms_enabled:
+    print_phantoms()
 sys.exit(1)
 PY
 else

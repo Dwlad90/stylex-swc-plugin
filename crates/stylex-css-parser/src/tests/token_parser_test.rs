@@ -47,6 +47,8 @@ mod test_token_parser {
 
       let parser = TokenParser::one_of(vec![foo_parser, number_parser]);
 
+      assert!(parser.parse("bar").is_err());
+
       // Test parsing "foo" - should return "foo"
       let result = parser.parse_to_end("foo");
       assert!(result.is_ok());
@@ -85,6 +87,8 @@ mod test_token_parser {
       );
 
       let parser = TokenParser::one_of(vec![foo_parser, number_parser]);
+
+      assert_eq!(parser.parse("foo").unwrap(), "foo");
 
       // Test parsing "baz" - should fail
       let result = parser.parse("baz");
@@ -659,6 +663,8 @@ mod test_token_parser {
 
       let parser =
         TokenParser::one_or_more_separated_by(foo_parser, tokens::whitespace().map(|_| (), None));
+
+      assert_eq!(parser.parse("foo").unwrap(), vec!["foo"]);
 
       // Test parsing "bar" - should fail
       let result = parser.parse("bar");

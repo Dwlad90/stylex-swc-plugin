@@ -27,7 +27,7 @@ fn tokens_semicolon_success() {
 #[test]
 fn tokens_function_success() {
   // line 73-75
-  let mut tl = tl(vec![
+  let mut tl = self::tl(vec![
     SimpleToken::Function("rgb".to_string()),
     SimpleToken::RightParen,
   ]);
@@ -180,7 +180,7 @@ fn surrounded_by_none_suffix_success() {
   let content_parser = tokens::ident();
   let prefix_parser = tokens::colon();
   let surrounded = content_parser.surrounded_by(prefix_parser, None::<TokenParser<SimpleToken>>);
-  let mut tl = tl(vec![
+  let mut tl = self::tl(vec![
     SimpleToken::Colon,
     SimpleToken::Ident("foo".to_string()),
     SimpleToken::Colon,
@@ -188,6 +188,16 @@ fn surrounded_by_none_suffix_success() {
   let result = (surrounded.run)(&mut tl);
   assert!(result.is_ok());
   assert!(matches!(result.unwrap(), SimpleToken::Ident(_)));
+
+  let mut tl = self::tl(vec![SimpleToken::Ident("foo".to_string())]);
+  assert!((surrounded.run)(&mut tl).is_err());
+  let mut tl = self::tl(vec![SimpleToken::Colon, SimpleToken::Colon]);
+  assert!((surrounded.run)(&mut tl).is_err());
+  let mut tl = self::tl(vec![
+    SimpleToken::Colon,
+    SimpleToken::Ident("foo".to_string()),
+  ]);
+  assert!((surrounded.run)(&mut tl).is_err());
 }
 
 #[test]
@@ -196,9 +206,23 @@ fn surrounded_by_none_suffix_prefix_fails() {
   let content_parser = tokens::ident();
   let prefix_parser = tokens::colon();
   let surrounded = content_parser.surrounded_by(prefix_parser, None::<TokenParser<SimpleToken>>);
-  let mut tl = tl(vec![SimpleToken::Ident("foo".to_string())]);
+  let mut tl = self::tl(vec![SimpleToken::Ident("foo".to_string())]);
   let result = (surrounded.run)(&mut tl);
   assert!(result.is_err());
+
+  let mut tl = self::tl(vec![
+    SimpleToken::Colon,
+    SimpleToken::Ident("foo".to_string()),
+    SimpleToken::Colon,
+  ]);
+  assert!((surrounded.run)(&mut tl).is_ok());
+  let mut tl = self::tl(vec![SimpleToken::Colon, SimpleToken::Colon]);
+  assert!((surrounded.run)(&mut tl).is_err());
+  let mut tl = self::tl(vec![
+    SimpleToken::Colon,
+    SimpleToken::Ident("foo".to_string()),
+  ]);
+  assert!((surrounded.run)(&mut tl).is_err());
 }
 
 #[test]
@@ -207,13 +231,27 @@ fn surrounded_by_none_suffix_main_fails() {
   let content_parser = tokens::colon(); // we'll give it no colon after the bracket
   let prefix_parser = tokens::ident();
   let surrounded = content_parser.surrounded_by(prefix_parser, None::<TokenParser<SimpleToken>>);
-  let mut tl = tl(vec![
+  let mut tl = self::tl(vec![
     SimpleToken::Ident("foo".to_string()),
     SimpleToken::Whitespace, // not a colon — content parser fails
     SimpleToken::Ident("bar".to_string()),
   ]);
   let result = (surrounded.run)(&mut tl);
   assert!(result.is_err());
+
+  let mut tl = self::tl(vec![
+    SimpleToken::Ident("foo".to_string()),
+    SimpleToken::Colon,
+    SimpleToken::Ident("bar".to_string()),
+  ]);
+  assert!((surrounded.run)(&mut tl).is_ok());
+  let mut tl = self::tl(vec![SimpleToken::Colon]);
+  assert!((surrounded.run)(&mut tl).is_err());
+  let mut tl = self::tl(vec![
+    SimpleToken::Ident("foo".to_string()),
+    SimpleToken::Colon,
+  ]);
+  assert!((surrounded.run)(&mut tl).is_err());
 }
 
 #[test]
@@ -224,13 +262,28 @@ fn surrounded_by_none_suffix_suffix_fails() {
   let prefix_parser = tokens::ident();
   let surrounded = content_parser.surrounded_by(prefix_parser, None::<TokenParser<SimpleToken>>);
   // prefix=ident "foo", content=colon, suffix should also be ident but we give none
-  let mut tl = tl(vec![
+  let mut tl = self::tl(vec![
     SimpleToken::Ident("foo".to_string()),
     SimpleToken::Colon,
     // no trailing ident — suffix parser fails
   ]);
   let result = (surrounded.run)(&mut tl);
   assert!(result.is_err());
+
+  let mut tl = self::tl(vec![
+    SimpleToken::Ident("foo".to_string()),
+    SimpleToken::Colon,
+    SimpleToken::Ident("bar".to_string()),
+  ]);
+  assert!((surrounded.run)(&mut tl).is_ok());
+  let mut tl = self::tl(vec![SimpleToken::Colon]);
+  assert!((surrounded.run)(&mut tl).is_err());
+  let mut tl = self::tl(vec![
+    SimpleToken::Ident("foo".to_string()),
+    SimpleToken::Whitespace,
+    SimpleToken::Ident("bar".to_string()),
+  ]);
+  assert!((surrounded.run)(&mut tl).is_err());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -244,9 +297,23 @@ fn surrounded_by_some_suffix_prefix_fails() {
   let prefix = tokens::colon();
   let suffix = tokens::semicolon();
   let surrounded = content.surrounded_by(prefix, Some(suffix));
-  let mut tl = tl(vec![SimpleToken::Ident("foo".to_string())]);
+  let mut tl = self::tl(vec![SimpleToken::Ident("foo".to_string())]);
   let result = (surrounded.run)(&mut tl);
   assert!(result.is_err());
+
+  let mut tl = self::tl(vec![
+    SimpleToken::Colon,
+    SimpleToken::Ident("foo".to_string()),
+    SimpleToken::Semicolon,
+  ]);
+  assert!((surrounded.run)(&mut tl).is_ok());
+  let mut tl = self::tl(vec![SimpleToken::Colon, SimpleToken::Colon]);
+  assert!((surrounded.run)(&mut tl).is_err());
+  let mut tl = self::tl(vec![
+    SimpleToken::Colon,
+    SimpleToken::Ident("foo".to_string()),
+  ]);
+  assert!((surrounded.run)(&mut tl).is_err());
 }
 
 #[test]
@@ -263,6 +330,17 @@ fn surrounded_by_some_suffix_main_fails() {
   ]);
   let result = (surrounded.run)(&mut tl);
   assert!(result.is_err());
+
+  let mut tl = self::tl(vec![
+    SimpleToken::Colon,
+    SimpleToken::Semicolon,
+    SimpleToken::Colon,
+  ]);
+  assert!((surrounded.run)(&mut tl).is_ok());
+  let mut tl = self::tl(vec![SimpleToken::Ident("foo".to_string())]);
+  assert!((surrounded.run)(&mut tl).is_err());
+  let mut tl = self::tl(vec![SimpleToken::Colon, SimpleToken::Semicolon]);
+  assert!((surrounded.run)(&mut tl).is_err());
 }
 
 #[test]
@@ -279,6 +357,17 @@ fn surrounded_by_some_suffix_suffix_fails() {
   ]);
   let result = (surrounded.run)(&mut tl);
   assert!(result.is_err());
+
+  let mut tl = self::tl(vec![
+    SimpleToken::Colon,
+    SimpleToken::Ident("foo".to_string()),
+    SimpleToken::Semicolon,
+  ]);
+  assert!((surrounded.run)(&mut tl).is_ok());
+  let mut tl = self::tl(vec![SimpleToken::Ident("foo".to_string())]);
+  assert!((surrounded.run)(&mut tl).is_err());
+  let mut tl = self::tl(vec![SimpleToken::Colon, SimpleToken::Colon]);
+  assert!((surrounded.run)(&mut tl).is_err());
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1027,6 +1116,121 @@ fn token_parser_tokens_accessor() {
   let _ = parser; // tokens() returns Tokens
 }
 
+#[test]
+fn raw_coverage_string_or_instantiation_all_paths() {
+  let parser = TokenParser::<String>::string("foo").or(TokenParser::<String>::string("bar"));
+  assert!(matches!(
+    parser.parse_to_end("foo").unwrap(),
+    Either::Left(value) if value == "foo"
+  ));
+  assert!(matches!(
+    parser.parse_to_end("bar").unwrap(),
+    Either::Right(value) if value == "bar"
+  ));
+  assert!(parser.parse_to_end("baz").is_err());
+}
+
+#[test]
+fn raw_coverage_unit_or_instantiation_all_paths() {
+  let parser = tokens::colon()
+    .map(|_| (), None)
+    .or(tokens::semicolon().map(|_| (), None));
+  assert!(matches!(
+    parser.parse_to_end(":").unwrap(),
+    Either::Left(())
+  ));
+  assert!(matches!(
+    parser.parse_to_end(";").unwrap(),
+    Either::Right(())
+  ));
+  assert!(parser.parse_to_end("foo").is_err());
+}
+
+#[test]
+fn raw_coverage_string_surrounded_by_same_prefix_all_paths() {
+  let parser = TokenParser::<String>::string("foo")
+    .surrounded_by(tokens::colon(), None::<TokenParser<SimpleToken>>);
+
+  assert_eq!(parser.parse_to_end(":foo:").unwrap(), "foo");
+  assert!(parser.parse_to_end("foo:").is_err());
+  assert!(parser.parse_to_end(":bar:").is_err());
+  assert!(parser.parse_to_end(":foo").is_err());
+}
+
+#[test]
+fn raw_coverage_simple_token_surrounded_by_same_prefix_all_paths() {
+  let parser = tokens::ident().surrounded_by(tokens::colon(), None::<TokenParser<SimpleToken>>);
+
+  assert!(matches!(
+    parser.parse_to_end(":foo:").unwrap(),
+    SimpleToken::Ident(value) if value == "foo"
+  ));
+  assert!(parser.parse_to_end("foo:").is_err());
+  assert!(parser.parse_to_end("::").is_err());
+  assert!(parser.parse_to_end(":foo").is_err());
+}
+
+#[test]
+fn raw_coverage_string_one_or_more_separated_by_simple_token_all_paths() {
+  let parser = TokenParser::one_or_more_separated_by(
+    TokenParser::<String>::string("foo"),
+    tokens::whitespace(),
+  );
+
+  assert!(parser.parse_to_end("bar").is_err());
+  assert_eq!(parser.parse("foo").unwrap(), vec!["foo"]);
+  assert_eq!(parser.parse("foo foo").unwrap(), vec!["foo", "foo"]);
+  assert_eq!(parser.parse("foo bar").unwrap(), vec!["foo"]);
+}
+
+#[test]
+fn raw_coverage_string_one_or_more_separated_by_optional_simple_token_all_paths() {
+  let parser = TokenParser::one_or_more_separated_by(
+    TokenParser::<String>::string("foo"),
+    tokens::whitespace().optional(),
+  );
+
+  assert!(parser.parse_to_end("bar").is_err());
+  assert_eq!(parser.parse("foo").unwrap(), vec!["foo"]);
+  assert_eq!(parser.parse("foo foo").unwrap(), vec!["foo", "foo"]);
+  assert_eq!(parser.parse("foo bar").unwrap(), vec!["foo"]);
+}
+
+#[test]
+fn raw_coverage_string_zero_or_more_separated_by_simple_token_all_paths() {
+  let parser = TokenParser::zero_or_more_separated_by(
+    TokenParser::<String>::string("foo"),
+    tokens::whitespace(),
+  );
+
+  assert_eq!(parser.parse("bar").unwrap(), Vec::<String>::new());
+  assert_eq!(parser.parse("foo").unwrap(), vec!["foo"]);
+  assert_eq!(parser.parse("foo foo").unwrap(), vec!["foo", "foo"]);
+  assert_eq!(parser.parse("foo bar").unwrap(), vec!["foo"]);
+}
+
+#[test]
+fn raw_coverage_set_result_helpers_with_string() {
+  let mut tokens = tl(vec![SimpleToken::Ident("before".to_string())]);
+  tokens.current_index = 1;
+
+  assert_eq!(
+    set_of_incomplete_error::<String>(Ok(vec!["foo".to_string()]), &mut tokens, 0).unwrap(),
+    vec!["foo".to_string()]
+  );
+  assert!(
+    set_of_incomplete_error::<String>(Err("Parser 0 did not match".to_string()), &mut tokens, 0)
+      .is_err()
+  );
+  assert_eq!(tokens.current_index, 0);
+
+  assert_eq!(
+    collect_set_results::<String>(vec![Some("foo".to_string())]).unwrap(),
+    vec!["foo".to_string()]
+  );
+  assert!(collect_set_results::<String>(vec![None]).is_err());
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // fn_name() parser
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1088,8 +1292,11 @@ fn or_label_optional_when_other_is_optional_label() {
   // The always(()) parser has label "optional"
   let always_unit: TokenParser<()> = TokenParser::always(());
   assert_eq!(always_unit.label, "optional");
+  assert_eq!(always_unit.parse("").unwrap(), ());
 
   let ident_unit = tokens::ident().map(|_| (), None);
+  assert_eq!(ident_unit.parse("foo").unwrap(), ());
+  assert!(ident_unit.parse(":").is_err());
   let combined = ident_unit.or(always_unit);
   assert!(
     combined.label.contains("Optional"),

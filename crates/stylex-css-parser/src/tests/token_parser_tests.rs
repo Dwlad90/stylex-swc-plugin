@@ -98,4 +98,5 @@ fn test_label_preservation() {
 
   let mapped = parser.map(|x| x * 2, Some("double"));
   assert!(mapped.label.contains("map(double)"));
+  assert_eq!(mapped.parse("").unwrap(), 84);
 }

@@ -1,18 +1,3 @@
-// Additional coverage tests for css_value.rs.
-// Targets branches not exercised by the existing suite, notably:
-//   - as_number(): Percentage and Dimension arms, and the None arm  (lines 67-69)
-//   - as_percentage(): None arm                                      (line 77)
-//   - as_string(): None arm                                          (line 85)
-//   - as_angle(): None arm                                           (line 92)
-//   - as_color(): None arm                                           (line 100)
-//   - as_dimension(): None arm                                       (line 109)
-//   - is_string(), is_ident(), is_function(), is_sequence(),
-//     is_angle(), is_color()                                         (lines 142-162)
-//   - has_unit(): None arm for non-Dimension values                  (line 173)
-//   - Display impl: String, Sequence, Angle, Color, Length,
-//     Token, None variants                                           (lines 227-252)
-//   - From<SimpleToken> for CssValue: String arm                     (line 306)
-
 use super::*;
 
 // ---------------------------------------------------------------------------

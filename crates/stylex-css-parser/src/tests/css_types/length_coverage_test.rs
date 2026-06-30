@@ -1,13 +1,3 @@
-// Additional coverage tests for length.rs.
-// Targets:
-//   - the `else { None }` arm in `extract_length_token` (unreachable through the
-//     public parser since the combinator guarantees a Dimension token)
-//   - the `else { false }` arm in `is_valid_length_opt` (only reachable when opt
-//     is None, which requires the extract step to return None — also unreachable
-//     via public parser)
-//   - the `else { false }` arm in `is_zero_number` (unreachable through the
-//     public zero_parser since the combinator guarantees a Number token)
-
 use super::*;
 use crate::token_types::SimpleToken;
 

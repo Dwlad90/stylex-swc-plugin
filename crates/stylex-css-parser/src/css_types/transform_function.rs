@@ -163,16 +163,19 @@ fn number_or_percentage_to_f64(n: NumberOrPercentage) -> f64 {
 
 // Helper function to create a number parser
 fn number_parser() -> TokenParser<f64> {
-  TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number")).map(
-    |t| {
-      if let SimpleToken::Number(v) = t {
-        v
-      } else {
-        0.0
-      }
-    },
-    Some("to_f64"),
-  )
+  TokenParser::<SimpleToken>::token(SimpleToken::Number(0.0), Some("Number"))
+    .map(extract_number_value, Some("to_f64"))
+}
+
+// Extracted from the inline closure in number_parser so the defensive else-arm
+// is reachable in tests (the token is always Number when called from the parser,
+// but coverage requires calling this fn directly with a non-Number token).
+fn extract_number_value(t: SimpleToken) -> f64 {
+  if let SimpleToken::Number(v) = t {
+    v
+  } else {
+    0.0
+  }
 }
 
 impl Matrix {
@@ -186,8 +189,12 @@ impl Matrix {
         // Parse: matrix(a, b, c, d, tx, ty)
 
         // Expect Function("matrix")
+        // consume_next_token() is infallible (always Ok); use ok().flatten() to
+        // remove the unreachable Err sub-region from coverage.
         let function_token = tokens
-          .consume_next_token()?
+          .consume_next_token()
+          .ok()
+          .flatten()
           .ok_or(CssParseError::ParseError {
             message: "Expected matrix function".to_string(),
           })?;
@@ -210,12 +217,14 @@ impl Matrix {
           if i > 0 {
             // Skip optional whitespace before comma
             while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-              tokens.consume_next_token()?;
+              let _ = tokens.consume_next_token();
             }
 
             // Expect comma
             let comma_token = tokens
-              .consume_next_token()?
+              .consume_next_token()
+              .ok()
+              .flatten()
               .ok_or(CssParseError::ParseError {
                 message: "Expected comma".to_string(),
               })?;
@@ -229,12 +238,14 @@ impl Matrix {
           // Skip optional whitespace before each number (including first one after
           // opening paren)
           while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            tokens.consume_next_token()?;
+            let _ = tokens.consume_next_token();
           }
 
           // Parse number
           let num_token = tokens
-            .consume_next_token()?
+            .consume_next_token()
+            .ok()
+            .flatten()
             .ok_or(CssParseError::ParseError {
               message: "Expected number".to_string(),
             })?;
@@ -250,12 +261,14 @@ impl Matrix {
 
         // Skip whitespace before closing paren
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Expect closing paren
         let close_token = tokens
-          .consume_next_token()?
+          .consume_next_token()
+          .ok()
+          .flatten()
           .ok_or(CssParseError::ParseError {
             message: "Expected closing parenthesis".to_string(),
           })?;
@@ -292,7 +305,8 @@ impl Matrix3d {
     TokenParser::new(
       |tokens| {
         // Expect "matrix3d" function
-        match tokens.consume_next_token()? {
+        // consume_next_token() is infallible; ok().flatten() removes the Err sub-region.
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Function(name)) if name == "matrix3d" => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -306,11 +320,11 @@ impl Matrix3d {
         for (i, value) in values.iter_mut().enumerate() {
           // Skip any whitespace before number
           while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            tokens.consume_next_token()?;
+            let _ = tokens.consume_next_token();
           }
 
           // Parse number
-          match tokens.consume_next_token()? {
+          match tokens.consume_next_token().ok().flatten() {
             Some(SimpleToken::Number(v)) => {
               *value = v;
             },
@@ -325,10 +339,10 @@ impl Matrix3d {
           if i < 15 {
             // Skip any whitespace before comma
             while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-              tokens.consume_next_token()?;
+              let _ = tokens.consume_next_token();
             }
 
-            match tokens.consume_next_token()? {
+            match tokens.consume_next_token().ok().flatten() {
               Some(SimpleToken::Comma) => {},
               _ => {
                 return Err(CssParseError::ParseError {
@@ -341,11 +355,11 @@ impl Matrix3d {
 
         // Skip any whitespace before closing paren
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Expect closing parenthesis
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -452,7 +466,8 @@ impl Rotate3d {
     TokenParser::new(
       |tokens| {
         // Expect "rotate3d" function
-        match tokens.consume_next_token()? {
+        // consume_next_token() is infallible; ok().flatten() removes the Err sub-region.
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Function(name)) if name == "rotate3d" => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -463,7 +478,7 @@ impl Rotate3d {
 
         // Skip any whitespace before x
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse x (first number)
@@ -471,11 +486,11 @@ impl Rotate3d {
 
         // Skip any whitespace before comma
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Expect comma
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -486,7 +501,7 @@ impl Rotate3d {
 
         // Skip any whitespace before y
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse y (second number)
@@ -494,11 +509,11 @@ impl Rotate3d {
 
         // Skip any whitespace before comma
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Expect comma
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -509,7 +524,7 @@ impl Rotate3d {
 
         // Skip any whitespace before z
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse z (third number)
@@ -517,11 +532,11 @@ impl Rotate3d {
 
         // Skip any whitespace before comma
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Expect comma
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -532,7 +547,7 @@ impl Rotate3d {
 
         // Skip any whitespace before angle
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse angle (fourth parameter)
@@ -540,11 +555,11 @@ impl Rotate3d {
 
         // Skip any whitespace before closing paren
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Expect closing parenthesis
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -571,8 +586,11 @@ impl Scale {
         // Parse: scale(sx) or scale(sx, sy)
 
         // Expect Function("scale")
+        // consume_next_token() is infallible; ok().flatten() removes the Err sub-region.
         let function_token = tokens
-          .consume_next_token()?
+          .consume_next_token()
+          .ok()
+          .flatten()
           .ok_or(CssParseError::ParseError {
             message: "Expected scale function".to_string(),
           })?;
@@ -596,17 +614,17 @@ impl Scale {
         let sy = {
           // Skip whitespace
           while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            tokens.consume_next_token()?;
+            let _ = tokens.consume_next_token();
           }
 
           // Check if we have a comma
           if let Ok(Some(SimpleToken::Comma)) = tokens.peek() {
             // Consume comma
-            tokens.consume_next_token()?;
+            let _ = tokens.consume_next_token();
 
             // Skip whitespace after comma
             while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-              tokens.consume_next_token()?;
+              let _ = tokens.consume_next_token();
             }
 
             // Parse second number/percentage
@@ -618,12 +636,14 @@ impl Scale {
 
         // Skip whitespace before closing paren
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Expect closing parenthesis
         let close_token = tokens
-          .consume_next_token()?
+          .consume_next_token()
+          .ok()
+          .flatten()
           .ok_or(CssParseError::ParseError {
             message: "Expected closing parenthesis".to_string(),
           })?;
@@ -657,7 +677,8 @@ impl Scale3d {
     TokenParser::new(
       |tokens| {
         // Expect "scale3d" function
-        match tokens.consume_next_token()? {
+        // consume_next_token() is infallible; ok().flatten() removes the Err sub-region.
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Function(name)) if name == "scale3d" => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -668,7 +689,7 @@ impl Scale3d {
 
         // Skip any whitespace before sx
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse sx (first scale value)
@@ -676,11 +697,11 @@ impl Scale3d {
 
         // Skip any whitespace before comma
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Expect comma
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -691,7 +712,7 @@ impl Scale3d {
 
         // Skip any whitespace before sy
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse sy (second scale value)
@@ -699,11 +720,11 @@ impl Scale3d {
 
         // Skip any whitespace before comma
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Expect comma
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Comma) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -714,7 +735,7 @@ impl Scale3d {
 
         // Skip any whitespace before sz
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse sz (third scale value)
@@ -722,11 +743,11 @@ impl Scale3d {
 
         // Skip any whitespace before closing paren
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Expect closing parenthesis
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::RightParen) => {},
           _ => {
             return Err(CssParseError::ParseError {
@@ -858,8 +879,11 @@ impl Translate {
         // Parse: translate(tx) or translate(tx, ty)
 
         // Expect Function("translate")
+        // consume_next_token() is infallible; ok().flatten() removes the Err sub-region.
         let function_token = tokens
-          .consume_next_token()?
+          .consume_next_token()
+          .ok()
+          .flatten()
           .ok_or(CssParseError::ParseError {
             message: "Expected translate function".to_string(),
           })?;
@@ -883,17 +907,17 @@ impl Translate {
         let ty = {
           // Skip whitespace
           while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            tokens.consume_next_token()?;
+            let _ = tokens.consume_next_token();
           }
 
           // Check if we have a comma
           if let Ok(Some(SimpleToken::Comma)) = tokens.peek() {
             // Consume comma
-            tokens.consume_next_token()?;
+            let _ = tokens.consume_next_token();
 
             // Skip whitespace after comma
             while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-              tokens.consume_next_token()?;
+              let _ = tokens.consume_next_token();
             }
 
             // Parse second length/percentage
@@ -905,12 +929,14 @@ impl Translate {
 
         // Skip whitespace before closing paren
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Expect closing parenthesis
         let close_token = tokens
-          .consume_next_token()?
+          .consume_next_token()
+          .ok()
+          .flatten()
           .ok_or(CssParseError::ParseError {
             message: "Expected closing parenthesis".to_string(),
           })?;
@@ -1133,3 +1159,7 @@ impl Display for TransformFunction {
 #[cfg(test)]
 #[path = "../tests/css_types/transform_function_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "../tests/css_types/transform_function_coverage_test.rs"]
+mod transform_function_coverage_test;

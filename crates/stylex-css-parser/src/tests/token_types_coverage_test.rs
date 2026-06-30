@@ -1,29 +1,3 @@
-// Additional coverage tests for token_types.rs.
-// Targets branches not yet exercised by the existing suites:
-//   - map_css_token() arms for special token variants (lines 80-100)
-//   - tokenize_nested_content() nested-function and nested-paren paths (lines 115, 132)
-//   - tokenize_nested_content() `_ =>` fallthrough for special tokens (line 147)
-//   - tokenize_all() `_ =>` fallthrough for special tokens (line 201)
-//   - TokenList::first() alias method (lines 261-263)
-//
-// Lines 80, 82, 83 are exercised by calling the private map_css_token()
-// directly (via super::) with the token variants that are never emitted via
-// the public tokenize_all / tokenize_nested_content paths.
-//
-// Genuinely unreachable arms (noted below but NOT tested since they require
-// impossible inputs):
-//   - lines 115, 132, 166, 184 (cols 20-21): The `e)` pattern binding in
-//               `if let Err(e) = parse_nested_block(...)` — only reachable when
-//               parse_nested_block returns Err, which requires the inner closure
-//               to return Err. The inner closure always returns Ok(()), so this
-//               binding is dead.
-//   - lines 119-120, 136-137: Err branch bodies inside tokenize_nested_content
-//               parse_nested_block — same reason.
-//   - lines 171-172, 190-191: Err branch bodies inside tokenize_all — same reason.
-//   - lines 147, 201 (cols 9-10): The closing `}` of
-//               `if let Some(mapped) = map_css_token(...)` — represents the None
-//               branch; map_css_token always returns Some(_), so it is dead.
-
 use super::*;
 
 // Allow direct access to the private map_css_token function from this child module.
@@ -44,7 +18,7 @@ fn map_css_token_function_variant_produces_function_token() {
   use cssparser::CowRcStr;
   let token = CssToken::Function(CowRcStr::from("rgb"));
   let result = super::map_css_token(&token);
-  assert_eq!(result, Some(SimpleToken::Function("rgb".to_string())));
+  assert_eq!(result, SimpleToken::Function("rgb".to_string()));
 }
 
 #[test]
@@ -54,7 +28,7 @@ fn map_css_token_delim_open_paren_produces_left_paren() {
   // map_css_token directly.
   let token = CssToken::Delim('(');
   let result = super::map_css_token(&token);
-  assert_eq!(result, Some(SimpleToken::LeftParen));
+  assert_eq!(result, SimpleToken::LeftParen);
 }
 
 #[test]
@@ -63,7 +37,7 @@ fn map_css_token_delim_close_paren_produces_right_paren() {
   // instead; we call map_css_token directly.
   let token = CssToken::Delim(')');
   let result = super::map_css_token(&token);
-  assert_eq!(result, Some(SimpleToken::RightParen));
+  assert_eq!(result, SimpleToken::RightParen);
 }
 
 // ---------------------------------------------------------------------------
@@ -327,4 +301,31 @@ fn first_does_not_consume_token() {
     list.current_index, index_before,
     "first() should not advance the current_index"
   );
+}
+
+// ---------------------------------------------------------------------------
+// parse_nested_or_panic(): the error arm.
+//
+// In normal tokenization the closure always returns Ok, so the panic guard is
+// never hit. We exercise it directly: position a real cssparser `Parser` just
+// after a block-opening token, then hand `parse_nested_or_panic` a closure that
+// returns `Err`. `parse_nested_block` surfaces that error and the guard panics.
+// ---------------------------------------------------------------------------
+
+#[test]
+#[should_panic(expected = "Error parsing nested content")]
+fn parse_nested_or_panic_panics_when_nested_parse_errors() {
+  use cssparser::{ParseError, ParseErrorKind, Parser, ParserInput};
+
+  let mut input = ParserInput::new("(a)");
+  let mut parser = Parser::new(&mut input);
+  // Consume the ParenthesisBlock token so a nested parser may be created.
+  let _ = parser.next();
+
+  super::parse_nested_or_panic(&mut parser, |nested_parser| {
+    Err(ParseError {
+      kind: ParseErrorKind::Custom(()),
+      location: nested_parser.current_source_location(),
+    })
+  });
 }

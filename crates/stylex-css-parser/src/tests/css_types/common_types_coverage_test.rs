@@ -1,7 +1,3 @@
-// Coverage tests for css_types/common_types.rs.
-// Targets branches not exercised by common_types_tests.rs, namely the
-// unreachable-arm named functions and the specific-keyword parsers.
-
 use super::*;
 
 // ── CssWideKeyword::extract_ident ─────────────────────────────────────────

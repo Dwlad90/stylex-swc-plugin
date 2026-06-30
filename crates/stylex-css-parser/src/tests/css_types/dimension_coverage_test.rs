@@ -1,9 +1,3 @@
-// Additional coverage tests for dimension.rs.
-// Targets the `else { None }` arm inside the dimension-extraction closure,
-// which is unreachable through the public parser (tokens::dimension() only
-// yields Dimension tokens) but coverable by calling the extracted named
-// function directly with a non-Dimension token.
-
 use super::*;
 use crate::token_types::SimpleToken;
 

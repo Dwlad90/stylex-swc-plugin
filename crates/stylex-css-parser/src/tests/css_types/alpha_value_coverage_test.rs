@@ -1,9 +1,3 @@
-// Additional coverage tests for alpha_value.rs.
-// Targets the `else { stylex_unreachable!() }` arms inside
-// `extract_percentage_token` and `extract_number_token`, which are unreachable
-// through the public parser but coverable by calling the extracted named
-// functions directly with a non-matching token.
-
 use super::*;
 use crate::token_types::SimpleToken;
 

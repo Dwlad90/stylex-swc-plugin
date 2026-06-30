@@ -1,10 +1,3 @@
-// Additional coverage tests for flex.rs.
-// Targets:
-//   - the `else { false }` arm in `is_valid_fr_dimension` (unreachable
-//     through the public parser since the combinator guarantees a Dimension token)
-//   - the `else { stylex_unreachable!() }` arm in `extract_dimension_token`
-//     (same reason)
-
 use super::*;
 use crate::token_types::SimpleToken;
 

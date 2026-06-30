@@ -1,8 +1,3 @@
-// Additional coverage tests for dashed_ident.rs.
-// Targets the `else { stylex_unreachable!() }` arm inside the ident-extraction
-// closure, which is unreachable through the public parser but coverable by
-// calling the extracted named function directly with a non-Ident token.
-
 use super::*;
 use crate::token_types::SimpleToken;
 

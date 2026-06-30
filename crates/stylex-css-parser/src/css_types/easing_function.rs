@@ -4,7 +4,7 @@ CSS easing function parser.
 
 use stylex_macros::stylex_unreachable;
 
-use crate::{CssParseError, token_parser::TokenParser, token_types::SimpleToken};
+use crate::{CssParseError, token_parser::TokenParser, token_types::{SimpleToken, TokenList}};
 use std::fmt::{self, Display};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -82,110 +82,95 @@ impl LinearEasingFunction {
     Self { points }
   }
 
-  pub fn parse() -> TokenParser<LinearEasingFunction> {
-    TokenParser::new(
-      |tokens| {
-        // Parse 'linear(' function start
-        match tokens.consume_next_token()? {
-          Some(SimpleToken::Function(fn_name)) if fn_name == "linear" => {},
-          Some(token) => {
-            return Err(CssParseError::ParseError {
-              message: format!("Expected linear() function, got {:?}", token),
-            });
-          },
-          None => {
-            return Err(CssParseError::ParseError {
-              message: "Expected linear() function but reached end of input".to_string(),
-            });
-          },
-        }
-
-        // Skip optional whitespace
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
-        }
-
-        // Parse one or more numbers separated by commas
-        let mut points = Vec::new();
-
-        loop {
-          // Parse number
-          let number = match tokens.consume_next_token()? {
-            Some(SimpleToken::Number(value)) => value,
-            Some(token) => {
-              return Err(CssParseError::ParseError {
-                message: format!("Expected number in linear function, got {:?}", token),
-              });
-            },
-            None => {
-              return Err(CssParseError::ParseError {
-                message: "Expected number but reached end of input".to_string(),
-              });
-            },
-          };
-
-          points.push(number);
-
-          // Skip optional whitespace
-          while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            tokens.consume_next_token()?;
-          }
-
-          // Check for comma (more numbers) or closing paren (end)
-          if let Ok(Some(token)) = tokens.peek() {
-            match token {
-              SimpleToken::Comma => {
-                tokens.consume_next_token()?; // consume the comma
-                // Skip optional whitespace after comma
-                while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-                  tokens.consume_next_token()?;
-                }
-                continue; // parse next number
-              },
-              SimpleToken::RightParen => {
-                break; // done parsing numbers
-              },
-              _ => {
-                return Err(CssParseError::ParseError {
-                  message: format!(
-                    "Expected comma or closing paren in linear function, got {:?}",
-                    token
-                  ),
-                });
-              },
-            }
-          } else {
-            return Err(CssParseError::ParseError {
-              message: "Unexpected end of input in linear function".to_string(),
-            });
-          }
-        }
-
-        // Parse closing paren
-        match tokens.consume_next_token()? {
-          Some(SimpleToken::RightParen) => {},
-          Some(token) => {
-            return Err(CssParseError::ParseError {
-              message: format!("Expected closing paren, got {:?}", token),
-            });
-          },
-          None => {
-            return Err(CssParseError::ParseError {
-              message: "Expected closing paren but reached end of input".to_string(),
-            });
-          },
-        }
-
-        if points.is_empty() {
-          return Err(CssParseError::ParseError {
-            message: "Linear function must have at least one point".to_string(),
-          });
-        }
-
-        Ok(LinearEasingFunction::new(points))
+  pub(crate) fn parse_tokens(tokens: &mut TokenList) -> Result<LinearEasingFunction, CssParseError> {
+    // Parse 'linear(' function start
+    match tokens.consume_next_token().ok().flatten() {
+      Some(SimpleToken::Function(fn_name)) if fn_name == "linear" => {},
+      Some(token) => {
+        return Err(CssParseError::ParseError {
+          message: format!("Expected linear() function, got {:?}", token),
+        });
       },
-      "linear_parser",
-    )
+      None => {
+        return Err(CssParseError::ParseError {
+          message: "Expected linear() function but reached end of input".to_string(),
+        });
+      },
+    }
+
+    // Skip optional whitespace
+    while matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace))) {
+      let _ = tokens.consume_next_token();
+    }
+
+    // Parse one or more numbers separated by commas
+    let mut points = Vec::new();
+
+    // Check for empty linear() — at least one point is required.
+    // Peek ahead: if the next token is already a closing paren, no numbers were
+    // provided and points would remain empty after the loop.
+    if matches!(tokens.peek(), Ok(Some(SimpleToken::RightParen))) {
+      return Err(CssParseError::ParseError {
+        message: "Linear function must have at least one point".to_string(),
+      });
+    }
+
+    loop {
+      // Parse number
+      let number = match tokens.consume_next_token().ok().flatten() {
+        Some(SimpleToken::Number(value)) => value,
+        Some(token) => {
+          return Err(CssParseError::ParseError {
+            message: format!("Expected number in linear function, got {:?}", token),
+          });
+        },
+        None => {
+          return Err(CssParseError::ParseError {
+            message: "Expected number but reached end of input".to_string(),
+          });
+        },
+      };
+
+      points.push(number);
+
+      // Skip optional whitespace
+      while matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace))) {
+        let _ = tokens.consume_next_token();
+      }
+
+      // Consume comma (more numbers) or closing paren (end)
+      match tokens.consume_next_token().ok().flatten() {
+        Some(SimpleToken::Comma) => {
+          // Skip optional whitespace after comma
+          while matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace))) {
+            let _ = tokens.consume_next_token();
+          }
+          continue; // parse next number
+        },
+        Some(SimpleToken::RightParen) => {
+          break; // done parsing numbers (RightParen consumed)
+        },
+        Some(token) => {
+          return Err(CssParseError::ParseError {
+            message: format!(
+              "Expected comma or closing paren in linear function, got {:?}",
+              token
+            ),
+          });
+        },
+        None => {
+          return Err(CssParseError::ParseError {
+            message: "Unexpected end of input in linear function".to_string(),
+          });
+        },
+      }
+    }
+
+    Ok(LinearEasingFunction::new(points))
+  }
+
+  pub fn parse() -> TokenParser<LinearEasingFunction> {
+    TokenParser::new(Self::parse_tokens, "linear_parser")
   }
 }
 
@@ -194,104 +179,105 @@ impl CubicBezierEasingFunction {
     Self { points }
   }
 
-  pub fn parse() -> TokenParser<CubicBezierEasingFunction> {
-    TokenParser::new(
-      |tokens| {
-        // Parse 'cubic-bezier(' function start
-        match tokens.consume_next_token()? {
-          Some(SimpleToken::Function(fn_name)) if fn_name == "cubic-bezier" => {},
-          Some(token) => {
-            return Err(CssParseError::ParseError {
-              message: format!("Expected cubic-bezier() function, got {:?}", token),
-            });
-          },
-          None => {
-            return Err(CssParseError::ParseError {
-              message: "Expected cubic-bezier() function but reached end of input".to_string(),
-            });
-          },
-        }
-
-        // Skip optional whitespace
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
-        }
-
-        // Parse exactly 4 numbers separated by commas: x1, y1, x2, y2
-        let mut numbers = Vec::new();
-
-        for i in 0..4 {
-          if i > 0 {
-            // Skip optional whitespace before comma
-            while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-              tokens.consume_next_token()?;
-            }
-
-            // Expect comma
-            match tokens.consume_next_token()? {
-              Some(SimpleToken::Comma) => {},
-              Some(token) => {
-                return Err(CssParseError::ParseError {
-                  message: format!("Expected comma in cubic-bezier function, got {:?}", token),
-                });
-              },
-              None => {
-                return Err(CssParseError::ParseError {
-                  message: "Expected comma but reached end of input".to_string(),
-                });
-              },
-            }
-
-            // Skip optional whitespace after comma
-            while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-              tokens.consume_next_token()?;
-            }
-          }
-
-          // Parse number
-          let number = match tokens.consume_next_token()? {
-            Some(SimpleToken::Number(value)) => value,
-            Some(token) => {
-              return Err(CssParseError::ParseError {
-                message: format!("Expected number in cubic-bezier function, got {:?}", token),
-              });
-            },
-            None => {
-              return Err(CssParseError::ParseError {
-                message: "Expected number but reached end of input".to_string(),
-              });
-            },
-          };
-
-          numbers.push(number);
-        }
-
-        // Skip optional whitespace
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
-        }
-
-        // Parse closing paren
-        match tokens.consume_next_token()? {
-          Some(SimpleToken::RightParen) => {},
-          Some(token) => {
-            return Err(CssParseError::ParseError {
-              message: format!("Expected closing paren, got {:?}", token),
-            });
-          },
-          None => {
-            return Err(CssParseError::ParseError {
-              message: "Expected closing paren but reached end of input".to_string(),
-            });
-          },
-        }
-
-        Ok(CubicBezierEasingFunction::new([
-          numbers[0], numbers[1], numbers[2], numbers[3],
-        ]))
+  pub(crate) fn parse_tokens(
+    tokens: &mut TokenList,
+  ) -> Result<CubicBezierEasingFunction, CssParseError> {
+    // Parse 'cubic-bezier(' function start
+    match tokens.consume_next_token().ok().flatten() {
+      Some(SimpleToken::Function(fn_name)) if fn_name == "cubic-bezier" => {},
+      Some(token) => {
+        return Err(CssParseError::ParseError {
+          message: format!("Expected cubic-bezier() function, got {:?}", token),
+        });
       },
-      "cubic_bezier_parser",
-    )
+      None => {
+        return Err(CssParseError::ParseError {
+          message: "Expected cubic-bezier() function but reached end of input".to_string(),
+        });
+      },
+    }
+
+    // Skip optional whitespace
+    while matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace))) {
+      let _ = tokens.consume_next_token();
+    }
+
+    // Parse exactly 4 numbers separated by commas: x1, y1, x2, y2
+    let mut numbers = Vec::new();
+
+    for i in 0..4 {
+      if i > 0 {
+        // Skip optional whitespace before comma
+        while matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace))) {
+          let _ = tokens.consume_next_token();
+        }
+
+        // Expect comma
+        match tokens.consume_next_token().ok().flatten() {
+          Some(SimpleToken::Comma) => {},
+          Some(token) => {
+            return Err(CssParseError::ParseError {
+              message: format!("Expected comma in cubic-bezier function, got {:?}", token),
+            });
+          },
+          None => {
+            return Err(CssParseError::ParseError {
+              message: "Expected comma but reached end of input".to_string(),
+            });
+          },
+        }
+
+        // Skip optional whitespace after comma
+        while matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace))) {
+          let _ = tokens.consume_next_token();
+        }
+      }
+
+      // Parse number
+      let number = match tokens.consume_next_token().ok().flatten() {
+        Some(SimpleToken::Number(value)) => value,
+        Some(token) => {
+          return Err(CssParseError::ParseError {
+            message: format!("Expected number in cubic-bezier function, got {:?}", token),
+          });
+        },
+        None => {
+          return Err(CssParseError::ParseError {
+            message: "Expected number but reached end of input".to_string(),
+          });
+        },
+      };
+
+      numbers.push(number);
+    }
+
+    // Skip optional whitespace
+    while matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace))) {
+      let _ = tokens.consume_next_token();
+    }
+
+    // Parse closing paren
+    match tokens.consume_next_token().ok().flatten() {
+      Some(SimpleToken::RightParen) => {},
+      Some(token) => {
+        return Err(CssParseError::ParseError {
+          message: format!("Expected closing paren, got {:?}", token),
+        });
+      },
+      None => {
+        return Err(CssParseError::ParseError {
+          message: "Expected closing paren but reached end of input".to_string(),
+        });
+      },
+    }
+
+    Ok(CubicBezierEasingFunction::new([
+      numbers[0], numbers[1], numbers[2], numbers[3],
+    ]))
+  }
+
+  pub fn parse() -> TokenParser<CubicBezierEasingFunction> {
+    TokenParser::new(Self::parse_tokens, "cubic_bezier_parser")
   }
 }
 
@@ -316,38 +302,36 @@ impl CubicBezierKeyword {
     Ok(Self::new(keyword))
   }
 
+  pub(crate) fn is_easing_keyword(token: &SimpleToken) -> bool {
+    if let SimpleToken::Ident(value) = token {
+      matches!(
+        value.as_str(),
+        "ease" | "ease-in" | "ease-out" | "ease-in-out"
+      )
+    } else {
+      false
+    }
+  }
+
+  pub(crate) fn extract_keyword_token(token: SimpleToken) -> CubicBezierKeyword {
+    if let SimpleToken::Ident(value) = token {
+      let keyword = match value.as_str() {
+        "ease" => CubicBezierKeywordType::Ease,
+        "ease-in" => CubicBezierKeywordType::EaseIn,
+        "ease-out" => CubicBezierKeywordType::EaseOut,
+        "ease-in-out" => CubicBezierKeywordType::EaseInOut,
+        _ => stylex_unreachable!(),
+      };
+      CubicBezierKeyword::new(keyword)
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
   pub fn parse() -> TokenParser<CubicBezierKeyword> {
     TokenParser::<SimpleToken>::ident()
-      .where_fn(
-        |token| {
-          if let SimpleToken::Ident(value) = token {
-            matches!(
-              value.as_str(),
-              "ease" | "ease-in" | "ease-out" | "ease-in-out"
-            )
-          } else {
-            false
-          }
-        },
-        Some("easing_keyword"),
-      )
-      .map(
-        |token| {
-          if let SimpleToken::Ident(value) = token {
-            let keyword = match value.as_str() {
-              "ease" => CubicBezierKeywordType::Ease,
-              "ease-in" => CubicBezierKeywordType::EaseIn,
-              "ease-out" => CubicBezierKeywordType::EaseOut,
-              "ease-in-out" => CubicBezierKeywordType::EaseInOut,
-              _ => stylex_unreachable!(),
-            };
-            CubicBezierKeyword::new(keyword)
-          } else {
-            stylex_unreachable!()
-          }
-        },
-        Some("to_keyword"),
-      )
+      .where_fn(Self::is_easing_keyword, Some("easing_keyword"))
+      .map(Self::extract_keyword_token, Some("to_keyword"))
   }
 }
 
@@ -356,131 +340,130 @@ impl StepsEasingFunction {
     Self { steps, start }
   }
 
-  pub fn parse() -> TokenParser<StepsEasingFunction> {
-    TokenParser::new(
-      |tokens| {
-        // Parse 'steps(' function start
-        match tokens.consume_next_token()? {
-          Some(SimpleToken::Function(fn_name)) if fn_name == "steps" => {},
-          Some(token) => {
-            return Err(CssParseError::ParseError {
-              message: format!("Expected steps() function, got {:?}", token),
-            });
-          },
-          None => {
-            return Err(CssParseError::ParseError {
-              message: "Expected steps() function but reached end of input".to_string(),
-            });
-          },
-        }
-
-        // Skip optional whitespace
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
-        }
-
-        // Parse step count (integer number)
-        let steps = match tokens.consume_next_token()? {
-          Some(SimpleToken::Number(value)) => {
-            let int_value = value as u32;
-            if int_value as f64 == value && value >= 0.0 {
-              int_value
-            } else {
-              return Err(CssParseError::ParseError {
-                message: "Steps count must be a positive integer".to_string(),
-              });
-            }
-          },
-          Some(token) => {
-            return Err(CssParseError::ParseError {
-              message: format!("Expected number for steps count, got {:?}", token),
-            });
-          },
-          None => {
-            return Err(CssParseError::ParseError {
-              message: "Expected steps count but reached end of input".to_string(),
-            });
-          },
-        };
-
-        // Skip optional whitespace
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
-        }
-
-        // Expect comma
-        match tokens.consume_next_token()? {
-          Some(SimpleToken::Comma) => {},
-          Some(token) => {
-            return Err(CssParseError::ParseError {
-              message: format!("Expected comma in steps function, got {:?}", token),
-            });
-          },
-          None => {
-            return Err(CssParseError::ParseError {
-              message: "Expected comma but reached end of input".to_string(),
-            });
-          },
-        }
-
-        // Skip optional whitespace after comma
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
-        }
-
-        // Parse start/end type
-        let start_type = match tokens.consume_next_token()? {
-          Some(SimpleToken::Ident(value)) => match value.as_str() {
-            "start" => StepsStartType::Start,
-            "end" => StepsStartType::End,
-            _ => {
-              return Err(CssParseError::ParseError {
-                message: format!(
-                  "Expected 'start' or 'end' in steps function, got '{}'",
-                  value
-                ),
-              });
-            },
-          },
-          Some(token) => {
-            return Err(CssParseError::ParseError {
-              message: format!(
-                "Expected 'start' or 'end' in steps function, got {:?}",
-                token
-              ),
-            });
-          },
-          None => {
-            return Err(CssParseError::ParseError {
-              message: "Expected 'start' or 'end' but reached end of input".to_string(),
-            });
-          },
-        };
-
-        // Skip optional whitespace
-        while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
-        }
-
-        // Parse closing paren
-        match tokens.consume_next_token()? {
-          Some(SimpleToken::RightParen) => {},
-          Some(token) => {
-            return Err(CssParseError::ParseError {
-              message: format!("Expected closing paren, got {:?}", token),
-            });
-          },
-          None => {
-            return Err(CssParseError::ParseError {
-              message: "Expected closing paren but reached end of input".to_string(),
-            });
-          },
-        }
-
-        Ok(StepsEasingFunction::new(steps, start_type))
+  pub(crate) fn parse_tokens(tokens: &mut TokenList) -> Result<StepsEasingFunction, CssParseError> {
+    // Parse 'steps(' function start
+    match tokens.consume_next_token().ok().flatten() {
+      Some(SimpleToken::Function(fn_name)) if fn_name == "steps" => {},
+      Some(token) => {
+        return Err(CssParseError::ParseError {
+          message: format!("Expected steps() function, got {:?}", token),
+        });
       },
-      "steps_parser",
-    )
+      None => {
+        return Err(CssParseError::ParseError {
+          message: "Expected steps() function but reached end of input".to_string(),
+        });
+      },
+    }
+
+    // Skip optional whitespace
+    while matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace))) {
+      let _ = tokens.consume_next_token();
+    }
+
+    // Parse step count (integer number)
+    let steps = match tokens.consume_next_token().ok().flatten() {
+      Some(SimpleToken::Number(value)) => {
+        let int_value = value as u32;
+        if int_value as f64 == value && value >= 0.0 {
+          int_value
+        } else {
+          return Err(CssParseError::ParseError {
+            message: "Steps count must be a positive integer".to_string(),
+          });
+        }
+      },
+      Some(token) => {
+        return Err(CssParseError::ParseError {
+          message: format!("Expected number for steps count, got {:?}", token),
+        });
+      },
+      None => {
+        return Err(CssParseError::ParseError {
+          message: "Expected steps count but reached end of input".to_string(),
+        });
+      },
+    };
+
+    // Skip optional whitespace
+    while matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace))) {
+      let _ = tokens.consume_next_token();
+    }
+
+    // Expect comma
+    match tokens.consume_next_token().ok().flatten() {
+      Some(SimpleToken::Comma) => {},
+      Some(token) => {
+        return Err(CssParseError::ParseError {
+          message: format!("Expected comma in steps function, got {:?}", token),
+        });
+      },
+      None => {
+        return Err(CssParseError::ParseError {
+          message: "Expected comma but reached end of input".to_string(),
+        });
+      },
+    }
+
+    // Skip optional whitespace after comma
+    while matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace))) {
+      let _ = tokens.consume_next_token();
+    }
+
+    // Parse start/end type
+    let start_type = match tokens.consume_next_token().ok().flatten() {
+      Some(SimpleToken::Ident(value)) => match value.as_str() {
+        "start" => StepsStartType::Start,
+        "end" => StepsStartType::End,
+        _ => {
+          return Err(CssParseError::ParseError {
+            message: format!(
+              "Expected 'start' or 'end' in steps function, got '{}'",
+              value
+            ),
+          });
+        },
+      },
+      Some(token) => {
+        return Err(CssParseError::ParseError {
+          message: format!(
+            "Expected 'start' or 'end' in steps function, got {:?}",
+            token
+          ),
+        });
+      },
+      None => {
+        return Err(CssParseError::ParseError {
+          message: "Expected 'start' or 'end' but reached end of input".to_string(),
+        });
+      },
+    };
+
+    // Skip optional whitespace
+    while matches!(tokens.peek(), Ok(Some(SimpleToken::Whitespace))) {
+      let _ = tokens.consume_next_token();
+    }
+
+    // Parse closing paren
+    match tokens.consume_next_token().ok().flatten() {
+      Some(SimpleToken::RightParen) => {},
+      Some(token) => {
+        return Err(CssParseError::ParseError {
+          message: format!("Expected closing paren, got {:?}", token),
+        });
+      },
+      None => {
+        return Err(CssParseError::ParseError {
+          message: "Expected closing paren but reached end of input".to_string(),
+        });
+      },
+    }
+
+    Ok(StepsEasingFunction::new(steps, start_type))
+  }
+
+  pub fn parse() -> TokenParser<StepsEasingFunction> {
+    TokenParser::new(Self::parse_tokens, "steps_parser")
   }
 }
 
@@ -503,33 +486,31 @@ impl StepsKeyword {
     Ok(Self::new(keyword))
   }
 
+  pub(crate) fn is_steps_keyword(token: &SimpleToken) -> bool {
+    if let SimpleToken::Ident(value) = token {
+      matches!(value.as_str(), "step-start" | "step-end")
+    } else {
+      false
+    }
+  }
+
+  pub(crate) fn extract_steps_keyword_token(token: SimpleToken) -> StepsKeyword {
+    if let SimpleToken::Ident(value) = token {
+      let keyword = match value.as_str() {
+        "step-start" => StepsKeywordType::StepStart,
+        "step-end" => StepsKeywordType::StepEnd,
+        _ => stylex_unreachable!(),
+      };
+      StepsKeyword::new(keyword)
+    } else {
+      stylex_unreachable!()
+    }
+  }
+
   pub fn parse() -> TokenParser<StepsKeyword> {
     TokenParser::<SimpleToken>::ident()
-      .where_fn(
-        |token| {
-          if let SimpleToken::Ident(value) = token {
-            matches!(value.as_str(), "step-start" | "step-end")
-          } else {
-            false
-          }
-        },
-        Some("steps_keyword"),
-      )
-      .map(
-        |token| {
-          if let SimpleToken::Ident(value) = token {
-            let keyword = match value.as_str() {
-              "step-start" => StepsKeywordType::StepStart,
-              "step-end" => StepsKeywordType::StepEnd,
-              _ => stylex_unreachable!(),
-            };
-            StepsKeyword::new(keyword)
-          } else {
-            stylex_unreachable!()
-          }
-        },
-        Some("to_steps_keyword"),
-      )
+      .where_fn(Self::is_steps_keyword, Some("steps_keyword"))
+      .map(Self::extract_steps_keyword_token, Some("to_steps_keyword"))
   }
 }
 
@@ -637,3 +618,7 @@ impl Display for StepsKeyword {
 #[cfg(test)]
 #[path = "../tests/css_types/easing_function_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "../tests/css_types/easing_function_coverage_test.rs"]
+mod easing_function_coverage_test;

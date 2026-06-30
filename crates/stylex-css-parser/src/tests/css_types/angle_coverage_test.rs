@@ -1,12 +1,3 @@
-// Additional coverage tests for angle.rs.
-// Targets:
-//   - the `else { false }` arm in `is_valid_angle_dimension` (unreachable
-//     through the public parser since the combinator guarantees a Dimension token)
-//   - the `else { stylex_unreachable!() }` arm in `extract_dimension_token`
-//     (same reason)
-//   - the `else { false }` arm in `is_zero_number` (the combinator guarantees a
-//     Number token)
-
 use super::*;
 use crate::token_types::SimpleToken;
 

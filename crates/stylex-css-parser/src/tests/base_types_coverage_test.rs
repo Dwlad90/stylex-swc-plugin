@@ -1,8 +1,3 @@
-// Additional coverage tests for base_types.rs.
-// Targets branches not exercised by the existing suites, notably the
-// `start_index > end_index` early-return paths in `first`, `get`, and
-// `into_string`.
-
 use super::*;
 
 /// Build a SubString whose cursor has advanced past its end so that

@@ -1,6 +1,3 @@
-// Coverage tests for css_types/position.rs.
-// Targets branches not exercised by position_tests.rs / position_test.rs.
-
 use super::*;
 
 // ── VerticalKeyword::as_str center arm (line 68) ─────────────────────────

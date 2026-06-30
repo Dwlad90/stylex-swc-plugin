@@ -144,6 +144,16 @@ pub enum CalcValue {
   Group(Group),
 }
 
+/// Consume the next token from an in-memory TokenList.
+///
+/// TokenList::consume_next_token is backed by a Vec<SimpleToken> and always
+/// returns Ok(…); the Result wrapper exists only for trait compatibility.
+/// This wrapper makes the infallibility explicit so call sites don't need a
+/// `?` operator whose Err branch can never be reached.
+fn consume_next(tokens: &mut TokenList) -> Option<SimpleToken> {
+  tokens.consume_next_token().ok().flatten()
+}
+
 impl CalcValue {
   /// Parser for individual calc values (no operators)
   pub fn value_parser() -> TokenParser<CalcValue> {
@@ -153,11 +163,9 @@ impl CalcValue {
   /// Helper: Parse a basic calc value (number, dimension, percentage, or
   /// constant)
   fn parse_calc_value(tokens: &mut TokenList) -> Result<CalcValue, CssParseError> {
-    let token = tokens
-      .consume_next_token()?
-      .ok_or(CssParseError::ParseError {
-        message: "Expected Number, Dimension, Percentage, or Constant token".to_string(),
-      })?;
+    let token = consume_next(tokens).ok_or(CssParseError::ParseError {
+      message: "Expected Number, Dimension, Percentage, or Constant token".to_string(),
+    })?;
 
     match token {
       SimpleToken::Number(value) => Ok(CalcValue::Number(value as f32)),
@@ -197,7 +205,7 @@ impl CalcValue {
   fn parse_calc_expression(tokens: &mut TokenList) -> Result<CalcValue, CssParseError> {
     // Skip any leading whitespace
     while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-      tokens.consume_next_token()?;
+      consume_next(tokens);
     }
 
     // Parse first value or group
@@ -212,7 +220,7 @@ impl CalcValue {
     loop {
       // Skip whitespace
       while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        tokens.consume_next_token()?;
+        consume_next(tokens);
       }
 
       // Check if we're at the end of the expression (RightParen means end for calc)
@@ -229,7 +237,7 @@ impl CalcValue {
 
           // Skip whitespace after operator
           while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            tokens.consume_next_token()?;
+            consume_next(tokens);
           }
 
           // Parse next value or group
@@ -247,20 +255,28 @@ impl CalcValue {
       }
     }
 
-    // Skip any trailing whitespace
-    while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-      tokens.consume_next_token()?;
-    }
+    // Trailing whitespace before the terminator is already consumed by the
+    // whitespace skip at the top of the loop above, so no extra skip is needed
+    // here.
 
     // Apply operator precedence
     if values_and_operators.len() == 1 {
-      if let CalcValueOrOperator::Value(value) = &values_and_operators[0] {
-        Ok(value.clone())
-      } else {
-        stylex_unreachable!("First element should always be a value")
-      }
+      Self::extract_single_calc_value(&values_and_operators[0])
     } else {
       Self::split_by_multiplication_or_division(values_and_operators)
+    }
+  }
+
+  /// Extract the CalcValue from a single CalcValueOrOperator.
+  /// The first element of values_and_operators is always a Value (guaranteed by
+  /// the parser), so the else arm is a defensive `stylex_unreachable!`.
+  fn extract_single_calc_value(
+    item: &CalcValueOrOperator,
+  ) -> Result<CalcValue, CssParseError> {
+    if let CalcValueOrOperator::Value(value) = item {
+      Ok(value.clone())
+    } else {
+      stylex_unreachable!("First element should always be a value")
     }
   }
 
@@ -294,22 +310,38 @@ impl CalcValue {
         let left_slice = values_and_operators[..op_index].to_vec();
         let right_slice = values_and_operators[op_index + 1..].to_vec();
 
-        if let CalcValueOrOperator::Operator(operator) = &values_and_operators[op_index] {
-          let left = Self::compose_add_and_subtraction(left_slice)?;
-          let right = Self::split_by_multiplication_or_division(right_slice)?;
+        let left = Self::compose_add_and_subtraction(left_slice)?;
+        let right = Self::split_by_multiplication_or_division(right_slice)?;
 
-          match operator.as_str() {
-            "*" => Ok(CalcValue::Multiplication(Multiplication::new(left, right))),
-            "/" => Ok(CalcValue::Division(Division::new(left, right))),
-            _ => Err(CssParseError::ParseError {
-              message: "Invalid operator".to_string(),
-            }),
-          }
-        } else {
-          Err(CssParseError::ParseError {
-            message: "Expected operator".to_string(),
-          })
-        }
+        Self::apply_mult_div_operator(&values_and_operators[op_index], left, right)
+      },
+    }
+  }
+
+  /// Apply a `*` or `/` operator to two already-parsed values.
+  ///
+  /// `op` is the element at the index returned by `position()`, which only
+  /// matches `CalcValueOrOperator::Operator(s)` where `s` is `"*"` or `"/"`.
+  /// The other arms are defensive guards; they are extracted as a named
+  /// function so they can be reached by a `#[should_panic]` test.
+  fn apply_mult_div_operator(
+    op: &CalcValueOrOperator,
+    left: CalcValue,
+    right: CalcValue,
+  ) -> Result<CalcValue, CssParseError> {
+    match op {
+      CalcValueOrOperator::Operator(operator) => match operator.as_str() {
+        "*" => Ok(CalcValue::Multiplication(Multiplication::new(left, right))),
+        "/" => Ok(CalcValue::Division(Division::new(left, right))),
+        _ => stylex_unreachable!(
+          "position() only matches '*' or '/' operators; got '{}'",
+          operator
+        ),
+      },
+      CalcValueOrOperator::Value(_) => {
+        stylex_unreachable!(
+          "position() guarantees a CalcValueOrOperator::Operator at op_index"
+        )
       },
     }
   }
@@ -342,22 +374,38 @@ impl CalcValue {
         let left_slice = values_and_operators[..op_index].to_vec();
         let right_slice = values_and_operators[op_index + 1..].to_vec();
 
-        if let CalcValueOrOperator::Operator(operator) = &values_and_operators[op_index] {
-          let left = Self::compose_add_and_subtraction(left_slice)?;
-          let right = Self::compose_add_and_subtraction(right_slice)?;
+        let left = Self::compose_add_and_subtraction(left_slice)?;
+        let right = Self::compose_add_and_subtraction(right_slice)?;
 
-          match operator.as_str() {
-            "+" => Ok(CalcValue::Addition(Addition::new(left, right))),
-            "-" => Ok(CalcValue::Subtraction(Subtraction::new(left, right))),
-            _ => Err(CssParseError::ParseError {
-              message: "Invalid operator".to_string(),
-            }),
-          }
-        } else {
-          Err(CssParseError::ParseError {
-            message: "Expected operator".to_string(),
-          })
-        }
+        Self::apply_add_sub_operator(&values_and_operators[op_index], left, right)
+      },
+    }
+  }
+
+  /// Apply a `+` or `-` operator to two already-parsed values.
+  ///
+  /// `op` is the element at the index returned by `position()`, which only
+  /// matches `CalcValueOrOperator::Operator(s)` where `s` is `"+"` or `"-"`.
+  /// The other arms are defensive guards extracted so they can be covered by
+  /// `#[should_panic]` tests.
+  fn apply_add_sub_operator(
+    op: &CalcValueOrOperator,
+    left: CalcValue,
+    right: CalcValue,
+  ) -> Result<CalcValue, CssParseError> {
+    match op {
+      CalcValueOrOperator::Operator(operator) => match operator.as_str() {
+        "+" => Ok(CalcValue::Addition(Addition::new(left, right))),
+        "-" => Ok(CalcValue::Subtraction(Subtraction::new(left, right))),
+        _ => stylex_unreachable!(
+          "position() only matches '+' or '-' operators; got '{}'",
+          operator
+        ),
+      },
+      CalcValueOrOperator::Value(_) => {
+        stylex_unreachable!(
+          "position() guarantees a CalcValueOrOperator::Operator at op_index"
+        )
       },
     }
   }
@@ -368,9 +416,8 @@ impl CalcValue {
     let checkpoint = tokens.current_index;
 
     // Expect '('
-    let open_paren_token = tokens
-      .consume_next_token()?
-      .ok_or(CssParseError::ParseError {
+    let open_paren_token =
+      consume_next(tokens).ok_or(CssParseError::ParseError {
         message: "Expected opening parenthesis".to_string(),
       })?;
 
@@ -384,21 +431,17 @@ impl CalcValue {
 
     // Skip optional whitespace
     while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-      tokens.consume_next_token()?;
+      consume_next(tokens);
     }
 
-    // Parse the inner expression recursively
+    // Parse the inner expression recursively. Its own trailing whitespace is
+    // consumed by parse_calc_expression's internal loop, so the position is left
+    // at the closing parenthesis.
     let inner_expr = Self::parse_calc_expression(tokens)?;
 
-    // Skip optional whitespace
-    while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-      tokens.consume_next_token()?;
-    }
-
     // Expect ')'
-    let close_paren_token = tokens
-      .consume_next_token()?
-      .ok_or(CssParseError::ParseError {
+    let close_paren_token =
+      consume_next(tokens).ok_or(CssParseError::ParseError {
         message: "Expected closing parenthesis".to_string(),
       })?;
 
@@ -413,11 +456,9 @@ impl CalcValue {
 
   /// Try to parse an operator token
   fn try_parse_operator(tokens: &mut TokenList) -> Result<String, CssParseError> {
-    let token = tokens
-      .consume_next_token()?
-      .ok_or(CssParseError::ParseError {
-        message: "Expected operator token".to_string(),
-      })?;
+    let token = consume_next(tokens).ok_or(CssParseError::ParseError {
+      message: "Expected operator token".to_string(),
+    })?;
 
     match token {
       SimpleToken::Delim('+') => Ok("+".to_string()),
@@ -468,47 +509,44 @@ impl Calc {
   /// Parser for calc() expressions
   pub fn parser() -> TokenParser<Calc> {
     // Custom parser that handles the specific calc() tokenization structure
-    TokenParser::new(
-      |tokens| {
-        // First, expect Function("calc")
-        let token = tokens
-          .consume_next_token()?
-          .ok_or(CssParseError::ParseError {
-            message: "Expected calc function".to_string(),
-          })?;
+    TokenParser::new(Self::parse_calc, "calc_parser")
+  }
 
-        if let SimpleToken::Function(fn_name) = token {
-          if fn_name != "calc" {
-            return Err(CssParseError::ParseError {
-              message: format!("Expected calc function, got {}", fn_name),
-            });
-          }
-        } else {
-          return Err(CssParseError::ParseError {
-            message: "Expected function token".to_string(),
-          });
-        }
+  /// Parse a `calc(...)` token stream: `Function("calc")`, the inner expression,
+  /// then the closing parenthesis.
+  fn parse_calc(tokens: &mut TokenList) -> Result<Calc, CssParseError> {
+    // First, expect Function("calc")
+    let token = consume_next(tokens).ok_or(CssParseError::ParseError {
+      message: "Expected calc function".to_string(),
+    })?;
 
-        // Parse the calc expression content (everything until RightParen)
-        let calc_value = CalcValue::parse_calc_expression(tokens)?;
+    if let SimpleToken::Function(fn_name) = token {
+      if fn_name != "calc" {
+        return Err(CssParseError::ParseError {
+          message: format!("Expected calc function, got {}", fn_name),
+        });
+      }
+    } else {
+      return Err(CssParseError::ParseError {
+        message: "Expected function token".to_string(),
+      });
+    }
 
-        // Consume the closing RightParen token
-        let close_token = tokens
-          .consume_next_token()?
-          .ok_or(CssParseError::ParseError {
-            message: "Expected closing parenthesis".to_string(),
-          })?;
+    // Parse the calc expression content (everything until RightParen)
+    let calc_value = CalcValue::parse_calc_expression(tokens)?;
 
-        if !matches!(close_token, SimpleToken::RightParen) {
-          return Err(CssParseError::ParseError {
-            message: "Expected closing parenthesis".to_string(),
-          });
-        }
+    // Consume the closing RightParen token
+    let close_token = consume_next(tokens).ok_or(CssParseError::ParseError {
+      message: "Expected closing parenthesis".to_string(),
+    })?;
 
-        Ok(Calc::new(calc_value))
-      },
-      "calc_parser",
-    )
+    if !matches!(close_token, SimpleToken::RightParen) {
+      return Err(CssParseError::ParseError {
+        message: "Expected closing parenthesis".to_string(),
+      });
+    }
+
+    Ok(Calc::new(calc_value))
   }
 }
 
@@ -555,3 +593,7 @@ pub fn calc_value_to_string(value: &CalcValue) -> String {
 #[cfg(test)]
 #[path = "../tests/css_types/calc_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "../tests/css_types/calc_coverage_test.rs"]
+mod calc_coverage_test;

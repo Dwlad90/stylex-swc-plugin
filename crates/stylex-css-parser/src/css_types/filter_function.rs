@@ -96,7 +96,7 @@ impl BlurFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'blur(' function start
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "blur" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -112,7 +112,7 @@ impl BlurFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse radius (Length)
@@ -120,11 +120,11 @@ impl BlurFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse closing paren
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -154,7 +154,7 @@ impl BrightnessFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'brightness(' function start
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "brightness" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -170,7 +170,7 @@ impl BrightnessFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse number or percentage and convert to f64
@@ -182,11 +182,11 @@ impl BrightnessFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse closing paren
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -216,7 +216,7 @@ impl ContrastFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'contrast(' function start
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "contrast" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -232,7 +232,7 @@ impl ContrastFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse number or percentage and convert to f64
@@ -244,11 +244,11 @@ impl ContrastFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse closing paren
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -278,7 +278,7 @@ impl GrayscaleFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'grayscale(' function start
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "grayscale" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -294,7 +294,7 @@ impl GrayscaleFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse number or percentage and convert to f64
@@ -306,11 +306,11 @@ impl GrayscaleFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse closing paren
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -340,7 +340,7 @@ impl HueRotateFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'hue-rotate(' function start
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "hue-rotate" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -356,7 +356,7 @@ impl HueRotateFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse angle
@@ -364,11 +364,11 @@ impl HueRotateFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse closing paren
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -398,7 +398,7 @@ impl InvertFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'invert(' function start
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "invert" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -414,7 +414,7 @@ impl InvertFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse number or percentage and convert to f64
@@ -426,11 +426,11 @@ impl InvertFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse closing paren
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -460,7 +460,7 @@ impl OpacityFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'opacity(' function start
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "opacity" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -476,7 +476,7 @@ impl OpacityFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse number or percentage and convert to f64
@@ -488,11 +488,11 @@ impl OpacityFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse closing paren
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -522,7 +522,7 @@ impl SaturateFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'saturate(' function start
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "saturate" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -538,7 +538,7 @@ impl SaturateFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse number or percentage and convert to f64
@@ -550,11 +550,11 @@ impl SaturateFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse closing paren
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -584,7 +584,7 @@ impl SepiaFilterFunction {
     TokenParser::new(
       |tokens| {
         // Parse 'sepia(' function start
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::Function(fn_name)) if fn_name == "sepia" => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -600,7 +600,7 @@ impl SepiaFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse number or percentage and convert to f64
@@ -612,11 +612,11 @@ impl SepiaFilterFunction {
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-          tokens.consume_next_token()?;
+          let _ = tokens.consume_next_token();
         }
 
         // Parse closing paren
-        match tokens.consume_next_token()? {
+        match tokens.consume_next_token().ok().flatten() {
           Some(SimpleToken::RightParen) => {},
           Some(token) => {
             return Err(CssParseError::ParseError {
@@ -720,3 +720,7 @@ impl Display for SepiaFilterFunction {
 #[cfg(test)]
 #[path = "../tests/css_types/filter_function_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "../tests/css_types/filter_function_coverage_test.rs"]
+mod filter_function_coverage_test;

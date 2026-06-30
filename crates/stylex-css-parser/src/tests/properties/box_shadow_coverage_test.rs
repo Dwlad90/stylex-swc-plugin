@@ -1,9 +1,3 @@
-// Coverage tests for properties/box_shadow.rs.
-// Targets branches not exercised by the existing suites:
-//   - line 148 (now is_inset_ident): `else { false }` for non-Ident token
-//   - line 274 (now is_none_ident):  `else { false }` for non-Ident token
-//   - BoxShadow::simple() method
-
 use super::*;
 use crate::css_types::Color;
 

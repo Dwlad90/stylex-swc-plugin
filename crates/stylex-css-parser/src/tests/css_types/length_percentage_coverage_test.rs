@@ -1,7 +1,3 @@
-// Coverage tests for css_types/length_percentage.rs.
-// Targets the is_calc / as_calc accessors (lines 42-44, 63-68) not exercised
-// by the existing test suites.
-
 use super::*;
 
 // ── is_calc ───────────────────────────────────────────────────────────────

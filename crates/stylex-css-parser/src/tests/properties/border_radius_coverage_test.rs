@@ -1,14 +1,3 @@
-// Coverage tests for properties/border_radius.rs.
-// Targets branches not exercised by the existing test suites:
-//   - line 145: > 4 values clamped to 4 (all_values[..4].to_vec())
-//   - line 269: h_top_left==h_bottom_right && h_top_right==h_bottom_left
-//               (two-value horizontal shorthand)
-//   - line 271: three-value horizontal shorthand format
-//   - line 274: four-distinct-value horizontal shorthand format
-//   - lines 292/294: two-value vertical shorthand
-//   - lines 295/297: three-value vertical shorthand
-//   - lines 298/300: four-distinct-value vertical shorthand
-
 use super::*;
 
 // ── BorderRadiusShorthand::expand_radii ──────────────────────────────────

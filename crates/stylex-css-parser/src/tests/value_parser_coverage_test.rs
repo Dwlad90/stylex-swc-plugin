@@ -1,22 +1,3 @@
-// Additional coverage tests for value_parser.rs.
-// Targets branches not exercised by the existing suite, notably:
-//   - format_quoted_string()                                       (lines 17-22)
-//   - parse_css_inner(): Comment branch                            (lines 37-39)
-//   - parse_css_inner(): ParenthesisBlock branch                   (lines 44-46)
-//   - parse_css_inner(): SquareBracketBlock branch                 (lines 49-51)
-//   - parse_css_inner(): CurlyBracketBlock branch                  (lines 54-56)
-//   - parse_css_inner(): CloseParenthesis, CloseSquareBracket,
-//     CloseCurlyBracket branches                                   (lines 59-61)
-//   - parse_css_inner(): IncludeMatch, DashMatch, PrefixMatch,
-//     SuffixMatch, SubstringMatch branches                         (lines 62-66)
-//   - parse_css_inner(): CDO, CDC branches                         (lines 67-68)
-//   - parse_css_inner(): AtKeyword branch                          (lines 75-77)
-//   - parse_css_inner(): IDHash branch (in Hash|IDHash pattern)    (line 79)
-//   - parse_css_inner(): QuotedString branch                       (lines 83-84)
-//   - parse_css_inner(): Number with has_sign branch               (line 91)
-//   - parse_css_inner(): Percentage with has_sign branch           (line 101)
-//   - parse_css_inner(): Dimension with has_sign branch            (line 113)
-
 use super::{format_ident, format_quoted_string, join_css, parse_css};
 
 // ---------------------------------------------------------------------------

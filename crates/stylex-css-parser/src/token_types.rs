@@ -64,40 +64,59 @@ impl SimpleToken {
   }
 }
 
-fn map_css_token(token: &CssToken) -> Option<SimpleToken> {
+// `map_css_token` is total: every `CssToken` maps to a `SimpleToken` (the
+// wildcard arm falls back to `SimpleToken::Unknown`), so it returns the token
+// directly rather than an `Option`.
+fn map_css_token(token: &CssToken) -> SimpleToken {
   use SimpleToken as T;
   match token {
-    CssToken::Ident(v) => Some(T::Ident(v.as_ref().to_string())),
-    CssToken::AtKeyword(v) => Some(T::AtKeyword(v.as_ref().to_string())),
-    CssToken::IDHash(v) | CssToken::Hash(v) => Some(T::Hash(v.as_ref().to_string())),
-    CssToken::QuotedString(v) => Some(T::String(v.as_ref().to_string())),
-    CssToken::Number { value, .. } => Some(T::Number(*value as f64)),
-    CssToken::Percentage { unit_value, .. } => Some(T::Percentage(*unit_value as f64)),
-    CssToken::Dimension { value, unit, .. } => Some(T::Dimension {
+    CssToken::Ident(v) => T::Ident(v.as_ref().to_string()),
+    CssToken::AtKeyword(v) => T::AtKeyword(v.as_ref().to_string()),
+    CssToken::IDHash(v) | CssToken::Hash(v) => T::Hash(v.as_ref().to_string()),
+    CssToken::QuotedString(v) => T::String(v.as_ref().to_string()),
+    CssToken::Number { value, .. } => T::Number(*value as f64),
+    CssToken::Percentage { unit_value, .. } => T::Percentage(*unit_value as f64),
+    CssToken::Dimension { value, unit, .. } => T::Dimension {
       value: *value as f64,
       unit: unit.as_ref().to_string(),
-    }),
-    CssToken::Function(v) => Some(T::Function(v.as_ref().to_string())),
+    },
+    CssToken::Function(v) => T::Function(v.as_ref().to_string()),
     // Map parenthesis via Delim tokens if present
-    CssToken::Delim('(') => Some(T::LeftParen),
-    CssToken::Delim(')') => Some(T::RightParen),
-    CssToken::Delim(c) => Some(T::Delim(*c)),
-    CssToken::WhiteSpace(_) => Some(T::Whitespace),
-    CssToken::Comma => Some(T::Comma),
-    CssToken::Colon => Some(T::Colon),
-    CssToken::Semicolon => Some(T::Semicolon),
-    CssToken::BadUrl(_) | CssToken::BadString(_) => Some(T::Unknown(format!("{:?}", token))),
-    CssToken::UnquotedUrl(url) => Some(T::String(url.as_ref().to_string())),
-    CssToken::CloseParenthesis => Some(T::RightParen),
-    CssToken::SquareBracketBlock => Some(T::Delim('[')),
-    CssToken::CloseSquareBracket => Some(T::Delim(']')),
-    CssToken::CurlyBracketBlock => Some(T::Delim('{')),
-    CssToken::CloseCurlyBracket => Some(T::Delim('}')),
-    CssToken::CDC => Some(T::Delim('>')), // --> CSS comment close
-    CssToken::CDO => Some(T::Delim('<')), // <!-- CSS comment open
+    CssToken::Delim('(') => T::LeftParen,
+    CssToken::Delim(')') => T::RightParen,
+    CssToken::Delim(c) => T::Delim(*c),
+    CssToken::WhiteSpace(_) => T::Whitespace,
+    CssToken::Comma => T::Comma,
+    CssToken::Colon => T::Colon,
+    CssToken::Semicolon => T::Semicolon,
+    CssToken::BadUrl(_) | CssToken::BadString(_) => T::Unknown(format!("{:?}", token)),
+    CssToken::UnquotedUrl(url) => T::String(url.as_ref().to_string()),
+    CssToken::CloseParenthesis => T::RightParen,
+    CssToken::SquareBracketBlock => T::Delim('['),
+    CssToken::CloseSquareBracket => T::Delim(']'),
+    CssToken::CurlyBracketBlock => T::Delim('{'),
+    CssToken::CloseCurlyBracket => T::Delim('}'),
+    CssToken::CDC => T::Delim('>'), // --> CSS comment close
+    CssToken::CDO => T::Delim('<'), // <!-- CSS comment open
 
     // Remaining tokens mapped to Unknown (e.g., future cssparser additions)
-    _ => Some(T::Unknown(format!("{:?}", token))),
+    _ => T::Unknown(format!("{:?}", token)),
+  }
+}
+
+/// Descend into a block/function with `parse_nested_block`, panicking if the
+/// nested parse fails.
+///
+/// All call sites pass a closure that tokenizes the nested content and returns
+/// `Ok(())`, so in normal operation this never panics. The panic is a defensive
+/// guard against a malformed nested block surfacing a `cssparser` error.
+fn parse_nested_or_panic<'i, 't, F>(parser: &mut Parser<'i, 't>, parse: F)
+where
+  F: for<'tt> FnOnce(&mut Parser<'i, 'tt>) -> Result<(), cssparser::ParseError<'i, ()>>,
+{
+  if let Err(e) = parser.parse_nested_block(parse) {
+    error!("Error parsing nested content: {:?}", e);
+    stylex_panic!("Error parsing nested content: {:?}", e); // Exit on error
   }
 }
 
@@ -112,16 +131,10 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
         tokens.push(SimpleToken::LeftParen);
 
         // Parse the nested parenthesis content recursively
-        // TODO: lines 115 (cols 20-21), 119-120 — the `Err(e)` variable binding and
-        // error body are unreachable: the inner closure always returns Ok(()) so
-        // parse_nested_block never returns Err here.
-        if let Err(e) = parser.parse_nested_block(|nested_parser| {
+        parse_nested_or_panic(parser, |nested_parser| {
           tokenize_nested_content(nested_parser, tokens);
-          Ok::<(), cssparser::ParseError<()>>(())
-        }) {
-          error!("Error parsing nested content: {:?}", e);
-          stylex_panic!("Error parsing nested content: {:?}", e); // Exit on error
-        }
+          Ok(())
+        });
 
         // Add closing parenthesis
         tokens.push(SimpleToken::RightParen);
@@ -132,27 +145,17 @@ fn tokenize_nested_content(parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
         tokens.push(SimpleToken::Function(func_name.as_ref().to_string()));
 
         // Parse the function content recursively
-        // TODO: lines 132 (cols 20-21), 136-137 — same as above; inner closure
-        // always succeeds so the Err arm is dead code.
-        if let Err(e) = parser.parse_nested_block(|nested_parser| {
+        parse_nested_or_panic(parser, |nested_parser| {
           tokenize_nested_content(nested_parser, tokens);
-          Ok::<(), cssparser::ParseError<()>>(())
-        }) {
-          error!("Error parsing nested content: {:?}", e);
-          stylex_panic!("Error parsing nested content: {:?}", e); // Exit on error
-        }
+          Ok(())
+        });
 
         // Add closing paren token
         tokens.push(SimpleToken::RightParen);
       },
       // Handle all other tokens normally
       _ => {
-        // TODO: line 147 (cols 9-10) — the None branch of `if let Some(mapped_inner)`
-        // is unreachable: map_css_token always returns Some(_) (its last arm is
-        // `_ => Some(T::Unknown(...))`), so the implicit else is dead code.
-        if let Some(mapped_inner) = map_css_token(inner_token) {
-          tokens.push(mapped_inner);
-        }
+        tokens.push(map_css_token(inner_token));
       },
     }
   }
@@ -171,17 +174,11 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
         tokens.push(SimpleToken::Function(func_name.as_ref().to_string()));
 
         // Parse the function content to get individual argument tokens
-        // TODO: lines 166 (cols 20-21), 171-172 — the `Err(e)` binding and error body
-        // are unreachable: the inner closure always returns Ok(()) so parse_nested_block
-        // never returns Err.
-        if let Err(e) = parser.parse_nested_block(|nested_parser| {
+        parse_nested_or_panic(&mut parser, |nested_parser| {
           // Recursively tokenize everything inside the function parentheses
           tokenize_nested_content(nested_parser, &mut tokens);
-          Ok::<(), cssparser::ParseError<()>>(())
-        }) {
-          error!("Error parsing nested content: {:?}", e);
-          stylex_panic!("Error parsing nested content: {:?}", e); // Exit on error
-        }
+          Ok(())
+        });
 
         // Add closing paren token (cssparser consumes it automatically)
         tokens.push(SimpleToken::RightParen);
@@ -192,29 +189,19 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
         tokens.push(SimpleToken::LeftParen);
 
         // Parse the parenthesis content to get individual tokens
-        // TODO: lines 184 (cols 20-21), 190-191 — same as above; the Err arm is dead
-        // code because the inner closure always succeeds.
-        if let Err(e) = parser.parse_nested_block(|nested_parser| {
+        parse_nested_or_panic(&mut parser, |nested_parser| {
           // Recursively tokenize everything inside the parentheses, handling nested
           // structures
           tokenize_nested_content(nested_parser, &mut tokens);
-          Ok::<(), cssparser::ParseError<()>>(())
-        }) {
-          error!("Error parsing nested content: {:?}", e);
-          stylex_panic!("Error parsing nested content: {:?}", e); // Exit on error
-        }
+          Ok(())
+        });
 
         // Add closing parenthesis (cssparser consumes it automatically)
         tokens.push(SimpleToken::RightParen);
       },
       // Handle all other tokens normally
       _ => {
-        // TODO: line 201 (cols 9-10) — the None branch of `if let Some(mapped)` is
-        // unreachable: map_css_token always returns Some(_) (its wildcard arm returns
-        // Some(T::Unknown(...))), so the implicit else is dead code.
-        if let Some(mapped) = map_css_token(t) {
-          tokens.push(mapped);
-        }
+        tokens.push(map_css_token(t));
       },
     }
   }

@@ -1,11 +1,3 @@
-// Additional coverage tests for time.rs.
-// Targets:
-//   - the `else { None }` arm for an invalid unit inside `extract_time_token`
-//     (reachable by calling the function directly with an invalid-unit Dimension)
-//   - the `else { None }` arm for a non-Dimension token inside `extract_time_token`
-//     (unreachable through the public parser, which guarantees a Dimension token,
-//     but coverable via the named function)
-
 use super::*;
 use crate::token_types::SimpleToken;
 

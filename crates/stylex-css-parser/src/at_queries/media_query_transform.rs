@@ -118,22 +118,26 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     return result;
   }
 
-  // Collect all media query keys
-  let media_keys: Vec<String> = result
+  // Collect all media query key+prop pairs in declaration order.
+  // Collecting the pair together avoids a second `.find()` scan later.
+  let media_pairs: Vec<(String, KeyValueProp)> = result
     .iter()
     .filter_map(|kv| {
       let key = key_value_to_str(kv);
       if key.starts_with("@media ") {
-        Some(key)
+        Some((key, kv.clone()))
       } else {
         None
       }
     })
     .collect();
 
-  if media_keys.len() <= 1 {
+  if media_pairs.len() <= 1 {
     return result;
   }
+
+  // Extract just the keys for the disjoint-range check.
+  let media_keys: Vec<String> = media_pairs.iter().map(|(k, _)| k.clone()).collect();
 
   // Check if all media queries are disjoint ranges - if so, just normalize syntax
   if are_media_queries_disjoint(&media_keys) {
@@ -164,11 +168,10 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     }
   }
 
-  // Process media queries with negations
-  for (i, media_key) in media_keys.iter().enumerate() {
-    if let Some(original_kv) = result.iter().find(|kv| key_value_to_str(kv) == *media_key)
-      && let Ok(base_mq) = MediaQuery::parser().parse_to_end(media_key)
-    {
+  // Process media queries with negations.
+  // Use the pre-collected (key, original_kv) pairs — no second .find() needed.
+  for (i, (media_key, original_kv)) in media_pairs.iter().enumerate() {
+    if let Ok(base_mq) = MediaQuery::parser().parse_to_end(media_key) {
       let mut reversed_negations = accumulated_negations[i].clone();
       reversed_negations.reverse();
 
@@ -200,26 +203,24 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     }
   }
 
-  // Add transformed media queries
-  for media_key in &media_keys {
+  // Add transformed media queries in declaration order.
+  // Use the pre-collected (key, original_kv) pairs — no second .find() needed.
+  for (i, (media_key, original_kv)) in media_pairs.iter().enumerate() {
     if let Ok(base_mq) = MediaQuery::parser().parse_to_end(media_key) {
-      let i = media_keys.iter().position(|k| k == media_key).unwrap();
       let mut reversed_negations = accumulated_negations[i].clone();
       reversed_negations.reverse();
 
       let combined_query = combine_media_query_with_negations(base_mq, reversed_negations);
       let new_media_key = combined_query.to_string();
 
-      if let Some(original_kv) = result.iter().find(|kv| key_value_to_str(kv) == *media_key) {
-        final_result.push(KeyValueProp {
-          key: PropName::Str(Str {
-            span: DUMMY_SP,
-            value: Wtf8Atom::from(new_media_key),
-            raw: None,
-          }),
-          value: original_kv.value.clone(),
-        });
-      }
+      final_result.push(KeyValueProp {
+        key: PropName::Str(Str {
+          span: DUMMY_SP,
+          value: Wtf8Atom::from(new_media_key),
+          raw: None,
+        }),
+        value: original_kv.value.clone(),
+      });
     }
   }
 
@@ -403,3 +404,7 @@ fn normalize_media_query_syntax(result: Vec<KeyValueProp>) -> Vec<KeyValueProp> 
 #[cfg(test)]
 #[path = "../tests/at_queries/media_query_transform_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "../tests/at_queries/media_query_transform_coverage_test.rs"]
+mod media_query_transform_coverage_test;

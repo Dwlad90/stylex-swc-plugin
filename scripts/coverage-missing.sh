@@ -40,7 +40,7 @@
 #   scripts/coverage-missing.sh stylex_css      # single crate (fast iteration)
 #   scripts/coverage-missing.sh -p stylex_css   # same, explicit flag
 #   scripts/coverage-missing.sh --show-phantoms # also print generic per-instantiation gaps
-#   scripts/coverage-missing.sh --strict-phantoms # fail on generic per-instantiation gaps too
+#   scripts/coverage-missing.sh --strict-phantoms # deprecated alias for --show-phantoms
 #   scripts/coverage-missing.sh --html          # also write an HTML report (second run)
 #   scripts/coverage-missing.sh --open          # write + open the HTML report in a browser
 #   scripts/coverage-missing.sh -h | --help
@@ -48,7 +48,7 @@
 # EXIT STATUS
 #   0  every measured source region is exercised by at least one test
 #   1  one or more source regions are unexercised (the `file:line:col` list is
-#      printed above), or --strict-phantoms found uncovered generic instantiations
+#      printed above), or llvm-cov found uncovered generic instantiations
 
 set -euo pipefail
 
@@ -80,7 +80,7 @@ USAGE
   scripts/coverage-missing.sh stylex_css      # single crate (fast iteration)
   scripts/coverage-missing.sh -p stylex_css   # same, explicit flag
   scripts/coverage-missing.sh --show-phantoms # also print generic per-instantiation gaps
-  scripts/coverage-missing.sh --strict-phantoms # fail on generic per-instantiation gaps too
+  scripts/coverage-missing.sh --strict-phantoms # deprecated alias for --show-phantoms
   scripts/coverage-missing.sh --html          # also write an HTML report (second run)
   scripts/coverage-missing.sh --open          # write + open the HTML report in a browser
   scripts/coverage-missing.sh -h | --help
@@ -88,7 +88,7 @@ USAGE
 EXIT STATUS
   0  every measured source region is exercised by at least one test
   1  one or more source regions are unexercised (the file:line:col list is printed above),
-     or --strict-phantoms found uncovered generic instantiations
+     or llvm-cov found uncovered generic instantiations
 EOF
   exit "${1:-0}"
 }
@@ -97,16 +97,12 @@ package=""
 html=0
 open=0
 show_phantoms=0
-strict_phantoms=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
     -h | --help) usage 0 ;;
     --show-phantoms) show_phantoms=1 ;;
-    --strict-phantoms)
-      show_phantoms=1
-      strict_phantoms=1
-      ;;
+    --strict-phantoms) show_phantoms=1 ;;
     --html) html=1 ;;
     --open)
       html=1
@@ -206,17 +202,16 @@ fi
 # Render the summary table and the exact uncovered locations, and set the exit
 # status, all from the JSON export.
 if command -v python3 >/dev/null 2>&1; then
-  python3 - "$tmp_json" "$REPO_ROOT" "$IGNORE_REGEX" "$scope_mode" "$scope_value" "$show_phantoms" "$strict_phantoms" <<'PY'
+  python3 - "$tmp_json" "$REPO_ROOT" "$IGNORE_REGEX" "$scope_mode" "$scope_value" "$show_phantoms" <<'PY'
 import json
 import os
 import re
 import sys
 from collections import defaultdict
 
-json_path, repo_root, ignore_regex, scope_mode, scope_value, show_phantoms_arg, strict_phantoms_arg = sys.argv[1:8]
+json_path, repo_root, ignore_regex, scope_mode, scope_value, show_phantoms_arg = sys.argv[1:7]
 ignore = re.compile(ignore_regex)
 show_phantoms_enabled = show_phantoms_arg == "1"
-strict_phantoms_enabled = strict_phantoms_arg == "1"
 
 with open(json_path) as fh:
     report = json.load(fh)
@@ -429,17 +424,11 @@ if raw_notcovered == 0:
 if not uncovered:
     if show_phantoms_enabled:
         print_phantoms()
-    if strict_phantoms_enabled and raw_notcovered > 0:
-        print(
-            f"\n✗ No distinct uncovered source regions, but llvm-cov reports "
-            f"{raw_notcovered} uncovered generic instantiation gap(s)."
-        )
-        sys.exit(1)
     print(
-        f"\n✓ No distinct uncovered source regions. llvm-cov reports {raw_notcovered} "
-        "uncovered generic instantiation gap(s), treated as phantom by default."
+        f"\n✗ No distinct uncovered source regions, but llvm-cov reports "
+        f"{raw_notcovered} uncovered generic instantiation gap(s)."
     )
-    sys.exit(0)
+    sys.exit(1)
 
 by_file = defaultdict(list)
 for filename, line_start, col_start, line_end, col_end in uncovered:

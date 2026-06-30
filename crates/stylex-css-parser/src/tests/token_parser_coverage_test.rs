@@ -1,5 +1,8 @@
 use super::*;
-use crate::token_types::{SimpleToken, TokenList};
+use crate::{
+  css_types::{Scale, TransformFunction},
+  token_types::{SimpleToken, TokenList},
+};
 
 // ── helper: build a TokenList directly (bypasses the CSS tokenizer) ──────────
 
@@ -2129,4 +2132,229 @@ fn optional_as_token_parser_parser_succeeds_returns_some() {
   let result = (opt_parser.run)(&mut tl);
   assert!(result.is_ok());
   assert!(result.unwrap().is_some());
+}
+
+fn i32_token(expected: SimpleToken, value: i32) -> TokenParser<i32> {
+  TokenParser::new(
+    move |tokens| {
+      let current_index = tokens.current_index;
+      match_next_token(tokens, current_index, &expected).map(|_| value)
+    },
+    "i32_token",
+  )
+}
+
+fn f64_token(expected: SimpleToken, value: f64) -> TokenParser<f64> {
+  TokenParser::new(
+    move |tokens| {
+      let current_index = tokens.current_index;
+      match_next_token(tokens, current_index, &expected).map(|_| value)
+    },
+    "f64_token",
+  )
+}
+
+fn transform_token(expected: SimpleToken) -> TokenParser<TransformFunction> {
+  TokenParser::new(
+    move |tokens| {
+      let current_index = tokens.current_index;
+      match_next_token(tokens, current_index, &expected)
+        .map(|_| TransformFunction::Scale(Scale { sx: 1.0, sy: None }))
+    },
+    "transform_token",
+  )
+}
+
+#[test]
+fn strict_or_i32_instantiation_exercises_all_paths() {
+  let parser = i32_token(SimpleToken::Colon, 1).or(i32_token(SimpleToken::Semicolon, 2));
+
+  let mut tokens = tl(vec![SimpleToken::Colon]);
+  assert!(matches!((parser.run)(&mut tokens), Ok(Either::Left(1))));
+
+  let mut tokens = tl(vec![SimpleToken::Semicolon]);
+  assert!(matches!((parser.run)(&mut tokens), Ok(Either::Right(2))));
+
+  let mut tokens = tl(vec![SimpleToken::Comma]);
+  assert!((parser.run)(&mut tokens).is_err());
+}
+
+#[test]
+fn strict_or_optional_label_instantiations_are_built() {
+  let simple = tokens::ident().or(tokens::colon().optional());
+  assert!(simple.label.contains("Optional"));
+
+  let string =
+    TokenParser::<String>::string("foo").or(TokenParser::<String>::string("bar").optional());
+  assert!(string.label.contains("Optional"));
+
+  let int = i32_token(SimpleToken::Colon, 1).or(TokenParser::always(2).optional());
+  assert!(int.label.contains("Optional"));
+}
+
+#[test]
+fn strict_never_unit_instantiation_is_run() {
+  let mut tokens = tl(vec![]);
+  assert!((TokenParser::<()>::never().run)(&mut tokens).is_err());
+}
+
+#[test]
+fn strict_one_of_error_instantiations_are_run() {
+  let mut tokens = tl(vec![SimpleToken::Comma]);
+  let simple = TokenParser::one_of(vec![tokens::colon(), tokens::semicolon()]);
+  assert!((simple.run)(&mut tokens).is_err());
+
+  let mut tokens = tl(vec![SimpleToken::Comma]);
+  let int = TokenParser::one_of(vec![
+    i32_token(SimpleToken::Colon, 1),
+    i32_token(SimpleToken::Semicolon, 2),
+  ]);
+  assert!((int.run)(&mut tokens).is_err());
+}
+
+#[test]
+fn strict_sequence_i32_instantiation_rewinds_on_error() {
+  let parser = TokenParser::<i32>::sequence(vec![
+    i32_token(SimpleToken::Colon, 1),
+    i32_token(SimpleToken::Semicolon, 2),
+  ]);
+  let mut tokens = tl(vec![SimpleToken::Colon, SimpleToken::Comma]);
+
+  assert!((parser.run)(&mut tokens).is_err());
+  assert_eq!(tokens.current_index, 0);
+}
+
+#[test]
+fn strict_surrounded_by_optional_prefix_simple_token_instantiation_runs() {
+  let parser = tokens::ident().surrounded_by(
+    tokens::colon().optional(),
+    None::<TokenParser<Option<SimpleToken>>>,
+  );
+
+  let mut tokens = tl(vec![SimpleToken::Ident("foo".to_string())]);
+  assert!(matches!(
+    (parser.run)(&mut tokens),
+    Ok(SimpleToken::Ident(_))
+  ));
+
+  let mut tokens = tl(vec![SimpleToken::Colon]);
+  assert!((parser.run)(&mut tokens).is_err());
+}
+
+#[test]
+fn strict_flexible_sequence_builder_instantiation_exercises_error_paths() {
+  let foo = TokenParser::<String>::string("foo");
+  let bar = TokenParser::<String>::string("bar");
+  let parser = TokenParser::<String>::mixed_sequence(vec![Either::Left(foo), Either::Left(bar)])
+    .separated_by(tokens::whitespace());
+
+  let mut tokens = tl(vec![
+    SimpleToken::Ident("foo".to_string()),
+    SimpleToken::Whitespace,
+    SimpleToken::Ident("baz".to_string()),
+  ]);
+  assert!((parser.run)(&mut tokens).is_err());
+
+  let foo = TokenParser::<String>::string("foo");
+  let always_bar = TokenParser::always(Some("bar".to_string()));
+  let parser =
+    TokenParser::<String>::mixed_sequence(vec![Either::Left(foo), Either::Right(always_bar)])
+      .separated_by(TokenParser::<SimpleToken>::never());
+
+  let mut tokens = tl(vec![SimpleToken::Ident("foo".to_string())]);
+  assert!((parser.run)(&mut tokens).is_err());
+}
+
+#[test]
+fn strict_flexible_sequence_string_direct_instantiation_exercises_remaining_paths() {
+  let parser = TokenParser::<String>::flexible_sequence_separated_by(
+    vec![
+      Either::Left(TokenParser::<String>::string("foo")),
+      Either::Right(TokenParser::always(Some("bar".to_string()))),
+    ],
+    tokens::whitespace(),
+  );
+  let mut tokens = tl(vec![
+    SimpleToken::Ident("foo".to_string()),
+    SimpleToken::Whitespace,
+  ]);
+  let result = (parser.run)(&mut tokens);
+  assert!(matches!(result, Ok(values) if values == vec![
+    Some("foo".to_string()),
+    Some("bar".to_string())
+  ]));
+
+  let parser = TokenParser::<String>::flexible_sequence_separated_by(
+    vec![Either::Left(TokenParser::<String>::string("foo"))],
+    tokens::whitespace(),
+  );
+  let mut tokens = tl(vec![SimpleToken::Ident("bar".to_string())]);
+  assert!((parser.run)(&mut tokens).is_err());
+
+  let parser = TokenParser::<String>::flexible_sequence_separated_by(
+    vec![Either::Right(TokenParser::always(Some("bar".to_string())))],
+    tokens::whitespace(),
+  );
+  let mut tokens = tl(vec![]);
+  assert!(matches!(
+    (parser.run)(&mut tokens),
+    Ok(values) if values == vec![Some("bar".to_string())]
+  ));
+}
+
+#[test]
+fn strict_one_or_more_separated_by_transform_and_number_instantiations() {
+  let parser = TokenParser::one_or_more_separated_by(
+    transform_token(SimpleToken::Ident("scale".to_string())),
+    tokens::comma(),
+  );
+  let mut tokens = tl(vec![SimpleToken::Comma]);
+  assert!((parser.run)(&mut tokens).is_err());
+
+  let mut tokens = tl(vec![
+    SimpleToken::Ident("scale".to_string()),
+    SimpleToken::Comma,
+    SimpleToken::Colon,
+  ]);
+  assert!((parser.run)(&mut tokens).is_ok());
+
+  let parser = TokenParser::one_or_more_separated_by(
+    f64_token(SimpleToken::Number(0.0), 1.0),
+    tokens::comma(),
+  );
+  let mut tokens = tl(vec![SimpleToken::Comma]);
+  assert!((parser.run)(&mut tokens).is_err());
+
+  let mut tokens = tl(vec![
+    SimpleToken::Number(1.0),
+    SimpleToken::Comma,
+    SimpleToken::Colon,
+  ]);
+  assert!((parser.run)(&mut tokens).is_ok());
+}
+
+#[test]
+fn strict_one_or_more_separated_by_remaining_instantiations() {
+  let parser = TokenParser::one_or_more_separated_by(
+    TokenParser::<String>::string("foo"),
+    tokens::whitespace().optional(),
+  );
+  let mut tokens = tl(vec![SimpleToken::Ident("foo".to_string())]);
+  assert!(matches!(
+    (parser.run)(&mut tokens),
+    Ok(values) if values == vec!["foo".to_string()]
+  ));
+
+  let parser = TokenParser::one_or_more_separated_by(
+    TokenParser::<String>::string("foo"),
+    TokenParser::<()>::always(()),
+  );
+  let mut tokens = tl(vec![
+    SimpleToken::Ident("foo".to_string()),
+    SimpleToken::Ident("bar".to_string()),
+  ]);
+  assert!(matches!(
+    (parser.run)(&mut tokens),
+    Ok(values) if values == vec!["foo".to_string()]
+  ));
 }

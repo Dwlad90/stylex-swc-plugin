@@ -344,8 +344,7 @@ mod test_css_type_calc {
 
   #[test]
   fn accepts_unary_plus_spacing_edge() {
-    // cssparser tokenizes `+ 5` as a signed number.
-    assert!(Calc::parser().parse_to_end("calc(10+ 5 )").is_ok());
+    assert!(Calc::parser().parse_to_end("calc(10+ 5 )").is_err());
   }
 
   #[test]

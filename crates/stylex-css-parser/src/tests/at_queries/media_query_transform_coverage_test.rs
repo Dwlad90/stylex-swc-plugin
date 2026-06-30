@@ -128,10 +128,8 @@ mod dfs_coverage {
     assert!(matches!(&*result[0].value, Expr::Array(_)));
   }
 
-  /// Covers the else path of the let-chain for a non-KeyValue prop inside an ObjectLit.
-  /// When an ObjectLit contains a Prop::Shorthand (not KeyValue), the let-chain condition
-  /// `let Prop::KeyValue(kv) = &**p` fails, so `key_values.push` is NOT called for it.
-  /// This exercises the else path of the second condition in the let-chain.
+  /// Non-KeyValue props inside an ObjectLit must be preserved unchanged so the
+  /// main StyleX validation can report the unsupported non-static value.
   #[test]
   fn object_with_shorthand_prop_skips_non_key_value() {
     // Build a shorthand prop: `{ foo }` (Prop::Shorthand) — Ident::from(&str) works
@@ -156,11 +154,13 @@ mod dfs_coverage {
     // last_media_query_wins_transform calls dfs at depth=0, then at depth=1 for nested objects
     let result = last_media_query_wins_transform(&[outer_prop]);
 
-    // The shorthand prop is skipped — result should still contain the outer prop
     assert_eq!(result.len(), 1);
-    // The nested object should be empty (shorthand was skipped)
     if let Expr::Object(inner_obj) = &*result[0].value {
-      assert_eq!(inner_obj.props.len(), 0);
+      assert_eq!(inner_obj.props.len(), 1);
+      assert!(matches!(
+        inner_obj.props[0],
+        PropOrSpread::Prop(ref prop) if matches!(prop.as_ref(), Prop::Shorthand(_))
+      ));
     } else {
       panic!("Expected Object value");
     }
@@ -200,7 +200,8 @@ mod dfs_coverage {
 
     assert_eq!(result.len(), 1);
     if let Expr::Object(inner_obj) = &*result[0].value {
-      assert_eq!(inner_obj.props.len(), 0);
+      assert_eq!(inner_obj.props.len(), 1);
+      assert!(matches!(inner_obj.props[0], PropOrSpread::Spread(_)));
     } else {
       panic!("Expected Object value");
     }
@@ -208,9 +209,8 @@ mod dfs_coverage {
 }
 
 // ---------------------------------------------------------------------------
-// transform_media_queries_in_result
-// and lines 189, 222-223 (let-chain else paths when media key parse fails or
-// original_kv not found)
+// transform_media_queries_in_result — negation accumulation and invalid-key
+// preservation paths.
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
@@ -267,41 +267,45 @@ mod transform_media_coverage {
     assert_eq!(result.len(), 3);
   }
 
-  /// Covers when a media key cannot be parsed by
-  /// MediaQuery::parser().parse_to_end(), the let-chain `&& let Ok(base_mq)` condition
-  /// at line 170 and at line 205 fails, skipping the block bodies at 172-188 and 208-221.
-  ///
-  /// An invalid "@media " key is passed so that parse_to_end returns Err,
-  /// combined with a valid key so the function doesn't short-circuit at the <=1 check.
+  /// Invalid media keys are preserved unchanged. The transform must never drop
+  /// declarations while trying to normalize media-query order.
   #[test]
   fn media_key_that_fails_to_parse_is_silently_dropped() {
     let props = vec![
       str_kv("@media (color)", "red"),
-      // This key starts with "@media " but has invalid syntax — parse_to_end will fail.
-      // are_media_queries_disjoint will also return false (line 283) for this key.
-      // Then transform_media_queries_in_result tries to process it; the Ok() condition fails,
-      // covering lines 189 and 222-223.
       str_kv("@media !!!invalid!!!css", "blue"),
     ];
 
     let result = transform_media_queries_in_result(props);
 
-    // The function should complete without panicking
-    assert!(!result.is_empty());
+    assert_eq!(result.len(), 2);
+    assert!(result.iter().any(|kv| {
+      matches!(
+        &kv.key,
+        PropName::Str(s) if s.value.as_str() == Some("@media !!!invalid!!!css")
+      )
+    }));
   }
 }
 
 // ---------------------------------------------------------------------------
-// are_media_queries_disjoint — line 283 (return false when parse_to_end fails)
+// are_media_queries_disjoint
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod are_media_queries_disjoint_coverage {
   use super::*;
 
-  /// Covers line 283: are_media_queries_disjoint returns false when a media key
-  /// fails to parse. This is called via last_media_query_wins_transform when the
-  /// object at depth>=1 has multiple media query keys, one of which is invalid.
+  fn parsed_pair(key: &str) -> (String, KeyValueProp, MediaQuery) {
+    (
+      key.to_string(),
+      str_kv(key, "value"),
+      MediaQuery::parser().parse_to_end(key).unwrap(),
+    )
+  }
+
+  /// Invalid media keys are handled before are_media_queries_disjoint is called,
+  /// so the nested object is preserved unchanged and no panic/indexing failure occurs.
   #[test]
   fn invalid_media_key_via_transform_causes_disjoint_check_to_return_false() {
     // Build an outer prop with a nested object containing two "media" keys,
@@ -329,40 +333,36 @@ mod are_media_queries_disjoint_coverage {
       value: Box::new(Expr::Object(inner_obj)),
     };
 
-    // This will call are_media_queries_disjoint with the two keys;
-    // the invalid one causes parse_to_end to return Err, hitting line 283.
     let result = last_media_query_wins_transform(&[outer_prop]);
 
-    // The function should complete without panicking
     assert_eq!(result.len(), 1);
+    let Expr::Object(inner_obj) = result[0].value.as_ref() else {
+      panic!("Expected Object value");
+    };
+    assert_eq!(inner_obj.props.len(), 2);
   }
 
-  /// Directly calls are_media_queries_disjoint with an invalid media key to
-  /// ensure line 283 is covered.
   #[test]
   fn direct_call_with_invalid_key_returns_false() {
-    let keys = vec![
-      "@media (max-width: 768px)".to_string(),
-      "@media !!!INVALID_SYNTAX!!!".to_string(),
+    let media_pairs = vec![
+      parsed_pair("@media (min-width: 100px) and (max-width: 300px)"),
+      parsed_pair("@media (min-width: 200px) and (max-width: 400px)"),
     ];
 
-    let result = are_media_queries_disjoint(&keys);
+    let result = are_media_queries_disjoint(&media_pairs);
 
     assert!(
       !result,
-      "Expected are_media_queries_disjoint to return false for invalid key"
+      "Expected are_media_queries_disjoint to return false for overlapping ranges"
     );
   }
 
-  /// Covers line 284 specifically: the FIRST (and only) key fails `parse_to_end`,
-  /// so the outer `else { return false }` branch runs on the first iteration
-  /// before any width/height range is collected.
   #[test]
   fn first_key_failing_to_parse_returns_false() {
-    let keys = vec!["@media !!!invalid".to_string()];
+    let media_pairs = vec![parsed_pair("@media (color)")];
     assert!(
-      !are_media_queries_disjoint(&keys),
-      "a single unparseable key must short-circuit to false"
+      !are_media_queries_disjoint(&media_pairs),
+      "a parsed non-range query must not use disjoint-range fast path"
     );
   }
 }

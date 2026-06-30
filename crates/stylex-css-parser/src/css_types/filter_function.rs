@@ -180,6 +180,12 @@ impl BrightnessFilterFunction {
           NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
         };
 
+        if value < 0.0 {
+          return Err(CssParseError::ParseError {
+            message: "brightness() amount must be non-negative".to_string(),
+          });
+        }
+
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
           let _ = tokens.consume_next_token();

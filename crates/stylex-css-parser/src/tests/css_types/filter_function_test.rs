@@ -96,7 +96,7 @@ mod filter_function_parse {
     assert!(
       FilterFunction::parser()
         .parse_to_end("brightness(-50%)")
-        .is_ok()
+        .is_err()
     );
     assert!(FilterFunction::parser().parse_to_end("").is_err());
   }

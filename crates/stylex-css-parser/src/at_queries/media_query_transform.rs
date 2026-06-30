@@ -13,7 +13,6 @@ This implementation provides media query transformation:
 use super::media_query::{
   MediaAndRules, MediaNotRule, MediaOrRules, MediaQuery, MediaQueryRule, MediaRuleValue,
 };
-use rustc_hash::FxHashMap;
 use swc_core::{
   atoms::Wtf8Atom,
   common::DUMMY_SP,
@@ -23,11 +22,7 @@ use swc_core::{
 /// Helper function to extract key as string from KeyValueProp
 fn key_value_to_str(key_value: &KeyValueProp) -> String {
   match &key_value.key {
-    PropName::Str(s) => s
-      .value
-      .as_atom()
-      .expect("Failed to convert Str to Atom")
-      .to_string(),
+    PropName::Str(s) => s.value.as_str().map(str::to_owned).unwrap_or_default(),
     PropName::Ident(id) => id.sym.to_string(),
     _ => String::new(),
   }
@@ -72,14 +67,26 @@ fn dfs_process_queries_with_depth(obj: &[KeyValueProp], depth: u32) -> Vec<KeyVa
         result.push(prop.clone());
       },
       Expr::Object(obj_lit) => {
-        // Extract key-value pairs from the object
-        let mut key_values = Vec::new();
+        // Extract key-value pairs from the object. If the object contains
+        // spreads/shorthands/methods, preserve it unchanged; silently dropping
+        // those props would mutate user AST before the main StyleX validation
+        // can report the unsupported non-static value.
+        let mut key_values = Vec::with_capacity(obj_lit.props.len());
+        let mut only_key_values = true;
         for obj_prop in &obj_lit.props {
           if let PropOrSpread::Prop(p) = obj_prop
             && let Prop::KeyValue(kv) = &**p
           {
             key_values.push(kv.clone());
+          } else {
+            only_key_values = false;
+            break;
           }
+        }
+
+        if !only_key_values {
+          result.push(prop.clone());
+          continue;
         }
 
         // Recursively process the object at depth + 1
@@ -136,60 +143,30 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     return result;
   }
 
-  // Extract just the keys for the disjoint-range check.
-  let media_keys: Vec<String> = media_pairs.iter().map(|(k, _)| k.clone()).collect();
+  let mut parsed_media_pairs = Vec::with_capacity(media_pairs.len());
+  for (media_key, original_kv) in media_pairs {
+    match MediaQuery::parser().parse_to_end(&media_key) {
+      Ok(media_query) => parsed_media_pairs.push((media_key, original_kv, media_query)),
+      Err(_) => {
+        // Preserve the original AST. Dropping an invalid `@media` key here would
+        // hide the real parser error from the later flattening/validation phase.
+        return result;
+      },
+    }
+  }
 
   // Check if all media queries are disjoint ranges - if so, just normalize syntax
-  if are_media_queries_disjoint(&media_keys) {
+  if are_media_queries_disjoint(&parsed_media_pairs) {
     return normalize_media_query_syntax(result);
   }
 
-  // Build negations array - JS logic: for i from length-1 down to 1
-  let mut negations = Vec::new();
-  let mut accumulated_negations: Vec<Vec<MediaQuery>> = Vec::new();
-
-  for i in (1..media_keys.len()).rev() {
-    if let Ok(mq) = MediaQuery::parser().parse_to_end(&media_keys[i]) {
-      negations.push(mq);
-      accumulated_negations.push(negations.clone());
-    }
-  }
-  accumulated_negations.reverse();
-  accumulated_negations.push(Vec::new()); // Empty negations for the last query
-
-  // Transform each media query
-  let mut result_map = FxHashMap::default();
-
-  // First, build a map of existing non-media properties
-  for kv in &result {
-    let key = key_value_to_str(kv);
-    if !key.starts_with("@media ") {
-      result_map.insert(key, kv.clone());
-    }
-  }
-
-  // Process media queries with negations.
-  // Use the pre-collected (key, original_kv) pairs — no second .find() needed.
-  for (i, (media_key, original_kv)) in media_pairs.iter().enumerate() {
-    if let Ok(base_mq) = MediaQuery::parser().parse_to_end(media_key) {
-      let mut reversed_negations = accumulated_negations[i].clone();
-      reversed_negations.reverse();
-
-      let combined_query = combine_media_query_with_negations(base_mq, reversed_negations);
-      let new_media_key = combined_query.to_string();
-
-      result_map.insert(
-        new_media_key,
-        KeyValueProp {
-          key: PropName::Str(Str {
-            span: DUMMY_SP,
-            value: Wtf8Atom::from(combined_query.to_string()),
-            raw: None,
-          }),
-          value: original_kv.value.clone(),
-        },
-      );
-    }
+  // Build negations array - JS logic: for each media query, collect all later
+  // queries in reverse declaration order.
+  let mut accumulated_negations = vec![Vec::new(); parsed_media_pairs.len()];
+  let mut later_negations = Vec::new();
+  for i in (0..parsed_media_pairs.len()).rev() {
+    accumulated_negations[i] = later_negations.clone();
+    later_negations.push(parsed_media_pairs[i].2.clone());
   }
 
   // Convert back to Vec, preserving order (non-media first, then media)
@@ -203,25 +180,21 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     }
   }
 
-  // Add transformed media queries in declaration order.
-  // Use the pre-collected (key, original_kv) pairs — no second .find() needed.
-  for (i, (media_key, original_kv)) in media_pairs.iter().enumerate() {
-    if let Ok(base_mq) = MediaQuery::parser().parse_to_end(media_key) {
-      let mut reversed_negations = accumulated_negations[i].clone();
-      reversed_negations.reverse();
+  for (i, (_, original_kv, base_mq)) in parsed_media_pairs.into_iter().enumerate() {
+    let mut reversed_negations = accumulated_negations[i].clone();
+    reversed_negations.reverse();
 
-      let combined_query = combine_media_query_with_negations(base_mq, reversed_negations);
-      let new_media_key = combined_query.to_string();
+    let combined_query = combine_media_query_with_negations(base_mq, reversed_negations);
+    let new_media_key = combined_query.to_string();
 
-      final_result.push(KeyValueProp {
-        key: PropName::Str(Str {
-          span: DUMMY_SP,
-          value: Wtf8Atom::from(new_media_key),
-          raw: None,
-        }),
-        value: original_kv.value.clone(),
-      });
-    }
+    final_result.push(KeyValueProp {
+      key: PropName::Str(Str {
+        span: DUMMY_SP,
+        value: Wtf8Atom::from(new_media_key),
+        raw: None,
+      }),
+      value: original_kv.value,
+    });
   }
 
   final_result
@@ -269,18 +242,14 @@ fn combine_media_query_with_negations(
 }
 
 /// Check if all media queries represent disjoint width/height ranges
-fn are_media_queries_disjoint(media_keys: &[String]) -> bool {
+fn are_media_queries_disjoint(media_pairs: &[(String, KeyValueProp, MediaQuery)]) -> bool {
   let mut ranges = Vec::new();
 
-  for media_key in media_keys {
-    if let Ok(mq) = MediaQuery::parser().parse_to_end(media_key) {
-      if let Some(range) = extract_width_height_range(&mq) {
-        ranges.push(range);
-      } else {
-        // If any query is not a simple width/height range, don't apply disjoint logic
-        return false;
-      }
+  for (_, _, media_query) in media_pairs {
+    if let Some(range) = extract_width_height_range(media_query) {
+      ranges.push(range);
     } else {
+      // If any query is not a simple width/height range, don't apply disjoint logic
       return false;
     }
   }

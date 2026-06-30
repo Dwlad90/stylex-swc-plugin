@@ -154,6 +154,15 @@ fn consume_next(tokens: &mut TokenList) -> Option<SimpleToken> {
   tokens.consume_next_token().ok().flatten()
 }
 
+fn skip_whitespace(tokens: &mut TokenList) -> bool {
+  let mut consumed = false;
+  while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
+    consume_next(tokens);
+    consumed = true;
+  }
+  consumed
+}
+
 impl CalcValue {
   /// Parser for individual calc values (no operators)
   pub fn value_parser() -> TokenParser<CalcValue> {
@@ -218,9 +227,7 @@ impl CalcValue {
   /// Parse calc expression with operator precedence
   fn parse_calc_expression(tokens: &mut TokenList) -> Result<CalcValue, CssParseError> {
     // Skip any leading whitespace
-    while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-      consume_next(tokens);
-    }
+    skip_whitespace(tokens);
 
     // Parse first value or group
     let first_value = match Self::try_parse_parenthesized_group(tokens) {
@@ -233,9 +240,7 @@ impl CalcValue {
 
     loop {
       // Skip whitespace
-      while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-        consume_next(tokens);
-      }
+      let had_ws_before = skip_whitespace(tokens);
 
       // Check if we're at the end of the expression (RightParen means end for calc)
       if let Ok(Some(SimpleToken::RightParen)) = tokens.peek() {
@@ -247,11 +252,15 @@ impl CalcValue {
       let checkpoint = tokens.current_index;
       match Self::try_parse_operator(tokens) {
         Ok(operator) => {
+          let requires_surrounding_ws = matches!(operator.as_str(), "+" | "-");
           values_and_operators.push(CalcValueOrOperator::Operator(operator));
 
           // Skip whitespace after operator
-          while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-            consume_next(tokens);
+          let had_ws_after = skip_whitespace(tokens);
+          if requires_surrounding_ws && (!had_ws_before || !had_ws_after) {
+            return Err(CssParseError::ParseError {
+              message: "calc '+' and '-' operators require whitespace on both sides".to_string(),
+            });
           }
 
           // Parse next value or group
@@ -437,9 +446,7 @@ impl CalcValue {
     }
 
     // Skip optional whitespace
-    while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
-      consume_next(tokens);
-    }
+    skip_whitespace(tokens);
 
     // Parse the inner expression recursively. Its own trailing whitespace is
     // consumed by parse_calc_expression's internal loop, so the position is left

@@ -213,9 +213,9 @@ mod test_css_type_position {
     let result = Position::parser().parse_to_end("left 10px").unwrap();
     assert!(matches!(
       result.horizontal,
-      Some(Horizontal::KeywordWithOffset(HorizontalKeyword::Left, _))
+      Some(Horizontal::Keyword(HorizontalKeyword::Left))
     ));
-    assert!(result.vertical.is_none());
+    assert!(matches!(result.vertical, Some(Vertical::Length(_))));
   }
 
   #[test]

@@ -287,21 +287,48 @@ impl Position {
     }
   }
 
-  fn parse_length_plus_horizontal(tokens: &mut TokenList) -> Result<Position, CssParseError> {
+  fn parse_horizontal_keyword_plus_vertical_length(
+    tokens: &mut TokenList,
+  ) -> Result<Position, CssParseError> {
     let start = tokens.current_index;
-    let length = Self::parse_length_percentage(tokens)?;
+    let horizontal = (Self::horizontal_keyword_parser().run)(tokens)?;
 
     if !Self::skip_required_whitespace(tokens) {
       tokens.set_current_index(start);
       return Err(CssParseError::ParseError {
-        message: "Expected whitespace after position length".to_string(),
+        message: "Expected whitespace after horizontal position keyword".to_string(),
       });
     }
 
-    match Self::parse_horizontal(tokens) {
+    match Self::parse_length_percentage(tokens) {
+      Ok(vertical) => Ok(Position::new(
+        Some(Horizontal::Keyword(horizontal)),
+        Some(Vertical::Length(vertical)),
+      )),
+      Err(error) => {
+        tokens.set_current_index(start);
+        Err(error)
+      },
+    }
+  }
+
+  fn parse_vertical_keyword_plus_horizontal_length(
+    tokens: &mut TokenList,
+  ) -> Result<Position, CssParseError> {
+    let start = tokens.current_index;
+    let vertical = (Self::vertical_keyword_parser().run)(tokens)?;
+
+    if !Self::skip_required_whitespace(tokens) {
+      tokens.set_current_index(start);
+      return Err(CssParseError::ParseError {
+        message: "Expected whitespace after vertical position keyword".to_string(),
+      });
+    }
+
+    match Self::parse_length_percentage(tokens) {
       Ok(horizontal) => Ok(Position::new(
-        Some(horizontal),
-        Some(Vertical::Length(length)),
+        Some(Horizontal::Length(horizontal)),
+        Some(Vertical::Keyword(vertical)),
       )),
       Err(error) => {
         tokens.set_current_index(start);
@@ -336,8 +363,9 @@ impl Position {
 
     for parser in [
       Self::parse_both_keywords,
+      Self::parse_horizontal_keyword_plus_vertical_length,
+      Self::parse_vertical_keyword_plus_horizontal_length,
       Self::parse_length_plus_vertical,
-      Self::parse_length_plus_horizontal,
     ] {
       match parser(tokens) {
         Ok(position) => return Ok(position),

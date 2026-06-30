@@ -182,13 +182,7 @@ fn both_keywords_rewinds_when_vertical_first_second_component_fails() {
 
 #[test]
 fn parses_length_plus_horizontal() {
-  let result = Position::parser().parse_to_end("10px left").unwrap();
-
-  assert!(matches!(
-    result.horizontal,
-    Some(Horizontal::Keyword(HorizontalKeyword::Left))
-  ));
-  assert!(matches!(result.vertical, Some(Vertical::Length(_))));
+  assert!(Position::parser().parse_to_end("10px left").is_err());
 }
 
 #[test]
@@ -227,4 +221,39 @@ fn position_parser_fn_parses_top() {
     result.vertical,
     Some(Vertical::Keyword(VerticalKeyword::Top))
   ));
+}
+
+#[test]
+fn parses_vertical_keyword_plus_horizontal_length() {
+  let result = Position::parser().parse_to_end("top 10px").unwrap();
+
+  assert!(matches!(result.horizontal, Some(Horizontal::Length(_))));
+  assert!(matches!(
+    result.vertical,
+    Some(Vertical::Keyword(VerticalKeyword::Top))
+  ));
+}
+
+#[test]
+fn vertical_keyword_plus_horizontal_length_requires_whitespace() {
+  let mut tokens = token_list(vec![SimpleToken::Ident("top".to_string())]);
+
+  let result = Position::parse_vertical_keyword_plus_horizontal_length(&mut tokens);
+
+  assert!(result.is_err());
+  assert_eq!(tokens.current_index, 0);
+}
+
+#[test]
+fn vertical_keyword_plus_horizontal_length_rewinds_when_length_fails() {
+  let mut tokens = token_list(vec![
+    SimpleToken::Ident("top".to_string()),
+    SimpleToken::Whitespace,
+    SimpleToken::Ident("left".to_string()),
+  ]);
+
+  let result = Position::parse_vertical_keyword_plus_horizontal_length(&mut tokens);
+
+  assert!(result.is_err());
+  assert_eq!(tokens.current_index, 0);
 }

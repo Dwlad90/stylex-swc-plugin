@@ -12,7 +12,7 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.1",
     "@stylexjs/eslint-plugin": "^0.19.0",
     "@stylexswc/jest": "0.17.0-rc.1",
     "@stylexswc/playwright": "0.17.0-rc.1",

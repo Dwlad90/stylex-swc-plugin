@@ -23,7 +23,7 @@
     "@farmfe/cli": "^1.0.5",
     "@farmfe/core": "^1.7.11",
     "@farmfe/plugin-react": "^1.2.6",
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.1",
     "@stylexswc/playwright": "0.17.0-rc.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

@@ -20,7 +20,7 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.1",
     "@stylexswc/playwright": "0.17.0-rc.1",
     "@swc/core": "^1.15.43",
     "@types/react": "^19.2.17",

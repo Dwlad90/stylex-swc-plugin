@@ -31,7 +31,7 @@
     }
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.1",
     "@stylexswc/eslint-config": "0.17.0-rc.1",
     "@stylexswc/typescript-config": "0.17.0-rc.1",
     "@types/node": "^26.1.0"

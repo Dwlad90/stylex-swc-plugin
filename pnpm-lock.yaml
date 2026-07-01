@@ -739,8 +739,8 @@ importers:
         specifier: ^2.1.0
         version: 2.1.0(@rsbuild/core@2.1.2(core-js@3.48.0))(@rspack/core@2.1.2(@swc/helpers@0.5.23))
       '@rspack/dev-server':
-        specifier: ^2.0.1
-        version: 2.0.1(@rspack/core@2.1.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)
+        specifier: ^2.1.0
+        version: 2.1.0(@rspack/core@2.1.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)
       '@stylexswc/playwright':
         specifier: 0.17.0-rc.1
         version: link:../../packages/playwright
@@ -788,8 +788,8 @@ importers:
         specifier: ^2.1.0
         version: 2.1.0(@rsbuild/core@2.1.2(core-js@3.48.0))(@rspack/core@2.1.2(@swc/helpers@0.5.23))
       '@rspack/dev-server':
-        specifier: ^2.0.1
-        version: 2.0.1(@rspack/core@2.1.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)
+        specifier: ^2.1.0
+        version: 2.1.0(@rspack/core@2.1.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)
       '@stylexswc/playwright':
         specifier: 0.17.0-rc.1
         version: link:../../packages/playwright
@@ -832,13 +832,13 @@ importers:
         version: 1.60.0
       '@rspack/cli':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.0.1(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))
+        version: 2.0.2(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))
       '@rspack/core':
         specifier: ^2.0.2
         version: 2.0.2(@swc/helpers@0.5.23)
       '@rspack/dev-server':
-        specifier: ^2.0.1
-        version: 2.0.1(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)
+        specifier: ^2.1.0
+        version: 2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)
       '@stylexswc/playwright':
         specifier: 0.17.0-rc.1
         version: link:../../packages/playwright
@@ -881,13 +881,13 @@ importers:
         version: 1.60.0
       '@rspack/cli':
         specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.0.1(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))
+        version: 2.0.2(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))
       '@rspack/core':
         specifier: ^2.0.2
         version: 2.0.2(@swc/helpers@0.5.23)
       '@rspack/dev-server':
-        specifier: ^2.0.1
-        version: 2.0.1(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)
+        specifier: ^2.1.0
+        version: 2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)
       '@stylexswc/playwright':
         specifier: 0.17.0-rc.1
         version: link:../../packages/playwright
@@ -5512,20 +5512,20 @@ packages:
       '@swc/helpers':
         optional: true
 
-  '@rspack/dev-middleware@2.0.1':
-    resolution: {integrity: sha512-cXSubf5/C+dvkWV2/+rGTtiZ93wSLd3OlTQhwMvsmsmGDdPlkYqIvQ+BTkOk9UCXxKIaF0DDYYmCpBeRRYJfJw==}
+  '@rspack/dev-middleware@2.0.3':
+    resolution: {integrity: sha512-GxnGj9jy76G3eCPyZei81fwKLAMLZaPEEqFz1/QDYquhwi/qYZX5fekFJ1XVpuwxGEK9KSX3hxZylfwrs4cmLA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      '@rspack/core': ^2.0.0-0
+      '@rspack/core': ^2.0.0
     peerDependenciesMeta:
       '@rspack/core':
         optional: true
 
-  '@rspack/dev-server@2.0.1':
-    resolution: {integrity: sha512-N5sIdU9v6WhwPH6Ek8QCj4IMvGd8jA3ZW1NMAyHP1ezzKIr2/idcNV2zX5vbC6FJvOLRLww0rFjfKA+z4tshDA==}
+  '@rspack/dev-server@2.1.0':
+    resolution: {integrity: sha512-WkCi6bWThVX5Ziv04srPaRoCoUY5FJolO4gqzE7xPO0XbXShsGnwn0vGD0DFfnYFcw9VSsxlmeCDV799lNYclA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      '@rspack/core': ^2.0.0-0
+      '@rspack/core': ^2.0.0
       selfsigned: ^5.0.0
     peerDependenciesMeta:
       selfsigned:
@@ -16082,11 +16082,11 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 2.1.2
       '@rspack/binding-win32-x64-msvc': 2.1.2
 
-  '@rspack/cli@2.0.2(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.0.1(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))':
+  '@rspack/cli@2.0.2(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))':
     dependencies:
       '@rspack/core': 2.0.2(@swc/helpers@0.5.23)
     optionalDependencies:
-      '@rspack/dev-server': 2.0.1(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)
+      '@rspack/dev-server': 2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)
 
   '@rspack/core@1.7.6(@swc/helpers@0.5.23)':
     dependencies:
@@ -16109,25 +16109,25 @@ snapshots:
     optionalDependencies:
       '@swc/helpers': 0.5.23
 
-  '@rspack/dev-middleware@2.0.1(@rspack/core@2.0.2(@swc/helpers@0.5.23))':
+  '@rspack/dev-middleware@2.0.3(@rspack/core@2.0.2(@swc/helpers@0.5.23))':
     optionalDependencies:
       '@rspack/core': 2.0.2(@swc/helpers@0.5.23)
 
-  '@rspack/dev-middleware@2.0.1(@rspack/core@2.1.2(@swc/helpers@0.5.23))':
+  '@rspack/dev-middleware@2.0.3(@rspack/core@2.1.2(@swc/helpers@0.5.23))':
     optionalDependencies:
       '@rspack/core': 2.1.2(@swc/helpers@0.5.23)
 
-  '@rspack/dev-server@2.0.1(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)':
+  '@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)':
     dependencies:
       '@rspack/core': 2.0.2(@swc/helpers@0.5.23)
-      '@rspack/dev-middleware': 2.0.1(@rspack/core@2.0.2(@swc/helpers@0.5.23))
+      '@rspack/dev-middleware': 2.0.3(@rspack/core@2.0.2(@swc/helpers@0.5.23))
     optionalDependencies:
       selfsigned: 5.5.0
 
-  '@rspack/dev-server@2.0.1(@rspack/core@2.1.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)':
+  '@rspack/dev-server@2.1.0(@rspack/core@2.1.2(@swc/helpers@0.5.23))(selfsigned@5.5.0)':
     dependencies:
       '@rspack/core': 2.1.2(@swc/helpers@0.5.23)
-      '@rspack/dev-middleware': 2.0.1(@rspack/core@2.1.2(@swc/helpers@0.5.23))
+      '@rspack/dev-middleware': 2.0.3(@rspack/core@2.1.2(@swc/helpers@0.5.23))
     optionalDependencies:
       selfsigned: 5.5.0
 

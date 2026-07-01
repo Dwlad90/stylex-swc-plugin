@@ -58,7 +58,7 @@
     "picomatch": "^4.0.4"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^3.5.1",
+    "@napi-rs/cli": "^3.7.2",
     "@stylexswc/ast": "0.17.0-rc.1",
     "@stylexswc/logs": "0.17.0-rc.1",
     "@stylexswc/macros": "0.17.0-rc.1",

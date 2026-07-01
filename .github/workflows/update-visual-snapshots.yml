@@ -48,7 +48,7 @@ jobs:
           esac
 
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.0
         with:
           fetch-depth: 1
           fetch-tags: false
@@ -67,7 +67,7 @@ jobs:
     needs: playwright-image
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.0
         with:
           fetch-depth: 0
           fetch-tags: false
@@ -108,7 +108,7 @@ jobs:
       actions: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.0
         with:
           fetch-depth: 0
           fetch-tags: false

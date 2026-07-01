@@ -19,7 +19,7 @@
     "vue": "^3.5.35"
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.1",
     "@stylexswc/playwright": "0.17.0-rc.1",
     "@vitejs/plugin-vue": "^6.0.6",
     "serve": "^14.2.6",

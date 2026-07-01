@@ -1,26 +1,26 @@
 {
   "name": "@stylexswc/transform",
   "description": "SWC VisitMut implementation and transform orchestration for StyleX",
-  "version": "0.17.0-rc.1",
+  "version": "0.17.0-rc.2",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
     }
   },
   "devDependencies": {
-    "@stylexswc/ast": "0.17.0-rc.1",
-    "@stylexswc/atoms": "0.17.0-rc.1",
-    "@stylexswc/constants": "0.17.0-rc.1",
-    "@stylexswc/css": "0.17.0-rc.1",
-    "@stylexswc/css-parser": "0.17.0-rc.1",
-    "@stylexswc/logs": "0.17.0-rc.1",
-    "@stylexswc/macros": "0.17.0-rc.1",
-    "@stylexswc/utils": "0.17.0-rc.1",
-    "@stylexswc/path-resolver": "0.17.0-rc.1",
-    "@stylexswc/regex": "0.17.0-rc.1",
-    "@stylexswc/enums": "0.17.0-rc.1",
-    "@stylexswc/structures": "0.17.0-rc.1",
-    "@stylexswc/types": "0.17.0-rc.1",
+    "@stylexswc/ast": "0.17.0-rc.2",
+    "@stylexswc/atoms": "0.17.0-rc.2",
+    "@stylexswc/constants": "0.17.0-rc.2",
+    "@stylexswc/css": "0.17.0-rc.2",
+    "@stylexswc/css-parser": "0.17.0-rc.2",
+    "@stylexswc/logs": "0.17.0-rc.2",
+    "@stylexswc/macros": "0.17.0-rc.2",
+    "@stylexswc/utils": "0.17.0-rc.2",
+    "@stylexswc/path-resolver": "0.17.0-rc.2",
+    "@stylexswc/regex": "0.17.0-rc.2",
+    "@stylexswc/enums": "0.17.0-rc.2",
+    "@stylexswc/structures": "0.17.0-rc.2",
+    "@stylexswc/types": "0.17.0-rc.2",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.9.4"

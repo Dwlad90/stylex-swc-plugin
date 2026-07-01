@@ -52,7 +52,7 @@
     "@stylexswc/eslint-config": "0.17.0-rc.1",
     "@stylexswc/typescript-config": "0.17.0-rc.1",
     "@types/node": "^25.9.1",
-    "next": "^16.2.7",
+    "next": "^16.2.9",
     "postcss": "^8.5.16",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

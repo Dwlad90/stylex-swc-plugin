@@ -21,6 +21,7 @@ module.exports = {
     'footer-leading-blank': [2, 'always']
   },
   ignores: [
-    (commit) => commit.startsWith('Merge')
+    (commit) => commit.startsWith('Merge'),
+    (commit) => commit.includes('Signed-off-by: dependabot[bot]')
   ]
 };

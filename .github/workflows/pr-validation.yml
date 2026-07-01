@@ -178,13 +178,13 @@ jobs:
 
       - name: Install cargo-nextest
         if: matrix.check.id == 'tests-rust'
-        uses: taiki-e/install-action@v2.81.1
+        uses: taiki-e/install-action@v2.82.7
         with:
           tool: cargo-nextest
 
       - name: Install cargo-llvm-cov and nightly
         if: matrix.check.id == 'tests-coverage'
-        uses: taiki-e/install-action@v2.81.1
+        uses: taiki-e/install-action@v2.82.7
         with:
           tool: cargo-nextest,cargo-llvm-cov
 

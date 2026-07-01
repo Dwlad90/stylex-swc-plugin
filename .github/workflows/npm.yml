@@ -64,7 +64,7 @@ jobs:
       - name: Enable long path support
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -145,7 +145,7 @@ jobs:
       - name: Enable long path support
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -191,7 +191,7 @@ jobs:
           #- '26.0.0' # Node.js 26 is not supported yet
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -240,7 +240,7 @@ jobs:
           #- '26.0.0' # Node.js 26 is not supported yet
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -311,7 +311,7 @@ jobs:
       - name: Enable long path support
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -333,7 +333,7 @@ jobs:
           name: bindings-${{ matrix.settings.target }}
           path: crates/stylex-rs-compiler/dist
       - name: Download previous benchmark data
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ./cache
           key: ${{ matrix.settings.target }}-benchmark-${{ matrix.node }}
@@ -379,7 +379,7 @@ jobs:
       - test-linux-x64-gnu-binding
       - test-linux-x64-musl-binding
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
       - name: Setup pnpm
         uses: ./.github/actions/setup-pnpm
       - name: Cache turbo build setup

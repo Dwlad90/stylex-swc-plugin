@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.0
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
@@ -104,7 +104,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout PR code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.0
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
@@ -159,7 +159,7 @@ jobs:
             command: pnpm run check:artifacts --filter "{./packages/*}" --filter "{./crates/*}"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.0
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
@@ -215,7 +215,7 @@ jobs:
       version: ${{ steps.detect.outputs.version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.0
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 1
@@ -246,7 +246,7 @@ jobs:
       PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.0
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
@@ -307,7 +307,7 @@ jobs:
         }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.0
         with:
           ref: ${{ env.CHECKOUT_REF }}
           fetch-depth: 0
@@ -327,7 +327,7 @@ jobs:
 
       - name: Download previous benchmark data
         id: benchmark-cache-restore
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ./cache
           key: ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-${{ github.run_attempt }}
@@ -357,7 +357,7 @@ jobs:
 
       - name: Save benchmark cache
         if: always()
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ./cache
           key: ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-${{ github.run_attempt }}
@@ -410,7 +410,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.0
         with:
           fetch-depth: 0
 

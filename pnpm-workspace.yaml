@@ -5,7 +5,7 @@ packages:
 autoInstallPeers: true
 dedupePeerDependents: true
 linkWorkspacePackages: deep
-nodeVersion: 24.14.0
+nodeVersion: 24.18.0
 preferWorkspacePackages: true
 resolvePeersFromWorkspaceRoot: true
 saveWorkspaceProtocol: rolling

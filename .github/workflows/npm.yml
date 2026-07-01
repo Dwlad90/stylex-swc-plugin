@@ -57,7 +57,7 @@ jobs:
               corepack prepare pnpm@10.30.3 --activate
               pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-unknown-linux-gnu
         node:
-          - '24.14.0'
+          - '24.18.0'
     name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.settings.target }}
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -138,7 +138,7 @@ jobs:
         node:
           # - '20.18.1' #Emittery v2 is not compatible with Node.js 20.
           - '22.22.1'
-          - '24.14.0'
+          - '24.18.0'
           #- '26.0.0' # Node.js 26 is not supported yet
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -187,7 +187,7 @@ jobs:
         node:
           # - '20.18.1' #Emittery v2 is not compatible with Node.js 20.
           - '22.22.1'
-          - '24.14.0'
+          - '24.18.0'
           #- '26.0.0' # Node.js 26 is not supported yet
     runs-on: ubuntu-latest
     steps:
@@ -236,7 +236,7 @@ jobs:
         node:
           # - '20.18.1' #Emittery v2 is not compatible with Node.js 20.
           - '22.22.1'
-          - '24.14.0'
+          - '24.18.0'
           #- '26.0.0' # Node.js 26 is not supported yet
     runs-on: ubuntu-latest
     steps:
@@ -301,7 +301,7 @@ jobs:
         node:
           - '20.18.1'
           - '22.22.1'
-          - '24.14.0'
+          - '24.18.0'
     runs-on: ${{ matrix.settings.host }}
     permissions:
       contents: write

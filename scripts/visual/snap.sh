@@ -13,7 +13,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-NODE_VERSION="${STYLEX_VISUAL_NODE_VERSION:-24.14.0}"
+NODE_VERSION="${STYLEX_VISUAL_NODE_VERSION:-24.18.0}"
 PNPM_VERSION="${STYLEX_VISUAL_PNPM_VERSION:-10.30.3}"
 RUST_TOOLCHAIN="${STYLEX_VISUAL_RUST_TOOLCHAIN:-stable}"
 REUSE_HOST_CACHES="${STYLEX_VISUAL_REUSE_HOST_CACHES:-true}"
@@ -560,7 +560,7 @@ Env overrides:
                                    linux/arm64, otherwise
                                    stylex-visual-<platform>)
   STYLEX_VISUAL_VOLUME_PREFIX      docker volume prefix (default: container name)
-  STYLEX_VISUAL_NODE_VERSION       node version (default: 24.14.0)
+  STYLEX_VISUAL_NODE_VERSION       node version (default: 24.18.0)
   STYLEX_VISUAL_PNPM_VERSION       pnpm version (default: 10.30.3)
   STYLEX_VISUAL_RUST_TOOLCHAIN     rust toolchain (default: stable)
   STYLEX_VISUAL_PLATFORM           docker platform (default: linux/arm64 to

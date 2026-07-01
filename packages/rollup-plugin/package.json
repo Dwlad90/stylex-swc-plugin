@@ -40,7 +40,7 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.1.0",
-    "browserslist": "^4.28.1",
+    "browserslist": "^4.28.4",
     "jest": "^30.4.2",
     "jest-chain-transform": "^0.0.8",
     "rollup": "^4.62.2"

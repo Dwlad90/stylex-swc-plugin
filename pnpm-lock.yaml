@@ -623,8 +623,8 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3(rollup@4.62.2)
       '@rollup/plugin-swc':
-        specifier: ^0.4.0
-        version: 0.4.0(@swc/core@1.15.13(@swc/helpers@0.5.23))(rollup@4.62.2)
+        specifier: ^0.4.1
+        version: 0.4.1(@swc/core@1.15.13(@swc/helpers@0.5.23))(rollup@4.62.2)
       '@stylexswc/playwright':
         specifier: 0.17.0-rc.1
         version: link:../../packages/playwright
@@ -690,8 +690,8 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3(rollup@4.62.2)
       '@rollup/plugin-swc':
-        specifier: ^0.4.0
-        version: 0.4.0(@swc/core@1.15.13(@swc/helpers@0.5.23))(rollup@4.62.2)
+        specifier: ^0.4.1
+        version: 0.4.1(@swc/core@1.15.13(@swc/helpers@0.5.23))(rollup@4.62.2)
       '@stylexswc/playwright':
         specifier: 0.17.0-rc.1
         version: link:../../packages/playwright
@@ -5105,20 +5105,11 @@ packages:
       rollup:
         optional: true
 
-  '@rollup/plugin-swc@0.4.0':
-    resolution: {integrity: sha512-oAtqXa8rOl7BOK1Rz3rRxI+LIL53S9SqO2KSq2UUUzWgOgXg6492Jh5mL2mv/f9cpit8zFWdwILuVeozZ0C8mg==}
+  '@rollup/plugin-swc@0.4.1':
+    resolution: {integrity: sha512-widfnT1TbDc4hsV37PQ61ZoLGPJ7STZE4lQzA3gWKbcMfzjOgiGsoTYfSsq21H4J2UY1y3MKwejXTMkwN2tEtQ==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       '@swc/core': ^1.3.0
-      rollup: '>=4.59.0 <5.0.0'
-    peerDependenciesMeta:
-      rollup:
-        optional: true
-
-  '@rollup/pluginutils@5.1.3':
-    resolution: {integrity: sha512-Pnsb6f32CD2W3uCaLZIzDmeFyQ2b8UWMFI7xtwUezpcGBDVDW6y9XgAWIlARiGAo6eNF5FK5aQTr0LFyNyqq5A==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
       rollup: '>=4.59.0 <5.0.0'
     peerDependenciesMeta:
       rollup:
@@ -11622,8 +11613,9 @@ packages:
     resolution: {integrity: sha512-SO/3iYL5S3W57LLEniscOGPZgOqZUPCx6d3dB+52B80yJ0XstzsC/eV8gnA4tM3MHDrKz+OCFSLNjswdSC+/bA==}
     engines: {node: '>=22'}
 
-  smob@1.5.0:
-    resolution: {integrity: sha512-g6T+p7QO8npa+/hNx9ohv1E5pVCmWrVCUzUXJyLdMmftX6ER0oiWY/w9knEonLpnOp6b6FenKnMfR8gqwWdwig==}
+  smob@1.6.2:
+    resolution: {integrity: sha512-RQsvleCbF8cVHEv+xuDGaA4pOizFqJ0GgjtMSRo6oP8pnN7WsigHgVGey6aILRBKv4W2YOMHLqbKdnB6hpB9fw==}
+    engines: {node: '>=20.0.0'}
 
   smol-toml@1.7.0:
     resolution: {integrity: sha512-aqVvWoyO21L23mb+drl4RmMXbf6N7FdHjAhTRA9ZBL7apWBgfWC16KjrASI+1p9GAroljyMHj6fK67i0UiTNvQ==}
@@ -15855,19 +15847,11 @@ snapshots:
     optionalDependencies:
       rollup: 4.62.2
 
-  '@rollup/plugin-swc@0.4.0(@swc/core@1.15.13(@swc/helpers@0.5.23))(rollup@4.62.2)':
+  '@rollup/plugin-swc@0.4.1(@swc/core@1.15.13(@swc/helpers@0.5.23))(rollup@4.62.2)':
     dependencies:
-      '@rollup/pluginutils': 5.1.3(rollup@4.62.2)
+      '@rollup/pluginutils': 5.4.0(rollup@4.62.2)
       '@swc/core': 1.15.13(@swc/helpers@0.5.23)
-      smob: 1.5.0
-    optionalDependencies:
-      rollup: 4.62.2
-
-  '@rollup/pluginutils@5.1.3(rollup@4.62.2)':
-    dependencies:
-      '@types/estree': 1.0.9
-      estree-walker: 2.0.2
-      picomatch: 4.0.4
+      smob: 1.6.2
     optionalDependencies:
       rollup: 4.62.2
 
@@ -23393,7 +23377,7 @@ snapshots:
       ansi-styles: 6.2.3
       is-fullwidth-code-point: 5.1.0
 
-  smob@1.5.0: {}
+  smob@1.6.2: {}
 
   smol-toml@1.7.0: {}
 

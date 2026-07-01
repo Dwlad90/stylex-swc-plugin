@@ -41,7 +41,7 @@
     "@typescript-eslint/parser": "^8.59.1",
     "@vitejs/plugin-react-swc": "^4.2.3",
     "@vitest/browser": "^4.1.9",
-    "@vitest/browser-playwright": "^4.0.18",
+    "@vitest/browser-playwright": "^4.1.9",
     "@vitest/coverage-v8": "^4.1.8",
     "autoprefixer": "^10.5.2",
     "eslint": "^10.4.1",

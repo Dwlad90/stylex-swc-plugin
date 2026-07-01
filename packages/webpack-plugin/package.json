@@ -40,7 +40,7 @@
     "@stylexswc/typescript-config": "0.17.0-rc.1",
     "@types/loader-utils": "^3.0.0",
     "@types/node": "^26.1.0",
-    "mini-css-extract-plugin": "^2.10.0",
+    "mini-css-extract-plugin": "^2.10.2",
     "webpack": "^5.108.3"
   },
   "keywords": [

@@ -70,7 +70,7 @@
     "@stylexswc/types": "0.17.0-rc.1",
     "@stylexswc/typescript-config": "0.17.0-rc.1",
     "@swc-node/register": "^1.11.1",
-    "@swc/core": "^1.15.11",
+    "@swc/core": "^1.15.43",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^26.1.0",
     "@types/picomatch": "^4.0.3",

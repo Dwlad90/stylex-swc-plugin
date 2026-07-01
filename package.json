@@ -55,7 +55,7 @@
     "prettier": "^3.8.3",
     "shellcheck": "^4.1.0",
     "syncpack": "^15.3.1",
-    "turbo": "^2.9.16",
+    "turbo": "^2.10.2",
     "typescript": "^6.0.3"
   },
   "engines": {

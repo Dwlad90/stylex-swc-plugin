@@ -1,0 +1,265 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Home render styles successfully 1`] = `
+<div>
+  <main
+    class="x78zum5 xdt5ytf xc3xgjx x6s0dn4 xl56j7k xg6iff7 xhth92g x1iu1qnk x3ak3gy xv7yizt x1v6tjfy x1omcs4r xqiymxe x1a3ztji x4y5j5p xfsd7c4"
+  >
+    <div
+      class="x78zum5 xdt5ytf xu949wy x6s0dn4 xl56j7k xh8yej3 x17fpy1y"
+    >
+      <h1
+        class="xwlf911 x1q0g3np x1jn5nl8 xtfxu01 x1xlr1w8 xo5v014 x2b8uid x72az59 xuxw1ft"
+      >
+        Next.js 
+        <span
+          class="x1iikomf xw1crcm x1d8287x xt3l3uh"
+        >
+          +
+        </span>
+         StyleX
+      </h1>
+      <p
+        class="x1mrxg6j x1jn5nl8 x4ytbdx x1dbl2gt x1lsn3yh x20tij4 x2b8uid x1w2vvpw"
+      >
+        The expressive styling system for ambitious interfaces
+      </p>
+      <div
+        class="x78zum5 xdt5ytf x1ursatz xh8yej3 x1j9u4d2 x1nk70es x1jn5nl8 xrer4h5 x14e8ttx x1y0btm7 xdh2fpr x1cg1h4m xxbw70t x1d8287x x12zzom9"
+      >
+        <div
+          class="xui68kq x1xlr1w8 xw1crcm xtvhhri x2ujxvm x1d8287x xt3l3uh"
+        >
+          Theme
+        </div>
+        <div
+          class="x78zum5 x17z0dgo xl56j7k"
+        >
+          <button
+            class="x78zum5 x1hgtrvp x6s0dn4 x1opkd2i x1hmfenf x1jn5nl8 x11iygpg x1heor9g x1ypdohk xjbqb8w xufxj8q x7zc2lk xufp9gp x1hz2rjb x1y0btm7 xmkeg23 x137yrnm x13dflua xts7igz"
+          >
+            <span
+              class="x1nj22pf x1a3ztji x2lah0s x1fsd2vl x170jfvy xgpfkh4 x16rqkct"
+            />
+            Red
+          </button>
+          <button
+            class="x78zum5 x1hgtrvp x6s0dn4 x1opkd2i x1hmfenf x1jn5nl8 x11iygpg x1heor9g x1ypdohk xjbqb8w xufxj8q x7zc2lk xufp9gp x1hz2rjb x1y0btm7 xmkeg23 x137yrnm x13dflua xts7igz"
+          >
+            <span
+              class="xqqesy0 x1a3ztji x2lah0s x1fsd2vl x170jfvy xgpfkh4 x16rqkct"
+            />
+            Green
+          </button>
+          <button
+            class="x78zum5 x1hgtrvp x6s0dn4 x1opkd2i x1hmfenf x1jn5nl8 x11iygpg x1heor9g x1ypdohk x1y0btm7 xmkeg23 x137yrnm x13dflua xts7igz x1s688f x1q0a6hf x14e8ttx"
+          >
+            <span
+              class="xqiymxe x1a3ztji x2lah0s x1fsd2vl x170jfvy xgpfkh4 x16rqkct"
+            />
+            Blue
+          </button>
+        </div>
+        <div
+          class="x36qwtl x1rndkjf x19fk2mg x1nj7uno x1d8287x x15406qy"
+        />
+        <div
+          class="xui68kq x1xlr1w8 xw1crcm xtvhhri x2ujxvm x1d8287x xt3l3uh"
+        >
+          Mode
+        </div>
+        <div
+          class="x78zum5 x17z0dgo xl56j7k"
+        >
+          <button
+            class="x78zum5 x1hgtrvp x6s0dn4 x1opkd2i x1hmfenf x1jn5nl8 x11iygpg x1heor9g x1ypdohk x1y0btm7 xmkeg23 x137yrnm x13dflua xts7igz x1s688f x1q0a6hf x14e8ttx"
+          >
+            Light
+          </button>
+          <button
+            class="x78zum5 x1hgtrvp x6s0dn4 x1opkd2i x1hmfenf x1jn5nl8 x11iygpg x1heor9g x1ypdohk xjbqb8w xufxj8q x7zc2lk xufp9gp x1hz2rjb x1y0btm7 xmkeg23 x137yrnm x13dflua xts7igz"
+          >
+            Dark
+          </button>
+        </div>
+        <div
+          class="x36qwtl x1rndkjf x19fk2mg x1nj7uno x1d8287x x15406qy"
+        />
+        <div
+          class="xui68kq x1xlr1w8 xw1crcm xtvhhri x2ujxvm x1d8287x xt3l3uh"
+        >
+          Counter
+        </div>
+        <div
+          class="x78zum5 xfre8n0 x6s0dn4 xl56j7k"
+        >
+          <button
+            class="x78zum5 x6s0dn4 xl56j7k x1useyqa xsdox4t x1jn5nl8 x1b7nod9 x1iikomf xw1crcm x1ypdohk xjbqb8w xufxj8q x7zc2lk x14e8ttx x1y0btm7 xmkeg23 x137yrnm x1jplu5e x13dflua x10oofgx"
+          >
+            -
+          </button>
+          <div
+            class="x6c5l4p xgnkaqo x1r1iois x1ny7uwr xw1crcm x2b8uid x1d8287x xt3l3uh"
+          >
+            0
+          </div>
+          <button
+            class="x78zum5 x6s0dn4 xl56j7k x1useyqa xsdox4t x1jn5nl8 x1b7nod9 x1iikomf xw1crcm x1ypdohk xjbqb8w xufxj8q x7zc2lk x14e8ttx x1y0btm7 xmkeg23 x137yrnm x1jplu5e x13dflua x10oofgx"
+          >
+            +
+          </button>
+        </div>
+      </div>
+    </div>
+    <a
+      class="x78zum5 xfre8n0 x6s0dn4 xh8yej3 x17fpy1y x1dc2oj2 xfz6wes x1jn5nl8 x11iygpg x37zpob x1heor9g x1hl2dhg x1q0a6hf xhaazhr x14e8ttx x1y0btm7 xdh2fpr xzi5p4l x1lz31oe x13dflua x1lxufdw"
+      href="/theming-demos"
+    >
+      <span
+        class="x2lah0s x1b7nod9"
+      >
+        🎨
+      </span>
+      <span>
+        <strong>
+          Theming Demos
+        </strong>
+        <br />
+        <span
+          class="xui68kq x197sbye"
+        >
+          Experimental APIs for expressing nested design tokens · Design system theming
+        </span>
+      </span>
+      <span
+        class="x8x9d4c xv4k9p6 xw1crcm x13dflua x11xpdln"
+      >
+        →
+      </span>
+    </a>
+    <div
+      class="xrvj5dj xtp8ymz xx3cr9d xtffbmy x1ursatz x1upcy5i xl858mc x193iq5w x15hltav"
+    >
+      <a
+        class="x1ymzxv2 x78zum5 xdt5ytf x6s0dn4 x1nhvcw1 x1973cx2 x1jn5nl8 x1heor9g x2b8uid x1hl2dhg xjbqb8w xmmaim4 xufp9gp x1s128ba x17ec5kx x13nqidx x1y0btm7 xmkeg23 xzi5p4l x1gnnqk1 x1rfyatg x1lz31oe x1d8287x xmz27jc x1rrp35g"
+        href="https://stylexjs.com/docs/learn/"
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        <h2
+          class="xon0tky xyhilkr x1b7nod9 x1s688f xw1crcm x1d8287x xt3l3uh x1rrp35g"
+        >
+          Docs
+           
+          <span
+            class="x1rg5ohu xfujts0 x12w9bfk x13dflua x11xpdln"
+          >
+            →
+          </span>
+        </h2>
+        <p
+          class="x1u8bs6r x1ghz6dp x4ytbdx x1evy7pa x1w2vvpw x197sbye"
+        >
+          Learn how to use StyleX to build UIs
+        </p>
+      </a>
+      <a
+        class="x1ymzxv2 x78zum5 xdt5ytf x6s0dn4 x1nhvcw1 x1973cx2 x1jn5nl8 x1heor9g x2b8uid x1hl2dhg xjbqb8w xmmaim4 xufp9gp x1s128ba x17ec5kx x13nqidx x1y0btm7 xmkeg23 xzi5p4l x1gnnqk1 x1rfyatg x1lz31oe x1d8287x xmz27jc x1rrp35g"
+        href="https://stylexjs.com/docs/api/"
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        <h2
+          class="xon0tky xyhilkr x1b7nod9 x1s688f xw1crcm x1d8287x xt3l3uh x1rrp35g"
+        >
+          API
+           
+          <span
+            class="x1rg5ohu xfujts0 x12w9bfk x13dflua x11xpdln"
+          >
+            →
+          </span>
+        </h2>
+        <p
+          class="x1u8bs6r x1ghz6dp x4ytbdx x1evy7pa x1w2vvpw x197sbye"
+        >
+          Browse through the StyleX API reference
+        </p>
+      </a>
+      <a
+        class="x1ymzxv2 x78zum5 xdt5ytf x6s0dn4 x1nhvcw1 x1973cx2 x1jn5nl8 x1heor9g x2b8uid x1hl2dhg xjbqb8w xmmaim4 xufp9gp x1s128ba x17ec5kx x13nqidx x1y0btm7 xmkeg23 xzi5p4l x1gnnqk1 x1rfyatg x1lz31oe x1d8287x xmz27jc x1rrp35g"
+        href="https://stylexjs.com/playground/"
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        <h2
+          class="xon0tky xyhilkr x1b7nod9 x1s688f xw1crcm x1d8287x xt3l3uh x1rrp35g"
+        >
+          Playground
+           
+          <span
+            class="x1rg5ohu xfujts0 x12w9bfk x13dflua x11xpdln"
+          >
+            →
+          </span>
+        </h2>
+        <p
+          class="x1u8bs6r x1ghz6dp x4ytbdx x1evy7pa x1w2vvpw x197sbye"
+        >
+          Play with StyleX and look at the compile outputs
+        </p>
+      </a>
+      <a
+        class="x1ymzxv2 x78zum5 xdt5ytf x6s0dn4 x1nhvcw1 x1973cx2 x1jn5nl8 x1heor9g x2b8uid x1hl2dhg xjbqb8w xmmaim4 xufp9gp x1s128ba x17ec5kx x13nqidx x1y0btm7 xmkeg23 xzi5p4l x1gnnqk1 x1rfyatg x1lz31oe x1d8287x xmz27jc x1rrp35g"
+        href="https://github.com/nmn/nextjs-app-dir-stylex"
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        <h2
+          class="xon0tky xyhilkr x1b7nod9 x1s688f xw1crcm x1d8287x xt3l3uh x1rrp35g"
+        >
+          Templates
+           
+          <span
+            class="x1rg5ohu xfujts0 x12w9bfk x13dflua x11xpdln"
+          >
+            →
+          </span>
+        </h2>
+        <p
+          class="x1u8bs6r x1ghz6dp x4ytbdx x1evy7pa x1w2vvpw x197sbye"
+        >
+          Get started with a NextJS+StyleX project
+        </p>
+      </a>
+    </div>
+    <div
+      class="x78zum5 x6s0dn4 xl56j7k xq5fvzb x1jwldgz x1jf6z3d x1ox8vie xvcfkjc x18mbai7"
+    >
+      <div
+        class="x1awj2ng xfebpd xusmn32"
+      >
+        Local visual test imports
+      </div>
+    </div>
+    <div
+      class="xq5fvzb x18mbai7 xl56j7k x6s0dn4 x1jwldgz xvnzane x1s85apg x1k4oyu6"
+    >
+      <div
+        class="x1awj2ng xfebpd xusmn32"
+      >
+        Pink rounded rectangle with blue text
+      </div>
+    </div>
+    <div
+      class="xq5fvzb x18mbai7 xl56j7k x6s0dn4 x1jwldgz xvcfkjc x1s85apg x8ceulb"
+    >
+      <div
+        class="x1awj2ng xfebpd xusmn32"
+      >
+        Red rounded rectangle with green text
+      </div>
+    </div>
+  </main>
+</div>
+`;

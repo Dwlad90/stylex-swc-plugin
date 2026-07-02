@@ -1,0 +1,9 @@
+/*
+ * Virtual placeholder file for StyleX CSS extraction
+ *
+ * Webpack requires physical files on disk for virtual sources.
+ * This empty file serves as the target for extracted CSS.
+ *
+ * Note: Filename "stylex.virtual.css" is intentionally chosen
+ * to avoid conflicts with other loaders.
+ */

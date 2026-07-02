@@ -1,0 +1,173 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`RSC render styles successfully 1`] = `
+<div>
+  <div
+    class="x78zum5 xdt5ytf xwlmut9 xh8yej3 xg7bv4n"
+  >
+    <header
+      class="x78zum5 xdt5ytf x1ursatz x6s0dn4 xk6667e x2b8uid"
+    >
+      <div
+        class="xqcrz7y x1jw5p8g xfumf9q xyujjt5 x1xlr1w8 x9pfba7 xtvhhri xzi5p4l x1oitl3h x16w82hj x15fabq4"
+      >
+        React Server Components
+      </div>
+      <h1
+        class="x1ghz6dp xtfxu01 x1xlr1w8 x72az59 x1159mfc"
+      >
+        Server + Client,
+        <span
+          class="x4pahdu x1ta4xzc x19co3pv"
+        >
+           one stylesheet
+        </span>
+      </h1>
+      <p
+        class="x11gisft x1ghz6dp x4ytbdx xa7kkou x2wtabl x1wob8d9"
+      >
+        The card on the left renders entirely on the server. The one on the right hydrates as an interactive client island. Both are styled with StyleX, compiled by the Rust compiler, and extracted into a single static CSS file — no runtime style injection anywhere.
+      </p>
+    </header>
+    <div
+      class="xrvj5dj x1o61qjw x1pm2qn7 xu949wy x7a106z"
+    >
+      <section
+        class="x78zum5 xdt5ytf x1ursatz x1nk70es xrer4h5 x1hz2rjb xufp9gp x1y0btm7 xmkeg23 x1cg1h4m xxbw70t x18fcyjs xmn4e3e"
+      >
+        <div
+          class="xqcrz7y x1jw5p8g xfumf9q xyujjt5 x1xlr1w8 x9pfba7 xtvhhri xzi5p4l xzblbpx x1cj3xe0 xcsg0hm"
+        >
+          Server Component
+        </div>
+        <h2
+          class="x1ghz6dp xv4k9p6 x1s688f"
+        >
+          Zero-JS rendering
+        </h2>
+        <p
+          class="x1ghz6dp x11iygpg x1dbl2gt x2wtabl x1wob8d9"
+        >
+          No 
+          <code
+            class="xneykup xgnkaqo xeb7xqv xh4n78y x12oqio5"
+          >
+            'use client'
+          </code>
+           directive, no hydration, no bundle cost. The markup arrives fully styled because the CSS below was generated at build time.
+        </p>
+        <ul
+          class="x78zum5 xdt5ytf x1hgtrvp x1ghz6dp x1717udv xe8uvvx"
+        >
+          <li
+            class="x78zum5 x1hgtrvp x1pha0wt x11iygpg x1dbl2gt"
+          >
+            <span
+              class="x1xlr1w8 xzblbpx"
+            >
+              ✓
+            </span>
+            Styles compiled by the NAPI-RS StyleX compiler
+          </li>
+          <li
+            class="x78zum5 x1hgtrvp x1pha0wt x11iygpg x1dbl2gt"
+          >
+            <span
+              class="x1xlr1w8 xzblbpx"
+            >
+              ✓
+            </span>
+            Extracted through virtual CSS imports in the server graph
+          </li>
+          <li
+            class="x78zum5 x1hgtrvp x1pha0wt x11iygpg x1dbl2gt"
+          >
+            <span
+              class="x1xlr1w8 xzblbpx"
+            >
+              ✓
+            </span>
+            Mirrored into the client build — deduplicated, sorted, atomic
+          </li>
+        </ul>
+        <pre
+          class="x1ghz6dp xrfq6hq xeb0fle xw2csxc xgnkaqo xui68kq x1dbl2gt x1cmk9su x137yrnm"
+        >
+          <code>
+            stylex.create({ card: { … } })
+→ .x1a2b3c { … }  /* static CSS */
+          </code>
+        </pre>
+      </section>
+      <section
+        class="x78zum5 xdt5ytf x1ursatz x1nk70es xrer4h5 x1hz2rjb xufp9gp x1y0btm7 xmkeg23 x1cg1h4m xxbw70t x1wuw0fo xmn4e3e x1lz31oe x13dflua x16n73rl"
+      >
+        <div
+          class="xqcrz7y x1jw5p8g xfumf9q xyujjt5 x1xlr1w8 x9pfba7 xtvhhri xzi5p4l xw1crcm x1q0a6hf"
+        >
+          Client Component
+        </div>
+        <h2
+          class="x1ghz6dp xv4k9p6 x1s688f"
+        >
+          Interactive island
+        </h2>
+        <p
+          class="x1ghz6dp x11iygpg x1dbl2gt x2wtabl x1wob8d9"
+        >
+          This card ships JavaScript: 
+          <code
+            class="xneykup xgnkaqo xeb7xqv xh4n78y x12oqio5"
+          >
+            useState
+          </code>
+          , event handlers, and conditional styles — all resolved from the same compile-time CSS.
+        </p>
+        <div
+          class="x78zum5 xfre8n0 x6s0dn4 xl56j7k xiyywdp"
+        >
+          <button
+            aria-label="Decrement"
+            class="x78zum5 x6s0dn4 xl56j7k x1useyqa xsdox4t x1jn5nl8 x1b7nod9 x1iikomf xw1crcm x1ypdohk xjbqb8w x7zc2lk xufxj8q x14e8ttx x1y0btm7 xmkeg23 x137yrnm x1r0vdo7 xx6bhzk xuo13n2"
+          >
+            −
+          </button>
+          <output
+            class="x17y4j5z xgnkaqo x1r1iois x1ny7uwr x2b8uid x13dflua x1jbe559"
+          >
+            0
+          </output>
+          <button
+            aria-label="Increment"
+            class="x78zum5 x6s0dn4 xl56j7k x1useyqa xsdox4t x1jn5nl8 x1b7nod9 x1iikomf xw1crcm x1ypdohk xjbqb8w x7zc2lk xufxj8q x14e8ttx x1y0btm7 xmkeg23 x137yrnm x1r0vdo7 xx6bhzk xuo13n2"
+          >
+            +
+          </button>
+        </div>
+        <button
+          class="xamitd3 x1jw5p8g x1hmfenf x1jn5nl8 xui68kq x2wtabl xwi51m8 x1ypdohk xjbqb8w xilwofe x13nqidx x1y0btm7 xmkeg23 x137yrnm x13dflua x1hctx40 xg01cxk x47corl"
+        >
+          Reset
+        </button>
+      </section>
+    </div>
+    <footer
+      class="x1idi5yn xui68kq x2b8uid x20tij4 x1lsn3yh"
+    >
+      Rendered with 
+      <span
+        class="x1s688f xw1crcm"
+      >
+        Next.js on Rspack
+      </span>
+       · StyleX extraction for Server and Client Components via
+       
+      <code
+        class="xneykup xgnkaqo xeb7xqv xh4n78y x12oqio5"
+      >
+        @stylexswc/nextjs-plugin/rspack
+      </code>
+    </footer>
+  </div>
+</div>
+`;

@@ -6,6 +6,10 @@ const rootDir = __dirname;
 const customJestConfig = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
   testEnvironment: "jsdom",
+  // `server-only` throws under jsdom; server components are rendered directly in tests
+  moduleNameMapper: {
+    "^server-only$": "<rootDir>/__mocks__/server-only.js",
+  },
   transform: {
     "^.+\\.(ts|tsx|js|jsx|mjs|cjs|html)$": [
       'jest-chain-transform',

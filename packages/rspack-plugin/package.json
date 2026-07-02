@@ -1,0 +1,62 @@
+{
+  "name": "@stylexswc/rspack-plugin",
+  "description": "StyleX Rspack plugin with NAPI-RS compiler",
+  "version": "0.17.0-rc.3",
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "dependencies": {
+    "@stylexjs/babel-plugin": "^0.19.0",
+    "@stylexswc/rs-compiler": "0.17.0-rc.3",
+    "loader-utils": "^3.3.1"
+  },
+  "devDependencies": {
+    "@rspack/core": "^2.0.2",
+    "@stylexswc/eslint-config": "0.17.0-rc.3",
+    "@stylexswc/typescript-config": "0.17.0-rc.3",
+    "@types/loader-utils": "^3.0.0",
+    "@types/node": "^26.1.0",
+    "vitest": "^4.1.9"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "rspack",
+    "rspack-plugin",
+    "stylex",
+    "swc"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "private": false,
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
+  "scripts": {
+    "build": "scripty --ts",
+    "check:artifacts": "scripty",
+    "clean": "del-cli dist",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
+    "postbuild": "pnpm run check:artifacts",
+    "precommit": "lint-staged",
+    "prepublishOnly": "pnpm run build",
+    "prepush": "lint-prepush",
+    "test": "vitest run",
+    "typecheck": "scripty --ts"
+  },
+  "sideEffects": false
+}

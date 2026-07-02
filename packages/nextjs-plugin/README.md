@@ -43,7 +43,7 @@ npm install --save-dev @stylexswc/nextjs-plugin
 
 ## Usage
 
-This plugin supports both Webpack and Turbopack configurations in Next.js.
+This plugin supports Webpack, Rspack, and Turbopack configurations in Next.js.
 
 ### Using with Webpack
 
@@ -58,6 +58,36 @@ module.exports = stylexPlugin({
   // Next.js config here
 });
 ```
+
+### Using with Rspack
+
+For Next.js with [Rspack](https://rspack.rs), use the `/rspack` export. It applies the
+experimental [`next-rspack`](https://www.npmjs.com/package/next-rspack) adapter for you —
+no manual `withRspack` composition needed:
+
+```typescript
+import stylexPlugin from '@stylexswc/nextjs-plugin/rspack';
+
+module.exports = stylexPlugin({
+  // StyleX options here
+})({
+  // Next.js config here
+});
+```
+
+> [!NOTE]
+> Run `next dev` and `next build` without the `--webpack`/`--turbopack` flags. For
+> `next start`, set `NEXT_RSPACK=true` in the environment (the production server only
+> serves prebuilt output, but it still evaluates the config).
+
+The Rspack integration extracts StyleX CSS from both Server and Client Components, with
+the same options as the Webpack plugin, plus `stylexPackages` from
+[`@stylexswc/rspack-plugin`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/rspack-plugin).
+
+> [!NOTE]
+> Packages listed in `transpilePackages` are automatically added to the `stylexPackages`
+> allowlist, so StyleX source shipped in `node_modules` (e.g. `@stylexjs/open-props`) is
+> picked up without extra configuration.
 
 ### Using with Turbopack
 

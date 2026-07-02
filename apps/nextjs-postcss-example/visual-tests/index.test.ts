@@ -5,6 +5,7 @@ const ROUTES = [
   { path: '/theming-demos', screenshot: 'theming-demos.png' },
   { path: '/nested-demo', screenshot: 'nested-demo.png' },
   { path: '/ds-demo', screenshot: 'ds-demo.png' },
+  { path: '/rsc', screenshot: 'rsc.png' },
 ] as const;
 
 test.describe('StyleX Visual Regression', () => {

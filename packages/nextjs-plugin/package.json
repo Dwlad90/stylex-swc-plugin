@@ -2,14 +2,38 @@
   "name": "@stylexswc/nextjs-plugin",
   "description": "StyleX NextJS plugin with NAPI-RS compiler",
   "version": "0.17.0-rc.3",
-  "private": false,
-  "license": "MIT",
-  "sideEffects": false,
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "dependencies": {
+    "@stylexswc/rs-compiler": "0.17.0-rc.3",
+    "@stylexswc/rspack-plugin": "0.17.0-rc.3",
+    "@stylexswc/turbopack-plugin": "0.17.0-rc.3",
+    "@stylexswc/webpack-plugin": "0.17.0-rc.3",
+    "next-rspack": "^16.2.9"
+  },
+  "devDependencies": {
+    "@stylexswc/eslint-config": "0.17.0-rc.3",
+    "@stylexswc/typescript-config": "0.17.0-rc.3",
+    "@types/node": "^26.1.0",
+    "next": "^16.2.9",
+    "postcss": "^8.5.16",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "webpack": "^5.108.3"
+  },
   "exports": {
     "./turbopack": {
       "types": "./dist/turbopack.d.ts",
       "import": "./dist/turbopack.js",
       "require": "./dist/turbopack.js"
+    },
+    "./rspack": {
+      "types": "./dist/rspack.d.ts",
+      "import": "./dist/rspack.js",
+      "require": "./dist/rspack.js"
     },
     ".": {
       "types": "./dist/index.d.ts",
@@ -21,10 +45,24 @@
   "files": [
     "dist"
   ],
+  "keywords": [
+    "next",
+    "nextjs",
+    "nextjs-plugin",
+    "stylex",
+    "swc"
+  ],
+  "license": "MIT",
+  "main": "dist/index.js",
+  "peerDependencies": {
+    "next": ">=15.0.0"
+  },
+  "private": false,
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public"
   },
+  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
   "scripts": {
     "build": "scripty --ts",
     "check:artifacts": "scripty",
@@ -38,36 +76,5 @@
     "test": "echo \"Error: no test specified\" && exit 0",
     "typecheck": "scripty --ts"
   },
-  "config": {
-    "scripty": {
-      "path": "../../scripts/packages"
-    }
-  },
-  "dependencies": {
-    "@stylexswc/rs-compiler": "0.17.0-rc.3",
-    "@stylexswc/turbopack-plugin": "0.17.0-rc.3",
-    "@stylexswc/webpack-plugin": "0.17.0-rc.3"
-  },
-  "devDependencies": {
-    "@stylexswc/eslint-config": "0.17.0-rc.3",
-    "@stylexswc/typescript-config": "0.17.0-rc.3",
-    "@types/node": "^26.1.0",
-    "next": "^16.2.9",
-    "postcss": "^8.5.16",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "webpack": "^5.108.3"
-  },
-  "peerDependencies": {
-    "next": ">=15.0.0"
-  },
-  "keywords": [
-    "next",
-    "nextjs",
-    "nextjs-plugin",
-    "stylex",
-    "swc"
-  ],
-  "main": "dist/index.js",
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
+  "sideEffects": false
 }

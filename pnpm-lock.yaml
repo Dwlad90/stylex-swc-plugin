@@ -524,6 +524,9 @@ importers:
       next:
         specifier: ^16.2.9
         version: 16.2.9(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      next-rspack:
+        specifier: ^16.2.9
+        version: 16.2.10(@swc/helpers@0.5.23)
       react:
         specifier: ^19.2.7
         version: 19.2.7

@@ -1,3 +1,4 @@
+import path from 'path';
 import webpack from 'webpack';
 import { describe, expect, test, vi } from 'vitest';
 
@@ -97,5 +98,22 @@ describe('@stylexswc/webpack-plugin', () => {
     expect(assets['stylex.css']?.source().toString()).toContain('/* existing */');
     expect(assets['stylex.css']?.source().toString()).toContain('color:red');
     expect(assets['stylex.css']?.source().toString()).toContain('/* transformed:stylex.css */');
+  });
+
+  test('scopes node_modules to exact stylexPackages entries', () => {
+    const project = path.join(path.sep, 'project');
+    const inNodeModules = (...segments: string[]) =>
+      path.join(project, 'node_modules', ...segments);
+    const plugin = new StyleXPlugin({ stylexPackages: ['@stylexjs/', 'my-design-system'] });
+
+    expect(plugin.shouldProcessFile(path.join(project, 'app', 'page.tsx'))).toBe(true);
+    expect(plugin.shouldProcessFile(inNodeModules('@stylexjs', 'open-props', 'colors.js'))).toBe(
+      true
+    );
+    expect(plugin.shouldProcessFile(inNodeModules('my-design-system', 'tokens.js'))).toBe(true);
+    expect(plugin.shouldProcessFile(inNodeModules('my-design-system-extra', 'tokens.js'))).toBe(
+      false
+    );
+    expect(plugin.shouldProcessFile(inNodeModules('react', 'index.js'))).toBe(false);
   });
 });

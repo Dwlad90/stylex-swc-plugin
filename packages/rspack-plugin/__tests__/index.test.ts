@@ -10,7 +10,7 @@ import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
 
 type Source = InstanceType<typeof sources.RawSource>;
 
-function createMockCompiler() {
+function createMockCompiler(chunkModules: Array<{ identifier: () => string }> = []) {
   const rules: RuleSetRule[] = [];
   const assets: Record<string, Source> = {
     'stylex.css': new sources.RawSource('/* existing */') as Source,
@@ -37,7 +37,7 @@ function createMockCompiler() {
       ],
     ]),
     chunkGraph: {
-      getChunkModules: vi.fn(() => []),
+      getChunkModules: vi.fn(() => chunkModules),
     },
     updateAsset: vi.fn((assetName: string, update: (source: Source) => unknown) => {
       const source = assets[assetName];
@@ -99,9 +99,17 @@ describe('@stylexswc/rspack-plugin', () => {
     });
     const plugin = new StyleXPlugin({ transformCss });
     const stylexRules: StyleXRule[] = [['x1abcd', { ltr: 'color:red', rtl: null }, 3000]];
-    plugin.stylexRules.set('/button.tsx', stylexRules);
+    const query = new URLSearchParams({
+      from: '/button.tsx',
+      stylex: JSON.stringify(stylexRules),
+    });
 
-    const { compiler, assets, runProcessAssets } = createMockCompiler();
+    const { compiler, assets, runProcessAssets } = createMockCompiler([
+      {
+        identifier: () =>
+          `css|/repo/node_modules/@stylexswc/rspack-plugin/dist/stylex.virtual.css?${query.toString()}|used-exports`,
+      },
+    ]);
 
     plugin.apply(compiler as unknown as Compiler);
     await runProcessAssets();
@@ -111,6 +119,20 @@ describe('@stylexswc/rspack-plugin', () => {
     expect(assets['stylex.css']?.source().toString()).toContain('/* existing */');
     expect(assets['stylex.css']?.source().toString()).toContain('color:red');
     expect(assets['stylex.css']?.source().toString()).toContain('/* transformed:stylex.css */');
+  });
+
+  test('clears stale StyleX rules when no current chunk modules contain virtual CSS', async () => {
+    const transformCss = vi.fn((css: string) => css);
+    const plugin = new StyleXPlugin({ transformCss });
+    plugin.stylexRules.set('/deleted.tsx', [['xstale', { ltr: 'color:red', rtl: null }, 3000]]);
+
+    const { compiler, runProcessAssets } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as Compiler);
+    await runProcessAssets();
+
+    expect(plugin.stylexRules.size).toBe(0);
+    expect(transformCss).not.toHaveBeenCalled();
   });
 
   test('registers static module rules with enforce mapped from loaderOrder', () => {
@@ -158,6 +180,9 @@ describe('@stylexswc/rspack-plugin', () => {
 
     const custom = new StyleXPlugin({ stylexPackages: ['@stylexjs/', 'my-design-system'] });
     expect(custom.shouldProcessFile(inNodeModules('my-design-system', 'tokens.js'))).toBe(true);
+    expect(custom.shouldProcessFile(inNodeModules('my-design-system-extra', 'tokens.js'))).toBe(
+      false
+    );
     expect(custom.shouldProcessFile(inNodeModules('other-lib', 'tokens.js'))).toBe(false);
   });
 

@@ -7,6 +7,7 @@
     "@stylexswc/design-system": "0.17.0-rc.3",
     "@stylexswc/nextjs-plugin": "0.17.0-rc.3",
     "next": "^16.2.9",
+    "next-rspack": "^16.2.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

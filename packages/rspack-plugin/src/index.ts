@@ -54,7 +54,21 @@ const getStyleXRules = (
   return stylexBabelPlugin.processStylexRules(allRules, transformedOptions);
 };
 
-const identityTransfrom: CSSTransformer = css => css;
+const identityTransform: CSSTransformer = css => css;
+
+function isAllowlistedPackage(resourcePath: string, stylexPackages: string[]) {
+  const nodeModulesSegment = `${path.sep}node_modules${path.sep}`;
+  const nodeModulesEntries = path.normalize(resourcePath).split(nodeModulesSegment).slice(1);
+
+  return stylexPackages.some(packageName => {
+    const normalizedPackageName = path.normalize(packageName).replace(/[\\/]$/, '');
+
+    return nodeModulesEntries.some(
+      entry =>
+        entry === normalizedPackageName || entry.startsWith(`${normalizedPackageName}${path.sep}`)
+    );
+  });
+}
 
 export type RegisterStyleXRules = (_resourcePath: string, _stylexRules: StyleXRule[]) => void;
 
@@ -75,7 +89,7 @@ export default class StyleXPlugin {
     useCSSLayers = false,
     rsOptions = {},
     nextjsMode = false,
-    transformCss = identityTransfrom,
+    transformCss = identityTransform,
     extractCSS = true,
     loaderOrder = 'first',
     cacheGroup,
@@ -124,11 +138,7 @@ export default class StyleXPlugin {
     const nodeModulesSegment = `${path.sep}node_modules${path.sep}`;
 
     if (resourcePath.includes(nodeModulesSegment)) {
-      const isAllowlisted = this.stylexPackages.some(pkg =>
-        resourcePath.includes(`${nodeModulesSegment}${pkg.replace(/\//g, path.sep)}`)
-      );
-
-      if (!isAllowlisted) {
+      if (!isAllowlistedPackage(resourcePath, this.stylexPackages)) {
         return false;
       }
     }
@@ -230,21 +240,18 @@ export default class StyleXPlugin {
           // alone would keep serving CSS for files that were since deleted
           // or stopped importing stylex.
           const chunkModules = compilation.chunkGraph.getChunkModules(stylexChunk);
+          const recollected = new Map<string, readonly StyleXRule[]>();
 
-          if (chunkModules.length > 0) {
-            const recollected = new Map<string, readonly StyleXRule[]>();
+          for (const mod of chunkModules) {
+            const identifier = mod.identifier();
+            const rules = parseStylexRulesFromIdentifier(identifier);
 
-            for (const mod of chunkModules) {
-              const identifier = mod.identifier();
-              const rules = parseStylexRulesFromIdentifier(identifier);
-
-              if (rules != null) {
-                recollected.set(identifier, rules);
-              }
+            if (rules != null) {
+              recollected.set(identifier, rules);
             }
-
-            this.stylexRules = recollected;
           }
+
+          this.stylexRules = recollected;
 
           // Let's find the css file that belongs to the stylex chunk
           const stylexChunkFiles = new Set(stylexChunk.files);

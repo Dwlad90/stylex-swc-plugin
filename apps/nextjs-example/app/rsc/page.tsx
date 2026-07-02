@@ -58,9 +58,9 @@ export default function RscPage() {
       </div>
 
       <footer {...stylex.props(styles.footer)}>
-        Rendered with <span {...stylex.props(styles.footerAccent)}>Next.js on Rspack</span> · StyleX
-        extraction for Server and Client Components via{' '}
-        <code {...stylex.props(styles.inlineCode)}>@stylexswc/nextjs-plugin/rspack</code>
+        Rendered with <span {...stylex.props(styles.footerAccent)}>Next.js on Webpack</span> ·
+        StyleX extraction for Server and Client Components via{' '}
+        <code {...stylex.props(styles.inlineCode)}>@stylexswc/nextjs-plugin</code>
       </footer>
     </div>
   );

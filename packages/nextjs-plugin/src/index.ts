@@ -214,10 +214,12 @@ const withStyleX =
         // Packages in transpilePackages ship untransformed source (Next requirement
         // for StyleX-authoring packages), so they are exactly the node_modules
         // packages the stylex-loader must process
-        const stylexPackages = [
-          ...(pluginOptions?.stylexPackages ?? DEFAULT_STYLEX_PACKAGES),
-          ...(nextConfig.transpilePackages ?? []),
-        ];
+        const stylexPackages = Array.from(
+          new Set([
+            ...(pluginOptions?.stylexPackages ?? DEFAULT_STYLEX_PACKAGES),
+            ...(nextConfig.transpilePackages ?? []),
+          ])
+        );
 
         config.plugins.push(
           new StyleXWebpackPlugin({

@@ -55,7 +55,13 @@
   "license": "MIT",
   "main": "dist/index.js",
   "peerDependencies": {
-    "next": ">=15.0.0"
+    "next": ">=15.0.0",
+    "next-rspack": "^16.2.9"
+  },
+  "peerDependenciesMeta": {
+    "next-rspack": {
+      "optional": true
+    }
   },
   "private": false,
   "publishConfig": {

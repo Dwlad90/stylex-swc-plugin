@@ -7,7 +7,7 @@ import type { LoaderContext } from '@rspack/core';
 
 const skipWarnRegex = /empty|client-only/;
 
-export default async function stylexLoader(
+export default function stylexLoader(
   this: LoaderContext<LoaderInterpolateOption & StyleXRspackLoaderOptions>,
   inputCode: InputCode,
   inputSourceMap: SourceMap

@@ -158,14 +158,14 @@ exports[`RSC render styles successfully 1`] = `
       <span
         class="x1s688f x1nq7u67"
       >
-        Next.js on Rspack
+        Next.js on Turbopack
       </span>
        · StyleX extraction for Server and Client Components via
        
       <code
         class="xj29cd2 x1ffnvi7 xeb7xqv xuc7vwi x12oqio5"
       >
-        @stylexswc/nextjs-plugin/rspack
+        @stylexswc/nextjs-plugin/turbopack
       </code>
     </footer>
   </div>

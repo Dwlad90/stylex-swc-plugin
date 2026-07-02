@@ -57,7 +57,21 @@ const getStyleXRules = (
   return stylexBabelPlugin.processStylexRules(allRules, transformedOptions);
 };
 
-const identityTransfrom: CSSTransformer = css => css;
+const identityTransform: CSSTransformer = css => css;
+
+function isAllowlistedPackage(resourcePath: string, stylexPackages: string[]) {
+  const nodeModulesSegment = `${path.sep}node_modules${path.sep}`;
+  const nodeModulesEntries = path.normalize(resourcePath).split(nodeModulesSegment).slice(1);
+
+  return stylexPackages.some(packageName => {
+    const normalizedPackageName = path.normalize(packageName).replace(/[\\/]$/, '');
+
+    return nodeModulesEntries.some(
+      entry =>
+        entry === normalizedPackageName || entry.startsWith(`${normalizedPackageName}${path.sep}`)
+    );
+  });
+}
 
 export type RegisterStyleXRules = (_resourcePath: string, _stylexRules: StyleXRule[]) => void;
 
@@ -75,7 +89,7 @@ export default class StyleXPlugin {
     useCSSLayers = false,
     rsOptions = {},
     nextjsMode = false,
-    transformCss = identityTransfrom,
+    transformCss = identityTransform,
     extractCSS = true,
     loaderOrder = 'first',
     cacheGroup,
@@ -119,11 +133,7 @@ export default class StyleXPlugin {
     const nodeModulesSegment = `${path.sep}node_modules${path.sep}`;
 
     if (resourcePath.includes(nodeModulesSegment)) {
-      const isAllowlisted = this.stylexPackages.some(pkg =>
-        resourcePath.includes(`${nodeModulesSegment}${pkg.replace(/\//g, path.sep)}`)
-      );
-
-      if (!isAllowlisted) {
+      if (!isAllowlistedPackage(resourcePath, this.stylexPackages)) {
         return false;
       }
     }

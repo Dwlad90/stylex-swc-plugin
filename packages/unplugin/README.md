@@ -203,6 +203,53 @@ build({
 - Default: `['js', 'jsx', 'ts', 'tsx', 'mjs', 'mts']`
 - Description: File extensions to process for StyleX transformations.
 
+#### `transformCss`
+
+- Type: `CSSTransformer`
+- Optional
+- Description: Transforms the extracted StyleX CSS before it is emitted or
+  injected. Matches the `@stylexswc/webpack-plugin` API. Use it to run the
+  generated CSS through PostCSS, LightningCSS, a minifier, or any custom
+  post-processing step.
+
+```ts
+type CSSTransformer = (
+  css: string,
+  filePath: string | undefined
+) => string | Buffer | Promise<string | Buffer>;
+```
+
+```typescript
+import postcss from 'postcss';
+import autoprefixer from 'autoprefixer';
+
+StylexRsPlugin({
+  async transformCss(css) {
+    const result = await postcss([autoprefixer]).process(css, {
+      from: undefined,
+    });
+    return result.css;
+  },
+})
+```
+
+The `filePath` argument identifies the CSS destination and is
+bundler-specific:
+
+- webpack/rspack/rollup injection: the output asset name (e.g. `app.css`)
+- esbuild disk writes: the absolute path of the written file
+- Vite placeholder replacement: the id of the CSS module being loaded
+- generated assets: the configured `fileName`, with `[hash]` left unresolved
+  (the hash is computed from the transformed CSS, so it cannot be known
+  earlier)
+- `undefined` when no destination is known
+
+> [!NOTE]
+> `Buffer` results are decoded as UTF-8. Results are memoized per `filePath`
+> while the input CSS is unchanged, so the callback must be a pure function of
+> its arguments — the same input may be served from cache instead of invoking
+> the callback again.
+
 #### `useCssPlaceholder`
 
 - Type: `boolean | string`

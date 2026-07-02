@@ -4,12 +4,20 @@
     "rootDir": "./src",
     "outDir": "dist",
     "ignoreDeprecations": "6.0",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "moduleResolution": "Node",
     "module": "CommonJS",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "types/webpack-plugin-shared.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

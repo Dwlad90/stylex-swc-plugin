@@ -10,6 +10,7 @@ import {
   VIRTUAL_CSS_PATTERN,
 } from './constants';
 import { shouldTransformFile } from '@stylexswc/rs-compiler';
+import { isAllowlistedPackage } from './shared';
 
 import type { TransformedOptions } from '@stylexswc/rs-compiler';
 
@@ -58,20 +59,6 @@ const getStyleXRules = (
 };
 
 const identityTransform: CSSTransformer = css => css;
-
-function isAllowlistedPackage(resourcePath: string, stylexPackages: string[]) {
-  const nodeModulesSegment = `${path.sep}node_modules${path.sep}`;
-  const nodeModulesEntries = path.normalize(resourcePath).split(nodeModulesSegment).slice(1);
-
-  return stylexPackages.some(packageName => {
-    const normalizedPackageName = path.normalize(packageName).replace(/[\\/]$/, '');
-
-    return nodeModulesEntries.some(
-      entry =>
-        entry === normalizedPackageName || entry.startsWith(`${normalizedPackageName}${path.sep}`)
-    );
-  });
-}
 
 export type RegisterStyleXRules = (_resourcePath: string, _stylexRules: StyleXRule[]) => void;
 
@@ -311,6 +298,7 @@ export default class StyleXPlugin {
 }
 
 export { VIRTUAL_CSS_PATTERN, STYLEX_CHUNK_NAME, DEFAULT_STYLEX_PACKAGES };
+export { isAllowlistedPackage } from './shared';
 // ESM exports keep the loader paths reachable in environments where the guarded
 // CJS block below is skipped (e.g. tooling that evaluates this file as ESM)
 export { stylexLoaderPath as loader, stylexVirtualLoaderPath as virtualLoader };

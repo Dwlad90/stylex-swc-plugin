@@ -8,6 +8,7 @@ import {
   VIRTUAL_CSS_PATTERN,
 } from './constants';
 import { shouldTransformFile } from '@stylexswc/rs-compiler';
+import { isAllowlistedPackage } from '@stylexswc/webpack-plugin/shared';
 import { parseStylexRulesFromIdentifier } from './utils';
 
 import type { StyleXOptions, TransformedOptions } from '@stylexswc/rs-compiler';
@@ -55,20 +56,6 @@ const getStyleXRules = (
 };
 
 const identityTransform: CSSTransformer = css => css;
-
-function isAllowlistedPackage(resourcePath: string, stylexPackages: string[]) {
-  const nodeModulesSegment = `${path.sep}node_modules${path.sep}`;
-  const nodeModulesEntries = path.normalize(resourcePath).split(nodeModulesSegment).slice(1);
-
-  return stylexPackages.some(packageName => {
-    const normalizedPackageName = path.normalize(packageName).replace(/[\\/]$/, '');
-
-    return nodeModulesEntries.some(
-      entry =>
-        entry === normalizedPackageName || entry.startsWith(`${normalizedPackageName}${path.sep}`)
-    );
-  });
-}
 
 export type RegisterStyleXRules = (_resourcePath: string, _stylexRules: StyleXRule[]) => void;
 

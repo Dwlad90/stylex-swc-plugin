@@ -40,10 +40,6 @@ const { writeFile, mkdir } = promises;
 
 const PLUGIN_NAME = 'unplugin-stylex-rs';
 
-// Track Vite dev server for CSS invalidation
-let viteDevServer: ViteDevServer | null = null;
-let hasInvalidatedInitialCSS = false;
-
 function replaceFileName(original: string, css: string) {
   if (!original.includes('[hash]')) {
     return original;
@@ -203,6 +199,12 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   let cssFileName: string | null = null;
 
   let wsSend: undefined | ((payload: HotPayload) => void) = undefined;
+
+  // Scoped to this plugin instance so multiple compilers/builds sharing the
+  // same process (e.g. Next.js client/server, or several Vite dev servers)
+  // don't clobber each other's dev-server reference or invalidation flag.
+  let viteDevServer: ViteDevServer | null = null;
+  let hasInvalidatedInitialCSS = false;
 
   return {
     name: PLUGIN_NAME,

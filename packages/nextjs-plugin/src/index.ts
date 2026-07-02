@@ -2,7 +2,10 @@ import nextMiniCssExtractPluginExports from 'next/dist/build/webpack/plugins/min
 import { warn } from 'next/dist/build/output/log';
 import browserslist from 'next/dist/compiled/browserslist';
 import { lazyPostCSS } from 'next/dist/build/webpack/config/blocks/css';
-import StyleXWebpackPlugin, { VIRTUAL_CSS_PATTERN } from '@stylexswc/webpack-plugin';
+import StyleXWebpackPlugin, {
+  DEFAULT_STYLEX_PACKAGES,
+  VIRTUAL_CSS_PATTERN,
+} from '@stylexswc/webpack-plugin';
 
 import type { NextConfig, WebpackConfigContext } from 'next/dist/server/config-shared';
 import type { StyleXPluginOption } from '@stylexswc/webpack-plugin';
@@ -208,9 +211,18 @@ const withStyleX =
           }
         }
 
+        // Packages in transpilePackages ship untransformed source (Next requirement
+        // for StyleX-authoring packages), so they are exactly the node_modules
+        // packages the stylex-loader must process
+        const stylexPackages = [
+          ...(pluginOptions?.stylexPackages ?? DEFAULT_STYLEX_PACKAGES),
+          ...(nextConfig.transpilePackages ?? []),
+        ];
+
         config.plugins.push(
           new StyleXWebpackPlugin({
             ...pluginOptions,
+            stylexPackages,
             rsOptions: {
               ...pluginOptions?.rsOptions,
               dev: ctx.dev,

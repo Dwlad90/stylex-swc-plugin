@@ -144,6 +144,22 @@ module.exports = config;
 
   With `loaderOrder: 'first'`, the plugin automatically preserves these imports by injecting side-effect imports.
 
+#### `stylexPackages`
+
+- Type: `string[]`
+- Optional
+- Default: `['@stylexjs/']`
+- Description: `node_modules` is **excluded by default**, even for files that
+  reference a StyleX import. Packages that ship untransformed StyleX source
+  (e.g. component libraries) must be allowlisted here with path fragments so
+  the StyleX loader still processes them:
+
+```javascript
+new StylexPlugin({
+  stylexPackages: ['@stylexjs/', 'my-design-system'],
+});
+```
+
 ### Advanced Options
 
 #### `transformCss`
@@ -263,29 +279,18 @@ new StylexPlugin({
 })
 ```
 
-**Exclude node_modules except specific packages:**
-
-```javascript
-new StylexPlugin({
-  rsOptions: {
-    // Exclude all node_modules except @stylexjs/open-props
-    exclude: [/node_modules(?!\/@stylexjs\/open-props)/],
-  },
-})
-```
-
 **Transform only specific packages from node_modules:**
 
+`node_modules` is excluded by default regardless of `rsOptions.include`/
+`exclude` — allowlist packages with `stylexPackages` instead:
+
 ```javascript
 new StylexPlugin({
   rsOptions: {
-    include: [
-      'src/**/*.{ts,tsx}',
-      'node_modules/@stylexjs/open-props/**/*.js',
-      'node_modules/@my-org/design-system/**/*.js',
-    ],
+    include: ['src/**/*.{ts,tsx}'],
     exclude: ['**/*.test.*'],
   },
+  stylexPackages: ['@stylexjs/open-props', '@my-org/design-system'],
 })
 ```
 

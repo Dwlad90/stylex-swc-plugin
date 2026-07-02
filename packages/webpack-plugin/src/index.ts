@@ -1,6 +1,7 @@
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
 import path from 'path';
 import {
+  DEFAULT_STYLEX_PACKAGES,
   INCLUDE_REGEXP,
   IS_DEV_ENV,
   PLUGIN_NAME,
@@ -68,6 +69,7 @@ export default class StyleXPlugin {
   cacheGroup?: CacheGroupOptions;
   transformCss: CSSTransformer;
   loaderOrder: StyleXPluginOption['loaderOrder'];
+  stylexPackages: string[];
   constructor({
     stylexImports = ['stylex', '@stylexjs/stylex'],
     useCSSLayers = false,
@@ -77,6 +79,7 @@ export default class StyleXPlugin {
     extractCSS = true,
     loaderOrder = 'first',
     cacheGroup,
+    stylexPackages = DEFAULT_STYLEX_PACKAGES,
   }: StyleXPluginOption = {}) {
     this.transformedOptions = {
       useLayers: useCSSLayers,
@@ -100,6 +103,36 @@ export default class StyleXPlugin {
     this.transformCss = transformCss;
     this.loaderOrder = loaderOrder;
     this.cacheGroup = cacheGroup;
+    this.stylexPackages = stylexPackages;
+  }
+
+  /**
+   * Excludes node_modules by default, matching the rspack plugin, so
+   * unrelated dependencies whose source happens to mention a StyleX import
+   * string aren't parsed and transformed unless explicitly allowlisted.
+   */
+  shouldProcessFile(resourcePath: string): boolean {
+    if (!resourcePath) {
+      return false;
+    }
+
+    const nodeModulesSegment = `${path.sep}node_modules${path.sep}`;
+
+    if (resourcePath.includes(nodeModulesSegment)) {
+      const isAllowlisted = this.stylexPackages.some(pkg =>
+        resourcePath.includes(`${nodeModulesSegment}${pkg.replace(/\//g, path.sep)}`)
+      );
+
+      if (!isAllowlisted) {
+        return false;
+      }
+    }
+
+    return shouldTransformFile(
+      resourcePath,
+      this.loaderOption.rsOptions?.include,
+      this.loaderOption.rsOptions?.exclude
+    );
   }
 
   apply(compiler: webpack.Compiler) {
@@ -147,12 +180,8 @@ export default class StyleXPlugin {
           const extname = path.extname(mod.matchResource || mod.resource);
 
           if (INCLUDE_REGEXP.test(extname)) {
-            // Add path filtering check using Rust function
-            const shouldTransform = shouldTransformFile(
-              mod.resource,
-              this.loaderOption.rsOptions?.include,
-              this.loaderOption.rsOptions?.exclude
-            );
+            // Add path filtering check, including the node_modules allowlist
+            const shouldTransform = this.shouldProcessFile(mod.resource);
 
             if (!shouldTransform) {
               return; // Skip adding loader if filtered out
@@ -271,7 +300,7 @@ export default class StyleXPlugin {
   }
 }
 
-export { VIRTUAL_CSS_PATTERN, STYLEX_CHUNK_NAME };
+export { VIRTUAL_CSS_PATTERN, STYLEX_CHUNK_NAME, DEFAULT_STYLEX_PACKAGES };
 // ESM exports keep the loader paths reachable in environments where the guarded
 // CJS block below is skipped (e.g. tooling that evaluates this file as ESM)
 export { stylexLoaderPath as loader, stylexVirtualLoaderPath as virtualLoader };
@@ -290,4 +319,5 @@ if (
   module.exports.virtualLoader = stylexVirtualLoaderPath;
   module.exports.VIRTUAL_CSS_PATTERN = VIRTUAL_CSS_PATTERN;
   module.exports.STYLEX_CHUNK_NAME = STYLEX_CHUNK_NAME;
+  module.exports.DEFAULT_STYLEX_PACKAGES = DEFAULT_STYLEX_PACKAGES;
 }

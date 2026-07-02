@@ -81,6 +81,18 @@ export interface StyleXPluginOption {
    * @see https://webpack.js.org/plugins/split-chunks-plugin/#splitchunkscachegroups
    */
   cacheGroup?: CacheGroupOptions;
+
+  /**
+   * node_modules packages that must be processed by the stylex-loader.
+   *
+   * By default, node_modules is excluded even if a module imports StyleX, so
+   * only source that ships already-untransformed StyleX (e.g. component
+   * libraries) needs to opt in here. List path fragments (e.g. '@stylexjs/',
+   * 'my-design-system') for packages that ship untransformed StyleX source.
+   *
+   * @default ['@stylexjs/']
+   */
+  stylexPackages?: string[];
 }
 export type StyleXWebpackLoaderOptions = {
   stylexImports: StyleXOptions['importSources'];

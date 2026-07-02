@@ -4,6 +4,7 @@ import type { TransformedOptions } from '@stylexswc/rs-compiler';
 import type { UnpluginStylexRSOptions } from '../types';
 
 const DEFAULT_CSS_PLACEHOLDER = '@stylex;';
+const identityTransformCss: NonNullable<UnpluginStylexRSOptions['transformCss']> = css => css;
 
 export type NormalizedOptions = Omit<
   Required<UnpluginStylexRSOptions>,
@@ -34,6 +35,7 @@ export default function normalizeOptions(options: UnpluginStylexRSOptions): Norm
     pageExtensions: options.pageExtensions ?? ['tsx', 'jsx', 'js', 'ts'],
     rsOptions: normalizedRsOptions,
     extractCSS: options.extractCSS ?? true,
+    transformCss: options.transformCss ?? identityTransformCss,
     useCssPlaceholder,
     enableLTRRTLComments: normalizedRsOptions.enableLTRRTLComments,
     legacyDisableLayers: normalizedRsOptions.legacyDisableLayers,

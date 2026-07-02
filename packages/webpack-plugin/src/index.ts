@@ -23,8 +23,16 @@ import type {
 } from './types';
 import type { CssModule } from 'mini-css-extract-plugin';
 
-const stylexLoaderPath = require.resolve('./stylex-loader');
-const stylexVirtualLoaderPath = require.resolve('./stylex-virtual-css-loader');
+function resolveLoaderPath(loaderName: string) {
+  try {
+    return require.resolve(`./${loaderName}`);
+  } catch {
+    return require.resolve(`./${loaderName}.ts`);
+  }
+}
+
+const stylexLoaderPath = resolveLoaderPath('stylex-loader');
+const stylexVirtualLoaderPath = resolveLoaderPath('stylex-virtual-css-loader');
 
 const getStyleXRules = (
   stylexRules: Map<string, readonly StyleXRule[]>,
@@ -258,9 +266,14 @@ export { VIRTUAL_CSS_PATTERN, STYLEX_CHUNK_NAME };
 
 export type { StyleXPluginOption, CacheGroupOptions } from './types';
 
-module.exports = StyleXPlugin;
-module.exports.default = StyleXPlugin;
-module.exports.loader = stylexLoaderPath;
-module.exports.virtualLoader = stylexVirtualLoaderPath;
-module.exports.VIRTUAL_CSS_PATTERN = VIRTUAL_CSS_PATTERN;
-module.exports.STYLEX_CHUNK_NAME = STYLEX_CHUNK_NAME;
+if (
+  typeof module !== 'undefined' &&
+  Object.prototype.toString.call(module.exports) !== '[object Module]'
+) {
+  module.exports = StyleXPlugin;
+  module.exports.default = StyleXPlugin;
+  module.exports.loader = stylexLoaderPath;
+  module.exports.virtualLoader = stylexVirtualLoaderPath;
+  module.exports.VIRTUAL_CSS_PATTERN = VIRTUAL_CSS_PATTERN;
+  module.exports.STYLEX_CHUNK_NAME = STYLEX_CHUNK_NAME;
+}

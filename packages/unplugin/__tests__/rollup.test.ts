@@ -79,4 +79,20 @@ describe('@stylexswc/unplugin/rollup', () => {
 
     expect(css?.source).toMatchSnapshot();
   });
+
+  test('transforms extracted CSS before emit', async () => {
+    const seenFilePaths: Array<string | undefined> = [];
+    const { css } = await runStylex({
+      fileName: 'stylex.css',
+      async transformCss(css, filePath) {
+        seenFilePaths.push(filePath);
+
+        return `${css}\n/* transformed:${filePath} */`;
+      },
+    });
+
+    expect(seenFilePaths).toEqual(['stylex.css']);
+    expect(css).toContain('color');
+    expect(css).toContain('/* transformed:stylex.css */');
+  });
 });

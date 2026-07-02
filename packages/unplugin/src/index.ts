@@ -131,17 +131,18 @@ async function invalidateAndCollectCssModules(
  * Injects StyleX CSS into CSS assets for webpack/rspack bundlers.
  * Shared logic to avoid code duplication between webpack and rspack hooks.
  */
-function injectStyleXCss(
+async function injectStyleXCss(
   assets: Record<string, { source(): { toString(): string } }>,
   injectMarker: string,
   collectedCSS: string,
   fallbackFileName: string,
+  normalizedOptions: NormalizedOptions,
   /* eslint-disable @typescript-eslint/no-explicit-any */
   updateAsset: (fileName: string, source: any) => void,
   emitAsset: (fileName: string, source: any) => void,
   createRawSource: (content: string) => any
   /* eslint-enable @typescript-eslint/no-explicit-any */
-): void {
+): Promise<void> {
   const cssAssets = Object.keys(assets).filter(f => f.endsWith('.css'));
 
   // Try to find asset with the marker first
@@ -151,7 +152,8 @@ function injectStyleXCss(
     if (!asset) continue;
     const source = asset.source().toString();
     if (source.includes(injectMarker)) {
-      const newSource = source.replace(injectMarker, collectedCSS);
+      const finalCSS = await transformStyleXCSS(collectedCSS, fileName, normalizedOptions);
+      const newSource = source.replace(injectMarker, finalCSS);
       updateAsset(fileName, createRawSource(newSource));
       injected = true;
       break;
@@ -165,7 +167,8 @@ function injectStyleXCss(
       const asset = assets[targetAsset];
       if (asset) {
         const existing = asset.source().toString();
-        const newSource = existing ? existing + '\n' + collectedCSS : collectedCSS;
+        const finalCSS = await transformStyleXCSS(collectedCSS, targetAsset, normalizedOptions);
+        const newSource = existing ? existing + '\n' + finalCSS : finalCSS;
         updateAsset(targetAsset, createRawSource(newSource));
         injected = true;
       }
@@ -174,7 +177,8 @@ function injectStyleXCss(
 
   // Last resort: emit standalone stylex.css
   if (!injected) {
-    emitAsset(fallbackFileName, createRawSource(collectedCSS));
+    const finalCSS = await transformStyleXCSS(collectedCSS, fallbackFileName, normalizedOptions);
+    emitAsset(fallbackFileName, createRawSource(finalCSS));
   }
 }
 
@@ -298,7 +302,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       }
     },
 
-    buildEnd() {
+    async buildEnd() {
       const framework = this.getNativeBuildContext?.().framework;
       if (framework === 'esbuild') {
         // will handle the CSS generation in the plugin itself
@@ -311,7 +315,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         return;
       }
 
-      const { processedFileName, collectedCSS } = generateCSSAssets(
+      const { processedFileName, collectedCSS } = await generateCSSAssets(
         stylexRules,
         normalizedOptions,
         transformedOptions
@@ -373,13 +377,13 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             ? '/* StyleX styles will load after transformation */'
             : '/* No StyleX styles */';
         } else {
-          replacementCSS = collectedCSS;
+          replacementCSS = await transformStyleXCSS(collectedCSS, id, normalizedOptions);
         }
 
         return cssContent.replace(normalizedOptions.useCssPlaceholder, replacementCSS);
       },
 
-      generateBundle(_options, bundle) {
+      async generateBundle(_options, bundle) {
         if (!normalizedOptions.useCssPlaceholder) return;
 
         const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
@@ -405,7 +409,12 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             normalizedOptions.useCssPlaceholder &&
             source.includes(normalizedOptions.useCssPlaceholder)
           ) {
-            output.source = source.replace(normalizedOptions.useCssPlaceholder, collectedCSS);
+            const finalCSS = await transformStyleXCSS(
+              collectedCSS,
+              output.fileName,
+              normalizedOptions
+            );
+            output.source = source.replace(normalizedOptions.useCssPlaceholder, finalCSS);
             injected = true;
             break;
           }
@@ -417,22 +426,32 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           const target = cssAssets.find(a => a.fileName === targetName);
           if (target && target.output.type === 'asset') {
             const existing = target.output.source.toString();
-            target.output.source = existing ? existing + '\n' + collectedCSS : collectedCSS;
+            const finalCSS = await transformStyleXCSS(
+              collectedCSS,
+              target.fileName,
+              normalizedOptions
+            );
+            target.output.source = existing ? existing + '\n' + finalCSS : finalCSS;
             injected = true;
           }
         }
 
         // Last resort: emit standalone stylex.css if no CSS assets found
         if (!injected) {
+          const finalCSS = await transformStyleXCSS(
+            collectedCSS,
+            normalizedOptions.fileName,
+            normalizedOptions
+          );
           this.emitFile({
             type: 'asset',
             fileName: normalizedOptions.fileName,
-            source: collectedCSS,
+            source: finalCSS,
           });
         }
       },
 
-      buildEnd() {
+      async buildEnd() {
         // Skip emitting CSS file when using useCssPlaceholder
         // CSS will be injected into the specified file via generateBundle
         if (normalizedOptions.useCssPlaceholder) {
@@ -445,7 +464,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           return;
         }
 
-        const { processedFileName, collectedCSS } = generateCSSAssets(
+        const { processedFileName, collectedCSS } = await generateCSSAssets(
           stylexRules,
           normalizedOptions,
           transformedOptions,
@@ -469,10 +488,19 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         server.middlewares.use(
           (req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {
             if (cssFileName && req.url?.includes(cssFileName)) {
-              const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
+              void (async () => {
+                const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
+                const finalCSS = collectedCSS
+                  ? await transformStyleXCSS(
+                      collectedCSS,
+                      cssFileName ?? undefined,
+                      normalizedOptions
+                    )
+                  : collectedCSS;
 
-              res.setHeader('Content-Type', 'text/css');
-              res.end(collectedCSS);
+                res.setHeader('Content-Type', 'text/css');
+                res.end(finalCSS);
+              })().catch(next);
               return;
             }
             next();
@@ -515,7 +543,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
         transformStyleXCode(file, inputCode, normalizedOptions, stylexRules, id);
 
-        const { processedFileName, collectedCSS } = generateCSSAssets(
+        const { processedFileName, collectedCSS } = await generateCSSAssets(
           stylexRules,
           normalizedOptions,
           transformedOptions,
@@ -555,7 +583,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           }
         }
       },
-      transformIndexHtml: (html, ctx) => {
+      transformIndexHtml: async (html, ctx) => {
         // Skip HTML injection when using useCssPlaceholder
         // CSS is injected into the specified CSS file
         if (normalizedOptions.useCssPlaceholder) {
@@ -564,7 +592,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
         const isDev = !!ctx.server;
 
-        const { processedFileName } = generateCSSAssets(
+        const { processedFileName } = await generateCSSAssets(
           stylexRules,
           normalizedOptions,
           transformedOptions,
@@ -641,7 +669,12 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
                 const { readFile } = await import('node:fs/promises');
                 const content = await readFile(cssFile, 'utf8');
                 if (content.includes(injectMarker)) {
-                  const newContent = content.replace(injectMarker, collectedCSS);
+                  const finalCSS = await transformStyleXCSS(
+                    collectedCSS,
+                    cssFile,
+                    normalizedOptions
+                  );
+                  const newContent = content.replace(injectMarker, finalCSS);
                   await writeFile(cssFile, newContent, 'utf8');
                   injected = true;
                   break;
@@ -660,7 +693,12 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
                   try {
                     const { readFile } = await import('node:fs/promises');
                     const existing = await readFile(fullPath, 'utf8');
-                    const newContent = existing ? existing + '\n' + collectedCSS : collectedCSS;
+                    const finalCSS = await transformStyleXCSS(
+                      collectedCSS,
+                      fullPath,
+                      normalizedOptions
+                    );
+                    const newContent = existing ? existing + '\n' + finalCSS : finalCSS;
                     await writeFile(fullPath, newContent, 'utf8');
                     injected = true;
                   } catch {
@@ -673,8 +711,13 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             // Last resort: emit standalone stylex.css
             if (!injected) {
               const generatedCSSFileName = path.join(outDir, fileName);
+              const finalCSS = await transformStyleXCSS(
+                collectedCSS,
+                generatedCSSFileName,
+                normalizedOptions
+              );
               await mkdir(path.dirname(generatedCSSFileName), { recursive: true });
-              await writeFile(generatedCSSFileName, collectedCSS, 'utf8');
+              await writeFile(generatedCSSFileName, finalCSS, 'utf8');
             }
 
             return;
@@ -683,21 +726,27 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           // Default behavior: emit standalone CSS file
           if (shouldWriteToDisk) {
             const generatedCSSFileName = path.join(process.cwd(), fileName);
+            const finalCSS = await transformStyleXCSS(
+              collectedCSS,
+              generatedCSSFileName,
+              normalizedOptions
+            );
             await mkdir(path.dirname(generatedCSSFileName), {
               recursive: true,
             });
-            await writeFile(generatedCSSFileName, collectedCSS, 'utf8');
+            await writeFile(generatedCSSFileName, finalCSS, 'utf8');
 
             return;
           }
 
           if (outputFiles !== undefined) {
+            const finalCSS = await transformStyleXCSS(collectedCSS, fileName, normalizedOptions);
             outputFiles.push({
               path: '<stdout>',
-              contents: new TextEncoder().encode(collectedCSS),
-              hash: generateHash(collectedCSS),
+              contents: new TextEncoder().encode(finalCSS),
+              hash: generateHash(finalCSS),
               get text() {
-                return collectedCSS;
+                return finalCSS;
               },
             });
           }
@@ -706,7 +755,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     },
     farm: {
       transformHtml: {
-        executor(resource) {
+        async executor(resource) {
           // Skip HTML injection when using useCssPlaceholder
           if (normalizedOptions.useCssPlaceholder) {
             return Promise.resolve(resource.htmlResource);
@@ -722,7 +771,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
           htmlResource.bytes = [...Buffer.from(htmlContent, 'utf-8')];
 
-          return Promise.resolve(resource.htmlResource);
+          return resource.htmlResource;
         },
       },
       // Farm uses Rollup-like bundle hooks, so generateBundle handles CSS injection
@@ -736,20 +785,21 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       // Use processAssets hook to replace the CSS marker with actual StyleX content
       // This runs after all CSS is processed through loaders (PostCSS, etc.)
       compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
-        compilation.hooks.processAssets.tap(
+        compilation.hooks.processAssets.tapPromise(
           {
             name: PLUGIN_NAME,
             stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE,
           },
-          assets => {
+          async assets => {
             const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
             if (!collectedCSS) return;
 
-            injectStyleXCss(
+            await injectStyleXCss(
               assets,
               injectMarker,
               collectedCSS,
               normalizedOptions.fileName,
+              normalizedOptions,
               (fileName, source) => compilation.updateAsset(fileName, source),
               (fileName, source) => compilation.emitAsset(fileName, source),
               content => new compiler.webpack.sources.RawSource(content)
@@ -766,20 +816,21 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       // Use processAssets hook to replace the CSS marker with actual StyleX content
       // This runs after all CSS is processed through loaders (PostCSS, etc.)
       compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
-        compilation.hooks.processAssets.tap(
+        compilation.hooks.processAssets.tapPromise(
           {
             name: PLUGIN_NAME,
             stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE,
           },
-          assets => {
+          async assets => {
             const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
             if (!collectedCSS) return;
 
-            injectStyleXCss(
+            await injectStyleXCss(
               assets,
               injectMarker,
               collectedCSS,
               normalizedOptions.fileName,
+              normalizedOptions,
               (fileName, source) => compilation.updateAsset(fileName, source),
               (fileName, source) => compilation.emitAsset(fileName, source),
               content => new compiler.webpack.sources.RawSource(content)
@@ -795,17 +846,39 @@ function ensureLeadingSlash(filePath: string) {
   return filePath.startsWith('/') ? filePath : `/${filePath}`;
 }
 
-function generateCSSAssets(
+async function generateCSSAssets(
   stylexRules: Record<string, [string, { ltr: string; rtl?: null | string }, number][]>,
   normalizedOptions: NormalizedOptions,
   transformedOptions: TransformedOptions,
   assetsDir?: string
 ) {
   const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
+  const initialProcessedFileName = getProcessedFileName(
+    normalizedOptions,
+    collectedCSS || '',
+    assetsDir
+  );
+  const finalCSS = collectedCSS
+    ? await transformStyleXCSS(
+        collectedCSS,
+        initialProcessedFileName ?? undefined,
+        normalizedOptions
+      )
+    : collectedCSS;
 
-  const processedFileName = getProcessedFileName(normalizedOptions, collectedCSS || '', assetsDir);
+  const processedFileName = getProcessedFileName(normalizedOptions, finalCSS || '', assetsDir);
 
-  return { processedFileName, collectedCSS };
+  return { processedFileName, collectedCSS: finalCSS };
+}
+
+async function transformStyleXCSS(
+  css: string,
+  filePath: string | undefined,
+  normalizedOptions: NormalizedOptions
+): Promise<string> {
+  const result = await normalizedOptions.transformCss(css, filePath);
+
+  return result.toString();
 }
 
 function hasStyleXCode(normalizedOptions: NormalizedOptions, inputCode: string) {

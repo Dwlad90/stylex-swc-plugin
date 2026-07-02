@@ -1,12 +1,24 @@
 import type { StyleXOptions } from '@stylexswc/rs-compiler';
 import type { TransformedOptions } from '@stylexswc/rs-compiler';
 
+export type CSSTransformer = (
+  css: string,
+  filePath: string | undefined
+) => string | Buffer | Promise<string | Buffer>;
+
 export interface UnpluginStylexRSOptions {
   fileName?: string;
   useCSSLayers?: TransformedOptions['useLayers'];
   pageExtensions?: string[];
   rsOptions?: StyleXOptions;
   extractCSS?: boolean;
+  /**
+   * Transform the extracted StyleX CSS before it is emitted or injected.
+   *
+   * This matches the webpack plugin API and receives the generated CSS plus the
+   * target CSS asset path when one is known.
+   */
+  transformCss?: CSSTransformer;
   /**
    * Enable CSS injection into CSS files via placeholder marker.
    *

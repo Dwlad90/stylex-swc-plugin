@@ -8,6 +8,149 @@ import { vi, describe, expect, test } from 'vitest';
 import unplugin from '../src';
 import stylexPlugin from '../src/rollup';
 
+type TestPluginInstance = {
+  buildStart?: (this: UnpluginBuildContext) => void;
+  transform?: (
+    this: UnpluginBuildContext & UnpluginContext,
+    code: string,
+    id: string
+  ) => unknown;
+  webpack?: (compiler: unknown) => void;
+  rspack?: (compiler: unknown) => void;
+};
+
+const stylexSource = `
+  import * as stylex from '@stylexjs/stylex';
+  const styles = stylex.create({ foo: { color: 'red' } });
+  export default styles;
+`;
+
+function createMockContext(): Partial<UnpluginBuildContext & UnpluginContext> {
+  return {
+    addWatchFile: () => {},
+    emitFile: () => '',
+    getWatchFiles: () => [],
+    parse: () => ({}) as ReturnType<UnpluginBuildContext['parse']>,
+    error: () => {},
+    warn: () => {},
+  };
+}
+
+function createMockCssAsset(source: string) {
+  return {
+    source: () => ({
+      toString: () => source,
+    }),
+  };
+}
+
+async function collectStyleXRules(pluginInstance: TestPluginInstance) {
+  const mockContext = createMockContext();
+
+  if (typeof pluginInstance.buildStart === 'function') {
+    pluginInstance.buildStart.call(mockContext as UnpluginBuildContext);
+  }
+
+  if (typeof pluginInstance.transform !== 'function') {
+    throw new Error('Transform is not a function');
+  }
+
+  await pluginInstance.transform.call(
+    mockContext as UnpluginBuildContext & UnpluginContext,
+    stylexSource,
+    '/virtual/foo.js'
+  );
+}
+
+async function runWebpackLikeCssInjection(framework: 'webpack' | 'rspack') {
+  const transformCss = vi.fn(async (css: string, filePath: string | undefined) => {
+    return `${css}\n/* transformed:${framework}:${filePath} */`;
+  });
+  const plugin = unplugin.raw(
+    {
+      useCssPlaceholder: true,
+      transformCss,
+      rsOptions: {
+        runtimeInjection: false,
+        dev: false,
+      },
+    },
+    { framework } as never
+  );
+  const pluginInstance = (Array.isArray(plugin) ? plugin[0] : plugin) as TestPluginInstance;
+
+  if (!pluginInstance) {
+    throw new Error('Plugin instance is undefined');
+  }
+
+  await collectStyleXRules(pluginInstance);
+
+  let processAssetsCallback:
+    | ((assets: Record<string, ReturnType<typeof createMockCssAsset>>) => Promise<void>)
+    | undefined;
+  const assets = {
+    'app.css': createMockCssAsset('body{margin:0}\n@stylex;'),
+  };
+  const compilation = {
+    hooks: {
+      processAssets: {
+        tapPromise: vi.fn(
+          (
+            _options: unknown,
+            callback: (assets: Record<string, ReturnType<typeof createMockCssAsset>>) => Promise<void>
+          ) => {
+            processAssetsCallback = callback;
+          }
+        ),
+      },
+    },
+    updateAsset: vi.fn((fileName: string, source: ReturnType<typeof createMockCssAsset>) => {
+      assets[fileName as keyof typeof assets] = source;
+    }),
+    emitAsset: vi.fn(),
+  };
+  const compiler = {
+    webpack: {
+      Compilation: {
+        PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE: 0,
+      },
+      sources: {
+        RawSource: class RawSource {
+          #source: string;
+
+          constructor(source: string) {
+            this.#source = source;
+          }
+
+          source() {
+            return {
+              toString: () => this.#source,
+            };
+          }
+        },
+      },
+    },
+    hooks: {
+      thisCompilation: {
+        tap: vi.fn((_name: string, callback: (compilation: unknown) => void) =>
+          callback(compilation)
+        ),
+      },
+    },
+  };
+
+  const applyBundlerHook = pluginInstance[framework];
+
+  if (typeof applyBundlerHook !== 'function') {
+    throw new Error(`${framework} hook is not a function`);
+  }
+
+  applyBundlerHook(compiler);
+  await processAssetsCallback?.(assets);
+
+  return { assets, compilation, transformCss };
+}
+
 describe('@stylexswc/unplugin', () => {
   test('ignores files without StyleX imports', async () => {
     const plugin = unplugin.raw({}, { framework: 'rollup' });
@@ -46,12 +189,7 @@ describe('@stylexswc/unplugin', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stylex-unplugin-test-'));
 
     const inputFile = path.join(tempDir, 'input.js');
-    const source = `
-      import * as stylex from '@stylexjs/stylex';
-      const styles = stylex.create({ foo: { color: 'red' } });
-      export default styles;
-    `;
-    fs.writeFileSync(inputFile, source);
+    fs.writeFileSync(inputFile, stylexSource);
 
     try {
       const bundle = await rollup.rollup({
@@ -91,6 +229,32 @@ describe('@stylexswc/unplugin', () => {
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
+  });
+
+  test('webpack hook transforms StyleX CSS before placeholder injection', async () => {
+    const { assets, compilation, transformCss } = await runWebpackLikeCssInjection('webpack');
+    const finalCSS = assets['app.css'].source().toString();
+
+    expect(transformCss).toHaveBeenCalledTimes(1);
+    expect(transformCss.mock.calls[0]?.[1]).toBe('app.css');
+    expect(compilation.updateAsset).toHaveBeenCalledTimes(1);
+    expect(finalCSS).toContain('body{margin:0}');
+    expect(finalCSS).toContain('color:red');
+    expect(finalCSS).toContain('/* transformed:webpack:app.css */');
+    expect(finalCSS).not.toContain('@stylex;');
+  });
+
+  test('rspack hook transforms StyleX CSS before placeholder injection', async () => {
+    const { assets, compilation, transformCss } = await runWebpackLikeCssInjection('rspack');
+    const finalCSS = assets['app.css'].source().toString();
+
+    expect(transformCss).toHaveBeenCalledTimes(1);
+    expect(transformCss.mock.calls[0]?.[1]).toBe('app.css');
+    expect(compilation.updateAsset).toHaveBeenCalledTimes(1);
+    expect(finalCSS).toContain('body{margin:0}');
+    expect(finalCSS).toContain('color:red');
+    expect(finalCSS).toContain('/* transformed:rspack:app.css */');
+    expect(finalCSS).not.toContain('@stylex;');
   });
 
   test('transform error includes the file path and preserves cause', async () => {

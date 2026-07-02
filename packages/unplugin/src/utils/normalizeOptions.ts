@@ -4,7 +4,8 @@ import type { TransformedOptions } from '@stylexswc/rs-compiler';
 import type { UnpluginStylexRSOptions } from '../types';
 
 const DEFAULT_CSS_PLACEHOLDER = '@stylex;';
-const identityTransformCss: NonNullable<UnpluginStylexRSOptions['transformCss']> = css => css;
+export const identityTransformCss: NonNullable<UnpluginStylexRSOptions['transformCss']> = css =>
+  css;
 
 export type NormalizedOptions = Omit<
   Required<UnpluginStylexRSOptions>,

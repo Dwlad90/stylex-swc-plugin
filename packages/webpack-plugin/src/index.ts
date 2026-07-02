@@ -26,7 +26,16 @@ import type { CssModule } from 'mini-css-extract-plugin';
 function resolveLoaderPath(loaderName: string) {
   try {
     return require.resolve(`./${loaderName}`);
-  } catch {
+  } catch (error) {
+    const isModuleNotFound =
+      error instanceof Error && 'code' in error && error.code === 'MODULE_NOT_FOUND';
+
+    if (!isModuleNotFound) {
+      throw error;
+    }
+
+    // Loaders resolve as `.ts` only when the plugin runs from source (e.g. vitest);
+    // published dist builds always resolve above
     return require.resolve(`./${loaderName}.ts`);
   }
 }
@@ -263,9 +272,14 @@ export default class StyleXPlugin {
 }
 
 export { VIRTUAL_CSS_PATTERN, STYLEX_CHUNK_NAME };
+// ESM exports keep the loader paths reachable in environments where the guarded
+// CJS block below is skipped (e.g. tooling that evaluates this file as ESM)
+export { stylexLoaderPath as loader, stylexVirtualLoaderPath as virtualLoader };
 
 export type { StyleXPluginOption, CacheGroupOptions } from './types';
 
+// Skipped when `module.exports` is an ES module namespace (frozen, cannot be
+// reassigned) — the ESM exports above provide the same surface there
 if (
   typeof module !== 'undefined' &&
   Object.prototype.toString.call(module.exports) !== '[object Module]'

@@ -7,7 +7,7 @@ import { createUnplugin } from 'unplugin';
 import type { UnpluginFactory, UnpluginInstance } from 'unplugin';
 
 import getStyleXRules from './utils/getStyleXRules';
-import normalizeOptions from './utils/normalizeOptions';
+import normalizeOptions, { identityTransformCss } from './utils/normalizeOptions';
 import type { UnpluginStylexRSOptions } from './types';
 import { shouldTransformFile, transform as stylexTransform } from '@stylexswc/rs-compiler';
 import generateHash from './utils/generateHash';
@@ -153,7 +153,8 @@ async function injectStyleXCss(
     const source = asset.source().toString();
     if (source.includes(injectMarker)) {
       const finalCSS = await transformStyleXCSS(collectedCSS, fileName, normalizedOptions);
-      const newSource = source.replace(injectMarker, finalCSS);
+      // Replacement callback keeps `$&`/`$'`-like sequences in the CSS literal
+      const newSource = source.replace(injectMarker, () => finalCSS);
       updateAsset(fileName, createRawSource(newSource));
       injected = true;
       break;
@@ -380,7 +381,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           replacementCSS = await transformStyleXCSS(collectedCSS, id, normalizedOptions);
         }
 
-        return cssContent.replace(normalizedOptions.useCssPlaceholder, replacementCSS);
+        return cssContent.replace(normalizedOptions.useCssPlaceholder, () => replacementCSS);
       },
 
       async generateBundle(_options, bundle) {
@@ -414,12 +415,15 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               output.fileName,
               normalizedOptions
             );
-            output.source = source.replace(normalizedOptions.useCssPlaceholder, finalCSS);
+            output.source = source.replace(normalizedOptions.useCssPlaceholder, () => finalCSS);
             injected = true;
             break;
           }
         }
 
+        // The load hook may have replaced the placeholder before all modules were
+        // transformed, so the fallback append must still run to deliver the full
+        // rule set; StyleX rules are idempotent when repeated
         // Fallback: if marker not found, append to preferred CSS asset
         if (!injected && cssAssets.length > 0) {
           const targetName = pickCssAsset(cssAssets.map(a => a.fileName));
@@ -487,23 +491,22 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
         server.middlewares.use(
           (req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {
-            if (cssFileName && req.url?.includes(cssFileName)) {
-              void (async () => {
-                const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
-                const finalCSS = collectedCSS
-                  ? await transformStyleXCSS(
-                      collectedCSS,
-                      cssFileName ?? undefined,
-                      normalizedOptions
-                    )
-                  : collectedCSS;
-
-                res.setHeader('Content-Type', 'text/css');
-                res.end(finalCSS);
-              })().catch(next);
+            const requestedCssFileName = cssFileName;
+            if (!requestedCssFileName || !req.url?.includes(requestedCssFileName)) {
+              next();
               return;
             }
-            next();
+
+            // Connect does not forward async rejections, hence the explicit catch
+            void (async () => {
+              const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
+              const finalCSS = collectedCSS
+                ? await transformStyleXCSS(collectedCSS, requestedCssFileName, normalizedOptions)
+                : collectedCSS;
+
+              res.setHeader('Content-Type', 'text/css');
+              res.end(finalCSS);
+            })().catch(next);
           }
         );
       },
@@ -674,7 +677,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
                     cssFile,
                     normalizedOptions
                   );
-                  const newContent = content.replace(injectMarker, finalCSS);
+                  const newContent = content.replace(injectMarker, () => finalCSS);
                   await writeFile(cssFile, newContent, 'utf8');
                   injected = true;
                   break;
@@ -688,7 +691,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             if (!injected && cssFiles.length > 0) {
               const targetFile = pickCssAsset(cssFiles.map(f => path.basename(f)));
               if (targetFile) {
-                const fullPath = cssFiles.find(f => f.endsWith(targetFile));
+                const fullPath = cssFiles.find(f => path.basename(f) === targetFile);
                 if (fullPath) {
                   try {
                     const { readFile } = await import('node:fs/promises');
@@ -758,10 +761,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         async executor(resource) {
           // Skip HTML injection when using useCssPlaceholder
           if (normalizedOptions.useCssPlaceholder) {
-            return Promise.resolve(resource.htmlResource);
+            return resource.htmlResource;
           }
 
-          if (!hasCssToExtract) return Promise.resolve(resource.htmlResource);
+          if (!hasCssToExtract) return resource.htmlResource;
 
           const htmlResource = resource.htmlResource;
 
@@ -853,15 +856,12 @@ async function generateCSSAssets(
   assetsDir?: string
 ) {
   const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
-  const initialProcessedFileName = getProcessedFileName(
-    normalizedOptions,
-    collectedCSS || '',
-    assetsDir
-  );
+  // The callback receives the un-hashed template path: the hashed name depends on
+  // the transform output, so it cannot exist before the transform runs
   const finalCSS = collectedCSS
     ? await transformStyleXCSS(
         collectedCSS,
-        initialProcessedFileName ?? undefined,
+        getCssFilePathTemplate(normalizedOptions, assetsDir) ?? undefined,
         normalizedOptions
       )
     : collectedCSS;
@@ -871,14 +871,41 @@ async function generateCSSAssets(
   return { processedFileName, collectedCSS: finalCSS };
 }
 
+// Memoized per transformCss callback and file path while the input CSS is unchanged,
+// because the same collected CSS is requested by several hooks per build and by
+// every dev-server request for the CSS file
+const transformCssCache = new WeakMap<
+  NormalizedOptions['transformCss'],
+  Map<string, { css: string; result: string }>
+>();
+
 async function transformStyleXCSS(
   css: string,
   filePath: string | undefined,
   normalizedOptions: NormalizedOptions
 ): Promise<string> {
-  const result = await normalizedOptions.transformCss(css, filePath);
+  const { transformCss } = normalizedOptions;
 
-  return result.toString();
+  if (transformCss === identityTransformCss) {
+    return css;
+  }
+
+  let cache = transformCssCache.get(transformCss);
+  if (!cache) {
+    cache = new Map();
+    transformCssCache.set(transformCss, cache);
+  }
+
+  const cacheKey = filePath ?? '';
+  const cached = cache.get(cacheKey);
+  if (cached && cached.css === css) {
+    return cached.result;
+  }
+
+  const result = (await transformCss(css, filePath)).toString();
+  cache.set(cacheKey, { css, result });
+
+  return result;
 }
 
 function hasStyleXCode(normalizedOptions: NormalizedOptions, inputCode: string) {
@@ -912,18 +939,22 @@ function transformStyleXCode(
   return result;
 }
 
+function getCssFilePathTemplate(normalizedOptions: NormalizedOptions, assetsDir?: string) {
+  if (!normalizedOptions.fileName) return null;
+
+  return assetsDir
+    ? path.posix.join(assetsDir, normalizedOptions.fileName)
+    : normalizedOptions.fileName;
+}
+
 function getProcessedFileName(
   normalizedOptions: NormalizedOptions,
   collectedCSS?: string,
   assetsDir?: string
 ) {
-  if (!normalizedOptions.fileName) return null;
+  const template = getCssFilePathTemplate(normalizedOptions, assetsDir);
 
-  const computedFileName = assetsDir
-    ? path.posix.join(assetsDir, normalizedOptions.fileName)
-    : normalizedOptions.fileName;
-
-  return replaceFileName(computedFileName, collectedCSS || '');
+  return template ? replaceFileName(template, collectedCSS || '') : null;
 }
 
 export const unplugin: UnpluginInstance<UnpluginStylexRSOptions | undefined, boolean> =

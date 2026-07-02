@@ -3,6 +3,8 @@ import { describe, expect, test, vi } from 'vitest';
 
 import StyleXPlugin, { STYLEX_CHUNK_NAME } from '../src';
 
+import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
+
 describe('@stylexswc/webpack-plugin', () => {
   test('transforms generated StyleX CSS before appending to the CSS asset', async () => {
     const { RawSource, ConcatSource } = webpack.sources;
@@ -10,11 +12,11 @@ describe('@stylexswc/webpack-plugin', () => {
       return `${css}\n/* transformed:${filePath} */`;
     });
     const plugin = new StyleXPlugin({ transformCss });
-    plugin.stylexRules.set('/button.tsx', [['x1abcd', { ltr: 'color:red' }, 3000]] as never);
+    const stylexRules: StyleXRule[] = [['x1abcd', { ltr: 'color:red', rtl: null }, 3000]];
+    plugin.stylexRules.set('/button.tsx', stylexRules);
 
     let processAssetsCallback:
-      | ((assets: Record<string, webpack.sources.Source>) => Promise<void>)
-      | undefined;
+      ((assets: Record<string, webpack.sources.Source>) => Promise<void>) | undefined;
     const assets: Record<string, webpack.sources.Source> = {
       'stylex.css': new RawSource('/* existing */'),
     };
@@ -26,7 +28,7 @@ describe('@stylexswc/webpack-plugin', () => {
               _options: unknown,
               callback: (assets: Record<string, webpack.sources.Source>) => Promise<void>
             ) => {
-            processAssetsCallback = callback;
+              processAssetsCallback = callback;
             }
           ),
         },

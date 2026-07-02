@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import * as rollup from 'rollup';
-import type { UnpluginBuildContext, UnpluginContext } from 'unplugin';
+import type { UnpluginBuildContext, UnpluginContext, UnpluginContextMeta } from 'unplugin';
 import { vi, describe, expect, test } from 'vitest';
 
 import unplugin from '../src';
@@ -10,11 +10,7 @@ import stylexPlugin from '../src/rollup';
 
 type TestPluginInstance = {
   buildStart?: (this: UnpluginBuildContext) => void;
-  transform?: (
-    this: UnpluginBuildContext & UnpluginContext,
-    code: string,
-    id: string
-  ) => unknown;
+  transform?: (this: UnpluginBuildContext & UnpluginContext, code: string, id: string) => unknown;
   webpack?: (compiler: unknown) => void;
   rspack?: (compiler: unknown) => void;
 };
@@ -75,7 +71,7 @@ async function runWebpackLikeCssInjection(framework: 'webpack' | 'rspack') {
         dev: false,
       },
     },
-    { framework } as never
+    { framework } as UnpluginContextMeta
   );
   const pluginInstance = (Array.isArray(plugin) ? plugin[0] : plugin) as TestPluginInstance;
 
@@ -85,23 +81,17 @@ async function runWebpackLikeCssInjection(framework: 'webpack' | 'rspack') {
 
   await collectStyleXRules(pluginInstance);
 
-  let processAssetsCallback:
-    | ((assets: Record<string, ReturnType<typeof createMockCssAsset>>) => Promise<void>)
-    | undefined;
+  type MockAssets = Record<string, ReturnType<typeof createMockCssAsset>>;
+  let processAssetsCallback: ((assets: MockAssets) => Promise<void>) | undefined;
   const assets = {
     'app.css': createMockCssAsset('body{margin:0}\n@stylex;'),
   };
   const compilation = {
     hooks: {
       processAssets: {
-        tapPromise: vi.fn(
-          (
-            _options: unknown,
-            callback: (assets: Record<string, ReturnType<typeof createMockCssAsset>>) => Promise<void>
-          ) => {
-            processAssetsCallback = callback;
-          }
-        ),
+        tapPromise: vi.fn((_options: unknown, callback: (assets: MockAssets) => Promise<void>) => {
+          processAssetsCallback = callback;
+        }),
       },
     },
     updateAsset: vi.fn((fileName: string, source: ReturnType<typeof createMockCssAsset>) => {

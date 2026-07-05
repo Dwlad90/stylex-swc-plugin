@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/jest",
   "description": "Jest transformer for Stylex SWC",
-  "version": "0.17.0-rc.4",
+  "version": "0.17.0",
   "private": false,
   "license": "MIT",
   "sideEffects": false,
@@ -31,13 +31,13 @@
     }
   },
   "dependencies": {
-    "@stylexswc/rs-compiler": "0.17.0-rc.4"
+    "@stylexswc/rs-compiler": "0.17.0"
   },
   "devDependencies": {
     "@jest/transform": "^30.4.1",
     "@jest/types": "^30.2.0",
-    "@stylexswc/eslint-config": "0.17.0-rc.4",
-    "@stylexswc/typescript-config": "0.17.0-rc.4",
+    "@stylexswc/eslint-config": "0.17.0",
+    "@stylexswc/typescript-config": "0.17.0",
     "@types/node": "^26.1.0"
   },
   "keywords": [

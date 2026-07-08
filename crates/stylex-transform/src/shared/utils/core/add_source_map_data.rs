@@ -79,12 +79,13 @@ pub(crate) fn add_source_map_data(
         // input and map it through the host-provided input source map back to
         // the original authored file. Exact even when earlier tooling (e.g.
         // macro loaders) already rewrote the code.
-        if let Some(original_line_number) =
-          original_line_from_input_source_map(&style_node_path, state)
+        if let Some(original_position) =
+          original_position_from_input_source_map(&style_node_path, state)
         {
           insert_compiled_entry(
             &mut inner_map,
-            original_line_number,
+            &original_position.filename,
+            original_position.line_number,
             state,
             package_json_seen,
             functions,
@@ -130,8 +131,10 @@ pub(crate) fn add_source_map_data(
               // Panic-safe lookup: `None` leaves the map untouched and the
               // `contains_key` fallback below inserts the plain `true` marker.
               if let Some(original_line_number) = code_frame.try_get_span_line_number(span) {
+                let filename = state.get_filename().to_string();
                 insert_compiled_entry(
                   &mut inner_map,
+                  &filename,
                   original_line_number,
                   state,
                   package_json_seen,
@@ -181,13 +184,13 @@ pub(crate) fn add_source_map_data(
 /// usable short filename cannot be produced.
 fn insert_compiled_entry(
   inner_map: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  filename: &str,
   original_line_number: usize,
   state: &mut StateManager,
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
   functions: &FunctionMap,
 ) {
-  let filename = state.get_filename().to_string();
-  let raw_short_filename = create_short_filename(&filename, state, package_json_seen);
+  let raw_short_filename = create_short_filename(filename, state, package_json_seen);
   let short_filename_expr = if let Some(ref f) = state.options.debug_file_path {
     f.call(vec![create_string_expr(&raw_short_filename)])
   } else {
@@ -213,17 +216,22 @@ fn insert_compiled_entry(
   }
 }
 
-/// Resolves a style namespace to its 1-based line in the original authored
+struct OriginalSourcePosition {
+  filename: String,
+  line_number: usize,
+}
+
+/// Resolves a style namespace to its source position in the original authored
 /// file by combining the namespace key's own span — exact in the compiler's
 /// input — with the host-provided input source map, which maps the input back
 /// to the original file when earlier tooling already transformed it.
 ///
 /// Returns `None` when either piece is unavailable so callers can fall back
 /// to locating the namespace in the source text.
-fn original_line_from_input_source_map(
+fn original_position_from_input_source_map(
   style_node_path: &KeyValueProp,
   state: &StateManager,
-) -> Option<usize> {
+) -> Option<OriginalSourcePosition> {
   let source_file = state.input_source_file.as_ref()?;
   let input_map = state.input_source_map.as_ref()?;
 
@@ -251,7 +259,12 @@ fn original_line_from_input_source_map(
 
   let token = input_map.lookup_token(line as u32, col as u32)?;
 
-  Some(token.get_src_line() as usize + 1)
+  Some(OriginalSourcePosition {
+    filename: token
+      .get_source()
+      .map_or_else(|| state.get_filename().to_string(), ToString::to_string),
+    line_number: token.get_src_line() as usize + 1,
+  })
 }
 
 #[cfg(test)]

@@ -4,7 +4,7 @@ use swc_core::common::{BytePos, FileName, SourceMap as SwcSourceMap, Span};
 use swc_core::ecma::ast::{Expr, IdentName, KeyValueProp, Lit, PropName, Str};
 use swc_sourcemap::SourceMapBuilder;
 
-use super::original_line_from_input_source_map;
+use super::original_position_from_input_source_map;
 use crate::shared::structures::state_manager::StateManager;
 
 const INPUT_CODE: &str = "\
@@ -68,13 +68,15 @@ fn maps_key_position_through_input_source_map() {
   builder.add(2, 0, 41, 0, Some("Original.tsx".into()), None, false);
   state.set_input_source_map(Arc::new(builder.into_sourcemap()));
 
-  let line = original_line_from_input_source_map(&style_node_path, &state);
+  let position = original_position_from_input_source_map(&style_node_path, &state);
 
-  assert_eq!(
-    line,
-    Some(42),
-    "the key position must map back to the original file's 1-based line"
-  );
+  let position = match position {
+    Some(position) => position,
+    None => panic!("the key position must map back to the original source"),
+  };
+
+  assert_eq!(position.filename, "Original.tsx");
+  assert_eq!(position.line_number, 42);
 }
 
 #[test]
@@ -133,7 +135,8 @@ fn returns_none_without_input_source_map() {
   let state = state_with_input(INPUT_CODE);
 
   assert_eq!(
-    original_line_from_input_source_map(&style_node_path, &state),
+    original_position_from_input_source_map(&style_node_path, &state)
+      .map(|position| (position.filename, position.line_number)),
     None,
     "without an input map the caller must fall back to source-text lookups"
   );
@@ -150,7 +153,8 @@ fn returns_none_for_spans_outside_the_input_file() {
   state.set_input_source_map(Arc::new(builder.into_sourcemap()));
 
   assert_eq!(
-    original_line_from_input_source_map(&style_node_path, &state),
+    original_position_from_input_source_map(&style_node_path, &state)
+      .map(|position| (position.filename, position.line_number)),
     None,
     "foreign spans must not resolve through the input file"
   );

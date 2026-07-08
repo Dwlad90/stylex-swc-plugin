@@ -37,6 +37,7 @@ export const PropertyValidationMode = Object.freeze({
 export interface StyleXOptions extends NativeStyleXOptions {
   include?: Array<string | RegExp>;
   exclude?: Array<string | RegExp>;
+  inputSourceMap?: string;
   swcPlugins?: Array<[string, Record<string, unknown>]>;
 }
 

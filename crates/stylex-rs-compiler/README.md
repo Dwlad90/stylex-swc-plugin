@@ -251,10 +251,10 @@ const { code, metadata, sourcemap } = transform(
 ### Path Filtering
 
 > [!NOTE]
-> The `include` and `exclude` options are exclusive to
-> this NAPI-RS compiler implementation and are not available in the official
-> StyleX Babel plugin. They provide powerful file filtering capabilities to
-> control which files are transformed.
+> The `include` and `exclude` options are exclusive to this NAPI-RS
+> compiler implementation and are not available in the official StyleX Babel
+> plugin. They provide powerful file filtering capabilities to control which
+> files are transformed.
 
 The compiler exports a `shouldTransformFile` function to determine whether a
 file should be transformed based on include/exclude patterns:
@@ -345,7 +345,7 @@ shouldTransformFile(filePath, undefined, [/node_modules(?!\/@stylexjs)/]);
 ### SWC Plugin Support
 
 > [!NOTE]
->**New Feature:** The compiler now supports running SWC WASM plugins
+> **New Feature:** The compiler now supports running SWC WASM plugins
 > before StyleX transformation. This allows you to chain transformations and
 > integrate custom SWC plugins seamlessly.
 
@@ -572,18 +572,76 @@ const styles = {
 > This option is automatically enabled when using
 > `@stylexswc/webpack-plugin` with `loaderOrder: 'first'` (the default).
 
+### `inputSourceMap`
+
+**Type:** `string` (JSON source map) **Default:** `undefined`
+
+Source map for the incoming `code`, produced by earlier tooling — for example a
+loader chain that expands compile-time macros before the StyleX transformation
+runs.
+
+#### Source Map Problem
+
+When the compiler receives code that was already rewritten by previous tools,
+positions in that code no longer match the original authored file. Two things
+degrade as a result:
+
+- Debug source-map annotations (`$$css: "file.tsx:LINE"`, emitted with
+  `debug: true`) point at lines of the intermediate code
+- The emitted source map resolves to the intermediate code instead of the
+  original file
+
+#### Source Map Solution
+
+When `inputSourceMap` is provided, the compiler:
+
+1. Resolves each style namespace to its position using the namespace key's own
+   span — exact, with no re-parsing — and maps it through the input map back to
+   the original authored file
+2. Chains the emitted source map onto the input map, so downstream tooling (e.g.
+   devtools) resolves positions all the way back to the original file
+
+```ts
+const { code, metadata, map } = transform(filename, inputCode, {
+  dev: true,
+  debug: true,
+  // Source map produced by the previous transformation step
+  inputSourceMap: JSON.stringify(previousStepSourceMap),
+});
+```
+
+This is also the fastest position-resolution path: two binary searches per
+namespace instead of re-reading and re-parsing the source.
+
+> [!TIP]
+> The bundler plugins (`@stylexswc/rspack-plugin`,
+> `@stylexswc/webpack-plugin`, `@stylexswc/turbopack-plugin`,
+> `@stylexswc/rollup-plugin`, and `@stylexswc/unplugin` on Rollup-compatible
+> hosts) forward the previous loader's / plugin's source map automatically — no
+> configuration needed as long as source maps are enabled in the bundler.
+
+An invalid map is ignored with a warning, and the compiler falls back to
+locating positions in the source text as described under
+[`useRealFileForSource`](#userealfileforsource).
+
 ### `useRealFileForSource`
 
 **Type:** `boolean` **Default:** `true`
 
 Controls whether the compiler should read source files from disk for error
-reporting and source map generation.
+reporting and source map generation. Only relevant when no
+[`inputSourceMap`](#inputsourcemap) is available — with an input map, debug
+source-map annotations are resolved from the compiler's own parse and do not
+depend on this option.
 
 #### Behavior
 
 - **`true` (default)**: The compiler reads the actual source file from disk when
   generating error messages and source maps. This provides accurate line numbers
-  and source context that match what you see in your editor.
+  and source context that match what you see in your editor. Style namespaces
+  are located **by their key**, so positions resolve correctly even when the
+  incoming code was already rewritten by earlier tooling (keys survive
+  value-level transforms such as macro expansion).
 
 - **`false`**: The compiler uses the transformed AST representation for error
   reporting. This is useful when:
@@ -591,7 +649,7 @@ reporting and source map generation.
   - Source files are not available on disk
   - You want faster compilation (skips file I/O)
 
-#### Example
+#### Source Map Example
 
 ```ts
 transform(filename, code, {
@@ -621,7 +679,7 @@ transform(filename, code, {
 > Keep the default `true` value for most use cases. Only set it to
 > `false` if you have specific requirements for in-memory transformations or
 > performance-critical scenarios where file I/O is a bottleneck.
-
+>
 > [!WARNING]
 > When `useRealFileForSource` is set to `false`, error messages may
 > report **incorrect line numbers**. The compiler will use the transformed AST
@@ -633,7 +691,9 @@ transform(filename, code, {
 > - The structure may differ from what's in your actual source file
 >
 > For accurate error reporting and debugging, always use
-> `useRealFileForSource: true` (the default) during development.
+> `useRealFileForSource: true` (the default) during development, and provide an
+> [`inputSourceMap`](#inputsourcemap) when the incoming code was already
+> transformed by earlier tooling.
 
 ## Debug
 

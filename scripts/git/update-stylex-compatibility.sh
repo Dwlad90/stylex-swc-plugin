@@ -7,6 +7,16 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 ROOT_README="README.md"
 RS_COMPILER_README="crates/stylex-rs-compiler/README.md"
+PLUGIN_READMES=(
+  "packages/jest/README.md"
+  "packages/nextjs-plugin/README.md"
+  "packages/postcss-plugin/README.md"
+  "packages/rollup-plugin/README.md"
+  "packages/rspack-plugin/README.md"
+  "packages/turbopack-plugin/README.md"
+  "packages/unplugin/README.md"
+  "packages/webpack-plugin/README.md"
+)
 STYLEX_BLOG_URL="https://stylexjs.com/blog"
 MARKER_START="<!-- stylex-compatibility:start -->"
 MARKER_END="<!-- stylex-compatibility:end -->"
@@ -154,10 +164,19 @@ write_rs_compiler_callout() {
 
   cat >"$output_file" <<EOF
 
+
 > [!NOTE]
 > Compatibility target: this package has been updated through official
 > StyleX v${version}. This is not an official Meta support guarantee.
+
 EOF
+}
+
+write_plugin_phrase() {
+  local version="$1"
+  local output_file="$2"
+
+  printf '(currently compatible with StyleX v%s)' "$version" >"$output_file"
 }
 
 replace_marker_block() {
@@ -232,40 +251,55 @@ update_readmes() {
   local version="$1"
   local root_badge
   local rs_compiler_callout
+  local plugin_phrase
   local root_output
   local rs_compiler_output
-  local root_backup
-  local rs_compiler_backup
+  local readme
+  local index
 
   temp_dir=$(create_temp_dir) || error "Failed to create temporary directory."
   root_badge="$temp_dir/root-badge.md"
   rs_compiler_callout="$temp_dir/rs-compiler-callout.md"
+  plugin_phrase="$temp_dir/plugin-phrase.md"
   root_output="$temp_dir/root-readme.md"
   rs_compiler_output="$temp_dir/rs-compiler-readme.md"
-  root_backup="$temp_dir/root-readme.backup.md"
-  rs_compiler_backup="$temp_dir/rs-compiler-readme.backup.md"
 
   write_root_badge "$version" "$root_badge"
   write_rs_compiler_callout "$version" "$rs_compiler_callout"
+  write_plugin_phrase "$version" "$plugin_phrase"
+
+  # Generate every replacement before writing anything back, so a marker
+  # problem in any README aborts the run with all files untouched.
   replace_marker_block "$ROOT_README" "$root_badge" "$root_output"
   replace_marker_block "$RS_COMPILER_README" "$rs_compiler_callout" "$rs_compiler_output"
+
+  index=0
+  for readme in "${PLUGIN_READMES[@]}"; do
+    replace_marker_block "$readme" "$plugin_phrase" "$temp_dir/plugin-readme-$index.md"
+    index=$((index + 1))
+  done
 
   if [ "$dry_run" = true ]; then
     echo "Dry run: proposed StyleX compatibility update to v${version}"
     diff -u "$ROOT_README" "$root_output" || true
     diff -u "$RS_COMPILER_README" "$rs_compiler_output" || true
+    index=0
+    for readme in "${PLUGIN_READMES[@]}"; do
+      diff -u "$readme" "$temp_dir/plugin-readme-$index.md" || true
+      index=$((index + 1))
+    done
   else
-    cp "$ROOT_README" "$root_backup"
-    cp "$RS_COMPILER_README" "$rs_compiler_backup"
-
     mv "$root_output" "$ROOT_README" ||
       error "Failed to update $ROOT_README."
-
-    if ! mv "$rs_compiler_output" "$RS_COMPILER_README"; then
-      cp "$root_backup" "$ROOT_README" ||
-        echo "Warning: failed to restore $ROOT_README after update failure." >&2
+    mv "$rs_compiler_output" "$RS_COMPILER_README" ||
       error "Failed to update $RS_COMPILER_README."
-    fi
+
+    index=0
+    for readme in "${PLUGIN_READMES[@]}"; do
+      mv "$temp_dir/plugin-readme-$index.md" "$readme" ||
+        error "Failed to update $readme."
+      index=$((index + 1))
+    done
 
     echo "Updated StyleX compatibility indicators to v${version}."
   fi

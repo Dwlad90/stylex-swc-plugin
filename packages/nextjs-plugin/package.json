@@ -1,7 +1,48 @@
 {
   "name": "@stylexswc/nextjs-plugin",
-  "description": "StyleX NextJS plugin with NAPI-RS compiler",
+  "description": "StyleX plugin for Next.js powered by a Rust NAPI-RS/SWC compiler. Supports Webpack, Rspack, and Turbopack builds with CSS extraction.",
   "version": "0.17.0",
+  "private": false,
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    "./turbopack": {
+      "types": "./dist/turbopack.d.ts",
+      "import": "./dist/turbopack.js",
+      "require": "./dist/turbopack.js"
+    },
+    "./rspack": {
+      "types": "./dist/rspack.d.ts",
+      "import": "./dist/rspack.js",
+      "require": "./dist/rspack.js"
+    },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "build": "scripty --ts",
+    "check:artifacts": "scripty",
+    "clean": "del-cli dist",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
+    "postbuild": "pnpm run check:artifacts",
+    "precommit": "lint-staged",
+    "prepublishOnly": "pnpm run build",
+    "prepush": "lint-prepush",
+    "test": "echo \"Error: no test specified\" && exit 0",
+    "typecheck": "scripty --ts"
+  },
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
@@ -24,63 +65,36 @@
     "react-dom": "^19.2.7",
     "webpack": "^5.108.3"
   },
-  "exports": {
-    "./turbopack": {
-      "types": "./dist/turbopack.d.ts",
-      "import": "./dist/turbopack.js",
-      "require": "./dist/turbopack.js"
-    },
-    "./rspack": {
-      "types": "./dist/rspack.d.ts",
-      "import": "./dist/rspack.js",
-      "require": "./dist/rspack.js"
-    },
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
-    },
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "dist"
-  ],
-  "keywords": [
-    "next",
-    "nextjs",
-    "nextjs-plugin",
-    "stylex",
-    "swc"
-  ],
-  "license": "MIT",
-  "main": "dist/index.js",
   "peerDependencies": {
     "next": ">=15.0.0",
     "next-rspack": "^16.2.9"
   },
+  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
+  "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/nextjs-plugin#readme",
+  "keywords": [
+    "app-router",
+    "atomic-css",
+    "css-in-js",
+    "napi-rs",
+    "next",
+    "nextjs",
+    "nextjs-plugin",
+    "react",
+    "rspack",
+    "rust",
+    "stylex",
+    "swc",
+    "turbopack"
+  ],
+  "main": "dist/index.js",
   "peerDependenciesMeta": {
     "next-rspack": {
       "optional": true
     }
   },
-  "private": false,
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
-  "scripts": {
-    "build": "scripty --ts",
-    "check:artifacts": "scripty",
-    "clean": "del-cli dist",
-    "lint": "eslint . --color",
-    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
-    "postbuild": "pnpm run check:artifacts",
-    "precommit": "lint-staged",
-    "prepublishOnly": "pnpm run build",
-    "prepush": "lint-prepush",
-    "test": "echo \"Error: no test specified\" && exit 0",
-    "typecheck": "scripty --ts"
-  },
-  "sideEffects": false
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dwlad90/stylex-swc-plugin.git",
+    "directory": "packages/nextjs-plugin"
+  }
 }

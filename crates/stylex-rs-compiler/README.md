@@ -1,260 +1,138 @@
-# NAPI-RS compiler for StyleX (\*\*unofficial)
+# @stylexswc/rs-compiler
 
-> Part of the
+> High-performance StyleX compiler for Node.js, written in Rust on NAPI-RS and
+> SWC. Part of the
 > [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
-> workspace
+> workspace.
 
 <!-- stylex-compatibility:start -->
+
 > [!NOTE]
 > Compatibility target: this package has been updated through official
 > StyleX v0.19.0. This is not an official Meta support guarantee.
+
 <!-- stylex-compatibility:end -->
 
-StyleX is a JavaScript library developed by Meta for defining styles optimized
-for user interfaces. You can find the
-[official StyleX repository](https://www.github.com/facebook/stylex) here.
+[StyleX](https://stylexjs.com) is Meta's CSS-in-JS library with compile-time
+style extraction. The official toolchain compiles it with a Babel plugin; this
+package is a from-scratch Rust implementation of that same transform, exposed to
+Node.js as a native addon through [NAPI-RS](https://napi.rs) and parsed with
+[SWC](https://swc.rs). It is designed as a drop-in replacement: your StyleX code
+and its output do not change, but transforms run 2x to 5x faster than
+Babel — see
+[performance](https://github.com/Dwlad90/stylex-swc-plugin#performance).
 
-> [!WARNING]
-> This is an unofficial style compiler for StyleX.
+This is a community project and is not affiliated with or supported by Meta. It
+requires Node.js 20 or newer; prebuilt binaries ship for macOS, Linux (glibc and
+musl), and Windows on x64 and arm64.
 
-## Overview
+Most projects should not call this package directly — use the integration for
+your build tool, all of which drive this compiler under the hood:
 
-This package provides an unofficial, high-performance NAPI-RS compiler for
-StyleX, a popular library from Meta for building optimized user interfaces. It
-is the top-level consumer crate that exposes the full StyleX pipeline to
-Node.js, leveraging SWC for parsing and transformation.
+| Build tool                              | Package                                                                                |
+| --------------------------------------- | -------------------------------------------------------------------------------------- |
+| Next.js (Webpack, Rspack, Turbopack)    | [`@stylexswc/nextjs-plugin`](https://www.npmjs.com/package/@stylexswc/nextjs-plugin)   |
+| Vite, esbuild, Farm, Rsbuild, Nuxt, ... | [`@stylexswc/unplugin`](https://www.npmjs.com/package/@stylexswc/unplugin)             |
+| webpack                                 | [`@stylexswc/webpack-plugin`](https://www.npmjs.com/package/@stylexswc/webpack-plugin) |
+| Rspack                                  | [`@stylexswc/rspack-plugin`](https://www.npmjs.com/package/@stylexswc/rspack-plugin)   |
+| Rollup                                  | [`@stylexswc/rollup-plugin`](https://www.npmjs.com/package/@stylexswc/rollup-plugin)   |
+| PostCSS pipelines                       | [`@stylexswc/postcss-plugin`](https://www.npmjs.com/package/@stylexswc/postcss-plugin) |
+| Jest                                    | [`@stylexswc/jest`](https://www.npmjs.com/package/@stylexswc/jest)                     |
 
-> [!IMPORTANT]
-> The usage of StyleX does not change. All changes are internal.
-
-- Faster Build Times: By utilizing SWC instead of Babel, you can potentially
-  experience significant speed improvements during StyleX processing.
-- Seamless Integration: This compiler seamlessly integrates with Next.js's
-  default SWC Compiler, ensuring a smooth workflow.
-- Drop-in Replacement: Designed to be a drop-in replacement for the official
-  StyleX Babel plugin, minimizing disruption to existing codebases.
-- Advanced Tooling Capabilities: NAPI-RS compiler unlocks access to StyleX
-  metadata and source maps, enabling the creation of advanced plugins and tools
-  for StyleX, ex. for creating a plugin for Webpack, Rollup, or other tools.
-
-## Advantages of a `NAPI-RS` compiler versus a `SWC plugin`
-
-- Compability with SWC: under the hood, the NAPI-RS compiler uses SWC for
-  parsing and transforming JavaScript code, ensuring compatibility with the
-  latest ECMAScript features.
-- Direct Access to Node.js APIs: NAPI-RS allows you to directly access Node.js
-  APIs from your Rust code, providing greater flexibility and control.
-- Improved Performance: NAPI-RS can often offer better performance than
-  traditional Node.js addons, especially for computationally intensive tasks.
-- Simplified Development: NAPI-RS simplifies the process of developing Node.js
-  addons in Rust, making it easier to create high-performance and efficient
-  tools.
-
-## Architecture
-
-- **Layer**: 9 — Compilers (top-level consumer)
-- **Depends on**: `stylex-ast`, `stylex-enums`, `stylex-logs`, `stylex-macros`,
-  `stylex-regex`, `stylex-structures`, `stylex-transform`, `stylex-types`,
-  `stylex-utils`
-- **Depended on by**: None (top-level entry point)
-
-### Public API
-
-- `transform()` — Main entry point: takes source code + options, returns
-  transformed output
-- `should_transform_file()` — File filtering based on path patterns
-- `normalize_rs_options()` — Options normalization and validation
-
-### Modules
-
-- `enums` — Compiler-specific enum types
-- `structs` — Compiler-specific struct types
-- `utils::fn_parser` — Function argument parsing
-- `utils::metadata` — Build metadata handling
-- `utils::path_filter` — File path filtering logic
-
-## Dependency Graph
-
-<details>
-<summary><h3>Dependency Graph</h3></summary>
-
-```mermaid
-graph TD
-  subgraph L0["Primitives"]
-    stylex_constants["constants"]
-    stylex_regex["regex"]
-    stylex_styleq["styleq"]
-    stylex_utils["utils"]
-  end
-
-  subgraph L1["Proc Macros"]
-    stylex_macros["macros"]
-  end
-
-  subgraph L2["Domain Leaves"]
-    stylex_enums["enums"]
-    stylex_js["js"]
-    stylex_logs["logs"]
-    stylex_css_parser["css-parser"]
-    stylex_path_resolver["path-resolver"]
-  end
-
-  subgraph L3["Core Data Structures"]
-    stylex_structures["structures"]
-  end
-
-  subgraph L4["Type System"]
-    stylex_types["types"]
-  end
-
-  subgraph L5["AST Foundations"]
-    stylex_ast["ast"]
-  end
-
-  subgraph L6["Evaluation"]
-    stylex_evaluator["evaluator"]
-  end
-
-  subgraph L7["CSS Processing"]
-    stylex_css["css"]
-  end
-
-  subgraph L8["StyleX Transform"]
-    stylex_transform["transform"]
-  end
-
-  subgraph L9["Compilers"]
-    stylex_compiler_rs["rs-compiler"]
-  end
-
-  stylex_utils         --> stylex_regex
-
-  stylex_macros        --> stylex_constants
-
-  stylex_enums         --> stylex_macros
-  stylex_js            --> stylex_constants
-  stylex_js            --> stylex_macros
-  stylex_logs          --> stylex_macros
-  stylex_css_parser    --> stylex_macros
-  stylex_path_resolver --> stylex_macros
-
-  stylex_structures    --> stylex_constants
-  stylex_structures    --> stylex_enums
-  stylex_structures    --> stylex_macros
-
-  stylex_types         --> stylex_constants
-  stylex_types         --> stylex_enums
-  stylex_types         --> stylex_macros
-  stylex_types         --> stylex_structures
-  stylex_types         --> stylex_utils
-
-  stylex_ast           --> stylex_constants
-  stylex_ast           --> stylex_macros
-  stylex_ast           --> stylex_types
-  stylex_ast           --> stylex_utils
-
-  stylex_evaluator     --> stylex_ast
-  stylex_evaluator     --> stylex_constants
-  stylex_evaluator     --> stylex_js
-  stylex_evaluator     --> stylex_macros
-  stylex_evaluator     --> stylex_path_resolver
-  stylex_evaluator     --> stylex_types
-
-  stylex_css           --> stylex_ast
-  stylex_css           --> stylex_constants
-  stylex_css           --> stylex_css_parser
-  stylex_css           --> stylex_enums
-  stylex_css           --> stylex_evaluator
-  stylex_css           --> stylex_macros
-  stylex_css           --> stylex_regex
-  stylex_css           --> stylex_structures
-  stylex_css           --> stylex_types
-  stylex_css           --> stylex_utils
-
-  stylex_transform     --> stylex_ast
-  stylex_transform     --> stylex_constants
-  stylex_transform     --> stylex_css
-  stylex_transform     --> stylex_css_parser
-  stylex_transform     --> stylex_enums
-  stylex_transform     --> stylex_evaluator
-  stylex_transform     --> stylex_logs
-  stylex_transform     --> stylex_macros
-  stylex_transform     --> stylex_path_resolver
-  stylex_transform     --> stylex_regex
-  stylex_transform     --> stylex_structures
-  stylex_transform     --> stylex_styleq
-  stylex_transform     --> stylex_types
-  stylex_transform     --> stylex_utils
-
-  stylex_compiler_rs   --> stylex_ast
-  stylex_compiler_rs   --> stylex_enums
-  stylex_compiler_rs   --> stylex_logs
-  stylex_compiler_rs   --> stylex_macros
-  stylex_compiler_rs   --> stylex_regex
-  stylex_compiler_rs   --> stylex_structures
-  stylex_compiler_rs   --> stylex_transform
-  stylex_compiler_rs   --> stylex_types
-  stylex_compiler_rs   --> stylex_utils
-
-  classDef l0 fill:#e8e8e8,stroke:#999,color:#333
-  classDef l1 fill:#dce8ff,stroke:#6699cc,color:#333
-  classDef l2 fill:#dcf5dc,stroke:#66aa66,color:#333
-  classDef l3 fill:#fff3dc,stroke:#cc9933,color:#333
-  classDef l4 fill:#ffe8dc,stroke:#cc6633,color:#333
-  classDef l5 fill:#f5dcff,stroke:#9933cc,color:#333
-  classDef l6 fill:#dcfff5,stroke:#33aaaa,color:#333
-  classDef l7 fill:#ffdcdc,stroke:#cc3333,color:#333
-  classDef l8 fill:#fffdc0,stroke:#aaaa33,color:#333
-  classDef l9 fill:#ffc0c0,stroke:#cc0000,color:#333
-
-  class stylex_constants,stylex_regex,stylex_styleq,stylex_utils l0
-  class stylex_macros l1
-  class stylex_enums,stylex_js,stylex_logs,stylex_css_parser,stylex_path_resolver l2
-  class stylex_structures l3
-  class stylex_types l4
-  class stylex_ast l5
-  class stylex_evaluator l6
-  class stylex_css l7
-  class stylex_transform l8
-  class stylex_compiler_rs l9
-```
-
-</details>
+Use this package directly when building your own tooling: custom bundler
+plugins, codemods, or anything that needs the transformed code plus StyleX
+metadata and source maps.
 
 ## Installation
-
-To install the package, run the following command:
 
 ```bash
 npm install --save-dev @stylexswc/rs-compiler
 ```
 
-### Transformation Process
+## Usage
 
-Internally, this compiler takes your StyleX code and transforms it into a format
-optimized for further processing.
+The main entry point is `transform`. It takes a filename, the source code, and
+options, and returns the transformed code, metadata about the generated styles,
+and an optional source map:
 
 ```ts
-var { transform } = require('@stylexswc/rs-compiler');
+const { transform } = require('@stylexswc/rs-compiler');
 
-/// ...other logic
-
-const { code, metadata, sourcemap } = transform(
+const { code, metadata, map } = transform(
   filename,
   inputSourceCode,
   transformOptions
 );
-
-/// ...other logic
 ```
 
-### Path Filtering
+### Example
+
+Input StyleX code:
+
+```ts
+import * as stylex from '@stylexjs/stylex';
+
+const styles = stylex.create({
+  root: {
+    padding: 10,
+  },
+  element: {
+    backgroundColor: 'red',
+  },
+});
+
+export const styleProps = stylex.props(styles.root, styles.element);
+```
+
+Output code:
+
+```ts
+import * as stylex from '@stylexjs/stylex';
+export const styleProps = {
+  className: 'x7z7khe xrkmrrc',
+};
+```
+
+### Output shape
+
+Transforming the example above with source maps enabled
+(`sourceMap: SourceMaps.True`) returns:
+
+```json
+{
+  "code": "import * as stylex from '@stylexjs/stylex';\nexport const styleProps = {\n    className: \"x7z7khe xrkmrrc\"\n};\n",
+  "metadata": {
+    "stylex": [
+      [
+        "x7z7khe",
+        {
+          "ltr": ".x7z7khe{padding:10px}",
+          "rtl": null
+        },
+        1000
+      ],
+      [
+        "xrkmrrc",
+        {
+          "ltr": ".xrkmrrc{background-color:red}",
+          "rtl": null
+        },
+        3000
+      ]
+    ]
+  },
+  "map": "{\"version\":3,\"sources\":[\"app/components/Button.tsx\"],\"names\":[],\"mappings\":\"AAAA;AAWA;;EAAoE\"}"
+}
+```
+
+The `metadata.stylex` rules are what bundler plugins collect to build the final
+CSS file.
+
+## Path Filtering
 
 > [!NOTE]
-> The `include` and `exclude` options are exclusive to this NAPI-RS
-> compiler implementation and are not available in the official StyleX Babel
-> plugin. They provide powerful file filtering capabilities to control which
-> files are transformed.
+> The `include` and `exclude` options are exclusive to this compiler and
+> are not available in the official StyleX Babel plugin.
 
 The compiler exports a `shouldTransformFile` function to determine whether a
 file should be transformed based on include/exclude patterns:
@@ -273,36 +151,29 @@ if (shouldTransform) {
 }
 ```
 
-#### Pattern Types
+### Pattern Types
 
-- **Glob patterns** (strings): Use standard glob syntax to match file paths
-  - `src/**/*.tsx` - All `.tsx` files in `src` directory and subdirectories
-  - `**/*.test.*` - All test files
-  - `**/node_modules/**` - All files in `node_modules`
+- **Glob patterns** (strings): standard glob syntax matched against file paths
+  - `src/**/*.tsx` — all `.tsx` files in `src` and subdirectories
+  - `**/*.test.*` — all test files
+  - `**/node_modules/**` — all files in `node_modules`
 
-- **Regular expressions**: Use RegExp objects for complex pattern matching
-  - `/\.test\./` - Files containing `.test.`
-  - `/^src\/.*\.tsx$/` - `.tsx` files directly in the `src` directory
-
-  **Advanced: Lookahead/Lookbehind Support**
+- **Regular expressions**: RegExp objects for complex matching
+  - `/\.test\./` — files containing `.test.`
+  - `/^src\/.*\.tsx$/` — `.tsx` files directly in the `src` directory
 
   The Rust regex engine fully supports lookahead and lookbehind assertions,
-  enabling sophisticated filtering patterns:
-  - **Negative Lookahead** `(?!...)`: Match if NOT followed by pattern
-    - `/node_modules(?!\/@stylexjs)/` - Exclude all node_modules except
-      @stylexjs packages
-    - `/\.tsx(?!\.test)/` - Match .tsx files that are NOT test files
+  which the JavaScript-side patterns can rely on:
+  - Negative lookahead `(?!...)`: `/node_modules(?!\/@stylexjs)/` excludes all
+    of `node_modules` except `@stylexjs` packages
+  - Positive lookahead `(?=...)`: `/.*\.test(?=\.tsx$)/` matches only
+    `.test.tsx` files
+  - Negative lookbehind `(?<!...)`: `/(?<!src\/).*\.tsx$/` excludes `.tsx` files
+    outside `src/`
+  - Positive lookbehind `(?<=...)`: `/(?<=components\/).*\.tsx$/` matches only
+    `.tsx` files in `components/`
 
-  - **Positive Lookahead** `(?=...)`: Match if followed by pattern
-    - `/.*\.test(?=\.tsx$)/` - Match only .test.tsx files
-
-  - **Negative Lookbehind** `(?<!...)`: Match if NOT preceded by pattern
-    - `/(?<!src\/).*\.tsx$/` - Exclude .tsx files not in src/
-
-  - **Positive Lookbehind** `(?<=...)`: Match if preceded by pattern
-    - `/(?<=components\/).*\.tsx$/` - Match only .tsx files in components/
-
-#### Filtering Rules
+### Filtering Rules
 
 1. If `include` patterns are specified and not empty, files must match at least
    one pattern
@@ -310,18 +181,17 @@ if (shouldTransform) {
 3. Exclude patterns take precedence over include patterns
 4. All paths are matched relative to the current working directory
 
-#### Common Use Cases
+### Common Use Cases
 
-**Exclude all node_modules except specific packages:**
+Exclude all of `node_modules` except one package:
 
 ```ts
-// Exclude all node_modules except @stylexjs/open-props
 shouldTransformFile(filePath, undefined, [
   /node_modules(?!\/@stylexjs\/open-props)/,
 ]);
 ```
 
-**Transform only specific packages from node_modules:**
+Transform only specific packages from `node_modules`:
 
 ```ts
 shouldTransformFile(
@@ -335,22 +205,10 @@ shouldTransformFile(
 );
 ```
 
-**Exclude multiple node_modules packages except a few:**
+## SWC Plugin Support
 
-```ts
-// Exclude all node_modules except @stylexjs packages
-shouldTransformFile(filePath, undefined, [/node_modules(?!\/@stylexjs)/]);
-```
-
-### SWC Plugin Support
-
-> [!NOTE]
-> **New Feature:** The compiler now supports running SWC WASM plugins
-> before StyleX transformation. This allows you to chain transformations and
-> integrate custom SWC plugins seamlessly.
-
-The `transform` function accepts an optional `swcPlugins` array in the options
-object, allowing you to run SWC WASM plugins before the StyleX transformation:
+The `transform` function accepts an optional `swcPlugins` array, allowing you to
+run SWC WASM plugins before the StyleX transformation:
 
 ```ts
 const { transform } = require('@stylexswc/rs-compiler');
@@ -380,123 +238,26 @@ const { code, metadata, map } = transform('Button.tsx', sourceCode, {
 });
 ```
 
-#### How It Works
+How it works:
 
-1. **Plugin Execution Phase**: If `swcPlugins` are provided, the source code is
+1. **Plugin execution phase**: if `swcPlugins` are provided, the source code is
    first transformed using `@swc/core`'s `transformSync` with the specified WASM
    plugins
-2. **StyleX Transformation Phase**: The plugin-transformed code is then passed
+2. **StyleX transformation phase**: the plugin-transformed code is then passed
    to the StyleX compiler
 
-#### Plugin Configuration
+Each entry in `swcPlugins` is a tuple of:
 
-Each plugin in the `swcPlugins` array is a tuple of:
-
-- **Plugin Path** (string): Can be:
-  - An absolute path to a `.wasm` file: `/path/to/plugin.wasm`
-  - An npm package name: `@swc/plugin-emotion`
-- **Plugin Config** (object): Plugin-specific configuration options
-
-#### Example: Custom Theme Plugin
-
-```ts
-transform(filename, code, {
-  dev: true,
-  swcPlugins: [
-    [
-      '/Users/me/plugins/swc_plugin_theme.wasm',
-      {
-        themeName: 'theme-name',
-        themeConfig: {
-          primaryColor: 'blue',
-          spacing: 8,
-        },
-      },
-    ],
-  ],
-});
-```
-
-#### Benefits
-
-- ✅ Chain multiple transformations seamlessly
-- ✅ Leverage the SWC plugin ecosystem
-- ✅ Custom preprocessing before StyleX transformation
-- ✅ Full compatibility with SWC WASM plugins
-- ✅ No additional build configuration needed
-
-### Output
-
-The output from the compiler includes the transformed code, metadata about the
-generated styles, and an optional source map.
-
-```json
-{
-  "code": "import * as stylex from '@stylexjs/stylex';\nexport const styles = {\n    default: {\n        backgroundColor: \"xrkmrrc\",\n        color: \"xju2f9n\",\n        $$css: true\n    }\n};\n",
-  "metadata": {
-    "stylex": {
-      "styles": [
-        [
-          "xrkmrrc",
-          {
-            "ltr": ".xrkmrrc{background-color:red}",
-            "rtl": null
-          },
-          3000
-        ],
-        [
-          "xju2f9n",
-          {
-            "ltr": ".xju2f9n{color:blue}",
-            "rtl": null
-          },
-          3000
-        ]
-      ]
-    }
-  },
-  "map": "{\"version\":3,\"sources\":[\"<anon>\"],\"names\":[],\"mappings\":\"AACE;AACA;;;;;;EAKG\"}"
-}
-```
-
-## Example
-
-Below is a simple example of input StyleX code:
-
-```ts
-import * as stylex from '@stylexjs/stylex';
-
-const styles = stylex.create({
-  root: {
-    padding: 10,
-  },
-  element: {
-    backgroundColor: 'red',
-  },
-});
-
-const styleProps = stylex.props(styles.root, styles.element);
-```
-
-Output code:
-
-```ts
-import * as stylex from '@stylexjs/stylex';
-const styleProps = {
-  className: 'x7z7khe xrkmrrc',
-};
-```
-
-## Compatibility
-
-> [!IMPORTANT]
-> The current resolution of the `exports` field from
-> `package. json` is only partially supported, so if you encounter problems,
-> please open an
-> [issue](https://github.com/Dwlad90/stylex-swc-plugin/issues/new) with an
-> attached link to reproduce the problem.
+- **Plugin path** (string): an absolute path to a `.wasm` file
+  (`/path/to/plugin.wasm`) or an npm package name (`@swc/plugin-emotion`)
+- **Plugin config** (object): plugin-specific configuration options
 
 ## Configuration Options
+
+The compiler accepts the standard StyleX options (`dev`, `debug`,
+`importSources`, `unstable_moduleResolution`, and so on — see the
+[StyleX configuration docs](https://stylexjs.com/docs/api/configuration/babel-plugin/))
+plus the compiler-specific options below.
 
 ### `injectStylexSideEffects`
 
@@ -505,10 +266,8 @@ const styleProps = {
 Automatically injects side-effect imports for `.stylex` and `.consts` files to
 prevent tree-shaking from removing them during bundling.
 
-#### Problem
-
-When using build tools that perform tree-shaking (like webpack, rollup, vite),
-imports from `.stylex` or `.consts` files may appear unused after StyleX
+The problem: when build tools perform tree-shaking (webpack, Rollup, Vite),
+imports from `.stylex` or `.consts` files may appear unused after the StyleX
 transformation and get removed:
 
 ```ts
@@ -536,13 +295,11 @@ const styles = {
 };
 ```
 
-The bundler may remove these "unused" imports, but they're needed for other
+The bundler may remove these "unused" imports, but they are needed for other
 files to resolve the same StyleX/const references correctly.
 
-#### Solution
-
-When `injectStylexSideEffects: true`, the compiler automatically adds
-side-effect imports to preserve these modules:
+With `injectStylexSideEffects: true`, the compiler adds side-effect imports to
+preserve these modules:
 
 ```ts
 // After transformation with injectStylexSideEffects: true
@@ -550,22 +307,13 @@ import { colors } from './theme.stylex';
 import { spacing } from './tokens.consts';
 import './theme.stylex'; // Side-effect import (prevents tree-shaking)
 import './tokens.consts'; // Side-effect import (prevents tree-shaking)
-
-const styles = {
-  root: {
-    backgroundColor: 'x1a2b3c',
-    padding: 'x4d5e6f',
-    $$css: true,
-  },
-};
 ```
 
-#### When to Use
+When to use:
 
-- ✅ **Use `true`** when your bundler runs StyleX transformation **before**
-  other optimizations (recommended)
-- ✅ **Use `true`** with webpack's `loaderOrder: 'first'` option
-- ❌ **Use `false`** when StyleX runs **after** tree-shaking (e.g., webpack's
+- Use `true` when your bundler runs the StyleX transformation **before** other
+  optimizations (recommended), for example with webpack's `loaderOrder: 'first'`
+- Use `false` when StyleX runs **after** tree-shaking (e.g. webpack's
   `loaderOrder: 'last'`)
 
 > [!TIP]
@@ -580,18 +328,14 @@ Source map for the incoming `code`, produced by earlier tooling — for example 
 loader chain that expands compile-time macros before the StyleX transformation
 runs.
 
-#### Source Map Problem
-
-When the compiler receives code that was already rewritten by previous tools,
-positions in that code no longer match the original authored file. Two things
-degrade as a result:
+The problem: when the compiler receives code already rewritten by previous
+tools, positions in that code no longer match the original authored file. Two
+things degrade as a result:
 
 - Debug source-map annotations (`$$css: "file.tsx:LINE"`, emitted with
   `debug: true`) point at lines of the intermediate code
 - The emitted source map resolves to the intermediate code instead of the
   original file
-
-#### Source Map Solution
 
 When `inputSourceMap` is provided, the compiler:
 
@@ -628,98 +372,41 @@ locating positions in the source text as described under
 
 **Type:** `boolean` **Default:** `true`
 
-Controls whether the compiler should read source files from disk for error
-reporting and source map generation. Only relevant when no
+Controls whether the compiler reads source files from disk for error reporting
+and source map generation. Only relevant when no
 [`inputSourceMap`](#inputsourcemap) is available — with an input map, debug
 source-map annotations are resolved from the compiler's own parse and do not
 depend on this option.
 
-#### Behavior
-
-- **`true` (default)**: The compiler reads the actual source file from disk when
+- **`true` (default)**: the compiler reads the actual source file from disk when
   generating error messages and source maps. This provides accurate line numbers
   and source context that match what you see in your editor. Style namespaces
   are located **by their key**, so positions resolve correctly even when the
   incoming code was already rewritten by earlier tooling (keys survive
   value-level transforms such as macro expansion).
 
-- **`false`**: The compiler uses the transformed AST representation for error
-  reporting. This is useful when:
-  - Working with in-memory transformations
-  - Source files are not available on disk
-  - You want faster compilation (skips file I/O)
+- **`false`**: the compiler uses the transformed AST representation for error
+  reporting. Useful for in-memory transformations, virtual file systems, or when
+  skipping file I/O matters more than exact positions.
 
-#### Source Map Example
-
-```ts
-transform(filename, code, {
-  use_real_file_for_source: true, // Use actual source files (default)
-  dev: true,
-  // ... other options
-});
-```
-
-#### Use Cases
-
-**Use `true` (recommended for development):**
-
-- Local development with files on disk
-- Accurate error messages with real line numbers
-- Better debugging experience
-- Source maps match your actual files
-
-**Use `false` (for special cases):**
-
-- In-memory transformations without disk access
-- Virtual file systems
-- Performance optimization when error accuracy is less critical
-- Build pipelines where source files are not available
-
-> [!TIP]
-> Keep the default `true` value for most use cases. Only set it to
-> `false` if you have specific requirements for in-memory transformations or
-> performance-critical scenarios where file I/O is a bottleneck.
->
 > [!WARNING]
-> When `useRealFileForSource` is set to `false`, error messages may
-> report **incorrect line numbers**. The compiler will use the transformed AST
-> representation instead of the original source code, which can lead to line
-> number mismatches. This happens because:
->
-> - The AST may have been modified by previous transformations
-> - Comments and whitespace are normalized in the AST
-> - The structure may differ from what's in your actual source file
->
-> For accurate error reporting and debugging, always use
-> `useRealFileForSource: true` (the default) during development, and provide an
-> [`inputSourceMap`](#inputsourcemap) when the incoming code was already
-> transformed by earlier tooling.
+> With `useRealFileForSource: false`, error messages may report
+> incorrect line numbers: the AST may have been modified by previous
+> transformations, comments and whitespace are normalized, and the structure may
+> differ from the file on disk. Keep the default `true` during development, and
+> provide an [`inputSourceMap`](#inputsourcemap) when the incoming code was
+> already transformed by earlier tooling.
 
-## Debug
+## Debug Logging
 
-You can enable debug logging for the StyleX compiler using the `STYLEX_DEBUG`
-environment variable. This is useful for troubleshooting and understanding the
-internal processing of StyleX code.
-
-### Log Levels
-
-The following log levels are available:
-
-- `error`: Only shows error messages
-- `warn`: Shows warnings and errors (default)
-- `info`: Shows informational messages, warnings, and errors
-- `debug`: Shows debug information and all above levels
-- `trace`: Shows very detailed execution information
-
-### Usage
-
-Set the environment variable before running your build command:
+Enable debug logging with the `STYLEX_DEBUG` environment variable. Available
+levels: `error`, `warn` (default), `info`, `debug`, `trace`.
 
 ```bash
 # Set to debug level
 STYLEX_DEBUG=debug npm run build
 
-# Set to trace for most verbose output
+# Set to trace for the most verbose output
 STYLEX_DEBUG=trace npm run dev
 ```
 
@@ -737,11 +424,9 @@ $env:STYLEX_DEBUG="debug"; npm run build
 
 ## Error Handling
 
-The compiler produces clean, structured error messages with a branded `[StyleX]`
-prefix, replacing Rust's default panic boilerplate with user-friendly
-diagnostics in both the terminal and at the NAPI boundary.
-
-### Error Format
+The compiler produces structured error messages with a branded `[StyleX]`
+prefix, replacing Rust's default panic boilerplate with readable diagnostics in
+both the terminal and at the NAPI boundary.
 
 All StyleX errors follow this format in the terminal:
 
@@ -758,6 +443,39 @@ Errors are color-coded for readability:
 | Regular error              | _(none)_          | Red prefix    |
 | Unimplemented feature      | `[UNIMPLEMENTED]` | Magenta label |
 | Internal unreachable state | `[UNREACHABLE]`   | Blue label    |
+
+## FAQ
+
+### Is this a drop-in replacement for `@stylexjs/babel-plugin`?
+
+Yes, by design. It implements the same transform, is validated against the
+official StyleX test suite, and produces compatible output. It also adds
+compiler-only capabilities: `include`/`exclude` filtering, SWC WASM plugin
+chaining, `inputSourceMap` chaining, and structured metadata output.
+
+### Do I need Rust installed to use it?
+
+No. Prebuilt native binaries are published for each supported platform and
+installed automatically as optional dependencies.
+
+### Which package should I install for my app?
+
+One of the bundler integrations listed at the top of this page. Install
+`@stylexswc/rs-compiler` directly only when building custom tooling on top of
+the `transform` API.
+
+### Known limitations?
+
+Resolution of the `exports` field in `package.json` is only partially supported.
+If you hit a problem, please open an
+[issue](https://github.com/Dwlad90/stylex-swc-plugin/issues/new) with a
+reproduction link.
+
+## Documentation
+
+- [StyleX documentation](https://stylexjs.com)
+- [NAPI-RS documentation](https://napi.rs)
+- [SWC documentation](https://swc.rs)
 
 ## License
 

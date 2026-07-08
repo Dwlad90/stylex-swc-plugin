@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/turbopack-plugin",
-  "description": "StyleX turbopack loader with NAPI-RS compiler",
+  "description": "StyleX loader for Next.js Turbopack powered by a Rust NAPI-RS/SWC compiler.",
   "version": "0.17.0",
   "private": false,
   "license": "MIT",
@@ -54,12 +54,25 @@
     "@types/node": "^26.1.0",
     "webpack": "^5.108.3"
   },
+  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
+  "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/turbopack-plugin#readme",
   "keywords": [
+    "atomic-css",
+    "css-in-js",
+    "napi-rs",
+    "nextjs",
+    "react",
+    "rust",
     "stylex",
     "swc",
     "turbopack",
+    "turbopack-loader",
     "turbopack-plugin"
   ],
   "main": "dist/index.js",
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dwlad90/stylex-swc-plugin.git",
+    "directory": "packages/turbopack-plugin"
+  }
 }

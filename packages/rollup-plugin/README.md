@@ -1,123 +1,174 @@
-# Rollup plugin with NAPI-RS StyleX compiler integration
+# @stylexswc/rollup-plugin
 
-> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+> StyleX plugin for Rollup, powered by a Rust compiler (NAPI-RS + SWC). Part of
+> the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
+> workspace.
 
-`Rollup plugin` for an unofficial
-[`napi-rs`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
-compiler that includes the StyleX SWC code transformation under the hood.
+This plugin compiles [StyleX](https://stylexjs.com) code in your Rollup build
+with
+[`@stylexswc/rs-compiler`](https://www.npmjs.com/package/@stylexswc/rs-compiler),
+a Rust implementation of the StyleX transform, instead of the official Babel
+plugin. Your StyleX code stays exactly the same — only the build step changes,
+with per-file transforms 2x to 5x faster than Babel
+([performance](https://github.com/Dwlad90/stylex-swc-plugin#performance)).
+The extracted CSS is processed with [Lightning CSS](https://lightningcss.dev)
+before it is written to disk.
+
+This is a community project and is not affiliated with Meta. It tracks the
+official StyleX releases
+<!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->
+and requires Node.js 20 or newer.
 
 ## Installation
 
-To install the package, run the following command:
-
 ```bash
-npm install --save-dev @stylexswc/webpack-plugin
+npm install --save-dev @stylexswc/rollup-plugin
 ```
 
-Please install `@stylexswc/rs-compiler` if you haven't done so already:
+The Rust compiler (`@stylexswc/rs-compiler`) is installed automatically as a
+dependency. Your application still needs the StyleX runtime:
 
 ```bash
-npm install --save-dev @stylexswc/rs-compiler
+npm install @stylexjs/stylex
 ```
 
 ## Usage
 
-Modify Webpack config. For example:
+Add the plugin to your Rollup config:
 
 ```js
-const StylexPlugin = require('@stylexswc/webpack-plugin');
-const path = require('path');
+// rollup.config.mjs
+import stylexPlugin from '@stylexswc/rollup-plugin';
 
-const config = (env, argv) => ({
-  entry: {
-    main: './js/index.js',
-  },
+export default {
+  input: 'src/index.js',
   output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: '[name].js',
+    file: 'dist/bundle.js',
+    format: 'cjs',
   },
   plugins: [
-    new StylexPlugin({
-      filename: 'styles.[contenthash].css',
-      dev: argv.mode === 'development',
+    stylexPlugin.default({
+      fileName: 'stylex.css',
+      rsOptions: {
+        dev: process.env.NODE_ENV !== 'production',
+      },
     }),
   ],
-  cache: true,
-});
-
-module.exports = config;
+};
 ```
 
-## Plugin Options
+> [!NOTE]
+> In an ESM config file the plugin is exposed on the `default` property
+> because the package is compiled to CommonJS — hence
+> `stylexPlugin.default(...)`. With a CommonJS config
+> (`const stylexPlugin = require('@stylexswc/rollup-plugin')`), call
+> `stylexPlugin(...)` directly.
 
-The plugin accepts the following configuration options:
+A complete working setup, including JSX handling via `@rollup/plugin-swc`, lives
+in the
+[`rollup-example` app](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/apps/rollup-example).
+
+## Plugin Options
 
 ### `rsOptions`
 
 - Type: `StyleXOptions`
 - Optional
 - Default: `{}`
-- Description: StyleX compiler options that extend from `@stylexswc/rs-compiler`.
-  For standard StyleX options, see the [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
+- Description: StyleX compiler options passed to `@stylexswc/rs-compiler`. For
+  the standard options, see the
+  [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
 > [!NOTE]
-> **New Features:** The `include` and `exclude` options are exclusive to this NAPI-RS compiler implementation and are not available in the official StyleX Babel plugin.
+> The `include` and `exclude` options are exclusive to the Rust compiler
+> and are not available in the official StyleX Babel plugin.
 
 #### `rsOptions.include`
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular expressions to include specific files for StyleX transformation.
-  When specified, only files matching at least one of these patterns will be transformed.
-  Patterns are matched against paths relative to the current working directory.
-  Supports regex lookahead/lookbehind for advanced filtering.
+- Description: Glob patterns or regular expressions selecting the files to
+  transform. When specified, only files matching at least one pattern are
+  transformed. Patterns are matched against paths relative to the current
+  working directory. Regular expressions support lookahead and lookbehind.
 
 #### `rsOptions.exclude`
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular expressions to exclude specific files from StyleX transformation.
-  Files matching any of these patterns will not be transformed, even if they match an `include` pattern.
-  Patterns are matched against paths relative to the current working directory.
-  Supports regex lookahead/lookbehind for advanced filtering.
+- Description: Glob patterns or regular expressions excluding files from the
+  transform. A file matching any exclude pattern is skipped even if it matches
+  an `include` pattern. Patterns are matched against paths relative to the
+  current working directory. Regular expressions support lookahead and
+  lookbehind.
 
-### Path Filtering Examples
+### `fileName`
 
-**Include only specific directories:**
+- Type: `string`
+- Optional
+- Default: `'stylex.css'`
+- Description: Name of the emitted CSS asset.
 
-```javascript
-stylexPlugin({
+### `useCSSLayers`
+
+- Type: `boolean`
+- Optional
+- Default: `false`
+- Description: Wraps the generated CSS in cascade layers for better style
+  isolation.
+
+### `lightningcssOptions`
+
+- Type: `TransformOptions`
+- Optional
+- Description: Options forwarded to the Lightning CSS transform that
+  post-processes the extracted CSS (everything except `code`, `filename`, and
+  `visitor`).
+
+### `extractCSS`
+
+- Type: `boolean`
+- Optional
+- Default: `true`
+- Description: Controls whether the generated CSS is extracted into a separate
+  file.
+
+## Path Filtering Examples
+
+Include only specific directories:
+
+```js
+stylexPlugin.default({
   rsOptions: {
     include: ['src/**/*.{ts,tsx,js,jsx}'],
   },
-})
+});
 ```
 
-**Exclude test and build files:**
+Exclude test and build files:
 
-```javascript
-stylexPlugin({
+```js
+stylexPlugin.default({
   rsOptions: {
     exclude: ['**/*.test.*', '**/*.spec.*', '**/dist/**'],
   },
-})
+});
 ```
 
-**Using RegExp with lookahead/lookbehind - exclude node_modules except specific packages:**
+Exclude all of `node_modules` except specific packages (negative lookahead):
 
-```javascript
-stylexPlugin({
+```js
+stylexPlugin.default({
   rsOptions: {
-    // Exclude all node_modules except @stylexjs packages
     exclude: [/node_modules(?!\/@stylexjs)/],
   },
-})
+});
 ```
 
-**Transform only specific packages from node_modules:**
+Transform only specific packages from `node_modules`:
 
-```javascript
-stylexPlugin({
+```js
+stylexPlugin.default({
   rsOptions: {
     include: [
       'src/**/*.{ts,tsx,js,jsx}',
@@ -125,42 +176,40 @@ stylexPlugin({
     ],
     exclude: ['**/*.test.*'],
   },
-})
+});
 ```
 
-### `fileName`
+## FAQ
 
-- Type: `string`
-- Optional
-- Default: `'stylex.css'`
-- Description: Name of the output CSS file
+### Do I still need `@stylexjs/babel-plugin`?
 
-### `useCSSLayers`
+No. This plugin replaces the Babel plugin in your build. You only keep
+`@stylexjs/stylex` as your app's runtime dependency, and your `stylex.create` /
+`stylex.props` code does not change.
 
-- Type: `boolean`
-- Optional
-- Default: `false`
-- Description: Enable CSS Layers support for better style isolation
+### Does this work together with other Rollup plugins?
 
-### `lightningcssOptions`
+Yes. Run StyleX after resolution/commonjs plugins and alongside your transpiler
+plugin (SWC or Babel). The
+[example app](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/apps/rollup-example)
+shows a full pipeline with `@rollup/plugin-swc`.
 
-- Type: `TransformOptions`
-- Optional
-- Description: LightningCSS transform options (excluding code, filename, and
-  visitor properties)
+### How do I post-process the generated CSS?
 
-### `extractCSS`
+The plugin already runs Lightning CSS on the extracted stylesheet; tune it with
+`lightningcssOptions` (for example `targets` from a browserslist query).
 
-- Type: `boolean`
-- Optional
-- Default: `true`
-- Description: Controls whether CSS should be extracted into a separate file
+### Is this an official StyleX package?
+
+No. It is a community-maintained alternative to the official tooling and is not
+affiliated with or supported by Meta.
 
 ## Documentation
 
-- [StyleX Documentation](https://stylexjs.com)
-- [NAPI-RS compiler for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
+- [StyleX documentation](https://stylexjs.com)
+- [`@stylexswc/rs-compiler` compiler options](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
 
 ## License
 
-MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
+MIT — see
+[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

@@ -1,32 +1,12 @@
 {
   "name": "@stylexswc/unplugin",
-  "description": "Unplugin for StyleX RS compiler",
+  "description": "Universal StyleX plugin for Vite, webpack, Rspack, Rollup, esbuild, Farm, Rsbuild, Nuxt, and Astro, powered by a Rust NAPI-RS/SWC compiler.",
   "version": "0.17.0",
-  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
-  "config": {
-    "scripty": {
-      "path": "../../scripts/packages"
-    }
-  },
-  "dependencies": {
-    "@stylexjs/babel-plugin": "^0.19.0",
-    "@stylexswc/rs-compiler": "0.17.0",
-    "unplugin": "^3.0.0",
-    "vite": "^8.1.2"
-  },
-  "devDependencies": {
-    "@nuxt/kit": "^4.4.8",
-    "@nuxt/schema": "^4.4.8",
-    "@rollup/plugin-commonjs": "^29.0.3",
-    "@rollup/plugin-node-resolve": "^16.0.3",
-    "@types/node": "^26.1.0",
-    "eslint": "^10.6.0",
-    "esno": "^4.7.0",
-    "rollup": "^4.62.2",
-    "tsup": "^8.5.1",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
-  },
+  "private": false,
+  "license": "MIT",
+  "sideEffects": false,
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -83,24 +63,49 @@
   "files": [
     "dist"
   ],
-  "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/unplugin#readme",
-  "keywords": [
-    "esbuild",
-    "farm",
-    "rollup",
-    "rsbuild",
-    "rspack",
-    "stylex",
-    "swc",
-    "transform",
-    "unplugin",
-    "vite",
-    "webpack"
-  ],
-  "license": "MIT",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "packageManager": "pnpm@10.30.3",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "build:fix": "esno scripts/postbuild.ts",
+    "check:artifacts": "scripty",
+    "dev": "tsup --watch src",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
+    "play": "pnpm -C playground run dev",
+    "postbuild": "pnpm run check:artifacts",
+    "prepublishOnly": "pnpm run build",
+    "start": "esno src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "typecheck": "scripty --ts"
+  },
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "dependencies": {
+    "@stylexjs/babel-plugin": "^0.19.0",
+    "@stylexswc/rs-compiler": "0.17.0",
+    "unplugin": "^3.0.0",
+    "vite": "^8.1.2"
+  },
+  "devDependencies": {
+    "@nuxt/kit": "^4.4.8",
+    "@nuxt/schema": "^4.4.8",
+    "@rollup/plugin-commonjs": "^29.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@types/node": "^26.1.0",
+    "eslint": "^10.6.0",
+    "esno": "^4.7.0",
+    "rollup": "^4.62.2",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  },
   "peerDependencies": {
     "@farmfe/core": ">=1.7.11 <2.0.0",
     "@nuxt/kit": ">=3.0.0",
@@ -110,6 +115,29 @@
     "vite": ">=4.0.0",
     "webpack": ">=5.0.0"
   },
+  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
+  "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/unplugin#readme",
+  "keywords": [
+    "astro",
+    "atomic-css",
+    "css-extraction",
+    "css-in-js",
+    "esbuild",
+    "farm",
+    "napi-rs",
+    "nuxt",
+    "rollup",
+    "rsbuild",
+    "rspack",
+    "rust",
+    "stylex",
+    "swc",
+    "unplugin",
+    "vite",
+    "webpack"
+  ],
+  "main": "./dist/index.js",
+  "packageManager": "pnpm@10.30.3",
   "peerDependenciesMeta": {
     "@farmfe/core": {
       "optional": true
@@ -133,30 +161,12 @@
       "optional": true
     }
   },
-  "private": false,
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dwlad90/stylex-swc-plugin.git",
+    "directory": "packages/unplugin"
   },
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
-  "scripts": {
-    "build": "tsup",
-    "build:fix": "esno scripts/postbuild.ts",
-    "check:artifacts": "scripty",
-    "dev": "tsup --watch src",
-    "lint": "eslint . --color",
-    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
-    "play": "pnpm -C playground run dev",
-    "postbuild": "pnpm run check:artifacts",
-    "prepublishOnly": "pnpm run build",
-    "start": "esno src/index.ts",
-    "test": "vitest run",
-    "test:watch": "vitest --watch",
-    "typecheck": "scripty --ts"
-  },
-  "sideEffects": false,
   "type": "module",
-  "types": "./dist/index.d.ts",
   "typesVersions": {
     "*": {
       "*": [

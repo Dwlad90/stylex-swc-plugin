@@ -1,5 +1,6 @@
 {
   "name": "@stylexswc/stylexswc",
+  "description": "Community Rust/NAPI-RS/SWC compiler and build-tool plugin ecosystem for StyleX CSS-in-JS, replacing the Babel transform for faster compile-time atomic CSS extraction.",
   "version": "0.17.0",
   "private": true,
   "scripts": {
@@ -61,6 +62,26 @@
   "engines": {
     "node": ">=20"
   },
+  "keywords": [
+    "atomic-css",
+    "css-extraction",
+    "css-in-js",
+    "jest",
+    "napi-rs",
+    "nextjs",
+    "postcss",
+    "rollup",
+    "rspack",
+    "rust",
+    "stylex",
+    "stylex-babel-plugin",
+    "stylex-compiler",
+    "stylex-swc",
+    "swc",
+    "turbopack",
+    "vite",
+    "webpack"
+  ],
   "packageManager": "pnpm@10.30.3",
   "repository": "dwlad90/stylex-swc-plugin"
 }

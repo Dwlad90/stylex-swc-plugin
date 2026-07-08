@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/jest",
-  "description": "Jest transformer for Stylex SWC",
+  "description": "Jest transformer for StyleX that compiles CSS-in-JS with the Rust NAPI-RS/SWC compiler, enabling Babel-free StyleX component tests.",
   "version": "0.17.0",
   "private": false,
   "license": "MIT",
@@ -40,11 +40,27 @@
     "@stylexswc/typescript-config": "0.17.0",
     "@types/node": "^26.1.0"
   },
+  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
+  "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/jest#readme",
   "keywords": [
+    "babel-free",
+    "css-in-js",
+    "css-in-js-testing",
     "jest",
+    "jest-transform",
+    "jest-transformer",
+    "napi-rs",
+    "react-testing",
+    "rust",
     "stylex",
-    "swc"
+    "stylex-jest",
+    "swc",
+    "testing"
   ],
   "main": "dist/index.js",
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dwlad90/stylex-swc-plugin.git",
+    "directory": "packages/jest"
+  }
 }

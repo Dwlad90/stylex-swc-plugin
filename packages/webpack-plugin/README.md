@@ -1,28 +1,42 @@
-# Webpack plugin with NAPI-RS StyleX compiler integration
+# @stylexswc/webpack-plugin
 
-> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+> StyleX plugin for webpack, powered by a Rust compiler (NAPI-RS + SWC). Part of
+> the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
+> workspace.
 
-`Webpack plugin` for an unofficial
-[`napi-rs`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
-compiler that includes the StyleX SWC code transformation under the hood.
+This plugin compiles [StyleX](https://stylexjs.com) code in your webpack build
+with
+[`@stylexswc/rs-compiler`](https://www.npmjs.com/package/@stylexswc/rs-compiler),
+a Rust implementation of the StyleX transform, instead of the official Babel
+plugin. Your StyleX code stays exactly the same — only the build step changes,
+with per-file transforms 2x to 5x faster than Babel
+([performance](https://github.com/Dwlad90/stylex-swc-plugin#performance)).
+The plugin transforms your source files, collects the generated rules, and
+extracts them into a dedicated CSS chunk.
+
+This is a community project and is not affiliated with Meta. It tracks the
+official StyleX releases
+<!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->
+and requires Node.js 20 or newer. For Next.js projects, use
+[`@stylexswc/nextjs-plugin`](https://www.npmjs.com/package/@stylexswc/nextjs-plugin)
+instead — it wires this plugin into the Next.js build for you.
 
 ## Installation
-
-To install the package, run the following command:
 
 ```bash
 npm install --save-dev @stylexswc/webpack-plugin
 ```
 
-Please install `@stylexswc/rs-compiler` if you haven't done so already:
+The Rust compiler (`@stylexswc/rs-compiler`) is installed automatically as a
+dependency. Your application still needs the StyleX runtime:
 
 ```bash
-npm install --save-dev @stylexswc/rs-compiler
+npm install @stylexjs/stylex
 ```
 
 ## Usage
 
-Modify Webpack config. For example:
+Add the plugin to your webpack config:
 
 ```js
 const StylexPlugin = require('@stylexswc/webpack-plugin');
@@ -38,17 +52,8 @@ const config = (env, argv) => ({
   },
   plugins: [
     new StylexPlugin({
-      // ... Other StyleX options
-      transformCss: async (css, filePath) => {
-        const postcss = require('postcss');
-        const result = await postcss([require('autoprefixer')]).process(css, {
-          from: filePath,
-          map: {
-            inline: false,
-            annotation: false,
-          },
-        });
-        return result.css;
+      rsOptions: {
+        dev: argv.mode === 'development',
       },
     }),
   ],
@@ -66,95 +71,105 @@ module.exports = config;
 
 - Type: `Partial<StyleXOptions>`
 - Optional
-- Description: StyleX compiler options that will be passed to the NAPI-RS compiler.
-  For standard StyleX options, see the [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
+- Description: StyleX compiler options passed to `@stylexswc/rs-compiler`. For
+  the standard options, see the
+  [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
 > [!NOTE]
-> **New Features:** The `include` and `exclude` options are exclusive to this NAPI-RS compiler implementation and are not available in the official StyleX Babel plugin.
+> The `include` and `exclude` options are exclusive to the Rust compiler
+> and are not available in the official StyleX Babel plugin.
 
 ##### `rsOptions.include`
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular expressions to include specific files for StyleX transformation.
-  When specified, only files matching at least one of these patterns will be transformed.
-  Patterns are matched against paths relative to the current working directory.
+- Description: Glob patterns or regular expressions selecting the files to
+  transform. When specified, only files matching at least one pattern are
+  transformed. Patterns are matched against paths relative to the current
+  working directory.
 
 ##### `rsOptions.exclude`
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular expressions to exclude specific files from StyleX transformation.
-  Files matching any of these patterns will not be transformed, even if they match an `include` pattern.
-  Patterns are matched against paths relative to the current working directory.
+- Description: Glob patterns or regular expressions excluding files from the
+  transform. A file matching any exclude pattern is skipped even if it matches
+  an `include` pattern. Patterns are matched against paths relative to the
+  current working directory.
 
 #### `stylexImports`
 
 - Type: `Array<string | { as: string, from: string }>`
 - Default: `['stylex', '@stylexjs/stylex']`
-- Description: Specifies where StyleX will be imported from. Supports both
-  string paths and import aliases.
+- Description: Specifies where StyleX is imported from. Supports both string
+  paths and import aliases.
 
 #### `useCSSLayers`
 
 - Type: `boolean`
 - Default: `false`
-- Description: Enables CSS cascade layers support for better style isolation.
+- Description: Wraps the generated CSS in cascade layers for better style
+  isolation.
 
 #### `nextjsMode`
 
 - Type: `boolean`
 - Default: `false`
 - Description: Enables Next.js-specific optimizations and compatibility
-  features.
+  features. Leave off unless the plugin is driven by the Next.js integration.
 
 #### `extractCSS`
 
 - Type: `boolean`
 - Optional
 - Default: `true`
-- Description: Controls whether CSS should be extracted into a separate file
+- Description: Controls whether the generated CSS is extracted into a separate
+  file.
 
 #### `loaderOrder`
 
 - Type: `'first' | 'last'`
 - Optional
 - Default: `'first'`
-- Description: Determines when the StyleX transformation is applied relative to other webpack loaders.
-  - `'first'` (recommended): StyleX processes the source code before any other loaders run.
-    Automatically enables `injectStylexSideEffects` to prevent tree-shaking from removing `.stylex` and `.consts` imports.
-  - `'last'`: StyleX processes after all other loaders have completed.
-    Use this if you need other loaders (like TypeScript or SWC plugins) to transform your code before StyleX processing.
+- Description: When the StyleX transformation runs relative to other webpack
+  loaders.
+  - `'first'` (recommended): StyleX processes the source code before any other
+    loaders run. Automatically enables `injectStylexSideEffects` so tree-shaking
+    cannot remove `.stylex` and `.consts` imports.
+  - `'last'`: StyleX processes after all other loaders have completed. Use this
+    if other loaders (TypeScript, SWC plugins) must transform your code before
+    StyleX sees it.
 
-  **Why `'first'` is recommended:**
-  When StyleX transforms your code first, imports from `.stylex` and `.consts` files may appear unused to subsequent loaders/bundlers and get removed by tree-shaking. The plugin automatically injects side-effect imports to prevent this issue.
+  Why `'first'` is recommended: after StyleX rewrites your code, imports from
+  `.stylex` and `.consts` files can look unused to subsequent loaders and
+  bundler passes and get tree-shaken away:
 
-  **Example of the problem:**
   ```ts
   // Before transformation
   import { colors } from './theme.stylex';
   const styles = stylex.create({
-    root: { backgroundColor: colors.primary }
+    root: { backgroundColor: colors.primary },
   });
 
-  // After StyleX transformation (appears unused to bundler)
-  import { colors } from './theme.stylex';  // ← May be tree-shaken!
+  // After StyleX transformation (appears unused to the bundler)
+  import { colors } from './theme.stylex'; // may be tree-shaken!
   const styles = { root: { backgroundColor: 'x1a2b3c', $$css: true } };
   ```
 
-  With `loaderOrder: 'first'`, the plugin automatically preserves these imports by injecting side-effect imports.
+  With `loaderOrder: 'first'`, the plugin preserves these imports by injecting
+  side-effect imports automatically.
 
 #### `stylexPackages`
 
 - Type: `string[]`
 - Optional
 - Default: `['@stylexjs/']`
-- Description: `node_modules` is **excluded by default**, even for files that
-  reference a StyleX import. Packages that ship untransformed StyleX source
-  (e.g. component libraries) must be allowlisted here with path fragments so
-  the StyleX loader still processes them:
+- Description: `node_modules` is excluded from the transform by default, even
+  for files that reference a StyleX import. Packages that ship untransformed
+  StyleX source (component libraries, token packages) must be allowlisted here
+  with path fragments:
 
-```javascript
+```js
 new StylexPlugin({
   stylexPackages: ['@stylexjs/', 'my-design-system'],
 });
@@ -167,19 +182,34 @@ new StylexPlugin({
 - Type:
   `(css: string, filePath: string | undefined) => string | Buffer | Promise<string | Buffer>`
 - Optional
-- Description: Custom CSS transformation function. Since the plugin injects CSS
-  after all loaders, use this to apply PostCSS or other CSS transformations.
+- Description: Custom CSS post-processing. The plugin injects CSS after all
+  loaders have run, so `postcss-loader` never sees it — apply PostCSS,
+  autoprefixer, or a minifier here instead:
+
+```js
+new StylexPlugin({
+  transformCss: async (css, filePath) => {
+    const postcss = require('postcss');
+    const result = await postcss([require('autoprefixer')]).process(css, {
+      from: filePath,
+    });
+    return result.css;
+  },
+});
+```
 
 #### `cacheGroup`
 
 - Type: `CacheGroupOptions` (webpack cache group configuration)
 - Optional
-- Description: Allows overriding the default webpack cache group parameters for StyleX CSS extraction.
-  By default, the plugin creates a dedicated cache group named `stylex` for extracted StyleX CSS.
-  Use this option to customize cache group behavior such as chunk naming, priority, or other split chunks options.
+- Description: Overrides the default webpack cache group used for StyleX CSS
+  extraction. By default the plugin creates a dedicated cache group named
+  `stylex`. Use this to customize chunk naming, priority, or other split chunks
+  options.
 
-**Default cache group configuration:**
-```javascript
+Default cache group configuration:
+
+```js
 {
   name: 'stylex',
   test: /\.stylex\.virtual\.css$/,
@@ -189,8 +219,9 @@ new StylexPlugin({
 }
 ```
 
-**Example - Custom cache group:**
-```javascript
+Custom cache group:
+
+```js
 new StylexPlugin({
   cacheGroup: {
     name: 'my-stylex-bundle',
@@ -198,12 +229,12 @@ new StylexPlugin({
     priority: 20,
     enforce: true,
   },
-})
+});
 ```
 
 ### Example Configuration
 
-```javascript
+```js
 const StylexPlugin = require('@stylexswc/webpack-plugin');
 
 module.exports = {
@@ -211,95 +242,110 @@ module.exports = {
     new StylexPlugin({
       rsOptions: {
         dev: process.env.NODE_ENV !== 'production',
-        // Include only specific directories
         include: ['src/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
-        // Exclude test files and stories
         exclude: ['**/*.test.*', '**/*.stories.*', '**/__tests__/**'],
       },
       stylexImports: ['@stylexjs/stylex', { from: './theme', as: 'tokens' }],
       useCSSLayers: true,
-      nextjsMode: false,
-      loaderOrder: 'first', // Process before other loaders (default)
+      loaderOrder: 'first',
       transformCss: async css => {
         const postcss = require('postcss');
         const result = await postcss([require('autoprefixer')]).process(css);
         return result.css;
-      },
-      // Optional: Override cache group settings
-      cacheGroup: {
-        name: 'stylex',
-        priority: 30,
       },
     }),
   ],
 };
 ```
 
-#### Path Filtering Examples
+### Path Filtering Examples
 
-**Include only specific directories:**
+Include only specific directories:
 
-```javascript
+```js
 new StylexPlugin({
   rsOptions: {
     include: ['src/**/*.tsx', 'app/**/*.tsx'],
   },
-})
+});
 ```
 
-**Exclude test and build files:**
+Exclude test and build files:
 
-```javascript
+```js
 new StylexPlugin({
   rsOptions: {
-    exclude: ['**/*.test.*', '**/*.spec.*', '**/dist/**', '**/node_modules/**'],
+    exclude: ['**/*.test.*', '**/*.spec.*', '**/dist/**'],
   },
-})
+});
 ```
 
-**Using regular expressions:**
+Using regular expressions:
 
-```javascript
+```js
 new StylexPlugin({
   rsOptions: {
     include: [/src\/.*\.tsx$/],
     exclude: [/\.test\./, /\.stories\./],
   },
-})
+});
 ```
 
-**Combined include and exclude (exclude takes precedence):**
+Transform only specific packages from `node_modules` — note that `node_modules`
+is excluded regardless of `rsOptions.include`/`exclude`, so allowlist packages
+with `stylexPackages` instead:
 
-```javascript
-new StylexPlugin({
-  rsOptions: {
-    include: ['src/**/*.{ts,tsx}'],
-    exclude: ['**/__tests__/**', '**/__mocks__/**'],
-  },
-})
-```
-
-**Transform only specific packages from node_modules:**
-
-`node_modules` is excluded by default regardless of `rsOptions.include`/
-`exclude` — allowlist packages with `stylexPackages` instead:
-
-```javascript
+```js
 new StylexPlugin({
   rsOptions: {
     include: ['src/**/*.{ts,tsx}'],
     exclude: ['**/*.test.*'],
   },
   stylexPackages: ['@stylexjs/open-props', '@my-org/design-system'],
-})
+});
 ```
+
+## FAQ
+
+### Do I still need `@stylexjs/babel-plugin`?
+
+No. This plugin replaces the Babel plugin in your build. You only keep
+`@stylexjs/stylex` as your app's runtime dependency, and your `stylex.create` /
+`stylex.props` code does not change.
+
+### My styles from a component library are missing. Why?
+
+`node_modules` is excluded by default. Add the package to `stylexPackages` (for
+example `stylexPackages: ['@stylexjs/', 'my-design-system']`) so the StyleX
+loader processes it.
+
+### Imports from my `.stylex.ts` token files disappear after the build
+
+That is tree-shaking removing imports that look unused after the transform. Keep
+the default `loaderOrder: 'first'`, which injects side-effect imports to protect
+them.
+
+### Can I run PostCSS on the generated CSS?
+
+Yes — through the `transformCss` option. The StyleX CSS is produced after the
+regular loader pipeline, so `postcss-loader` alone will not see it.
+
+### Is this an official StyleX package?
+
+No. It is a community-maintained alternative to the official tooling and is not
+affiliated with or supported by Meta.
 
 ## Documentation
 
-- [StyleX Documentation](https://stylexjs.com)
-- [NAPI-RS compiler for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
+- [StyleX documentation](https://stylexjs.com)
+- [`@stylexswc/rs-compiler` compiler options](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
 
 ## Acknowledgments
 
 This plugin was inspired by
 [`stylex-webpack`](https://github.com/SukkaW/stylex-webpack).
+
+## License
+
+MIT — see
+[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

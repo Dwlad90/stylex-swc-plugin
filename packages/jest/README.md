@@ -1,19 +1,24 @@
-# Jest transformer with NAPI-RS StyleX compiler integration
+# @stylexswc/jest
 
-> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+> Jest transformer that compiles StyleX with a Rust compiler (NAPI-RS + SWC).
+> Part of the
+> [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
+> workspace.
 
-Jest transformer that enables StyleX SWC integration for JavaScript and
-TypeScript testing with Jest.
+Components that use [StyleX](https://stylexjs.com) cannot run in Jest without a
+transform: `stylex.create` calls must be compiled before the test executes. This
+transformer does that compilation with
+[`@stylexswc/rs-compiler`](https://www.npmjs.com/package/@stylexswc/rs-compiler),
+a Rust implementation of the StyleX transform, so tests see the same compiled
+class names your production build produces — without pulling Babel into your
+test pipeline.
 
-## Overview
-
-The `@stylexswc/jest` package provides a Jest transformer that integrates with
-the StyleX RS compiler. This allows to transform source code using StyleX during
-Jest tests, ensuring that styles are correctly processed and applied.
+This is a community project and is not affiliated with Meta. It tracks the
+official StyleX releases
+<!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->
+and requires Node.js 20 or newer.
 
 ## Installation
-
-To install the package, run the following command:
 
 ```bash
 npm install --save-dev @stylexswc/jest
@@ -21,10 +26,9 @@ npm install --save-dev @stylexswc/jest
 
 ## Configuration
 
-To use the transformer, add it to Jest configuration. Here is an example
-configuration:
+Add the transformer to your Jest configuration:
 
-```javascript
+```js
 // jest.config.js
 const path = require('path');
 
@@ -55,35 +59,38 @@ module.exports = {
 
 - Type: `Partial<StyleXOptions>`
 - Optional
-- Description: StyleX compiler options that will be passed to the transformer.
-  For standard StyleX options, see the [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
+- Description: StyleX compiler options passed to the transformer. For the
+  standard options, see the
+  [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
 > [!NOTE]
-> **New Features:** The `include` and `exclude` options are exclusive to this NAPI-RS compiler implementation and are not available in the official StyleX Babel plugin.
+> The `include` and `exclude` options are exclusive to the Rust compiler
+> and are not available in the official StyleX Babel plugin.
 
 #### `rsOptions.include`
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular expressions to include specific files for StyleX transformation.
-  When specified, only files matching at least one of these patterns will be transformed.
-  Patterns are matched against paths relative to the current working directory.
-  Supports regex lookahead/lookbehind for advanced filtering.
+- Description: Glob patterns or regular expressions selecting the files to
+  transform. When specified, only files matching at least one pattern are
+  transformed. Patterns are matched against paths relative to the current
+  working directory. Regular expressions support lookahead and lookbehind.
 
 #### `rsOptions.exclude`
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular expressions to exclude specific files from StyleX transformation.
-  Files matching any of these patterns will not be transformed, even if they match an `include` pattern.
-  Patterns are matched against paths relative to the current working directory.
-  Supports regex lookahead/lookbehind for advanced filtering.
+- Description: Glob patterns or regular expressions excluding files from the
+  transform. A file matching any exclude pattern is skipped even if it matches
+  an `include` pattern. Patterns are matched against paths relative to the
+  current working directory. Regular expressions support lookahead and
+  lookbehind.
 
 ### Path Filtering Examples
 
-**Include only specific directories:**
+Include only specific directories:
 
-```javascript
+```js
 {
   rsOptions: {
     include: ['src/**/*.{ts,tsx}', 'app/**/*.{ts,tsx}'],
@@ -91,9 +98,9 @@ module.exports = {
 }
 ```
 
-**Exclude test files:**
+Exclude test files:
 
-```javascript
+```js
 {
   rsOptions: {
     exclude: ['**/*.test.*', '**/*.spec.*', '**/__tests__/**'],
@@ -101,42 +108,27 @@ module.exports = {
 }
 ```
 
-**Using RegExp with lookahead/lookbehind - exclude node_modules except specific packages:**
+Exclude `node_modules` except specific packages (negative lookahead):
 
-```javascript
+```js
 {
   rsOptions: {
-    // Exclude all node_modules except @stylexjs/open-props
     exclude: [/node_modules(?!\/@stylexjs\/open-props)/],
   },
 }
 ```
 
-**Combined include and exclude:**
+## Chaining with other transformers
 
-```javascript
-{
-  rsOptions: {
-    include: ['src/**/*.{ts,tsx}'],
-    exclude: ['**/*.test.*', '**/*.stories.*'],
-  },
-}
-```
+This transformer only compiles StyleX — TypeScript and JSX still need their own
+transform. Chain it with `@swc/jest` (or another transformer) using
+`jest-chain-transform`:
 
-## Example
-
-Here is an example of how to use `@swc/jest` with other transformers:
-
-```javascript
+```js
 // jest.config.js
-const nextJest = require('next/jest');
 const path = require('path');
 
-const createJestConfig = nextJest({
-  dir: process.cwd(),
-});
-
-const customJestConfig = {
+module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jsdom',
   transform: {
@@ -160,34 +152,21 @@ const customJestConfig = {
           [
             '@swc/jest',
             {
-              $schema: 'https://json.schemastore.org/swcrc',
               jsc: {
                 parser: {
                   syntax: 'typescript',
                   tsx: true,
-                  dynamicImport: true,
-                  decorators: true,
-                  dts: true,
                 },
                 transform: {
                   react: {
-                    useBuiltins: true,
                     runtime: 'automatic',
                   },
                 },
                 target: 'esnext',
-                loose: false,
-                externalHelpers: false,
-                keepClassNames: true,
-                baseUrl: './',
-                paths: {
-                  '@/*': ['./*'],
-                },
               },
               module: {
                 type: 'es6',
               },
-              minify: false,
             },
           ],
         ],
@@ -195,13 +174,40 @@ const customJestConfig = {
     ],
   },
 };
-
-module.exports = customJestConfig;
 ```
 
-Real example can be found in the
-[@stylexswc/next-example](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/apps/nextjs-example/jest.config.js)
+A complete working configuration lives in the
+[Next.js example app](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/apps/nextjs-example/jest.config.js).
+
+## FAQ
+
+### Why do my tests fail with "stylex.create should never be called"?
+
+That error means the StyleX code reached the runtime uncompiled. Check that this
+transformer is registered for the failing file's extension and that the file is
+not excluded by your `rsOptions.include`/`exclude` patterns.
+
+### Do I still need `babel-jest` or `@stylexjs/babel-plugin`?
+
+No. This transformer replaces the Babel-based StyleX setup in Jest. For
+TypeScript/JSX, chain it with `@swc/jest` as shown above instead of Babel.
+
+### My theme tokens from `.stylex.ts` files don't resolve in tests
+
+Set `unstable_moduleResolution` (usually `{ type: 'commonJS' }`) and mirror your
+path aliases in `rsOptions.aliases`, exactly as in your build config.
+
+### Is this an official StyleX package?
+
+No. It is a community-maintained alternative to the official tooling and is not
+affiliated with or supported by Meta.
+
+## Documentation
+
+- [StyleX documentation](https://stylexjs.com)
+- [`@stylexswc/rs-compiler` compiler options](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
 
 ## License
 
-MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
+MIT — see
+[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

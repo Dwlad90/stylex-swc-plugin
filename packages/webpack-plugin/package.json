@@ -1,7 +1,43 @@
 {
   "name": "@stylexswc/webpack-plugin",
-  "description": "StyleX webpack plugin with NAPI-RS compiler",
+  "description": "StyleX plugin for webpack powered by a Rust NAPI-RS/SWC compiler. Fast StyleX transforms and CSS extraction without Babel.",
   "version": "0.17.0",
+  "private": false,
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./shared": {
+      "types": "./dist/shared.d.ts",
+      "import": "./dist/shared.js",
+      "require": "./dist/shared.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "build": "scripty --ts",
+    "check:artifacts": "scripty",
+    "clean": "del-cli dist",
+    "lint": "eslint . --color",
+    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
+    "postbuild": "pnpm run check:artifacts",
+    "precommit": "lint-staged",
+    "prepublishOnly": "pnpm run build",
+    "prepush": "lint-prepush",
+    "test": "vitest run",
+    "typecheck": "scripty --ts"
+  },
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
@@ -21,48 +57,24 @@
     "vitest": "^4.1.9",
     "webpack": "^5.108.3"
   },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
-    },
-    "./shared": {
-      "types": "./dist/shared.d.ts",
-      "import": "./dist/shared.js",
-      "require": "./dist/shared.js"
-    },
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "dist"
-  ],
+  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
+  "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/webpack-plugin#readme",
   "keywords": [
+    "atomic-css",
+    "css-extraction",
+    "css-in-js",
+    "napi-rs",
+    "react",
+    "rust",
     "stylex",
     "swc",
     "webpack",
     "webpack-plugin"
   ],
-  "license": "MIT",
   "main": "dist/index.js",
-  "private": false,
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin",
-  "scripts": {
-    "build": "scripty --ts",
-    "check:artifacts": "scripty",
-    "clean": "del-cli dist",
-    "lint": "eslint . --color",
-    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
-    "postbuild": "pnpm run check:artifacts",
-    "precommit": "lint-staged",
-    "prepublishOnly": "pnpm run build",
-    "prepush": "lint-prepush",
-    "test": "vitest run",
-    "typecheck": "scripty --ts"
-  },
-  "sideEffects": false
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dwlad90/stylex-swc-plugin.git",
+    "directory": "packages/webpack-plugin"
+  }
 }

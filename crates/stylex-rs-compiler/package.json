@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/rs-compiler",
-  "description": "NAPI-RS compiler for transform StyleX code",
+  "description": "High-performance Rust/NAPI-RS/SWC compiler for StyleX CSS-in-JS with compile-time atomic CSS extraction, metadata, source maps, and Babel-plugin replacement APIs for Node.js.",
   "version": "0.17.0",
   "private": false,
   "license": "MIT",
@@ -60,15 +60,15 @@
   "devDependencies": {
     "@napi-rs/cli": "^3.7.2",
     "@stylexswc/ast": "0.17.0",
+    "@stylexswc/enums": "0.17.0",
     "@stylexswc/logs": "0.17.0",
     "@stylexswc/macros": "0.17.0",
-    "@stylexswc/utils": "0.17.0",
     "@stylexswc/regex": "0.17.0",
-    "@stylexswc/enums": "0.17.0",
     "@stylexswc/structures": "0.17.0",
     "@stylexswc/transform": "0.17.0",
     "@stylexswc/types": "0.17.0",
     "@stylexswc/typescript-config": "0.17.0",
+    "@stylexswc/utils": "0.17.0",
     "@swc-node/register": "^1.11.1",
     "@swc/core": "^1.15.43",
     "@taplo/cli": "^0.7.0",
@@ -101,18 +101,37 @@
       "@swc-node/register/esm-register"
     ]
   },
+  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "engines": {
-    "node": ">= 18"
+    "node": ">=20"
   },
+  "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler#readme",
   "keywords": [
-    "N-API",
-    "NAPI",
+    "atomic-css",
+    "babel-plugin-alternative",
+    "compiler",
+    "css",
+    "css-extraction",
+    "css-in-js",
+    "jest",
+    "napi",
     "napi-rs",
+    "nextjs",
     "node-addon",
-    "node-addon-api",
-    "Rust",
-    "StyleX",
-    "SWC"
+    "performance",
+    "postcss",
+    "rollup",
+    "rspack",
+    "rust",
+    "source-maps",
+    "stylex",
+    "stylex-babel-plugin",
+    "stylex-compiler",
+    "stylex-swc",
+    "swc",
+    "turbopack",
+    "vite",
+    "webpack"
   ],
   "main": "dist/index.js",
   "napi": {
@@ -128,5 +147,9 @@
     ]
   },
   "packageManager": "pnpm@10.30.3",
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dwlad90/stylex-swc-plugin.git",
+    "directory": "crates/stylex-rs-compiler"
+  }
 }

@@ -1,28 +1,43 @@
-# Unplugin with NAPI-RS StyleX compiler integration
+# @stylexswc/unplugin
 
-> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+> Universal StyleX plugin for Vite, webpack, Rspack, Rollup, esbuild, Farm,
+> Rsbuild, Nuxt, and Astro — powered by a Rust compiler (NAPI-RS + SWC). Part of
+> the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
+> workspace.
 
-`Unplugin` for an unofficial
-[`napi-rs`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
-compiler that includes the StyleX SWC code transformation under the hood.
+Built on [unplugin](https://unplugin.unjs.io/), this package gives every major
+bundler the same [StyleX](https://stylexjs.com) integration: it compiles your
+StyleX code with
+[`@stylexswc/rs-compiler`](https://www.npmjs.com/package/@stylexswc/rs-compiler),
+a Rust implementation of the StyleX transform, and extracts the generated CSS.
+Your StyleX code stays exactly the same — only the build step changes, with
+per-file transforms 2x to 5x faster than Babel
+([performance](https://github.com/Dwlad90/stylex-swc-plugin#performance)).
+
+This is a community project and is not affiliated with Meta. It tracks the
+official StyleX releases
+<!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->
+and requires Node.js 20 or newer.
 
 ## Installation
-
-To install the package, run the following command:
 
 ```bash
 npm install --save-dev @stylexswc/unplugin
 ```
 
+The Rust compiler (`@stylexswc/rs-compiler`) is installed automatically as a
+dependency. Your application still needs the StyleX runtime:
+
+```bash
+npm install @stylexjs/stylex
+```
+
 ## Usage
 
-To use the plugin, you need to add it to your build tool configuration.
-
-For every plugin have an example of how to use it in
+Import the entry point matching your build tool and add it to the plugin list. A
+working example for each bundler lives in the
 [`apps/{pluginName}-unplugin-example`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/apps)
-folder.
-
-## Plugins
+folders.
 
 <details>
 <summary>Vite</summary><br>
@@ -32,11 +47,7 @@ folder.
 import StylexRsPlugin from '@stylexswc/unplugin/vite';
 
 export default defineConfig({
-  plugins: [
-    StylexRsPlugin({
-      /* options */
-    }),
-  ],
+  plugins: [StylexRsPlugin({/* options */})],
 });
 ```
 
@@ -50,11 +61,7 @@ export default defineConfig({
 import StylexRsPlugin from '@stylexswc/unplugin/rollup';
 
 export default {
-  plugins: [
-    StylexRsPlugin({
-      /* options */
-    }),
-  ],
+  plugins: [StylexRsPlugin({/* options */})],
 };
 ```
 
@@ -67,11 +74,7 @@ export default {
 // webpack.config.js
 module.exports = {
   /* ... */
-  plugins: [
-    require('@stylexswc/unplugin/webpack')({
-      /* options */
-    }),
-  ],
+  plugins: [require('@stylexswc/unplugin/webpack')({/* options */})],
 };
 ```
 
@@ -84,11 +87,7 @@ module.exports = {
 // rspack.config.js
 module.exports = {
   /* ... */
-  plugins: [
-    require('@stylexswc/unplugin/rspack')({
-      /* options */
-    }),
-  ],
+  plugins: [require('@stylexswc/unplugin/rspack')({/* options */})],
 };
 ```
 
@@ -100,14 +99,7 @@ module.exports = {
 ```ts
 // nuxt.config.js
 export default defineNuxtConfig({
-  modules: [
-    [
-      '@stylexswc/unplugin/nuxt',
-      {
-        /* options */
-      },
-    ],
-  ],
+  modules: [['@stylexswc/unplugin/nuxt', {/* options */}]],
 });
 ```
 
@@ -123,11 +115,7 @@ export default defineNuxtConfig({
 // vue.config.js
 module.exports = {
   configureWebpack: {
-    plugins: [
-      require('@stylexswc/unplugin/webpack')({
-        /* options */
-      }),
-    ],
+    plugins: [require('@stylexswc/unplugin/webpack')({/* options */})],
   },
 };
 ```
@@ -157,27 +145,31 @@ build({
 
 - Type: `Partial<StyleXOptions>`
 - Optional
-- Description: StyleX compiler options that will be passed to the NAPI-RS compiler.
-  For standard StyleX options, see the [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
+- Description: StyleX compiler options passed to `@stylexswc/rs-compiler`. For
+  the standard options, see the
+  [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
 > [!NOTE]
-> **New Features:** The `include` and `exclude` options are exclusive to this NAPI-RS compiler implementation and are not available in the official StyleX Babel plugin.
+> The `include` and `exclude` options are exclusive to the Rust compiler
+> and are not available in the official StyleX Babel plugin.
 
 ##### `rsOptions.include`
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular expressions to include specific files for StyleX transformation.
-  When specified, only files matching at least one of these patterns will be transformed.
-  Patterns are matched against paths relative to the current working directory.
+- Description: Glob patterns or regular expressions selecting the files to
+  transform. When specified, only files matching at least one pattern are
+  transformed. Patterns are matched against paths relative to the current
+  working directory.
 
 ##### `rsOptions.exclude`
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular expressions to exclude specific files from StyleX transformation.
-  Files matching any of these patterns will not be transformed, even if they match an `include` pattern.
-  Patterns are matched against paths relative to the current working directory.
+- Description: Glob patterns or regular expressions excluding files from the
+  transform. A file matching any exclude pattern is skipped even if it matches
+  an `include` pattern. Patterns are matched against paths relative to the
+  current working directory.
 
 #### `fileName`
 
@@ -189,13 +181,15 @@ build({
 
 - Type: `UseLayersType`
 - Default: `false`
-- Description: Enables CSS cascade layers support for better style isolation.
+- Description: Wraps the generated CSS in cascade layers for better style
+  isolation.
 
 #### `extractCSS`
 
 - Type: `boolean`
 - Default: `true`
-- Description: Controls whether CSS should be extracted into a separate file.
+- Description: Controls whether the generated CSS is extracted into a separate
+  file.
 
 #### `pageExtensions`
 
@@ -209,7 +203,7 @@ build({
 - Optional
 - Description: Transforms the extracted StyleX CSS before it is emitted or
   injected. Matches the `@stylexswc/webpack-plugin` API. Use it to run the
-  generated CSS through PostCSS, LightningCSS, a minifier, or any custom
+  generated CSS through PostCSS, Lightning CSS, a minifier, or any custom
   post-processing step.
 
 ```ts
@@ -219,7 +213,7 @@ type CSSTransformer = (
 ) => string | Buffer | Promise<string | Buffer>;
 ```
 
-```typescript
+```ts
 import postcss from 'postcss';
 import autoprefixer from 'autoprefixer';
 
@@ -230,45 +224,46 @@ StylexRsPlugin({
     });
     return result.css;
   },
-})
+});
 ```
 
-The `filePath` argument identifies the CSS destination and is
-bundler-specific:
+The `filePath` argument identifies the CSS destination and is bundler-specific:
 
 - webpack/rspack/rollup injection: the output asset name (e.g. `app.css`)
 - esbuild disk writes: the absolute path of the written file
 - Vite placeholder replacement: the id of the CSS module being loaded
 - generated assets: the configured `fileName`, with `[hash]` left unresolved
-  (the hash is computed from the transformed CSS, so it cannot be known
-  earlier)
+  (the hash is computed from the transformed CSS, so it cannot be known earlier)
 - `undefined` when no destination is known
 
 > [!NOTE]
-> `Buffer` results are decoded as UTF-8. Results are memoized per `filePath`
-> while the input CSS is unchanged, so the callback must be a pure function of
-> its arguments — the same input may be served from cache instead of invoking
-> the callback again.
+> `Buffer` results are decoded as UTF-8. Results are memoized per
+> `filePath` while the input CSS is unchanged, so the callback must be a pure
+> function of its arguments — the same input may be served from cache instead of
+> invoking the callback again.
 
 #### `useCssPlaceholder`
 
 - Type: `boolean | string`
 - Default: `false`
-- Description: Enable CSS injection into CSS files via placeholder marker.
-  - When set to `true`, the plugin will look for the default `@stylex;` marker
-  - When set to a string, the plugin will use that string as the custom marker
+- Description: Injects the generated CSS into an existing CSS file via a
+  placeholder marker.
+  - When set to `true`, the plugin looks for the default `@stylex;` marker
+  - When set to a string, the plugin uses that string as the custom marker
 
-##### Benefits
+Routing the StyleX output through a real CSS file has practical benefits:
 
-- **CSS Processing**: Generated StyleX CSS goes through the bundler's CSS pipeline (PostCSS, LightningCSS, css-loader, etc.)
-- **Deterministic Builds**: No race conditions or hash instability from virtual modules
-- **Consistent Output**: All CSS follows the same processing rules and bundling strategy
-- **Build Optimization**: CSS can be code-split and optimized alongside other stylesheets
-- **Works Everywhere**: Same approach works for Vite, Webpack, Rspack, esbuild, Rollup, and Farm
+- The generated CSS goes through the bundler's CSS pipeline (PostCSS, Lightning
+  CSS, css-loader, and so on)
+- Deterministic builds — no race conditions or hash instability from virtual
+  modules
+- All CSS follows the same processing rules and bundling strategy
+- CSS can be code-split and optimized alongside other stylesheets
+- The same approach works for Vite, webpack, Rspack, esbuild, Rollup, and Farm
 
-##### How to Use
+How to use it:
 
-1. Create a CSS file with a marker (e.g., `global.css`):
+1. Create a CSS file with a marker (e.g. `global.css`):
 
 ```css
 /* global.css */
@@ -286,7 +281,7 @@ body {
 
 2. Import the CSS file in your entry point:
 
-```typescript
+```ts
 // src/main.ts
 import './global.css';
 import { App } from './App';
@@ -294,7 +289,7 @@ import { App } from './App';
 
 3. Configure the plugin with `useCssPlaceholder`:
 
-```typescript
+```ts
 // vite.config.ts (or webpack.config.js, rspack.config.js, etc.)
 import StylexRsPlugin from '@stylexswc/unplugin/vite';
 import { defineConfig } from 'vite';
@@ -309,9 +304,7 @@ export default defineConfig({
 });
 ```
 
-##### Using a Custom Marker
-
-You can specify a custom marker string:
+Or with a custom marker string:
 
 ```css
 /* global.css */
@@ -322,33 +315,33 @@ You can specify a custom marker string:
 /* INJECT_STYLEX_HERE */
 ```
 
-```typescript
+```ts
 StylexRsPlugin({
   useCssPlaceholder: '/* INJECT_STYLEX_HERE */',
   useCSSLayers: true,
-})
+});
 ```
 
-The plugin will replace the marker with the generated StyleX CSS during the build process.
+The plugin replaces the marker with the generated StyleX CSS during the build.
 
 > [!NOTE]
-> When `useCssPlaceholder` is enabled, the plugin will no longer inject CSS automatically into HTML or emit a separate `stylex.css` file. The CSS is injected into your specified CSS file.
+> When `useCssPlaceholder` is enabled, the plugin no longer injects CSS
+> automatically into HTML or emits a separate `stylex.css` file. The CSS goes
+> into your specified CSS file instead.
 
 > [!IMPORTANT]
 > **Migration from `useViteCssPipeline`**
 >
-> The `useViteCssPipeline` option (which used virtual CSS modules) has been replaced with the `useCssPlaceholder` approach.
-> The new approach uses real CSS files instead of virtual modules, which provides:
->
-> - Better compatibility across all bundlers
-> - No race conditions or timing issues
-> - Deterministic builds with stable hashes
->
-> To migrate, simply create a CSS file with a marker and set `useCssPlaceholder: true` (or use a custom marker string).
+> The `useViteCssPipeline` option (which used virtual CSS modules) has been
+> replaced by `useCssPlaceholder`. The new approach uses real CSS files instead
+> of virtual modules, which provides better compatibility across all bundlers,
+> no race conditions or timing issues, and deterministic builds with stable
+> hashes. To migrate, create a CSS file with a marker and set
+> `useCssPlaceholder: true` (or use a custom marker string).
 
 ### Example Configuration
 
-```typescript
+```ts
 // vite.config.ts
 import StylexRsPlugin from '@stylexswc/unplugin/vite';
 import { defineConfig } from 'vite';
@@ -358,9 +351,7 @@ export default defineConfig({
     StylexRsPlugin({
       rsOptions: {
         dev: process.env.NODE_ENV !== 'production',
-        // Include only specific directories
         include: ['src/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
-        // Exclude test files and stories
         exclude: ['**/*.test.*', '**/*.stories.*', '**/__tests__/**'],
       },
       useCSSLayers: true,
@@ -372,40 +363,39 @@ export default defineConfig({
 
 ### Path Filtering Examples
 
-**Include only specific directories:**
+Include only specific directories:
 
-```typescript
+```ts
 StylexRsPlugin({
   rsOptions: {
     include: ['src/**/*.tsx', 'app/**/*.tsx'],
   },
-})
+});
 ```
 
-**Exclude test and build files:**
+Exclude test and build files:
 
-```typescript
+```ts
 StylexRsPlugin({
   rsOptions: {
-    exclude: ['**/*.test.*', '**/*.spec.*', '**/dist/**', '**/node_modules/**'],
+    exclude: ['**/*.test.*', '**/*.spec.*', '**/dist/**'],
   },
-})
+});
 ```
 
-**Using RegExp with lookahead/lookbehind - exclude node_modules except specific packages:**
+Exclude `node_modules` except specific packages (negative lookahead):
 
-```typescript
+```ts
 StylexRsPlugin({
   rsOptions: {
-    // Exclude all node_modules except @stylexjs packages
     exclude: [/node_modules(?!\/@stylexjs)/],
   },
-})
+});
 ```
 
-**Transform only specific packages from node_modules:**
+Transform only specific packages from `node_modules`:
 
-```typescript
+```ts
 StylexRsPlugin({
   rsOptions: {
     include: [
@@ -415,31 +405,59 @@ StylexRsPlugin({
     ],
     exclude: ['**/*.test.*'],
   },
-})
+});
 ```
 
-**Using regular expressions:**
+Combined include and exclude (exclude takes precedence):
 
-```typescript
-StylexRsPlugin({
-  rsOptions: {
-    include: [/src\/.*\.tsx$/],
-    exclude: [/\.test\./, /\.stories\./],
-  },
-})
-```
-
-**Combined include and exclude (exclude takes precedence):**
-
-```typescript
+```ts
 StylexRsPlugin({
   rsOptions: {
     include: ['src/**/*.{ts,tsx}'],
     exclude: ['**/__tests__/**', '**/__mocks__/**'],
   },
-})
+});
 ```
+
+## FAQ
+
+### Should I use this package or the bundler-specific plugin?
+
+If you are on Vite, esbuild, Farm, Rsbuild, Nuxt, or Astro, this is the package
+to use. For webpack and Rspack, the dedicated `@stylexswc/webpack-plugin` and
+`@stylexswc/rspack-plugin` packages offer a few deeper integrations (loader
+ordering, cache groups); this plugin covers the common cases with one consistent
+API. For Next.js, use `@stylexswc/nextjs-plugin`.
+
+### Do I still need `@stylexjs/babel-plugin`?
+
+No. This plugin replaces the Babel plugin in your build. You only keep
+`@stylexjs/stylex` as your app's runtime dependency, and your `stylex.create` /
+`stylex.props` code does not change.
+
+### How do I run the generated CSS through PostCSS or Tailwind pipelines?
+
+Either pass a `transformCss` function, or enable `useCssPlaceholder` so the
+generated CSS lands in a real CSS file and flows through your bundler's normal
+CSS pipeline.
+
+### Does hot module replacement work?
+
+Yes. The plugin participates in each bundler's standard transform pipeline, so
+style changes update through the dev server like any other module.
+
+### Is this an official StyleX package?
+
+No. It is a community-maintained alternative to the official tooling and is not
+affiliated with or supported by Meta.
+
+## Documentation
+
+- [StyleX documentation](https://stylexjs.com)
+- [unplugin documentation](https://unplugin.unjs.io/)
+- [`@stylexswc/rs-compiler` compiler options](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
 
 ## License
 
-MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
+MIT — see
+[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

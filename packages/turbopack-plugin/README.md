@@ -1,37 +1,50 @@
-# Turbopack loader with NAPI-RS StyleX compiler integration
+# @stylexswc/turbopack-plugin
 
-> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+> StyleX loader for Next.js Turbopack, powered by a Rust compiler (NAPI-RS +
+> SWC). Part of the
+> [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
+> workspace.
 
-`Turbopack loader` for an unofficial
-[`napi-rs`](https://github.com/dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
-compiler that includes the StyleX SWC code transformation under the hood.
+This loader compiles [StyleX](https://stylexjs.com) code in Turbopack builds
+with
+[`@stylexswc/rs-compiler`](https://www.npmjs.com/package/@stylexswc/rs-compiler),
+a Rust implementation of the StyleX transform, instead of the official Babel
+plugin. Your StyleX code stays exactly the same — only the build step changes,
+with per-file transforms 2x to 5x faster than Babel
+([performance](https://github.com/Dwlad90/stylex-swc-plugin#performance)).
+
+This is a community project and is not affiliated with Meta. It tracks the
+official StyleX releases
+<!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->
+and requires Node.js 20 or newer. Most Next.js projects should reach for
+[`@stylexswc/nextjs-plugin`](https://www.npmjs.com/package/@stylexswc/nextjs-plugin),
+whose `/turbopack` export configures this loader for you.
 
 ## Installation
-
-To install the package, run the following command:
 
 ```bash
 npm install --save-dev @stylexswc/turbopack-plugin
 ```
 
-Please install `@stylexswc/rs-compiler` if you haven't done so already:
+The Rust compiler (`@stylexswc/rs-compiler`) is installed automatically as a
+dependency. Your application still needs the StyleX runtime:
 
 ```bash
-npm install --save-dev @stylexswc/rs-compiler
+npm install @stylexjs/stylex
 ```
 
 ## Usage
 
 > [!IMPORTANT]
-> **Turbopack Limitation**: Turbopack does not support webpack
-> plugins
-> ([see Next.js docs](https://nextjs.org/docs/app/api-reference/turbopack#webpack-plugins)).
-> This loader only compiles StyleX code but **does not extract CSS**.
+> Turbopack does not support webpack plugins
+> ([see Next.js docs](https://nextjs.org/docs/app/api-reference/turbopack#webpack-plugins)),
+> so this loader only compiles StyleX code — it does not extract CSS.
 >
-> For CSS extraction, you must use the
-> [`@stylexswc/postcss-plugin`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/postcss-plugin#readme) in your `postcss.config.js`:
+> For CSS extraction, configure
+> [`@stylexswc/postcss-plugin`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/postcss-plugin#readme)
+> in your `postcss.config.js`:
 >
-> ```javascript
+> ```js
 > // postcss.config.js
 > module.exports = {
 >   plugins: {
@@ -83,22 +96,20 @@ export default nextConfig;
 
 - Type: `Partial<StyleXOptions>`
 - Optional
-- Description: StyleX compiler options that will be passed to the NAPI-RS
-  compiler. For standard StyleX options, see the
+- Description: StyleX compiler options passed to `@stylexswc/rs-compiler`. For
+  the standard options, see the
   [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
 > [!NOTE]
-> **New Features:** The `include` and `exclude` options are exclusive to
-> this NAPI-RS compiler implementation and are not available in the official
-> StyleX Babel plugin.
+> The `include` and `exclude` options are exclusive to the Rust compiler
+> and are not available in the official StyleX Babel plugin.
 
 ##### `rsOptions.include`
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular
-  expressions to include specific files for StyleX transformation. When
-  specified, only files matching at least one of these patterns will be
+- Description: Glob patterns or regular expressions selecting the files to
+  transform. When specified, only files matching at least one pattern are
   transformed. Patterns are matched against paths relative to the current
   working directory.
 
@@ -106,24 +117,24 @@ export default nextConfig;
 
 - Type: `(string | RegExp)[]`
 - Optional
-- Description: **RS-compiler Only** An array of glob patterns or regular
-  expressions to exclude specific files from StyleX transformation. Files
-  matching any of these patterns will not be transformed, even if they match an
-  `include` pattern. Patterns are matched against paths relative to the current
-  working directory.
+- Description: Glob patterns or regular expressions excluding files from the
+  transform. A file matching any exclude pattern is skipped even if it matches
+  an `include` pattern. Patterns are matched against paths relative to the
+  current working directory.
 
 #### `stylexImports`
 
 - Type: `Array<string | { as: string, from: string }>`
 - Default: `['stylex', '@stylexjs/stylex']`
-- Description: Specifies where StyleX will be imported from. Supports both
-  string paths and import aliases.
+- Description: Specifies where StyleX is imported from. Supports both string
+  paths and import aliases.
 
 #### `useCSSLayers`
 
 - Type: `UseLayersType`
 - Default: `false`
-- Description: Enables CSS cascade layers support for better style isolation.
+- Description: Wraps the generated CSS in cascade layers for better style
+  isolation.
 
 #### `nextjsMode`
 
@@ -137,7 +148,9 @@ export default nextConfig;
 - Type: `boolean`
 - Optional
 - Default: `true`
-- Description: Controls whether CSS should be extracted into a separate file
+- Description: Controls whether CSS should be extracted into a separate file.
+  Under Turbopack the loader cannot extract CSS itself (see the note above), so
+  extraction is handled by the PostCSS plugin.
 
 ### Advanced Options
 
@@ -146,12 +159,12 @@ export default nextConfig;
 - Type:
   `(css: string, filePath: string | undefined) => string | Buffer | Promise<string | Buffer>`
 - Optional
-- Description: Custom CSS transformation function. Since the loader injects CSS
-  after all loaders, use this to apply PostCSS or other CSS transformations.
+- Description: Custom CSS post-processing hook, applied when the loader emits
+  CSS. Use it to run PostCSS or other CSS transformations.
 
 ### Example Configuration
 
-```typescript
+```ts
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
@@ -163,9 +176,7 @@ const nextConfig: NextConfig = {
           options: {
             rsOptions: {
               dev: process.env.NODE_ENV !== 'production',
-              // Include only specific directories
               include: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
-              // Exclude test files and stories
               exclude: ['**/*.test.*', '**/*.stories.*', '**/__tests__/**'],
             },
             stylexImports: ['@stylexjs/stylex'],
@@ -179,114 +190,68 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 ```
 
-#### Path Filtering Examples
+### Path Filtering Examples
 
-**Include only specific directories:**
+Include only specific directories:
 
-```typescript
-import type { NextConfig } from 'next';
-
-const nextConfig: NextConfig = {
-  experimental: {
-    turbo: {
-      rules: {
-        '*.tsx': {
-          loaders: ['@stylexswc/turbopack-plugin/loader'],
-          options: {
-            rsOptions: {
-              include: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
-            },
-          },
-        },
-      },
-    },
+```ts
+options: {
+  rsOptions: {
+    include: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
   },
-};
-
-export default nextConfig;
+},
 ```
 
-**Exclude test and build files:**
+Exclude test and build files:
 
-```typescript
-import type { NextConfig } from 'next';
-
-const nextConfig: NextConfig = {
-  experimental: {
-    turbo: {
-      rules: {
-        '*.tsx': {
-          loaders: ['@stylexswc/turbopack-plugin/loader'],
-          options: {
-            rsOptions: {
-              exclude: ['**/*.test.*', '**/*.spec.*', '**/dist/**'],
-            },
-          },
-        },
-      },
-    },
+```ts
+options: {
+  rsOptions: {
+    exclude: ['**/*.test.*', '**/*.spec.*', '**/dist/**'],
   },
-};
-
-export default nextConfig;
+},
 ```
 
-**Using regular expressions:**
+Using regular expressions (exclude always takes precedence over include):
 
-```typescript
-import type { NextConfig } from 'next';
-
-const nextConfig: NextConfig = {
-  experimental: {
-    turbo: {
-      rules: {
-        '*.tsx': {
-          loaders: ['@stylexswc/turbopack-plugin/loader'],
-          options: {
-            rsOptions: {
-              include: [/app\/.*\.tsx$/, /components\/.*\.tsx$/],
-              exclude: [/\.test\./, /\.stories\./],
-            },
-          },
-        },
-      },
-    },
+```ts
+options: {
+  rsOptions: {
+    include: [/app\/.*\.tsx$/, /components\/.*\.tsx$/],
+    exclude: [/\.test\./, /\.stories\./],
   },
-};
-
-export default nextConfig;
+},
 ```
 
-**Combined include and exclude (exclude takes precedence):**
+## FAQ
 
-```typescript
-import type { NextConfig } from 'next';
+### Why are my styles missing in the browser?
 
-const nextConfig: NextConfig = {
-  experimental: {
-    turbo: {
-      rules: {
-        '*.tsx': {
-          loaders: ['@stylexswc/turbopack-plugin/loader'],
-          options: {
-            rsOptions: {
-              include: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}'],
-              exclude: ['**/__tests__/**', '**/__mocks__/**'],
-            },
-          },
-        },
-      },
-    },
-  },
-};
+The loader compiles StyleX code but cannot extract CSS under Turbopack. Make
+sure `@stylexswc/postcss-plugin` is configured in `postcss.config.js` and that
+your app imports a CSS file containing the `@stylex;` directive.
 
-export default nextConfig;
-```
+### Should I use this package directly or `@stylexswc/nextjs-plugin`?
+
+Prefer `@stylexswc/nextjs-plugin` — its `/turbopack` export sets up this loader
+and keeps one config surface across Webpack, Rspack, and Turbopack. Use this
+package directly only if you need raw control over Turbopack rules.
+
+### Do I still need `@stylexjs/babel-plugin`?
+
+No. The loader replaces the Babel plugin in your build. You only keep
+`@stylexjs/stylex` as your app's runtime dependency, and your `stylex.create` /
+`stylex.props` code does not change.
+
+### Is this an official StyleX package?
+
+No. It is a community-maintained alternative to the official tooling and is not
+affiliated with or supported by Meta.
 
 ## Documentation
 
-- [StyleX Documentation](https://stylexjs.com)
-- [NAPI-RS compiler for StyleX](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
+- [StyleX documentation](https://stylexjs.com)
+- [`@stylexswc/rs-compiler` compiler options](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-rs-compiler)
 
 ## Acknowledgments
 
@@ -295,4 +260,5 @@ This loader was inspired by
 
 ## License
 
-MIT — see [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
+MIT — see
+[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

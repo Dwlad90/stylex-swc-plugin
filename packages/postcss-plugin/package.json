@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/postcss-plugin",
-  "description": "StyleX PostCSS plugin with NAPI-RS compiler",
+  "description": "PostCSS plugin that collects and extracts StyleX styles using a Rust NAPI-RS/SWC compiler. Ideal for Turbopack and custom CSS pipelines.",
   "version": "0.17.0",
   "private": false,
   "license": "MIT",
@@ -50,12 +50,24 @@
     "jest-chain-transform": "^0.0.8",
     "ts-jest": "^29.4.9"
   },
+  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
+  "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/postcss-plugin#readme",
   "keywords": [
+    "atomic-css",
+    "css-extraction",
+    "css-in-js",
+    "napi-rs",
     "postcss",
     "postcss-plugin",
+    "rust",
     "stylex",
-    "swc"
+    "swc",
+    "turbopack"
   ],
   "main": "dist/index.js",
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dwlad90/stylex-swc-plugin.git",
+    "directory": "packages/postcss-plugin"
+  }
 }

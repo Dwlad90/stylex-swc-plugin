@@ -57,6 +57,55 @@ fn write_multibyte_fixture(name: &str) -> PathBuf {
   path
 }
 
+fn write_fixture(name: &str, source: &str) -> PathBuf {
+  let id = TEST_FILE_COUNTER.fetch_add(1, Ordering::Relaxed);
+  let dir = std::env::temp_dir().join(format!(
+    "stylex_code_frame_error_tests_{}_{}",
+    std::process::id(),
+    id
+  ));
+
+  if let Err(error) = fs::create_dir_all(&dir) {
+    panic!("failed to create temp fixture directory: {error}");
+  }
+
+  let path = dir.join(name);
+
+  if let Err(error) = fs::write(&path, source) {
+    panic!("failed to write temp fixture: {error}");
+  }
+
+  path
+}
+
+fn compiled_create_call() -> CallExpr {
+  let compiled_arg = create_object_expression(vec![
+    create_nested_object_prop(
+      "root",
+      vec![create_key_value_prop("color", create_string_expr("red"))],
+    ),
+    create_nested_object_prop(
+      "other",
+      vec![create_key_value_prop("display", create_string_expr("flex"))],
+    ),
+  ]);
+
+  CallExpr {
+    span: DUMMY_SP,
+    ctxt: SyntaxContext::empty(),
+    callee: Callee::Expr(Box::new(Expr::Ident(Ident::new(
+      "create".into(),
+      DUMMY_SP,
+      SyntaxContext::empty(),
+    )))),
+    args: vec![ExprOrSpread {
+      spread: None,
+      expr: Box::new(compiled_arg),
+    }],
+    type_args: None,
+  }
+}
+
 fn state_for_fixture(path: &Path) -> StateManager {
   let mut state = StateManager::default();
   state.plugin_pass.filename = FileName::Real(path.to_path_buf());
@@ -165,9 +214,6 @@ fn print_module_ignores_foreign_spans_over_multibyte_sources() {
 /// resolve the real line number.
 #[test]
 fn key_lookup_finds_line_when_values_differ_from_source() {
-  let dir = std::env::temp_dir().join("stylex_code_frame_error_tests");
-  fs::create_dir_all(&dir).unwrap();
-
   let source = "\
 import fancyMacro from 'example-macro';
 
@@ -180,42 +226,17 @@ export const styles = create({
   },
 });
 ";
-  let path = dir.join("key_lookup.tsx");
-  fs::write(&path, source).unwrap();
-
+  let path = write_fixture("key_lookup.tsx", source);
   let mut state = state_for_fixture(&path);
+  let call_expr = compiled_create_call();
 
-  // The compiled call as this plugin sees it: macro calls already replaced
-  // with their literal results.
-  let compiled_arg = create_object_expression(vec![
-    create_nested_object_prop(
-      "root",
-      vec![create_key_value_prop("color", create_string_expr("red"))],
-    ),
-    create_nested_object_prop(
-      "other",
-      vec![create_key_value_prop("display", create_string_expr("flex"))],
-    ),
-  ]);
-
-  let call_expr = CallExpr {
-    span: DUMMY_SP,
-    ctxt: SyntaxContext::empty(),
-    callee: Callee::Expr(Box::new(Expr::Ident(Ident::new(
-      "create".into(),
-      DUMMY_SP,
-      SyntaxContext::empty(),
-    )))),
-    args: vec![ExprOrSpread {
-      spread: None,
-      expr: Box::new(compiled_arg),
-    }],
-    type_args: None,
-  };
-
-  let (code_frame, span) = GLOBALS.set(&Globals::default(), || {
-    get_key_span_from_source_code(&call_expr, "other", &mut state).unwrap()
+  let result = GLOBALS.set(&Globals::default(), || {
+    get_key_span_from_source_code(&call_expr, "other", &mut state)
   });
+  let (code_frame, span) = match result {
+    Ok(result) => result,
+    Err(error) => panic!("failed to get source span: {error}"),
+  };
 
   assert!(
     !span.is_dummy(),
@@ -225,6 +246,81 @@ export const styles = create({
     code_frame.get_span_line_number(span),
     7,
     "the span must point at the `other` key in the on-disk source"
+  );
+}
+
+#[test]
+fn key_lookup_ignores_unrelated_objects_with_matching_keys() {
+  let source = "\
+const unrelated = {
+  root: {},
+  other: {},
+};
+
+export const styles = create({
+  root: {
+    color: fancyMacro(2),
+  },
+  other: {
+    display: fancyMacro('flex'),
+  },
+});
+";
+  let path = write_fixture("key_lookup_ignores_unrelated.tsx", source);
+  let mut state = state_for_fixture(&path);
+  let call_expr = compiled_create_call();
+
+  let result = GLOBALS.set(&Globals::default(), || {
+    get_key_span_from_source_code(&call_expr, "other", &mut state)
+  });
+  let (code_frame, span) = match result {
+    Ok(result) => result,
+    Err(error) => panic!("failed to get source span: {error}"),
+  };
+
+  assert_eq!(
+    code_frame.get_span_line_number(span),
+    10,
+    "the span must point at the `other` key in the stylex create call"
+  );
+}
+
+#[test]
+fn key_lookup_returns_dummy_for_ambiguous_dummy_span_calls() {
+  let source = "\
+export const first = create({
+  root: {
+    color: fancyMacro(1),
+  },
+  other: {
+    display: fancyMacro('flex'),
+  },
+});
+
+export const second = create({
+  root: {
+    color: fancyMacro(2),
+  },
+  other: {
+    display: fancyMacro('block'),
+  },
+});
+";
+  let path = write_fixture("key_lookup_ambiguous_dummy_span.tsx", source);
+  let mut state = state_for_fixture(&path);
+  let call_expr = compiled_create_call();
+
+  let result = GLOBALS.set(&Globals::default(), || {
+    get_key_span_from_source_code(&call_expr, "other", &mut state)
+  });
+  let (_code_frame, span) = match result {
+    Ok(result) => result,
+    Err(error) => panic!("failed to get source span: {error}"),
+  };
+
+  assert!(
+    span.is_dummy(),
+    "ambiguous dummy-span calls must fall back to value-expression matching"
   );
 }
 

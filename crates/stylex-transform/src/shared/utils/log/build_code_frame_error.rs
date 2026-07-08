@@ -13,8 +13,9 @@ use stylex_macros::{panic_macros::__stylex_panic, stylex_error::StyleXError, sty
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
 use swc_config::is_module::IsModule;
 use swc_core::{
+  atoms::Atom,
   common::{
-    DUMMY_SP, EqIgnoreSpan, FileName, Mark, SourceMap, Span, Spanned, SyntaxContext,
+    BytePos, DUMMY_SP, EqIgnoreSpan, FileName, Mark, SourceMap, Span, Spanned, SyntaxContext,
     errors::{Handler, *},
     util::take::Take,
   },
@@ -217,7 +218,7 @@ fn get_span_from_source_code_impl(
 
   // Check cache first - avoid expensive AST operations if we've seen this before
   if let Some(cached_span) = state.cached_span(cache_key) {
-    let code_frame = load_code_frame_from_cache(&file_name)?;
+    let code_frame = load_code_frame_from_cache_for_state(&file_name, state)?;
     return Ok((code_frame, cached_span));
   }
 
@@ -268,7 +269,7 @@ pub(crate) fn get_key_span_from_source_code(
 ) -> Result<(CodeFrame, Span), Error> {
   // Same panic boundary as `get_span_from_source_code`: locating a span is
   // best-effort and must never abort the compilation.
-  std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+  catch_diagnostic_unwind(AssertUnwindSafe(|| {
     get_key_span_from_source_code_impl(call_expr, namespace_key, state)
   }))
   .unwrap_or_else(|_| {
@@ -284,11 +285,17 @@ fn get_key_span_from_source_code_impl(
   state: &mut StateManager,
 ) -> Result<(CodeFrame, Span), Error> {
   let sibling_keys = collect_object_arg_keys(call_expr);
-  let cache_key = compute_key_span_cache_key(namespace_key, &sibling_keys);
+  let namespace_value_keys = collect_namespace_value_keys(call_expr, namespace_key);
+  let cache_key = compute_key_span_cache_key(
+    call_expr,
+    namespace_key,
+    &sibling_keys,
+    &namespace_value_keys,
+  );
   let file_name = FileName::Custom(state.get_filename().to_owned());
 
   if let Some(cached_span) = state.cached_span(cache_key) {
-    let code_frame = load_code_frame_from_cache(&file_name)?;
+    let code_frame = load_code_frame_from_cache_for_state(&file_name, state)?;
     return Ok((code_frame, cached_span));
   }
 
@@ -306,11 +313,15 @@ fn get_key_span_from_source_code_impl(
   let mut finder = KeySpanFinder {
     namespace_key,
     sibling_keys: &sibling_keys,
+    namespace_value_keys: &namespace_value_keys,
+    target_lo: first_object_arg_span(call_expr)
+      .or_else(|| (!call_expr.span.is_dummy()).then_some(call_expr.span.lo)),
     best: None,
+    ambiguous_best: false,
   };
   program.visit_with(&mut finder);
 
-  let span = finder.best.map_or(DUMMY_SP, |(_, span)| span);
+  let span = finder.resolved_span();
 
   state.insert_cached_span(cache_key, span);
 
@@ -318,7 +329,7 @@ fn get_key_span_from_source_code_impl(
 }
 
 /// Collects the literal property keys of a call's first object argument.
-fn collect_object_arg_keys(call_expr: &CallExpr) -> FxHashSet<String> {
+fn collect_object_arg_keys(call_expr: &CallExpr) -> FxHashSet<Atom> {
   let mut keys = FxHashSet::default();
 
   if let Some(arg) = call_expr.args.first()
@@ -329,7 +340,7 @@ fn collect_object_arg_keys(call_expr: &CallExpr) -> FxHashSet<String> {
         && let Prop::KeyValue(key_value) = prop.as_ref()
         && let Some(name) = namespace_name_from_prop_key(&key_value.key)
       {
-        keys.insert(name.to_string());
+        keys.insert(name);
       }
     }
   }
@@ -337,31 +348,118 @@ fn collect_object_arg_keys(call_expr: &CallExpr) -> FxHashSet<String> {
   keys
 }
 
-fn compute_key_span_cache_key(namespace_key: &str, sibling_keys: &FxHashSet<String>) -> u64 {
+fn first_object_arg_span(call_expr: &CallExpr) -> Option<BytePos> {
+  call_expr
+    .args
+    .first()
+    .and_then(|arg| match arg.expr.as_ref() {
+      Expr::Object(object) if !object.span.is_dummy() => Some(object.span.lo),
+      _ => None,
+    })
+}
+
+fn collect_namespace_value_keys(call_expr: &CallExpr, namespace_key: &str) -> FxHashSet<Atom> {
+  let mut keys = FxHashSet::default();
+
+  if let Some(arg) = call_expr.args.first()
+    && let Expr::Object(object) = arg.expr.as_ref()
+  {
+    for prop in &object.props {
+      if let PropOrSpread::Prop(prop) = prop
+        && let Prop::KeyValue(key_value) = prop.as_ref()
+        && namespace_name_from_prop_key(&key_value.key)
+          .is_some_and(|name| name.as_ref() == namespace_key)
+        && let Expr::Object(namespace_value) = key_value.value.as_ref()
+      {
+        keys.extend(collect_object_lit_keys(namespace_value));
+        break;
+      }
+    }
+  }
+
+  keys
+}
+
+fn collect_object_lit_keys(object: &ObjectLit) -> impl Iterator<Item = Atom> + '_ {
+  object.props.iter().filter_map(|prop| {
+    if let PropOrSpread::Prop(prop) = prop
+      && let Prop::KeyValue(key_value) = prop.as_ref()
+    {
+      namespace_name_from_prop_key(&key_value.key)
+    } else {
+      None
+    }
+  })
+}
+
+fn compute_key_span_cache_key(
+  call_expr: &CallExpr,
+  namespace_key: &str,
+  sibling_keys: &FxHashSet<Atom>,
+  namespace_value_keys: &FxHashSet<Atom>,
+) -> u64 {
   let mut hasher = DefaultHasher::new();
-  "stylex-key-span".hash(&mut hasher);
+  "stylex-key-span:v2".hash(&mut hasher);
+  call_expr.callee.hash(&mut hasher);
+  call_expr.span.lo.0.hash(&mut hasher);
+  call_expr.span.hi.0.hash(&mut hasher);
+  if let Some(arg) = call_expr.args.first()
+    && let Expr::Object(object) = arg.expr.as_ref()
+  {
+    object.span.lo.0.hash(&mut hasher);
+    object.span.hi.0.hash(&mut hasher);
+  }
   namespace_key.hash(&mut hasher);
 
-  let mut sorted_keys: Vec<&String> = sibling_keys.iter().collect();
+  let mut sorted_keys: Vec<&Atom> = sibling_keys.iter().collect();
   sorted_keys.sort();
   sorted_keys.hash(&mut hasher);
+
+  let mut sorted_value_keys: Vec<&Atom> = namespace_value_keys.iter().collect();
+  sorted_value_keys.sort();
+  sorted_value_keys.hash(&mut hasher);
 
   hasher.finish()
 }
 
-/// Visitor that finds the object property named `namespace_key`, preferring
-/// the object whose keys overlap the compiled call's argument keys the most.
+struct KeySpanCandidate {
+  namespace_value_overlap: usize,
+  overlap: usize,
+  distance_from_target: Option<u32>,
+  span: Span,
+}
+
+/// Visitor that finds call-expression object arguments and returns the property
+/// span for `namespace_key`. The sibling-key overlap is a tie-breaker for
+/// compiled calls with dummy spans.
 struct KeySpanFinder<'a> {
   namespace_key: &'a str,
-  sibling_keys: &'a FxHashSet<String>,
-  best: Option<(usize, Span)>,
+  sibling_keys: &'a FxHashSet<Atom>,
+  namespace_value_keys: &'a FxHashSet<Atom>,
+  target_lo: Option<BytePos>,
+  best: Option<KeySpanCandidate>,
+  ambiguous_best: bool,
 }
 
 impl Visit for KeySpanFinder<'_> {
   noop_visit_type!();
 
-  fn visit_object_lit(&mut self, object: &ObjectLit) {
+  fn visit_call_expr(&mut self, call: &CallExpr) {
+    if let Some(arg) = call.args.first()
+      && let Expr::Object(object) = arg.expr.as_ref()
+      && let Some(candidate) = self.candidate_from_object(call, object)
+    {
+      self.record_candidate(candidate);
+    }
+
+    call.visit_children_with(self);
+  }
+}
+
+impl KeySpanFinder<'_> {
+  fn candidate_from_object(&self, call: &CallExpr, object: &ObjectLit) -> Option<KeySpanCandidate> {
     let mut key_span = None;
+    let mut namespace_value_overlap = 0;
     let mut overlap = 0;
 
     for prop in &object.props {
@@ -369,38 +467,97 @@ impl Visit for KeySpanFinder<'_> {
         && let Prop::KeyValue(key_value) = prop.as_ref()
         && let Some(name) = namespace_name_from_prop_key(&key_value.key)
       {
-        let name = name.to_string();
-
         if self.sibling_keys.contains(&name) {
           overlap += 1;
         }
 
-        if name == self.namespace_key {
+        if name.as_ref() == self.namespace_key {
           key_span = Some(key_value.key.span());
+
+          if let Expr::Object(namespace_value) = key_value.value.as_ref() {
+            namespace_value_overlap = collect_object_lit_keys(namespace_value)
+              .filter(|name| self.namespace_value_keys.contains(name))
+              .count();
+          }
         }
       }
     }
 
-    if let Some(span) = key_span
-      && self
-        .best
-        .is_none_or(|(best_overlap, _)| overlap > best_overlap)
-    {
-      self.best = Some((overlap, span));
-    }
+    key_span.map(|span| KeySpanCandidate {
+      namespace_value_overlap,
+      overlap,
+      distance_from_target: self.target_lo.map(|target_lo| {
+        let candidate_lo = if !object.span.is_dummy() {
+          object.span.lo
+        } else {
+          call.span.lo
+        };
 
-    object.visit_children_with(self);
+        candidate_lo.0.abs_diff(target_lo.0)
+      }),
+      span,
+    })
+  }
+
+  fn record_candidate(&mut self, candidate: KeySpanCandidate) {
+    match self.best.as_ref() {
+      None => {
+        self.best = Some(candidate);
+        self.ambiguous_best = false;
+      },
+      Some(best) if is_better_key_span_candidate(&candidate, best) => {
+        self.best = Some(candidate);
+        self.ambiguous_best = false;
+      },
+      Some(best) if is_equal_key_span_candidate_rank(&candidate, best) => {
+        self.ambiguous_best = true;
+      },
+      Some(_) => {},
+    }
+  }
+
+  fn resolved_span(self) -> Span {
+    if self.ambiguous_best {
+      DUMMY_SP
+    } else {
+      self.best.map_or(DUMMY_SP, |candidate| candidate.span)
+    }
   }
 }
 
-/// Loads a CodeFrame with the source file for error display
-fn load_code_frame_from_cache(file_name: &FileName) -> Result<CodeFrame, Error> {
+fn is_better_key_span_candidate(candidate: &KeySpanCandidate, best: &KeySpanCandidate) -> bool {
+  candidate.namespace_value_overlap > best.namespace_value_overlap
+    || candidate.namespace_value_overlap == best.namespace_value_overlap
+      && (candidate.overlap > best.overlap
+        || candidate.overlap == best.overlap
+          && candidate.distance_from_target < best.distance_from_target)
+}
+
+fn is_equal_key_span_candidate_rank(candidate: &KeySpanCandidate, best: &KeySpanCandidate) -> bool {
+  candidate.namespace_value_overlap == best.namespace_value_overlap
+    && candidate.overlap == best.overlap
+    && candidate.distance_from_target == best.distance_from_target
+}
+
+/// Loads a CodeFrame with the source file for error display.
+fn load_code_frame_from_cache_for_state(
+  file_name: &FileName,
+  state: &StateManager,
+) -> Result<CodeFrame, Error> {
   let code_frame = CodeFrame::new();
-  let source = read_source_file(file_name)
-    .map_err(|e| anyhow::anyhow!("Failed to read source file: {}", e))?;
+  let source = state
+    .get_seen_module_source_code()
+    .and_then(|(_, source_code)| source_code.as_ref().cloned())
+    .map(Ok)
+    .unwrap_or_else(|| {
+      read_source_file(file_name)
+        .map_err(|error| anyhow::anyhow!("Failed to read source file: {}", error))
+    })?;
+
   code_frame
     .source_map
     .new_source_file(file_name.clone().into(), source);
+
   Ok(code_frame)
 }
 

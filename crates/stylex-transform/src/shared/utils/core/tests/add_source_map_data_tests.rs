@@ -159,3 +159,107 @@ fn returns_none_for_spans_outside_the_input_file() {
     "foreign spans must not resolve through the input file"
   );
 }
+
+#[test]
+fn returns_none_for_dummy_key_spans() {
+  let key = "other";
+  let style_node_path = KeyValueProp {
+    key: PropName::Ident(IdentName::new(key.into(), swc_core::common::DUMMY_SP)),
+    value: Box::new(Expr::Lit(Lit::Str(Str {
+      span: swc_core::common::DUMMY_SP,
+      value: "unused".into(),
+      raw: None,
+    }))),
+  };
+
+  let mut state = state_with_input(INPUT_CODE);
+
+  let mut builder = SourceMapBuilder::new(None);
+  builder.add(2, 0, 41, 0, Some("Original.tsx".into()), None, false);
+  state.set_input_source_map(Arc::new(builder.into_sourcemap()));
+
+  assert_eq!(
+    original_position_from_input_source_map(&style_node_path, &state)
+      .map(|position| (position.filename, position.line_number)),
+    None,
+    "dummy spans carry no position and must not resolve"
+  );
+}
+
+#[test]
+fn returns_none_for_sparse_maps_whose_nearest_token_is_on_an_earlier_line() {
+  // `other` sits on line index 2, but the map only knows about line 0:
+  // `lookup_token`'s greatest-lower-bound search would hand that earlier
+  // token back, which must not be committed as this key's position.
+  let key_offset = match INPUT_CODE.find("other") {
+    Some(offset) => offset,
+    None => panic!("fixture must contain the key"),
+  };
+  let (style_node_path, _) = key_value_prop_at(key_offset, "other");
+
+  let mut state = state_with_input(INPUT_CODE);
+
+  let mut builder = SourceMapBuilder::new(None);
+  builder.add(0, 0, 7, 0, Some("Original.tsx".into()), None, false);
+  state.set_input_source_map(Arc::new(builder.into_sourcemap()));
+
+  assert_eq!(
+    original_position_from_input_source_map(&style_node_path, &state)
+      .map(|position| (position.filename, position.line_number)),
+    None,
+    "a token from an earlier line must fall back to source-text lookups"
+  );
+}
+
+#[test]
+fn returns_none_for_scheme_qualified_source_names() {
+  let key_offset = match INPUT_CODE.find("other") {
+    Some(offset) => offset,
+    None => panic!("fixture must contain the key"),
+  };
+  let (style_node_path, _) = key_value_prop_at(key_offset, "other");
+
+  let mut state = state_with_input(INPUT_CODE);
+
+  let mut builder = SourceMapBuilder::new(None);
+  builder.add(
+    2,
+    0,
+    41,
+    0,
+    Some("webpack://app/src/Original.tsx".into()),
+    None,
+    false,
+  );
+  state.set_input_source_map(Arc::new(builder.into_sourcemap()));
+
+  assert_eq!(
+    original_position_from_input_source_map(&style_node_path, &state)
+      .map(|position| (position.filename, position.line_number)),
+    None,
+    "scheme-qualified sources are not filesystem paths and must fall back"
+  );
+}
+
+#[test]
+fn falls_back_to_the_state_filename_when_the_token_has_no_source() {
+  let key_offset = match INPUT_CODE.find("other") {
+    Some(offset) => offset,
+    None => panic!("fixture must contain the key"),
+  };
+  let (style_node_path, _) = key_value_prop_at(key_offset, "other");
+
+  let mut state = state_with_input(INPUT_CODE);
+
+  let mut builder = SourceMapBuilder::new(None);
+  builder.add(2, 0, 41, 0, None, None, false);
+  state.set_input_source_map(Arc::new(builder.into_sourcemap()));
+
+  let position = match original_position_from_input_source_map(&style_node_path, &state) {
+    Some(position) => position,
+    None => panic!("a same-line token without a source must still resolve"),
+  };
+
+  assert_eq!(position.filename, state.get_filename().to_string());
+  assert_eq!(position.line_number, 42);
+}

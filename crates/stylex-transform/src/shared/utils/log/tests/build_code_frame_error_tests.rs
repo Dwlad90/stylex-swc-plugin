@@ -360,3 +360,37 @@ fn panic_reports_real_message_for_multibyte_source() {
     message
   );
 }
+
+fn key_span_candidate(
+  namespace_value_overlap: usize,
+  overlap: usize,
+  distance_from_target: Option<u32>,
+) -> super::KeySpanCandidate {
+  super::KeySpanCandidate {
+    namespace_value_overlap,
+    overlap,
+    distance_from_target,
+    span: DUMMY_SP,
+  }
+}
+
+#[test]
+fn candidate_rank_prefers_value_overlap_then_sibling_overlap_then_proximity() {
+  // Namespace-value overlap dominates every other signal.
+  assert!(key_span_candidate(2, 0, Some(100)).rank() > key_span_candidate(1, 9, Some(0)).rank());
+
+  // Sibling-key overlap breaks value-overlap ties.
+  assert!(key_span_candidate(1, 3, Some(100)).rank() > key_span_candidate(1, 2, Some(0)).rank());
+
+  // Smaller distance to the target wins a full overlap tie.
+  assert!(key_span_candidate(1, 3, Some(5)).rank() > key_span_candidate(1, 3, Some(6)).rank());
+
+  // No target position outranks any measured distance (Option: None < Some).
+  assert!(key_span_candidate(1, 3, None).rank() > key_span_candidate(1, 3, Some(0)).rank());
+
+  // Identical signals rank equal, which the finder reports as ambiguous.
+  assert_eq!(
+    key_span_candidate(1, 3, Some(5)).rank(),
+    key_span_candidate(1, 3, Some(5)).rank()
+  );
+}

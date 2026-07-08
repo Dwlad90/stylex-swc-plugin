@@ -68,6 +68,10 @@ pub(crate) fn add_source_map_data(
     },
   };
 
+  // The value-matching fallback wraps the same call for every namespace key,
+  // so build it once instead of deep-cloning the call per key.
+  let wrapped_call_expr = Expr::Call(call_expr.clone());
+
   for (key, value) in obj {
     let mut inner_map = IndexMap::new();
 
@@ -103,11 +107,7 @@ pub(crate) fn add_source_map_data(
         let source_code_frame_and_span = match get_key_span_from_source_code(call_expr, key, state)
         {
           Ok((code_frame, span)) if !span.eq(&DUMMY_SP) => Ok((code_frame, span)),
-          _ => get_span_from_source_code(
-            &Expr::Call(call_expr.clone()),
-            &style_node_path.value,
-            state,
-          ),
+          _ => get_span_from_source_code(&wrapped_call_expr, &style_node_path.value, state),
         };
 
         match source_code_frame_and_span {
@@ -259,10 +259,25 @@ fn original_position_from_input_source_map(
 
   let token = input_map.lookup_token(line as u32, col as u32)?;
 
+  // `lookup_token` returns the nearest preceding token, which a sparse map
+  // (e.g. statement-level mappings only) can place on an earlier line. Only a
+  // same-line token is trustworthy for a `file:line` annotation; otherwise
+  // fall back to locating the key in the source text.
+  if token.get_dst_line() != line as u32 {
+    return None;
+  }
+
+  let filename = match token.get_source() {
+    // Scheme-qualified sources (e.g. `webpack://app/src/x.ts`) are not
+    // filesystem paths; `create_short_filename` would garble them — fall
+    // back to locating the key in the source text instead.
+    Some(source) if source.contains("://") => return None,
+    Some(source) => source.to_string(),
+    None => state.get_filename().to_string(),
+  };
+
   Some(OriginalSourcePosition {
-    filename: token
-      .get_source()
-      .map_or_else(|| state.get_filename().to_string(), ToString::to_string),
+    filename,
     line_number: token.get_src_line() as usize + 1,
   })
 }

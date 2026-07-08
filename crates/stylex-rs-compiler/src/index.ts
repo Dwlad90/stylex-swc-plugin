@@ -179,19 +179,20 @@ export function transform(
   }
 
   let transformedCode = code;
+  let inputSourceMap = options.inputSourceMap;
 
   if (options.swcPlugins?.length) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const swc = require('@swc/core');
 
+    // Always request an external map: it chains `inputSourceMap` and the
+    // plugins' own edits, so the positions handed to the native transform
+    // keep describing the code it actually receives. The native transform
+    // owns emission of the final map per `options.sourceMap` (incl. inline).
     const result = swc.transformSync(transformedCode, {
       filename,
-      sourceMaps:
-        options.sourceMap === 'Inline'
-          ? 'inline'
-          : options.sourceMap === 'False'
-            ? false
-            : options.sourceMap !== undefined,
+      sourceMaps: true,
+      inputSourceMap,
       jsc: {
         parser: { syntax: 'typescript', tsx: true },
         target: 'es2022',
@@ -199,6 +200,9 @@ export function transform(
       },
     });
     transformedCode = result.code;
+    if (result.map) {
+      inputSourceMap = result.map;
+    }
   }
 
   // Strip TS-only fields before passing to native transform
@@ -209,5 +213,8 @@ export function transform(
     ...nativeOptions
   } = options;
 
-  return nativeBinding.transform(filename, transformedCode, nativeOptions);
+  return nativeBinding.transform(filename, transformedCode, {
+    ...nativeOptions,
+    inputSourceMap,
+  });
 }

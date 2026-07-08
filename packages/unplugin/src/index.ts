@@ -243,13 +243,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         // source map of previous plugins; other bundlers fall back to
         // locating positions in the source text.
         let inputSourceMap: string | undefined;
-        const { getCombinedSourcemap } = this as {
-          getCombinedSourcemap?: () => { mappings?: string };
-        };
 
-        if (typeof getCombinedSourcemap === 'function') {
+        if (hasCombinedSourcemap(this)) {
           try {
-            const combinedMap = getCombinedSourcemap.call(this);
+            const combinedMap = this.getCombinedSourcemap();
 
             if (combinedMap?.mappings) {
               inputSourceMap = JSON.stringify(combinedMap);
@@ -936,6 +933,19 @@ function hasStyleXCode(normalizedOptions: NormalizedOptions, inputCode: string) 
     typeof importName === 'string'
       ? inputCode.includes(importName)
       : inputCode.includes(importName.from)
+  );
+}
+
+/**
+ * Narrows a transform-hook context to Rollup-compatible hosts that expose
+ * the combined source map of previous plugins.
+ */
+function hasCombinedSourcemap(
+  context: object
+): context is { getCombinedSourcemap: () => { mappings?: string } } {
+  return (
+    'getCombinedSourcemap' in context &&
+    typeof (context as { getCombinedSourcemap?: unknown }).getCombinedSourcemap === 'function'
   );
 }
 

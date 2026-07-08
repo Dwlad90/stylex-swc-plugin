@@ -2,6 +2,7 @@ use anyhow::Error;
 use log::{debug, warn};
 use std::{
   cell::Cell,
+  cmp::Reverse,
   collections::hash_map::DefaultHasher,
   fs,
   hash::{Hash, Hasher},
@@ -198,10 +199,17 @@ pub(crate) fn get_span_from_source_code(
   // Panic boundary: locating a span re-reads, re-prints, and re-parses the
   // module purely to improve diagnostics; a panic anywhere in there must
   // degrade to "no code frame", never abort the compilation.
-  catch_diagnostic_unwind(AssertUnwindSafe(|| {
+  locate_span_with_panic_boundary(|| {
     get_span_from_source_code_impl(wrapped_expression, target_expression, state)
-  }))
-  .unwrap_or_else(|_| {
+  })
+}
+
+/// Runs a span-locating closure behind the diagnostic panic boundary,
+/// degrading a panic to a regular "no code frame" error.
+fn locate_span_with_panic_boundary(
+  locate: impl FnOnce() -> Result<(CodeFrame, Span), Error>,
+) -> Result<(CodeFrame, Span), Error> {
+  catch_diagnostic_unwind(AssertUnwindSafe(locate)).unwrap_or_else(|_| {
     Err(anyhow::anyhow!(
       "Panicked while locating the source span for a diagnostic"
     ))
@@ -269,13 +277,8 @@ pub(crate) fn get_key_span_from_source_code(
 ) -> Result<(CodeFrame, Span), Error> {
   // Same panic boundary as `get_span_from_source_code`: locating a span is
   // best-effort and must never abort the compilation.
-  catch_diagnostic_unwind(AssertUnwindSafe(|| {
+  locate_span_with_panic_boundary(|| {
     get_key_span_from_source_code_impl(call_expr, namespace_key, state)
-  }))
-  .unwrap_or_else(|_| {
-    Err(anyhow::anyhow!(
-      "Panicked while locating the source span for a diagnostic"
-    ))
   })
 }
 
@@ -330,22 +333,10 @@ fn get_key_span_from_source_code_impl(
 
 /// Collects the literal property keys of a call's first object argument.
 fn collect_object_arg_keys(call_expr: &CallExpr) -> FxHashSet<Atom> {
-  let mut keys = FxHashSet::default();
-
-  if let Some(arg) = call_expr.args.first()
-    && let Expr::Object(object) = arg.expr.as_ref()
-  {
-    for prop in &object.props {
-      if let PropOrSpread::Prop(prop) = prop
-        && let Prop::KeyValue(key_value) = prop.as_ref()
-        && let Some(name) = namespace_name_from_prop_key(&key_value.key)
-      {
-        keys.insert(name);
-      }
-    }
+  match call_expr.args.first().map(|arg| arg.expr.as_ref()) {
+    Some(Expr::Object(object)) => collect_object_lit_keys(object).collect(),
+    _ => FxHashSet::default(),
   }
-
-  keys
 }
 
 fn first_object_arg_span(call_expr: &CallExpr) -> Option<BytePos> {
@@ -429,6 +420,18 @@ struct KeySpanCandidate {
   span: Span,
 }
 
+impl KeySpanCandidate {
+  /// Ranking key: higher is better. A smaller distance to the target wins,
+  /// hence the `Reverse`.
+  fn rank(&self) -> (usize, usize, Reverse<Option<u32>>) {
+    (
+      self.namespace_value_overlap,
+      self.overlap,
+      Reverse(self.distance_from_target),
+    )
+  }
+}
+
 /// Visitor that finds call-expression object arguments and returns the property
 /// span for `namespace_key`. The sibling-key overlap is a tie-breaker for
 /// compiled calls with dummy spans.
@@ -505,11 +508,11 @@ impl KeySpanFinder<'_> {
         self.best = Some(candidate);
         self.ambiguous_best = false;
       },
-      Some(best) if is_better_key_span_candidate(&candidate, best) => {
+      Some(best) if candidate.rank() > best.rank() => {
         self.best = Some(candidate);
         self.ambiguous_best = false;
       },
-      Some(best) if is_equal_key_span_candidate_rank(&candidate, best) => {
+      Some(best) if candidate.rank() == best.rank() => {
         self.ambiguous_best = true;
       },
       Some(_) => {},
@@ -523,20 +526,6 @@ impl KeySpanFinder<'_> {
       self.best.map_or(DUMMY_SP, |candidate| candidate.span)
     }
   }
-}
-
-fn is_better_key_span_candidate(candidate: &KeySpanCandidate, best: &KeySpanCandidate) -> bool {
-  candidate.namespace_value_overlap > best.namespace_value_overlap
-    || candidate.namespace_value_overlap == best.namespace_value_overlap
-      && (candidate.overlap > best.overlap
-        || candidate.overlap == best.overlap
-          && candidate.distance_from_target < best.distance_from_target)
-}
-
-fn is_equal_key_span_candidate_rank(candidate: &KeySpanCandidate, best: &KeySpanCandidate) -> bool {
-  candidate.namespace_value_overlap == best.namespace_value_overlap
-    && candidate.overlap == best.overlap
-    && candidate.distance_from_target == best.distance_from_target
 }
 
 /// Loads a CodeFrame with the source file for error display.

@@ -2843,6 +2843,7 @@ dependencies = [
  "swc_compiler_base",
  "swc_core",
  "swc_ecma_parser",
+ "swc_sourcemap",
 ]
 
 [[package]]
@@ -3055,6 +3056,7 @@ dependencies = [
  "swc_config",
  "swc_core",
  "swc_ecma_parser",
+ "swc_sourcemap",
  "testing",
 ]
 

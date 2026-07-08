@@ -27,6 +27,7 @@ fn empty_options() -> StyleXOptions {
     aliases: None,
     unstable_module_resolution: None,
     source_map: None,
+    input_source_map: None,
     property_validation_mode: None,
     env: None,
     debug_file_path: None,

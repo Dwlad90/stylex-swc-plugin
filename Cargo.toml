@@ -69,6 +69,7 @@ swc_compiler_base = { version = "59.0.0" }
 swc_config = { version = "5.0.0" }
 swc_core = { version = "71.0.6" }
 swc_ecma_parser = { version = "41.0.0" }
+swc_sourcemap = { version = "10.0.2" }
 testing = "24.0.0"
 thiserror = "2.0.18"
 # convert_case = { version = "0.11.0" }

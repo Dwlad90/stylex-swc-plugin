@@ -239,12 +239,33 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       const file = path.join(dir, basename.split('?')[0] || basename);
 
       try {
+        // Only Rollup-compatible hosts (Rollup, Vite) expose the combined
+        // source map of previous plugins; other bundlers fall back to
+        // locating positions in the source text.
+        let inputSourceMap: string | undefined;
+        const { getCombinedSourcemap } = this as {
+          getCombinedSourcemap?: () => { mappings?: string };
+        };
+
+        if (typeof getCombinedSourcemap === 'function') {
+          try {
+            const combinedMap = getCombinedSourcemap.call(this);
+
+            if (combinedMap?.mappings) {
+              inputSourceMap = JSON.stringify(combinedMap);
+            }
+          } catch {
+            // No usable source map for this module.
+          }
+        }
+
         const { code, map } = transformStyleXCode(
           file,
           inputCode,
           normalizedOptions,
           stylexRules,
-          id
+          id,
+          inputSourceMap
         );
 
         // Invalidate CSS modules in dev mode (initial load only)
@@ -923,12 +944,19 @@ function transformStyleXCode(
   inputCode: string,
   normalizedOptions: NormalizedOptions,
   stylexRules: StyleXRules,
-  id: string
+  id: string,
+  inputSourceMap?: string
 ) {
   const rsOptions = { ...normalizedOptions.rsOptions };
 
   rsOptions.include = undefined;
   rsOptions.exclude = undefined;
+
+  // Forward the combined map of previous plugins so debug source-map
+  // annotations and the emitted map resolve to the original authored file.
+  if (inputSourceMap !== undefined && rsOptions.inputSourceMap === undefined) {
+    rsOptions.inputSourceMap = inputSourceMap;
+  }
 
   const result = stylexTransform(file, inputCode, rsOptions);
 

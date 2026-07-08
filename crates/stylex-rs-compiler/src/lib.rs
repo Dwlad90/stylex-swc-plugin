@@ -3,7 +3,7 @@
 mod enums;
 mod structs;
 mod utils;
-use log::info;
+use log::{info, warn};
 use napi::{Env, Result};
 use std::{env, panic, sync::Arc};
 use structs::{StyleXMetadata, StyleXOptions, StyleXTransformResult};
@@ -92,6 +92,23 @@ pub fn transform(
     };
 
     let source_map = source_maps_config(options.source_map.as_ref());
+    let should_chain_input_source_map =
+      !matches!(options.source_map.as_ref(), Some(SourceMaps::False));
+
+    // Parse the incoming source map (if any) once: it feeds both the debug
+    // source-map annotations and the chaining of the emitted map.
+    let input_source_map = options.input_source_map.take().and_then(|json| {
+      match swc_sourcemap::SourceMap::from_slice(json.as_bytes()) {
+        Ok(map) => Some(Arc::new(map)),
+        Err(err) => {
+          warn!(
+            "[StyleX] Failed to parse inputSourceMap, ignoring it: {}",
+            err
+          );
+          None
+        },
+      }
+    });
 
     let mut config: StyleXOptionsParams = options.try_into()?;
 
@@ -127,6 +144,14 @@ pub fn transform(
         let mut stylex: StyleXTransform<PluginCommentsProxy> =
           StyleXTransform::new(PluginCommentsProxy, plugin_pass, &mut config);
 
+        // Give the transform exact access to the parsed input so span-based
+        // position lookups need no re-parsing, and to the input source map so
+        // debug annotations point at the original authored file.
+        stylex.state.set_input_source_file(fm.clone());
+        if let Some(ref input_source_map) = input_source_map {
+          stylex.state.set_input_source_map(input_source_map.clone());
+        }
+
         let program = program
           .apply(resolver(unresolved_mark, top_level_mark, true))
           .apply(typescript_strip(unresolved_mark, top_level_mark))
@@ -141,6 +166,15 @@ pub fn transform(
           &program,
           PrintArgs {
             source_map,
+            // Chain the emitted map onto the input map so it resolves all the
+            // way back to the original authored file. Skip the clone when
+            // source maps are disabled; debug annotations already use the
+            // shared Arc stored in StateManager.
+            orig: if should_chain_input_source_map {
+              input_source_map.as_ref().map(|map| (**map).clone())
+            } else {
+              None
+            },
             ..Default::default()
           },
         );

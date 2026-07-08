@@ -6,7 +6,7 @@ use stylex_macros::stylex_panic;
 use stylex_path_resolver::package_json::PackageJsonExtended;
 
 use swc_core::{
-  common::DUMMY_SP,
+  common::{DUMMY_SP, Spanned},
   ecma::ast::{CallExpr, Expr, KeyValueProp},
 };
 
@@ -75,7 +75,25 @@ pub(crate) fn add_source_map_data(
 
     match style_node_paths.remove(key) {
       Some(style_node_path) => {
-        // Locate the namespace by its key first: keys are static strings that
+        // Highest fidelity: resolve the key's own span against the compiler's
+        // input and map it through the host-provided input source map back to
+        // the original authored file. Exact even when earlier tooling (e.g.
+        // macro loaders) already rewrote the code.
+        if let Some(original_line_number) =
+          original_line_from_input_source_map(&style_node_path, state)
+        {
+          insert_compiled_entry(
+            &mut inner_map,
+            original_line_number,
+            state,
+            package_json_seen,
+            functions,
+          );
+          result.insert(key.clone(), Rc::new(inner_map));
+          continue;
+        }
+
+        // Locate the namespace by its key next: keys are static strings that
         // survive value-level code transforms (e.g. macro expansion by an
         // earlier loader), so this finds the original source position even
         // when the compiled values no longer match the file content. Fall
@@ -109,37 +127,15 @@ pub(crate) fn add_source_map_data(
                 );
               };
             } else {
-              if let Some(original_line_number) = code_frame.try_get_span_line_number(span)
-                && original_line_number > 0
-              {
-                let filename = state.get_filename().to_string();
-                let raw_short_filename = create_short_filename(&filename, state, package_json_seen);
-                let short_filename_expr = if let Some(ref f) = state.options.debug_file_path {
-                  f.call(vec![create_string_expr(&raw_short_filename)])
-                } else {
-                  create_string_expr(&raw_short_filename)
-                };
-
-                let short_filename = convert_expr_to_str(&short_filename_expr, state, functions);
-
-                if let Some(short_filename) = short_filename
-                  && !short_filename.is_empty()
-                {
-                  let source_map = format!("{}:{}", short_filename, original_line_number);
-                  inner_map.insert(
-                    COMPILED_KEY.to_owned(),
-                    Rc::new(FlatCompiledStylesValue::String(source_map)),
-                  );
-                } else {
-                  inner_map.insert(
-                    COMPILED_KEY.to_owned(),
-                    Rc::new(FlatCompiledStylesValue::Bool(true)),
-                  );
-                }
-              } else {
-                inner_map.insert(
-                  COMPILED_KEY.to_owned(),
-                  Rc::new(FlatCompiledStylesValue::Bool(true)),
+              // Panic-safe lookup: `None` leaves the map untouched and the
+              // `contains_key` fallback below inserts the plain `true` marker.
+              if let Some(original_line_number) = code_frame.try_get_span_line_number(span) {
+                insert_compiled_entry(
+                  &mut inner_map,
+                  original_line_number,
+                  state,
+                  package_json_seen,
+                  functions,
                 );
               }
             }
@@ -180,6 +176,87 @@ pub(crate) fn add_source_map_data(
 
   result
 }
+
+/// Inserts the `$$css` entry with a `file:line` annotation, or `true` when a
+/// usable short filename cannot be produced.
+fn insert_compiled_entry(
+  inner_map: &mut IndexMap<String, Rc<FlatCompiledStylesValue>>,
+  original_line_number: usize,
+  state: &mut StateManager,
+  package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
+  functions: &FunctionMap,
+) {
+  let filename = state.get_filename().to_string();
+  let raw_short_filename = create_short_filename(&filename, state, package_json_seen);
+  let short_filename_expr = if let Some(ref f) = state.options.debug_file_path {
+    f.call(vec![create_string_expr(&raw_short_filename)])
+  } else {
+    create_string_expr(&raw_short_filename)
+  };
+
+  let short_filename = convert_expr_to_str(&short_filename_expr, state, functions);
+
+  if original_line_number > 0
+    && let Some(short_filename) = short_filename
+    && !short_filename.is_empty()
+  {
+    let source_map = format!("{}:{}", short_filename, original_line_number);
+    inner_map.insert(
+      COMPILED_KEY.to_owned(),
+      Rc::new(FlatCompiledStylesValue::String(source_map)),
+    );
+  } else {
+    inner_map.insert(
+      COMPILED_KEY.to_owned(),
+      Rc::new(FlatCompiledStylesValue::Bool(true)),
+    );
+  }
+}
+
+/// Resolves a style namespace to its 1-based line in the original authored
+/// file by combining the namespace key's own span — exact in the compiler's
+/// input — with the host-provided input source map, which maps the input back
+/// to the original file when earlier tooling already transformed it.
+///
+/// Returns `None` when either piece is unavailable so callers can fall back
+/// to locating the namespace in the source text.
+fn original_line_from_input_source_map(
+  style_node_path: &KeyValueProp,
+  state: &StateManager,
+) -> Option<usize> {
+  let source_file = state.input_source_file.as_ref()?;
+  let input_map = state.input_source_map.as_ref()?;
+
+  let span = style_node_path.key.span();
+  if span.is_dummy() {
+    return None;
+  }
+
+  let pos = span.lo();
+  if pos < source_file.start_pos || pos >= source_file.end_pos {
+    return None;
+  }
+
+  let line = source_file.lookup_line(pos)?;
+  let line_begin = source_file.line_begin_pos(pos);
+
+  // Source map columns are counted in UTF-16 code units.
+  let line_start_offset = (line_begin - source_file.start_pos).0 as usize;
+  let pos_offset = (pos - source_file.start_pos).0 as usize;
+  let col = source_file
+    .src
+    .get(line_start_offset..pos_offset)?
+    .encode_utf16()
+    .count();
+
+  let token = input_map.lookup_token(line as u32, col as u32)?;
+
+  Some(token.get_src_line() as usize + 1)
+}
+
+#[cfg(test)]
+#[path = "tests/add_source_map_data_tests.rs"]
+mod tests;
 
 fn get_package_prefix(absolute_path: &str) -> Option<String> {
   const NODE_MODULES: &str = "node_modules";

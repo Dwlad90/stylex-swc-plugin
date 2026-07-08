@@ -31,6 +31,7 @@ swc_core = { workspace = true, features = [
   "ecma_utils",
 ] }
 swc_ecma_parser = { workspace = true, features = ["verify"] }
+swc_sourcemap.workspace = true
 
 indexmap.workspace = true
 napi = { version = "3.9.0", features = ["compat-mode"] }

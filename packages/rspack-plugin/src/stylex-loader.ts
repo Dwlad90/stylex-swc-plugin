@@ -50,7 +50,8 @@ export default function stylexLoader(
     const { code, map, metadata } = generateStyleXOutput(
       this.resourcePath,
       stringifiedInputCode,
-      rsOptions
+      rsOptions,
+      inputSourceMap
     );
 
     let parsedMap: SourceMap = undefined;

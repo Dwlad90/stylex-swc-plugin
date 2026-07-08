@@ -1,4 +1,8 @@
-import { normalizeRsOptions, shouldTransformFile, transform as stylexTransform } from '@stylexswc/rs-compiler';
+import {
+  normalizeRsOptions,
+  shouldTransformFile,
+  transform as stylexTransform,
+} from '@stylexswc/rs-compiler';
 import type { Rule } from '@stylexjs/babel-plugin';
 import { transform } from 'lightningcss';
 import type { CustomAtRules, TransformOptions } from 'lightningcss';
@@ -99,6 +103,24 @@ export default function stylexPlugin({
         // In rollup, returning null from any plugin phase means
         // "no changes made".
         return null;
+      }
+
+      // The combined map of all previous plugins lets the compiler resolve
+      // debug source-map annotations to the original authored file, and lets
+      // it chain its emitted map onto it. Rollup resets the sourcemap chain
+      // when `getCombinedSourcemap` is used, so returning the chained map is
+      // the expected contract.
+      if (normalizedRsOptions.inputSourceMap === undefined) {
+        try {
+          const combinedMap = this.getCombinedSourcemap();
+
+          if (combinedMap?.mappings) {
+            normalizedRsOptions.inputSourceMap = JSON.stringify(combinedMap);
+          }
+        } catch {
+          // No usable source map for this module - annotations fall back to
+          // locating positions in the source text.
+        }
       }
 
       const result = stylexTransform(id, inputCode, normalizedRsOptions);

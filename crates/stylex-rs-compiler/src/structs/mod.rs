@@ -49,6 +49,11 @@ pub struct StyleXOptions {
   #[napi(js_name = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<StyleXModuleResolution>,
   pub source_map: Option<SourceMaps>,
+  /// JSON source map for the incoming `code`, produced by earlier tooling
+  /// (e.g. a macro loader). When provided, debug source-map annotations are
+  /// mapped back to the original authored file and the emitted source map is
+  /// chained onto it.
+  pub input_source_map: Option<String>,
   #[napi(ts_type = "'throw' | 'warn' | 'silent'")]
   pub property_validation_mode: Option<PropertyValidationMode>,
   /// Compile-time constants and functions accessible via `stylex.env`.

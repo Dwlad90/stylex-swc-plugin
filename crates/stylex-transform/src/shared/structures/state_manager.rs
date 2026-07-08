@@ -1,5 +1,5 @@
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{option::Option, path::Path, rc::Rc};
+use std::{option::Option, path::Path, rc::Rc, sync::Arc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
 use indexmap::{IndexMap, IndexSet};
@@ -11,7 +11,7 @@ use stylex_path_resolver::{
 };
 use swc_core::{
   atoms::Atom,
-  common::{DUMMY_SP, EqIgnoreSpan, FileName, Span, SyntaxContext},
+  common::{DUMMY_SP, EqIgnoreSpan, FileName, SourceFile, Span, SyntaxContext},
   ecma::{
     ast::{
       CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl, ImportDefaultSpecifier,
@@ -369,6 +369,14 @@ impl StyleInjectionState {
 pub struct StateManager {
   pub(crate) plugin_pass: PluginPass,
 
+  /// The source file the compiler parsed, when the host makes it available.
+  /// Expression spans in the transformed AST resolve exactly against it.
+  pub(crate) input_source_file: Option<Arc<SourceFile>>,
+  /// Source map for the compiler's input code, mapping positions back to the
+  /// original authored file when earlier tooling (e.g. macro loaders) already
+  /// transformed the code.
+  pub(crate) input_source_map: Option<Arc<swc_sourcemap::SourceMap>>,
+
   // Imports
   pub(crate) imports: ImportState,
   pub(crate) export_id: Option<String>,
@@ -490,6 +498,8 @@ impl StateManager {
 
     Self {
       plugin_pass: PluginPass::default(),
+      input_source_file: None,
+      input_source_map: None,
       imports: ImportState::default(),
       existing_import_sources: vec![],
       bound_names: FxHashSet::default(),
@@ -874,6 +884,19 @@ impl StateManager {
 
   pub(crate) fn enable_inlined_conditional_merge(&self) -> bool {
     self.options.enable_inlined_conditional_merge
+  }
+
+  /// Provides the parsed input source file so span positions can be resolved
+  /// without re-parsing. Set by hosts that own the parse (e.g. the NAPI
+  /// compiler).
+  pub fn set_input_source_file(&mut self, source_file: Arc<SourceFile>) {
+    self.input_source_file = Some(source_file);
+  }
+
+  /// Provides the source map of the compiler's input code, enabling positions
+  /// to be mapped back to the original authored file.
+  pub fn set_input_source_map(&mut self, source_map: Arc<swc_sourcemap::SourceMap>) {
+    self.input_source_map = Some(source_map);
   }
 
   pub(crate) fn get_short_filename(&self) -> String {

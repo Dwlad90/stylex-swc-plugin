@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/jest",
   "description": "Jest transformer for StyleX that compiles CSS-in-JS with the Rust NAPI-RS/SWC compiler, enabling Babel-free StyleX component tests.",
-  "version": "0.17.0",
+  "version": "0.17.1-rc.1",
   "private": false,
   "license": "MIT",
   "sideEffects": false,
@@ -31,13 +31,13 @@
     }
   },
   "dependencies": {
-    "@stylexswc/rs-compiler": "0.17.0"
+    "@stylexswc/rs-compiler": "0.17.1-rc.1"
   },
   "devDependencies": {
     "@jest/transform": "^30.4.1",
     "@jest/types": "^30.2.0",
-    "@stylexswc/eslint-config": "0.17.0",
-    "@stylexswc/typescript-config": "0.17.0",
+    "@stylexswc/eslint-config": "0.17.1-rc.1",
+    "@stylexswc/typescript-config": "0.17.1-rc.1",
     "@types/node": "^26.1.0"
   },
   "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",

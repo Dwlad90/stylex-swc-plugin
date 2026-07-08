@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/stylex-styleq",
   "description": "StyleQ implementation for the StyleX system",
-  "version": "0.17.0",
+  "version": "0.17.1-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -37,9 +37,9 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/constants": "0.17.0",
-    "@stylexswc/macros": "0.17.0",
-    "@stylexswc/enums": "0.17.0",
+    "@stylexswc/constants": "0.17.1-rc.1",
+    "@stylexswc/macros": "0.17.1-rc.1",
+    "@stylexswc/enums": "0.17.1-rc.1",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "^3.9.4"

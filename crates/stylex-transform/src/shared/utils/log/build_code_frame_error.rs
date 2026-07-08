@@ -21,6 +21,7 @@ use swc_core::{
     codegen::Config,
     parser::{Syntax, TsSyntax},
     transforms::typescript::strip,
+    utils::DropSpan,
     visit::*,
   },
 };
@@ -74,6 +75,33 @@ impl CodeFrame {
   pub(crate) fn get_span_line_number(&self, span: Span) -> usize {
     self.source_map.lookup_char_pos(span.lo).line
   }
+
+  /// Emits the diagnostic behind a panic boundary: the code frame is a
+  /// best-effort aid, so a source-map lookup panic (e.g. a span whose byte
+  /// offsets fall inside a multi-byte character) must never replace the error
+  /// being reported.
+  pub(crate) fn emit_error(&self, span: Span, message: &str) {
+    let emitted = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+      self.create_error(span, message).emit();
+    }));
+
+    if emitted.is_err() {
+      warn!("Failed to emit the code frame for error: {}", message);
+    }
+  }
+
+  /// Like `get_span_line_number`, but behind the same panic boundary as
+  /// `emit_error` and `None` for dummy spans ("location unknown").
+  pub(crate) fn try_get_span_line_number(&self, span: Span) -> Option<usize> {
+    if span.is_dummy() {
+      return None;
+    }
+
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+      self.get_span_line_number(span)
+    }))
+    .ok()
+  }
 }
 
 fn read_source_file(file_name: &FileName) -> Result<String, std::io::Error> {
@@ -93,7 +121,7 @@ pub(crate) fn build_code_frame_error<'a>(
 ) -> &'a str {
   match get_span_from_source_code(wrapped_expression, fault_expression, state) {
     Ok((code_frame, span)) => {
-      code_frame.create_error(span, error_message).emit();
+      code_frame.emit_error(span, error_message);
     },
     Err(error) => {
       if log::log_enabled!(log::Level::Debug) {
@@ -129,6 +157,24 @@ pub(crate) fn build_code_frame_error<'a>(
 /// A tuple of (CodeFrame, Span) where CodeFrame contains the source map for
 /// error display
 pub(crate) fn get_span_from_source_code(
+  wrapped_expression: &Expr,
+  target_expression: &Expr,
+  state: &mut StateManager,
+) -> Result<(CodeFrame, Span), Error> {
+  // Panic boundary: locating a span re-reads, re-prints, and re-parses the
+  // module purely to improve diagnostics; a panic anywhere in there must
+  // degrade to "no code frame", never abort the compilation.
+  std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    get_span_from_source_code_impl(wrapped_expression, target_expression, state)
+  }))
+  .unwrap_or_else(|_| {
+    Err(anyhow::anyhow!(
+      "Panicked while locating the source span for a diagnostic"
+    ))
+  })
+}
+
+fn get_span_from_source_code_impl(
   wrapped_expression: &Expr,
   target_expression: &Expr,
   state: &mut StateManager,
@@ -194,9 +240,11 @@ fn find_expression_span(program: Program, target_expression: &Expr) -> Span {
   let mut fallback_finder = ExpressionFinder::new(&converted_target);
   program.visit_with(&mut fallback_finder);
 
-  fallback_finder
-    .get_span()
-    .unwrap_or_else(|| target_expression.span())
+  // The target expression's own span belongs to the caller's source map, not
+  // the code-frame one, so its byte offsets are meaningless here and can even
+  // land inside a multi-byte character, panicking on source-map lookups. A
+  // dummy span signals "location unknown" instead.
+  fallback_finder.get_span().unwrap_or(DUMMY_SP)
 }
 
 /// Gets or parses the source code as a Program AST, with memoization.
@@ -331,9 +379,16 @@ pub(crate) fn print_module(
 
 pub(crate) fn print_program(
   code_frame: &CodeFrame,
-  program: Program,
+  mut program: Program,
   codegen_config: Option<Config>,
 ) -> String {
+  // The printed AST carries spans from the compiler's own source map, which
+  // are meaningless in the shared code-frame map. The codegen resolves
+  // non-dummy spans against its source map (e.g. `span_to_snippet` for
+  // trailing-comma detection), so foreign offsets would read unrelated files
+  // and can panic mid-character on multi-byte sources.
+  program.visit_mut_with(&mut DropSpan {});
+
   let printed_source_code = print(
     code_frame.source_map.clone(),
     &program,
@@ -467,9 +522,9 @@ pub(crate) fn build_code_frame_error_and_panic(
   // Emit the code frame diagnostic to stderr (already [StyleX]-prefixed)
   let (file, line) = match get_span_from_source_code(wrapped_expression, fault_expression, state) {
     Ok((code_frame, span)) => {
-      code_frame.create_error(span, error_message).emit();
-      let line_num = code_frame.get_span_line_number(span);
-      (Some(state.get_filename().to_owned()), Some(line_num))
+      code_frame.emit_error(span, error_message);
+      let line_num = code_frame.try_get_span_line_number(span);
+      (Some(state.get_filename().to_owned()), line_num)
     },
     Err(error) => {
       if log::log_enabled!(log::Level::Debug) {
@@ -511,3 +566,7 @@ pub(crate) fn build_code_frame_error_and_panic_at(
 ) -> ! {
   build_code_frame_error_and_panic(expr, expr, error_message, state)
 }
+
+#[cfg(test)]
+#[path = "tests/build_code_frame_error_tests.rs"]
+mod tests;

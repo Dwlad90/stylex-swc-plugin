@@ -1,11 +1,13 @@
 use anyhow::Error;
 use log::{debug, warn};
 use std::{
+  cell::Cell,
   collections::hash_map::DefaultHasher,
   fs,
   hash::{Hash, Hasher},
+  panic::{self, AssertUnwindSafe, UnwindSafe},
   path::Path,
-  sync::{Arc, OnceLock},
+  sync::{Arc, Once, OnceLock},
 };
 use stylex_macros::{panic_macros::__stylex_panic, stylex_error::StyleXError, stylex_panic};
 use swc_compiler_base::{PrintArgs, SourceMapsConfig, TransformOutput, parse_js, print};
@@ -38,6 +40,36 @@ pub(crate) struct CodeFrame {
 }
 
 static SOURCE_MAP: OnceLock<Arc<SourceMap>> = OnceLock::new();
+static DIAGNOSTIC_PANIC_HOOK: Once = Once::new();
+
+thread_local! {
+  static SUPPRESS_DIAGNOSTIC_PANIC_HOOK: Cell<bool> = const { Cell::new(false) };
+}
+
+fn install_diagnostic_panic_hook() {
+  DIAGNOSTIC_PANIC_HOOK.call_once(|| {
+    let previous_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |panic_info| {
+      let suppress = SUPPRESS_DIAGNOSTIC_PANIC_HOOK.with(Cell::get);
+      if !suppress {
+        previous_hook(panic_info);
+      }
+    }));
+  });
+}
+
+fn catch_diagnostic_unwind<F, T>(operation: F) -> std::thread::Result<T>
+where
+  F: FnOnce() -> T + UnwindSafe,
+{
+  install_diagnostic_panic_hook();
+
+  let previous_suppression = SUPPRESS_DIAGNOSTIC_PANIC_HOOK.with(|suppress| suppress.replace(true));
+  let result = panic::catch_unwind(operation);
+  SUPPRESS_DIAGNOSTIC_PANIC_HOOK.with(|suppress| suppress.set(previous_suppression));
+
+  result
+}
 
 impl CodeFrame {
   pub(crate) fn new() -> Self {
@@ -81,7 +113,7 @@ impl CodeFrame {
   /// offsets fall inside a multi-byte character) must never replace the error
   /// being reported.
   pub(crate) fn emit_error(&self, span: Span, message: &str) {
-    let emitted = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    let emitted = catch_diagnostic_unwind(AssertUnwindSafe(|| {
       self.create_error(span, message).emit();
     }));
 
@@ -97,10 +129,7 @@ impl CodeFrame {
       return None;
     }
 
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-      self.get_span_line_number(span)
-    }))
-    .ok()
+    catch_diagnostic_unwind(AssertUnwindSafe(|| self.get_span_line_number(span))).ok()
   }
 }
 
@@ -164,7 +193,7 @@ pub(crate) fn get_span_from_source_code(
   // Panic boundary: locating a span re-reads, re-prints, and re-parses the
   // module purely to improve diagnostics; a panic anywhere in there must
   // degrade to "no code frame", never abort the compilation.
-  std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+  catch_diagnostic_unwind(AssertUnwindSafe(|| {
     get_span_from_source_code_impl(wrapped_expression, target_expression, state)
   }))
   .unwrap_or_else(|_| {
@@ -427,7 +456,7 @@ pub(crate) fn create_module(wrapped_expression: &Expr) -> Module {
 struct ExpressionFinder {
   target: Expr,
   target_discriminant: std::mem::Discriminant<Expr>,
-  found_expr: Option<Expr>,
+  found_span: Option<Span>,
 }
 
 /// Visitor that normalizes AST by removing syntax contexts and type
@@ -459,14 +488,12 @@ impl ExpressionFinder {
     Self {
       target: cleaned_target,
       target_discriminant,
-      found_expr: None,
+      found_span: None,
     }
   }
 
   fn get_span(&self) -> Option<Span> {
-    let expr = self.found_expr.as_ref()?;
-
-    Some(Span::new(expr.span_lo(), expr.span_hi()))
+    self.found_span
   }
 }
 
@@ -489,7 +516,7 @@ impl Visit for ExpressionFinder {
   noop_visit_type!();
 
   fn visit_expr(&mut self, expr: &Expr) {
-    if self.found_expr.is_some() {
+    if self.found_span.is_some() {
       return;
     }
 
@@ -501,7 +528,7 @@ impl Visit for ExpressionFinder {
 
     // Expensive structural comparison only for matching variants
     if self.target.eq_ignore_span(expr) {
-      self.found_expr = Some(expr.clone());
+      self.found_span = Some(Span::new(expr.span_lo(), expr.span_hi()));
       return;
     }
 

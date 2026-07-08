@@ -2,7 +2,10 @@ use std::{
   fs,
   panic::AssertUnwindSafe,
   path::{Path, PathBuf},
-  sync::Arc,
+  sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+  },
 };
 
 use swc_core::common::{BytePos, DUMMY_SP, FileName, GLOBALS, Globals, Span, SyntaxContext};
@@ -18,12 +21,21 @@ use crate::shared::{
   },
 };
 
+static TEST_FILE_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
 /// Writes a fixture whose content contains multi-byte characters, so any byte
 /// offset taken from a foreign source map is likely to land inside a character
 /// instead of on a char boundary.
 fn write_multibyte_fixture(name: &str) -> PathBuf {
-  let dir = std::env::temp_dir().join("stylex_code_frame_error_tests");
-  fs::create_dir_all(&dir).unwrap();
+  let id = TEST_FILE_COUNTER.fetch_add(1, Ordering::Relaxed);
+  let dir = std::env::temp_dir().join(format!(
+    "stylex_code_frame_error_tests_{}_{}",
+    std::process::id(),
+    id
+  ));
+  if let Err(error) = fs::create_dir_all(&dir) {
+    panic!("failed to create temp fixture directory: {error}");
+  }
 
   // Two-byte characters ("λ" is U+03BB) after the 3-byte "// " prefix, so
   // every even offset >= 4 falls inside a character.
@@ -33,7 +45,9 @@ fn write_multibyte_fixture(name: &str) -> PathBuf {
   );
 
   let path = dir.join(name);
-  fs::write(&path, source).unwrap();
+  if let Err(error) = fs::write(&path, source) {
+    panic!("failed to write temp fixture: {error}");
+  }
 
   path
 }
@@ -61,8 +75,11 @@ fn unmatched_expression_yields_dummy_span() {
   let mut state = state_for_fixture(&path);
   let target = unmatched_expression_with_foreign_span();
 
-  let (_code_frame, span) = GLOBALS.set(&Globals::default(), || {
-    get_span_from_source_code(&target, &target, &mut state).unwrap()
+  let span = GLOBALS.set(&Globals::default(), || {
+    match get_span_from_source_code(&target, &target, &mut state) {
+      Ok((_code_frame, span)) => span,
+      Err(error) => panic!("failed to get source span: {error}"),
+    }
   });
 
   assert!(
@@ -144,12 +161,14 @@ fn panic_reports_real_message_for_multibyte_source() {
 
   let error_message = "A style value must be static";
 
-  let panic_payload = std::panic::catch_unwind(AssertUnwindSafe(|| {
+  let panic_payload = match std::panic::catch_unwind(AssertUnwindSafe(|| {
     GLOBALS.set(&Globals::default(), || {
       build_code_frame_error_and_panic(&target, &target, error_message, &mut state)
     })
-  }))
-  .unwrap_err();
+  })) {
+    Ok(()) => panic!("expected build_code_frame_error_and_panic to panic"),
+    Err(panic_payload) => panic_payload,
+  };
 
   let message = match panic_payload.downcast_ref::<String>() {
     Some(message) => message.clone(),

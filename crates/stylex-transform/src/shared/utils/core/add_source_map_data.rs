@@ -99,26 +99,33 @@ pub(crate) fn add_source_map_data(
                 );
               };
             } else {
-              let original_line_number = code_frame.get_span_line_number(span);
-              let filename = state.get_filename().to_string();
-              let raw_short_filename = create_short_filename(&filename, state, package_json_seen);
-              let short_filename_expr = if let Some(ref f) = state.options.debug_file_path {
-                f.call(vec![create_string_expr(&raw_short_filename)])
-              } else {
-                create_string_expr(&raw_short_filename)
-              };
-
-              let short_filename = convert_expr_to_str(&short_filename_expr, state, functions);
-
-              if original_line_number > 0
-                && let Some(short_filename) = short_filename
-                && !short_filename.is_empty()
+              if let Some(original_line_number) = code_frame.try_get_span_line_number(span)
+                && original_line_number > 0
               {
-                let source_map = format!("{}:{}", short_filename, original_line_number);
-                inner_map.insert(
-                  COMPILED_KEY.to_owned(),
-                  Rc::new(FlatCompiledStylesValue::String(source_map)),
-                );
+                let filename = state.get_filename().to_string();
+                let raw_short_filename = create_short_filename(&filename, state, package_json_seen);
+                let short_filename_expr = if let Some(ref f) = state.options.debug_file_path {
+                  f.call(vec![create_string_expr(&raw_short_filename)])
+                } else {
+                  create_string_expr(&raw_short_filename)
+                };
+
+                let short_filename = convert_expr_to_str(&short_filename_expr, state, functions);
+
+                if let Some(short_filename) = short_filename
+                  && !short_filename.is_empty()
+                {
+                  let source_map = format!("{}:{}", short_filename, original_line_number);
+                  inner_map.insert(
+                    COMPILED_KEY.to_owned(),
+                    Rc::new(FlatCompiledStylesValue::String(source_map)),
+                  );
+                } else {
+                  inner_map.insert(
+                    COMPILED_KEY.to_owned(),
+                    Rc::new(FlatCompiledStylesValue::Bool(true)),
+                  );
+                }
               } else {
                 inner_map.insert(
                   COMPILED_KEY.to_owned(),

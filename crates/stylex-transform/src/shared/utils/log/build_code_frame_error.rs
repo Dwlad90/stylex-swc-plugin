@@ -30,8 +30,12 @@ use swc_core::{
 
 use crate::shared::{
   structures::state_manager::StateManager,
-  utils::ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
+  utils::ast::{
+    convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
+    helpers::namespace_name_from_prop_key,
+  },
 };
+use rustc_hash::FxHashSet;
 use stylex_regex::regex::URL_REGEX;
 
 pub(crate) struct CodeFrame {
@@ -241,6 +245,152 @@ fn compute_cache_key(expr: &Expr) -> u64 {
   std::mem::discriminant(expr).hash(&mut hasher);
   expr.hash(&mut hasher);
   hasher.finish()
+}
+
+/// Finds the span of a style namespace by its **key** inside the parsed
+/// source, instead of matching the namespace's value expression.
+///
+/// Object keys are static strings that survive value-level code transforms
+/// (e.g. compile-time macro expansion done by an earlier loader), so this
+/// locates the original source position even when the compiled AST's values
+/// no longer textually match the file on disk — the case where
+/// `find_expression_span` has nothing to match against.
+///
+/// The `call_expr`'s own argument keys are used to disambiguate between
+/// multiple objects containing an identically named property: the candidate
+/// object sharing the most sibling keys with the compiled call wins.
+///
+/// Returns a dummy span when the key cannot be located.
+pub(crate) fn get_key_span_from_source_code(
+  call_expr: &CallExpr,
+  namespace_key: &str,
+  state: &mut StateManager,
+) -> Result<(CodeFrame, Span), Error> {
+  // Same panic boundary as `get_span_from_source_code`: locating a span is
+  // best-effort and must never abort the compilation.
+  std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    get_key_span_from_source_code_impl(call_expr, namespace_key, state)
+  }))
+  .unwrap_or_else(|_| {
+    Err(anyhow::anyhow!(
+      "Panicked while locating the source span for a diagnostic"
+    ))
+  })
+}
+
+fn get_key_span_from_source_code_impl(
+  call_expr: &CallExpr,
+  namespace_key: &str,
+  state: &mut StateManager,
+) -> Result<(CodeFrame, Span), Error> {
+  let sibling_keys = collect_object_arg_keys(call_expr);
+  let cache_key = compute_key_span_cache_key(namespace_key, &sibling_keys);
+  let file_name = FileName::Custom(state.get_filename().to_owned());
+
+  if let Some(cached_span) = state.cached_span(cache_key) {
+    let code_frame = load_code_frame_from_cache(&file_name)?;
+    return Ok((code_frame, cached_span));
+  }
+
+  let code_frame = CodeFrame::new();
+  let wrapped_expression = Expr::Call(call_expr.clone());
+  let program = get_memoized_frame_source_code(
+    &wrapped_expression,
+    &wrapped_expression,
+    state,
+    &file_name,
+    &code_frame,
+  )
+  .ok_or_else(|| anyhow::anyhow!("Failed to parse source file: {}", state.get_filename()))?;
+
+  let mut finder = KeySpanFinder {
+    namespace_key,
+    sibling_keys: &sibling_keys,
+    best: None,
+  };
+  program.visit_with(&mut finder);
+
+  let span = finder.best.map_or(DUMMY_SP, |(_, span)| span);
+
+  state.insert_cached_span(cache_key, span);
+
+  Ok((code_frame, span))
+}
+
+/// Collects the literal property keys of a call's first object argument.
+fn collect_object_arg_keys(call_expr: &CallExpr) -> FxHashSet<String> {
+  let mut keys = FxHashSet::default();
+
+  if let Some(arg) = call_expr.args.first()
+    && let Expr::Object(object) = arg.expr.as_ref()
+  {
+    for prop in &object.props {
+      if let PropOrSpread::Prop(prop) = prop
+        && let Prop::KeyValue(key_value) = prop.as_ref()
+        && let Some(name) = namespace_name_from_prop_key(&key_value.key)
+      {
+        keys.insert(name.to_string());
+      }
+    }
+  }
+
+  keys
+}
+
+fn compute_key_span_cache_key(namespace_key: &str, sibling_keys: &FxHashSet<String>) -> u64 {
+  let mut hasher = DefaultHasher::new();
+  "stylex-key-span".hash(&mut hasher);
+  namespace_key.hash(&mut hasher);
+
+  let mut sorted_keys: Vec<&String> = sibling_keys.iter().collect();
+  sorted_keys.sort();
+  sorted_keys.hash(&mut hasher);
+
+  hasher.finish()
+}
+
+/// Visitor that finds the object property named `namespace_key`, preferring
+/// the object whose keys overlap the compiled call's argument keys the most.
+struct KeySpanFinder<'a> {
+  namespace_key: &'a str,
+  sibling_keys: &'a FxHashSet<String>,
+  best: Option<(usize, Span)>,
+}
+
+impl Visit for KeySpanFinder<'_> {
+  noop_visit_type!();
+
+  fn visit_object_lit(&mut self, object: &ObjectLit) {
+    let mut key_span = None;
+    let mut overlap = 0;
+
+    for prop in &object.props {
+      if let PropOrSpread::Prop(prop) = prop
+        && let Prop::KeyValue(key_value) = prop.as_ref()
+        && let Some(name) = namespace_name_from_prop_key(&key_value.key)
+      {
+        let name = name.to_string();
+
+        if self.sibling_keys.contains(&name) {
+          overlap += 1;
+        }
+
+        if name == self.namespace_key {
+          key_span = Some(key_value.key.span());
+        }
+      }
+    }
+
+    if let Some(span) = key_span
+      && self
+        .best
+        .is_none_or(|(best_overlap, _)| overlap > best_overlap)
+    {
+      self.best = Some((overlap, span));
+    }
+
+    object.visit_children_with(self);
+  }
 }
 
 /// Loads a CodeFrame with the source file for error display

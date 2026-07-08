@@ -16,7 +16,7 @@ use crate::shared::{
   utils::{
     ast::convertors::{convert_expr_to_str, create_string_expr},
     js::evaluate::evaluate_obj_key,
-    log::build_code_frame_error::get_span_from_source_code,
+    log::build_code_frame_error::{get_key_span_from_source_code, get_span_from_source_code},
   },
 };
 use stylex_ast::ast::convertors::get_key_values_from_object;
@@ -75,11 +75,21 @@ pub(crate) fn add_source_map_data(
 
     match style_node_paths.remove(key) {
       Some(style_node_path) => {
-        let source_code_frame_and_span = get_span_from_source_code(
-          &Expr::Call(call_expr.clone()),
-          &style_node_path.value,
-          state,
-        );
+        // Locate the namespace by its key first: keys are static strings that
+        // survive value-level code transforms (e.g. macro expansion by an
+        // earlier loader), so this finds the original source position even
+        // when the compiled values no longer match the file content. Fall
+        // back to matching the value expression when the key cannot be
+        // located (e.g. computed keys).
+        let source_code_frame_and_span = match get_key_span_from_source_code(call_expr, key, state)
+        {
+          Ok((code_frame, span)) if !span.eq(&DUMMY_SP) => Ok((code_frame, span)),
+          _ => get_span_from_source_code(
+            &Expr::Call(call_expr.clone()),
+            &style_node_path.value,
+            state,
+          ),
+        };
 
         match source_code_frame_and_span {
           Ok((code_frame, span)) => {

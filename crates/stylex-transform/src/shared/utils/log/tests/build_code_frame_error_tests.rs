@@ -10,15 +10,20 @@ use std::{
 
 use swc_core::common::{BytePos, DUMMY_SP, FileName, GLOBALS, Globals, Span, SyntaxContext};
 use swc_core::ecma::ast::{
-  Expr, Ident, ImportDecl, ImportNamedSpecifier, ImportSpecifier, Module, ModuleDecl, ModuleItem,
-  Str,
+  CallExpr, Callee, Expr, ExprOrSpread, Ident, ImportDecl, ImportNamedSpecifier, ImportSpecifier,
+  Module, ModuleDecl, ModuleItem, Str,
 };
 
 use crate::shared::{
   structures::state_manager::StateManager,
   utils::log::build_code_frame_error::{
-    CodeFrame, build_code_frame_error_and_panic, get_span_from_source_code, print_module,
+    CodeFrame, build_code_frame_error_and_panic, get_key_span_from_source_code,
+    get_span_from_source_code, print_module,
   },
+};
+use stylex_ast::ast::{
+  convertors::create_string_expr,
+  factories::{create_key_value_prop, create_nested_object_prop, create_object_expression},
 };
 
 static TEST_FILE_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -150,6 +155,76 @@ fn print_module_ignores_foreign_spans_over_multibyte_sources() {
     printed.contains("exampleExport"),
     "printing must succeed and include the module contents, got: {}",
     printed
+  );
+}
+
+/// When an earlier loader rewrites style values (e.g. compile-time macros),
+/// the compiled AST no longer textually matches the file on disk, so
+/// value-expression matching cannot locate a source position. Namespace keys
+/// are untouched by such transforms, so the key-based lookup must still
+/// resolve the real line number.
+#[test]
+fn key_lookup_finds_line_when_values_differ_from_source() {
+  let dir = std::env::temp_dir().join("stylex_code_frame_error_tests");
+  fs::create_dir_all(&dir).unwrap();
+
+  let source = "\
+import fancyMacro from 'example-macro';
+
+export const styles = create({
+  root: {
+    color: fancyMacro(2),
+  },
+  other: {
+    display: fancyMacro('flex'),
+  },
+});
+";
+  let path = dir.join("key_lookup.tsx");
+  fs::write(&path, source).unwrap();
+
+  let mut state = state_for_fixture(&path);
+
+  // The compiled call as this plugin sees it: macro calls already replaced
+  // with their literal results.
+  let compiled_arg = create_object_expression(vec![
+    create_nested_object_prop(
+      "root",
+      vec![create_key_value_prop("color", create_string_expr("red"))],
+    ),
+    create_nested_object_prop(
+      "other",
+      vec![create_key_value_prop("display", create_string_expr("flex"))],
+    ),
+  ]);
+
+  let call_expr = CallExpr {
+    span: DUMMY_SP,
+    ctxt: SyntaxContext::empty(),
+    callee: Callee::Expr(Box::new(Expr::Ident(Ident::new(
+      "create".into(),
+      DUMMY_SP,
+      SyntaxContext::empty(),
+    )))),
+    args: vec![ExprOrSpread {
+      spread: None,
+      expr: Box::new(compiled_arg),
+    }],
+    type_args: None,
+  };
+
+  let (code_frame, span) = GLOBALS.set(&Globals::default(), || {
+    get_key_span_from_source_code(&call_expr, "other", &mut state).unwrap()
+  });
+
+  assert!(
+    !span.is_dummy(),
+    "the namespace key must be locatable even though the values differ"
+  );
+  assert_eq!(
+    code_frame.get_span_line_number(span),
+    7,
+    "the span must point at the `other` key in the on-disk source"
   );
 }
 

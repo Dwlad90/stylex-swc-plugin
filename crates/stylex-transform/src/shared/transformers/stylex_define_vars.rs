@@ -79,12 +79,12 @@ pub(crate) fn stylex_define_vars(
 
             format!(
               "{}-{}{}",
-              var_safe_key, &state.options.class_name_prefix, key_hash
+              var_safe_key, state.options.class_name_prefix, key_hash
             )
           } else {
             let key_hash = create_key_hash(&export_id, key);
 
-            format!("{}{}", &state.options.class_name_prefix, key_hash)
+            format!("{}{}", state.options.class_name_prefix, key_hash)
           };
 
           let (css_value, css_type) = get_css_value(KeyValueProp {

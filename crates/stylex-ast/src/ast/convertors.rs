@@ -67,7 +67,7 @@ pub fn convert_member_prop_to_string(prop: &MemberProp) -> Option<String> {
   }
 }
 
-fn normalize_expr_ref(expr: &Expr) -> &Expr {
+pub fn normalize_expr_ref(expr: &Expr) -> &Expr {
   match expr {
     Expr::Paren(paren) => normalize_expr_ref(paren.expr.as_ref()),
     _ => expr,
@@ -145,9 +145,9 @@ pub(crate) fn concat_call_to_template_literal(call_expr: &CallExpr) -> Option<Ex
   }
 
   let object_lit = member_expr.obj.as_lit()?;
-  let base_string = match extract_str_lit_ref(object_lit) {
-    Some(base_string) => base_string.to_string(),
-    None => return None,
+  let base_string = {
+    let base_string = extract_str_lit_ref(object_lit)?;
+    base_string.to_string()
   };
 
   let mut exprs = Vec::new();

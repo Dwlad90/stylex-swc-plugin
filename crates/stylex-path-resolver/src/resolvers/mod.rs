@@ -136,7 +136,7 @@ fn get_package_path_by_package_json(
 
   let mut potential_package_path: PathBuf = PathBuf::default();
 
-  for (name, _) in package_dependencies.iter() {
+  for name in package_dependencies.keys() {
     let potential_path_section = name.split("/").last().unwrap_or_default();
 
     if contains_subpath(relative_package_path, Path::new(&potential_path_section)) {

@@ -1,5 +1,5 @@
 use super::*;
-use stylex_ast::ast::convertors::normalize_expr;
+use stylex_ast::ast::convertors::{normalize_expr, normalize_expr_ref};
 
 pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicStyle> {
   let expanded_keys_to_key_paths: Vec<DynamicStyle> = dynamic_styles
@@ -71,8 +71,8 @@ fn create_shorthand_key(index: usize) -> String {
   key
 }
 
-pub(super) fn is_safe_to_skip_null_check(expr: &mut Expr) -> bool {
-  let expr = normalize_expr(expr);
+pub(super) fn is_safe_to_skip_null_check(expr: &Expr) -> bool {
+  let expr = normalize_expr_ref(expr);
 
   match expr {
     Expr::Tpl(_) => true,
@@ -85,19 +85,16 @@ pub(super) fn is_safe_to_skip_null_check(expr: &mut Expr) -> bool {
       | BinaryOp::Mod
       | BinaryOp::Exp => true,
       BinaryOp::NullishCoalescing | BinaryOp::LogicalOr => {
-        is_safe_to_skip_null_check(&mut bin_expr.left)
-          || is_safe_to_skip_null_check(&mut bin_expr.right)
+        is_safe_to_skip_null_check(&bin_expr.left) || is_safe_to_skip_null_check(&bin_expr.right)
       },
       BinaryOp::LogicalAnd => {
-        is_safe_to_skip_null_check(&mut bin_expr.left)
-          && is_safe_to_skip_null_check(&mut bin_expr.right)
+        is_safe_to_skip_null_check(&bin_expr.left) && is_safe_to_skip_null_check(&bin_expr.right)
       },
       _ => false,
     },
     Expr::Unary(unary_expr) => matches!(unary_expr.op, UnaryOp::Minus | UnaryOp::Plus),
     Expr::Cond(cond_expr) => {
-      is_safe_to_skip_null_check(&mut cond_expr.cons)
-        && is_safe_to_skip_null_check(&mut cond_expr.alt)
+      is_safe_to_skip_null_check(&cond_expr.cons) && is_safe_to_skip_null_check(&cond_expr.alt)
     },
     _ => false,
   }

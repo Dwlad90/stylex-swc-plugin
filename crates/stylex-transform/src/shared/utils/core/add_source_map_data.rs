@@ -118,13 +118,13 @@ pub(crate) fn add_source_map_data(
                   "Could not find span for style node path. File: {}, Style node path: {:?}.{}",
                   state.get_filename(),
                   style_node_path,
-                  &*NEXTJS_HYDRATION_WARNING
+                  *NEXTJS_HYDRATION_WARNING
                 );
               } else {
                 info!(
                   "Could not find span for style node path. File: {}. For more information enable debug logging.{}",
                   state.get_filename(),
-                  &*NEXTJS_HYDRATION_WARNING
+                  *NEXTJS_HYDRATION_WARNING
                 );
               };
             } else {

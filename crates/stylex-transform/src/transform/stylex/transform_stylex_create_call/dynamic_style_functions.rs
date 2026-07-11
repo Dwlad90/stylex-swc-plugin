@@ -178,13 +178,8 @@ where
 
                                 let cls_with_space = &class_strings[index];
 
-                                if let Some(expr) = expr.and_then(|mut e| {
-                                  if is_safe_to_skip_null_check(&mut e) {
-                                    None
-                                  } else {
-                                    Some(e)
-                                  }
-                                }) {
+                                if let Some(expr) = expr.filter(|e| !is_safe_to_skip_null_check(e))
+                                {
                                   is_static = false;
                                   expr_list.push(create_cond_expr(
                                     create_bin_expr(

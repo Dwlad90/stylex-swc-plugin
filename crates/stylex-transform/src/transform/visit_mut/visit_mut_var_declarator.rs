@@ -102,7 +102,7 @@ where
           }
         }
 
-        for (_, var_name) in self.state.style_vars.iter() {
+        for var_name in self.state.style_vars.values() {
           if !var_declarator.eq_ignore_span(var_name) {
             continue;
           };

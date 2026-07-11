@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/unplugin",
   "description": "Universal StyleX plugin for Vite, webpack, Rspack, Rollup, esbuild, Farm, Rsbuild, Nuxt, and Astro, powered by a Rust NAPI-RS/SWC compiler.",
-  "version": "0.17.1",
+  "version": "0.17.2-dev.1",
   "private": false,
   "license": "MIT",
   "sideEffects": false,
@@ -89,7 +89,7 @@
   },
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.19.0",
-    "@stylexswc/rs-compiler": "0.17.1",
+    "@stylexswc/rs-compiler": "0.17.2-dev.1",
     "unplugin": "^3.0.0",
     "vite": "^8.1.2"
   },

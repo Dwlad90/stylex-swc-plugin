@@ -337,8 +337,8 @@ mod normalize_expr_tests {
 
   #[test]
   fn returns_non_paren_expr_unchanged() {
-    let mut expr = make_num_expr(5.0);
-    let result = normalize_expr(&mut expr);
+    let expr = make_num_expr(5.0);
+    let result = normalize_expr(&expr);
     match result {
       Expr::Lit(Lit::Num(n)) => assert_eq!(n.value, 5.0),
       _ => panic!("Expected number literal"),
@@ -348,11 +348,11 @@ mod normalize_expr_tests {
   #[test]
   fn unwraps_paren_expr() {
     let inner = make_num_expr(10.0);
-    let mut expr = Expr::Paren(ParenExpr {
+    let expr = Expr::Paren(ParenExpr {
       span: DUMMY_SP,
       expr: Box::new(inner),
     });
-    let result = normalize_expr(&mut expr);
+    let result = normalize_expr(&expr);
     match result {
       Expr::Lit(Lit::Num(n)) => assert_eq!(n.value, 10.0),
       _ => panic!("Expected unwrapped number literal"),
@@ -366,11 +366,11 @@ mod normalize_expr_tests {
       span: DUMMY_SP,
       expr: Box::new(inner),
     });
-    let mut expr = Expr::Paren(ParenExpr {
+    let expr = Expr::Paren(ParenExpr {
       span: DUMMY_SP,
       expr: Box::new(paren1),
     });
-    let result = normalize_expr(&mut expr);
+    let result = normalize_expr(&expr);
     match result {
       Expr::Lit(Lit::Str(s)) => {
         assert_eq!(s.value.as_str().unwrap(), "nested")

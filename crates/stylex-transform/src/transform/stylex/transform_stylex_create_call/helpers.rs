@@ -1,5 +1,5 @@
 use super::*;
-use stylex_ast::ast::convertors::{normalize_expr, normalize_expr_ref};
+use stylex_ast::ast::convertors::normalize_expr;
 
 pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec<DynamicStyle> {
   let expanded_keys_to_key_paths: Vec<DynamicStyle> = dynamic_styles
@@ -72,7 +72,7 @@ fn create_shorthand_key(index: usize) -> String {
 }
 
 pub(super) fn is_safe_to_skip_null_check(expr: &Expr) -> bool {
-  let expr = normalize_expr_ref(expr);
+  let expr = normalize_expr(expr);
 
   match expr {
     Expr::Tpl(_) => true,
@@ -100,19 +100,18 @@ pub(super) fn is_safe_to_skip_null_check(expr: &Expr) -> bool {
   }
 }
 
-pub(super) fn has_explicit_nullish_fallback(expr: &mut Expr) -> bool {
+pub(super) fn has_explicit_nullish_fallback(expr: &Expr) -> bool {
   let expr = normalize_expr(expr);
   match expr {
     Expr::Lit(Lit::Null(_)) => true,
     Expr::Ident(ident) if ident.sym == "undefined" => true,
     Expr::Unary(unary) if matches!(unary.op, UnaryOp::Void) => true,
     Expr::Cond(cond) => {
-      has_explicit_nullish_fallback(&mut cond.cons) || has_explicit_nullish_fallback(&mut cond.alt)
+      has_explicit_nullish_fallback(&cond.cons) || has_explicit_nullish_fallback(&cond.alt)
     },
     Expr::Bin(bin) => match bin.op {
       BinaryOp::LogicalOr | BinaryOp::NullishCoalescing | BinaryOp::LogicalAnd => {
-        has_explicit_nullish_fallback(&mut bin.left)
-          || has_explicit_nullish_fallback(&mut bin.right)
+        has_explicit_nullish_fallback(&bin.left) || has_explicit_nullish_fallback(&bin.right)
       },
       _ => false,
     },

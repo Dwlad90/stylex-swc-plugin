@@ -242,8 +242,8 @@ mod normalize_expr_tests {
 
   #[test]
   fn non_paren_expression_returned_as_is() {
-    let mut expr = make_num_expr(42.0);
-    let result = normalize_expr(&mut expr);
+    let expr = make_num_expr(42.0);
+    let result = normalize_expr(&expr);
 
     match result {
       Expr::Lit(Lit::Num(n)) => assert_eq!(n.value, 42.0),
@@ -254,8 +254,8 @@ mod normalize_expr_tests {
   #[test]
   fn parenthesized_expression_is_unwrapped() {
     let inner = make_num_expr(99.0);
-    let mut expr = wrap_in_paren(inner);
-    let result = normalize_expr(&mut expr);
+    let expr = wrap_in_paren(inner);
+    let result = normalize_expr(&expr);
 
     match result {
       Expr::Lit(Lit::Num(n)) => assert_eq!(n.value, 99.0),
@@ -266,8 +266,8 @@ mod normalize_expr_tests {
   #[test]
   fn nested_parens_unwrapped_recursively() {
     let inner = make_num_expr(7.0);
-    let mut expr = wrap_in_paren(wrap_in_paren(wrap_in_paren(inner)));
-    let result = normalize_expr(&mut expr);
+    let expr = wrap_in_paren(wrap_in_paren(wrap_in_paren(inner)));
+    let result = normalize_expr(&expr);
 
     match result {
       Expr::Lit(Lit::Num(n)) => assert_eq!(n.value, 7.0),
@@ -278,12 +278,12 @@ mod normalize_expr_tests {
   #[test]
   fn span_is_preserved_for_non_paren() {
     let original_span = Span::new(BytePos(10), BytePos(20));
-    let mut expr = Expr::Lit(Lit::Num(Number {
+    let expr = Expr::Lit(Lit::Num(Number {
       span: original_span,
       value: 1.0,
       raw: None,
     }));
-    let result = normalize_expr(&mut expr);
+    let result = normalize_expr(&expr);
 
     match result {
       Expr::Lit(Lit::Num(n)) => {
@@ -298,12 +298,12 @@ mod normalize_expr_tests {
 
   #[test]
   fn string_literal_passes_through() {
-    let mut expr = Expr::Lit(Lit::Str(Str {
+    let expr = Expr::Lit(Lit::Str(Str {
       span: DUMMY_SP,
       value: "test".into(),
       raw: None,
     }));
-    let result = normalize_expr(&mut expr);
+    let result = normalize_expr(&expr);
 
     match result {
       Expr::Lit(Lit::Str(s)) => assert_eq!(&*s.value, "test"),
@@ -318,8 +318,8 @@ mod normalize_expr_tests {
       value: "wrapped".into(),
       raw: None,
     }));
-    let mut expr = wrap_in_paren(inner);
-    let result = normalize_expr(&mut expr);
+    let expr = wrap_in_paren(inner);
+    let result = normalize_expr(&expr);
 
     match result {
       Expr::Lit(Lit::Str(s)) => assert_eq!(&*s.value, "wrapped"),

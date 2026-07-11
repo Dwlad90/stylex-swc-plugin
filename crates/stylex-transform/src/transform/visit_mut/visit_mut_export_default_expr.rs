@@ -4,7 +4,7 @@ use swc_core::{
 };
 
 use crate::StyleXTransform;
-use stylex_ast::ast::convertors::normalize_expr;
+use stylex_ast::ast::convertors::normalize_expr_mut;
 use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
@@ -23,7 +23,7 @@ where
     if self.state.cycle == TransformationCycle::TransformProducers
       || self.state.cycle == TransformationCycle::TransformConsumers
     {
-      let normalized_expr = normalize_expr(&mut export_default_expr.expr);
+      let normalized_expr = normalize_expr_mut(&mut export_default_expr.expr);
 
       if let Some(value) = self.transform_call_expression(normalized_expr) {
         *export_default_expr.expr = value;

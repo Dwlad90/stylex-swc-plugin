@@ -76,7 +76,7 @@ where
 
                   let mut nullish_var_expressions: FxHashMap<String, Expr> = FxHashMap::default();
                   for dynamic_style in dynamic_styles.iter() {
-                    if has_explicit_nullish_fallback(&mut dynamic_style.expression.clone()) {
+                    if has_explicit_nullish_fallback(&dynamic_style.expression) {
                       nullish_var_expressions
                         .insert(dynamic_style.var_name.clone(), dynamic_style.expression.clone());
                     }

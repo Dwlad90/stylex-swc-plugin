@@ -61,17 +61,33 @@ pub fn convert_member_prop_to_string(prop: &MemberProp) -> Option<String> {
   match prop {
     MemberProp::Ident(ident) => Some(ident.sym.to_string()),
     MemberProp::Computed(computed) => {
-      convert_static_member_key_expr_to_string(normalize_expr_ref(computed.expr.as_ref()))
+      convert_static_member_key_expr_to_string(normalize_expr(computed.expr.as_ref()))
     },
     MemberProp::PrivateName(_) => None,
   }
 }
 
-pub fn normalize_expr_ref(expr: &Expr) -> &Expr {
-  match expr {
-    Expr::Paren(paren) => normalize_expr_ref(paren.expr.as_ref()),
-    _ => expr,
+/// Unwraps parenthesized expressions, returning a reference to the innermost
+/// non-paren expression. Spans are preserved. Use [`normalize_expr_mut`] when
+/// the caller needs to mutate the unwrapped node.
+pub fn normalize_expr(mut expr: &Expr) -> &Expr {
+  while let Expr::Paren(paren) = expr {
+    expr = paren.expr.as_ref();
   }
+  expr
+}
+
+/// Mutable counterpart to [`normalize_expr`]: unwraps parenthesized
+/// expressions, returning a mutable reference to the innermost non-paren
+/// expression. Spans are preserved, so callers that depend on position
+/// information (span containment, or span-insensitive comparison via
+/// `eq_ignore_span`) keep working on the returned node. This is the
+/// read/mutate counterpart to [`crate::ast::factories::wrap_in_paren`].
+pub fn normalize_expr_mut(mut expr: &mut Expr) -> &mut Expr {
+  while let Expr::Paren(paren) = expr {
+    expr = paren.expr.as_mut();
+  }
+  expr
 }
 
 fn convert_static_member_key_expr_to_string(expr: &Expr) -> Option<String> {
@@ -339,18 +355,6 @@ pub fn get_key_values_from_object(object: &ObjectLit) -> Vec<KeyValueProp> {
       },
     })
     .collect()
-}
-
-/// Unwraps parenthesized expressions, returning a reference to the innermost
-/// non-paren expression. Spans are preserved, so callers that depend on
-/// position information (span containment, or span-insensitive comparison via
-/// `eq_ignore_span`) keep working on the returned node. This is the read/mutate
-/// counterpart to [`crate::ast::factories::wrap_in_paren`].
-pub fn normalize_expr(expr: &mut Expr) -> &mut Expr {
-  match expr {
-    Expr::Paren(paren) => normalize_expr(paren.expr.as_mut()),
-    _ => expr,
-  }
 }
 
 /// Extracts the initializer expression from a variable declarator.

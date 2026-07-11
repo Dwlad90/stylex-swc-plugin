@@ -104,7 +104,7 @@ pub fn evaluate_stylex_create_arg(
                       .filter_map(|param| param.as_ident().cloned())
                       .collect::<Vec<BindingIdent>>();
 
-                    match fn_path.body.as_mut() {
+                    match fn_path.body.as_ref() {
                       BlockStmtOrExpr::Expr(expr) => {
                         if let Expr::Object(fn_body_object) = normalize_expr(expr) {
                           let eval_result = evaluate_partial_object_recursively(
@@ -294,8 +294,8 @@ fn evaluate_partial_object_recursively(
               }
             }
 
-            let value_path = &mut key_value.value;
-            match normalize_expr(value_path.as_mut()) {
+            let value_path = &key_value.value;
+            match normalize_expr(value_path.as_ref()) {
               Expr::Object(object) => {
                 let mut key_path = key_path.clone();
 

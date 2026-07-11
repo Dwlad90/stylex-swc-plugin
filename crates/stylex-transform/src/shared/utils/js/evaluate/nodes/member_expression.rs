@@ -103,7 +103,7 @@ pub(in super::super) fn evaluate(
               None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
             };
 
-            let mut ident = match eval_res {
+            let ident = match eval_res {
               EvaluateResultValue::Expr(ident) => ident,
               EvaluateResultValue::ThemeRef(theme) => {
                 // NOTE: it's a very edge case, but it's possible to have a theme ref as a key
@@ -136,8 +136,7 @@ pub(in super::super) fn evaluate(
               },
             };
 
-            let ident = &mut ident;
-            let normalized_ident = normalize_expr(ident);
+            let normalized_ident = normalize_expr(&ident);
 
             let ident_string_name = match normalized_ident {
               Expr::Ident(ident) => ident.sym.to_string(),

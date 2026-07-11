@@ -261,7 +261,7 @@ fn evaluate_with_functions(
 }
 
 fn _evaluate(
-  path: &mut Expr,
+  path: &Expr,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,

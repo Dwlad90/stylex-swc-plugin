@@ -524,20 +524,56 @@ fn convert_member_prop_to_string_returns_none_for_non_literal_and_private() {
 #[test]
 fn normalize_expr_unwraps_nested_parens() {
   let inner = create_string_expr("x");
-  let mut expr = Expr::Paren(ParenExpr {
+  let expr = Expr::Paren(ParenExpr {
     span: DUMMY_SP,
     expr: Box::new(Expr::Paren(ParenExpr {
       span: DUMMY_SP,
       expr: Box::new(inner),
     })),
   });
-  assert!(matches!(normalize_expr(&mut expr), Expr::Lit(Lit::Str(_))));
+  assert!(matches!(normalize_expr(&expr), Expr::Lit(Lit::Str(_))));
 }
 
 #[test]
 fn normalize_expr_passthrough_non_paren() {
-  let mut expr = create_string_expr("x");
-  assert!(matches!(normalize_expr(&mut expr), Expr::Lit(Lit::Str(_))));
+  let expr = create_string_expr("x");
+  assert!(matches!(normalize_expr(&expr), Expr::Lit(Lit::Str(_))));
+}
+
+#[test]
+fn normalize_expr_mut_allows_mutating_inner_expr() {
+  let mut expr = Expr::Paren(ParenExpr {
+    span: DUMMY_SP,
+    expr: Box::new(create_string_expr("before")),
+  });
+  *normalize_expr_mut(&mut expr) = create_string_expr("after");
+  match &expr {
+    Expr::Paren(paren) => match paren.expr.as_ref() {
+      Expr::Lit(Lit::Str(s)) => assert_eq!(s.value.as_str(), Some("after")),
+      other => panic!("Expected string literal inside paren, got {other:?}"),
+    },
+    other => panic!("Expected paren wrapper to remain, got {other:?}"),
+  }
+}
+
+#[test]
+fn normalize_expr_handles_deeply_nested_parens_without_recursion() {
+  let mut expr = create_string_expr("before");
+  for _ in 0..16_384 {
+    expr = Expr::Paren(ParenExpr {
+      span: DUMMY_SP,
+      expr: Box::new(expr),
+    });
+  }
+
+  assert!(matches!(normalize_expr(&expr), Expr::Lit(Lit::Str(_))));
+  *normalize_expr_mut(&mut expr) = create_string_expr("after");
+
+  // Consume the chain iteratively as well so test cleanup does not recurse.
+  while let Expr::Paren(paren) = expr {
+    expr = *paren.expr;
+  }
+  assert!(matches!(expr, Expr::Lit(Lit::Str(_))));
 }
 
 #[test]

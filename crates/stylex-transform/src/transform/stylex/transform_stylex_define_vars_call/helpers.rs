@@ -1,4 +1,5 @@
 use rustc_hash::{FxHashMap, FxHashSet};
+use stylex_ast::ast::convertors::normalize_expr;
 use stylex_constants::constants::{
   api_names::STYLEX_DEFINE_VARS,
   messages::{
@@ -121,7 +122,7 @@ struct DependencyVisitor<'a> {
 
 impl<'a> Visit for DependencyVisitor<'a> {
   fn visit_member_expr(&mut self, member: &MemberExpr) {
-    if let Expr::Ident(obj_ident) = unwrap_parens(member.obj.as_ref())
+    if let Expr::Ident(obj_ident) = normalize_expr(member.obj.as_ref())
       && obj_ident.sym.as_ref() == self.export_name
     {
       match &member.prop {
@@ -129,7 +130,7 @@ impl<'a> Visit for DependencyVisitor<'a> {
           self.deps.insert(prop_ident.sym.clone());
         },
         MemberProp::Computed(computed) => {
-          if let Expr::Lit(Lit::Str(s)) = unwrap_parens(computed.expr.as_ref())
+          if let Expr::Lit(Lit::Str(s)) = normalize_expr(computed.expr.as_ref())
             && let Some(s) = s.value.as_str()
           {
             self.deps.insert(Atom::from(s));
@@ -140,17 +141,6 @@ impl<'a> Visit for DependencyVisitor<'a> {
     }
     member.visit_children_with(self);
   }
-}
-
-/// Walks through any number of `Expr::Paren` wrappers and returns the inner
-/// expression. Mirrors the read-only side of `normalize_expr` so visitors that
-/// pattern-match on specific expression kinds don't miss parenthesized forms
-/// like `(colors).text`.
-fn unwrap_parens(mut expr: &Expr) -> &Expr {
-  while let Expr::Paren(p) = expr {
-    expr = p.expr.as_ref();
-  }
-  expr
 }
 
 /// DFS-based cycle detection on the dependency graph.

@@ -4,7 +4,7 @@ use swc_core::{
 };
 
 use crate::StyleXTransform;
-use stylex_ast::ast::convertors::normalize_expr;
+use stylex_ast::ast::convertors::normalize_expr_mut;
 use stylex_enums::core::TransformationCycle;
 
 impl<C> StyleXTransform<C>
@@ -12,7 +12,7 @@ where
   C: Comments,
 {
   pub(crate) fn visit_mut_expr_impl(&mut self, expr: &mut Expr) {
-    let normalized_expr = normalize_expr(expr);
+    let normalized_expr = normalize_expr_mut(expr);
 
     // During Discover, transform compiled JSX/VDOM calls with sx prop and
     // register call expressions for downstream lookup:

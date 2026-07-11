@@ -24,6 +24,11 @@ type GlobalWithRegistry = typeof globalThis & {
  *
  * Requires `experimental.webpackBuildWorker` to be disabled — separate worker
  * processes don't share `globalThis`.
+ *
+ * Dev-mode caveat: compilers build on demand, so the client compilation may
+ * finalize before a server compiler has republished fresh rules; the merged
+ * CSS catches up on the next client invalidation. Production builds are
+ * unaffected — Next.js runs the compilers sequentially in one process.
  */
 export function publishStyleXRules(
   registryKey: string | undefined,

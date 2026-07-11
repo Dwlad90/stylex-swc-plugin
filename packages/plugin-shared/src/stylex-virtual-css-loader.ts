@@ -10,16 +10,16 @@ export default function (
 ) {
   const callback = this.async();
 
-  // The dummy content depends on the rules of the importing module, which
-  // change without this module's resource changing — never cache it, so HMR
-  // and Next.js navigation pick up style edits.
-  this.cacheable(false);
-
   if (this._compiler?.options.mode === 'production') {
     // In production the real CSS replaces the chunk asset during
-    // processAssets; the dummy content is never needed.
+    // processAssets; the pass-through content is stable and cacheable.
     return callback(null, inputCode, inputSourceMap);
   }
+
+  // Development only: the dummy content depends on the rules of the importing
+  // module, which change without this module's resource changing — never
+  // cache it, so HMR and Next.js navigation pick up style edits.
+  this.cacheable(false);
 
   const data = new URLSearchParams(this.resourceQuery.slice(1));
 

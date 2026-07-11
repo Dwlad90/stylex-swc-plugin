@@ -221,6 +221,11 @@ export default withStylexTurbopack({
   relative to the project directory. Replaces the default packaged carrier.
   When styles are extracted but no carrier asset exists to receive them, the
   build raises a compilation warning instead of silently dropping the CSS.
+- Note: carrier matching compares resolved absolute paths, which assumes the
+  default symlink resolution. With `resolve.symlinks: false` or
+  `node --preserve-symlinks`, Node and the bundler can disagree about the
+  carrier's real path — if the missing-carrier warning appears in such a
+  setup, point `carrierCss` at a file inside your own source tree.
 
 ### Advanced Options
 

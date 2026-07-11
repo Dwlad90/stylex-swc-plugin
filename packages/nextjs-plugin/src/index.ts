@@ -104,7 +104,11 @@ const withStyleX =
 
     // The App Router cross-compiler rule registry lives on `globalThis`, so
     // the client/server/edge-server compilers must share one build process.
-    if (nextConfig.experimental?.webpackBuildWorker) {
+    // Only enforced when the registry is in use — Pages Router builds
+    // (`nextjsAppRouterMode: false`) keep the user's setting.
+    const useAppRouterRegistry = pluginOptions?.nextjsAppRouterMode ?? true;
+
+    if (useAppRouterRegistry && nextConfig.experimental?.webpackBuildWorker) {
       warn(
         '@stylexswc/nextjs-plugin: disabling "experimental.webpackBuildWorker" — the StyleX cross-compiler rule registry requires all compilers to run in a single process.'
       );
@@ -112,10 +116,14 @@ const withStyleX =
 
     return {
       ...nextConfig,
-      experimental: {
-        ...nextConfig.experimental,
-        webpackBuildWorker: false,
-      },
+      ...(useAppRouterRegistry
+        ? {
+            experimental: {
+              ...nextConfig.experimental,
+              webpackBuildWorker: false,
+            },
+          }
+        : {}),
       webpack(
         config: webpack.Configuration & WebpackConfigurationContext,
         ctx: WebpackConfigContext
@@ -126,16 +134,11 @@ const withStyleX =
 
         const { buildId, dev, isServer } = ctx;
 
+        count += 1;
+
         if (pluginOptions?.rsOptions?.debug || process.env.STYLEX_DEBUG) {
-          console.log(
-            [
-              '!!!GETTING WEBPACK CONFIG!!!',
-              '======================',
-              `Count: ${++count}`,
-              `Build ID: ${buildId}`,
-              `Server: ${isServer}`,
-              `Env: ${dev ? 'dev' : 'prod'}`,
-            ].join('\n')
+          warn(
+            `@stylexswc/nextjs-plugin: webpack config #${count} (buildId=${buildId}, server=${isServer}, env=${dev ? 'dev' : 'prod'})`
           );
         }
 
@@ -146,6 +149,13 @@ const withStyleX =
         config.optimization.splitChunks.cacheGroups ||= {};
 
         const extractCSS = pluginOptions?.extractCSS ?? true;
+
+        // Resolved once and shared by the css rule test below and the plugin
+        // (via `carrierCss`), so the two can never disagree about the carrier
+        // location when `compiler.context` differs from the project dir
+        const carrierPath = pluginOptions?.carrierCss
+          ? path.resolve(ctx.dir, pluginOptions.carrierCss)
+          : require.resolve('@stylexswc/webpack-plugin/stylex.css');
 
         config.plugins ??= [];
 
@@ -191,9 +201,6 @@ const withStyleX =
             );
           }
 
-          const carrierPath = pluginOptions?.carrierCss
-            ? path.resolve(ctx.dir, pluginOptions.carrierCss)
-            : require.resolve('@stylexswc/webpack-plugin/stylex.css');
           // Here we matches virtual css file emitted by StyleXPlugin
           // (carrier + HMR dummies; honors a custom `carrierCss` path)
           cssRules.unshift({
@@ -259,6 +266,9 @@ const withStyleX =
             nextjsMode: true,
             nextjsAppRouterMode: true,
             ...pluginOptions,
+            // Pre-resolved absolute path: the plugin's chunk pattern and the
+            // css rule above can never disagree about the carrier location
+            ...(pluginOptions?.carrierCss ? { carrierCss: carrierPath } : {}),
             // Computed values always win: `dev` must reflect this Next.js
             // build, and stylexPackages merges in transpilePackages
             stylexPackages,

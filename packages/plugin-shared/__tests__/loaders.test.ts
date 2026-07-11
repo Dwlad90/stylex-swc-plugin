@@ -34,13 +34,11 @@ function createStylexLoaderContext(options?: Partial<StyleXLoaderOptions>) {
       extractCSS: true,
       ...options,
     }),
-    async:
-      () =>
-      (error: Error | null | undefined, code?: string | Buffer, map?: unknown) => {
-        result.error = error;
-        result.code = code;
-        result.map = map;
-      },
+    async: () => (error: Error | null | undefined, code?: string | Buffer, map?: unknown) => {
+      result.error = error;
+      result.code = code;
+      result.map = map;
+    },
     utils: {
       // emulates webpack's contextify: absolute requests become relative
       contextify: (contextDir: string, request: string) => {
@@ -121,7 +119,8 @@ describe('stylex-loader', () => {
     await stylexLoader.call(context, fixtureSource, undefined);
 
     expect(String(result.code)).not.toContain('stylex-virtual.css');
-    expect(String(result.code)).not.toContain(LOADER_TRANSFORMED_FLAG);
+    // still transformed — the double-transform guard must hold here too
+    expect(String(result.code)).toContain(LOADER_TRANSFORMED_FLAG);
   });
 });
 
@@ -132,13 +131,11 @@ function createVirtualCssLoaderContext(mode: 'development' | 'production', resou
   const context = {
     resourceQuery,
     cacheable,
-    async:
-      () =>
-      (error: Error | null | undefined, code?: string | Buffer, map?: unknown) => {
-        result.error = error;
-        result.code = code;
-        result.map = map;
-      },
+    async: () => (error: Error | null | undefined, code?: string | Buffer, map?: unknown) => {
+      result.error = error;
+      result.code = code;
+      result.map = map;
+    },
     _compiler: { options: { mode } },
   };
 
@@ -163,12 +160,14 @@ describe('stylex-virtual-css-loader', () => {
     expect(String(result.code)).toMatch(/\.stylex-hashed-[A-Za-z0-9]+ \{\}/);
   });
 
-  test('passes through in production', () => {
-    const { context, result } = createVirtualCssLoaderContext('production', stylexQuery);
+  test('passes through in production and stays cacheable', () => {
+    const { context, result, cacheable } = createVirtualCssLoaderContext('production', stylexQuery);
 
     stylexVirtualCssLoader.call(context, '/* dummy */', undefined);
 
     expect(result.code).toBe('/* dummy */');
+    // the pass-through output is stable — it must not defeat the fs cache
+    expect(cacheable).not.toHaveBeenCalled();
   });
 
   test('passes through without a stylex query', () => {

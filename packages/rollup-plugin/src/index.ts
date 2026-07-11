@@ -106,11 +106,20 @@ export default function stylexPlugin({
       }
 
       // The combined map of all previous plugins lets the compiler resolve
-      // debug source-map annotations to the original authored file, and lets
-      // it chain its emitted map onto it. Rollup resets the sourcemap chain
-      // when `getCombinedSourcemap` is used, so returning the chained map is
-      // the expected contract.
-      if (normalizedRsOptions.inputSourceMap === undefined) {
+      // debug source-map annotations to the original authored file. The
+      // compiler only reads it for those annotations (`debug` +
+      // `enableDebugDataProp`); plain map chaining is handled by Rollup
+      // itself when the plugin returns its own map. Fetching it
+      // unconditionally is expensive: with no previous maps Rollup
+      // synthesizes a hi-res map of the whole module, which then gets
+      // stringified, re-parsed and cloned per module. Rollup resets the
+      // sourcemap chain when `getCombinedSourcemap` is used, so returning
+      // the chained map is the expected contract.
+      const needsInputSourceMap =
+        (normalizedRsOptions.debug ?? normalizedRsOptions.dev) === true &&
+        normalizedRsOptions.enableDebugDataProp !== false;
+
+      if (needsInputSourceMap && normalizedRsOptions.inputSourceMap === undefined) {
         try {
           const combinedMap = this.getCombinedSourcemap();
 

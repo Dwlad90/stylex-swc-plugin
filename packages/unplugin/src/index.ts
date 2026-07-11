@@ -241,10 +241,20 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       try {
         // Only Rollup-compatible hosts (Rollup, Vite) expose the combined
         // source map of previous plugins; other bundlers fall back to
-        // locating positions in the source text.
+        // locating positions in the source text. The compiler only reads
+        // the input map for debug source-map annotations (`debug` +
+        // `enableDebugDataProp`) — plain map chaining is handled by the
+        // host — and fetching it unconditionally is expensive: with no
+        // previous maps Rollup synthesizes a hi-res map of the whole
+        // module, which then gets stringified, re-parsed and cloned per
+        // module.
         let inputSourceMap: string | undefined;
 
-        if (hasCombinedSourcemap(this)) {
+        const needsInputSourceMap =
+          (normalizedOptions.rsOptions.debug ?? normalizedOptions.rsOptions.dev) === true &&
+          normalizedOptions.rsOptions.enableDebugDataProp !== false;
+
+        if (needsInputSourceMap && hasCombinedSourcemap(this)) {
           try {
             const combinedMap = this.getCombinedSourcemap();
 

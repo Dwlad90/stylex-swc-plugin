@@ -17,8 +17,7 @@ function createMockCompiler(chunkModules: Array<{ identifier: () => string }> = 
   };
 
   let finishModulesCallback:
-    | ((_modules: Iterable<{ identifier: () => string }>) => void)
-    | undefined;
+    ((_modules: Iterable<{ identifier: () => string }>) => void) | undefined;
   let processAssetsCallback: ((_assets: Record<string, Source>) => Promise<void>) | undefined;
 
   const warnings: Error[] = [];
@@ -266,6 +265,20 @@ describe('@stylexswc/rspack-plugin', () => {
     const carrierRule = rules[2];
     expect(carrierRule?.sideEffects).toBe(true);
     expect((carrierRule?.test as RegExp).test(resolved)).toBe(true);
+  });
+
+  test('default cache group matches only the packaged carrier stylesheet', () => {
+    const plugin = new StyleXPlugin();
+    const { compiler } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as Compiler);
+
+    const test = compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME]
+      ?.test as RegExp;
+
+    expect(test.test(require.resolve('../src/stylex.css'))).toBe(true);
+    expect(test.test(path.join(path.sep, 'project', 'src', 'my-stylex.css'))).toBe(false);
+    expect(test.test(path.join(path.sep, 'project', 'src', 'stylex.css'))).toBe(false);
   });
 
   test('scopes node_modules to the stylexPackages allowlist', () => {

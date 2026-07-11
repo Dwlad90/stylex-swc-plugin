@@ -5,5 +5,4 @@ import 'stylex-carrier.css';
 import { appProps } from './App';
 import { buttonProps } from './Button';
 
- 
 console.log(appProps(), buttonProps());

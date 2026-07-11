@@ -17,15 +17,13 @@ import type webpack from 'webpack';
 export const STYLEX_CHUNK_NAME = '_stylex-webpack-generated';
 
 const PACKAGE_NAME = '@stylexswc/webpack-plugin';
+const DEFAULT_CARRIER_PATH = require.resolve('./stylex.css');
 
 export default class StyleXPlugin extends StyleXPluginCore {
   apply(compiler: webpack.Compiler) {
-    this.resolveCarrier(compiler.context);
-    this.assertAndInstallCacheGroup(
-      compiler.options.optimization,
-      PACKAGE_NAME,
-      STYLEX_CHUNK_NAME
-    );
+    this.resolveCarrier(compiler.context, DEFAULT_CARRIER_PATH);
+    const chunkName = this.getChunkName(STYLEX_CHUNK_NAME);
+    this.assertAndInstallCacheGroup(compiler.options.optimization, PACKAGE_NAME, chunkName);
     this.resolveDevOption(compiler.options.mode);
 
     const carrierPattern = this.getCarrierPattern();
@@ -54,42 +52,45 @@ export default class StyleXPlugin extends StyleXPluginCore {
       });
 
       // Apply loader to JS modules.
-      NormalModule.getCompilationHooks(compilation).loader.tap(PLUGIN_NAME, (_loaderContext, mod) => {
-        const modResource = mod.matchResource || mod.resource;
-        const extname = path.extname(modResource);
+      NormalModule.getCompilationHooks(compilation).loader.tap(
+        PLUGIN_NAME,
+        (_loaderContext, mod) => {
+          const modResource = mod.matchResource || mod.resource;
+          const extname = path.extname(modResource);
 
-        if (INCLUDE_REGEXP.test(extname)) {
-          // Add path filtering check, including the node_modules allowlist
-          if (!this.shouldProcessFile(mod.resource)) {
-            return;
+          if (INCLUDE_REGEXP.test(extname)) {
+            // Add path filtering check, including the node_modules allowlist
+            if (!this.shouldProcessFile(mod.resource)) {
+              return;
+            }
+
+            // Webpack runs loaders in reverse order, so `push` makes the
+            // stylex-loader run before anything else ('first').
+            const insertMethod = this.loaderOrder === 'last' ? 'unshift' : 'push';
+
+            mod.loaders[insertMethod]({
+              loader: stylexLoaderPath,
+              options: this.loaderOption,
+              ident: null,
+              type: null,
+            });
+          } else if (VIRTUAL_STYLEX_CSS_DUMMY_IMPORT_PATTERN.test(modResource)) {
+            mod.loaders.push({
+              loader: stylexVirtualCssLoaderPath,
+              options: {},
+              ident: null,
+              type: null,
+            });
           }
-
-          // Webpack runs loaders in reverse order, so `push` makes the
-          // stylex-loader run before anything else ('first').
-          const insertMethod = this.loaderOrder === 'last' ? 'unshift' : 'push';
-
-          mod.loaders[insertMethod]({
-            loader: stylexLoaderPath,
-            options: this.loaderOption,
-            ident: null,
-            type: null,
-          });
-        } else if (VIRTUAL_STYLEX_CSS_DUMMY_IMPORT_PATTERN.test(modResource)) {
-          mod.loaders.push({
-            loader: stylexVirtualCssLoaderPath,
-            options: {},
-            ident: null,
-            type: null,
-          });
         }
-      });
+      );
 
       // webpack rule transport: buildInfo written by the stylex-loader is
       // restored from the filesystem cache together with the module, so this
       // also sees rules of modules whose loaders didn't re-run.
       compilation.hooks.finishModules.tap(PLUGIN_NAME, modules => {
         this.collectFromBuildInfo(modules);
-        this.publishNextjsRegistry(compiler.name);
+        this.publishNextjsRegistry(compiler.context, compiler.name);
       });
 
       compilation.hooks.processAssets.tapPromise(
@@ -98,11 +99,11 @@ export default class StyleXPlugin extends StyleXPluginCore {
           stage: Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS,
         },
         async assets => {
-          this.mergeNextjsRegistry(compiler.name);
+          this.mergeNextjsRegistry(compiler.context, compiler.name);
 
           await this.finalizeStylexAsset({
             assets,
-            chunkName: STYLEX_CHUNK_NAME,
+            chunkName,
             compilerName: compiler.name,
             carrierHint: this.carrierCss
               ? `import '${this.carrierCss}'`

@@ -16,16 +16,18 @@ import type { Compiler, sources } from '@rspack/core';
 export const STYLEX_CHUNK_NAME = '_stylex-rspack-generated';
 
 const PACKAGE_NAME = '@stylexswc/rspack-plugin';
+const DEFAULT_CARRIER_PATH = require.resolve('./stylex.css');
 
 export default class StyleXPlugin extends StyleXPluginCore {
   apply(compiler: Compiler) {
-    this.resolveCarrier(compiler.context);
+    this.resolveCarrier(compiler.context, DEFAULT_CARRIER_PATH);
+    const chunkName = this.getChunkName(STYLEX_CHUNK_NAME);
     this.assertAndInstallCacheGroup(
       compiler.options.optimization as {
         splitChunks?: false | { cacheGroups?: Record<string, CacheGroupOptions> };
       },
       PACKAGE_NAME,
-      STYLEX_CHUNK_NAME
+      chunkName
     );
     this.resolveDevOption(compiler.options.mode);
 
@@ -80,7 +82,7 @@ export default class StyleXPlugin extends StyleXPluginCore {
       // drops rules of files that were deleted or stopped importing stylex.
       compilation.hooks.finishModules.tap(PLUGIN_NAME, modules => {
         this.replaceFromChunkModuleIdentifiers(modules);
-        this.publishNextjsRegistry(compiler.name);
+        this.publishNextjsRegistry(compiler.context, compiler.name);
       });
 
       compilation.hooks.processAssets.tapPromise(
@@ -89,7 +91,7 @@ export default class StyleXPlugin extends StyleXPluginCore {
           stage: Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS,
         },
         async assets => {
-          const stylexChunk = compilation.namedChunks.get(STYLEX_CHUNK_NAME);
+          const stylexChunk = compilation.namedChunks.get(chunkName);
 
           if (stylexChunk != null) {
             // Refresh from the stylex chunk's own modules: the chunk graph is
@@ -101,11 +103,11 @@ export default class StyleXPlugin extends StyleXPluginCore {
             );
           }
 
-          this.mergeNextjsRegistry(compiler.name);
+          this.mergeNextjsRegistry(compiler.context, compiler.name);
 
           await this.finalizeStylexAsset({
             assets,
-            chunkName: STYLEX_CHUNK_NAME,
+            chunkName,
             compilerName: compiler.name,
             carrierHint: this.carrierCss
               ? `import '${this.carrierCss}'`

@@ -5,7 +5,8 @@ import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
 
 export type StyleXRulesMap = Map<string, readonly StyleXRule[]>;
 
-type NextJsGlobalRegistry = Map<NextJsCompilerName, StyleXRulesMap>;
+type NextJsCompilerRegistry = Map<NextJsCompilerName, StyleXRulesMap>;
+type NextJsGlobalRegistry = Map<string, NextJsCompilerRegistry>;
 
 const REGISTRY_KEY = '__stylexswc_nextjs_global_registry__';
 
@@ -25,28 +26,33 @@ type GlobalWithRegistry = typeof globalThis & {
  * processes don't share `globalThis`.
  */
 export function publishStyleXRules(
+  registryKey: string | undefined,
   compilerName: string | undefined,
   rules: StyleXRulesMap
 ): void {
-  if (!isNextJsCompilerName(compilerName)) {
+  if (!registryKey || !isNextJsCompilerName(compilerName)) {
     return;
   }
 
   const holder = globalThis as GlobalWithRegistry;
 
   holder[REGISTRY_KEY] ??= new Map();
-  holder[REGISTRY_KEY].set(compilerName, rules);
+  const compilerRegistry = holder[REGISTRY_KEY].get(registryKey) ?? new Map();
+
+  compilerRegistry.set(compilerName, rules);
+  holder[REGISTRY_KEY].set(registryKey, compilerRegistry);
 }
 
 export function mergeStyleXRulesInto(
+  registryKey: string | undefined,
   compilerName: string | undefined,
   target: StyleXRulesMap
 ): void {
-  if (compilerName !== NEXTJS_COMPILER_NAMES.client) {
+  if (!registryKey || compilerName !== NEXTJS_COMPILER_NAMES.client) {
     return;
   }
 
-  const registry = (globalThis as GlobalWithRegistry)[REGISTRY_KEY];
+  const registry = (globalThis as GlobalWithRegistry)[REGISTRY_KEY]?.get(registryKey);
 
   registry?.forEach(rulesMap => {
     if (rulesMap === target) {

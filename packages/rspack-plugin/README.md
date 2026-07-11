@@ -62,6 +62,41 @@ const config = (env, argv) => ({
 module.exports = config;
 ```
 
+Then import the carrier stylesheet **once** at the entry point of your app
+(e.g. `index.js`, `App.tsx`):
+
+```js
+import '@stylexswc/rspack-plugin/stylex.css';
+```
+
+The plugin replaces this asset's content with the extracted StyleX CSS during
+the build. Like a regular CSS file, it must flow through your CSS pipeline, so
+a `css-loader` + `CssExtractRspackPlugin.loader` rule has to cover `.css`
+files.
+
+The carrier import is a **recommendation, not a hard requirement**. The plugin
+also appends tiny per-module CSS imports to every StyleX module, so any part
+of the bundle that renders a StyleX component pulls the stylesheet in on its
+own — most builds emit correct CSS even without the carrier. What the carrier
+adds is a guarantee that doesn't depend on your module graph: the stylesheet
+is always present and loaded with the entrypoint. That matters when something
+consumes StyleX **output** without rendering a StyleX **component** — plain
+CSS reading `defineVars` custom properties (`var(--x…)`), or injected markup
+carrying StyleX class names. If styles would actually be lost (no CSS asset
+exists to receive them at all), the plugin raises a compilation warning; it
+stays silent as long as the output is correct, carrier or not.
+
+> [!IMPORTANT]
+> **Migrating from 0.17.x**: version 0.18.0 reworks the CSS extraction
+> architecture. The CSS is no longer injected through auto-generated
+> `stylex.virtual.css` imports — add the
+> `import '@stylexswc/rspack-plugin/stylex.css';` carrier import to your app
+> entrypoint (recommended; see above for when you can skip it). The package no
+> longer depends on `@stylexswc/webpack-plugin`; shared logic lives in
+> `@stylexswc/plugin-shared`. Paths embedded in module identifiers are now
+> relative to `compiler.context`, which changes chunk hashes once and makes
+> builds reproducible across machines.
+
 ## Loader behavior
 
 Rspack computes loader lists natively, so the plugin registers a static module
@@ -173,6 +208,28 @@ split into files, cached, or grouped.
 - Default: `['@stylexjs/']`
 
 `node_modules` path fragments that must be processed by the StyleX loader.
+
+### `carrierCss`
+
+- Type: `string`
+- Default: the packaged `@stylexswc/rspack-plugin/stylex.css`
+
+Path to a custom carrier stylesheet that receives the extracted StyleX CSS —
+the file you import once at your app entrypoint. Absolute, or relative to
+`compiler.context`. Replaces the default packaged carrier: useful when another
+file named `stylex.css` in your project would collide with the default
+filename pattern, or when you want the carrier to live in your own source
+tree.
+
+```js
+new StylexPlugin({
+  carrierCss: './src/styles/stylex-carrier.css',
+});
+```
+
+If styles get extracted but no CSS asset is emitted to receive them (e.g. a
+custom `cacheGroup` renamed the chunk), the plugin raises a compilation
+warning instead of silently dropping the CSS.
 
 ## FAQ
 

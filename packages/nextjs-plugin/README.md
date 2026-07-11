@@ -36,6 +36,45 @@ npm install @stylexjs/stylex
 The plugin supports all three Next.js bundlers. Pick the export that matches
 your setup.
 
+For the Webpack and Rspack integrations, import the carrier stylesheet
+**once** at your app entrypoint — the root layout (`app/layout.tsx`) for the
+App Router, or `pages/_app.tsx` for the Pages Router:
+
+```tsx
+// App Router: app/layout.tsx (Webpack)
+import '@stylexswc/webpack-plugin/stylex.css';
+// or for the /rspack export:
+import '@stylexswc/rspack-plugin/stylex.css';
+```
+
+The plugin replaces this asset's content with the extracted StyleX CSS during
+the build.
+
+The carrier import is a **recommendation, not a hard requirement**. The plugin
+also appends tiny per-module CSS imports to every StyleX module, so any route
+that renders a StyleX component — statically imported, behind `next/dynamic`,
+or a Server Component — links the stylesheet on its own. What the carrier in
+the root layout adds is a guarantee that doesn't depend on the module graph:
+**every** route links the stylesheet, including routes that render no StyleX
+component at all (a plain 404 page, for example). Without the carrier, such
+routes omit the stylesheet — harmless if they truly consume nothing from it,
+broken if they consume StyleX output indirectly: plain CSS reading
+`defineVars` custom properties (`var(--x…)`), or injected markup carrying
+StyleX class names. If styles would actually be lost (no CSS asset exists to
+receive them at all), the build raises a compilation warning; it stays silent
+as long as the output is correct, carrier or not.
+
+> [!IMPORTANT]
+> **Migrating from 0.17.x**: version 0.18.0 replaces the auto-injected
+> `stylex.virtual.css` imports with the carrier contract above — add the
+> carrier import to your root layout / `_app` (recommended; see above for
+> when you can skip it). The App Router cross-compiler rule registry is now
+> enabled by default (`nextjsAppRouterMode: true`), so styles authored in
+> Server Components reach the client CSS; pass `nextjsAppRouterMode: false`
+> when using the Pages Router. `experimental.webpackBuildWorker` is
+> force-disabled because the registry requires all compilers to share one
+> process.
+
 ### Using with Webpack
 
 For standard Next.js Webpack builds, use the default import:
@@ -188,6 +227,22 @@ export default withStylexTurbopack({
 - Default: `true`
 - Description: Controls whether the generated CSS is extracted into a separate
   file. Set to `false` when `@stylexswc/postcss-plugin` owns extraction.
+
+#### `carrierCss`
+
+- Type: `string`
+- Optional
+- Default: the packaged `<plugin package>/stylex.css`
+- Description: Path to a custom carrier stylesheet (the file imported in your
+  root layout / `_app`) that receives the extracted StyleX CSS. Absolute, or
+  relative to the project directory. Replaces the default packaged carrier.
+  When styles are extracted but no CSS asset exists to receive them at all,
+  the build raises a compilation warning instead of silently dropping the CSS.
+- Note: carrier matching compares resolved absolute paths, which assumes the
+  default symlink resolution. With `resolve.symlinks: false` or
+  `node --preserve-symlinks`, Node and the bundler can disagree about the
+  carrier's real path — if the missing-carrier warning appears in such a
+  setup, point `carrierCss` at a file inside your own source tree.
 
 ### Advanced Options
 

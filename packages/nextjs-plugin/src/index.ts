@@ -1,10 +1,11 @@
+import path from 'path';
 import nextMiniCssExtractPluginExports from 'next/dist/build/webpack/plugins/mini-css-extract-plugin';
 import { warn } from 'next/dist/build/output/log';
 import browserslist from 'next/dist/compiled/browserslist';
 import { lazyPostCSS } from 'next/dist/build/webpack/config/blocks/css';
 import StyleXWebpackPlugin, {
   DEFAULT_STYLEX_PACKAGES,
-  VIRTUAL_CSS_PATTERN,
+  buildVirtualCssPattern,
 } from '@stylexswc/webpack-plugin';
 
 import type { NextConfig, WebpackConfigContext } from 'next/dist/server/config-shared';
@@ -93,13 +94,28 @@ function getStyleXVirtualCssLoader(
   return loaders;
 }
 
-let count = 0;
-
 const withStyleX =
   (pluginOptions?: StyleXPluginOption) =>
   (nextConfig: NextConfig = {}): NextConfig => {
+    // Scoped per `withStyleX(...)` call rather than module-level, so it doesn't
+    // leak across unrelated Next.js configs sharing this process (e.g. a
+    // monorepo building multiple apps, or repeated calls in tests).
+    let count = 0;
+
+    // The App Router cross-compiler rule registry lives on `globalThis`, so
+    // the client/server/edge-server compilers must share one build process.
+    if (nextConfig.experimental?.webpackBuildWorker) {
+      warn(
+        '@stylexswc/nextjs-plugin: disabling "experimental.webpackBuildWorker" — the StyleX cross-compiler rule registry requires all compilers to run in a single process.'
+      );
+    }
+
     return {
       ...nextConfig,
+      experimental: {
+        ...nextConfig.experimental,
+        webpackBuildWorker: false,
+      },
       webpack(
         config: webpack.Configuration & WebpackConfigurationContext,
         ctx: WebpackConfigContext
@@ -166,8 +182,13 @@ const withStyleX =
             ) as webpack.RuleSetRule
           ).oneOf;
           // Here we matches virtual css file emitted by StyleXPlugin
+          // (carrier + HMR dummies; honors a custom `carrierCss` path)
           cssRules?.unshift({
-            test: VIRTUAL_CSS_PATTERN,
+            test: buildVirtualCssPattern(
+              pluginOptions?.carrierCss
+                ? path.resolve(ctx.dir, pluginOptions.carrierCss)
+                : undefined
+            ),
             use: getStyleXVirtualCssLoader(ctx, MiniCssExtractPlugin, postcss),
           });
 
@@ -223,14 +244,19 @@ const withStyleX =
 
         config.plugins.push(
           new StyleXWebpackPlugin({
+            // Built-in Next.js defaults come first so user options can
+            // override them (e.g. `nextjsAppRouterMode: false` for the Pages
+            // Router, where each compiler sees the complete rule set)
+            nextjsMode: true,
+            nextjsAppRouterMode: true,
             ...pluginOptions,
+            // Computed values always win: `dev` must reflect this Next.js
+            // build, and stylexPackages merges in transpilePackages
             stylexPackages,
             rsOptions: {
               ...pluginOptions?.rsOptions,
               dev: ctx.dev,
             },
-            // Enforce nextjsMode to true
-            nextjsMode: true,
             ...(extractCSS
               ? {
                   async transformCss(css, filePath) {

@@ -1,5 +1,7 @@
 import 'server-only';
 
+// StyleX carrier stylesheet — replaced with the extracted CSS at build time
+import '@stylexswc/rspack-plugin/stylex.css';
 import './app.css';
 import { globalTokens as $ } from '@/app/globalTokens.stylex';
 import * as stylex from '@stylexjs/stylex';

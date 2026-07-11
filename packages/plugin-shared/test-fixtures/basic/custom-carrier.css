@@ -1,0 +1,5 @@
+/*
+ * Custom carrier stylesheet used by the carrierCss integration tests.
+ * Deliberately NOT named stylex.css — the plugin must match it through the
+ * carrierCss option, not the default filename pattern.
+ */

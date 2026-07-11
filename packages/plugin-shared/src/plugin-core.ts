@@ -18,7 +18,12 @@ import {
 import type { StyleXRulesMap } from './nextjs-registry';
 import type { StyleXOptions, TransformedOptions } from '@stylexswc/rs-compiler';
 import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
-import type { CSSTransformer, CacheGroupOptions, StyleXLoaderOptions, StyleXPluginOption } from './types';
+import type {
+  CSSTransformer,
+  CacheGroupOptions,
+  StyleXLoaderOptions,
+  StyleXPluginOption,
+} from './types';
 
 export type RegisterStyleXRules = (_resourcePath: string, _stylexRules: StyleXRule[]) => void;
 
@@ -65,7 +70,7 @@ export class StyleXPluginCore {
   exclude: StyleXOptions['exclude'];
   /** raw `carrierCss` option; resolved against compiler.context in apply() */
   carrierCss?: string;
-  /** absolute path of the custom carrier, set by resolveCarrier() */
+  /** absolute path of the configured or packaged carrier, set by resolveCarrier() */
   carrierPath?: string;
 
   constructor({
@@ -115,17 +120,14 @@ export class StyleXPluginCore {
   }
 
   /**
-   * Resolves the custom `carrierCss` option against `compiler.context`.
+   * Resolves the configured carrier against `compiler.context`, falling back
+   * to the exact packaged carrier path.
    * Call from apply() before installing the cache group.
    */
-  resolveCarrier(context: string | undefined): void {
-    if (!this.carrierCss) {
-      return;
-    }
-
-    this.carrierPath = path.isAbsolute(this.carrierCss)
-      ? this.carrierCss
-      : path.resolve(context ?? process.cwd(), this.carrierCss);
+  resolveCarrier(context: string | undefined, defaultCarrierPath: string): void {
+    this.carrierPath = this.carrierCss
+      ? path.resolve(context ?? process.cwd(), this.carrierCss)
+      : defaultCarrierPath;
   }
 
   /** Matches everything belonging in the stylex chunk (carrier + dummies). */
@@ -140,6 +142,19 @@ export class StyleXPluginCore {
     }
 
     return VIRTUAL_ENTRYPOINT_CSS_PATTERN;
+  }
+
+  getChunkName(defaultChunkName: string): string {
+    if (
+      typeof this.cacheGroup === 'object' &&
+      this.cacheGroup != null &&
+      'name' in this.cacheGroup &&
+      typeof this.cacheGroup.name === 'string'
+    ) {
+      return this.cacheGroup.name;
+    }
+
+    return defaultChunkName;
   }
 
   shouldProcessFile(resourcePath: string): boolean {
@@ -181,13 +196,18 @@ export class StyleXPluginCore {
     }
 
     optimization.splitChunks.cacheGroups ??= {};
-    optimization.splitChunks.cacheGroups[chunkName] = this.cacheGroup ?? {
+    const defaultCacheGroup: CacheGroupOptions = {
       name: chunkName,
       test: this.getVirtualCssPattern(),
       type: 'css/mini-extract',
       chunks: 'all',
       enforce: true,
     };
+
+    optimization.splitChunks.cacheGroups[chunkName] =
+      typeof this.cacheGroup === 'object' && this.cacheGroup != null
+        ? { ...defaultCacheGroup, ...this.cacheGroup }
+        : defaultCacheGroup;
   }
 
   /**
@@ -210,6 +230,8 @@ export class StyleXPluginCore {
    * here. Call from `compilation.hooks.finishModules`.
    */
   collectFromBuildInfo(modules: Iterable<ModuleWithBuildInfo>): void {
+    const recollected: StyleXRulesMap = new Map();
+
     for (const mod of modules) {
       const buildInfo = mod.buildInfo;
 
@@ -226,12 +248,14 @@ export class StyleXPluginCore {
         'stylexRules' in stylexBuildInfo &&
         typeof stylexBuildInfo.resourcePath === 'string'
       ) {
-        this.stylexRules.set(
+        recollected.set(
           stylexBuildInfo.resourcePath,
           stylexBuildInfo.stylexRules as readonly StyleXRule[]
         );
       }
     }
+
+    this.stylexRules = recollected;
   }
 
   /**
@@ -256,16 +280,16 @@ export class StyleXPluginCore {
   }
 
   /** Publish this compiler's rules for the Next.js App Router client merge. */
-  publishNextjsRegistry(compilerName: string | undefined): void {
+  publishNextjsRegistry(registryKey: string | undefined, compilerName: string | undefined): void {
     if (this.loaderOption.nextjsMode && this.loaderOption.nextjsAppRouterMode) {
-      publishStyleXRules(compilerName, this.stylexRules);
+      publishStyleXRules(registryKey, compilerName, this.stylexRules);
     }
   }
 
   /** Merge rules published by the other Next.js compilers (client compiler only). */
-  mergeNextjsRegistry(compilerName: string | undefined): void {
+  mergeNextjsRegistry(registryKey: string | undefined, compilerName: string | undefined): void {
     if (this.loaderOption.nextjsMode && this.loaderOption.nextjsAppRouterMode) {
-      mergeStyleXRulesInto(compilerName, this.stylexRules);
+      mergeStyleXRulesInto(registryKey, compilerName, this.stylexRules);
     }
   }
 
@@ -304,7 +328,6 @@ export class StyleXPluginCore {
     return [
       `StyleX rules were extracted from ${this.stylexRules.size} module(s), but no "${chunkName}" CSS asset was emitted to receive them — the styles will be MISSING from the output.`,
       `Make sure the carrier stylesheet is imported once at your app entrypoint${carrierHint ? ` (${carrierHint})` : ''} and that a css rule (css-loader + extract plugin) covers it.`,
-      `If you pass a custom "cacheGroup", its "name" must stay "${chunkName}".`,
     ].join(' ');
   }
 

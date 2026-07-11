@@ -166,29 +166,38 @@ const withStyleX =
         if (extractCSS) {
           const MiniCssExtractPlugin = getNextMiniCssExtractPlugin(ctx.dev);
           // Based on https://github.com/vercel/next.js/blob/88a5f263f11cb55907f0d89a4cd53647ee8e96ac/packages/next/build/webpack/config/helpers.ts#L12-L18
-          const cssRules = (
-            config.module?.rules?.find(
-              rule =>
-                typeof rule === 'object' &&
-                rule !== null &&
-                Array.isArray(rule.oneOf) &&
-                rule.oneOf.some(
-                  setRule =>
-                    setRule &&
-                    setRule.test instanceof RegExp &&
-                    typeof setRule.test.test === 'function' &&
-                    setRule.test.test('filename.css')
-                )
-            ) as webpack.RuleSetRule
-          ).oneOf;
+          const cssContainerRule = config.module?.rules?.find(
+            rule =>
+              typeof rule === 'object' &&
+              rule !== null &&
+              Array.isArray(rule.oneOf) &&
+              rule.oneOf.some(
+                setRule =>
+                  setRule &&
+                  setRule.test instanceof RegExp &&
+                  typeof setRule.test.test === 'function' &&
+                  setRule.test.test('filename.css')
+              )
+          ) as webpack.RuleSetRule | undefined;
+          const cssRules = cssContainerRule?.oneOf;
+
+          if (!cssRules) {
+            throw new Error(
+              [
+                "@stylexswc/nextjs-plugin: could not find Next.js' css oneOf rules",
+                'in the Webpack config. StyleX CSS extraction cannot be wired up -',
+                'this likely indicates an incompatible Next.js version. Please report this issue.',
+              ].join(' ')
+            );
+          }
+
+          const carrierPath = pluginOptions?.carrierCss
+            ? path.resolve(ctx.dir, pluginOptions.carrierCss)
+            : require.resolve('@stylexswc/webpack-plugin/stylex.css');
           // Here we matches virtual css file emitted by StyleXPlugin
           // (carrier + HMR dummies; honors a custom `carrierCss` path)
-          cssRules?.unshift({
-            test: buildVirtualCssPattern(
-              pluginOptions?.carrierCss
-                ? path.resolve(ctx.dir, pluginOptions.carrierCss)
-                : undefined
-            ),
+          cssRules.unshift({
+            test: buildVirtualCssPattern(carrierPath),
             use: getStyleXVirtualCssLoader(ctx, MiniCssExtractPlugin, postcss),
           });
 

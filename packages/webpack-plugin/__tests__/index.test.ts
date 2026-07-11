@@ -252,6 +252,60 @@ describe('@stylexswc/webpack-plugin', () => {
     expect(compilation.hooks.finishModules.tap).toHaveBeenCalledTimes(1);
   });
 
+  test('drops rules that are absent from a later compilation', () => {
+    const plugin = new StyleXPlugin();
+    const stylexRules: StyleXRule[] = [['x1abcd', { ltr: '.x1abcd{color:red}', rtl: null }, 3000]];
+    const { compiler, runFinishModules } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as webpack.Compiler);
+    runFinishModules([
+      {
+        buildInfo: {
+          [BUILD_INFO_STYLEX_KEY]: { resourcePath: 'src/button.tsx', stylexRules },
+        },
+      },
+    ]);
+    expect(plugin.stylexRules.size).toBe(1);
+
+    runFinishModules([{ buildInfo: {} }]);
+
+    expect(plugin.stylexRules.size).toBe(0);
+  });
+
+  test('extends required cache group defaults and supports a custom chunk name', () => {
+    const plugin = new StyleXPlugin({
+      cacheGroup: { name: 'custom-stylex', priority: 20 },
+    });
+    const { compiler } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as webpack.Compiler);
+
+    const cacheGroup = compiler.options.optimization.splitChunks.cacheGroups['custom-stylex'];
+
+    expect(cacheGroup).toMatchObject({
+      name: 'custom-stylex',
+      priority: 20,
+      type: 'css/mini-extract',
+      chunks: 'all',
+      enforce: true,
+    });
+    expect(cacheGroup?.test).toBeInstanceOf(RegExp);
+  });
+
+  test('default cache group matches only the packaged carrier stylesheet', () => {
+    const plugin = new StyleXPlugin();
+    const { compiler } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as webpack.Compiler);
+
+    const test = compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME]
+      ?.test as RegExp;
+
+    expect(test.test(require.resolve('../src/stylex.css'))).toBe(true);
+    expect(test.test(path.join(path.sep, 'project', 'src', 'my-stylex.css'))).toBe(false);
+    expect(test.test(path.join(path.sep, 'project', 'src', 'stylex.css'))).toBe(false);
+  });
+
   test('carrierCss retargets the cacheGroup pattern to the custom carrier', () => {
     const plugin = new StyleXPlugin({ carrierCss: path.join('src', 'my-carrier.css') });
     const { compiler } = createMockCompiler();

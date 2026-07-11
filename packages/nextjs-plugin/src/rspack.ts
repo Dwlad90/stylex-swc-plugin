@@ -198,14 +198,13 @@ const withStyleX =
             );
           }
 
+          const carrierPath = pluginOptions?.carrierCss
+            ? path.resolve(ctx.dir, pluginOptions.carrierCss)
+            : require.resolve('@stylexswc/rspack-plugin/stylex.css');
           // Here we matches virtual css file emitted by StyleXPlugin
           // (carrier + HMR dummies; honors a custom `carrierCss` path)
           cssRules.unshift({
-            test: buildVirtualCssPattern(
-              pluginOptions?.carrierCss
-                ? path.resolve(ctx.dir, pluginOptions.carrierCss)
-                : undefined
-            ),
+            test: buildVirtualCssPattern(carrierPath),
             use: getStyleXVirtualCssLoader(ctx, CssExtractPlugin, postcss),
           });
 

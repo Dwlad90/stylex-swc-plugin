@@ -10,13 +10,14 @@ with
 a Rust implementation of the StyleX transform, instead of the official Babel
 plugin. Your StyleX code stays exactly the same — only the build step changes,
 with per-file transforms 2x to 5x faster than Babel
-([performance](https://github.com/Dwlad90/stylex-swc-plugin#performance)).
-The plugin transforms your source files, collects the generated rules, and
-extracts them into a dedicated CSS chunk.
+([performance](https://github.com/Dwlad90/stylex-swc-plugin#performance)). The
+plugin transforms your source files, collects the generated rules, and extracts
+them into a dedicated CSS chunk.
 
 This is a community project and is not affiliated with Meta. It tracks the
 official StyleX releases
 <!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->
+
 and requires Node.js 20 or newer. For Next.js projects, use
 [`@stylexswc/nextjs-plugin`](https://www.npmjs.com/package/@stylexswc/nextjs-plugin)
 instead — it wires this plugin into the Next.js build for you.
@@ -63,27 +64,26 @@ const config = (env, argv) => ({
 module.exports = config;
 ```
 
-Then import the carrier stylesheet **once** at the entry point of your app
-(e.g. `index.js`, `App.tsx`):
+Then import the carrier stylesheet **once** at the entry point of your app (e.g.
+`index.js`, `App.tsx`):
 
 ```js
 import '@stylexswc/webpack-plugin/stylex.css';
 ```
 
 The plugin replaces this asset's content with the extracted StyleX CSS during
-the build. Like a regular CSS file, it must flow through your CSS pipeline, so
-a `css-loader` + `MiniCssExtractPlugin.loader` rule (or webpack's built-in CSS
+the build. Like a regular CSS file, it must flow through your CSS pipeline, so a
+`css-loader` + `MiniCssExtractPlugin.loader` rule (or webpack's built-in CSS
 support) has to cover `.css` files.
 
-> [!IMPORTANT]
-> **Migrating from 0.17.x**: version 0.18.0 adopts the upstream
+> [!IMPORTANT] **Migrating from 0.17.x**: version 0.18.0 adopts the upstream
 > [`stylex-webpack`](https://github.com/SukkaW/stylex-webpack) 0.4.x
 > architecture. The CSS is no longer injected through auto-generated
 > `stylex.virtual.css` imports — add the
 > `import '@stylexswc/webpack-plugin/stylex.css';` carrier import to your app
 > entrypoint, or no StyleX CSS will be emitted. Paths embedded in module
-> identifiers are now relative to `compiler.context`, which changes chunk
-> hashes once and makes builds reproducible across machines.
+> identifiers are now relative to `compiler.context`, which changes chunk hashes
+> once and makes builds reproducible across machines.
 
 ## Plugin Options
 
@@ -97,8 +97,7 @@ support) has to cover `.css` files.
   the standard options, see the
   [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
-> [!NOTE]
-> The `include` and `exclude` options are exclusive to the Rust compiler
+> [!NOTE] The `include` and `exclude` options are exclusive to the Rust compiler
 > and are not available in the official StyleX Babel plugin.
 
 ##### `rsOptions.include`
@@ -199,12 +198,12 @@ new StylexPlugin({
 
 #### `carrierCss`
 
-Path to a custom carrier stylesheet that receives the extracted StyleX CSS —
-the file you import once at your app entrypoint. Absolute, or relative to
+Path to a custom carrier stylesheet that receives the extracted StyleX CSS — the
+file you import once at your app entrypoint. Absolute, or relative to
 `compiler.context`. Replaces the default `@stylexswc/webpack-plugin/stylex.css`
 carrier: useful when another file named `stylex.css` in your project would
-collide with the default filename pattern, or when you want the carrier to
-live in your own source tree.
+collide with the default filename pattern, or when you want the carrier to live
+in your own source tree.
 
 ```js
 new StylexPlugin({
@@ -248,17 +247,17 @@ new StylexPlugin({
 
 - Type: `CacheGroupOptions` (webpack cache group configuration)
 - Optional
-- Description: Overrides the default webpack cache group used for StyleX CSS
+- Description: Extends the default webpack cache group used for StyleX CSS
   extraction. By default the plugin creates a dedicated cache group named
-  `stylex`. Use this to customize chunk naming, priority, or other split chunks
-  options.
+  `_stylex-webpack-generated`. Use this to customize chunk naming, priority, or
+  other split chunks options. Omitted fields retain the required defaults.
 
 Default cache group configuration:
 
 ```js
 {
-  name: 'stylex',
-  test: /\.stylex\.virtual\.css$/,
+  name: '_stylex-webpack-generated',
+  test: /<packaged carrier path>|stylex-virtual\.css/,
   type: 'css/mini-extract',
   chunks: 'all',
   enforce: true,

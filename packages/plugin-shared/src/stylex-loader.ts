@@ -11,7 +11,10 @@ import { generateStyleXOutput, stringifyRequest } from './utils';
 import type { InputCode, SourceMap, StyleXLoaderOptions } from './types';
 import type { LoaderContext } from 'webpack';
 
-const skipWarnRegex = /empty|client-only/;
+// next/dist/... empty module shims and the `client-only`/`server-only`
+// packages legitimately produce empty loader input — anchored so user files
+// that merely contain these substrings (e.g. `empty-state.ts`) still warn
+const skipWarnRegex = /[\\/](?:empty|client-only|server-only)(?:\.[cm]?js)?$/;
 
 export default async function stylexLoader(
   this: LoaderContext<StyleXLoaderOptions>,
@@ -82,7 +85,9 @@ export default async function stylexLoader(
       !metadata.stylex.length
     ) {
       if (extractCSS) logger?.debug(`No stylex styles generated from ${this.resourcePath}`);
-      return callback(null, code, parsedMap);
+      // The code WAS transformed — stamp the flag so a second pass through
+      // the loader chain never re-transforms it.
+      return callback(null, `${code}\n${LOADER_TRANSFORMED_FLAG}`, parsedMap);
     }
 
     logger?.debug(`Read stylex styles from ${this.resourcePath}:`, metadata.stylex);

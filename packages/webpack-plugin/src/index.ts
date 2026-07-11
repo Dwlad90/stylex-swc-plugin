@@ -55,12 +55,14 @@ export default class StyleXPlugin extends StyleXPluginCore {
       NormalModule.getCompilationHooks(compilation).loader.tap(
         PLUGIN_NAME,
         (_loaderContext, mod) => {
-          const modResource = mod.matchResource || mod.resource;
+          // `resource`/`matchResource` may carry a resource query
+          // (`Button.tsx?raw`) that would defeat the extension checks below
+          const modResource = (mod.matchResource || mod.resource).split('?', 1)[0] ?? '';
           const extname = path.extname(modResource);
 
           if (INCLUDE_REGEXP.test(extname)) {
             // Add path filtering check, including the node_modules allowlist
-            if (!this.shouldProcessFile(mod.resource)) {
+            if (!this.shouldProcessFile(mod.resource.split('?', 1)[0] ?? '')) {
               return;
             }
 

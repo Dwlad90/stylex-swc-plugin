@@ -141,6 +141,8 @@ export class StyleXPluginCore {
       return new RegExp(`${escapeRegExp(this.carrierPath)}$`);
     }
 
+    // Only reachable when apply() skipped resolveCarrier() — fall back to
+    // matching the packaged carrier by filename.
     return VIRTUAL_ENTRYPOINT_CSS_PATTERN;
   }
 
@@ -215,12 +217,18 @@ export class StyleXPluginCore {
    * (which change the generated CSS) invalidate long-term caching.
    */
   buildChunkHashMeta(packageName: string): string {
-    return JSON.stringify({
-      name: packageName,
-      packageVersion,
-      loaderOption: this.loaderOption,
-      transformedOptions: this.transformedOptions,
-    });
+    return JSON.stringify(
+      {
+        name: packageName,
+        packageVersion,
+        loaderOption: this.loaderOption,
+        transformedOptions: this.transformedOptions,
+      },
+      // JSON.stringify drops functions and turns RegExp into {} — stringify
+      // them so changing such options actually invalidates the chunk hash
+      (_key, value: unknown) =>
+        value instanceof RegExp || typeof value === 'function' ? String(value) : value
+    );
   }
 
   /**

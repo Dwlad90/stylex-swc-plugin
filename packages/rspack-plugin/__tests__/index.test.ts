@@ -2,8 +2,8 @@ import path from 'path';
 import { sources } from '@rspack/core';
 import { describe, expect, test, vi } from 'vitest';
 
+import { parseStylexRulesFromIdentifier } from '@stylexswc/plugin-shared';
 import StyleXPlugin, { STYLEX_CHUNK_NAME } from '../src';
-import { parseStylexRulesFromIdentifier } from '../src/utils';
 
 import type { Compiler, RuleSetRule } from '@rspack/core';
 import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
@@ -13,16 +13,31 @@ type Source = InstanceType<typeof sources.RawSource>;
 function createMockCompiler(chunkModules: Array<{ identifier: () => string }> = []) {
   const rules: RuleSetRule[] = [];
   const assets: Record<string, Source> = {
-    'stylex.css': new sources.RawSource('/* existing */') as Source,
+    'stylex.css': new sources.RawSource('/* carrier placeholder */') as Source,
   };
 
-  let processAssetsCallback: ((assets: Record<string, Source>) => Promise<void>) | undefined;
+  let finishModulesCallback:
+    | ((_modules: Iterable<{ identifier: () => string }>) => void)
+    | undefined;
+  let processAssetsCallback: ((_assets: Record<string, Source>) => Promise<void>) | undefined;
 
+  const warnings: Error[] = [];
   const compilation = {
+    warnings,
     hooks: {
+      chunkHash: {
+        tap: vi.fn(),
+      },
+      finishModules: {
+        tap: vi.fn(
+          (_name: string, callback: (_modules: Iterable<{ identifier: () => string }>) => void) => {
+            finishModulesCallback = callback;
+          }
+        ),
+      },
       processAssets: {
         tapPromise: vi.fn(
-          (_options: unknown, callback: (assets: Record<string, Source>) => Promise<void>) => {
+          (_options: unknown, callback: (_assets: Record<string, Source>) => Promise<void>) => {
             processAssetsCallback = callback;
           }
         ),
@@ -39,22 +54,27 @@ function createMockCompiler(chunkModules: Array<{ identifier: () => string }> = 
     chunkGraph: {
       getChunkModules: vi.fn(() => chunkModules),
     },
-    updateAsset: vi.fn((assetName: string, update: (source: Source) => unknown) => {
-      const source = assets[assetName];
+    updateAsset: vi.fn(
+      (assetName: string, update: (_source: Source) => Source, _info?: unknown) => {
+        const source = assets[assetName];
 
-      if (!source) {
-        throw new Error(`Missing asset: ${assetName}`);
+        if (!source) {
+          throw new Error(`Missing asset: ${assetName}`);
+        }
+
+        assets[assetName] = update(source);
       }
-
-      assets[assetName] = update(source) as Source;
-    }),
+    ),
   };
 
   const compiler = {
+    name: undefined as string | undefined,
+    context: path.join(path.sep, 'project'),
     options: {
+      mode: 'production',
       optimization: {
         splitChunks: {
-          cacheGroups: {},
+          cacheGroups: {} as Record<string, { test?: RegExp }>,
         },
       },
       module: {
@@ -65,18 +85,12 @@ function createMockCompiler(chunkModules: Array<{ identifier: () => string }> = 
       Compilation: {
         PROCESS_ASSETS_STAGE_PRE_PROCESS: 0,
       },
-      NormalModule: {
-        getCompilationHooks: () => ({
-          loader: {
-            tap: vi.fn(),
-          },
-        }),
-      },
       sources,
+      WebpackError: Error,
     },
     hooks: {
       thisCompilation: {
-        tap: vi.fn((_name: string, callback: (compilation: unknown) => void) =>
+        tap: vi.fn((_name: string, callback: (_compilation: unknown) => void) =>
           callback(compilation)
         ),
       },
@@ -88,27 +102,32 @@ function createMockCompiler(chunkModules: Array<{ identifier: () => string }> = 
     compilation,
     assets,
     rules,
+    warnings,
+    runFinishModules: (modules: Iterable<{ identifier: () => string }>) =>
+      finishModulesCallback?.(modules),
     runProcessAssets: () => processAssetsCallback?.(assets),
   };
 }
 
+function dummyImportIdentifier(rules: StyleXRule[], from = 'src/button.tsx') {
+  const query = new URLSearchParams({
+    from,
+    stylex: JSON.stringify(rules),
+  });
+
+  return `css|/repo/node_modules/@stylexswc/plugin-shared/dist/stylex-virtual.css?${query.toString()}|used-exports`;
+}
+
 describe('@stylexswc/rspack-plugin', () => {
-  test('transforms generated StyleX CSS before appending to the CSS asset', async () => {
+  test('re-collects rules from chunk module identifiers and replaces the carrier CSS asset', async () => {
     const transformCss = vi.fn(async (css: string, filePath: string | undefined) => {
       return `${css}\n/* transformed:${filePath} */`;
     });
     const plugin = new StyleXPlugin({ transformCss });
-    const stylexRules: StyleXRule[] = [['x1abcd', { ltr: 'color:red', rtl: null }, 3000]];
-    const query = new URLSearchParams({
-      from: '/button.tsx',
-      stylex: JSON.stringify(stylexRules),
-    });
+    const stylexRules: StyleXRule[] = [['x1abcd', { ltr: '.x1abcd{color:red}', rtl: null }, 3000]];
 
     const { compiler, assets, runProcessAssets } = createMockCompiler([
-      {
-        identifier: () =>
-          `css|/repo/node_modules/@stylexswc/rspack-plugin/dist/stylex.virtual.css?${query.toString()}|used-exports`,
-      },
+      { identifier: () => dummyImportIdentifier(stylexRules) },
     ]);
 
     plugin.apply(compiler as unknown as Compiler);
@@ -116,12 +135,16 @@ describe('@stylexswc/rspack-plugin', () => {
 
     expect(transformCss).toHaveBeenCalledTimes(1);
     expect(transformCss.mock.calls[0]?.[1]).toBe('stylex.css');
-    expect(assets['stylex.css']?.source().toString()).toContain('/* existing */');
-    expect(assets['stylex.css']?.source().toString()).toContain('color:red');
-    expect(assets['stylex.css']?.source().toString()).toContain('/* transformed:stylex.css */');
+
+    const finalCss = assets['stylex.css']?.source().toString();
+
+    // the carrier content is REPLACED, not appended to
+    expect(finalCss).not.toContain('/* carrier placeholder */');
+    expect(finalCss).toContain('color:red');
+    expect(finalCss).toContain('/* transformed:stylex.css */');
   });
 
-  test('clears stale StyleX rules when no current chunk modules contain virtual CSS', async () => {
+  test('clears stale StyleX rules when no current chunk modules contain dummy imports', async () => {
     const transformCss = vi.fn((css: string) => css);
     const plugin = new StyleXPlugin({ transformCss });
     plugin.stylexRules.set('/deleted.tsx', [['xstale', { ltr: 'color:red', rtl: null }, 3000]]);
@@ -135,20 +158,114 @@ describe('@stylexswc/rspack-plugin', () => {
     expect(transformCss).not.toHaveBeenCalled();
   });
 
-  test('registers static module rules with enforce mapped from loaderOrder', () => {
+  test('collects rules from module identifiers in finishModules', () => {
     const plugin = new StyleXPlugin();
-    const { compiler, rules } = createMockCompiler();
+    const stylexRules: StyleXRule[] = [['x1abcd', { ltr: '.x1abcd{color:red}', rtl: null }, 3000]];
+    const { compiler, runFinishModules } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as Compiler);
+    runFinishModules([
+      { identifier: () => dummyImportIdentifier(stylexRules) },
+      { identifier: () => 'javascript/auto|/repo/src/button.tsx' },
+    ]);
+
+    expect(plugin.stylexRules.size).toBe(1);
+  });
+
+  test('warns when rules were extracted but no stylex chunk exists', async () => {
+    const plugin = new StyleXPlugin();
+    const stylexRules: StyleXRule[] = [['x1abcd', { ltr: '.x1abcd{color:red}', rtl: null }, 3000]];
+
+    const { compiler, compilation, warnings, runFinishModules, runProcessAssets } =
+      createMockCompiler();
 
     plugin.apply(compiler as unknown as Compiler);
 
-    expect(rules).toHaveLength(2);
+    // finishModules collects the rules; the chunk then never materializes
+    runFinishModules([{ identifier: () => dummyImportIdentifier(stylexRules) }]);
+    compilation.namedChunks.clear();
+    await runProcessAssets();
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]?.message).toContain('MISSING from the output');
+    expect(warnings[0]?.message).toContain("import '@stylexswc/rspack-plugin/stylex.css'");
+  });
+
+  test('in Next.js mode only the client compiler warns about a missing carrier', async () => {
+    const stylexRules: StyleXRule[] = [['x1abcd', { ltr: '.x1abcd{color:red}', rtl: null }, 3000]];
+
+    // server compiler: collecting rules without a chunk is its normal state
+    const server = createMockCompiler();
+    server.compiler.name = 'server';
+    const serverPlugin = new StyleXPlugin({ nextjsMode: true });
+
+    serverPlugin.apply(server.compiler as unknown as Compiler);
+    server.runFinishModules([{ identifier: () => dummyImportIdentifier(stylexRules) }]);
+    server.compilation.namedChunks.clear();
+    await server.runProcessAssets();
+    expect(server.warnings).toHaveLength(0);
+
+    // client compiler: it owns the emitted CSS, so the warning stands
+    const client = createMockCompiler();
+    client.compiler.name = 'client';
+    const clientPlugin = new StyleXPlugin({ nextjsMode: true });
+
+    clientPlugin.apply(client.compiler as unknown as Compiler);
+    client.runFinishModules([{ identifier: () => dummyImportIdentifier(stylexRules) }]);
+    client.compilation.namedChunks.clear();
+    await client.runProcessAssets();
+    expect(client.warnings).toHaveLength(1);
+  });
+
+  test('does not warn without extracted rules', async () => {
+    const plugin = new StyleXPlugin();
+    const { compiler, compilation, warnings, runProcessAssets } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as Compiler);
+    compilation.namedChunks.clear();
+    await runProcessAssets();
+
+    expect(warnings).toHaveLength(0);
+  });
+
+  test('registers static module rules with enforce mapped from loaderOrder', () => {
+    const plugin = new StyleXPlugin();
+    const { compiler, compilation, rules } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as Compiler);
+
+    expect(rules).toHaveLength(3);
     expect(rules[0]?.enforce).toBe('pre');
     expect(rules[1]?.sideEffects).toBe(true);
+    // default carrier sideEffects rule
+    expect(rules[2]?.sideEffects).toBe(true);
+    expect(compilation.hooks.chunkHash.tap).toHaveBeenCalledTimes(1);
 
     const lastPlugin = new StyleXPlugin({ loaderOrder: 'last' });
     const { compiler: lastCompiler, rules: lastRules } = createMockCompiler();
     lastPlugin.apply(lastCompiler as unknown as Compiler);
     expect(lastRules[0]?.enforce).toBe('post');
+  });
+
+  test('carrierCss retargets the cacheGroup pattern and adds a sideEffects rule', () => {
+    const plugin = new StyleXPlugin({ carrierCss: path.join('src', 'my-carrier.css') });
+    const { compiler, rules } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as Compiler);
+
+    const cacheGroup = compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME];
+    const test = cacheGroup?.test as RegExp;
+    const resolved = path.join(path.sep, 'project', 'src', 'my-carrier.css');
+
+    expect(test.test(resolved)).toBe(true);
+    expect(test.test('/repo/plugin-shared/dist/stylex-virtual.css?from=App.js')).toBe(true);
+    // the default packaged carrier is replaced by the custom one
+    expect(test.test('/repo/rspack-plugin/dist/stylex.css')).toBe(false);
+
+    // carrier sideEffects rule targets the custom path
+    const carrierRule = rules[2];
+    expect(carrierRule?.sideEffects).toBe(true);
+    expect((carrierRule?.test as RegExp).test(resolved)).toBe(true);
   });
 
   test('scopes node_modules to the stylexPackages allowlist', () => {
@@ -188,16 +305,13 @@ describe('@stylexswc/rspack-plugin', () => {
 
   test('parses StyleX rules from `|`-segmented css module identifiers', () => {
     const rules: StyleXRule[] = [['x1abcd', { ltr: '.x1abcd{color:red}', rtl: null }, 3000]];
-    const query = new URLSearchParams({
-      from: '/app/layout.tsx',
-      stylex: JSON.stringify(rules),
-    });
-    const identifier = `css|/repo/node_modules/@stylexswc/rspack-plugin/dist/stylex.virtual.css?${query.toString()}|used-exports`;
 
-    expect(parseStylexRulesFromIdentifier(identifier)).toEqual(rules);
+    expect(parseStylexRulesFromIdentifier(dummyImportIdentifier(rules, 'app/layout.tsx'))).toEqual(
+      rules
+    );
     expect(parseStylexRulesFromIdentifier('css|/repo/app/global.css|used-exports')).toBeNull();
     expect(
-      parseStylexRulesFromIdentifier('css|/repo/dist/stylex.virtual.css?from=/app/layout.tsx')
+      parseStylexRulesFromIdentifier('css|/repo/dist/stylex-virtual.css?from=app/layout.tsx')
     ).toBeNull();
   });
 });

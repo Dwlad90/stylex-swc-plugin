@@ -1,9 +1,11 @@
+import path from 'path';
 import browserslist from 'next/dist/compiled/browserslist';
+import { warn } from 'next/dist/build/output/log';
 import { lazyPostCSS } from 'next/dist/build/webpack/config/blocks/css';
 import { getRspackCore } from 'next/dist/shared/lib/get-rspack';
 import StyleXRspackPlugin, {
   DEFAULT_STYLEX_PACKAGES,
-  VIRTUAL_CSS_PATTERN,
+  buildVirtualCssPattern,
 } from '@stylexswc/rspack-plugin';
 import withRspack from 'next-rspack';
 
@@ -95,11 +97,23 @@ const withStyleX =
     // monorepo building multiple apps, or repeated calls in tests).
     let count = 0;
 
+    // The App Router cross-compiler rule registry lives on `globalThis`, so
+    // the client/server/edge-server compilers must share one build process.
+    if (nextConfig.experimental?.webpackBuildWorker) {
+      warn(
+        '@stylexswc/nextjs-plugin/rspack: disabling "experimental.webpackBuildWorker" — the StyleX cross-compiler rule registry requires all compilers to run in a single process.'
+      );
+    }
+
     // `withRspack` switches Next.js to the Rspack bundler for this config
     // (sets NEXT_RSPACK); applied to the final config object so users don't
     // have to compose `next-rspack` themselves
     return withRspack({
       ...nextConfig,
+      experimental: {
+        ...nextConfig.experimental,
+        webpackBuildWorker: false,
+      },
       webpack(
         config: webpack.Configuration & WebpackConfigurationContext,
         ctx: WebpackConfigContext
@@ -185,8 +199,13 @@ const withStyleX =
           }
 
           // Here we matches virtual css file emitted by StyleXPlugin
+          // (carrier + HMR dummies; honors a custom `carrierCss` path)
           cssRules.unshift({
-            test: VIRTUAL_CSS_PATTERN,
+            test: buildVirtualCssPattern(
+              pluginOptions?.carrierCss
+                ? path.resolve(ctx.dir, pluginOptions.carrierCss)
+                : undefined
+            ),
             use: getStyleXVirtualCssLoader(ctx, CssExtractPlugin, postcss),
           });
 
@@ -238,14 +257,19 @@ const withStyleX =
 
         config.plugins.push(
           new StyleXRspackPlugin({
+            // Built-in Next.js defaults come first so user options can
+            // override them (e.g. `nextjsAppRouterMode: false` for the Pages
+            // Router, where each compiler sees the complete rule set)
+            nextjsMode: true,
+            nextjsAppRouterMode: true,
             ...pluginOptions,
+            // Computed values always win: `dev` must reflect this Next.js
+            // build, and stylexPackages merges in transpilePackages
             stylexPackages,
             rsOptions: {
               ...pluginOptions?.rsOptions,
               dev: ctx.dev,
             },
-            // Enforce nextjsMode to true
-            nextjsMode: true,
             ...(extractCSS
               ? {
                   async transformCss(css, filePath) {

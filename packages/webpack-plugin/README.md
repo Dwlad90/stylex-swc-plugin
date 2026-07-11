@@ -63,6 +63,28 @@ const config = (env, argv) => ({
 module.exports = config;
 ```
 
+Then import the carrier stylesheet **once** at the entry point of your app
+(e.g. `index.js`, `App.tsx`):
+
+```js
+import '@stylexswc/webpack-plugin/stylex.css';
+```
+
+The plugin replaces this asset's content with the extracted StyleX CSS during
+the build. Like a regular CSS file, it must flow through your CSS pipeline, so
+a `css-loader` + `MiniCssExtractPlugin.loader` rule (or webpack's built-in CSS
+support) has to cover `.css` files.
+
+> [!IMPORTANT]
+> **Migrating from 0.17.x**: version 0.18.0 adopts the upstream
+> [`stylex-webpack`](https://github.com/SukkaW/stylex-webpack) 0.4.x
+> architecture. The CSS is no longer injected through auto-generated
+> `stylex.virtual.css` imports — add the
+> `import '@stylexswc/webpack-plugin/stylex.css';` carrier import to your app
+> entrypoint, or no StyleX CSS will be emitted. Paths embedded in module
+> identifiers are now relative to `compiler.context`, which changes chunk
+> hashes once and makes builds reproducible across machines.
+
 ## Plugin Options
 
 ### Basic Options
@@ -174,6 +196,30 @@ new StylexPlugin({
   stylexPackages: ['@stylexjs/', 'my-design-system'],
 });
 ```
+
+#### `carrierCss`
+
+Path to a custom carrier stylesheet that receives the extracted StyleX CSS —
+the file you import once at your app entrypoint. Absolute, or relative to
+`compiler.context`. Replaces the default `@stylexswc/webpack-plugin/stylex.css`
+carrier: useful when another file named `stylex.css` in your project would
+collide with the default filename pattern, or when you want the carrier to
+live in your own source tree.
+
+```js
+new StylexPlugin({
+  carrierCss: './src/styles/stylex-carrier.css',
+});
+```
+
+```js
+// src/index.js
+import './styles/stylex-carrier.css';
+```
+
+If styles get extracted but no carrier asset is emitted to receive them (e.g.
+the import is missing), the plugin raises a compilation warning instead of
+silently dropping the CSS.
 
 ### Advanced Options
 

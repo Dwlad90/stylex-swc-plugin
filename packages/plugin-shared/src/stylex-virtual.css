@@ -1,0 +1,7 @@
+/*
+ * StyleX HMR dummy stylesheet - @stylexswc/plugin-shared
+ *
+ * The stylex-loader appends per-module imports of this file carrying the
+ * extracted rules in the resource query. In development the virtual css
+ * loader stamps a content-hash rule so style edits invalidate HMR.
+ */

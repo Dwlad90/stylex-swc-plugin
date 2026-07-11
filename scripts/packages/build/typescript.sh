@@ -29,9 +29,11 @@ if [ "$build_ts" = true ]; then
     fi
   fi
 
-  # Copy virtual CSS if exists
-  if [ -f "src/stylex.virtual.css" ]; then
-    mkdir -p dist
-    cp src/stylex.virtual.css dist/ || handle_error "Failed to copy stylex.virtual.css"
-  fi
+  # Copy CSS assets shipped alongside compiled sources (carrier/dummy stylesheets)
+  for css_file in src/*.css; do
+    if [ -f "$css_file" ]; then
+      mkdir -p dist
+      cp "$css_file" dist/ || handle_error "Failed to copy $css_file"
+    fi
+  done
 fi

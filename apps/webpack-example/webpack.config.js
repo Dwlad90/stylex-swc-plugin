@@ -63,11 +63,11 @@ const config = (env, argv) => {
     },
     plugins: [
       new StylexPlugin({
-        // get webpack mode and set value for dev
-        dev: isDev,
         // See all options in the babel plugin configuration docs:
         // https://stylexjs.com/docs/api/configuration/babel-plugin/
         rsOptions: {
+          // get webpack mode and set value for dev
+          dev: isDev,
           env: {
             tokens: {
               layout: {

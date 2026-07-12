@@ -204,8 +204,9 @@ split into files, cached, or grouped. A custom cache group replaces the
 plugin's default one entirely, with standard `splitChunks` semantics — e.g.
 omitting `test` matches every module, which funnels all extracted CSS into the
 StyleX chunk. Only `name` falls back to the default chunk name; include
-`type: 'css/mini-extract'`, `chunks` and `enforce` yourself when you need
-them.
+`type: 'css/mini-extract'`, `chunks` and `enforce` yourself when you need them.
+`name` must be a static string. For webpack compatibility, string and RegExp
+shorthand values are treated as `test` and normalized to a Rspack cache group.
 
 ### `stylexPackages`
 

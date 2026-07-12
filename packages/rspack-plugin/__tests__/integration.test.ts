@@ -165,6 +165,24 @@ describe('@stylexswc/rspack-plugin integration', () => {
     expect(result.stats.toJson({ warnings: true }).warnings ?? []).toHaveLength(0);
   });
 
+  test('a replacement cache group without test emits the named StyleX asset', async () => {
+    const config = createConfig('production');
+
+    config.plugins = [
+      new StyleXPlugin({
+        rsOptions: { dev: false },
+        cacheGroup: { type: 'css/mini-extract', chunks: 'all', enforce: true },
+      }),
+      new CssExtractRspackPlugin(),
+    ];
+
+    const result = await compile(config);
+    const css = getStylexCss(result);
+
+    expect(css).not.toBeNull();
+    expect(result.stats.toJson({ warnings: true }).warnings ?? []).toHaveLength(0);
+  });
+
   test('a second fresh build emits identical CSS', async () => {
     const firstCss = getStylexCss(await compile(createConfig('production')));
     const secondCss = getStylexCss(await compile(createConfig('production')));

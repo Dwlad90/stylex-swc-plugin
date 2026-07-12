@@ -307,6 +307,19 @@ describe('@stylexswc/webpack-plugin', () => {
     });
   });
 
+  test('a RegExp cache group shorthand is normalized as test', () => {
+    const test = /\.css$/;
+    const plugin = new StyleXPlugin({ cacheGroup: test });
+    const { compiler } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as webpack.Compiler);
+
+    expect(compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME]).toEqual({
+      name: STYLEX_CHUNK_NAME,
+      test,
+    });
+  });
+
   test('default cache group matches only the packaged carrier stylesheet', () => {
     const plugin = new StyleXPlugin();
     const { compiler } = createMockCompiler();

@@ -176,6 +176,24 @@ describe('@stylexswc/webpack-plugin integration', () => {
     expect(result.stats.toJson({ warnings: true }).warnings ?? []).toHaveLength(0);
   });
 
+  test('a replacement cache group without test emits the named StyleX asset', async () => {
+    const config = createConfig('production');
+
+    config.plugins = [
+      new StyleXPlugin({
+        rsOptions: { dev: false },
+        cacheGroup: { type: 'css/mini-extract', chunks: 'all', enforce: true },
+      }),
+      new MiniCssExtractPlugin(),
+    ];
+
+    const result = await compile(config);
+    const css = getStylexCss(result);
+
+    expect(css).not.toBeNull();
+    expect(result.stats.toJson({ warnings: true }).warnings ?? []).toHaveLength(0);
+  });
+
   test('second build from a cold filesystem cache still emits the full CSS', async () => {
     const cacheDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'stylex-webpack-cache-'));
     tempDirs.push(cacheDirectory);

@@ -315,6 +315,19 @@ describe('@stylexswc/rspack-plugin', () => {
     });
   });
 
+  test('a RegExp cache group shorthand is normalized to a Rspack-compatible object', () => {
+    const test = /\.css$/;
+    const plugin = new StyleXPlugin({ cacheGroup: test });
+    const { compiler } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as Compiler);
+
+    expect(compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME]).toEqual({
+      name: STYLEX_CHUNK_NAME,
+      test,
+    });
+  });
+
   test('scopes node_modules to the stylexPackages allowlist', () => {
     const plugin = new StyleXPlugin();
     const project = path.join(path.sep, 'project');

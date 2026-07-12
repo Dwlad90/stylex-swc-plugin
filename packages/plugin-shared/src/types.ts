@@ -2,12 +2,20 @@ import type { StyleXOptions, UseLayersType } from '@stylexswc/rs-compiler';
 import type { LoaderContext } from 'webpack';
 import type webpack from 'webpack';
 
-export type CacheGroupOptions = NonNullable<
+type WebpackCacheGroupEntry = NonNullable<
   Exclude<
     Exclude<webpack.Configuration['optimization'], undefined>['splitChunks'],
     undefined | false
   >['cacheGroups']
 >[string];
+
+type WebpackCacheGroupObject = Extract<WebpackCacheGroupEntry, { name?: unknown }>;
+
+export type CacheGroupOptions =
+  | (Omit<WebpackCacheGroupObject, 'name'> & { name?: string })
+  | string
+  | RegExp
+  | false;
 
 type AsyncFnParams = Parameters<ReturnType<LoaderContext<unknown>['async']>>;
 
@@ -89,9 +97,10 @@ export interface StyleXPluginOption {
    * When provided, this REPLACES the plugin's default cache group entirely
    * (standard `splitChunks` semantics apply — e.g. omitting `test` matches
    * every module, which funnels all extracted CSS into the stylex chunk).
-   * Only `name` is defaulted when omitted, so the plugin can still locate the
-   * emitted chunk. Include `type: 'css/mini-extract'`, `chunks` and `enforce`
-   * yourself when you need them.
+   * Only a static string `name` is supported and it is defaulted when omitted,
+   * so the plugin can locate the emitted chunk. String and RegExp shorthand
+   * values are treated as `test`. Include `type: 'css/mini-extract'`, `chunks`
+   * and `enforce` yourself when you need them.
    *
    * @see https://webpack.js.org/plugins/split-chunks-plugin/#splitchunkscachegroups
    */

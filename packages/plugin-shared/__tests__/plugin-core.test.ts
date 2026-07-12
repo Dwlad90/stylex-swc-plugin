@@ -131,33 +131,38 @@ describe('StyleXPluginCore.assertAndInstallCacheGroup', () => {
     });
   });
 
-  test('a function name is preserved and keyed under the default chunk name', () => {
+  test('rejects a dynamic name because the emitted chunk cannot be located', () => {
     const nameFn = () => 'computed';
-    const core = createCore({ cacheGroup: { name: nameFn, priority: 20 } });
-
-    const cacheGroups = installCacheGroup(core, { splitChunks: { cacheGroups: {} } });
-
-    expect(cacheGroups?.[DEFAULT_CHUNK_NAME]).toEqual({
-      name: nameFn,
-      priority: 20,
+    const core = createCore({
+      cacheGroup: { name: nameFn, priority: 20 } as unknown as CacheGroupOptions,
     });
+
+    expect(() => installCacheGroup(core, { splitChunks: { cacheGroups: {} } })).toThrow(
+      /cacheGroup\.name.*static string/
+    );
   });
 
-  test('a RegExp shorthand passes through verbatim instead of being spread away', () => {
+  test('a RegExp shorthand is normalized as test with a static chunk name', () => {
     const shorthand = /\.css$/;
     const core = createCore({ cacheGroup: shorthand });
 
     const cacheGroups = installCacheGroup(core, { splitChunks: { cacheGroups: {} } });
 
-    expect(cacheGroups?.[DEFAULT_CHUNK_NAME]).toBe(shorthand);
+    expect(cacheGroups?.[DEFAULT_CHUNK_NAME]).toEqual({
+      name: DEFAULT_CHUNK_NAME,
+      test: shorthand,
+    });
   });
 
-  test('a string shorthand passes through verbatim', () => {
+  test('a string shorthand is normalized as test with a static chunk name', () => {
     const core = createCore({ cacheGroup: 'some-module-path' });
 
     const cacheGroups = installCacheGroup(core, { splitChunks: { cacheGroups: {} } });
 
-    expect(cacheGroups?.[DEFAULT_CHUNK_NAME]).toBe('some-module-path');
+    expect(cacheGroups?.[DEFAULT_CHUNK_NAME]).toEqual({
+      name: DEFAULT_CHUNK_NAME,
+      test: 'some-module-path',
+    });
   });
 
   test('`false` passes through verbatim and disables the group', () => {
@@ -183,6 +188,16 @@ describe('StyleXPluginCore.assertAndInstallCacheGroup', () => {
       type: 'css/mini-extract',
     });
   });
+
+  test('rejects a dynamic cache group function', () => {
+    const core = createCore({
+      cacheGroup: (() => ({ priority: 20 })) as unknown as CacheGroupOptions,
+    });
+
+    expect(() => installCacheGroup(core, { splitChunks: { cacheGroups: {} } })).toThrow(
+      /cacheGroup.*must be an object/
+    );
+  });
 });
 
 describe('StyleXPluginCore.getChunkName', () => {
@@ -205,7 +220,9 @@ describe('StyleXPluginCore.getChunkName', () => {
   });
 
   test('returns the default for a non-string name', () => {
-    const core = createCore({ cacheGroup: { name: () => 'computed' } });
+    const core = createCore({
+      cacheGroup: { name: () => 'computed' } as unknown as CacheGroupOptions,
+    });
 
     expect(core.getChunkName(DEFAULT_CHUNK_NAME)).toBe(DEFAULT_CHUNK_NAME);
   });

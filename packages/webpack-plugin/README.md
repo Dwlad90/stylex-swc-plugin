@@ -260,10 +260,11 @@ new StylexPlugin({
 - Optional
 - Description: Replaces the default webpack cache group used for StyleX CSS
   extraction. By default the plugin creates a dedicated cache group named
-  `_stylex-webpack-generated`. A custom cache group is used as-is with
+  `_stylex-webpack-generated`. A custom cache group replaces the defaults with
   standard `splitChunks` semantics — e.g. omitting `test` matches every
-  module, which funnels all extracted CSS into the StyleX chunk. Only `name`
-  falls back to the default chunk name; include `type: 'css/mini-extract'`,
+  module, which funnels all extracted CSS into the StyleX chunk. `name` must be
+  a static string and falls back to the default chunk name. String and RegExp
+  shorthand values are treated as `test`. Include `type: 'css/mini-extract'`,
   `chunks` and `enforce` yourself when you need them.
 
 Default cache group configuration:

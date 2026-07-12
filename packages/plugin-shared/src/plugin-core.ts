@@ -206,20 +206,47 @@ export class StyleXPluginCore {
       enforce: true,
     };
 
-    // A custom cacheGroup replaces the default entirely (splitChunks
-    // semantics: an omitted `test` means "match every module"). Merging the
-    // default `test` back in would make configs that deliberately widen the
-    // group — e.g. funneling ALL extracted CSS into the stylex chunk —
-    // silently collect only the carrier again. Only `name` is defaulted, so
-    // the emitted chunk stays discoverable by getChunkName()'s lookup.
-    // Shorthand entries (`false`, string, RegExp, function) are passed
-    // through verbatim — spreading them would strip their meaning.
-    optimization.splitChunks.cacheGroups[chunkName] =
-      this.cacheGroup == null
-        ? defaultCacheGroup
-        : typeof this.cacheGroup === 'object' && !(this.cacheGroup instanceof RegExp)
-          ? { name: chunkName, ...this.cacheGroup }
-          : this.cacheGroup;
+    const cacheGroup: unknown = this.cacheGroup;
+
+    if (cacheGroup == null) {
+      optimization.splitChunks.cacheGroups[chunkName] = defaultCacheGroup;
+      return;
+    }
+
+    if (cacheGroup === false) {
+      optimization.splitChunks.cacheGroups[chunkName] = false;
+      return;
+    }
+
+    // webpack accepts string and RegExp entries as `test` shorthand, while
+    // Rspack accepts only objects. Normalizing them also preserves the static
+    // chunk name required by finalizeStylexAsset().
+    if (typeof cacheGroup === 'string' || cacheGroup instanceof RegExp) {
+      optimization.splitChunks.cacheGroups[chunkName] = {
+        name: chunkName,
+        test: cacheGroup,
+      };
+      return;
+    }
+
+    if (typeof cacheGroup !== 'object' || Array.isArray(cacheGroup)) {
+      throw new TypeError(
+        `${packageName}: "cacheGroup" must be an object, string, RegExp, or false.`
+      );
+    }
+
+    if (
+      'name' in cacheGroup &&
+      cacheGroup.name !== undefined &&
+      typeof cacheGroup.name !== 'string'
+    ) {
+      throw new TypeError(`${packageName}: "cacheGroup.name" must be a static string.`);
+    }
+
+    // A custom object replaces the default entirely. Merging the default
+    // `test` would silently narrow an intentionally omitted test (which means
+    // "match every module") back to the carrier and virtual modules only.
+    optimization.splitChunks.cacheGroups[chunkName] = { name: chunkName, ...cacheGroup };
   }
 
   /**

@@ -131,6 +131,22 @@ describe('StyleXPluginCore.assertAndInstallCacheGroup', () => {
     });
   });
 
+  test('an explicit `name: undefined` still gets the default chunk name pinned', () => {
+    // `{ name: chunkName, ...cacheGroup }` would let the user's explicit
+    // undefined win the spread, un-naming the chunk and orphaning the
+    // finalizeStylexAsset lookup — every extracted style would be dropped.
+    const core = createCore({
+      cacheGroup: { name: undefined, priority: 20 } as unknown as CacheGroupOptions,
+    });
+
+    const cacheGroups = installCacheGroup(core, { splitChunks: { cacheGroups: {} } });
+
+    expect(cacheGroups?.[DEFAULT_CHUNK_NAME]).toEqual({
+      name: DEFAULT_CHUNK_NAME,
+      priority: 20,
+    });
+  });
+
   test('rejects a dynamic name because the emitted chunk cannot be located', () => {
     const nameFn = () => 'computed';
     const core = createCore({

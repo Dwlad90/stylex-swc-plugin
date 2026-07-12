@@ -183,7 +183,12 @@ export class StyleXPluginCore {
    */
   assertAndInstallCacheGroup(
     optimization: {
-      splitChunks?: false | { cacheGroups?: Record<string, CacheGroupOptions> };
+      // `unknown` values on purpose: this method only WRITES the plugin's own
+      // entry. Demanding `CacheGroupOptions` here would force every sibling
+      // cache group in the bundler's config (webpack's own union includes
+      // dynamic-name and function forms) to conform to our narrowed option
+      // type and reject `compiler.options.optimization` at the call site.
+      splitChunks?: false | { cacheGroups?: Record<string, unknown> };
     },
     packageName: string,
     chunkName: string
@@ -246,7 +251,11 @@ export class StyleXPluginCore {
     // A custom object replaces the default entirely. Merging the default
     // `test` would silently narrow an intentionally omitted test (which means
     // "match every module") back to the carrier and virtual modules only.
-    optimization.splitChunks.cacheGroups[chunkName] = { name: chunkName, ...cacheGroup };
+    // `name` is pinned to chunkName (getChunkName already resolved it to the
+    // user's string name when given) — spreading the user object over it
+    // would let an explicit `name: undefined` un-name the chunk and orphan
+    // finalizeStylexAsset's namedChunks lookup.
+    optimization.splitChunks.cacheGroups[chunkName] = { ...cacheGroup, name: chunkName };
   }
 
   /**
@@ -377,9 +386,14 @@ export class StyleXPluginCore {
   }
 
   /**
-   * Generates the final stylesheet and REPLACES the carrier chunk's CSS asset
-   * content with it. Callbacks keep this structural so both webpack's and
-   * rspack's `Compilation` satisfy it without type gymnastics.
+   * Generates the final stylesheet and APPENDS it to the carrier chunk's CSS
+   * asset. Appending (matching 0.17.x's ConcatSource behavior) is load-bearing:
+   * a widened cacheGroup (no `test`) funnels foreign CSS modules — css-modules,
+   * plain css imports — into the same chunk, and their content lives in this
+   * asset. Replacing would silently delete them from the build output. The
+   * carrier and dummy modules contribute only comments, so appending cannot
+   * duplicate StyleX rules. Callbacks keep this structural so both webpack's
+   * and rspack's `Compilation` satisfy it without type gymnastics.
    */
   async finalizeStylexAsset({
     assets,
@@ -443,7 +457,27 @@ export class StyleXPluginCore {
     }
 
     const finalCss = await this.transformCss(stylexCSS, cssAsset);
+    const finalCssText = typeof finalCss === 'string' ? finalCss : finalCss.toString('utf-8');
 
-    updateAsset(cssAsset, createSource(finalCss));
+    // `transformCss` runs on the generated StyleX CSS only (0.17.x parity);
+    // foreign CSS already in the asset is preserved untouched below it, so
+    // the appended StyleX rules keep the highest cascade precedence.
+    const existing = assets[cssAsset];
+    let existingCss = '';
+
+    if (
+      typeof existing === 'object' &&
+      existing != null &&
+      'source' in existing &&
+      typeof (existing as { source: unknown }).source === 'function'
+    ) {
+      const raw = (existing as { source(): string | Buffer }).source();
+      existingCss = typeof raw === 'string' ? raw : raw.toString('utf-8');
+    }
+
+    updateAsset(
+      cssAsset,
+      createSource(existingCss.length > 0 ? `${existingCss}\n${finalCssText}` : finalCssText)
+    );
   }
 }

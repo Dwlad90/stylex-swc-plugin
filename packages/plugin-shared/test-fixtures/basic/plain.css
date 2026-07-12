@@ -1,0 +1,4 @@
+/* Foreign (non-StyleX) stylesheet used by the cache-group funnel tests. */
+.plain-global {
+  outline-color: rgb(1, 2, 3);
+}

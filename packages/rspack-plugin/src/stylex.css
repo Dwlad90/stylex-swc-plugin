@@ -5,6 +5,6 @@
  *
  *   import '@stylexswc/rspack-plugin/stylex.css';
  *
- * During the build the plugin replaces the emitted asset content with the
- * extracted StyleX CSS.
+ * During the build the plugin appends the extracted StyleX CSS to the
+ * emitted asset (other CSS funneled into the chunk is preserved).
  */

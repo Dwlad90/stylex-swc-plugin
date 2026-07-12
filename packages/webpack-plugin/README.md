@@ -71,7 +71,7 @@ Then import the carrier stylesheet **once** at the entry point of your app (e.g.
 import '@stylexswc/webpack-plugin/stylex.css';
 ```
 
-The plugin replaces this asset's content with the extracted StyleX CSS during
+The plugin appends the extracted StyleX CSS to this asset during
 the build. Like a regular CSS file, it must flow through your CSS pipeline, so a
 `css-loader` + `MiniCssExtractPlugin.loader` rule (or webpack's built-in CSS
 support) has to cover `.css` files.
@@ -264,8 +264,11 @@ new StylexPlugin({
   standard `splitChunks` semantics — e.g. omitting `test` matches every
   module, which funnels all extracted CSS into the StyleX chunk. `name` must be
   a static string and falls back to the default chunk name. String and RegExp
-  shorthand values are treated as `test`. Include `type: 'css/mini-extract'`,
-  `chunks` and `enforce` yourself when you need them.
+  shorthand values are treated as `test`. `false` disables the plugin's cache
+  group entirely — extracted styles then have no CSS asset to land in and the
+  build warns; to turn off extraction, use `extractCSS: false` instead.
+  Include `type: 'css/mini-extract'`, `chunks` and `enforce` yourself when you
+  need them.
 
 Default cache group configuration:
 

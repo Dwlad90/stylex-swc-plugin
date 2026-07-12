@@ -9,13 +9,16 @@ type WebpackCacheGroupEntry = NonNullable<
   >['cacheGroups']
 >[string];
 
-type WebpackCacheGroupObject = Extract<WebpackCacheGroupEntry, { name?: unknown }>;
+// Exclude the shorthand members explicitly instead of Extract-ing by shape:
+// a weak-type match ({ name?: unknown }) silently changes meaning if webpack
+// ever reshapes the union (e.g. the function form has an apparent `name`).
+type WebpackCacheGroupObject = Exclude<
+  WebpackCacheGroupEntry,
+  false | string | RegExp | ((..._args: never) => unknown)
+>;
 
 export type CacheGroupOptions =
-  | (Omit<WebpackCacheGroupObject, 'name'> & { name?: string })
-  | string
-  | RegExp
-  | false;
+  (Omit<WebpackCacheGroupObject, 'name'> & { name?: string }) | string | RegExp | false;
 
 type AsyncFnParams = Parameters<ReturnType<LoaderContext<unknown>['async']>>;
 
@@ -99,8 +102,11 @@ export interface StyleXPluginOption {
    * every module, which funnels all extracted CSS into the stylex chunk).
    * Only a static string `name` is supported and it is defaulted when omitted,
    * so the plugin can locate the emitted chunk. String and RegExp shorthand
-   * values are treated as `test`. Include `type: 'css/mini-extract'`, `chunks`
-   * and `enforce` yourself when you need them.
+   * values are treated as `test`. `false` disables the plugin's cache group
+   * entirely (extracted styles then have no CSS asset to land in and the
+   * build warns — prefer `extractCSS: false` to opt out of extraction).
+   * Include `type: 'css/mini-extract'`, `chunks` and `enforce` yourself when
+   * you need them.
    *
    * @see https://webpack.js.org/plugins/split-chunks-plugin/#splitchunkscachegroups
    */

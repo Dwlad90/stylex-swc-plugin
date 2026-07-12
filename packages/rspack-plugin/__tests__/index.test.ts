@@ -118,7 +118,7 @@ function dummyImportIdentifier(rules: StyleXRule[], from = 'src/button.tsx') {
 }
 
 describe('@stylexswc/rspack-plugin', () => {
-  test('re-collects rules from chunk module identifiers and replaces the carrier CSS asset', async () => {
+  test('re-collects rules from chunk module identifiers and appends to the carrier CSS asset', async () => {
     const transformCss = vi.fn(async (css: string, filePath: string | undefined) => {
       return `${css}\n/* transformed:${filePath} */`;
     });
@@ -137,10 +137,14 @@ describe('@stylexswc/rspack-plugin', () => {
 
     const finalCss = assets['stylex.css']?.source().toString();
 
-    // the carrier content is REPLACED, not appended to
-    expect(finalCss).not.toContain('/* carrier placeholder */');
+    // existing asset content is PRESERVED (a widened cacheGroup funnels
+    // foreign CSS into this asset), with the StyleX css appended after it
+    expect(finalCss).toContain('/* carrier placeholder */');
     expect(finalCss).toContain('color:red');
     expect(finalCss).toContain('/* transformed:stylex.css */');
+    expect(finalCss?.indexOf('color:red')).toBeGreaterThan(
+      finalCss?.indexOf('/* carrier placeholder */') ?? -1
+    );
   });
 
   test('clears stale StyleX rules when no current chunk modules contain dummy imports', async () => {

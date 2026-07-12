@@ -10,7 +10,6 @@ import {
   stylexVirtualCssLoaderPath,
 } from '@stylexswc/plugin-shared';
 
-import type { CacheGroupOptions } from '@stylexswc/plugin-shared';
 import type { Compiler, sources } from '@rspack/core';
 
 export const STYLEX_CHUNK_NAME = '_stylex-rspack-generated';
@@ -22,13 +21,7 @@ export default class StyleXPlugin extends StyleXPluginCore {
   apply(compiler: Compiler) {
     this.resolveCarrier(compiler.context, DEFAULT_CARRIER_PATH);
     const chunkName = this.getChunkName(STYLEX_CHUNK_NAME);
-    this.assertAndInstallCacheGroup(
-      compiler.options.optimization as {
-        splitChunks?: false | { cacheGroups?: Record<string, CacheGroupOptions> };
-      },
-      PACKAGE_NAME,
-      chunkName
-    );
+    this.assertAndInstallCacheGroup(compiler.options.optimization, PACKAGE_NAME, chunkName);
     this.resolveDevOption(compiler.options.mode);
 
     // Rspack computes loader lists natively, so loaders can't be injected

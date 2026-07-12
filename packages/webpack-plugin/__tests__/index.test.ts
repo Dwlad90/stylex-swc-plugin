@@ -114,7 +114,7 @@ function createMockCompiler() {
 }
 
 describe('@stylexswc/webpack-plugin', () => {
-  test('collects rules from module buildInfo and replaces the carrier CSS asset', async () => {
+  test('collects rules from module buildInfo and appends to the carrier CSS asset', async () => {
     const transformCss = vi.fn(async (css: string, filePath: string | undefined) => {
       return `${css}\n/* transformed:${filePath} */`;
     });
@@ -143,10 +143,14 @@ describe('@stylexswc/webpack-plugin', () => {
 
     const finalCss = assets['stylex.css']?.source().toString();
 
-    // the carrier content is REPLACED, not appended to
-    expect(finalCss).not.toContain('/* carrier placeholder */');
+    // existing asset content is PRESERVED (a widened cacheGroup funnels
+    // foreign CSS into this asset), with the StyleX css appended after it
+    expect(finalCss).toContain('/* carrier placeholder */');
     expect(finalCss).toContain('color:red');
     expect(finalCss).toContain('/* transformed:stylex.css */');
+    expect(finalCss?.indexOf('color:red')).toBeGreaterThan(
+      finalCss?.indexOf('/* carrier placeholder */') ?? -1
+    );
   });
 
   test('leaves the carrier asset untouched without collected rules', async () => {

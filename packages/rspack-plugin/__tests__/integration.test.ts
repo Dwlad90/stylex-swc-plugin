@@ -8,6 +8,8 @@ import {
   BASIC_FIXTURE_EXPECTED_CSS,
   BASIC_FIXTURE_ROOT,
   CARRIER_ALIAS,
+  PLAIN_CSS_DECLARATION,
+  PLAIN_CSS_FIXTURE_ENTRY,
   findStylexCss,
 } from '../../plugin-shared/test-utils/fixtures';
 import StyleXPlugin, { STYLEX_CHUNK_NAME } from '../src';
@@ -98,7 +100,7 @@ function getStylexCss({ files }: CompileResult): string | null {
 }
 
 describe('@stylexswc/rspack-plugin integration', () => {
-  test('production build replaces the carrier asset with aggregated StyleX CSS', async () => {
+  test('production build appends aggregated StyleX CSS to the carrier asset', async () => {
     const result = await compile(createConfig('production'));
     const css = getStylexCss(result);
 
@@ -108,8 +110,13 @@ describe('@stylexswc/rspack-plugin integration', () => {
       expect(css).toContain(declaration);
     }
 
-    // carrier placeholder content is replaced, not appended to
-    expect(css).not.toContain('StyleX carrier stylesheet');
+    // the carrier header comment is preserved (append semantics — foreign CSS
+    // funneled into the chunk must survive; minifiers strip comments in real
+    // production builds, this harness runs with minimize: false)
+    expect(css).toContain('StyleX carrier stylesheet');
+    expect(css!.indexOf(BASIC_FIXTURE_EXPECTED_CSS[0]!)).toBeGreaterThan(
+      css!.indexOf('StyleX carrier stylesheet')
+    );
     // dev-only HMR dummy rules never reach production output
     expect(css).not.toContain('.stylex-hashed-');
   });
@@ -165,9 +172,11 @@ describe('@stylexswc/rspack-plugin integration', () => {
     expect(result.stats.toJson({ warnings: true }).warnings ?? []).toHaveLength(0);
   });
 
-  test('a replacement cache group without test emits the named StyleX asset', async () => {
+  test('a replacement cache group without test funnels foreign CSS and preserves it', async () => {
     const config = createConfig('production');
 
+    // foreign (non-StyleX) stylesheet rides through the same CSS pipeline
+    config.entry = PLAIN_CSS_FIXTURE_ENTRY;
     config.plugins = [
       new StyleXPlugin({
         rsOptions: { dev: false },
@@ -180,6 +189,20 @@ describe('@stylexswc/rspack-plugin integration', () => {
     const css = getStylexCss(result);
 
     expect(css).not.toBeNull();
+
+    // the single-chunk invariant: no other css asset may be emitted
+    const cssAssets = Object.keys(result.files).filter(name => name.endsWith('.css'));
+    expect(cssAssets).toHaveLength(1);
+
+    // foreign CSS funneled into the stylex chunk must survive finalization,
+    // with the StyleX rules appended after it (highest cascade precedence)
+    expect(css).toContain(PLAIN_CSS_DECLARATION);
+
+    for (const declaration of BASIC_FIXTURE_EXPECTED_CSS) {
+      expect(css).toContain(declaration);
+      expect(css!.indexOf(declaration)).toBeGreaterThan(css!.indexOf(PLAIN_CSS_DECLARATION));
+    }
+
     expect(result.stats.toJson({ warnings: true }).warnings ?? []).toHaveLength(0);
   });
 

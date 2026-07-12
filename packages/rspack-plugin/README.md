@@ -69,7 +69,7 @@ Then import the carrier stylesheet **once** at the entry point of your app
 import '@stylexswc/rspack-plugin/stylex.css';
 ```
 
-The plugin replaces this asset's content with the extracted StyleX CSS during
+The plugin appends the extracted StyleX CSS to this asset during
 the build. Like a regular CSS file, it must flow through your CSS pipeline, so
 a `css-loader` + `CssExtractRspackPlugin.loader` rule has to cover `.css`
 files.
@@ -207,6 +207,9 @@ StyleX chunk. Only `name` falls back to the default chunk name; include
 `type: 'css/mini-extract'`, `chunks` and `enforce` yourself when you need them.
 `name` must be a static string. For webpack compatibility, string and RegExp
 shorthand values are treated as `test` and normalized to a Rspack cache group.
+`false` disables the plugin's cache group entirely — extracted styles then
+have no CSS asset to land in and the build warns; to turn off extraction, use
+`extractCSS: false` instead.
 
 ### `stylexPackages`
 

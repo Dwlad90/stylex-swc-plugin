@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/webpack-plugin",
   "description": "StyleX plugin for webpack powered by a Rust NAPI-RS/SWC compiler. Fast StyleX transforms and CSS extraction without Babel.",
-  "version": "0.17.1",
+  "version": "0.18.0-rc.1",
   "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "config": {
     "scripty": {
@@ -9,13 +9,13 @@
     }
   },
   "dependencies": {
-    "@stylexswc/plugin-shared": "0.17.1"
+    "@stylexswc/plugin-shared": "0.18.0-rc.1"
   },
   "devDependencies": {
     "@stylexjs/babel-plugin": "^0.19.0",
     "@stylexjs/stylex": "^0.19.0",
-    "@stylexswc/eslint-config": "0.17.1",
-    "@stylexswc/typescript-config": "0.17.1",
+    "@stylexswc/eslint-config": "0.18.0-rc.1",
+    "@stylexswc/typescript-config": "0.18.0-rc.1",
     "@types/node": "^26.1.0",
     "css-loader": "^7.1.2",
     "memfs": "^4.17.0",

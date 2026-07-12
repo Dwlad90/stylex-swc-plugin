@@ -200,7 +200,12 @@ When the StyleX transformation runs relative to other Rspack loaders — see
   [`splitChunks.cacheGroups` entry](https://rspack.rs/plugins/webpack/split-chunks-plugin#splitchunkscachegroups)
 
 Customizes the cache group configuration for extracted CSS chunks — how CSS is
-split into files, cached, or grouped.
+split into files, cached, or grouped. A custom cache group replaces the
+plugin's default one entirely, with standard `splitChunks` semantics — e.g.
+omitting `test` matches every module, which funnels all extracted CSS into the
+StyleX chunk. Only `name` falls back to the default chunk name; include
+`type: 'css/mini-extract'`, `chunks` and `enforce` yourself when you need
+them.
 
 ### `stylexPackages`
 

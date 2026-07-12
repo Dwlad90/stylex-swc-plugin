@@ -272,7 +272,7 @@ describe('@stylexswc/webpack-plugin', () => {
     expect(plugin.stylexRules.size).toBe(0);
   });
 
-  test('extends required cache group defaults and supports a custom chunk name', () => {
+  test('a custom cache group replaces the default entirely (only name is defaulted)', () => {
     const plugin = new StyleXPlugin({
       cacheGroup: { name: 'custom-stylex', priority: 20 },
     });
@@ -282,14 +282,29 @@ describe('@stylexswc/webpack-plugin', () => {
 
     const cacheGroup = compiler.options.optimization.splitChunks.cacheGroups['custom-stylex'];
 
-    expect(cacheGroup).toMatchObject({
+    // Replacement semantics: no default `test` (or other fields) may leak in —
+    // omitting `test` deliberately widens the group to every module, which is
+    // how consumers funnel ALL extracted CSS into the stylex chunk.
+    expect(cacheGroup).toEqual({
       name: 'custom-stylex',
       priority: 20,
-      type: 'css/mini-extract',
-      chunks: 'all',
-      enforce: true,
     });
-    expect(cacheGroup?.test).toBeInstanceOf(RegExp);
+  });
+
+  test('a custom cache group without a name falls back to the default chunk name', () => {
+    const plugin = new StyleXPlugin({
+      cacheGroup: { priority: 20 },
+    });
+    const { compiler } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as webpack.Compiler);
+
+    const cacheGroup = compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME];
+
+    expect(cacheGroup).toEqual({
+      name: STYLEX_CHUNK_NAME,
+      priority: 20,
+    });
   });
 
   test('default cache group matches only the packaged carrier stylesheet', () => {

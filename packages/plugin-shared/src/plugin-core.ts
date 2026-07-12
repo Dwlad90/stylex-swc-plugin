@@ -206,10 +206,20 @@ export class StyleXPluginCore {
       enforce: true,
     };
 
+    // A custom cacheGroup replaces the default entirely (splitChunks
+    // semantics: an omitted `test` means "match every module"). Merging the
+    // default `test` back in would make configs that deliberately widen the
+    // group — e.g. funneling ALL extracted CSS into the stylex chunk —
+    // silently collect only the carrier again. Only `name` is defaulted, so
+    // the emitted chunk stays discoverable by getChunkName()'s lookup.
+    // Shorthand entries (`false`, string, RegExp, function) are passed
+    // through verbatim — spreading them would strip their meaning.
     optimization.splitChunks.cacheGroups[chunkName] =
-      typeof this.cacheGroup === 'object' && this.cacheGroup != null
-        ? { ...defaultCacheGroup, ...this.cacheGroup }
-        : defaultCacheGroup;
+      this.cacheGroup == null
+        ? defaultCacheGroup
+        : typeof this.cacheGroup === 'object' && !(this.cacheGroup instanceof RegExp)
+          ? { name: chunkName, ...this.cacheGroup }
+          : this.cacheGroup;
   }
 
   /**

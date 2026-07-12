@@ -281,6 +281,40 @@ describe('@stylexswc/rspack-plugin', () => {
     expect(test.test(path.join(path.sep, 'project', 'src', 'stylex.css'))).toBe(false);
   });
 
+  test('a custom cache group replaces the default entirely (only name is defaulted)', () => {
+    const plugin = new StyleXPlugin({
+      cacheGroup: { name: 'custom-stylex', type: 'css/mini-extract', chunks: 'all', enforce: true },
+    });
+    const { compiler } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as Compiler);
+
+    // Replacement semantics: no default `test` may leak in — omitting `test`
+    // deliberately widens the group to every module, which is how consumers
+    // funnel ALL extracted CSS into the stylex chunk.
+    expect(compiler.options.optimization.splitChunks.cacheGroups['custom-stylex']).toEqual({
+      name: 'custom-stylex',
+      type: 'css/mini-extract',
+      chunks: 'all',
+      enforce: true,
+    });
+    expect(
+      compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME]
+    ).toBeUndefined();
+  });
+
+  test('a custom cache group without a name falls back to the default chunk name', () => {
+    const plugin = new StyleXPlugin({ cacheGroup: { priority: 20 } });
+    const { compiler } = createMockCompiler();
+
+    plugin.apply(compiler as unknown as Compiler);
+
+    expect(compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME]).toEqual({
+      name: STYLEX_CHUNK_NAME,
+      priority: 20,
+    });
+  });
+
   test('scopes node_modules to the stylexPackages allowlist', () => {
     const plugin = new StyleXPlugin();
     const project = path.join(path.sep, 'project');

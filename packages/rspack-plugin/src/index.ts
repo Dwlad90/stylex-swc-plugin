@@ -10,7 +10,7 @@ import {
   stylexVirtualCssLoaderPath,
 } from '@stylexswc/plugin-shared';
 
-import type { Compiler, sources } from '@rspack/core';
+import type { Compiler } from '@rspack/core';
 
 export const STYLEX_CHUNK_NAME = '_stylex-rspack-generated';
 
@@ -60,7 +60,7 @@ export default class StyleXPlugin extends StyleXPluginCore {
     );
 
     const { Compilation, sources: rspackSources } = compiler.webpack;
-    const { RawSource } = rspackSources;
+    const { ConcatSource, RawSource } = rspackSources;
 
     compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
       // Plugin options change the generated CSS without any module changing;
@@ -106,11 +106,12 @@ export default class StyleXPlugin extends StyleXPluginCore {
               ? `import '${this.carrierCss}'`
               : `import '${PACKAGE_NAME}/stylex.css'`,
             getNamedChunk: name => compilation.namedChunks.get(name),
-            createSource: css => new RawSource(css),
-            updateAsset: (name, source) =>
-              compilation.updateAsset(name, () => source as sources.Source, {
-                minimized: false,
-              }),
+            appendCssToAsset: (name, css) =>
+              compilation.updateAsset(
+                name,
+                source => new ConcatSource(source, '\n', new RawSource(css)),
+                { minimized: false }
+              ),
             // compilation warnings surface in stats and the dev overlay,
             // unlike the infrastructure logger
             warn: message =>

@@ -398,8 +398,7 @@ export class StyleXPluginCore {
   async finalizeStylexAsset({
     assets,
     getNamedChunk,
-    updateAsset,
-    createSource,
+    appendCssToAsset,
     chunkName,
     compilerName,
     carrierHint,
@@ -407,8 +406,8 @@ export class StyleXPluginCore {
   }: {
     assets: Record<string, unknown>;
     getNamedChunk: (_name: string) => ChunkLike | null | undefined;
-    updateAsset: (_name: string, _source: unknown) => void;
-    createSource: (_css: string | Buffer) => unknown;
+    /** MUST append the css to the asset's existing content, never replace it */
+    appendCssToAsset: (_name: string, _css: string | Buffer) => void;
     chunkName: string;
     /** `compiler.name`; gates the missing-carrier warning in Next.js builds */
     compilerName?: string;
@@ -457,27 +456,10 @@ export class StyleXPluginCore {
     }
 
     const finalCss = await this.transformCss(stylexCSS, cssAsset);
-    const finalCssText = typeof finalCss === 'string' ? finalCss : finalCss.toString('utf-8');
 
     // `transformCss` runs on the generated StyleX CSS only (0.17.x parity);
     // foreign CSS already in the asset is preserved untouched below it, so
     // the appended StyleX rules keep the highest cascade precedence.
-    const existing = assets[cssAsset];
-    let existingCss = '';
-
-    if (
-      typeof existing === 'object' &&
-      existing != null &&
-      'source' in existing &&
-      typeof (existing as { source: unknown }).source === 'function'
-    ) {
-      const raw = (existing as { source(): string | Buffer }).source();
-      existingCss = typeof raw === 'string' ? raw : raw.toString('utf-8');
-    }
-
-    updateAsset(
-      cssAsset,
-      createSource(existingCss.length > 0 ? `${existingCss}\n${finalCssText}` : finalCssText)
-    );
+    appendCssToAsset(cssAsset, finalCss);
   }
 }

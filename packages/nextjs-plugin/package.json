@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/nextjs-plugin",
   "description": "StyleX plugin for Next.js powered by a Rust NAPI-RS/SWC compiler. Supports Webpack, Rspack, and Turbopack builds with CSS extraction.",
-  "version": "0.18.0-rc.2",
+  "version": "0.18.0",
   "private": false,
   "license": "MIT",
   "sideEffects": false,
@@ -49,15 +49,15 @@
     }
   },
   "dependencies": {
-    "@stylexswc/rs-compiler": "0.18.0-rc.2",
-    "@stylexswc/rspack-plugin": "0.18.0-rc.2",
-    "@stylexswc/turbopack-plugin": "0.18.0-rc.2",
-    "@stylexswc/webpack-plugin": "0.18.0-rc.2",
+    "@stylexswc/rs-compiler": "0.18.0",
+    "@stylexswc/rspack-plugin": "0.18.0",
+    "@stylexswc/turbopack-plugin": "0.18.0",
+    "@stylexswc/webpack-plugin": "0.18.0",
     "next-rspack": "^16.2.9"
   },
   "devDependencies": {
-    "@stylexswc/eslint-config": "0.18.0-rc.2",
-    "@stylexswc/typescript-config": "0.18.0-rc.2",
+    "@stylexswc/eslint-config": "0.18.0",
+    "@stylexswc/typescript-config": "0.18.0",
     "@types/node": "^26.1.0",
     "next": "^16.2.9",
     "postcss": "^8.5.16",

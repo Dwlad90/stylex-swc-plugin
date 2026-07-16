@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/plugin-shared",
   "description": "Shared core for StyleX webpack and Rspack plugins powered by a Rust NAPI-RS/SWC compiler: loaders, plugin core, and CSS extraction logic.",
-  "version": "0.18.0-rc.2",
+  "version": "0.18.0",
   "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "config": {
     "scripty": {
@@ -10,12 +10,12 @@
   },
   "dependencies": {
     "@stylexjs/babel-plugin": "^0.19.0",
-    "@stylexswc/rs-compiler": "0.18.0-rc.2",
+    "@stylexswc/rs-compiler": "0.18.0",
     "loader-utils": "^3.3.1"
   },
   "devDependencies": {
-    "@stylexswc/eslint-config": "0.18.0-rc.2",
-    "@stylexswc/typescript-config": "0.18.0-rc.2",
+    "@stylexswc/eslint-config": "0.18.0",
+    "@stylexswc/typescript-config": "0.18.0",
     "@types/loader-utils": "^3.0.0",
     "@types/node": "^26.1.0",
     "vitest": "^4.1.9",

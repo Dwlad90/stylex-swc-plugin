@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/stylexswc",
   "description": "Community Rust/NAPI-RS/SWC compiler and build-tool plugin ecosystem for StyleX CSS-in-JS, replacing the Babel transform for faster compile-time atomic CSS extraction.",
-  "version": "0.18.0-rc.2",
+  "version": "0.18.0",
   "private": true,
   "scripts": {
     "bench": "turbo run bench --continue",
@@ -41,8 +41,8 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.0",
-    "@stylexswc/eslint-config": "0.18.0-rc.2",
-    "@stylexswc/typescript-config": "0.18.0-rc.2",
+    "@stylexswc/eslint-config": "0.18.0",
+    "@stylexswc/typescript-config": "0.18.0",
     "@typescript-eslint/parser": "^8.59.1",
     "commitizen": "^4.3.2",
     "cz-conventional-changelog": "^3.3.0",

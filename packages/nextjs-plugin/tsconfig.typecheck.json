@@ -1,4 +1,14 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": {}
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "__tests__/**/*.ts",
+    "./typings/**/*.d.ts"
+  ]
 }

@@ -262,6 +262,10 @@ export default withStylexTurbopack({
   on the first compile of a route. Set `true` to keep Next.js' setting
   untouched, `false` to always disable it (dev included). The client compiler
   always keeps its cache.
+- Note: auto-detection also stands down when your own `webpack()` hook
+  configures `experiments.cache`, so an explicit choice there always wins. If
+  you set it by accident and the build crawls, either drop it or pass
+  `rspackServerPersistentCache: false`, which outranks the hook.
 
 ### Advanced Options
 

@@ -9,10 +9,25 @@ import type { NextConfig, WebpackConfigContext } from 'next/dist/server/config-s
 import type { StyleXNextRspackPluginOption } from '../src/rspack';
 import type webpack from 'webpack';
 
-const { rspackPluginOptions, warn } = vi.hoisted(() => ({
+const { existsSyncCalls, rspackPluginOptions, warn } = vi.hoisted(() => ({
+  existsSyncCalls: [] as string[],
   rspackPluginOptions: [] as Array<Record<string, unknown>>,
   warn: vi.fn(),
 }));
+
+// Partially mocked so the probe paths can be asserted while the real
+// filesystem helpers below keep working against temporary directories.
+vi.mock('node:fs', async importOriginal => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  const existsSync = (candidate: Parameters<typeof actual.existsSync>[0]) => {
+    existsSyncCalls.push(String(candidate));
+
+    return actual.existsSync(candidate);
+  };
+
+  // `default` too, so consumers using a default `fs` import are unaffected
+  return { ...actual, existsSync, default: { ...actual, existsSync } };
+});
 
 vi.mock('next/dist/build/output/log', () => ({ warn }));
 vi.mock('next-rspack', () => ({
@@ -99,6 +114,7 @@ const applyRspackConfig = (
 
 beforeEach(() => {
   process.env.NEXT_RSPACK = 'true';
+  existsSyncCalls.splice(0);
   rspackPluginOptions.splice(0);
   warn.mockClear();
 });
@@ -221,10 +237,64 @@ describe('@stylexswc/nextjs-plugin/rspack persistent cache', () => {
       pageExtensions: ['ts'],
     });
 
-    runRspackConfig(createContext(projectDirectory, { nextRuntime: 'nodejs' }));
-    runRspackConfig(createContext(projectDirectory, { nextRuntime: 'edge' }));
+    const nodeConfig = runRspackConfig(createContext(projectDirectory, { nextRuntime: 'nodejs' }));
+    const edgeConfig = runRspackConfig(createContext(projectDirectory, { nextRuntime: 'edge' }));
 
+    expect(nodeConfig.experiments?.cache).toBe(false);
+    expect(edgeConfig.experiments?.cache).toBe(false);
     expect(warn).toHaveBeenCalledOnce();
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('src/middleware.ts'));
+  });
+
+  test('detects a root-level middleware entry', () => {
+    const projectDirectory = createProject('middleware.js');
+    const config = applyRspackConfig({}, createContext(projectDirectory));
+
+    expect(config.experiments?.cache).toBe(false);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('middleware.js'));
+  });
+
+  test('never probes outside the project directory for a malformed page extension', () => {
+    const projectDirectory = createProject('app.ts');
+
+    applyRspackConfig({}, createContext(projectDirectory, {}, ['../../../etc/passwd']));
+
+    expect(existsSyncCalls).not.toHaveLength(0);
+    for (const candidate of existsSyncCalls) {
+      expect(candidate.startsWith(`${projectDirectory}${path.sep}`)).toBe(true);
+      expect(candidate).not.toContain('..');
+    }
+  });
+
+  test("keeps a persistent cache configured by the user's own webpack hook", () => {
+    const projectDirectory = createProject('proxy.ts');
+    const userCache = { type: 'persistent', storage: { type: 'filesystem' } } as const;
+    const config = applyRspackConfig(
+      {
+        pageExtensions: ['ts'],
+        webpack: (webpackConfig: Record<string, unknown>) => ({
+          ...webpackConfig,
+          experiments: { cache: userCache },
+        }),
+      },
+      createContext(projectDirectory)
+    );
+
+    expect(config.experiments?.cache).toEqual(userCache);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  test('still applies the workaround when a webpack hook drops experiments entirely', () => {
+    const projectDirectory = createProject('proxy.ts');
+    const config = applyRspackConfig(
+      {
+        pageExtensions: ['ts'],
+        webpack: () => ({}),
+      },
+      createContext(projectDirectory)
+    );
+
+    expect(config.experiments?.cache).toBe(false);
+    expect(warn).toHaveBeenCalledOnce();
   });
 });

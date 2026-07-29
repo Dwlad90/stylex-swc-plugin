@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import browserslist from 'next/dist/compiled/browserslist';
 import { warn } from 'next/dist/build/output/log';
 import { lazyPostCSS } from 'next/dist/build/webpack/config/blocks/css';
@@ -16,7 +16,16 @@ import type webpack from 'webpack';
 import type { Processor as PostCSSProcessor } from 'postcss';
 import type { ConfigurationContext as WebpackConfigurationContext } from 'next/dist/build/webpack/config/utils';
 
-export type StyleXNextRspackPluginOption = StyleXPluginOption & {
+type RspackExperiments = NonNullable<webpack.Configuration['experiments']> & {
+  cache?: unknown;
+};
+
+type RspackConfiguration = Omit<webpack.Configuration, 'experiments'> &
+  WebpackConfigurationContext & {
+    experiments?: RspackExperiments;
+  };
+
+export interface StyleXNextRspackPluginOption extends StyleXPluginOption {
   /**
    * Whether the server compilers keep Rspack's persistent cache.
    *
@@ -36,7 +45,7 @@ export type StyleXNextRspackPluginOption = StyleXPluginOption & {
    * @default undefined (auto-detect, production builds only)
    */
   rspackServerPersistentCache?: boolean;
-};
+}
 
 /**
  * Next.js resolves the proxy/middleware entry from `<root>` or `<root>/src`
@@ -57,7 +66,7 @@ const findNextjsProxyEntry = (dir: string, pageExtensions?: string[]): string | 
       for (const extension of extensions) {
         const candidate = path.join(dir, subDir, `${filename}.${extension}`);
 
-        if (fs.existsSync(candidate)) {
+        if (existsSync(candidate)) {
           return path.relative(dir, candidate);
         }
       }
@@ -144,6 +153,7 @@ function getStyleXVirtualCssLoader(
 const withStyleX =
   (pluginOptions?: StyleXNextRspackPluginOption) =>
   (nextConfig: NextConfig = {}): NextConfig => {
+    const { rspackServerPersistentCache, ...rspackPluginOptions } = pluginOptions ?? {};
     // Scoped per `withStyleX(...)` call rather than module-level, so it doesn't
     // leak across unrelated Next.js configs sharing this process (e.g. a
     // monorepo building multiple apps, or repeated calls in tests).
@@ -151,6 +161,18 @@ const withStyleX =
     // The server and edge-server compilers both run `webpack()`; the notice
     // belongs in the log once per config, not once per compiler.
     let persistentCacheNoticeShown = false;
+    // Both server compilers use the same project root and normalized config.
+    // Cache the bounded synchronous probe so configuration never repeats I/O.
+    let proxyEntryDetectionComplete = false;
+    let detectedProxyEntry: string | undefined;
+    const getNextjsProxyEntry = (dir: string, pageExtensions: string[]) => {
+      if (!proxyEntryDetectionComplete) {
+        detectedProxyEntry = findNextjsProxyEntry(dir, pageExtensions);
+        proxyEntryDetectionComplete = true;
+      }
+
+      return detectedProxyEntry;
+    };
 
     // The App Router cross-compiler rule registry lives on `globalThis`, so
     // the client/server/edge-server compilers must share one build process.
@@ -177,10 +199,7 @@ const withStyleX =
             },
           }
         : {}),
-      webpack(
-        config: webpack.Configuration & WebpackConfigurationContext,
-        ctx: WebpackConfigContext
-      ) {
+      webpack(config: RspackConfiguration, ctx: WebpackConfigContext) {
         if (!process.env.NEXT_RSPACK) {
           throw new Error(
             [
@@ -212,22 +231,17 @@ const withStyleX =
         // the server compilers so the client keeps its cache, and to production
         // builds — `next dev` shows no such stall, and keeping its cache is
         // worth ~200ms on first compile of a route.
-        if (isServer && pluginOptions?.rspackServerPersistentCache !== true) {
+        if (isServer && rspackServerPersistentCache !== true) {
           const proxyEntry =
-            dev || pluginOptions?.rspackServerPersistentCache === false
+            dev || rspackServerPersistentCache === false
               ? undefined
-              : findNextjsProxyEntry(ctx.dir, nextConfig.pageExtensions);
+              : getNextjsProxyEntry(ctx.dir, ctx.config.pageExtensions);
           // An explicit `false` disables the cache everywhere, dev included
-          const disableCache =
-            pluginOptions?.rspackServerPersistentCache === false || proxyEntry != null;
+          const disableCache = rspackServerPersistentCache === false || proxyEntry != null;
 
           if (disableCache) {
-            // `experiments.cache` is Rspack-only, so it is absent from the
-            // webpack `Configuration` type Next.js hands us
-            const experiments = (config.experiments ?? {}) as Record<string, unknown>;
-
-            experiments.cache = false;
-            config.experiments = experiments as typeof config.experiments;
+            config.experiments ??= {};
+            config.experiments.cache = false;
 
             if (!persistentCacheNoticeShown) {
               persistentCacheNoticeShown = true;
@@ -364,7 +378,7 @@ const withStyleX =
             // Router, where each compiler sees the complete rule set)
             nextjsMode: true,
             nextjsAppRouterMode: true,
-            ...pluginOptions,
+            ...rspackPluginOptions,
             // Pre-resolved absolute path: the plugin's chunk pattern and the
             // css rule above can never disagree about the carrier location
             ...(pluginOptions?.carrierCss ? { carrierCss: carrierPath } : {}),
@@ -406,5 +420,10 @@ const withStyleX =
 
 export default withStyleX;
 
-module.exports = withStyleX;
-module.exports.default = withStyleX;
+const moduleExportsDescriptor =
+  typeof module === 'undefined' ? undefined : Object.getOwnPropertyDescriptor(module, 'exports');
+
+if (moduleExportsDescriptor?.writable) {
+  module.exports = withStyleX;
+  module.exports.default = withStyleX;
+}

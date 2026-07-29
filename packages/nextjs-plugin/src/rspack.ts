@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import browserslist from 'next/dist/compiled/browserslist';
 import { warn } from 'next/dist/build/output/log';
@@ -14,6 +15,57 @@ import type { StyleXPluginOption } from '@stylexswc/rspack-plugin';
 import type webpack from 'webpack';
 import type { Processor as PostCSSProcessor } from 'postcss';
 import type { ConfigurationContext as WebpackConfigurationContext } from 'next/dist/build/webpack/config/utils';
+
+export type StyleXNextRspackPluginOption = StyleXPluginOption & {
+  /**
+   * Whether the server compilers keep Rspack's persistent cache.
+   *
+   * Next.js 16 turns on `experiments.cache = { type: 'persistent' }` for
+   * every `next-rspack` compiler. With a `proxy.ts`/`middleware.ts` entry
+   * that cache degrades catastrophically in the server compilers: the build
+   * spends its time in Rspack's native filesystem layer walking the whole
+   * workspace, and warm builds are slower than cold ones (measured on the
+   * example app: 1.6s -> 27s cold, 50s warm; unbounded in large monorepos).
+   *
+   * Left unset, the cache is disabled for the server compilers of a
+   * **production build** when a proxy/middleware entry is detected. `next dev`
+   * is left alone: it shows no such stall, and keeping its cache is worth
+   * ~200ms on the first compile of a route. Set `true` to keep Next.js'
+   * setting untouched, `false` to always disable it (dev included).
+   *
+   * @default undefined (auto-detect, production builds only)
+   */
+  rspackServerPersistentCache?: boolean;
+};
+
+/**
+ * Next.js resolves the proxy/middleware entry from `<root>` or `<root>/src`
+ * @see https://nextjs.org/docs/app/api-reference/file-conventions/proxy
+ */
+const NEXTJS_PROXY_FILENAMES = ['proxy', 'middleware'] as const;
+const NEXTJS_PROXY_DIRS = ['', 'src'] as const;
+// Detection only gates a cache optimization, so a superset of Next.js'
+// `pageExtensions` is deliberate: a false positive costs build cache, a
+// false negative costs a hanging build
+const NEXTJS_PROXY_EXTENSIONS = ['ts', 'tsx', 'js', 'jsx', 'mjs', 'mts', 'cjs', 'cts'] as const;
+
+const findNextjsProxyEntry = (dir: string, pageExtensions?: string[]): string | undefined => {
+  const extensions = new Set([...NEXTJS_PROXY_EXTENSIONS, ...(pageExtensions ?? [])]);
+
+  for (const subDir of NEXTJS_PROXY_DIRS) {
+    for (const filename of NEXTJS_PROXY_FILENAMES) {
+      for (const extension of extensions) {
+        const candidate = path.join(dir, subDir, `${filename}.${extension}`);
+
+        if (fs.existsSync(candidate)) {
+          return path.relative(dir, candidate);
+        }
+      }
+    }
+  }
+
+  return undefined;
+};
 
 type CssExtractPluginClass = {
   new (_options: { filename: string; chunkFilename: string; ignoreOrder: boolean }): unknown;
@@ -90,12 +142,15 @@ function getStyleXVirtualCssLoader(
 }
 
 const withStyleX =
-  (pluginOptions?: StyleXPluginOption) =>
+  (pluginOptions?: StyleXNextRspackPluginOption) =>
   (nextConfig: NextConfig = {}): NextConfig => {
     // Scoped per `withStyleX(...)` call rather than module-level, so it doesn't
     // leak across unrelated Next.js configs sharing this process (e.g. a
     // monorepo building multiple apps, or repeated calls in tests).
     let count = 0;
+    // The server and edge-server compilers both run `webpack()`; the notice
+    // belongs in the log once per config, not once per compiler.
+    let persistentCacheNoticeShown = false;
 
     // The App Router cross-compiler rule registry lives on `globalThis`, so
     // the client/server/edge-server compilers must share one build process.
@@ -149,6 +204,47 @@ const withStyleX =
           warn(
             `@stylexswc/nextjs-plugin/rspack: rspack config #${count} (buildId=${buildId}, server=${isServer}, env=${dev ? 'dev' : 'prod'})`
           );
+        }
+
+        // Upstream workaround: Next.js 16 enables Rspack's persistent cache for
+        // every compiler, and a proxy/middleware entry makes it pathological in
+        // the server compilers (see `rspackServerPersistentCache`). Scoped to
+        // the server compilers so the client keeps its cache, and to production
+        // builds — `next dev` shows no such stall, and keeping its cache is
+        // worth ~200ms on first compile of a route.
+        if (isServer && pluginOptions?.rspackServerPersistentCache !== true) {
+          const proxyEntry =
+            dev || pluginOptions?.rspackServerPersistentCache === false
+              ? undefined
+              : findNextjsProxyEntry(ctx.dir, nextConfig.pageExtensions);
+          // An explicit `false` disables the cache everywhere, dev included
+          const disableCache =
+            pluginOptions?.rspackServerPersistentCache === false || proxyEntry != null;
+
+          if (disableCache) {
+            // `experiments.cache` is Rspack-only, so it is absent from the
+            // webpack `Configuration` type Next.js hands us
+            const experiments = (config.experiments ?? {}) as Record<string, unknown>;
+
+            experiments.cache = false;
+            config.experiments = experiments as typeof config.experiments;
+
+            if (!persistentCacheNoticeShown) {
+              persistentCacheNoticeShown = true;
+              warn(
+                proxyEntry
+                  ? [
+                      "@stylexswc/nextjs-plugin/rspack: disabling Rspack's persistent cache for the",
+                      `server compilers — "${proxyEntry}" makes it pathologically slow on Next.js 16`,
+                      '(builds can appear to hang). Set "rspackServerPersistentCache: true" to keep it.',
+                    ].join(' ')
+                  : [
+                      "@stylexswc/nextjs-plugin/rspack: disabling Rspack's persistent cache for the",
+                      'server compilers — "rspackServerPersistentCache: false" was set.',
+                    ].join(' ')
+              );
+            }
+          }
         }
 
         config.optimization ||= {};

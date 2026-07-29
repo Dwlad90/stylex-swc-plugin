@@ -244,6 +244,25 @@ export default withStylexTurbopack({
   carrier's real path — if the missing-carrier warning appears in such a
   setup, point `carrierCss` at a file inside your own source tree.
 
+#### `rspackServerPersistentCache`
+
+- Type: `boolean`
+- Optional
+- Default: unset (auto-detect)
+- Applies to: the `/rspack` export only
+- Description: Whether the server compilers keep Rspack's persistent cache.
+  Next.js 16 enables `experiments.cache = { type: 'persistent' }` for every
+  `next-rspack` compiler, and a `proxy.ts`/`middleware.ts` entry makes that
+  cache degrade catastrophically in the server compilers — the build stalls
+  inside Rspack's native filesystem layer and can look like a hang (see the
+  FAQ entry below). Left unset, the plugin disables the cache for the server
+  compilers of a **production build** when it finds a proxy/middleware entry
+  in the project root or `src/`, and logs a warning saying so. `next dev` is
+  left alone — it shows no such stall, and keeping its cache is worth ~200ms
+  on the first compile of a route. Set `true` to keep Next.js' setting
+  untouched, `false` to always disable it (dev included). The client compiler
+  always keeps its cache.
+
 ### Advanced Options
 
 #### `transformCss`
@@ -432,6 +451,25 @@ transpiled by Next.js and automatically allowlisted for the StyleX transform.
 
 Yes. Styles are extracted at build time from both Server and Client Components
 into static CSS, so there is no runtime cost either way.
+
+### My Rspack build hangs when I add a `proxy.ts`
+
+This is an upstream Next.js 16 + `next-rspack` issue, not a StyleX one:
+Next.js enables Rspack's persistent cache for every compiler, and a
+proxy/middleware entry makes it spend minutes in Rspack's native filesystem
+layer walking the workspace. It reproduces with no StyleX plugin installed at
+all, it scales with the size of the workspace rather than the app, and warm
+builds are slower than cold ones. On the example app the server compile went
+from 1.6s to 27s cold and 50s warm; in a large monorepo the build never
+appears to finish.
+
+The `/rspack` export detects the proxy entry and disables the persistent cache
+for the server compilers of a production build, which restores the original
+build time (1.6s on the example app) and leaves the emitted CSS
+byte-identical. `next dev` keeps its cache: it boots in ~240ms and compiles
+the proxy entry in ~310ms with the cache on, so the stall does not appear
+there. See [`rspackServerPersistentCache`](#rspackserverpersistentcache) to
+control it. The `--webpack` bundler is unaffected.
 
 ### Is this an official StyleX package?
 

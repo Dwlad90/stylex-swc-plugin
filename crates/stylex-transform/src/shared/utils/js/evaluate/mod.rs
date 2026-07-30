@@ -371,6 +371,14 @@ fn _evaluate(
 
     let binding = get_var_decl_by_ident(ident, traversal_state, &state.functions);
 
+    if binding.is_some() && traversal_state.has_constant_violation(ident) {
+      return deopt(path, state, NON_CONSTANT);
+    }
+
+    if binding.is_some() && traversal_state.is_mutated(ident) {
+      return deopt(path, state, NON_CONSTANT);
+    }
+
     if let Some(init) = binding.and_then(|mut var_decl| var_decl.init.take()) {
       return evaluate_cached(&init, state, traversal_state, fns);
     }

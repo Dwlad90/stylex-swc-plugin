@@ -409,6 +409,13 @@ pub struct StateManager {
 
   pub(crate) declarations_state: DeclarationState,
   pub(crate) declarations: Vec<VarDeclarator>,
+  /// Bindings written through assignment, update, destructuring, or loop
+  /// targets. The evaluator must not follow their declaration initializer.
+  pub(crate) constant_violations: FxHashSet<Id>,
+  /// Bindings whose referenced object or array is mutated without rebinding.
+  /// Kept separate from `constant_violations` to preserve the evaluator's two
+  /// binding-safety checks.
+  pub(crate) mutated_bindings: FxHashSet<Id>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   pub(crate) call_expressions: CallExpressionState,
   pub(crate) seen: FxHashMap<u64, Rc<SeenValue>>,
@@ -523,6 +530,8 @@ impl StateManager {
 
       declarations: vec![],
       declarations_state: DeclarationState::default(),
+      constant_violations: FxHashSet::default(),
+      mutated_bindings: FxHashSet::default(),
       top_level_expressions: vec![],
       call_expressions: CallExpressionState::default(),
       jsx_spread_attr_exprs_map: FxHashMap::default(),
@@ -601,6 +610,14 @@ impl StateManager {
         .iter()
         .any(|scope| scope.lo <= site.lo && scope.hi >= site.hi)
     })
+  }
+
+  pub(crate) fn has_constant_violation(&self, ident: &Ident) -> bool {
+    self.constant_violations.contains(&ident.to_id())
+  }
+
+  pub(crate) fn is_mutated(&self, ident: &Ident) -> bool {
+    self.mutated_bindings.contains(&ident.to_id())
   }
 
   /// Seeds an empty replacement entry for a JSX spread expression seen during

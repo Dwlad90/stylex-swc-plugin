@@ -291,3 +291,68 @@ stylex_test!(
     });
   "#
 );
+
+stylex_test!(
+  sx_conditions_derived_from_reassigned_variables_fail_static_evaluation,
+  |tr| { build_test_transform(tr.comments.clone(), move |b| { b.with_runtime_injection() }) },
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    const styles = stylex.create({
+      root: { display: "flex" },
+      populated: { gap: 4 },
+    });
+
+    export function Component({ flag }) {
+      let items = [];
+      if (flag) items = [1];
+
+      const hasItems = items.length > 0;
+      return <div sx={[styles.root, hasItems && styles.populated]} />;
+    }
+  "#
+);
+
+stylex_test!(
+  sx_conditions_derived_from_mutated_arrays_deopt_static_evaluation,
+  |tr| { build_test_transform(tr.comments.clone(), move |b| { b.with_runtime_injection() }) },
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    const styles = stylex.create({
+      root: { display: "flex" },
+      populated: { gap: 4 },
+    });
+
+    export function Component({ flag }) {
+      const items = [];
+      if (flag) items.push(1);
+
+      const hasItems = items.length > 0;
+      return <div sx={[styles.root, hasItems && styles.populated]} />;
+    }
+  "#
+);
+
+stylex_test!(
+  mutations_of_shadowed_bindings_do_not_deopt_outer_binding,
+  |tr| { build_test_transform(tr.comments.clone(), move |b| { b.with_runtime_injection() }) },
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    const tokens = { color: "red" };
+
+    const styles = stylex.create({
+      root: { color: tokens.color },
+    });
+
+    export function Component({ flag }) {
+      if (flag) {
+        let tokens = { color: "blue" };
+        tokens = { color: "green" };
+      }
+
+      return <div sx={styles.root} />;
+    }
+  "#
+);

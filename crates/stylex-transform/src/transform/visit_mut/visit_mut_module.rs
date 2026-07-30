@@ -2,9 +2,12 @@ use swc_core::{
   common::{BytePos, Span, comments::Comments},
   ecma::{
     ast::{
-      ArrowExpr, BindingIdent, BlockStmt, CatchClause, ClassDecl, ClassExpr, FnDecl, FnExpr,
-      Function, ImportDecl, Module, ModuleItem, Program, Script, VarDecl, VarDeclKind,
+      ArrowExpr, AssignExpr, AssignTarget, BindingIdent, BlockStmt, CallExpr, Callee, CatchClause,
+      ClassDecl, ClassExpr, Expr, FnDecl, FnExpr, ForHead, ForInStmt, ForOfStmt, Function, Id,
+      Ident, ImportDecl, MemberExpr, MemberProp, Module, ModuleItem, Program, Script,
+      SimpleAssignTarget, UnaryExpr, UnaryOp, UpdateExpr, VarDecl, VarDeclKind,
     },
+    utils::find_pat_ids,
     visit::{Visit, VisitMutWith, VisitWith},
   },
 };
@@ -19,6 +22,7 @@ use crate::{
   },
 };
 use rustc_hash::{FxHashMap, FxHashSet};
+use stylex_constants::constants::common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS};
 use stylex_enums::core::TransformationCycle;
 
 /// Span covering the whole source, used for the module-level scope frame so
@@ -54,17 +58,20 @@ struct ScopeFrame {
 /// `Discover` cycle. Captures the sources of every import declaration
 /// (including type-only ones) in body order, the names of every bound
 /// identifier in the module, and — for non-import bindings — the source span
-/// of the scope each one occupies. SWC visitors have no parent pointers or
-/// scope chain, so this pre-scan supplies the import-source and binding
-/// information `get_stylex_runtime_binding` needs; the recorded scope spans
-/// let `is_locally_rebound_at` perform its position-aware shadow check.
+/// of the scope each one occupies. It also records writes to bindings and
+/// mutations of their referenced values for static evaluation. SWC visitors
+/// have no parent pointers or scope chain, so this pre-scan supplies the
+/// binding information used by both runtime-binding resolution and evaluation.
 struct ModuleBindingsCollector {
+  collect_sx_bindings: bool,
   import_sources: Vec<String>,
   bound_names: FxHashSet<String>,
   /// For each name bound by a non-import declaration, the spans of the scopes
   /// in which it is bound. A name shadows an `sx` site iff one of its scope
   /// spans encloses that site (see [`StateManager::is_locally_rebound_at`]).
   local_rebinding_scopes: FxHashMap<String, Vec<Span>>,
+  constant_violations: FxHashSet<Id>,
+  mutated_bindings: FxHashSet<Id>,
   /// Stack of enclosing lexical scopes, outermost (module) first.
   scope_stack: Vec<ScopeFrame>,
   /// `VarDeclKind` of the `VarDecl` currently being visited, if any — needed
@@ -74,11 +81,14 @@ struct ModuleBindingsCollector {
 }
 
 impl ModuleBindingsCollector {
-  fn new() -> Self {
+  fn new(collect_sx_bindings: bool) -> Self {
     Self {
+      collect_sx_bindings,
       import_sources: Vec::new(),
       bound_names: FxHashSet::default(),
       local_rebinding_scopes: FxHashMap::default(),
+      constant_violations: FxHashSet::default(),
+      mutated_bindings: FxHashSet::default(),
       // Seed a module-level function scope spanning the whole source so
       // top-level bindings enclose every `sx` site.
       scope_stack: vec![ScopeFrame {
@@ -115,7 +125,12 @@ impl ModuleBindingsCollector {
   /// `bound_names` (every binding) and `local_rebinding_scopes` (non-import
   /// only), scoping it to the function scope when `hoisted` (`var`
   /// declarations) or the innermost scope otherwise.
-  fn add_local_binding(&mut self, name: String, hoisted: bool) {
+  fn add_local_binding(&mut self, name: &str, hoisted: bool) {
+    if !self.collect_sx_bindings {
+      return;
+    }
+
+    let name = name.to_string();
     let scope = if hoisted {
       self.nearest_function_scope()
     } else {
@@ -128,10 +143,35 @@ impl ModuleBindingsCollector {
       .or_default()
       .push(scope);
   }
+
+  fn add_constant_violations<T>(&mut self, pattern: &T)
+  where
+    T: VisitWith<swc_core::ecma::utils::DestructuringFinder<Id>>,
+  {
+    self.constant_violations.extend(find_pat_ids(pattern));
+  }
+
+  fn add_constant_violation(&mut self, ident: &Ident) {
+    self.constant_violations.insert(ident.to_id());
+  }
+
+  fn add_mutated_binding(&mut self, ident: &Ident) {
+    self.mutated_bindings.insert(ident.to_id());
+  }
+
+  fn add_mutated_member(&mut self, member_expression: &MemberExpr) {
+    if let Some(object) = member_expression.obj.as_ident() {
+      self.add_mutated_binding(object);
+    }
+  }
 }
 
 impl Visit for ModuleBindingsCollector {
   fn visit_import_decl(&mut self, import_decl: &ImportDecl) {
+    if !self.collect_sx_bindings {
+      return;
+    }
+
     self
       .import_sources
       .push(convert_atom_to_string(&import_decl.src.value));
@@ -174,7 +214,7 @@ impl Visit for ModuleBindingsCollector {
     if let Some(ident) = &fn_expr.ident {
       // A named function expression's name is bound only inside the function
       // body, where it can shadow an imported `stylex` namespace.
-      self.add_local_binding(ident.sym.to_string(), false);
+      self.add_local_binding(ident.sym.as_ref(), false);
     }
 
     fn_expr.function.visit_children_with(self);
@@ -189,7 +229,7 @@ impl Visit for ModuleBindingsCollector {
 
     if let Some(ident) = &class_expr.ident {
       // A named class expression's name is visible inside the class body.
-      self.add_local_binding(ident.sym.to_string(), false);
+      self.add_local_binding(ident.sym.as_ref(), false);
     }
 
     class_expr.class.visit_children_with(self);
@@ -222,21 +262,101 @@ impl Visit for ModuleBindingsCollector {
 
   fn visit_binding_ident(&mut self, binding_ident: &BindingIdent) {
     let hoisted = self.current_var_kind == Some(VarDeclKind::Var);
-    self.add_local_binding(binding_ident.id.sym.to_string(), hoisted);
+    self.add_local_binding(binding_ident.id.sym.as_ref(), hoisted);
     binding_ident.visit_children_with(self);
   }
 
   fn visit_fn_decl(&mut self, fn_decl: &FnDecl) {
     // Function declarations in modules are block-scoped; top-level ones still
     // land in the module scope because it is the innermost frame there.
-    self.add_local_binding(fn_decl.ident.sym.to_string(), false);
+    self.add_local_binding(fn_decl.ident.sym.as_ref(), false);
     fn_decl.visit_children_with(self);
   }
 
   fn visit_class_decl(&mut self, class_decl: &ClassDecl) {
     // Class declarations are block-scoped, not hoisted.
-    self.add_local_binding(class_decl.ident.sym.to_string(), false);
+    self.add_local_binding(class_decl.ident.sym.as_ref(), false);
     class_decl.visit_children_with(self);
+  }
+
+  fn visit_assign_expr(&mut self, assign_expression: &AssignExpr) {
+    match &assign_expression.left {
+      AssignTarget::Simple(SimpleAssignTarget::Ident(ident)) => {
+        self.add_constant_violation(&ident.id);
+      },
+      AssignTarget::Simple(SimpleAssignTarget::Member(member_expression)) => {
+        self.add_mutated_member(member_expression);
+      },
+      AssignTarget::Pat(pattern) => {
+        self.add_constant_violations(pattern);
+      },
+      _ => {},
+    }
+
+    assign_expression.visit_children_with(self);
+  }
+
+  fn visit_update_expr(&mut self, update_expression: &UpdateExpr) {
+    match update_expression.arg.as_ref() {
+      Expr::Ident(ident) => {
+        self.add_constant_violation(ident);
+      },
+      Expr::Member(member_expression) => {
+        self.add_mutated_member(member_expression);
+      },
+      _ => {},
+    }
+
+    update_expression.visit_children_with(self);
+  }
+
+  fn visit_unary_expr(&mut self, unary_expression: &UnaryExpr) {
+    if unary_expression.op == UnaryOp::Delete
+      && let Expr::Member(member_expression) = unary_expression.arg.as_ref()
+    {
+      self.add_mutated_member(member_expression);
+    }
+
+    unary_expression.visit_children_with(self);
+  }
+
+  fn visit_call_expr(&mut self, call_expression: &CallExpr) {
+    if let Callee::Expr(callee) = &call_expression.callee
+      && let Expr::Member(member_expression) = callee.as_ref()
+      && let Some(object) = member_expression.obj.as_ident()
+      && let MemberProp::Ident(property) = &member_expression.prop
+    {
+      if MUTATING_ARRAY_METHODS.contains(property.sym.as_ref()) {
+        self.add_mutated_binding(object);
+      }
+
+      if object.sym == "Object"
+        && MUTATING_OBJECT_METHODS.contains(property.sym.as_ref())
+        && let Some(first_argument) = call_expression.args.first()
+        && first_argument.spread.is_none()
+        && let Some(ident) = first_argument.expr.as_ident()
+      {
+        self.add_mutated_binding(ident);
+      }
+    }
+
+    call_expression.visit_children_with(self);
+  }
+
+  fn visit_for_in_stmt(&mut self, for_in_statement: &ForInStmt) {
+    if let ForHead::Pat(pattern) = &for_in_statement.left {
+      self.add_constant_violations(pattern.as_ref());
+    }
+
+    for_in_statement.visit_children_with(self);
+  }
+
+  fn visit_for_of_stmt(&mut self, for_of_statement: &ForOfStmt) {
+    if let ForHead::Pat(pattern) = &for_of_statement.left {
+      self.add_constant_violations(pattern.as_ref());
+    }
+
+    for_of_statement.visit_children_with(self);
   }
 }
 
@@ -316,15 +436,17 @@ where
   pub(crate) fn discover_module(&mut self, module: &mut Module) {
     self.state.cycle = TransformationCycle::Discover;
 
-    // Pre-scan the whole module once so the `sx` runtime-binding injection
-    // (which runs mid-walk, in this same cycle) can consult existing import
-    // sources and bound names without parent-pointer / scope APIs. The scan's
-    // output is consumed solely by `get_stylex_runtime_binding` on the `sx`
-    // path, so skip the extra full-module traversal entirely when the `sx`
-    // feature is disabled.
-    if self.state.options.sx_prop_name.is_some() {
-      let mut collector = ModuleBindingsCollector::new();
-      module.visit_with(&mut collector);
+    // Pre-scan the whole module once so evaluator binding-safety checks and the
+    // `sx` runtime-binding injection can consult scope-aware binding data
+    // without parent-pointer / scope APIs.
+    let collect_sx_bindings = self.state.options.sx_prop_name.is_some();
+    let mut collector = ModuleBindingsCollector::new(collect_sx_bindings);
+    module.visit_with(&mut collector);
+
+    self.state.constant_violations = collector.constant_violations;
+    self.state.mutated_bindings = collector.mutated_bindings;
+
+    if collect_sx_bindings {
       self.state.existing_import_sources = collector.import_sources;
       self.state.bound_names = collector.bound_names;
       self.state.local_rebinding_scopes = collector.local_rebinding_scopes;

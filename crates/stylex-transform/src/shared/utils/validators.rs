@@ -3,6 +3,7 @@ use stylex_macros::stylex_panic;
 use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::{
   atoms::Atom,
+  common::EqIgnoreSpan,
   ecma::ast::{ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, Pat, VarDeclarator},
 };
 
@@ -136,7 +137,17 @@ pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) 
     && state
       .find_top_level_expr(
         call,
-        |tpe: &TopLevelExpression| matches!(tpe.1, Expr::Array(_)),
+        |tpe: &TopLevelExpression| {
+          matches!(&tpe.1, Expr::Array(_))
+            || matches!(
+              &tpe.1,
+              Expr::Member(member)
+                if matches!(
+                  member.obj.as_ref(),
+                  Expr::Call(member_call) if member_call.eq_ignore_span(call)
+                )
+            )
+        },
         None,
       )
       .is_none()

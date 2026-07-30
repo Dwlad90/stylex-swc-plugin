@@ -3,8 +3,7 @@ use stylex_macros::stylex_panic;
 use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::{
   atoms::Atom,
-  common::EqIgnoreSpan,
-  ecma::ast::{ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, Pat, VarDeclarator},
+  ecma::ast::{ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, Pat, PropOrSpread, VarDeclarator},
 };
 
 use crate::shared::{
@@ -126,50 +125,96 @@ macro_rules! stylex_var_decl_call_predicate {
   };
 }
 
+/// Returns `true` when `expr` *is* `call`, or is a member chain rooted at it
+/// (`stylex.create({...}).root`, `stylex.create({...})["root"]`).
+///
+/// Identity is the span, not the structure: two distinct `stylex.create()` call
+/// sites with identical arguments are `eq_ignore_span`-equal, so a structural
+/// comparison would let a genuinely unbound call borrow an unrelated twin's
+/// binding and silently skip validation.
+fn contains_call(expr: &Expr, call: &CallExpr) -> bool {
+  match expr {
+    Expr::Call(candidate) => candidate.span == call.span,
+    Expr::Member(member) => contains_call(&member.obj, call),
+    _ => false,
+  }
+}
+
+/// Returns `true` when the top-level expression `expr` binds `call`.
+///
+/// Two shapes count as bound beyond a plain variable declarator (which
+/// [`StateManager::find_call_declaration`] handles):
+/// - an array literal holding the call — `[stylex.create({...}), ...]`;
+/// - a direct member access on the call — `stylex.create({...}).root`.
+///
+/// The array case is decided by span containment, **not** by walking `elems`.
+/// A single top-level array holding every style in a module is an idiomatic
+/// StyleX shape (`export const lotsOfStyles = [stylex.create({...}), ...]`), and
+/// this predicate runs once per `stylex.create()` call — scanning the elements
+/// would make validation quadratic in the number of styles in that array.
+/// Containment is O(1) and still rejects a call that merely coexists with an
+/// unrelated array, which a bare `matches!(_, Expr::Array(_))` would accept.
+fn is_bound_create_expr(expr: &Expr, call: &CallExpr) -> bool {
+  match expr {
+    Expr::Array(array) => array.span.contains(call.span),
+    Expr::Member(member) => contains_call(&member.obj, call),
+    _ => false,
+  }
+}
+
 pub(crate) fn validate_stylex_create(call: &CallExpr, state: &mut StateManager) {
   if !is_create_call(call, state) {
     return;
   }
 
-  let call_expr = Expr::Call(call.clone());
-
+  // `Expr::Call(call.clone())` deep-clones the whole style object, so it is
+  // built lazily — only on the paths that are about to panic anyway.
   if state.find_call_declaration(call).is_none()
     && state
       .find_top_level_expr(
         call,
-        |tpe: &TopLevelExpression| {
-          matches!(&tpe.1, Expr::Array(_))
-            || matches!(
-              &tpe.1,
-              Expr::Member(member)
-                if matches!(
-                  member.obj.as_ref(),
-                  Expr::Call(member_call) if member_call.eq_ignore_span(call)
-                )
-            )
-        },
+        |tpe: &TopLevelExpression| is_bound_create_expr(&tpe.1, call),
         None,
       )
       .is_none()
   {
-    build_code_frame_error_and_panic_at(&call_expr, &unbound_call_value(STYLEX_CREATE), state);
+    build_code_frame_error_and_panic_at(
+      &Expr::Call(call.clone()),
+      &unbound_call_value(STYLEX_CREATE),
+      state,
+    );
   }
 
-  validate_arg_count_for_expr(&call_expr, call, 1, STYLEX_CREATE, state);
-  assert_first_arg_is_object(&call_expr, call, STYLEX_CREATE, state);
+  if call.args.len() != 1 {
+    build_code_frame_error_and_panic_at(
+      &Expr::Call(call.clone()),
+      &illegal_argument_length(STYLEX_CREATE, 1),
+      state,
+    );
+  }
 
   let first_arg = &call.args[0];
-  let has_spread = if let Expr::Object(obj) = first_arg.expr.as_ref() {
-    obj
-      .props
-      .iter()
-      .any(|prop| matches!(prop, swc_core::ecma::ast::PropOrSpread::Spread(_)))
-  } else {
-    false
+
+  let Expr::Object(obj) = first_arg.expr.as_ref() else {
+    build_code_frame_error_and_panic(
+      &Expr::Call(call.clone()),
+      &first_arg.expr,
+      &non_style_object(STYLEX_CREATE),
+      state,
+    );
   };
 
-  if has_spread {
-    build_code_frame_error_and_panic(&call_expr, &first_arg.expr, NO_OBJECT_SPREADS, state);
+  if obj
+    .props
+    .iter()
+    .any(|prop| matches!(prop, PropOrSpread::Spread(_)))
+  {
+    build_code_frame_error_and_panic(
+      &Expr::Call(call.clone()),
+      &first_arg.expr,
+      NO_OBJECT_SPREADS,
+      state,
+    );
   }
 }
 

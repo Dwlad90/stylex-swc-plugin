@@ -371,11 +371,12 @@ fn _evaluate(
 
     let binding = get_var_decl_by_ident(ident, traversal_state, &state.functions);
 
-    if binding.is_some() && traversal_state.has_constant_violation(ident) {
-      return deopt(path, state, NON_CONSTANT);
-    }
-
-    if binding.is_some() && traversal_state.is_mutated(ident) {
+    // A binding that is rebound or mutated somewhere in the module no longer
+    // matches its declaration initializer at this use site, so inlining the
+    // initializer would bake in a stale value. Bail out to the runtime path
+    // instead; idents with no declaration (imports, globals, injected
+    // functions) are resolved below and unaffected.
+    if binding.is_some() && traversal_state.has_binding_write(ident) {
       return deopt(path, state, NON_CONSTANT);
     }
 

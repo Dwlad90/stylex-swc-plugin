@@ -409,13 +409,17 @@ pub struct StateManager {
 
   pub(crate) declarations_state: DeclarationState,
   pub(crate) declarations: Vec<VarDeclarator>,
-  /// Bindings written through assignment, update, destructuring, or loop
-  /// targets. The evaluator must not follow their declaration initializer.
-  pub(crate) constant_violations: FxHashSet<Id>,
-  /// Bindings whose referenced object or array is mutated without rebinding.
-  /// Kept separate from `constant_violations` to preserve the evaluator's two
-  /// binding-safety checks.
-  pub(crate) mutated_bindings: FxHashSet<Id>,
+  /// Bindings whose value can differ from their declaration initializer:
+  /// either rebound (assignment, update, destructuring or loop target — a
+  /// constant violation) or mutated in place (`obj.x = 1`, `arr.push(…)`,
+  /// `delete obj.x`, `Object.assign(obj, …)`). Both cases make the
+  /// initializer an unsound stand-in for the value at the use site, so the
+  /// evaluator deopts identically for them; they share one set to keep the
+  /// lookup on the evaluation hot path to a single hash probe. Keyed by full
+  /// `Id` (`(Atom, SyntaxContext)`), so a write to a shadowing binding never
+  /// deopts the outer one. Populated by the `Discover` pre-scan
+  /// ([`ModuleBindingsCollector`]).
+  pub(crate) binding_writes: FxHashSet<Id>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   pub(crate) call_expressions: CallExpressionState,
   pub(crate) seen: FxHashMap<u64, Rc<SeenValue>>,
@@ -530,8 +534,7 @@ impl StateManager {
 
       declarations: vec![],
       declarations_state: DeclarationState::default(),
-      constant_violations: FxHashSet::default(),
-      mutated_bindings: FxHashSet::default(),
+      binding_writes: FxHashSet::default(),
       top_level_expressions: vec![],
       call_expressions: CallExpressionState::default(),
       jsx_spread_attr_exprs_map: FxHashMap::default(),
@@ -612,12 +615,11 @@ impl StateManager {
     })
   }
 
-  pub(crate) fn has_constant_violation(&self, ident: &Ident) -> bool {
-    self.constant_violations.contains(&ident.to_id())
-  }
-
-  pub(crate) fn is_mutated(&self, ident: &Ident) -> bool {
-    self.mutated_bindings.contains(&ident.to_id())
+  /// Whether `ident`'s binding is rebound or mutated anywhere in the module,
+  /// which makes its declaration initializer unsafe to inline. See
+  /// [`StateManager::binding_writes`].
+  pub(crate) fn has_binding_write(&self, ident: &Ident) -> bool {
+    self.binding_writes.contains(&ident.to_id())
   }
 
   /// Seeds an empty replacement entry for a JSX spread expression seen during

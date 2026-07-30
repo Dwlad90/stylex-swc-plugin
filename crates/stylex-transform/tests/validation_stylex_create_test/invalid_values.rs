@@ -240,3 +240,80 @@ stylex_test_panic!(
     const styles = stylex.create({ x: { transitionProperty: "width" } });
   "#
 );
+
+// A binding that is rebound or mutated anywhere in the module no longer holds
+// its declaration initializer at the `stylex.create` site. Inlining the
+// initializer would bake a stale value into the generated CSS, so evaluation
+// must bail out and report a non-constant reference instead.
+stylex_test_panic!(
+  reassigned_binding_is_not_a_constant_value,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    let color = 'red';
+    color = 'blue';
+
+    const styles = stylex.create({ x: { color } });
+  "#
+);
+
+stylex_test_panic!(
+  mutated_array_binding_is_not_a_constant_value,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const spacing = [4, 8];
+    spacing.push(16);
+
+    const styles = stylex.create({ x: { gap: spacing[0] } });
+  "#
+);
+
+stylex_test_panic!(
+  object_assigned_binding_is_not_a_constant_value,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const tokens = { color: 'red' };
+    Object.assign(tokens, { color: 'blue' });
+
+    const styles = stylex.create({ x: { color: tokens.color } });
+  "#
+);
+
+stylex_test_panic!(
+  binding_mutated_through_a_nested_member_is_not_a_constant_value,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const theme = { colors: { primary: 'red' } };
+    theme.colors.primary = 'blue';
+
+    const styles = stylex.create({ x: { color: theme.colors.primary } });
+  "#
+);
+
+// With the `sx` prop disabled the module pre-scan is deferred until the
+// module is known to import stylex; the binding-write guard must still hold.
+stylex_test_panic!(
+  reassigned_binding_is_not_a_constant_value_with_sx_disabled,
+  "Referenced value is not a constant",
+  |tr| {
+    build_test_transform(tr.comments.clone(), |b| {
+      b.with_sx_prop_name(SxPropNameParam::Disabled)
+        .with_runtime_injection()
+    })
+  },
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    let color = 'red';
+    color = 'blue';
+
+    const styles = stylex.create({ x: { color } });
+  "#
+);

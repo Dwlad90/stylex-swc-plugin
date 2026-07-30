@@ -2,12 +2,12 @@ use swc_core::{
   common::{BytePos, Span, comments::Comments},
   ecma::{
     ast::{
-      ArrowExpr, AssignExpr, AssignTarget, BindingIdent, BlockStmt, CallExpr, Callee, CatchClause,
-      ClassDecl, ClassExpr, Expr, FnDecl, FnExpr, ForHead, ForInStmt, ForOfStmt, Function, Id,
-      Ident, ImportDecl, MemberExpr, MemberProp, Module, ModuleItem, Program, Script,
-      SimpleAssignTarget, UnaryExpr, UnaryOp, UpdateExpr, VarDecl, VarDeclKind,
+      ArrayPat, ArrowExpr, AssignExpr, AssignTarget, AssignTargetPat, BindingIdent, BlockStmt,
+      CallExpr, Callee, CatchClause, ClassDecl, ClassExpr, Expr, FnDecl, FnExpr, ForHead,
+      ForInStmt, ForOfStmt, Function, Id, Ident, ImportDecl, MemberExpr, MemberProp, Module,
+      ModuleItem, ObjectPat, ObjectPatProp, OptChainBase, Pat, Program, Script, SimpleAssignTarget,
+      UnaryExpr, UnaryOp, UpdateExpr, VarDecl, VarDeclKind,
     },
-    utils::find_pat_ids,
     visit::{Visit, VisitMutWith, VisitWith},
   },
 };
@@ -70,8 +70,9 @@ struct ModuleBindingsCollector {
   /// in which it is bound. A name shadows an `sx` site iff one of its scope
   /// spans encloses that site (see [`StateManager::is_locally_rebound_at`]).
   local_rebinding_scopes: FxHashMap<String, Vec<Span>>,
-  constant_violations: FxHashSet<Id>,
-  mutated_bindings: FxHashSet<Id>,
+  /// Bindings rebound or mutated anywhere in the module. See
+  /// [`StateManager::binding_writes`].
+  binding_writes: FxHashSet<Id>,
   /// Stack of enclosing lexical scopes, outermost (module) first.
   scope_stack: Vec<ScopeFrame>,
   /// `VarDeclKind` of the `VarDecl` currently being visited, if any — needed
@@ -87,8 +88,7 @@ impl ModuleBindingsCollector {
       import_sources: Vec::new(),
       bound_names: FxHashSet::default(),
       local_rebinding_scopes: FxHashMap::default(),
-      constant_violations: FxHashSet::default(),
-      mutated_bindings: FxHashSet::default(),
+      binding_writes: FxHashSet::default(),
       // Seed a module-level function scope spanning the whole source so
       // top-level bindings enclose every `sx` site.
       scope_stack: vec![ScopeFrame {
@@ -144,24 +144,114 @@ impl ModuleBindingsCollector {
       .push(scope);
   }
 
-  fn add_constant_violations<T>(&mut self, pattern: &T)
-  where
-    T: VisitWith<swc_core::ecma::utils::DestructuringFinder<Id>>,
-  {
-    self.constant_violations.extend(find_pat_ids(pattern));
+  /// Record a write to `ident`'s binding — a rebinding or an in-place
+  /// mutation of the value it references. Both make the declaration
+  /// initializer unsafe to inline at a use site.
+  fn add_binding_write(&mut self, ident: &Ident) {
+    self.binding_writes.insert(ident.to_id());
   }
 
-  fn add_constant_violation(&mut self, ident: &Ident) {
-    self.constant_violations.insert(ident.to_id());
+  /// Record a write reached through a member expression (`obj.x = 1`,
+  /// `obj.a.b.push(…)`, `delete obj.x`). Only the *root* object of the chain
+  /// is a binding, so walk past intermediate members, parens and optional
+  /// links to reach it — stopping at anything that is not a plain identifier
+  /// (a call result or literal owns no binding to invalidate).
+  fn add_member_root_write(&mut self, member_expression: &MemberExpr) {
+    let mut object = member_expression.obj.as_ref();
+
+    loop {
+      match object {
+        Expr::Ident(ident) => {
+          self.add_binding_write(ident);
+          return;
+        },
+        Expr::Member(inner) => object = inner.obj.as_ref(),
+        Expr::Paren(paren) => object = paren.expr.as_ref(),
+        Expr::OptChain(opt_chain) => match opt_chain.base.as_ref() {
+          OptChainBase::Member(inner) => object = inner.obj.as_ref(),
+          OptChainBase::Call(_) => return,
+        },
+        Expr::TsNonNull(non_null) => object = non_null.expr.as_ref(),
+        Expr::TsAs(ts_as) => object = ts_as.expr.as_ref(),
+        Expr::TsSatisfies(satisfies) => object = satisfies.expr.as_ref(),
+        _ => return,
+      }
+    }
   }
 
-  fn add_mutated_binding(&mut self, ident: &Ident) {
-    self.mutated_bindings.insert(ident.to_id());
+  /// Record every binding written by an assignment or `for-in`/`for-of`
+  /// pattern. Identifier targets rebind (`[a, b] = …`); `Pat::Expr` targets
+  /// are member writes (`({ x: obj.x } = …)`) and invalidate the member's
+  /// root object instead.
+  fn add_pattern_writes(&mut self, pattern: &Pat) {
+    match pattern {
+      Pat::Ident(binding_ident) => self.add_binding_write(&binding_ident.id),
+      Pat::Array(array_pattern) => self.add_array_pattern_writes(array_pattern),
+      Pat::Object(object_pattern) => self.add_object_pattern_writes(object_pattern),
+      Pat::Rest(rest_pattern) => self.add_pattern_writes(&rest_pattern.arg),
+      Pat::Assign(assign_pattern) => self.add_pattern_writes(&assign_pattern.left),
+      Pat::Expr(expression) => {
+        if let Expr::Member(member_expression) = expression.as_ref() {
+          self.add_member_root_write(member_expression);
+        }
+      },
+      Pat::Invalid(_) => {},
+    }
   }
 
-  fn add_mutated_member(&mut self, member_expression: &MemberExpr) {
-    if let Some(object) = member_expression.obj.as_ident() {
-      self.add_mutated_binding(object);
+  /// `[a, obj.x, ...rest] = …`, shared by `Pat` and `AssignTargetPat`.
+  fn add_array_pattern_writes(&mut self, array_pattern: &ArrayPat) {
+    for element in array_pattern.elems.iter().flatten() {
+      self.add_pattern_writes(element);
+    }
+  }
+
+  /// `{ a, b: obj.x, c = 1, ...rest } = …`, shared by `Pat` and
+  /// `AssignTargetPat`.
+  fn add_object_pattern_writes(&mut self, object_pattern: &ObjectPat) {
+    for property in &object_pattern.props {
+      match property {
+        ObjectPatProp::KeyValue(key_value) => self.add_pattern_writes(&key_value.value),
+        ObjectPatProp::Assign(assign) => self.add_binding_write(&assign.key.id),
+        ObjectPatProp::Rest(rest) => self.add_pattern_writes(&rest.arg),
+      }
+    }
+  }
+
+  /// Record the write performed by an assignment target, unwrapping the
+  /// parenthesised and TypeScript wrappers that can sit between the target
+  /// and the identifier or member it resolves to.
+  fn add_simple_target_write(&mut self, target: &SimpleAssignTarget) {
+    match target {
+      SimpleAssignTarget::Ident(ident) => self.add_binding_write(&ident.id),
+      SimpleAssignTarget::Member(member_expression) => {
+        self.add_member_root_write(member_expression)
+      },
+      SimpleAssignTarget::Paren(paren) => self.add_expr_target_write(&paren.expr),
+      SimpleAssignTarget::OptChain(opt_chain) => {
+        if let OptChainBase::Member(member_expression) = opt_chain.base.as_ref() {
+          self.add_member_root_write(member_expression);
+        }
+      },
+      SimpleAssignTarget::TsAs(ts_as) => self.add_expr_target_write(&ts_as.expr),
+      SimpleAssignTarget::TsSatisfies(satisfies) => self.add_expr_target_write(&satisfies.expr),
+      SimpleAssignTarget::TsNonNull(non_null) => self.add_expr_target_write(&non_null.expr),
+      SimpleAssignTarget::TsTypeAssertion(assertion) => self.add_expr_target_write(&assertion.expr),
+      SimpleAssignTarget::TsInstantiation(instantiation) => {
+        self.add_expr_target_write(&instantiation.expr)
+      },
+      // `super.x = 1` and invalid targets bind no module-level name.
+      SimpleAssignTarget::SuperProp(_) | SimpleAssignTarget::Invalid(_) => {},
+    }
+  }
+
+  /// Record the write performed by an expression used as an assignment target
+  /// (the payload of the TypeScript assignment-target wrappers).
+  fn add_expr_target_write(&mut self, expression: &Expr) {
+    match expression {
+      Expr::Ident(ident) => self.add_binding_write(ident),
+      Expr::Member(member_expression) => self.add_member_root_write(member_expression),
+      _ => {},
     }
   }
 }
@@ -281,31 +371,19 @@ impl Visit for ModuleBindingsCollector {
 
   fn visit_assign_expr(&mut self, assign_expression: &AssignExpr) {
     match &assign_expression.left {
-      AssignTarget::Simple(SimpleAssignTarget::Ident(ident)) => {
-        self.add_constant_violation(&ident.id);
+      AssignTarget::Simple(target) => self.add_simple_target_write(target),
+      AssignTarget::Pat(pattern) => match pattern {
+        AssignTargetPat::Array(array_pattern) => self.add_array_pattern_writes(array_pattern),
+        AssignTargetPat::Object(object_pattern) => self.add_object_pattern_writes(object_pattern),
+        AssignTargetPat::Invalid(_) => {},
       },
-      AssignTarget::Simple(SimpleAssignTarget::Member(member_expression)) => {
-        self.add_mutated_member(member_expression);
-      },
-      AssignTarget::Pat(pattern) => {
-        self.add_constant_violations(pattern);
-      },
-      _ => {},
     }
 
     assign_expression.visit_children_with(self);
   }
 
   fn visit_update_expr(&mut self, update_expression: &UpdateExpr) {
-    match update_expression.arg.as_ref() {
-      Expr::Ident(ident) => {
-        self.add_constant_violation(ident);
-      },
-      Expr::Member(member_expression) => {
-        self.add_mutated_member(member_expression);
-      },
-      _ => {},
-    }
+    self.add_expr_target_write(update_expression.arg.as_ref());
 
     update_expression.visit_children_with(self);
   }
@@ -314,7 +392,7 @@ impl Visit for ModuleBindingsCollector {
     if unary_expression.op == UnaryOp::Delete
       && let Expr::Member(member_expression) = unary_expression.arg.as_ref()
     {
-      self.add_mutated_member(member_expression);
+      self.add_member_root_write(member_expression);
     }
 
     unary_expression.visit_children_with(self);
@@ -323,20 +401,27 @@ impl Visit for ModuleBindingsCollector {
   fn visit_call_expr(&mut self, call_expression: &CallExpr) {
     if let Callee::Expr(callee) = &call_expression.callee
       && let Expr::Member(member_expression) = callee.as_ref()
-      && let Some(object) = member_expression.obj.as_ident()
       && let MemberProp::Ident(property) = &member_expression.prop
     {
+      // `arr.push(…)`, `arr.sort()`, … mutate the receiver in place. The
+      // receiver may itself be a member chain (`state.items.push(…)`), in
+      // which case the binding to invalidate is the chain's root object.
       if MUTATING_ARRAY_METHODS.contains(property.sym.as_ref()) {
-        self.add_mutated_binding(object);
+        self.add_member_root_write(member_expression);
       }
 
-      if object.sym == "Object"
-        && MUTATING_OBJECT_METHODS.contains(property.sym.as_ref())
+      // `Object.assign(target, …)` and friends mutate their first argument.
+      // Matching on the `Object` name is a deliberate over-approximation: a
+      // shadowed `Object` only costs a deopt, never a wrong inline.
+      if MUTATING_OBJECT_METHODS.contains(property.sym.as_ref())
+        && member_expression
+          .obj
+          .as_ident()
+          .is_some_and(|object| object.sym == "Object")
         && let Some(first_argument) = call_expression.args.first()
         && first_argument.spread.is_none()
-        && let Some(ident) = first_argument.expr.as_ident()
       {
-        self.add_mutated_binding(ident);
+        self.add_expr_target_write(first_argument.expr.as_ref());
       }
     }
 
@@ -345,7 +430,7 @@ impl Visit for ModuleBindingsCollector {
 
   fn visit_for_in_stmt(&mut self, for_in_statement: &ForInStmt) {
     if let ForHead::Pat(pattern) = &for_in_statement.left {
-      self.add_constant_violations(pattern.as_ref());
+      self.add_pattern_writes(pattern);
     }
 
     for_in_statement.visit_children_with(self);
@@ -353,7 +438,7 @@ impl Visit for ModuleBindingsCollector {
 
   fn visit_for_of_stmt(&mut self, for_of_statement: &ForOfStmt) {
     if let ForHead::Pat(pattern) = &for_of_statement.left {
-      self.add_constant_violations(pattern.as_ref());
+      self.add_pattern_writes(pattern);
     }
 
     for_of_statement.visit_children_with(self);
@@ -419,6 +504,12 @@ where
       return;
     }
 
+    // Binding writes are only read by the evaluator, which runs from here on,
+    // so modules that never reach this point pay no pre-scan. When the `sx`
+    // feature is on, `discover_module` already scanned (its output is needed
+    // mid-walk) and this is a no-op.
+    self.collect_binding_writes(module);
+
     self.transform_producers(module);
     self.transform_atoms(module);
     self.transform_consumers(module);
@@ -436,17 +527,16 @@ where
   pub(crate) fn discover_module(&mut self, module: &mut Module) {
     self.state.cycle = TransformationCycle::Discover;
 
-    // Pre-scan the whole module once so evaluator binding-safety checks and the
-    // `sx` runtime-binding injection can consult scope-aware binding data
-    // without parent-pointer / scope APIs.
-    let collect_sx_bindings = self.state.options.sx_prop_name.is_some();
-    let mut collector = ModuleBindingsCollector::new(collect_sx_bindings);
-    module.visit_with(&mut collector);
+    // The `sx` runtime-binding injection runs mid-walk in this same cycle and
+    // consults the pre-scan, so with `sx` enabled the scan has to happen up
+    // front. It collects binding writes in the same pass; without `sx` the
+    // scan is deferred to `collect_binding_writes`, which only runs for
+    // modules that actually reach evaluation.
+    if self.state.options.sx_prop_name.is_some() {
+      let mut collector = ModuleBindingsCollector::new(true);
+      module.visit_with(&mut collector);
 
-    self.state.constant_violations = collector.constant_violations;
-    self.state.mutated_bindings = collector.mutated_bindings;
-
-    if collect_sx_bindings {
+      self.state.binding_writes = collector.binding_writes;
       self.state.existing_import_sources = collector.import_sources;
       self.state.bound_names = collector.bound_names;
       self.state.local_rebinding_scopes = collector.local_rebinding_scopes;
@@ -457,6 +547,20 @@ where
     if self.state.has_import_paths() {
       fill_top_level_expressions(module, &mut self.state);
     }
+  }
+
+  /// Record every binding the module rebinds or mutates, so the evaluator
+  /// never inlines a declaration initializer that no longer holds at the use
+  /// site. No-op when `discover_module` already collected them for `sx`.
+  pub(crate) fn collect_binding_writes(&mut self, module: &Module) {
+    if self.state.options.sx_prop_name.is_some() {
+      return;
+    }
+
+    let mut collector = ModuleBindingsCollector::new(false);
+    module.visit_with(&mut collector);
+
+    self.state.binding_writes = collector.binding_writes;
   }
 
   /// Run the producer transformation pass.
@@ -522,3 +626,7 @@ where
     module.visit_mut_children_with(self);
   }
 }
+
+#[cfg(test)]
+#[path = "tests/module_bindings_collector_tests.rs"]
+mod tests;

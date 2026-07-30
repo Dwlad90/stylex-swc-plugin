@@ -18,7 +18,7 @@ style extraction. The official toolchain compiles it with a Babel plugin; this
 package is a from-scratch Rust implementation of that same transform, exposed to
 Node.js as a native addon through [NAPI-RS](https://napi.rs) and parsed with
 [SWC](https://swc.rs). It is designed as a drop-in replacement: your StyleX code
-and its output do not change, but transforms run 2x to 5x faster than
+and its output do not change, but transforms run 3x to 8x faster than
 Babel — see
 [performance](https://github.com/Dwlad90/stylex-swc-plugin#performance).
 

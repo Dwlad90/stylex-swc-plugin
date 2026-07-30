@@ -10,7 +10,7 @@ This plugin integrates [StyleX](https://stylexjs.com) into Next.js using
 a Rust implementation of the StyleX transform, instead of the official Babel
 plugin. That means you keep Next.js's fast SWC toolchain — no `.babelrc`, no
 Babel fallback — and your StyleX code stays exactly the same. Per-file
-transforms are 2x to 5x faster than with Babel — see
+transforms are 5x to 10x faster than with Babel — see
 [performance](https://github.com/Dwlad90/stylex-swc-plugin#performance).
 
 This is a community project and is not affiliated with Meta. It tracks the

@@ -23,17 +23,34 @@ opt-level = 3
 debug = true
 lto = true
 
+# Profile for the `.node` addons published to npm. Trades build time for transform
+# throughput: CI builds once, consumers pay per file on every build.
 [profile.release]
-# This removes more dead code
+# Single codegen unit per crate, merged by LTO: the optimizer sees everything at once.
 codegen-units = 1
-lto = true
-# Optimize for size
-# opt-level = "s"
-# Optimize for performance, this is default so you don't need to specify it
-opt-level = "z"
 
-# Strip debug symbols
+# Fat LTO. Enables cross-crate inlining into SWC's visitor traversal, the hot path.
+lto = true
+
+# Optimize for speed. Never "z"/"s" — they optimize for size by slashing the inliner
+# budget.
+opt-level = 3
+
+# Safe: panics are formatted into a message before reaching JS, so no backtrace is
+# symbolized at runtime.
 strip = "symbols"
+
+# Deliberately NOT set:
+#
+# panic = "abort" — crates/stylex-rs-compiler/src/lib.rs wraps the transform in
+#   `catch_unwind` to turn StyleX diagnostics into `napi::Error`. Unwinding is that
+#   transport; "abort" removes it. Verified: one unbound `stylex.create()` then kills
+#   Node with SIGABRT instead of throwing a catchable error.
+#
+# -C target-cpu=native — these binaries ship to arbitrary machines, runner hardware
+#   is not pinned, and several targets are cross-compiled. Measured no gain anyway
+#   (`apple-m1` gave a byte-identical binary): this workload chases pointers through
+#   boxed AST nodes, so there is nothing to vectorize.
 
 [workspace.dependencies]
 anyhow = "1.0.102"
@@ -80,18 +97,16 @@ thiserror = "2.0.18"
 # wasm-pack build --target web --dev -d dist --out-name index
 
 [workspace.lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-  'cfg(coverage_nightly)',
-] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
 # Workspace-wide clippy gates. Rules enforced here:
 # - performance: avoid hidden allocations / clones in hot paths
 # - correctness: prefer explicit conversion paths and idiomatic iterators
 # Test code can opt out via `#[cfg_attr(test, allow(<lint>))]` on the offender.
 [workspace.lints.clippy]
-redundant_clone        = "warn"
-inefficient_to_string  = "warn"
-needless_collect       = "warn"
 cloned_instead_of_copied = "warn"
-manual_string_new      = "warn"
-format_in_format_args  = "warn"
+format_in_format_args = "warn"
+inefficient_to_string = "warn"
+manual_string_new = "warn"
+needless_collect = "warn"
+redundant_clone = "warn"

@@ -10,7 +10,7 @@ with
 [`@stylexswc/rs-compiler`](https://www.npmjs.com/package/@stylexswc/rs-compiler),
 a Rust implementation of the StyleX transform, instead of the official Babel
 plugin. Your StyleX code stays exactly the same — only the build step changes,
-with per-file transforms 2x to 5x faster than Babel
+with per-file transforms 5x to 10x faster than Babel
 ([performance](https://github.com/Dwlad90/stylex-swc-plugin#performance)).
 
 This is a community project and is not affiliated with Meta. It tracks the

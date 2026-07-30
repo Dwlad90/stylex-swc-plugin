@@ -35,7 +35,7 @@ Babel fallback entirely and keep the fast SWC toolchain.
 
 ## Performance
 
-This compiler transforms StyleX **2x to 5x faster per file** than the official
+This compiler transforms StyleX **5x to 10x faster per file** than the official
 `@stylexjs/babel-plugin`, measured with the benchmark suite in
 [`crates/stylex-rs-compiler/benchmark`](./crates/stylex-rs-compiler/benchmark).
 The entire transform — parsing, evaluation, and code generation — is
@@ -146,7 +146,7 @@ the generated atomic CSS is compatible with the official output.
 ### How is this different from the official StyleX toolchain?
 
 The official transform runs as a Babel plugin. This one is a Rust
-reimplementation running on SWC, which makes per-file transforms 2x to 5x
+reimplementation running on SWC, which makes per-file transforms 5x to 10x
 faster and — on SWC-based frameworks like Next.js — avoids adding Babel to the
 pipeline at all.
 It also adds compiler-only features such as `include`/`exclude` file filtering,

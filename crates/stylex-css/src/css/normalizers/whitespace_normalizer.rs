@@ -22,6 +22,22 @@ pub fn is_css_unit(s: &str) -> bool {
   )
 }
 
+fn starts_url_function(css: &str, open_paren_index: usize) -> bool {
+  if open_paren_index < 3 {
+    return false;
+  }
+
+  let bytes = css.as_bytes();
+  let name_start = open_paren_index - 3;
+  let has_url_name = bytes[name_start..open_paren_index].eq_ignore_ascii_case(b"url");
+  let has_ident_prefix = css[..name_start]
+    .chars()
+    .next_back()
+    .is_some_and(|ch| ch.is_alphanumeric() || matches!(ch, '-' | '_' | '\\'));
+
+  has_url_name && !has_ident_prefix
+}
+
 /// Extract the CSS property value from a stringified rule like `*{prop:value}`.
 ///
 /// Handles both `*{prop:value}` and `prop:value` formats. Returns the value
@@ -110,7 +126,7 @@ pub fn normalize_spacing(css: &str) -> String {
     return css.to_string();
   }
 
-  let mut chars = css.char_indices();
+  let mut chars = css.char_indices().peekable();
   let Some((_, first)) = chars.next() else {
     return String::new();
   };
@@ -124,10 +140,13 @@ pub fn normalize_spacing(css: &str) -> String {
   };
   let mut escaped = false;
   let mut after_closing_quote = false;
+  let mut is_comment = false;
+  let mut url_depth = 0;
+  let mut url_escaped = false;
   result.push(first);
 
   let mut prev = first;
-  for (idx, cur) in chars {
+  while let Some((idx, cur)) = chars.next() {
     if let Some(quote) = in_quote {
       if escaped {
         escaped = false;
@@ -156,12 +175,53 @@ pub fn normalize_spacing(css: &str) -> String {
       continue;
     }
 
+    if is_comment {
+      result.push(cur);
+
+      if prev == '*' && cur == '/' {
+        is_comment = false;
+      }
+
+      prev = cur;
+      continue;
+    }
+
     if cur == '"' || cur == '\'' {
       if after_closing_quote {
         result.push(' ');
       }
       in_quote = Some(cur);
       after_closing_quote = false;
+      result.push(cur);
+      prev = cur;
+      continue;
+    }
+
+    if cur == '/' && chars.peek().is_some_and(|(_, next)| *next == '*') {
+      is_comment = true;
+      result.push(cur);
+      prev = cur;
+      continue;
+    }
+
+    if url_depth > 0 {
+      if url_escaped {
+        url_escaped = false;
+      } else if cur == '\\' {
+        url_escaped = true;
+      } else if cur == '(' {
+        url_depth += 1;
+      } else if cur == ')' {
+        url_depth -= 1;
+      }
+
+      result.push(cur);
+      prev = cur;
+      continue;
+    }
+
+    if cur == '(' && starts_url_function(css, idx) {
+      url_depth = 1;
       result.push(cur);
       prev = cur;
       continue;
@@ -186,12 +246,15 @@ pub fn normalize_spacing(css: &str) -> String {
       (')', '0'..='9' | '#' | '(') => true,
       // After `)` before `/` or `*` (calc operators)
       (')', '/' | '*') => true,
+      // Around `/` (division and CSS slash separator)
+      (c, '/') if !c.is_whitespace() => true,
+      ('/', c) if !c.is_whitespace() => true,
       // After alphanumeric or `%` before `#` (hex color)
       (c, '#') if c.is_alphanumeric() || c == '%' => true,
       // After `%` before a number (e.g. `40.101%.1147` → `40.101% .1147`)
       ('%', '0'..='9' | '.') => true,
-      // After `/` or `*` before operand (calc context)
-      ('/' | '*', '0'..='9' | '.' | '(' | '-') => true,
+      // After `*` before operand (calc context)
+      ('*', '0'..='9' | '.' | '(' | '-') => true,
       _ => false,
     };
 

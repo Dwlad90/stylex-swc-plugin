@@ -445,6 +445,69 @@ mod normalize_css_property_value_tests {
     assert_eq!(result, "calc(100% - calc(20px + 10px))");
   }
 
+  #[test]
+  fn normalizes_calc_size_expressions() {
+    let opts = default_options();
+    let cases = [
+      (
+        "calc-size( auto , size   *   0 )",
+        "calc-size(auto,size * 0)",
+      ),
+      (
+        "calc-size(fit-content, size / 2)",
+        "calc-size(fit-content,size / 2)",
+      ),
+      ("calc-size(any, 300px * 1.5)", "calc-size(any,300px * 1.5)"),
+      (
+        "calc-size(300px + 2rem, size / 2)",
+        "calc-size(300px + 2rem,size / 2)",
+      ),
+      (
+        "calc-size(calc-size(max-content, size), size + 2rem)",
+        "calc-size(calc-size(max-content,size),size + 2rem)",
+      ),
+      (
+        "calc-size(var(--intrinsic-size), max(100px, size + 20px))",
+        "calc-size(var(--intrinsic-size),max(100px,size + 20px))",
+      ),
+      (
+        "CALC-SIZE(auto, round(up, size, 50px))",
+        "CALC-SIZE(auto,round(up,size,50px))",
+      ),
+    ];
+
+    for (value, expected) in cases {
+      assert_eq!(
+        normalize_css_property_value("height", value, &opts),
+        expected
+      );
+    }
+  }
+
+  #[test]
+  fn normalizes_property_agnostic_values() {
+    let opts = default_options();
+    let cases = [
+      ("future-fn(foo * 2)", "future-fn(foo * 2)"),
+      (r#"future-fn("a,   b" * 2)"#, r#"future-fn("a,   b" * 2)"#),
+      (
+        "future-fn(foo /* a,   b */ * 2)",
+        "future-fn(foo /* a,   b */ * 2)",
+      ),
+      ("future-fn(foo/2 * @)", "future-fn(foo / 2 * @)"),
+      ("foo * bar", "foo * bar"),
+      ("[foo]", "[foo]"),
+      ("@", "@"),
+    ];
+
+    for (value, expected) in cases {
+      assert_eq!(
+        normalize_css_property_value("height", value, &opts),
+        expected
+      );
+    }
+  }
+
   // --- Color functions (early return path) ---
 
   #[test]
@@ -759,13 +822,10 @@ mod normalize_css_property_value_tests {
   }
 
   #[test]
-  fn malformed_css_value_panics() {
+  fn generic_css_value_is_preserved() {
     let opts = default_options();
-    let result = catch_unwind(AssertUnwindSafe(|| {
-      normalize_css_property_value("color", "@", &opts)
-    }));
-
-    assert!(result.is_err());
+    let result = normalize_css_property_value("color", "@", &opts);
+    assert_eq!(result, "@");
   }
 }
 

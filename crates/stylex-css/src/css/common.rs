@@ -24,8 +24,8 @@ use stylex_constants::constants::{
 };
 use stylex_macros::stylex_panic;
 use stylex_regex::regex::{
-  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, DESCENDANT_SELECTOR, MANY_SPACES,
-  PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
+  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, DESCENDANT_SELECTOR, PSEUDO_PART_REGEX,
+  SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
 };
 use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
 use stylex_types::structures::injectable_style::InjectableStyle;
@@ -504,18 +504,73 @@ fn has_relative_color_call(value: &str, function_name: &str) -> bool {
   })
 }
 
-fn normalize_spacing_only_value(value: &str) -> String {
-  let value = MANY_SPACES.replace_all(value, " ");
+fn normalize_spacing_only_value(value: &str, normalize_commas: bool) -> String {
   let mut normalized = String::with_capacity(value.len());
   let mut previous_char: Option<char> = None;
+  let mut quote: Option<char> = None;
+  let mut escaped = false;
+  let mut is_comment = false;
   let mut chars = value.chars().peekable();
 
   while let Some(ch) = chars.next() {
-    if ch == ' ' {
+    if is_comment {
+      normalized.push(ch);
+
+      if ch == '*' && chars.peek() == Some(&'/') {
+        normalized.push('/');
+        chars.next();
+        previous_char = Some('/');
+        is_comment = false;
+      } else {
+        previous_char = Some(ch);
+      }
+
+      continue;
+    }
+
+    if let Some(current_quote) = quote {
+      normalized.push(ch);
+
+      if escaped {
+        escaped = false;
+      } else if ch == '\\' {
+        escaped = true;
+      } else if ch == current_quote {
+        quote = None;
+      }
+
+      previous_char = Some(ch);
+      continue;
+    }
+
+    if ch == '/' && chars.peek() == Some(&'*') {
+      normalized.push('/');
+      normalized.push('*');
+      chars.next();
+      previous_char = Some('*');
+      is_comment = true;
+      continue;
+    }
+
+    if ch == '\'' || ch == '"' {
+      normalized.push(ch);
+      previous_char = Some(ch);
+      quote = Some(ch);
+      continue;
+    }
+
+    if ch.is_whitespace() {
+      while chars.next_if(|next| next.is_whitespace()).is_some() {}
+
       match (previous_char, chars.peek()) {
         (Some('('), _) | (_, Some(')')) => continue,
+        (Some(','), _) | (_, Some(',')) if normalize_commas => continue,
         _ => {},
       }
+
+      normalized.push(' ');
+      previous_char = Some(' ');
+      continue;
     }
 
     normalized.push(ch);
@@ -666,47 +721,59 @@ pub fn normalize_css_property_value(
     .any(|css_fnc| contains_css_function_call(css_property_value, css_fnc))
     || contains_relative_color_function(css_property_value);
 
-  let is_css_variable = css_property.starts_with("--");
-
-  let css_property_for_parsing = if is_css_variable {
-    "color"
-  } else {
-    css_property
-  };
-
-  let css_rule = if css_property_for_parsing.starts_with(':') {
-    let mut rule =
-      String::with_capacity(css_property_for_parsing.len() + css_property_value.len() + 1);
-    rule.push_str(css_property_for_parsing);
-    rule.push(' ');
-    rule.push_str(css_property_value);
-    rule
-  } else {
-    let mut rule =
-      String::with_capacity(css_property_for_parsing.len() + css_property_value.len() + 8);
-    rule.push_str("* { ");
-    rule.push_str(css_property_for_parsing);
-    rule.push_str(": ");
-    rule.push_str(css_property_value);
-    rule.push_str(" }");
-    rule
-  };
+  let is_pseudo = css_property.starts_with(':');
 
   let is_unclosed_function = has_unclosed_function(css_property_value);
 
   if is_unclosed_function {
+    let css_rule = if is_pseudo {
+      let mut rule = String::with_capacity(css_property.len() + css_property_value.len() + 1);
+      rule.push_str(css_property);
+      rule.push(' ');
+      rule.push_str(css_property_value);
+      rule
+    } else {
+      let css_property_for_error = if css_property.starts_with("--") {
+        "color"
+      } else {
+        css_property
+      };
+      let mut rule =
+        String::with_capacity(css_property_for_error.len() + css_property_value.len() + 8);
+      rule.push_str("* { ");
+      rule.push_str(css_property_for_error);
+      rule.push_str(": ");
+      rule.push_str(css_property_value);
+      rule.push_str(" }");
+      rule
+    };
     stylex_panic!("{}, css rule: {}", LINT_UNCLOSED_FUNCTION, css_rule);
   }
 
   detect_unclosed_strings(css_property_value);
 
   if should_normalize_spacing_only {
-    return normalize_spacing_only_value(css_property_value);
+    return normalize_spacing_only_value(css_property_value, false);
   }
+
+  let css_rule = if is_pseudo {
+    let mut rule = String::with_capacity(css_property.len() + css_property_value.len() + 1);
+    rule.push_str(css_property);
+    rule.push(' ');
+    rule.push_str(css_property_value);
+    rule
+  } else {
+    // Parse values independently of the CSS property's current grammar.
+    let mut rule = String::with_capacity(css_property_value.len() + 20);
+    rule.push_str("* { stylexValue: ");
+    rule.push_str(css_property_value);
+    rule.push_str(" }");
+    rule
+  };
 
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
 
-  if !errors.is_empty() {
+  if is_pseudo && !errors.is_empty() {
     handle_css_parse_errors(&errors, &css_rule);
   }
 
@@ -718,6 +785,13 @@ pub fn normalize_css_property_value(
   );
 
   unprefixed_custom_properties_validator(&parsed_css_property_value);
+
+  if !errors.is_empty() {
+    // Generic values may use syntax newer than SWC's CSS grammar. Normalize the
+    // original value's spacing without rejecting it.
+    let normalized_spacing = normalize_spacing_only_value(css_property_value, true);
+    return normalize_spacing(&normalized_spacing);
+  }
 
   let parsed_ast = base_normalizer(
     parsed_css_property_value,

@@ -1,0 +1,12 @@
+---
+source: crates/stylex-transform/tests/transform_stylex_define_consts_test/aliased_paths.rs
+expression: output
+---
+import * as stylex from "@stylexjs/stylex";
+import { Tokens } from '~fixture/constants.stylex';
+export const styles = {
+    root: {
+        k7Eaqz: "xp4nob0",
+        $$css: true
+    }
+};

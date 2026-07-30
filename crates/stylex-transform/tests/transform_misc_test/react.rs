@@ -1,4 +1,5 @@
 use crate::utils::prelude::*;
+use stylex_enums::property_validation_mode::PropertyValidationMode;
 use swc_core::common::FileName;
 
 fn stylex_transform(
@@ -354,5 +355,22 @@ stylex_test!(
 
       return <div sx={styles.root} />;
     }
+  "#
+);
+
+stylex_test!(
+  valid_calc_size_values_are_rejected_in_every_validation_mode,
+  |tr| {
+    build_test_transform(tr.comments.clone(), move |b| {
+      b.with_property_validation_mode(PropertyValidationMode::Throw)
+        .with_runtime_injection()
+    })
+  },
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    export const styles = stylex.create({
+      root: { height: "calc-size(auto, size * 0)" },
+    });
   "#
 );

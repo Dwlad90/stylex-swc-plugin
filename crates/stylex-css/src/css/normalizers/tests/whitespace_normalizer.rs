@@ -275,6 +275,7 @@ fn percent_before_number() {
 #[test]
 fn calc_operators_before_operand() {
   assert_eq!(normalize_spacing("/ 7"), "/ 7");
+  assert_eq!(normalize_spacing("size/2"), "size / 2");
   assert_eq!(normalize_spacing("* 3"), "* 3");
   assert_eq!(normalize_spacing("/.5"), "/ .5");
   assert_eq!(normalize_spacing("*("), "* (");
@@ -392,6 +393,17 @@ fn adjacent_function_calls() {
 fn url_passthrough_complex() {
   let url = "url(https://fonts.googleapis.com/css2?family=Roboto)";
   assert_eq!(normalize_spacing(url), url);
+}
+
+#[test]
+fn composite_url_passthrough() {
+  let value = "linear-gradient(red,blue),url(http://example.com/a.png)";
+  assert_eq!(normalize_spacing(value), value);
+}
+
+#[test]
+fn url_suffix_in_non_ascii_function_name_is_not_url() {
+  assert_eq!(normalize_spacing("éurl(foo/2)"), "éurl(foo / 2)");
 }
 
 // Percent before dot-prefixed decimal

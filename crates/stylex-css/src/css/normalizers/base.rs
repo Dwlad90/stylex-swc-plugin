@@ -2,8 +2,8 @@ use swc_core::{
   common::DUMMY_SP,
   css::{
     ast::{
-      ComponentValue, Declaration, DeclarationName, Dimension, Function, Ident, Length,
-      ListOfComponentValues, Number, Stylesheet,
+      ComponentValue, Declaration, Dimension, Function, Ident, Length, ListOfComponentValues,
+      Number, Stylesheet,
     },
     visit::{VisitMut, VisitMutWith},
   },
@@ -14,18 +14,16 @@ use std::borrow::Cow;
 use stylex_constants::constants::common::ROOT_FONT_SIZE;
 use stylex_utils::string::dashify;
 
-struct CssFolder {
+struct CssFolder<'a> {
   enable_font_size_px_to_rem: bool,
   parent_key: Option<&'static str>,
   is_function_arg: bool,
-  current_property: Option<String>,
+  current_property: Option<&'a str>,
 }
 
-impl CssFolder {
+impl CssFolder<'_> {
   fn convert_font_size_to_rem_normalizer(&mut self, declaration: &mut Declaration) {
-    if let DeclarationName::Ident(ident) = &declaration.name
-      && (ident.value == "fontSize" || self.parent_key == Some("fontSize"))
-    {
+    if self.current_property == Some("fontSize") || self.parent_key == Some("fontSize") {
       self.parent_key = Some("fontSize");
       declaration.value.visit_mut_children_with(self);
       self.parent_key = None;
@@ -33,13 +31,13 @@ impl CssFolder {
   }
 }
 
-impl VisitMut for CssFolder {
+impl VisitMut for CssFolder<'_> {
   fn visit_mut_list_of_component_values(&mut self, list: &mut ListOfComponentValues) {
     list.visit_mut_children_with(self);
   }
 
   fn visit_mut_declaration(&mut self, declaration: &mut Declaration) {
-    kebab_case_normalizer(declaration);
+    kebab_case_normalizer(declaration, self.current_property);
 
     if self.enable_font_size_px_to_rem {
       self.convert_font_size_to_rem_normalizer(declaration);
@@ -50,11 +48,7 @@ impl VisitMut for CssFolder {
 
   fn visit_mut_dimension(&mut self, dimension: &mut Dimension) {
     timing_normalizer(dimension);
-    zero_dimension_normalizer(
-      dimension,
-      self.is_function_arg,
-      self.current_property.as_deref(),
-    );
+    zero_dimension_normalizer(dimension, self.is_function_arg, self.current_property);
 
     dimension.visit_mut_children_with(self);
   }
@@ -113,13 +107,8 @@ fn timing_normalizer(dimension: &mut Dimension) {
   }
 }
 
-fn kebab_case_normalizer(declaration: &mut Declaration) {
-  let should_normalize = match &declaration.name {
-    DeclarationName::Ident(ident) => {
-      ident.value == "transitionProperty" || ident.value == "willChange"
-    },
-    DeclarationName::DashedIdent(_) => false,
-  };
+fn kebab_case_normalizer(declaration: &mut Declaration, current_property: Option<&str>) {
+  let should_normalize = matches!(current_property, Some("transitionProperty" | "willChange"));
 
   if !should_normalize {
     return;
@@ -146,7 +135,7 @@ pub fn base_normalizer(
     enable_font_size_px_to_rem,
     parent_key: None,
     is_function_arg: false,
-    current_property: current_property.map(|p| p.to_string()),
+    current_property,
   };
   ast.visit_mut_with(&mut folder);
   ast

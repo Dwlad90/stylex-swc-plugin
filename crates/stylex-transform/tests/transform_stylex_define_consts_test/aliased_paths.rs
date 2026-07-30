@@ -114,3 +114,22 @@ fn resolves_aliased_absolute_paths_for_define_consts_imports() {
     output
   );
 }
+
+
+#[test]
+fn imported_define_consts_interpolation_inside_css_functions_is_rejected() {
+  let input = r#"
+    import * as stylex from "@stylexjs/stylex";
+    import { Tokens } from '~fixture/constants.stylex';
+
+    export const styles = stylex.create({
+      root: { minWidth: `min(${Tokens.width}px, 100%)` },
+    });
+  "#;
+
+  let output = transform_with_aliased_inline_consts(input, FxHashMap::default(), None);
+  insta::assert_snapshot!(
+    "imported_define_consts_interpolation_inside_css_functions_is_rejected",
+    output
+  );
+}

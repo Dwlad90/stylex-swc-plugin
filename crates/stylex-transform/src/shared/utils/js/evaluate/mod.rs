@@ -369,16 +369,25 @@ fn _evaluate(
       )
     };
 
-    let binding = get_var_decl_by_ident(ident, traversal_state, &state.functions);
-
     // A binding that is rebound or mutated somewhere in the module no longer
     // matches its declaration initializer at this use site, so inlining the
     // initializer would bake in a stale value. Bail out to the runtime path
     // instead; idents with no declaration (imports, globals, injected
     // functions) are resolved below and unaffected.
-    if binding.is_some() && traversal_state.has_binding_write(ident) {
+    //
+    // `has_binding_write` is a single hash probe and is tested first on
+    // purpose: the declaration lookup below deep-clones the `VarDeclarator` it
+    // finds, and on the deopt path that clone is thrown away. Existence is
+    // confirmed with the borrowing `get_var_decl_from`, which — unlike
+    // `get_var_decl_by_ident` — does not also match injected function mappers;
+    // those are regenerated per evaluation and can never hold a stale value.
+    if traversal_state.has_binding_write(ident)
+      && get_var_decl_from(traversal_state, ident).is_some()
+    {
       return deopt(path, state, NON_CONSTANT);
     }
+
+    let binding = get_var_decl_by_ident(ident, traversal_state, &state.functions);
 
     if let Some(init) = binding.and_then(|mut var_decl| var_decl.init.take()) {
       return evaluate_cached(&init, state, traversal_state, fns);

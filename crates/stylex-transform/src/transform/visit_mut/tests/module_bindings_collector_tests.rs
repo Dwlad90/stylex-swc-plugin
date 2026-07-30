@@ -59,7 +59,7 @@ fn written_names(code: &str) -> FxHashSet<String> {
 fn written_ids(code: &str) -> FxHashSet<Id> {
   GLOBALS.set(&Globals::default(), || {
     let module = resolved_module(code);
-    let mut collector = ModuleBindingsCollector::new(false);
+    let mut collector = ModuleBindingsCollector::writes_only();
     module.visit_with(&mut collector);
 
     collector.binding_writes
@@ -138,6 +138,47 @@ fn records_mutating_object_methods_on_their_target() {
   assert_written("const o = {}; Object.keys(o);", &[]);
 }
 
+/// Parenthesised and nested-wrapper targets reach the same binding as their
+/// bare form, so every write shape must look through them. Each case here
+/// silently escaped detection while the expression-target match was shallow.
+#[test]
+fn looks_through_parenthesised_targets() {
+  assert_written("let a = 1; (a)++;", &["a"]);
+  assert_written("let a = 1; ((a)) = 2;", &["a"]);
+  assert_written("const o = { n: 1 }; (o.n)++;", &["o"]);
+  assert_written("const o = { n: 1 }; ((o).n) = 2;", &["o"]);
+  assert_written("const o = {}; Object.assign((o), { a: 1 });", &["o"]);
+  assert_written("const o = { a: {} }; delete ((o).a);", &["o"]);
+}
+
+/// `arr?.push(1)` parses as an optional call rather than a `CallExpr`, but
+/// mutates the receiver just the same whenever it is non-nullish.
+#[test]
+fn records_mutating_methods_reached_through_optional_calls() {
+  assert_written("const items = []; items?.push(1);", &["items"]);
+  assert_written(
+    "const state = { items: [] }; state.items?.push(1);",
+    &["state"],
+  );
+  assert_written(
+    "const state = { items: [] }; state?.items?.push(1);",
+    &["state"],
+  );
+  // Non-mutating optional calls leave the receiver alone.
+  assert_written("const items = []; items?.at(0);", &[]);
+}
+
+/// A string-literal computed property names its method as unambiguously as
+/// dot access does.
+#[test]
+fn records_mutating_methods_named_by_a_string_literal() {
+  assert_written("const items = []; items['push'](1);", &["items"]);
+  assert_written("const o = {}; Object['assign'](o, { a: 1 });", &["o"]);
+  // A genuinely dynamic property name is unknowable, so nothing is recorded
+  // rather than deopting every computed call in the module.
+  assert_written("const items = []; const m = 'push'; items[m](1);", &[]);
+}
+
 #[test]
 fn keeps_shadowed_bindings_distinct() {
   GLOBALS.set(&Globals::default(), || {
@@ -155,7 +196,7 @@ fn keeps_shadowed_bindings_distinct() {
 
     let outer_id = first_top_level_binding(&module);
 
-    let mut collector = ModuleBindingsCollector::new(false);
+    let mut collector = ModuleBindingsCollector::writes_only();
     module.visit_with(&mut collector);
 
     let written: Vec<&Id> = collector

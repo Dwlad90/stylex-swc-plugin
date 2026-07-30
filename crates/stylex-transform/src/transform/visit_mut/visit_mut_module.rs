@@ -3,10 +3,10 @@ use swc_core::{
   ecma::{
     ast::{
       ArrayPat, ArrowExpr, AssignExpr, AssignTarget, AssignTargetPat, BindingIdent, BlockStmt,
-      CallExpr, Callee, CatchClause, ClassDecl, ClassExpr, Expr, FnDecl, FnExpr, ForHead,
-      ForInStmt, ForOfStmt, Function, Id, Ident, ImportDecl, MemberExpr, MemberProp, Module,
-      ModuleItem, ObjectPat, ObjectPatProp, OptChainBase, Pat, Program, Script, SimpleAssignTarget,
-      UnaryExpr, UnaryOp, UpdateExpr, VarDecl, VarDeclKind,
+      CallExpr, Callee, CatchClause, ClassDecl, ClassExpr, Expr, ExprOrSpread, FnDecl, FnExpr,
+      ForHead, ForInStmt, ForOfStmt, Function, Id, Ident, ImportDecl, Lit, MemberExpr, MemberProp,
+      Module, ModuleItem, ObjectPat, ObjectPatProp, OptChainBase, OptChainExpr, Pat, Program,
+      Script, SimpleAssignTarget, UnaryExpr, UnaryOp, UpdateExpr, VarDecl, VarDeclKind,
     },
     visit::{Visit, VisitMutWith, VisitWith},
   },
@@ -82,6 +82,18 @@ struct ModuleBindingsCollector {
 }
 
 impl ModuleBindingsCollector {
+  /// Collects everything: the `sx` runtime-binding inputs (import sources,
+  /// bound names, rebinding scopes) *and* binding writes, in one pass.
+  fn for_sx() -> Self {
+    Self::new(true)
+  }
+
+  /// Collects binding writes only — used when the `sx` prop is disabled and
+  /// nothing consumes the import-source or scope information.
+  fn writes_only() -> Self {
+    Self::new(false)
+  }
+
   fn new(collect_sx_bindings: bool) -> Self {
     Self {
       collect_sx_bindings,
@@ -147,36 +159,63 @@ impl ModuleBindingsCollector {
   /// Record a write to `ident`'s binding — a rebinding or an in-place
   /// mutation of the value it references. Both make the declaration
   /// initializer unsafe to inline at a use site.
+  ///
+  /// Note the deliberate limit on what counts as a write: only mutations
+  /// spelled out syntactically in this module are recorded. A binding that
+  /// *escapes* into a call (`const a = []; mutate(a);`) is not, because
+  /// deopting on every identifier passed as an argument would disable
+  /// evaluation for nearly every StyleX module. This matches Babel StyleX,
+  /// which tracks `constantViolations` only; the escape case stays a known
+  /// unsoundness in both implementations.
   fn add_binding_write(&mut self, ident: &Ident) {
     self.binding_writes.insert(ident.to_id());
   }
 
-  /// Record a write reached through a member expression (`obj.x = 1`,
-  /// `obj.a.b.push(…)`, `delete obj.x`). Only the *root* object of the chain
-  /// is a binding, so walk past intermediate members, parens and optional
-  /// links to reach it — stopping at anything that is not a plain identifier
-  /// (a call result or literal owns no binding to invalidate).
-  fn add_member_root_write(&mut self, member_expression: &MemberExpr) {
-    let mut object = member_expression.obj.as_ref();
+  /// Record the write performed by an expression used as a write target: a
+  /// bare identifier rebinds itself, a member expression mutates the object at
+  /// the *root* of its chain (`obj.a.b = 1` and `obj.a.b.push(…)` both
+  /// invalidate `obj`). Walks past intermediate members and the parenthesised,
+  /// optional-chain and TypeScript wrappers that can sit anywhere along the
+  /// chain, stopping at anything that owns no binding to invalidate — a call
+  /// result, `this`, `super`, or a literal.
+  ///
+  /// This is the single entry point for every write shape the collector
+  /// recognises (assignment targets, update and `delete` operands, mutating
+  /// method receivers, `Object.assign` targets). Keeping one walk means a
+  /// wrapper handled for one shape is handled for all of them; the earlier
+  /// split between a member-only walk and a shallow expression match silently
+  /// missed `(n)++`, `((a)) = 2` and `Object.assign((o), …)`.
+  fn add_target_root_write(&mut self, expression: &Expr) {
+    let mut current = expression;
 
     loop {
-      match object {
+      match current {
         Expr::Ident(ident) => {
           self.add_binding_write(ident);
           return;
         },
-        Expr::Member(inner) => object = inner.obj.as_ref(),
-        Expr::Paren(paren) => object = paren.expr.as_ref(),
+        Expr::Member(inner) => current = inner.obj.as_ref(),
+        Expr::Paren(paren) => current = paren.expr.as_ref(),
         Expr::OptChain(opt_chain) => match opt_chain.base.as_ref() {
-          OptChainBase::Member(inner) => object = inner.obj.as_ref(),
+          OptChainBase::Member(inner) => current = inner.obj.as_ref(),
+          // `f()?.x = 1` writes into a call result, which owns no binding.
           OptChainBase::Call(_) => return,
         },
-        Expr::TsNonNull(non_null) => object = non_null.expr.as_ref(),
-        Expr::TsAs(ts_as) => object = ts_as.expr.as_ref(),
-        Expr::TsSatisfies(satisfies) => object = satisfies.expr.as_ref(),
+        Expr::TsNonNull(non_null) => current = non_null.expr.as_ref(),
+        Expr::TsAs(ts_as) => current = ts_as.expr.as_ref(),
+        Expr::TsSatisfies(satisfies) => current = satisfies.expr.as_ref(),
+        Expr::TsTypeAssertion(assertion) => current = assertion.expr.as_ref(),
+        Expr::TsInstantiation(instantiation) => current = instantiation.expr.as_ref(),
         _ => return,
       }
     }
+  }
+
+  /// Record a write reached through a member expression (`obj.x = 1`,
+  /// `obj.a.b.push(…)`, `delete obj.x`) by invalidating the binding at the
+  /// root of the chain.
+  fn add_member_root_write(&mut self, member_expression: &MemberExpr) {
+    self.add_target_root_write(member_expression.obj.as_ref());
   }
 
   /// Record every binding written by an assignment or `for-in`/`for-of`
@@ -218,46 +257,113 @@ impl ModuleBindingsCollector {
     }
   }
 
-  /// Record the write performed by an assignment target, unwrapping the
-  /// parenthesised and TypeScript wrappers that can sit between the target
-  /// and the identifier or member it resolves to.
+  /// Record the write performed by an assignment target. Every arm that
+  /// carries an expression defers to [`Self::add_target_root_write`], which
+  /// unwraps the parenthesised and TypeScript wrappers that can nest between
+  /// the target and the identifier or member it resolves to.
   fn add_simple_target_write(&mut self, target: &SimpleAssignTarget) {
     match target {
       SimpleAssignTarget::Ident(ident) => self.add_binding_write(&ident.id),
       SimpleAssignTarget::Member(member_expression) => {
         self.add_member_root_write(member_expression)
       },
-      SimpleAssignTarget::Paren(paren) => self.add_expr_target_write(&paren.expr),
+      SimpleAssignTarget::Paren(paren) => self.add_target_root_write(&paren.expr),
       SimpleAssignTarget::OptChain(opt_chain) => {
         if let OptChainBase::Member(member_expression) = opt_chain.base.as_ref() {
           self.add_member_root_write(member_expression);
         }
       },
-      SimpleAssignTarget::TsAs(ts_as) => self.add_expr_target_write(&ts_as.expr),
-      SimpleAssignTarget::TsSatisfies(satisfies) => self.add_expr_target_write(&satisfies.expr),
-      SimpleAssignTarget::TsNonNull(non_null) => self.add_expr_target_write(&non_null.expr),
-      SimpleAssignTarget::TsTypeAssertion(assertion) => self.add_expr_target_write(&assertion.expr),
+      SimpleAssignTarget::TsAs(ts_as) => self.add_target_root_write(&ts_as.expr),
+      SimpleAssignTarget::TsSatisfies(satisfies) => self.add_target_root_write(&satisfies.expr),
+      SimpleAssignTarget::TsNonNull(non_null) => self.add_target_root_write(&non_null.expr),
+      SimpleAssignTarget::TsTypeAssertion(assertion) => self.add_target_root_write(&assertion.expr),
       SimpleAssignTarget::TsInstantiation(instantiation) => {
-        self.add_expr_target_write(&instantiation.expr)
+        self.add_target_root_write(&instantiation.expr)
       },
       // `super.x = 1` and invalid targets bind no module-level name.
       SimpleAssignTarget::SuperProp(_) | SimpleAssignTarget::Invalid(_) => {},
     }
   }
 
-  /// Record the write performed by an expression used as an assignment target
-  /// (the payload of the TypeScript assignment-target wrappers).
-  fn add_expr_target_write(&mut self, expression: &Expr) {
-    match expression {
-      Expr::Ident(ident) => self.add_binding_write(ident),
-      Expr::Member(member_expression) => self.add_member_root_write(member_expression),
-      _ => {},
+  /// Record the mutations performed by a method call, shared by plain calls
+  /// (`arr.push(1)`) and optional calls (`arr?.push(1)`) — both reach the same
+  /// receiver, so both must invalidate it.
+  fn add_call_mutation_writes(&mut self, callee: &Expr, args: &[ExprOrSpread]) {
+    let Some(member_expression) = member_target(callee) else {
+      return;
+    };
+
+    let Some(property) = member_property_name(&member_expression.prop) else {
+      // A dynamic property (`arr[method](…)`) names no known method. Nothing
+      // is recorded: guessing would deopt every computed call in the module.
+      return;
+    };
+
+    // `arr.push(…)`, `arr.sort()`, … mutate the receiver in place. The
+    // receiver may itself be a member chain (`state.items.push(…)`), in
+    // which case the binding to invalidate is the chain's root object.
+    if MUTATING_ARRAY_METHODS.contains(property) {
+      self.add_member_root_write(member_expression);
     }
+
+    // `Object.assign(target, …)` and friends mutate their first argument.
+    // Matching on the `Object` name is a deliberate over-approximation: a
+    // shadowed `Object` only costs a deopt, never a wrong inline.
+    if MUTATING_OBJECT_METHODS.contains(property)
+      && member_expression
+        .obj
+        .as_ident()
+        .is_some_and(|object| object.sym == "Object")
+      && let Some(first_argument) = args.first()
+      && first_argument.spread.is_none()
+    {
+      self.add_target_root_write(first_argument.expr.as_ref());
+    }
+  }
+}
+
+/// The `MemberExpr` an expression resolves to, looking through parentheses,
+/// TypeScript wrappers and the optional-chain link of `obj?.x`. `None` when
+/// the expression is not a member access — used where only a member access can
+/// signal a mutation (a mutating method's callee, a `delete` operand), so that
+/// `arr.push`, `(arr).push` and `arr?.push` are all recognised alike.
+fn member_target(expression: &Expr) -> Option<&MemberExpr> {
+  match expression {
+    Expr::Member(member_expression) => Some(member_expression),
+    Expr::Paren(paren) => member_target(paren.expr.as_ref()),
+    Expr::TsNonNull(non_null) => member_target(non_null.expr.as_ref()),
+    Expr::TsAs(ts_as) => member_target(ts_as.expr.as_ref()),
+    Expr::TsSatisfies(satisfies) => member_target(satisfies.expr.as_ref()),
+    Expr::TsTypeAssertion(assertion) => member_target(assertion.expr.as_ref()),
+    Expr::TsInstantiation(instantiation) => member_target(instantiation.expr.as_ref()),
+    Expr::OptChain(opt_chain) => match opt_chain.base.as_ref() {
+      OptChainBase::Member(member_expression) => Some(member_expression),
+      OptChainBase::Call(_) => None,
+    },
+    _ => None,
+  }
+}
+
+/// The statically known name of a member property: `obj.push` and
+/// `obj["push"]` both yield `push`. `None` for a genuinely dynamic property,
+/// whose name is unknowable at build time.
+fn member_property_name(property: &MemberProp) -> Option<&str> {
+  match property {
+    MemberProp::Ident(ident) => Some(ident.sym.as_ref()),
+    MemberProp::Computed(computed) => match computed.expr.as_ref() {
+      // A lone-surrogate property name cannot be one of the method names being
+      // matched, so treat it as unknown rather than panicking on the decode.
+      Expr::Lit(Lit::Str(string)) => string.value.as_atom().map(|atom| &**atom),
+      _ => None,
+    },
+    MemberProp::PrivateName(_) => None,
   }
 }
 
 impl Visit for ModuleBindingsCollector {
   fn visit_import_decl(&mut self, import_decl: &ImportDecl) {
+    // An import declaration contains no write targets, so in writes-only mode
+    // there is nothing to collect and nothing to descend into.
     if !self.collect_sx_bindings {
       return;
     }
@@ -383,14 +489,16 @@ impl Visit for ModuleBindingsCollector {
   }
 
   fn visit_update_expr(&mut self, update_expression: &UpdateExpr) {
-    self.add_expr_target_write(update_expression.arg.as_ref());
+    self.add_target_root_write(update_expression.arg.as_ref());
 
     update_expression.visit_children_with(self);
   }
 
   fn visit_unary_expr(&mut self, unary_expression: &UnaryExpr) {
+    // `delete obj.x` mutates `obj`. Only a member operand is a mutation:
+    // `delete someBinding` is a no-op on a declared binding's value.
     if unary_expression.op == UnaryOp::Delete
-      && let Expr::Member(member_expression) = unary_expression.arg.as_ref()
+      && let Some(member_expression) = member_target(unary_expression.arg.as_ref())
     {
       self.add_member_root_write(member_expression);
     }
@@ -399,33 +507,22 @@ impl Visit for ModuleBindingsCollector {
   }
 
   fn visit_call_expr(&mut self, call_expression: &CallExpr) {
-    if let Callee::Expr(callee) = &call_expression.callee
-      && let Expr::Member(member_expression) = callee.as_ref()
-      && let MemberProp::Ident(property) = &member_expression.prop
-    {
-      // `arr.push(…)`, `arr.sort()`, … mutate the receiver in place. The
-      // receiver may itself be a member chain (`state.items.push(…)`), in
-      // which case the binding to invalidate is the chain's root object.
-      if MUTATING_ARRAY_METHODS.contains(property.sym.as_ref()) {
-        self.add_member_root_write(member_expression);
-      }
-
-      // `Object.assign(target, …)` and friends mutate their first argument.
-      // Matching on the `Object` name is a deliberate over-approximation: a
-      // shadowed `Object` only costs a deopt, never a wrong inline.
-      if MUTATING_OBJECT_METHODS.contains(property.sym.as_ref())
-        && member_expression
-          .obj
-          .as_ident()
-          .is_some_and(|object| object.sym == "Object")
-        && let Some(first_argument) = call_expression.args.first()
-        && first_argument.spread.is_none()
-      {
-        self.add_expr_target_write(first_argument.expr.as_ref());
-      }
+    if let Callee::Expr(callee) = &call_expression.callee {
+      self.add_call_mutation_writes(callee.as_ref(), &call_expression.args);
     }
 
     call_expression.visit_children_with(self);
+  }
+
+  fn visit_opt_chain_expr(&mut self, opt_chain: &OptChainExpr) {
+    // `arr?.push(1)` parses as an optional *call*, not a `CallExpr`, so it
+    // needs its own hook — it mutates the receiver exactly as `arr.push(1)`
+    // does whenever the receiver is non-nullish.
+    if let OptChainBase::Call(call) = opt_chain.base.as_ref() {
+      self.add_call_mutation_writes(call.callee.as_ref(), &call.args);
+    }
+
+    opt_chain.visit_children_with(self);
   }
 
   fn visit_for_in_stmt(&mut self, for_in_statement: &ForInStmt) {
@@ -533,7 +630,7 @@ where
     // scan is deferred to `collect_binding_writes`, which only runs for
     // modules that actually reach evaluation.
     if self.state.options.sx_prop_name.is_some() {
-      let mut collector = ModuleBindingsCollector::new(true);
+      let mut collector = ModuleBindingsCollector::for_sx();
       module.visit_with(&mut collector);
 
       self.state.binding_writes = collector.binding_writes;
@@ -557,7 +654,7 @@ where
       return;
     }
 
-    let mut collector = ModuleBindingsCollector::new(false);
+    let mut collector = ModuleBindingsCollector::writes_only();
     module.visit_with(&mut collector);
 
     self.state.binding_writes = collector.binding_writes;

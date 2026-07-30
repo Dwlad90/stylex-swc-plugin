@@ -297,6 +297,61 @@ stylex_test_panic!(
   "#
 );
 
+// Parenthesised and optional-call write targets reach the same binding as
+// their bare forms. Each of these silently produced stale CSS before the
+// write-target walk was unified.
+stylex_test_panic!(
+  parenthesised_update_target_is_not_a_constant_value,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    let gap = 4;
+    (gap)++;
+
+    const styles = stylex.create({ x: { gap } });
+  "#
+);
+
+stylex_test_panic!(
+  parenthesised_object_assign_target_is_not_a_constant_value,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const tokens = { color: 'red' };
+    Object.assign((tokens), { color: 'blue' });
+
+    const styles = stylex.create({ x: { color: tokens.color } });
+  "#
+);
+
+stylex_test_panic!(
+  optionally_called_mutating_method_is_not_a_constant_value,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const spacing = [4, 8];
+    spacing?.push(16);
+
+    const styles = stylex.create({ x: { gap: spacing[0] } });
+  "#
+);
+
+stylex_test_panic!(
+  mutating_method_named_by_a_string_literal_is_not_a_constant_value,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const spacing = [4, 8];
+    spacing['push'](16);
+
+    const styles = stylex.create({ x: { gap: spacing[0] } });
+  "#
+);
+
 // With the `sx` prop disabled the module pre-scan is deferred until the
 // module is known to import stylex; the binding-write guard must still hold.
 stylex_test_panic!(

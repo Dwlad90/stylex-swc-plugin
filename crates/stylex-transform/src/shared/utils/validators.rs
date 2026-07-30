@@ -3,7 +3,9 @@ use stylex_macros::stylex_panic;
 use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, Pat, PropOrSpread, VarDeclarator},
+  ecma::ast::{
+    ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, OptChainBase, Pat, PropOrSpread, VarDeclarator,
+  },
 };
 
 use crate::shared::{
@@ -35,7 +37,7 @@ use stylex_constants::constants::{
 };
 
 use super::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
-use stylex_ast::ast::convertors::get_key_values_from_object;
+use stylex_ast::ast::convertors::{get_key_values_from_object, normalize_expr};
 
 fn validate_arg_count_for_expr(
   wrapped_expr: &Expr,
@@ -133,10 +135,32 @@ macro_rules! stylex_var_decl_call_predicate {
 /// comparison would let a genuinely unbound call borrow an unrelated twin's
 /// binding and silently skip validation.
 fn contains_call(expr: &Expr, call: &CallExpr) -> bool {
-  match expr {
+  match strip_transparent_wrappers(expr) {
     Expr::Call(candidate) => candidate.span == call.span,
     Expr::Member(member) => contains_call(&member.obj, call),
+    Expr::OptChain(opt_chain) => match opt_chain.base.as_ref() {
+      OptChainBase::Member(member) => contains_call(&member.obj, call),
+      OptChainBase::Call(_) => false,
+    },
     _ => false,
+  }
+}
+
+/// Strips wrappers that neither change the value being accessed nor require
+/// parentheses to be member-accessed: `(stylex.create({...})).root` and
+/// `stylex.create({...})!.root` reach the very same object as
+/// `stylex.create({...}).root`, so binding analysis must see through them.
+///
+/// Type assertions (`as`, `satisfies`, `<T>`, `as const`) are deliberately *not*
+/// stripped. They can only be member-accessed through parentheses, and the
+/// emitter drops that grouping — `(x as any).root` is printed as
+/// `x as any.root`, which re-parses as `x as (any.root)`. Accepting that shape
+/// here would turn a clear "must be bound to a bare variable" diagnostic into
+/// silently invalid output.
+fn strip_transparent_wrappers(expr: &Expr) -> &Expr {
+  match normalize_expr(expr) {
+    Expr::TsNonNull(inner) => strip_transparent_wrappers(&inner.expr),
+    other => other,
   }
 }
 
@@ -155,9 +179,13 @@ fn contains_call(expr: &Expr, call: &CallExpr) -> bool {
 /// Containment is O(1) and still rejects a call that merely coexists with an
 /// unrelated array, which a bare `matches!(_, Expr::Array(_))` would accept.
 fn is_bound_create_expr(expr: &Expr, call: &CallExpr) -> bool {
-  match expr {
+  match strip_transparent_wrappers(expr) {
     Expr::Array(array) => array.span.contains(call.span),
     Expr::Member(member) => contains_call(&member.obj, call),
+    Expr::OptChain(opt_chain) => match opt_chain.base.as_ref() {
+      OptChainBase::Member(member) => contains_call(&member.obj, call),
+      OptChainBase::Call(_) => false,
+    },
     _ => false,
   }
 }

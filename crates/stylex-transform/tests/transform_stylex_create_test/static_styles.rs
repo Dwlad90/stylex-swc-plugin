@@ -943,3 +943,39 @@ stylex_test!(
     });
   "#
 );
+
+stylex_test!(
+  direct_member_access_stylex_create_parenthesized,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    export const root = (stylex.create({
+      root: { display: "flex" },
+    })).root;
+  "#
+);
+
+stylex_test!(
+  direct_member_access_stylex_create_non_null_assertion,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    export const root = stylex.create({
+      root: { display: "flex" },
+    })!.root;
+  "#
+);
+
+stylex_test!(
+  direct_member_access_stylex_create_optional_chain,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    export const root = stylex.create({
+      root: { display: "flex" },
+    })?.root;
+  "#
+);

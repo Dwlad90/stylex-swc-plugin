@@ -87,3 +87,16 @@ stylex_test!(
     export const styles = stylex.create({});
   "#
 );
+
+// Type assertions can only be member-accessed through parentheses, and the
+// emitter drops that grouping (`(x as any).root` prints as `x as any.root`).
+// The call must stay rejected rather than compile to invalid output.
+stylex_test_panic!(
+  invalid_use_not_bound_through_type_assertion,
+  "create() calls must be bound to a bare variable.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const root = (stylex.create({ root: { display: 'flex' } }) as any).root;
+  "#
+);

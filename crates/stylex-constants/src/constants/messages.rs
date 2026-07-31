@@ -82,6 +82,11 @@ pub static LINT_UNCLOSED_FUNCTION: &str = "Rule contains an unclosed function";
 
 pub static LINT_UNCLOSED_STRING: &str = "Rule contains an unclosed string";
 
+pub static LINT_UNCLOSED_COMMENT: &str = "Rule contains an unclosed comment";
+
+pub static LINT_RULE_BREAKING_TOKEN: &str =
+  "Rule contains a `{`, `}` or `;` outside of a string or comment";
+
 pub static LOCAL_ONLY: &str = "The return value of create() should not be exported.";
 
 pub static NON_OBJECT_KEYFRAME: &str = "Every frame within a keyframes() call must be an object.";

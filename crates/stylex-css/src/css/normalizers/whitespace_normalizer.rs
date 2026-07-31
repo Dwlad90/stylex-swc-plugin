@@ -132,65 +132,48 @@ pub fn extract_css_value(css: &str) -> &str {
 /// - `*` + digit/`.`/`(`/`-` → space (calc operators)
 ///
 /// Three regions are copied through verbatim, in this precedence order:
-/// `url()` bodies (which are not tokenized as CSS), quoted strings (so `""`
-/// is not split into `" "`), and `/* … */` comments.
+/// `url()` bodies (which are not tokenized as CSS, so a `)` inside a quoted URL
+/// does not end them), `/* … */` comments, and quoted strings (so `""` is not
+/// split into `" "`). The region checks run before any spacing rule, including
+/// at offset 0, so a value that *starts* with a comment or a quote is handled
+/// the same as one that does not.
 pub fn normalize_spacing(css: &str) -> String {
-  let mut chars = css.char_indices().peekable();
-  let Some((_, first)) = chars.next() else {
-    return String::new();
-  };
-
   let mut result = String::with_capacity(css.len() + 16);
+  let mut chars = css.char_indices().peekable();
+
   // Track quoted strings so spacing rules are not applied to string contents.
-  let mut in_quote = if first == '"' || first == '\'' {
-    Some(first)
-  } else {
-    None
-  };
+  let mut in_quote: Option<char> = None;
   let mut escaped = false;
   let mut after_closing_quote = false;
-  let mut is_comment = false;
+  let mut in_comment = false;
+  // The previous character *within the current comment*. Starts as `None` so
+  // the `*` of the opening `/*` cannot also close it — `/*/` is not a complete
+  // comment.
+  let mut comment_prev: Option<char> = None;
   let mut url_depth: usize = 0;
+  let mut url_quote: Option<char> = None;
   let mut url_escaped = false;
-  result.push(first);
+  // `None` until the first character has been emitted. Keeping this an `Option`
+  // rather than pre-consuming the first character is what lets a value that
+  // *starts* with `/*` or a quote take the same path as one that does not.
+  let mut prev: Option<char> = None;
 
-  let mut prev = first;
   while let Some((idx, cur)) = chars.next() {
-    if let Some(quote) = in_quote {
-      if escaped {
-        escaped = false;
-        result.push(cur);
-        prev = cur;
-        continue;
-      }
-
-      if cur == '\\' {
-        escaped = true;
-        result.push(cur);
-        prev = cur;
-        continue;
-      }
-
-      if cur == quote {
-        in_quote = None;
-        after_closing_quote = true;
-        result.push(cur);
-        prev = cur;
-        continue;
-      }
-
-      result.push(cur);
-      prev = cur;
-      continue;
-    }
-
-    // `url()` bodies are not CSS-tokenized: quotes, `/*` and `/` inside them
-    // are ordinary characters, so this must be checked before those.
+    // `url()` bodies are not CSS-tokenized: `/*` and a bare `/` inside them are
+    // ordinary URL characters, so this must be checked before comments. Quotes
+    // are still tracked, because a `)` inside a quoted URL does not close the
+    // function.
     if url_depth > 0 {
       if url_escaped {
         url_escaped = false;
       } else if cur == '\\' {
         url_escaped = true;
+      } else if let Some(quote) = url_quote {
+        if cur == quote {
+          url_quote = None;
+        }
+      } else if cur == '"' || cur == '\'' {
+        url_quote = Some(cur);
       } else if cur == '(' {
         url_depth += 1;
       } else if cur == ')' {
@@ -198,25 +181,58 @@ pub fn normalize_spacing(css: &str) -> String {
       }
 
       result.push(cur);
-      prev = cur;
+      prev = Some(cur);
       continue;
     }
 
-    if is_comment {
+    if in_comment {
       result.push(cur);
 
-      if prev == '*' && cur == '/' {
-        is_comment = false;
+      if comment_prev == Some('*') && cur == '/' {
+        in_comment = false;
+        comment_prev = None;
+      } else {
+        comment_prev = Some(cur);
       }
 
-      prev = cur;
+      prev = Some(cur);
+      continue;
+    }
+
+    if let Some(quote) = in_quote {
+      result.push(cur);
+
+      if escaped {
+        escaped = false;
+      } else if cur == '\\' {
+        escaped = true;
+      } else if cur == quote {
+        in_quote = None;
+        after_closing_quote = true;
+      }
+
+      prev = Some(cur);
       continue;
     }
 
     if cur == '(' && starts_url_function(css, idx) {
       url_depth = 1;
+      url_quote = None;
+      url_escaped = false;
       result.push(cur);
-      prev = cur;
+      prev = Some(cur);
+      continue;
+    }
+
+    if cur == '/' && chars.peek().is_some_and(|(_, next)| *next == '*') {
+      // Consume the `*` of the opening `/*` together with the `/` so neither
+      // can be split apart by the `/` spacing rules below.
+      chars.next();
+      result.push('/');
+      result.push('*');
+      in_comment = true;
+      comment_prev = None;
+      prev = Some('*');
       continue;
     }
 
@@ -227,56 +243,56 @@ pub fn normalize_spacing(css: &str) -> String {
       in_quote = Some(cur);
       after_closing_quote = false;
       result.push(cur);
-      prev = cur;
-      continue;
-    }
-
-    if cur == '/' && chars.peek().is_some_and(|(_, next)| *next == '*') {
-      is_comment = true;
-      result.push(cur);
-      prev = cur;
+      prev = Some(cur);
       continue;
     }
 
     // Non-quote character clears the closing-quote flag
     after_closing_quote = false;
 
-    let need_space = match (prev, cur) {
-      // After `)` before a letter: space unless followed by a CSS unit
-      (')', c) if c.is_alphabetic() => {
-        if !c.is_ascii_alphabetic() {
-          true
-        } else {
-          let word_end = css[idx..]
-            .find(|c: char| !c.is_ascii_alphanumeric())
-            .map_or(css.len(), |offset| idx + offset);
-          !is_css_unit(&css[idx..word_end])
-        }
-      },
-      // After `)` before digit, `#`, or `(`
-      (')', '0'..='9' | '#' | '(') => true,
-      // After `)` before `/` or `*` (calc operators)
-      (')', '/' | '*') => true,
-      // Around `/` (division and CSS slash separator)
-      (c, '/') if !c.is_whitespace() => true,
-      ('/', c) if !c.is_whitespace() => true,
-      // After alphanumeric or `%` before `#` (hex color)
-      (c, '#') if c.is_alphanumeric() || c == '%' => true,
-      // After `%` before a number (e.g. `40.101%.1147` → `40.101% .1147`)
-      ('%', '0'..='9' | '.') => true,
-      // After `*` before operand (calc context)
-      ('*', '0'..='9' | '.' | '(' | '-') => true,
-      _ => false,
-    };
-
-    if need_space {
+    if prev.is_some_and(|prev| needs_space(css, prev, cur, idx)) {
       result.push(' ');
     }
     result.push(cur);
-    prev = cur;
+    prev = Some(cur);
   }
 
   result
+}
+
+/// Returns `true` when a space must be inserted between `prev` and `cur`, where
+/// `cur` starts at byte offset `idx` in `css`.
+///
+/// Only called from the "normal" region of [`normalize_spacing`] — never inside
+/// a string, comment or `url()` body.
+fn needs_space(css: &str, prev: char, cur: char, idx: usize) -> bool {
+  match (prev, cur) {
+    // After `)` before a letter: space unless followed by a CSS unit
+    (')', c) if c.is_alphabetic() => {
+      if !c.is_ascii_alphabetic() {
+        true
+      } else {
+        let word_end = css[idx..]
+          .find(|c: char| !c.is_ascii_alphanumeric())
+          .map_or(css.len(), |offset| idx + offset);
+        !is_css_unit(&css[idx..word_end])
+      }
+    },
+    // After `)` before digit, `#`, or `(`
+    (')', '0'..='9' | '#' | '(') => true,
+    // After `)` before `/` or `*` (calc operators)
+    (')', '/' | '*') => true,
+    // Around `/` (division and CSS slash separator)
+    (c, '/') if !c.is_whitespace() => true,
+    ('/', c) if !c.is_whitespace() => true,
+    // After alphanumeric or `%` before `#` (hex color)
+    (c, '#') if c.is_alphanumeric() || c == '%' => true,
+    // After `%` before a number (e.g. `40.101%.1147` → `40.101% .1147`)
+    ('%', '0'..='9' | '.') => true,
+    // After `*` before operand (calc context)
+    ('*', '0'..='9' | '.' | '(' | '-') => true,
+    _ => false,
+  }
 }
 
 #[cfg(test)]

@@ -13,7 +13,9 @@ use stylex_constants::constants::{
   common::{COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES, COLOR_RELATIVE_VALUE_FUNCTIONS},
   long_hand_logical::LONG_HAND_LOGICAL,
   long_hand_physical::LONG_HAND_PHYSICAL,
-  messages::{LINT_UNCLOSED_FUNCTION, LINT_UNCLOSED_STRING},
+  messages::{
+    LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_UNCLOSED_FUNCTION, LINT_UNCLOSED_STRING,
+  },
   number_properties::NUMBER_PROPERTY_SUFFIXIES,
   priorities::{
     AT_RULE_PRIORITIES, CAMEL_CASE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY,
@@ -563,7 +565,10 @@ fn normalize_spacing_only_value(value: &str, normalize_commas: bool) -> String {
       while chars.next_if(|next| next.is_whitespace()).is_some() {}
 
       match (previous_char, chars.peek()) {
-        (Some('('), _) | (_, Some(')')) => continue,
+        // Leading and trailing whitespace, and whitespace hugging a paren. A
+        // stray leading/trailing space would change the hash the class name is
+        // derived from, so it must not survive here.
+        (None, _) | (_, None) | (Some('('), _) | (_, Some(')')) => continue,
         (Some(','), _) | (_, Some(',')) if normalize_commas => continue,
         _ => {},
       }
@@ -594,20 +599,35 @@ fn is_escaped(value: &[u8], index: usize) -> bool {
 
 /// Structural facts about a raw CSS property value, all gathered in one pass.
 ///
-/// The three checks share the same string/comment tokenizer, so scanning once
-/// keeps them from drifting apart and halves the work done on every declaration
-/// the compiler sees.
+/// All four checks share the same string/comment tokenizer, so scanning once
+/// keeps them from drifting apart and does the work of several passes over every
+/// declaration the compiler sees.
 #[derive(Debug, Default, PartialEq, Eq)]
 struct ValueStructure {
   /// A quoted string was opened and never closed.
   has_unclosed_string: bool,
   /// A `(` was never matched by a `)`.
   has_unclosed_function: bool,
+  /// A `/*` was never matched by a `*/`.
+  has_unclosed_comment: bool,
   /// A `{`, `}` or `;` occurs outside of strings and comments. Emitting such a
   /// value verbatim would terminate the rule the compiler is generating and
   /// splice arbitrary CSS into the stylesheet, so it must never take the
   /// "preserve unknown syntax" fallback in [`normalize_css_property_value`].
   has_rule_breaking_token: bool,
+}
+
+impl ValueStructure {
+  /// Returns `true` when the value can be emitted into the generated stylesheet
+  /// verbatim without being able to escape its own declaration.
+  ///
+  /// Only the two paths that bypass SWC's codegen — the relative-colour/spacing
+  /// only path and the "preserve unknown syntax" fallback — need this check.
+  /// Values that round-trip through SWC are re-serialized from an AST and are
+  /// inert by construction.
+  fn is_inert(&self) -> bool {
+    !self.has_rule_breaking_token && !self.has_unclosed_comment
+  }
 }
 
 fn scan_value_structure(css_property_value: &str) -> ValueStructure {
@@ -665,6 +685,9 @@ fn scan_value_structure(css_property_value: &str) -> ValueStructure {
 
   structure.has_unclosed_string = quote.is_some();
   structure.has_unclosed_function = paren_depth > 0;
+  // A comment left open swallows every rule emitted after this declaration, so
+  // it is as rule-breaking as a stray `}`.
+  structure.has_unclosed_comment = is_comment && quote.is_none();
 
   structure
 }
@@ -752,7 +775,18 @@ pub fn normalize_css_property_value(
     stylex_panic!("{}", LINT_UNCLOSED_STRING);
   }
 
+  if structure.has_unclosed_comment {
+    stylex_panic!("{}", LINT_UNCLOSED_COMMENT);
+  }
+
   if should_normalize_spacing_only {
+    // This path bypasses SWC's codegen and emits the author's value verbatim, so
+    // it needs the same structural guard as the unknown-syntax fallback below.
+    if !structure.is_inert() {
+      let css_rule = build_css_rule(css_property, css_property_value, is_pseudo);
+      stylex_panic!("{}, css rule: {}", LINT_RULE_BREAKING_TOKEN, css_rule);
+    }
+
     return normalize_spacing_only_value(css_property_value, false);
   }
 
@@ -771,7 +805,7 @@ pub fn normalize_css_property_value(
   // Anything that could terminate the generated rule (`}`, `;`, `{`) is still
   // rejected, otherwise `height: "1px solid } color: red"` would escape its own
   // declaration and inject arbitrary CSS into the stylesheet.
-  if !errors.is_empty() && (is_pseudo || structure.has_rule_breaking_token) {
+  if !errors.is_empty() && (is_pseudo || !structure.is_inert()) {
     handle_css_parse_errors(&errors, &css_rule);
   }
 

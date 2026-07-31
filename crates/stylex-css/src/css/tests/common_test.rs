@@ -495,6 +495,15 @@ mod normalize_css_property_value_tests {
         "future-fn(foo /* a,   b */ * 2)",
       ),
       ("future-fn(foo/2 * @)", "future-fn(foo / 2 * @)"),
+      // An escaped quote does not end the string, so the `,` and the run of
+      // spaces after it stay untouched even though commas are normalized
+      // outside of strings.
+      (
+        r#"future-fn("a\",   b" * 2)"#,
+        r#"future-fn("a\",   b" * 2)"#,
+      ),
+      // A trailing backslash-escaped backslash still closes the string.
+      (r#"future-fn("a\\" * 2)"#, r#"future-fn("a\\" * 2)"#),
       ("foo * bar", "foo * bar"),
       ("[foo]", "[foo]"),
       ("@", "@"),
@@ -821,6 +830,29 @@ mod normalize_css_property_value_tests {
     assert!(result.is_err());
   }
 
+  /// A custom property has no grammar of its own, so the unclosed-function
+  /// error is reported against `color` in its place. The rule embedded in the
+  /// message must name `color`, not `--my-var`.
+  #[test]
+  fn unclosed_function_in_custom_property_reports_against_color() {
+    let opts = default_options();
+    let result = catch_unwind(AssertUnwindSafe(|| {
+      normalize_css_property_value("--my-var", "var(--token", &opts)
+    }));
+
+    let panic = result.expect_err("expected an unclosed-function panic");
+    let message = panic
+      .downcast_ref::<String>()
+      .map(String::as_str)
+      .or_else(|| panic.downcast_ref::<&str>().copied())
+      .unwrap_or_default();
+
+    assert!(
+      message.contains("* { color: var(--token }"),
+      "expected the error to name `color`, got: {message}"
+    );
+  }
+
   #[test]
   fn generic_css_value_is_preserved() {
     let opts = default_options();
@@ -847,6 +879,62 @@ mod normalize_css_property_value_tests {
 
       assert!(result.is_err(), "expected `{value}` to be rejected");
     }
+  }
+
+  /// An unclosed `/*` comments out every rule emitted after this declaration,
+  /// so it is as rule-breaking as a stray `}`. The "preserve unknown syntax"
+  /// fallback emits the value verbatim, which made this reachable.
+  #[test]
+  fn unclosed_comment_is_rejected() {
+    let opts = default_options();
+
+    for value in ["@ /* unclosed", "1px /* unclosed", "/* unclosed"] {
+      let result = catch_unwind(AssertUnwindSafe(|| {
+        normalize_css_property_value("height", value, &opts)
+      }));
+
+      assert!(result.is_err(), "expected `{value}` to be rejected");
+    }
+  }
+
+  /// A closed comment is inert and must still be accepted.
+  #[test]
+  fn closed_comment_is_accepted() {
+    let opts = default_options();
+
+    assert_eq!(
+      normalize_css_property_value("height", "calc-size(auto, size * 0) /* c */", &opts),
+      "calc-size(auto,size * 0) /* c */"
+    );
+    assert_eq!(
+      normalize_css_property_value("height", "/* c */ calc-size(auto, size * 0)", &opts),
+      "/* c */ calc-size(auto,size * 0)"
+    );
+  }
+
+  /// The relative-colour path also emits the author's value verbatim, bypassing
+  /// SWC's codegen, so it needs the same structural guard as the unknown-syntax
+  /// fallback — otherwise a stray `}` splices an arbitrary rule into the sheet.
+  #[test]
+  fn rule_breaking_relative_color_values_are_rejected() {
+    let opts = default_options();
+
+    for value in [
+      "rgb(from red r g b) } .evil{color:blue",
+      "rgb(from red r g b) /* unclosed",
+    ] {
+      let result = catch_unwind(AssertUnwindSafe(|| {
+        normalize_css_property_value("color", value, &opts)
+      }));
+
+      assert!(result.is_err(), "expected `{value}` to be rejected");
+    }
+
+    // The well-formed relative-colour value is still passed through.
+    assert_eq!(
+      normalize_css_property_value("color", "rgb(from red r g b)", &opts),
+      "rgb(from red r g b)"
+    );
   }
 }
 

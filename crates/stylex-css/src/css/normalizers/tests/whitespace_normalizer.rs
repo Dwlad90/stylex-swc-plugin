@@ -428,6 +428,23 @@ fn url_body_wins_over_comment_and_quote_detection() {
   }
 }
 
+// An unquoted `(` inside a `url()` body nests, so the *matching* `)` — not the
+// first one — ends the URL. Without depth tracking the body would terminate
+// early and the remainder would be re-normalized as CSS.
+#[test]
+fn nested_parens_inside_url_body_are_balanced() {
+  assert_eq!(normalize_spacing("url(a(b).png)"), "url(a(b).png)");
+  assert_eq!(
+    normalize_spacing("url(a(b(c)).png) 10px"),
+    "url(a(b(c)).png) 10px"
+  );
+  // The value after the URL is still normalized once the body has closed.
+  assert_eq!(
+    normalize_spacing("url(a(b).png)calc(1px)"),
+    "url(a(b).png) calc(1px)"
+  );
+}
+
 // The `url(` fast path used to skip normalization for the whole value, so a
 // trailing component kept SWC's minified (invalid) spacing.
 #[test]
@@ -440,6 +457,48 @@ fn value_following_a_url_is_still_normalized() {
     normalize_spacing("url(a.png)calc(1px)"),
     "url(a.png) calc(1px)"
   );
+}
+
+// Regression: a `)` inside a *quoted* `url()` body does not close the function.
+// Treating it as a closing paren re-entered the spacing rules mid-URL and both
+// injected a space into the URL and swallowed the separator after it
+// (`url("a)b.png") 10px` → `url("a) b.png")10px`).
+#[test]
+fn quoted_paren_inside_url_does_not_close_it() {
+  assert_eq!(
+    normalize_spacing(r#"url("a)b.png") 10px"#),
+    r#"url("a)b.png") 10px"#
+  );
+  assert_eq!(
+    normalize_spacing(r#"url('a)b.png')calc(1px)"#),
+    r#"url('a)b.png') calc(1px)"#
+  );
+  assert_eq!(
+    normalize_spacing(r#"url("a\")b.png") 10px"#),
+    r#"url("a\")b.png") 10px"#
+  );
+}
+
+// Regression: the first character used to be consumed before the scan loop, so
+// a comment (or quote) at offset 0 was never recognised. With spaces now
+// inserted on either side of `/`, that turned `/* x */` into the invalid
+// `/ * x * /` and dropped the whole declaration.
+#[test]
+fn comment_at_start_of_value_is_preserved() {
+  for value in ["/* a }b */ 1px", "/* a */", "/**/", r#""a" 1px"#] {
+    assert_eq!(normalize_spacing(value), value, "value: {value}");
+  }
+
+  // A comment already separates tokens, so the inserted space is cosmetic.
+  assert_eq!(normalize_spacing("/* a */1px"), "/* a */ 1px");
+}
+
+// The `*` of an opening `/*` must not also close the comment: `/*/` is still
+// inside the comment, so `x` here is comment text, not a value component.
+#[test]
+fn slash_star_slash_does_not_close_comment() {
+  assert_eq!(normalize_spacing("/*/ x */ 1px"), "/*/ x */ 1px");
+  assert_eq!(normalize_spacing("1px /*/ y */"), "1px /*/ y */");
 }
 
 // Percent before dot-prefixed decimal

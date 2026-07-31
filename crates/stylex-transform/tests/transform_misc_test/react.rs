@@ -358,19 +358,40 @@ stylex_test!(
   "#
 );
 
-stylex_test!(
-  valid_calc_size_values_are_rejected_in_every_validation_mode,
-  |tr| {
-    build_test_transform(tr.comments.clone(), move |b| {
-      b.with_property_validation_mode(PropertyValidationMode::Throw)
-        .with_runtime_injection()
-    })
-  },
-  r#"
-    import * as stylex from "@stylexjs/stylex";
+/// `calc-size()` is newer than SWC's CSS grammar, so it reaches the
+/// "preserve unknown syntax" fallback in `normalize_css_property_value`.
+/// It must be *accepted* — and normalized — under every validation mode,
+/// including the strictest one. Regression test for #1128 / #1129.
+macro_rules! calc_size_survives_validation_mode {
+  ($test_name:ident, $mode:expr) => {
+    stylex_test!(
+      $test_name,
+      |tr| {
+        build_test_transform(tr.comments.clone(), move |b| {
+          b.with_property_validation_mode($mode)
+            .with_runtime_injection()
+        })
+      },
+      r#"
+        import * as stylex from "@stylexjs/stylex";
 
-    export const styles = stylex.create({
-      root: { height: "calc-size(auto, size * 0)" },
-    });
-  "#
+        export const styles = stylex.create({
+          root: { height: "calc-size(auto, size * 0)" },
+        });
+      "#
+    );
+  };
+}
+
+calc_size_survives_validation_mode!(
+  calc_size_value_is_preserved_in_throw_validation_mode,
+  PropertyValidationMode::Throw
+);
+calc_size_survives_validation_mode!(
+  calc_size_value_is_preserved_in_warn_validation_mode,
+  PropertyValidationMode::Warn
+);
+calc_size_survives_validation_mode!(
+  calc_size_value_is_preserved_in_silent_validation_mode,
+  PropertyValidationMode::Silent
 );

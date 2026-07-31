@@ -592,57 +592,30 @@ fn is_escaped(value: &[u8], index: usize) -> bool {
   backslash_count % 2 == 1
 }
 
-fn detect_unclosed_strings(css_property_value: &str) {
-  let value = css_property_value.as_bytes();
-  let mut quote: Option<u8> = None;
-  let mut is_comment = false;
-  let mut index = 0;
-
-  while index < value.len() {
-    let byte = value[index];
-
-    if quote.is_none() {
-      if is_comment {
-        if byte == b'*' && value.get(index + 1) == Some(&b'/') {
-          is_comment = false;
-          index += 2;
-          continue;
-        }
-
-        index += 1;
-        continue;
-      }
-
-      if byte == b'/' && value.get(index + 1) == Some(&b'*') {
-        is_comment = true;
-        index += 2;
-        continue;
-      }
-    }
-
-    match quote {
-      Some(current_quote) if byte == current_quote && !is_escaped(value, index) => {
-        quote = None;
-      },
-      None if (byte == b'\'' || byte == b'"') && !is_escaped(value, index) => {
-        quote = Some(byte);
-      },
-      _ => {},
-    }
-
-    index += 1;
-  }
-
-  if quote.is_some() {
-    stylex_panic!("{}", LINT_UNCLOSED_STRING);
-  }
+/// Structural facts about a raw CSS property value, all gathered in one pass.
+///
+/// The three checks share the same string/comment tokenizer, so scanning once
+/// keeps them from drifting apart and halves the work done on every declaration
+/// the compiler sees.
+#[derive(Debug, Default, PartialEq, Eq)]
+struct ValueStructure {
+  /// A quoted string was opened and never closed.
+  has_unclosed_string: bool,
+  /// A `(` was never matched by a `)`.
+  has_unclosed_function: bool,
+  /// A `{`, `}` or `;` occurs outside of strings and comments. Emitting such a
+  /// value verbatim would terminate the rule the compiler is generating and
+  /// splice arbitrary CSS into the stylesheet, so it must never take the
+  /// "preserve unknown syntax" fallback in [`normalize_css_property_value`].
+  has_rule_breaking_token: bool,
 }
 
-fn has_unclosed_function(css_property_value: &str) -> bool {
+fn scan_value_structure(css_property_value: &str) -> ValueStructure {
   let value = css_property_value.as_bytes();
+  let mut structure = ValueStructure::default();
   let mut quote: Option<u8> = None;
   let mut is_comment = false;
-  let mut paren_depth = 0;
+  let mut paren_depth: usize = 0;
   let mut index = 0;
 
   while index < value.len() {
@@ -678,8 +651,11 @@ fn has_unclosed_function(css_property_value: &str) -> bool {
       None if byte == b'(' => {
         paren_depth += 1;
       },
-      None if byte == b')' && paren_depth > 0 => {
-        paren_depth -= 1;
+      None if byte == b')' => {
+        paren_depth = paren_depth.saturating_sub(1);
+      },
+      None if matches!(byte, b'{' | b'}' | b';') => {
+        structure.has_rule_breaking_token = true;
       },
       _ => {},
     }
@@ -687,7 +663,42 @@ fn has_unclosed_function(css_property_value: &str) -> bool {
     index += 1;
   }
 
-  paren_depth > 0
+  structure.has_unclosed_string = quote.is_some();
+  structure.has_unclosed_function = paren_depth > 0;
+
+  structure
+}
+
+/// Placeholder declaration name used to parse a value independently of the
+/// grammar SWC associates with the real CSS property. Deliberately not a real
+/// property so SWC always falls back to the generic component-value grammar.
+const GENERIC_PROPERTY_NAME: &str = "stylexValue";
+
+/// Byte overhead of the `* { ` / `: ` / ` }` wrapper added by [`build_css_rule`].
+const CSS_RULE_WRAPPER_LEN: usize = 8;
+
+/// Builds the throwaway CSS rule handed to SWC's parser, and embedded verbatim
+/// in parse-error messages.
+///
+/// Pseudo-selectors (`:hover`) are already rule-shaped and are emitted as
+/// `<selector> <value>`; every other property is wrapped in a `* { … }` block.
+fn build_css_rule(property: &str, css_property_value: &str, is_pseudo: bool) -> String {
+  if is_pseudo {
+    let mut rule = String::with_capacity(property.len() + css_property_value.len() + 1);
+    rule.push_str(property);
+    rule.push(' ');
+    rule.push_str(css_property_value);
+    rule
+  } else {
+    let mut rule =
+      String::with_capacity(property.len() + css_property_value.len() + CSS_RULE_WRAPPER_LEN);
+    rule.push_str("* { ");
+    rule.push_str(property);
+    rule.push_str(": ");
+    rule.push_str(css_property_value);
+    rule.push_str(" }");
+    rule
+  }
 }
 
 /// Panics with a formatted CSS parse error.
@@ -722,58 +733,45 @@ pub fn normalize_css_property_value(
     || contains_relative_color_function(css_property_value);
 
   let is_pseudo = css_property.starts_with(':');
+  let structure = scan_value_structure(css_property_value);
 
-  let is_unclosed_function = has_unclosed_function(css_property_value);
-
-  if is_unclosed_function {
-    let css_rule = if is_pseudo {
-      let mut rule = String::with_capacity(css_property.len() + css_property_value.len() + 1);
-      rule.push_str(css_property);
-      rule.push(' ');
-      rule.push_str(css_property_value);
-      rule
+  if structure.has_unclosed_function {
+    // Report the error against the author's actual property name; `--x` has no
+    // grammar of its own, so `color` stands in for it.
+    let error_property = if css_property.starts_with("--") {
+      "color"
     } else {
-      let css_property_for_error = if css_property.starts_with("--") {
-        "color"
-      } else {
-        css_property
-      };
-      let mut rule =
-        String::with_capacity(css_property_for_error.len() + css_property_value.len() + 8);
-      rule.push_str("* { ");
-      rule.push_str(css_property_for_error);
-      rule.push_str(": ");
-      rule.push_str(css_property_value);
-      rule.push_str(" }");
-      rule
+      css_property
     };
+    let css_rule = build_css_rule(error_property, css_property_value, is_pseudo);
+
     stylex_panic!("{}, css rule: {}", LINT_UNCLOSED_FUNCTION, css_rule);
   }
 
-  detect_unclosed_strings(css_property_value);
+  if structure.has_unclosed_string {
+    stylex_panic!("{}", LINT_UNCLOSED_STRING);
+  }
 
   if should_normalize_spacing_only {
     return normalize_spacing_only_value(css_property_value, false);
   }
 
-  let css_rule = if is_pseudo {
-    let mut rule = String::with_capacity(css_property.len() + css_property_value.len() + 1);
-    rule.push_str(css_property);
-    rule.push(' ');
-    rule.push_str(css_property_value);
-    rule
+  // Values are parsed independently of the CSS property's own grammar, so that
+  // a property-specific gap in SWC's grammar cannot reject a valid value.
+  let parse_property = if is_pseudo {
+    css_property
   } else {
-    // Parse values independently of the CSS property's current grammar.
-    let mut rule = String::with_capacity(css_property_value.len() + 20);
-    rule.push_str("* { stylexValue: ");
-    rule.push_str(css_property_value);
-    rule.push_str(" }");
-    rule
+    GENERIC_PROPERTY_NAME
   };
+  let css_rule = build_css_rule(parse_property, css_property_value, is_pseudo);
 
   let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
 
-  if is_pseudo && !errors.is_empty() {
+  // A value SWC cannot parse is only preserved when it is *structurally* inert.
+  // Anything that could terminate the generated rule (`}`, `;`, `{`) is still
+  // rejected, otherwise `height: "1px solid } color: red"` would escape its own
+  // declaration and inject arbitrary CSS into the stylesheet.
+  if !errors.is_empty() && (is_pseudo || structure.has_rule_breaking_token) {
     handle_css_parse_errors(&errors, &css_rule);
   }
 
@@ -787,8 +785,9 @@ pub fn normalize_css_property_value(
   unprefixed_custom_properties_validator(&parsed_css_property_value);
 
   if !errors.is_empty() {
-    // Generic values may use syntax newer than SWC's CSS grammar. Normalize the
-    // original value's spacing without rejecting it.
+    // Generic values may use syntax newer than SWC's CSS grammar (`calc-size()`,
+    // future functions). Normalize the original value's spacing rather than
+    // rejecting syntax the compiler simply does not know yet.
     let normalized_spacing = normalize_spacing_only_value(css_property_value, true);
     return normalize_spacing(&normalized_spacing);
   }

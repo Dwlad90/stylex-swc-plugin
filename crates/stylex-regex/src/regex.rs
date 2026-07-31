@@ -23,9 +23,6 @@ pub static CLEAN_CSS_VAR: Lazy<Regex> =
 pub static IS_CSS_VAR: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"^var\(--[\w-]+\)$"#).expect("Is CSS var regex is valid"));
 
-pub static MANY_SPACES: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"\s+"#).expect("Many spaces regex is valid"));
-
 // Improved: Using positive lookbehind to avoid capturing the prefix
 // This simplifies replacement from "$1-$2" to "-$1"
 pub static DASHIFY_REGEX: Lazy<Regex> =

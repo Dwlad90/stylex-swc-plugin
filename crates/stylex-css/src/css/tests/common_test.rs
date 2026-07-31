@@ -827,6 +827,27 @@ mod normalize_css_property_value_tests {
     let result = normalize_css_property_value("color", "@", &opts);
     assert_eq!(result, "@");
   }
+
+  /// A value SWC cannot parse is preserved only when it is structurally inert.
+  /// `}` / `;` / `{` would close the rule the compiler is generating, so such a
+  /// value must still be rejected instead of being spliced into the stylesheet.
+  #[test]
+  fn rule_breaking_unparsable_values_are_rejected() {
+    let opts = default_options();
+
+    for value in [
+      "}",
+      "1px solid } color: red",
+      "@ } .evil{color:red",
+      "@ { color: red",
+    ] {
+      let result = catch_unwind(AssertUnwindSafe(|| {
+        normalize_css_property_value("height", value, &opts)
+      }));
+
+      assert!(result.is_err(), "expected `{value}` to be rejected");
+    }
+  }
 }
 
 // ── generate_css_rule tests ──────────────────────────────────────────

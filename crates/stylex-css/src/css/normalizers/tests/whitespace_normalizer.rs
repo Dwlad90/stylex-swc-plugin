@@ -406,6 +406,42 @@ fn url_suffix_in_non_ascii_function_name_is_not_url() {
   assert_eq!(normalize_spacing("éurl(foo/2)"), "éurl(foo / 2)");
 }
 
+// Regression: `open_paren_index - 3` is not necessarily a UTF-8 character
+// boundary, so the `url(` lookbehind must not slice `&str` by raw byte offset.
+#[test]
+fn multibyte_identifier_before_paren_does_not_panic() {
+  assert_eq!(normalize_spacing("éab(1)"), "éab(1)");
+  assert_eq!(normalize_spacing("日本(1/2)"), "日本(1 / 2)");
+  assert_eq!(normalize_spacing("é(1)"), "é(1)");
+}
+
+// A `/*` inside a `url()` body is part of the URL, not a comment opener.
+#[test]
+fn url_body_wins_over_comment_and_quote_detection() {
+  for value in [
+    "url(a/*b.png)",
+    r#"url("a/*b.png")"#,
+    "url(data:image/svg+xml;utf8,<svg/>)",
+    "url(it's-fine.png)",
+  ] {
+    assert_eq!(normalize_spacing(value), value);
+  }
+}
+
+// The `url(` fast path used to skip normalization for the whole value, so a
+// trailing component kept SWC's minified (invalid) spacing.
+#[test]
+fn value_following_a_url_is_still_normalized() {
+  assert_eq!(
+    normalize_spacing("url(a.png) no-repeat center/cover"),
+    "url(a.png) no-repeat center / cover"
+  );
+  assert_eq!(
+    normalize_spacing("url(a.png)calc(1px)"),
+    "url(a.png) calc(1px)"
+  );
+}
+
 // Percent before dot-prefixed decimal
 #[test]
 fn percent_before_decimal() {

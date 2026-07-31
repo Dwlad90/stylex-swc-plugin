@@ -22,20 +22,33 @@ pub fn is_css_unit(s: &str) -> bool {
   )
 }
 
+/// Returns `true` when the `(` at `open_paren_index` opens a `url()` function.
+///
+/// `url()` bodies are copied verbatim by [`normalize_spacing`], so this guard
+/// must not fire for identifiers that merely *end* in `url` (`blurl(`,
+/// `--icon-url(`). The name is matched case-insensitively (`URL(` is valid
+/// CSS) and the character preceding it must not continue an identifier.
+///
+/// The scan walks Unicode scalar values backwards rather than indexing raw
+/// bytes: `open_paren_index - 3` is not necessarily a UTF-8 character
+/// boundary, and slicing a `&str` there panics (e.g. `éab(`).
 fn starts_url_function(css: &str, open_paren_index: usize) -> bool {
-  if open_paren_index < 3 {
-    return false;
+  // `open_paren_index` comes from `char_indices`, so this slice is in bounds
+  // and on a character boundary.
+  let mut preceding = css[..open_paren_index].chars().rev();
+
+  for expected in ['l', 'r', 'u'] {
+    if !preceding
+      .next()
+      .is_some_and(|ch| ch.eq_ignore_ascii_case(&expected))
+    {
+      return false;
+    }
   }
 
-  let bytes = css.as_bytes();
-  let name_start = open_paren_index - 3;
-  let has_url_name = bytes[name_start..open_paren_index].eq_ignore_ascii_case(b"url");
-  let has_ident_prefix = css[..name_start]
-    .chars()
-    .next_back()
-    .is_some_and(|ch| ch.is_alphanumeric() || matches!(ch, '-' | '_' | '\\'));
-
-  has_url_name && !has_ident_prefix
+  !preceding
+    .next()
+    .is_some_and(|ch| ch.is_alphanumeric() || matches!(ch, '-' | '_' | '\\'))
 }
 
 /// Extract the CSS property value from a stringified rule like `*{prop:value}`.
@@ -114,18 +127,14 @@ pub fn extract_css_value(css: &str) -> &str {
 /// - alphanumeric/`%` + `#` → space (hex colors)
 /// - `%` + digit/`.` → space (e.g. `40%10` → `40% 10`)
 /// - closing `"` + opening `"` → space (adjacent strings)
-/// - `/` or `*` + digit/`.`/`(`/`-` → space (calc operators)
+/// - either side of `/` → space (division and the CSS slash separator, e.g.
+///   `calc-size(fit-content,size/2)` → `… size / 2`)
+/// - `*` + digit/`.`/`(`/`-` → space (calc operators)
 ///
-/// Tracks whether we are inside a quoted string so that `""` (empty string)
-/// is NOT split into `" "`.
-///
-/// Returns the input unchanged if it starts with `url(`.
+/// Three regions are copied through verbatim, in this precedence order:
+/// `url()` bodies (which are not tokenized as CSS), quoted strings (so `""`
+/// is not split into `" "`), and `/* … */` comments.
 pub fn normalize_spacing(css: &str) -> String {
-  // Fast-path: URL values need no spacing changes
-  if css.starts_with("url(") {
-    return css.to_string();
-  }
-
   let mut chars = css.char_indices().peekable();
   let Some((_, first)) = chars.next() else {
     return String::new();
@@ -141,7 +150,7 @@ pub fn normalize_spacing(css: &str) -> String {
   let mut escaped = false;
   let mut after_closing_quote = false;
   let mut is_comment = false;
-  let mut url_depth = 0;
+  let mut url_depth: usize = 0;
   let mut url_escaped = false;
   result.push(first);
 
@@ -175,6 +184,24 @@ pub fn normalize_spacing(css: &str) -> String {
       continue;
     }
 
+    // `url()` bodies are not CSS-tokenized: quotes, `/*` and `/` inside them
+    // are ordinary characters, so this must be checked before those.
+    if url_depth > 0 {
+      if url_escaped {
+        url_escaped = false;
+      } else if cur == '\\' {
+        url_escaped = true;
+      } else if cur == '(' {
+        url_depth += 1;
+      } else if cur == ')' {
+        url_depth -= 1;
+      }
+
+      result.push(cur);
+      prev = cur;
+      continue;
+    }
+
     if is_comment {
       result.push(cur);
 
@@ -182,6 +209,13 @@ pub fn normalize_spacing(css: &str) -> String {
         is_comment = false;
       }
 
+      prev = cur;
+      continue;
+    }
+
+    if cur == '(' && starts_url_function(css, idx) {
+      url_depth = 1;
+      result.push(cur);
       prev = cur;
       continue;
     }
@@ -199,29 +233,6 @@ pub fn normalize_spacing(css: &str) -> String {
 
     if cur == '/' && chars.peek().is_some_and(|(_, next)| *next == '*') {
       is_comment = true;
-      result.push(cur);
-      prev = cur;
-      continue;
-    }
-
-    if url_depth > 0 {
-      if url_escaped {
-        url_escaped = false;
-      } else if cur == '\\' {
-        url_escaped = true;
-      } else if cur == '(' {
-        url_depth += 1;
-      } else if cur == ')' {
-        url_depth -= 1;
-      }
-
-      result.push(cur);
-      prev = cur;
-      continue;
-    }
-
-    if cur == '(' && starts_url_function(css, idx) {
-      url_depth = 1;
       result.push(cur);
       prev = cur;
       continue;

@@ -4,9 +4,9 @@
 
 use crate::regex::{
   ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, CSS_VALUE_SPLIT_REGEX, DASHIFY_REGEX,
-  DESCENDANT_SELECTOR, IS_CSS_VAR, JSON_REGEX, LENGTH_UNIT_TESTER_REGEX, MANY_SPACES,
-  PSEUDO_PART_REGEX, SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR, STYLEX_CONSTS_IMPORT_REGEX,
-  URL_REGEX, VAR_EXTRACTION_REGEX,
+  DESCENDANT_SELECTOR, IS_CSS_VAR, JSON_REGEX, LENGTH_UNIT_TESTER_REGEX, PSEUDO_PART_REGEX,
+  SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR, STYLEX_CONSTS_IMPORT_REGEX, URL_REGEX,
+  VAR_EXTRACTION_REGEX,
 };
 
 /// Value-splitting parsers should detect adjacency patterns.
@@ -25,7 +25,6 @@ fn core_cleanup_patterns_match() {
   assert!(CLEAN_CSS_VAR.is_match(r"\31 ").unwrap());
   assert!(IS_CSS_VAR.is_match("var(--token_1)").unwrap());
   assert!(!IS_CSS_VAR.is_match("var(token)").unwrap());
-  assert!(MANY_SPACES.is_match("a   b").unwrap());
   assert!(DASHIFY_REGEX.is_match("fooBar").unwrap());
 }
 

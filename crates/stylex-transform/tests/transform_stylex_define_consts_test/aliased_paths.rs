@@ -115,9 +115,33 @@ fn resolves_aliased_absolute_paths_for_define_consts_imports() {
   );
 }
 
-
+/// An imported constant interpolated inside a CSS function is **not** inlined:
+/// it degrades to a `var()` reference, so the declaration is emitted as
+/// `min(var(--…)px,100%)`.
+///
+/// Runtime injection is enabled so the generated CSS is part of the snapshot —
+/// without it the snapshot shows only the class name and would pass regardless
+/// of what the normalizer produced for `min(…)`.
+///
+/// The `var(--x)px` shape is the compiler's established output for interpolated
+/// constants (see `is_css_unit` and #927) — the normalizer must not insert a
+/// space between `)` and the unit.
 #[test]
-fn imported_define_consts_interpolation_inside_css_functions_is_rejected() {
+fn imported_define_consts_interpolation_inside_css_functions_falls_back_to_var() {
+  let fixture_path = fixture_dir();
+
+  let mut aliases = FxHashMap::default();
+  aliases.insert(
+    "~fixture/*".to_string(),
+    vec![fixture_path.join("*").to_string_lossy().to_string()],
+  );
+
+  let unstable_module_resolution = ModuleResolution {
+    root_dir: Some(fixture_path.to_string_lossy().to_string()),
+    theme_file_extension: None,
+    ..ModuleResolution::common_js(None)
+  };
+
   let input = r#"
     import * as stylex from "@stylexjs/stylex";
     import { Tokens } from '~fixture/constants.stylex';
@@ -127,9 +151,18 @@ fn imported_define_consts_interpolation_inside_css_functions_is_rejected() {
     });
   "#;
 
-  let output = transform_with_aliased_inline_consts(input, FxHashMap::default(), None);
+  let output = stringify_js(input, ts_syntax(), move |tr| {
+    build_test_transform(tr.comments.clone(), move |b| {
+      b.with_cwd(fixture_path.clone())
+        .with_filename(fixture_path.clone().join("main.stylex.js").into())
+        .with_aliases(aliases.clone())
+        .with_unstable_module_resolution(unstable_module_resolution)
+        .with_runtime_injection()
+    })
+  });
+
   insta::assert_snapshot!(
-    "imported_define_consts_interpolation_inside_css_functions_is_rejected",
+    "imported_define_consts_interpolation_inside_css_functions_falls_back_to_var",
     output
   );
 }

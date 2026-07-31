@@ -164,8 +164,14 @@ fn normalize_spacing_inserts_space_between_adjacent_quoted_strings() {
 
 #[test]
 fn normalize_spacing_keeps_url_values_byte_for_byte() {
+  // The `url()` body — including its multi-byte characters and the `#` that
+  // would otherwise be read as a hex colour — is copied through untouched,
+  // while the value *following* it is still normalized.
   let value = r#"url("/icons/•#hash.svg")calc(1px)rgb(0,0,0)"#;
-  assert_eq!(normalize_spacing(value), value);
+  assert_eq!(
+    normalize_spacing(value),
+    r#"url("/icons/•#hash.svg") calc(1px) rgb(0,0,0)"#
+  );
 }
 
 #[test]

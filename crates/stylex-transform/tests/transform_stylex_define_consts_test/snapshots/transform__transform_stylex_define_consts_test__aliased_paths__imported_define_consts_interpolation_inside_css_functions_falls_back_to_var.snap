@@ -2,8 +2,15 @@
 source: crates/stylex-transform/tests/transform_stylex_define_consts_test/aliased_paths.rs
 expression: output
 ---
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
+var _inject2 = _inject;
+import "~fixture/constants.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { Tokens } from '~fixture/constants.stylex';
+_inject2({
+    ltr: ".xp4nob0{min-width:min(var(--x1gnhkwx)px,100%)}",
+    priority: 4000
+});
 export const styles = {
     root: {
         k7Eaqz: "xp4nob0",

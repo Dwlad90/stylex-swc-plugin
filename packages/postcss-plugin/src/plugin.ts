@@ -1,11 +1,11 @@
 import postcss from 'postcss';
+
 import createBuilder from './builder';
 import {
   resolveExclude,
   resolveImportSourcesWithMetadata,
   resolveIncludeWithMetadata,
 } from './discovery';
-
 import type { StyleXPluginOption } from './types';
 
 function isDebugEnabled(): boolean {

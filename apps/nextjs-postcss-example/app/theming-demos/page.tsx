@@ -1,5 +1,6 @@
 import * as stylex from '@stylexjs/stylex';
 import Link from 'next/link';
+
 import { globalTokens as $, spacing, text, colors } from '../globalTokens.stylex';
 
 const DARK = '@media (prefers-color-scheme: dark)' as const;

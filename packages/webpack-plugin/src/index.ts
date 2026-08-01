@@ -11,7 +11,6 @@ import {
   stylexLoaderPath,
   stylexVirtualCssLoaderPath,
 } from '@stylexswc/plugin-shared';
-
 import type webpack from 'webpack';
 
 export const STYLEX_CHUNK_NAME = '_stylex-webpack-generated';

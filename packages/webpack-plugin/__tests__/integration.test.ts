@@ -1,10 +1,12 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import webpack from 'webpack';
-import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+
 import { createFsFromVolume, Volume } from 'memfs';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import { afterAll, describe, expect, test } from 'vitest';
+import webpack from 'webpack';
+import type { Configuration, Stats } from 'webpack';
 
 import {
   BASIC_FIXTURE_ENTRY,
@@ -16,8 +18,6 @@ import {
   findStylexCss,
 } from '../../plugin-shared/test-utils/fixtures';
 import StyleXPlugin, { STYLEX_CHUNK_NAME } from '../src';
-
-import type { Configuration, Stats } from 'webpack';
 
 const CARRIER_PATH = path.join(__dirname, '..', 'src', 'stylex.css');
 

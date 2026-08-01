@@ -11,16 +11,18 @@
  *   pnpm bench:compare --time 2000         # time budget per task in ms
  */
 
-import { Bench, type BenchOptions, type Task, type TaskResultWithStatistics } from 'tinybench';
+import fs from 'fs';
+import { createRequire } from 'node:module';
+import { parseArgs } from 'node:util';
+import os from 'os';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 import * as babel from '@babel/core';
 import stylexBabelPluginModule from '@stylexjs/babel-plugin';
-import path from 'path';
-import fs from 'fs';
-import os from 'os';
-import { parseArgs } from 'node:util';
-import { createRequire } from 'node:module';
 import chalk from 'chalk';
-import { fileURLToPath } from 'url';
+import { Bench, type BenchOptions, type Task, type TaskResultWithStatistics } from 'tinybench';
+
 import { transform } from '../dist/index.js';
 import type { StyleXOptions } from '../dist/index.js';
 
@@ -28,7 +30,7 @@ import type { StyleXOptions } from '../dist/index.js';
 // namespace depending on the loader; unwrap `.default` when present.
 const stylexBabelPlugin: babel.PluginTarget =
   (stylexBabelPluginModule as unknown as { default?: babel.PluginTarget }).default ??
-  (stylexBabelPluginModule as unknown as babel.PluginTarget);
+  stylexBabelPluginModule;
 
 type CompilerName = 'rust' | 'babel';
 

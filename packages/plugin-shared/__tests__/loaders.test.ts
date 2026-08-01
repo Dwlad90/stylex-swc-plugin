@@ -1,13 +1,13 @@
 import fs from 'fs';
 import path from 'path';
+
 import { describe, expect, test, vi } from 'vitest';
+import type { LoaderContext } from 'webpack';
 
 import { BUILD_INFO_STYLEX_KEY, LOADER_TRANSFORMED_FLAG } from '../src/constants';
 import stylexLoader from '../src/stylex-loader';
 import stylexVirtualCssLoader from '../src/stylex-virtual-css-loader';
-
 import type { StyleXLoaderOptions } from '../src/types';
-import type { LoaderContext } from 'webpack';
 
 const FIXTURE_PATH = path.join(__dirname, '__fixtures__', 'Button.jsx');
 const ROOT_CONTEXT = path.join(__dirname, '..');

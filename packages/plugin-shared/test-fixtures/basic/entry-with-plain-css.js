@@ -3,7 +3,6 @@
 // foreign CSS funneled into the stylex chunk survives the asset finalization.
 import 'stylex-carrier.css';
 import './plain.css';
-
 import { appProps } from './App';
 import { buttonProps } from './Button';
 

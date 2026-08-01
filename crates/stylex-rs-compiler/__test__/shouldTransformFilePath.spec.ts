@@ -1,6 +1,8 @@
-import { expect, test } from 'vitest';
-import { shouldTransformFile } from '../dist/index';
 import * as path from 'path';
+
+import { expect, test } from 'vitest';
+
+import { shouldTransformFile } from '../dist/index';
 
 const cwd = process.cwd();
 

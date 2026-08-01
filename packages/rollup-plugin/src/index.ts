@@ -1,18 +1,18 @@
+import crypto from 'crypto';
+
+import type { Rule } from '@stylexjs/babel-plugin';
+import stylexBabelPlugin from '@stylexjs/babel-plugin';
 import {
   normalizeRsOptions,
   shouldTransformFile,
   transform as stylexTransform,
 } from '@stylexswc/rs-compiler';
-import type { Rule } from '@stylexjs/babel-plugin';
+import type { StyleXOptions, TransformedOptions, UseLayersType } from '@stylexswc/rs-compiler';
+import browserslist from 'browserslist';
 import { transform } from 'lightningcss';
 import type { CustomAtRules, TransformOptions } from 'lightningcss';
-import type { Plugin, TransformResult, TransformPluginContext } from 'rollup';
-import browserslist from 'browserslist';
 import { browserslistToTargets } from 'lightningcss';
-import stylexBabelPlugin from '@stylexjs/babel-plugin';
-import crypto from 'crypto';
-
-import type { StyleXOptions, TransformedOptions, UseLayersType } from '@stylexswc/rs-compiler';
+import type { Plugin, TransformResult, TransformPluginContext } from 'rollup';
 
 function replaceFileName(original: string, css: string) {
   if (!original.includes('[hash]')) {

@@ -1,12 +1,14 @@
 'use strict';
 
 import path from 'path';
-import * as rollup from 'rollup';
+
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
-import stylexPlugin from '../src/rollup.js';
+import * as rollup from 'rollup';
 import { describe, expect, test } from 'vitest';
+
 import type { UnpluginStylexRSOptions } from '../src/index.js';
+import stylexPlugin from '../src/rollup.js';
 
 describe('@stylexswc/unplugin/rollup', () => {
   async function runStylex(options: UnpluginStylexRSOptions) {

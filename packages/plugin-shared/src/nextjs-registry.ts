@@ -1,7 +1,7 @@
-import { NEXTJS_COMPILER_NAMES, isNextJsCompilerName } from './constants';
-
-import type { NextJsCompilerName } from './constants';
 import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
+
+import { NEXTJS_COMPILER_NAMES, isNextJsCompilerName } from './constants';
+import type { NextJsCompilerName } from './constants';
 
 export type StyleXRulesMap = Map<string, readonly StyleXRule[]>;
 

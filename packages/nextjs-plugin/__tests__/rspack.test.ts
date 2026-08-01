@@ -1,13 +1,13 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-
-import withStyleX from '../src/rspack';
 
 import type { NextConfig, WebpackConfigContext } from 'next/dist/server/config-shared';
-import type { StyleXNextRspackPluginOption } from '../src/rspack';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type webpack from 'webpack';
+
+import withStyleX from '../src/rspack';
+import type { StyleXNextRspackPluginOption } from '../src/rspack';
 
 const { existsSyncCalls, rspackPluginOptions, warn } = vi.hoisted(() => ({
   existsSyncCalls: [] as string[],

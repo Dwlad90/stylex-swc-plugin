@@ -61,7 +61,7 @@
     "typescript/ban-ts-comment": "error",
     "typescript/no-duplicate-enum-values": "error",
     "typescript/no-empty-object-type": "error",
-    "typescript/no-explicit-any": "warn",
+    "typescript/no-explicit-any": "error",
     "typescript/no-extra-non-null-assertion": "error",
     "typescript/no-misused-new": "error",
     "typescript/no-namespace": "error",
@@ -76,6 +76,256 @@
     "typescript/prefer-namespace-keyword": "error",
     "typescript/triple-slash-reference": "error",
 
+    // ── Ratchet ──────────────────────────────────────────────────────────
+    // Every rule below already passes on the current tree, so enabling them
+    // costs no churn. They exist to stop regressions rather than to force a
+    // cleanup, which is why the list is derived from what is verifiably clean
+    // rather than from whole categories: `style` alone reports 25,127 findings
+    // and mostly duplicates the formatter, and `restriction` bans ordinary
+    // modern JavaScript (`no-var`, `no-optional-chaining`, `no-async-await`).
+
+    // Core JavaScript correctness rules that the tree already satisfies.
+    "accessor-pairs": "error",
+    "array-callback-return": "error",
+    "block-scoped-var": "error",
+    "constructor-super": "error",
+    "for-direction": "error",
+    "getter-return": "error",
+    "max-nested-callbacks": "error",
+    "no-alert": "error",
+    "no-array-constructor": "error",
+    "no-async-promise-executor": "error",
+    "no-caller": "error",
+    "no-case-declarations": "error",
+    "no-class-assign": "error",
+    "no-compare-neg-zero": "error",
+    "no-cond-assign": "error",
+    "no-const-assign": "error",
+    "no-constructor-return": "error",
+    "no-control-regex": "error",
+    "no-debugger": "error",
+    "no-delete-var": "error",
+    "no-div-regex": "error",
+    "no-dupe-class-members": "error",
+    "no-dupe-else-if": "error",
+    "no-dupe-keys": "error",
+    "no-duplicate-case": "error",
+    "no-empty": "error",
+    "no-empty-character-class": "error",
+    "no-empty-pattern": "error",
+    "no-empty-static-block": "error",
+    "no-eval": "error",
+    "no-ex-assign": "error",
+    "no-extend-native": "error",
+    "no-extra-bind": "error",
+    "no-extra-boolean-cast": "error",
+    "no-fallthrough": "error",
+    "no-func-assign": "error",
+    "no-global-assign": "error",
+    "no-implied-eval": "error",
+    "no-import-assign": "error",
+    "no-inner-declarations": "error",
+    "no-invalid-regexp": "error",
+    "no-irregular-whitespace": "error",
+    "no-iterator": "error",
+    "no-loop-func": "error",
+    "no-loss-of-precision": "error",
+    "no-misleading-character-class": "error",
+    "no-new": "error",
+    "no-new-native-nonconstructor": "error",
+    "no-new-wrappers": "error",
+    "no-nonoctal-decimal-escape": "error",
+    "no-obj-calls": "error",
+    "no-object-constructor": "error",
+    "no-promise-executor-return": "error",
+    "no-proto": "error",
+    "no-prototype-builtins": "error",
+    "no-redeclare": "error",
+    "no-regex-spaces": "error",
+    "no-self-assign": "error",
+    "no-self-compare": "error",
+    "no-sequences": "error",
+    "no-setter-return": "error",
+    "no-shadow-restricted-names": "error",
+    "no-sparse-arrays": "error",
+    "no-this-before-super": "error",
+    "no-throw-literal": "error",
+    "no-unassigned-vars": "error",
+    "no-unexpected-multiline": "error",
+    "no-unmodified-loop-condition": "error",
+    "no-unneeded-ternary": "error",
+    "no-unreachable": "error",
+    "no-unsafe-finally": "error",
+    "no-unsafe-negation": "error",
+    "no-unsafe-optional-chaining": "error",
+    "no-unused-labels": "error",
+    "no-unused-private-class-members": "error",
+    "no-useless-backreference": "error",
+    "no-useless-call": "error",
+    "no-useless-catch": "error",
+    "no-useless-constructor": "error",
+    "no-useless-escape": "error",
+    "no-useless-rename": "error",
+    "no-useless-return": "error",
+    "no-with": "error",
+    "radix": "error",
+    "require-yield": "error",
+    "symbol-description": "error",
+    "unicode-bom": "error",
+    "use-isnan": "error",
+    "valid-typeof": "error",
+
+    // TypeScript rules the tree already satisfies. Those needing type
+    // information only report under `pnpm lint:type-aware`.
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-array-delete": "error",
+    "typescript/no-base-to-string": "error",
+    "typescript/no-confusing-non-null-assertion": "error",
+    "typescript/no-duplicate-enum-values": "error",
+    "typescript/no-duplicate-type-constituents": "error",
+    "typescript/no-dynamic-delete": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-extra-non-null-assertion": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-for-in-array": "error",
+    "typescript/no-implied-eval": "error",
+    "typescript/no-invalid-void-type": "error",
+    "typescript/no-meaningless-void-operator": "error",
+    "typescript/no-misused-new": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/no-mixed-enums": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-non-null-asserted-nullish-coalescing": "error",
+    "typescript/no-non-null-asserted-optional-chain": "error",
+    "typescript/no-redundant-type-constituents": "error",
+    "typescript/no-this-alias": "error",
+    "typescript/no-unnecessary-boolean-literal-compare": "error",
+    "typescript/no-unnecessary-parameter-property-assignment": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/no-unnecessary-type-parameters": "error",
+    "typescript/no-unsafe-declaration-merging": "error",
+    "typescript/no-unsafe-enum-comparison": "error",
+    "typescript/no-unsafe-function-type": "error",
+    "typescript/no-unsafe-unary-minus": "error",
+    "typescript/no-useless-default-assignment": "error",
+    "typescript/no-useless-empty-export": "error",
+    "typescript/no-wrapper-object-types": "error",
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-as-const": "error",
+    "typescript/prefer-enum-initializers": "error",
+    "typescript/prefer-includes": "error",
+    "typescript/prefer-literal-enum-member": "error",
+    "typescript/prefer-namespace-keyword": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/prefer-ts-expect-error": "error",
+    "typescript/related-getter-setter-pairs": "error",
+    "typescript/require-array-sort-compare": "error",
+    "typescript/return-await": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/triple-slash-reference": "error",
+    "typescript/unbound-method": "error",
+
+    // Modern-JavaScript correctness rules, restricted to ones that describe
+    // a defect rather than a style preference.
+    "unicorn/consistent-assert": "error",
+    "unicorn/consistent-empty-array-spread": "error",
+    "unicorn/escape-case": "error",
+    "unicorn/new-for-builtins": "error",
+    "unicorn/no-abusive-eslint-disable": "error",
+    "unicorn/no-accessor-recursion": "error",
+    "unicorn/no-array-fill-with-reference-type": "error",
+    "unicorn/no-await-in-promise-methods": "error",
+    "unicorn/no-confusing-array-with": "error",
+    "unicorn/no-document-cookie": "error",
+    "unicorn/no-hex-escape": "error",
+    "unicorn/no-instanceof-array": "error",
+    "unicorn/no-instanceof-builtins": "error",
+    "unicorn/no-invalid-fetch-options": "error",
+    "unicorn/no-invalid-remove-event-listener": "error",
+    "unicorn/no-length-as-slice-end": "error",
+    "unicorn/no-magic-array-flat-depth": "error",
+    "unicorn/no-negation-in-equality-check": "error",
+    "unicorn/no-new-array": "error",
+    "unicorn/no-new-buffer": "error",
+    "unicorn/no-single-promise-in-promise-methods": "error",
+    "unicorn/no-static-only-class": "error",
+    "unicorn/no-thenable": "error",
+    "unicorn/no-this-assignment": "error",
+    "unicorn/no-typeof-undefined": "error",
+    "unicorn/no-unnecessary-array-flat-depth": "error",
+    "unicorn/no-unnecessary-array-splice-count": "error",
+    "unicorn/no-unnecessary-await": "error",
+    "unicorn/no-unnecessary-slice-end": "error",
+    "unicorn/no-unreadable-iife": "error",
+    "unicorn/no-useless-error-capture-stack-trace": "error",
+    "unicorn/no-useless-fallback-in-spread": "error",
+    "unicorn/no-useless-length-check": "error",
+    "unicorn/no-useless-promise-resolve-reject": "error",
+    "unicorn/no-useless-switch-case": "error",
+    "unicorn/prefer-add-event-listener": "error",
+    "unicorn/prefer-array-find": "error",
+    "unicorn/prefer-array-flat": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/prefer-array-some": "error",
+    "unicorn/prefer-blob-reading-methods": "error",
+    "unicorn/prefer-code-point": "error",
+    "unicorn/prefer-date-now": "error",
+    "unicorn/prefer-dom-node-dataset": "error",
+    "unicorn/prefer-math-min-max": "error",
+    "unicorn/prefer-modern-math-apis": "error",
+    "unicorn/prefer-prototype-methods": "error",
+    "unicorn/prefer-regexp-test": "error",
+    "unicorn/prefer-set-has": "error",
+    "unicorn/prefer-set-size": "error",
+    "unicorn/prefer-string-starts-ends-with": "error",
+    "unicorn/require-module-specifiers": "error",
+    "unicorn/require-number-to-fixed-digits-argument": "error",
+    "unicorn/require-post-message-target-origin": "error",
+
+    // Oxc's own bug-pattern rules: comparison mistakes, bad built-in
+    // arguments, unreachable or erased operations.
+    "oxc/approx-constant": "error",
+    "oxc/bad-array-method-on-arguments": "error",
+    "oxc/bad-bitwise-operator": "error",
+    "oxc/bad-char-at-comparison": "error",
+    "oxc/bad-match-all-arg": "error",
+    "oxc/bad-min-max-func": "error",
+    "oxc/bad-object-literal-comparison": "error",
+    "oxc/bad-replace-all-arg": "error",
+    "oxc/branches-sharing-code": "error",
+    "oxc/const-comparisons": "error",
+    "oxc/double-comparisons": "error",
+    "oxc/erasing-op": "error",
+    "oxc/misrefactored-assign-op": "error",
+    "oxc/missing-throw": "error",
+    "oxc/no-accumulating-spread": "error",
+    "oxc/no-async-endpoint-handlers": "error",
+    "oxc/no-const-enum": "error",
+    "oxc/no-map-spread": "error",
+    "oxc/number-arg-out-of-range": "error",
+    "oxc/only-used-in-recursion": "error",
+    "oxc/uninvoked-array-callback": "error",
+
+    // Module-graph integrity: unresolved imports, cycles, self-imports.
+    "import/default": "error",
+    "import/namespace": "error",
+    "import/no-absolute-path": "error",
+    "import/no-amd": "error",
+    "import/no-cycle": "error",
+    "import/no-empty-named-blocks": "error",
+    "import/no-named-as-default": "error",
+    "import/no-self-import": "error",
+    "import/no-webpack-loader-syntax": "error",
+
+    // Promise misuse not already covered by the type-aware rules.
+    "promise/catch-or-return": "error",
+    "promise/no-callback-in-promise": "error",
+    "promise/no-new-statics": "error",
+    "promise/no-promise-in-callback": "error",
+    "promise/spec-only": "error",
+    "promise/valid-params": "error",
+
     // Type-aware. These need `oxlint-tsgolint` and only run under
     // `pnpm lint:type-aware`, which is a separate script and a separate CI
     // job so the default lint stays fast.
@@ -83,20 +333,40 @@
     "typescript/no-misused-promises": "error",
 
     // `--type-aware` switches on every type-aware correctness rule, not just
-    // the two above. These three are real findings and are left off only
-    // because adopting them belongs in its own change, the same way the
-    // syntax expansion was kept out of the migration commit:
-    //   - `no-misused-spread` flags `...defaultConfig.webServer` in 21
-    //     Playwright configs. Playwright types `webServer` as a config or an
-    //     array of them, so spreading it yields numeric indices when it is an
-    //     array.
-    //   - `await-thenable` flags a `for await...of` over a sync iterable in
-    //     the benchmark.
-    //   - `restrict-template-expressions` flags one interpolation in the
-    //     virtual CSS loader.
-    "typescript/no-misused-spread": "off",
-    "typescript/await-thenable": "off",
-    "typescript/restrict-template-expressions": "off",
+    // the ones named here, so each is stated explicitly.
+    //
+    // Now clean and enforced. `no-misused-spread` is the important one: it
+    // caught `...defaultConfig.webServer` in 21 Playwright configs, where
+    // Playwright types `webServer` as a config *or an array of them*, so the
+    // spread would have produced numeric index keys rather than server
+    // options whenever that union resolved to the array side. Fixed by
+    // exporting the narrow value from `@stylexswc/playwright`.
+    "typescript/no-misused-spread": "error",
+    "typescript/no-import-type-side-effects": "error",
+    "typescript/no-unnecessary-type-arguments": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-template-expression": "error",
+
+    // Still reporting. Counts are from the current tree; these are genuine
+    // findings rather than false positives, and each wants its own change.
+    "typescript/no-unsafe-type-assertion": "off", //               99
+    "typescript/no-unnecessary-type-conversion": "off", //         40
+    "typescript/require-await": "off", //                          10
+    "typescript/consistent-return": "off", //                       8
+    "typescript/non-nullable-type-assertion-style": "off", //       6
+    "typescript/no-var-requires": "off", //                         5
+    "typescript/promise-function-async": "off", //                  2
+    "typescript/use-unknown-in-catch-callback-variable": "off", //  2
+    "typescript/no-deprecated": "off", //                           2
+    "typescript/await-thenable": "off", //                          1
+    "typescript/restrict-template-expressions": "off", //           1
+
+    // Blocked by generated output rather than by source: tsgolint builds its
+    // program from tsconfig and so reaches `crates/stylex-test-parser/output/`
+    // and `__swc_snapshots__/`, which `ignorePatterns` excludes from the
+    // syntax run but cannot exclude here.
+    "typescript/no-require-imports": "off", //   7, five of them in snapshots
+    "typescript/no-extraneous-class": "off", //  3, two of them in snapshots
   },
 
   "ignorePatterns": [

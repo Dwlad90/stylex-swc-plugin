@@ -1,9 +1,9 @@
-import { PLUGIN_NAME } from './constants';
 import { LoaderInterpolateOption } from 'loader-utils';
-import { generateStyleXOutput } from './utils';
-
-import type { InputCode, SourceMap, StyleXTurbopackLoaderOptions } from './types';
 import type { LoaderContext } from 'webpack';
+
+import { PLUGIN_NAME } from './constants';
+import type { InputCode, SourceMap, StyleXTurbopackLoaderOptions } from './types';
+import { generateStyleXOutput } from './utils';
 
 const skipWarnRegex = /empty|client-only/;
 

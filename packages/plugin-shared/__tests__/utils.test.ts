@@ -1,4 +1,6 @@
 import path from 'path';
+
+import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
 import { describe, expect, test } from 'vitest';
 
 import { DEFAULT_STYLEX_PACKAGES, VIRTUAL_CSS_PATTERN } from '../src/constants';
@@ -8,8 +10,6 @@ import {
   parseStylexRulesFromIdentifier,
   shouldProcessFile,
 } from '../src/utils';
-
-import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
 
 describe('shouldProcessFile', () => {
   const project = path.join(path.sep, 'project');

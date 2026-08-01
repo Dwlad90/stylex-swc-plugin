@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import styleXRSPlugin from '@stylexswc/unplugin/esbuild';
 
 const __filename = fileURLToPath(import.meta.url);

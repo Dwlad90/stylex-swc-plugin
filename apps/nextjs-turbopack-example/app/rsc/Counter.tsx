@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import * as stylex from '@stylexjs/stylex';
+import { useState } from 'react';
+
 import { colors, globalTokens as $, spacing, text } from '@/app/globalTokens.stylex';
 
 /**

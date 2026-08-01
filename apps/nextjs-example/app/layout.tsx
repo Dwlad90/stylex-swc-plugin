@@ -1,8 +1,9 @@
 // StyleX carrier stylesheet — replaced with the extracted CSS at build time
 import '@stylexswc/webpack-plugin/stylex.css';
 import './app.css';
-import { globalTokens as $ } from '@/app/globalTokens.stylex';
 import * as stylex from '@stylexjs/stylex';
+
+import { globalTokens as $ } from '@/app/globalTokens.stylex';
 
 export const metadata = {
   title: 'Next.js + StyleX',

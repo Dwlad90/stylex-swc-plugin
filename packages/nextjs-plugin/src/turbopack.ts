@@ -1,5 +1,5 @@
-import type { NextConfig, TurbopackLoaderItem } from 'next/dist/server/config-shared';
 import type { StyleXPluginOption } from '@stylexswc/webpack-plugin';
+import type { NextConfig, TurbopackLoaderItem } from 'next/dist/server/config-shared';
 
 const withStyleX =
   (

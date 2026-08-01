@@ -25,8 +25,7 @@ buttonTokens satisfies VarGroup<
     cornerRadius: string;
     paddingBlock: string;
     paddingInline: string;
-  }>,
-  symbol
+  }>
 >;
 
 const correctTheme = stylex.createTheme(buttonTokens, {
@@ -41,7 +40,7 @@ const correctTheme = stylex.createTheme(buttonTokens, {
   paddingInline: '8px',
 });
 
-correctTheme satisfies Theme<typeof buttonTokens, symbol>;
+correctTheme satisfies Theme<typeof buttonTokens>;
 
 correctTheme satisfies CompiledStyles;
 
@@ -119,7 +118,7 @@ const themeC = stylex.createTheme(varsC, {
 });
 
 const typedTokens = stylex.defineVars({
-  bgColor: stylex.types.color<string>({
+  bgColor: stylex.types.color({
     default: 'cyan',
     [DARK]: 'navy',
   }),
@@ -127,7 +126,7 @@ const typedTokens = stylex.defineVars({
     default: '4px',
     '@media (max-width: 600px)': 0,
   }),
-  translucent: stylex.types.number<number>(0.5),
+  translucent: stylex.types.number(0.5),
   shortAnimation: stylex.types.time<string>('0.5s'),
 });
 

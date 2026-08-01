@@ -1,11 +1,11 @@
 import path from 'path';
-import webpack from 'webpack';
-import { describe, expect, test, vi } from 'vitest';
-
-import { BUILD_INFO_STYLEX_KEY } from '@stylexswc/plugin-shared';
-import StyleXPlugin, { STYLEX_CHUNK_NAME } from '../src';
 
 import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
+import { BUILD_INFO_STYLEX_KEY } from '@stylexswc/plugin-shared';
+import { describe, expect, test, vi } from 'vitest';
+import webpack from 'webpack';
+
+import StyleXPlugin, { STYLEX_CHUNK_NAME } from '../src';
 
 type FinishModulesCallback = (_modules: Iterable<{ buildInfo?: Record<string, unknown> }>) => void;
 type ProcessAssetsCallback = (_assets: Record<string, webpack.sources.Source>) => Promise<void>;

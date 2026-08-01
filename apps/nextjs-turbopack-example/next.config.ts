@@ -1,4 +1,5 @@
 import path from 'path';
+
 import stylexPlugin from '@stylexswc/nextjs-plugin/turbopack';
 
 export default stylexPlugin({

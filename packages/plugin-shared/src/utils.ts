@@ -1,16 +1,16 @@
 import path from 'path';
+
+import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
 import { normalizeRsOptions, shouldTransformFile, transform } from '@stylexswc/rs-compiler';
+import type { StyleXOptions, StyleXTransformResult } from '@stylexswc/rs-compiler';
+import type webpack from 'webpack';
 
 import {
   INCLUDE_REGEXP,
   VIRTUAL_CSS_PATTERN,
   VIRTUAL_STYLEX_CSS_DUMMY_IMPORT_PATTERN,
 } from './constants';
-
-import type webpack from 'webpack';
 import type { SourceMap } from './types';
-import type { StyleXOptions, StyleXTransformResult } from '@stylexswc/rs-compiler';
-import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
 
 export function stringifyRequest(loaderContext: webpack.LoaderContext<unknown>, request: string) {
   return JSON.stringify(

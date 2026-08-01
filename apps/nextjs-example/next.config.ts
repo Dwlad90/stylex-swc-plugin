@@ -1,4 +1,5 @@
 import path from 'path';
+
 import stylexPlugin from '@stylexswc/nextjs-plugin';
 
 module.exports = stylexPlugin({
@@ -26,7 +27,7 @@ module.exports = stylexPlugin({
           sansSerif: 'sans-serif',
         },
       },
-      wrapper: (value: string) => `${value}`,
+      wrapper: (value: string) => value,
     },
   },
 })({

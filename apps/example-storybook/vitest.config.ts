@@ -1,9 +1,8 @@
+import styleXRSPlugin from '@stylexswc/unplugin/vite';
+import react from '@vitejs/plugin-react-swc';
 // import path from 'node:path';
 // import { fileURLToPath } from 'node:url';
 import { playwright } from '@vitest/browser-playwright';
-import styleXRSPlugin from '@stylexswc/unplugin/vite';
-import react from '@vitejs/plugin-react-swc';
-
 import { defineConfig } from 'vitest/config';
 
 // import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
@@ -42,7 +41,7 @@ export default defineConfig({
                     text: '#333',
                   },
                 },
-                wrapper: (value: string) => `${value}`,
+                wrapper: (value: string) => value,
               },
             },
           }),
@@ -79,7 +78,7 @@ export default defineConfig({
                     text: '#333',
                   },
                 },
-                wrapper: (value: string) => `${value}`,
+                wrapper: (value: string) => value,
               },
             },
           }),

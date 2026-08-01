@@ -1,5 +1,5 @@
-import { FC } from 'react';
 import * as stylex from '@stylexjs/stylex';
+import { FC } from 'react';
 
 export const buttonStyles = stylex.create({
   base: {

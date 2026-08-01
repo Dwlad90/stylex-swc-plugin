@@ -1,5 +1,8 @@
 import path from 'path';
+
 import stylexBabelPlugin from '@stylexjs/babel-plugin';
+import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
+import type { StyleXOptions, TransformedOptions } from '@stylexswc/rs-compiler';
 
 import {
   BUILD_INFO_STYLEX_KEY,
@@ -8,22 +11,19 @@ import {
   VIRTUAL_ENTRYPOINT_CSS_PATTERN,
 } from './constants';
 import { mergeStyleXRulesInto, publishStyleXRules } from './nextjs-registry';
-import {
-  buildVirtualCssPattern,
-  escapeRegExp,
-  parseStylexRulesFromIdentifier,
-  shouldProcessFile,
-} from './utils';
-
 import type { StyleXRulesMap } from './nextjs-registry';
-import type { StyleXOptions, TransformedOptions } from '@stylexswc/rs-compiler';
-import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
 import type {
   CSSTransformer,
   CacheGroupOptions,
   StyleXLoaderOptions,
   StyleXPluginOption,
 } from './types';
+import {
+  buildVirtualCssPattern,
+  escapeRegExp,
+  parseStylexRulesFromIdentifier,
+  shouldProcessFile,
+} from './utils';
 
 export type RegisterStyleXRules = (_resourcePath: string, _stylexRules: StyleXRule[]) => void;
 

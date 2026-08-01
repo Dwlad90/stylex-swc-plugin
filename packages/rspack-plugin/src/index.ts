@@ -1,3 +1,4 @@
+import type { Compiler } from '@rspack/core';
 import {
   DEFAULT_STYLEX_PACKAGES,
   INCLUDE_REGEXP,
@@ -9,8 +10,6 @@ import {
   stylexLoaderPath,
   stylexVirtualCssLoaderPath,
 } from '@stylexswc/plugin-shared';
-
-import type { Compiler } from '@rspack/core';
 
 export const STYLEX_CHUNK_NAME = '_stylex-rspack-generated';
 

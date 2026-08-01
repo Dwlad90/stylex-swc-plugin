@@ -1,5 +1,6 @@
-import picomatch from 'picomatch';
 import * as path from 'path';
+
+import picomatch from 'picomatch';
 
 import nativeBinding from '../dist/transform';
 
@@ -175,7 +176,7 @@ export function transform(
       code,
       metadata: { stylex: [] },
       map: undefined,
-    } as StyleXTransformResult;
+    };
   }
 
   let transformedCode = code;

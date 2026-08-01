@@ -1,7 +1,8 @@
+import * as path from 'path';
+
 import { expect, test } from 'vitest';
 
 import { transform, normalizeRsOptions } from '../dist/index.js';
-import * as path from 'path';
 
 const cwd = process.cwd();
 

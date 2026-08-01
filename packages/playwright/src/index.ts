@@ -11,6 +11,20 @@ const shouldUpdateSnapshots =
   process.env.PLAYWRIGHT_UPDATE_SNAPSHOTS === 'true' ||
   process.env.PLAYWRIGHT_UPDATE_SNAPSHOTS === '1';
 
+/**
+ * Exported separately from the config below because `defineConfig` widens
+ * `webServer` to `TestConfigWebServer | TestConfigWebServer[]`. Consumers that
+ * spread it off the default export are therefore spreading a possible array,
+ * which yields numeric index keys rather than the server options. Spreading
+ * this value instead keeps the narrow object type.
+ */
+export const webServer = {
+  command: 'pnpm run serve',
+  port: PORT,
+  reuseExistingServer: !isCI,
+  timeout: 30000, // 30 seconds
+};
+
 export default defineConfig({
   testDir: './visual-tests',
   outputDir: 'visual-tests/test-results',
@@ -43,12 +57,7 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: 'pnpm run serve',
-    port: PORT,
-    reuseExistingServer: !isCI,
-    timeout: 30000, // 30 seconds
-  },
+  webServer,
   expect: {
     toHaveScreenshot: {
       maxDiffPixelRatio: 0,

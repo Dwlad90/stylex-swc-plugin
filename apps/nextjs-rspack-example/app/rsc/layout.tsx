@@ -1,6 +1,6 @@
 import 'server-only';
-
 import * as stylex from '@stylexjs/stylex';
+
 import { globalTokens as $, spacing } from '@/app/globalTokens.stylex';
 
 export const metadata = {

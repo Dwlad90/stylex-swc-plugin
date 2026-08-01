@@ -1,5 +1,7 @@
 import * as stylex from '@stylexjs/stylex';
+
 import { globalTokens as $, spacing, text, colors } from '@/app/globalTokens.stylex';
+
 import { cardMarker, headingMarker } from './CardTokens.stylex';
 
 type Props = Readonly<{
@@ -26,7 +28,7 @@ export default function Card({ title, body, href }: Props) {
 
 type TMobile = '@media (max-width: 700px)';
 
-const MOBILE: TMobile = '@media (max-width: 700px)' as TMobile;
+const MOBILE: TMobile = '@media (max-width: 700px)';
 const REDUCE_MOTION = '@media (prefers-reduced-motion: reduce)' as const;
 
 const DARK = '@media (prefers-color-scheme: dark)' as const;

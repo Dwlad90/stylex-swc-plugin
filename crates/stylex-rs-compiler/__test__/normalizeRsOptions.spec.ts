@@ -1,7 +1,8 @@
 import { expect, test } from 'vitest';
+
 import { normalizeRsOptions } from '../dist/index.js';
-import { SourceMaps, PropertyValidationMode } from '../dist/transform.js';
 import type { StyleXOptions } from '../dist/index.js';
+import { SourceMaps, PropertyValidationMode } from '../dist/transform.js';
 
 const defaultResult: StyleXOptions = {
   dev: false,

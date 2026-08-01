@@ -1,5 +1,6 @@
-import * as React from 'react';
 import * as stylex from '@stylexjs/stylex';
+import * as React from 'react';
+
 import { colors } from '../tokens.stylex';
 
 export default function CtaButton({ children, color, to }) {

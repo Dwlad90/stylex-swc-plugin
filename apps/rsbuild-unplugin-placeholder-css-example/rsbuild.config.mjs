@@ -1,7 +1,7 @@
 import { defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
-import styleXRSPlugin from '@stylexswc/unplugin/rspack';
 import rspack from '@rspack/core';
+import styleXRSPlugin from '@stylexswc/unplugin/rspack';
 
 export default defineConfig({
   plugins: [pluginReact()],

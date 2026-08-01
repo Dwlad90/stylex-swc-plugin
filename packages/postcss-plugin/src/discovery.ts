@@ -1,6 +1,6 @@
-import path from 'node:path';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import path from 'node:path';
 
 import type { StyleXPluginOption } from './types';
 
@@ -98,9 +98,7 @@ function hasStylexDependency(
     if (deps == null || typeof deps !== 'object') {
       return false;
     }
-    return Object.keys(deps as Record<string, unknown>).some(depName =>
-      targetPackages.has(depName)
-    );
+    return Object.keys(deps).some(depName => targetPackages.has(depName));
   });
 }
 
@@ -202,7 +200,7 @@ function getDirectDependencies(manifest: Record<string, unknown> | null): string
     if (deps == null || typeof deps !== 'object') {
       continue;
     }
-    for (const name of Object.keys(deps as Record<string, unknown>)) {
+    for (const name of Object.keys(deps)) {
       dependencies.add(name);
     }
   }

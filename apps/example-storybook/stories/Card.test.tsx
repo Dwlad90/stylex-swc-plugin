@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { composeStories } from '@storybook/react';
 import { render } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+
 import * as CardStories from './Card.stories';
 
 describe('Card Snapshots', () => {

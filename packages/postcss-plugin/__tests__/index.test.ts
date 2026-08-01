@@ -1,9 +1,10 @@
-import { describe, expect, test, vi } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'path';
+
 import postcss from 'postcss';
-import createPlugin from '../src/plugin';
+import { describe, expect, test, vi } from 'vitest';
+
 import {
   resolveImportSourcesWithMetadata,
   resolveIncludeWithMetadata,
@@ -12,6 +13,7 @@ import {
   DEFAULT_IMPORT_SOURCES,
   DEFAULT_INCLUDE_GLOB,
 } from '../src/discovery';
+import createPlugin from '../src/plugin';
 
 describe('@stylexswc/postcss-plugin', () => {
   const fixturesDir = path.resolve(__dirname, '__fixtures__');
@@ -151,7 +153,7 @@ describe('@stylexswc/postcss-plugin', () => {
     const plugin = stylexPostcssPlugin({
       ...basePluginOptions,
       ...resolvedOptions,
-    } as Parameters<ReturnType<typeof createPlugin>>[0]);
+    });
 
     const processor = postcss([plugin]);
     try {

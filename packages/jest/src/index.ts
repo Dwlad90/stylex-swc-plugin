@@ -1,9 +1,9 @@
-import { transform, normalizeRsOptions, shouldTransformFile } from '@stylexswc/rs-compiler';
 import { createHash } from 'node:crypto';
 
-import type { StyleXOptions } from '@stylexswc/rs-compiler';
 import type { TransformerCreator, SyncTransformer } from '@jest/transform';
 import type { Config } from '@jest/types';
+import { transform, normalizeRsOptions, shouldTransformFile } from '@stylexswc/rs-compiler';
+import type { StyleXOptions } from '@stylexswc/rs-compiler';
 
 type TransformerConfig = Config.TransformerConfig[1];
 

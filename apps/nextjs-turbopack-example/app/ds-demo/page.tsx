@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import * as stylex from '@stylexjs/stylex';
+import { useState } from 'react';
+
 import { primitives, tokens, purpleTheme, greenTheme, orangeTheme } from './tokens.stylex';
 
 const DARK = '@media (prefers-color-scheme: dark)';

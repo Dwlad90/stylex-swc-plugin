@@ -1,8 +1,9 @@
 'use client';
 
 import * as stylex from '@stylexjs/stylex';
-import { spacing, text, globalTokens as $, colors } from './globalTokens.stylex';
 import { useState } from 'react';
+
+import { spacing, text, globalTokens as $, colors } from './globalTokens.stylex';
 
 export const redTheme = stylex.createTheme(colors, {
   accent: '#e03131',

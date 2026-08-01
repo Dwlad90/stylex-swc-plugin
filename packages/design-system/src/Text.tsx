@@ -1,8 +1,8 @@
 import * as stylex from '@stylexjs/stylex';
-import { tokens } from './tokens.stylex';
-import { breakpoints } from './consts.stylex';
+import type { ReactNode } from 'react';
 
-import { type ReactNode } from 'react';
+import { breakpoints } from './consts.stylex';
+import { tokens } from './tokens.stylex';
 
 const styles = stylex.create({
   text: {

@@ -16,6 +16,7 @@
   "trailingComma": "es5",
   "useTabs": false,
   "sortPackageJson": false,
+  "sortImports": true,
   "overrides": [
     {
       "files": ["*.md", "*.mdx"],

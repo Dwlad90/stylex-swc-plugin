@@ -1,11 +1,13 @@
-import { Bench, type BenchOptions, type Task, type TaskResultWithStatistics } from 'tinybench';
-import { transform } from '../dist/index.js';
-import type { StyleXOptions } from '../dist/index.js';
-import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import chalk from 'chalk';
+import path from 'path';
 import { fileURLToPath } from 'url';
+
+import chalk from 'chalk';
+import { Bench, type BenchOptions, type Task, type TaskResultWithStatistics } from 'tinybench';
+
+import { transform } from '../dist/index.js';
+import type { StyleXOptions } from '../dist/index.js';
 
 const BENCHMARK_CONFIG: BenchOptions = {
   retainSamples: true,
@@ -293,7 +295,7 @@ async function runBenchmarks() {
   fs.writeFileSync(extendedOutputPath, benchesOutputs.join('\n') + '\n', 'utf8');
 
   console.log(`\n${chalk.green(`📊 Benchmark results (benchmarkjs) saved to ${outputPath}`)}`);
-  console.log(`${chalk.green(`📊 Extended results saved to ${extendedOutputPath}`)}`);
+  console.log(chalk.green(`📊 Extended results saved to ${extendedOutputPath}`));
 }
 
 runBenchmarks().catch(err => {

@@ -1,8 +1,8 @@
 import path from 'path';
+
 import { describe, expect, test } from 'vitest';
 
 import { StyleXPluginCore, VIRTUAL_ENTRYPOINT_CSS_PATTERN } from '../src';
-
 import type { CacheGroupOptions, StyleXPluginOption } from '../src';
 
 const DEFAULT_CHUNK_NAME = '_stylex-test-generated';

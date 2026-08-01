@@ -5,10 +5,10 @@
 // changes its CommonJS shape. Publint and ATTW check the package statically;
 // this executes it.
 
-import { createRequire } from 'node:module';
 import { existsSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const packageDir = path.resolve(import.meta.dirname, '..');
 const require = createRequire(path.join(packageDir, 'package.json'));

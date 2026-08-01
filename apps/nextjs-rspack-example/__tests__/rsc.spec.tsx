@@ -3,6 +3,7 @@
  */
 import { describe, expect, it } from '@jest/globals';
 import { render } from '@testing-library/react';
+
 import RSC from '@/app/rsc/page';
 
 describe('RSC', () => {

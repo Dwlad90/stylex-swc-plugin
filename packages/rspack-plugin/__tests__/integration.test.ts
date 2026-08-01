@@ -1,5 +1,7 @@
 import path from 'path';
+
 import { CssExtractRspackPlugin, rspack } from '@rspack/core';
+import type { Configuration, Stats } from '@rspack/core';
 import { createFsFromVolume, Volume } from 'memfs';
 import { describe, expect, test } from 'vitest';
 
@@ -13,8 +15,6 @@ import {
   findStylexCss,
 } from '../../plugin-shared/test-utils/fixtures';
 import StyleXPlugin, { STYLEX_CHUNK_NAME } from '../src';
-
-import type { Configuration, Stats } from '@rspack/core';
 
 const CARRIER_PATH = path.join(__dirname, '..', 'src', 'stylex.css');
 

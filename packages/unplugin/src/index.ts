@@ -1,20 +1,19 @@
-import * as path from 'node:path';
+import crypto from 'crypto';
 import { promises } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { Connect } from 'vite';
+import * as path from 'node:path';
 
+import { shouldTransformFile, transform as stylexTransform } from '@stylexswc/rs-compiler';
+import type { StyleXMetadata, TransformedOptions } from '@stylexswc/rs-compiler';
 import { createUnplugin } from 'unplugin';
 import type { UnpluginFactory, UnpluginInstance } from 'unplugin';
+import type { Connect } from 'vite';
+import type { HotPayload, UserConfig, ViteDevServer } from 'vite';
 
+import type { UnpluginStylexRSOptions } from './types';
+import generateHash from './utils/generateHash';
 import getStyleXRules from './utils/getStyleXRules';
 import normalizeOptions, { identityTransformCss } from './utils/normalizeOptions';
-import type { UnpluginStylexRSOptions } from './types';
-import { shouldTransformFile, transform as stylexTransform } from '@stylexswc/rs-compiler';
-import generateHash from './utils/generateHash';
-import crypto from 'crypto';
-
-import type { StyleXMetadata, TransformedOptions } from '@stylexswc/rs-compiler';
-import type { HotPayload, UserConfig, ViteDevServer } from 'vite';
 
 type StyleXRules = Record<string, StyleXMetadata['stylex']>;
 
@@ -373,7 +372,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     vite: {
       config(config) {
         viteConfig = {
-          build: config.build as UserConfig['build'],
+          build: config.build,
           base: config.base,
         };
       },
@@ -521,7 +520,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         }
       },
       configureServer(server) {
-        viteDevServer = server as unknown as ViteDevServer;
+        viteDevServer = server;
         hasInvalidatedInitialCSS = false;
 
         server.middlewares.use(
@@ -557,7 +556,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           if (normalizedOptions.useCssPlaceholder) {
             // Find CSS modules that contain the placeholder
             const cssModules = await invalidateAndCollectCssModules(
-              server as unknown as ViteDevServer,
+              server,
               normalizedOptions.useCssPlaceholder
             );
 
@@ -597,7 +596,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         if (normalizedOptions.useCssPlaceholder) {
           // Find CSS modules that contain the placeholder
           const cssModules = await invalidateAndCollectCssModules(
-            server as unknown as ViteDevServer,
+            server,
             normalizedOptions.useCssPlaceholder
           );
 
@@ -1016,7 +1015,7 @@ function getProcessedFileName(
   return template ? replaceFileName(template, collectedCSS || '') : null;
 }
 
-export const unplugin: UnpluginInstance<UnpluginStylexRSOptions | undefined, boolean> =
+export const unplugin: UnpluginInstance<UnpluginStylexRSOptions | undefined> =
   createUnplugin(unpluginFactory);
 
 export * from './types';

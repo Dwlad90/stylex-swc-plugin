@@ -1,11 +1,12 @@
-import React from 'react';
-import webpackLogo from './assets/webpack.svg';
-import stylexLogo from './assets/stylex.svg';
 import * as stylex from '@stylexjs/stylex';
-import { colors } from './tokens.stylex';
+import React from 'react';
+
+import stylexLogo from './assets/stylex.svg';
+import webpackLogo from './assets/webpack.svg';
+import CtaButton from './components/CTAButton';
 
 import './app.css';
-import CtaButton from './components/CTAButton';
+import { colors } from './tokens.stylex';
 
 const styles = stylex.create({
   main: {

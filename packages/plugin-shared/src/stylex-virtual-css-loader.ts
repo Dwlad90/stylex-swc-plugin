@@ -1,7 +1,7 @@
 import { getHashDigest } from 'loader-utils';
+import type { LoaderContext } from 'webpack';
 
 import type { InputCode, SourceMap } from './types';
-import type { LoaderContext } from 'webpack';
 
 export default function (
   this: LoaderContext<unknown>,

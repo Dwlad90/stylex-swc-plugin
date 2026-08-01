@@ -1,4 +1,5 @@
 import * as stylex from '@stylexjs/stylex';
+
 import { globalTokens } from './globalTokens.stylex';
 
 export const darkTheme = stylex.createTheme(globalTokens, {

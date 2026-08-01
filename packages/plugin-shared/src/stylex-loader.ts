@@ -1,15 +1,15 @@
 import path from 'path';
 
+import type { LoaderContext } from 'webpack';
+
 import {
   BUILD_INFO_STYLEX_KEY,
   LOADER_TRANSFORMED_FLAG,
   PLUGIN_NAME,
   VIRTUAL_STYLEX_CSS_DUMMY_IMPORT_PATH,
 } from './constants';
-import { generateStyleXOutput, stringifyRequest } from './utils';
-
 import type { InputCode, SourceMap, StyleXLoaderOptions } from './types';
-import type { LoaderContext } from 'webpack';
+import { generateStyleXOutput, stringifyRequest } from './utils';
 
 // next/dist/... empty module shims and the `client-only`/`server-only`
 // packages legitimately produce empty loader input — anchored so user files

@@ -1,14 +1,13 @@
 import './reset.css';
-
 import { colors } from '@stylexjs/open-props/lib/colors.stylex';
 import { fonts } from '@stylexjs/open-props/lib/fonts.stylex';
 import { sizes } from '@stylexjs/open-props/lib/sizes.stylex';
 import * as stylex from '@stylexjs/stylex';
+import { breakpoints } from '@stylexswc/design-system/consts.stylex';
+import { Text } from '@stylexswc/design-system/Text';
+import { tokens } from '@stylexswc/design-system/tokens.stylex';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { tokens } from '@stylexswc/design-system/tokens.stylex';
-import { Text } from '@stylexswc/design-system/Text';
-import { breakpoints } from '@stylexswc/design-system/consts.stylex';
 
 const styles = stylex.create({
   main: {

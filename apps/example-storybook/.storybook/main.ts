@@ -1,4 +1,3 @@
-import type { UserConfig } from 'vite';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -33,7 +32,7 @@ export default defineMain({
 
     return mergeConfig(config, {
       plugins: viteConfig.plugins,
-    } as UserConfig);
+    });
   },
 
   core: {

@@ -1,11 +1,12 @@
 'use strict';
 
-import { describe, expect, it } from 'vitest';
-
 import path from 'path';
-import * as rollup from 'rollup';
+
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
+import * as rollup from 'rollup';
+import { describe, expect, it } from 'vitest';
+
 import stylexPlugin from '../src/index';
 import type { PluginOptions } from '../src/index';
 

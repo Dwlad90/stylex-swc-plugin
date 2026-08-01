@@ -1,20 +1,20 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import browserslist from 'next/dist/compiled/browserslist';
-import { warn } from 'next/dist/build/output/log';
-import { lazyPostCSS } from 'next/dist/build/webpack/config/blocks/css';
-import { getRspackCore } from 'next/dist/shared/lib/get-rspack';
+
 import StyleXRspackPlugin, {
   DEFAULT_STYLEX_PACKAGES,
   buildVirtualCssPattern,
 } from '@stylexswc/rspack-plugin';
-import withRspack from 'next-rspack';
-
-import type { NextConfig, WebpackConfigContext } from 'next/dist/server/config-shared';
 import type { StyleXPluginOption } from '@stylexswc/rspack-plugin';
-import type webpack from 'webpack';
-import type { Processor as PostCSSProcessor } from 'postcss';
+import withRspack from 'next-rspack';
+import { warn } from 'next/dist/build/output/log';
+import { lazyPostCSS } from 'next/dist/build/webpack/config/blocks/css';
 import type { ConfigurationContext as WebpackConfigurationContext } from 'next/dist/build/webpack/config/utils';
+import browserslist from 'next/dist/compiled/browserslist';
+import type { NextConfig, WebpackConfigContext } from 'next/dist/server/config-shared';
+import { getRspackCore } from 'next/dist/shared/lib/get-rspack';
+import type { Processor as PostCSSProcessor } from 'postcss';
+import type webpack from 'webpack';
 
 /** Rspack-only; absent from the webpack `Configuration` type Next.js hands us */
 type RspackPersistentCache = false | { type: 'persistent' | 'memory'; [key: string]: unknown };
@@ -440,7 +440,7 @@ const withStyleX =
                 // If this warning were to trigger, it'd be unactionable by the user,
                 // but likely not valid -- so just disable it.
                 ignoreOrder: true,
-              }) as unknown as NonNullable<webpack.Configuration['plugins']>[number]
+              }) as NonNullable<webpack.Configuration['plugins']>[number]
             );
           }
         }

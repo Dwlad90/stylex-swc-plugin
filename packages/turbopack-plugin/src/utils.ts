@@ -1,6 +1,6 @@
 import { normalizeRsOptions, transform } from '@stylexswc/rs-compiler';
-
 import type { StyleXOptions, StyleXTransformResult } from '@stylexswc/rs-compiler';
+
 import type { SourceMap } from './types';
 
 export function generateStyleXOutput(

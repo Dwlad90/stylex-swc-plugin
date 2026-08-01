@@ -1,7 +1,8 @@
 import 'server-only';
-
 import * as stylex from '@stylexjs/stylex';
+
 import { colors, globalTokens as $, spacing, text } from '@/app/globalTokens.stylex';
+
 import Counter from './Counter';
 
 /**
@@ -100,7 +101,7 @@ const styles = stylex.create({
     lineHeight: 1.1,
   },
   titleAccent: {
-    backgroundImage: `linear-gradient(100deg, ${'#1c7ed6'}, ${'#7C6AE8'})`,
+    backgroundImage: `linear-gradient(100deg, #1c7ed6, #7C6AE8)`,
     backgroundClip: 'text',
     color: 'transparent',
   },

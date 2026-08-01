@@ -1,4 +1,5 @@
 import path from 'path';
+
 import withStyleXRspack from '@stylexswc/nextjs-plugin/rspack';
 
 module.exports = withStyleXRspack({
@@ -26,7 +27,7 @@ module.exports = withStyleXRspack({
           sansSerif: 'sans-serif',
         },
       },
-      wrapper: (value: string) => `${value}`,
+      wrapper: (value: string) => value,
     },
   },
 })({

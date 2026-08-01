@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
 import { mergeStyleXRulesInto, publishStyleXRules } from '../src/nextjs-registry';
-
 import type { StyleXRulesMap } from '../src/nextjs-registry';
 
 describe('Next.js cross-compiler registry', () => {

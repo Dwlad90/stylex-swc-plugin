@@ -1,6 +1,5 @@
-import type { UnpluginStylexRSOptions } from './types';
-
 import unplugin from './index';
+import type { UnpluginStylexRSOptions } from './types';
 
 type VitePlugin = ReturnType<typeof unplugin.vite>;
 

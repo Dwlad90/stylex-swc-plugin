@@ -1,7 +1,8 @@
-import { expect, test } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { expect, test } from 'vitest';
 
 const LEAK_STRING = 'ObjectRef is not unref';
 

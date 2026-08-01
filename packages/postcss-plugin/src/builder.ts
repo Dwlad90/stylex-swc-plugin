@@ -1,13 +1,14 @@
-import postcss, { AtRule } from 'postcss';
-import path from 'node:path';
 import fs from 'node:fs';
+import path from 'node:path';
 import { normalize, resolve } from 'path';
-import { globSync } from 'fast-glob';
-import isGlob from 'is-glob';
-import globParent from 'glob-parent';
-import createBundler from './bundler';
-import { shouldTransformFile, TransformedOptions } from '@stylexswc/rs-compiler';
 
+import { shouldTransformFile, TransformedOptions } from '@stylexswc/rs-compiler';
+import { globSync } from 'fast-glob';
+import globParent from 'glob-parent';
+import isGlob from 'is-glob';
+import postcss, { AtRule } from 'postcss';
+
+import createBundler from './bundler';
 import type { StyleXPluginOption, TransformOptions } from './types';
 
 const NODE_MODULES_CATCH_ALL_EXCLUDE_PATTERNS = new Set(['node_modules/**', '**/node_modules/**']);

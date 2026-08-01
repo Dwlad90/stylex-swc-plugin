@@ -1,10 +1,9 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable typescript/no-unused-vars */
 import type { Theme } from '@stylexjs/stylex';
+import * as stylex from '@stylexjs/stylex';
 
 import { ButtonTokens } from './ButtonTokens.stylex';
-
-import * as stylex from '@stylexjs/stylex';
 
 const fdsRed: Theme<typeof ButtonTokens> = stylex.createTheme(ButtonTokens, {
   bgColor: 'red',

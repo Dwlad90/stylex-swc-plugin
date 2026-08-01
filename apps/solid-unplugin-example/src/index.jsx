@@ -2,9 +2,9 @@ import { colors } from '@stylexjs/open-props/lib/colors.stylex';
 import { fonts } from '@stylexjs/open-props/lib/fonts.stylex';
 import { sizes } from '@stylexjs/open-props/lib/sizes.stylex';
 import * as stylex from '@stylexjs/stylex';
-import { render } from 'solid-js/web';
-import { tokens } from '@stylexswc/design-system/tokens.stylex';
 import { breakpoints } from '@stylexswc/design-system/consts.stylex';
+import { tokens } from '@stylexswc/design-system/tokens.stylex';
+import { render } from 'solid-js/web';
 
 const styles = stylex.create({
   main: {

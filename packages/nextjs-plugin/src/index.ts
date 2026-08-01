@@ -1,18 +1,18 @@
 import path from 'path';
-import nextMiniCssExtractPluginExports from 'next/dist/build/webpack/plugins/mini-css-extract-plugin';
-import { warn } from 'next/dist/build/output/log';
-import browserslist from 'next/dist/compiled/browserslist';
-import { lazyPostCSS } from 'next/dist/build/webpack/config/blocks/css';
+
 import StyleXWebpackPlugin, {
   DEFAULT_STYLEX_PACKAGES,
   buildVirtualCssPattern,
 } from '@stylexswc/webpack-plugin';
-
-import type { NextConfig, WebpackConfigContext } from 'next/dist/server/config-shared';
 import type { StyleXPluginOption } from '@stylexswc/webpack-plugin';
-import type webpack from 'webpack';
-import type { Processor as PostCSSProcessor } from 'postcss';
+import { warn } from 'next/dist/build/output/log';
+import { lazyPostCSS } from 'next/dist/build/webpack/config/blocks/css';
 import type { ConfigurationContext as WebpackConfigurationContext } from 'next/dist/build/webpack/config/utils';
+import nextMiniCssExtractPluginExports from 'next/dist/build/webpack/plugins/mini-css-extract-plugin';
+import browserslist from 'next/dist/compiled/browserslist';
+import type { NextConfig, WebpackConfigContext } from 'next/dist/server/config-shared';
+import type { Processor as PostCSSProcessor } from 'postcss';
+import type webpack from 'webpack';
 
 /** Next.js' precompilation add "__esModule: true", but doesn't add an actual default exports */
 const NextMiniCssExtractPlugin: (typeof import('next/dist/build/webpack/plugins/mini-css-extract-plugin'))['default'] =

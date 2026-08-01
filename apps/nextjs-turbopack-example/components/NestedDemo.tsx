@@ -1,6 +1,7 @@
 import * as stylex from '@stylexjs/stylex';
-import { styles, warmTheme } from './NestedTokensDemo.stylex';
+
 import CrossFileNestedDemo from './CrossFileNestedDemo';
+import { styles, warmTheme } from './NestedTokensDemo.stylex';
 
 type Props = Readonly<{
   useWarmTheme?: boolean;

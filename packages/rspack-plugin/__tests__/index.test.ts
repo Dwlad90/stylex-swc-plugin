@@ -1,19 +1,19 @@
 import path from 'path';
+
 import { sources } from '@rspack/core';
-import { describe, expect, test, vi } from 'vitest';
-
-import { parseStylexRulesFromIdentifier } from '@stylexswc/plugin-shared';
-import StyleXPlugin, { STYLEX_CHUNK_NAME } from '../src';
-
 import type { Compiler, RuleSetRule } from '@rspack/core';
 import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
+import { parseStylexRulesFromIdentifier } from '@stylexswc/plugin-shared';
+import { describe, expect, test, vi } from 'vitest';
+
+import StyleXPlugin, { STYLEX_CHUNK_NAME } from '../src';
 
 type Source = InstanceType<typeof sources.RawSource>;
 
 function createMockCompiler(chunkModules: Array<{ identifier: () => string }> = []) {
   const rules: RuleSetRule[] = [];
   const assets: Record<string, Source> = {
-    'stylex.css': new sources.RawSource('/* carrier placeholder */') as Source,
+    'stylex.css': new sources.RawSource('/* carrier placeholder */'),
   };
 
   let finishModulesCallback:

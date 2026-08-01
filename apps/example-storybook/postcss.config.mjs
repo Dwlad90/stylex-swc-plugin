@@ -1,6 +1,6 @@
+import stylexSWCPlugin from '@stylexswc/postcss-plugin';
 import autoprefixer from 'autoprefixer';
 import nesting from 'postcss-nesting';
-import stylexSWCPlugin from '@stylexswc/postcss-plugin';
 
 /** @type {import('postcss-load-config').Config} */
 const config = {

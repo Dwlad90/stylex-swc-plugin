@@ -1,4 +1,5 @@
 import path from 'node:path';
+
 import { describe, expect, it } from '@jest/globals';
 
 // Deliberately the built CommonJS artifact rather than `../src`: this package

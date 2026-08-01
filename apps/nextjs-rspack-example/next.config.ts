@@ -33,5 +33,11 @@ module.exports = withStyleXRspack({
   // Packages that ship untransformed StyleX source; automatically added to
   // the rspack plugin's stylexPackages allowlist
   transpilePackages: ['@stylexjs/open-props', '@stylexswc/design-system'],
+  // Next.js type-checks builds through the JavaScript TypeScript compiler
+  // API, which TypeScript 7 no longer exposes. The CLI path shells out to
+  // tsc instead, so it needs no compiler API.
+  experimental: {
+    useTypeScriptCli: true,
+  },
   // Optionally, add any other Next.js config below
 });

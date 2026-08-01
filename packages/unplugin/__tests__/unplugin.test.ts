@@ -143,7 +143,7 @@ async function runWebpackLikeCssInjection(framework: 'webpack' | 'rspack') {
 
 describe('@stylexswc/unplugin', () => {
   test('ignores files without StyleX imports', async () => {
-    const plugin = unplugin.raw({}, { framework: 'rollup' });
+    const plugin = unplugin.raw({}, { framework: 'rollup', versions: {} });
     const pluginInstance = Array.isArray(plugin) ? plugin[0] : plugin;
 
     if (!pluginInstance) {
@@ -248,7 +248,7 @@ describe('@stylexswc/unplugin', () => {
   });
 
   test('transform error includes the file path and preserves cause', async () => {
-    const plugin = unplugin.raw({}, { framework: 'rollup' });
+    const plugin = unplugin.raw({}, { framework: 'rollup', versions: {} });
     const pluginInstance = Array.isArray(plugin) ? plugin[0] : plugin;
 
     if (!pluginInstance) {

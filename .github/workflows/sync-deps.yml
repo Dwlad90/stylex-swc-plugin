@@ -40,12 +40,21 @@ jobs:
 
       - name: Sync dependencies
         run: |
+          # `syncpack fix` aligns the declared ranges in package.json files.
           pnpm syncpack fix
+          # `dedupe` collapses the resolutions in the lockfile. A dependabot PR
+          # only re-resolves the package it bumps, so open ranges elsewhere keep
+          # their stale versions. For peer-dependent packages (vite, webpack,
+          # unplugin, ...) pnpm then keeps one copy per distinct peer set, and
+          # two copies of the same version produce nominally different types --
+          # e.g. `Plugin` from vite@8.1.5(@types/node@26.1.0) is not assignable
+          # to `Plugin` from vite@8.1.5(@types/node@26.1.2).
+          pnpm dedupe
 
       - name: Commit changes if needed
         id: commit-changes
         run: |
-          if git diff --quiet -- '**/package.json'; then
+          if git diff --quiet -- '**/package.json' pnpm-lock.yaml; then
             echo "No dependency changes detected"
             echo "changes_pushed=false" >> $GITHUB_OUTPUT
           else

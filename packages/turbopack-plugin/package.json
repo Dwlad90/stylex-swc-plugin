@@ -52,7 +52,7 @@
     "@stylexswc/typescript-config": "0.18.2-rc.1",
     "@types/loader-utils": "^3.0.0",
     "@types/node": "^26.1.0",
-    "webpack": "^5.108.3"
+    "webpack": "^5.109.2"
   },
   "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/turbopack-plugin#readme",

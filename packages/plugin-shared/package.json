@@ -19,7 +19,7 @@
     "@types/loader-utils": "^3.0.0",
     "@types/node": "^26.1.0",
     "vitest": "^4.1.9",
-    "webpack": "^5.108.3"
+    "webpack": "^5.109.2"
   },
   "exports": {
     ".": {

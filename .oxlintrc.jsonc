@@ -1,19 +1,23 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
 
-  // Deliberately narrow. This config reproduces the ESLint rule set it
-  // replaces and nothing more, so that a lint failure after the migration
-  // means a real regression rather than newly adopted policy. `unicorn`,
-  // `import`, and `promise` were not part of the ESLint config and are
-  // introduced separately.
+  // The ESLint rule set this replaces, plus `unicorn`, `import`, and
+  // `promise`, which it never had. The migration itself landed parity-only so
+  // that the two diffs stayed reviewable apart from each other.
+  //
+  // `suspicious` is enabled as a warning rather than an error: it surfaces
+  // roughly ninety findings that are worth seeing but are not defects, and
+  // making them blocking would have meant either a very large mechanical diff
+  // or a pile of suppressions.
   //
   // Scoping mirrors the old config layout: the root `eslint.config.mjs` used
   // `library.mjs` + `json.mjs` with no React or Next rules, and only the four
   // Next apps opted into `next.mjs`.
-  "plugins": ["eslint", "typescript", "oxc"],
+  "plugins": ["eslint", "typescript", "oxc", "unicorn", "import", "promise"],
 
   "categories": {
-    "correctness": "error"
+    "correctness": "error",
+    "suspicious": "warn"
   },
 
   "env": {
@@ -160,12 +164,16 @@
         "vitest/prefer-to-have-length": "warn",
         "vitest/valid-expect": "error",
 
-        // Enabling the vitest plugin also switches on its other correctness
-        // rules. None of these had an ESLint counterpart, so they are new
-        // policy rather than migration parity and are adopted separately.
-        "vitest/require-mock-type-parameters": "off",
-        "vitest/prefer-snapshot-hint": "off",
-        "vitest/no-conditional-expect": "off"
+        // Adopted here rather than in the migration commit, since none of
+        // these had an ESLint counterpart.
+        //
+        // `require-mock-type-parameters` is a warning, not an error: each of
+        // its 27 sites needs a generic signature chosen from how that mock is
+        // actually used, and inventing them mechanically would produce types
+        // that typecheck without describing anything.
+        "vitest/require-mock-type-parameters": "warn",
+        "vitest/prefer-snapshot-hint": "warn",
+        "vitest/no-conditional-expect": "error"
       }
     }
   ]

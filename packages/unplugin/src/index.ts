@@ -536,6 +536,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
               res.setHeader('Content-Type', 'text/css');
               res.end(finalCSS);
+              // `next` is Connect's error handler, not a completion callback.
+              // Forwarding the rejection to it is the documented middleware
+              // contract, which is what this rule is written to discourage.
+              // eslint-disable-next-line promise/no-callback-in-promise
             })().catch(next);
           }
         );

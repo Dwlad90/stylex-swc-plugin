@@ -163,16 +163,19 @@ describe('@stylexswc/unplugin', () => {
       pluginInstance.buildStart.call(mockContext as UnpluginBuildContext);
     }
 
-    if (typeof pluginInstance.transform === 'function') {
-      const result = await pluginInstance.transform.call(
-        mockContext as UnpluginBuildContext & UnpluginContext,
-        'const noop = 1;',
-        '/virtual/foo.js'
-      );
-      expect(result).toBeNull();
-    } else {
-      throw new Error('Transform is not a function');
-    }
+    expect(typeof pluginInstance.transform).toBe('function');
+
+    const transform = pluginInstance.transform as Extract<
+      typeof pluginInstance.transform,
+      (...args: never[]) => unknown
+    >;
+    const result = await transform.call(
+      mockContext as UnpluginBuildContext & UnpluginContext,
+      'const noop = 1;',
+      '/virtual/foo.js'
+    );
+
+    expect(result).toBeNull();
   });
 
   test('writes fallback CSS asset when no CSS bundle entry exists', async () => {

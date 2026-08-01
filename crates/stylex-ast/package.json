@@ -14,17 +14,14 @@
     "bench": "scripty",
     "clean": "del-cli dist",
     "do:nothing": "exit 0",
-    "format": "run-p format:prettier format:rs format:toml",
+    "format": "run-p format:rs format:toml",
     "format:check": "run-p format:rs:check format:toml:check",
-    "format:prettier": "prettier . -w",
     "format:rs": "cargo fmt --all",
     "format:rs:check": "cargo fmt -- --check",
     "format:toml": "taplo format",
     "format:toml:check": "taplo format --check",
     "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
-    "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
-    "prepush": "lint-prepush",
     "test": "scripty",
     "test:coverage": "scripty",
     "test:flamegraph": "scripty",
@@ -40,8 +37,7 @@
     "@stylexswc/macros": "0.18.2-rc.2",
     "@stylexswc/utils": "0.18.2-rc.2",
     "@taplo/cli": "^0.7.0",
-    "npm-run-all2": "^9.0.3",
-    "prettier": "^3.9.6"
+    "npm-run-all2": "^9.0.3"
   },
   "keywords": [
     "stylex",

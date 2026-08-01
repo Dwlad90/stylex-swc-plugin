@@ -30,9 +30,7 @@
     "check:artifacts": "scripty",
     "clean": "del-cli dist",
     "postbuild": "pnpm run check:artifacts",
-    "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
-    "prepush": "lint-prepush",
     "test": "echo \"Error: no test specified\" && exit 0",
     "typecheck": "scripty --ts"
   },

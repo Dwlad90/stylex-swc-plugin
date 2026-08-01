@@ -73,9 +73,7 @@
     "clean": "del-cli dist",
     "postbuild": "pnpm run check:artifacts",
     "prebuild": "pnpm run clean",
-    "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
-    "prepush": "lint-prepush",
     "test": "vitest run",
     "typecheck": "scripty --ts"
   },

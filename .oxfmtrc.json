@@ -1,0 +1,50 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "arrowParens": "avoid",
+  "bracketSameLine": false,
+  "bracketSpacing": true,
+  "embeddedLanguageFormatting": "auto",
+  "endOfLine": "lf",
+  "htmlWhitespaceSensitivity": "css",
+  "jsxSingleQuote": false,
+  "printWidth": 100,
+  "proseWrap": "always",
+  "quoteProps": "as-needed",
+  "semi": true,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "useTabs": false,
+  "sortPackageJson": false,
+  "overrides": [
+    {
+      "files": ["*.md", "*.mdx"],
+      "options": {
+        "printWidth": 80
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "**/output/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/.turbo/**",
+    "**/storybook-static/**",
+    "**/playwright-report/**",
+    "**/test-results/**",
+    "**/coverage/**",
+    "**/.playwright-snapshots/**",
+    "**/__swc_snapshots__/**",
+    "**/__snapshots__/**",
+    "**/fixtures/**",
+    "**/__fixtures__/**",
+    "**/__auto_discovery_fixtures__/**",
+    "**/perf_fixtures/**",
+    "**/performance_fixture/**",
+    "**/*.toml",
+    "pnpm-lock.yaml"
+  ]
+}

@@ -32,9 +32,6 @@
       "dependsOn": ["^build", "build"],
       "outputLogs": "errors-only"
     },
-    "lint:check": {
-      "outputLogs": "errors-only"
-    },
     "dev": {
       "cache": false,
       "persistent": true

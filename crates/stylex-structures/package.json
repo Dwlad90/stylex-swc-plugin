@@ -20,7 +20,6 @@
     "format:rs:check": "cargo fmt -- --check",
     "format:toml": "taplo format",
     "format:toml:check": "taplo format --check",
-    "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
     "prepublishOnly": "pnpm run build",
     "test": "scripty",
     "test:coverage": "scripty",

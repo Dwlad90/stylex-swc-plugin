@@ -68,10 +68,9 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup",
-    "build:fix": "esno scripts/postbuild.ts",
+    "build": "tsdown",
     "check:artifacts": "scripty",
-    "dev": "tsup --watch src",
+    "dev": "tsdown --watch",
     "lint": "eslint . --color",
     "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
     "play": "pnpm -C playground run dev",
@@ -102,7 +101,7 @@
     "eslint": "^10.8.0",
     "esno": "^4.7.0",
     "rollup": "^4.62.3",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.22.14",
     "typescript": "7.0.2",
     "vitest": "^4.1.10"
   },

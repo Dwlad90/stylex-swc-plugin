@@ -4,7 +4,16 @@ import unplugin from './index';
 
 type VitePlugin = ReturnType<typeof unplugin.vite>;
 
-export default (options: UnpluginStylexRSOptions) => ({
+interface AstroIntegration {
+  name: string;
+  hooks: {
+    'astro:config:setup': (astro: {
+      config: { vite: { plugins: VitePlugin[] } };
+    }) => Promise<void>;
+  };
+}
+
+export default (options: UnpluginStylexRSOptions): AstroIntegration => ({
   name: '@stylexswc/unplugin/astro',
   hooks: {
     'astro:config:setup': async (astro: { config: { vite: { plugins: VitePlugin[] } } }) => {

@@ -188,7 +188,7 @@ describe('@stylexswc/postcss-plugin', () => {
     const result = await runStylexPostcss({}, '/* No stylex rule here */');
 
     expect(result.css).toMatchInlineSnapshot('"/* No stylex rule here */"');
-    expect(result.messages.length).toBe(0);
+    expect(result.messages).toHaveLength(0);
   });
 
   test('supports CSS layers', async () => {

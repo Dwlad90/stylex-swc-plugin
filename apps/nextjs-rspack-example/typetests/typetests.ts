@@ -301,7 +301,6 @@ const styles8: Readonly<{
 }> = stylex.create({
   foo: {
     // In a real example `vars` would be imported from another file.
-    // eslint-disable-next-line @stylexjs/valid-styles
     color: vars.accent,
   },
 });
@@ -349,4 +348,3 @@ styles8.foo satisfies StyleXStylesWithout<{ color: unknown }>;
 
 // @ts-expect-error - will be fixed in the next version
 stylex.props(styles8.foo);
-/* eslint-enable no-unused-vars, @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unused-expressions */

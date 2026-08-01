@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable typescript/no-require-imports */
 const fs = require('fs');
 const path = require('path');
-/* eslint-enable @typescript-eslint/no-require-imports */
 
 
 const projectRoot = __dirname;

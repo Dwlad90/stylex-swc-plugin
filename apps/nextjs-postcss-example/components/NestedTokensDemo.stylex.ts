@@ -1,4 +1,3 @@
-/* eslint-disable @stylexjs/valid-styles */
 import * as stylex from '@stylexjs/stylex';
 
 const DARK_MODE = '@media (prefers-color-scheme: dark)';
@@ -182,4 +181,3 @@ export const styles = stylex.create({
     opacity: 0.5,
   },
 });
-/* eslint-enable @stylexjs/valid-styles */

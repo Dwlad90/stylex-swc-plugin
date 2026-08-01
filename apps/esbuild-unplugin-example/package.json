@@ -8,8 +8,6 @@
     "build": "node scripts/build.mjs",
     "clean": "rimraf dist",
     "dev": "node scripts/dev.mjs",
-    "lint": "eslint . --color",
-    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
     "prebuild": "pnpm run clean",
     "predev": "pnpm run clean",
     "prestart": "pnpm run build",

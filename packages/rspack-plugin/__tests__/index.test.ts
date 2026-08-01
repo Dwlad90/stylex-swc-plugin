@@ -268,7 +268,9 @@ describe('@stylexswc/rspack-plugin', () => {
     // carrier sideEffects rule targets the custom path
     const carrierRule = rules[2];
     expect(carrierRule?.sideEffects).toBe(true);
-    expect((carrierRule?.test as RegExp).test(resolved)).toBe(true);
+    const carrierTest = carrierRule?.test as RegExp | undefined;
+
+    expect(carrierTest?.test(resolved)).toBe(true);
   });
 
   test('default cache group matches only the packaged carrier stylesheet', () => {

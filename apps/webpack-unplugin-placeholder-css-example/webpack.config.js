@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable typescript/no-require-imports */
 const path = require('node:path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
 const styleXRSPlugin = require('@stylexswc/unplugin/webpack')
-/* eslint-enable @typescript-eslint/no-require-imports */
 
 const isDev = process.env.NODE_ENV === 'development'
 

@@ -19,7 +19,6 @@ export default function Home() {
   const [isDark, setIsDark] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsDark(mq.matches);
     const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
     mq.addEventListener('change', handler);

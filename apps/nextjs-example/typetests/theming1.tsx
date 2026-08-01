@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable typescript/no-unused-vars */
 
 import * as stylex from '@stylexjs/stylex';
 import type { VarGroup, Theme, CompiledStyles } from '@stylexjs/stylex';
@@ -202,4 +202,4 @@ const wronglyTypedTheme2 = stylex.createTheme(typedTokens, {
   }),
 });
 /* eslint-enable no-unused-vars */
-/* eslint-enable @typescript-eslint/no-unused-vars */
+/* eslint-enable typescript/no-unused-vars */

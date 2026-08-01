@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable typescript/no-require-imports */
 const StylexPlugin = require('@stylexswc/webpack-plugin');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-/* eslint-enable @typescript-eslint/no-require-imports */
 
 const config = (env, argv) => {
   const isHot = argv.hot;

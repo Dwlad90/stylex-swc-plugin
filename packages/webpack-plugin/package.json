@@ -14,7 +14,6 @@
   "devDependencies": {
     "@stylexjs/babel-plugin": "^0.19.0",
     "@stylexjs/stylex": "^0.19.0",
-    "@stylexswc/eslint-config": "0.18.2-rc.2",
     "@stylexswc/typescript-config": "0.18.2-rc.2",
     "@types/node": "^26.1.0",
     "css-loader": "^7.1.2",
@@ -64,8 +63,6 @@
     "build": "scripty --ts",
     "check:artifacts": "scripty",
     "clean": "del-cli dist",
-    "lint": "eslint . --color",
-    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
     "postbuild": "pnpm run check:artifacts",
     "prebuild": "pnpm run clean",
     "precommit": "lint-staged",

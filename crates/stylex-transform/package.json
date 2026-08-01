@@ -48,7 +48,6 @@
     "format:rs:check": "cargo fmt -- --check",
     "format:toml": "taplo format",
     "format:toml:check": "taplo format  --check",
-    "lint": "eslint . --color",
     "lint:check": " cargo clippy --all-targets --all-features -- -D warnings",
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",

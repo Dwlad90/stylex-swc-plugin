@@ -117,7 +117,9 @@ describe('StyleXPluginCore.assertAndInstallCacheGroup', () => {
 
     const cacheGroups = installCacheGroup(core, { splitChunks: { cacheGroups: {} } });
 
-    expect((cacheGroups?.special as { test: RegExp }).test).toBe(customTest);
+    const special = cacheGroups?.special as { test: RegExp } | undefined;
+
+    expect(special?.test).toBe(customTest);
   });
 
   test('a custom cache group without a name falls back to the default chunk name', () => {

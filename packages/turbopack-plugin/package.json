@@ -29,8 +29,6 @@
     "build": "scripty --ts",
     "check:artifacts": "scripty",
     "clean": "del-cli dist",
-    "lint": "eslint . --color",
-    "lint:check": "eslint . --color --format json --output-file dist/eslint_report.json",
     "postbuild": "pnpm run check:artifacts",
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
@@ -48,7 +46,6 @@
     "loader-utils": "^3.3.1"
   },
   "devDependencies": {
-    "@stylexswc/eslint-config": "0.18.2-rc.2",
     "@stylexswc/typescript-config": "0.18.2-rc.2",
     "@types/loader-utils": "^3.0.0",
     "@types/node": "^26.1.0",

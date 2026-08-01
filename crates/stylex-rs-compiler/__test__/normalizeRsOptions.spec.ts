@@ -338,7 +338,7 @@ test('normalizeRsOptions: propertyValidationMode overrides default', () => {
 test('normalizeRsOptions: mixed include patterns (string and RegExp)', () => {
   const include = ['src/**/*.ts', /components\/.*\.tsx$/];
   const result = normalizeRsOptions({ include });
-  expect(result.include!.length).toBe(2);
+  expect(result.include!).toHaveLength(2);
   expect(result.include![0]).toBe('src/**/*.ts');
   expect(result.include![1] instanceof RegExp).toBe(true);
 });
@@ -346,7 +346,7 @@ test('normalizeRsOptions: mixed include patterns (string and RegExp)', () => {
 test('normalizeRsOptions: mixed exclude patterns (string and RegExp)', () => {
   const exclude = ['node_modules/**', /\.test\./];
   const result = normalizeRsOptions({ exclude });
-  expect(result.exclude!.length).toBe(2);
+  expect(result.exclude!).toHaveLength(2);
   expect(result.exclude![0]).toBe('node_modules/**');
   expect(result.exclude![1] instanceof RegExp).toBe(true);
 });
@@ -417,7 +417,7 @@ test('normalizeRsOptions: many swcPlugins are passed through', () => {
     ['@swc/plugin-c', {}],
   ];
   const result = normalizeRsOptions({ swcPlugins });
-  expect(result.swcPlugins!.length).toBe(3);
+  expect(result.swcPlugins!).toHaveLength(3);
   expect(result.swcPlugins).toEqual(swcPlugins);
 });
 

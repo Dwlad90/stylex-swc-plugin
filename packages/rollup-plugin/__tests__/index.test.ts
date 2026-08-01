@@ -1,6 +1,6 @@
 'use strict';
 
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import path from 'path';
 import * as rollup from 'rollup';

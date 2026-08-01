@@ -83,9 +83,9 @@ function pickCssAsset(
 async function invalidateAndCollectCssModules(
   server: ViteDevServer,
   placeholder: NormalizedOptions['useCssPlaceholder']
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line typescript/no-explicit-any
 ): Promise<any[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line typescript/no-explicit-any
   const cssModules: any[] = [];
 
   // Skip if placeholder is not a string
@@ -94,7 +94,7 @@ async function invalidateAndCollectCssModules(
   }
 
   const allCssModules = Array.from(server.moduleGraph.urlToModuleMap.values()).filter(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line typescript/no-explicit-any
     (mod: any) => mod.id && mod.id.endsWith('.css')
   );
 
@@ -102,7 +102,7 @@ async function invalidateAndCollectCssModules(
   // Note: We must read the original source file, not the transformed result,
   // because the transformed result already has the placeholder replaced
   await Promise.all(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line typescript/no-explicit-any
     allCssModules.map(async (mod: any) => {
       try {
         // Skip modules without a valid id
@@ -133,11 +133,11 @@ async function injectStyleXCss(
   collectedCSS: string,
   fallbackFileName: string,
   normalizedOptions: NormalizedOptions,
-  /* eslint-disable @typescript-eslint/no-explicit-any */
+  /* eslint-disable typescript/no-explicit-any */
   updateAsset: (fileName: string, source: any) => void,
   emitAsset: (fileName: string, source: any) => void,
   createRawSource: (content: string) => any
-  /* eslint-enable @typescript-eslint/no-explicit-any */
+  /* eslint-enable typescript/no-explicit-any */
 ): Promise<void> {
   const cssAssets = Object.keys(assets).filter(f => f.endsWith('.css'));
 

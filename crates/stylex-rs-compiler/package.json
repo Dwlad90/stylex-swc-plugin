@@ -82,7 +82,7 @@
     "benchmark": "^2.1.4",
     "chalk": "^5.6.2",
     "lint-staged": "^17.2.0",
-    "npm-run-all2": "^8.0.4",
+    "npm-run-all2": "^9.0.3",
     "oxlint": "^1.72.0",
     "prettier": "^3.9.6",
     "tinybench": "^6.1.2",

@@ -99,7 +99,7 @@
     "@rollup/plugin-commonjs": "^29.0.3",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/node": "^26.1.0",
-    "eslint": "^10.6.0",
+    "eslint": "^10.8.0",
     "esno": "^4.7.0",
     "rollup": "^4.62.3",
     "tsup": "^8.5.1",

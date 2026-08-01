@@ -916,8 +916,8 @@ importers:
         specifier: ^1.61.1
         version: 1.61.1
       '@rspack/cli':
-        specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))
+        specifier: ^2.1.7
+        version: 2.1.7(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))
       '@rspack/core':
         specifier: ^2.0.2
         version: 2.0.2(@swc/helpers@0.5.23)
@@ -965,8 +965,8 @@ importers:
         specifier: ^1.61.1
         version: 1.61.1
       '@rspack/cli':
-        specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))
+        specifier: ^2.1.7
+        version: 2.1.7(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))
       '@rspack/core':
         specifier: ^2.0.2
         version: 2.0.2(@swc/helpers@0.5.23)
@@ -5792,8 +5792,8 @@ packages:
   '@rspack/binding@2.1.2':
     resolution: {integrity: sha512-/mFcRSUW7Pl19KeaBIujJvZYNJQu0wD5D3aa5h+Qcph26v7nmLYlX7eajIHGi8tt2qTZX1lXifw2KLIXKwYaRQ==}
 
-  '@rspack/cli@2.0.2':
-    resolution: {integrity: sha512-rwuzo/V59ck/ChNkxMEEjuXLFs8nPJ37K0PMuUeIMmzFJNdUcPLxSV3qaV9azDLGcyq4XwcyQvexH3okWbfUfQ==}
+  '@rspack/cli@2.1.7':
+    resolution: {integrity: sha512-1hmCC6OsJM4zJC7gWi122/kbl2h7lxZl4Wi1kdPYak0pqth6FGTmyHV+bwB+3yzAb6e/B2ttNqvXU1Zbj+Z+gQ==}
     hasBin: true
     peerDependencies:
       '@rspack/core': ^2.0.0-0
@@ -16787,7 +16787,7 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 2.1.2
       '@rspack/binding-win32-x64-msvc': 2.1.2
 
-  '@rspack/cli@2.0.2(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))':
+  '@rspack/cli@2.1.7(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))':
     dependencies:
       '@rspack/core': 2.0.2(@swc/helpers@0.5.23)
     optionalDependencies:

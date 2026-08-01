@@ -19,7 +19,7 @@
     "@stylexswc/rs-compiler": "0.18.2-rc.1",
     "@stylexswc/turbopack-plugin": "0.18.2-rc.1",
     "@swc/jest": "^0.2.39",
-    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.1.0",

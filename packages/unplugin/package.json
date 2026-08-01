@@ -104,7 +104,7 @@
     "rollup": "^4.62.3",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   },
   "peerDependencies": {
     "@farmfe/core": ">=1.7.11 <2.0.0",

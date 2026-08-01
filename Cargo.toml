@@ -87,7 +87,7 @@ swc_config = { version = "6.0.0" }
 swc_core = { version = "75.0.0" }
 swc_ecma_parser = { version = "43.0.0" }
 swc_sourcemap = { version = "10.0.2" }
-testing = "24.0.0"
+testing = "25.0.0"
 thiserror = "2.0.18"
 # convert_case = { version = "0.11.0" }
 # .cargo/config defines few alias to build plugin.

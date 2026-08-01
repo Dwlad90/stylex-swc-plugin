@@ -52,7 +52,7 @@
     "husky": "^9.1.7",
     "knip": "^6.29.0",
     "lint-staged": "^17.2.0",
-    "playwright": "^1.61.1",
+    "playwright": "^1.62.0",
     "prettier": "^3.9.6",
     "shellcheck": "^4.1.0",
     "syncpack": "^15.3.2",

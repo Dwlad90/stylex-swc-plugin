@@ -2,13 +2,20 @@
 
 ## Linting
 
-- ESLint: `@stylexswc/eslint-config` (extends turbo + typescript-eslint
-  - prettier). Root config in `eslint.config.mjs`.
-- Some packages (e.g., `rs-compiler`) use `oxlint` instead of ESLint.
+- Lint: Oxlint, configured once in the root `.oxlintrc.jsonc` with path
+  overrides. There are no per-package lint configs or scripts; `pnpm lint` and
+  `pnpm lint:check` each run a single process from the root.
+- Type-aware rules (`no-floating-promises`, `no-misused-promises`) run
+  separately via `pnpm lint:type-aware`, which needs `oxlint-tsgolint` and a
+  prior build. They are kept out of the default lint so it stays fast.
+- Format: Oxfmt, configured once in the root `.oxfmtrc.json`. Taplo still owns
+  TOML and rustfmt still owns Rust.
 
 ## Build Tooling
 
-- `unplugin` is built with `tsup`.
+- `unplugin` is built with `tsdown`. It requires `isolatedDeclarations`, because
+  that is the only path on which tsdown emits declarations through Oxc rather
+  than the TypeScript compiler API, which TypeScript 7 no longer ships.
 - Other TS packages use `scripty` build scripts (configured in each package's
   `package.json` under `config.scripty.path`). Shared scripts live in
   `scripts/packages/`.
@@ -39,6 +46,6 @@
 Run from within a package directory:
 
 - `pnpm typecheck` -- type check a package
-- `pnpm format:check` -- check formatting for a package (prettier)
+- `pnpm format:check` -- check formatting (oxfmt, from the root)
 - `pnpm lint:check` -- check linting for a package
 - `pnpm test` -- run tests for a package

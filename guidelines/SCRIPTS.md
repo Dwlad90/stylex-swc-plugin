@@ -11,7 +11,7 @@ pnpm build           # build all packages
 pnpm test            # run all tests
 pnpm lint            # lint all packages
 pnpm lint:check      # lint with JSON report output
-pnpm format          # format TS/MD files (prettier)
+pnpm format          # format Node files (oxfmt) + Rust/TOML
 pnpm format:check    # check formatting without changes
 pnpm test:visual     # Playwright visual regression (all apps)
 pnpm typecheck       # TypeScript type checking

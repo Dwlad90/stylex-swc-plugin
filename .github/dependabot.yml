@@ -19,15 +19,17 @@ updates:
         patterns:
           - 'next'
           - '@next/*'
-          - 'eslint-config-next'
+      # TypeScript and the Oxlint type-aware backend are version-locked to each
+      # other, so they have to move in one PR.
       typescript-types:
         patterns:
           - 'typescript'
+          - 'oxlint-tsgolint'
           - '@types/*'
       build-tools:
         patterns:
           - 'turbo'
-          - 'tsup'
+          - 'tsdown'
           - 'esbuild'
           - 'webpack'
           - 'rollup'
@@ -43,8 +45,10 @@ updates:
           - 'rspack'
       code-quality:
         patterns:
-          - 'eslint*'
-          - 'prettier'
+          - 'oxlint'
+          - 'oxfmt'
+          - 'publint'
+          - '@arethetypeswrong/*'
           - 'lint-staged'
           - 'shellcheck'
       git-tools:

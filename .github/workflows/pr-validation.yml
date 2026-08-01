@@ -101,6 +101,15 @@ jobs:
           - id: format-check
             name: Check formatting
             command: pnpm run format:check
+          # Disabled for now; re-enable when we want the dependency graph
+          # enforced on every PR. `pnpm run deps:check:typescript` still works
+          # locally in the meantime.
+          # - id: dependency-graph
+          #   name: Dependency graph guards
+          #   command: |
+          #     pnpm dedupe --check
+          #     pnpm exec syncpack lint
+          #     pnpm run deps:check:typescript
       fail-fast: false
     steps:
       - name: Checkout PR code
@@ -133,7 +142,10 @@ jobs:
         check:
           - id: lint-check
             name: Lint Node.js code
-            command: pnpm run lint:check --filter="{./packages/*}" --filter="{./apps/*}"
+            command: pnpm run lint:check
+          - id: lint-type-aware
+            name: Lint Node.js code (type-aware)
+            command: pnpm run lint:type-aware
           - id: lint-check-rust
             name: Lint Rust code
             command: pnpm exec turbo run lint:crates:workspace --filter="//"

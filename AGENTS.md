@@ -21,10 +21,11 @@ Rust reimplementation of Facebook's `StyleX` CSS-in-JS compiler, built on
 ## Common Commands
 
 - `pnpm run --filter=@stylexswc/<package-name> test` -- run tests for a package
-- `pnpm run --filter=@stylexswc/<package-name> lint:check` -- check linting for
-  a package
-- `pnpm run --filter=@stylexswc/<package-name> format:check` -- check formatting
-  for a package (prettier)
+- `pnpm lint:check` -- lint every Node file (one root Oxlint process; there are
+  no per-package lint scripts)
+- `pnpm lint:type-aware` -- type-aware lint rules; needs a prior build
+- `pnpm format:check` -- check formatting (one root Oxfmt process, plus rustfmt
+  and Taplo for Rust and TOML)
 - `pnpm run --filter=@stylexswc/<package-name> typecheck` -- type check a
   package
 - `pnpm run --filter=@stylexswc/<package-name> test:visual` -- playwright visual

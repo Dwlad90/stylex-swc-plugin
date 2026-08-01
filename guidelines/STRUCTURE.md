@@ -206,7 +206,7 @@ Integration plugins:
 
 Shared configs:
 
-- `eslint-config`, `typescript-config`, `playwright`, `design-system`
+- `typescript-config`, `playwright`, `design-system`
 
 ## Example Apps (`apps/`)
 
@@ -271,7 +271,7 @@ other means) or thin wrappers:
 - `rust-toolchain.toml` -- Rust version and compilation targets.
 - `rustfmt.toml` -- Rust formatting rules.
 - `clippy.toml` -- Rust linting thresholds.
-- `.prettierrc.js` -- TS/JS/MD formatting rules.
-- `eslint.config.mjs` -- root ESLint config.
+- `.oxfmtrc.json` -- formatting rules for all Node files (one root config).
+- `.oxlintrc.jsonc` -- root Oxlint config (one root config, path overrides).
 - `scripts/packages/` -- shared `scripty` build/check scripts used by most TS
   packages.

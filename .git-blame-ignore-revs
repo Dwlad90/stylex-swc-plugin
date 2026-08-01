@@ -1,0 +1,7 @@
+# Revisions listed here are excluded from `git blame` output.
+# Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style: apply Oxfmt — formatter-only reformat of 207 files when the repository
+# moved from Prettier to Oxfmt. No logic changed in this commit.
+3978007df1033a38257f8e59606d625d084a98c9

@@ -1,0 +1,52 @@
+name: Docs and Config Validation
+
+# Documentation- and config-only pull requests are excluded from the full
+# validation workflow, so until now they had no formatting gate at all. This
+# runs the Node formatter and nothing else: no Rust toolchain, no builds, no
+# visual tests, no benchmarks.
+
+on:
+  pull_request:
+    paths:
+      - '**/*.md'
+      - '**/*.mdx'
+      - '**/*.yml'
+      - '**/*.yaml'
+      - '**/*.json'
+      - '**/*.jsonc'
+      - '.oxfmtrc.json'
+      - '.oxlintrc.jsonc'
+    paths-ignore:
+      - '**/*.rs'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.js'
+      - '**/*.jsx'
+      - '**/Cargo.toml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: Check formatting
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7.0.1
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          setup-rust: 'false'
+
+      - name: Check formatting
+        run: pnpm exec oxfmt --check .
+
+      - name: Check manifests
+        run: pnpm exec syncpack lint

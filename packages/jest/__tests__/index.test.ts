@@ -88,6 +88,30 @@ describe('process', () => {
 
     expect(code).not.toBe(STYLEX_SOURCE);
   });
+
+  // Jest reuses one transformer instance, and one options object, for every
+  // file in a run. Filtering must therefore survive earlier files.
+  it('keeps applying exclude after an included file was transformed', () => {
+    const { process: transform } = createTransformer();
+    const options = optionsWith({ exclude: ['src/ignored/**'] });
+
+    const transformed = transform(STYLEX_SOURCE, underCwd('src/Button.tsx'), options);
+    expect(transformed.code).not.toBe(STYLEX_SOURCE);
+
+    const skipped = transform(STYLEX_SOURCE, underCwd('src/ignored/Button.tsx'), options);
+    expect(skipped.code).toBe(STYLEX_SOURCE);
+  });
+
+  it('keeps applying include after an included file was transformed', () => {
+    const { process: transform } = createTransformer();
+    const options = optionsWith({ include: ['src/**'] });
+
+    const transformed = transform(STYLEX_SOURCE, underCwd('src/Button.tsx'), options);
+    expect(transformed.code).not.toBe(STYLEX_SOURCE);
+
+    const skipped = transform(STYLEX_SOURCE, underCwd('lib/Button.tsx'), options);
+    expect(skipped.code).toBe(STYLEX_SOURCE);
+  });
 });
 
 describe('processAsync', () => {

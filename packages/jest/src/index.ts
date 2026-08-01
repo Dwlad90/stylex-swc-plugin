@@ -7,6 +7,12 @@ import type { Config } from '@jest/types';
 
 type TransformerConfig = Config.TransformerConfig[1];
 
+// Transformed output is only valid for the compiler that produced it, so the
+// compiler version has to participate in the cache key.
+const { version: COMPILER_VERSION } = require('@stylexswc/rs-compiler/package.json') as {
+  version: string;
+};
+
 export interface JestTransformerConfig extends TransformerConfig {
   rsOptions?: StyleXOptions;
 }
@@ -16,19 +22,17 @@ const process: SyncTransformer<JestTransformerConfig>['process'] = function proc
   sourcePath,
   options
 ) {
-  const rsOptions = options.transformerConfig.rsOptions ?? {};
+  // Destructure rather than delete: `transformerConfig` is created once per run
+  // and shared across every file Jest transforms, so mutating it here would
+  // strip the patterns for all later files.
+  const { include, exclude, ...compilerOptions } = options.transformerConfig.rsOptions ?? {};
 
   // Check if file should be transformed based on include/exclude patterns
-  const shouldTransform = shouldTransformFile(sourcePath, rsOptions.include, rsOptions.exclude);
-
-  if (!shouldTransform) {
+  if (!shouldTransformFile(sourcePath, include, exclude)) {
     return { code: sourceText };
-  } else {
-    rsOptions.include = undefined;
-    rsOptions.exclude = undefined;
   }
 
-  const { code } = transform(sourcePath, sourceText, normalizeRsOptions(rsOptions));
+  const { code } = transform(sourcePath, sourceText, normalizeRsOptions(compilerOptions));
 
   return { code };
 };
@@ -47,6 +51,9 @@ const getCacheKey: SyncTransformer<JestTransformerConfig>['getCacheKey'] = funct
     .update(sourceText)
     .update(sourcePath)
     .update(JSON.stringify(options.transformerConfig))
+    // Without this, upgrading the compiler leaves Jest replaying output that
+    // the previous compiler produced, because nothing else in the key moves.
+    .update(COMPILER_VERSION)
     .digest('hex');
 };
 

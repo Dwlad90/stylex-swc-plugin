@@ -8,8 +8,8 @@
     "@stylexswc/nextjs-plugin": "0.18.2-rc.1",
     "next": "^16.2.12",
     "next-rspack": "^16.2.9",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

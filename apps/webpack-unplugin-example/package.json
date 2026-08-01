@@ -16,8 +16,8 @@
     "@stylexswc/design-system": "0.18.2-rc.1",
     "@stylexswc/rs-compiler": "0.18.2-rc.1",
     "@stylexswc/unplugin": "0.18.2-rc.1",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

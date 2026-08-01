@@ -5,7 +5,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "build": "vue-tsc && vite build",
+    "build": "vite build",
     "dev": "vite",
     "serve": "serve --listen 3013 ./dist",
     "test:visual": "playwright test"
@@ -24,7 +24,6 @@
     "@vitejs/plugin-vue": "^6.0.8",
     "serve": "^14.2.6",
     "typescript": "7.0.2",
-    "vite": "^8.1.5",
-    "vue-tsc": "^3.3.6"
+    "vite": "^8.1.5"
   }
 }

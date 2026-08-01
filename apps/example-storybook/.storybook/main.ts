@@ -16,23 +16,12 @@ export default defineMain({
   },
 
   typescript: {
-    /* infer property docs from typescript types  */
-    reactDocgen: 'react-docgen-typescript',
-    // @ts-expect-error - its a valid type
-    reactDocgenTypescriptOptions: {
-      shouldExtractLiteralValuesFromEnum: true,
-      shouldRemoveUndefinedFromOptional: true,
-      // @ts-expect-error - its a valid type
-      propFilter: prop => {
-        /* does property have documentation? */
-        const hasDoc = prop.description !== '';
-
-        /* is property defined in external dependency package? */
-        const isExternal = prop.parent && /node_modules/.test(prop.parent.fileName);
-
-        return hasDoc && !isExternal;
-      },
-    },
+    /* Infer property docs by parsing the source rather than by type-checking
+    it. `react-docgen-typescript` drives the JavaScript TypeScript compiler
+    API, which TypeScript 7 no longer ships. `react-docgen` is Babel-based and
+    needs no compiler API, at the cost of resolving fewer inherited and
+    computed prop types. */
+    reactDocgen: 'react-docgen',
   },
 
   async viteFinal(config) {

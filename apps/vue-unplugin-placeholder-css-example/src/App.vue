@@ -5,7 +5,6 @@ import { sizes } from '@stylexjs/open-props/lib/sizes.stylex';
 import * as stylex from '@stylexjs/stylex';
 import { tokens } from '@stylexswc/design-system/tokens.stylex';
 import { breakpoints } from '@stylexswc/design-system/consts.stylex';
-
 </script>
 
 <script lang="ts">
@@ -51,26 +50,30 @@ const styles = stylex.create({
     display: {
       default: 'none',
       [breakpoints.mobile]: 'block',
-    }
+    },
   },
   onlyDesktop: {
     display: {
       default: 'none',
       [breakpoints.desktop]: 'block',
-    }
+    },
   },
 });
 </script>
 
 <template>
   <div :class="stylex.props(styles.main).className">
-    <div :class="stylex.props(styles.card, styles.blueBg,styles.orangeFg).className">
+    <div :class="stylex.props(styles.card, styles.blueBg, styles.orangeFg).className">
       <span>Blue rounded rectangle with orange text</span>
     </div>
-    <div :class="stylex.props(styles.card, styles.pinkBg, styles.blueFg, styles.onlyMobile).className">
+    <div
+      :class="stylex.props(styles.card, styles.pinkBg, styles.blueFg, styles.onlyMobile).className"
+    >
       <span>Pink rounded rectangle with blue text</span>
     </div>
-    <div :class="stylex.props(styles.card, styles.redBg, styles.greenFg, styles.onlyDesktop).className">
+    <div
+      :class="stylex.props(styles.card, styles.redBg, styles.greenFg, styles.onlyDesktop).className"
+    >
       <span>Red rounded rectangle with green text</span>
     </div>
   </div>

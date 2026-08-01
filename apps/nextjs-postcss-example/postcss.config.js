@@ -2,20 +2,14 @@
 const fs = require('fs');
 const path = require('path');
 
-
 const projectRoot = __dirname;
 const monorepoRoot = path.join(projectRoot, '../../');
-
 
 function getPackageIncludePaths(packageName, nodeModulePaths) {
   let packagePath = null;
 
   for (const nodeModulePath of nodeModulePaths) {
-    const packageJsonPath = path.resolve(
-      nodeModulePath,
-      packageName,
-      'package.json',
-    );
+    const packageJsonPath = path.resolve(nodeModulePath, packageName, 'package.json');
     if (fs.existsSync(packageJsonPath)) {
       packagePath = path.dirname(packageJsonPath);
       break;
@@ -31,25 +25,21 @@ function getPackageIncludePaths(packageName, nodeModulePaths) {
   ];
 }
 
-const includePaths = ['@stylexjs/open-props', '@stylexswc/design-system'].flatMap(packageName => getPackageIncludePaths(packageName, [
-  path.join(projectRoot, 'node_modules'),
-  path.join(monorepoRoot, 'node_modules'),
-]));
+const includePaths = ['@stylexjs/open-props', '@stylexswc/design-system'].flatMap(packageName =>
+  getPackageIncludePaths(packageName, [
+    path.join(projectRoot, 'node_modules'),
+    path.join(monorepoRoot, 'node_modules'),
+  ])
+);
 
 module.exports = {
   plugins: {
     '@stylexswc/postcss-plugin': {
-      include: [
-        'app/**/*.{js,jsx,ts,tsx}',
-        'components/**/*.{js,jsx,ts,tsx}',
-        ...includePaths
-      ],
+      include: ['app/**/*.{js,jsx,ts,tsx}', 'components/**/*.{js,jsx,ts,tsx}', ...includePaths],
       useCSSLayers: true,
       rsOptions: {
         aliases: {
-          '@/*': [
-            path.join(projectRoot, '*'),
-          ],
+          '@/*': [path.join(projectRoot, '*')],
         },
         unstable_moduleResolution: {
           type: 'commonJS',
@@ -72,7 +62,7 @@ module.exports = {
               sansSerif: 'sans-serif',
             },
           },
-          wrapper: (value) => `${value}`,
+          wrapper: value => `${value}`,
         },
       },
     },

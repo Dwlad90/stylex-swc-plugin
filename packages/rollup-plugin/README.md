@@ -10,13 +10,14 @@ with
 a Rust implementation of the StyleX transform, instead of the official Babel
 plugin. Your StyleX code stays exactly the same — only the build step changes,
 with per-file transforms 5x to 10x faster than Babel
-([performance](https://github.com/Dwlad90/stylex-swc-plugin#performance)).
-The extracted CSS is processed with [Lightning CSS](https://lightningcss.dev)
-before it is written to disk.
+([performance](https://github.com/Dwlad90/stylex-swc-plugin#performance)). The
+extracted CSS is processed with [Lightning CSS](https://lightningcss.dev) before
+it is written to disk.
 
 This is a community project and is not affiliated with Meta. It tracks the
 official StyleX releases
 <!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->
+
 and requires Node.js 20 or newer.
 
 ## Installation
@@ -57,8 +58,7 @@ export default {
 };
 ```
 
-> [!NOTE]
-> In an ESM config file the plugin is exposed on the `default` property
+> [!NOTE] In an ESM config file the plugin is exposed on the `default` property
 > because the package is compiled to CommonJS — hence
 > `stylexPlugin.default(...)`. With a CommonJS config
 > (`const stylexPlugin = require('@stylexswc/rollup-plugin')`), call
@@ -79,8 +79,7 @@ in the
   the standard options, see the
   [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
-> [!NOTE]
-> The `include` and `exclude` options are exclusive to the Rust compiler
+> [!NOTE] The `include` and `exclude` options are exclusive to the Rust compiler
 > and are not available in the official StyleX Babel plugin.
 
 #### `rsOptions.include`

@@ -28,7 +28,7 @@ const styles = stylex.create({
       default: null,
       ':hover': 'drop-shadow(0 0 2em #646cffaa)',
     },
-    height: '6em' ,
+    height: '6em',
     transition: 'filter 300ms',
     willChange: 'filter',
   },
@@ -56,15 +56,15 @@ const App = () => {
       </div>
       <h1 {...stylex.props(styles.header)}>Webpack + StyleX</h1>
       <div {...stylex.props(styles.card)}>
-        <CtaButton color='pink' to="https://stylexjs.com">
+        <CtaButton color="pink" to="https://stylexjs.com">
           Get Started
         </CtaButton>
-        <CtaButton color='blue' to="https://stylexjs.com/docs/learn/thinking-in-stylex/">
+        <CtaButton color="blue" to="https://stylexjs.com/docs/learn/thinking-in-stylex/">
           Thinking in StyleX
         </CtaButton>
       </div>
     </main>
-  )
-}
+  );
+};
 
-export default App
+export default App;

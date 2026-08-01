@@ -14,4 +14,5 @@ merged back into `develop`.
   to that task.
 - Rebase your branch on the latest `develop` before merging to ensure a clean
   commit history and to resolve any conflicts.
-- Merge your branch into `develop` using the `merge` strategy with the `--ff-only` flag to ensure a fast-forward merge.
+- Merge your branch into `develop` using the `merge` strategy with the
+  `--ff-only` flag to ensure a fast-forward merge.

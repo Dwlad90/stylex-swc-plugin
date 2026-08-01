@@ -2,15 +2,9 @@
   "extends": "@stylexswc/typescript-config/base.json",
   "compilerOptions": {
     "target": "es2017",
-    "lib": [
-      "esnext",
-      "DOM"
-    ],
+    "lib": ["esnext", "DOM"],
     "module": "esnext",
-    "types": [
-      "node",
-      "vitest"
-    ],
+    "types": ["node", "vitest"],
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedDeclarations": true,
@@ -26,7 +20,5 @@
     "__tests__/**/*.tsx",
     "__tests__/**/*.mts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

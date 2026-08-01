@@ -8,8 +8,8 @@ module.exports = {
   parserPreset: {
     parserOpts: {
       headerPattern: /^([\w-]+)(?:\(([^)]*)\))?: (.*)$/,
-      headerCorrespondence: ['type', 'scope', 'subject']
-    }
+      headerCorrespondence: ['type', 'scope', 'subject'],
+    },
   },
   rules: {
     'header-max-length': [2, 'always', 120],
@@ -18,10 +18,10 @@ module.exports = {
     'type-empty': [2, 'never'],
     'subject-empty': [2, 'never'],
     'body-leading-blank': [2, 'always'],
-    'footer-leading-blank': [2, 'always']
+    'footer-leading-blank': [2, 'always'],
   },
   ignores: [
-    (commit) => commit.startsWith('Merge'),
-    (commit) => commit.includes('Signed-off-by: dependabot[bot]')
-  ]
+    commit => commit.startsWith('Merge'),
+    commit => commit.includes('Signed-off-by: dependabot[bot]'),
+  ],
 };

@@ -1,8 +1,8 @@
-import { context } from './core.mjs'
+import { context } from './core.mjs';
 
-const port = 8000
+const port = 8000;
 
-await context.watch()
+await context.watch();
 
 await context
   .serve({
@@ -10,8 +10,8 @@ await context
     port,
   })
   .then(() => {
-    console.log(`[info]: server start at http://127.0.0.1:${port}.`)
+    console.log(`[info]: server start at http://127.0.0.1:${port}.`);
   })
-  .catch((error) => {
-    console.error(error)
-  })
+  .catch(error => {
+    console.error(error);
+  });

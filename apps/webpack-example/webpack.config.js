@@ -76,7 +76,7 @@ const config = (env, argv) => {
                 gap: '2rem',
               },
             },
-            wrapper: (value) => `${value}`,
+            wrapper: value => `${value}`,
           },
         },
       }),

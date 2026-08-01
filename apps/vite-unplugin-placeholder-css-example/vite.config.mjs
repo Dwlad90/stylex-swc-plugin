@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import styleXRSPlugin from '@stylexswc/unplugin/vite'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import styleXRSPlugin from '@stylexswc/unplugin/vite';
 
 export default defineConfig({
   build: {
@@ -16,7 +16,7 @@ export default defineConfig({
         useCSSLayers: true,
         treeshakeCompensation: true,
         unstable_moduleResolution: {
-          type: "commonJS",
+          type: 'commonJS',
         },
         env: {
           tokens: {
@@ -25,7 +25,7 @@ export default defineConfig({
               fullHeight: '100vh',
             },
           },
-          wrapper: (value) => `${value}`,
+          wrapper: value => `${value}`,
         },
       },
     }),
@@ -39,4 +39,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

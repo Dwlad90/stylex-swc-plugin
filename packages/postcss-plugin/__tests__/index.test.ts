@@ -23,9 +23,7 @@ describe('@stylexswc/postcss-plugin', () => {
    * Returns the temp directory path; caller must clean up with fs.rmSync.
    */
   function createAutoDiscoveryFixture(): string {
-    const tempDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'stylex-postcss-auto-discovery-')
-    );
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stylex-postcss-auto-discovery-'));
 
     fs.cpSync(autoDiscoveryFixturesDir, tempDir, { recursive: true });
 
@@ -131,15 +129,12 @@ describe('@stylexswc/postcss-plugin', () => {
   }
 
   async function runAutoDiscoveryPostcss(
-    options:
-      | Record<string, unknown>
-      | ((fixtureDir: string) => Record<string, unknown>) = {},
+    options: Record<string, unknown> | ((fixtureDir: string) => Record<string, unknown>) = {},
     inputCSS = '@stylex;'
   ): Promise<{ css: string; messages: postcss.Message[] }> {
     const fixtureDir = createAutoDiscoveryFixture();
     const stylexPostcssPlugin = createPlugin();
-    const resolvedOptions =
-      typeof options === 'function' ? options(fixtureDir) : options;
+    const resolvedOptions = typeof options === 'function' ? options(fixtureDir) : options;
 
     const basePluginOptions = {
       cwd: fixtureDir,
@@ -307,8 +302,7 @@ describe('@stylexswc/postcss-plugin', () => {
     expect(
       result.messages.some(
         message =>
-          message.type === 'dir-dependency' &&
-          String(message.dir).includes('stylex-custom-lib')
+          message.type === 'dir-dependency' && String(message.dir).includes('stylex-custom-lib')
       )
     ).toBe(true);
   });
@@ -335,8 +329,7 @@ describe('@stylexswc/postcss-plugin', () => {
     expect(
       result.messages.some(
         message =>
-          message.type === 'dir-dependency' &&
-          String(message.dir).includes('stylex-custom-lib')
+          message.type === 'dir-dependency' && String(message.dir).includes('stylex-custom-lib')
       )
     ).toBe(false);
   });
@@ -545,9 +538,7 @@ describe('discovery', () => {
       const result = resolveExclude({
         exclude: ['**/*.test.ts'],
       });
-      expect(result).toEqual(
-        expect.arrayContaining([...AUTO_DISCOVERY_EXCLUDES, '**/*.test.ts'])
-      );
+      expect(result).toEqual(expect.arrayContaining([...AUTO_DISCOVERY_EXCLUDES, '**/*.test.ts']));
     });
 
     test('adds auto-discovery excludes when include is empty', () => {

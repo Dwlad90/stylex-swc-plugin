@@ -7,10 +7,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": [
-    "src/**/*.ts",
-    "__tests__/**/*.ts",
-    "__tests__/**/*.tsx",
-    "__tests__/**/*.mts"
-  ]
+  "include": ["src/**/*.ts", "__tests__/**/*.ts", "__tests__/**/*.tsx", "__tests__/**/*.mts"]
 }

@@ -21,7 +21,7 @@
     "CURSOR.md": true,
     "GEMINI.md": true,
     "CODEX.md": true,
-    "CLAUDE.md": true,
+    "CLAUDE.md": true
   },
   "search.exclude": {
     "node_modules": true,
@@ -33,7 +33,7 @@
     "CURSOR.md": true,
     "GEMINI.md": true,
     "CODEX.md": true,
-    "CLAUDE.md": true,
+    "CLAUDE.md": true
   },
   "files.watcherExclude": {
     "node_modules": true,
@@ -45,7 +45,7 @@
     "CURSOR.md": true,
     "GEMINI.md": true,
     "CODEX.md": true,
-    "CLAUDE.md": true,
+    "CLAUDE.md": true
   },
   "git.ignoreLimitWarning": true,
   "typescript.tsdk": "node_modules/typescript/lib"

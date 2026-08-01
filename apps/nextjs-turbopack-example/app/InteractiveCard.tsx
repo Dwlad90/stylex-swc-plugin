@@ -1,12 +1,7 @@
 'use client';
 
 import * as stylex from '@stylexjs/stylex';
-import {
-  spacing,
-  text,
-  globalTokens as $,
-  colors,
-} from './globalTokens.stylex';
+import { spacing, text, globalTokens as $, colors } from './globalTokens.stylex';
 import { useState } from 'react';
 
 export const redTheme = stylex.createTheme(colors, {
@@ -55,10 +50,7 @@ export default function InteractiveCard({
         {THEMES.map((t, i) => (
           <button
             key={t.name}
-            {...stylex.props(
-              styles.themeButton,
-              i === themeIndex && styles.themeButtonActive,
-            )}
+            {...stylex.props(styles.themeButton, i === themeIndex && styles.themeButtonActive)}
             onClick={() => onThemeChange(i)}
           >
             <span {...stylex.props(t.theme, styles.dot)} />
@@ -70,19 +62,13 @@ export default function InteractiveCard({
       <div {...stylex.props(styles.label)}>Mode</div>
       <div {...stylex.props(styles.themeRow)}>
         <button
-          {...stylex.props(
-            styles.themeButton,
-            !isDark && styles.themeButtonActive,
-          )}
+          {...stylex.props(styles.themeButton, !isDark && styles.themeButtonActive)}
           onClick={() => onDarkModeChange(false)}
         >
           Light
         </button>
         <button
-          {...stylex.props(
-            styles.themeButton,
-            isDark && styles.themeButtonActive,
-          )}
+          {...stylex.props(styles.themeButton, isDark && styles.themeButtonActive)}
           onClick={() => onDarkModeChange(true)}
         >
           Dark
@@ -91,24 +77,13 @@ export default function InteractiveCard({
       <div {...stylex.props(styles.divider)} />
       <div {...stylex.props(styles.label)}>Counter</div>
       <div {...stylex.props(styles.counterRow)}>
-        <button
-          {...stylex.props(styles.counterButton)}
-          onClick={() => setCount((c) => c - 1)}
-        >
+        <button {...stylex.props(styles.counterButton)} onClick={() => setCount(c => c - 1)}>
           -
         </button>
-        <div
-          {...stylex.props(
-            styles.count,
-            Math.abs(count) > 99 && styles.largeNumber,
-          )}
-        >
+        <div {...stylex.props(styles.count, Math.abs(count) > 99 && styles.largeNumber)}>
           {count}
         </div>
-        <button
-          {...stylex.props(styles.counterButton)}
-          onClick={() => setCount((c) => c + 1)}
-        >
+        <button {...stylex.props(styles.counterButton)} onClick={() => setCount(c => c + 1)}>
           +
         </button>
       </div>

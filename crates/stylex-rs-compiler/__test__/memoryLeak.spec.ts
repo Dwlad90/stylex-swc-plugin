@@ -32,7 +32,10 @@ test('normalizeRsOptions does not emit napi leak warnings across many calls', ()
       });
     }
   `);
-  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
+  expect(
+    result.stderr.includes(LEAK_STRING),
+    `napi leak warnings detected in stderr:\n${result.stderr}`
+  ).toBe(false);
 });
 
 test('transform does not emit napi leak warnings across many calls', () => {
@@ -47,7 +50,10 @@ test('transform does not emit napi leak warnings across many calls', () => {
       transform('file.ts', 'export const x = 1;', opts);
     }
   `);
-  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
+  expect(
+    result.stderr.includes(LEAK_STRING),
+    `napi leak warnings detected in stderr:\n${result.stderr}`
+  ).toBe(false);
 });
 
 test('shouldTransformFile does not emit napi leak warnings across many calls', () => {
@@ -59,7 +65,10 @@ test('shouldTransformFile does not emit napi leak warnings across many calls', (
       shouldTransformFile('src/foo.ts', include, exclude);
     }
   `);
-  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
+  expect(
+    result.stderr.includes(LEAK_STRING),
+    `napi leak warnings detected in stderr:\n${result.stderr}`
+  ).toBe(false);
 });
 
 test('transform with debugFilePath function returning prefix does not leak', () => {
@@ -72,7 +81,10 @@ test('transform with debugFilePath function returning prefix does not leak', () 
       transform('file.ts', 'export const x = 1;', opts);
     }
   `);
-  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
+  expect(
+    result.stderr.includes(LEAK_STRING),
+    `napi leak warnings detected in stderr:\n${result.stderr}`
+  ).toBe(false);
 });
 
 test('transform with env object does not emit napi leak warnings', () => {
@@ -88,7 +100,10 @@ test('transform with env object does not emit napi leak warnings', () => {
       }
     }
   `);
-  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
+  expect(
+    result.stderr.includes(LEAK_STRING),
+    `napi leak warnings detected in stderr:\n${result.stderr}`
+  ).toBe(false);
 });
 
 test('transform with stylex code does not emit napi leak warnings', () => {
@@ -106,7 +121,10 @@ test('transform with stylex code does not emit napi leak warnings', () => {
       transform('page.tsx', code, opts);
     }
   `);
-  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
+  expect(
+    result.stderr.includes(LEAK_STRING),
+    `napi leak warnings detected in stderr:\n${result.stderr}`
+  ).toBe(false);
 });
 
 test('normalizeRsOptions with various input shapes does not leak', () => {
@@ -123,5 +141,8 @@ test('normalizeRsOptions with various input shapes does not leak', () => {
       });
     }
   `);
-  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
+  expect(
+    result.stderr.includes(LEAK_STRING),
+    `napi leak warnings detected in stderr:\n${result.stderr}`
+  ).toBe(false);
 });

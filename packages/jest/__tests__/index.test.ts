@@ -54,11 +54,7 @@ describe('process', () => {
     const { process: transform } = createTransformer();
     const filePath = underCwd('src/Button.tsx');
 
-    const { code } = transform(
-      STYLEX_SOURCE,
-      filePath,
-      optionsWith({ exclude: ['src/**'] })
-    );
+    const { code } = transform(STYLEX_SOURCE, filePath, optionsWith({ exclude: ['src/**'] }));
 
     expect(code).toBe(STYLEX_SOURCE);
   });
@@ -67,11 +63,7 @@ describe('process', () => {
     const { process: transform } = createTransformer();
     const filePath = underCwd('lib/Button.tsx');
 
-    const { code } = transform(
-      STYLEX_SOURCE,
-      filePath,
-      optionsWith({ include: ['src/**'] })
-    );
+    const { code } = transform(STYLEX_SOURCE, filePath, optionsWith({ include: ['src/**'] }));
 
     expect(code).toBe(STYLEX_SOURCE);
   });
@@ -80,11 +72,7 @@ describe('process', () => {
     const { process: transform } = createTransformer();
     const filePath = underCwd('src/Button.tsx');
 
-    const { code } = transform(
-      STYLEX_SOURCE,
-      filePath,
-      optionsWith({ include: ['src/**'] })
-    );
+    const { code } = transform(STYLEX_SOURCE, filePath, optionsWith({ include: ['src/**'] }));
 
     expect(code).not.toBe(STYLEX_SOURCE);
   });

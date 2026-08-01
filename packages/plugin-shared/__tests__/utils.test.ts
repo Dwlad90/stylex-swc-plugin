@@ -95,7 +95,9 @@ describe('parseStylexRulesFromIdentifier', () => {
 
   test('ignores the carrier stylesheet', () => {
     expect(
-      parseStylexRulesFromIdentifier('css|/repo/node_modules/@stylexswc/plugin-shared/dist/stylex.css|used-exports')
+      parseStylexRulesFromIdentifier(
+        'css|/repo/node_modules/@stylexswc/plugin-shared/dist/stylex.css|used-exports'
+      )
     ).toBeNull();
   });
 });

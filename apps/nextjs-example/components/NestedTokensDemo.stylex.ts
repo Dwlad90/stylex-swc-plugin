@@ -102,8 +102,7 @@ export const styles = stylex.create({
     width: '100%',
     maxWidth: 600,
     padding: '1.5rem',
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     backgroundColor: nestedTokens.surface.card,
     borderRadius: '0.75rem',
     boxShadow: nestedTokens.surface.cardShadow,

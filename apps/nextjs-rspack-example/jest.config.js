@@ -1,79 +1,84 @@
-
-const path = require("path");
+const path = require('path');
 
 const rootDir = __dirname;
 
 const customJestConfig = {
-  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
-  testEnvironment: "jsdom",
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  testEnvironment: 'jsdom',
   // `server-only` throws under jsdom; server components are rendered directly in tests
   moduleNameMapper: {
-    "^server-only$": "<rootDir>/__mocks__/server-only.js",
+    '^server-only$': '<rootDir>/__mocks__/server-only.js',
   },
   transform: {
-    "^.+\\.(ts|tsx|js|jsx|mjs|cjs|html)$": [
+    '^.+\\.(ts|tsx|js|jsx|mjs|cjs|html)$': [
       'jest-chain-transform',
       {
         transformers: [
-          ["@stylexswc/jest", {
-            rsOptions: {
-              aliases: {
-                '@/*': [path.join(rootDir, '*')],
-              },
-              unstable_moduleResolution: {
-                type: 'commonJS',
-              },
-              styleResolution: "application-order",
-              sxPropName: "css",
-              env: {
-                tokens: {
-                  layout: {
-                    fullHeight: '100vh',
+          [
+            '@stylexswc/jest',
+            {
+              rsOptions: {
+                aliases: {
+                  '@/*': [path.join(rootDir, '*')],
+                },
+                unstable_moduleResolution: {
+                  type: 'commonJS',
+                },
+                styleResolution: 'application-order',
+                sxPropName: 'css',
+                env: {
+                  tokens: {
+                    layout: {
+                      fullHeight: '100vh',
+                    },
+                    fonts: {
+                      sansSerif: 'sans-serif',
+                    },
                   },
-                  fonts: {
-                    sansSerif: 'sans-serif',
+                  wrapper: value => `${value}`,
+                },
+              },
+            },
+          ],
+          [
+            '@swc/jest',
+            {
+              $schema: 'https://json.schemastore.org/swcrc',
+              jsc: {
+                parser: {
+                  syntax: 'typescript',
+                  tsx: true,
+                  dynamicImport: true,
+                  decorators: true,
+                  dts: true,
+                },
+                transform: {
+                  react: {
+                    useBuiltins: true,
+                    runtime: 'automatic',
                   },
                 },
-                wrapper: (value) => `${value}`,
-              },
-            }
-          }], ['@swc/jest', {
-            "$schema": "https://json.schemastore.org/swcrc",
-            "jsc": {
-              "parser": {
-                "syntax": "typescript",
-                "tsx": true,
-                "dynamicImport": true,
-                "decorators": true,
-                "dts": true
-              },
-              "transform": {
-                "react": {
-                  "useBuiltins": true,
-                  "runtime": "automatic"
-                }
-              },
-              "target": "esnext",
-              "loose": false,
-              "externalHelpers": false,
-              "keepClassNames": true,
-              "baseUrl": "./",
+                target: 'esnext',
+                loose: false,
+                externalHelpers: false,
+                keepClassNames: true,
+                baseUrl: './',
 
-              "paths": {
-                "@/*": ["./*"]
-              }
+                paths: {
+                  '@/*': ['./*'],
+                },
+              },
+              module: {
+                type: 'es6',
+              },
+              minify: false,
             },
-            "module": {
-              "type": "es6"
-            },
-            "minify": false,
-          }
-          ]
-        ]
-      }
+          ],
+        ],
+      },
     ],
   },
-  modulePathIgnorePatterns: ["<rootDir>/visual-tests/"]
+  modulePathIgnorePatterns: ['<rootDir>/visual-tests/'],
 };
 
-module.exports = customJestConfig
+module.exports = customJestConfig;

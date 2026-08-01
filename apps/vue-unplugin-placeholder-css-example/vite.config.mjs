@@ -1,6 +1,6 @@
-import vue from '@vitejs/plugin-vue'
-import styleXRSPlugin from '@stylexswc/unplugin/vite'
-import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue';
+import styleXRSPlugin from '@stylexswc/unplugin/vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
@@ -22,7 +22,7 @@ export default defineConfig({
               fullHeight: '100vh',
             },
           },
-          wrapper: (value) => `${value}`,
+          wrapper: value => `${value}`,
         },
       },
     }),
@@ -37,4 +37,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

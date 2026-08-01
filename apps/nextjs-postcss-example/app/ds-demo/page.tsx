@@ -2,13 +2,7 @@
 
 import { useState } from 'react';
 import * as stylex from '@stylexjs/stylex';
-import {
-  primitives,
-  tokens,
-  purpleTheme,
-  greenTheme,
-  orangeTheme,
-} from './tokens.stylex';
+import { primitives, tokens, purpleTheme, greenTheme, orangeTheme } from './tokens.stylex';
 
 const DARK = '@media (prefers-color-scheme: dark)';
 const MOBILE = '@media (max-width: 700px)';
@@ -31,22 +25,19 @@ export default function XdsDemoPage() {
           ← Back to Theming Demos
         </a>
         <h1 {...stylex.props(s.title)}>
-          Design System <span {...stylex.props(s.titleAccent)}>Theming</span>{' '}
-          Demo
+          Design System <span {...stylex.props(s.titleAccent)}>Theming</span> Demo
         </h1>
         <p {...stylex.props(s.subtitle)}>
-          A showcase of three-tier token architecture (Primitives → Semantics →
-          Themes) written with{' '}
+          A showcase of three-tier token architecture (Primitives → Semantics → Themes) written with{' '}
           <a {...stylex.props(s.inlineLink)} href="/nested-demo">
             the nested APIs
           </a>
           .
         </p>
         <p {...stylex.props(s.subtitle)}>
-          Express three-tier token architecture natively in StyleX. Primitives
-          (defineConstsNested) feed into semantic tokens (defineVarsNested)
-          which are overridden by themes (createThemeNested). Switch themes to
-          re-skin everything.
+          Express three-tier token architecture natively in StyleX. Primitives (defineConstsNested)
+          feed into semantic tokens (defineVarsNested) which are overridden by themes
+          (createThemeNested). Switch themes to re-skin everything.
         </p>
       </header>
 
@@ -57,10 +48,7 @@ export default function XdsDemoPage() {
           {THEMES.map((t, i) => (
             <button
               key={t.name}
-              {...stylex.props(
-                s.pickerBtn,
-                i === themeIndex && s.pickerBtnActive,
-              )}
+              {...stylex.props(s.pickerBtn, i === themeIndex && s.pickerBtnActive)}
               onClick={() => setThemeIndex(i)}
             >
               {t.name}
@@ -115,9 +103,8 @@ export default function XdsDemoPage() {
       <section {...stylex.props(s.section)}>
         <h2 {...stylex.props(s.sectionTitle)}>Components</h2>
         <p {...stylex.props(s.sectionDesc)}>
-          Every component below references only{' '}
-          <code {...stylex.props(s.code)}>tokens.*</code> — no hard-coded
-          colors. Switching themes re-skins everything instantly.
+          Every component below references only <code {...stylex.props(s.code)}>tokens.*</code> — no
+          hard-coded colors. Switching themes re-skins everything instantly.
         </p>
 
         <div {...stylex.props(s.componentGrid)}>
@@ -159,14 +146,8 @@ export default function XdsDemoPage() {
           <div {...stylex.props(s.demoCard)}>
             <p {...stylex.props(s.demoLabel)}>Form Input</p>
             <div {...stylex.props(s.inputWrapper)}>
-              <input
-                {...stylex.props(s.input)}
-                placeholder="Type something…"
-                readOnly
-              />
-              <button {...stylex.props(s.btnPrimary, s.inputBtn)}>
-                Submit
-              </button>
+              <input {...stylex.props(s.input)} placeholder="Type something…" readOnly />
+              <button {...stylex.props(s.btnPrimary, s.inputBtn)}>Submit</button>
             </div>
           </div>
         </div>
@@ -176,8 +157,7 @@ export default function XdsDemoPage() {
       <section {...stylex.props(s.section)}>
         <h2 {...stylex.props(s.sectionTitle)}>Live Token Values</h2>
         <p {...stylex.props(s.sectionDesc)}>
-          These swatches reflect the current theme&apos;s semantic tokens in real
-          time.
+          These swatches reflect the current theme&apos;s semantic tokens in real time.
         </p>
         <div {...stylex.props(s.swatchGrid)}>
           {[
@@ -190,7 +170,7 @@ export default function XdsDemoPage() {
             { label: 'color.surface', style: s.swSurface },
             { label: 'color.surfaceHover', style: s.swSurfaceHover },
             { label: 'color.divider', style: s.swDivider },
-          ].map((item) => (
+          ].map(item => (
             <div key={item.label} {...stylex.props(s.swatchItem)}>
               <div {...stylex.props(s.swatch, item.style)} />
               <code {...stylex.props(s.swatchCode)}>{item.label}</code>

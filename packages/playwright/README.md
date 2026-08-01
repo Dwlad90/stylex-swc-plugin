@@ -1,6 +1,8 @@
 # Playwright test configuration with NAPI-RS StyleX compiler integration
 
-> Part of the [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme) workspace
+> Part of the
+> [StyleX SWC Plugin](https://github.com/Dwlad90/stylex-swc-plugin#readme)
+> workspace
 
 Playwright test configuration that enables visual regression testing for StyleX
 applications.

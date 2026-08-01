@@ -28,11 +28,10 @@ export default function NestedDemoPage() {
           Nested <span {...stylex.props(s.plus)}>APIs</span> Demo
         </h1>
         <p {...stylex.props(s.subtitle)}>
-          Experimental APIs for nested design tokens in StyleX. Define design
-          tokens as nested objects instead of flat key-value pairs — the
-          compiler flattens them into the same CSS with zero performance cost.
-          This lets you compose hierarchical token structures and themes across
-          packages.
+          Experimental APIs for nested design tokens in StyleX. Define design tokens as nested
+          objects instead of flat key-value pairs — the compiler flattens them into the same CSS
+          with zero performance cost. This lets you compose hierarchical token structures and themes
+          across packages.
         </p>
       </div>
 
@@ -58,7 +57,7 @@ export default function NestedDemoPage() {
             desc: 'Wrapper for conditional CSS at-rules (@media, @supports) that disambiguates from namespace keys.',
             file: 'tokens.stylex.ts',
           },
-        ].map((item) => (
+        ].map(item => (
           <div key={item.api} {...stylex.props(s.apiCard)}>
             <code {...stylex.props(s.apiName)}>{item.api}</code>
             <p {...stylex.props(s.apiDesc)}>{item.desc}</p>
@@ -76,10 +75,7 @@ export default function NestedDemoPage() {
           {THEMES.map((t, i) => (
             <button
               key={t.name}
-              {...stylex.props(
-                s.themeButton,
-                i === themeIndex && s.themeButtonActive,
-              )}
+              {...stylex.props(s.themeButton, i === themeIndex && s.themeButtonActive)}
               onClick={() => setThemeIndex(i)}
             >
               {t.name}
@@ -95,8 +91,8 @@ export default function NestedDemoPage() {
           Themed Badges
         </h2>
         <p {...stylex.props(s.sectionDesc)}>
-          Colors from <code {...stylex.props(s.code)}>tokens.badge.*</code>,
-          sizing from <code {...stylex.props(s.code)}>consts.badge.*</code>
+          Colors from <code {...stylex.props(s.code)}>tokens.badge.*</code>, sizing from{' '}
+          <code {...stylex.props(s.code)}>consts.badge.*</code>
         </p>
         <div {...stylex.props(s.badgeRow)}>
           <span {...stylex.props(s.badgeBase, s.badgeInfo)}>Info</span>
@@ -119,21 +115,15 @@ export default function NestedDemoPage() {
         <div {...stylex.props(s.cardGrid)}>
           <div {...stylex.props(s.demoCard)}>
             <p {...stylex.props(s.cardLabel)}>surface.card</p>
-            <p {...stylex.props(s.cardBody)}>
-              Background and shadow adapt to the selected theme.
-            </p>
+            <p {...stylex.props(s.cardBody)}>Background and shadow adapt to the selected theme.</p>
           </div>
           <div {...stylex.props(s.demoCard, s.demoCardHover)}>
             <p {...stylex.props(s.cardLabel)}>surface.hover</p>
-            <p {...stylex.props(s.cardBody)}>
-              Hover tint applied as a background color.
-            </p>
+            <p {...stylex.props(s.cardBody)}>Hover tint applied as a background color.</p>
           </div>
           <div {...stylex.props(s.demoCard, s.demoCardAccent)}>
             <p {...stylex.props(s.cardLabel)}>accent.*</p>
-            <p {...stylex.props(s.cardBody)}>
-              Border and label colored with nested accent tokens.
-            </p>
+            <p {...stylex.props(s.cardBody)}>Border and label colored with nested accent tokens.</p>
           </div>
         </div>
       </section>
@@ -142,10 +132,8 @@ export default function NestedDemoPage() {
       <section {...stylex.props(s.section)}>
         <div {...stylex.props(s.condHighlight)}>
           <p {...stylex.props(s.condHighlightText)}>
-            💡 Use the{' '}
-            <code {...stylex.props(s.code)}>unstable_conditional()</code>{' '}
-            wrapper for conditional CSS at-rules (
-            <code {...stylex.props(s.code)}>@media</code>,{' '}
+            💡 Use the <code {...stylex.props(s.code)}>unstable_conditional()</code> wrapper for
+            conditional CSS at-rules (<code {...stylex.props(s.code)}>@media</code>,{' '}
             <code {...stylex.props(s.code)}>@supports</code>) for type safety.
           </p>
           <pre {...stylex.props(s.condPre)}>
@@ -160,8 +148,7 @@ accent: cond({
 })`}
           </pre>
           <p {...stylex.props(s.condNote)}>
-            With cond() compiler knows `default` is a conditional rule not a
-            namespace
+            With cond() compiler knows `default` is a conditional rule not a namespace
           </p>
         </div>
       </section>
@@ -174,8 +161,8 @@ accent: cond({
           <strong>Design System Theming</strong>
           <br />
           <span {...stylex.props(s.demoLinkSub)}>
-            Expressing the Primitives → Semantics → Themes three-tier design
-            system architecture using the nested APIs
+            Expressing the Primitives → Semantics → Themes three-tier design system architecture
+            using the nested APIs
           </span>
         </span>
         <span {...stylex.props(s.demoLinkArrow)}>→</span>

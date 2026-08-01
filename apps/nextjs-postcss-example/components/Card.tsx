@@ -1,10 +1,5 @@
 import * as stylex from '@stylexjs/stylex';
-import {
-  globalTokens as $,
-  spacing,
-  text,
-  colors,
-} from '@/app/globalTokens.stylex';
+import { globalTokens as $, spacing, text, colors } from '@/app/globalTokens.stylex';
 import { cardMarker, headingMarker } from './CardTokens.stylex';
 
 type Props = Readonly<{

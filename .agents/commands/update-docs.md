@@ -12,7 +12,8 @@ Update project documentation systematically: $ARGUMENTS
 
 - Documentation structure: !`find . -name "*.md" | head -10`
 - Specs directory: @specs/ (if exists), @docs/ (if exists)
-- Implementation status: !`grep -r "✅\|❌\|⚠️" docs/ specs/ 2>/dev/null | wc -l` status indicators
+- Implementation status:
+  !`grep -r "✅\|❌\|⚠️" docs/ specs/ 2>/dev/null | wc -l` status indicators
 - Recent changes: !`git log --oneline --since="1 week ago" -- "*.md" | head -5`
 - Project progress: @AGENTS.md or @README.md (if exists)
 
@@ -23,17 +24,21 @@ Update project documentation systematically: $ARGUMENTS
 1. Review current documentation status:
    - Check `specs/implementation_status.md` for overall project status
    - Review implemented phase document (`specs/phase{N}_implementation_plan.md`)
-   - Review `specs/flutter_structurizr_implementation_spec.md` and `specs/flutter_structurizr_implementation_spec_updated.md`
-   - Review `specs/testing_plan.md` to ensure it is current given recent test passes, failures, and changes
+   - Review `specs/flutter_structurizr_implementation_spec.md` and
+     `specs/flutter_structurizr_implementation_spec_updated.md`
+   - Review `specs/testing_plan.md` to ensure it is current given recent test
+     passes, failures, and changes
    - Examine `AGENTS.md` and `README.md` for project-wide documentation
-   - Check for and document any new lessons learned or best practices in AGENTS.md
+   - Check for and document any new lessons learned or best practices in
+     AGENTS.md
 
 2. Analyze implementation and testing results:
    - Review what was implemented in the last phase
    - Review testing results and coverage
    - Identify new best practices discovered during implementation
    - Note any implementation challenges and solutions
-   - Cross-reference updated documentation with recent implementation and test results to ensure accuracy
+   - Cross-reference updated documentation with recent implementation and test
+     results to ensure accuracy
 
 ## Documentation Updates
 
@@ -44,7 +49,8 @@ Update project documentation systematically: $ARGUMENTS
    - Document any deviations from original plan with justification
    - Add new sections if needed (lessons learned, best practices)
    - Document specific implementation details for complex components
-   - Include a summary of any new troubleshooting tips or workflow improvements discovered during the phase
+   - Include a summary of any new troubleshooting tips or workflow improvements
+     discovered during the phase
 
 2. Update implementation status document:
    - Update phase completion percentages
@@ -54,7 +60,8 @@ Update project documentation systematically: $ARGUMENTS
    - Note any challenges overcome and solutions implemented
 
 3. Update implementation specification documents:
-   - Mark completed items with ✅ or strikethrough but preserve original requirements
+   - Mark completed items with ✅ or strikethrough but preserve original
+     requirements
    - Add notes on implementation details where appropriate
    - Add references to implemented files and classes
    - Update any implementation guidance based on experience
@@ -99,6 +106,7 @@ Update project documentation systematically: $ARGUMENTS
 - Ensure documentation reflects actual implementation
 
 Provide a summary of documentation updates after completion, including:
+
 1. Files updated
 2. Major changes to documentation
 3. Updated completion percentages

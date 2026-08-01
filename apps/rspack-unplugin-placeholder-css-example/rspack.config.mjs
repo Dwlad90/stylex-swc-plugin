@@ -1,10 +1,10 @@
-import styleXRSPlugin from '@stylexswc/unplugin/rspack'
-import path from 'node:path'
-import rspack from '@rspack/core'
+import styleXRSPlugin from '@stylexswc/unplugin/rspack';
+import path from 'node:path';
+import rspack from '@rspack/core';
 
-const isDev = process.env.NODE_ENV === 'development'
+const isDev = process.env.NODE_ENV === 'development';
 
-const dirname = process.cwd()
+const dirname = process.cwd();
 
 export default {
   context: dirname,
@@ -45,7 +45,7 @@ export default {
               syntax: 'ecmascript',
               jsx: true,
             },
-            target: "es2015",
+            target: 'es2015',
             transform: {
               react: {
                 runtime: 'automatic',
@@ -86,7 +86,7 @@ export default {
               fullHeight: '100vh',
             },
           },
-          wrapper: (value) => `${value}`,
+          wrapper: value => `${value}`,
         },
       },
     }),
@@ -94,4 +94,4 @@ export default {
       template: 'public/index.html',
     }),
   ],
-}
+};

@@ -8,10 +8,9 @@ export default function CrossFileSection() {
         Cross-file import works: You can define your nested tokens in{' '}
         <code {...stylex.props(s.code)}>tokens.stylex.ts</code> and import{' '}
         <code {...stylex.props(s.code)}>tokens</code> /{' '}
-        <code {...stylex.props(s.code)}>consts</code> into any other file. The
-        nested member expressions like{' '}
-        <code {...stylex.props(s.code)}>tokens.badge.info.bg</code> resolve
-        across file boundaries.
+        <code {...stylex.props(s.code)}>consts</code> into any other file. The nested member
+        expressions like <code {...stylex.props(s.code)}>tokens.badge.info.bg</code> resolve across
+        file boundaries.
       </p>
       <div {...stylex.props(s.grid)}>
         <div {...stylex.props(s.card)}>

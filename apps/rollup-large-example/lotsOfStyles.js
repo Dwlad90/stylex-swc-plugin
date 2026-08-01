@@ -2067,13 +2067,11 @@ export const lotsOfStyles = [
   stylex.create({
     labelContainedIcon: {
       marginInlineStart: 8,
-      width:
-        'calc(var(--global-panel-width-expanded) - var(--global-panel-width) - 8px)',
+      width: 'calc(var(--global-panel-width-expanded) - var(--global-panel-width) - 8px)',
     },
     labelIcon: {
       marginInlineStart: 14,
-      width:
-        'calc(var(--global-panel-width-expanded) - var(--global-panel-width) - 14px)',
+      width: 'calc(var(--global-panel-width-expanded) - var(--global-panel-width) - 14px)',
     },
     pressable: {
       alignItems: 'center',
@@ -2103,8 +2101,7 @@ export const lotsOfStyles = [
   stylex.create({
     label: {
       marginInlineStart: 12,
-      width:
-        'calc(var(--global-panel-width-expanded) - var(--global-panel-width) - 12px)',
+      width: 'calc(var(--global-panel-width-expanded) - var(--global-panel-width) - 12px)',
       '@media (max-width: 1159px)': {
         display: 'none',
       },
@@ -3132,8 +3129,7 @@ export const lotsOfStyles = [
       backgroundColor: 'var(--primary-button-background)',
       borderStyle: 'none',
       borderRadius: 20,
-      boxShadow:
-        '0 8px 20px 0 var(--fds-black-alpha-30), 0 2px 4px 0 var(--fds-black-alpha-10)',
+      boxShadow: '0 8px 20px 0 var(--fds-black-alpha-30), 0 2px 4px 0 var(--fds-black-alpha-10)',
       cursor: 'pointer',
       display: 'flex',
       height: 40,
@@ -5190,8 +5186,7 @@ export const lotsOfStyles = [
       maxHeight: '100%',
     },
     selectedSwatch: {
-      boxShadow:
-        'inset 0 0 0 2px var(--primary-icon), inset 0 0 0 4px var(--card-background)',
+      boxShadow: 'inset 0 0 0 2px var(--primary-icon), inset 0 0 0 4px var(--card-background)',
     },
     sliderContainer: {
       backgroundColor: 'var(--card-background)',
@@ -5552,8 +5547,7 @@ export const lotsOfStyles = [
       width: '100%',
     },
     gradientDark: {
-      backgroundImage:
-        'linear-gradient(360deg, rgba(0, 0, 0, 1) 10%, rgba(0, 0, 0, 0) 100%)',
+      backgroundImage: 'linear-gradient(360deg, rgba(0, 0, 0, 1) 10%, rgba(0, 0, 0, 0) 100%)',
     },
     gradientLight: {
       backgroundImage:
@@ -5957,8 +5951,7 @@ export const lotsOfStyles = [
       transform: 'scale(0.98)',
     },
     selectedChoice: {
-      boxShadow:
-        'inset 0 0 0 2px var(--accent), inset 0 0 0 4px var(--background-deemphasized)',
+      boxShadow: 'inset 0 0 0 2px var(--accent), inset 0 0 0 4px var(--background-deemphasized)',
     },
   }),
   stylex.create({
@@ -6802,8 +6795,7 @@ export const lotsOfStyles = [
     error: {
       borderColor: 'var(--negative)',
       ':active': {
-        backgroundColor:
-          'hsla(var(--negative-h), var(--negative-s), var(--negative-l), 0.05)',
+        backgroundColor: 'hsla(var(--negative-h), var(--negative-s), var(--negative-l), 0.05)',
       },
     },
     headerMask: {
@@ -6836,8 +6828,7 @@ export const lotsOfStyles = [
       position: 'relative',
       zIndex: 0,
       ':active': {
-        backgroundColor:
-          'hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.05)',
+        backgroundColor: 'hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.05)',
       },
     },
     secondary: {
@@ -6861,8 +6852,7 @@ export const lotsOfStyles = [
     warn: {
       borderColor: 'var(--warning)',
       ':active': {
-        backgroundColor:
-          'hsla(var(--warning-h), var(--warning-s), var(--warning-l), 0.05)',
+        backgroundColor: 'hsla(var(--warning-h), var(--warning-s), var(--warning-l), 0.05)',
       },
     },
   }),
@@ -8207,8 +8197,7 @@ export const lotsOfStyles = [
       paddingBottom: 16,
     },
     hubImageBackground: {
-      backgroundImage:
-        'linear-gradient(to top, var(--web-wash), var(--primary-button-pressed))',
+      backgroundImage: 'linear-gradient(to top, var(--web-wash), var(--primary-button-pressed))',
     },
     textContainer: {
       backgroundColor: 'var(--base-blue)',
@@ -8905,8 +8894,7 @@ export const lotsOfStyles = [
   stylex.create({
     content: {
       boxSizing: 'border-box',
-      maxHeight:
-        'min(calc(100vh - 113px - (2 * var(--dialog-anchor-vertical-padding))), 587px)',
+      maxHeight: 'min(calc(100vh - 113px - (2 * var(--dialog-anchor-vertical-padding))), 587px)',
       overflowX: 'hidden',
       overflowY: 'scroll',
     },
@@ -8941,8 +8929,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     articleListContainer: {
-      maxHeight:
-        'min(calc(100vh - 165px - (2 * var(--dialog-anchor-vertical-padding))), 535px)',
+      maxHeight: 'min(calc(100vh - 165px - (2 * var(--dialog-anchor-vertical-padding))), 535px)',
       overflowY: 'scroll',
     },
     header: {
@@ -9627,8 +9614,7 @@ export const lotsOfStyles = [
       fontFamily: 'Helvetica, Arial, sans-serif !important',
     },
     segoe: {
-      fontFamily:
-        'Segoe UI Historic, Segoe UI, Helvetica, Arial, sans-serif !important',
+      fontFamily: 'Segoe UI Historic, Segoe UI, Helvetica, Arial, sans-serif !important',
     },
   }),
   stylex.create({
@@ -9739,14 +9725,12 @@ export const lotsOfStyles = [
       fontFamily: 'Karla, Helvetica, Arial, sans-serif !important',
     },
     segoe: {
-      fontFamily:
-        'Karla, Segoe UI Historic, Segoe UI, Helvetica, Arial, sans-serif !important',
+      fontFamily: 'Karla, Segoe UI Historic, Segoe UI, Helvetica, Arial, sans-serif !important',
     },
   }),
   stylex.create({
     body1: {
-      fontFamily:
-        'Rubik, Optimistic Display Light, system-ui, sans-serif !important',
+      fontFamily: 'Rubik, Optimistic Display Light, system-ui, sans-serif !important',
       fontSize: 24,
       fontWeight: 400,
     },
@@ -9776,46 +9760,39 @@ export const lotsOfStyles = [
       letterSpacing: -0.24,
     },
     body5: {
-      fontFamily:
-        'Rubik, Optimistic Display Light, system-ui, sans-serif !important',
+      fontFamily: 'Rubik, Optimistic Display Light, system-ui, sans-serif !important',
       fontSize: 15,
       fontWeight: 300,
       letterSpacing: 0,
     },
     headline1: {
-      fontFamily:
-        'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 28,
       fontWeight: 600,
     },
     headline2: {
-      fontFamily:
-        'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 24,
       fontWeight: 600,
     },
     headline3: {
-      fontFamily:
-        'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 20,
       fontWeight: 600,
     },
     headline4: {
-      fontFamily:
-        'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 17,
       fontWeight: 600,
     },
     homepageHeadline1: {
-      fontFamily:
-        'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 48,
       fontWeight: 400,
       letterSpacing: 0.5,
     },
     homepageHeadline2: {
-      fontFamily:
-        'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 32,
       fontWeight: 400,
       letterSpacing: 0.5,
@@ -9825,14 +9802,12 @@ export const lotsOfStyles = [
       fontWeight: 400,
     },
     meta2: {
-      fontFamily:
-        'Rubik, Optimistic Display Light, system-ui, sans-serif !important',
+      fontFamily: 'Rubik, Optimistic Display Light, system-ui, sans-serif !important',
       fontSize: 13,
       fontWeight: 300,
     },
     primaryLabel: {
-      fontFamily:
-        'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Rubik, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 18,
       fontWeight: 500,
     },
@@ -9859,8 +9834,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     body1: {
-      fontFamily:
-        'Lora, Optimistic Display Light, system-ui, sans-serif !important',
+      fontFamily: 'Lora, Optimistic Display Light, system-ui, sans-serif !important',
       fontSize: 24,
       fontWeight: 500,
     },
@@ -9885,44 +9859,37 @@ export const lotsOfStyles = [
       fontWeight: 700,
     },
     body5: {
-      fontFamily:
-        'Lora, Optimistic Display Light, system-ui, sans-serif !important',
+      fontFamily: 'Lora, Optimistic Display Light, system-ui, sans-serif !important',
       fontSize: 15,
       fontWeight: 500,
     },
     headline1: {
-      fontFamily:
-        'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 28,
       fontWeight: 700,
     },
     headline2: {
-      fontFamily:
-        'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 24,
       fontWeight: 700,
     },
     headline3: {
-      fontFamily:
-        'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 20,
       fontWeight: 700,
     },
     headline4: {
-      fontFamily:
-        'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 17,
       fontWeight: 700,
     },
     homepageHeadline1: {
-      fontFamily:
-        'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 48,
       fontWeight: 500,
     },
     homepageHeadline2: {
-      fontFamily:
-        'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 32,
       fontWeight: 500,
     },
@@ -9931,14 +9898,12 @@ export const lotsOfStyles = [
       fontWeight: 400,
     },
     meta2: {
-      fontFamily:
-        'Lora, Optimistic Display Light, system-ui, sans-serif !important',
+      fontFamily: 'Lora, Optimistic Display Light, system-ui, sans-serif !important',
       fontSize: 13,
       fontWeight: 500,
     },
     primaryLabel: {
-      fontFamily:
-        'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Lora, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 17,
       fontWeight: 600,
     },
@@ -9958,14 +9923,12 @@ export const lotsOfStyles = [
       fontFamily: 'Bitter, Helvetica, Arial, sans-serif !important',
     },
     segoe: {
-      fontFamily:
-        'Bitter, Segoe UI Historic, Segoe UI, Helvetica, Arial, sans-serif !important',
+      fontFamily: 'Bitter, Segoe UI Historic, Segoe UI, Helvetica, Arial, sans-serif !important',
     },
   }),
   stylex.create({
     body1: {
-      fontFamily:
-        'Bitter, Optimistic Display Light, system-ui, sans-serif !important',
+      fontFamily: 'Bitter, Optimistic Display Light, system-ui, sans-serif !important',
       fontSize: 24,
       fontWeight: 400,
     },
@@ -9992,45 +9955,38 @@ export const lotsOfStyles = [
       letterSpacing: 0.24,
     },
     body5: {
-      fontFamily:
-        'Bitter, Optimistic Display Light, system-ui, sans-serif !important',
+      fontFamily: 'Bitter, Optimistic Display Light, system-ui, sans-serif !important',
       fontSize: 15,
       fontWeight: 400,
       letterSpacing: 0.24,
     },
     headline1: {
-      fontFamily:
-        'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 28,
       fontWeight: 700,
     },
     headline2: {
-      fontFamily:
-        'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 24,
       fontWeight: 700,
     },
     headline3: {
-      fontFamily:
-        'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 20,
       fontWeight: 700,
     },
     headline4: {
-      fontFamily:
-        'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 17,
       fontWeight: 700,
     },
     homepageHeadline1: {
-      fontFamily:
-        'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 48,
       fontWeight: 500,
     },
     homepageHeadline2: {
-      fontFamily:
-        'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 32,
       fontWeight: 500,
     },
@@ -10039,14 +9995,12 @@ export const lotsOfStyles = [
       fontWeight: 400,
     },
     meta2: {
-      fontFamily:
-        'Bitter, Optimistic Display Light, system-ui, sans-serif !important',
+      fontFamily: 'Bitter, Optimistic Display Light, system-ui, sans-serif !important',
       fontSize: 13,
       fontWeight: 400,
     },
     primaryLabel: {
-      fontFamily:
-        'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Bitter, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 17,
       fontWeight: 600,
     },
@@ -10073,8 +10027,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     body1: {
-      fontFamily:
-        'Montserrat, Optimistic Display Light, system-ui, sans-serif !important',
+      fontFamily: 'Montserrat, Optimistic Display Light, system-ui, sans-serif !important',
       fontSize: 24,
       fontWeight: 300,
     },
@@ -10099,48 +10052,41 @@ export const lotsOfStyles = [
       fontWeight: 500,
     },
     body5: {
-      fontFamily:
-        'Montserrat, Optimistic Display Light, system-ui, sans-serif !important',
+      fontFamily: 'Montserrat, Optimistic Display Light, system-ui, sans-serif !important',
       fontSize: 14,
       fontWeight: 300,
     },
     headline1: {
-      fontFamily:
-        'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 28,
       fontWeight: 600,
       letterSpacing: -0.32,
     },
     headline2: {
-      fontFamily:
-        'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 24,
       fontWeight: 600,
       letterSpacing: -0.16,
     },
     headline3: {
-      fontFamily:
-        'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 20,
       fontWeight: 600,
       letterSpacing: -0.08,
     },
     headline4: {
-      fontFamily:
-        'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 16,
       fontWeight: 600,
       letterSpacing: -0.08,
     },
     homepageHeadline1: {
-      fontFamily:
-        'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 46,
       fontWeight: 400,
     },
     homepageHeadline2: {
-      fontFamily:
-        'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 30,
       fontWeight: 400,
     },
@@ -10149,14 +10095,12 @@ export const lotsOfStyles = [
       fontWeight: 400,
     },
     meta2: {
-      fontFamily:
-        'Montserrat, Optimistic Display Light, system-ui, sans-serif !important',
+      fontFamily: 'Montserrat, Optimistic Display Light, system-ui, sans-serif !important',
       fontSize: 13,
       fontWeight: 400,
     },
     primaryLabel: {
-      fontFamily:
-        'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
+      fontFamily: 'Montserrat, Optimistic Display Bold, system-ui, sans-serif !important',
       fontSize: 16,
       fontWeight: 500,
     },
@@ -10660,8 +10604,7 @@ export const lotsOfStyles = [
       borderTopStartRadius: 8,
     },
     boxShadowStyle: {
-      boxShadow:
-        '0px 1px 0px var(--hover-overlay), 0px 0px 8px var(--shadow-2)',
+      boxShadow: '0px 1px 0px var(--hover-overlay), 0px 0px 8px var(--shadow-2)',
     },
     heightStyle: {
       height: 64,
@@ -15415,8 +15358,7 @@ export const lotsOfStyles = [
       backgroundColor: 'var(--shadow-8)',
       borderRadius: 17.5,
       bottom: 0,
-      boxShadow:
-        '0 8px 20px 0 var(--fds-black-alpha-30), 0 2px 4px 0 var(--fds-black-alpha-10)',
+      boxShadow: '0 8px 20px 0 var(--fds-black-alpha-30), 0 2px 4px 0 var(--fds-black-alpha-10)',
       cursor: 'pointer',
       display: 'flex',
       height: 35,
@@ -15475,8 +15417,7 @@ export const lotsOfStyles = [
       backgroundColor: 'var(--always-dark-overlay)',
       borderRadius: 14,
       bottom: 0,
-      boxShadow:
-        '0 8px 20px 0 var(--always-dark-overlay), 0 2px 4px 0 var(--shadow-1)',
+      boxShadow: '0 8px 20px 0 var(--always-dark-overlay), 0 2px 4px 0 var(--shadow-1)',
       cursor: 'pointer',
       display: 'flex',
       height: 28,
@@ -15806,8 +15747,7 @@ export const lotsOfStyles = [
       borderStyle: 'solid',
       borderColor: 'var(--divider)',
       borderRadius: 8,
-      boxShadow:
-        '0 12px 12px var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
+      boxShadow: '0 12px 12px var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
       marginInline: 16,
       marginTop: -3,
       maxHeight: 512,
@@ -17687,8 +17627,7 @@ export const lotsOfStyles = [
       '@supports (padding: env(safe-area-inset-bottom, 0))': {
         paddingBottom:
           'calc(var(--dialog-anchor-vertical-padding) + env(safe-area-inset-bottom, 0))',
-        paddingTop:
-          'calc(var(--dialog-anchor-vertical-padding) + env(safe-area-inset-top, 0))',
+        paddingTop: 'calc(var(--dialog-anchor-vertical-padding) + env(safe-area-inset-top, 0))',
       },
     },
     anchorDvhWhenNarrow: {
@@ -19562,10 +19501,7 @@ export const lotsOfStyles = [
     },
     rootWithFooter: {
       '@media (min-width: 1024px)': {
-        maxHeight: [
-          'calc(100vh - var(--header-height))',
-          'calc(100dvh - var(--header-height))',
-        ],
+        maxHeight: ['calc(100vh - var(--header-height))', 'calc(100dvh - var(--header-height))'],
       },
     },
     scrollableArea: {
@@ -19987,142 +19923,112 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     apple: {
-      fontFamily:
-        'var(--body-font-family), var(--font-family-apple) !important',
+      fontFamily: 'var(--body-font-family), var(--font-family-apple) !important',
     },
     default: {
-      fontFamily:
-        'var(--body-font-family), var(--font-family-default) !important',
+      fontFamily: 'var(--body-font-family), var(--font-family-default) !important',
     },
     windows: {
-      fontFamily:
-        'var(--body-font-family), var(--font-family-segoe) !important',
+      fontFamily: 'var(--body-font-family), var(--font-family-segoe) !important',
     },
   }),
   stylex.create({
     apple: {
-      fontFamily:
-        'var(--body-emphasized-font-family), var(--font-family-apple) !important',
+      fontFamily: 'var(--body-emphasized-font-family), var(--font-family-apple) !important',
     },
     default: {
-      fontFamily:
-        'var(--body-emphasized-font-family), var(--font-family-default) !important',
+      fontFamily: 'var(--body-emphasized-font-family), var(--font-family-default) !important',
     },
     windows: {
-      fontFamily:
-        'var(--body-emphasized-font-family), var(--font-family-segoe) !important',
+      fontFamily: 'var(--body-emphasized-font-family), var(--font-family-segoe) !important',
     },
   }),
   stylex.create({
     apple: {
-      fontFamily:
-        'var(--headline1-font-family), var(--font-family-apple) !important',
+      fontFamily: 'var(--headline1-font-family), var(--font-family-apple) !important',
     },
     default: {
-      fontFamily:
-        'var(--headline1-font-family), var(--font-family-default) !important',
+      fontFamily: 'var(--headline1-font-family), var(--font-family-default) !important',
     },
     windows: {
-      fontFamily:
-        'var(--headline1-font-family), var(--font-family-segoe) !important',
+      fontFamily: 'var(--headline1-font-family), var(--font-family-segoe) !important',
     },
   }),
   stylex.create({
     apple: {
-      fontFamily:
-        'var(--headline2-font-family), var(--font-family-apple) !important',
+      fontFamily: 'var(--headline2-font-family), var(--font-family-apple) !important',
     },
     default: {
-      fontFamily:
-        'var(--headline2-font-family), var(--font-family-default) !important',
+      fontFamily: 'var(--headline2-font-family), var(--font-family-default) !important',
     },
     windows: {
-      fontFamily:
-        'var(--headline2-font-family), var(--font-family-segoe) !important',
+      fontFamily: 'var(--headline2-font-family), var(--font-family-segoe) !important',
     },
   }),
   stylex.create({
     apple: {
-      fontFamily:
-        'var(--headline3-font-family), var(--font-family-apple) !important',
+      fontFamily: 'var(--headline3-font-family), var(--font-family-apple) !important',
     },
     default: {
-      fontFamily:
-        'var(--headline3-font-family), var(--font-family-default) !important',
+      fontFamily: 'var(--headline3-font-family), var(--font-family-default) !important',
     },
     windows: {
-      fontFamily:
-        'var(--headline3-font-family), var(--font-family-segoe) !important',
+      fontFamily: 'var(--headline3-font-family), var(--font-family-segoe) !important',
     },
   }),
   stylex.create({
     apple: {
-      fontFamily:
-        'var(--meta-font-family), var(--font-family-apple) !important',
+      fontFamily: 'var(--meta-font-family), var(--font-family-apple) !important',
     },
     default: {
-      fontFamily:
-        'var(--meta-font-family), var(--font-family-default) !important',
+      fontFamily: 'var(--meta-font-family), var(--font-family-default) !important',
     },
     windows: {
-      fontFamily:
-        'var(--meta-font-family), var(--font-family-segoe) !important',
+      fontFamily: 'var(--meta-font-family), var(--font-family-segoe) !important',
     },
   }),
   stylex.create({
     apple: {
-      fontFamily:
-        'var(--meta-emphasized-font-family), var(--font-family-apple) !important',
+      fontFamily: 'var(--meta-emphasized-font-family), var(--font-family-apple) !important',
     },
     default: {
-      fontFamily:
-        'var(--meta-emphasized-font-family), var(--font-family-default) !important',
+      fontFamily: 'var(--meta-emphasized-font-family), var(--font-family-default) !important',
     },
     windows: {
-      fontFamily:
-        'var(--meta-emphasized-font-family), var(--font-family-segoe) !important',
+      fontFamily: 'var(--meta-emphasized-font-family), var(--font-family-segoe) !important',
     },
   }),
   stylex.create({
     apple: {
-      fontFamily:
-        'var(--primary-label-font-family), var(--font-family-apple) !important',
+      fontFamily: 'var(--primary-label-font-family), var(--font-family-apple) !important',
     },
     default: {
-      fontFamily:
-        'var(--primary-label-font-family), var(--font-family-default) !important',
+      fontFamily: 'var(--primary-label-font-family), var(--font-family-default) !important',
     },
     windows: {
-      fontFamily:
-        'var(--primary-label-font-family), var(--font-family-segoe) !important',
+      fontFamily: 'var(--primary-label-font-family), var(--font-family-segoe) !important',
     },
   }),
   stylex.create({
     apple: {
-      fontFamily:
-        'var(--secondary-label-font-family), var(--font-family-apple) !important',
+      fontFamily: 'var(--secondary-label-font-family), var(--font-family-apple) !important',
     },
     default: {
-      fontFamily:
-        'var(--secondary-label-font-family), var(--font-family-default) !important',
+      fontFamily: 'var(--secondary-label-font-family), var(--font-family-default) !important',
     },
     windows: {
-      fontFamily:
-        'var(--secondary-label-font-family), var(--font-family-segoe) !important',
+      fontFamily: 'var(--secondary-label-font-family), var(--font-family-segoe) !important',
     },
   }),
   stylex.create({
     apple: {
-      fontFamily:
-        'var(--tertiary-label-font-family), var(--font-family-apple) !important',
+      fontFamily: 'var(--tertiary-label-font-family), var(--font-family-apple) !important',
     },
     default: {
-      fontFamily:
-        'var(--tertiary-label-font-family), var(--font-family-default) !important',
+      fontFamily: 'var(--tertiary-label-font-family), var(--font-family-default) !important',
     },
     windows: {
-      fontFamily:
-        'var(--tertiary-label-font-family), var(--font-family-segoe) !important',
+      fontFamily: 'var(--tertiary-label-font-family), var(--font-family-segoe) !important',
     },
   }),
   stylex.create({
@@ -20169,8 +20075,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     input: {
-      fontFamily:
-        'var(--text-input-field-font-family), system-ui, sans-serif !important',
+      fontFamily: 'var(--text-input-field-font-family), system-ui, sans-serif !important',
       ':disabled': {
         color: 'var(--secondary-text)',
         opacity: 1,
@@ -20214,8 +20119,7 @@ export const lotsOfStyles = [
       boxShadow: 'inset 0 0 0 1px var(--media-inner-border)',
     },
     input: {
-      fontFamily:
-        'var(--text-input-field-font-family), system-ui, sans-serif !important',
+      fontFamily: 'var(--text-input-field-font-family), system-ui, sans-serif !important',
       '::-ms-reveal': {
         display: 'none',
       },
@@ -21299,13 +21203,11 @@ export const lotsOfStyles = [
       },
     },
     newFocused: {
-      boxShadow:
-        '0 0px 0px 2px var(--always-white), 0 0 0 4px var(--base-blue)',
+      boxShadow: '0 0px 0px 2px var(--always-white), 0 0 0 4px var(--base-blue)',
       outline: 'none',
     },
     newFocusedInset: {
-      boxShadow:
-        'inset 0 0 0 2px var(--base-blue), inset 0 0px 0px 4px var(--always-white)',
+      boxShadow: 'inset 0 0 0 2px var(--base-blue), inset 0 0px 0px 4px var(--always-white)',
       outline: 'none',
     },
     newFocusedLink: {
@@ -22805,8 +22707,7 @@ export const lotsOfStyles = [
     },
     thumbFocusVisible: {
       borderColor: 'var(--accent)',
-      boxShadow:
-        '0 0 0 3px hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2) inset',
+      boxShadow: '0 0 0 3px hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2) inset',
     },
     thumbWrapper: {
       marginInlineEnd: 10,
@@ -23104,12 +23005,10 @@ export const lotsOfStyles = [
     labelShrunk: {
       color: 'var(--secondary-text)',
       end: 'auto',
-      fontFamily:
-        'var(--text-input-label-font-family), var(--font-family-default)',
+      fontFamily: 'var(--text-input-label-font-family), var(--font-family-default)',
       fontWeight: 'var(--text-input-label-font-weight)',
       lineHeight: 'var(--text-input-label-line-height)',
-      transform:
-        'scale(var(--text-input-label-font-size-scale-multiplier)) translateY(-13px)',
+      transform: 'scale(var(--text-input-label-font-size-scale-multiplier)) translateY(-13px)',
       transitionTimingFunction: 'var(--fds-animation-move-out)',
     },
     root: {
@@ -23145,8 +23044,7 @@ export const lotsOfStyles = [
       marginTop: 18,
       minHeight: 44,
       minWidth: 0,
-      paddingInlineEnd:
-        'var(--text-input-multi-padding-between-text-scrollbar)',
+      paddingInlineEnd: 'var(--text-input-multi-padding-between-text-scrollbar)',
       paddingTop: 0,
       resize: 'none',
       textOverflow: 'ellipsis',
@@ -23191,12 +23089,10 @@ export const lotsOfStyles = [
       ':autofill + label': {
         color: 'var(--secondary-text)',
         end: 'auto',
-        fontFamily:
-          'var(--text-input-label-font-family), var(--font-family-default)',
+        fontFamily: 'var(--text-input-label-font-family), var(--font-family-default)',
         fontWeight: 'var(--text-input-label-font-weight)',
         lineHeight: 'var(--text-input-label-line-height)',
-        transform:
-          'scale(var(--text-input-label-font-size-scale-multiplier)) translateY(-13px)',
+        transform: 'scale(var(--text-input-label-font-size-scale-multiplier)) translateY(-13px)',
         transitionTimingFunction: 'var(--fds-animation-move-out)',
       },
     },
@@ -29186,8 +29082,7 @@ export const lotsOfStyles = [
       '@supports (padding: env(safe-area-inset-bottom, 0))': {
         paddingBottom:
           'calc(var(--dialog-anchor-vertical-padding) + env(safe-area-inset-bottom, 0))',
-        paddingTop:
-          'calc(var(--dialog-anchor-vertical-padding) + env(safe-area-inset-top, 0))',
+        paddingTop: 'calc(var(--dialog-anchor-vertical-padding) + env(safe-area-inset-top, 0))',
       },
     },
     card: {
@@ -30001,8 +29896,7 @@ export const lotsOfStyles = [
       borderStyle: 'solid',
       borderColor: 'var(--divider)',
       borderRadius: 8,
-      boxShadow:
-        '0 12px 12px var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
+      boxShadow: '0 12px 12px var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',
@@ -30294,12 +30188,10 @@ export const lotsOfStyles = [
       ':focus': {
         backgroundColor: 'transparent',
         borderColor: 'var(--accent)',
-        boxShadow:
-          '0 0 0 3px hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2) inset',
+        boxShadow: '0 0 0 3px hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.2) inset',
       },
       ':hover': {
-        backgroundImage:
-          'linear-gradient(var(--hover-overlay), var(--hover-overlay))',
+        backgroundImage: 'linear-gradient(var(--hover-overlay), var(--hover-overlay))',
       },
     },
   }),
@@ -30389,8 +30281,7 @@ export const lotsOfStyles = [
     error: {
       borderColor: 'var(--negative)',
       ':active': {
-        backgroundColor:
-          'hsla(var(--negative-h), var(--negative-s), var(--negative-l), 0.05)',
+        backgroundColor: 'hsla(var(--negative-h), var(--negative-s), var(--negative-l), 0.05)',
       },
     },
     errorFocused: {
@@ -30398,8 +30289,7 @@ export const lotsOfStyles = [
         '0 0 0 3px hsla(var(--negative-h), var(--negative-s), var(--negative-l), 0.2) inset',
     },
     errorHovered: {
-      backgroundColor:
-        'hsla(var(--negative-h), var(--negative-s), var(--negative-l), 0.05)',
+      backgroundColor: 'hsla(var(--negative-h), var(--negative-s), var(--negative-l), 0.05)',
     },
     headerMask: {
       backgroundColor: 'var(--input-background)',
@@ -30487,8 +30377,7 @@ export const lotsOfStyles = [
       position: 'relative',
       zIndex: 0,
       ':active': {
-        backgroundColor:
-          'hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.05)',
+        backgroundColor: 'hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.05)',
       },
     },
     secondary: {
@@ -30510,17 +30399,14 @@ export const lotsOfStyles = [
     warn: {
       borderColor: 'var(--warning)',
       ':active': {
-        backgroundColor:
-          'hsla(var(--warning-h), var(--warning-s), var(--warning-l), 0.05)',
+        backgroundColor: 'hsla(var(--warning-h), var(--warning-s), var(--warning-l), 0.05)',
       },
     },
     warnFocused: {
-      boxShadow:
-        '0 0 0 3px hsla(var(--warning-h), var(--warning-s), var(--warning-l), 0.2) inset',
+      boxShadow: '0 0 0 3px hsla(var(--warning-h), var(--warning-s), var(--warning-l), 0.2) inset',
     },
     warnHovered: {
-      backgroundColor:
-        'hsla(var(--warning-h), var(--warning-s), var(--warning-l), 0.05)',
+      backgroundColor: 'hsla(var(--warning-h), var(--warning-s), var(--warning-l), 0.05)',
     },
   }),
   stylex.create({
@@ -35493,8 +35379,7 @@ export const lotsOfStyles = [
       borderColor: 'var(--divider)',
     },
     selectedInMenuBar: {
-      boxShadow:
-        'inset 0 0 0 2px var(--always-white), 0px 0px 4px 0px var(--media-inner-border)',
+      boxShadow: 'inset 0 0 0 2px var(--always-white), 0px 0px 4px 0px var(--media-inner-border)',
     },
     shadowOnSATP: {
       boxShadow: '0 2px 12px var(--media-inner-border)',
@@ -35773,8 +35658,7 @@ export const lotsOfStyles = [
     },
     selected: {
       borderWidth: 0,
-      boxShadow:
-        'inset 0 0 0 2px var(--media-outer-border), 0px 0px 5px 0px var(--shadow-2)',
+      boxShadow: 'inset 0 0 0 2px var(--media-outer-border), 0px 0px 5px 0px var(--shadow-2)',
     },
     shadowOnSATP: {
       boxShadow: '0 2px 12px var(--media-inner-border)',
@@ -42033,8 +41917,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     root: {
-      backgroundImage:
-        'linear-gradient(to top, var(--web-wash), var(--primary-button-pressed))',
+      backgroundImage: 'linear-gradient(to top, var(--web-wash), var(--primary-button-pressed))',
       height: 324,
     },
   }),
@@ -45523,8 +45406,7 @@ export const lotsOfStyles = [
       height: '120%',
     },
     shortLine: {
-      backgroundImage:
-        'linear-gradient(var(--divider), var(--card-background))',
+      backgroundImage: 'linear-gradient(var(--divider), var(--card-background))',
       height: '95%',
       marginInlineStart: 3,
       width: 1,
@@ -54007,8 +53889,7 @@ export const lotsOfStyles = [
       borderTopStyle: 'solid',
       borderTopColor: 'var(--divider)',
       bottom: '0px',
-      boxShadow:
-        '0 0 10px 0 var(--media-inner-border), 0 0 20px 0 var(--fds-black-alpha-15)',
+      boxShadow: '0 0 10px 0 var(--media-inner-border), 0 0 20px 0 var(--fds-black-alpha-15)',
       display: 'flex',
       justifyContent: 'center',
       minHeight: '70px',
@@ -55337,8 +55218,7 @@ export const lotsOfStyles = [
       transform: 'translateX(-50%)',
     },
     overlayGradient: {
-      backgroundImage:
-        'linear-gradient(to top, var(--shadow-8) 0%, transparent 66%)',
+      backgroundImage: 'linear-gradient(to top, var(--shadow-8) 0%, transparent 66%)',
       bottom: 0,
       end: 0,
       position: 'absolute',
@@ -59316,8 +59196,7 @@ export const lotsOfStyles = [
   stylex.create({
     error: {
       ':active': {
-        backgroundColor:
-          'hsla(var(--negative-h), var(--negative-s), var(--negative-l), 0.05)',
+        backgroundColor: 'hsla(var(--negative-h), var(--negative-s), var(--negative-l), 0.05)',
       },
     },
     input: {
@@ -62171,8 +62050,7 @@ export const lotsOfStyles = [
       position: 'absolute',
       width: '100%',
       ':-webkit-autofill': {
-        '-webkit-box-shadow':
-          '0 0 0 50px rgb(var(--ig-secondary-background)) inset',
+        '-webkit-box-shadow': '0 0 0 50px rgb(var(--ig-secondary-background)) inset',
         borderWidth: 1,
         borderStyle: 'solid',
         borderBottomColor: 'rgb(var(--ig-separator))',
@@ -67178,8 +67056,7 @@ export const lotsOfStyles = [
     },
     overlay: {
       alignItems: 'flex-end',
-      backgroundImage:
-        'linear-gradient(0deg, var(--hover-overlay) 0%, transparent 100%)',
+      backgroundImage: 'linear-gradient(0deg, var(--hover-overlay) 0%, transparent 100%)',
       backgroundPosition: '0 0',
       backgroundRepeat: 'repeat-x',
       bottom: 0,
@@ -67595,8 +67472,7 @@ export const lotsOfStyles = [
       },
     },
     mediaCaptionStyle: {
-      backgroundImage:
-        'linear-gradient(to top, var(--always-dark-overlay), transparent)',
+      backgroundImage: 'linear-gradient(to top, var(--always-dark-overlay), transparent)',
       bottom: 0,
       end: 0,
       padding: 12,
@@ -69512,8 +69388,7 @@ export const lotsOfStyles = [
       position: 'relative',
     },
     postImageGradient: {
-      backgroundImage:
-        'linear-gradient(rgba(238, 238, 238, 0) 60%, rgba(0, 0, 0, 0.6) 100%)',
+      backgroundImage: 'linear-gradient(rgba(238, 238, 238, 0) 60%, rgba(0, 0, 0, 0.6) 100%)',
       bottom: 0,
       end: 0,
       position: 'absolute',
@@ -69708,8 +69583,7 @@ export const lotsOfStyles = [
       width: 24,
     },
     gradientBackground: {
-      backgroundImage:
-        'radial-gradient(circle, transparent 0%, var(--base-teal) 100%)',
+      backgroundImage: 'radial-gradient(circle, transparent 0%, var(--base-teal) 100%)',
       borderRadius: '50%',
       height: '150px',
       width: '150px',
@@ -72422,8 +72296,7 @@ export const lotsOfStyles = [
       position: 'relative',
     },
     fadeOut: {
-      backgroundImage:
-        'linear-gradient(transparent, var(--surface-background))',
+      backgroundImage: 'linear-gradient(transparent, var(--surface-background))',
       bottom: 0,
       end: 0,
       height: 100,
@@ -72433,8 +72306,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     fadeOut: {
-      backgroundImage:
-        'linear-gradient(transparent, var(--surface-background))',
+      backgroundImage: 'linear-gradient(transparent, var(--surface-background))',
       bottom: 0,
       end: 0,
       height: 100,
@@ -75624,8 +75496,7 @@ export const lotsOfStyles = [
       borderTopStyle: 'solid',
       borderTopColor: 'var(--divider)',
       bottom: '0px',
-      boxShadow:
-        '0 0 10px 0 var(--media-inner-border), 0 0 20px 0 var(--fds-black-alpha-15)',
+      boxShadow: '0 0 10px 0 var(--media-inner-border), 0 0 20px 0 var(--fds-black-alpha-15)',
       display: 'flex',
       justifyContent: 'center',
       minHeight: '70px',
@@ -80644,10 +80515,9 @@ export const lotsOfStyles = [
       top: '40%',
       transform: 'translate(-50%, -50%)',
       width: '50%',
-      '@media screen and (min-aspect-ratio: 19/9) and (orientation: landscape)':
-        {
-          width: '25%',
-        },
+      '@media screen and (min-aspect-ratio: 19/9) and (orientation: landscape)': {
+        width: '25%',
+      },
       '@media screen and (orientation: portrait)': {
         width: '70%',
       },
@@ -80675,16 +80545,14 @@ export const lotsOfStyles = [
   stylex.keyframes({
     '0%': {
       opacity: 0,
-      transform:
-        'translate(10.800000px,13.200000px) rotate(-180deg) scale(-0.010000,0.010000)',
+      transform: 'translate(10.800000px,13.200000px) rotate(-180deg) scale(-0.010000,0.010000)',
     },
     '6.66%': {
       opacity: 1,
     },
     '100%': {
       opacity: 1,
-      transform:
-        'translate(8.400000px,15.600000px) rotate(-180deg) scale(-0.030000,0.030000)',
+      transform: 'translate(8.400000px,15.600000px) rotate(-180deg) scale(-0.030000,0.030000)',
     },
   }),
   stylex.keyframes({
@@ -80740,16 +80608,14 @@ export const lotsOfStyles = [
   stylex.keyframes({
     '0%': {
       opacity: 0,
-      transform:
-        'translate(8.000000px,8.200000px) rotate(-180deg) scale(-0.020000,-0.020000)',
+      transform: 'translate(8.000000px,8.200000px) rotate(-180deg) scale(-0.020000,-0.020000)',
     },
     '6.66%': {
       opacity: 1,
     },
     '100%': {
       opacity: 1,
-      transform:
-        'translate(5.200000px,10.600000px) rotate(-180deg) scale(-0.040000,-0.040000)',
+      transform: 'translate(5.200000px,10.600000px) rotate(-180deg) scale(-0.040000,-0.040000)',
     },
   }),
   stylex.keyframes({
@@ -82313,8 +82179,7 @@ export const lotsOfStyles = [
       position: 'fixed',
       start: 0,
       top: 0,
-      width:
-        'calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right))',
+      width: 'calc(100% - env(safe-area-inset-left) - env(safe-area-inset-right))',
     },
     progressArea: {
       backgroundColor: 'linear-gradient(var(--fds-gray-80), transparent)',
@@ -83068,8 +82933,7 @@ export const lotsOfStyles = [
       width: '100%',
     },
     gamesIcon: {
-      backgroundImage:
-        'url(asset:fbIcon/app-instant-games_filled_24_primary-icon-on-media)',
+      backgroundImage: 'url(asset:fbIcon/app-instant-games_filled_24_primary-icon-on-media)',
       end: '50%',
       height: '24px',
       position: 'absolute',
@@ -90228,8 +90092,7 @@ export const lotsOfStyles = [
     },
     content: {
       alignItems: 'center',
-      backgroundImage:
-        'linear-gradient(131.81deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 29.85%)',
+      backgroundImage: 'linear-gradient(131.81deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 29.85%)',
       display: 'flex',
       justifyContent: 'center',
       zIndex: 0,
@@ -99988,8 +99851,7 @@ export const lotsOfStyles = [
       width: 46,
     },
     selectedColor: {
-      boxShadow:
-        '0px 4px 8px 0px var(--shadow-2), 0px 0px 0px 2px var(--accent)',
+      boxShadow: '0px 4px 8px 0px var(--shadow-2), 0px 0px 0px 2px var(--accent)',
       height: 46,
       width: 46,
     },
@@ -100351,8 +100213,7 @@ export const lotsOfStyles = [
       height: '100%',
     },
     rateLimitingText: {
-      boxShadow:
-        '0px -1px 8px 0px var(--shadow-2), 0px -1px 0px 0px var(--shadow-1)',
+      boxShadow: '0px -1px 8px 0px var(--shadow-2), 0px -1px 0px 0px var(--shadow-1)',
       paddingInline: 16,
       paddingBlock: 16,
     },
@@ -108638,8 +108499,7 @@ export const lotsOfStyles = [
     card: {
       backgroundColor: 'var(--surface-background)',
       borderRadius: 8,
-      boxShadow:
-        '0 2px 8px 0 var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
+      boxShadow: '0 2px 8px 0 var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
       marginBottom: 8,
       overflow: 'hidden',
       padding: 12,
@@ -117753,8 +117613,7 @@ export const lotsOfStyles = [
       position: 'relative',
       zIndex: 0,
       ':active': {
-        backgroundColor:
-          'hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.05)',
+        backgroundColor: 'hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.05)',
       },
     },
   }),
@@ -119332,8 +119191,7 @@ export const lotsOfStyles = [
       '@supports (padding: env(safe-area-inset-bottom, 0))': {
         paddingBottom:
           'calc(var(--dialog-anchor-vertical-padding) + env(safe-area-inset-bottom, 0))',
-        paddingTop:
-          'calc(var(--dialog-anchor-vertical-padding) + env(safe-area-inset-top, 0))',
+        paddingTop: 'calc(var(--dialog-anchor-vertical-padding) + env(safe-area-inset-top, 0))',
       },
     },
     card: {
@@ -120658,8 +120516,7 @@ export const lotsOfStyles = [
     },
     header: {
       backgroundColor: 'var(--fds-blue-70)',
-      backgroundImage:
-        'url(/images/video/onboarding/onboardingFlow-starBg.png)',
+      backgroundImage: 'url(/images/video/onboarding/onboardingFlow-starBg.png)',
       backgroundPosition: 'right 15px top 15px',
       backgroundRepeat: 'no-repeat',
       boxSizing: 'border-box',
@@ -120690,8 +120547,7 @@ export const lotsOfStyles = [
       borderTopStyle: 'solid',
       borderTopColor: 'var(--fds-gray-75)',
       bottom: 0,
-      boxShadow:
-        '0 0 10px 0 var(--fds-black-alpha-10), 0 0 20px 0 var(--fds-black-alpha-15)',
+      boxShadow: '0 0 10px 0 var(--fds-black-alpha-10), 0 0 20px 0 var(--fds-black-alpha-15)',
       boxSizing: 'border-box',
       height: 60,
       paddingInline: 20,
@@ -120839,26 +120695,20 @@ export const lotsOfStyles = [
       justifyContent: 'space-between',
       '@media (max-width: 1365px)': {
         height: 'var(--hz-nav-bar-profile-dropdown-height-small)',
-        paddingInlineEnd:
-          'var(--hz-nav-bar-profile-dropdown-padding-end-small)',
-        paddingInlineStart:
-          'var(--hz-nav-bar-profile-dropdown-padding-start-small)',
+        paddingInlineEnd: 'var(--hz-nav-bar-profile-dropdown-padding-end-small)',
+        paddingInlineStart: 'var(--hz-nav-bar-profile-dropdown-padding-start-small)',
         width: 'var(--hz-nav-bar-profile-dropdown-width-small)',
       },
       '@media (min-width: 1366px) and (max-width: 1919px)': {
         height: 'var(--hz-nav-bar-profile-dropdown-height-medium)',
-        paddingInlineEnd:
-          'var(--hz-nav-bar-profile-dropdown-padding-end-medium)',
-        paddingInlineStart:
-          'var(--hz-nav-bar-profile-dropdown-padding-start-medium)',
+        paddingInlineEnd: 'var(--hz-nav-bar-profile-dropdown-padding-end-medium)',
+        paddingInlineStart: 'var(--hz-nav-bar-profile-dropdown-padding-start-medium)',
         width: 'var(--hz-nav-bar-profile-dropdown-width-medium)',
       },
       '@media (min-width: 1920px)': {
         height: 'var(--hz-nav-bar-profile-dropdown-height-large)',
-        paddingInlineEnd:
-          'var(--hz-nav-bar-profile-dropdown-padding-end-large)',
-        paddingInlineStart:
-          'var(--hz-nav-bar-profile-dropdown-padding-start-large)',
+        paddingInlineEnd: 'var(--hz-nav-bar-profile-dropdown-padding-end-large)',
+        paddingInlineStart: 'var(--hz-nav-bar-profile-dropdown-padding-start-large)',
         width: 'var(--hz-nav-bar-profile-dropdown-width-large)',
       },
     },
@@ -121718,8 +121568,7 @@ export const lotsOfStyles = [
       },
       '@media (min-width: 1920px)': {
         height: '216px',
-        margin:
-          'var(--hz-shelf-header-margin-bottom-1920) var(--hds-grid-system-margin)',
+        margin: 'var(--hz-shelf-header-margin-bottom-1920) var(--hds-grid-system-margin)',
         width: '230px',
       },
     },
@@ -121733,8 +121582,7 @@ export const lotsOfStyles = [
       },
       '@media (min-width: 1920px)': {
         height: '216px',
-        margin:
-          'var(--hz-shelf-header-margin-bottom-1920) var(--hds-grid-system-margin)',
+        margin: 'var(--hz-shelf-header-margin-bottom-1920) var(--hds-grid-system-margin)',
         width: '230px',
       },
     },
@@ -121775,8 +121623,7 @@ export const lotsOfStyles = [
       },
       '@media (min-width: 1920px)': {
         height: '216px',
-        margin:
-          'var(--hz-shelf-header-margin-bottom-1920) var(--hds-grid-system-margin)',
+        margin: 'var(--hz-shelf-header-margin-bottom-1920) var(--hds-grid-system-margin)',
         width: '230px',
       },
     },
@@ -122579,8 +122426,7 @@ export const lotsOfStyles = [
       userSelect: 'none',
       width: '100%',
       '::after': {
-        backgroundImage:
-          'linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.5) 100%)',
+        backgroundImage: 'linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.5) 100%)',
         bottom: '0',
         content: ' ',
         end: '0',
@@ -124821,8 +124667,7 @@ export const lotsOfStyles = [
       fontFamily: 'Helvetica, Arial, sans-serif !important',
     },
     segoe: {
-      fontFamily:
-        'Segoe UI Historic, Segoe UI, Helvetica, Arial, sans-serif !important',
+      fontFamily: 'Segoe UI Historic, Segoe UI, Helvetica, Arial, sans-serif !important',
     },
   }),
   stylex.create({
@@ -127672,8 +127517,7 @@ export const lotsOfStyles = [
     container: {
       display: 'flex',
       flexDirection: 'column',
-      fontFamily:
-        '-apple-system, system-ui, BlinkMacSystemFont, Arial, sans-serif',
+      fontFamily: '-apple-system, system-ui, BlinkMacSystemFont, Arial, sans-serif',
       height: '100%',
       overflow: 'hidden',
       position: 'fixed',
@@ -134854,8 +134698,7 @@ export const lotsOfStyles = [
       width: 24,
     },
     firstTimeReceiverWrapper: {
-      backgroundImage:
-        'linear-gradient(180deg, var(--card-background), rgba(247, 185, 40, 0.2))',
+      backgroundImage: 'linear-gradient(180deg, var(--card-background), rgba(247, 185, 40, 0.2))',
       borderColor: '#FFBA00',
       borderWidth: 1,
     },
@@ -137137,8 +136980,7 @@ export const lotsOfStyles = [
     },
     rowItemwithTypeahead: {
       backgroundColor: 'var(--card-background)',
-      boxShadow:
-        '0 12px 12px var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
+      boxShadow: '0 12px 12px var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
     },
     selectedGroup: {
       display: 'flex',
@@ -155193,8 +155035,7 @@ export const lotsOfStyles = [
       width: '100%',
     },
     overlay: {
-      backgroundImage:
-        'linear-gradient(var(--fds-black-alpha-60), var(--fds-black-alpha-60))',
+      backgroundImage: 'linear-gradient(var(--fds-black-alpha-60), var(--fds-black-alpha-60))',
     },
     root: {
       height: 52,
@@ -155301,8 +155142,7 @@ export const lotsOfStyles = [
       marginTop: 8,
     },
     overlay: {
-      backgroundImage:
-        'linear-gradient(var(--fds-white-alpha-50), var(--fds-black-alpha-50))',
+      backgroundImage: 'linear-gradient(var(--fds-white-alpha-50), var(--fds-black-alpha-50))',
     },
     pressable: {
       borderRadius: 8,
@@ -156973,8 +156813,7 @@ export const lotsOfStyles = [
       borderWidth: 1,
     },
     clusterOuter: {
-      backgroundColor:
-        'hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.6)',
+      backgroundColor: 'hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.6)',
     },
     clusterOuterHover: {
       animationDuration: '1s',
@@ -157244,8 +157083,7 @@ export const lotsOfStyles = [
       position: 'relative',
     },
     gradient: {
-      backgroundImage:
-        'linear-gradient(transparent, var(--always-dark-overlay))',
+      backgroundImage: 'linear-gradient(transparent, var(--always-dark-overlay))',
       borderRadius: '0 0 6px 6px',
       bottom: 0,
       pointerEvents: 'none',
@@ -160413,8 +160251,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     root: {
-      backgroundImage:
-        'linear-gradient(to bottom left, var(--overlay-on-media), transparent)',
+      backgroundImage: 'linear-gradient(to bottom left, var(--overlay-on-media), transparent)',
       bottom: 0,
       end: 0,
       opacity: 0,
@@ -169189,8 +169026,7 @@ export const lotsOfStyles = [
       borderStyle: 'solid',
       borderColor: 'var(--always-white)',
       borderRadius: '4px',
-      boxShadow:
-        '0 0 4px var(--always-black), 0 0 4px var(--fds-black-alpha-50) inset',
+      boxShadow: '0 0 4px var(--always-black), 0 0 4px var(--fds-black-alpha-50) inset',
       opacity: 0.5,
       ':hover': {
         opacity: 1,
@@ -169946,8 +169782,7 @@ export const lotsOfStyles = [
     card: {
       backgroundColor: 'var(--surface-background)',
       borderRadius: 8,
-      boxShadow:
-        '0 2px 8px 0 var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
+      boxShadow: '0 2px 8px 0 var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
       overflow: 'hidden',
       padding: 12,
     },
@@ -170740,8 +170575,7 @@ export const lotsOfStyles = [
   stylex.create({
     createButton: {
       backgroundColor: 'transparent',
-      boxShadow:
-        'inset 0 0 0 2px var(--primary-deemphasized-button-background)',
+      boxShadow: 'inset 0 0 0 2px var(--primary-deemphasized-button-background)',
     },
     gradient: {
       backgroundImage: 'linear-gradient(135deg, #4867e6, #d32ac3)',
@@ -171137,8 +170971,7 @@ export const lotsOfStyles = [
     },
     deemphasizedButton: {
       backgroundColor: 'transparent',
-      boxShadow:
-        'inset 0 0 0 2px var(--primary-deemphasized-button-background)',
+      boxShadow: 'inset 0 0 0 2px var(--primary-deemphasized-button-background)',
     },
     withGradient: {
       backgroundColor: 'var(--always-white)',
@@ -171597,8 +171430,7 @@ export const lotsOfStyles = [
       width: 310,
     },
     mask: {
-      backgroundImage:
-        'linear-gradient(transparent, var(--fds-black-alpha-40))',
+      backgroundImage: 'linear-gradient(transparent, var(--fds-black-alpha-40))',
       bottom: 0,
       height: '60%',
       position: 'absolute',
@@ -171711,8 +171543,7 @@ export const lotsOfStyles = [
       borderColor: 'var(--always-white)',
       borderStyle: 'solid',
       borderWidth: 2,
-      boxShadow:
-        'inset 0 0 0 2px var(--always-black), 0px 0px 4px 0px var(--media-inner-border)',
+      boxShadow: 'inset 0 0 0 2px var(--always-black), 0px 0px 4px 0px var(--media-inner-border)',
       boxSizing: 'border-box',
     },
     container: {
@@ -173567,8 +173398,7 @@ export const lotsOfStyles = [
   stylex.create({
     imageBackground: {
       backgroundColor: 'var(--base-blue)',
-      backgroundImage:
-        'url("/images/comet/gratitude/gratitude-library-comet-header.png")',
+      backgroundImage: 'url("/images/comet/gratitude/gratitude-library-comet-header.png")',
       backgroundPosition: 'center center',
       backgroundRepeat: 'no-repeat',
       backgroundSize: 'cover',
@@ -175069,8 +174899,7 @@ export const lotsOfStyles = [
     },
     card: {
       backgroundColor: 'var(--card-background)',
-      boxShadow:
-        '0px 4px 13px var(--shadow-1), 0px 0px 4px var(--hover-overlay)',
+      boxShadow: '0px 4px 13px var(--shadow-1), 0px 0px 4px var(--hover-overlay)',
       padding: 12,
     },
     withRoundedCorners: {
@@ -178596,8 +178425,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     container: {
-      backgroundImage:
-        'linear-gradient(to top, var(--web-wash), var(--surface-background))',
+      backgroundImage: 'linear-gradient(to top, var(--web-wash), var(--surface-background))',
       boxSizing: 'border-box',
       display: 'flex',
       height: 418,
@@ -178890,8 +178718,7 @@ export const lotsOfStyles = [
       paddingInlineStart: 32,
     },
     container: {
-      backgroundImage:
-        'linear-gradient(to top, var(--web-wash), var(--surface-background))',
+      backgroundImage: 'linear-gradient(to top, var(--web-wash), var(--surface-background))',
       boxSizing: 'border-box',
       display: 'flex',
       justifyContent: 'center',
@@ -178943,8 +178770,7 @@ export const lotsOfStyles = [
       width: '100%',
     },
     mobileTitleOverlayContainer: {
-      backgroundImage:
-        'linear-gradient(to top, var(--shadow-5) 0%, transparent 83%)',
+      backgroundImage: 'linear-gradient(to top, var(--shadow-5) 0%, transparent 83%)',
       borderRadius: 0,
       bottom: 4,
     },
@@ -178962,8 +178788,7 @@ export const lotsOfStyles = [
     },
     titleOverlayContainer: {
       alignItems: 'flex-start',
-      backgroundImage:
-        'linear-gradient(to top, var(--shadow-5) 0%, transparent 63%)',
+      backgroundImage: 'linear-gradient(to top, var(--shadow-5) 0%, transparent 63%)',
       borderRadius: 8,
       bottom: 0,
       boxSizing: 'border-box',
@@ -179058,8 +178883,7 @@ export const lotsOfStyles = [
       display: 'none',
     },
     overlayGradient: {
-      backgroundImage:
-        'linear-gradient(to top, var(--shadow-8) 0%, transparent 66%)',
+      backgroundImage: 'linear-gradient(to top, var(--shadow-8) 0%, transparent 66%)',
       bottom: 0,
       end: 0,
       position: 'absolute',
@@ -181169,8 +180993,7 @@ export const lotsOfStyles = [
     },
     pressable: {
       alignItems: 'center',
-      backgroundColor:
-        'var(--geodesic-next-color-background-onboarding-primary)',
+      backgroundColor: 'var(--geodesic-next-color-background-onboarding-primary)',
     },
     widget: {
       borderStyle: 'none',
@@ -198680,8 +198503,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     body: {
-      backgroundImage:
-        'url("/images/social_good/fundraiser/fundraiser-jar.png")',
+      backgroundImage: 'url("/images/social_good/fundraiser/fundraiser-jar.png")',
       backgroundPosition: 'right 0 top -2px',
       backgroundRepeat: 'no-repeat',
       display: 'flex',
@@ -198695,8 +198517,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     body: {
-      backgroundImage:
-        'url(asset:socialGoodAssets/fundraiser-coin-tower_light)',
+      backgroundImage: 'url(asset:socialGoodAssets/fundraiser-coin-tower_light)',
       backgroundPosition: 'right -7px top -9px',
       backgroundRepeat: 'no-repeat',
       display: 'flex',
@@ -208944,8 +208765,7 @@ export const lotsOfStyles = [
       paddingBottom: 16,
     },
     hubImageBackground: {
-      backgroundImage:
-        'linear-gradient(to top, var(--web-wash), var(--primary-button-pressed))',
+      backgroundImage: 'linear-gradient(to top, var(--web-wash), var(--primary-button-pressed))',
     },
     textContainer: {
       backgroundColor: 'var(--base-blue)',
@@ -213310,8 +213130,7 @@ export const lotsOfStyles = [
       position: 'relative',
     },
     overlayBackground: {
-      backgroundImage:
-        'linear-gradient(to bottom, var(--always-dark-overlay), transparent)',
+      backgroundImage: 'linear-gradient(to bottom, var(--always-dark-overlay), transparent)',
       bottom: 0,
       end: 0,
       position: 'absolute',
@@ -213681,8 +213500,7 @@ export const lotsOfStyles = [
       padding: 8,
       width: '100%',
       ':active': {
-        backgroundColor:
-          'hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.05)',
+        backgroundColor: 'hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.05)',
       },
     },
   }),
@@ -218246,8 +218064,7 @@ export const lotsOfStyles = [
         outline: 'none',
       },
       ':hover': {
-        backgroundImage:
-          'linear-gradient(var(--hover-overlay), var(--hover-overlay))',
+        backgroundImage: 'linear-gradient(var(--hover-overlay), var(--hover-overlay))',
         textDecoration: 'none',
       },
     },
@@ -221547,8 +221364,7 @@ export const lotsOfStyles = [
       },
     },
     coverImageFilter: {
-      backgroundImage:
-        'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
+      backgroundImage: 'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
     },
     full: {
       bottom: 0,
@@ -222753,8 +222569,7 @@ export const lotsOfStyles = [
       width: '100%',
     },
     bottomGradient: {
-      backgroundImage:
-        'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
+      backgroundImage: 'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
       bottom: '0',
       height: '40%',
       position: 'absolute',
@@ -222766,8 +222581,7 @@ export const lotsOfStyles = [
       start: 10,
     },
     topGradient: {
-      backgroundImage:
-        'linear-gradient(180deg,var(--always-dark-overlay),transparent)',
+      backgroundImage: 'linear-gradient(180deg,var(--always-dark-overlay),transparent)',
       height: '40%',
       position: 'absolute',
       top: '0',
@@ -227610,8 +227424,7 @@ export const lotsOfStyles = [
     },
     lowerHalfContainerDark: {
       alignItems: 'center',
-      backgroundImage:
-        'url(asset:genericMobileDeviceFrame/MobileDeviceFrameBottom_dark)',
+      backgroundImage: 'url(asset:genericMobileDeviceFrame/MobileDeviceFrameBottom_dark)',
       backgroundRepeat: 'repeat-y',
       display: 'flex',
       flexDirection: 'column',
@@ -227620,8 +227433,7 @@ export const lotsOfStyles = [
     },
     lowerHalfContainerLight: {
       alignItems: 'center',
-      backgroundImage:
-        'url(asset:genericMobileDeviceFrame/MobileDeviceFrameBottom_light)',
+      backgroundImage: 'url(asset:genericMobileDeviceFrame/MobileDeviceFrameBottom_light)',
       backgroundRepeat: 'repeat-y',
       display: 'flex',
       flexDirection: 'column',
@@ -227684,8 +227496,7 @@ export const lotsOfStyles = [
     },
     tophalfContainerDark: {
       alignItems: 'center',
-      backgroundImage:
-        'url(asset:genericMobileDeviceFrame/MobileDeviceFrameTop_dark)',
+      backgroundImage: 'url(asset:genericMobileDeviceFrame/MobileDeviceFrameTop_dark)',
       display: 'flex',
       flexDirection: 'column',
       height: 298,
@@ -227693,8 +227504,7 @@ export const lotsOfStyles = [
     },
     tophalfContainerLight: {
       alignItems: 'center',
-      backgroundImage:
-        'url(asset:genericMobileDeviceFrame/MobileDeviceFrameTop_light)',
+      backgroundImage: 'url(asset:genericMobileDeviceFrame/MobileDeviceFrameTop_light)',
       display: 'flex',
       flexDirection: 'column',
       height: 298,
@@ -228094,8 +227904,7 @@ export const lotsOfStyles = [
       width: 548,
     },
     dialogHeader: {
-      backgroundImage:
-        'linear-gradient(167.15deg, #5A99FF -9.88%, #0161FD 99.85%)',
+      backgroundImage: 'linear-gradient(167.15deg, #5A99FF -9.88%, #0161FD 99.85%)',
       height: 420,
       width: '100%',
     },
@@ -229477,8 +229286,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     gradient: {
-      backgroundImage:
-        'linear-gradient(transparent, var(--fds-black-alpha-80))',
+      backgroundImage: 'linear-gradient(transparent, var(--fds-black-alpha-80))',
       height: 310,
       position: 'absolute',
       width: 940,
@@ -233029,20 +232837,16 @@ export const lotsOfStyles = [
       display: 'inline-flex',
     },
     laptopFrameBottomDark: {
-      backgroundImage:
-        'url(asset:genericMobileDeviceFrame/LaptopDeviceFrameBottom_dark)',
+      backgroundImage: 'url(asset:genericMobileDeviceFrame/LaptopDeviceFrameBottom_dark)',
     },
     laptopFrameBottomLight: {
-      backgroundImage:
-        'url(asset:genericMobileDeviceFrame/LaptopDeviceFrameBottom_light)',
+      backgroundImage: 'url(asset:genericMobileDeviceFrame/LaptopDeviceFrameBottom_light)',
     },
     laptopFrameTopDark: {
-      backgroundImage:
-        'url(asset:genericMobileDeviceFrame/LaptopDeviceFrameTop_dark)',
+      backgroundImage: 'url(asset:genericMobileDeviceFrame/LaptopDeviceFrameTop_dark)',
     },
     laptopFrameTopLight: {
-      backgroundImage:
-        'url(asset:genericMobileDeviceFrame/LaptopDeviceFrameTop_light)',
+      backgroundImage: 'url(asset:genericMobileDeviceFrame/LaptopDeviceFrameTop_light)',
     },
     middot: {
       color: 'var(--secondary-text)',
@@ -234903,8 +234707,7 @@ export const lotsOfStyles = [
   stylex.create({
     root: {
       borderRadius: 8,
-      boxShadow:
-        '0px 4px 13px var(--shadow-1), 0px 0px 4px var(--hover-overlay)',
+      boxShadow: '0px 4px 13px var(--shadow-1), 0px 0px 4px var(--hover-overlay)',
       margin: '8px 16px 26px',
       minHeight: 137,
     },
@@ -234920,8 +234723,7 @@ export const lotsOfStyles = [
   stylex.create({
     root: {
       borderRadius: 8,
-      boxShadow:
-        '0px 4px 13px var(--shadow-1), 0px 0px 4px var(--hover-overlay)',
+      boxShadow: '0px 4px 13px var(--shadow-1), 0px 0px 4px var(--hover-overlay)',
       margin: '8px 0px 10px',
       minHeight: 137,
     },
@@ -235387,8 +235189,7 @@ export const lotsOfStyles = [
   stylex.create({
     container: {
       alignItems: 'center',
-      backgroundImage:
-        'linear-gradient(358.52deg, #0E7CEB 1.26%, #A10EEB 98.74%, #A10EEB 98.74%)',
+      backgroundImage: 'linear-gradient(358.52deg, #0E7CEB 1.26%, #A10EEB 98.74%, #A10EEB 98.74%)',
       display: 'flex',
     },
     descriptionWrapper: {
@@ -235542,8 +235343,7 @@ export const lotsOfStyles = [
       margin: 4,
     },
     container: {
-      backgroundImage:
-        'linear-gradient(to top right, rgba(var(--green-5)), rgba(var(--green-4)))',
+      backgroundImage: 'linear-gradient(to top right, rgba(var(--green-5)), rgba(var(--green-4)))',
       borderRadius: 20,
       display: 'flex',
       maxWidth: 100,
@@ -240741,8 +240541,7 @@ export const lotsOfStyles = [
       paddingTop: 16,
       textAlign: 'center',
       ':hover': {
-        backgroundImage:
-          'linear-gradient(var(--hover-overlay), var(--hover-overlay))',
+        backgroundImage: 'linear-gradient(var(--hover-overlay), var(--hover-overlay))',
       },
     },
     input: {
@@ -244100,16 +243899,14 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     root: {
-      boxShadow:
-        '0 -1px 0 0 var(--shadow-1), inset 0px 1px 0 0px var(--shadow-inset)',
+      boxShadow: '0 -1px 0 0 var(--shadow-1), inset 0px 1px 0 0px var(--shadow-inset)',
       paddingBottom: 16,
       paddingTop: 17,
     },
   }),
   stylex.create({
     root: {
-      boxShadow:
-        '0 -1px 0 0 var(--shadow-1), inset 0px 1px 0 0px var(--shadow-inset)',
+      boxShadow: '0 -1px 0 0 var(--shadow-1), inset 0px 1px 0 0px var(--shadow-inset)',
       paddingBottom: 16,
       paddingTop: 17,
     },
@@ -249948,8 +249745,7 @@ export const lotsOfStyles = [
     publicBackground: {
       alignItems: 'center',
       backdropFilter: 'blur(100px)',
-      backgroundImage:
-        'linear-gradient(180deg, #953EC1 -234.46%, #3E83EB 182.12%)',
+      backgroundImage: 'linear-gradient(180deg, #953EC1 -234.46%, #3E83EB 182.12%)',
       display: 'flex',
       flexDirection: 'column',
       height: '158px',
@@ -250506,16 +250302,14 @@ export const lotsOfStyles = [
       flexGrow: 1,
     },
     makeSpaceForActions: {
-      maxWidth:
-        'calc(100% - var(--mwp-message-list-actions-width, 62px) - 5px)',
+      maxWidth: 'calc(100% - var(--mwp-message-list-actions-width, 62px) - 5px)',
     },
     paint: {
       backgroundColor: 'var(--messenger-card-background)',
     },
     profile: {
       paddingInlineEnd: 8,
-      paddingInlineStart:
-        'calc(var(--mwp-message-list-profile-start-padding, 8px) - 2px)',
+      paddingInlineStart: 'calc(var(--mwp-message-list-profile-start-padding, 8px) - 2px)',
     },
     root: {
       alignItems: 'inherit',
@@ -250591,16 +250385,13 @@ export const lotsOfStyles = [
       position: 'relative',
     },
     incoming_connect_bottom: {
-      borderBottomStartRadius:
-        'var(--mwp-message-list-image-radius-connected, 4px)',
+      borderBottomStartRadius: 'var(--mwp-message-list-image-radius-connected, 4px)',
     },
     incoming_connect_top: {
-      borderTopStartRadius:
-        'var(--mwp-message-list-image-radius-connected, 4px)',
+      borderTopStartRadius: 'var(--mwp-message-list-image-radius-connected, 4px)',
     },
     outgoing_connect_bottom: {
-      borderBottomEndRadius:
-        'var(--mwp-message-list-image-radius-connected, 4px)',
+      borderBottomEndRadius: 'var(--mwp-message-list-image-radius-connected, 4px)',
     },
     outgoing_connect_top: {
       borderTopEndRadius: 'var(--mwp-message-list-image-radius-connected, 4px)',
@@ -251745,8 +251536,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     blockquote: {
-      borderStartColor:
-        'var(--mw-blockquote-border-start-color, var(--always-white))',
+      borderStartColor: 'var(--mw-blockquote-border-start-color, var(--always-white))',
       borderInlineStartStyle: 'solid',
       borderInlineStartWidth: 4,
       margin: 0,
@@ -252742,8 +252532,7 @@ export const lotsOfStyles = [
       transform: 'scale(1.02)',
     },
     coverImageFilter: {
-      backgroundImage:
-        'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
+      backgroundImage: 'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
     },
     full: {
       bottom: 0,
@@ -253702,8 +253491,7 @@ export const lotsOfStyles = [
       animationTimingFunction: 'ease-in',
     },
     isPlayingSentStarsAnimation: {
-      backgroundImage:
-        'linear-gradient(50.29deg, #F48723 16.24%, #F7B928 84.32%);',
+      backgroundImage: 'linear-gradient(50.29deg, #F48723 16.24%, #F7B928 84.32%);',
       borderRadius: '50%',
       height: 40,
       margin: '0 auto',
@@ -253753,8 +253541,7 @@ export const lotsOfStyles = [
       transform: 'scale(1.02)',
     },
     coverImageFilter: {
-      backgroundImage:
-        'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
+      backgroundImage: 'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
     },
     full: {
       bottom: 0,
@@ -254017,13 +253804,11 @@ export const lotsOfStyles = [
         transform: 'scale(0.96)',
       },
       ':focus': {
-        boxShadow:
-          '0 0 1px 2px rgba(88, 144, 255, 0.75), 0 1px 1px var(--fds-black-alpha-15)',
+        boxShadow: '0 0 1px 2px rgba(88, 144, 255, 0.75), 0 1px 1px var(--fds-black-alpha-15)',
         outline: 'none',
       },
       ':hover': {
-        backgroundImage:
-          'linear-gradient(var(--fds-black-alpha-05), var(--fds-black-alpha-05))',
+        backgroundImage: 'linear-gradient(var(--fds-black-alpha-05), var(--fds-black-alpha-05))',
         textDecoration: 'none',
       },
     },
@@ -258055,8 +257840,7 @@ export const lotsOfStyles = [
     view: {
       backgroundColor: 'var(--card-background)',
       borderRadius: 8,
-      boxShadow:
-        '0 12px 12px var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
+      boxShadow: '0 12px 12px var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',
@@ -258180,8 +257964,7 @@ export const lotsOfStyles = [
     view: {
       backgroundColor: 'var(--card-background)',
       borderRadius: 8,
-      boxShadow:
-        '0 12px 12px var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
+      boxShadow: '0 12px 12px var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',
@@ -258757,8 +258540,7 @@ export const lotsOfStyles = [
       position: 'relative',
       '::before': {
         bottom: 0,
-        boxShadow:
-          '0 12px 12px var(--shadow-2), inset 0 0 0 0 var(--shadow-inset)',
+        boxShadow: '0 12px 12px var(--shadow-2), inset 0 0 0 0 var(--shadow-inset)',
         content: '""',
         end: 0,
         opacity: 0,
@@ -259282,8 +259064,7 @@ export const lotsOfStyles = [
     },
     bannerTitle: {
       color: 'var(--primary-text)',
-      fontFamily:
-        'Optimistic Display, Helvetica, Helvetica Neue, Arial, sans-serif !important',
+      fontFamily: 'Optimistic Display, Helvetica, Helvetica Neue, Arial, sans-serif !important',
       fontSize: 40,
       fontWeight: 500,
       marginBottom: 10,
@@ -259345,8 +259126,7 @@ export const lotsOfStyles = [
     },
     faqTitle: {
       color: 'var(--primary-text)',
-      fontFamily:
-        'Optimistic Display, Helvetica, Helvetica Neue, Arial, sans-serif !important',
+      fontFamily: 'Optimistic Display, Helvetica, Helvetica Neue, Arial, sans-serif !important',
       fontSize: 30,
       marginBottom: '20px',
     },
@@ -259419,8 +259199,7 @@ export const lotsOfStyles = [
     },
     leaguesTitle: {
       color: 'var(--primary-text)',
-      fontFamily:
-        'Optimistic Display, Helvetica, Helvetica Neue, Arial, sans-serif !important',
+      fontFamily: 'Optimistic Display, Helvetica, Helvetica Neue, Arial, sans-serif !important',
       fontSize: 30,
       marginBottom: '20px',
     },
@@ -259476,8 +259255,7 @@ export const lotsOfStyles = [
       borderRadius: '4px',
       color: 'var(--primary-text)',
       display: 'flex',
-      fontFamily:
-        'Optimistic Display, Helvetica, Helvetica Neue, Arial, sans-serif !important',
+      fontFamily: 'Optimistic Display, Helvetica, Helvetica Neue, Arial, sans-serif !important',
       fontSize: 30,
       justifyContent: 'center',
       padding: '10px',
@@ -259520,8 +259298,7 @@ export const lotsOfStyles = [
     },
     rewardsTitle: {
       color: 'var(--primary-text)',
-      fontFamily:
-        'Optimistic Display, Helvetica, Helvetica Neue, Arial, sans-serif !important',
+      fontFamily: 'Optimistic Display, Helvetica, Helvetica Neue, Arial, sans-serif !important',
       fontSize: 30,
       marginBottom: '20px',
     },
@@ -259572,8 +259349,7 @@ export const lotsOfStyles = [
     },
     bannerTitle: {
       color: 'var(--primary-text)',
-      fontFamily:
-        'Optimistic Display, Helvetica, Helvetica Neue, Arial, sans-serif !important',
+      fontFamily: 'Optimistic Display, Helvetica, Helvetica Neue, Arial, sans-serif !important',
       fontSize: '50px',
       fontWeight: 700,
       marginBottom: '16px',
@@ -269227,8 +269003,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     backgroundGradient: {
-      backgroundImage:
-        'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
+      backgroundImage: 'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
     },
     bottom: {
       backgroundColor: 'var(--card-background)',
@@ -269513,8 +269288,7 @@ export const lotsOfStyles = [
       transform: 'scale(1.02)',
     },
     coverImageFilter: {
-      backgroundImage:
-        'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
+      backgroundImage: 'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
     },
     full: {
       bottom: 0,
@@ -270344,8 +270118,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     gradientOverlay: {
-      backgroundImage:
-        'linear-gradient(180deg, rgba(0, 0, 0, 0) 72.11%, rgba(0, 0, 0, 0.7) 100%)',
+      backgroundImage: 'linear-gradient(180deg, rgba(0, 0, 0, 0) 72.11%, rgba(0, 0, 0, 0.7) 100%)',
       height: 'calc(100% + 1px)',
       width: 'calc(100% + 1px)',
     },
@@ -272767,8 +272540,7 @@ export const lotsOfStyles = [
       width: '100%',
     },
     filter: {
-      backgroundImage:
-        'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
+      backgroundImage: 'linear-gradient(0deg,var(--always-dark-overlay),transparent)',
       bottom: 0,
       end: 0,
       position: 'absolute',
@@ -274993,8 +274765,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     cardContainer: {
-      backgroundImage:
-        'linear-gradient(205.7deg, #ED41A5 1.79%, #FFA545 98.22%)',
+      backgroundImage: 'linear-gradient(205.7deg, #ED41A5 1.79%, #FFA545 98.22%)',
       height: 230,
       width: 162,
     },
@@ -275028,8 +274799,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     cardContainer: {
-      backgroundImage:
-        'linear-gradient(205.7deg, #76B6FF 1.79%, #1877F2 98.22%)',
+      backgroundImage: 'linear-gradient(205.7deg, #76B6FF 1.79%, #1877F2 98.22%)',
       height: 230,
       width: 162,
     },
@@ -276984,8 +276754,7 @@ export const lotsOfStyles = [
       alignItems: 'center',
       backgroundColor: 'var(--card-background)',
       borderRadius: 40,
-      boxShadow:
-        '0 0 0 1px var(--media-inner-border), 0 2px 2px var(--shadow-1)',
+      boxShadow: '0 0 0 1px var(--media-inner-border), 0 2px 2px var(--shadow-1)',
       display: 'flex',
       verticalAlign: 'middle',
     },
@@ -277234,8 +277003,7 @@ export const lotsOfStyles = [
       animationName: 'x33l7jf-B',
       backgroundColor: 'var(--card-background)',
       borderRadius: 40,
-      boxShadow:
-        '0 0 0 1px var(--media-inner-border), 0 2px 2px var(--shadow-1)',
+      boxShadow: '0 0 0 1px var(--media-inner-border), 0 2px 2px var(--shadow-1)',
       display: 'flex',
       paddingBottom: 5,
       paddingTop: 5,
@@ -286945,8 +286713,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     bottomBackground: {
-      backgroundImage:
-        'linear-gradient(to top, rgba(0, 0, 0, 0.15), transparent);',
+      backgroundImage: 'linear-gradient(to top, rgba(0, 0, 0, 0.15), transparent);',
       bottom: 4,
       display: 'flex',
       height: 45,
@@ -290710,8 +290477,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     container: {
-      backgroundImage:
-        'linear-gradient(180deg, rgba(20, 22, 26, 0.7), rgba(20, 22, 26, 0))',
+      backgroundImage: 'linear-gradient(180deg, rgba(20, 22, 26, 0.7), rgba(20, 22, 26, 0))',
       padding: '16px',
       position: 'relative',
     },
@@ -291121,8 +290887,7 @@ export const lotsOfStyles = [
       position: 'absolute',
     },
     wrapper: {
-      borderColor:
-        'var(--web-wash) var(--web-wash) var(--web-wash) var(--web-wash);',
+      borderColor: 'var(--web-wash) var(--web-wash) var(--web-wash) var(--web-wash);',
       borderRadius: 4,
       borderStyle: 'solid',
       borderWidth: '4px 4px',
@@ -294222,8 +293987,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     gradient: {
-      backgroundImage:
-        'linear-gradient(45deg, var(--shadow-8) 0 33%, var(--shadow-1))',
+      backgroundImage: 'linear-gradient(45deg, var(--shadow-8) 0 33%, var(--shadow-1))',
       height: '100%',
       pointerEvents: 'none',
       position: 'absolute',
@@ -294352,8 +294116,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     root: {
-      backgroundImage:
-        'linear-gradient(to bottom left, var(--always-dark-overlay), transparent)',
+      backgroundImage: 'linear-gradient(to bottom left, var(--always-dark-overlay), transparent)',
       bottom: 0,
       end: 0,
       opacity: 0,
@@ -294891,8 +294654,7 @@ export const lotsOfStyles = [
       backgroundColor: 'var(--always-dark-overlay)',
       borderRadius: 14,
       bottom: 0,
-      boxShadow:
-        '0 8px 20px 0 var(--always-dark-overlay), 0 2px 4px 0 var(--shadow-1)',
+      boxShadow: '0 8px 20px 0 var(--always-dark-overlay), 0 2px 4px 0 var(--shadow-1)',
       cursor: 'pointer',
       display: 'flex',
       height: 28,
@@ -298451,8 +298213,7 @@ export const lotsOfStyles = [
       borderWidth: 2,
       borderStyle: 'solid',
       borderColor: 'var(--primary-button-background)',
-      boxShadow:
-        'inset 0 0 0 1px var(--nav-bar-background),0 0 0 1px var(--nav-bar-background)',
+      boxShadow: 'inset 0 0 0 1px var(--nav-bar-background),0 0 0 1px var(--nav-bar-background)',
       position: 'fixed',
       borderRadius: 4,
       zIndex: 99999,
@@ -300408,8 +300169,7 @@ export const lotsOfStyles = [
       height: 408,
     },
     createAccountsGif: {
-      backgroundImage:
-        "url('/images/work/admin_panel/idp/create_accounts.gif')",
+      backgroundImage: "url('/images/work/admin_panel/idp/create_accounts.gif')",
       backgroundSize: '100% auto',
       height: '140px',
       marginBottom: '24px',
@@ -300434,8 +300194,7 @@ export const lotsOfStyles = [
       alignItems: 'center',
     },
     createAccountsGif: {
-      backgroundImage:
-        "url('/images/work/admin_panel/idp/create_accounts.gif')",
+      backgroundImage: "url('/images/work/admin_panel/idp/create_accounts.gif')",
       backgroundSize: '100% auto',
       height: '140px',
       marginBottom: '24px',
@@ -305037,8 +304796,7 @@ export const lotsOfStyles = [
       bottom: 0,
     },
     showMoreContatiner: {
-      backgroundImage:
-        'linear-gradient(transparent, var(--surface-background) 35%)',
+      backgroundImage: 'linear-gradient(transparent, var(--surface-background) 35%)',
       marginTop: -20,
       position: 'relative',
       top: -20,
@@ -305798,8 +305556,7 @@ export const lotsOfStyles = [
       start: 96,
       width: 420,
       borderRadius: '0 12px 12px 0',
-      boxShadow:
-        '1px 0 2px 0 var(--fds-black-alpha-05), 2px 0 6px 2px var(--fds-black-alpha-05)',
+      boxShadow: '1px 0 2px 0 var(--fds-black-alpha-05), 2px 0 6px 2px var(--fds-black-alpha-05)',
     },
     channelWrapperAutoHideButVisibleWP4MAppBar: {
       start: 56,
@@ -306514,8 +306271,7 @@ export const lotsOfStyles = [
       borderColor: 'var(--media-inner-border)',
     },
     imageSelected: {
-      boxShadow:
-        '0 0px 0px 2px var(--always-white), 0 0 0 4px var(--base-blue)',
+      boxShadow: '0 0px 0px 2px var(--always-white), 0 0 0 4px var(--base-blue)',
     },
   }),
   stylex.create({
@@ -312015,8 +311771,7 @@ export const lotsOfStyles = [
     },
     mainHovering: {
       backgroundColor: 'var(--wig-nav-background)',
-      backgroundImage:
-        'linear-gradient(90deg, rgba(255, 255, 255, 0), var(--surface-background))',
+      backgroundImage: 'linear-gradient(90deg, rgba(255, 255, 255, 0), var(--surface-background))',
     },
     innerShadow: {
       position: 'absolute',
@@ -313353,8 +313108,7 @@ export const lotsOfStyles = [
       padding: 16,
     },
     bottomButtons: {
-      boxShadow:
-        '0 0 1px var(--media-inner-border), 0 0 4px var(--media-inner-border)',
+      boxShadow: '0 0 1px var(--media-inner-border), 0 0 4px var(--media-inner-border)',
       marginTop: 16,
       paddingBottom: 16,
     },
@@ -313812,8 +313566,7 @@ export const lotsOfStyles = [
   }),
   stylex.create({
     bottomButtons: {
-      boxShadow:
-        '0 0 1px var(--media-inner-border), 0 0 4px var(--media-inner-border)',
+      boxShadow: '0 0 1px var(--media-inner-border), 0 0 4px var(--media-inner-border)',
       paddingBottom: 16,
     },
     pill: {
@@ -317702,8 +317455,7 @@ export const lotsOfStyles = [
       zIndex: -1,
     },
     overlayClickable: {
-      backgroundImage:
-        'linear-gradient(rgba(0, 0, 0, 0.0), rgba(0, 0, 0, 0.3))',
+      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.0), rgba(0, 0, 0, 0.3))',
       bottom: 0,
       boxSizing: 'border-box',
       end: 0,
@@ -317711,13 +317463,11 @@ export const lotsOfStyles = [
       start: 0,
       top: 0,
       ':hover': {
-        backgroundImage:
-          'linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6))',
+        backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6))',
       },
     },
     satpClickable: {
-      backgroundImage:
-        'linear-gradient(135deg, rgba(140, 114, 203, 1), rgba(84, 199, 236, 1))',
+      backgroundImage: 'linear-gradient(135deg, rgba(140, 114, 203, 1), rgba(84, 199, 236, 1))',
       bottom: 0,
       boxSizing: 'border-box',
       end: 0,
@@ -317725,8 +317475,7 @@ export const lotsOfStyles = [
       start: 0,
       top: 0,
       ':hover': {
-        backgroundImage:
-          'linear-gradient(180deg rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6))',
+        backgroundImage: 'linear-gradient(180deg rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6))',
       },
     },
   }),
@@ -319611,8 +319360,7 @@ export const lotsOfStyles = [
       width: 112,
     },
     buttonGroup: {
-      boxShadow:
-        '0 0 1px var(--media-inner-border), 0 0 4px var(--media-inner-border)',
+      boxShadow: '0 0 1px var(--media-inner-border), 0 0 4px var(--media-inner-border)',
       paddingBottom: 12,
     },
     toLabelWrapper: {
@@ -325263,8 +325011,7 @@ export const lotsOfStyles = [
       backgroundColor: 'var(--color)',
     },
     toolItemWrapperActive: {
-      boxShadow:
-        '0 0 0 2px var(--card-background-flat), 0 0 0 4px var(--color)',
+      boxShadow: '0 0 0 2px var(--card-background-flat), 0 0 0 4px var(--color)',
     },
   }),
   stylex.create({
@@ -328177,8 +327924,7 @@ export const lotsOfStyles = [
     box: {
       alignItems: 'center',
       backgroundColor: 'var(--overlay-on-media)',
-      backgroundImage:
-        'url("/images/work/gardens/coworking/coworking_workrooms_hub.png")',
+      backgroundImage: 'url("/images/work/gardens/coworking/coworking_workrooms_hub.png")',
       backgroundPosition: 'bottom',
       backgroundRepeat: 'no-repeat',
       backgroundSize: 'auto',
@@ -330690,8 +330436,7 @@ export const lotsOfStyles = [
       marginBottom: 16,
     },
     buttonGroup: {
-      boxShadow:
-        '0 0 1px var(--media-inner-border), 0 0 4px var(--media-inner-border)',
+      boxShadow: '0 0 1px var(--media-inner-border), 0 0 4px var(--media-inner-border)',
       paddingBottom: 12,
     },
   }),
@@ -335259,8 +335004,7 @@ export const lotsOfStyles = [
       height: 96,
     },
     overlay: {
-      backgroundImage:
-        'linear-gradient(transparent 0%, var(--always-dark-overlay) 100%)',
+      backgroundImage: 'linear-gradient(transparent 0%, var(--always-dark-overlay) 100%)',
       bottom: 0,
       start: 0,
       position: 'absolute',
@@ -337090,10 +336834,9 @@ export const lotsOfStyles = [
     },
   }),
   stylex.create({
-    preventCometColumnFromAddingNegativeMarginAndMakeTheParentViewScrollNeedlessly:
-      {
-        overflow: 'hidden',
-      },
+    preventCometColumnFromAddingNegativeMarginAndMakeTheParentViewScrollNeedlessly: {
+      overflow: 'hidden',
+    },
     space: {
       marginTop: 8,
     },
@@ -339977,8 +339720,7 @@ export const lotsOfStyles = [
     container: {
       backgroundColor: 'var(--card-background)',
       borderRadius: '2px',
-      boxShadow:
-        '0 0 0 1px var(--media-inner-border), 0 1px 10px var(--always-dark-overlay)',
+      boxShadow: '0 0 0 1px var(--media-inner-border), 0 1px 10px var(--always-dark-overlay)',
       fontFamily: 'var(--primary-text)',
       WebkitFontSmoothing: 'antialiased',
       minWidth: '240px',
@@ -344352,8 +344094,7 @@ export const lotsOfStyles = [
     },
     noteContainer: {
       boxSizing: 'border-box',
-      boxShadow:
-        '0px 0px 1px rgba(0, 0, 0, 0.1), 0px 0px 5px rgba(0, 0, 0, 0.1)',
+      boxShadow: '0px 0px 1px rgba(0, 0, 0, 0.1), 0px 0px 5px rgba(0, 0, 0, 0.1)',
       borderRadius: 8,
       display: 'flex',
       flexDirection: 'column',
@@ -345645,8 +345386,7 @@ export const lotsOfStyles = [
     },
     rowItemwithTypeahead: {
       backgroundColor: 'var(--card-background)',
-      boxShadow:
-        '0 12px 12px var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
+      boxShadow: '0 12px 12px var(--shadow-2), inset 0 0 0 1px var(--shadow-inset)',
     },
     selectedGroup: {
       display: 'flex',
@@ -345949,8 +345689,7 @@ export const lotsOfStyles = [
       backgroundColor: 'var(--primary-button-background)',
       borderStyle: 'none',
       borderRadius: 18,
-      boxShadow:
-        '0 8px 20px 0 var(--fds-black-alpha-30), 0 2px 4px 0 var(--fds-black-alpha-10)',
+      boxShadow: '0 8px 20px 0 var(--fds-black-alpha-30), 0 2px 4px 0 var(--fds-black-alpha-10)',
       display: 'inline-flex',
       flexBasis: 'content',
       height: 36,
@@ -349017,8 +348756,7 @@ export const lotsOfStyles = [
       height: 96,
     },
     overlay: {
-      backgroundImage:
-        'linear-gradient(transparent 0%, var(--always-dark-overlay) 100%)',
+      backgroundImage: 'linear-gradient(transparent 0%, var(--always-dark-overlay) 100%)',
       bottom: 0,
       start: 0,
       position: 'absolute',
@@ -350906,8 +350644,7 @@ export const lotsOfStyles = [
       backgroundSize: '16px 16px',
     },
     neutral: {
-      backgroundImage:
-        'url(asset:fbIcon/circle_outline_16_decorative-icon-blue)',
+      backgroundImage: 'url(asset:fbIcon/circle_outline_16_decorative-icon-blue)',
       backgroundSize: '16px 16px',
     },
     inner: {
@@ -355371,8 +355108,7 @@ export const lotsOfStyles = [
       borderWidth: 1,
       borderStyle: 'solid',
       borderColor: 'var(--shadow-1)',
-      boxShadow:
-        '0 12px 12px var(--shadow-2),inset 0 0 0 1px var(--shadow-inset)',
+      boxShadow: '0 12px 12px var(--shadow-2),inset 0 0 0 1px var(--shadow-inset)',
     },
   }),
   stylex.create({
@@ -358395,8 +358131,7 @@ export const lotsOfStyles = [
       zIndex: 5,
     },
     fullHeight: {
-      height:
-        'calc(100vh - var(--vep-header-height) - var(--vep-footer-height))',
+      height: 'calc(100vh - var(--vep-header-height) - var(--vep-footer-height))',
       '@media (max-width: 767px)': {
         height: 'auto',
       },
@@ -358410,8 +358145,7 @@ export const lotsOfStyles = [
       transitionTimingFunction: 'ease-in-out',
       zIndex: 1,
       '::after': {
-        backgroundImage:
-          'linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #FFFFFF 91.15%)',
+        backgroundImage: 'linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #FFFFFF 91.15%)',
         bottom: 0,
         content: '""',
         height: '100%',
@@ -365405,8 +365139,7 @@ export const lotsOfStyles = [
       flexDirection: 'column',
       gap: 4,
       paddingBottom: 32,
-      backgroundImage:
-        'linear-gradient(var(--always-dark-overlay) 80%, transparent)',
+      backgroundImage: 'linear-gradient(var(--always-dark-overlay) 80%, transparent)',
     },
     status: {
       position: 'absolute',
@@ -365418,8 +365151,7 @@ export const lotsOfStyles = [
       position: 'absolute',
       width: '100%',
       height: '100%',
-      boxShadow:
-        'inset 0 0 var(--size-24) var(--size-24) var(--always-dark-overlay)',
+      boxShadow: 'inset 0 0 var(--size-24) var(--size-24) var(--always-dark-overlay)',
     },
     container: {
       backgroundColor: 'var(--always-dark-overlay)',
@@ -368092,8 +367824,7 @@ export const lotsOfStyles = [
       '@supports (padding: env(safe-area-inset-bottom, 0))': {
         paddingBottom:
           'calc(var(--dialog-anchor-vertical-padding) + env(safe-area-inset-bottom, 0))',
-        paddingTop:
-          'calc(var(--dialog-anchor-vertical-padding) + env(safe-area-inset-top, 0))',
+        paddingTop: 'calc(var(--dialog-anchor-vertical-padding) + env(safe-area-inset-top, 0))',
       },
     },
     card: {
@@ -368729,8 +368460,7 @@ export const lotsOfStyles = [
       position: 'relative',
     },
     workroomCardImgShade: {
-      backgroundImage:
-        'linear-gradient(180deg, black 35%, transparent 55%, transparent 100%)',
+      backgroundImage: 'linear-gradient(180deg, black 35%, transparent 55%, transparent 100%)',
       borderRadius: '12px',
       height: '100%',
       opacity: 0.55,

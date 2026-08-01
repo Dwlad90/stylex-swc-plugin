@@ -72,27 +72,17 @@ export default function CrossFileNestedDemo() {
     <div {...stylex.props(crossStyles.card)}>
       <p {...stylex.props(crossStyles.label)}>Cross-file import</p>
       <div {...stylex.props(crossStyles.swatch)}>
-        <div
-          {...stylex.props(crossStyles.swatchItem, crossStyles.infoSwatch)}
-        />
-        <div
-          {...stylex.props(crossStyles.swatchItem, crossStyles.successSwatch)}
-        />
-        <div
-          {...stylex.props(crossStyles.swatchItem, crossStyles.warningSwatch)}
-        />
+        <div {...stylex.props(crossStyles.swatchItem, crossStyles.infoSwatch)} />
+        <div {...stylex.props(crossStyles.swatchItem, crossStyles.successSwatch)} />
+        <div {...stylex.props(crossStyles.swatchItem, crossStyles.warningSwatch)} />
       </div>
       <p {...stylex.props(crossStyles.text)}>
-        These swatches import{' '}
-        <code {...stylex.props(crossStyles.code)}>nestedTokens</code> from a
+        These swatches import <code {...stylex.props(crossStyles.code)}>nestedTokens</code> from a
         separate file and use them in their own{' '}
         <code {...stylex.props(crossStyles.code)}>stylex.create</code>.
       </p>
       <p {...stylex.props(crossStyles.text)}>
-        Source:{' '}
-        <code {...stylex.props(crossStyles.code)}>
-          components/CrossFileNestedDemo.tsx
-        </code>
+        Source: <code {...stylex.props(crossStyles.code)}>components/CrossFileNestedDemo.tsx</code>
       </p>
     </div>
   );

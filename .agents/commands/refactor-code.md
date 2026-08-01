@@ -19,14 +19,15 @@ Follow this systematic approach to refactor code: **$ARGUMENTS**
    - Document current behavior with additional tests if needed
 
 3. **Refactoring Strategy**
-   - Define clear goals for the refactoring (performance, readability, maintainability)
+   - Define clear goals for the refactoring (performance, readability,
+     maintainability)
    - Choose appropriate refactoring techniques:
-      - Extract Method/Function
-      - Extract Class/Component
-      - Rename Variable/Method
-      - Move Method/Field
-      - Replace Conditional with Polymorphism
-      - Eliminate Dead Code
+     - Extract Method/Function
+     - Extract Class/Component
+     - Rename Variable/Method
+     - Move Method/Field
+     - Replace Conditional with Polymorphism
+     - Eliminate Dead Code
    - Plan the refactoring in small, incremental steps
 
 4. **Environment Setup**
@@ -113,4 +114,6 @@ Follow this systematic approach to refactor code: **$ARGUMENTS**
     - Prepare rollback procedures
     - Set up monitoring for the refactored components
 
-Remember: Refactoring should preserve external behavior while improving internal structure. Always prioritize safety over speed, and maintain comprehensive test coverage throughout the process.
+Remember: Refactoring should preserve external behavior while improving internal
+structure. Always prioritize safety over speed, and maintain comprehensive test
+coverage throughout the process.

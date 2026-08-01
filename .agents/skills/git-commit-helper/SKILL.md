@@ -1,12 +1,16 @@
 ---
 name: Git Commit Helper
-description: Generate descriptive commit messages by analyzing git diffs. Use when the user asks for help writing commit messages or reviewing staged changes.
+description:
+  Generate descriptive commit messages by analyzing git diffs. Use when the user
+  asks for help writing commit messages or reviewing staged changes.
 hooks:
   PostToolUse:
-    - matcher: "Bash"
+    - matcher: 'Bash'
       hooks:
         - type: command
-          command: "echo \"[$(date)] Git Commit Helper: Analyzed git diff for commit message\" >> ~/.agents/git-commit-helper.log"
+          command:
+            'echo "[$(date)] Git Commit Helper: Analyzed git diff for commit
+            message" >> ~/.agents/git-commit-helper.log'
 ---
 
 # Git Commit Helper
@@ -48,6 +52,7 @@ Follow conventional commits format:
 ### Examples
 
 **Feature commit:**
+
 ```
 feat(auth): add JWT authentication
 
@@ -58,6 +63,7 @@ Implement JWT-based authentication system with:
 ```
 
 **Bug fix:**
+
 ```
 fix(api): handle null values in user profile
 
@@ -66,6 +72,7 @@ Add null checks before accessing nested properties.
 ```
 
 **Refactor:**
+
 ```
 refactor(database): simplify query builder
 
@@ -94,6 +101,7 @@ git diff --staged path/to/file
 ## Commit message guidelines
 
 **DO:**
+
 - Use imperative mood ("add feature" not "added feature")
 - Keep first line under 50 characters
 - Capitalize first letter
@@ -101,6 +109,7 @@ git diff --staged path/to/file
 - Explain WHY not just WHAT in body
 
 **DON'T:**
+
 - Use vague messages like "update" or "fix stuff"
 - Include technical implementation details in summary
 - Write paragraphs in summary line
@@ -124,14 +133,17 @@ Breaking change: Auth service now requires config object
 ## Scope examples
 
 **Frontend:**
+
 - `feat(ui): add loading spinner to dashboard`
 - `fix(form): validate email format`
 
 **Backend:**
+
 - `feat(api): add user profile endpoint`
 - `fix(db): resolve connection pool leak`
 
 **Infrastructure:**
+
 - `chore(ci): update Node version to 20`
 - `feat(docker): add multi-stage build`
 

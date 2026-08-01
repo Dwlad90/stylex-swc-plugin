@@ -9,7 +9,7 @@ type ImportSource = string | { from: string; as?: string };
 export const DEFAULT_IMPORT_SOURCES: string[] = ['@stylexjs/stylex', 'stylex'];
 
 const DEFAULT_IMPORT_SOURCE_PACKAGES = new Set(
-  DEFAULT_IMPORT_SOURCES.map((source) => {
+  DEFAULT_IMPORT_SOURCES.map(source => {
     if (source.startsWith('@')) {
       const parts = source.split('/');
       const scope = parts[0];
@@ -63,9 +63,7 @@ function readJSON(file: string): Record<string, unknown> | null {
 
 function toPackageName(importSource: ImportSource): string | null {
   const source =
-    typeof importSource === 'string'
-      ? importSource
-      : (importSource as { from?: string })?.from;
+    typeof importSource === 'string' ? importSource : (importSource as { from?: string })?.from;
 
   if (source == null || source.startsWith('.') || source.startsWith('/')) {
     return null;
@@ -95,12 +93,12 @@ function hasStylexDependency(
 
   const dependencyFields = ['dependencies', 'peerDependencies', 'optionalDependencies'];
 
-  return dependencyFields.some((field) => {
+  return dependencyFields.some(field => {
     const deps = manifest[field];
     if (deps == null || typeof deps !== 'object') {
       return false;
     }
-    return Object.keys(deps as Record<string, unknown>).some((depName) =>
+    return Object.keys(deps as Record<string, unknown>).some(depName =>
       targetPackages.has(depName)
     );
   });
@@ -159,9 +157,7 @@ function includePackageFromImportSource({
   discoveredDirectories: Set<string>;
 }) {
   const source =
-    typeof importSource === 'string'
-      ? importSource
-      : (importSource as { from?: string })?.from;
+    typeof importSource === 'string' ? importSource : (importSource as { from?: string })?.from;
   if (typeof source !== 'string') {
     return;
   }
@@ -237,9 +233,7 @@ function discoverStylexPackageDirectories({
   const dependencyNames = getDirectDependencies(rootManifest);
 
   const targetPackages = new Set(
-    (importSources.map(toPackageName).filter(Boolean) as string[]).concat(
-      DEFAULT_IMPORT_SOURCES
-    )
+    (importSources.map(toPackageName).filter(Boolean) as string[]).concat(DEFAULT_IMPORT_SOURCES)
   );
 
   const discoveredDirectories = new Set<string>();
@@ -361,7 +355,7 @@ export function resolveIncludeWithMetadata({
     ),
   });
 
-  const discoveredDependencyGlobs = discoveredDependencyDirectories.map((dir) =>
+  const discoveredDependencyGlobs = discoveredDependencyDirectories.map(dir =>
     toAbsoluteGlob(dir, DEFAULT_INCLUDE_GLOB)
   );
 

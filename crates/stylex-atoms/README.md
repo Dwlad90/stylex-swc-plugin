@@ -18,7 +18,7 @@ import x from '@stylexjs/atoms';
     x.display.flex, //               static value
     x.padding._16px, //              leading-underscore value
     x.width['calc(100% - 20cqi)'], // computed key for complex values
-    x.color(color), //              dynamic value
+    x.color(color) //              dynamic value
   )}
 />;
 ```

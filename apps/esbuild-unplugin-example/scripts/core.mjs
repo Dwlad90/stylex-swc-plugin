@@ -1,4 +1,4 @@
-import esbuild from 'esbuild'
-import { config } from './config.mjs'
+import esbuild from 'esbuild';
+import { config } from './config.mjs';
 
-export const context = await esbuild.context(config)
+export const context = await esbuild.context(config);

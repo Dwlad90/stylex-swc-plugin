@@ -16,6 +16,7 @@ test pipeline.
 This is a community project and is not affiliated with Meta. It tracks the
 official StyleX releases
 <!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->
+
 and requires Node.js 20 or newer.
 
 ## Installation
@@ -63,8 +64,7 @@ module.exports = {
   standard options, see the
   [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
-> [!NOTE]
-> The `include` and `exclude` options are exclusive to the Rust compiler
+> [!NOTE] The `include` and `exclude` options are exclusive to the Rust compiler
 > and are not available in the official StyleX Babel plugin.
 
 #### `rsOptions.include`

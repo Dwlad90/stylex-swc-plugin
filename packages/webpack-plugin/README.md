@@ -71,10 +71,10 @@ Then import the carrier stylesheet **once** at the entry point of your app (e.g.
 import '@stylexswc/webpack-plugin/stylex.css';
 ```
 
-The plugin appends the extracted StyleX CSS to this asset during
-the build. Like a regular CSS file, it must flow through your CSS pipeline, so a
-`css-loader` + `MiniCssExtractPlugin.loader` rule (or webpack's built-in CSS
-support) has to cover `.css` files.
+The plugin appends the extracted StyleX CSS to this asset during the build. Like
+a regular CSS file, it must flow through your CSS pipeline, so a `css-loader` +
+`MiniCssExtractPlugin.loader` rule (or webpack's built-in CSS support) has to
+cover `.css` files.
 
 The carrier import is a **recommendation, not a hard requirement**. The plugin
 also appends tiny per-module CSS imports to every StyleX module, so any part of
@@ -83,14 +83,14 @@ most builds emit correct CSS even without the carrier. What the carrier adds is
 a guarantee that doesn't depend on your module graph: the stylesheet is always
 present and loaded with the entrypoint. That matters when something consumes
 StyleX **output** without rendering a StyleX **component** — plain CSS reading
-`defineVars` custom properties (`var(--x…)`), or injected markup carrying
-StyleX class names. If styles would actually be lost (no CSS asset exists to
-receive them at all), the plugin raises a compilation warning; it stays silent
-as long as the output is correct, carrier or not.
+`defineVars` custom properties (`var(--x…)`), or injected markup carrying StyleX
+class names. If styles would actually be lost (no CSS asset exists to receive
+them at all), the plugin raises a compilation warning; it stays silent as long
+as the output is correct, carrier or not.
 
 > [!IMPORTANT] **Migrating from 0.17.x**: version 0.18.0 reworks the CSS
-> extraction architecture. The CSS is no longer injected through
-> auto-generated `stylex.virtual.css` imports — add the
+> extraction architecture. The CSS is no longer injected through auto-generated
+> `stylex.virtual.css` imports — add the
 > `import '@stylexswc/webpack-plugin/stylex.css';` carrier import to your app
 > entrypoint (recommended; see above for when you can skip it). Paths embedded
 > in module identifiers are now relative to `compiler.context`, which changes
@@ -228,8 +228,8 @@ import './styles/stylex-carrier.css';
 ```
 
 If styles get extracted but no CSS asset is emitted to receive them (e.g. a
-custom `cacheGroup` renamed the chunk), the plugin raises a compilation
-warning instead of silently dropping the CSS.
+custom `cacheGroup` renamed the chunk), the plugin raises a compilation warning
+instead of silently dropping the CSS.
 
 ### Advanced Options
 
@@ -261,14 +261,14 @@ new StylexPlugin({
 - Description: Replaces the default webpack cache group used for StyleX CSS
   extraction. By default the plugin creates a dedicated cache group named
   `_stylex-webpack-generated`. A custom cache group replaces the defaults with
-  standard `splitChunks` semantics — e.g. omitting `test` matches every
-  module, which funnels all extracted CSS into the StyleX chunk. `name` must be
-  a static string and falls back to the default chunk name. String and RegExp
-  shorthand values are treated as `test`. `false` disables the plugin's cache
-  group entirely — extracted styles then have no CSS asset to land in and the
-  build warns; to turn off extraction, use `extractCSS: false` instead.
-  Include `type: 'css/mini-extract'`, `chunks` and `enforce` yourself when you
-  need them.
+  standard `splitChunks` semantics — e.g. omitting `test` matches every module,
+  which funnels all extracted CSS into the StyleX chunk. `name` must be a static
+  string and falls back to the default chunk name. String and RegExp shorthand
+  values are treated as `test`. `false` disables the plugin's cache group
+  entirely — extracted styles then have no CSS asset to land in and the build
+  warns; to turn off extraction, use `extractCSS: false` instead. Include
+  `type: 'css/mini-extract'`, `chunks` and `enforce` yourself when you need
+  them.
 
 Default cache group configuration:
 

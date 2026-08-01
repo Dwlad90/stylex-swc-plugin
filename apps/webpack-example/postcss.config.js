@@ -17,7 +17,7 @@ module.exports = {
               gap: '2rem',
             },
           },
-          wrapper: (value) => `${value}`,
+          wrapper: value => `${value}`,
         },
       },
     },

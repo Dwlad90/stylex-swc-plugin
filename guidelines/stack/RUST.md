@@ -45,4 +45,5 @@ Run from within a crate directory:
   stable Rust, this is a no-op; on nightly with `--cfg coverage_nightly`, it
   activates `#[coverage(off)]`.
 - Do NOT add new coverage exclusions without justification.
-- 100% line coverage is enforced via `--fail-uncovered-lines 0 --fail-uncovered-regions 0 --fail-under-functions 0`.
+- 100% line coverage is enforced via
+  `--fail-uncovered-lines 0 --fail-uncovered-regions 0 --fail-under-functions 0`.

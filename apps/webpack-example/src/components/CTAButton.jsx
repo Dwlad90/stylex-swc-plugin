@@ -8,7 +8,7 @@ export default function CtaButton({ children, color, to }) {
       {...stylex.props(
         styles.base,
         color === 'pink' && styles.pink,
-        color === 'blue' && styles.blue,
+        color === 'blue' && styles.blue
       )}
       href={to}
       rel="noopener noreferrer"
@@ -54,10 +54,8 @@ const styles = stylex.create({
   pink: {
     backgroundColor: `hsl(${colors.pinkH}, ${colors.pinkS}, ${colors.pinkL})`,
     boxShadow: {
-      default:
-        `0 0 2px hsla(${colors.pinkH}, ${colors.pinkS}, ${colors.pinkL}, 0.35)`,
-      ':hover':
-        `0 0 10px hsla(${colors.pinkH}, ${colors.pinkS}, ${colors.pinkL}, 0.75)`,
+      default: `0 0 2px hsla(${colors.pinkH}, ${colors.pinkS}, ${colors.pinkL}, 0.35)`,
+      ':hover': `0 0 10px hsla(${colors.pinkH}, ${colors.pinkS}, ${colors.pinkL}, 0.75)`,
     },
     color: {
       default: colors.white,
@@ -66,10 +64,8 @@ const styles = stylex.create({
   blue: {
     backgroundColor: `hsl(${colors.cyanH}, ${colors.cyanS}, ${colors.cyanL})`,
     boxShadow: {
-      default:
-        `0 0 2px hsla(${colors.cyanH}, ${colors.cyanS}, ${colors.cyanL}, 0.35)`,
-      ':hover':
-        `0 0 10px hsla(${colors.cyanH}, ${colors.cyanS}, ${colors.cyanL}, 0.75)`,
+      default: `0 0 2px hsla(${colors.cyanH}, ${colors.cyanS}, ${colors.cyanL}, 0.35)`,
+      ':hover': `0 0 10px hsla(${colors.cyanH}, ${colors.cyanS}, ${colors.cyanL}, 0.75)`,
     },
     color: {
       default: colors.white,

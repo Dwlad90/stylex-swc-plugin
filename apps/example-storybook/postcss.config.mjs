@@ -1,6 +1,6 @@
-import autoprefixer from 'autoprefixer'
-import nesting from 'postcss-nesting'
-import stylexSWCPlugin from '@stylexswc/postcss-plugin'
+import autoprefixer from 'autoprefixer';
+import nesting from 'postcss-nesting';
+import stylexSWCPlugin from '@stylexswc/postcss-plugin';
 
 /** @type {import('postcss-load-config').Config} */
 const config = {
@@ -23,12 +23,12 @@ const config = {
               text: '#333',
             },
           },
-          wrapper: (value) => `${value}`,
+          wrapper: value => `${value}`,
         },
       },
     }),
-    autoprefixer
-  ]
-}
+    autoprefixer,
+  ],
+};
 
-export default config
+export default config;

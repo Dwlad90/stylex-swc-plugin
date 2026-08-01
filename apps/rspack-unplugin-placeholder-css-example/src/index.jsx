@@ -1,9 +1,9 @@
-import './global.css'
-import { colors } from '@stylexjs/open-props/lib/colors.stylex'
-import { fonts } from '@stylexjs/open-props/lib/fonts.stylex'
-import { sizes } from '@stylexjs/open-props/lib/sizes.stylex'
-import * as stylex from '@stylexjs/stylex'
-import { createRoot } from 'react-dom/client'
+import './global.css';
+import { colors } from '@stylexjs/open-props/lib/colors.stylex';
+import { fonts } from '@stylexjs/open-props/lib/fonts.stylex';
+import { sizes } from '@stylexjs/open-props/lib/sizes.stylex';
+import * as stylex from '@stylexjs/stylex';
+import { createRoot } from 'react-dom/client';
 import { tokens } from '@stylexswc/design-system/tokens.stylex';
 import { Text } from '@stylexswc/design-system';
 import { breakpoints } from '@stylexswc/design-system/consts.stylex';
@@ -42,15 +42,15 @@ const styles = stylex.create({
     display: {
       default: 'none',
       [breakpoints.mobile]: 'block',
-    }
+    },
   },
   onlyDesktop: {
     display: {
       default: 'none',
       [breakpoints.desktop]: 'block',
-    }
+    },
   },
-})
+});
 
 function App() {
   return (
@@ -65,7 +65,7 @@ function App() {
         <Text>Red rounded rectangle with green text</Text>
       </div>
     </div>
-  )
+  );
 }
 
-createRoot(document.getElementById('root')).render(<App />)
+createRoot(document.getElementById('root')).render(<App />);

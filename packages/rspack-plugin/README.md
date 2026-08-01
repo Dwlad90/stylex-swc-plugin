@@ -17,6 +17,7 @@ dedicated CSS chunk.
 This is a community project and is not affiliated with Meta. It tracks the
 official StyleX releases
 <!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->
+
 and requires Node.js 20 or newer. For Next.js projects, use
 [`@stylexswc/nextjs-plugin/rspack`](https://www.npmjs.com/package/@stylexswc/nextjs-plugin),
 which wires this plugin into `next-rspack` for you.
@@ -62,33 +63,31 @@ const config = (env, argv) => ({
 module.exports = config;
 ```
 
-Then import the carrier stylesheet **once** at the entry point of your app
-(e.g. `index.js`, `App.tsx`):
+Then import the carrier stylesheet **once** at the entry point of your app (e.g.
+`index.js`, `App.tsx`):
 
 ```js
 import '@stylexswc/rspack-plugin/stylex.css';
 ```
 
-The plugin appends the extracted StyleX CSS to this asset during
-the build. Like a regular CSS file, it must flow through your CSS pipeline, so
-a `css-loader` + `CssExtractRspackPlugin.loader` rule has to cover `.css`
-files.
+The plugin appends the extracted StyleX CSS to this asset during the build. Like
+a regular CSS file, it must flow through your CSS pipeline, so a `css-loader` +
+`CssExtractRspackPlugin.loader` rule has to cover `.css` files.
 
 The carrier import is a **recommendation, not a hard requirement**. The plugin
-also appends tiny per-module CSS imports to every StyleX module, so any part
-of the bundle that renders a StyleX component pulls the stylesheet in on its
-own — most builds emit correct CSS even without the carrier. What the carrier
-adds is a guarantee that doesn't depend on your module graph: the stylesheet
-is always present and loaded with the entrypoint. That matters when something
-consumes StyleX **output** without rendering a StyleX **component** — plain
-CSS reading `defineVars` custom properties (`var(--x…)`), or injected markup
-carrying StyleX class names. If styles would actually be lost (no CSS asset
-exists to receive them at all), the plugin raises a compilation warning; it
-stays silent as long as the output is correct, carrier or not.
+also appends tiny per-module CSS imports to every StyleX module, so any part of
+the bundle that renders a StyleX component pulls the stylesheet in on its own —
+most builds emit correct CSS even without the carrier. What the carrier adds is
+a guarantee that doesn't depend on your module graph: the stylesheet is always
+present and loaded with the entrypoint. That matters when something consumes
+StyleX **output** without rendering a StyleX **component** — plain CSS reading
+`defineVars` custom properties (`var(--x…)`), or injected markup carrying StyleX
+class names. If styles would actually be lost (no CSS asset exists to receive
+them at all), the plugin raises a compilation warning; it stays silent as long
+as the output is correct, carrier or not.
 
-> [!IMPORTANT]
-> **Migrating from 0.17.x**: version 0.18.0 reworks the CSS extraction
-> architecture. The CSS is no longer injected through auto-generated
+> [!IMPORTANT] **Migrating from 0.17.x**: version 0.18.0 reworks the CSS
+> extraction architecture. The CSS is no longer injected through auto-generated
 > `stylex.virtual.css` imports — add the
 > `import '@stylexswc/rspack-plugin/stylex.css';` carrier import to your app
 > entrypoint (recommended; see above for when you can skip it). The package no
@@ -200,15 +199,15 @@ When the StyleX transformation runs relative to other Rspack loaders — see
   [`splitChunks.cacheGroups` entry](https://rspack.rs/plugins/webpack/split-chunks-plugin#splitchunkscachegroups)
 
 Customizes the cache group configuration for extracted CSS chunks — how CSS is
-split into files, cached, or grouped. A custom cache group replaces the
-plugin's default one entirely, with standard `splitChunks` semantics — e.g.
-omitting `test` matches every module, which funnels all extracted CSS into the
-StyleX chunk. Only `name` falls back to the default chunk name; include
+split into files, cached, or grouped. A custom cache group replaces the plugin's
+default one entirely, with standard `splitChunks` semantics — e.g. omitting
+`test` matches every module, which funnels all extracted CSS into the StyleX
+chunk. Only `name` falls back to the default chunk name; include
 `type: 'css/mini-extract'`, `chunks` and `enforce` yourself when you need them.
 `name` must be a static string. For webpack compatibility, string and RegExp
 shorthand values are treated as `test` and normalized to a Rspack cache group.
-`false` disables the plugin's cache group entirely — extracted styles then
-have no CSS asset to land in and the build warns; to turn off extraction, use
+`false` disables the plugin's cache group entirely — extracted styles then have
+no CSS asset to land in and the build warns; to turn off extraction, use
 `extractCSS: false` instead.
 
 ### `stylexPackages`
@@ -223,12 +222,11 @@ have no CSS asset to land in and the build warns; to turn off extraction, use
 - Type: `string`
 - Default: the packaged `@stylexswc/rspack-plugin/stylex.css`
 
-Path to a custom carrier stylesheet that receives the extracted StyleX CSS —
-the file you import once at your app entrypoint. Absolute, or relative to
+Path to a custom carrier stylesheet that receives the extracted StyleX CSS — the
+file you import once at your app entrypoint. Absolute, or relative to
 `compiler.context`. Replaces the default packaged carrier: useful when another
-file named `stylex.css` in your project would collide with the default
-filename pattern, or when you want the carrier to live in your own source
-tree.
+file named `stylex.css` in your project would collide with the default filename
+pattern, or when you want the carrier to live in your own source tree.
 
 ```js
 new StylexPlugin({
@@ -237,8 +235,8 @@ new StylexPlugin({
 ```
 
 If styles get extracted but no CSS asset is emitted to receive them (e.g. a
-custom `cacheGroup` renamed the chunk), the plugin raises a compilation
-warning instead of silently dropping the CSS.
+custom `cacheGroup` renamed the chunk), the plugin raises a compilation warning
+instead of silently dropping the CSS.
 
 ## FAQ
 

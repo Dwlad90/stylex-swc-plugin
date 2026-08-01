@@ -36,14 +36,15 @@ function processPayment(order) {
 
 **2. Prefer SDK-style interfaces over generic fetchers**
 
-Create specific functions for each external operation instead of one generic function with conditional logic:
+Create specific functions for each external operation instead of one generic
+function with conditional logic:
 
 ```typescript
 // GOOD: Each function is independently mockable
 const api = {
-  getUser: (id) => fetch(`/users/${id}`),
-  getOrders: (userId) => fetch(`/users/${userId}/orders`),
-  createOrder: (data) => fetch('/orders', { method: 'POST', body: data }),
+  getUser: id => fetch(`/users/${id}`),
+  getOrders: userId => fetch(`/users/${userId}/orders`),
+  createOrder: data => fetch('/orders', { method: 'POST', body: data }),
 };
 
 // BAD: Mocking requires conditional logic inside the mock
@@ -53,6 +54,7 @@ const api = {
 ```
 
 The SDK approach means:
+
 - Each mock returns one specific shape
 - No conditional logic in test setup
 - Easier to see which endpoints a test exercises

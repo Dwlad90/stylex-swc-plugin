@@ -7,9 +7,7 @@ type VitePlugin = ReturnType<typeof unplugin.vite>;
 interface AstroIntegration {
   name: string;
   hooks: {
-    'astro:config:setup': (astro: {
-      config: { vite: { plugins: VitePlugin[] } };
-    }) => Promise<void>;
+    'astro:config:setup': (astro: { config: { vite: { plugins: VitePlugin[] } } }) => Promise<void>;
   };
 }
 

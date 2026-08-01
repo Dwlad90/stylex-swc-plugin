@@ -1,6 +1,10 @@
 # StyleX SWC Compiler — StyleX in Rust
 
-[![GitHub license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE) [![npm version](https://img.shields.io/npm/v/@stylexswc/rs-compiler.svg?style=flat)](https://www.npmjs.com/package/@stylexswc/rs-compiler) ![GitHub tag check runs](https://img.shields.io/github/check-runs/Dwlad90/stylex-swc-plugin/0.18.1?label=Release%20status) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Dwlad90/stylex-swc-plugin/pr-validation.yml?branch=develop&label=Project%20Health) <!-- stylex-compatibility:start -->[![StyleX compatibility](https://img.shields.io/badge/StyleX%20compatibility-v0.19.0-blue)](https://stylexjs.com/blog)<!-- stylex-compatibility:end -->
+[![GitHub license](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@stylexswc/rs-compiler.svg?style=flat)](https://www.npmjs.com/package/@stylexswc/rs-compiler)
+![GitHub tag check runs](https://img.shields.io/github/check-runs/Dwlad90/stylex-swc-plugin/0.18.1?label=Release%20status)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Dwlad90/stylex-swc-plugin/pr-validation.yml?branch=develop&label=Project%20Health)
+<!-- stylex-compatibility:start -->[![StyleX compatibility](https://img.shields.io/badge/StyleX%20compatibility-v0.19.0-blue)](https://stylexjs.com/blog)<!-- stylex-compatibility:end -->
 
 > **Rust/NAPI-RS/SWC compiler for [StyleX](https://stylexjs.com) that replaces
 > the official Babel transform and adds fast integrations for Next.js, Vite,
@@ -38,8 +42,8 @@ Babel fallback entirely and keep the fast SWC toolchain.
 This compiler transforms StyleX **5x to 10x faster per file** than the official
 `@stylexjs/babel-plugin`, measured with the benchmark suite in
 [`crates/stylex-rs-compiler/benchmark`](./crates/stylex-rs-compiler/benchmark).
-The entire transform — parsing, evaluation, and code generation — is
-implemented in Rust and runs as a native Node.js addon on SWC, with none of the
+The entire transform — parsing, evaluation, and code generation — is implemented
+in Rust and runs as a native Node.js addon on SWC, with none of the
 JavaScript-side AST overhead that Babel carries. The advantage grows with the
 workload: complex `stylex.create` calls, theme creation, and large design-token
 sheets see the biggest wins.
@@ -148,9 +152,8 @@ the generated atomic CSS is compatible with the official output.
 The official transform runs as a Babel plugin. This one is a Rust
 reimplementation running on SWC, which makes per-file transforms 5x to 10x
 faster and — on SWC-based frameworks like Next.js — avoids adding Babel to the
-pipeline at all.
-It also adds compiler-only features such as `include`/`exclude` file filtering,
-SWC WASM plugin chaining, and `inputSourceMap` chaining.
+pipeline at all. It also adds compiler-only features such as `include`/`exclude`
+file filtering, SWC WASM plugin chaining, and `inputSourceMap` chaining.
 
 ### How do I use StyleX with Next.js without Babel?
 

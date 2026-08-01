@@ -16,6 +16,7 @@ with per-file transforms 5x to 10x faster than Babel
 This is a community project and is not affiliated with Meta. It tracks the
 official StyleX releases
 <!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->
+
 and requires Node.js 20 or newer. Most Next.js projects should reach for
 [`@stylexswc/nextjs-plugin`](https://www.npmjs.com/package/@stylexswc/nextjs-plugin),
 whose `/turbopack` export configures this loader for you.
@@ -35,8 +36,7 @@ npm install @stylexjs/stylex
 
 ## Usage
 
-> [!IMPORTANT]
-> Turbopack does not support webpack plugins
+> [!IMPORTANT] Turbopack does not support webpack plugins
 > ([see Next.js docs](https://nextjs.org/docs/app/api-reference/turbopack#webpack-plugins)),
 > so this loader only compiles StyleX code — it does not extract CSS.
 >
@@ -100,8 +100,7 @@ export default nextConfig;
   the standard options, see the
   [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
-> [!NOTE]
-> The `include` and `exclude` options are exclusive to the Rust compiler
+> [!NOTE] The `include` and `exclude` options are exclusive to the Rust compiler
 > and are not available in the official StyleX Babel plugin.
 
 ##### `rsOptions.include`

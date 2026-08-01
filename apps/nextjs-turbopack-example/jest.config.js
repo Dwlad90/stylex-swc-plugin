@@ -1,81 +1,85 @@
-const path = require("path");
+const path = require('path');
 
 const rootDir = __dirname;
 
 const customJestConfig = {
-  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
-  testEnvironment: "jsdom",
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  testEnvironment: 'jsdom',
   // `server-only` throws under jsdom; server components are rendered directly in tests
   moduleNameMapper: {
-    "^server-only$": "<rootDir>/__mocks__/server-only.js",
+    '^server-only$': '<rootDir>/__mocks__/server-only.js',
   },
   transform: {
-    "^.+\\.(ts|tsx|js|jsx|mjs|cjs|html)$": [
+    '^.+\\.(ts|tsx|js|jsx|mjs|cjs|html)$': [
       'jest-chain-transform',
       {
         transformers: [
-          ["@stylexswc/jest", {
-            rsOptions: {
-              aliases: {
-                '@/*': [
-                  path.join(rootDir, '*'),
-                ],
-              },
-              unstable_moduleResolution: {
-                type: 'commonJS',
-              },
-              dev: process.env.NODE_ENV === 'development',
-              treeshakeCompensation: true,
-              styleResolution: 'application-order',
-              enableDebugClassNames: process.env.NODE_ENV === 'development',
-              env: {
-                tokens: {
-                  layout: {
-                    fullHeight: '100vh',
-                  },
-                  fonts: {
-                    sansSerif: 'sans-serif',
+          [
+            '@stylexswc/jest',
+            {
+              rsOptions: {
+                aliases: {
+                  '@/*': [path.join(rootDir, '*')],
+                },
+                unstable_moduleResolution: {
+                  type: 'commonJS',
+                },
+                dev: process.env.NODE_ENV === 'development',
+                treeshakeCompensation: true,
+                styleResolution: 'application-order',
+                enableDebugClassNames: process.env.NODE_ENV === 'development',
+                env: {
+                  tokens: {
+                    layout: {
+                      fullHeight: '100vh',
+                    },
+                    fonts: {
+                      sansSerif: 'sans-serif',
+                    },
                   },
                 },
               },
-            }
-          }], ['@swc/jest', {
-            "$schema": "https://json.schemastore.org/swcrc",
-            "jsc": {
-              "parser": {
-                "syntax": "typescript",
-                "tsx": true,
-                "dynamicImport": true,
-                "decorators": true,
-                "dts": true
-              },
-              "transform": {
-                "react": {
-                  "useBuiltins": true,
-                  "runtime": "automatic"
-                }
-              },
-              "target": "esnext",
-              "loose": false,
-              "externalHelpers": false,
-              "keepClassNames": true,
-              "baseUrl": "./",
+            },
+          ],
+          [
+            '@swc/jest',
+            {
+              $schema: 'https://json.schemastore.org/swcrc',
+              jsc: {
+                parser: {
+                  syntax: 'typescript',
+                  tsx: true,
+                  dynamicImport: true,
+                  decorators: true,
+                  dts: true,
+                },
+                transform: {
+                  react: {
+                    useBuiltins: true,
+                    runtime: 'automatic',
+                  },
+                },
+                target: 'esnext',
+                loose: false,
+                externalHelpers: false,
+                keepClassNames: true,
+                baseUrl: './',
 
-              "paths": {
-                "@/*": ["./*"]
-              }
+                paths: {
+                  '@/*': ['./*'],
+                },
+              },
+              module: {
+                type: 'es6',
+              },
+              minify: false,
             },
-            "module": {
-              "type": "es6"
-            },
-            "minify": false,
-          }
-          ]
-        ]
-      }
+          ],
+        ],
+      },
     ],
   },
-  modulePathIgnorePatterns: ["<rootDir>/visual-tests/"]
+  modulePathIgnorePatterns: ['<rootDir>/visual-tests/'],
 };
 
-module.exports = customJestConfig
+module.exports = customJestConfig;

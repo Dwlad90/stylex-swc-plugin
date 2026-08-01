@@ -9,13 +9,12 @@
         "kind": "build",
         "isDefault": true
       },
-      "problemMatcher": [
-        "$rustc"
-      ],
+      "problemMatcher": ["$rustc"],
       "options": {
         "cwd": "${workspaceFolder}/crates/stylex-test-parser" // Add this line
       },
-      "presentation": { // Add this block
+      "presentation": {
+        // Add this block
         "reveal": "silent"
       }
     }

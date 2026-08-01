@@ -61,7 +61,5 @@
   },
   "postCreateCommand": "pnpm install",
   "remoteUser": "vscode",
-  "forwardPorts": [
-    3000
-  ]
+  "forwardPorts": [3000]
 }

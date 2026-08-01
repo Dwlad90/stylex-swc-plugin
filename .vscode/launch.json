@@ -8,9 +8,7 @@
       "program": "${workspaceFolder}/crates/stylex-test-parser/target/debug/test-parser",
       "args": [],
       "cwd": "${workspaceFolder}/crates/stylex-test-parser",
-      "sourceLanguages": [
-        "rust"
-      ],
+      "sourceLanguages": ["rust"],
       "preLaunchTask": "cargo build", // Add this line
       "console": "externalTerminal"
     }

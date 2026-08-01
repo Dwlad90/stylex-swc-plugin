@@ -18,7 +18,10 @@ type WebpackCacheGroupObject = Exclude<
 >;
 
 export type CacheGroupOptions =
-  (Omit<WebpackCacheGroupObject, 'name'> & { name?: string }) | string | RegExp | false;
+  | (Omit<WebpackCacheGroupObject, 'name'> & { name?: string })
+  | string
+  | RegExp
+  | false;
 
 type AsyncFnParams = Parameters<ReturnType<LoaderContext<unknown>['async']>>;
 

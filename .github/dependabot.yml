@@ -1,175 +1,175 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    directory: "/"
+    directory: '/'
     schedule:
       interval: monthly
-      time: "09:00"
+      time: '09:00'
       timezone: Etc/Greenwich
     commit-message:
-      prefix: "npm"
-      include: "scope"
+      prefix: 'npm'
+      include: 'scope'
     open-pull-requests-limit: 20
     groups:
       core-dependencies:
         patterns:
-          - "@stylexjs/*"
-          - "postcss"
+          - '@stylexjs/*'
+          - 'postcss'
       nextjs:
         patterns:
-          - "next"
-          - "@next/*"
-          - "eslint-config-next"
+          - 'next'
+          - '@next/*'
+          - 'eslint-config-next'
       typescript-types:
         patterns:
-          - "typescript"
-          - "@types/*"
+          - 'typescript'
+          - '@types/*'
       build-tools:
         patterns:
-          - "turbo"
-          - "tsup"
-          - "esbuild"
-          - "webpack"
-          - "rollup"
-          - "vite"
-          - "rspack"
-          - "rsbuild"
+          - 'turbo'
+          - 'tsup'
+          - 'esbuild'
+          - 'webpack'
+          - 'rollup'
+          - 'vite'
+          - 'rspack'
+          - 'rsbuild'
       bundlers:
         patterns:
-          - "webpack"
-          - "rollup"
-          - "esbuild"
-          - "vite"
-          - "rspack"
+          - 'webpack'
+          - 'rollup'
+          - 'esbuild'
+          - 'vite'
+          - 'rspack'
       code-quality:
         patterns:
-          - "eslint*"
-          - "prettier"
-          - "lint-staged"
-          - "shellcheck"
+          - 'eslint*'
+          - 'prettier'
+          - 'lint-staged'
+          - 'shellcheck'
       git-tools:
         patterns:
-          - "husky"
-          - "@commitlint/*"
-          - "commitizen"
-          - "cz-conventional-changelog"
+          - 'husky'
+          - '@commitlint/*'
+          - 'commitizen'
+          - 'cz-conventional-changelog'
       version-management:
         patterns:
-          - "@changesets/*"
-          - "syncpack"
+          - '@changesets/*'
+          - 'syncpack'
       dev-utilities:
         patterns:
-          - "scripty"
-          - "del-cli"
+          - 'scripty'
+          - 'del-cli'
       test-dependencies:
         patterns:
-          - "vitest"
-          - "jest"
-          - "@testing-library/*"
+          - 'vitest'
+          - 'jest'
+          - '@testing-library/*'
       e2e:
         patterns:
-          - "playwright"
-          - "@playwright/*"
+          - 'playwright'
+          - '@playwright/*'
       react-ecosystem:
         patterns:
-          - "react"
-          - "react-dom"
-          - "@types/react"
-          - "@types/react-dom"
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
       babel-dependencies:
         patterns:
-          - "@babel/*"
+          - '@babel/*'
     versioning-strategy: auto
     labels:
-      - "dependencies"
-      - "typescript"
+      - 'dependencies'
+      - 'typescript'
     # ignore:
     #   - dependency-name: "*"
     #     update-types: ["version-update:semver-major"]
     rebase-strategy: auto
-    target-branch: "develop"
+    target-branch: 'develop'
     assignees:
-      - "Dwlad90"
+      - 'Dwlad90'
 
   - package-ecosystem: cargo
-    directory: "/"
+    directory: '/'
     schedule:
       interval: monthly
-      time: "09:00"
+      time: '09:00'
       timezone: Etc/Greenwich
     commit-message:
-      prefix: "cargo"
-      include: "scope"
+      prefix: 'cargo'
+      include: 'scope'
     open-pull-requests-limit: 20
     groups:
       swc-dependencies:
         patterns:
-          - "swc_*"
+          - 'swc_*'
       serialization:
         patterns:
-          - "serde"
-          - "serde_json"
+          - 'serde'
+          - 'serde_json'
       utilities:
         patterns:
-          - "regex"
-          - "indexmap"
-          - "once_cell"
-          - "colored"
-          - "path-clean"
-          - "lazy_static"
-          - "murmur2"
-          - "radix_fmt"
-          - "phf"
-          - "rustc-hash"
-          - "node-resolve"
+          - 'regex'
+          - 'indexmap'
+          - 'once_cell'
+          - 'colored'
+          - 'path-clean'
+          - 'lazy_static'
+          - 'murmur2'
+          - 'radix_fmt'
+          - 'phf'
+          - 'rustc-hash'
+          - 'node-resolve'
       parsers:
         patterns:
-          - "cssparser"
+          - 'cssparser'
       errors:
         patterns:
-          - "anyhow"
-          - "derive_more"
-          - "color-backtrace"
+          - 'anyhow'
+          - 'derive_more'
+          - 'color-backtrace'
       logging:
         patterns:
-          - "log"
-          - "pretty_env_logger"
-          - "env_logger"
+          - 'log'
+          - 'pretty_env_logger'
+          - 'env_logger'
       testing:
         patterns:
-          - "testing"
-          - "insta"
-          - "ctor"
+          - 'testing'
+          - 'insta'
+          - 'ctor'
       napi:
         patterns:
-          - "napi"
-          - "napi-*"
+          - 'napi'
+          - 'napi-*'
     labels:
-      - "dependencies"
-      - "rust"
+      - 'dependencies'
+      - 'rust'
     # ignore:
     #   - dependency-name: "*"
     #     update-types: ["version-update:semver-major"]
     rebase-strategy: auto
-    target-branch: "develop"
+    target-branch: 'develop'
     assignees:
-      - "Dwlad90"
+      - 'Dwlad90'
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
       interval: monthly
-      time: "09:00"
+      time: '09:00'
       timezone: Etc/Greenwich
     commit-message:
-      prefix: "ci"
-      include: "scope"
+      prefix: 'ci'
+      include: 'scope'
     groups:
       actions:
         patterns:
-          - "actions/*"
+          - 'actions/*'
     labels:
-      - "dependencies"
-      - "github-actions"
+      - 'dependencies'
+      - 'github-actions'
     open-pull-requests-limit: 10
-    target-branch: "develop"
+    target-branch: 'develop'

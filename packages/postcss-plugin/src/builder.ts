@@ -10,10 +10,7 @@ import { shouldTransformFile, TransformedOptions } from '@stylexswc/rs-compiler'
 
 import type { StyleXPluginOption, TransformOptions } from './types';
 
-const NODE_MODULES_CATCH_ALL_EXCLUDE_PATTERNS = new Set([
-  'node_modules/**',
-  '**/node_modules/**',
-]);
+const NODE_MODULES_CATCH_ALL_EXCLUDE_PATTERNS = new Set(['node_modules/**', '**/node_modules/**']);
 
 // Parses a glob pattern and extracts its base directory and pattern.
 // Returns an object with `base` and `glob` properties.
@@ -171,15 +168,13 @@ function createBuilder() {
     const globExclude = (exclude || []).filter(isGlobPattern).map(p => String(p));
 
     const ignoreWithoutNodeModulesCatchAll = globExclude.filter(
-      (pattern) => !isNodeModulesCatchAllExcludePattern(pattern),
+      pattern => !isNodeModulesCatchAllExcludePattern(pattern)
     );
 
     const files = new Set<string>();
     for (const includePattern of globPatterns) {
       const isAbsolutePattern = path.isAbsolute(includePattern);
-      const pointsToNodeModules = /(^|[/\\])node_modules([/\\]|$)/.test(
-        includePattern,
-      );
+      const pointsToNodeModules = /(^|[/\\])node_modules([/\\]|$)/.test(includePattern);
 
       let ignore: string[];
       if (isAbsolutePattern && pointsToNodeModules) {

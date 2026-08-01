@@ -63,13 +63,12 @@ function createPlugin() {
             importSources: effectiveImportSources,
             include: effectiveInclude,
             includeWasExplicit: includeResolution.hasExplicitInclude,
-            discoveredDependencyDirectories:
-              includeResolution.discoveredDependencyDirectories,
+            discoveredDependencyDirectories: includeResolution.discoveredDependencyDirectories,
             exclude: excludeWithDefaults,
           },
           null,
-          2,
-        )}`,
+          2
+        )}`
       );
     }
 
@@ -95,7 +94,7 @@ function createPlugin() {
               importSources:
                 effectiveImportSources.length > 0
                   ? (effectiveImportSources as typeof rsOptions.importSources)
-                  : rsOptions?.importSources ?? ['@stylexjs/stylex', 'stylex'],
+                  : (rsOptions?.importSources ?? ['@stylexjs/stylex', 'stylex']),
               styleResolution: rsOptions?.styleResolution ?? 'property-specificity',
             },
             useCSSLayers,

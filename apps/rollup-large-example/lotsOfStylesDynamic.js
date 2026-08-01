@@ -4,19 +4,19 @@ import * as stylex from '@stylexjs/stylex';
 
 export const lotsOfStylesDynamic = [
   stylex.create({
-    dynamicHeight: (height) => ({
+    dynamicHeight: height => ({
       height,
     }),
     dynamicPadding: (paddingTop, paddingBottom) => ({
       paddingTop,
       paddingBottom,
     }),
-    dynamicTextColor: (textColor) => ({
+    dynamicTextColor: textColor => ({
       color: textColor,
     }),
   }),
   stylex.create({
-    dynamicHeightWithStatic: (height) => ({
+    dynamicHeightWithStatic: height => ({
       height,
       backgroundColor: 'var(--background-color)',
     }),
@@ -25,95 +25,95 @@ export const lotsOfStylesDynamic = [
       paddingBottom,
       margin: '8px',
     }),
-    dynamicTextColorWithStatic: (textColor) => ({
+    dynamicTextColorWithStatic: textColor => ({
       color: textColor,
       fontSize: '16px',
     }),
   }),
   stylex.create({
-    dynamicHeight: (height) => ({ height }),
+    dynamicHeight: height => ({ height }),
     dynamicPadding: (paddingTop, paddingBottom) => ({
       paddingTop,
       paddingBottom,
     }),
-    dynamicTextColor: (textColor) => ({ color: textColor }),
-    dynamicFontSize: (fontSize) => ({ fontSize }),
-    dynamicFontWeight: (fontWeight) => ({ fontWeight }),
-    dynamicLineHeight: (lineHeight) => ({ lineHeight }),
-    dynamicLetterSpacing: (letterSpacing) => ({ letterSpacing }),
-    dynamicTextTransform: (textTransform) => ({ textTransform }),
-    dynamicTextDecoration: (textDecoration) => ({ textDecoration }),
+    dynamicTextColor: textColor => ({ color: textColor }),
+    dynamicFontSize: fontSize => ({ fontSize }),
+    dynamicFontWeight: fontWeight => ({ fontWeight }),
+    dynamicLineHeight: lineHeight => ({ lineHeight }),
+    dynamicLetterSpacing: letterSpacing => ({ letterSpacing }),
+    dynamicTextTransform: textTransform => ({ textTransform }),
+    dynamicTextDecoration: textDecoration => ({ textDecoration }),
   }),
   stylex.create({
-    dynamicFontSizeWithStatic: (fontSize) => ({
+    dynamicFontSizeWithStatic: fontSize => ({
       fontSize,
       fontFamily: 'Arial, sans-serif',
     }),
-    dynamicFontWeightWithStatic: (fontWeight) => ({
+    dynamicFontWeightWithStatic: fontWeight => ({
       fontWeight,
       fontStyle: 'normal',
     }),
-    dynamicLineHeightWithStatic: (lineHeight) => ({
+    dynamicLineHeightWithStatic: lineHeight => ({
       lineHeight,
       textAlign: 'left',
     }),
-    dynamicLetterSpacingWithStatic: (letterSpacing) => ({
+    dynamicLetterSpacingWithStatic: letterSpacing => ({
       letterSpacing,
       wordWrap: 'break-word',
     }),
-    dynamicTextTransformWithStatic: (textTransform) => ({
+    dynamicTextTransformWithStatic: textTransform => ({
       textTransform,
       textShadow: 'none',
     }),
-    dynamicTextDecorationWithStatic: (textDecoration) => ({
+    dynamicTextDecorationWithStatic: textDecoration => ({
       textDecoration,
       boxSizing: 'border-box',
     }),
   }),
   stylex.create({
-    dynamicWidth: (width) => ({ width }),
-    dynamicMinWidth: (minWidth) => ({ minWidth }),
-    dynamicMaxWidth: (maxWidth) => ({ maxWidth }),
-    dynamicHeight2: (height) => ({ height }),
-    dynamicMinHeight: (minHeight) => ({ minHeight }),
-    dynamicMaxHeight: (maxHeight) => ({ maxHeight }),
-    dynamicBorderRadius: (borderRadius) => ({ borderRadius }),
-    dynamicBoxShadow: (boxShadow) => ({ boxShadow }),
-    dynamicBackgroundImage: (backgroundImage) => ({ backgroundImage }),
-    dynamicBackgroundSize: (backgroundSize) => ({ backgroundSize }),
-    dynamicBackgroundPosition: (backgroundPosition) => ({ backgroundPosition }),
-    dynamicBackgroundRepeat: (backgroundRepeat) => ({ backgroundRepeat }),
+    dynamicWidth: width => ({ width }),
+    dynamicMinWidth: minWidth => ({ minWidth }),
+    dynamicMaxWidth: maxWidth => ({ maxWidth }),
+    dynamicHeight2: height => ({ height }),
+    dynamicMinHeight: minHeight => ({ minHeight }),
+    dynamicMaxHeight: maxHeight => ({ maxHeight }),
+    dynamicBorderRadius: borderRadius => ({ borderRadius }),
+    dynamicBoxShadow: boxShadow => ({ boxShadow }),
+    dynamicBackgroundImage: backgroundImage => ({ backgroundImage }),
+    dynamicBackgroundSize: backgroundSize => ({ backgroundSize }),
+    dynamicBackgroundPosition: backgroundPosition => ({ backgroundPosition }),
+    dynamicBackgroundRepeat: backgroundRepeat => ({ backgroundRepeat }),
   }),
   stylex.create({
-    dynamicOpacity: (opacity) => ({ opacity }),
-    dynamicVisibility: (visibility) => ({ visibility }),
-    dynamicDisplay: (display) => ({ display }),
-    dynamicPosition: (position) => ({ position }),
-    dynamicTop: (top) => ({ top }),
-    dynamicRight: (right) => ({ right }),
-    dynamicBottom: (bottom) => ({ bottom }),
-    dynamicLeft: (left) => ({ left }),
-    dynamicZIndex: (zIndex) => ({ zIndex }),
-    dynamicOverflow: (overflow) => ({ overflow }),
-    dynamicOverflowX: (overflowX) => ({ overflowX }),
-    dynamicOverflowY: (overflowY) => ({ overflowY }),
+    dynamicOpacity: opacity => ({ opacity }),
+    dynamicVisibility: visibility => ({ visibility }),
+    dynamicDisplay: display => ({ display }),
+    dynamicPosition: position => ({ position }),
+    dynamicTop: top => ({ top }),
+    dynamicRight: right => ({ right }),
+    dynamicBottom: bottom => ({ bottom }),
+    dynamicLeft: left => ({ left }),
+    dynamicZIndex: zIndex => ({ zIndex }),
+    dynamicOverflow: overflow => ({ overflow }),
+    dynamicOverflowX: overflowX => ({ overflowX }),
+    dynamicOverflowY: overflowY => ({ overflowY }),
   }),
   stylex.create({
-    dynamicCursor: (cursor) => ({ cursor }),
-    dynamicOutline: (outline) => ({ outline }),
-    dynamicOutlineWidth: (outlineWidth) => ({ outlineWidth }),
-    dynamicOutlineStyle: (outlineStyle) => ({ outlineStyle }),
-    dynamicOutlineColor: (outlineColor) => ({ outlineColor }),
-    dynamicListStyle: (listStyle) => ({ listStyle }),
-    dynamicListStyleType: (listStyleType) => ({ listStyleType }),
-    dynamicListStylePosition: (listStylePosition) => ({ listStylePosition }),
-    dynamicListStyleImage: (listStyleImage) => ({ listStyleImage }),
+    dynamicCursor: cursor => ({ cursor }),
+    dynamicOutline: outline => ({ outline }),
+    dynamicOutlineWidth: outlineWidth => ({ outlineWidth }),
+    dynamicOutlineStyle: outlineStyle => ({ outlineStyle }),
+    dynamicOutlineColor: outlineColor => ({ outlineColor }),
+    dynamicListStyle: listStyle => ({ listStyle }),
+    dynamicListStyleType: listStyleType => ({ listStyleType }),
+    dynamicListStylePosition: listStylePosition => ({ listStylePosition }),
+    dynamicListStyleImage: listStyleImage => ({ listStyleImage }),
   }),
   stylex.create({
-    dynamicInput: (caretColor) => ({
+    dynamicInput: caretColor => ({
       'caret-color': caretColor,
     }),
-    dynamicDisplayInherit: (display) => ({
+    dynamicDisplayInherit: display => ({
       display,
     }),
     dynamicInherit: (
@@ -129,7 +129,7 @@ export const lotsOfStylesDynamic = [
       minHeight,
       minWidth,
       position,
-      width,
+      width
     ) => ({
       alignContent,
       alignItems,
@@ -151,7 +151,7 @@ export const lotsOfStylesDynamic = [
       fontSize,
       margin,
     }),
-    dynamicRailItem: (marginBottom) => ({
+    dynamicRailItem: marginBottom => ({
       marginBottom,
     }),
     dynamicRoot: (flexGrow, listStyleType, margin) => ({
@@ -165,7 +165,7 @@ export const lotsOfStylesDynamic = [
     }),
   }),
   stylex.create({
-    dynamicContainer: (marginInlineEnd) => ({
+    dynamicContainer: marginInlineEnd => ({
       marginInlineEnd,
     }),
     dynamicKeyInfo: (
@@ -175,7 +175,7 @@ export const lotsOfStylesDynamic = [
       borderColor,
       borderRadius,
       marginInlineEnd,
-      padding,
+      padding
     ) => ({
       backgroundColor,
       borderWidth,
@@ -185,7 +185,7 @@ export const lotsOfStylesDynamic = [
       marginInlineEnd,
       padding,
     }),
-    dynamicKeyInfoItem: (marginTop) => ({
+    dynamicKeyInfoItem: marginTop => ({
       marginTop,
     }),
   }),
@@ -210,7 +210,7 @@ export const lotsOfStylesDynamic = [
       borderStyle,
       marginInlineEnd,
     }),
-    dynamicInputWrapper: (marginTop) => ({
+    dynamicInputWrapper: marginTop => ({
       marginTop,
     }),
   }),
@@ -220,7 +220,7 @@ export const lotsOfStylesDynamic = [
       color,
       padding,
     }),
-    dynamicSection: (marginBottom) => ({
+    dynamicSection: marginBottom => ({
       marginBottom,
     }),
   }),
@@ -237,7 +237,7 @@ export const lotsOfStylesDynamic = [
       padding,
       paddingInlineEnd,
       paddingInlineStart,
-      textAlign,
+      textAlign
     ) => ({
       borderWidth,
       borderStyle,
@@ -258,15 +258,15 @@ export const lotsOfStylesDynamic = [
       paddingBottom,
       paddingTop,
     }),
-    dynamicListItem: (paddingTop) => ({
+    dynamicListItem: paddingTop => ({
       paddingTop,
     }),
-    dynamicPlus: (marginInline) => ({
+    dynamicPlus: marginInline => ({
       marginInline,
     }),
   }),
   stylex.create({
-    dynamicWrapperFocusable: (outline) => ({
+    dynamicWrapperFocusable: outline => ({
       outline,
     }),
   }),
@@ -294,13 +294,7 @@ export const lotsOfStylesDynamic = [
     }),
   }),
   stylex.create({
-    dynamicContainer: (
-      backgroundColor,
-      display,
-      flexDirection,
-      height,
-      width,
-    ) => ({
+    dynamicContainer: (backgroundColor, display, flexDirection, height, width) => ({
       backgroundColor,
       display,
       flexDirection,
@@ -319,14 +313,7 @@ export const lotsOfStylesDynamic = [
       display,
       justifyContent,
     }),
-    dynamicCardWrapper: (
-      display,
-      flexDirection,
-      flexShrink,
-      flexGrow,
-      minWidth,
-      margin,
-    ) => ({
+    dynamicCardWrapper: (display, flexDirection, flexShrink, flexGrow, minWidth, margin) => ({
       display,
       flexDirection,
       flexShrink,
@@ -346,7 +333,7 @@ export const lotsOfStylesDynamic = [
       flexGrow,
       alignSelf,
       flexDirection,
-      overflow,
+      overflow
     ) => ({
       backgroundColor,
       borderRadius,
@@ -395,7 +382,7 @@ export const lotsOfStylesDynamic = [
       borderBottomColor,
       textAlign,
       padding,
-      width,
+      width
     ) => ({
       backgroundColor,
       borderBottomWidth,
@@ -413,7 +400,7 @@ export const lotsOfStylesDynamic = [
       marginInlineStart,
       marginTop,
     }),
-    dynamicTitle: (maxWidth) => ({
+    dynamicTitle: maxWidth => ({
       maxWidth,
     }),
   }),
@@ -424,7 +411,7 @@ export const lotsOfStylesDynamic = [
       bottom,
       zIndex,
     }),
-    dynamicRoot: (height) => ({
+    dynamicRoot: height => ({
       height,
     }),
     dynamicScrollable: (overflowY, padding, height) => ({
@@ -452,7 +439,7 @@ export const lotsOfStylesDynamic = [
       flexGrow,
       alignSelf,
       flexDirection,
-      padding,
+      padding
     ) => ({
       boxSizing,
       backgroundColor,
@@ -469,7 +456,7 @@ export const lotsOfStylesDynamic = [
       flexDirection,
       padding,
     }),
-    dynamicHeader: (mediaPrintDisplay) => ({
+    dynamicHeader: mediaPrintDisplay => ({
       '@media print': {
         display: mediaPrintDisplay,
       },
@@ -489,7 +476,7 @@ export const lotsOfStylesDynamic = [
       paddingTop,
       backgroundColor,
       overflowY,
-      height,
+      height
     ) => ({
       width,
       flexShrink,
@@ -543,7 +530,7 @@ export const lotsOfStylesDynamic = [
       flexDirection,
       justifyContent,
       alignItems,
-      height,
+      height
     ) => ({
       borderTopStyle,
       borderInlineStartStyle,
@@ -574,12 +561,7 @@ export const lotsOfStylesDynamic = [
       alignItems,
       height,
     }),
-    dynamicReactionRoot: (
-      display,
-      alignItems,
-      paddingInlineStart,
-      marginInlineEnd,
-    ) => ({
+    dynamicReactionRoot: (display, alignItems, paddingInlineStart, marginInlineEnd) => ({
       display,
       alignItems,
       paddingInlineStart,
@@ -593,7 +575,7 @@ export const lotsOfStylesDynamic = [
       borderStyle,
       borderWidth,
       marginInlineStart,
-      position,
+      position
     ) => ({
       width,
       height,
@@ -615,7 +597,7 @@ export const lotsOfStylesDynamic = [
       display,
       justifyContent,
       padding,
-      position,
+      position
     ) => ({
       marginInlineEnd,
       width,
@@ -629,10 +611,10 @@ export const lotsOfStylesDynamic = [
       padding,
       position,
     }),
-    dynamicIconColorViewers: (backgroundColor) => ({ backgroundColor }),
-    dynamicIconColorComments: (backgroundColor) => ({ backgroundColor }),
-    dynamicIconColorQuestions: (backgroundColor) => ({ backgroundColor }),
-    dynamicIconColorLikeReaction: (backgroundColor) => ({ backgroundColor }),
+    dynamicIconColorViewers: backgroundColor => ({ backgroundColor }),
+    dynamicIconColorComments: backgroundColor => ({ backgroundColor }),
+    dynamicIconColorQuestions: backgroundColor => ({ backgroundColor }),
+    dynamicIconColorLikeReaction: backgroundColor => ({ backgroundColor }),
   }),
   stylex.create({
     dynamicContainer: (backgroundColor, height) => ({
@@ -656,7 +638,7 @@ export const lotsOfStylesDynamic = [
       margin,
       width,
     }),
-    dynamicBackgroundTeams: (backgroundColor) => ({ backgroundColor }),
+    dynamicBackgroundTeams: backgroundColor => ({ backgroundColor }),
   }),
   stylex.create({
     dynamicTitle: (width, borderRadius, height) => ({
@@ -681,10 +663,10 @@ export const lotsOfStylesDynamic = [
       paddingInline,
       height,
     }),
-    dynamicMsteams: (marginInlineStart) => ({ marginInlineStart }),
+    dynamicMsteams: marginInlineStart => ({ marginInlineStart }),
   }),
   stylex.create({
-    dynamicGlimmer: (height) => ({ height }),
+    dynamicGlimmer: height => ({ height }),
     dynamicIcon: (marginInlineEnd, position, top) => ({
       marginInlineEnd,
       position,
@@ -695,18 +677,13 @@ export const lotsOfStylesDynamic = [
       height,
       borderRadius,
     }),
-    dynamicBackgroundTeams: (backgroundColor) => ({ backgroundColor }),
+    dynamicBackgroundTeams: backgroundColor => ({ backgroundColor }),
   }),
   stylex.create({
-    dynamicBody: (marginTop) => ({ marginTop }),
+    dynamicBody: marginTop => ({ marginTop }),
   }),
   stylex.create({
-    dynamicVideoOptionsCard: (
-      padding,
-      marginBottom,
-      borderRadius,
-      boxShadow,
-    ) => ({
+    dynamicVideoOptionsCard: (padding, marginBottom, borderRadius, boxShadow) => ({
       padding,
       marginBottom,
       borderRadius,
@@ -719,7 +696,7 @@ export const lotsOfStylesDynamic = [
       paddingInline: 'var(--p-space-4)',
       paddingTop: 'var(--p-space-2)',
     },
-    dynamicPadding: (padding) => ({
+    dynamicPadding: padding => ({
       padding,
     }),
   }),
@@ -727,7 +704,7 @@ export const lotsOfStylesDynamic = [
     vert16: {
       paddingBlock: 16,
     },
-    dynamicVert: (paddingBlock) => ({
+    dynamicVert: paddingBlock => ({
       paddingBlock,
     }),
   }),
@@ -735,7 +712,7 @@ export const lotsOfStylesDynamic = [
     item: {
       listStyleType: 'disc',
     },
-    dynamicItem: (listStyleType) => ({
+    dynamicItem: listStyleType => ({
       listStyleType,
     }),
   }),
@@ -747,13 +724,7 @@ export const lotsOfStylesDynamic = [
       justifyContent: 'space-between',
       padding: '0px 16px',
     },
-    dynamicContainer: (
-      display,
-      flexDirection,
-      height,
-      justifyContent,
-      padding,
-    ) => ({
+    dynamicContainer: (display, flexDirection, height, justifyContent, padding) => ({
       display,
       flexDirection,
       height,
@@ -784,7 +755,7 @@ export const lotsOfStylesDynamic = [
       height,
       justifyContent,
       padding,
-      width,
+      width
     ) => ({
       backgroundColor,
       borderRadius,

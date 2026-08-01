@@ -50,14 +50,16 @@ const getCacheKey: SyncTransformer<JestTransformerConfig>['getCacheKey'] = funct
   sourcePath,
   options
 ) {
-  return createHash('sha256')
-    .update(sourceText)
-    .update(sourcePath)
-    .update(JSON.stringify(options.transformerConfig))
-    // Without this, upgrading the compiler leaves Jest replaying output that
-    // the previous compiler produced, because nothing else in the key moves.
-    .update(COMPILER_VERSION)
-    .digest('hex');
+  return (
+    createHash('sha256')
+      .update(sourceText)
+      .update(sourcePath)
+      .update(JSON.stringify(options.transformerConfig))
+      // Without this, upgrading the compiler leaves Jest replaying output that
+      // the previous compiler produced, because nothing else in the key moves.
+      .update(COMPILER_VERSION)
+      .digest('hex')
+  );
 };
 
 const createTransformer: TransformerCreator<

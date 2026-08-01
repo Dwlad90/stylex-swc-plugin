@@ -7,11 +7,7 @@ export const metadata = {
   description: 'The expressive styling system for ambitious interfaces',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html {...stylex.props(styles.html, styles.reset)} lang="en">
       <body {...stylex.props(styles.reset, styles.body)}>{children}</body>

@@ -17,7 +17,8 @@ function createMockCompiler(chunkModules: Array<{ identifier: () => string }> = 
   };
 
   let finishModulesCallback:
-    ((_modules: Iterable<{ identifier: () => string }>) => void) | undefined;
+    | ((_modules: Iterable<{ identifier: () => string }>) => void)
+    | undefined;
   let processAssetsCallback: ((_assets: Record<string, Source>) => Promise<void>) | undefined;
 
   const warnings: Error[] = [];

@@ -105,9 +105,7 @@ test('check default values when input is empty', () => {
 });
 
 test('should throw when input is not provided', () => {
-  expect(() => normalizeRsOptions()).toThrow(
-    'Options must be an object, received null/undefined'
-  );
+  expect(() => normalizeRsOptions()).toThrow('Options must be an object, received null/undefined');
 });
 
 test('should throw when input is null', () => {
@@ -327,12 +325,18 @@ test('normalizeRsOptions: sourceMap values are preserved', () => {
 
 test('normalizeRsOptions: propertyValidationMode overrides default', () => {
   expect(normalizeRsOptions({}).propertyValidationMode).toBe(PropertyValidationMode.Silent);
-  expect(normalizeRsOptions({ propertyValidationMode: PropertyValidationMode.Throw })
-      .propertyValidationMode).toBe(PropertyValidationMode.Throw);
-  expect(normalizeRsOptions({ propertyValidationMode: PropertyValidationMode.Warn })
-      .propertyValidationMode).toBe(PropertyValidationMode.Warn);
-  expect(normalizeRsOptions({ propertyValidationMode: PropertyValidationMode.Silent })
-      .propertyValidationMode).toBe(PropertyValidationMode.Silent);
+  expect(
+    normalizeRsOptions({ propertyValidationMode: PropertyValidationMode.Throw })
+      .propertyValidationMode
+  ).toBe(PropertyValidationMode.Throw);
+  expect(
+    normalizeRsOptions({ propertyValidationMode: PropertyValidationMode.Warn })
+      .propertyValidationMode
+  ).toBe(PropertyValidationMode.Warn);
+  expect(
+    normalizeRsOptions({ propertyValidationMode: PropertyValidationMode.Silent })
+      .propertyValidationMode
+  ).toBe(PropertyValidationMode.Silent);
 });
 
 test('normalizeRsOptions: mixed include patterns (string and RegExp)', () => {
@@ -387,7 +391,9 @@ test('normalizeRsOptions: undefined fields do not clobber defaults', () => {
 
 test('normalizeRsOptions: enableLogicalStylesPolyfill default and override', () => {
   expect(normalizeRsOptions({}).enableLogicalStylesPolyfill).toBe(false);
-  expect(normalizeRsOptions({ enableLogicalStylesPolyfill: true }).enableLogicalStylesPolyfill).toBe(true);
+  expect(
+    normalizeRsOptions({ enableLogicalStylesPolyfill: true }).enableLogicalStylesPolyfill
+  ).toBe(true);
 });
 
 test('normalizeRsOptions: enableMediaQueryOrder default and override', () => {

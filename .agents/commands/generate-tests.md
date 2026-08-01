@@ -10,7 +10,8 @@ Generate comprehensive test suite for: $ARGUMENTS
 
 ## Current Testing Setup
 
-- Test framework: @package.json or @jest.config.js or @vitest.config.js (detect framework)
+- Test framework: @package.json or @jest.config.js or @vitest.config.js (detect
+  framework)
 - Target file: @$ARGUMENTS (if file path provided)
 
 ## Task
@@ -81,4 +82,5 @@ I'll follow these steps:
 - Test both happy path and error scenarios
 - Include boundary value testing
 
-I'll adapt to your project's testing framework (Jest, Vitest, Cypress, etc.) and follow established patterns.
+I'll adapt to your project's testing framework (Jest, Vitest, Cypress, etc.) and
+follow established patterns.

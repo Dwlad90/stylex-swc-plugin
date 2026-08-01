@@ -1,9 +1,9 @@
 /* eslint-disable typescript/no-require-imports */
-const path = require('node:path')
-const HtmlWebpackPlugin = require('html-webpack-plugin')
-const styleXRSPlugin = require('@stylexswc/unplugin/webpack')
+const path = require('node:path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const styleXRSPlugin = require('@stylexswc/unplugin/webpack');
 
-const isDev = process.env.NODE_ENV === 'development'
+const isDev = process.env.NODE_ENV === 'development';
 
 module.exports = {
   context: __dirname,
@@ -33,7 +33,7 @@ module.exports = {
                 syntax: 'ecmascript',
                 jsx: true,
               },
-              target: "es2015",
+              target: 'es2015',
               transform: {
                 react: {
                   runtime: 'automatic', // Use 'classic' if you are not using the new JSX transform
@@ -66,7 +66,7 @@ module.exports = {
               fullHeight: '100vh',
             },
           },
-          wrapper: (value) => `${value}`,
+          wrapper: value => `${value}`,
         },
       },
     }),
@@ -74,4 +74,4 @@ module.exports = {
       template: 'public/index.html',
     }),
   ],
-}
+};

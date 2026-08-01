@@ -1,7 +1,7 @@
-import { defineConfig } from '@rsbuild/core'
-import { pluginReact } from '@rsbuild/plugin-react'
-import styleXRSPlugin from '@stylexswc/unplugin/rspack'
-import rspack from '@rspack/core'
+import { defineConfig } from '@rsbuild/core';
+import { pluginReact } from '@rsbuild/plugin-react';
+import styleXRSPlugin from '@stylexswc/unplugin/rspack';
+import rspack from '@rspack/core';
 
 export default defineConfig({
   plugins: [pluginReact()],
@@ -33,11 +33,11 @@ export default defineConfig({
                   fullHeight: '100vh',
                 },
               },
-              wrapper: (value) => `${value}`,
+              wrapper: value => `${value}`,
             },
           },
         }),
       ],
     },
   },
-})
+});

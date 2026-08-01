@@ -75,8 +75,7 @@ export const lightTheme = stylex.createTheme(globalTokens, {
     '#0071ff33 160deg',
     'transparent 360deg',
   ].join(', ')})`,
-  secondaryGlow:
-    'radial-gradient(rgba(255, 255, 255, 1), rgba(255, 255, 255, 0))',
+  secondaryGlow: 'radial-gradient(rgba(255, 255, 255, 1), rgba(255, 255, 255, 0))',
 
   surfaceBg: '#fafafa',
   surfaceCard: 'white',

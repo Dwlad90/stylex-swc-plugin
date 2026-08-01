@@ -1,11 +1,6 @@
 import * as stylex from '@stylexjs/stylex';
 import Link from 'next/link';
-import {
-  globalTokens as $,
-  spacing,
-  text,
-  colors,
-} from '../globalTokens.stylex';
+import { globalTokens as $, spacing, text, colors } from '../globalTokens.stylex';
 
 const DARK = '@media (prefers-color-scheme: dark)' as const;
 const MOBILE = '@media (max-width: 700px)' as const;
@@ -44,14 +39,14 @@ export default function DemosPage() {
           Theming <span {...stylex.props(s.titleAccent)}>Demos</span>
         </h1>
         <p {...stylex.props(s.subtitle)}>
-          Experimental APIs for nested design tokens in StyleX. Define
-          hierarchical token structures, compose themes across packages, and let
-          the compiler flatten everything to optimized CSS.
+          Experimental APIs for nested design tokens in StyleX. Define hierarchical token
+          structures, compose themes across packages, and let the compiler flatten everything to
+          optimized CSS.
         </p>
       </header>
 
       <div {...stylex.props(s.grid)}>
-        {DEMOS.map((demo) => (
+        {DEMOS.map(demo => (
           <a key={demo.href} {...stylex.props(s.card)} href={demo.href}>
             <div {...stylex.props(s.cardHeader)}>
               <span {...stylex.props(s.cardIcon)}>{demo.icon}</span>

@@ -1,8 +1,8 @@
-import { colors } from '@stylexjs/open-props/lib/colors.stylex'
-import { fonts } from '@stylexjs/open-props/lib/fonts.stylex'
-import { sizes } from '@stylexjs/open-props/lib/sizes.stylex'
-import * as stylex from '@stylexjs/stylex'
-import { render } from 'solid-js/web'
+import { colors } from '@stylexjs/open-props/lib/colors.stylex';
+import { fonts } from '@stylexjs/open-props/lib/fonts.stylex';
+import { sizes } from '@stylexjs/open-props/lib/sizes.stylex';
+import * as stylex from '@stylexjs/stylex';
+import { render } from 'solid-js/web';
 import { tokens } from '@stylexswc/design-system/tokens.stylex';
 import { breakpoints } from '@stylexswc/design-system/consts.stylex';
 
@@ -46,18 +46,18 @@ const styles = stylex.create({
     display: {
       default: 'none',
       [breakpoints.mobile]: 'block',
-    }
+    },
   },
   onlyDesktop: {
     display: {
       default: 'none',
       [breakpoints.desktop]: 'block',
-    }
+    },
   },
-})
+});
 
 function App() {
-    return (
+  return (
     <div sx={styles.main}>
       <div {...stylex.props(styles.card, styles.blueBg)}>
         <span {...stylex.props(styles.orangeFg)}>Blue rounded rectangle with orange text</span>
@@ -69,11 +69,11 @@ function App() {
         <span {...stylex.props(styles.greenFg)}>Red rounded rectangle with green text</span>
       </div>
     </div>
-  )
+  );
 }
 
-const root = document.getElementById('root')
+const root = document.getElementById('root');
 
 if (root) {
-  render(() => <App />, root)
+  render(() => <App />, root);
 }

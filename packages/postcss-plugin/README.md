@@ -16,6 +16,7 @@ plugins cannot run, most notably Next.js with Turbopack.
 This is a community project and is not affiliated with Meta. It tracks the
 official StyleX releases
 <!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->
+
 and requires Node.js 20 or newer.
 
 ## Installation
@@ -82,13 +83,11 @@ module.exports = stylexPlugin({
 });
 ```
 
-> [!WARNING]
-> Every `@stylexswc` bundler plugin accepts an `extractCSS` option.
+> [!WARNING] Every `@stylexswc` bundler plugin accepts an `extractCSS` option.
 > When this PostCSS plugin owns extraction, set `extractCSS: false` on the
 > bundler plugin to avoid generating the StyleX CSS twice.
 
-> [!NOTE]
-> This approach transforms JS/TS files with StyleX code twice: once for
+> [!NOTE] This approach transforms JS/TS files with StyleX code twice: once for
 > the bundle and once inside the PostCSS plugin. On Next.js with Webpack you can
 > avoid that by skipping this plugin entirely and passing a `transformCss`
 > function to `@stylexswc/nextjs-plugin` instead. With Turbopack, the double
@@ -96,8 +95,7 @@ module.exports = stylexPlugin({
 
 ## Plugin Options
 
-> [!NOTE]
-> The `include` and `exclude` options are exclusive to the Rust compiler
+> [!NOTE] The `include` and `exclude` options are exclusive to the Rust compiler
 > and are not available in the official StyleX Babel plugin.
 
 ### `include`

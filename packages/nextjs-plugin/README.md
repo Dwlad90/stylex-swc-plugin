@@ -16,6 +16,7 @@ transforms are 5x to 10x faster than with Babel — see
 This is a community project and is not affiliated with Meta. It tracks the
 official StyleX releases
 <!-- stylex-compatibility:start -->(currently compatible with StyleX v0.19.0)<!-- stylex-compatibility:end -->,
+
 requires Node.js 20 or newer, and supports Next.js 15+ (App Router and Pages
 Router).
 
@@ -36,9 +37,9 @@ npm install @stylexjs/stylex
 The plugin supports all three Next.js bundlers. Pick the export that matches
 your setup.
 
-For the Webpack and Rspack integrations, import the carrier stylesheet
-**once** at your app entrypoint — the root layout (`app/layout.tsx`) for the
-App Router, or `pages/_app.tsx` for the Pages Router:
+For the Webpack and Rspack integrations, import the carrier stylesheet **once**
+at your app entrypoint — the root layout (`app/layout.tsx`) for the App Router,
+or `pages/_app.tsx` for the Pages Router:
 
 ```tsx
 // App Router: app/layout.tsx (Webpack)
@@ -52,28 +53,26 @@ the build.
 
 The carrier import is a **recommendation, not a hard requirement**. The plugin
 also appends tiny per-module CSS imports to every StyleX module, so any route
-that renders a StyleX component — statically imported, behind `next/dynamic`,
-or a Server Component — links the stylesheet on its own. What the carrier in
-the root layout adds is a guarantee that doesn't depend on the module graph:
+that renders a StyleX component — statically imported, behind `next/dynamic`, or
+a Server Component — links the stylesheet on its own. What the carrier in the
+root layout adds is a guarantee that doesn't depend on the module graph:
 **every** route links the stylesheet, including routes that render no StyleX
 component at all (a plain 404 page, for example). Without the carrier, such
 routes omit the stylesheet — harmless if they truly consume nothing from it,
-broken if they consume StyleX output indirectly: plain CSS reading
-`defineVars` custom properties (`var(--x…)`), or injected markup carrying
-StyleX class names. If styles would actually be lost (no CSS asset exists to
-receive them at all), the build raises a compilation warning; it stays silent
-as long as the output is correct, carrier or not.
+broken if they consume StyleX output indirectly: plain CSS reading `defineVars`
+custom properties (`var(--x…)`), or injected markup carrying StyleX class names.
+If styles would actually be lost (no CSS asset exists to receive them at all),
+the build raises a compilation warning; it stays silent as long as the output is
+correct, carrier or not.
 
-> [!IMPORTANT]
-> **Migrating from 0.17.x**: version 0.18.0 replaces the auto-injected
-> `stylex.virtual.css` imports with the carrier contract above — add the
-> carrier import to your root layout / `_app` (recommended; see above for
-> when you can skip it). The App Router cross-compiler rule registry is now
-> enabled by default (`nextjsAppRouterMode: true`), so styles authored in
-> Server Components reach the client CSS; pass `nextjsAppRouterMode: false`
-> when using the Pages Router. `experimental.webpackBuildWorker` is
-> force-disabled because the registry requires all compilers to share one
-> process.
+> [!IMPORTANT] **Migrating from 0.17.x**: version 0.18.0 replaces the
+> auto-injected `stylex.virtual.css` imports with the carrier contract above —
+> add the carrier import to your root layout / `_app` (recommended; see above
+> for when you can skip it). The App Router cross-compiler rule registry is now
+> enabled by default (`nextjsAppRouterMode: true`), so styles authored in Server
+> Components reach the client CSS; pass `nextjsAppRouterMode: false` when using
+> the Pages Router. `experimental.webpackBuildWorker` is force-disabled because
+> the registry requires all compilers to share one process.
 
 ### Using with Webpack
 
@@ -107,8 +106,7 @@ module.exports = stylexPlugin({
 });
 ```
 
-> [!NOTE]
-> Run `next dev` and `next build` without the `--webpack`/`--turbopack`
+> [!NOTE] Run `next dev` and `next build` without the `--webpack`/`--turbopack`
 > flags. For `next start`, set `NEXT_RSPACK=true` in the environment (the
 > production server only serves prebuilt output, but it still evaluates the
 > config).
@@ -118,15 +116,13 @@ Components, with the same options as the Webpack plugin, plus `stylexPackages`
 from
 [`@stylexswc/rspack-plugin`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/rspack-plugin).
 
-> [!NOTE]
-> Packages listed in `transpilePackages` are automatically added to the
+> [!NOTE] Packages listed in `transpilePackages` are automatically added to the
 > `stylexPackages` allowlist, so StyleX source shipped in `node_modules` (e.g.
 > `@stylexjs/open-props`) is picked up without extra configuration.
 
 ### Using with Turbopack
 
-> [!IMPORTANT]
-> Turbopack does not support webpack plugins
+> [!IMPORTANT] Turbopack does not support webpack plugins
 > ([see Next.js docs](https://nextjs.org/docs/app/api-reference/turbopack#webpack-plugins)).
 > When using Turbopack, the loader only compiles StyleX code but does not
 > extract CSS.
@@ -163,8 +159,7 @@ export default withStylexTurbopack({
 });
 ```
 
-> [!NOTE]
-> When using Turbopack, the following options are not supported and will
+> [!NOTE] When using Turbopack, the following options are not supported and will
 > be ignored:
 >
 > - `useCSSLayers`
@@ -184,8 +179,7 @@ export default withStylexTurbopack({
   the standard options, see the
   [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
-> [!NOTE]
-> The `include` and `exclude` options are exclusive to the Rust compiler
+> [!NOTE] The `include` and `exclude` options are exclusive to the Rust compiler
 > and are not available in the official StyleX Babel plugin.
 
 ##### `rsOptions.include`
@@ -235,14 +229,14 @@ export default withStylexTurbopack({
 - Default: the packaged `<plugin package>/stylex.css`
 - Description: Path to a custom carrier stylesheet (the file imported in your
   root layout / `_app`) that receives the extracted StyleX CSS. Absolute, or
-  relative to the project directory. Replaces the default packaged carrier.
-  When styles are extracted but no CSS asset exists to receive them at all,
-  the build raises a compilation warning instead of silently dropping the CSS.
+  relative to the project directory. Replaces the default packaged carrier. When
+  styles are extracted but no CSS asset exists to receive them at all, the build
+  raises a compilation warning instead of silently dropping the CSS.
 - Note: carrier matching compares resolved absolute paths, which assumes the
   default symlink resolution. With `resolve.symlinks: false` or
   `node --preserve-symlinks`, Node and the bundler can disagree about the
-  carrier's real path — if the missing-carrier warning appears in such a
-  setup, point `carrierCss` at a file inside your own source tree.
+  carrier's real path — if the missing-carrier warning appears in such a setup,
+  point `carrierCss` at a file inside your own source tree.
 
 #### `rspackServerPersistentCache`
 
@@ -254,14 +248,14 @@ export default withStylexTurbopack({
   Next.js 16 enables `experiments.cache = { type: 'persistent' }` for every
   `next-rspack` compiler, and a `proxy.ts`/`middleware.ts` entry makes that
   cache degrade catastrophically in the server compilers — the build stalls
-  inside Rspack's native filesystem layer and can look like a hang (see the
-  FAQ entry below). Left unset, the plugin disables the cache for the server
-  compilers of a **production build** when it finds a proxy/middleware entry
-  in the project root or `src/`, and logs a warning saying so. `next dev` is
-  left alone — it shows no such stall, and keeping its cache is worth ~200ms
-  on the first compile of a route. Set `true` to keep Next.js' setting
-  untouched, `false` to always disable it (dev included). The client compiler
-  always keeps its cache.
+  inside Rspack's native filesystem layer and can look like a hang (see the FAQ
+  entry below). Left unset, the plugin disables the cache for the server
+  compilers of a **production build** when it finds a proxy/middleware entry in
+  the project root or `src/`, and logs a warning saying so. `next dev` is left
+  alone — it shows no such stall, and keeping its cache is worth ~200ms on the
+  first compile of a route. Set `true` to keep Next.js' setting untouched,
+  `false` to always disable it (dev included). The client compiler always keeps
+  its cache.
 - Note: auto-detection also stands down when your own `webpack()` hook
   configures `experiments.cache`, so an explicit choice there always wins. If
   you set it by accident and the build crawls, either drop it or pass
@@ -458,22 +452,21 @@ into static CSS, so there is no runtime cost either way.
 
 ### My Rspack build hangs when I add a `proxy.ts`
 
-This is an upstream Next.js 16 + `next-rspack` issue, not a StyleX one:
-Next.js enables Rspack's persistent cache for every compiler, and a
-proxy/middleware entry makes it spend minutes in Rspack's native filesystem
-layer walking the workspace. It reproduces with no StyleX plugin installed at
-all, it scales with the size of the workspace rather than the app, and warm
-builds are slower than cold ones. On the example app the server compile went
-from 1.6s to 27s cold and 50s warm; in a large monorepo the build never
-appears to finish.
+This is an upstream Next.js 16 + `next-rspack` issue, not a StyleX one: Next.js
+enables Rspack's persistent cache for every compiler, and a proxy/middleware
+entry makes it spend minutes in Rspack's native filesystem layer walking the
+workspace. It reproduces with no StyleX plugin installed at all, it scales with
+the size of the workspace rather than the app, and warm builds are slower than
+cold ones. On the example app the server compile went from 1.6s to 27s cold and
+50s warm; in a large monorepo the build never appears to finish.
 
 The `/rspack` export detects the proxy entry and disables the persistent cache
 for the server compilers of a production build, which restores the original
-build time (1.6s on the example app) and leaves the emitted CSS
-byte-identical. `next dev` keeps its cache: it boots in ~240ms and compiles
-the proxy entry in ~310ms with the cache on, so the stall does not appear
-there. See [`rspackServerPersistentCache`](#rspackserverpersistentcache) to
-control it. The `--webpack` bundler is unaffected.
+build time (1.6s on the example app) and leaves the emitted CSS byte-identical.
+`next dev` keeps its cache: it boots in ~240ms and compiles the proxy entry in
+~310ms with the cache on, so the stall does not appear there. See
+[`rspackServerPersistentCache`](#rspackserverpersistentcache) to control it. The
+`--webpack` bundler is unaffected.
 
 ### Is this an official StyleX package?
 

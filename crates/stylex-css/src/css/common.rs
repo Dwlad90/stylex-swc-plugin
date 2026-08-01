@@ -907,7 +907,7 @@ pub fn stringify(node: &Stylesheet) -> String {
      */
 
     let clean = CLEAN_CSS_VAR
-      .replace_all(result.as_str(), |caps: &fancy_regex::Captures| {
+      .replace_all(result.as_str(), |caps: &fancy_regex::Captures<str>| {
         caps
           .get(1)
           .map_or(String::default(), |m| m.as_str().to_string())

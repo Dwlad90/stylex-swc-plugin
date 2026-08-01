@@ -57,7 +57,7 @@
     "shellcheck": "^4.1.0",
     "syncpack": "^15.3.2",
     "turbo": "^2.10.7",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "engines": {
     "node": ">=20"

@@ -283,25 +283,30 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           const wasCodeTransformed = code !== inputCode;
 
           if (wasCodeTransformed) {
-            setTimeout(async () => {
-              // Find all CSS modules that actually contain the placeholder
-              const cssModules = await invalidateAndCollectCssModules(
-                viteDevServer!,
-                normalizedOptions.useCssPlaceholder
-              );
+            // `setTimeout` expects a void-returning callback, so the async work
+            // is wrapped rather than handed to it directly; otherwise a
+            // rejection here becomes an unhandled promise.
+            setTimeout(() => {
+              void (async () => {
+                // Find all CSS modules that actually contain the placeholder
+                const cssModules = await invalidateAndCollectCssModules(
+                  viteDevServer!,
+                  normalizedOptions.useCssPlaceholder
+                );
 
-              // Send update to trigger HMR
-              if (cssModules.length > 0) {
-                viteDevServer!.ws.send({
-                  type: 'update',
-                  updates: cssModules.map(mod => ({
-                    type: 'css-update' as const,
-                    acceptedPath: mod.url,
-                    path: mod.url,
-                    timestamp: Date.now(),
-                  })),
-                });
-              }
+                // Send update to trigger HMR
+                if (cssModules.length > 0) {
+                  viteDevServer!.ws.send({
+                    type: 'update',
+                    updates: cssModules.map(mod => ({
+                      type: 'css-update' as const,
+                      acceptedPath: mod.url,
+                      path: mod.url,
+                      timestamp: Date.now(),
+                    })),
+                  });
+                }
+              })();
             }, 50);
           }
         }

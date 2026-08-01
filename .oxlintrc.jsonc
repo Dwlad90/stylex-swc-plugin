@@ -74,7 +74,29 @@
     "typescript/no-wrapper-object-types": "error",
     "typescript/prefer-as-const": "error",
     "typescript/prefer-namespace-keyword": "error",
-    "typescript/triple-slash-reference": "error"
+    "typescript/triple-slash-reference": "error",
+
+    // Type-aware. These need `oxlint-tsgolint` and only run under
+    // `pnpm lint:type-aware`, which is a separate script and a separate CI
+    // job so the default lint stays fast.
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+
+    // `--type-aware` switches on every type-aware correctness rule, not just
+    // the two above. These three are real findings and are left off only
+    // because adopting them belongs in its own change, the same way the
+    // syntax expansion was kept out of the migration commit:
+    //   - `no-misused-spread` flags `...defaultConfig.webServer` in 21
+    //     Playwright configs. Playwright types `webServer` as a config or an
+    //     array of them, so spreading it yields numeric indices when it is an
+    //     array.
+    //   - `await-thenable` flags a `for await...of` over a sync iterable in
+    //     the benchmark.
+    //   - `restrict-template-expressions` flags one interpolation in the
+    //     virtual CSS loader.
+    "typescript/no-misused-spread": "off",
+    "typescript/await-thenable": "off",
+    "typescript/restrict-template-expressions": "off"
   },
 
   "ignorePatterns": [

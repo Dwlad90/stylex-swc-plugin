@@ -160,7 +160,7 @@ describe('@stylexswc/unplugin', () => {
     };
 
     if (typeof pluginInstance.buildStart === 'function') {
-      pluginInstance.buildStart.call(mockContext as UnpluginBuildContext);
+      await pluginInstance.buildStart.call(mockContext as UnpluginBuildContext);
     }
 
     expect(typeof pluginInstance.transform).toBe('function');
@@ -272,7 +272,7 @@ describe('@stylexswc/unplugin', () => {
     };
 
     if (typeof pluginInstance.buildStart === 'function') {
-      pluginInstance.buildStart.call(mockContext as UnpluginBuildContext);
+      await pluginInstance.buildStart.call(mockContext as UnpluginBuildContext);
     }
 
     // This code uses stylex.create with a non-static value that will cause

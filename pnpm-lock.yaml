@@ -916,8 +916,8 @@ importers:
         specifier: ^1.61.1
         version: 1.61.1
       '@rspack/cli':
-        specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))
+        specifier: ^2.1.7
+        version: 2.1.7(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))
       '@rspack/core':
         specifier: ^2.0.2
         version: 2.0.2(@swc/helpers@0.5.23)
@@ -965,8 +965,8 @@ importers:
         specifier: ^1.61.1
         version: 1.61.1
       '@rspack/cli':
-        specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))
+        specifier: ^2.1.7
+        version: 2.1.7(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))
       '@rspack/core':
         specifier: ^2.0.2
         version: 2.0.2(@swc/helpers@0.5.23)
@@ -5716,8 +5716,8 @@ packages:
   '@rspack/binding@2.1.2':
     resolution: {integrity: sha512-/mFcRSUW7Pl19KeaBIujJvZYNJQu0wD5D3aa5h+Qcph26v7nmLYlX7eajIHGi8tt2qTZX1lXifw2KLIXKwYaRQ==}
 
-  '@rspack/cli@2.0.2':
-    resolution: {integrity: sha512-rwuzo/V59ck/ChNkxMEEjuXLFs8nPJ37K0PMuUeIMmzFJNdUcPLxSV3qaV9azDLGcyq4XwcyQvexH3okWbfUfQ==}
+  '@rspack/cli@2.1.7':
+    resolution: {integrity: sha512-1hmCC6OsJM4zJC7gWi122/kbl2h7lxZl4Wi1kdPYak0pqth6FGTmyHV+bwB+3yzAb6e/B2ttNqvXU1Zbj+Z+gQ==}
     hasBin: true
     peerDependencies:
       '@rspack/core': ^2.0.0-0
@@ -7506,8 +7506,8 @@ packages:
     resolution: {integrity: sha512-7oFy703dxfY3/NLxC1fh2SUCQ0H9rmAY+5EpDVfXjUTTs+HEwR2nYaqLv+GWcTsumwxPfiz6CzCNkwXwBUwqCA==}
     engines: {node: 18 || 20 || >=22}
 
-  brace-expansion@5.0.8:
-    resolution: {integrity: sha512-JZyDyq3D4AUifKTPOB7DELf6XsB3WdPuNxCtob1vFXPsSXhdAiHBWJ/tJ8HAc9aH84BK+5JFZLNkJKx3G9kzQg==}
+  brace-expansion@5.0.9:
+    resolution: {integrity: sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==}
     engines: {node: 20 || >=22}
 
   braces@3.0.3:
@@ -16441,7 +16441,7 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 2.1.2
       '@rspack/binding-win32-x64-msvc': 2.1.2
 
-  '@rspack/cli@2.0.2(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))':
+  '@rspack/cli@2.1.7(@rspack/core@2.0.2(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.0.2(@swc/helpers@0.5.23))(selfsigned@5.5.0))':
     dependencies:
       '@rspack/core': 2.0.2(@swc/helpers@0.5.23)
     optionalDependencies:
@@ -18690,7 +18690,7 @@ snapshots:
     dependencies:
       balanced-match: 4.0.4
 
-  brace-expansion@5.0.8:
+  brace-expansion@5.0.9:
     dependencies:
       balanced-match: 4.0.4
 
@@ -22603,7 +22603,7 @@ snapshots:
 
   minimatch@10.2.6:
     dependencies:
-      brace-expansion: 5.0.8
+      brace-expansion: 5.0.9
 
   minimatch@3.1.5:
     dependencies:

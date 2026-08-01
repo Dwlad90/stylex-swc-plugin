@@ -22,4 +22,18 @@ export default defineConfig({
     js: format === 'es' ? '.js' : '.cjs',
     dts: format === 'es' ? '.d.ts' : '.d.cts',
   }),
+  // `./nuxt` exports both a default module and the `ModuleOptions` type, so its
+  // declaration cannot use `export =` the way the single-default entries do. It
+  // therefore declares a `default` while `cjsDefault` writes `module.exports =`
+  // directly, and the two disagree. tsup papered over this by appending
+  // `exports.default = module.exports` to every `.cjs`; do the same for the one
+  // entry that needs it instead of reinstating that rewrite wholesale.
+  footer: ({ format, fileName }) =>
+    format === 'cjs' && fileName === 'nuxt.cjs'
+      ? { js: '\nmodule.exports.default = module.exports;\n' }
+      : {},
+  // Both are blocking: the exports map has ten subpaths across two module
+  // systems, which is far too much surface to keep correct by inspection.
+  publint: true,
+  attw: true,
 });

@@ -11,6 +11,7 @@
     "deps:check": "./scripts/deps-prune.sh",
     "deps:check:node": "./scripts/deps-prune.sh --node",
     "deps:check:rust": "./scripts/deps-prune.sh --rust",
+    "deps:check:typescript": "./scripts/deps/typescript-graph-check.sh",
     "deps:fix": "./scripts/deps-prune.sh --apply",
     "dev": "turbo dev",
     "docs": "scripty  --rust",
@@ -57,10 +58,10 @@
     "shellcheck": "^4.1.0",
     "syncpack": "^15.3.2",
     "turbo": "^2.10.7",
-    "typescript": "^7.0.2"
+    "typescript": "7.0.2"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24.11"
   },
   "keywords": [
     "atomic-css",

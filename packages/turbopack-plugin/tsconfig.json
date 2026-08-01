@@ -5,12 +5,7 @@
     "outDir": "dist",
     "types": [
       "node"
-    ],
-    "ignoreDeprecations": "6.0",
-    "moduleResolution": "Node",
-    "module": "CommonJS",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    ]
   },
   "include": [
     "src/**/*.ts",

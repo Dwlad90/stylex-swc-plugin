@@ -103,7 +103,7 @@
     "esno": "^4.7.0",
     "rollup": "^4.62.3",
     "tsup": "^8.5.1",
-    "typescript": "^7.0.2",
+    "typescript": "7.0.2",
     "vitest": "^4.1.10"
   },
   "peerDependencies": {

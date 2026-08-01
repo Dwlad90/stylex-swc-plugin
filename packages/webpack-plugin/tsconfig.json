@@ -3,12 +3,7 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "dist",
-    "ignoreDeprecations": "6.0",
-    "types": ["node"],
-    "moduleResolution": "Node",
-    "module": "CommonJS",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "types": ["node"]
   },
   "include": [
     "src/**/*.ts",

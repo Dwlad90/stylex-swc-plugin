@@ -1,7 +1,15 @@
 {
   "$schema": "./node_modules/syncpack/schema.json",
   "indent": "  ",
-  "semverGroups": [],
+  "semverGroups": [
+    {
+      "label": "TypeScript and its Oxlint type-aware companion are pinned exactly and updated as a pair",
+      "dependencies": ["typescript", "oxlint-tsgolint"],
+      "dependencyTypes": ["dev", "prod"],
+      "packages": ["**"],
+      "range": ""
+    }
+  ],
   "sortAz": [
     "contributors",
     "private",
@@ -39,6 +47,13 @@
     "!*/fixtures/*"
   ],
   "versionGroups": [
+    {
+      "label": "TypeScript must resolve to one identical exact version everywhere",
+      "dependencies": ["typescript", "oxlint-tsgolint"],
+      "dependencyTypes": ["dev", "prod"],
+      "packages": ["**"],
+      "preferVersion": "highestSemver"
+    },
     {
       "label": "Accept everything except peerDependencies",
       "dependencyTypes": [

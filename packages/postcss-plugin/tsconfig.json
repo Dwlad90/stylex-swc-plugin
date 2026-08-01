@@ -1,16 +1,11 @@
 {
   "extends": "@stylexswc/typescript-config/base.json",
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
     "rootDir": "./src",
     "outDir": "dist",
     "types": [
       "node"
     ],
-    "moduleResolution": "Node",
-    "module": "CommonJS",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
     "composite": true,
     "incremental": true
   },

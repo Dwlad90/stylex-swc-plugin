@@ -1,7 +1,6 @@
 {
   "extends": "@stylexswc/typescript-config/base.json",
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
     "target": "es2017",
     "lib": [
       "esnext",
@@ -16,7 +15,6 @@
     "resolveJsonModule": true,
     "strict": true,
     "strictNullChecks": true,
-    "esModuleInterop": true,
     "skipLibCheck": true
   },
   "include": [

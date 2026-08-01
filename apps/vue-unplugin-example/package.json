@@ -23,7 +23,7 @@
     "@stylexswc/playwright": "0.18.2-rc.2",
     "@vitejs/plugin-vue": "^6.0.8",
     "serve": "^14.2.6",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "vite": "^8.1.5",
     "vue-tsc": "^3.3.6"
   }

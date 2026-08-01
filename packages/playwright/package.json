@@ -34,7 +34,7 @@
     "@playwright/test": "^1.62.0",
     "@stylexswc/eslint-config": "0.18.2-rc.1",
     "@stylexswc/typescript-config": "0.18.2-rc.1",
-    "@types/node": "^26.1.0"
+    "@types/node": "^26.1.2"
   },
   "keywords": [
     "playwright"

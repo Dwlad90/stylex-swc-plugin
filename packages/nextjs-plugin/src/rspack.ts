@@ -137,7 +137,8 @@ const getSupportedBrowsers = (dir: string, isDevelopment: boolean) => {
       env: isDevelopment ? 'development' : 'production',
     });
   } catch {
-    // Ignore
+    // Ignore: browserslist config is optional, fall back to the caller's default.
+    return undefined;
   }
 };
 

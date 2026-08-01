@@ -221,7 +221,9 @@ function formatLatency(milliseconds: number): string {
 
 function getPackageVersion(packageJsonPath: string): string {
   try {
-    const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as { version?: string };
+    const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as {
+      version?: string;
+    };
     return pkg.version ?? 'unknown';
   } catch {
     return 'unknown';
@@ -283,9 +285,9 @@ async function runBenchmarks(): Promise<void> {
       const match = task.name.match(/^(.+) \[(rust|babel)\]$/);
       if (!match) continue;
       const [, fixtureName, compiler] = match;
-      const entry = taskStats.get(fixtureName as string) ?? {};
+      const entry = taskStats.get(fixtureName!) ?? {};
       entry[compiler as CompilerName] = getStats(task);
-      taskStats.set(fixtureName as string, entry);
+      taskStats.set(fixtureName!, entry);
     }
   }
 

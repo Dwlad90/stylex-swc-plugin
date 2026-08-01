@@ -9,7 +9,7 @@ import {
 import type { StyleXPluginOption } from './types';
 
 function isDebugEnabled(): boolean {
-  const value = String(process.env.STYLEX_POSTCSS_DEBUG ?? '').toLowerCase();
+  const value = (process.env.STYLEX_POSTCSS_DEBUG ?? '').toLowerCase();
   return value === '1' || value === 'true' || value === 'yes';
 }
 

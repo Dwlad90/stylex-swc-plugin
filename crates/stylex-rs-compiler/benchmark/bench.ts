@@ -261,7 +261,7 @@ async function runBenchmarks() {
   const sysInfo = getSystemInfo();
   benchesExtendedOutputs.push(sysInfo);
 
-  for await (const bench of benches) {
+  for (const bench of benches) {
     console.log(`\n${chalk.yellow.bold(`Running: ${bench.name}`)}`);
     await bench.run();
 
@@ -298,7 +298,7 @@ async function runBenchmarks() {
   console.log(chalk.green(`📊 Extended results saved to ${extendedOutputPath}`));
 }
 
-runBenchmarks().catch(err => {
+runBenchmarks().catch((err: unknown) => {
   console.error(chalk.red('Benchmark failed:'), err);
   process.exit(1);
 });

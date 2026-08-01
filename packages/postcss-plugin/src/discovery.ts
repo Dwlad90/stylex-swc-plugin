@@ -124,7 +124,7 @@ function findDependencyManifestPathFromEntry(
 }
 
 function resolveDependencyManifestPath(
-  requireFromRoot: NodeRequire,
+  requireFromRoot: NodeJS.Require,
   dependencyName: string
 ): string | null {
   try {
@@ -151,7 +151,7 @@ function includePackageFromImportSource({
 }: {
   importSource: ImportSource;
   cwd: string;
-  requireFromRoot: NodeRequire;
+  requireFromRoot: NodeJS.Require;
   discoveredDirectories: Set<string>;
 }) {
   const source =

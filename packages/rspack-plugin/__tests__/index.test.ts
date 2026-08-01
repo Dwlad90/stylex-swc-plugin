@@ -258,7 +258,7 @@ describe('@stylexswc/rspack-plugin', () => {
     plugin.apply(compiler as unknown as Compiler);
 
     const cacheGroup = compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME];
-    const test = cacheGroup?.test as RegExp;
+    const test = cacheGroup!.test!;
     const resolved = path.join(path.sep, 'project', 'src', 'my-carrier.css');
 
     expect(test.test(resolved)).toBe(true);
@@ -280,8 +280,7 @@ describe('@stylexswc/rspack-plugin', () => {
 
     plugin.apply(compiler as unknown as Compiler);
 
-    const test = compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME]
-      ?.test as RegExp;
+    const test = compiler.options.optimization.splitChunks.cacheGroups[STYLEX_CHUNK_NAME]!.test!;
 
     expect(test.test(require.resolve('../src/stylex.css'))).toBe(true);
     expect(test.test(path.join(path.sep, 'project', 'src', 'my-stylex.css'))).toBe(false);

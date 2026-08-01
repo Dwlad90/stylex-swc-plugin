@@ -36,7 +36,7 @@ export default function (
     // changes the hash, which invalidates HMR for the stylex chunk.
     const css = `/* StyleX HMR bundle: ${hash} */\n.stylex-hashed-${hash} {}\n`;
 
-    callback(null, `${inputCode}\n${css}`);
+    callback(null, `${inputCode?.toString() ?? ''}\n${css}`);
   } catch (e) {
     callback(e as Error);
   }

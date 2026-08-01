@@ -5,7 +5,7 @@ import { describe, expect, it } from '@jest/globals';
 // Deliberately the built CommonJS artifact rather than `../src`: this package
 // ships as a Jest transformer loaded by Jest via `require`, so the artifact is
 // the real public contract.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line typescript/no-require-imports
 const { createTransformer } = require('../dist/index.js');
 
 type TransformOptions = {

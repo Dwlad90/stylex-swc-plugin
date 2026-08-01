@@ -263,12 +263,12 @@ function createBuilder() {
         rsOptions.exclude = undefined;
       }
 
-      const transformedResult = bundler.transform(filePath, contents, rsOptions || {}, {
+      // `forEach` discards return values; the transform is called for its
+      // side effect of registering rules on the bundler.
+      bundler.transform(filePath, contents, rsOptions || {}, {
         isDev,
         shouldSkipTransformError,
       });
-
-      return transformedResult;
     });
 
     const css = bundler.bundle(transformedOptions);

@@ -66,6 +66,10 @@
     "typescript/no-misused-new": "error",
     "typescript/no-namespace": "error",
     "typescript/no-non-null-asserted-optional-chain": "error",
+    // 7 sites, all CommonJS tool configs that must use `require`. The
+    // `overrides` entry above exempts them for the syntax run, but
+    // `--type-aware` does not apply overrides, so the exemption is not
+    // reachable here.
     "typescript/no-require-imports": "error",
     "typescript/no-this-alias": "error",
     "typescript/no-unnecessary-type-constraint": "error",
@@ -349,24 +353,38 @@
 
     // Still reporting. Counts are from the current tree; these are genuine
     // findings rather than false positives, and each wants its own change.
-    "typescript/no-unsafe-type-assertion": "off", //               99
-    "typescript/no-unnecessary-type-conversion": "off", //         40
-    "typescript/require-await": "off", //                          10
-    "typescript/consistent-return": "off", //                       8
-    "typescript/non-nullable-type-assertion-style": "off", //       6
-    "typescript/no-var-requires": "off", //                         5
-    "typescript/promise-function-async": "off", //                  2
-    "typescript/use-unknown-in-catch-callback-variable": "off", //  2
-    "typescript/no-deprecated": "off", //                           2
-    "typescript/await-thenable": "off", //                          1
-    "typescript/restrict-template-expressions": "off", //           1
+    // 93 sites, 70 of them test mocks asserting partial objects. Overrides
+    // cannot scope it: `--type-aware` ignores the `overrides` block (see
+    // `no-require-imports` below), so this is all-or-nothing.
+    "typescript/no-unsafe-type-assertion": "off",
+    "typescript/no-unnecessary-type-conversion": "error", //         40
+    // 10 sites, every one an async signature required by an external
+    // contract: Jest's `SyncTransformer.processAsync`, the webpack and
+    // turbopack loader signatures, Astro's `astro:config:setup`, and Farm's
+    // `transformHtml.executor`. Dropping `async` would change the return type.
+    "typescript/require-await": "off",
+    "typescript/consistent-return": "error", //                       8
+    "typescript/non-nullable-type-assertion-style": "error", //       6
+    // 5 sites: the same CommonJS configs plus deliberate lazy `require`
+    // calls used to defer loading optional peer dependencies.
+    "typescript/no-var-requires": "off",
+    // 4 sites, all memoized promise accessors (`lazyPostCSSPromise ||= ...`).
+    // Marking them `async` would return a new promise per call and defeat the
+    // memoisation the pattern exists for.
+    "typescript/promise-function-async": "off",
+    "typescript/use-unknown-in-catch-callback-variable": "error", //  2
+    "typescript/no-deprecated": "error", //                           2
+    "typescript/await-thenable": "error", //                          1
+    "typescript/restrict-template-expressions": "error", //           1
 
     // Blocked by generated output rather than by source: tsgolint builds its
     // program from tsconfig and so reaches `crates/stylex-test-parser/output/`
     // and `__swc_snapshots__/`, which `ignorePatterns` excludes from the
     // syntax run but cannot exclude here.
-    "typescript/no-require-imports": "off", //   7, five of them in snapshots
-    "typescript/no-extraneous-class": "off", //  3, two of them in snapshots
+    "typescript/no-require-imports": "off", //   7 CommonJS configs
+    // 1 site: a `vi.mock` class stub that exists only to record constructor
+    // arguments.
+    "typescript/no-extraneous-class": "off",
   },
 
   "ignorePatterns": [

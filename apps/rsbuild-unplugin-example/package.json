@@ -15,7 +15,6 @@
     "@playwright/test": "^1.62.0",
     "@rsbuild/core": "^2.1.2",
     "@rsbuild/plugin-react": "^2.1.0",
-    "@rspack/dev-server": "^2.1.0",
     "@stylexswc/playwright": "0.18.2-rc.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

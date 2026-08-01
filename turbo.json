@@ -90,10 +90,6 @@
       "inputs": ["$TURBO_DEFAULT$", "**/*.rs", "**/*.toml"],
       "outputLogs": "errors-only"
     },
-    "//#lint:node": {
-      "inputs": ["$TURBO_DEFAULT$", ".oxlintrc.jsonc"],
-      "outputLogs": "errors-only"
-    },
     "//#lint:node:type-aware": {
       "inputs": ["$TURBO_DEFAULT$", ".oxlintrc.jsonc", "**/tsconfig*.json"],
       "outputLogs": "errors-only"

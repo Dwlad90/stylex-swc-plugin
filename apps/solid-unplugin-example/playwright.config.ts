@@ -4,9 +4,9 @@ import defaultConfig, { webServer } from '@stylexswc/playwright';
 const PORT = +(process.env.PORT || 3007);
 
 export default defineConfig({
-  ...defaultConfig.default,
+  ...defaultConfig,
   use: {
-    ...defaultConfig.default.use,
+    ...defaultConfig.use,
     baseURL: `http://localhost:${PORT}`,
   },
   webServer: {

@@ -13,7 +13,6 @@
   "devDependencies": {
     "@jest/globals": "^30.2.0",
     "@playwright/test": "^1.62.0",
-    "@stylexjs/eslint-plugin": "^0.19.0",
     "@stylexswc/jest": "0.18.2-rc.2",
     "@stylexswc/playwright": "0.18.2-rc.2",
     "@stylexswc/rs-compiler": "0.18.2-rc.2",

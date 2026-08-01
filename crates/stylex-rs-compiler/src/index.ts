@@ -183,7 +183,7 @@ export function transform(
   let inputSourceMap = options.inputSourceMap;
 
   if (options.swcPlugins?.length) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line typescript/no-require-imports
     const swc = require('@swc/core');
 
     // Always request an external map: it chains `inputSourceMap` and the

@@ -334,6 +334,9 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         const enhancedMessage = `StyleX transformation error in ${file}:\n  ${message}`;
         console.error(enhancedMessage, error);
         this.error(new Error(enhancedMessage, { cause: error }));
+        // `this.error` throws, but its signature is not `never`, so the
+        // function is otherwise seen as falling through without a value.
+        return null;
       }
     },
 
@@ -567,19 +570,19 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             }
           }
 
-          return;
+          return undefined;
         }
 
         // Skip files that wouldn't pass transformInclude (e.g. package.json, .css, images)
         // to avoid parsing non-JS/TS files with SWC
         if (!hasValidExtension(file, normalizedOptions.pageExtensions)) {
-          return;
+          return undefined;
         }
 
         const inputCode = await read();
 
         if (!hasStyleXCode(normalizedOptions, inputCode)) {
-          return;
+          return undefined;
         }
 
         transformStyleXCode(file, inputCode, normalizedOptions, stylexRules, id);
@@ -591,7 +594,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           viteConfig?.build?.assetsDir
         );
 
-        if (!collectedCSS) return;
+        if (!collectedCSS) return undefined;
 
         if (normalizedOptions.useCssPlaceholder) {
           // Find CSS modules that contain the placeholder
@@ -623,6 +626,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             });
           }
         }
+
+        // Undefined tells Vite to apply its default HMR handling; the array
+        // returns above are the only cases that override it.
+        return undefined;
       },
       transformIndexHtml: async (html, ctx) => {
         // Skip HTML injection when using useCssPlaceholder

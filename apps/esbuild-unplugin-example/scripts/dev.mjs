@@ -12,6 +12,6 @@ await context
   .then(() => {
     console.log(`[info]: server start at http://127.0.0.1:${port}.`);
   })
-  .catch(error => {
+  .catch((/** @type {unknown} */ error) => {
     console.error(error);
   });

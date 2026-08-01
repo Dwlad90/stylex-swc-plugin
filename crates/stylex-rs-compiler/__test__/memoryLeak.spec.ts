@@ -1,4 +1,4 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +20,7 @@ function runNodeScript(script: string) {
   return result;
 }
 
-test('normalizeRsOptions does not emit napi leak warnings across many calls', t => {
+test('normalizeRsOptions does not emit napi leak warnings across many calls', () => {
   const result = runNodeScript(`
     const { normalizeRsOptions } = require(${JSON.stringify(distEntry)});
     for (let i = 0; i < 100; i++) {
@@ -32,13 +32,10 @@ test('normalizeRsOptions does not emit napi leak warnings across many calls', t 
       });
     }
   `);
-  t.false(
-    result.stderr.includes(LEAK_STRING),
-    `napi leak warnings detected in stderr:\n${result.stderr}`
-  );
+  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
 });
 
-test('transform does not emit napi leak warnings across many calls', t => {
+test('transform does not emit napi leak warnings across many calls', () => {
   const result = runNodeScript(`
     const { transform, normalizeRsOptions } = require(${JSON.stringify(distEntry)});
     const opts = normalizeRsOptions({
@@ -50,13 +47,10 @@ test('transform does not emit napi leak warnings across many calls', t => {
       transform('file.ts', 'export const x = 1;', opts);
     }
   `);
-  t.false(
-    result.stderr.includes(LEAK_STRING),
-    `napi leak warnings detected in stderr:\n${result.stderr}`
-  );
+  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
 });
 
-test('shouldTransformFile does not emit napi leak warnings across many calls', t => {
+test('shouldTransformFile does not emit napi leak warnings across many calls', () => {
   const result = runNodeScript(`
     const { shouldTransformFile } = require(${JSON.stringify(distEntry)});
     const include = ['src/**/*.ts', 'packages/*/src/**/*.tsx'];
@@ -65,13 +59,10 @@ test('shouldTransformFile does not emit napi leak warnings across many calls', t
       shouldTransformFile('src/foo.ts', include, exclude);
     }
   `);
-  t.false(
-    result.stderr.includes(LEAK_STRING),
-    `napi leak warnings detected in stderr:\n${result.stderr}`
-  );
+  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
 });
 
-test('transform with debugFilePath function returning prefix does not leak', t => {
+test('transform with debugFilePath function returning prefix does not leak', () => {
   const result = runNodeScript(`
     const { transform, normalizeRsOptions } = require(${JSON.stringify(distEntry)});
     const opts = normalizeRsOptions({
@@ -81,13 +72,10 @@ test('transform with debugFilePath function returning prefix does not leak', t =
       transform('file.ts', 'export const x = 1;', opts);
     }
   `);
-  t.false(
-    result.stderr.includes(LEAK_STRING),
-    `napi leak warnings detected in stderr:\n${result.stderr}`
-  );
+  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
 });
 
-test('transform with env object does not emit napi leak warnings', t => {
+test('transform with env object does not emit napi leak warnings', () => {
   const result = runNodeScript(`
     const { transform, normalizeRsOptions } = require(${JSON.stringify(distEntry)});
     const opts = normalizeRsOptions({});
@@ -100,13 +88,10 @@ test('transform with env object does not emit napi leak warnings', t => {
       }
     }
   `);
-  t.false(
-    result.stderr.includes(LEAK_STRING),
-    `napi leak warnings detected in stderr:\n${result.stderr}`
-  );
+  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
 });
 
-test('transform with stylex code does not emit napi leak warnings', t => {
+test('transform with stylex code does not emit napi leak warnings', () => {
   const result = runNodeScript(`
     const { transform, normalizeRsOptions } = require(${JSON.stringify(distEntry)});
     const opts = normalizeRsOptions({
@@ -121,13 +106,10 @@ test('transform with stylex code does not emit napi leak warnings', t => {
       transform('page.tsx', code, opts);
     }
   `);
-  t.false(
-    result.stderr.includes(LEAK_STRING),
-    `napi leak warnings detected in stderr:\n${result.stderr}`
-  );
+  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
 });
 
-test('normalizeRsOptions with various input shapes does not leak', t => {
+test('normalizeRsOptions with various input shapes does not leak', () => {
   const result = runNodeScript(`
     const { normalizeRsOptions } = require(${JSON.stringify(distEntry)});
     for (let i = 0; i < 100; i++) {
@@ -141,8 +123,5 @@ test('normalizeRsOptions with various input shapes does not leak', t => {
       });
     }
   `);
-  t.false(
-    result.stderr.includes(LEAK_STRING),
-    `napi leak warnings detected in stderr:\n${result.stderr}`
-  );
+  expect(result.stderr.includes(LEAK_STRING), `napi leak warnings detected in stderr:\n${result.stderr}`).toBe(false);
 });

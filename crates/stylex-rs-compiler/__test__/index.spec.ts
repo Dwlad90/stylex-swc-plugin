@@ -1,11 +1,11 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
 
 import { transform, normalizeRsOptions } from '../dist/index.js';
 import * as path from 'path';
 
 const cwd = process.cwd();
 
-test('sync function from native code', t => {
+test('sync function from native code', () => {
   const fixture = `
     import stylex from "@stylexjs/stylex";
 
@@ -78,12 +78,12 @@ export const styles = {
     map: '{"version":3,"sources":["page.tsx"],"names":[],"mappings":"AACI;AAEA;;;;;;;;EAOG"}',
   };
 
-  t.deepEqual(result, expected);
+  expect(result).toEqual(expected);
 });
 
 // ── transform() include/exclude filtering ────────────────────────────
 
-test('transform: skips file excluded by include pattern', t => {
+test('transform: skips file excluded by include pattern', () => {
   const code = 'export const x = 1;';
   const options = normalizeRsOptions({
     include: ['src/**/*.tsx'],
@@ -91,22 +91,22 @@ test('transform: skips file excluded by include pattern', t => {
 
   // File doesn't match include — should return code unmodified
   const result = transform(path.join(cwd, 'lib/file.ts'), code, options);
-  t.is(result.code, code);
-  t.deepEqual(result.metadata, { stylex: [] });
+  expect(result.code).toBe(code);
+  expect(result.metadata).toEqual({ stylex: [] });
 });
 
-test('transform: skips file matching exclude pattern', t => {
+test('transform: skips file matching exclude pattern', () => {
   const code = 'export const x = 1;';
   const options = normalizeRsOptions({
     exclude: [/\.test\./],
   });
 
   const result = transform(path.join(cwd, 'src/file.test.tsx'), code, options);
-  t.is(result.code, code);
-  t.deepEqual(result.metadata, { stylex: [] });
+  expect(result.code).toBe(code);
+  expect(result.metadata).toEqual({ stylex: [] });
 });
 
-test('transform: processes file matching include and not matching exclude', t => {
+test('transform: processes file matching include and not matching exclude', () => {
   const code = `
     import stylex from "@stylexjs/stylex";
     export const styles = stylex.create({
@@ -122,11 +122,11 @@ test('transform: processes file matching include and not matching exclude', t =>
 
   const result = transform(path.join(cwd, 'src/Button.tsx'), code, options);
   // File is included — native transform should process it
-  t.truthy(result.metadata.stylex.length > 0, 'should have stylex metadata');
-  t.not(result.code, code, 'code should be transformed');
+  expect(result.metadata.stylex.length > 0, 'should have stylex metadata').toBeTruthy();
+  expect(result.code, 'code should be transformed').not.toBe(code);
 });
 
-test('transform: processes file when no include/exclude patterns', t => {
+test('transform: processes file when no include/exclude patterns', () => {
   const code = `
     import stylex from "@stylexjs/stylex";
     export const styles = stylex.create({
@@ -139,19 +139,19 @@ test('transform: processes file when no include/exclude patterns', t => {
   });
 
   const result = transform('file.tsx', code, options);
-  t.truthy(result.metadata.stylex.length > 0, 'should transform when no filters');
+  expect(result.metadata.stylex.length > 0, 'should transform when no filters').toBeTruthy();
 });
 
-test('transform: returns undefined map when file is filtered out', t => {
+test('transform: returns undefined map when file is filtered out', () => {
   const options = normalizeRsOptions({
     include: ['nonexistent/**'],
   });
 
   const result = transform('src/file.tsx', 'export const x = 1;', options);
-  t.is(result.map, undefined);
+  expect(result.map).toBe(undefined);
 });
 
-test('transform: exclude takes precedence over include', t => {
+test('transform: exclude takes precedence over include', () => {
   const code = 'export const x = 1;';
   const options = normalizeRsOptions({
     include: ['src/**/*.tsx'],
@@ -159,13 +159,13 @@ test('transform: exclude takes precedence over include', t => {
   });
 
   const result = transform(path.join(cwd, 'src/internal/Secret.tsx'), code, options);
-  t.is(result.code, code, 'excluded file should not be transformed');
-  t.deepEqual(result.metadata, { stylex: [] });
+  expect(result.code, 'excluded file should not be transformed').toBe(code);
+  expect(result.metadata).toEqual({ stylex: [] });
 });
 
 // ── transform() edge cases ──────────────────────────────────────────
 
-test('transform: non-stylex code passes through without metadata', t => {
+test('transform: non-stylex code passes through without metadata', () => {
   const code = `
     import React from 'react';
     export const App = () => <div>Hello</div>;
@@ -176,32 +176,32 @@ test('transform: non-stylex code passes through without metadata', t => {
   });
 
   const result = transform('app.tsx', code, options);
-  t.deepEqual(result.metadata, { stylex: [] });
-  t.truthy(result.code.length > 0, 'should still have code output');
+  expect(result.metadata).toEqual({ stylex: [] });
+  expect(result.code.length > 0, 'should still have code output').toBeTruthy();
 });
 
-test('transform: empty file returns empty output', t => {
+test('transform: empty file returns empty output', () => {
   const options = normalizeRsOptions({
     treeshakeCompensation: true,
     unstable_moduleResolution: { type: 'commonJS' },
   });
 
   const result = transform('empty.tsx', '', options);
-  t.deepEqual(result.metadata, { stylex: [] });
+  expect(result.metadata).toEqual({ stylex: [] });
 });
 
-test('transform: filtered file returns exact original code', t => {
+test('transform: filtered file returns exact original code', () => {
   const code = '// comment\nexport const x = 1;\n';
   const options = normalizeRsOptions({
     include: ['nope/**'],
   });
 
   const result = transform('file.tsx', code, options);
-  t.is(result.code, code, 'filtered file code must be identical');
-  t.is(result.map, undefined, 'filtered file must have no source map');
+  expect(result.code, 'filtered file code must be identical').toBe(code);
+  expect(result.map, 'filtered file must have no source map').toBe(undefined);
 });
 
-test('transform: result has source map by default', t => {
+test('transform: result has source map by default', () => {
   const code = `
     import stylex from "@stylexjs/stylex";
     export const s = stylex.create({ r: { color: "red" } });
@@ -212,12 +212,12 @@ test('transform: result has source map by default', t => {
   });
 
   const result = transform('page.tsx', code, options);
-  t.truthy(result.map, 'should have source map string');
+  expect(result.map, 'should have source map string').toBeTruthy();
   const parsed = JSON.parse(result.map!);
-  t.is(parsed.version, 3, 'source map v3');
+  expect(parsed.version, 'source map v3').toBe(3);
 });
 
-test('transform: regex include pattern works', t => {
+test('transform: regex include pattern works', () => {
   const code = `
     import stylex from "@stylexjs/stylex";
     export const s = stylex.create({ r: { color: "green" } });
@@ -229,21 +229,21 @@ test('transform: regex include pattern works', t => {
   });
 
   const result = transform(path.join(cwd, 'src/Comp.tsx'), code, options);
-  t.truthy(result.metadata.stylex.length > 0, 'regex include should match .tsx');
+  expect(result.metadata.stylex.length > 0, 'regex include should match .tsx').toBeTruthy();
 });
 
-test('transform: regex exclude pattern works', t => {
+test('transform: regex exclude pattern works', () => {
   const code = 'export const x = 1;';
   const options = normalizeRsOptions({
     exclude: [/\.stories\./],
   });
 
   const result = transform(path.join(cwd, 'src/Button.stories.tsx'), code, options);
-  t.is(result.code, code, '.stories file should be excluded');
-  t.deepEqual(result.metadata, { stylex: [] });
+  expect(result.code, '.stories file should be excluded').toBe(code);
+  expect(result.metadata).toEqual({ stylex: [] });
 });
 
-test('transform: multiple include patterns - match any', t => {
+test('transform: multiple include patterns - match any', () => {
   const code = `
     import stylex from "@stylexjs/stylex";
     export const s = stylex.create({ r: { color: "red" } });
@@ -255,10 +255,10 @@ test('transform: multiple include patterns - match any', t => {
   });
 
   const result = transform(path.join(cwd, 'lib/Widget.tsx'), code, options);
-  t.truthy(result.metadata.stylex.length > 0, 'second include pattern should match');
+  expect(result.metadata.stylex.length > 0, 'second include pattern should match').toBeTruthy();
 });
 
-test('transform: multiple exclude patterns - match any excludes', t => {
+test('transform: multiple exclude patterns - match any excludes', () => {
   const code = 'export const x = 1;';
   const options = normalizeRsOptions({
     exclude: [/\.test\./, /\.spec\./],
@@ -266,21 +266,21 @@ test('transform: multiple exclude patterns - match any excludes', t => {
 
   const resultTest = transform(path.join(cwd, 'src/file.test.tsx'), code, options);
   const resultSpec = transform(path.join(cwd, 'src/file.spec.tsx'), code, options);
-  t.is(resultTest.code, code, '.test file should be excluded');
-  t.is(resultSpec.code, code, '.spec file should be excluded');
+  expect(resultTest.code, '.test file should be excluded').toBe(code);
+  expect(resultSpec.code, '.spec file should be excluded').toBe(code);
 });
 
-test('transform: preserves whitespace-only code when filtered', t => {
+test('transform: preserves whitespace-only code when filtered', () => {
   const code = '   \n\n   \n';
   const options = normalizeRsOptions({
     include: ['nonexistent/**'],
   });
 
   const result = transform('file.tsx', code, options);
-  t.is(result.code, code, 'whitespace-only code should be preserved exactly');
+  expect(result.code, 'whitespace-only code should be preserved exactly').toBe(code);
 });
 
-test('transform: glob pattern with curly braces', t => {
+test('transform: glob pattern with curly braces', () => {
   const code = 'export const x = 1;';
   const options = normalizeRsOptions({
     include: ['src/**/*.{ts,tsx}'],
@@ -290,6 +290,6 @@ test('transform: glob pattern with curly braces', t => {
 
   // .ts and .tsx should pass include filter (then go to native)
   // .js should NOT match include filter
-  t.is(resultJs.code, code, '.js should not match include');
-  t.deepEqual(resultJs.metadata, { stylex: [] });
+  expect(resultJs.code, '.js should not match include').toBe(code);
+  expect(resultJs.metadata).toEqual({ stylex: [] });
 });

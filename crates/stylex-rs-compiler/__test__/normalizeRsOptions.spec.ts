@@ -1,4 +1,4 @@
-import test from 'ava';
+import { expect, test } from 'vitest';
 import { normalizeRsOptions } from '../dist/index.js';
 import { SourceMaps, PropertyValidationMode } from '../dist/transform.js';
 import type { StyleXOptions } from '../dist/index.js';
@@ -27,7 +27,7 @@ const defaultResult: StyleXOptions = {
   swcPlugins: [],
 };
 
-test('normalizeRsOptions fills defaults for missing fields', t => {
+test('normalizeRsOptions fills defaults for missing fields', () => {
   const input = {
     dev: undefined,
     enableFontSizePxToRem: undefined,
@@ -38,10 +38,10 @@ test('normalizeRsOptions fills defaults for missing fields', t => {
     enableInlinedConditionalMerge: undefined,
   };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, defaultResult);
+  expect(result).toEqual(defaultResult);
 });
 
-test('normalizeRsOptions preserves provided values', t => {
+test('normalizeRsOptions preserves provided values', () => {
   const input = {
     dev: true,
     enableFontSizePxToRem: false,
@@ -70,182 +70,180 @@ test('normalizeRsOptions preserves provided values', t => {
     enableInlinedConditionalMerge: false,
   };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result, expected);
+  expect(result).toEqual(expected);
 });
 
-test('normalizeRsOptions: handles empty input', t => {
+test('normalizeRsOptions: handles empty input', () => {
   const result = normalizeRsOptions({});
-  t.deepEqual(result, defaultResult);
+  expect(result).toEqual(defaultResult);
 });
 
-test('normalizeRsOptions: ignores unrelated fields', t => {
+test('normalizeRsOptions: ignores unrelated fields', () => {
   const input = { foo: 123, bar: 'baz' };
   // @ts-expect-error - input not suitable for normalizeRsOptions
   const result = normalizeRsOptions(input);
   // Unrelated keys pass through (spread-based), defaults are still applied
-  t.is(result.dev, false);
-  t.deepEqual(result.importSources, ['stylex', '@stylexjs/stylex']);
+  expect(result.dev).toBe(false);
+  expect(result.importSources).toEqual(['stylex', '@stylexjs/stylex']);
 });
 
-test('normalizeRsOptions: accepts string importSources', t => {
+test('normalizeRsOptions: accepts string importSources', () => {
   const input = { importSources: ['foo', 'bar'] };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result.importSources, ['foo', 'bar']);
+  expect(result.importSources).toEqual(['foo', 'bar']);
 });
 
-test('normalizeRsOptions: accepts object importSources', t => {
+test('normalizeRsOptions: accepts object importSources', () => {
   const input = { importSources: [{ as: 'x', from: 'y' }] };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result.importSources, [{ as: 'x', from: 'y' }]);
+  expect(result.importSources).toEqual([{ as: 'x', from: 'y' }]);
 });
 
-test('check default values when input is empty', t => {
+test('check default values when input is empty', () => {
   const result = normalizeRsOptions({});
-  t.deepEqual(result, defaultResult);
+  expect(result).toEqual(defaultResult);
 });
 
-test('should throw when input is not provided', t => {
-  const error = t.throws(() => normalizeRsOptions(), {
-    message: 'Options must be an object, received null/undefined',
-  });
-  t.truthy(error);
+test('should throw when input is not provided', () => {
+  expect(() => normalizeRsOptions()).toThrow(
+    'Options must be an object, received null/undefined'
+  );
 });
 
-test('should throw when input is null', t => {
-  const error = t.throws(() => normalizeRsOptions(null), {
-    message: 'Options must be an object, received null/undefined',
-  });
-  t.truthy(error);
+test('should throw when input is null', () => {
+  expect(() => normalizeRsOptions(null)).toThrow(
+    'Options must be an object, received null/undefined'
+  );
 });
 
-test('should return default values when input is a string', t => {
+test('should return default values when input is a string', () => {
   // @ts-expect-error - input must be an object
   const result = normalizeRsOptions('string input');
-  t.deepEqual(result, defaultResult);
+  expect(result).toEqual(defaultResult);
 });
 
-test('normalizeRsOptions: importSources - valid npm string', t => {
+test('normalizeRsOptions: importSources - valid npm string', () => {
   const input = { importSources: ['@scope/pkg', 'foo-bar'] };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result.importSources, ['@scope/pkg', 'foo-bar']);
+  expect(result.importSources).toEqual(['@scope/pkg', 'foo-bar']);
 });
 
-test('normalizeRsOptions: importSources - valid object with npm from', t => {
+test('normalizeRsOptions: importSources - valid object with npm from', () => {
   const input = { importSources: [{ as: 'foo', from: '@scope/pkg' }] };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result.importSources, [{ as: 'foo', from: '@scope/pkg' }]);
+  expect(result.importSources).toEqual([{ as: 'foo', from: '@scope/pkg' }]);
 });
 
-test('normalizeRsOptions: importSources - mixed valid', t => {
+test('normalizeRsOptions: importSources - mixed valid', () => {
   const input = { importSources: ['@scope/pkg', { as: 'foo', from: 'validpath' }] };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result.importSources, ['@scope/pkg', { as: 'foo', from: 'validpath' }]);
+  expect(result.importSources).toEqual(['@scope/pkg', { as: 'foo', from: 'validpath' }]);
 });
 
-test('normalizeRsOptions: importSources - empty array', t => {
+test('normalizeRsOptions: importSources - empty array', () => {
   const input = { importSources: [] };
   const result = normalizeRsOptions(input);
-  t.deepEqual(result.importSources, []);
+  expect(result.importSources).toEqual([]);
 });
 
-test('normalizeRsOptions: styleResolution - default input', t => {
+test('normalizeRsOptions: styleResolution - default input', () => {
   const input: StyleXOptions = {};
   const result = normalizeRsOptions(input);
-  t.is(result.styleResolution, 'property-specificity');
+  expect(result.styleResolution).toBe('property-specificity');
 });
 
-test('normalizeRsOptions: styleResolution - valid input', t => {
+test('normalizeRsOptions: styleResolution - valid input', () => {
   const input: StyleXOptions = { styleResolution: 'application-order' };
   const result = normalizeRsOptions(input);
-  t.is(result.styleResolution, 'application-order');
+  expect(result.styleResolution).toBe('application-order');
 });
 
-test('normalizeRsOptions: styleResolution - valid input with legacy-expand-shorthands', t => {
+test('normalizeRsOptions: styleResolution - valid input with legacy-expand-shorthands', () => {
   const input: StyleXOptions = { styleResolution: 'legacy-expand-shorthands' };
   const result = normalizeRsOptions(input);
-  t.is(result.styleResolution, 'legacy-expand-shorthands');
+  expect(result.styleResolution).toBe('legacy-expand-shorthands');
 });
 
-test('normalizeRsOptions: enableLegacyValueFlipping - true input', t => {
+test('normalizeRsOptions: enableLegacyValueFlipping - true input', () => {
   const result = normalizeRsOptions({ enableLegacyValueFlipping: true });
-  t.is(result.enableLegacyValueFlipping, true);
+  expect(result.enableLegacyValueFlipping).toBe(true);
 });
 
-test('normalizeRsOptions: enableLegacyValueFlipping - false input', t => {
+test('normalizeRsOptions: enableLegacyValueFlipping - false input', () => {
   const result = normalizeRsOptions({ enableLegacyValueFlipping: false });
-  t.is(result.enableLegacyValueFlipping, false);
+  expect(result.enableLegacyValueFlipping).toBe(false);
 });
 
-test('normalizeRsOptions: enableLegacyValueFlipping - empty input', t => {
+test('normalizeRsOptions: enableLegacyValueFlipping - empty input', () => {
   const result = normalizeRsOptions({});
-  t.is(result.enableLegacyValueFlipping, false);
+  expect(result.enableLegacyValueFlipping).toBe(false);
 });
 
-test('normalizeRsOptions: enableLTRRTLComments - true input', t => {
+test('normalizeRsOptions: enableLTRRTLComments - true input', () => {
   const result = normalizeRsOptions({ enableLTRRTLComments: true });
-  t.is(result.enableLTRRTLComments, true);
+  expect(result.enableLTRRTLComments).toBe(true);
 });
 
-test('normalizeRsOptions: enableLTRRTLComments - false input', t => {
+test('normalizeRsOptions: enableLTRRTLComments - false input', () => {
   const result = normalizeRsOptions({ enableLTRRTLComments: false });
-  t.is(result.enableLTRRTLComments, false);
+  expect(result.enableLTRRTLComments).toBe(false);
 });
 
-test('normalizeRsOptions: enableLTRRTLComments - empty input', t => {
+test('normalizeRsOptions: enableLTRRTLComments - empty input', () => {
   const result = normalizeRsOptions({});
-  t.is(result.enableLTRRTLComments, false);
+  expect(result.enableLTRRTLComments).toBe(false);
 });
 
-test('normalizeRsOptions: true value for runtimeInjection', t => {
+test('normalizeRsOptions: true value for runtimeInjection', () => {
   const result = normalizeRsOptions({ runtimeInjection: true });
-  t.is(result.runtimeInjection, true);
+  expect(result.runtimeInjection).toBe(true);
 });
 
-test('normalizeRsOptions: false value for runtimeInjection', t => {
+test('normalizeRsOptions: false value for runtimeInjection', () => {
   const result = normalizeRsOptions({ runtimeInjection: false });
-  t.is(result.runtimeInjection, false);
+  expect(result.runtimeInjection).toBe(false);
 });
 
-test('normalizeRsOptions: string value for runtimeInjection', t => {
+test('normalizeRsOptions: string value for runtimeInjection', () => {
   const result = normalizeRsOptions({ runtimeInjection: '@test/runtime-injection' });
-  t.is(result.runtimeInjection, '@test/runtime-injection');
+  expect(result.runtimeInjection).toBe('@test/runtime-injection');
 });
 
-test('normalizeRsOptions: include and exclude default to empty arrays', t => {
+test('normalizeRsOptions: include and exclude default to empty arrays', () => {
   const result = normalizeRsOptions({});
-  t.deepEqual(result.include, []);
-  t.deepEqual(result.exclude, []);
+  expect(result.include).toEqual([]);
+  expect(result.exclude).toEqual([]);
 });
 
-test('normalizeRsOptions: include and exclude are passed through', t => {
+test('normalizeRsOptions: include and exclude are passed through', () => {
   const include = ['src/**/*.tsx'];
   const exclude = [/node_modules/];
   const result = normalizeRsOptions({ include, exclude });
-  t.deepEqual(result.include, include);
-  t.deepEqual(result.exclude, exclude);
+  expect(result.include).toEqual(include);
+  expect(result.exclude).toEqual(exclude);
 });
 
-test('normalizeRsOptions: swcPlugins default to empty array', t => {
+test('normalizeRsOptions: swcPlugins default to empty array', () => {
   const result = normalizeRsOptions({});
-  t.deepEqual(result.swcPlugins, []);
+  expect(result.swcPlugins).toEqual([]);
 });
 
-test('normalizeRsOptions: swcPlugins are passed through', t => {
+test('normalizeRsOptions: swcPlugins are passed through', () => {
   const swcPlugins: Array<[string, Record<string, unknown>]> = [
     ['@swc/plugin-example', { foo: 'bar' }],
   ];
   const result = normalizeRsOptions({ swcPlugins });
-  t.deepEqual(result.swcPlugins, swcPlugins);
+  expect(result.swcPlugins).toEqual(swcPlugins);
 });
 
-test('normalizeRsOptions: unstable_moduleResolution is passed through', t => {
+test('normalizeRsOptions: unstable_moduleResolution is passed through', () => {
   const result = normalizeRsOptions({
     unstable_moduleResolution: { type: 'esm', rootDir: '/app' },
   });
-  t.deepEqual(result.unstable_moduleResolution, { type: 'esm', rootDir: '/app' });
+  expect(result.unstable_moduleResolution).toEqual({ type: 'esm', rootDir: '/app' });
 });
 
-test('normalizeRsOptions: preserves all TS-only fields together', t => {
+test('normalizeRsOptions: preserves all TS-only fields together', () => {
   const include = ['src/**/*.tsx', 'app/**/*.ts'];
   const exclude = [/node_modules/, /\.test\./];
   const swcPlugins: Array<[string, Record<string, unknown>]> = [
@@ -253,33 +251,33 @@ test('normalizeRsOptions: preserves all TS-only fields together', t => {
     ['@swc/plugin-other', {}],
   ];
   const result = normalizeRsOptions({ include, exclude, swcPlugins, dev: true });
-  t.deepEqual(result.include, include);
-  t.deepEqual(result.exclude, exclude);
-  t.deepEqual(result.swcPlugins, swcPlugins);
-  t.is(result.dev, true);
+  expect(result.include).toEqual(include);
+  expect(result.exclude).toEqual(exclude);
+  expect(result.swcPlugins).toEqual(swcPlugins);
+  expect(result.dev).toBe(true);
 });
 
-test('normalizeRsOptions: TS-only fields are preserved with RegExp instances', t => {
+test('normalizeRsOptions: TS-only fields are preserved with RegExp instances', () => {
   const regexInclude = /src\/.*\.tsx$/;
   const regexExclude = /node_modules/;
   const result = normalizeRsOptions({
     include: [regexInclude],
     exclude: [regexExclude],
   });
-  t.is(result.include![0], regexInclude);
-  t.is(result.exclude![0], regexExclude);
+  expect(result.include![0]).toBe(regexInclude);
+  expect(result.exclude![0]).toBe(regexExclude);
 });
 
-test('normalizeRsOptions: preserves debugFilePath function', t => {
+test('normalizeRsOptions: preserves debugFilePath function', () => {
   // debugFilePath is not in the TS-only fields type, but it passes through
   // as a native option. Test that it is preserved.
   const debugFilePath = (filename: string) => filename;
   const result = normalizeRsOptions({ dev: true, debugFilePath });
-  t.is(result.dev, true);
-  t.is(result.debugFilePath, debugFilePath);
+  expect(result.dev).toBe(true);
+  expect(result.debugFilePath).toBe(debugFilePath);
 });
 
-test('normalizeRsOptions: multiple boolean options override defaults correctly', t => {
+test('normalizeRsOptions: multiple boolean options override defaults correctly', () => {
   const result = normalizeRsOptions({
     dev: true,
     test: true,
@@ -288,81 +286,72 @@ test('normalizeRsOptions: multiple boolean options override defaults correctly',
     enableMinifiedKeys: false,
     enableInlinedConditionalMerge: false,
   });
-  t.is(result.dev, true);
-  t.is(result.test, true);
-  t.is(result.debug, true);
-  t.is(result.enableFontSizePxToRem, true);
-  t.is(result.enableMinifiedKeys, false);
-  t.is(result.enableInlinedConditionalMerge, false);
+  expect(result.dev).toBe(true);
+  expect(result.test).toBe(true);
+  expect(result.debug).toBe(true);
+  expect(result.enableFontSizePxToRem).toBe(true);
+  expect(result.enableMinifiedKeys).toBe(false);
+  expect(result.enableInlinedConditionalMerge).toBe(false);
 });
 
 // ── Edge cases and advanced scenarios ──────────────────────────────
 
-test('normalizeRsOptions: classNamePrefix is preserved', t => {
+test('normalizeRsOptions: classNamePrefix is preserved', () => {
   const result = normalizeRsOptions({ classNamePrefix: 'x' });
-  t.is(result.classNamePrefix, 'x');
+  expect(result.classNamePrefix).toBe('x');
 });
 
-test('normalizeRsOptions: classNamePrefix with empty string', t => {
+test('normalizeRsOptions: classNamePrefix with empty string', () => {
   const result = normalizeRsOptions({ classNamePrefix: '' });
-  t.is(result.classNamePrefix, '');
+  expect(result.classNamePrefix).toBe('');
 });
 
-test('normalizeRsOptions: aliases are preserved', t => {
+test('normalizeRsOptions: aliases are preserved', () => {
   const aliases = { '@components/*': ['src/components/*'] };
   const result = normalizeRsOptions({ aliases });
-  t.deepEqual(result.aliases, aliases);
+  expect(result.aliases).toEqual(aliases);
 });
 
-test('normalizeRsOptions: definedStylexCssVariables are preserved', t => {
+test('normalizeRsOptions: definedStylexCssVariables are preserved', () => {
   const vars = { '--primary': 'blue', '--secondary': 'red' };
   const result = normalizeRsOptions({ definedStylexCssVariables: vars });
-  t.deepEqual(result.definedStylexCssVariables, vars);
+  expect(result.definedStylexCssVariables).toEqual(vars);
 });
 
-test('normalizeRsOptions: sourceMap values are preserved', t => {
-  t.is(normalizeRsOptions({}).sourceMap, undefined);
-  t.is(normalizeRsOptions({ sourceMap: SourceMaps.True }).sourceMap, SourceMaps.True);
-  t.is(normalizeRsOptions({ sourceMap: SourceMaps.False }).sourceMap, SourceMaps.False);
-  t.is(normalizeRsOptions({ sourceMap: SourceMaps.Inline }).sourceMap, SourceMaps.Inline);
+test('normalizeRsOptions: sourceMap values are preserved', () => {
+  expect(normalizeRsOptions({}).sourceMap).toBe(undefined);
+  expect(normalizeRsOptions({ sourceMap: SourceMaps.True }).sourceMap).toBe(SourceMaps.True);
+  expect(normalizeRsOptions({ sourceMap: SourceMaps.False }).sourceMap).toBe(SourceMaps.False);
+  expect(normalizeRsOptions({ sourceMap: SourceMaps.Inline }).sourceMap).toBe(SourceMaps.Inline);
 });
 
-test('normalizeRsOptions: propertyValidationMode overrides default', t => {
-  t.is(normalizeRsOptions({}).propertyValidationMode, PropertyValidationMode.Silent);
-  t.is(
-    normalizeRsOptions({ propertyValidationMode: PropertyValidationMode.Throw })
-      .propertyValidationMode,
-    PropertyValidationMode.Throw
-  );
-  t.is(
-    normalizeRsOptions({ propertyValidationMode: PropertyValidationMode.Warn })
-      .propertyValidationMode,
-    PropertyValidationMode.Warn
-  );
-  t.is(
-    normalizeRsOptions({ propertyValidationMode: PropertyValidationMode.Silent })
-      .propertyValidationMode,
-    PropertyValidationMode.Silent
-  );
+test('normalizeRsOptions: propertyValidationMode overrides default', () => {
+  expect(normalizeRsOptions({}).propertyValidationMode).toBe(PropertyValidationMode.Silent);
+  expect(normalizeRsOptions({ propertyValidationMode: PropertyValidationMode.Throw })
+      .propertyValidationMode).toBe(PropertyValidationMode.Throw);
+  expect(normalizeRsOptions({ propertyValidationMode: PropertyValidationMode.Warn })
+      .propertyValidationMode).toBe(PropertyValidationMode.Warn);
+  expect(normalizeRsOptions({ propertyValidationMode: PropertyValidationMode.Silent })
+      .propertyValidationMode).toBe(PropertyValidationMode.Silent);
 });
 
-test('normalizeRsOptions: mixed include patterns (string and RegExp)', t => {
+test('normalizeRsOptions: mixed include patterns (string and RegExp)', () => {
   const include = ['src/**/*.ts', /components\/.*\.tsx$/];
   const result = normalizeRsOptions({ include });
-  t.is(result.include!.length, 2);
-  t.is(result.include![0], 'src/**/*.ts');
-  t.true(result.include![1] instanceof RegExp);
+  expect(result.include!.length).toBe(2);
+  expect(result.include![0]).toBe('src/**/*.ts');
+  expect(result.include![1] instanceof RegExp).toBe(true);
 });
 
-test('normalizeRsOptions: mixed exclude patterns (string and RegExp)', t => {
+test('normalizeRsOptions: mixed exclude patterns (string and RegExp)', () => {
   const exclude = ['node_modules/**', /\.test\./];
   const result = normalizeRsOptions({ exclude });
-  t.is(result.exclude!.length, 2);
-  t.is(result.exclude![0], 'node_modules/**');
-  t.true(result.exclude![1] instanceof RegExp);
+  expect(result.exclude!.length).toBe(2);
+  expect(result.exclude![0]).toBe('node_modules/**');
+  expect(result.exclude![1] instanceof RegExp).toBe(true);
 });
 
-test('normalizeRsOptions: explicit false values are not stripped', t => {
+test('normalizeRsOptions: explicit false values are not stripped', () => {
   const result = normalizeRsOptions({
     dev: false,
     test: false,
@@ -370,69 +359,69 @@ test('normalizeRsOptions: explicit false values are not stripped', t => {
     runtimeInjection: false,
     treeshakeCompensation: false,
   });
-  t.is(result.dev, false);
-  t.is(result.test, false);
-  t.is(result.debug, false);
-  t.is(result.runtimeInjection, false);
-  t.is(result.treeshakeCompensation, false);
+  expect(result.dev).toBe(false);
+  expect(result.test).toBe(false);
+  expect(result.debug).toBe(false);
+  expect(result.runtimeInjection).toBe(false);
+  expect(result.treeshakeCompensation).toBe(false);
 });
 
-test('normalizeRsOptions: explicit 0 / empty string are not stripped', t => {
+test('normalizeRsOptions: explicit 0 / empty string are not stripped', () => {
   const result = normalizeRsOptions({ classNamePrefix: '', runtimeInjection: '' });
-  t.is(result.classNamePrefix, '');
-  t.is(result.runtimeInjection, '');
+  expect(result.classNamePrefix).toBe('');
+  expect(result.runtimeInjection).toBe('');
 });
 
-test('normalizeRsOptions: undefined fields do not clobber defaults', t => {
+test('normalizeRsOptions: undefined fields do not clobber defaults', () => {
   const result = normalizeRsOptions({
     dev: undefined,
     test: undefined,
     enableFontSizePxToRem: undefined,
     styleResolution: undefined,
   });
-  t.is(result.dev, false);
-  t.is(result.test, false);
-  t.is(result.enableFontSizePxToRem, false);
-  t.is(result.styleResolution, 'property-specificity');
+  expect(result.dev).toBe(false);
+  expect(result.test).toBe(false);
+  expect(result.enableFontSizePxToRem).toBe(false);
+  expect(result.styleResolution).toBe('property-specificity');
 });
 
-test('normalizeRsOptions: enableLogicalStylesPolyfill default and override', t => {
-  t.is(normalizeRsOptions({}).enableLogicalStylesPolyfill, false);
-  t.is(normalizeRsOptions({ enableLogicalStylesPolyfill: true }).enableLogicalStylesPolyfill, true);
+test('normalizeRsOptions: enableLogicalStylesPolyfill default and override', () => {
+  expect(normalizeRsOptions({}).enableLogicalStylesPolyfill).toBe(false);
+  expect(normalizeRsOptions({ enableLogicalStylesPolyfill: true }).enableLogicalStylesPolyfill).toBe(true);
 });
 
-test('normalizeRsOptions: enableMediaQueryOrder default and override', t => {
-  t.is(normalizeRsOptions({}).enableMediaQueryOrder, true);
-  t.is(normalizeRsOptions({ enableMediaQueryOrder: false }).enableMediaQueryOrder, false);
+test('normalizeRsOptions: enableMediaQueryOrder default and override', () => {
+  expect(normalizeRsOptions({}).enableMediaQueryOrder).toBe(true);
+  expect(normalizeRsOptions({ enableMediaQueryOrder: false }).enableMediaQueryOrder).toBe(false);
 });
 
-test('normalizeRsOptions: legacyDisableLayers default and override', t => {
-  t.is(normalizeRsOptions({}).legacyDisableLayers, false);
-  t.is(normalizeRsOptions({ legacyDisableLayers: true }).legacyDisableLayers, true);
+test('normalizeRsOptions: legacyDisableLayers default and override', () => {
+  expect(normalizeRsOptions({}).legacyDisableLayers).toBe(false);
+  expect(normalizeRsOptions({ legacyDisableLayers: true }).legacyDisableLayers).toBe(true);
 });
 
-test('normalizeRsOptions: useRealFileForSource default and override', t => {
-  t.is(normalizeRsOptions({}).useRealFileForSource, true);
-  t.is(normalizeRsOptions({ useRealFileForSource: false }).useRealFileForSource, false);
+test('normalizeRsOptions: useRealFileForSource default and override', () => {
+  expect(normalizeRsOptions({}).useRealFileForSource).toBe(true);
+  expect(normalizeRsOptions({ useRealFileForSource: false }).useRealFileForSource).toBe(false);
 });
 
-test('normalizeRsOptions: enableDebugClassNames default and override', t => {
-  t.is(normalizeRsOptions({}).enableDebugClassNames, false);
-  t.is(normalizeRsOptions({ enableDebugClassNames: true }).enableDebugClassNames, true);
+test('normalizeRsOptions: enableDebugClassNames default and override', () => {
+  expect(normalizeRsOptions({}).enableDebugClassNames).toBe(false);
+  expect(normalizeRsOptions({ enableDebugClassNames: true }).enableDebugClassNames).toBe(true);
 });
 
-test('normalizeRsOptions: many swcPlugins are passed through', t => {
+test('normalizeRsOptions: many swcPlugins are passed through', () => {
   const swcPlugins: Array<[string, Record<string, unknown>]> = [
     ['@swc/plugin-a', { opt: 1 }],
     ['@swc/plugin-b', { opt: 2 }],
     ['@swc/plugin-c', {}],
   ];
   const result = normalizeRsOptions({ swcPlugins });
-  t.is(result.swcPlugins!.length, 3);
-  t.deepEqual(result.swcPlugins, swcPlugins);
+  expect(result.swcPlugins!.length).toBe(3);
+  expect(result.swcPlugins).toEqual(swcPlugins);
 });
 
-test('normalizeRsOptions: unstable_moduleResolution with all fields', t => {
+test('normalizeRsOptions: unstable_moduleResolution with all fields', () => {
   const result = normalizeRsOptions({
     unstable_moduleResolution: {
       type: 'commonJS',
@@ -440,55 +429,55 @@ test('normalizeRsOptions: unstable_moduleResolution with all fields', t => {
       themeFileExtension: '.stylex.ts',
     },
   });
-  t.deepEqual(result.unstable_moduleResolution, {
+  expect(result.unstable_moduleResolution).toEqual({
     type: 'commonJS',
     rootDir: '/project',
     themeFileExtension: '.stylex.ts',
   });
 });
 
-test('normalizeRsOptions: unstable_moduleResolution with minimal fields', t => {
+test('normalizeRsOptions: unstable_moduleResolution with minimal fields', () => {
   const result = normalizeRsOptions({
     unstable_moduleResolution: { type: 'esm' },
   });
-  t.is(result.unstable_moduleResolution!.type, 'esm');
-  t.is(result.unstable_moduleResolution!.rootDir, undefined);
+  expect(result.unstable_moduleResolution!.type).toBe('esm');
+  expect(result.unstable_moduleResolution!.rootDir).toBe(undefined);
 });
 
-test('normalizeRsOptions: all defaults are correct', t => {
+test('normalizeRsOptions: all defaults are correct', () => {
   const result = normalizeRsOptions({});
   // Verify every default value
-  t.is(result.dev, false);
-  t.is(result.test, false);
-  t.is(result.debug, false);
-  t.is(result.enableFontSizePxToRem, false);
-  t.is(result.runtimeInjection, false);
-  t.is(result.treeshakeCompensation, false);
-  t.is(result.enableInlinedConditionalMerge, true);
-  t.is(result.enableLogicalStylesPolyfill, false);
-  t.is(result.enableMinifiedKeys, true);
-  t.is(result.enableLegacyValueFlipping, false);
-  t.is(result.enableLTRRTLComments, false);
-  t.is(result.legacyDisableLayers, false);
-  t.is(result.useRealFileForSource, true);
-  t.is(result.enableMediaQueryOrder, true);
-  t.is(result.enableDebugClassNames, false);
-  t.is(result.propertyValidationMode, 'silent');
-  t.is(result.styleResolution, 'property-specificity');
-  t.deepEqual(result.importSources, ['stylex', '@stylexjs/stylex']);
-  t.deepEqual(result.include, []);
-  t.deepEqual(result.exclude, []);
-  t.deepEqual(result.swcPlugins, []);
+  expect(result.dev).toBe(false);
+  expect(result.test).toBe(false);
+  expect(result.debug).toBe(false);
+  expect(result.enableFontSizePxToRem).toBe(false);
+  expect(result.runtimeInjection).toBe(false);
+  expect(result.treeshakeCompensation).toBe(false);
+  expect(result.enableInlinedConditionalMerge).toBe(true);
+  expect(result.enableLogicalStylesPolyfill).toBe(false);
+  expect(result.enableMinifiedKeys).toBe(true);
+  expect(result.enableLegacyValueFlipping).toBe(false);
+  expect(result.enableLTRRTLComments).toBe(false);
+  expect(result.legacyDisableLayers).toBe(false);
+  expect(result.useRealFileForSource).toBe(true);
+  expect(result.enableMediaQueryOrder).toBe(true);
+  expect(result.enableDebugClassNames).toBe(false);
+  expect(result.propertyValidationMode).toBe('silent');
+  expect(result.styleResolution).toBe('property-specificity');
+  expect(result.importSources).toEqual(['stylex', '@stylexjs/stylex']);
+  expect(result.include).toEqual([]);
+  expect(result.exclude).toEqual([]);
+  expect(result.swcPlugins).toEqual([]);
 });
 
-test('normalizeRsOptions: number input treated as empty object', t => {
+test('normalizeRsOptions: number input treated as empty object', () => {
   // @ts-expect-error - testing invalid input
   const result = normalizeRsOptions(42);
-  t.deepEqual(result, defaultResult);
+  expect(result).toEqual(defaultResult);
 });
 
-test('normalizeRsOptions: boolean input treated as empty object', t => {
+test('normalizeRsOptions: boolean input treated as empty object', () => {
   // @ts-expect-error - testing invalid input
   const result = normalizeRsOptions(true);
-  t.deepEqual(result, defaultResult);
+  expect(result).toEqual(defaultResult);
 });

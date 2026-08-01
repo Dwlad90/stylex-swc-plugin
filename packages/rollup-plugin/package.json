@@ -22,7 +22,7 @@
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
-    "test": "jest",
+    "test": "vitest run",
     "typecheck": "scripty --ts"
   },
   "config": {
@@ -38,12 +38,10 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "^29.0.3",
     "@rollup/plugin-node-resolve": "^16.0.3",
-    "@types/jest": "^30.0.0",
     "@types/node": "^26.1.0",
     "browserslist": "^4.28.4",
-    "jest": "^30.4.2",
-    "jest-chain-transform": "^0.0.8",
-    "rollup": "^4.62.3"
+    "rollup": "^4.62.3",
+    "vitest": "^4.1.10"
   },
   "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/rollup-plugin#readme",

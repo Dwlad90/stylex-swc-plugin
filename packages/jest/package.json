@@ -22,7 +22,8 @@
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
-    "test": "echo \"Error: no test specified\" && exit 0",
+    "pretest": "pnpm run build",
+    "test": "jest",
     "typecheck": "scripty --ts"
   },
   "config": {
@@ -38,7 +39,9 @@
     "@jest/types": "^30.2.0",
     "@stylexswc/eslint-config": "0.18.2-rc.2",
     "@stylexswc/typescript-config": "0.18.2-rc.2",
-    "@types/node": "^26.1.0"
+    "@swc/jest": "^0.2.39",
+    "@types/node": "^26.1.0",
+    "jest": "^30.4.2"
   },
   "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/jest#readme",

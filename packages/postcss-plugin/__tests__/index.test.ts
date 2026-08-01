@@ -1,3 +1,4 @@
+import { describe, expect, test, vi } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'path';
@@ -262,7 +263,7 @@ describe('@stylexswc/postcss-plugin', () => {
 
   test('dedupes files matched by relative and absolute include patterns', async () => {
     const targetFile = path.join(fixturesDir, 'styles.js');
-    const readFileSpy = jest.spyOn(fs, 'readFileSync');
+    const readFileSpy = vi.spyOn(fs, 'readFileSync');
 
     try {
       const result = await runStylexPostcss({
@@ -403,7 +404,7 @@ describe('@stylexswc/postcss-plugin', () => {
   test('logs discovery details in debug mode', async () => {
     const previousDebugValue = process.env.STYLEX_POSTCSS_DEBUG;
     process.env.STYLEX_POSTCSS_DEBUG = '1';
-    const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
     try {
       await runAutoDiscoveryPostcss();

@@ -22,7 +22,7 @@
     "precommit": "lint-staged",
     "prepublishOnly": "pnpm run build",
     "prepush": "lint-prepush",
-    "test": "jest",
+    "test": "vitest run",
     "typecheck": "scripty --ts"
   },
   "config": {
@@ -44,11 +44,8 @@
     "@types/babel__core": "^7.20.5",
     "@types/glob-parent": "^5.1.3",
     "@types/is-glob": "^4.0.4",
-    "@types/jest": "^30.0.0",
     "@types/node": "^26.1.0",
-    "jest": "^30.4.2",
-    "jest-chain-transform": "^0.0.8",
-    "ts-jest": "^29.4.9"
+    "vitest": "^4.1.10"
   },
   "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/postcss-plugin#readme",

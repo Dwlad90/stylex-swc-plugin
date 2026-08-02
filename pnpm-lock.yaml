@@ -498,8 +498,8 @@ importers:
         specifier: ^16.2.12
         version: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       next-rspack:
-        specifier: ^16.2.9
-        version: 16.2.10(@swc/helpers@0.5.23)
+        specifier: ^16.2.12
+        version: 16.2.12(@swc/helpers@0.5.23)
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -1810,8 +1810,8 @@ importers:
         specifier: 0.18.2-rc.2
         version: link:../webpack-plugin
       next-rspack:
-        specifier: ^16.2.9
-        version: 16.2.10(@swc/helpers@0.5.23)
+        specifier: ^16.2.12
+        version: 16.2.12(@swc/helpers@0.5.23)
     devDependencies:
       '@stylexswc/typescript-config':
         specifier: 0.18.2-rc.2
@@ -9566,8 +9566,8 @@ packages:
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
-  next-rspack@16.2.10:
-    resolution: {integrity: sha512-WdEvAlUxfQG3DqebGG0IzTDscXkf43Vehck/9FsPtXbiaax7jCifUHf1RHfGLWEVhz96oo82lCSy7SloiUcZKg==}
+  next-rspack@16.2.12:
+    resolution: {integrity: sha512-aucR8yCtFCJV7pbH5mg+51pSw8BJkTe4fuOg9Pf27I3h9WG8r/hNxJcqyMnQebDi+cQJ28Zee8uIGiPa23uBlQ==}
 
   next@16.2.12:
     resolution: {integrity: sha512-iD59eYQWmbFcEbX7v/acG5DRym9iw1DdaPoD0WTA920naWsE25wShzJW4+UvAs8MK9EC2kBfIH6vtto1H1PHGw==}
@@ -19195,7 +19195,7 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  next-rspack@16.2.10(@swc/helpers@0.5.23):
+  next-rspack@16.2.12(@swc/helpers@0.5.23):
     dependencies:
       '@next/rspack-core': 1.0.2(@swc/helpers@0.5.23)
     transitivePeerDependencies:

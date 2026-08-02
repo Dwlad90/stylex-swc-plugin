@@ -13,7 +13,7 @@
     "@stylexswc/rspack-plugin": "0.18.2-rc.2",
     "@stylexswc/turbopack-plugin": "0.18.2-rc.2",
     "@stylexswc/webpack-plugin": "0.18.2-rc.2",
-    "next-rspack": "^16.2.9"
+    "next-rspack": "^16.2.12"
   },
   "devDependencies": {
     "@stylexswc/typescript-config": "0.18.2-rc.2",
@@ -66,7 +66,7 @@
   "main": "dist/index.js",
   "peerDependencies": {
     "next": ">=15.0.0",
-    "next-rspack": "^16.2.9"
+    "next-rspack": "^16.2.12"
   },
   "peerDependenciesMeta": {
     "next-rspack": {

@@ -24,7 +24,7 @@
     "lint:crates:workspace": "cargo clippy --all-targets --all-features --workspace -- -D warnings",
     "lint:json": "node scripts/deps/check-json.mjs",
     "lint:node": "oxlint && pnpm run lint:json",
-    "lint:node:type-aware": "oxlint --type-aware --allow typescript/no-require-imports",
+    "lint:node:type-aware": "oxlint --type-aware --report-unused-disable-directives-severity=warn",
     "lint:rust": "turbo run lint:crates:workspace --filter=//",
     "lint:type-aware": "turbo run build && turbo run lint:node:type-aware --filter=//",
     "prepare": "husky",

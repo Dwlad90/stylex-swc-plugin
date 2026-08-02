@@ -30,10 +30,12 @@
     "JSX": "readonly",
   },
   "options": {
-    // Matches `linterOptions.reportUnusedDisableDirectives` in the ESLint
-    // config, so stale suppressions surface instead of accumulating. ESLint's
-    // `true` means "warn"; Oxlint takes the severity directly.
-    "reportUnusedDisableDirectives": "warn",
+    // Blocking, not a warning. A suppression that no longer suppresses
+    // anything is a small lie about the code: it hides that the underlying
+    // problem was fixed, and it survives rule renames silently. The tree is
+    // clean, so this costs nothing today and stops the drift that made the
+    // ESLint-to-Oxlint directive rename a 38-file job.
+    "reportUnusedDisableDirectives": "deny",
   },
   "rules": {
     // Ported verbatim from `packages/eslint-config/library.mjs`.

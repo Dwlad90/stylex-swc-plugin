@@ -64,7 +64,7 @@
     "@stylexswc/types": "0.18.2-rc.2",
     "@stylexswc/typescript-config": "0.18.2-rc.2",
     "@stylexswc/utils": "0.18.2-rc.2",
-    "@swc/core": "^1.15.43",
+    "@swc/core": "^1.15.47",
     "@taplo/cli": "^0.7.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^26.1.0",

@@ -22,7 +22,7 @@
     "@stylexswc/playwright": "0.18.2-rc.2",
     "@stylexswc/postcss-plugin": "0.18.2-rc.2",
     "@stylexswc/webpack-plugin": "0.18.2-rc.2",
-    "@swc/core": "^1.15.43",
+    "@swc/core": "^1.15.47",
     "autoprefixer": "^10.5.2",
     "css-loader": "^7.1.2",
     "file-loader": "^6.2.0",

@@ -17,8 +17,18 @@ module.exports = (() => {
     // this group, `oxfmt` here raced `syncpack format` below on the same file.
     // Excluding it is what actually serialises the two; giving the manifest its
     // own entry never did, it only guaranteed a second concurrent writer.
-    '!(package).{json,jsonc,md,mdx,yml,yaml,css,html,vue}': [
+    '!(package).{json,jsonc,yml,yaml,css,html,vue}': ['oxfmt --no-error-on-unmatched-pattern'],
+    // Markdown is split out of the group above for the same reason
+    // `package.json` is: two tasks touching one file have to share a pattern to
+    // be sequenced. The alert check reads what oxfmt just wrote, so running it
+    // in a separate group would race the formatter and could read a half-written
+    // file.
+    //
+    // The checker takes the staged paths so the hook stays proportional to the
+    // commit; `pnpm lint:markdown` passes none and sweeps the whole tree.
+    '*.{md,mdx}': [
       'oxfmt --no-error-on-unmatched-pattern',
+      `node ${root}/scripts/deps/check-markdown.mjs`,
     ],
     // Syncpack owns manifest ordering, which is why `sortPackageJson` is
     // disabled in `.oxfmtrc.json`.

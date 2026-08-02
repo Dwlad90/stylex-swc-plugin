@@ -11,7 +11,7 @@ type TransformerConfig = Config.TransformerConfig[1];
 // compiler version has to participate in the cache key. This package is
 // published as CommonJS and Jest loads it with `require`, so reading the
 // manifest synchronously is the correct thing to do here.
-// eslint-disable-next-line typescript/no-require-imports
+// oxlint-disable-next-line typescript/no-require-imports
 const { version: COMPILER_VERSION } = require('@stylexswc/rs-compiler/package.json') as {
   version: string;
 };

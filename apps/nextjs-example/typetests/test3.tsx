@@ -1,5 +1,5 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable typescript/no-unused-vars */
+/* oxlint-disable no-unused-vars */
+/* oxlint-disable typescript/no-unused-vars */
 
 import * as stylex from '@stylexjs/stylex';
 import type { StaticStyles, StyleXStyles } from '@stylexjs/stylex';
@@ -26,5 +26,5 @@ const styles = stylex.create({
 function OtherComponent() {
   <Component xstyle={styles.base} />;
 }
-/* eslint-enable no-unused-vars */
-/* eslint-enable typescript/no-unused-vars */
+/* oxlint-enable no-unused-vars */
+/* oxlint-enable typescript/no-unused-vars */

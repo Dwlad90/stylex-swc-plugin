@@ -90,7 +90,7 @@ export default defineConfig({
 export const test = base.extend<{
   screenshotOptions: PageAssertionsToHaveScreenshotOptions;
 }>({
-  // eslint-disable-next-line no-empty-pattern
+  // oxlint-disable-next-line no-empty-pattern
   screenshotOptions: async ({}, use) => {
     const options: PageAssertionsToHaveScreenshotOptions = {
       fullPage: true,

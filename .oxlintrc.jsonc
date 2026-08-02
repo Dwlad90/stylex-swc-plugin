@@ -36,6 +36,12 @@
     // clean, so this costs nothing today and stops the drift that made the
     // ESLint-to-Oxlint directive rename a 38-file job.
     "reportUnusedDisableDirectives": "deny",
+
+    // ESLint is gone, and so is its directive syntax. Turning the fallback off
+    // means an `eslint-disable` comment no longer suppresses anything, so a
+    // stale or copy-pasted one is reported by the rule above rather than
+    // silently working. Every directive in the tree uses `oxlint-*`.
+    "respectEslintDisableDirectives": false,
   },
   "rules": {
     // Ported verbatim from `packages/eslint-config/library.mjs`.

@@ -1,4 +1,4 @@
-/* eslint-disable typescript/no-empty-object-type, typescript/no-unused-expressions */
+/* oxlint-disable typescript/no-empty-object-type, typescript/no-unused-expressions */
 import * as stylex from '@stylexjs/stylex';
 import type {
   StaticStyles,

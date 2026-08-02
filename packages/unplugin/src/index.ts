@@ -82,9 +82,9 @@ function pickCssAsset(
 async function invalidateAndCollectCssModules(
   server: ViteDevServer,
   placeholder: NormalizedOptions['useCssPlaceholder']
-  // eslint-disable-next-line typescript/no-explicit-any
+  // oxlint-disable-next-line typescript/no-explicit-any
 ): Promise<any[]> {
-  // eslint-disable-next-line typescript/no-explicit-any
+  // oxlint-disable-next-line typescript/no-explicit-any
   const cssModules: any[] = [];
 
   // Skip if placeholder is not a string
@@ -93,7 +93,7 @@ async function invalidateAndCollectCssModules(
   }
 
   const allCssModules = Array.from(server.moduleGraph.urlToModuleMap.values()).filter(
-    // eslint-disable-next-line typescript/no-explicit-any
+    // oxlint-disable-next-line typescript/no-explicit-any
     (mod: any) => mod.id && mod.id.endsWith('.css')
   );
 
@@ -101,7 +101,7 @@ async function invalidateAndCollectCssModules(
   // Note: We must read the original source file, not the transformed result,
   // because the transformed result already has the placeholder replaced
   await Promise.all(
-    // eslint-disable-next-line typescript/no-explicit-any
+    // oxlint-disable-next-line typescript/no-explicit-any
     allCssModules.map(async (mod: any) => {
       try {
         // Skip modules without a valid id
@@ -132,11 +132,11 @@ async function injectStyleXCss(
   collectedCSS: string,
   fallbackFileName: string,
   normalizedOptions: NormalizedOptions,
-  /* eslint-disable typescript/no-explicit-any */
+  /* oxlint-disable typescript/no-explicit-any */
   updateAsset: (fileName: string, source: any) => void,
   emitAsset: (fileName: string, source: any) => void,
   createRawSource: (content: string) => any
-  /* eslint-enable typescript/no-explicit-any */
+  /* oxlint-enable typescript/no-explicit-any */
 ): Promise<void> {
   const cssAssets = Object.keys(assets).filter(f => f.endsWith('.css'));
 
@@ -558,7 +558,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               // `next` is Connect's error handler, not a completion callback.
               // Forwarding the rejection to it is the documented middleware
               // contract, which is what this rule is written to discourage.
-              // eslint-disable-next-line promise/no-callback-in-promise
+              // oxlint-disable-next-line promise/no-callback-in-promise
             })().catch(next);
           }
         );

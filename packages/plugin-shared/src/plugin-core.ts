@@ -33,7 +33,7 @@ let packageVersion = 'unknown';
 try {
   // Resolved at runtime relative to the compiled module (dist/ and src/ are
   // both one level below package.json); only used to cache-bust chunk hashes
-  // eslint-disable-next-line typescript/no-require-imports
+  // oxlint-disable-next-line typescript/no-require-imports
   packageVersion = (require('../package.json') as { version?: string }).version ?? 'unknown';
 } catch {
   // chunk hashes fall back to option-only metadata

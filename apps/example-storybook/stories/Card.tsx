@@ -1,4 +1,4 @@
-/* eslint-disable @stylexjs/valid-styles -- resolved through this repo's
+/* oxlint-disable @stylexjs/valid-styles -- resolved through this repo's
    `stylex.env` token API, which the upstream plugin cannot evaluate
    statically; it sees the wrapper call, not the resulting colour. */
 import * as stylex from '@stylexjs/stylex';

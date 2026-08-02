@@ -46,7 +46,7 @@ const getNextMiniCssExtractPlugin = (isDev: boolean) => {
       warn(
         'Next.js built-in mini-css-extract-plugin is broken, will fallback to "mini-css-extract-plugin"'
       );
-      // eslint-disable-next-line typescript/no-require-imports
+      // oxlint-disable-next-line typescript/no-require-imports
       return require('mini-css-extract-plugin');
     }
   }
@@ -69,7 +69,7 @@ function getStyleXVirtualCssLoader(
     // https://github.com/vercel/next.js/blob/56d35ede8ed2ab25fa8e29583d4e81e3e76a0e29/packages/next/src/build/webpack/config/blocks/css/loaders/global.ts#L18
     // https://github.com/vercel/next.js/blob/56d35ede8ed2ab25fa8e29583d4e81e3e76a0e29/packages/next/src/build/webpack/config/blocks/css/loaders/client.ts#L3
     loaders.push({
-      // eslint-disable-next-line typescript/no-explicit-any
+      // oxlint-disable-next-line typescript/no-explicit-any
       loader: (MiniCssExtractPlugin as any).loader,
       options: {
         publicPath: `${ctx.config.assetPrefix}/_next/`,

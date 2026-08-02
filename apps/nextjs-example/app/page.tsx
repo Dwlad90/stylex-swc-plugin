@@ -24,7 +24,7 @@ export default function Home() {
     // Reading the initial media-query value is the one-time sync with an
     // external system that this effect exists for; the subscription below
     // handles every later change.
-    // eslint-disable-next-line hooks/set-state-in-effect
+    // oxlint-disable-next-line hooks/set-state-in-effect
     setIsDark(mq.matches);
     const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
     mq.addEventListener('change', handler);

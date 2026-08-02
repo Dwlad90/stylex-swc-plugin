@@ -779,11 +779,11 @@ importers:
         specifier: ^1.62.1
         version: 1.62.1
       '@rsbuild/core':
-        specifier: ^2.1.2
-        version: 2.1.2(core-js@3.48.0)
+        specifier: ^2.1.9
+        version: 2.1.9(core-js@3.48.0)
       '@rsbuild/plugin-react':
         specifier: ^2.1.0
-        version: 2.1.0(@rsbuild/core@2.1.2(core-js@3.48.0))(@rspack/core@2.1.7(@swc/helpers@0.5.23))
+        version: 2.1.0(@rsbuild/core@2.1.9(core-js@3.48.0))(@rspack/core@2.1.7(@swc/helpers@0.5.23))
       '@stylexswc/playwright':
         specifier: 0.18.2-rc.2
         version: link:../../packages/playwright
@@ -825,11 +825,11 @@ importers:
         specifier: ^1.62.1
         version: 1.62.1
       '@rsbuild/core':
-        specifier: ^2.1.2
-        version: 2.1.2(core-js@3.48.0)
+        specifier: ^2.1.9
+        version: 2.1.9(core-js@3.48.0)
       '@rsbuild/plugin-react':
         specifier: ^2.1.0
-        version: 2.1.0(@rsbuild/core@2.1.2(core-js@3.48.0))(@rspack/core@2.1.7(@swc/helpers@0.5.23))
+        version: 2.1.0(@rsbuild/core@2.1.9(core-js@3.48.0))(@rspack/core@2.1.7(@swc/helpers@0.5.23))
       '@stylexswc/playwright':
         specifier: 0.18.2-rc.2
         version: link:../../packages/playwright
@@ -5277,8 +5277,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@rsbuild/core@2.1.2':
-    resolution: {integrity: sha512-EP24Oj01bdwtw/Xl3LiaLe/WG6PBQV2yWbbCh+2TkMDc9dNHiyBTnR+/JZvGxI8RdO5qU0rH4YgMOJ6nVXIQSA==}
+  '@rsbuild/core@2.1.9':
+    resolution: {integrity: sha512-yqf1hFZ3wbMYI431LqsxLH3r0VZkfyarVKTf7kMeIiGe0YLwsrgsfp+sKpIyVkQkq60J0qyp6l/CoqqsQZqEwQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -14676,7 +14676,7 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.62.3':
     optional: true
 
-  '@rsbuild/core@2.1.2(core-js@3.48.0)':
+  '@rsbuild/core@2.1.9(core-js@3.48.0)':
     dependencies:
       '@rspack/core': 2.1.7(@swc/helpers@0.5.23)
       '@swc/helpers': 0.5.23
@@ -14685,12 +14685,12 @@ snapshots:
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.1.2(core-js@3.48.0))(@rspack/core@2.1.7(@swc/helpers@0.5.23))':
+  '@rsbuild/plugin-react@2.1.0(@rsbuild/core@2.1.9(core-js@3.48.0))(@rspack/core@2.1.7(@swc/helpers@0.5.23))':
     dependencies:
       '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.1.7(@swc/helpers@0.5.23))(react-refresh@0.18.0)
       react-refresh: 0.18.0
     optionalDependencies:
-      '@rsbuild/core': 2.1.2(core-js@3.48.0)
+      '@rsbuild/core': 2.1.9(core-js@3.48.0)
     transitivePeerDependencies:
       - '@rspack/core'
 

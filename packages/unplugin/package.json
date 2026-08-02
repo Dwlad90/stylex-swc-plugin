@@ -119,7 +119,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "check:artifacts": "node scripts/check-artifacts.mjs",
+    "check:artifacts": "scripty",
     "dev": "tsdown --watch",
     "play": "pnpm -C playground run dev",
     "postbuild": "pnpm run check:artifacts",

@@ -32,8 +32,14 @@ export default defineConfig({
     format === 'cjs' && fileName === 'nuxt.cjs'
       ? { js: '\nmodule.exports.default = module.exports;\n' }
       : {},
-  // Both are blocking: the exports map has ten subpaths across two module
-  // systems, which is far too much surface to keep correct by inspection.
-  publint: true,
-  attw: true,
+  // Both are made blocking on purpose: the exports map has ten subpaths across
+  // two module systems, which is far too much surface to keep correct by
+  // inspection. tsdown defaults attw to `level: 'warn'`, which reports a
+  // types-versus-implementation mismatch -- the footer above dropping off, say
+  // -- and then exits 0, so the check has to be raised to `error` to guard
+  // anything. Both run against the packed tarball rather than by executing the
+  // output, so they hold in the publish job too, where the platform has no
+  // `@stylexswc/rs-compiler` native binding to load.
+  publint: { strict: true },
+  attw: { level: 'error' },
 });

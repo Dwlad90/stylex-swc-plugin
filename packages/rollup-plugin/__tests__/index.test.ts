@@ -28,26 +28,28 @@ describe('@stylexswc/rollup-plugin', () => {
       ],
     });
 
-    // Generate output specific code in-memory
-    // You can call this function multiple times on the same bundle object
-    const { output } = await bundle.generate({
-      file: path.resolve(__dirname, '/__builds__/bundle.js'),
-    });
+    try {
+      const { output } = await bundle.generate({
+        file: path.resolve(__dirname, '/__builds__/bundle.js'),
+      });
 
-    let css, js;
+      let css, js;
 
-    for (const chunkOrAsset of output) {
-      const asset = chunkOrAsset as rollup.OutputAsset;
-      const chunk = chunkOrAsset as rollup.OutputChunk;
+      for (const chunkOrAsset of output) {
+        const asset = chunkOrAsset as rollup.OutputAsset;
+        const chunk = chunkOrAsset as rollup.OutputChunk;
 
-      if (asset.fileName === 'stylex.css') {
-        css = asset.source;
-      } else if (chunk.fileName === 'bundle.js') {
-        js = chunk.code;
+        if (asset.fileName === 'stylex.css') {
+          css = asset.source;
+        } else if (chunk.fileName === 'bundle.js') {
+          js = chunk.code;
+        }
       }
-    }
 
-    return { css, js, output };
+      return { css, js, output };
+    } finally {
+      await bundle.close();
+    }
   }
 
   it('extracts CSS and removes stylex.inject calls', async () => {

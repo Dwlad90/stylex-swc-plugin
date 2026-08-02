@@ -42,10 +42,10 @@ function readCompilerVersion(): string {
  * from the previous binary. That is the same staleness the version field was
  * added to prevent, displaced from "a consumer upgraded" to "you just rebuilt".
  *
- * Node registers native addons in `require.cache` under their absolute path,
- * and `@stylexswc/rs-compiler` was imported above — its `require` is hoisted
- * ahead of this initializer in the emitted CommonJS — so by now the entry is
- * present and names the exact file in use. Matching on the NAPI-RS basename
+ * Node registers native addons in `require.cache` under their absolute path.
+ * Walking only the loaded compiler entry's dependency subtree identifies the
+ * exact binding it loaded; scanning the entire cache could select another
+ * installed compiler version first. Matching on the NAPI-RS basename
  * convention rather than on a directory covers both layouts: the in-repo build
  * writes the addon beside the loader, while published installs get it from a
  * per-platform optional dependency.
@@ -56,10 +56,25 @@ function readCompilerVersion(): string {
  */
 function readNativeBindingStamp(): string {
   try {
-    const addonPath = Object.keys(require.cache).find(id => {
-      const base = path.basename(id);
-      return base.startsWith('rs-compiler.') && base.endsWith('.node');
-    });
+    const compilerEntry = require.cache[require.resolve('@stylexswc/rs-compiler')];
+    const visited = new Set<NodeJS.Module>();
+
+    const findBinding = (module: NodeJS.Module | undefined): string | undefined => {
+      if (!module || visited.has(module)) return undefined;
+      visited.add(module);
+
+      const base = path.basename(module.filename);
+      if (base.startsWith('rs-compiler.') && base.endsWith('.node')) return module.filename;
+
+      for (const child of module.children) {
+        const binding = findBinding(child);
+        if (binding) return binding;
+      }
+
+      return undefined;
+    };
+
+    const addonPath = findBinding(compilerEntry);
     if (!addonPath) return '';
 
     const { size, mtimeMs } = statSync(addonPath);

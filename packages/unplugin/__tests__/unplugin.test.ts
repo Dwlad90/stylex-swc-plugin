@@ -181,12 +181,13 @@ describe('@stylexswc/unplugin', () => {
 
   test('writes fallback CSS asset when no CSS bundle entry exists', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stylex-unplugin-test-'));
+    let bundle: rollup.RollupBuild | undefined;
 
     const inputFile = path.join(tempDir, 'input.js');
     fs.writeFileSync(inputFile, stylexSource);
 
     try {
-      const bundle = await rollup.rollup({
+      bundle = await rollup.rollup({
         input: inputFile,
         external: ['@stylexjs/stylex'],
         plugins: [
@@ -221,6 +222,7 @@ describe('@stylexswc/unplugin', () => {
       expect(cssContent).toMatchSnapshot();
       expect(jsCode).toMatchSnapshot();
     } finally {
+      await bundle?.close();
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });

@@ -28,7 +28,7 @@ module.exports = (() => {
     // commit; `pnpm lint:markdown` passes none and sweeps the whole tree.
     '*.{md,mdx}': [
       'oxfmt --no-error-on-unmatched-pattern',
-      `node ${root}/scripts/deps/check-markdown.mjs`,
+      `node ${JSON.stringify(`${root}/scripts/deps/check-markdown.mjs`)}`,
     ],
     // Syncpack owns manifest ordering, which is why `sortPackageJson` is
     // disabled in `.oxfmtrc.json`.

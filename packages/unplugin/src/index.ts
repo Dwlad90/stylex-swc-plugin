@@ -210,6 +210,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   // don't clobber each other's dev-server reference or invalidation flag.
   let viteDevServer: ViteDevServer | null = null;
   let hasInvalidatedInitialCSS = false;
+  let initialCssInvalidationTimer: ReturnType<typeof setTimeout> | null = null;
 
   return {
     name: PLUGIN_NAME,
@@ -304,9 +305,13 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             // `viteDevServer` is re-read inside the callback rather than
             // asserted: it is module-level mutable state and the server can be
             // torn down during the 50ms wait.
-            setTimeout(() => {
+            initialCssInvalidationTimer = setTimeout(() => {
+              initialCssInvalidationTimer = null;
               const server = viteDevServer;
-              if (!server) return;
+              if (!server) {
+                hasInvalidatedInitialCSS = false;
+                return;
+              }
 
               void (async () => {
                 // Find all CSS modules that actually contain the placeholder
@@ -328,6 +333,9 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
                   });
                 }
               })().catch((error: unknown) => {
+                // A transient read or websocket failure must not permanently
+                // consume the one initial refresh. A later transform can retry.
+                if (viteDevServer === server) hasInvalidatedInitialCSS = false;
                 console.error('StyleX: failed to refresh placeholder CSS modules', error);
               });
             }, 50);
@@ -547,8 +555,24 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         }
       },
       configureServer(server) {
+        if (initialCssInvalidationTimer) {
+          clearTimeout(initialCssInvalidationTimer);
+          initialCssInvalidationTimer = null;
+        }
+
         viteDevServer = server;
         hasInvalidatedInitialCSS = false;
+
+        server.watcher.once('close', () => {
+          if (viteDevServer !== server) return;
+
+          viteDevServer = null;
+          hasInvalidatedInitialCSS = false;
+          if (initialCssInvalidationTimer) {
+            clearTimeout(initialCssInvalidationTimer);
+            initialCssInvalidationTimer = null;
+          }
+        });
 
         server.middlewares.use(
           (req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {

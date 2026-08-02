@@ -5,6 +5,9 @@
 module.exports = {
   testEnvironment: 'node',
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
+  // `dist` is the artifact under test, so it must run exactly as published
+  // rather than be recompiled by the transform below on its way in.
+  transformIgnorePatterns: ['/node_modules/', '<rootDir>/dist/'],
   transform: {
     '^.+\\.(ts|js)$': [
       '@swc/jest',

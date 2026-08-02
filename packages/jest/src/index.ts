@@ -50,16 +50,23 @@ const getCacheKey: SyncTransformer<JestTransformerConfig>['getCacheKey'] = funct
   sourcePath,
   options
 ) {
-  return (
-    createHash('sha256')
-      .update(sourceText)
-      .update(sourcePath)
-      .update(JSON.stringify(options.transformerConfig))
-      // Without this, upgrading the compiler leaves Jest replaying output that
-      // the previous compiler produced, because nothing else in the key moves.
-      .update(COMPILER_VERSION)
-      .digest('hex')
-  );
+  // The parts are separated by NUL rather than concatenated: `update` appends
+  // raw bytes, so without a delimiter a source ending in the path prefix would
+  // hash identically to a different (source, path) pair.
+  const hash = createHash('sha256');
+  for (const part of [
+    sourceText,
+    sourcePath,
+    JSON.stringify(options.transformerConfig),
+    // Without this, upgrading the compiler leaves Jest replaying output that
+    // the previous compiler produced, because nothing else in the key moves.
+    COMPILER_VERSION,
+  ]) {
+    hash.update(part);
+    hash.update('\0');
+  }
+
+  return hash.digest('hex');
 };
 
 const createTransformer: TransformerCreator<

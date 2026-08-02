@@ -14,4 +14,7 @@ await context
   })
   .catch((/** @type {unknown} */ error) => {
     console.error(error);
+    // Without this the process still exits 0, so a dev server that never came
+    // up reads as a successful run to whatever invoked it.
+    process.exitCode = 1;
   });

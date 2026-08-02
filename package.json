@@ -22,7 +22,7 @@
     "lint:check": "oxlint",
     "lint:crates": "turbo run lint:check --filter=\"./crates/*\" --continue",
     "lint:crates:workspace": "cargo clippy --all-targets --all-features --workspace -- -D warnings",
-    "lint:node:type-aware": "oxlint --type-aware",
+    "lint:node:type-aware": "oxlint --type-aware --allow typescript/no-require-imports",
     "lint:rust": "cargo clippy --all-targets --all-features --workspace -- -D warnings",
     "lint:type-aware": "turbo run build && turbo run lint:node:type-aware --filter=//",
     "prepare": "husky",

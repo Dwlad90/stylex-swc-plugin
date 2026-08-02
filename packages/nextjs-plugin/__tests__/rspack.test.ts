@@ -34,10 +34,8 @@ vi.mock('next-rspack', () => ({
   default: (config: NextConfig) => config,
 }));
 vi.mock('@stylexswc/rspack-plugin', () => ({
-  default: class StyleXRspackPlugin {
-    constructor(options: Record<string, unknown>) {
-      rspackPluginOptions.push(options);
-    }
+  default: function (options: Record<string, unknown>) {
+    rspackPluginOptions.push(options);
   },
   DEFAULT_STYLEX_PACKAGES: ['@stylexjs/stylex'],
   buildVirtualCssPattern: vi.fn(),
@@ -268,7 +266,10 @@ describe('@stylexswc/nextjs-plugin/rspack persistent cache', () => {
 
   test("keeps a persistent cache configured by the user's own webpack hook", () => {
     const projectDirectory = createProject('proxy.ts');
-    const userCache = { type: 'persistent', storage: { type: 'filesystem' } } as const;
+    const userCache = {
+      type: 'persistent',
+      storage: { type: 'filesystem' },
+    } as const;
     const config = applyRspackConfig(
       {
         pageExtensions: ['ts'],

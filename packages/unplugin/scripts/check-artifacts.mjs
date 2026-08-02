@@ -29,15 +29,67 @@ const CALLABLE_SUBPATHS = new Set([
 const failures = [];
 const fail = message => failures.push(message);
 
+/**
+ * Loaders reject with whatever the module threw, which is not necessarily an
+ * `Error`. Reading `.message` off a thrown string or `null` would turn a real
+ * finding into a crash inside the checker.
+ *
+ * @param {unknown} error
+ * @returns {string}
+ */
+const firstLineOf = error => {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.split('\n', 1)[0];
+};
+
+if (typeof pkg.exports !== 'object' || pkg.exports === null) {
+  console.error('Artifact check failed: package.json has no `exports` map to validate.');
+  process.exit(1);
+}
+
+/**
+ * Resolves one condition of a subpath to its `{ types, default }` targets.
+ *
+ * Node accepts both the nested form and the string shorthand
+ * (`"import": "./dist/x.js"`, or an entire subpath as a bare string, as with
+ * `"./package.json": "./package.json"`). Treating the shorthand as malformed
+ * would report a valid package as broken.
+ *
+ * @param {unknown} entry the value of `exports[subpath]`
+ * @param {'import' | 'require'} condition
+ * @returns {{ types?: string, default?: string, typesRequired: boolean } | null}
+ */
+const resolveCondition = (entry, condition) => {
+  if (typeof entry === 'string') {
+    // A bare subpath applies to every condition and carries no declarations.
+    return { default: entry, typesRequired: false };
+  }
+  if (typeof entry !== 'object' || entry === null) return null;
+
+  const value = entry[condition];
+  if (value === undefined) return null;
+  if (typeof value === 'string') return { default: value, typesRequired: true };
+  if (typeof value !== 'object' || value === null) return null;
+
+  return { types: value.types, default: value.default, typesRequired: true };
+};
+
 const subpaths = Object.keys(pkg.exports);
 let fileCount = 0;
 
 for (const subpath of subpaths) {
-  const conditions = pkg.exports[subpath];
+  const entry = pkg.exports[subpath];
 
   for (const condition of ['import', 'require']) {
-    for (const key of ['types', 'default']) {
-      const target = conditions[condition]?.[key];
+    const resolved = resolveCondition(entry, condition);
+    if (!resolved) {
+      fail(`${subpath}: missing exports["${subpath}"].${condition}`);
+      continue;
+    }
+
+    const keys = resolved.typesRequired ? ['types', 'default'] : ['default'];
+    for (const key of keys) {
+      const target = resolved[key];
       if (!target) {
         fail(`${subpath}: missing exports["${subpath}"].${condition}.${key}`);
         continue;
@@ -50,16 +102,37 @@ for (const subpath of subpaths) {
   }
 }
 
-// CommonJS: loadable, and still shaped the way consumers depend on.
+/** Extensions the loader probes below can meaningfully evaluate. */
+const JS_EXTENSIONS = new Set(['.js', '.cjs', '.mjs']);
+
+/**
+ * @param {string} subpath
+ * @param {'import' | 'require'} condition
+ * @returns {string | null} an existing on-disk JavaScript target, or null when
+ *   there is nothing to probe. Non-JS targets (an exported `./package.json`,
+ *   say) are skipped rather than loaded: `import()` on JSON requires an import
+ *   attribute, so probing one would report a spurious failure. Their existence
+ *   is already covered above.
+ */
+const loadableTarget = (subpath, condition) => {
+  const target = resolveCondition(pkg.exports[subpath], condition)?.default;
+  if (!target || !JS_EXTENSIONS.has(path.extname(target))) return null;
+
+  const absolute = path.join(packageDir, target);
+  return existsSync(absolute) ? absolute : null;
+};
+
+// CommonJS: loadable, and still shaped the way consumers depend on. `require`
+// is synchronous by nature, so this stays a plain loop.
 for (const subpath of subpaths) {
-  const target = pkg.exports[subpath]?.require?.default;
-  if (!target || !existsSync(path.join(packageDir, target))) continue;
+  const target = loadableTarget(subpath, 'require');
+  if (!target) continue;
 
   let loaded;
   try {
     loaded = require(target);
   } catch (error) {
-    fail(`${subpath}: require() threw ${error.message.split('\n')[0]}`);
+    fail(`${subpath}: require() threw ${firstLineOf(error)}`);
     continue;
   }
 
@@ -72,21 +145,41 @@ for (const subpath of subpaths) {
       if (!(name in loaded)) fail(`.: require() lost the "${name}" named export`);
     }
   }
+
+  // `./nuxt` is the one entry whose declaration exports a `default` while
+  // `cjsDefault` writes `module.exports =` directly, so `tsdown.config.ts`
+  // appends `module.exports.default = module.exports` to reconcile them.
+  // Without this assertion nothing notices if that footer stops being applied,
+  // and `import mod from '@stylexswc/unplugin/nuxt'` silently yields undefined
+  // for CommonJS consumers.
+  if (subpath === './nuxt' && loaded.default !== loaded) {
+    fail('./nuxt: require() must expose `default` pointing back at the module itself');
+  }
 }
 
-// ESM: every subpath resolves and, where applicable, exposes a callable default.
-for (const subpath of subpaths) {
-  const target = pkg.exports[subpath]?.import?.default;
-  if (!target || !existsSync(path.join(packageDir, target))) continue;
+// ESM: every subpath resolves and, where applicable, exposes a callable
+// default. The probes are independent, so they run concurrently rather than
+// paying one module-evaluation round trip per subpath in series; results are
+// collected in `subpaths` order so failure output stays deterministic.
+const esmResults = await Promise.all(
+  subpaths.map(async subpath => {
+    const target = loadableTarget(subpath, 'import');
+    if (!target) return null;
 
-  try {
-    const loaded = await import(pathToFileURL(path.join(packageDir, target)).href);
-    if (CALLABLE_SUBPATHS.has(subpath) && typeof loaded.default !== 'function') {
-      fail(`${subpath}: import() default must be callable, got ${typeof loaded.default}`);
+    try {
+      const loaded = await import(pathToFileURL(target).href);
+      if (CALLABLE_SUBPATHS.has(subpath) && typeof loaded.default !== 'function') {
+        return `${subpath}: import() default must be callable, got ${typeof loaded.default}`;
+      }
+      return null;
+    } catch (error) {
+      return `${subpath}: import() threw ${firstLineOf(error)}`;
     }
-  } catch (error) {
-    fail(`${subpath}: import() threw ${error.message.split('\n')[0]}`);
-  }
+  })
+);
+
+for (const result of esmResults) {
+  if (result) fail(result);
 }
 
 if (failures.length > 0) {

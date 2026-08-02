@@ -1,10 +1,29 @@
-import { defineConfig, devices } from '@playwright/test';
-import { test as base, expect } from '@playwright/test';
+import { defineConfig, devices, test as base, expect } from '@playwright/test';
 import type { PageAssertionsToHaveScreenshotOptions } from '@playwright/test';
 
 const snapshotDir = process.env.SNAPSHOT_DIR || 'visual-tests/.playwright-snapshots';
 
-const PORT = +(process.env.PORT || 3000);
+const DEFAULT_PORT = 3000;
+
+/**
+ * A bare `+process.env.PORT` turns any non-numeric value into `NaN`, which then
+ * propagates silently into `baseURL` as `http://localhost:NaN` and into the web
+ * server's port. Every visual test then fails to connect, with nothing pointing
+ * at the environment as the cause.
+ */
+function resolvePort(): number {
+  const raw = process.env.PORT;
+  if (raw === undefined || raw === '') return DEFAULT_PORT;
+
+  const port = Number(raw);
+  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    throw new Error(`Invalid PORT environment variable: ${JSON.stringify(raw)}`);
+  }
+
+  return port;
+}
+
+const PORT = resolvePort();
 
 const isCI = !!process.env.CI;
 const shouldUpdateSnapshots =

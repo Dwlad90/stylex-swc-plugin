@@ -8,21 +8,15 @@
     "turbo.json",
     "typings/**"
   ],
-  "globalEnv": [
-    "CI",
-    "NEXT_RSPACK",
-    "NODE_ENV",
-    "PORT",
-    "SNAPSHOT_DIR",
-    "STYLEX_DEBUG",
-    "STYLEX_POSTCSS_DEBUG"
-  ],
+  "globalEnv": ["NODE_ENV", "PORT", "STYLEX_DEBUG"],
   "futureFlags": {
     "errorsOnlyShowHash": true
   },
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["STYLEX_POSTCSS_DEBUG"],
+      "passThroughEnv": ["NEXT_RSPACK"],
       "outputs": ["dist/**/*", "npm/**/*", ".next/**", "!.next/cache/**", "storybook-static/**/*"],
       "outputLogs": "errors-only"
     },
@@ -70,8 +64,8 @@
     },
     "test:visual": {
       "dependsOn": ["^build", "build"],
-      "env": ["PLAYWRIGHT_UPDATE_SNAPSHOTS"],
-      "passThroughEnv": ["PLAYWRIGHT_BROWSERS_PATH"],
+      "env": ["PLAYWRIGHT_UPDATE_SNAPSHOTS", "SNAPSHOT_DIR"],
+      "passThroughEnv": ["PLAYWRIGHT_BROWSERS_PATH", "CI"],
       "outputs": ["**/.playwright-snapshots/**"],
       "outputLogs": "errors-only"
     },

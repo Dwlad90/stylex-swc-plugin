@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { promises } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import * as path from 'node:path';
@@ -283,19 +283,29 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
           if (wasCodeTransformed) {
             // `setTimeout` expects a void-returning callback, so the async work
-            // is wrapped rather than handed to it directly; otherwise a
-            // rejection here becomes an unhandled promise.
+            // is wrapped rather than handed to it directly. The `catch` is the
+            // part that matters: nothing awaits this, so without it a rejection
+            // would reach `unhandledRejection` and take the dev server down
+            // over a failed CSS refresh. `void` alone would silence the lint
+            // without handling anything.
+            //
+            // `viteDevServer` is re-read inside the callback rather than
+            // asserted: it is module-level mutable state and the server can be
+            // torn down during the 50ms wait.
             setTimeout(() => {
+              const server = viteDevServer;
+              if (!server) return;
+
               void (async () => {
                 // Find all CSS modules that actually contain the placeholder
                 const cssModules = await invalidateAndCollectCssModules(
-                  viteDevServer!,
+                  server,
                   normalizedOptions.useCssPlaceholder
                 );
 
                 // Send update to trigger HMR
                 if (cssModules.length > 0) {
-                  viteDevServer!.ws.send({
+                  server.ws.send({
                     type: 'update',
                     updates: cssModules.map(mod => ({
                       type: 'css-update' as const,
@@ -305,7 +315,9 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
                     })),
                   });
                 }
-              })();
+              })().catch((error: unknown) => {
+                console.error('StyleX: failed to refresh placeholder CSS modules', error);
+              });
             }, 50);
           }
         }

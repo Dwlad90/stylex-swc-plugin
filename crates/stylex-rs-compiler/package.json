@@ -74,7 +74,7 @@
     "lint-staged": "^17.2.0",
     "npm-run-all2": "^9.0.3",
     "tinybench": "^6.1.2",
-    "tsx": "^4.19.2",
+    "tsx": "^4.23.1",
     "typescript": "7.0.2",
     "vitest": "^4.1.10"
   },

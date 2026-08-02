@@ -1,3 +1,7 @@
+// `toStrictEqual`, not `toEqual`: these were AVA's `t.deepEqual`, which treats
+// an absent property and one set to `undefined` as different. `toEqual` does
+// not, so it would accept a compiler result that grew or lost an
+// undefined-valued field. See the note in `normalizeRsOptions.spec.ts`.
 import * as path from 'path';
 
 import { expect, test } from 'vitest';
@@ -79,7 +83,7 @@ export const styles = {
     map: '{"version":3,"sources":["page.tsx"],"names":[],"mappings":"AACI;AAEA;;;;;;;;EAOG"}',
   };
 
-  expect(result).toEqual(expected);
+  expect(result).toStrictEqual(expected);
 });
 
 // ── transform() include/exclude filtering ────────────────────────────
@@ -93,7 +97,7 @@ test('transform: skips file excluded by include pattern', () => {
   // File doesn't match include — should return code unmodified
   const result = transform(path.join(cwd, 'lib/file.ts'), code, options);
   expect(result.code).toBe(code);
-  expect(result.metadata).toEqual({ stylex: [] });
+  expect(result.metadata).toStrictEqual({ stylex: [] });
 });
 
 test('transform: skips file matching exclude pattern', () => {
@@ -104,7 +108,7 @@ test('transform: skips file matching exclude pattern', () => {
 
   const result = transform(path.join(cwd, 'src/file.test.tsx'), code, options);
   expect(result.code).toBe(code);
-  expect(result.metadata).toEqual({ stylex: [] });
+  expect(result.metadata).toStrictEqual({ stylex: [] });
 });
 
 test('transform: processes file matching include and not matching exclude', () => {
@@ -161,7 +165,7 @@ test('transform: exclude takes precedence over include', () => {
 
   const result = transform(path.join(cwd, 'src/internal/Secret.tsx'), code, options);
   expect(result.code, 'excluded file should not be transformed').toBe(code);
-  expect(result.metadata).toEqual({ stylex: [] });
+  expect(result.metadata).toStrictEqual({ stylex: [] });
 });
 
 // ── transform() edge cases ──────────────────────────────────────────
@@ -177,7 +181,7 @@ test('transform: non-stylex code passes through without metadata', () => {
   });
 
   const result = transform('app.tsx', code, options);
-  expect(result.metadata).toEqual({ stylex: [] });
+  expect(result.metadata).toStrictEqual({ stylex: [] });
   expect(result.code.length > 0, 'should still have code output').toBeTruthy();
 });
 
@@ -188,7 +192,7 @@ test('transform: empty file returns empty output', () => {
   });
 
   const result = transform('empty.tsx', '', options);
-  expect(result.metadata).toEqual({ stylex: [] });
+  expect(result.metadata).toStrictEqual({ stylex: [] });
 });
 
 test('transform: filtered file returns exact original code', () => {
@@ -241,7 +245,7 @@ test('transform: regex exclude pattern works', () => {
 
   const result = transform(path.join(cwd, 'src/Button.stories.tsx'), code, options);
   expect(result.code, '.stories file should be excluded').toBe(code);
-  expect(result.metadata).toEqual({ stylex: [] });
+  expect(result.metadata).toStrictEqual({ stylex: [] });
 });
 
 test('transform: multiple include patterns - match any', () => {
@@ -292,5 +296,5 @@ test('transform: glob pattern with curly braces', () => {
   // .ts and .tsx should pass include filter (then go to native)
   // .js should NOT match include filter
   expect(resultJs.code, '.js should not match include').toBe(code);
-  expect(resultJs.metadata).toEqual({ stylex: [] });
+  expect(resultJs.metadata).toStrictEqual({ stylex: [] });
 });

@@ -29,7 +29,15 @@ EXPECTED_VERSION="7.0.2"
 #             TypeScript 7 incompatibility in this repository's own code.
 #
 # Remove an entry as soon as its tool ships a TypeScript 7 build.
-ALLOWED_EXTRA_VERSIONS="5.6.1-rc"
+#
+# An array, one version per element. It was previously a single string, which
+# matched only while it held exactly one version: the comparison below is a
+# whole-line match, so `"5.6.1-rc 5.9.2"` matched neither of them and the check
+# failed reporting `5.6.1-rc` — the entry that was supposed to be allowed —
+# rather than the malformed list.
+ALLOWED_EXTRA_VERSIONS=(
+  "5.6.1-rc"
+)
 
 # Resolve the lockfile from the repository root so the guard behaves the same
 # whether it is invoked by a root script, by Turbo, or from a package
@@ -62,9 +70,17 @@ if [ -z "$installed" ]; then
   exit 1
 fi
 
-# Compare on the bare version, but report the raw key, so a patched or
-# peer-suffixed copy of the approved version is still identified precisely.
-allowed=$(printf '%s\n%s\n' "$EXPECTED_VERSION" "$ALLOWED_EXTRA_VERSIONS")
+# Compare against the exact lockfile key, not a bare `X.Y.Z` prefix: a patched
+# or peer-suffixed copy of the approved version is a different compiler and
+# should be surfaced rather than folded into the approved entry.
+#
+# The `[@]+` guard keeps this working under `set -u` when the array is emptied
+# — the documented end state once every tool ships a TypeScript 7 build — on
+# the bash 3.2 that macOS still ships.
+allowed=$(
+  printf '%s\n' "$EXPECTED_VERSION" \
+    ${ALLOWED_EXTRA_VERSIONS[@]+"${ALLOWED_EXTRA_VERSIONS[@]}"}
+)
 
 unexpected=$(
   echo "$installed" |

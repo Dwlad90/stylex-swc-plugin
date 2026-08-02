@@ -42,9 +42,9 @@ const firstLineOf = error => {
   return message.split('\n', 1)[0];
 };
 
-if (typeof pkg.exports !== 'object' || pkg.exports === null) {
-  console.error('Artifact check failed: package.json has no `exports` map to validate.');
-  process.exit(1);
+const hasExportsMap = typeof pkg.exports === 'object' && pkg.exports !== null;
+if (!hasExportsMap) {
+  fail('package.json has no `exports` map to validate.');
 }
 
 /**
@@ -74,11 +74,22 @@ const resolveCondition = (entry, condition) => {
   return { types: value.types, default: value.default, typesRequired: true };
 };
 
-const subpaths = Object.keys(pkg.exports);
+const subpaths = hasExportsMap ? Object.keys(pkg.exports) : [];
 let fileCount = 0;
 
 for (const subpath of subpaths) {
   const entry = pkg.exports[subpath];
+
+  // A bare subpath string applies to every condition and carries no
+  // declarations, so it is a single target. Running it through the loop below
+  // checked the same file twice and counted it twice in the summary.
+  if (typeof entry === 'string') {
+    fileCount++;
+    if (!existsSync(path.join(packageDir, entry))) {
+      fail(`${subpath}: points at missing file ${entry}`);
+    }
+    continue;
+  }
 
   for (const condition of ['import', 'require']) {
     const resolved = resolveCondition(entry, condition);
@@ -140,9 +151,18 @@ for (const subpath of subpaths) {
     fail(`${subpath}: require() must return a callable plugin factory, got ${typeof loaded}`);
   }
 
+  // `in` throws a TypeError on a primitive, so a module that regressed to
+  // `module.exports = <string>` would crash the checker instead of being
+  // reported by it. Same reason `./nuxt`'s property read is guarded below.
+  const isIndexable = typeof loaded === 'object' ? loaded !== null : typeof loaded === 'function';
+
   if (subpath === '.') {
-    for (const name of ['unplugin', 'unpluginFactory', 'default']) {
-      if (!(name in loaded)) fail(`.: require() lost the "${name}" named export`);
+    if (!isIndexable) {
+      fail(`.: require() must return an object or function, got ${typeof loaded}`);
+    } else {
+      for (const name of ['unplugin', 'unpluginFactory', 'default']) {
+        if (!(name in loaded)) fail(`.: require() lost the "${name}" named export`);
+      }
     }
   }
 
@@ -152,7 +172,7 @@ for (const subpath of subpaths) {
   // Without this assertion nothing notices if that footer stops being applied,
   // and `import mod from '@stylexswc/unplugin/nuxt'` silently yields undefined
   // for CommonJS consumers.
-  if (subpath === './nuxt' && loaded.default !== loaded) {
+  if (subpath === './nuxt' && (!isIndexable || loaded.default !== loaded)) {
     fail('./nuxt: require() must expose `default` pointing back at the module itself');
   }
 }
@@ -185,10 +205,14 @@ for (const result of esmResults) {
 if (failures.length > 0) {
   console.error(`Artifact check failed with ${failures.length} problem(s):`);
   for (const failure of failures) console.error(`  - ${failure}`);
-  process.exit(1);
+  // `process.exitCode`, not `process.exit`. Under CI the streams are pipes and
+  // therefore written asynchronously; `process.exit` would tear the process
+  // down mid-flush and the failure list — the entire point of this script —
+  // could reach the log truncated or not at all.
+  process.exitCode = 1;
+} else {
+  console.log(
+    `Artifact check passed: ${subpaths.length} subpaths, ${fileCount} files, ` +
+      `CommonJS and ESM both load with the expected shapes.`
+  );
 }
-
-console.log(
-  `Artifact check passed: ${subpaths.length} subpaths, ${fileCount} files, ` +
-    `CommonJS and ESM both load with the expected shapes.`
-);

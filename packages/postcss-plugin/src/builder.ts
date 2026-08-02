@@ -256,16 +256,20 @@ function createBuilder() {
         return;
       }
 
-      if (rsOptions) {
-        // @ts-expect-error - this field is omitted from the type for postcss plugin
-        rsOptions.include = undefined;
-        // @ts-expect-error - this field is omitted from the type for postcss plugin
-        rsOptions.exclude = undefined;
-      }
+      // Copy rather than mutate. `rsOptions` comes from `getConfig()`, so it is
+      // the caller's own object, shared by every file in this build and by
+      // every rebuild in watch mode — stripping the patterns in place made the
+      // change permanent and invisible. (Same defect class as the one fixed in
+      // `@stylexswc/jest`.) The patterns are dropped for the compiler because
+      // `getFiles()` above has already applied them; re-applying them here
+      // would only repeat the work.
+      const compilerOptions = { ...rsOptions };
+      delete (compilerOptions as { include?: unknown }).include;
+      delete (compilerOptions as { exclude?: unknown }).exclude;
 
       // `forEach` discards return values; the transform is called for its
       // side effect of registering rules on the bundler.
-      bundler.transform(filePath, contents, rsOptions || {}, {
+      bundler.transform(filePath, contents, compilerOptions, {
         isDev,
         shouldSkipTransformError,
       });

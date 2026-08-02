@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
-import defaultConfig, { webServer } from '@stylexswc/playwright';
+import defaultConfig, { resolvePort, webServer } from '@stylexswc/playwright';
 
-const PORT = +(process.env.PORT || 3014);
+const PORT = resolvePort(3014);
 
 export default defineConfig({
   ...defaultConfig,

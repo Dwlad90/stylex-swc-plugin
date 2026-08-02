@@ -384,7 +384,7 @@
     "**/__swc_snapshots__",
     "**/__snapshots__",
     "**/.next",
-    "**/visual-tests",
+    "**/visual-tests/.playwright-snapshots",
     "**/coverage",
     "**/next-env.d.ts",
     "**/storybook-static",

@@ -107,7 +107,8 @@
         "types": "./dist/types.d.cts",
         "default": "./dist/types.cjs"
       }
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"
@@ -163,6 +164,9 @@
     "webpack": ">=5.0.0"
   },
   "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
+  "engines": {
+    "node": ">=20"
+  },
   "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/unplugin#readme",
   "keywords": [
     "astro",
@@ -221,8 +225,5 @@
         "./*"
       ]
     }
-  },
-  "engines": {
-    "node": ">=20"
   }
 }

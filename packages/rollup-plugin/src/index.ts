@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
 import type { Rule } from '@stylexjs/babel-plugin';
 import stylexBabelPlugin from '@stylexjs/babel-plugin';

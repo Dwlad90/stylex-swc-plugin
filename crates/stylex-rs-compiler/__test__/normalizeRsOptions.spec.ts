@@ -1,3 +1,10 @@
+// `toStrictEqual`, not `toEqual`, throughout. These assertions were AVA's
+// `t.deepEqual`, which distinguishes an absent property from one explicitly set
+// to `undefined`; `toEqual` ignores undefined-valued properties and would
+// silently accept a normalizer that started emitting `include: undefined`
+// instead of omitting it. That distinction is load-bearing here — it is the
+// same one that made `rsOptions.include = undefined` a bug in the consumers.
+// `toStrictEqual` is the faithful translation.
 import { expect, test } from 'vitest';
 
 import { normalizeRsOptions } from '../dist/index.js';
@@ -39,7 +46,7 @@ test('normalizeRsOptions fills defaults for missing fields', () => {
     enableInlinedConditionalMerge: undefined,
   };
   const result = normalizeRsOptions(input);
-  expect(result).toEqual(defaultResult);
+  expect(result).toStrictEqual(defaultResult);
 });
 
 test('normalizeRsOptions preserves provided values', () => {
@@ -71,12 +78,12 @@ test('normalizeRsOptions preserves provided values', () => {
     enableInlinedConditionalMerge: false,
   };
   const result = normalizeRsOptions(input);
-  expect(result).toEqual(expected);
+  expect(result).toStrictEqual(expected);
 });
 
 test('normalizeRsOptions: handles empty input', () => {
   const result = normalizeRsOptions({});
-  expect(result).toEqual(defaultResult);
+  expect(result).toStrictEqual(defaultResult);
 });
 
 test('normalizeRsOptions: ignores unrelated fields', () => {
@@ -85,24 +92,24 @@ test('normalizeRsOptions: ignores unrelated fields', () => {
   const result = normalizeRsOptions(input);
   // Unrelated keys pass through (spread-based), defaults are still applied
   expect(result.dev).toBe(false);
-  expect(result.importSources).toEqual(['stylex', '@stylexjs/stylex']);
+  expect(result.importSources).toStrictEqual(['stylex', '@stylexjs/stylex']);
 });
 
 test('normalizeRsOptions: accepts string importSources', () => {
   const input = { importSources: ['foo', 'bar'] };
   const result = normalizeRsOptions(input);
-  expect(result.importSources).toEqual(['foo', 'bar']);
+  expect(result.importSources).toStrictEqual(['foo', 'bar']);
 });
 
 test('normalizeRsOptions: accepts object importSources', () => {
   const input = { importSources: [{ as: 'x', from: 'y' }] };
   const result = normalizeRsOptions(input);
-  expect(result.importSources).toEqual([{ as: 'x', from: 'y' }]);
+  expect(result.importSources).toStrictEqual([{ as: 'x', from: 'y' }]);
 });
 
 test('check default values when input is empty', () => {
   const result = normalizeRsOptions({});
-  expect(result).toEqual(defaultResult);
+  expect(result).toStrictEqual(defaultResult);
 });
 
 test('should throw when input is not provided', () => {
@@ -118,31 +125,31 @@ test('should throw when input is null', () => {
 test('should return default values when input is a string', () => {
   // @ts-expect-error - input must be an object
   const result = normalizeRsOptions('string input');
-  expect(result).toEqual(defaultResult);
+  expect(result).toStrictEqual(defaultResult);
 });
 
 test('normalizeRsOptions: importSources - valid npm string', () => {
   const input = { importSources: ['@scope/pkg', 'foo-bar'] };
   const result = normalizeRsOptions(input);
-  expect(result.importSources).toEqual(['@scope/pkg', 'foo-bar']);
+  expect(result.importSources).toStrictEqual(['@scope/pkg', 'foo-bar']);
 });
 
 test('normalizeRsOptions: importSources - valid object with npm from', () => {
   const input = { importSources: [{ as: 'foo', from: '@scope/pkg' }] };
   const result = normalizeRsOptions(input);
-  expect(result.importSources).toEqual([{ as: 'foo', from: '@scope/pkg' }]);
+  expect(result.importSources).toStrictEqual([{ as: 'foo', from: '@scope/pkg' }]);
 });
 
 test('normalizeRsOptions: importSources - mixed valid', () => {
   const input = { importSources: ['@scope/pkg', { as: 'foo', from: 'validpath' }] };
   const result = normalizeRsOptions(input);
-  expect(result.importSources).toEqual(['@scope/pkg', { as: 'foo', from: 'validpath' }]);
+  expect(result.importSources).toStrictEqual(['@scope/pkg', { as: 'foo', from: 'validpath' }]);
 });
 
 test('normalizeRsOptions: importSources - empty array', () => {
   const input = { importSources: [] };
   const result = normalizeRsOptions(input);
-  expect(result.importSources).toEqual([]);
+  expect(result.importSources).toStrictEqual([]);
 });
 
 test('normalizeRsOptions: styleResolution - default input', () => {
@@ -210,21 +217,21 @@ test('normalizeRsOptions: string value for runtimeInjection', () => {
 
 test('normalizeRsOptions: include and exclude default to empty arrays', () => {
   const result = normalizeRsOptions({});
-  expect(result.include).toEqual([]);
-  expect(result.exclude).toEqual([]);
+  expect(result.include).toStrictEqual([]);
+  expect(result.exclude).toStrictEqual([]);
 });
 
 test('normalizeRsOptions: include and exclude are passed through', () => {
   const include = ['src/**/*.tsx'];
   const exclude = [/node_modules/];
   const result = normalizeRsOptions({ include, exclude });
-  expect(result.include).toEqual(include);
-  expect(result.exclude).toEqual(exclude);
+  expect(result.include).toStrictEqual(include);
+  expect(result.exclude).toStrictEqual(exclude);
 });
 
 test('normalizeRsOptions: swcPlugins default to empty array', () => {
   const result = normalizeRsOptions({});
-  expect(result.swcPlugins).toEqual([]);
+  expect(result.swcPlugins).toStrictEqual([]);
 });
 
 test('normalizeRsOptions: swcPlugins are passed through', () => {
@@ -232,14 +239,14 @@ test('normalizeRsOptions: swcPlugins are passed through', () => {
     ['@swc/plugin-example', { foo: 'bar' }],
   ];
   const result = normalizeRsOptions({ swcPlugins });
-  expect(result.swcPlugins).toEqual(swcPlugins);
+  expect(result.swcPlugins).toStrictEqual(swcPlugins);
 });
 
 test('normalizeRsOptions: unstable_moduleResolution is passed through', () => {
   const result = normalizeRsOptions({
     unstable_moduleResolution: { type: 'esm', rootDir: '/app' },
   });
-  expect(result.unstable_moduleResolution).toEqual({ type: 'esm', rootDir: '/app' });
+  expect(result.unstable_moduleResolution).toStrictEqual({ type: 'esm', rootDir: '/app' });
 });
 
 test('normalizeRsOptions: preserves all TS-only fields together', () => {
@@ -250,9 +257,9 @@ test('normalizeRsOptions: preserves all TS-only fields together', () => {
     ['@swc/plugin-other', {}],
   ];
   const result = normalizeRsOptions({ include, exclude, swcPlugins, dev: true });
-  expect(result.include).toEqual(include);
-  expect(result.exclude).toEqual(exclude);
-  expect(result.swcPlugins).toEqual(swcPlugins);
+  expect(result.include).toStrictEqual(include);
+  expect(result.exclude).toStrictEqual(exclude);
+  expect(result.swcPlugins).toStrictEqual(swcPlugins);
   expect(result.dev).toBe(true);
 });
 
@@ -308,13 +315,13 @@ test('normalizeRsOptions: classNamePrefix with empty string', () => {
 test('normalizeRsOptions: aliases are preserved', () => {
   const aliases = { '@components/*': ['src/components/*'] };
   const result = normalizeRsOptions({ aliases });
-  expect(result.aliases).toEqual(aliases);
+  expect(result.aliases).toStrictEqual(aliases);
 });
 
 test('normalizeRsOptions: definedStylexCssVariables are preserved', () => {
   const vars = { '--primary': 'blue', '--secondary': 'red' };
   const result = normalizeRsOptions({ definedStylexCssVariables: vars });
-  expect(result.definedStylexCssVariables).toEqual(vars);
+  expect(result.definedStylexCssVariables).toStrictEqual(vars);
 });
 
 test('normalizeRsOptions: sourceMap values are preserved', () => {
@@ -425,7 +432,7 @@ test('normalizeRsOptions: many swcPlugins are passed through', () => {
   ];
   const result = normalizeRsOptions({ swcPlugins });
   expect(result.swcPlugins!).toHaveLength(3);
-  expect(result.swcPlugins).toEqual(swcPlugins);
+  expect(result.swcPlugins).toStrictEqual(swcPlugins);
 });
 
 test('normalizeRsOptions: unstable_moduleResolution with all fields', () => {
@@ -436,7 +443,7 @@ test('normalizeRsOptions: unstable_moduleResolution with all fields', () => {
       themeFileExtension: '.stylex.ts',
     },
   });
-  expect(result.unstable_moduleResolution).toEqual({
+  expect(result.unstable_moduleResolution).toStrictEqual({
     type: 'commonJS',
     rootDir: '/project',
     themeFileExtension: '.stylex.ts',
@@ -471,20 +478,20 @@ test('normalizeRsOptions: all defaults are correct', () => {
   expect(result.enableDebugClassNames).toBe(false);
   expect(result.propertyValidationMode).toBe('silent');
   expect(result.styleResolution).toBe('property-specificity');
-  expect(result.importSources).toEqual(['stylex', '@stylexjs/stylex']);
-  expect(result.include).toEqual([]);
-  expect(result.exclude).toEqual([]);
-  expect(result.swcPlugins).toEqual([]);
+  expect(result.importSources).toStrictEqual(['stylex', '@stylexjs/stylex']);
+  expect(result.include).toStrictEqual([]);
+  expect(result.exclude).toStrictEqual([]);
+  expect(result.swcPlugins).toStrictEqual([]);
 });
 
 test('normalizeRsOptions: number input treated as empty object', () => {
   // @ts-expect-error - testing invalid input
   const result = normalizeRsOptions(42);
-  expect(result).toEqual(defaultResult);
+  expect(result).toStrictEqual(defaultResult);
 });
 
 test('normalizeRsOptions: boolean input treated as empty object', () => {
   // @ts-expect-error - testing invalid input
   const result = normalizeRsOptions(true);
-  expect(result).toEqual(defaultResult);
+  expect(result).toStrictEqual(defaultResult);
 });

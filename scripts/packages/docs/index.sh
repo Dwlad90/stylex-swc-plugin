@@ -3,26 +3,15 @@
 # Exit immediately when any subprocess returns a non-zero command
 set -e
 
-# Kill all subprocesses when exiting
-# shellcheck disable=2154
-trap 'exit $exit_code' INT TERM
-trap 'exit_code=$?; kill 0' EXIT
-
-pids=""
+# No traps, and no backgrounding. This script runs exactly one child, so there
+# is no sibling that could be left orphaned when it fails — the concurrency
+# scaffolding here was copied from `build/index.sh`, which really does run two.
+# `set -e` propagates the child's status, which is all the `& … wait` pair was
+# achieving.
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 
 # shellcheck disable=SC1091
 . "$script_dir"/../../functions.sh
 
-# Build js and types concurrently
-"$script_dir/rust.sh" "$@" &
-pids="${pids}$! "
-
-# Exit with correct exit code if either one fails
-for pid in $pids; do
-  wait "$pid"
-done
-
-# Remove traps and restore default signal/exit handling
-trap - INT TERM EXIT
+"$script_dir/rust.sh" "$@"

@@ -3,12 +3,30 @@
 # Exit immediately when any subprocess returns a non-zero command
 set -e
 
-# Kill all subprocesses when exiting
-# shellcheck disable=2154
-trap 'exit $exit_code' INT TERM
-trap 'exit_code=$?; kill 0' EXIT
-
 pids=""
+
+# Terminate only the children this script started.
+#
+# This replaces `kill 0`, which signals every process in the group — including
+# the caller's interactive shell when the script is run directly rather than
+# through Turbo, killing the user's terminal along with the build. Tracking the
+# PIDs we spawned gives the same guarantee (no orphaned compilers when one side
+# fails) without reaching outside this script.
+#
+# Reached on failure via `set -e` and on interrupt via the signal traps; on a
+# clean run the children have already been reaped, so the `kill` is a harmless
+# no-op. The EXIT trap must not itself exit, so the script's real status is
+# preserved.
+cleanup() {
+  [ -n "$pids" ] || return 0
+  # shellcheck disable=SC2086
+  kill $pids 2>/dev/null || true
+  return 0
+}
+
+trap 'cleanup; exit 130' INT
+trap 'cleanup; exit 143' TERM
+trap cleanup EXIT
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 
@@ -24,6 +42,3 @@ script_dir="$(cd "$(dirname "$0")" && pwd)"
 for pid in $pids; do
   wait "$pid"
 done
-
-# Remove traps to exit with 0
-trap - INT TERM EXIT

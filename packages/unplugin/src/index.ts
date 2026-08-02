@@ -8,7 +8,7 @@ import type { StyleXMetadata, TransformedOptions } from '@stylexswc/rs-compiler'
 import { createUnplugin } from 'unplugin';
 import type { UnpluginFactory, UnpluginInstance } from 'unplugin';
 import type { Connect } from 'vite';
-import type { HotPayload, UserConfig, ViteDevServer } from 'vite';
+import type { HotPayload, ModuleNode, UserConfig, ViteDevServer } from 'vite';
 
 import type { UnpluginStylexRSOptions } from './types';
 import generateHash from './utils/generateHash';
@@ -82,27 +82,25 @@ function pickCssAsset(
 async function invalidateAndCollectCssModules(
   server: ViteDevServer,
   placeholder: NormalizedOptions['useCssPlaceholder']
-  // oxlint-disable-next-line typescript/no-explicit-any
-): Promise<any[]> {
-  // oxlint-disable-next-line typescript/no-explicit-any
-  const cssModules: any[] = [];
+): Promise<ModuleNode[]> {
+  const cssModules: ModuleNode[] = [];
 
   // Skip if placeholder is not a string
   if (!placeholder || typeof placeholder !== 'string') {
     return cssModules;
   }
 
+  // `mod.id` is `string | null`, so the guard both filters non-CSS modules and
+  // narrows the type for the read below.
   const allCssModules = Array.from(server.moduleGraph.urlToModuleMap.values()).filter(
-    // oxlint-disable-next-line typescript/no-explicit-any
-    (mod: any) => mod.id && mod.id.endsWith('.css')
+    mod => mod.id?.endsWith('.css') ?? false
   );
 
   // Check each CSS module for the placeholder
   // Note: We must read the original source file, not the transformed result,
   // because the transformed result already has the placeholder replaced
   await Promise.all(
-    // oxlint-disable-next-line typescript/no-explicit-any
-    allCssModules.map(async (mod: any) => {
+    allCssModules.map(async mod => {
       try {
         // Skip modules without a valid id
         if (!mod.id) return;
@@ -125,18 +123,26 @@ async function invalidateAndCollectCssModules(
 /**
  * Injects StyleX CSS into CSS assets for webpack/rspack bundlers.
  * Shared logic to avoid code duplication between webpack and rspack hooks.
+ *
+ * `TSource` is the bundler's asset-source type. It is a type parameter rather
+ * than a concrete type because webpack and rspack each declare their own
+ * incompatible `Source`, and this function is called once per bundler; naming
+ * either one here would force a cast at the other call site.
+ *
+ * It replaces three `any` parameters, and is stricter than they were: the
+ * source produced by `createRawSource` must be the same type `updateAsset` and
+ * `emitAsset` accept. Under `any`, handing a webpack `RawSource` to rspack's
+ * `updateAsset` type-checked cleanly and would only have failed at runtime.
  */
-async function injectStyleXCss(
+async function injectStyleXCss<TSource>(
   assets: Record<string, { source(): { toString(): string } }>,
   injectMarker: string,
   collectedCSS: string,
   fallbackFileName: string,
   normalizedOptions: NormalizedOptions,
-  /* oxlint-disable typescript/no-explicit-any */
-  updateAsset: (fileName: string, source: any) => void,
-  emitAsset: (fileName: string, source: any) => void,
-  createRawSource: (content: string) => any
-  /* oxlint-enable typescript/no-explicit-any */
+  updateAsset: (fileName: string, source: TSource) => void,
+  emitAsset: (fileName: string, source: TSource) => void,
+  createRawSource: (content: string) => TSource
 ): Promise<void> {
   const cssAssets = Object.keys(assets).filter(f => f.endsWith('.css'));
 
@@ -277,11 +283,17 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         // Invalidate CSS modules in dev mode (initial load only)
         // For subsequent HMR, handleHotUpdate handles the CSS module inclusion
         if (normalizedOptions.useCssPlaceholder && viteDevServer && !hasInvalidatedInitialCSS) {
-          // Set flag immediately to prevent concurrent invalidations
-          hasInvalidatedInitialCSS = true;
           const wasCodeTransformed = code !== inputCode;
 
           if (wasCodeTransformed) {
+            // Set the flag here rather than above the check. Setting it first
+            // burned this one-shot refresh on the earliest StyleX-importing
+            // module that happened to compile to byte-identical output, after
+            // which nothing ever resolved the placeholder for the rest of the
+            // session. It is still assigned synchronously, before any await,
+            // so concurrent transforms cannot both schedule a refresh.
+            hasInvalidatedInitialCSS = true;
+
             // `setTimeout` expects a void-returning callback, so the async work
             // is wrapped rather than handed to it directly. The `catch` is the
             // part that matters: nothing awaits this, so without it a rejection
@@ -862,7 +874,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               normalizedOptions,
               (fileName, source) => compilation.updateAsset(fileName, source),
               (fileName, source) => compilation.emitAsset(fileName, source),
-              content => new compiler.webpack.sources.RawSource(content)
+              (content: string) => new compiler.webpack.sources.RawSource(content)
             );
           }
         );
@@ -893,7 +905,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
               normalizedOptions,
               (fileName, source) => compilation.updateAsset(fileName, source),
               (fileName, source) => compilation.emitAsset(fileName, source),
-              content => new compiler.webpack.sources.RawSource(content)
+              (content: string) => new compiler.webpack.sources.RawSource(content)
             );
           }
         );

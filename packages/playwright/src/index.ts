@@ -6,17 +6,29 @@ const snapshotDir = process.env.SNAPSHOT_DIR || 'visual-tests/.playwright-snapsh
 const DEFAULT_PORT = 3000;
 
 /**
+ * Reads `PORT`, falling back to `defaultPort`.
+ *
  * A bare `+process.env.PORT` turns any non-numeric value into `NaN`, which then
  * propagates silently into `baseURL` as `http://localhost:NaN` and into the web
  * server's port. Every visual test then fails to connect, with nothing pointing
  * at the environment as the cause.
+ *
+ * Exported because every app config overrides `baseURL` and `webServer.port`
+ * with its own `PORT` reading — each app listens on a different default — so a
+ * guard applied only to this module's own constant would never run for any real
+ * consumer. `defaultPort` is what lets those configs keep their own default
+ * while sharing the validation.
  */
-function resolvePort(): number {
+export function resolvePort(defaultPort: number = DEFAULT_PORT): number {
   const raw = process.env.PORT;
-  if (raw === undefined || raw === '') return DEFAULT_PORT;
+  if (raw === undefined || raw === '') return defaultPort;
 
+  // Lower bound is 1, not 0: port 0 is "pick any free port", which the OS
+  // resolves inside the web server while `baseURL` stays pinned to
+  // `http://localhost:0`. That is exactly the silent mismatch this guard
+  // exists to prevent.
   const port = Number(raw);
-  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error(`Invalid PORT environment variable: ${JSON.stringify(raw)}`);
   }
 

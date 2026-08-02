@@ -1,11 +1,26 @@
 {
+  // Type-checks the suite alongside the sources. `tsconfig.json` cannot: it
+  // drives the build, so its `rootDir` is `./src` and its `include` stops
+  // there, which left every test file unchecked.
+  // `scripts/packages/typecheck/index.sh` prefers this file when present.
+  //
+  // `include` is this package’s own list plus the test globs, so ambient
+  // declarations it depends on (`typings/`, `types/`, `virtual-css.d.ts`)
+  // stay in the program. `rootDir` widens to the repo root because some
+  // suites import shared fixtures from a sibling package; it constrains
+  // nothing here, since this config never emits.
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "rootDir": ".",
-    "types": ["node"],
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "skipLibCheck": true
+    "rootDir": "../..",
+    "noEmit": true,
+    "composite": false,
+    "incremental": false
   },
-  "include": ["src/**/*.ts", "__tests__/**/*.ts", "__tests__/**/*.tsx", "__tests__/**/*.mts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx",
+    "__tests__/**/*.mts"
+  ]
 }

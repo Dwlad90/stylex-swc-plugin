@@ -4,9 +4,9 @@ import { defineConfig } from '@playwright/test';
 // the config sits on `.default`. Spreading `defaultConfig` directly silently
 // yields an empty object: Playwright then runs with its own defaults and the
 // Chrome Desktop/Mobile projects disappear.
-import defaultConfig, { webServer } from '@stylexswc/playwright';
+import defaultConfig, { resolvePort, webServer } from '@stylexswc/playwright';
 
-const PORT = +(process.env.PORT || 3007);
+const PORT = resolvePort(3007);
 
 export default defineConfig({
   ...defaultConfig.default,

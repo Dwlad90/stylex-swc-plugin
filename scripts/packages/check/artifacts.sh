@@ -3,10 +3,10 @@
 # Exit immediately when any subprocess returns a non-zero command
 set -e
 
-# Kill all subprocesses when exiting
-# shellcheck disable=2154
-trap 'exit $exit_code' INT TERM
-trap 'exit_code=$?; kill 0' EXIT
+# No traps here on purpose. This script only tests for a file and backgrounds
+# nothing, so there is nothing to clean up. The previous `trap 'kill 0' EXIT`
+# signalled the entire process group, which includes the caller's interactive
+# shell whenever the script is run directly rather than through Turbo.
 
 artifacts_path="${1:-./dist/index.js}"
 
@@ -14,6 +14,3 @@ if [ ! -f "$artifacts_path" ]; then
   echo "Artifacts not found at $artifacts_path"
   exit 1
 fi
-
-# Remove traps and restore default signal/exit handling
-trap - INT TERM EXIT

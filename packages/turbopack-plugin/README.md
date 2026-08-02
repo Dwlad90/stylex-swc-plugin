@@ -36,7 +36,8 @@ npm install @stylexjs/stylex
 
 ## Usage
 
-> [!IMPORTANT] Turbopack does not support webpack plugins
+> [!IMPORTANT]
+> Turbopack does not support webpack plugins
 > ([see Next.js docs](https://nextjs.org/docs/app/api-reference/turbopack#webpack-plugins)),
 > so this loader only compiles StyleX code — it does not extract CSS.
 >
@@ -100,7 +101,8 @@ export default nextConfig;
   the standard options, see the
   [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
-> [!NOTE] The `include` and `exclude` options are exclusive to the Rust compiler
+> [!NOTE]
+> The `include` and `exclude` options are exclusive to the Rust compiler
 > and are not available in the official StyleX Babel plugin.
 
 ##### `rsOptions.include`

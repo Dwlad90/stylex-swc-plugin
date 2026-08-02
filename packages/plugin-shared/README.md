@@ -5,7 +5,8 @@ Shared core for
 and
 [`@stylexswc/rspack-plugin`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/rspack-plugin).
 
-> [!NOTE] This is an internal package. Use one of the bundler plugins above
+> [!NOTE]
+> This is an internal package. Use one of the bundler plugins above
 > instead of depending on it directly; its API may change between minor
 > releases.
 

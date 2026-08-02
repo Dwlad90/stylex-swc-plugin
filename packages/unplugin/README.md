@@ -150,7 +150,8 @@ build({
   the standard options, see the
   [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
-> [!NOTE] The `include` and `exclude` options are exclusive to the Rust compiler
+> [!NOTE]
+> The `include` and `exclude` options are exclusive to the Rust compiler
 > and are not available in the official StyleX Babel plugin.
 
 ##### `rsOptions.include`
@@ -236,7 +237,8 @@ The `filePath` argument identifies the CSS destination and is bundler-specific:
   (the hash is computed from the transformed CSS, so it cannot be known earlier)
 - `undefined` when no destination is known
 
-> [!NOTE] `Buffer` results are decoded as UTF-8. Results are memoized per
+> [!NOTE]
+> `Buffer` results are decoded as UTF-8. Results are memoized per
 > `filePath` while the input CSS is unchanged, so the callback must be a pure
 > function of its arguments — the same input may be served from cache instead of
 > invoking the callback again.
@@ -323,11 +325,13 @@ StylexRsPlugin({
 
 The plugin replaces the marker with the generated StyleX CSS during the build.
 
-> [!NOTE] When `useCssPlaceholder` is enabled, the plugin no longer injects CSS
+> [!NOTE]
+> When `useCssPlaceholder` is enabled, the plugin no longer injects CSS
 > automatically into HTML or emits a separate `stylex.css` file. The CSS goes
 > into your specified CSS file instead.
 
-> [!IMPORTANT] **Migration from `useViteCssPipeline`**
+> [!IMPORTANT]
+> **Migration from `useViteCssPipeline`**
 >
 > The `useViteCssPipeline` option (which used virtual CSS modules) has been
 > replaced by `useCssPlaceholder`. The new approach uses real CSS files instead

@@ -88,7 +88,8 @@ class names. If styles would actually be lost (no CSS asset exists to receive
 them at all), the plugin raises a compilation warning; it stays silent as long
 as the output is correct, carrier or not.
 
-> [!IMPORTANT] **Migrating from 0.17.x**: version 0.18.0 reworks the CSS
+> [!IMPORTANT]
+> **Migrating from 0.17.x**: version 0.18.0 reworks the CSS
 > extraction architecture. The CSS is no longer injected through auto-generated
 > `stylex.virtual.css` imports — add the
 > `import '@stylexswc/webpack-plugin/stylex.css';` carrier import to your app
@@ -108,7 +109,8 @@ as the output is correct, carrier or not.
   the standard options, see the
   [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
-> [!NOTE] The `include` and `exclude` options are exclusive to the Rust compiler
+> [!NOTE]
+> The `include` and `exclude` options are exclusive to the Rust compiler
 > and are not available in the official StyleX Babel plugin.
 
 ##### `rsOptions.include`

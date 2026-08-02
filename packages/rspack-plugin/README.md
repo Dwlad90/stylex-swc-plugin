@@ -86,7 +86,8 @@ class names. If styles would actually be lost (no CSS asset exists to receive
 them at all), the plugin raises a compilation warning; it stays silent as long
 as the output is correct, carrier or not.
 
-> [!IMPORTANT] **Migrating from 0.17.x**: version 0.18.0 reworks the CSS
+> [!IMPORTANT]
+> **Migrating from 0.17.x**: version 0.18.0 reworks the CSS
 > extraction architecture. The CSS is no longer injected through auto-generated
 > `stylex.virtual.css` imports — add the
 > `import '@stylexswc/rspack-plugin/stylex.css';` carrier import to your app

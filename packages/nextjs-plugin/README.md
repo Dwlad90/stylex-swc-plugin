@@ -65,7 +65,8 @@ If styles would actually be lost (no CSS asset exists to receive them at all),
 the build raises a compilation warning; it stays silent as long as the output is
 correct, carrier or not.
 
-> [!IMPORTANT] **Migrating from 0.17.x**: version 0.18.0 replaces the
+> [!IMPORTANT]
+> **Migrating from 0.17.x**: version 0.18.0 replaces the
 > auto-injected `stylex.virtual.css` imports with the carrier contract above —
 > add the carrier import to your root layout / `_app` (recommended; see above
 > for when you can skip it). The App Router cross-compiler rule registry is now
@@ -106,7 +107,8 @@ module.exports = stylexPlugin({
 });
 ```
 
-> [!NOTE] Run `next dev` and `next build` without the `--webpack`/`--turbopack`
+> [!NOTE]
+> Run `next dev` and `next build` without the `--webpack`/`--turbopack`
 > flags. For `next start`, set `NEXT_RSPACK=true` in the environment (the
 > production server only serves prebuilt output, but it still evaluates the
 > config).
@@ -116,13 +118,15 @@ Components, with the same options as the Webpack plugin, plus `stylexPackages`
 from
 [`@stylexswc/rspack-plugin`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/rspack-plugin).
 
-> [!NOTE] Packages listed in `transpilePackages` are automatically added to the
+> [!NOTE]
+> Packages listed in `transpilePackages` are automatically added to the
 > `stylexPackages` allowlist, so StyleX source shipped in `node_modules` (e.g.
 > `@stylexjs/open-props`) is picked up without extra configuration.
 
 ### Using with Turbopack
 
-> [!IMPORTANT] Turbopack does not support webpack plugins
+> [!IMPORTANT]
+> Turbopack does not support webpack plugins
 > ([see Next.js docs](https://nextjs.org/docs/app/api-reference/turbopack#webpack-plugins)).
 > When using Turbopack, the loader only compiles StyleX code but does not
 > extract CSS.
@@ -159,7 +163,8 @@ export default withStylexTurbopack({
 });
 ```
 
-> [!NOTE] When using Turbopack, the following options are not supported and will
+> [!NOTE]
+> When using Turbopack, the following options are not supported and will
 > be ignored:
 >
 > - `useCSSLayers`
@@ -179,7 +184,8 @@ export default withStylexTurbopack({
   the standard options, see the
   [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
-> [!NOTE] The `include` and `exclude` options are exclusive to the Rust compiler
+> [!NOTE]
+> The `include` and `exclude` options are exclusive to the Rust compiler
 > and are not available in the official StyleX Babel plugin.
 
 ##### `rsOptions.include`

@@ -7,7 +7,8 @@
 
 <!-- stylex-compatibility:start -->
 
-> [!NOTE] Compatibility target: this package has been updated through official
+> [!NOTE]
+> Compatibility target: this package has been updated through official
 > StyleX v0.19.0. This is not an official Meta support guarantee.
 
 <!-- stylex-compatibility:end -->
@@ -128,7 +129,8 @@ CSS file.
 
 ## Path Filtering
 
-> [!NOTE] The `include` and `exclude` options are exclusive to this compiler and
+> [!NOTE]
+> The `include` and `exclude` options are exclusive to this compiler and
 > are not available in the official StyleX Babel plugin.
 
 The compiler exports a `shouldTransformFile` function to determine whether a
@@ -313,7 +315,8 @@ When to use:
 - Use `false` when StyleX runs **after** tree-shaking (e.g. webpack's
   `loaderOrder: 'last'`)
 
-> [!TIP] This option is automatically enabled when using
+> [!TIP]
+> This option is automatically enabled when using
 > `@stylexswc/webpack-plugin` with `loaderOrder: 'first'` (the default).
 
 ### `inputSourceMap`
@@ -353,7 +356,8 @@ const { code, metadata, map } = transform(filename, inputCode, {
 This is also the fastest position-resolution path: two binary searches per
 namespace instead of re-reading and re-parsing the source.
 
-> [!TIP] The bundler plugins (`@stylexswc/rspack-plugin`,
+> [!TIP]
+> The bundler plugins (`@stylexswc/rspack-plugin`,
 > `@stylexswc/webpack-plugin`, `@stylexswc/turbopack-plugin`,
 > `@stylexswc/rollup-plugin`, and `@stylexswc/unplugin` on Rollup-compatible
 > hosts) forward the previous loader's / plugin's source map automatically — no
@@ -384,7 +388,8 @@ depend on this option.
   reporting. Useful for in-memory transformations, virtual file systems, or when
   skipping file I/O matters more than exact positions.
 
-> [!WARNING] With `useRealFileForSource: false`, error messages may report
+> [!WARNING]
+> With `useRealFileForSource: false`, error messages may report
 > incorrect line numbers: the AST may have been modified by previous
 > transformations, comments and whitespace are normalized, and the structure may
 > differ from the file on disk. Keep the default `true` during development, and

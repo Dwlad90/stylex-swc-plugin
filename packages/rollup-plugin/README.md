@@ -58,7 +58,8 @@ export default {
 };
 ```
 
-> [!NOTE] In an ESM config file the plugin is exposed on the `default` property
+> [!NOTE]
+> In an ESM config file the plugin is exposed on the `default` property
 > because the package is compiled to CommonJS — hence
 > `stylexPlugin.default(...)`. With a CommonJS config
 > (`const stylexPlugin = require('@stylexswc/rollup-plugin')`), call
@@ -79,7 +80,8 @@ in the
   the standard options, see the
   [official StyleX documentation](https://stylexjs.com/docs/api/configuration/babel-plugin/).
 
-> [!NOTE] The `include` and `exclude` options are exclusive to the Rust compiler
+> [!NOTE]
+> The `include` and `exclude` options are exclusive to the Rust compiler
 > and are not available in the official StyleX Babel plugin.
 
 #### `rsOptions.include`

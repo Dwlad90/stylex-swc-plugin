@@ -1190,8 +1190,8 @@ importers:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.109.2)
       html-webpack-plugin:
-        specifier: ^5.6.7
-        version: 5.6.7(@rspack/core@1.7.6(@swc/helpers@0.5.23))(webpack@5.109.2)
+        specifier: ^5.6.8
+        version: 5.6.8(@rspack/core@1.7.6(@swc/helpers@0.5.23))(webpack@5.109.2)
       mini-css-extract-plugin:
         specifier: ^2.10.2
         version: 2.10.2(webpack@5.109.2)
@@ -1260,8 +1260,8 @@ importers:
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.17)
       html-webpack-plugin:
-        specifier: ^5.6.7
-        version: 5.6.7(@rspack/core@1.7.6(@swc/helpers@0.5.23))(webpack@5.109.2)
+        specifier: ^5.6.8
+        version: 5.6.8(@rspack/core@2.1.7(@swc/helpers@0.5.23))(webpack@5.109.2)
       serve:
         specifier: ^14.2.6
         version: 14.2.6
@@ -1324,8 +1324,8 @@ importers:
         specifier: ^8.0.0
         version: 8.0.0(webpack@5.109.2)
       html-webpack-plugin:
-        specifier: ^5.6.7
-        version: 5.6.7(@rspack/core@1.7.6(@swc/helpers@0.5.23))(webpack@5.109.2)
+        specifier: ^5.6.8
+        version: 5.6.8(@rspack/core@1.7.6(@swc/helpers@0.5.23))(webpack@5.109.2)
       mini-css-extract-plugin:
         specifier: ^2.10.2
         version: 2.10.2(webpack@5.109.2)
@@ -8487,11 +8487,11 @@ packages:
     engines: {node: '>=12'}
     hasBin: true
 
-  html-webpack-plugin@5.6.7:
-    resolution: {integrity: sha512-md+vXtdCAe60s1k6AU3dUyMJnDxUyQAwfwPKoLisvgUF1IXjtlLsk2se54+qfL9Mdm26bbwvjJybpNx48NKRLw==}
+  html-webpack-plugin@5.6.8:
+    resolution: {integrity: sha512-MZmKQcTnhEh1SPSyMiEytIeDZDUoBZVorNHivQGXMASHf/BSGGOrKa2xQ5bGx3TCe1n109ecCt+cpww7wwWhKA==}
     engines: {node: '>=10.13.0'}
     peerDependencies:
-      '@rspack/core': 0.x || 1.x
+      '@rspack/core': 0.x || 1.x || 2.x
       webpack: ^5.20.0
     peerDependenciesMeta:
       '@rspack/core':
@@ -17908,7 +17908,7 @@ snapshots:
       relateurl: 0.2.7
       terser: 5.49.0
 
-  html-webpack-plugin@5.6.7(@rspack/core@1.7.6(@swc/helpers@0.5.23))(webpack@5.109.2):
+  html-webpack-plugin@5.6.8(@rspack/core@1.7.6(@swc/helpers@0.5.23))(webpack@5.109.2):
     dependencies:
       '@types/html-minifier-terser': 6.1.0
       html-minifier-terser: 6.1.0
@@ -17918,6 +17918,17 @@ snapshots:
     optionalDependencies:
       '@rspack/core': 1.7.6(@swc/helpers@0.5.23)
       webpack: 5.109.2(@swc/core@1.15.43(@swc/helpers@0.5.23))(postcss@8.5.25)(webpack-cli@7.1.0)
+
+  html-webpack-plugin@5.6.8(@rspack/core@2.1.7(@swc/helpers@0.5.23))(webpack@5.109.2):
+    dependencies:
+      '@types/html-minifier-terser': 6.1.0
+      html-minifier-terser: 6.1.0
+      lodash: 4.18.1
+      pretty-error: 4.0.0
+      tapable: 2.3.3
+    optionalDependencies:
+      '@rspack/core': 2.1.7(@swc/helpers@0.5.23)
+      webpack: 5.109.2(@swc/core@1.15.43(@swc/helpers@0.5.23))(webpack-cli@7.1.0)
 
   htmlparser2@6.1.0:
     dependencies:

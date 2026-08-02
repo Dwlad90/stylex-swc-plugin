@@ -428,7 +428,10 @@
       // React, accessibility, and Next rules came from.
       "files": ["apps/nextjs-*/**"],
       "plugins": ["react", "jsx-a11y", "nextjs"],
-      "jsPlugins": ["@stylexjs/eslint-plugin"],
+      "jsPlugins": [
+        "@stylexjs/eslint-plugin",
+        { "name": "hooks", "specifier": "eslint-plugin-react-hooks" },
+      ],
       "rules": {
         // React 19 with the automatic JSX runtime.
         "react/react-in-jsx-scope": "off",
@@ -438,6 +441,8 @@
         // them under the `react` namespace rather than `react-hooks`.
         "react/rules-of-hooks": "error",
         "react/exhaustive-deps": "warn",
+        // Restored through the aliased bridge above; no native equivalent.
+        "hooks/set-state-in-effect": "error",
       },
     },
     {

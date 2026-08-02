@@ -142,13 +142,13 @@ jobs:
         check:
           - id: lint-check
             name: Lint Node.js code
-            command: pnpm run lint:check
+            command: pnpm run lint:node
           - id: lint-type-aware
             name: Lint Node.js code (type-aware)
             command: pnpm run lint:type-aware
           - id: lint-check-rust
             name: Lint Rust code
-            command: pnpm exec turbo run lint:crates:workspace --filter="//"
+            command: pnpm run lint:rust
           - id: typecheck
             name: Typecheck code
             command: pnpm run typecheck

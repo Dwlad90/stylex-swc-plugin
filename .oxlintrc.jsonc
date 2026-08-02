@@ -15,6 +15,10 @@
   // Next apps opted into `next.mjs`.
   "plugins": ["eslint", "typescript", "oxc", "unicorn", "import", "promise"],
 
+  // ESLint plugins loaded through Oxlint's JS bridge, for rules Oxlint has no
+  // native equivalent for. They are resolved relative to this file.
+  "jsPlugins": ["@stylexjs/eslint-plugin", "eslint-plugin-storybook", "eslint-plugin-turbo"],
+
   "categories": {
     "correctness": "error",
     "suspicious": "warn",
@@ -79,6 +83,9 @@
     "typescript/prefer-as-const": "error",
     "typescript/prefer-namespace-keyword": "error",
     "typescript/triple-slash-reference": "error",
+
+    // Restored via the JS bridge above.
+    "turbo/no-undeclared-env-vars": "error",
 
     // ── Ratchet ──────────────────────────────────────────────────────────
     // Every rule below already passes on the current tree, so enabling them
@@ -228,6 +235,9 @@
     "typescript/return-await": "error",
     "typescript/switch-exhaustiveness-check": "error",
     "typescript/triple-slash-reference": "error",
+
+    // Restored via the JS bridge above.
+    "turbo/no-undeclared-env-vars": "error",
     "typescript/unbound-method": "error",
 
     // Modern-JavaScript correctness rules, restricted to ones that describe
@@ -411,6 +421,28 @@
 
   "overrides": [
     {
+      // StyleX style-object validation, restored through the JS bridge.
+      "files": [
+        "**/*.stylex.ts",
+        "**/*.stylex.tsx",
+        "apps/**/*.tsx",
+        "packages/design-system/**/*.tsx",
+      ],
+      "rules": {
+        "@stylexjs/valid-styles": "error",
+      },
+    },
+    {
+      // Storybook rules, restored through the JS bridge.
+      "files": ["**/*.stories.ts", "**/*.stories.tsx"],
+      "rules": {
+        "storybook/default-exports": "error",
+        "storybook/story-exports": "error",
+        "storybook/no-redundant-story-name": "warn",
+        "storybook/prefer-pascal-case": "warn",
+      },
+    },
+    {
       // CommonJS tool configuration. These files must use `require`, and the
       // old config sprinkled per-line disables through them to say so. Running
       // Oxlint once from the root also reaches root-level config files that
@@ -431,6 +463,7 @@
       // React, accessibility, and Next rules came from.
       "files": ["apps/nextjs-*/**"],
       "plugins": ["react", "jsx-a11y", "nextjs"],
+      "jsPlugins": ["@stylexjs/eslint-plugin"],
       "rules": {
         // React 19 with the automatic JSX runtime.
         "react/react-in-jsx-scope": "off",

@@ -47,10 +47,13 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.1",
+    "@stylexjs/eslint-plugin": "^0.19.0",
     "@stylexswc/typescript-config": "0.18.2-rc.2",
     "commitizen": "^4.3.2",
     "cz-conventional-changelog": "^3.3.0",
     "del-cli": "^7.0.0",
+    "eslint-plugin-storybook": "^9.1.10",
+    "eslint-plugin-turbo": "^2.10.8",
     "husky": "^9.1.7",
     "knip": "^6.29.0",
     "lint-staged": "^17.2.0",

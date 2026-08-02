@@ -3,17 +3,17 @@
 exports[`Card Snapshots > renders Default story correctly 1`] = `
 <div
   class="Card__cardStyles.base backgroundColor-x12peec7 borderRadius-xur7f20 padding-x1tamke2 boxShadow-x1mh2kpm borderWidth-xmkeg23 borderStyle-x1y0btm7 borderColor-x159w2ql maxWidth-xw5ewwj"
-  data-style-src="stories/Card.tsx:5"
+  data-style-src="stories/Card.tsx:8"
 >
   <h3
     class="Card__cardStyles.title fontSize-xosj86m fontWeight-x117nqv4 marginBottom-x1e56ztr color-x1525slw"
-    data-style-src="stories/Card.tsx:17"
+    data-style-src="stories/Card.tsx:20"
   >
     Card Title
   </h3>
   <p
     class="Card__cardStyles.content fontSize-xif65rj lineHeight-x1evy7pa color-x33gn0b"
-    data-style-src="stories/Card.tsx:25"
+    data-style-src="stories/Card.tsx:28"
   >
     This is some example content for the card component.
   </p>
@@ -23,17 +23,17 @@ exports[`Card Snapshots > renders Default story correctly 1`] = `
 exports[`Card Snapshots > renders Elevated story correctly 1`] = `
 <div
   class="Card__cardStyles.base backgroundColor-x12peec7 borderRadius-xur7f20 padding-x1tamke2 borderWidth-xmkeg23 borderStyle-x1y0btm7 borderColor-x159w2ql maxWidth-xw5ewwj Card__cardStyles.elevated boxShadow-xz3rqps"
-  data-style-src="stories/Card.tsx:5; stories/Card.tsx:30"
+  data-style-src="stories/Card.tsx:8; stories/Card.tsx:33"
 >
   <h3
     class="Card__cardStyles.title fontSize-xosj86m fontWeight-x117nqv4 marginBottom-x1e56ztr color-x1525slw"
-    data-style-src="stories/Card.tsx:17"
+    data-style-src="stories/Card.tsx:20"
   >
     Elevated Card
   </h3>
   <p
     class="Card__cardStyles.content fontSize-xif65rj lineHeight-x1evy7pa color-x33gn0b"
-    data-style-src="stories/Card.tsx:25"
+    data-style-src="stories/Card.tsx:28"
   >
     This card has an elevated shadow effect.
   </p>

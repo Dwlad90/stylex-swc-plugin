@@ -8,7 +8,15 @@
     "turbo.json",
     "typings/**"
   ],
-  "globalEnv": ["NODE_ENV", "STYLEX_DEBUG", "PORT"],
+  "globalEnv": [
+    "CI",
+    "NEXT_RSPACK",
+    "NODE_ENV",
+    "PORT",
+    "SNAPSHOT_DIR",
+    "STYLEX_DEBUG",
+    "STYLEX_POSTCSS_DEBUG"
+  ],
   "futureFlags": {
     "errorsOnlyShowHash": true
   },

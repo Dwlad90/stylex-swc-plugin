@@ -1,4 +1,3 @@
-/* eslint-disable typescript/no-require-imports */
 const path = require('node:path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');

@@ -1,4 +1,3 @@
-/* eslint-disable typescript/no-require-imports */
 const StylexPlugin = require('@stylexswc/webpack-plugin');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');

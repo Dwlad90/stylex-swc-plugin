@@ -23,7 +23,7 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react-swc": "^4.3.3",
     "@vitest/browser": "^4.1.10",
-    "@vitest/browser-playwright": "^4.1.9",
+    "@vitest/browser-playwright": "^4.1.10",
     "@vitest/coverage-v8": "^4.1.9",
     "autoprefixer": "^10.5.2",
     "jsdom": "^29.1.1",

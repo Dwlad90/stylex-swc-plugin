@@ -7,7 +7,7 @@
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.2.1",
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.62.1",
     "@storybook/addon-a11y": "^10.5.5",
     "@storybook/addon-docs": "^10.5.5",
     "@storybook/addon-links": "^10.5.5",
@@ -27,7 +27,7 @@
     "@vitest/coverage-v8": "^4.1.9",
     "autoprefixer": "^10.5.2",
     "jsdom": "^29.1.1",
-    "playwright": "^1.62.0",
+    "playwright": "^1.62.1",
     "postcss-nesting": "^14.0.0",
     "prop-types": "^15.8.1",
     "rimraf": "^6.1.3",

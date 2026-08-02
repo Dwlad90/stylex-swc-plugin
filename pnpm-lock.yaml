@@ -109,8 +109,8 @@ importers:
         specifier: 7.0.2001
         version: 7.0.2001
       playwright:
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       shellcheck:
         specifier: ^4.1.0
         version: 4.1.0
@@ -149,8 +149,8 @@ importers:
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexswc/playwright':
         specifier: 0.18.2-rc.2
         version: link:../../packages/playwright
@@ -183,8 +183,8 @@ importers:
         specifier: ^5.2.1
         version: 5.2.1(storybook@10.5.5(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.8))
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@storybook/addon-a11y':
         specifier: ^10.5.5
         version: 10.5.5(storybook@10.5.5(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.8))
@@ -232,7 +232,7 @@ importers:
         version: 4.1.10(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))(vitest@4.1.10)
       '@vitest/browser-playwright':
         specifier: ^4.1.9
-        version: 4.1.9(playwright@1.62.0)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))(vitest@4.1.10)
+        version: 4.1.9(playwright@1.62.1)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))(vitest@4.1.10)
       '@vitest/coverage-v8':
         specifier: ^4.1.9
         version: 4.1.9(@vitest/browser@4.1.10)(vitest@4.1.10)
@@ -243,8 +243,8 @@ importers:
         specifier: ^29.1.1
         version: 29.1.1
       playwright:
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       postcss-nesting:
         specifier: ^14.0.0
         version: 14.0.0(postcss@8.5.25)
@@ -307,8 +307,8 @@ importers:
         specifier: ^1.2.6
         version: 1.2.6
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexswc/playwright':
         specifier: 0.18.2-rc.2
         version: link:../../packages/playwright
@@ -341,7 +341,7 @@ importers:
         version: link:../../packages/nextjs-plugin
       next:
         specifier: ^16.2.12
-        version: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -353,8 +353,8 @@ importers:
         specifier: ^30.4.1
         version: 30.4.1
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexswc/jest':
         specifier: 0.18.2-rc.2
         version: link:../../packages/jest
@@ -392,8 +392,8 @@ importers:
         specifier: 30.4.1
         version: 30.4.1
       playwright:
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       rimraf:
         specifier: ^6.1.3
         version: 6.1.3
@@ -420,7 +420,7 @@ importers:
         version: link:../../packages/postcss-plugin
       next:
         specifier: ^16.2.12
-        version: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -432,8 +432,8 @@ importers:
         specifier: ^30.4.1
         version: 30.4.1
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexswc/jest':
         specifier: 0.18.2-rc.2
         version: link:../../packages/jest
@@ -496,7 +496,7 @@ importers:
         version: link:../../packages/nextjs-plugin
       next:
         specifier: ^16.2.12
-        version: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       next-rspack:
         specifier: ^16.2.9
         version: 16.2.10(@swc/helpers@0.5.23)
@@ -511,8 +511,8 @@ importers:
         specifier: ^30.4.1
         version: 30.4.1
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexswc/jest':
         specifier: 0.18.2-rc.2
         version: link:../../packages/jest
@@ -550,8 +550,8 @@ importers:
         specifier: 30.4.1
         version: 30.4.1
       playwright:
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       rimraf:
         specifier: ^6.1.3
         version: 6.1.3
@@ -578,7 +578,7 @@ importers:
         version: link:../../packages/postcss-plugin
       next:
         specifier: ^16.2.12
-        version: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -590,8 +590,8 @@ importers:
         specifier: ^30.4.1
         version: 30.4.1
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexswc/jest':
         specifier: 0.18.2-rc.2
         version: link:../../packages/jest
@@ -654,8 +654,8 @@ importers:
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@rollup/plugin-commonjs':
         specifier: ^29.0.3
         version: 29.0.3(rollup@4.62.3)
@@ -721,8 +721,8 @@ importers:
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@rollup/plugin-commonjs':
         specifier: ^29.0.3
         version: 29.0.3(rollup@4.62.3)
@@ -776,8 +776,8 @@ importers:
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@rsbuild/core':
         specifier: ^2.1.2
         version: 2.1.2(core-js@3.48.0)
@@ -822,8 +822,8 @@ importers:
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@rsbuild/core':
         specifier: ^2.1.2
         version: 2.1.2(core-js@3.48.0)
@@ -868,8 +868,8 @@ importers:
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@rspack/cli':
         specifier: ^2.1.7
         version: 2.1.7(@rspack/core@2.1.7(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0))
@@ -917,8 +917,8 @@ importers:
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@rspack/cli':
         specifier: ^2.1.7
         version: 2.1.7(@rspack/core@2.1.7(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0))
@@ -944,8 +944,8 @@ importers:
   apps/solid-unplugin-example:
     dependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexjs/open-props':
         specifier: ^0.11.1
         version: 0.11.1
@@ -981,8 +981,8 @@ importers:
   apps/vite-unplugin-example:
     dependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexjs/open-props':
         specifier: ^0.11.1
         version: 0.11.1
@@ -1027,8 +1027,8 @@ importers:
   apps/vite-unplugin-placeholder-css-example:
     dependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexjs/open-props':
         specifier: ^0.11.1
         version: 0.11.1
@@ -1092,8 +1092,8 @@ importers:
         version: 3.5.35(typescript@7.0.2)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexswc/playwright':
         specifier: 0.18.2-rc.2
         version: link:../../packages/playwright
@@ -1132,8 +1132,8 @@ importers:
         version: 3.5.35(typescript@7.0.2)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexswc/playwright':
         specifier: 0.18.2-rc.2
         version: link:../../packages/playwright
@@ -1163,8 +1163,8 @@ importers:
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@pmmmwh/react-refresh-webpack-plugin':
         specifier: ^0.6.2
         version: 0.6.2(react-refresh@0.18.0)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.109.2)
@@ -1245,8 +1245,8 @@ importers:
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexswc/playwright':
         specifier: 0.18.2-rc.2
         version: link:../../packages/playwright
@@ -1303,8 +1303,8 @@ importers:
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexswc/playwright':
         specifier: 0.18.2-rc.2
         version: link:../../packages/playwright
@@ -1821,7 +1821,7 @@ importers:
         version: 26.1.2
       next:
         specifier: ^16.2.12
-        version: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       postcss:
         specifier: ^8.5.18
         version: 8.5.25
@@ -1841,8 +1841,8 @@ importers:
   packages/playwright:
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.0
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@stylexswc/typescript-config':
         specifier: 0.18.2-rc.2
         version: link:../typescript-config
@@ -4851,8 +4851,8 @@ packages:
     resolution: {integrity: sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA==}
     engines: {node: ^14.18.0 || >=16.0.0}
 
-  '@playwright/test@1.62.0':
-    resolution: {integrity: sha512-9zOJ6ZQRAena31MpOH9VSzIz8Ou3YJ/wtY/eQm5T2uhfhG7/U3COrMS8xOtUrZrp9OgdmzEnIYODye3nY1VqzA==}
+  '@playwright/test@1.62.1':
+    resolution: {integrity: sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -9941,13 +9941,13 @@ packages:
   platform@1.3.6:
     resolution: {integrity: sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==}
 
-  playwright-core@1.62.0:
-    resolution: {integrity: sha512-nsNRyq0r2zsG8AcRHWknc9QRA5XCueC7gWMrs+Gx2tlZn9hcl8zudfh00lhJPY1DE7NmZ6bDsT9g2yey8mXljA==}
+  playwright-core@1.62.1:
+    resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
     engines: {node: '>=20'}
     hasBin: true
 
-  playwright@1.62.0:
-    resolution: {integrity: sha512-Z14dG305dgaLu6foB1TXQagFiW8JfSUIUaUuPaKQ6NtBPKF1P/qXcqfh6c6K/icPqdy37JmjbiBXf6JNg6Sylw==}
+  playwright@1.62.1:
+    resolution: {integrity: sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -14404,9 +14404,9 @@ snapshots:
 
   '@pkgr/core@0.3.6': {}
 
-  '@playwright/test@1.62.0':
+  '@playwright/test@1.62.1':
     dependencies:
-      playwright: 1.62.0
+      playwright: 1.62.1
 
   '@pmmmwh/react-refresh-webpack-plugin@0.6.2(react-refresh@0.18.0)(type-fest@4.41.0)(webpack-dev-server@5.2.6)(webpack@5.109.2)':
     dependencies:
@@ -14932,7 +14932,7 @@ snapshots:
       storybook: 10.5.5(@types/react@19.2.17)(prettier@3.9.6)(react@19.2.8)
     optionalDependencies:
       '@vitest/browser': 4.1.10(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))(vitest@4.1.10)
-      '@vitest/browser-playwright': 4.1.9(playwright@1.62.0)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))(vitest@4.1.10)
+      '@vitest/browser-playwright': 4.1.9(playwright@1.62.1)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))(vitest@4.1.10)
       '@vitest/runner': 4.1.10
       vitest: 4.1.10(@types/node@26.1.2)(@vitest/browser-playwright@4.1.9)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))
     transitivePeerDependencies:
@@ -15613,11 +15613,11 @@ snapshots:
       vite: 8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0)
       vue: 3.5.35(typescript@7.0.2)
 
-  '@vitest/browser-playwright@4.1.9(playwright@1.62.0)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))(vitest@4.1.10)':
+  '@vitest/browser-playwright@4.1.9(playwright@1.62.1)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))(vitest@4.1.10)':
     dependencies:
       '@vitest/browser': 4.1.9(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))(vitest@4.1.10)
       '@vitest/mocker': 4.1.9(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))
-      playwright: 1.62.0
+      playwright: 1.62.1
       tinyrainbow: 3.1.1
       vitest: 4.1.10(@types/node@26.1.2)(@vitest/browser-playwright@4.1.9)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))
     transitivePeerDependencies:
@@ -19172,7 +19172,7 @@ snapshots:
     transitivePeerDependencies:
       - '@swc/helpers'
 
-  next@16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+  next@16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:
       '@next/env': 16.2.12
       '@swc/helpers': 0.5.15
@@ -19191,7 +19191,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 16.2.12
       '@next/swc-win32-arm64-msvc': 16.2.12
       '@next/swc-win32-x64-msvc': 16.2.12
-      '@playwright/test': 1.62.0
+      '@playwright/test': 1.62.1
       sharp: 0.34.5
     transitivePeerDependencies:
       - '@babel/core'
@@ -19611,11 +19611,11 @@ snapshots:
 
   platform@1.3.6: {}
 
-  playwright-core@1.62.0: {}
+  playwright-core@1.62.1: {}
 
-  playwright@1.62.0:
+  playwright@1.62.1:
     dependencies:
-      playwright-core: 1.62.0
+      playwright-core: 1.62.1
     optionalDependencies:
       fsevents: 2.3.2
 
@@ -21219,7 +21219,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.1.2
-      '@vitest/browser-playwright': 4.1.9(playwright@1.62.0)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))(vitest@4.1.10)
+      '@vitest/browser-playwright': 4.1.9(playwright@1.62.1)(vite@8.1.5(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.19.2)(yaml@2.9.0))(vitest@4.1.10)
       '@vitest/coverage-v8': 4.1.9(@vitest/browser@4.1.10)(vitest@4.1.10)
       jsdom: 29.1.1
     transitivePeerDependencies:

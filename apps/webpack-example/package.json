@@ -17,7 +17,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.62.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
     "@stylexswc/playwright": "0.18.2-rc.2",
     "@stylexswc/postcss-plugin": "0.18.2-rc.2",

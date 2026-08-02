@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@jest/globals": "^30.4.1",
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.62.1",
     "@stylexswc/jest": "0.18.2-rc.2",
     "@stylexswc/playwright": "0.18.2-rc.2",
     "@stylexswc/rs-compiler": "0.18.2-rc.2",

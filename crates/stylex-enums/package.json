@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/enums",
   "description": "Enum definitions for the StyleX system",
-  "version": "0.18.3-rc.1",
+  "version": "0.18.3-rc.2",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -32,7 +32,7 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/macros": "0.18.3-rc.1",
+    "@stylexswc/macros": "0.18.3-rc.2",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^9.0.3"
   },

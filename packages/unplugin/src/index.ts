@@ -35,6 +35,17 @@ function hasValidExtension(filePath: string, pageExtensions: string[]): boolean 
 import type { NormalizedOptions as NormalizedOptionsType } from './utils/normalizeOptions';
 type NormalizedOptions = NormalizedOptionsType;
 
+function shouldTransformStyleXFile(id: string, normalizedOptions: NormalizedOptions): boolean {
+  return (
+    hasValidExtension(id, normalizedOptions.pageExtensions) &&
+    shouldTransformFile(
+      id,
+      normalizedOptions.rsOptions.include,
+      normalizedOptions.rsOptions.exclude
+    )
+  );
+}
+
 const { writeFile, mkdir } = promises;
 
 const PLUGIN_NAME = 'unplugin-stylex-rs';
@@ -118,6 +129,96 @@ async function invalidateAndCollectCssModules(
   );
 
   return cssModules;
+}
+
+function hasUnresolvedDefineConstAtRule(css: string): boolean {
+  let atRuleStart = true;
+
+  for (let index = 0; index < css.length; index += 1) {
+    const character = css[index];
+    const nextCharacter = css[index + 1];
+
+    if (character === '/' && nextCharacter === '*') {
+      const commentEnd = css.indexOf('*/', index + 2);
+      if (commentEnd === -1) return false;
+      index = commentEnd + 1;
+      continue;
+    }
+
+    if (character === '"' || character === "'") {
+      const quote = character;
+      index += 1;
+
+      for (; index < css.length; index += 1) {
+        if (css[index] === '\\') {
+          index += 1;
+        } else if (css[index] === quote) {
+          break;
+        }
+      }
+
+      atRuleStart = false;
+      continue;
+    }
+
+    if (character === '{' || character === '}') {
+      atRuleStart = true;
+      continue;
+    }
+
+    if (/\s/.test(character ?? '')) continue;
+
+    if (atRuleStart && css.startsWith('var(--', index)) {
+      const closingParenthesis = css.indexOf(')', index + 6);
+      if (closingParenthesis === -1) return false;
+
+      if (closingParenthesis > index + 6) {
+        let nextToken = closingParenthesis + 1;
+        while (/\s/.test(css[nextToken] ?? '')) nextToken += 1;
+        if (css[nextToken] === '{') return true;
+      }
+
+      index = closingParenthesis;
+    }
+
+    atRuleStart = false;
+  }
+
+  return false;
+}
+
+async function transformStyleXDependencies(
+  server: ViteDevServer,
+  stylexRules: StyleXRules,
+  normalizedOptions: NormalizedOptions
+): Promise<void> {
+  const visited = new Set<string>();
+
+  const transformDependencies = async (module: ModuleNode): Promise<void> => {
+    await Promise.all(
+      Array.from(module.importedModules, async importedModule => {
+        const moduleId = importedModule.id ?? importedModule.url;
+
+        if (visited.has(moduleId)) return;
+        visited.add(moduleId);
+
+        if (!shouldTransformStyleXFile(moduleId, normalizedOptions)) return;
+
+        await server.transformRequest(importedModule.url);
+        await transformDependencies(importedModule);
+      })
+    );
+  };
+
+  await Promise.all(
+    Object.keys(stylexRules).map(async id => {
+      const module = server.moduleGraph.getModuleById(id);
+
+      if (!module) return;
+      visited.add(id);
+      await transformDependencies(module);
+    })
+  );
 }
 
 /**
@@ -223,16 +324,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
     },
 
     transformInclude(id) {
-      if (!hasValidExtension(id, normalizedOptions.pageExtensions)) {
-        return false;
-      }
-
-      // Add path filtering using Rust function
-      return shouldTransformFile(
-        id,
-        normalizedOptions.rsOptions?.include,
-        normalizedOptions.rsOptions?.exclude
-      );
+      return shouldTransformStyleXFile(id, normalizedOptions);
     },
 
     async transform(inputCode, id) {
@@ -435,7 +527,14 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         if (!cssContent.includes(normalizedOptions.useCssPlaceholder)) return null;
 
         // Get collected StyleX CSS
-        const collectedCSS = getStyleXRules(stylexRules, transformedOptions);
+        let collectedCSS = getStyleXRules(stylexRules, transformedOptions);
+
+        if (collectedCSS && viteDevServer && hasUnresolvedDefineConstAtRule(collectedCSS)) {
+          // Static imports can be registered but not transformed when Vite's request
+          // pre-transform is disabled, leaving defineConsts metadata unavailable.
+          await transformStyleXDependencies(viteDevServer, stylexRules, normalizedOptions);
+          collectedCSS = getStyleXRules(stylexRules, transformedOptions);
+        }
         // Check if dev server is running (more reliable than watchMode)
         const isDevMode = !!viteDevServer;
 
@@ -446,8 +545,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           replacementCSS = isDevMode
             ? '/* StyleX styles will load after transformation */'
             : '/* No StyleX styles */';
-        } else {
+        } else if (!hasUnresolvedDefineConstAtRule(collectedCSS)) {
           replacementCSS = await transformStyleXCSS(collectedCSS, id, normalizedOptions);
+        } else {
+          replacementCSS = '/* StyleX styles will load after transformation */';
         }
 
         return cssContent.replace(normalizedOptions.useCssPlaceholder, () => replacementCSS);

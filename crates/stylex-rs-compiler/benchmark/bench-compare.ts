@@ -28,9 +28,8 @@ import type { StyleXOptions } from '../dist/index.js';
 
 // Node's CJS interop hands back either the plugin itself or the module
 // namespace depending on the loader; unwrap `.default` when present.
-const stylexBabelPlugin: babel.PluginTarget =
-  (stylexBabelPluginModule as unknown as { default?: babel.PluginTarget }).default ??
-  stylexBabelPluginModule;
+const stylexBabelPlugin = ((stylexBabelPluginModule as unknown as { default?: unknown }).default ??
+  stylexBabelPluginModule) as babel.PluginTarget;
 
 type CompilerName = 'rust' | 'babel';
 

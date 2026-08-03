@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/types",
   "description": "Type definitions, enums, structs and traits for StyleX SWC plugin",
-  "version": "0.18.2-rc.3",
+  "version": "0.18.2",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -32,8 +32,8 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/structures": "0.18.2-rc.3",
-    "@stylexswc/utils": "0.18.2-rc.3",
+    "@stylexswc/structures": "0.18.2",
+    "@stylexswc/utils": "0.18.2",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^9.0.3"
   },

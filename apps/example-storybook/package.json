@@ -35,7 +35,7 @@
     "rollup-plugin-node-externals": "^9.0.1",
     "serve": "^14.2.6",
     "storybook": "^10.5.5",
-    "vite": "^8.1.5",
+    "vite": "^8.2.0",
     "vitest": "^4.1.10"
   },
   "private": true,

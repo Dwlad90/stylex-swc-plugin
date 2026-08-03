@@ -33,5 +33,9 @@
   "os": [
     "linux"
   ],
-  "repository": "https://github.com/Dwlad90/stylex-swc-plugin"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dwlad90/stylex-swc-plugin.git",
+    "directory": "crates/stylex-rs-compiler"
+  }
 }

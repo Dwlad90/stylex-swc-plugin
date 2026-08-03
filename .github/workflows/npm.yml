@@ -419,7 +419,7 @@ jobs:
           if [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             pnpm publish -r --access public --no-git-checks --report-summary
           elif [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+-.*$ ]]; then
-            pnpm publish -r --tag next --access public --no-git-checks --report-summary
+            NPM_CONFIG_TAG=next pnpm publish -r --tag next --access public --no-git-checks --report-summary
             git diff
             cat ./pnpm-publish-summary.json
           else

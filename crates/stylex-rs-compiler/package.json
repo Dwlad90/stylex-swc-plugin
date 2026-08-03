@@ -70,7 +70,7 @@
     "@types/node": "^26.1.0",
     "@types/picomatch": "^4.0.3",
     "benchmark": "^2.1.4",
-    "chalk": "^5.6.2",
+    "chalk": "^6.0.0",
     "lint-staged": "^17.2.0",
     "npm-run-all2": "^9.0.3",
     "tinybench": "^6.1.2",

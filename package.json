@@ -49,6 +49,7 @@
     "scripty": "3.0.0"
   },
   "devDependencies": {
+    "@babel/core": "^8.0.1",
     "@commitlint/cli": "^21.2.1",
     "@stylexjs/eslint-plugin": "^0.19.0",
     "@stylexswc/typescript-config": "0.18.3-rc.1",

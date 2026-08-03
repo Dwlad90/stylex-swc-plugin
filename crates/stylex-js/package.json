@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/stylex-js",
   "description": "JavaScript evaluation helpers for the StyleX system",
-  "version": "0.18.2",
+  "version": "0.18.3-rc.1",
   "private": true,
   "sideEffects": false,
   "files": [
@@ -32,8 +32,8 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/constants": "0.18.2",
-    "@stylexswc/macros": "0.18.2",
+    "@stylexswc/constants": "0.18.3-rc.1",
+    "@stylexswc/macros": "0.18.3-rc.1",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^9.0.3"
   },

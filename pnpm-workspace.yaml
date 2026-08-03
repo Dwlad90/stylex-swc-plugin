@@ -5,6 +5,29 @@ packages:
 autoInstallPeers: true
 dedupePeerDependents: true
 linkWorkspacePackages: deep
+minimumReleaseAge: 4320
+verifyDepsBeforeRun: false
+engineStrict: true
+
+minimumReleaseAgeExclude:
+  - '@octokit/*'
+  - '@yuku-codegen/*'
+  - '@yuku-parser/*'
+  - '@yuku-toolchain/types@0.8.2'
+  - '@jsonjoy.com/fs-core@4.66.1'
+  - '@jsonjoy.com/fs-fsa@4.66.1'
+  - '@jsonjoy.com/fs-node-builtins@4.66.1'
+  - '@jsonjoy.com/fs-node-to-fsa@4.66.1'
+  - '@jsonjoy.com/fs-node-utils@4.66.1'
+  - '@jsonjoy.com/fs-node@4.66.1'
+  - '@jsonjoy.com/fs-print@4.66.1'
+  - '@jsonjoy.com/fs-snapshot@4.66.1'
+  - 'memfs@4.66.1'
+  - 'tsx@4.23.5'
+  - 'webpack-dev-middleware@8.1.1'
+  - 'yuku-ast@0.8.2'
+  - 'yuku-codegen@0.8.2'
+  - 'yuku-parser@0.8.2'
 nodeVersion: 24.18.0
 preferWorkspacePackages: true
 resolvePeersFromWorkspaceRoot: true
@@ -60,11 +83,11 @@ overrides:
 patchedDependencies:
   'scripty@3.0.0': patches/scripty@3.0.0.patch
 
-onlyBuiltDependencies:
-  - '@swc/core'
-  - 'core-js'
-  - 'core-js-pure'
-  - 'esbuild'
-  - 'oxc-resolver'
-  - 'sharp'
-  - 'unrs-resolver'
+allowBuilds:
+  '@swc/core': true
+  'core-js': true
+  'core-js-pure': true
+  'esbuild': true
+  'oxc-resolver': true
+  'sharp': true
+  'unrs-resolver': true

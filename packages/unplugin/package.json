@@ -188,7 +188,7 @@
     "webpack"
   ],
   "main": "./dist/index.cjs",
-  "packageManager": "pnpm@10.30.3",
+  "packageManager": "pnpm@11.20.0",
   "peerDependenciesMeta": {
     "@farmfe/core": {
       "optional": true

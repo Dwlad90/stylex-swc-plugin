@@ -5,7 +5,7 @@ Rust reimplementation of Facebook's `StyleX` CSS-in-JS compiler, built on
 
 ## Quick Reference
 
-- Package manager: `pnpm` >= 10 -- never use npm, yarn, or bun.
+- Package manager: `pnpm` >= 11 -- never use npm, yarn, or bun.
 - Node: >= 20
 - Rust: edition 2024 or later, toolchain 1.90.0 or later, SWC core v56 or later
 - Default branch: `develop`

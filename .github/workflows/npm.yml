@@ -1,14 +1,14 @@
 name: Publish to NPM
 env:
   DEBUG: napi:*
-  APP_NAME: 'rs-compiler'
-  MACOSX_DEPLOYMENT_TARGET: '10.13'
-  CARGO_INCREMENTAL: '1'
+  APP_NAME: "rs-compiler"
+  MACOSX_DEPLOYMENT_TARGET: "10.13"
+  CARGO_INCREMENTAL: "1"
 permissions:
   contents: write
   id-token: write
   actions: write
-'on':
+"on":
   workflow_call:
   workflow_dispatch:
 
@@ -29,8 +29,7 @@ jobs:
             build: pnpm run build --filter @stylexswc/rs-compiler -- --target x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
           - host: windows-latest
-            build:
-              pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-pc-windows-msvc
+            build: pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-pc-windows-msvc
             target: aarch64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -57,7 +56,7 @@ jobs:
               corepack prepare pnpm@10.30.3 --activate
               pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-unknown-linux-gnu
         node:
-          - '24.18.0'
+          - "24.18.0"
     name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.settings.target }}
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -76,7 +75,7 @@ jobs:
         with:
           cache-scope: npm-build-${{ matrix.settings.target }}
           restore-cache-scope: npm-build-${{ matrix.settings.target }}
-          allow-global-fallback: 'false'
+          allow-global-fallback: "false"
       - uses: goto-bus-stop/setup-zig@abea47f85e598557f500fa1fd2ab7464fcb39406 # v2.2.1
         if: ${{ matrix.settings.target == 'armv7-unknown-linux-gnueabihf' }}
         with:
@@ -94,10 +93,10 @@ jobs:
         with:
           image: ${{ matrix.settings.docker }}
           options:
-            '--user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v
+            "--user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v
             ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{
             github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{
-            github.workspace }}:/build -w /build'
+            github.workspace }}:/build -w /build"
           run: ${{ matrix.settings.build }}
       - name: Build
         run: ${{ matrix.settings.build }}
@@ -137,8 +136,8 @@ jobs:
             architecture: x64
         node:
           # - '20.18.1' #Emittery v2 is not compatible with Node.js 20.
-          - '22.22.1'
-          - '24.18.0'
+          - "22.22.1"
+          - "24.18.0"
           #- '26.0.0' # Node.js 26 is not supported yet
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -152,8 +151,8 @@ jobs:
           rust-target: ${{ matrix.settings.target }}
           node-version: ${{ matrix.node }}
           node-architecture: ${{ matrix.settings.architecture }}
-          install-recursive: 'false'
-          frozen-lockfile: 'false'
+          install-recursive: "false"
+          frozen-lockfile: "false"
       - name: Cache turbo build setup
         id: turbo-cache
         uses: ./.github/actions/turbo
@@ -186,8 +185,8 @@ jobs:
           - target: x86_64-unknown-linux-gnu
         node:
           # - '20.18.1' #Emittery v2 is not compatible with Node.js 20.
-          - '22.22.1'
-          - '24.18.0'
+          - "22.22.1"
+          - "24.18.0"
           #- '26.0.0' # Node.js 26 is not supported yet
     runs-on: ubuntu-latest
     steps:
@@ -197,8 +196,8 @@ jobs:
         with:
           rust-target: ${{ matrix.settings.target }}
           node-version: ${{ matrix.node }}
-          install-recursive: 'false'
-          frozen-lockfile: 'false'
+          install-recursive: "false"
+          frozen-lockfile: "false"
       - name: Cache turbo build setup
         id: turbo-cache
         uses: ./.github/actions/turbo
@@ -216,7 +215,7 @@ jobs:
       - name: Test bindings
         run: |
           docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "
-            npm install -g pnpm &&
+            npm install -g pnpm@10.30.0 &&
             pnpm run test --filter @stylexswc/rs-compiler --only
           "
       - name: Save turbo build cache
@@ -235,8 +234,8 @@ jobs:
           - target: x86_64-unknown-linux-musl
         node:
           # - '20.18.1' #Emittery v2 is not compatible with Node.js 20.
-          - '22.22.1'
-          - '24.18.0'
+          - "22.22.1"
+          - "24.18.0"
           #- '26.0.0' # Node.js 26 is not supported yet
     runs-on: ubuntu-latest
     steps:
@@ -246,8 +245,8 @@ jobs:
         with:
           rust-target: ${{ matrix.settings.target }}
           node-version: ${{ matrix.node }}
-          install-recursive: 'false'
-          frozen-lockfile: 'false'
+          install-recursive: "false"
+          frozen-lockfile: "false"
       - name: Cache turbo build setup
         id: turbo-cache
         uses: ./.github/actions/turbo
@@ -265,7 +264,7 @@ jobs:
       - name: Test bindings
         run: |
           docker run --rm -e CI=true -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "
-            npm install -g pnpm &&
+            npm install -g pnpm@10.30.0 &&
             pnpm install --frozen-lockfile &&
             pnpm run test --filter @stylexswc/rs-compiler --only
           "
@@ -299,9 +298,9 @@ jobs:
             target: x86_64-unknown-linux-gnu
             architecture: x64
         node:
-          - '20.18.1'
-          - '22.22.1'
-          - '24.18.0'
+          - "20.18.1"
+          - "22.22.1"
+          - "24.18.0"
     runs-on: ${{ matrix.settings.host }}
     permissions:
       contents: write
@@ -315,12 +314,12 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          setup-rust: 'false'
+          setup-rust: "false"
           rust-target: ${{ matrix.settings.target }}
           node-version: ${{ matrix.node }}
           node-architecture: ${{ matrix.settings.architecture }}
-          install-recursive: 'false'
-          frozen-lockfile: 'false'
+          install-recursive: "false"
+          frozen-lockfile: "false"
       - name: Cache turbo build setup
         id: turbo-cache
         uses: ./.github/actions/turbo
@@ -347,16 +346,16 @@ jobs:
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
         with:
-          tool: 'benchmarkjs'
-          output-file-path: 'crates/stylex-rs-compiler/benchmark/results/output.txt'
-          external-data-json-path: './cache/benchmark-data.json'
+          tool: "benchmarkjs"
+          output-file-path: "crates/stylex-rs-compiler/benchmark/results/output.txt"
+          external-data-json-path: "./cache/benchmark-data.json"
           fail-on-alert: true
           comment-on-alert: true
-          alert-comment-cc-users: '@Dwlad90'
+          alert-comment-cc-users: "@Dwlad90"
           summary-always: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          alert-threshold: '150%'
-          fail-threshold: '175%'
+          alert-threshold: "150%"
+          fail-threshold: "175%"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Save turbo build cache
@@ -388,7 +387,7 @@ jobs:
         with:
           cache-scope: npm-publish-build-public-packages
           restore-cache-scope: npm-build-x86_64-unknown-linux-gnu
-          allow-global-fallback: 'false'
+          allow-global-fallback: "false"
       - name: Download all artifacts
         uses: actions/download-artifact@v8
         with:

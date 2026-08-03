@@ -18,7 +18,7 @@ RUN apk add --update --no-cache bash wget cmake musl-dev clang llvm build-base p
   apk upgrade
 
 RUN rustup-init -y && \
-  yarn global add pnpm lerna && \
+  yarn global add pnpm@10.30.3 lerna && \
   rustup target add aarch64-unknown-linux-musl && \
   wget https://github.com/napi-rs/napi-rs/releases/download/linux-musl-cross%4010/aarch64-linux-musl-cross.tgz && \
   tar -xvf aarch64-linux-musl-cross.tgz && \

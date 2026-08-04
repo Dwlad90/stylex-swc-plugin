@@ -61,7 +61,8 @@ export default async function stylexLoader(
       this.resourcePath,
       stringifiedInputCode,
       rsOptions,
-      inputSourceMap
+      inputSourceMap,
+      this.sourceMap
     );
 
     let parsedMap: SourceMap = undefined;

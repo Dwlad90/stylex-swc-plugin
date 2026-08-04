@@ -47,7 +47,8 @@ export default async function stylexTurbopackLoader(
       this.resourcePath,
       stringifiedInputCode,
       rsOptions,
-      inputSourceMap
+      inputSourceMap,
+      this.sourceMap
     );
 
     // If metadata.stylex doesn't exist at all, we only need to return the transformed code

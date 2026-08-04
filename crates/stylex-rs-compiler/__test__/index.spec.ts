@@ -80,7 +80,16 @@ export const styles = {
         ],
       ],
     },
-    map: '{"version":3,"sources":["page.tsx"],"names":[],"mappings":"AACI;AAEA;;;;;;;;EAOG"}',
+    // Key order matches the serializer's. `sourcesContent` holds the authored
+    // text and `mappings` carries columns — both on by default, see
+    // `sourceMaps.spec.ts`.
+    map: JSON.stringify({
+      version: 3,
+      sources: ['page.tsx'],
+      sourcesContent: [fixture],
+      names: [],
+      mappings: 'AACI,OAAO,YAAY,mBAAmB;AAEtC,OAAO,MAAM;;;;;;;;EAOV',
+    }),
   };
 
   expect(result).toStrictEqual(expected);

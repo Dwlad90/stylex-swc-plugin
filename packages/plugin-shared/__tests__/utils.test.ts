@@ -1,11 +1,13 @@
 import path from 'path';
 
 import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
+import { SourceMaps } from '@stylexswc/rs-compiler';
 import { describe, expect, test } from 'vitest';
 
 import { DEFAULT_STYLEX_PACKAGES, VIRTUAL_CSS_PATTERN } from '../src/constants';
 import {
   buildVirtualCssPattern,
+  generateStyleXOutput,
   isAllowlistedPackage,
   parseStylexRulesFromIdentifier,
   shouldProcessFile,
@@ -99,5 +101,89 @@ describe('parseStylexRulesFromIdentifier', () => {
         'css|/repo/node_modules/@stylexswc/plugin-shared/dist/stylex.css|used-exports'
       )
     ).toBeNull();
+  });
+});
+
+describe('generateStyleXOutput', () => {
+  const resourcePath = path.join(path.sep, 'project', 'app', 'page.tsx');
+  const source = `import stylex from '@stylexjs/stylex';
+
+export const styles = stylex.create({ default: { color: 'red' } });
+`;
+  const rsOptions = { unstable_moduleResolution: { type: 'commonJS' } } as const;
+
+  test('emits a map when the bundler has source maps on', () => {
+    const { map } = generateStyleXOutput(resourcePath, source, { ...rsOptions }, undefined, true);
+
+    expect(map).toBeDefined();
+    expect(JSON.parse(map as string).sourcesContent).toStrictEqual([source]);
+  });
+
+  test('skips map generation when the bundler has source maps off', () => {
+    // webpack discards the map when `devtool` is false, so building one — and
+    // inlining the whole source into it — is wasted work.
+    const { map } = generateStyleXOutput(resourcePath, source, { ...rsOptions }, undefined, false);
+
+    expect(map).toBeUndefined();
+  });
+
+  test('still transforms the code when map generation is skipped', () => {
+    const { code, metadata } = generateStyleXOutput(
+      resourcePath,
+      source,
+      { ...rsOptions },
+      undefined,
+      false
+    );
+
+    expect(code).not.toContain('stylex.create');
+    expect(metadata.stylex.length).toBeGreaterThan(0);
+  });
+
+  test('an explicit rsOptions.sourceMap wins over the bundler setting', () => {
+    const { map } = generateStyleXOutput(
+      resourcePath,
+      source,
+      { ...rsOptions, sourceMap: SourceMaps.True },
+      undefined,
+      false
+    );
+
+    expect(map).toBeDefined();
+  });
+
+  test('an explicit rsOptions.sourceMap: False stays off when the bundler is on', () => {
+    const { map } = generateStyleXOutput(
+      resourcePath,
+      source,
+      { ...rsOptions, sourceMap: SourceMaps.False },
+      undefined,
+      true
+    );
+
+    expect(map).toBeUndefined();
+  });
+
+  test('defaults to emitting a map when the caller omits the flag', () => {
+    // Back-compat: the parameter was added after the fact, and callers that
+    // predate it must keep their previous behavior.
+    const { map } = generateStyleXOutput(resourcePath, source, { ...rsOptions });
+
+    expect(map).toBeDefined();
+  });
+
+  test('an undefined bundler flag keeps maps on', () => {
+    // Turbopack's loader context is a partial webpack shim and may leave
+    // `this.sourceMap` undefined. Only an explicit `false` may disable maps —
+    // treating "the host never said" as "off" would silently strip every map.
+    const { map } = generateStyleXOutput(
+      resourcePath,
+      source,
+      { ...rsOptions },
+      undefined,
+      undefined
+    );
+
+    expect(map).toBeDefined();
   });
 });

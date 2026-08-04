@@ -14,17 +14,24 @@ export type {
 } from '../dist/transform';
 
 import type {
+  SourceMaps as NativeSourceMaps,
   StyleXOptions as NativeStyleXOptions,
   StyleXTransformResult,
 } from '../dist/transform';
 
 // const enums are erased by TypeScript — provide runtime values
-// so ESM consumers can import them.
+// so ESM consumers can import them. Typed as the native enum rather than as
+// string literals: without that, `{ sourceMap: SourceMaps.False }` fails to
+// typecheck, which defeats the point of exporting the values at all.
 export const SourceMaps = Object.freeze({
   True: 'True',
   False: 'False',
   Inline: 'Inline',
-} as const);
+}) as Readonly<{
+  True: NativeSourceMaps;
+  False: NativeSourceMaps;
+  Inline: NativeSourceMaps;
+}>;
 
 export const PropertyValidationMode = Object.freeze({
   Throw: 'throw',
@@ -74,6 +81,8 @@ const defaultOptions: Partial<StyleXOptions> = {
   enableLTRRTLComments: false,
   legacyDisableLayers: false,
   useRealFileForSource: true,
+  inlineSourcesContent: true,
+  emitSourceMapColumns: true,
   enableMediaQueryOrder: true,
   enableDebugClassNames: false,
   propertyValidationMode: 'silent',
@@ -190,9 +199,13 @@ export function transform(
     // plugins' own edits, so the positions handed to the native transform
     // keep describing the code it actually receives. The native transform
     // owns emission of the final map per `options.sourceMap` (incl. inline).
+    // The intermediate map becomes the native transform's `orig`, and a
+    // chained map keeps whatever `sourcesContent` it arrives with — so it has
+    // to carry the authored text from here.
     const result = swc.transformSync(transformedCode, {
       filename,
       sourceMaps: true,
+      inlineSourcesContent: options.inlineSourcesContent ?? true,
       inputSourceMap,
       jsc: {
         parser: { syntax: 'typescript', tsx: true },

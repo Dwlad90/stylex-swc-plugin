@@ -16,7 +16,7 @@ use stylex_transform::StyleXTransform;
 use swc_ecma_parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer};
 
 use swc_core::{
-  common::{FileName, GLOBALS, Globals, Mark, SourceMap},
+  common::{FileName, GLOBALS, Globals, Mark, SourceMap, comments::SingleThreadedComments},
   ecma::{
     ast::EsVersion,
     transforms::{
@@ -39,6 +39,58 @@ fn source_maps_config(source_map: Option<&SourceMaps>) -> SourceMapsConfig {
     Some(SourceMaps::False) => SourceMapsConfig::Bool(false),
     Some(SourceMaps::Inline) => SourceMapsConfig::Str("inline".into()),
     None => SourceMapsConfig::Bool(true),
+  }
+}
+
+/// Whether to embed the original source text in the emitted map's
+/// `sourcesContent`. Defaults to `true`: `@babel/generator` always embeds it,
+/// and `next-swc-loader` turns it on whenever it asks for a map, so leaving it
+/// off makes DevTools fall back to fetching `sources[0]` over
+/// `webpack-internal://` — which 404s.
+fn resolve_inline_sources_content(inline_sources_content: Option<bool>) -> bool {
+  inline_sources_content.unwrap_or(true)
+}
+
+/// Whether to emit column positions in `mappings`. Defaults to `true`, matching
+/// `@babel/generator` and webpack's own `SourceMapDevToolPlugin` (which only
+/// drops columns for the `cheap-*` devtools). Without it every mapping starts
+/// at column 0 and DevTools can only highlight whole lines.
+fn resolve_emit_source_map_columns(emit_source_map_columns: Option<bool>) -> bool {
+  emit_source_map_columns.unwrap_or(true)
+}
+
+/// Ensure the input map carries the authored source text for `filename`.
+///
+/// When an input map is chained, `SourceMap::build_source_map_with_config`
+/// returns the *input* map with adjusted mappings and drops anything it would
+/// otherwise have inlined, so `sourcesContent` is whatever earlier tooling put
+/// there. Filling the gap here — on the already-parsed map, before it is handed
+/// to `print` — costs no extra parse or serialization.
+///
+/// Only entries with no content are touched, so a map that already resolves
+/// back to an earlier authored file keeps its own text. A single-source map is
+/// unambiguously ours even when its `sources` entry spells the path
+/// differently (relative, `webpack://`-prefixed, …).
+fn backfill_source_contents(
+  input_source_map: &mut swc_sourcemap::SourceMap,
+  filename: &str,
+  src: &str,
+) {
+  let source_count = input_source_map.get_source_count();
+
+  for idx in 0..source_count {
+    if input_source_map.get_source_contents(idx).is_some() {
+      continue;
+    }
+
+    let is_ours = source_count == 1
+      || input_source_map
+        .get_source(idx)
+        .is_some_and(|source| source.as_str() == filename);
+
+    if is_ours {
+      input_source_map.set_source_contents(idx, Some(src.to_owned().into()));
+    }
   }
 }
 
@@ -94,12 +146,23 @@ pub fn transform(
     let source_map = source_maps_config(options.source_map.as_ref());
     let should_chain_input_source_map =
       !matches!(options.source_map.as_ref(), Some(SourceMaps::False));
+    let inline_sources_content = resolve_inline_sources_content(options.inline_sources_content);
+    let emit_source_map_columns = resolve_emit_source_map_columns(options.emit_source_map_columns);
 
     // Parse the incoming source map (if any) once: it feeds both the debug
     // source-map annotations and the chaining of the emitted map.
     let input_source_map = options.input_source_map.take().and_then(|json| {
       match swc_sourcemap::SourceMap::from_slice(json.as_bytes()) {
-        Ok(map) => Some(Arc::new(map)),
+        Ok(mut map) => {
+          // A chained map is returned as-is by `build_source_map_with_config`,
+          // which skips inlining entirely when `orig` is set. Seed the authored
+          // text here so `sourcesContent` survives the chaining.
+          if inline_sources_content {
+            backfill_source_contents(&mut map, &fm.name.to_string(), &fm.src);
+          }
+
+          Some(Arc::new(map))
+        },
         Err(err) => {
           warn!(
             "[StyleX] Failed to parse inputSourceMap, ignoring it: {}",
@@ -116,6 +179,12 @@ pub fn transform(
     config.env = parsed_env;
     config.debug_file_path = parsed_debug_file_path;
 
+    // Collect comments while lexing and hand the same store to the printer.
+    // Without it the emitted code loses every comment — including the ones
+    // bundlers act on: `/* webpackChunkName: "…" */` on dynamic imports and
+    // `/* #__PURE__ */` annotations that minifiers need to drop dead calls.
+    let comments = SingleThreadedComments::default();
+
     let mut parser = Parser::new_from(Lexer::new(
       Syntax::Typescript(TsSyntax {
         tsx: true,
@@ -123,7 +192,7 @@ pub fn transform(
       }),
       EsVersion::latest(),
       StringInput::from(&*fm),
-      None,
+      Some(&comments),
     ));
 
     let program = match parser.parse_program() {
@@ -166,6 +235,9 @@ pub fn transform(
           &program,
           PrintArgs {
             source_map,
+            inline_sources_content,
+            emit_source_map_columns,
+            comments: Some(&comments),
             // Chain the emitted map onto the input map so it resolves all the
             // way back to the original authored file. Skip the clone when
             // source maps are disabled; debug annotations already use the

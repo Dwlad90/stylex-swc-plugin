@@ -127,6 +127,16 @@ Transforming the example above with source maps enabled
 The `metadata.stylex` rules are what bundler plugins collect to build the final
 CSS file.
 
+The `map` above is abridged; by default it also carries `sourcesContent` and
+column-accurate `mappings` — see [`inlineSourcesContent`](#inlinesourcescontent)
+and [`emitSourceMapColumns`](#emitsourcemapcolumns).
+
+> [!NOTE]
+> Comments are preserved in `code`. That matters beyond readability: bundlers
+> and minifiers read some of them — `/* webpackChunkName: "…" */` on dynamic
+> imports names the emitted chunk, and `/* #__PURE__ */` is what lets a
+> minifier drop an unused call.
+
 ## Path Filtering
 
 > [!NOTE]
@@ -366,6 +376,44 @@ namespace instead of re-reading and re-parsing the source.
 An invalid map is ignored with a warning, and the compiler falls back to
 locating positions in the source text as described under
 [`useRealFileForSource`](#userealfileforsource).
+
+### `inlineSourcesContent`
+
+**Type:** `boolean` **Default:** `true`
+
+Embeds the original source text in the emitted map's `sourcesContent`, so
+tooling that reads the map can render the authored file without fetching
+`sources[0]` separately. Chrome DevTools needs this under Next.js dev
+(`eval-source-map`): without it the fetch goes out over `webpack-internal://`
+and fails with `net::ERR_UNKNOWN_URL_SCHEME`.
+
+```ts
+const { map } = transform(filename, inputCode, {
+  // Smaller production maps, or where the source shouldn't ship with the map
+  inlineSourcesContent: false,
+});
+```
+
+Set to `false` and the `sourcesContent` key is omitted from the map entirely.
+
+When [`inputSourceMap`](#inputsourcemap) is provided, the emitted map is the
+chained input map — so the authored text is seeded into that map instead.
+Sources that already carry their own text keep it, which means a chain that
+resolves back to an earlier authored file is left untouched.
+
+### `emitSourceMapColumns`
+
+**Type:** `boolean` **Default:** `true`
+
+Emits column positions in the map's `mappings`, so devtools resolve individual
+expressions rather than whole lines. Set to `false` for smaller,
+line-granularity maps — the same trade-off webpack's `cheap-*` devtools make.
+
+```ts
+const { map } = transform(filename, inputCode, {
+  emitSourceMapColumns: false,
+});
+```
 
 ### `useRealFileForSource`
 

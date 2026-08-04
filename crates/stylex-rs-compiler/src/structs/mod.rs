@@ -49,6 +49,16 @@ pub struct StyleXOptions {
   #[napi(js_name = "unstable_moduleResolution")]
   pub unstable_module_resolution: Option<StyleXModuleResolution>,
   pub source_map: Option<SourceMaps>,
+  /// Embed the original source text in the emitted map's `sourcesContent`.
+  /// Defaults to `true` so tooling that reads the map (Chrome DevTools via
+  /// Next.js' `eval-source-map`, in particular) can render the authored file
+  /// without re-fetching `sources[0]`. Set to `false` for production maps
+  /// where size matters, or where the source shouldn't ship with the map.
+  pub inline_sources_content: Option<bool>,
+  /// Emit column positions in the source map's `mappings`. Defaults to `true`,
+  /// which maps individual expressions rather than whole lines. Set to `false`
+  /// for smaller, line-granularity maps (the `cheap-*` webpack devtools).
+  pub emit_source_map_columns: Option<bool>,
   /// JSON source map for the incoming `code`, produced by earlier tooling
   /// (e.g. a macro loader). When provided, debug source-map annotations are
   /// mapped back to the original authored file and the emitted source map is

@@ -27,6 +27,8 @@ const defaultResult: StyleXOptions = {
   enableLTRRTLComments: false,
   legacyDisableLayers: false,
   useRealFileForSource: true,
+  inlineSourcesContent: true,
+  emitSourceMapColumns: true,
   enableMediaQueryOrder: true,
   enableDebugClassNames: false,
   propertyValidationMode: 'silent',
@@ -417,6 +419,19 @@ test('normalizeRsOptions: legacyDisableLayers default and override', () => {
 test('normalizeRsOptions: useRealFileForSource default and override', () => {
   expect(normalizeRsOptions({}).useRealFileForSource).toBe(true);
   expect(normalizeRsOptions({ useRealFileForSource: false }).useRealFileForSource).toBe(false);
+});
+
+test('normalizeRsOptions: inlineSourcesContent default and override', () => {
+  expect(normalizeRsOptions({}).inlineSourcesContent).toBe(true);
+  expect(normalizeRsOptions({ inlineSourcesContent: false }).inlineSourcesContent).toBe(false);
+  // An explicit `undefined` must not clobber the default — see `definedEntries`.
+  expect(normalizeRsOptions({ inlineSourcesContent: undefined }).inlineSourcesContent).toBe(true);
+});
+
+test('normalizeRsOptions: emitSourceMapColumns default and override', () => {
+  expect(normalizeRsOptions({}).emitSourceMapColumns).toBe(true);
+  expect(normalizeRsOptions({ emitSourceMapColumns: false }).emitSourceMapColumns).toBe(false);
+  expect(normalizeRsOptions({ emitSourceMapColumns: undefined }).emitSourceMapColumns).toBe(true);
 });
 
 test('normalizeRsOptions: enableDebugClassNames default and override', () => {

@@ -32,7 +32,7 @@ function compile(options: Partial<StyleXOptions> = {}, code = FIXTURE): Map {
   const result = transform(FILENAME, code, {
     unstable_moduleResolution: { type: 'commonJS' },
     ...options,
-  } as StyleXOptions);
+  });
 
   if (result.map == null) {
     throw new Error('expected the compiler to emit a source map');
@@ -108,7 +108,7 @@ test('sourceMap: false emits no map at all', () => {
   const result = transform(FILENAME, FIXTURE, {
     sourceMap: SourceMaps.False,
     unstable_moduleResolution: { type: 'commonJS' },
-  } as StyleXOptions);
+  });
 
   expect(result.map).toBeUndefined();
 });
@@ -117,7 +117,7 @@ test('inline source maps carry sourcesContent in the data URI', () => {
   const result = transform(FILENAME, FIXTURE, {
     sourceMap: SourceMaps.Inline,
     unstable_moduleResolution: { type: 'commonJS' },
-  } as StyleXOptions);
+  });
 
   const encoded = result.code.match(
     /sourceMappingURL=data:application\/json;base64,([A-Za-z0-9+/=]+)/
@@ -125,7 +125,7 @@ test('inline source maps carry sourcesContent in the data URI', () => {
 
   expect(encoded).toBeDefined();
 
-  const map = JSON.parse(Buffer.from(encoded as string, 'base64').toString('utf8')) as Map;
+  const map = JSON.parse(Buffer.from(encoded!, 'base64').toString('utf8')) as Map;
 
   expect(map.sourcesContent).toStrictEqual([FIXTURE]);
 });
@@ -138,15 +138,49 @@ test('columns are emitted by default and collapse when turned off', () => {
 });
 
 // ── chaining onto an input source map ───────────────────────────────
-// `SourceMap::build_source_map_with_config` returns the *input* map with
-// adjusted mappings, including any source text supplied by earlier tooling.
+// `SourceMap::build_source_map_with_config` returns the *input* map with its
+// mappings adjusted, discarding whatever the printer would have inlined. So
+// `inlineSourcesContent` is applied to the input map itself before printing:
+// the hole for *this* file is seeded, everything else is left as upstream
+// tooling left it.
 
-test('a chained map does not synthesize missing upstream source text', () => {
+test('a chained map is seeded with this file’s text when upstream left it null', () => {
   const map = compile({ inputSourceMap: upstreamMap() });
 
-  // The compiler only has the generated loader input. Attaching it to an
+  // Without this the emitted map reaches DevTools with `sourcesContent: null`
+  // and it goes back out over `webpack-internal://` to fetch the source.
+  expect(map.sourcesContent).toStrictEqual([FIXTURE]);
+});
+
+test('a chained map naming a different file is never backfilled', () => {
+  const map = compile({
+    inputSourceMap: upstreamMap({ sources: ['/abs/path/other.tsx'] }),
+  });
+
+  // The compiler only has the current loader input. Attaching it to an
   // earlier authored source would produce a plausible but incorrect map.
   expect('sourcesContent' in map).toBe(false);
+});
+
+test('an ambiguous chained map is left alone rather than guessed at', () => {
+  // Both entries resolve to the compiled file; neither can be filled with
+  // confidence, so neither is.
+  const map = compile({
+    inputSourceMap: upstreamMap({
+      sources: ['page.tsx', 'path/page.tsx'],
+      sourcesContent: [null, null],
+    }),
+  });
+
+  expect('sourcesContent' in map).toBe(false);
+});
+
+test('a chained map spelling the file relatively is still recognised', () => {
+  const map = compile({
+    inputSourceMap: upstreamMap({ sources: ['./page.tsx'] }),
+  });
+
+  expect(map.sourcesContent).toStrictEqual([FIXTURE]);
 });
 
 test('a chained map keeps the upstream text when it already has some', () => {
@@ -164,6 +198,28 @@ test('inlineSourcesContent: false is honoured on the chained path too', () => {
   });
 
   expect('sourcesContent' in map).toBe(false);
+});
+
+test('emitSourceMapColumns: false is ignored while chaining', () => {
+  // `adjust_mappings` keeps the input map's own tokens and only shifts them by
+  // one delta per covering range in the map built here. Dropping columns from
+  // that map leaves one range per generated line, so every token on the line
+  // gets the delta computed for the first — wrong columns, and no smaller,
+  // since the size is the input map's token count either way.
+  const inputSourceMap = upstreamMap({ mappings: 'AAAA,CAAC,CAAC;AACF,CAAC' });
+
+  const lineOnly = compile({ inputSourceMap, emitSourceMapColumns: false });
+  const withColumns = compile({ inputSourceMap, emitSourceMapColumns: true });
+
+  expect(lineOnly.mappings).toBe(withColumns.mappings);
+});
+
+test('emitSourceMapColumns: false still collapses when nothing is chained', () => {
+  // The option keeps its meaning on the path where it can actually be honoured.
+  const lineOnly = compile({ emitSourceMapColumns: false });
+  const withColumns = compile({ emitSourceMapColumns: true });
+
+  expect(segmentCount(lineOnly.mappings)).toBeLessThan(segmentCount(withColumns.mappings));
 });
 
 test('an unparseable inputSourceMap is ignored and the map still has content', () => {

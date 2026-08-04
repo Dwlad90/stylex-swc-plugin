@@ -1,12 +1,7 @@
 import path from 'path';
 
 import type { Rule as StyleXRule } from '@stylexjs/babel-plugin';
-import {
-  SourceMaps,
-  normalizeRsOptions,
-  shouldTransformFile,
-  transform,
-} from '@stylexswc/rs-compiler';
+import { normalizeRsOptions, shouldTransformFile, transform } from '@stylexswc/rs-compiler';
 import type { StyleXOptions, StyleXTransformResult } from '@stylexswc/rs-compiler';
 import type webpack from 'webpack';
 
@@ -15,6 +10,7 @@ import {
   VIRTUAL_CSS_PATTERN,
   VIRTUAL_STYLEX_CSS_DUMMY_IMPORT_PATTERN,
 } from './constants';
+import { resolveSourceMapOptions } from './source-map-options';
 import type { SourceMap } from './types';
 
 export function stringifyRequest(loaderContext: webpack.LoaderContext<unknown>, request: string) {
@@ -30,20 +26,10 @@ export function generateStyleXOutput(
   inputSourceMap?: SourceMap,
   sourceMapsEnabled?: boolean
 ): StyleXTransformResult {
-  const options = normalizeRsOptions(rsOptions ?? {});
-
-  // The bundler drops the emitted map when its own `devtool` is off, so
-  // building one is pure waste — and costly waste now that the authored source
-  // is inlined into it. An explicit `rsOptions.sourceMap` still wins: a caller
-  // that asks for a map gets one whatever the bundler is doing.
-  //
-  // Only an explicit `false` disables it. `undefined` means the host never told
-  // us — Turbopack's loader context is a partial webpack shim and may not
-  // define `this.sourceMap` — and treating that as "off" would silently strip
-  // source maps from every file.
-  if (sourceMapsEnabled === false && rsOptions?.sourceMap === undefined) {
-    options.sourceMap = SourceMaps.False;
-  }
+  const options: StyleXOptions = {
+    ...normalizeRsOptions(rsOptions ?? {}),
+    ...resolveSourceMapOptions(rsOptions ?? {}, sourceMapsEnabled),
+  };
 
   // Forward the previous loader's source map so debug source-map annotations
   // and the emitted map resolve to the original authored file instead of the

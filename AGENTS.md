@@ -23,7 +23,10 @@ Rust reimplementation of Facebook's `StyleX` CSS-in-JS compiler, built on
 - `pnpm run --filter=@stylexswc/<package-name> test` -- run tests for a package
 - `pnpm lint:check` -- lint every Node file (one root Oxlint process; there are
   no per-package lint scripts)
-- `pnpm lint:type-aware` -- type-aware lint rules; needs a prior build
+- `pnpm lint:type-aware` -- type-aware lint rules; builds first, then runs
+  `lint:node:type-aware` once at the root. Its findings are errors and are not
+  reported by `lint:check`, so run it before calling TypeScript work done.
+- `pnpm lint:all` -- `lint:check` plus `lint:type-aware`
 - `pnpm format:check` -- check formatting (one root Oxfmt process, plus rustfmt
   and Taplo for Rust and TOML)
 - `pnpm run --filter=@stylexswc/<package-name> typecheck` -- type check a
@@ -56,5 +59,10 @@ Run npm scripts after the main action has been performed:
 
 - Type checking: `pnpm typecheck`
 - Formatting: `pnpm format:check`
-- Linting: `pnpm lint:check`
+- Linting: `pnpm lint:check`, and `pnpm lint:type-aware` when TypeScript changed
 - Testing: `pnpm test`
+
+Tests that exercise the native binding (anything importing
+`@stylexswc/rs-compiler`) run against `dist/*.node`, not the Rust sources. Edit
+a crate and you must rebuild before the JS suite means anything -- see
+[Testing](./guidelines/coding/TESTING.md).

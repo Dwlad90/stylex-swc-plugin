@@ -4,14 +4,13 @@
 import { expect, test } from 'vitest';
 
 import { transform } from '../dist/index.js';
-import type { StyleXOptions } from '../dist/index.js';
 
 const FILENAME = '/abs/path/page.tsx';
 
 function compile(code: string): string {
   return transform(FILENAME, code, {
     unstable_moduleResolution: { type: 'commonJS' },
-  } as StyleXOptions).code;
+  }).code;
 }
 
 test('webpack magic comments survive on dynamic imports', () => {

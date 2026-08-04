@@ -119,3 +119,121 @@ fn clear_source_contents_removes_every_populated_entry() {
 
   assert_eq!(contents_of(&map), vec![None, None]);
 }
+
+// ── source_names_file ───────────────────────────────────────────────
+// Upstream tooling names the same file in several spellings; each of these
+// must resolve to the file being compiled, and near-misses must not.
+
+const COMPILED: &str = "/project/app/page.tsx";
+
+#[test]
+fn source_names_file_accepts_every_spelling_of_the_same_file() {
+  for source in [
+    "/project/app/page.tsx",
+    "app/page.tsx",
+    "./app/page.tsx",
+    "page.tsx",
+    "./page.tsx",
+    "file:///project/app/page.tsx",
+  ] {
+    assert!(
+      source_names_file(source, Path::new(COMPILED)),
+      "expected `{}` to name `{}`",
+      source,
+      COMPILED
+    );
+  }
+}
+
+#[test]
+fn source_names_file_rejects_a_different_file() {
+  for source in [
+    // A different file entirely.
+    "/project/app/layout.tsx",
+    // Shares a suffix of the *string* but not of the path components — the
+    // case a naive `ends_with` on `&str` would wrongly accept.
+    "my-page.tsx",
+    "/project/other/page.tsx",
+    // Longer than the compiled path, so it cannot be a suffix of it.
+    "/deeper/project/app/page.tsx",
+    // A `webpack://` URL keeps its namespace segment and stays unmatched.
+    "webpack://_N_E/./app/page.tsx",
+    "",
+  ] {
+    assert!(
+      !source_names_file(source, Path::new(COMPILED)),
+      "expected `{}` not to name `{}`",
+      source,
+      COMPILED
+    );
+  }
+}
+
+// ── backfill_source_contents ────────────────────────────────────────
+
+#[test]
+fn backfill_seeds_the_entry_naming_the_compiled_file() {
+  let mut map = input_map(&["page.tsx"], &[None]);
+
+  backfill_source_contents(&mut map, Path::new(COMPILED), "// authored\n");
+
+  assert_eq!(contents_of(&map), vec![Some("// authored\n".to_string())]);
+}
+
+#[test]
+fn backfill_leaves_existing_upstream_text_alone() {
+  let mut map = input_map(&["page.tsx"], &[Some("// from an earlier loader\n")]);
+
+  backfill_source_contents(&mut map, Path::new(COMPILED), "// this loader's input\n");
+
+  assert_eq!(
+    contents_of(&map),
+    vec![Some("// from an earlier loader\n".to_string())]
+  );
+}
+
+#[test]
+fn backfill_skips_sources_that_name_other_files() {
+  // The chain resolves back to files this compiler never saw. Their text is
+  // not ours to invent.
+  let mut map = input_map(
+    &["/project/app/other.tsx", "/project/lib/util.ts"],
+    &[None, None],
+  );
+
+  backfill_source_contents(&mut map, Path::new(COMPILED), "// this loader's input\n");
+
+  assert_eq!(contents_of(&map), vec![None, None]);
+}
+
+#[test]
+fn backfill_writes_nothing_when_two_entries_claim_the_file() {
+  // `page.tsx` and `app/page.tsx` both resolve to the compiled file. Neither
+  // can be filled with confidence, so neither is touched.
+  let mut map = input_map(&["page.tsx", "app/page.tsx"], &[None, None]);
+
+  backfill_source_contents(&mut map, Path::new(COMPILED), "// this loader's input\n");
+
+  assert_eq!(contents_of(&map), vec![None, None]);
+}
+
+#[test]
+fn backfill_fills_only_the_matching_entry_of_a_multi_source_map() {
+  let mut map = input_map(&["/project/lib/util.ts", "app/page.tsx"], &[None, None]);
+
+  backfill_source_contents(&mut map, Path::new(COMPILED), "// authored\n");
+
+  assert_eq!(
+    contents_of(&map),
+    vec![None, Some("// authored\n".to_string())]
+  );
+}
+
+#[test]
+fn backfill_handles_a_map_with_no_sources() {
+  let mut map = input_map(&[], &[]);
+
+  backfill_source_contents(&mut map, Path::new(COMPILED), "// authored\n");
+
+  assert!(contents_of(&map).is_empty());
+}

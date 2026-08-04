@@ -104,6 +104,11 @@ describe('parseStylexRulesFromIdentifier', () => {
   });
 });
 
+/** `sourcesContent` of an emitted map, or `undefined` when it carries none. */
+function contentOf(map: string | undefined): string[] | undefined {
+  return (JSON.parse(map!) as { sourcesContent?: string[] }).sourcesContent;
+}
+
 describe('generateStyleXOutput', () => {
   const resourcePath = path.join(path.sep, 'project', 'app', 'page.tsx');
   const source = `import stylex from '@stylexjs/stylex';
@@ -113,10 +118,16 @@ export const styles = stylex.create({ default: { color: 'red' } });
   const rsOptions = { unstable_moduleResolution: { type: 'commonJS' } } as const;
 
   test('emits a map when the bundler has source maps on', () => {
-    const { map } = generateStyleXOutput(resourcePath, source, { ...rsOptions }, undefined, true);
+    const { map } = generateStyleXOutput(
+      resourcePath,
+      source,
+      { ...rsOptions, dev: true },
+      undefined,
+      true
+    );
 
     expect(map).toBeDefined();
-    expect(JSON.parse(map as string).sourcesContent).toStrictEqual([source]);
+    expect(contentOf(map)).toStrictEqual([source]);
   });
 
   test('skips map generation when the bundler has source maps off', () => {
@@ -170,6 +181,60 @@ export const styles = stylex.create({ default: { color: 'red' } });
     const { map } = generateStyleXOutput(resourcePath, source, { ...rsOptions });
 
     expect(map).toBeDefined();
+  });
+
+  describe('inlineSourcesContent', () => {
+    // The whole authored file goes into the map. Needed for DevTools in dev,
+    // pure payload — and a source disclosure — in a production build.
+    test('a development build inlines the source', () => {
+      const { map } = generateStyleXOutput(
+        resourcePath,
+        source,
+        { ...rsOptions, dev: true },
+        undefined,
+        true
+      );
+
+      expect(contentOf(map)).toStrictEqual([source]);
+    });
+
+    test('a production build does not', () => {
+      const { map } = generateStyleXOutput(
+        resourcePath,
+        source,
+        { ...rsOptions, dev: false },
+        undefined,
+        true
+      );
+
+      // The map is still emitted — only the embedded text is dropped.
+      expect(map).toBeDefined();
+      expect(contentOf(map)).toBeUndefined();
+    });
+
+    test('an explicit inlineSourcesContent wins over the build mode', () => {
+      const { map } = generateStyleXOutput(
+        resourcePath,
+        source,
+        { ...rsOptions, dev: false, inlineSourcesContent: true },
+        undefined,
+        true
+      );
+
+      expect(contentOf(map)).toStrictEqual([source]);
+    });
+
+    test('an explicit false is honoured in development too', () => {
+      const { map } = generateStyleXOutput(
+        resourcePath,
+        source,
+        { ...rsOptions, dev: true, inlineSourcesContent: false },
+        undefined,
+        true
+      );
+
+      expect(contentOf(map)).toBeUndefined();
+    });
   });
 
   test('an undefined bundler flag keeps maps on', () => {

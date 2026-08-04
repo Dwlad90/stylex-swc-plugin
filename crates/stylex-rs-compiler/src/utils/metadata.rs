@@ -3,7 +3,7 @@
 use napi::{Env, Error, JsObject};
 use stylex_transform::StyleXTransform;
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleBaseKind;
-use swc_core::plugin::proxies::PluginCommentsProxy;
+use swc_core::common::comments::Comments;
 
 #[derive(Debug, PartialEq, Eq)]
 struct MetadataStyleParts<'a> {
@@ -30,10 +30,13 @@ fn metadata_style_parts(style: &InjectableStyleBaseKind) -> MetadataStyleParts<'
   }
 }
 
-/// Extracts StyleX metadata from the transformation state
-pub(crate) fn extract_stylex_metadata(
+/// Extracts StyleX metadata from the transformation state.
+///
+/// Generic over the comment store: only `state` is read, so which store the
+/// transform carries is none of this function's business.
+pub(crate) fn extract_stylex_metadata<C: Comments>(
   env: Env,
-  stylex: &StyleXTransform<PluginCommentsProxy>,
+  stylex: &StyleXTransform<C>,
 ) -> Result<Vec<JsObject>, Error> {
   let mut stylex_metadata = Vec::with_capacity(stylex.state.metadata().len());
 

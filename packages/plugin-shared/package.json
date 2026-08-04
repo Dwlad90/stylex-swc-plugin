@@ -26,6 +26,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
+    "./source-map-options": {
+      "types": "./dist/source-map-options.d.ts",
+      "import": "./dist/source-map-options.js",
+      "require": "./dist/source-map-options.js"
+    },
     "./stylex-loader": {
       "types": "./dist/stylex-loader.d.ts",
       "import": "./dist/stylex-loader.js",

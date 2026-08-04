@@ -396,11 +396,18 @@ const { map } = transform(filename, inputCode, {
 
 Set to `false` and the `sourcesContent` key is omitted from the map entirely.
 
+> [!NOTE]
+> This is the default for the compiler's own API. The bundler plugins narrow it
+> to development builds — where the map is read by DevTools — so a production
+> `.map` doesn't publish your source unless you ask for it. Set the option
+> explicitly to override either way.
+
 When [`inputSourceMap`](#inputsourcemap) is provided, the emitted map preserves
-source text supplied by that map. Missing upstream text is not synthesized:
-the compiler only has the current loader input, which may differ from the
-earlier authored files named by the chained map. Set this option to `false` to
-remove inherited source text as well.
+source text supplied by that map, and a missing entry for _this_ file is filled
+in from the current input. Entries naming other files are left alone — the
+compiler only has its own loader input, so text attached to an earlier authored
+file would be plausible but wrong. If two entries resolve to this file, neither
+is filled. Set this option to `false` to drop inherited source text as well.
 
 ### `emitSourceMapColumns`
 
@@ -415,6 +422,14 @@ const { map } = transform(filename, inputCode, {
   emitSourceMapColumns: false,
 });
 ```
+
+> [!NOTE]
+> Ignored when [`inputSourceMap`](#inputsourcemap) is provided. Chaining keeps
+> the input map's own tokens and only shifts them, so the emitted granularity
+> is the upstream map's, not this option's — and a line-granularity shift would
+> apply one correction to every token on the line, misplacing all but the
+> first. To get line-granularity output from a chain, emit the _input_ map
+> without columns.
 
 ### `useRealFileForSource`
 

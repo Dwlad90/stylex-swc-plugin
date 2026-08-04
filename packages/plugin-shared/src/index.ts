@@ -20,6 +20,11 @@ export type { RegisterStyleXRules } from './plugin-core';
 export { mergeStyleXRulesInto, publishStyleXRules } from './nextjs-registry';
 export type { StyleXRulesMap } from './nextjs-registry';
 
+// Also available as `@stylexswc/plugin-shared/source-map-options`, for loaders
+// that want it without pulling in the plugin core.
+export { resolveSourceMapOptions } from './source-map-options';
+export type { ResolvedSourceMapOptions } from './source-map-options';
+
 export {
   buildVirtualCssPattern,
   escapeRegExp,

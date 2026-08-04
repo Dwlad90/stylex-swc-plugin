@@ -5,7 +5,11 @@ mod structs;
 mod utils;
 use log::{info, warn};
 use napi::{Env, Result};
-use std::{env, panic, sync::Arc};
+use std::{
+  env, panic,
+  path::{Component, Path, PathBuf},
+  sync::Arc,
+};
 use structs::{StyleXMetadata, StyleXOptions, StyleXTransformResult};
 use stylex_logs::initializer::initialize as initialize_logger;
 use stylex_macros::stylex_error::{SuppressPanicStderr, format_panic_message};
@@ -25,7 +29,6 @@ use swc_core::{
     },
     visit::visit_mut_pass,
   },
-  plugin::proxies::PluginCommentsProxy,
 };
 
 use napi_derive::napi;
@@ -63,6 +66,88 @@ fn resolve_emit_source_map_columns(emit_source_map_columns: Option<bool>) -> boo
 fn clear_source_contents(input_source_map: &mut swc_sourcemap::SourceMap) {
   for idx in 0..input_source_map.get_source_count() {
     input_source_map.set_source_contents(idx, None);
+  }
+}
+
+/// Whether a source map's `sources` entry refers to `path`.
+///
+/// The same file is spelled several ways by upstream tooling — `page.tsx`,
+/// `./app/page.tsx`, the absolute path, `file:///abs/path/page.tsx` — so the
+/// comparison is on trailing path *components* after dropping any URL scheme,
+/// never on the raw string. Component-wise matching is what keeps
+/// `other/page.tsx` from matching `app/page.tsx`; a plain suffix compare would
+/// also accept `my-page.tsx`.
+///
+/// An entry that still doesn't line up (a `webpack://<namespace>/…` URL, say)
+/// simply doesn't match, and the caller leaves it untouched.
+fn source_names_file(source: &str, path: &Path) -> bool {
+  let source = source.split_once("://").map_or(source, |(_, rest)| rest);
+
+  let mut path_components = path.components().rev();
+  let mut matched = false;
+
+  for source_component in Path::new(source).components().rev() {
+    // `Components` keeps a leading `.`; it carries no meaning here.
+    if matches!(source_component, Component::CurDir) {
+      continue;
+    }
+
+    match path_components.next() {
+      Some(path_component) if path_component == source_component => matched = true,
+      _ => return false,
+    }
+  }
+
+  matched
+}
+
+/// Seed the authored text into a chained input map, for the one entry that
+/// unambiguously names the file being compiled.
+///
+/// `SourceMap::build_source_map_with_config` returns `orig` verbatim once its
+/// mappings have been adjusted, discarding everything the builder would
+/// otherwise have inlined. So on the chained path `inline_sources_content` has
+/// no effect and `sourcesContent` is whatever earlier tooling left behind —
+/// frequently `null`, which is what sends Chrome DevTools off to re-fetch
+/// `sources[0]` over `webpack-internal://`. Filling the gap here, on the
+/// already-parsed map and before it reaches `print`, costs no extra parse or
+/// serialization.
+///
+/// Deliberately narrow. `src` is this loader's *input*, not the original
+/// authored file, so it is only correct for the entry describing this file.
+/// An entry is filled only when it carries no text already and is the sole
+/// entry resolving to `path`; two claimants means neither can be filled with
+/// confidence and nothing is written. Attaching this text to an earlier
+/// authored file named by the chain would yield a plausible but wrong map,
+/// which is worse to debug against than no text at all.
+fn backfill_source_contents(
+  input_source_map: &mut swc_sourcemap::SourceMap,
+  path: &Path,
+  src: &str,
+) {
+  let mut candidate = None;
+
+  for idx in 0..input_source_map.get_source_count() {
+    let names_this_file = input_source_map
+      .get_source(idx)
+      .is_some_and(|source| source_names_file(source, path));
+
+    if !names_this_file {
+      continue;
+    }
+
+    if candidate.is_some() {
+      return;
+    }
+
+    candidate = Some(idx);
+  }
+
+  match candidate {
+    Some(idx) if input_source_map.get_source_contents(idx).is_none() => {
+      input_source_map.set_source_contents(idx, Some(src.to_owned().into()));
+    },
+    _ => {},
   }
 }
 
@@ -104,7 +189,8 @@ pub fn transform(
   let _suppress = SuppressPanicStderr::new();
   let result = panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
     let cm: Arc<SourceMap> = Default::default();
-    let filename = FileName::Real(filename.into());
+    let file_path = PathBuf::from(filename);
+    let filename = FileName::Real(file_path.clone());
 
     let fm = cm.new_source_file(filename.clone().into(), code);
 
@@ -126,11 +212,16 @@ pub fn transform(
     let input_source_map = options.input_source_map.take().and_then(|json| {
       match swc_sourcemap::SourceMap::from_slice(json.as_bytes()) {
         Ok(mut map) => {
-          // Chaining preserves the input map's source contents. Remove them
-          // explicitly when the caller disables inlining so the option remains
-          // a reliable size and source-disclosure control.
-          if should_chain_input_source_map && !inline_sources_content {
-            clear_source_contents(&mut map);
+          // Chaining returns the input map as-is, so `inline_sources_content`
+          // has to be applied to *it* rather than to the printer's builder:
+          // seed this file's text where the chain left a hole, or strip the
+          // inherited text outright when the caller disabled inlining.
+          if should_chain_input_source_map {
+            if inline_sources_content {
+              backfill_source_contents(&mut map, &file_path, &fm.src);
+            } else {
+              clear_source_contents(&mut map);
+            }
           }
 
           Some(Arc::new(map))
@@ -144,6 +235,18 @@ pub fn transform(
         },
       }
     });
+
+    // Column granularity is not ours to choose once a map is being chained.
+    // `adjust_mappings` keeps the *input* map's tokens — columns and all — and
+    // only shifts them by one (line, col) delta per covering range in the map
+    // built here. Dropping columns from that map leaves exactly one range per
+    // generated line, so every token on the line is shifted by the delta
+    // computed for the first one. StyleX rewrites a line non-uniformly, so
+    // those columns come out wrong, and the map is no smaller for it: its size
+    // is the input map's token count either way. Emit ours in full and let the
+    // upstream map's granularity carry through.
+    let is_chaining = should_chain_input_source_map && input_source_map.is_some();
+    let emit_source_map_columns = emit_source_map_columns || is_chaining;
 
     let mut config: StyleXOptionsParams = options.try_into()?;
 
@@ -182,8 +285,13 @@ pub fn transform(
         let unresolved_mark = Mark::new();
         let top_level_mark = Mark::new();
 
-        let mut stylex: StyleXTransform<PluginCommentsProxy> =
-          StyleXTransform::new(PluginCommentsProxy, plugin_pass, &mut config);
+        // The same store the lexer filled and the printer will read. The
+        // alternative, `PluginCommentsProxy`, only forwards to a wasm plugin
+        // host — outside `wasm32` every one of its methods is a no-op, so a
+        // transform holding it can neither read an existing annotation nor
+        // attach a new one, and does so silently.
+        let mut stylex: StyleXTransform<&SingleThreadedComments> =
+          StyleXTransform::new(&comments, plugin_pass, &mut config);
 
         // Give the transform exact access to the parsed input so span-based
         // position lookups need no re-parsing, and to the input source map so
@@ -203,14 +311,13 @@ pub fn transform(
         let stylex_metadata = extract_stylex_metadata(env, &stylex)?;
         drop(stylex);
 
-        // StateManager shared this map during transformation. It has been
-        // dropped now, so transfer the remaining Arc into the printer instead
-        // of cloning every token and source-content string in a large map.
+        // StateManager shared this map during transformation and has just been
+        // dropped, so the Arc is normally unique here and unwraps for free.
+        // `print` takes `orig` by value, and `build_source_map_with_config`
+        // clones it again internally — this saves one of those two copies of
+        // every token and source-content string, not both.
         let original_source_map = if should_chain_input_source_map {
-          input_source_map.map(|map| match Arc::try_unwrap(map) {
-            Ok(map) => map,
-            Err(map) => (*map).clone(),
-          })
+          input_source_map.map(Arc::unwrap_or_clone)
         } else {
           None
         };

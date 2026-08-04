@@ -396,10 +396,11 @@ const { map } = transform(filename, inputCode, {
 
 Set to `false` and the `sourcesContent` key is omitted from the map entirely.
 
-When [`inputSourceMap`](#inputsourcemap) is provided, the emitted map is the
-chained input map — so the authored text is seeded into that map instead.
-Sources that already carry their own text keep it, which means a chain that
-resolves back to an earlier authored file is left untouched.
+When [`inputSourceMap`](#inputsourcemap) is provided, the emitted map preserves
+source text supplied by that map. Missing upstream text is not synthesized:
+the compiler only has the current loader input, which may differ from the
+earlier authored files named by the chained map. Set this option to `false` to
+remove inherited source text as well.
 
 ### `emitSourceMapColumns`
 

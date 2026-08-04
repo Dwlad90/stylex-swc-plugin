@@ -59,38 +59,10 @@ fn resolve_emit_source_map_columns(emit_source_map_columns: Option<bool>) -> boo
   emit_source_map_columns.unwrap_or(true)
 }
 
-/// Ensure the input map carries the authored source text for `filename`.
-///
-/// When an input map is chained, `SourceMap::build_source_map_with_config`
-/// returns the *input* map with adjusted mappings and drops anything it would
-/// otherwise have inlined, so `sourcesContent` is whatever earlier tooling put
-/// there. Filling the gap here — on the already-parsed map, before it is handed
-/// to `print` — costs no extra parse or serialization.
-///
-/// Only entries with no content are touched, so a map that already resolves
-/// back to an earlier authored file keeps its own text. A single-source map is
-/// unambiguously ours even when its `sources` entry spells the path
-/// differently (relative, `webpack://`-prefixed, …).
-fn backfill_source_contents(
-  input_source_map: &mut swc_sourcemap::SourceMap,
-  filename: &str,
-  src: &str,
-) {
-  let source_count = input_source_map.get_source_count();
-
-  for idx in 0..source_count {
-    if input_source_map.get_source_contents(idx).is_some() {
-      continue;
-    }
-
-    let is_ours = source_count == 1
-      || input_source_map
-        .get_source(idx)
-        .is_some_and(|source| source.as_str() == filename);
-
-    if is_ours {
-      input_source_map.set_source_contents(idx, Some(src.to_owned().into()));
-    }
+/// Remove source text inherited from an input map when inlining is disabled.
+fn clear_source_contents(input_source_map: &mut swc_sourcemap::SourceMap) {
+  for idx in 0..input_source_map.get_source_count() {
+    input_source_map.set_source_contents(idx, None);
   }
 }
 
@@ -154,11 +126,11 @@ pub fn transform(
     let input_source_map = options.input_source_map.take().and_then(|json| {
       match swc_sourcemap::SourceMap::from_slice(json.as_bytes()) {
         Ok(mut map) => {
-          // A chained map is returned as-is by `build_source_map_with_config`,
-          // which skips inlining entirely when `orig` is set. Seed the authored
-          // text here so `sourcesContent` survives the chaining.
-          if inline_sources_content {
-            backfill_source_contents(&mut map, &fm.name.to_string(), &fm.src);
+          // Chaining preserves the input map's source contents. Remove them
+          // explicitly when the caller disables inlining so the option remains
+          // a reliable size and source-disclosure control.
+          if should_chain_input_source_map && !inline_sources_content {
+            clear_source_contents(&mut map);
           }
 
           Some(Arc::new(map))
@@ -229,6 +201,19 @@ pub fn transform(
           .apply(&mut fixer(None));
 
         let stylex_metadata = extract_stylex_metadata(env, &stylex)?;
+        drop(stylex);
+
+        // StateManager shared this map during transformation. It has been
+        // dropped now, so transfer the remaining Arc into the printer instead
+        // of cloning every token and source-content string in a large map.
+        let original_source_map = if should_chain_input_source_map {
+          input_source_map.map(|map| match Arc::try_unwrap(map) {
+            Ok(map) => map,
+            Err(map) => (*map).clone(),
+          })
+        } else {
+          None
+        };
 
         let transformed_code = print(
           cm,
@@ -239,14 +224,8 @@ pub fn transform(
             emit_source_map_columns,
             comments: Some(&comments),
             // Chain the emitted map onto the input map so it resolves all the
-            // way back to the original authored file. Skip the clone when
-            // source maps are disabled; debug annotations already use the
-            // shared Arc stored in StateManager.
-            orig: if should_chain_input_source_map {
-              input_source_map.as_ref().map(|map| (**map).clone())
-            } else {
-              None
-            },
+            // way back to the original authored file.
+            orig: original_source_map,
             ..Default::default()
           },
         );

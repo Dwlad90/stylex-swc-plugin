@@ -63,9 +63,6 @@ fn emit_source_map_columns_defaults_to_true() {
   assert!(!resolve_emit_source_map_columns(Some(false)));
 }
 
-const OURS: &str = "/abs/path/Button.tsx";
-const AUTHORED: &str = "export const a = 1;\n";
-
 /// Build a map whose `sources`/`sourcesContent` are exactly as given. A `None`
 /// content is serialized as JSON `null`, the shape earlier tooling emits when
 /// it knows a source but not its text.
@@ -103,87 +100,22 @@ fn contents_of(map: &swc_sourcemap::SourceMap) -> Vec<Option<String>> {
 }
 
 #[test]
-fn backfill_fills_a_lone_source_whatever_its_path_spelling() {
-  // A single-source map is unambiguously ours even when the previous tool
-  // spelled the path relatively or behind a `webpack://` scheme.
-  for spelling in ["Button.tsx", "./Button.tsx", "webpack://app/./Button.tsx"] {
-    let mut map = input_map(&[spelling], &[None]);
-
-    backfill_source_contents(&mut map, OURS, AUTHORED);
-
-    assert_eq!(contents_of(&map), vec![Some(AUTHORED.to_string())]);
-  }
-}
-
-#[test]
-fn backfill_keeps_existing_content() {
-  // The incoming map already resolves back to an earlier authored file; its
-  // text wins over ours.
-  let mut map = input_map(&[OURS], &[Some("// original\n")]);
-
-  backfill_source_contents(&mut map, OURS, AUTHORED);
-
-  assert_eq!(contents_of(&map), vec![Some("// original\n".to_string())]);
-}
-
-#[test]
-fn backfill_only_touches_the_matching_source_in_a_multi_source_map() {
-  let mut map = input_map(&["/abs/path/other.tsx", OURS], &[None, None]);
-
-  backfill_source_contents(&mut map, OURS, AUTHORED);
-
-  assert_eq!(contents_of(&map), vec![None, Some(AUTHORED.to_string())]);
-}
-
-#[test]
-fn backfill_is_a_noop_when_no_source_matches() {
-  // With several sources and no path match there is no way to tell which entry
-  // the authored text belongs to — guessing would inline it under a foreign
-  // file name.
-  let mut map = input_map(&["/abs/path/a.tsx", "/abs/path/b.tsx"], &[None, None]);
-
-  backfill_source_contents(&mut map, OURS, AUTHORED);
-
-  assert_eq!(contents_of(&map), vec![None, None]);
-}
-
-#[test]
-fn backfill_leaves_populated_neighbours_alone() {
-  let mut map = input_map(&["/abs/path/other.tsx", OURS], &[Some("// other\n"), None]);
-
-  backfill_source_contents(&mut map, OURS, AUTHORED);
-
-  assert_eq!(
-    contents_of(&map),
-    vec![Some("// other\n".to_string()), Some(AUTHORED.to_string())]
-  );
-}
-
-#[test]
-fn backfill_handles_a_map_with_no_sources() {
+fn clear_source_contents_handles_a_map_with_no_sources() {
   let mut map = input_map(&[], &[]);
 
-  backfill_source_contents(&mut map, OURS, AUTHORED);
+  clear_source_contents(&mut map);
 
   assert!(contents_of(&map).is_empty());
 }
 
 #[test]
-fn backfill_preserves_empty_string_content() {
-  // An empty source file is legitimately empty content, not a missing entry.
-  let mut map = input_map(&[OURS], &[Some("")]);
+fn clear_source_contents_removes_every_populated_entry() {
+  let mut map = input_map(
+    &["/abs/path/a.tsx", "/abs/path/b.tsx"],
+    &[Some("// a\n"), Some("")],
+  );
 
-  backfill_source_contents(&mut map, OURS, AUTHORED);
+  clear_source_contents(&mut map);
 
-  assert_eq!(contents_of(&map), vec![Some(String::new())]);
-}
-
-#[test]
-fn backfill_is_idempotent() {
-  let mut map = input_map(&[OURS], &[None]);
-
-  backfill_source_contents(&mut map, OURS, AUTHORED);
-  backfill_source_contents(&mut map, OURS, "// different\n");
-
-  assert_eq!(contents_of(&map), vec![Some(AUTHORED.to_string())]);
+  assert_eq!(contents_of(&map), vec![None, None]);
 }

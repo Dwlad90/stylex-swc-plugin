@@ -1,5 +1,5 @@
 // End-to-end coverage for the source-map shape the compiler emits. The Rust
-// unit tests cover flag resolution and the `sourcesContent` backfill in
+// unit tests cover flag resolution and `sourcesContent` removal in
 // isolation; these assert the values actually survive the napi boundary and
 // reach the serialized map.
 import { expect, test } from 'vitest';
@@ -139,13 +139,14 @@ test('columns are emitted by default and collapse when turned off', () => {
 
 // ── chaining onto an input source map ───────────────────────────────
 // `SourceMap::build_source_map_with_config` returns the *input* map with
-// adjusted mappings and skips inlining entirely when chaining, so the authored
-// text has to be seeded into the input map before printing.
+// adjusted mappings, including any source text supplied by earlier tooling.
 
-test('a chained map without sourcesContent gets the authored text backfilled', () => {
+test('a chained map does not synthesize missing upstream source text', () => {
   const map = compile({ inputSourceMap: upstreamMap() });
 
-  expect(map.sourcesContent).toStrictEqual([FIXTURE]);
+  // The compiler only has the generated loader input. Attaching it to an
+  // earlier authored source would produce a plausible but incorrect map.
+  expect('sourcesContent' in map).toBe(false);
 });
 
 test('a chained map keeps the upstream text when it already has some', () => {
@@ -158,44 +159,10 @@ test('a chained map keeps the upstream text when it already has some', () => {
 
 test('inlineSourcesContent: false is honoured on the chained path too', () => {
   const map = compile({
-    inputSourceMap: upstreamMap(),
+    inputSourceMap: upstreamMap({ sourcesContent: ['// private source\n'] }),
     inlineSourcesContent: false,
   });
 
-  expect(map.sourcesContent ?? []).not.toContain(FIXTURE);
-});
-
-test('a chained map whose sources spell the path differently is still filled', () => {
-  // Single-source maps are unambiguously ours regardless of path spelling.
-  const map = compile({
-    inputSourceMap: upstreamMap({ sources: ['webpack://app/./page.tsx'] }),
-  });
-
-  expect(map.sourcesContent).toStrictEqual([FIXTURE]);
-});
-
-test('a multi-source chained map only gets its matching entry filled', () => {
-  const map = compile({
-    inputSourceMap: upstreamMap({
-      sources: ['/abs/path/other.tsx', FILENAME],
-      sourcesContent: [null, null],
-    }),
-  });
-
-  expect(map.sourcesContent).toStrictEqual([null, FIXTURE]);
-});
-
-test('a multi-source chained map with no matching entry is left alone', () => {
-  const map = compile({
-    inputSourceMap: upstreamMap({
-      sources: ['/abs/path/a.tsx', '/abs/path/b.tsx'],
-      sourcesContent: [null, null],
-    }),
-  });
-
-  // With several sources and no path match there is no way to tell which entry
-  // the authored text belongs to, so nothing is filled — and an all-null
-  // `sourcesContent` is dropped on serialization.
   expect('sourcesContent' in map).toBe(false);
 });
 

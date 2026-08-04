@@ -3,7 +3,7 @@
   "oxc.configPath": ".oxlintrc.jsonc",
   "editor.defaultFormatter": "oxc.oxc-vscode",
   "editor.formatOnSave": true,
-  "javascript.validate.enable": false,
+  "js/ts.validate.enable": true,
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer"
   },
@@ -47,7 +47,7 @@
     "CLAUDE.md": true
   },
   "git.ignoreLimitWarning": true,
-  "typescript.tsdk": "node_modules/typescript/lib",
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
   "[javascript]": {
     "editor.defaultFormatter": "oxc.oxc-vscode"
   }

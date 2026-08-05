@@ -224,6 +224,57 @@ jobs:
         uses: ./.github/actions/turbo-save
         with:
           cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+  # aarch64-unknown-linux-gnu is published on every release but was never
+  # executed anywhere in CI — it is cross-built in Docker on an x64 host and had
+  # no test or benchmark leg, so nothing ever loaded the binary we ship.
+  # (aarch64-pc-windows-msvc is still uncovered: no ARM64 Windows runner.)
+  test-linux-arm64-gnu-binding:
+    name: 🧪 Test bindings on Linux-arm64-gnu - node@${{ matrix.node }}
+    needs:
+      - build
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - target: aarch64-unknown-linux-gnu
+        node:
+          - '22.22.1'
+          - '24.18.0'
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          setup-rust: 'false'
+          node-version: ${{ matrix.node }}
+          install-recursive: 'false'
+          frozen-lockfile: 'false'
+      - name: Cache turbo build setup
+        id: turbo-cache
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: npm-test-bindings-${{ matrix.settings.target }}-node-${{ matrix.node }}
+          restore-cache-scope: npm-build-${{ matrix.settings.target }}
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: bindings-${{ matrix.settings.target }}
+          path: crates/stylex-rs-compiler/dist
+      - name: List artifacts
+        run: ls -R crates/stylex-rs-compiler/dist
+        shell: bash
+      - name: Test bindings
+        run: |
+          docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "
+            npm install -g pnpm@11.20.0 &&
+            pnpm run test --filter @stylexswc/rs-compiler --only
+          "
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
   test-linux-x64-musl-binding:
     name: 🧪 Test bindings on x86_64-unknown-linux-musl - node@${{ matrix.node }}
     needs:
@@ -298,9 +349,10 @@ jobs:
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             architecture: x64
+        # One Node version only. The compiler is Rust behind NAPI and the JS
+        # layer is a thin wrapper, so a second version measures V8 rather than
+        # our code. Node compatibility is covered by the test-*-binding jobs.
         node:
-          # - '20.18.1' - pnpm 11 is not compatible with Node.js 20.
-          - '22.22.1'
           - '24.18.0'
     runs-on: ${{ matrix.settings.host }}
     permissions:
@@ -332,38 +384,65 @@ jobs:
         with:
           name: bindings-${{ matrix.settings.target }}
           path: crates/stylex-rs-compiler/dist
-      - name: Download previous benchmark data
-        uses: actions/cache@v6
-        with:
-          path: ./cache
-          key: ${{ matrix.settings.target }}-benchmark-${{ matrix.node }}
-          restore-keys: |
-            ${{ matrix.settings.target }}-benchmark-${{ matrix.node }}-
-            ${{ matrix.settings.target }}-benchmark-${{ matrix.node }}
-            ${{ matrix.settings.target }}-benchmark-
-            ${{ matrix.settings.target }}-benchmark
       - name: Run benchmarks
         run: pnpm run bench --filter @stylexswc/rs-compiler --only
+      # Release-to-release history, stored in the `benchmarks` branch rather than
+      # an Actions cache. release.yml dispatches this workflow with `--ref
+      # <version>`, so it only ever runs on a tag, and caches are ref-scoped: a
+      # tag run can write only into its own tag's scope, which no later release
+      # could ever read. A branch is readable and writable from any ref, so each
+      # release appends to the same series.
+      #
+      # Only releases ever write under dev/bench/releases. PR history is kept
+      # entirely separate, in the Actions cache written by the benchmark job in
+      # pr-validation.yml, so the two series are never compared against each
+      # other. Do not point the PR job at this branch.
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
         with:
-          tool: 'benchmarkjs'
-          output-file-path: 'crates/stylex-rs-compiler/benchmark/results/output.txt'
-          external-data-json-path: './cache/benchmark-data.json'
-          fail-on-alert: true
+          tool: 'customSmallerIsBetter'
+          output-file-path: 'crates/stylex-rs-compiler/benchmark/results/output.json'
+          gh-pages-branch: 'benchmarks'
+          # Setting gh-repository makes the action clone the repo and commit the
+          # data there, instead of pulling `benchmarks` into this tag's working
+          # tree — which cannot work, since the branch shares no history with it.
+          #
+          # This is a URL *without* a scheme, not an owner/repo slug: the action
+          # builds the remote as `https://x-access-token:<token>@<this>.git`, so
+          # the host must be included.
+          gh-repository: github.com/${{ github.repository }}
+          # Node version stays in the path even though the matrix pins one: if a
+          # second version is ever added back, two legs would otherwise write the
+          # same series and interleave unrelated measurements.
+          benchmark-data-dir-path: >-
+            dev/bench/releases/${{ matrix.settings.target }}/node-${{ matrix.node }}
+          auto-push: true
+          # Only the least noisy target gates the release. Hosted macOS and
+          # Windows runners drift enough between runs that failing on them would
+          # block shipping on runner variance; they still record their own series
+          # and comment, so a platform-specific regression stays visible.
+          fail-on-alert: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }}
           comment-on-alert: true
           alert-comment-cc-users: '@Dwlad90'
           summary-always: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          alert-threshold: '150%'
+          # 125% on the gated leg sits just above its measured cross-run drift
+          # (~16%), so a warning carries information; 150% on the informational
+          # legs keeps the noisier runners from crying wolf. fail-threshold only
+          # bites where fail-on-alert is enabled, and the action requires
+          # alert-threshold <= fail-threshold on every leg.
+          #
+          # These are starting points derived from a single synthetic run per leg.
+          # Re-derive them after ~5-10 real releases: measure the spread of the
+          # same code across runs and set alert near its p99.
+          alert-threshold: >-
+            ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' && '125%' || '150%' }}
           fail-threshold: '175%'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Save turbo build cache
-        if: always()
-        uses: ./.github/actions/turbo-save
-        with:
-          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+      # No turbo-save here: the key embeds the commit SHA and lands in this tag's
+      # cache scope, so nothing can ever restore it — it was writing ~4 MB per
+      # matrix leg that only added pressure to the repo's cache budget.
   publish:
     name: 📦 Publish
     runs-on: ubuntu-latest
@@ -377,6 +456,7 @@ jobs:
       - benchmark
       - test-macOS-windows-binding
       - test-linux-x64-gnu-binding
+      - test-linux-arm64-gnu-binding
       - test-linux-x64-musl-binding
     steps:
       - uses: actions/checkout@v7.0.1

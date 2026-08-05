@@ -88,6 +88,21 @@ interface BenchmarkStats {
   samples: number;
   median: string;
   p95: string;
+  medianMs: number;
+  p95Ms: number;
+}
+
+/**
+ * One entry of the JSON consumed by `benchmark-action/github-action-benchmark`
+ * with `tool: 'customSmallerIsBetter'`, whose schema is
+ * `{ name, value, unit, range?, extra? }`.
+ */
+interface BenchmarkEntry {
+  name: string;
+  value: number;
+  unit: string;
+  range: string;
+  extra: string;
 }
 
 function getBenchmarkStats(task: Task): BenchmarkStats {
@@ -102,6 +117,9 @@ function getBenchmarkStats(task: Task): BenchmarkStats {
     throw new Error(`❌ ${name}: No results`);
   }
 
+  const medianMs = result.latency.p50;
+  const p95Ms = percentile(result.latency.samples, 95);
+
   return {
     name,
     opsPerSec: result.throughput.mean.toLocaleString('en-US', {
@@ -109,26 +127,41 @@ function getBenchmarkStats(task: Task): BenchmarkStats {
     }),
     rme: result.latency.rme.toFixed(2),
     samples: result.latency.samplesCount,
-    median: formatLatency(result.latency.p50),
-    p95: formatLatency(percentile(result.latency.samples, 95)),
+    median: formatLatency(medianMs),
+    p95: formatLatency(p95Ms),
+    medianMs,
+    p95Ms,
   };
 }
 
 /**
- * Strict Benchmark.js-compatible single-line summary.
+ * Median latency, which is what CI compares against previous runs.
  *
- * Required by `benchmark-action/github-action-benchmark` with
- * `tool: 'benchmarkjs'`, whose parser regex is:
- *   /^(.+) x ([0-9,.]+) ops\/sec ±([0-9.]+)% \((\d+) runs? sampled\)$/
+ * Median rather than mean throughput: the mean is pulled around by a single
+ * slow sample, and CI runs on shared runners where that happens. p50 over
+ * retained samples is the robust statistic, and tinybench already computes it.
  *
- * Any deviation (e.g. `:` instead of ` x `, extra median/p95 fields, or
- * `0 runs sampled`) makes the action skip the line and ultimately fail with
- * "No benchmark result was found in <output.txt>". This is the format the
- * GitHub Action consumes; do not change it without updating the workflow.
+ * `range`/`extra` are display-only — the action compares `value` alone.
  */
-function formatBenchmarkjsLine(stats: BenchmarkStats): string {
+function toBenchmarkEntry(stats: BenchmarkStats): BenchmarkEntry {
   const samples = stats.samples > 0 ? stats.samples : 1;
-  return `${stats.name} x ${stats.opsPerSec} ops/sec ±${stats.rme}% (${samples} runs sampled)`;
+
+  // A non-finite median would serialise to `null` and the action coerces that to
+  // 0 ms — recorded as an impossibly fast run, which then makes the *next* run
+  // look infinitely slower. Fail loudly instead of poisoning the series.
+  if (!Number.isFinite(stats.medianMs) || stats.medianMs <= 0) {
+    throw new Error(
+      `❌ ${stats.name}: median latency is not a positive number (${stats.medianMs})`
+    );
+  }
+
+  return {
+    name: stats.name,
+    value: Number(stats.medianMs.toFixed(6)),
+    unit: 'ms',
+    range: `±${stats.rme}%`,
+    extra: `p95 ${stats.p95} | ${stats.opsPerSec} ops/sec | ${samples} samples`,
+  };
 }
 
 function formatBenchmarkSummary(task: Task): string {
@@ -244,7 +277,7 @@ async function runBenchmarks() {
   const benches = [benchRegular, benchPerformance, benchLotsOfStyles];
   const benchesExtendedOutputs: string[] = [];
   const benchesOutputs: string[] = [];
-  const benchmarkjsLines: string[] = [];
+  const benchmarkEntries: BenchmarkEntry[] = [];
 
   console.log(chalk.bold('🚀 Running StyleX benchmarks...\n'));
 
@@ -273,7 +306,7 @@ async function runBenchmarks() {
 
     bench.tasks.forEach(task => {
       benchesExtendedOutputs.push(formatBenchmarkSummary(task));
-      benchmarkjsLines.push(formatBenchmarkjsLine(getBenchmarkStats(task)));
+      benchmarkEntries.push(toBenchmarkEntry(getBenchmarkStats(task)));
     });
 
     benchesOutputs.push(...bench.tasks.map(formatBenchmarkSummary));
@@ -283,18 +316,19 @@ async function runBenchmarks() {
   benchesExtendedOutputs.push(chalk.bold.green('✓ All benchmarks completed successfully!\n'));
 
   const extendedOutput = benchesExtendedOutputs.join('\n');
-  const outputPath = path.join(resultsDir, 'output.txt');
+  const outputPath = path.join(resultsDir, 'output.json');
   const extendedOutputPath = path.join(resultsDir, 'output-extended.txt');
 
   console.log(extendedOutput);
 
-  // `output.txt` MUST be in strict Benchmark.js format — it is consumed by
-  // benchmark-action/github-action-benchmark (tool: 'benchmarkjs') in CI.
-  // Human-readable extended output (median/p95) is written separately.
-  fs.writeFileSync(outputPath, benchmarkjsLines.join('\n') + '\n', 'utf8');
+  // `output.json` is consumed by benchmark-action/github-action-benchmark with
+  // `tool: 'customSmallerIsBetter'`; keep it in sync with `output-file-path` in
+  // .github/workflows/npm.yml and .github/workflows/pr-validation.yml.
+  // Human-readable output (median/p95/ops per sec) is written separately.
+  fs.writeFileSync(outputPath, `${JSON.stringify(benchmarkEntries, null, 2)}\n`, 'utf8');
   fs.writeFileSync(extendedOutputPath, benchesOutputs.join('\n') + '\n', 'utf8');
 
-  console.log(`\n${chalk.green(`📊 Benchmark results (benchmarkjs) saved to ${outputPath}`)}`);
+  console.log(`\n${chalk.green(`📊 Benchmark results (median latency) saved to ${outputPath}`)}`);
   console.log(chalk.green(`📊 Extended results saved to ${extendedOutputPath}`));
 }
 

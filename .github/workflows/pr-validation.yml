@@ -309,10 +309,26 @@ jobs:
       - basic-checks
     runs-on: ubuntu-24.04-arm
     permissions:
+      # Alerts are posted as a PR review, which needs pull-requests: write —
+      # without it the action 403s and fails the job on top of the real alert.
+      # contents stays read: this job runs PR-authored code and must not be able
+      # to write to the repository.
       contents: read
+      pull-requests: write
     env:
+      # PR-side benchmark history, deliberately kept separate from the
+      # release-to-release history in npm.yml (which lives in the `benchmarks`
+      # branch under dev/bench/releases). The `benchmark-pr-` namespace exists so
+      # no release-side key can ever prefix-match the fallbacks below: PRs are
+      # only ever compared against develop and other PRs, never against a release.
+      # `median` is the metric version. The action matches previous results by
+      # bench name only, with no unit check, and cannot convert ops/sec to ms —
+      # so old `benchmarkjs` entries would be compared against median latency and
+      # report a ~3272x regression. Bump this segment on any metric/unit change to
+      # start a fresh series instead of poisoning the old one.
+      BENCHMARK_CACHE_KEY_NAMESPACE: benchmark-pr-median-aarch64-unknown-linux-gnu-node24.18.0
       BENCHMARK_CACHE_KEY_PREFIX: >-
-        aarch64-unknown-linux-gnu-benchmark-${{
+        benchmark-pr-median-aarch64-unknown-linux-gnu-node24.18.0-${{
           github.event.pull_request.number != null
           && format('pr-{0}', github.event.pull_request.number)
           || github.ref_name
@@ -342,11 +358,17 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ./cache
-          key: ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-${{ github.run_attempt }}
+          key: ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-
-            aarch64-unknown-linux-gnu-benchmark-pr-
-            aarch64-unknown-linux-gnu-benchmark-
+            ${{ env.BENCHMARK_CACHE_KEY_NAMESPACE }}-develop-
+            ${{ env.BENCHMARK_CACHE_KEY_NAMESPACE }}-
+
+      - name: Report missing baseline
+        if: ${{ steps.benchmark-cache-restore.outputs.cache-matched-key == '' }}
+        run: |
+          echo "::warning::No PR-side benchmark baseline was restored; results" \
+            "are informational and alerts are disabled for this run."
 
       - name: Run benchmarks
         run: pnpm run bench --filter @stylexswc/rs-compiler
@@ -354,25 +376,44 @@ jobs:
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
         with:
-          tool: 'benchmarkjs'
-          output-file-path: 'crates/stylex-rs-compiler/benchmark/results/output.txt'
+          tool: 'customSmallerIsBetter'
+          output-file-path: 'crates/stylex-rs-compiler/benchmark/results/output.json'
           external-data-json-path: './cache/benchmark-data.json'
-          fail-on-alert: true
-          comment-on-alert: true
+          # An empty dataset has nothing to compare, so `true` would gate on a
+          # vacuous comparison and pass silently — which is how the release-side
+          # gate went unnoticed for six runs. Only alert when a baseline loaded.
+          fail-on-alert: ${{ steps.benchmark-cache-restore.outputs.cache-matched-key != '' }}
+          # Only comment where a comment can actually be posted. Outside a PR the
+          # action posts a commit comment instead, which needs contents: write —
+          # deliberately not granted above. Fork PRs always get a read-only token,
+          # so commenting is impossible there whatever this workflow requests.
+          # In both cases the alert still surfaces via the job summary and, when a
+          # baseline was restored, still fails the job.
+          comment-on-alert: >-
+            ${{ steps.benchmark-cache-restore.outputs.cache-matched-key != '' &&
+            github.event.pull_request.number != null &&
+            github.event.pull_request.head.repo.full_name == github.repository }}
           alert-comment-cc-users: '@Dwlad90'
           summary-always: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          alert-threshold: '150%'
-          fail-threshold: '175%'
+          # Stricter than the release gate on purpose: a false positive here costs
+          # a re-run, whereas on a release it blocks a shipment. Blocking belongs
+          # where iteration is cheap.
+          alert-threshold: '120%'
+          fail-threshold: '150%'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # The key must be unique per run. Keyed on run_attempt alone it resolved to
+      # `<prefix>-1` on every run, so after the first save every later one failed
+      # with "Unable to reserve cache" and the baseline stayed frozen at whatever
+      # the first run measured. restore-keys above picks the newest prefix match.
       - name: Save benchmark cache
         if: always()
         uses: actions/cache/save@v6
         with:
           path: ./cache
-          key: ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-${{ github.run_attempt }}
+          key: ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Save turbo build cache
         if: always()

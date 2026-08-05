@@ -24,11 +24,14 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: pnpm/action-setup@v4
+    # v6 runs on Node 24 (v4 forced the deprecated Node 20) and supports pnpm 11.
+    # No `version` input: with none set the action reads `packageManager` from the
+    # root package.json, so the pnpm version is pinned in one place. Setting both
+    # is only tolerated while they match exactly — once they drift, every job
+    # fails with "Multiple versions of pnpm specified".
+    - uses: pnpm/action-setup@v6.0.10
       name: Install pnpm
       id: pnpm-install
-      with:
-        version: 11.20.0
 
     - uses: actions/setup-node@v6
       if: ${{ inputs['node-architecture'] == '' }}

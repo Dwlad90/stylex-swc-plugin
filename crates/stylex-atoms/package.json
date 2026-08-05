@@ -1,14 +1,14 @@
 {
   "name": "@stylexswc/atoms",
   "description": "StyleX atoms for the StyleX SWC plugin",
-  "version": "0.18.3-rc.3",
+  "version": "0.18.3",
   "config": {
     "scripty": {
       "path": "../../scripts/packages"
     }
   },
   "devDependencies": {
-    "@stylexswc/constants": "0.18.3-rc.3",
+    "@stylexswc/constants": "0.18.3",
     "@taplo/cli": "^0.7.0",
     "npm-run-all2": "^9.0.3"
   },

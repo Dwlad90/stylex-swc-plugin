@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/regex",
   "description": "Compiled regex patterns for StyleX SWC plugin",
-  "version": "0.18.3-rc.3",
+  "version": "0.18.3",
   "private": true,
   "sideEffects": false,
   "files": [

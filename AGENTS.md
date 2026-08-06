@@ -39,6 +39,7 @@ Or run from the package directory without the `--filter` flag.
 ## Detailed Guidelines
 
 - [Scripts & Commands](./guidelines/SCRIPTS.md)
+- [Performance Policy](./guidelines/PERFORMANCE.md)
 - [Project Structure](./guidelines/STRUCTURE.md)
 - [Rust / SWC](./guidelines/stack/RUST.md)
 - [TypeScript / JS](./guidelines/stack/TYPESCRIPT.md)

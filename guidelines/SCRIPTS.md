@@ -1,52 +1,28 @@
 # Scripts
 
-Use `pnpm` (>=10) exclusively -- never npm, yarn, or bun. Requires Node >=20.
+Use `pnpm` (>=11) exclusively -- never npm, yarn, or bun. Requires Node >=22.
 
-## Root-Level Commands (Turbo)
+## Root (Turbo)
 
-These run across the entire monorepo via turbo:
+`pnpm build`, `test`, `lint`, `lint:check` (JSON report), `format`,
+`format:check` (oxfmt plus Rust/TOML), `test:visual`, `typecheck`.
 
-```sh
-pnpm build           # build all packages
-pnpm test            # run all tests
-pnpm lint            # lint all packages
-pnpm lint:check      # lint with JSON report output
-pnpm format          # format Node files (oxfmt) + Rust/TOML
-pnpm format:check    # check formatting without changes
-pnpm test:visual     # Playwright visual regression (all apps)
-pnpm typecheck       # TypeScript type checking
-```
+## Per-Package
 
-## Per-Package Commands
-
-Use `--filter` to target a specific package:
-
-```sh
-pnpm --filter=@stylexswc/<package-name> build
-pnpm --filter=@stylexswc/<package-name> test
-pnpm --filter=@stylexswc/<package-name> lint
-pnpm --filter=@stylexswc/<package-name> typecheck
-pnpm --filter=@stylexswc/<package-name> format
-pnpm --filter=@stylexswc/<package-name> format:check
-```
-
-Run a subset of tests matching a pattern:
-
-```sh
-pnpm --filter=@stylexswc/<package-name> test -- <pattern>
-```
+`pnpm --filter=@stylexswc/<pkg> <build|test|lint|typecheck|format|format:check>`;
+add `test -- <pattern>` to run matching tests.
 
 ## Dependencies
 
 ```sh
-pnpm install                                              # install all
-pnpm add --filter=@stylexswc/<package-name> <dep>         # add
-pnpm remove --filter=@stylexswc/<package-name> <dep>      # remove
+pnpm install                                # install all
+pnpm add --filter=@stylexswc/<pkg> <dep>    # add
+pnpm remove --filter=@stylexswc/<pkg> <dep> # remove
 ```
 
-## Per-Crate Rust Commands
+## Per-Crate Rust
 
-Run from within a crate directory (e.g., `crates/stylex-css`):
+From a crate directory (or the root with `-p <crate-name>`):
 
 ```sh
 cargo nextest run --all-features                          # tests (nextest)
@@ -57,45 +33,41 @@ cargo clippy --all-targets --all-features -- -D warnings  # lint
 cargo build --release                                     # release build
 ```
 
-Or run from the root directory with the `-p <crate-name>` flag.
+## Benchmarks
 
-## Coverage Commands
+In `crates/stylex-rs-compiler`; run `build` first (they use `dist/*.node`). All
+accept `--help`. Policy: [Performance](./PERFORMANCE.md).
 
-```sh
-# Workspace coverage (enforces 100% line coverage)
-pnpm run test:coverage:workspace
+| Script                                           | Does                                                               | Writes to `benchmark/results/`                            |
+| ------------------------------------------------ | ------------------------------------------------------------------ | --------------------------------------------------------- |
+| `bench`                                          | Historical run, 23 fixtures                                        | `output.json`, `output-extended.txt`, `raw-stats.v1.json` |
+| `bench:compare`                                  | Rust vs Babel                                                      | `compare-output.txt`                                      |
+| `bench:revisions --base <dir> --candidate <dir>` | Paired measurement                                                 | `revisions-raw-stats.v1.json`                             |
+| `bench:verdict --primary <raw-stats>`            | Ratios, bootstrap bound, one retry; exits 1 on a reproduced breach | `compare-revisions.verdict.v1.json`, `.summary.md`        |
+| `bench:budget`                                   | p95 vs `budget.json`                                               | `budget-report.v1.json`, `budget-report.md`               |
 
-# Per-crate coverage (from crate directory)
-pnpm run test:coverage
-```
+Subject dirs need `package.json`, `dist/index.js` exporting `transform`, and one
+`*.node`. Passing the same dir as base and candidate (with differing
+`--base-label`/`--candidate-label`) is a same-vs-same calibration run.
 
-### Finding uncovered lines
+Flags -- `bench:revisions`: `--rounds` (10), `--seed` (1), `--time` (1000 ms),
+repeatable `--category` (`transform|perf|rollup`) and `--fixture` substring.
+`bench:verdict`: `--warn` (1.10), `--fail` (1.20), `--improvement-warn` (0.50),
+`--seed` (1), `--resamples` (10000), `--confidence` (0.95), `--retry <path>`.
+`bench:budget`: `--report-only`.
 
-`test:coverage:workspace` only reports pass/fail percentages. When it fails, use
-`scripts/coverage-missing.sh` to print the exact `file: line` ranges that no
-test exercises, so you know precisely what needs a test.
+## Coverage
 
-```sh
-# Whole workspace (same crate excludes as test:coverage:workspace)
-scripts/coverage-missing.sh
-
-# Single crate — much faster while iterating on one module
-scripts/coverage-missing.sh stylex_css
-scripts/coverage-missing.sh -p stylex_css   # equivalent, explicit flag
-
-# Also emit an HTML report (and open it in a browser with --open)
-scripts/coverage-missing.sh stylex_css --html
-scripts/coverage-missing.sh stylex_css --open
-
-scripts/coverage-missing.sh --help
-```
-
-The uncovered `file: line` list is printed beneath the per-file table. The
-script exits `0` when every measured line is covered and `1` otherwise, so it
-doubles as a local gate. It requires the nightly toolchain plus `cargo-llvm-cov`
-and `cargo-nextest`:
+`pnpm run test:coverage:workspace` (enforces 100% line coverage) and
+`pnpm run test:coverage` (per crate) report only percentages;
+`scripts/coverage-missing.sh` prints uncovered `file: line` ranges and exits `1`
+when any measured line is uncovered.
 
 ```sh
-rustup toolchain install nightly
-cargo install cargo-llvm-cov cargo-nextest --locked
+scripts/coverage-missing.sh                     # whole workspace
+scripts/coverage-missing.sh stylex_css          # one crate (or -p stylex_css)
+scripts/coverage-missing.sh stylex_css --html   # add an HTML report
+scripts/coverage-missing.sh stylex_css --open   # ...and open it
 ```
+
+Requires nightly plus `cargo install cargo-llvm-cov cargo-nextest --locked`.

@@ -24,6 +24,14 @@ import { parseArgs } from 'node:util';
 
 import chalk from 'chalk';
 
+import {
+  appendStepSummary,
+  errorMessage,
+  escapeFailureMessage,
+  findArgument,
+  isMainModule,
+  writeArtifact,
+} from './lib/cli.js';
 import { createPairedBenchConfigs, createStylexOptions } from './lib/config.js';
 import { captureEnvironment } from './lib/env.js';
 import { loadAllFixtures } from './lib/fixtures.js';
@@ -215,18 +223,10 @@ function packageDirectoryFor(resolvedFrom: string): string {
 }
 
 function writeArtifacts(options: CliOptions, report: VerdictReport): void {
-  const outputPath = path.resolve(options.outputJson);
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-  fs.writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-
-  const summaryPath = path.resolve(options.summaryMarkdown);
-  fs.mkdirSync(path.dirname(summaryPath), { recursive: true });
-  fs.writeFileSync(summaryPath, renderVerdictMarkdown(report), 'utf8');
-
-  const stepSummary = process.env.GITHUB_STEP_SUMMARY;
-  if (stepSummary) {
-    fs.appendFileSync(stepSummary, `${renderVerdictMarkdown(report)}\n`, 'utf8');
-  }
+  const markdown = renderVerdictMarkdown(report);
+  writeArtifact(options.outputJson, `${JSON.stringify(report, null, 2)}\n`);
+  writeArtifact(options.summaryMarkdown, markdown);
+  appendStepSummary(markdown);
 }
 
 function printSummary(report: VerdictReport): void {
@@ -386,7 +386,7 @@ Exit codes:
 `);
 }
 
-if (isMainModule()) {
+if (isMainModule(import.meta.url)) {
   main()
     .then(code => {
       process.exitCode = code;
@@ -397,11 +397,6 @@ if (isMainModule()) {
       console.error(chalk.red('compare-revisions failed:'), error);
       process.exitCode = EXIT_FAILED;
     });
-}
-
-function isMainModule(): boolean {
-  const entry = process.argv[1];
-  return entry !== undefined && path.resolve(entry) === fileURLToPath(import.meta.url);
 }
 
 interface FailureArtifact {
@@ -420,39 +415,19 @@ function writeFailureArtifacts(argv: readonly string[], error: unknown): void {
   const artifact: FailureArtifact = {
     schemaVersion: VERDICT_SCHEMA_VERSION,
     suiteStatus: 'error',
-    error: { message: error instanceof Error ? error.message : String(error) },
+    error: { message: errorMessage(error) },
   };
   const markdown = `## Paired revision benchmark\n\nSuite status: **error**\n\n${escapeFailureMessage(artifact.error.message)}\n`;
 
   try {
     const resolvedOutput = path.resolve(outputJson);
-    fs.mkdirSync(path.dirname(resolvedOutput), { recursive: true });
-    fs.writeFileSync(resolvedOutput, `${JSON.stringify(artifact, null, 2)}\n`, 'utf8');
+    writeArtifact(resolvedOutput, `${JSON.stringify(artifact, null, 2)}\n`);
     const summaryPath =
       findArgument(argv, '--summary-md') ??
       path.join(path.dirname(resolvedOutput), 'compare-revisions.summary.md');
-    const resolvedSummary = path.resolve(summaryPath);
-    fs.mkdirSync(path.dirname(resolvedSummary), { recursive: true });
-    fs.writeFileSync(resolvedSummary, markdown, 'utf8');
-    if (process.env.GITHUB_STEP_SUMMARY) {
-      fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, markdown, 'utf8');
-    }
+    writeArtifact(summaryPath, markdown);
+    appendStepSummary(markdown);
   } catch (artifactError: unknown) {
     console.error(chalk.red('Failed to write verdict diagnostics:'), artifactError);
   }
-}
-
-function findArgument(argv: readonly string[], name: string): string | undefined {
-  const assignment = argv.find(argument => argument.startsWith(`${name}=`));
-  if (assignment !== undefined) return assignment.slice(name.length + 1) || undefined;
-  const index = argv.indexOf(name);
-  const value = index < 0 ? undefined : argv[index + 1];
-  return value?.startsWith('--') === true ? undefined : value;
-}
-
-function escapeFailureMessage(message: string): string {
-  return message
-    .replace(/\\/g, '\\\\')
-    .replace(/`/g, '\\`')
-    .replace(/\p{Cc}/gu, ' ');
 }

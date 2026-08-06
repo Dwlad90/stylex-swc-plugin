@@ -19,6 +19,7 @@
   "scripts": {
     "artifacts": "napi artifacts",
     "bench": "node --import tsx/esm benchmark/bench.ts",
+    "bench:budget": "node --import tsx/esm benchmark/check-budget.ts",
     "bench:compare": "node --import tsx/esm benchmark/bench-compare.ts",
     "bench:revisions": "node --import tsx/esm benchmark/bench-revisions.ts",
     "bench:verdict": "node --import tsx/esm benchmark/compare-revisions.ts",

@@ -24,7 +24,11 @@ export function captureEnvironment(options: CaptureEnvironmentOptions): RawStats
   const packageVersion = readJsonField(path.join(options.packageDir, 'package.json'), 'version');
   const rust = detectRustToolchain();
   const commit = detectCommit();
+  // GitHub exposes the image family as `ImageOS` (e.g. `ubuntu24`) and the
+  // exact build as `ImageVersion` (e.g. `20260803.1.0`). `RUNNER_IMAGE` is
+  // an optional override for self-hosted or containerised runs.
   const runnerImage = process.env.RUNNER_IMAGE || process.env.ImageOS || undefined;
+  const runnerImageVersion = process.env.ImageVersion || undefined;
 
   return {
     timestamp: new Date().toISOString(),
@@ -45,6 +49,7 @@ export function captureEnvironment(options: CaptureEnvironmentOptions): RawStats
     toolchain: rust ? { rust } : {},
     commit,
     runnerImage,
+    runnerImageVersion,
   };
 }
 

@@ -16,6 +16,7 @@
     "GITHUB_SHA",
     "GITHUB_STEP_SUMMARY",
     "ImageOS",
+    "ImageVersion",
     "RUNNER_IMAGE"
   ],
   "futureFlags": {

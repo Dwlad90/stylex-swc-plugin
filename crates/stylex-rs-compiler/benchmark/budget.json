@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "state": "pending-calibration",
+  "subject": "candidate",
+  "statistic": "median-of-round-p95",
+  "canonical": {
+    "target": "x86_64-unknown-linux-gnu",
+    "node": "v24.18.0",
+    "runner": "ubuntu-latest",
+    "runnerImages": ["ubuntu24"],
+    "runnerImageVersions": []
+  },
+  "policy": {
+    "seeding": "Seed every ceiling from at least 3 clean release-style runs on fresh hosted runners. Take a robust upper bound over the per-run median-of-round p95 values and multiply by a justified headroom factor. Never seed from a single run plus an arbitrary percentage.",
+    "increases": "A budget increase requires a dedicated reviewed change recording the affected benchmark, old and new ceilings, the repeated raw measurements, the cause and user impact, the alternatives considered, and why optimization or rollback is not appropriate.",
+    "decreases": "Ceilings may ratchet down to lock in a proven improvement once repeated measurements support the lower value.",
+    "automation": "No task, script, or workflow may write this file. A breach blocks the release; it never updates the budget.",
+    "environment": "Ceilings are only valid on the canonical target, Node version, runner image family, and — once enforced — the pinned ImageVersion builds recorded in runnerImageVersions. Any drift is an explicit recalibration failure, not a comparison. Record the ImageVersion of every seeding run here before switching state to enforced. CPU model varies on hosted runners and is reported as a diagnostic — spread the seeding runs across the models that appear."
+  },
+  "entries": []
+}

@@ -127,7 +127,14 @@ export interface RawStatsEnvironment {
     rust?: string;
   };
   commit?: string;
+  /** Runner image family, e.g. `ubuntu24` (`ImageOS`). */
   runnerImage?: string;
+  /**
+   * Exact runner image build, e.g. `20260803.1.0` (`ImageVersion`). The
+   * family stays stable while GitHub rebuilds the image underneath it, so
+   * the budget check pins this separately.
+   */
+  runnerImageVersion?: string;
 }
 
 export interface RawStatsFile {

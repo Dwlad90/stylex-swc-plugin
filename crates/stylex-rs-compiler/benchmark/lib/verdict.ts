@@ -14,6 +14,7 @@
  * verdict evaluation itself never re-measures.
  */
 
+import { escapeMarkdownCell } from './format.js';
 import { parseRawStats } from './raw-stats.js';
 import { bootstrapMedianRatio, ensureFinitePositive, median, roundRatios } from './stats.js';
 import type {
@@ -296,19 +297,7 @@ function sameSubject(actual: SubjectDescriptor | undefined, expected: SubjectDes
   );
 }
 
-/**
- * Markdown-safe cell escaping for `GITHUB_STEP_SUMMARY`. Pipe and
- * backticks would otherwise break the surrounding table; control
- * characters are stripped because they render as visible glyphs on
- * the GitHub UI.
- */
-export function escapeMarkdownCell(value: string): string {
-  return value
-    .replace(/\\/g, '\\\\')
-    .replace(/\|/g, '\\|')
-    .replace(/`/g, '\\`')
-    .replace(/\p{Cc}/gu, ' ');
-}
+export { escapeMarkdownCell } from './format.js';
 
 const STATUS_LABEL: Record<FixtureStatus, string> = {
   pass: 'pass',

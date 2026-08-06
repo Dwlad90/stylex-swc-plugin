@@ -1,4 +1,16 @@
 import {
+  assertUnique,
+  optionalString,
+  requireArray,
+  requireInteger,
+  requireNonNegativeInteger,
+  requireNonNegativeNumber,
+  requirePositiveInteger,
+  requirePositiveNumber,
+  requireRecord,
+  requireString,
+} from './json.js';
+import {
   RAW_STATS_SCHEMA_VERSION,
   type BootstrapConfig,
   type BootstrapInterval,
@@ -11,9 +23,20 @@ import {
   type SubjectDescriptor,
 } from './types.js';
 
-type JsonRecord = Record<string, unknown>;
+export interface ParseRawStatsOptions {
+  /**
+   * `pair` (default) is what the verdict engine needs: exactly one base
+   * and one candidate. `any` also accepts the single-subject files written
+   * by the historical `bench` run, which the budget check consumes.
+   */
+  subjects?: 'pair' | 'any';
+}
 
-export function parseRawStats(value: unknown, source: string): RawStatsFile {
+export function parseRawStats(
+  value: unknown,
+  source: string,
+  options: ParseRawStatsOptions = {}
+): RawStatsFile {
   const file = requireRecord(value, source);
   if (file.schemaVersion !== RAW_STATS_SCHEMA_VERSION) {
     throw new Error(
@@ -24,12 +47,15 @@ export function parseRawStats(value: unknown, source: string): RawStatsFile {
   const subjects = requireArray(file.subjects, `${source}.subjects`).map((subject, index) =>
     parseSubject(subject, `${source}.subjects[${index}]`)
   );
-  if (subjects.length !== 2) {
+  if (options.subjects === 'any') {
+    if (subjects.length === 0) throw new Error(`${source} must expose at least one subject`);
+  } else if (subjects.length !== 2) {
     throw new Error(`${source} must expose exactly two subjects`);
   }
-  if (subjects[0]?.label === subjects[1]?.label) {
-    throw new Error(`${source} subject labels must be unique`);
-  }
+  assertUnique(
+    subjects.map(subject => subject.label),
+    `${source} subject labels`
+  );
 
   const fixtures = requireArray(file.fixtures, `${source}.fixtures`).map((fixture, index) =>
     parseFixture(fixture, `${source}.fixtures[${index}]`, subjects)
@@ -68,6 +94,10 @@ function parseEnvironment(value: unknown, context: string): RawStatsEnvironment 
   const rust = optionalString(toolchain.rust, `${context}.toolchain.rust`);
   const commit = optionalString(environment.commit, `${context}.commit`);
   const runnerImage = optionalString(environment.runnerImage, `${context}.runnerImage`);
+  const runnerImageVersion = optionalString(
+    environment.runnerImageVersion,
+    `${context}.runnerImageVersion`
+  );
 
   return {
     timestamp: requireString(environment.timestamp, `${context}.timestamp`),
@@ -88,6 +118,7 @@ function parseEnvironment(value: unknown, context: string): RawStatsEnvironment 
     toolchain: rust === undefined ? {} : { rust },
     ...(commit === undefined ? {} : { commit }),
     ...(runnerImage === undefined ? {} : { runnerImage }),
+    ...(runnerImageVersion === undefined ? {} : { runnerImageVersion }),
   };
 }
 
@@ -215,69 +246,4 @@ function parseInterval(value: unknown, context: string): BootstrapInterval {
     lower: requirePositiveNumber(interval.lower, `${context}.lower`),
     upper: requirePositiveNumber(interval.upper, `${context}.upper`),
   };
-}
-
-function requireRecord(value: unknown, context: string): JsonRecord {
-  if (!isRecord(value)) {
-    throw new Error(`${context} must be an object`);
-  }
-  return value;
-}
-
-function isRecord(value: unknown): value is JsonRecord {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function requireArray(value: unknown, context: string): unknown[] {
-  if (!Array.isArray(value)) throw new Error(`${context} must be an array`);
-  return value;
-}
-
-function requireString(value: unknown, context: string): string {
-  if (typeof value !== 'string' || value.length === 0) {
-    throw new Error(`${context} must be a non-empty string`);
-  }
-  return value;
-}
-
-function optionalString(value: unknown, context: string): string | undefined {
-  if (value === undefined) return undefined;
-  return requireString(value, context);
-}
-
-function requirePositiveNumber(value: unknown, context: string): number {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-    throw new Error(`${context} must be a positive finite number`);
-  }
-  return value;
-}
-
-function requireNonNegativeNumber(value: unknown, context: string): number {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
-    throw new Error(`${context} must be a non-negative finite number`);
-  }
-  return value;
-}
-
-function requireInteger(value: unknown, context: string): number {
-  if (typeof value !== 'number' || !Number.isSafeInteger(value)) {
-    throw new Error(`${context} must be a safe integer`);
-  }
-  return value;
-}
-
-function requirePositiveInteger(value: unknown, context: string): number {
-  const integer = requireInteger(value, context);
-  if (integer <= 0) throw new Error(`${context} must be greater than zero`);
-  return integer;
-}
-
-function requireNonNegativeInteger(value: unknown, context: string): number {
-  const integer = requireInteger(value, context);
-  if (integer < 0) throw new Error(`${context} must not be negative`);
-  return integer;
-}
-
-function assertUnique(values: readonly string[], context: string): void {
-  if (new Set(values).size !== values.length) throw new Error(`${context} must be unique`);
 }

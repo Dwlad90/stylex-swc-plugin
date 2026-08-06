@@ -245,6 +245,9 @@ function readReleaseCommit() {
       url: `${REPO_URL}/commit/${id}`,
     };
   } catch (error) {
+    // `fail` terminates the process; the throw keeps the function's
+    // return type honest for callers and linters.
     fail(`Unable to read release commit metadata: ${error.message}`);
+    throw error;
   }
 }

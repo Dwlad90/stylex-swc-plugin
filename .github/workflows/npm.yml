@@ -503,6 +503,21 @@ jobs:
             --summary-md benchmark/results/compare-revisions.summary.md \
             --retry-output benchmark/results/revisions-retry-raw-stats.v1.json \
             --retry-seed 2
+      # Absolute p95 ceilings are only valid on the canonical target, so the
+      # budget runs on x86_64-unknown-linux-gnu alone. While budget.json is
+      # pending calibration this reports observations and never blocks; once
+      # ceilings are committed a breach fails this leg and, through the
+      # publish job's dependency on `benchmark`, blocks publication.
+      - name: Check absolute p95 budget (canonical target)
+        if:
+          ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' && !matrix.settings.container }}
+        shell: bash
+        run: |
+          pnpm run --filter=@stylexswc/rs-compiler bench:budget -- \
+            --raw benchmark/results/revisions-raw-stats.v1.json \
+            --budget benchmark/budget.json \
+            --output-json benchmark/results/budget-report.v1.json \
+            --summary-md benchmark/results/budget-report.md
       - name: Run historical bench for trend series (native runner)
         if: ${{ !matrix.settings.container }}
         shell: bash
@@ -620,6 +635,20 @@ jobs:
             crates/stylex-rs-compiler/benchmark/results/output.json
           if-no-files-found: error
           retention-days: 30
+      - name: Upload absolute budget report
+        if:
+          ${{ always() && matrix.settings.target == 'x86_64-unknown-linux-gnu' &&
+          !matrix.settings.container }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: paired-release-budget
+          path: |
+            crates/stylex-rs-compiler/benchmark/results/budget-report.v1.json
+            crates/stylex-rs-compiler/benchmark/results/budget-report.md
+          # The aggregation job requires this artifact, so an absent report
+          # blocks publication rather than passing unnoticed.
+          if-no-files-found: error
+          retention-days: 90
       - name: Upload paired release diagnostics
         if: always()
         uses: actions/upload-artifact@v7
@@ -653,6 +682,15 @@ jobs:
         with:
           pattern: paired-release-report-*
           path: aggregate/reports
+      - name: Download absolute budget report
+        uses: actions/download-artifact@v8
+        with:
+          name: paired-release-budget
+          path: aggregate/budget
+      - name: Validate absolute budget report
+        env:
+          BUDGET_REPORT: aggregate/budget/budget-report.v1.json
+        run: node .github/scripts/validate-budget-report.mjs
       - name: Checkout benchmarks branch
         uses: actions/checkout@v7.0.1
         with:

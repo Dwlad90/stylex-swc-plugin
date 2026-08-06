@@ -5,15 +5,51 @@ env:
   MACOSX_DEPLOYMENT_TARGET: '10.13'
   CARGO_INCREMENTAL: '1'
 permissions:
-  contents: write
+  contents: read
   id-token: write
-  actions: write
+  actions: read
 'on':
   workflow_call:
+    inputs:
+      release-ref:
+        description: 'Git ref (tag) that identifies the release candidate.'
+        required: true
+        type: string
+      candidate-version:
+        description: 'Version being published (matches release-ref for tag releases).'
+        required: true
+        type: string
+      previous-version:
+        description: 'Exact previous @stylexswc/rs-compiler version to use as benchmark baseline.'
+        required: true
+        type: string
+      dry-run:
+        description: 'When true, run every gate but skip npm publication.'
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
+    inputs:
+      release-ref:
+        description: 'Git ref (tag) that identifies the release candidate.'
+        required: true
+        type: string
+      candidate-version:
+        description: 'Version being published.'
+        required: true
+        type: string
+      previous-version:
+        description: 'Exact previous @stylexswc/rs-compiler version to use as benchmark baseline.'
+        required: true
+        type: string
+      dry-run:
+        description: 'When true, run every gate but skip npm publication.'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ inputs.release-ref }}
   cancel-in-progress: true
 
 jobs:
@@ -58,13 +94,15 @@ jobs:
               pnpm run build --filter @stylexswc/rs-compiler -- --target aarch64-unknown-linux-gnu
         node:
           - '24.18.0'
-    name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.settings.target }}
+    name: 🛠️ Build - ${{ matrix.settings.target }} - node@${{ matrix.node }}
     runs-on: ${{ matrix.settings.host }}
     steps:
       - name: Enable long path support
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
       - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.release-ref }}
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -108,6 +146,21 @@ jobs:
         uses: ./.github/actions/turbo-save
         with:
           cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+      - name: Record candidate artifact checksums
+        shell: bash
+        run: |
+          cd crates/stylex-rs-compiler/dist
+          {
+            echo "target=${{ matrix.settings.target }}"
+            echo "candidate_version=${{ inputs.candidate-version }}"
+            echo "release_ref=${{ inputs.release-ref }}"
+            echo "files:"
+            find . -type f \( -name '*.node' -o -name '*.js' -o -name '*.d.ts' \) -print | LC_ALL=C sort | while read -r file; do
+              sha=$(shasum -a 256 "$file" | cut -d ' ' -f 1)
+              echo "  ${file#./}: sha256=${sha}"
+            done
+          } > candidate-artifact-manifest.txt
+          cat candidate-artifact-manifest.txt
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
@@ -136,16 +189,16 @@ jobs:
             target: x86_64-apple-darwin
             architecture: x64
         node:
-          # - '20.18.1' - pnpm 11 is not compatible with Node.js 20.
           - '22.22.1'
           - '24.18.0'
-          #- '26.0.0' # Node.js 26 is not supported yet
     runs-on: ${{ matrix.settings.host }}
     steps:
       - name: Enable long path support
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
       - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.release-ref }}
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -185,13 +238,13 @@ jobs:
         settings:
           - target: x86_64-unknown-linux-gnu
         node:
-          # - '20.18.1' - pnpm 11 is not compatible with Node.js 20.
           - '22.22.1'
           - '24.18.0'
-          #- '26.0.0' # Node.js 26 is not supported yet
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.release-ref }}
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -224,10 +277,6 @@ jobs:
         uses: ./.github/actions/turbo-save
         with:
           cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
-  # aarch64-unknown-linux-gnu is published on every release but was never
-  # executed anywhere in CI — it is cross-built in Docker on an x64 host and had
-  # no test or benchmark leg, so nothing ever loaded the binary we ship.
-  # (aarch64-pc-windows-msvc is still uncovered: no ARM64 Windows runner.)
   test-linux-arm64-gnu-binding:
     name: 🧪 Test bindings on Linux-arm64-gnu - node@${{ matrix.node }}
     needs:
@@ -243,6 +292,8 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.release-ref }}
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -285,13 +336,13 @@ jobs:
         settings:
           - target: x86_64-unknown-linux-musl
         node:
-          # - '20.18.1' - pnpm 11 is not compatible with Node.js 20.
           - '22.22.1'
           - '24.18.0'
-          #- '26.0.0' # Node.js 26 is not supported yet
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.release-ref }}
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
@@ -325,8 +376,12 @@ jobs:
         uses: ./.github/actions/turbo-save
         with:
           cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+  # Paired release gate. Each leg compares the exact previous npm package with
+  # the candidate artifact built earlier in this workflow, in the same process
+  # on the same runner. Cross-run historical data is updated in the aggregate
+  # job only and is not the release verdict.
   benchmark:
-    name: 📊 Benchmark on ${{ matrix.settings.target }} - node@${{ matrix.node }}
+    name: 📊 Paired benchmark on ${{ matrix.settings.target }}
     needs:
       - build
     strategy:
@@ -336,113 +391,312 @@ jobs:
           - host: windows-latest
             target: x86_64-pc-windows-msvc
             architecture: x64
-          # Skip benchmarking for aarch64-pc-windows-msvc as ARM64 binaries cannot run on x64 Windows runners
-          # - host: windows-latest
-          #   target: aarch64-pc-windows-msvc
-          #   architecture: arm64
+            label: 'x86_64-pc-windows-msvc'
           - host: macos-latest
             target: aarch64-apple-darwin
             architecture: arm64
+            label: 'aarch64-apple-darwin'
           - host: macos-latest
             target: x86_64-apple-darwin
             architecture: x64
+            label: 'x86_64-apple-darwin (Rosetta)'
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             architecture: x64
-        # One Node version only. The compiler is Rust behind NAPI and the JS
-        # layer is a thin wrapper, so a second version measures V8 rather than
-        # our code. Node compatibility is covered by the test-*-binding jobs.
+            label: 'x86_64-unknown-linux-gnu'
+          - host: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            architecture: arm64
+            label: 'aarch64-unknown-linux-gnu'
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            architecture: x64
+            label: 'x86_64-unknown-linux-musl'
+            container: 'node:24.18.0-alpine'
         node:
           - '24.18.0'
     runs-on: ${{ matrix.settings.host }}
     permissions:
-      contents: write
-      pull-requests: write
-      repository-projects: write
+      contents: read
+    env:
+      BENCHMARK_SUBJECT_SCHEMA_VERSION: 1
+      PREVIOUS_VERSION: ${{ inputs.previous-version }}
+      CANDIDATE_VERSION: ${{ inputs.candidate-version }}
+      RELEASE_REF: ${{ inputs.release-ref }}
+      TARGET: ${{ matrix.settings.target }}
     steps:
       - name: Enable long path support
         run: git config --system core.longpaths true
         if: ${{ matrix.settings.host == 'windows-latest' }}
       - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.release-ref }}
       - name: Setup environment
+        if: ${{ !matrix.settings.container }}
         uses: ./.github/actions/setup
         with:
           setup-rust: 'false'
-          rust-target: ${{ matrix.settings.target }}
           node-version: ${{ matrix.node }}
           node-architecture: ${{ matrix.settings.architecture }}
           install-recursive: 'false'
           frozen-lockfile: 'false'
-      - name: Cache turbo build setup
-        id: turbo-cache
-        uses: ./.github/actions/turbo
-        with:
-          cache-scope: npm-benchmark-${{ matrix.settings.target }}-node-${{ matrix.node }}
-          restore-cache-scope: npm-build-${{ matrix.settings.target }}
-      - name: Download artifacts
+      - name: Download candidate artifact
         uses: actions/download-artifact@v8
         with:
           name: bindings-${{ matrix.settings.target }}
           path: crates/stylex-rs-compiler/dist
-      - name: Run benchmarks
-        run: pnpm run bench --filter @stylexswc/rs-compiler --only
-      # Release-to-release history, stored in the `benchmarks` branch rather than
-      # an Actions cache. release.yml dispatches this workflow with `--ref
-      # <version>`, so it only ever runs on a tag, and caches are ref-scoped: a
-      # tag run can write only into its own tag's scope, which no later release
-      # could ever read. A branch is readable and writable from any ref, so each
-      # release appends to the same series.
-      #
-      # Only releases ever write under dev/bench/releases. PR history is kept
-      # entirely separate, in the Actions cache written by the benchmark job in
-      # pr-validation.yml, so the two series are never compared against each
-      # other. Do not point the PR job at this branch.
-      - name: Store benchmark result
-        uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
-        with:
-          tool: 'customSmallerIsBetter'
-          output-file-path: 'crates/stylex-rs-compiler/benchmark/results/output.json'
-          gh-pages-branch: 'benchmarks'
-          # Setting gh-repository makes the action clone the repo and commit the
-          # data there, instead of pulling `benchmarks` into this tag's working
-          # tree — which cannot work, since the branch shares no history with it.
-          #
-          # This is a URL *without* a scheme, not an owner/repo slug: the action
-          # builds the remote as `https://x-access-token:<token>@<this>.git`, so
-          # the host must be included.
-          gh-repository: github.com/${{ github.repository }}
-          # Node version stays in the path even though the matrix pins one: if a
-          # second version is ever added back, two legs would otherwise write the
-          # same series and interleave unrelated measurements.
-          benchmark-data-dir-path: >-
-            dev/bench/releases/${{ matrix.settings.target }}/node-${{ matrix.node }}
-          auto-push: true
-          # Only the least noisy target gates the release. Hosted macOS and
-          # Windows runners drift enough between runs that failing on them would
-          # block shipping on runner variance; they still record their own series
-          # and comment, so a platform-specific regression stays visible.
-          fail-on-alert: ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' }}
-          comment-on-alert: true
-          alert-comment-cc-users: '@Dwlad90'
-          summary-always: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          # 125% on the gated leg sits just above its measured cross-run drift
-          # (~16%), so a warning carries information; 150% on the informational
-          # legs keeps the noisier runners from crying wolf. fail-threshold only
-          # bites where fail-on-alert is enabled, and the action requires
-          # alert-threshold <= fail-threshold on every leg.
-          #
-          # These are starting points derived from a single synthetic run per leg.
-          # Re-derive them after ~5-10 real releases: measure the spread of the
-          # same code across runs and set alert near its p99.
-          alert-threshold: >-
-            ${{ matrix.settings.target == 'x86_64-unknown-linux-gnu' && '125%' || '150%' }}
-          fail-threshold: '175%'
+      - name: Verify candidate artifact manifest
+        shell: bash
+        run: |
+          test -f crates/stylex-rs-compiler/dist/candidate-artifact-manifest.txt
+          test -f crates/stylex-rs-compiler/dist/index.js
+          native_count=$(find crates/stylex-rs-compiler/dist -maxdepth 1 -name '*.node' | wc -l)
+          if [ "$native_count" -ne 1 ]; then
+            echo "::error::Expected exactly one native binding, found $native_count"
+            exit 1
+          fi
+      - name: Install previous npm package (native runner)
+        if: ${{ !matrix.settings.container }}
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # No turbo-save here: the key embeds the commit SHA and lands in this tag's
-      # cache scope, so nothing can ever restore it — it was writing ~4 MB per
-      # matrix leg that only added pressure to the repo's cache budget.
+          BASE_DIR: ${{ runner.temp }}/stylex-base-npm
+        run: |
+          rm -rf "$BASE_DIR"
+          mkdir -p "$BASE_DIR"
+          cd "$BASE_DIR"
+          npm init -y >/dev/null
+          npm install "@stylexswc/rs-compiler@${PREVIOUS_VERSION}" --no-save --no-audit --no-fund --ignore-scripts
+          resolved=$(node -p "require('@stylexswc/rs-compiler/package.json').version")
+          if [ "$resolved" != "$PREVIOUS_VERSION" ]; then
+            echo "::error::Installed previous version '$resolved' does not match '$PREVIOUS_VERSION'"
+            exit 1
+          fi
+          pkg_dir="$BASE_DIR/node_modules/@stylexswc/rs-compiler"
+          # Loading the module forces napi's platform selector to resolve the
+          # correct optional dependency for $TARGET. A missing or wrong-triple
+          # binary throws here rather than silently passing the .node presence
+          # check that a mis-resolved optionalDependency would still satisfy.
+          if ! node -e "const m = require('@stylexswc/rs-compiler'); if (typeof m.transform !== 'function') process.exit(2);"; then
+            echo "::error::Previous package failed to load native binding for $TARGET"
+            find "$pkg_dir" -type f | head -50
+            exit 1
+          fi
+          echo "BASE_PACKAGE_DIR=$pkg_dir" >> "$GITHUB_ENV"
+      - name: Run paired revisions benchmark (native runner)
+        if: ${{ !matrix.settings.container }}
+        shell: bash
+        run: |
+          pnpm run --filter=@stylexswc/rs-compiler bench:revisions -- \
+            --base "$BASE_PACKAGE_DIR" \
+            --candidate "$GITHUB_WORKSPACE/crates/stylex-rs-compiler" \
+            --base-label "npm@${PREVIOUS_VERSION}" \
+            --candidate-label "candidate@${CANDIDATE_VERSION}" \
+            --rounds 10 \
+            --seed 1
+      - name: Evaluate paired verdict (native runner)
+        if: ${{ !matrix.settings.container }}
+        shell: bash
+        run: |
+          pnpm run --filter=@stylexswc/rs-compiler bench:verdict -- \
+            --primary benchmark/results/revisions-raw-stats.v1.json \
+            --output-json benchmark/results/compare-revisions.verdict.v1.json \
+            --summary-md benchmark/results/compare-revisions.summary.md \
+            --retry-output benchmark/results/revisions-retry-raw-stats.v1.json \
+            --retry-seed 2
+      - name: Run historical bench for trend series (native runner)
+        if: ${{ !matrix.settings.container }}
+        shell: bash
+        run: pnpm run --filter=@stylexswc/rs-compiler bench
+      - name: Run paired benchmark inside musl container
+        if: ${{ matrix.settings.container }}
+        shell: bash
+        env:
+          IMAGE: ${{ matrix.settings.container }}
+        run: |
+          docker run --rm -e CI=true \
+            -e PREVIOUS_VERSION -e CANDIDATE_VERSION -e RELEASE_REF -e TARGET \
+            -v $(pwd):/build -w /build "$IMAGE" sh -eu -c '
+              apk add --no-cache git bash >/dev/null
+              npm install -g pnpm@11.20.0 >/dev/null
+              pnpm install --frozen-lockfile
+              base_dir=/tmp/stylex-base-npm
+              rm -rf "$base_dir"
+              mkdir -p "$base_dir"
+              cd "$base_dir"
+              npm init -y >/dev/null
+              npm install "@stylexswc/rs-compiler@${PREVIOUS_VERSION}" --no-save --no-audit --no-fund --ignore-scripts
+              resolved=$(node -p "require(\"@stylexswc/rs-compiler/package.json\").version")
+              if [ "$resolved" != "$PREVIOUS_VERSION" ]; then
+                echo "Installed previous version $resolved does not match $PREVIOUS_VERSION"
+                exit 1
+              fi
+              pkg_dir="$base_dir/node_modules/@stylexswc/rs-compiler"
+              if ! node -e "const m = require(\"@stylexswc/rs-compiler\"); if (typeof m.transform !== \"function\") process.exit(2);"; then
+                echo "Previous package failed to load native binding for $TARGET"
+                find "$pkg_dir" -type f | head -50
+                exit 1
+              fi
+              cd /build
+              pnpm run --filter=@stylexswc/rs-compiler bench:revisions -- \
+                --base "$pkg_dir" \
+                --candidate /build/crates/stylex-rs-compiler \
+                --base-label "npm@${PREVIOUS_VERSION}" \
+                --candidate-label "candidate@${CANDIDATE_VERSION}" \
+                --rounds 10 \
+                --seed 1
+              pnpm run --filter=@stylexswc/rs-compiler bench:verdict -- \
+                --primary benchmark/results/revisions-raw-stats.v1.json \
+                --output-json benchmark/results/compare-revisions.verdict.v1.json \
+                --summary-md benchmark/results/compare-revisions.summary.md \
+                --retry-output benchmark/results/revisions-retry-raw-stats.v1.json \
+                --retry-seed 2
+              pnpm run --filter=@stylexswc/rs-compiler bench
+            '
+      - name: Record benchmark identity and checksums
+        if: always()
+        shell: bash
+        env:
+          TARGET_LABEL: ${{ matrix.settings.label }}
+          NODE_VERSION: ${{ matrix.node }}
+          SUBJECT_SCHEMA_VERSION: '1'
+        run: |
+          set -eu
+          cd crates/stylex-rs-compiler
+          native_binary=$(find dist -maxdepth 1 -name '*.node' | head -n 1)
+          if [ -z "$native_binary" ]; then
+            echo "::error::No native binary in candidate dist"
+            exit 1
+          fi
+          NATIVE_SHA=$(shasum -a 256 "$native_binary" | cut -d ' ' -f 1)
+          NATIVE_BASENAME=$(basename "$native_binary")
+          export NATIVE_SHA NATIVE_BASENAME
+          mkdir -p benchmark/results
+          node -e "
+            const fs = require('fs');
+            const identity = {
+              schemaVersion: 1,
+              target: process.env.TARGET,
+              targetLabel: process.env.TARGET_LABEL,
+              node: process.env.NODE_VERSION,
+              releaseRef: process.env.RELEASE_REF,
+              candidateVersion: process.env.CANDIDATE_VERSION,
+              previousVersion: process.env.PREVIOUS_VERSION,
+              runId: process.env.GITHUB_RUN_ID,
+              nativeBinary: process.env.NATIVE_BASENAME,
+              nativeSha256: process.env.NATIVE_SHA,
+              subjectSchemaVersion: Number(process.env.SUBJECT_SCHEMA_VERSION),
+            };
+            fs.writeFileSync('benchmark/results/release-benchmark-identity.v1.json', JSON.stringify(identity, null, 2) + '\n');
+          "
+      - name: Prepare bounded artifacts
+        if: always()
+        shell: bash
+        run: |
+          cd crates/stylex-rs-compiler/benchmark/results
+          for required in revisions-raw-stats.v1.json compare-revisions.verdict.v1.json compare-revisions.summary.md release-benchmark-identity.v1.json; do
+            if [ ! -f "$required" ]; then
+              echo "::error::Missing required artifact: $required"
+              exit 1
+            fi
+          done
+          test "$(wc -c < compare-revisions.verdict.v1.json)" -le 1048576
+          test "$(wc -c < compare-revisions.summary.md)" -le 1048576
+          test "$(wc -c < release-benchmark-identity.v1.json)" -le 4096
+          raw_files=(revisions-raw-stats.v1.json)
+          if [ -f revisions-retry-raw-stats.v1.json ]; then
+            raw_files+=(revisions-retry-raw-stats.v1.json)
+          fi
+          tar -czf paired-release-raw.tar.gz "${raw_files[@]}"
+          test "$(wc -c < paired-release-raw.tar.gz)" -le 104857600
+      - name: Upload paired release report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: paired-release-report-${{ matrix.settings.target }}
+          path: |
+            crates/stylex-rs-compiler/benchmark/results/compare-revisions.verdict.v1.json
+            crates/stylex-rs-compiler/benchmark/results/compare-revisions.summary.md
+            crates/stylex-rs-compiler/benchmark/results/release-benchmark-identity.v1.json
+            crates/stylex-rs-compiler/benchmark/results/output.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload paired release diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: paired-release-raw-${{ matrix.settings.target }}
+          path: crates/stylex-rs-compiler/benchmark/results/paired-release-raw.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+  # One dependent aggregation job. Validates every runnable target reported
+  # exactly once, fails on any missing or failed verdict, writes the combined
+  # summary, and performs one commit to the `benchmarks` branch. Matrix jobs
+  # have no write permission, so no concurrent non-fast-forward pushes can
+  # occur.
+  benchmark-aggregate:
+    name: 📊 Aggregate paired release verdicts
+    needs:
+      - benchmark
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      EXPECTED_TARGETS: >-
+        x86_64-pc-windows-msvc,aarch64-apple-darwin,x86_64-apple-darwin,x86_64-unknown-linux-gnu,aarch64-unknown-linux-gnu,x86_64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.release-ref }}
+      - name: Download all release reports
+        uses: actions/download-artifact@v8
+        with:
+          pattern: paired-release-report-*
+          path: aggregate/reports
+      - name: Checkout benchmarks branch
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: benchmarks
+          path: aggregate/pages
+          fetch-depth: 1
+      - name: Aggregate release verdicts and update history
+        env:
+          REPORTS_DIR: aggregate/reports
+          PAGES_DIR: aggregate/pages
+          NODE_VERSION: '24.18.0'
+          REPO_URL: https://github.com/${{ github.repository }}
+          RELEASE_REF: ${{ inputs.release-ref }}
+          CANDIDATE_VERSION: ${{ inputs.candidate-version }}
+          PREVIOUS_VERSION: ${{ inputs.previous-version }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: node .github/scripts/aggregate-release-benchmarks.mjs
+      - name: Publish combined summary
+        run: cat aggregate/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Push updated history
+        working-directory: aggregate/pages
+        env:
+          RELEASE_REF: ${{ inputs.release-ref }}
+        run: |
+          if git diff --quiet; then
+            echo "No history changes to push"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore(benchmarks): record ${RELEASE_REF} release results"
+          git push origin benchmarks
+      - name: Upload aggregate summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: paired-release-aggregate
+          path: |
+            aggregate/summary.md
+            aggregate/summary.json
+          if-no-files-found: error
+          retention-days: 90
   publish:
     name: 📦 Publish
     runs-on: ubuntu-latest
@@ -454,12 +708,15 @@ jobs:
     needs:
       - build
       - benchmark
+      - benchmark-aggregate
       - test-macOS-windows-binding
       - test-linux-x64-gnu-binding
       - test-linux-arm64-gnu-binding
       - test-linux-x64-musl-binding
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.release-ref }}
       - name: Setup pnpm
         uses: ./.github/actions/setup-pnpm
       - name: Cache turbo build setup
@@ -473,6 +730,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: crates/stylex-rs-compiler/artifacts
+      - name: Verify candidate artifact checksums against benchmark identities
+        env:
+          ARTIFACTS_DIR: crates/stylex-rs-compiler/artifacts
+        run: node .github/scripts/verify-release-artifacts.mjs
       - name: Move artifacts
         run: pnpm exec turbo run artifacts --filter @stylexswc/rs-compiler --continue
       - name: Move and list artifacts
@@ -494,11 +755,16 @@ jobs:
         uses: ./.github/actions/turbo-save
         with:
           cache-key: ${{ steps.turbo-cache-build-public-packages.outputs.cache-key }}
-      - name: Publish
+      - name: Publish (dry-run)
+        if: ${{ inputs.dry-run }}
         run: |
-          if [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::notice::Dry-run mode: skipping npm publish. All gates passed."
+      - name: Publish
+        if: ${{ !inputs.dry-run }}
+        run: |
+          if [[ "${{ inputs.release-ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+$ ]] || [[ "${{ inputs.release-ref }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             pnpm publish -r --access public --no-git-checks --report-summary
-          elif [[ "${{ github.ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+-.*$ ]]; then
+          elif [[ "${{ inputs.release-ref }}" =~ ^refs/tags/[0-9]+\.[0-9]+\.[0-9]+-.*$ ]] || [[ "${{ inputs.release-ref }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-.*$ ]]; then
             NPM_CONFIG_TAG=next pnpm publish -r --tag next --access public --no-git-checks --report-summary
             git diff
             cat ./pnpm-publish-summary.json
@@ -515,7 +781,7 @@ jobs:
     steps:
       - name: 🧹 Cleanup Caches
         run: |
-          REF="${{ github.ref }}"
+          REF="${{ inputs.release-ref }}"
 
           run_id=$(gh workflow run cleanup.yaml \
             --ref $REF \

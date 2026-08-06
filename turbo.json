@@ -11,6 +11,8 @@
   "globalEnv": ["NODE_ENV", "PORT", "STYLEX_DEBUG"],
   "globalPassThroughEnv": [
     "CI_COMMIT_SHA",
+    "EXPECTED_TARGETS",
+    "GITHUB_ACTOR",
     "GITHUB_SHA",
     "GITHUB_STEP_SUMMARY",
     "ImageOS",

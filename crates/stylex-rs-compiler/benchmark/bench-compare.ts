@@ -3,6 +3,12 @@
  * `@stylexjs/babel-plugin` (Babel) on identical fixtures with identical
  * options.
  *
+ * Phase 2 will replace the hard-coded `{rust, babel}` split with a
+ * subject-parameterized comparer built directly on `lib/subjects.ts`.
+ * Until then this entry point stays two-compiler-specific but runs
+ * through the shared runner so subject scheduling, fixture loading, and
+ * sample extraction match the historical entry point.
+ *
  * Usage:
  *   pnpm bench:compare                     # both compilers, comparison table
  *   pnpm bench:compare --compiler rust     # only the Rust compiler
@@ -11,20 +17,24 @@
  *   pnpm bench:compare --time 2000         # time budget per task in ms
  */
 
-import fs from 'fs';
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import os from 'os';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 import * as babel from '@babel/core';
 import stylexBabelPluginModule from '@stylexjs/babel-plugin';
 import chalk from 'chalk';
-import { Bench, type BenchOptions, type Task, type TaskResultWithStatistics } from 'tinybench';
+import type { BenchOptions } from 'tinybench';
 
-import { transform } from '../dist/index.js';
 import type { StyleXOptions } from '../dist/index.js';
+import { captureEnvironment } from './lib/env.js';
+import { loadAllFixtures } from './lib/fixtures.js';
+import { formatLatency } from './lib/format.js';
+import { runRounds } from './lib/runner.js';
+import { createSubject, loadSubject, type LoadedSubject } from './lib/subjects.js';
+import type { FixtureRawStats, RawLatencySamples } from './lib/types.js';
 
 // Node's CJS interop hands back either the plugin itself or the module
 // namespace depending on the loader; unwrap `.default` when present.
@@ -89,90 +99,6 @@ const stylexOptions: StyleXOptions = {
   },
 };
 
-interface Fixture {
-  name: string;
-  filePath: string;
-  code: string;
-  /** Heavy fixtures run with a reduced iteration budget, matching bench.ts. */
-  heavy: boolean;
-}
-
-function loadFixture(name: string, relativePath: string, heavy = false): Fixture {
-  const filePath = path.join(workspaceRoot, relativePath);
-  return { name, filePath, code: fs.readFileSync(filePath, 'utf-8'), heavy };
-}
-
-const allFixtures: readonly Fixture[] = [
-  loadFixture('create-basic', 'crates/stylex-rs-compiler/benchmark/perf_fixtures/create-basic.js'),
-  loadFixture(
-    'create-complex',
-    'crates/stylex-rs-compiler/benchmark/perf_fixtures/create-complex.js'
-  ),
-  loadFixture(
-    'createTheme-basic',
-    'crates/stylex-rs-compiler/benchmark/perf_fixtures/createTheme-basic.js'
-  ),
-  loadFixture(
-    'createTheme-complex',
-    'crates/stylex-rs-compiler/benchmark/perf_fixtures/createTheme-complex.js'
-  ),
-  loadFixture(
-    'colors.stylex',
-    'crates/stylex-rs-compiler/benchmark/perf_fixtures/colors.stylex.js'
-  ),
-  loadFixture('lotsOfStyles', 'apps/rollup-large-example/lotsOfStyles.js', true),
-  loadFixture('lotsOfStylesDynamic', 'apps/rollup-large-example/lotsOfStylesDynamic.js', true),
-];
-
-const fixtureFilters = cliOptions.fixture ?? [];
-const fixtures = fixtureFilters.length
-  ? allFixtures.filter(fixture => fixtureFilters.some(filter => fixture.name.includes(filter)))
-  : allFixtures;
-
-if (fixtures.length === 0) {
-  console.error(chalk.red(`No fixtures match: ${fixtureFilters.join(', ')}`));
-  process.exit(1);
-}
-
-function transformWithRust(fixture: Fixture): number {
-  const { metadata } = transform(fixture.filePath, fixture.code, stylexOptions);
-  return metadata.stylex.length;
-}
-
-function transformWithBabel(fixture: Fixture): number {
-  const result = babel.transformSync(fixture.code, {
-    filename: fixture.filePath,
-    babelrc: false,
-    configFile: false,
-    parserOpts: { sourceType: 'module', plugins: ['jsx'] },
-    plugins: [[stylexBabelPlugin, stylexOptions]],
-  });
-  const metadata = result?.metadata as unknown as { stylex?: unknown[] } | undefined;
-  return metadata?.stylex?.length ?? 0;
-}
-
-const RUNNERS: Record<CompilerName, (fixture: Fixture) => number> = {
-  rust: transformWithRust,
-  babel: transformWithBabel,
-};
-
-/**
- * Both compilers must produce StyleX rules for every fixture, otherwise the
- * timing comparison would be meaningless (one side silently doing no work).
- */
-function sanityCheck(): void {
-  for (const fixture of fixtures) {
-    for (const compiler of selectedCompilers) {
-      const ruleCount = RUNNERS[compiler](fixture);
-      if (ruleCount === 0) {
-        throw new Error(
-          `Fixture "${fixture.name}" produced no StyleX rules with the ${compiler} compiler`
-        );
-      }
-    }
-  }
-}
-
 const STANDARD_CONFIG: BenchOptions = {
   retainSamples: true,
   warmup: true,
@@ -189,126 +115,115 @@ const HEAVY_CONFIG: BenchOptions = {
   warmupTime: 100,
 };
 
-interface CompilerStats {
-  medianMs: number;
-  opsPerSec: number;
-  rme: number;
-  samples: number;
-}
-
-function getStats(task: Task): CompilerStats {
-  if (!('throughput' in task.result)) {
-    throw new Error(`${task.name}: no results`);
-  }
-
-  const result = task.result as TaskResultWithStatistics;
-
-  return {
-    medianMs: result.latency.p50 ?? Number.NaN,
-    opsPerSec: result.throughput.mean,
-    rme: result.latency.rme,
-    samples: result.latency.samplesCount,
-  };
-}
-
-function formatLatency(milliseconds: number): string {
-  if (!Number.isFinite(milliseconds)) return 'n/a';
-  if (milliseconds >= 1000) return `${(milliseconds / 1000).toFixed(2)} s`;
-  if (milliseconds >= 1) return `${milliseconds.toFixed(2)} ms`;
-  return `${(milliseconds * 1000).toFixed(0)} µs`;
-}
-
 function getPackageVersion(packageJsonPath: string): string {
   try {
-    const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as {
-      version?: string;
-    };
+    const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as { version?: string };
     return pkg.version ?? 'unknown';
   } catch {
     return 'unknown';
   }
 }
 
-function getEnvironmentInfo(): string {
-  const require = createRequire(import.meta.url);
-  const rsVersion = getPackageVersion(path.join(packageDir, 'package.json'));
-  const babelPluginVersion = getPackageVersion(
-    path.join(path.dirname(require.resolve('@stylexjs/babel-plugin')), '../package.json')
-  );
+async function buildSubjects(): Promise<LoadedSubject[]> {
+  const subjects: LoadedSubject[] = [];
 
-  return `
-${chalk.bold('Benchmark environment:')}
-  Node.js:  ${process.version}
-  OS:       ${os.type()} ${os.release()} ${os.arch()}
-  CPU:      ${os.cpus()[0]?.model} x ${os.cpus().length} cores
-  Rust:     @stylexswc/rs-compiler v${rsVersion}
-  Babel:    @stylexjs/babel-plugin v${babelPluginVersion} on @babel/core ${babel.version}
-`;
+  for (const name of selectedCompilers) {
+    if (name === 'rust') {
+      subjects.push(await loadSubject({ label: 'rust', packageDir }));
+      continue;
+    }
+
+    const require = createRequire(import.meta.url);
+    const babelPluginPkg = path.join(
+      path.dirname(require.resolve('@stylexjs/babel-plugin')),
+      '../package.json'
+    );
+
+    subjects.push(
+      createSubject(
+        {
+          label: 'babel',
+          version: getPackageVersion(babelPluginPkg),
+          resolvedFrom: require.resolve('@stylexjs/babel-plugin'),
+        },
+        fixture => {
+          const result = babel.transformSync(fixture.code, {
+            filename: fixture.filePath,
+            babelrc: false,
+            configFile: false,
+            parserOpts: { sourceType: 'module', plugins: ['jsx'] },
+            plugins: [[stylexBabelPlugin, stylexOptions]],
+          });
+          const metadata = result?.metadata as unknown as { stylex?: unknown[] } | undefined;
+          return metadata?.stylex?.length ?? 0;
+        }
+      )
+    );
+  }
+
+  return subjects;
+}
+
+function samplesFor(fixture: FixtureRawStats, subject: string): RawLatencySamples | undefined {
+  return fixture.rounds[0]?.perSubject[subject];
 }
 
 async function runBenchmarks(): Promise<void> {
   console.log(
     chalk.bold(
       `Running StyleX compiler benchmark: ${selectedCompilers.join(' vs ')} ` +
-        `(${fixtures.length} fixture${fixtures.length === 1 ? '' : 's'})\n`
+        `(perf + rollup fixtures)\n`
     )
   );
 
-  sanityCheck();
-  console.log(chalk.green('Sanity check passed: all fixtures produce StyleX rules\n'));
-  console.log(getEnvironmentInfo());
+  const subjects = await buildSubjects();
+  const env = captureEnvironment({ packageDir, workspaceRoot });
 
-  const taskStats = new Map<string, Partial<Record<CompilerName, CompilerStats>>>();
+  console.log(
+    `${chalk.bold('Benchmark environment:')}\n` +
+      `  Node.js:  ${env.node}\n` +
+      `  OS:       ${env.os.type} ${env.os.release} ${env.os.arch}\n` +
+      `  CPU:      ${env.cpu.model} x ${env.cpu.cores} cores\n` +
+      subjects.map(s => `  ${s.descriptor.label}: v${s.descriptor.version}`).join('\n') +
+      `\n  babel/core: ${babel.version}\n`
+  );
 
-  for (const heavy of [false, true]) {
-    const groupFixtures = fixtures.filter(fixture => fixture.heavy === heavy);
-    if (groupFixtures.length === 0) continue;
-
-    const bench = new Bench({
-      name: heavy ? 'heavy fixtures' : 'standard fixtures',
-      ...(heavy ? HEAVY_CONFIG : STANDARD_CONFIG),
-    });
-
-    for (const fixture of groupFixtures) {
-      for (const compiler of selectedCompilers) {
-        bench.add(`${fixture.name} [${compiler}]`, () => {
-          RUNNERS[compiler](fixture);
-        });
-      }
-    }
-
-    console.log(chalk.yellow.bold(`Running: ${bench.name}`));
-    await bench.run();
-
-    for (const task of bench.tasks) {
-      const match = task.name.match(/^(.+) \[(rust|babel)\]$/);
-      if (!match) continue;
-      const [, fixtureName, compiler] = match;
-      const entry = taskStats.get(fixtureName!) ?? {};
-      entry[compiler as CompilerName] = getStats(task);
-      taskStats.set(fixtureName!, entry);
-    }
+  const fixtures = loadAllFixtures({
+    packageDir,
+    workspaceRoot,
+    categories: ['perf', 'rollup'],
+    filter: cliOptions.fixture,
+  });
+  if (fixtures.length === 0) {
+    console.error(chalk.red(`No fixtures match: ${(cliOptions.fixture ?? []).join(', ')}`));
+    process.exit(1);
   }
+
+  const { fixtures: rawFixtures } = await runRounds({
+    subjects,
+    fixtures,
+    stylexOptions,
+    rounds: 1,
+    seed: 1,
+    standardBench: STANDARD_CONFIG,
+    heavyBench: HEAVY_CONFIG,
+  });
 
   const rows: Record<string, string | number>[] = [];
   const reportLines: string[] = [];
 
-  for (const fixture of fixtures) {
-    const entry = taskStats.get(fixture.name) ?? {};
+  for (const fixture of rawFixtures) {
     const row: Record<string, string | number> = { fixture: fixture.name };
-
     for (const compiler of selectedCompilers) {
-      const stats = entry[compiler];
-      row[`${compiler} median`] = stats ? formatLatency(stats.medianMs) : 'n/a';
+      const stats = samplesFor(fixture, compiler);
+      row[`${compiler} median`] = stats ? formatLatency(stats.p50) : 'n/a';
       row[`${compiler} ops/s`] = stats ? Math.round(stats.opsPerSec) : 'n/a';
     }
-
-    const rust = entry.rust;
-    const babelStats = entry.babel;
+    const rust = samplesFor(fixture, 'rust');
+    const babelStats = samplesFor(fixture, 'babel');
     if (rust && babelStats) {
-      row.speedup = `${(babelStats.medianMs / rust.medianMs).toFixed(1)}x`;
+      row.speedup = `${(babelStats.p50 / rust.p50).toFixed(1)}x`;
     }
-
     rows.push(row);
     reportLines.push(
       Object.entries(row)
@@ -321,10 +236,11 @@ async function runBenchmarks(): Promise<void> {
   console.table(rows);
 
   if (selectedCompilers.length === 2) {
-    const speedups = fixtures
+    const speedups = rawFixtures
       .map(fixture => {
-        const entry = taskStats.get(fixture.name);
-        return entry?.rust && entry?.babel ? entry.babel.medianMs / entry.rust.medianMs : null;
+        const rust = samplesFor(fixture, 'rust');
+        const babelStats = samplesFor(fixture, 'babel');
+        return rust && babelStats ? babelStats.p50 / rust.p50 : null;
       })
       .filter((speedup): speedup is number => speedup !== null);
 

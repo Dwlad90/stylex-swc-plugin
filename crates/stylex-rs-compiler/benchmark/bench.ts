@@ -1,102 +1,66 @@
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import { fileURLToPath } from 'url';
+/**
+ * Historical single-subject benchmark entry point.
+ *
+ * Emits three observable artifacts, kept stable for downstream consumers:
+ *  - `results/output.json`         — `customSmallerIsBetter` entries used
+ *                                    by `github-action-benchmark`.
+ *  - `results/output-extended.txt` — human-readable p50/p95/ops report.
+ *  - `results/raw-stats.v1.json`   — validated numeric raw stats consumed
+ *                                    by the budget check and the verdict
+ *                                    engine. Never parse the historical
+ *                                    JSON's `extra` string.
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import chalk from 'chalk';
-import { Bench, type BenchOptions, type Task, type TaskResultWithStatistics } from 'tinybench';
+import type { BenchOptions } from 'tinybench';
 
-import { transform } from '../dist/index.js';
 import type { StyleXOptions } from '../dist/index.js';
+import { captureEnvironment } from './lib/env.js';
+import { loadAllFixtures } from './lib/fixtures.js';
+import { formatLatency } from './lib/format.js';
+import { runRounds } from './lib/runner.js';
+import { loadSubject } from './lib/subjects.js';
+import {
+  RAW_STATS_SCHEMA_VERSION,
+  type FixtureRawStats,
+  type RawLatencySamples,
+  type RawStatsFile,
+} from './lib/types.js';
 
-const BENCHMARK_CONFIG: BenchOptions = {
+const STANDARD_CONFIG: BenchOptions = {
   retainSamples: true,
   warmup: true,
 };
 
-const LOTS_OF_STYLES_CONFIG = {
-  ...BENCHMARK_CONFIG,
+const HEAVY_CONFIG: BenchOptions = {
+  retainSamples: true,
+  warmup: true,
   time: 500,
   iterations: 10,
   warmupIterations: 1,
   warmupTime: 100,
 };
 
+const SUBJECT_LABEL = 'current';
+
 const benchmarkDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.resolve(benchmarkDir, '..');
 const workspaceRoot = path.resolve(packageDir, '../..');
-const rootDir = packageDir;
-
-const benchRegular = new Bench({
-  name: 'StyleX compiler - regular benchmark',
-  ...BENCHMARK_CONFIG,
-});
-
-const benchPerformance = new Bench({
-  name: 'StyleX compiler - performance benchmark',
-  ...BENCHMARK_CONFIG,
-});
-
-const benchLotsOfStyles = new Bench({
-  name: 'StyleX compiler - lots of styles benchmark',
-  ...LOTS_OF_STYLES_CONFIG,
-});
+const resultsDir = path.resolve(benchmarkDir, 'results');
 
 const stylexOptions: StyleXOptions = {
   dev: false,
   treeshakeCompensation: true,
   unstable_moduleResolution: {
     type: 'haste',
-    rootDir,
+    rootDir: packageDir,
   },
 };
 
-function getFixtureFilePaths(dir: string): string[] {
-  let results: string[] = [];
-
-  const list = fs.readdirSync(dir);
-
-  list.forEach(file => {
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
-
-    if (stat && stat.isDirectory()) {
-      results = results.concat(getFixtureFilePaths(filePath));
-    } else if (file === 'input.stylex.js') {
-      results.push(filePath);
-    }
-  });
-
-  return results;
-}
-
-function addFixtureBenchmarks(bench: Bench, fixtureFilePaths: string[]) {
-  fixtureFilePaths.forEach(file => {
-    const content = fs.readFileSync(file, 'utf-8');
-    const benchmarkName = file.split(path.sep).at(-2) ?? 'Default case';
-
-    bench.add(benchmarkName, () => {
-      transform(file, content, stylexOptions);
-    });
-  });
-}
-
-interface BenchmarkStats {
-  name: string;
-  opsPerSec: string;
-  rme: string;
-  samples: number;
-  median: string;
-  p95: string;
-  medianMs: number;
-  p95Ms: number;
-}
-
-/**
- * One entry of the JSON consumed by `benchmark-action/github-action-benchmark`
- * with `tool: 'customSmallerIsBetter'`, whose schema is
- * `{ name, value, unit, range?, extra? }`.
- */
 interface BenchmarkEntry {
   name: string;
   value: number;
@@ -105,231 +69,94 @@ interface BenchmarkEntry {
   extra: string;
 }
 
-function getBenchmarkStats(task: Task): BenchmarkStats {
-  const { name } = task;
-
-  if (!('throughput' in task.result)) {
-    throw new Error(`❌ ${name}: No results`);
-  }
-
-  const result = task.result as TaskResultWithStatistics;
-  if (!result) {
-    throw new Error(`❌ ${name}: No results`);
-  }
-
-  const medianMs = result.latency.p50;
-  const p95Ms = percentile(result.latency.samples, 95);
-
+function toBenchmarkEntry(fixture: FixtureRawStats): BenchmarkEntry {
+  const samples = requireCurrent(fixture);
   return {
-    name,
-    opsPerSec: result.throughput.mean.toLocaleString('en-US', {
-      maximumFractionDigits: 2,
-    }),
-    rme: result.latency.rme.toFixed(2),
-    samples: result.latency.samplesCount,
-    median: formatLatency(medianMs),
-    p95: formatLatency(p95Ms),
-    medianMs,
-    p95Ms,
-  };
-}
-
-/**
- * Median latency, which is what CI compares against previous runs.
- *
- * Median rather than mean throughput: the mean is pulled around by a single
- * slow sample, and CI runs on shared runners where that happens. p50 over
- * retained samples is the robust statistic, and tinybench already computes it.
- *
- * `range`/`extra` are display-only — the action compares `value` alone.
- */
-function toBenchmarkEntry(stats: BenchmarkStats): BenchmarkEntry {
-  const samples = stats.samples > 0 ? stats.samples : 1;
-
-  // A non-finite median would serialise to `null` and the action coerces that to
-  // 0 ms — recorded as an impossibly fast run, which then makes the *next* run
-  // look infinitely slower. Fail loudly instead of poisoning the series.
-  if (!Number.isFinite(stats.medianMs) || stats.medianMs <= 0) {
-    throw new Error(
-      `❌ ${stats.name}: median latency is not a positive number (${stats.medianMs})`
-    );
-  }
-
-  return {
-    name: stats.name,
-    value: Number(stats.medianMs.toFixed(6)),
+    name: fixture.name,
+    value: Number(samples.p50.toFixed(6)),
     unit: 'ms',
-    range: `±${stats.rme}%`,
-    extra: `p95 ${stats.p95} | ${stats.opsPerSec} ops/sec | ${samples} samples`,
+    range: `±${samples.rme.toFixed(2)}%`,
+    extra: `p95 ${formatLatency(samples.p95)} | ${samples.opsPerSec.toLocaleString('en-US', {
+      maximumFractionDigits: 2,
+    })} ops/sec | ${samples.samplesCount} samples`,
   };
 }
 
-function formatBenchmarkSummary(task: Task): string {
-  const stats = getBenchmarkStats(task);
-  return `${stats.name}: median ${stats.median}, p95 ${stats.p95}, ${stats.opsPerSec} ops/sec ±${stats.rme}% (${stats.samples} runs sampled)`;
+function formatSummary(fixture: FixtureRawStats): string {
+  const samples = requireCurrent(fixture);
+  return (
+    `${fixture.name}: median ${formatLatency(samples.p50)}, ` +
+    `p95 ${formatLatency(samples.p95)}, ` +
+    `${samples.opsPerSec.toLocaleString('en-US', { maximumFractionDigits: 2 })} ops/sec ` +
+    `±${samples.rme.toFixed(2)}% (${samples.samplesCount} runs sampled)`
+  );
 }
 
-function percentile(samples: readonly number[] | undefined, percentile: number): number {
-  if (!samples || samples.length === 0) return Number.NaN;
-
-  const index = Math.min(samples.length - 1, Math.ceil((percentile / 100) * samples.length) - 1);
-  return samples[index] ?? Number.NaN;
+function requireCurrent(fixture: FixtureRawStats): RawLatencySamples {
+  const round = fixture.rounds[0];
+  const samples = round?.perSubject[SUBJECT_LABEL];
+  if (!samples) {
+    throw new Error(`Fixture "${fixture.name}" has no samples for subject "${SUBJECT_LABEL}"`);
+  }
+  return samples;
 }
 
-function formatLatency(milliseconds: number): string {
-  if (!Number.isFinite(milliseconds)) return 'n/a';
-
-  const nanoseconds = milliseconds * 1_000_000;
-  if (nanoseconds >= 1_000_000) {
-    return `${(nanoseconds / 1_000_000).toLocaleString('en-US', {
-      maximumFractionDigits: 2,
-    })} ms`;
+async function runBenchmarks(): Promise<void> {
+  if (!fs.existsSync(resultsDir)) {
+    fs.mkdirSync(resultsDir, { recursive: true });
   }
 
-  if (nanoseconds >= 1_000) {
-    return `${(nanoseconds / 1_000).toLocaleString('en-US', {
-      maximumFractionDigits: 2,
-    })} µs`;
-  }
+  const fixtures = loadAllFixtures({ packageDir, workspaceRoot });
+  const environment = captureEnvironment({ packageDir, workspaceRoot });
+  const subject = await loadSubject({ label: SUBJECT_LABEL, packageDir });
 
-  return `${nanoseconds.toLocaleString('en-US', {
-    maximumFractionDigits: 0,
-  })} ns`;
-}
-
-function getSystemInfo(): string {
-  let version = 'unknown';
-  try {
-    const cargoToml = fs.readFileSync(path.join(workspaceRoot, 'Cargo.toml'), 'utf-8');
-    const versionMatch = cargoToml.match(/version\s*=\s*"([^"]+)"/);
-    if (versionMatch && versionMatch[1]) {
-      version = versionMatch[1];
-    }
-  } catch (error) {
-    console.error('Failed to read Cargo.toml:', error);
-  }
-
-  return `
-${chalk.bold.yellow('📊 Benchmark Environment:')}
-  ${chalk.blue('🕒 Date:')}     ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}
-  ${chalk.blue('🧩 Node.js:')}  ${chalk.green(process.version)}
-  ${chalk.blue('🔌 Plugin:')}   ${chalk.green('v' + version)}
-  ${chalk.blue('💻 OS:')}       ${chalk.green(os.type())} ${os.release()} ${os.arch()}
-  ${chalk.blue('⚡ CPU:')}      ${chalk.green(os.cpus()[0]?.model)} × ${os.cpus().length} cores
-  ${chalk.blue('🧠 Memory:')}   ${chalk.green(Math.round(os.totalmem() / (1024 * 1024 * 1024)))}GB
-`;
-}
-
-const stylexFixturePath = path.join(workspaceRoot, 'crates/stylex-transform/tests/fixture');
-const fixtureFilePaths = getFixtureFilePaths(stylexFixturePath);
-
-addFixtureBenchmarks(benchRegular, fixtureFilePaths);
-
-const perfFixturesDir = path.join(benchmarkDir, 'perf_fixtures');
-const perfFixtures = [
-  {
-    path: path.join(perfFixturesDir, 'colors.stylex.js'),
-    name: 'Colors StyleX transformation',
-  },
-  {
-    path: path.join(perfFixturesDir, 'createTheme-basic.js'),
-    name: 'Basic theme transformation',
-  },
-  {
-    path: path.join(perfFixturesDir, 'createTheme-complex.js'),
-    name: 'Complex theme transformation',
-  },
-  {
-    path: path.join(perfFixturesDir, 'create-basic.js'),
-    name: 'Basic create transformation',
-  },
-  {
-    path: path.join(perfFixturesDir, 'create-complex.js'),
-    name: 'Complex create transformation',
-  },
-] as const;
-
-perfFixtures.forEach(fixture => {
-  const content = fs.readFileSync(fixture.path, 'utf-8');
-  benchPerformance.add(`Performance - ${fixture.name}`, () => {
-    transform(fixture.path, content, stylexOptions);
-  });
-});
-
-const rollupPluginApp = path.join(workspaceRoot, 'apps/rollup-large-example');
-const rollupPluginAppFiles = ['lotsOfStyles.js', 'lotsOfStylesDynamic.js'];
-
-rollupPluginAppFiles.forEach(file => {
-  const filePath = path.join(rollupPluginApp, file);
-  const content = fs.readFileSync(filePath, 'utf-8');
-
-  benchLotsOfStyles.add(`Rollup plugin - ${file}`, () => {
-    transform(filePath, content, stylexOptions);
-  });
-});
-
-const resultsDir = path.resolve(benchmarkDir, 'results');
-if (!fs.existsSync(resultsDir)) {
-  fs.mkdirSync(resultsDir, { recursive: true });
-}
-
-async function runBenchmarks() {
-  const benches = [benchRegular, benchPerformance, benchLotsOfStyles];
-  const benchesExtendedOutputs: string[] = [];
-  const benchesOutputs: string[] = [];
-  const benchmarkEntries: BenchmarkEntry[] = [];
-
-  console.log(chalk.bold('🚀 Running StyleX benchmarks...\n'));
-
-  const timestamp = new Date().toLocaleString();
-  benchesExtendedOutputs.push(
-    chalk.bold.magenta(`
-╔═══════════════════════════════════════════════════╗
-║             STYLEX BENCHMARK RESULTS              ║
-║             ${timestamp.padEnd(37, ' ')} ║
-╚═══════════════════════════════════════════════════╝
-`)
+  console.log(chalk.bold('Running StyleX benchmarks...\n'));
+  console.log(
+    `Node ${environment.node} | ${environment.os.type} ${environment.os.release} ` +
+      `${environment.os.arch} | ${environment.cpu.model} x${environment.cpu.cores} | ` +
+      `plugin v${environment.packageVersion}\n`
   );
 
-  const sysInfo = getSystemInfo();
-  benchesExtendedOutputs.push(sysInfo);
+  const { fixtures: rawFixtures } = await runRounds({
+    subjects: [subject],
+    fixtures,
+    stylexOptions,
+    rounds: 1,
+    seed: 1,
+    standardBench: STANDARD_CONFIG,
+    heavyBench: HEAVY_CONFIG,
+  });
 
-  for (const bench of benches) {
-    console.log(`\n${chalk.yellow.bold(`Running: ${bench.name}`)}`);
-    await bench.run();
+  const entries = rawFixtures.map(toBenchmarkEntry);
+  const summaryLines = rawFixtures.map(formatSummary);
 
-    console.log('\nResults:');
-    console.table(bench.table());
+  console.log(summaryLines.join('\n'));
+  console.log(chalk.bold.green('\nAll benchmarks completed.'));
 
-    benchesExtendedOutputs.push(`\n${chalk.cyan.bold('▶︎ ' + bench.name)}\n`);
-    benchesExtendedOutputs.push(chalk.dim('⎯'.repeat(2)));
+  const rawStats: RawStatsFile = {
+    schemaVersion: RAW_STATS_SCHEMA_VERSION,
+    environment,
+    subjects: [subject.descriptor],
+    fixtures: rawFixtures,
+  };
 
-    bench.tasks.forEach(task => {
-      benchesExtendedOutputs.push(formatBenchmarkSummary(task));
-      benchmarkEntries.push(toBenchmarkEntry(getBenchmarkStats(task)));
-    });
+  fs.writeFileSync(
+    path.join(resultsDir, 'output.json'),
+    `${JSON.stringify(entries, null, 2)}\n`,
+    'utf8'
+  );
+  fs.writeFileSync(
+    path.join(resultsDir, 'output-extended.txt'),
+    summaryLines.join('\n') + '\n',
+    'utf8'
+  );
+  fs.writeFileSync(
+    path.join(resultsDir, 'raw-stats.v1.json'),
+    `${JSON.stringify(rawStats, null, 2)}\n`,
+    'utf8'
+  );
 
-    benchesOutputs.push(...bench.tasks.map(formatBenchmarkSummary));
-  }
-
-  benchesExtendedOutputs.push(chalk.dim('\n⎯'));
-  benchesExtendedOutputs.push(chalk.bold.green('✓ All benchmarks completed successfully!\n'));
-
-  const extendedOutput = benchesExtendedOutputs.join('\n');
-  const outputPath = path.join(resultsDir, 'output.json');
-  const extendedOutputPath = path.join(resultsDir, 'output-extended.txt');
-
-  console.log(extendedOutput);
-
-  // `output.json` is consumed by benchmark-action/github-action-benchmark with
-  // `tool: 'customSmallerIsBetter'`; keep it in sync with `output-file-path` in
-  // .github/workflows/npm.yml and .github/workflows/pr-validation.yml.
-  // Human-readable output (median/p95/ops per sec) is written separately.
-  fs.writeFileSync(outputPath, `${JSON.stringify(benchmarkEntries, null, 2)}\n`, 'utf8');
-  fs.writeFileSync(extendedOutputPath, benchesOutputs.join('\n') + '\n', 'utf8');
-
-  console.log(`\n${chalk.green(`📊 Benchmark results (median latency) saved to ${outputPath}`)}`);
-  console.log(chalk.green(`📊 Extended results saved to ${extendedOutputPath}`));
+  console.log(chalk.green(`\nResults saved to ${resultsDir}`));
 }
 
 runBenchmarks().catch((err: unknown) => {

@@ -9,6 +9,7 @@
     "typings/**"
   ],
   "globalEnv": ["NODE_ENV", "PORT", "STYLEX_DEBUG"],
+  "globalPassThroughEnv": ["CI_COMMIT_SHA", "GITHUB_SHA", "ImageOS", "RUNNER_IMAGE"],
   "futureFlags": {
     "errorsOnlyShowHash": true
   },

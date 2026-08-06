@@ -3,9 +3,10 @@
   "compilerOptions": {
     "moduleResolution": "NodeNext",
     "module": "NodeNext",
-    "outDir": "lib",
-    "rootDir": "."
+    "noEmit": true,
+    "rootDir": ".",
+    "lib": ["es2023", "DOM", "DOM.Iterable"]
   },
   "include": ["."],
-  "exclude": ["lib"]
+  "exclude": ["perf_fixtures", "results"]
 }

@@ -9,14 +9,6 @@ on:
       - ready_for_review
       - converted_to_draft
       - edited
-    paths-ignore:
-      - '**/*.md'
-      - '**/*.yml'
-      - '**/*.yaml'
-      - LICENSE
-      - '**/*.gitignore'
-      - .editorconfig
-      - docs/**
   push:
     branches:
       - develop
@@ -101,6 +93,9 @@ jobs:
           - id: format-check
             name: Check formatting
             command: pnpm run format:check
+          - id: benchmark-reporter-tests
+            name: Test benchmark reporter
+            command: node --test .github/scripts/render-benchmark-report.test.mjs
           # Disabled for now; re-enable when we want the dependency graph
           # enforced on every PR. `pnpm run deps:check:typescript` still works
           # locally in the meantime.
@@ -309,13 +304,10 @@ jobs:
       - basic-checks
     runs-on: ubuntu-24.04-arm
     permissions:
-      # Alerts are posted as a PR review, which needs pull-requests: write —
-      # without it the action 403s and fails the job on top of the real alert.
-      # contents stays read: this job runs PR-authored code and must not be able
-      # to write to the repository.
       contents: read
-      pull-requests: write
     env:
+      BENCHMARK_SUBJECT_SCHEMA_VERSION: 1
+      BENCHMARK_TARGET: aarch64-unknown-linux-gnu
       # PR-side benchmark history, deliberately kept separate from the
       # release-to-release history in npm.yml (which lives in the `benchmarks`
       # branch under dev/bench/releases). The `benchmark-pr-` namespace exists so
@@ -344,7 +336,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          setup-rust: 'false'
+          rust-target: 'aarch64-unknown-linux-gnu'
 
       - name: Cache turbo build setup
         id: turbo-cache
@@ -368,9 +360,9 @@ jobs:
         if: ${{ steps.benchmark-cache-restore.outputs.cache-matched-key == '' }}
         run: |
           echo "::warning::No PR-side benchmark baseline was restored; results" \
-            "are informational and alerts are disabled for this run."
+            "are informational for this run."
 
-      - name: Run benchmarks
+      - name: Run historical benchmarks
         run: pnpm run bench --filter @stylexswc/rs-compiler
 
       - name: Store benchmark result
@@ -379,26 +371,10 @@ jobs:
           tool: 'customSmallerIsBetter'
           output-file-path: 'crates/stylex-rs-compiler/benchmark/results/output.json'
           external-data-json-path: './cache/benchmark-data.json'
-          # An empty dataset has nothing to compare, so `true` would gate on a
-          # vacuous comparison and pass silently — which is how the release-side
-          # gate went unnoticed for six runs. Only alert when a baseline loaded.
-          fail-on-alert: ${{ steps.benchmark-cache-restore.outputs.cache-matched-key != '' }}
-          # Only comment where a comment can actually be posted. Outside a PR the
-          # action posts a commit comment instead, which needs contents: write —
-          # deliberately not granted above. Fork PRs always get a read-only token,
-          # so commenting is impossible there whatever this workflow requests.
-          # In both cases the alert still surfaces via the job summary and, when a
-          # baseline was restored, still fails the job.
-          comment-on-alert: >-
-            ${{ steps.benchmark-cache-restore.outputs.cache-matched-key != '' &&
-            github.event.pull_request.number != null &&
-            github.event.pull_request.head.repo.full_name == github.repository }}
-          alert-comment-cc-users: '@Dwlad90'
+          fail-on-alert: false
+          comment-on-alert: false
           summary-always: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          # Stricter than the release gate on purpose: a false positive here costs
-          # a re-run, whereas on a release it blocks a shipment. Blocking belongs
-          # where iteration is cheap.
           alert-threshold: '120%'
           fail-threshold: '150%'
         env:
@@ -414,6 +390,211 @@ jobs:
         with:
           path: ./cache
           key: ${{ env.BENCHMARK_CACHE_KEY_PREFIX }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Resolve paired benchmark identities
+        id: paired-identities
+        env:
+          PR_MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          git fetch --no-tags origin develop
+
+          candidate_sha=$(git rev-parse HEAD)
+          if [[ -n "$PR_MERGE_SHA" && "$candidate_sha" != "$PR_MERGE_SHA" ]]; then
+            echo "::error::Checked-out candidate $candidate_sha does not match PR merge SHA $PR_MERGE_SHA."
+            exit 1
+          fi
+
+          base_sha=$(git merge-base origin/develop "$candidate_sha")
+          node_abi=$(node -p 'process.versions.modules')
+          toolchain_hash=$(
+            for file in rust-toolchain.toml Cargo.toml Cargo.lock \
+              crates/stylex-rs-compiler/Cargo.toml pnpm-lock.yaml; do
+              printf '%s\0' "$file"
+              git show "$base_sha:$file"
+            done | shasum -a 256 | cut -d ' ' -f 1
+          )
+
+          echo "candidate-sha=$candidate_sha" >> "$GITHUB_OUTPUT"
+          echo "base-sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "node-abi=$node_abi" >> "$GITHUB_OUTPUT"
+          echo "toolchain-hash=$toolchain_hash" >> "$GITHUB_OUTPUT"
+
+      - name: Restore immutable base subject
+        id: base-subject-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/stylex-base-subject
+          key: >-
+            stylex-base-subject-v${{ env.BENCHMARK_SUBJECT_SCHEMA_VERSION }}-${{
+            steps.paired-identities.outputs.base-sha }}-${{ env.BENCHMARK_TARGET }}-abi${{
+            steps.paired-identities.outputs.node-abi }}-${{
+            steps.paired-identities.outputs.toolchain-hash }}
+
+      - name: Validate restored base subject
+        if: steps.base-subject-cache.outputs.cache-hit == 'true'
+        env:
+          BASE_SHA: ${{ steps.paired-identities.outputs.base-sha }}
+          NODE_ABI: ${{ steps.paired-identities.outputs.node-abi }}
+          TOOLCHAIN_HASH: ${{ steps.paired-identities.outputs.toolchain-hash }}
+          BASE_SUBJECT: ${{ runner.temp }}/stylex-base-subject
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const subject = process.env.BASE_SUBJECT;
+          const expected = {
+            schemaVersion: Number(process.env.BENCHMARK_SUBJECT_SCHEMA_VERSION),
+            baseSha: process.env.BASE_SHA,
+            target: process.env.BENCHMARK_TARGET,
+            nodeAbi: process.env.NODE_ABI,
+            toolchainHash: process.env.TOOLCHAIN_HASH,
+          };
+          const actual = JSON.parse(fs.readFileSync(path.join(subject, 'manifest.json'), 'utf8'));
+          if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+            throw new Error(`Base subject manifest mismatch: ${JSON.stringify(actual)}`);
+          }
+          for (const required of ['package.json', 'dist/index.js', 'dist/transform.js']) {
+            if (!fs.statSync(path.join(subject, required)).isFile()) {
+              throw new Error(`Base subject is missing ${required}`);
+            }
+          }
+          const native = fs.readdirSync(path.join(subject, 'dist')).filter(name => name.endsWith('.node'));
+          if (native.length !== 1) throw new Error('Base subject must contain exactly one native binding');
+          NODE
+
+      - name: Build base subject in isolated worktree
+        if: steps.base-subject-cache.outputs.cache-hit != 'true'
+        env:
+          BASE_SHA: ${{ steps.paired-identities.outputs.base-sha }}
+          NODE_ABI: ${{ steps.paired-identities.outputs.node-abi }}
+          TOOLCHAIN_HASH: ${{ steps.paired-identities.outputs.toolchain-hash }}
+          BASE_SUBJECT: ${{ runner.temp }}/stylex-base-subject
+          BASE_WORKTREE: ${{ runner.temp }}/stylex-base-worktree
+        run: |
+          git worktree add --detach "$BASE_WORKTREE" "$BASE_SHA"
+          pnpm --dir "$BASE_WORKTREE" install --recursive --frozen-lockfile --link-workspace-packages
+          pnpm --dir "$BASE_WORKTREE" run build --filter @stylexswc/rs-compiler -- \
+            --target "$BENCHMARK_TARGET"
+
+          mkdir -p "$BASE_SUBJECT/node_modules"
+          cp "$BASE_WORKTREE/crates/stylex-rs-compiler/package.json" "$BASE_SUBJECT/package.json"
+          cp -R "$BASE_WORKTREE/crates/stylex-rs-compiler/dist" "$BASE_SUBJECT/dist"
+          cp -R -L "$BASE_WORKTREE/crates/stylex-rs-compiler/node_modules/picomatch" \
+            "$BASE_SUBJECT/node_modules/picomatch"
+
+          BASE_SUBJECT="$BASE_SUBJECT" BASE_SHA="$BASE_SHA" NODE_ABI="$NODE_ABI" \
+            TOOLCHAIN_HASH="$TOOLCHAIN_HASH" node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const manifest = {
+            schemaVersion: Number(process.env.BENCHMARK_SUBJECT_SCHEMA_VERSION),
+            baseSha: process.env.BASE_SHA,
+            target: process.env.BENCHMARK_TARGET,
+            nodeAbi: process.env.NODE_ABI,
+            toolchainHash: process.env.TOOLCHAIN_HASH,
+          };
+          fs.writeFileSync(
+            path.join(process.env.BASE_SUBJECT, 'manifest.json'),
+            `${JSON.stringify(manifest, null, 2)}\n`
+          );
+          NODE
+
+      - name: Save immutable base subject
+        if: steps.base-subject-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/stylex-base-subject
+          key: ${{ steps.base-subject-cache.outputs.cache-primary-key }}
+
+      - name: Run paired revision benchmark
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SUBJECT: ${{ runner.temp }}/stylex-base-subject
+        run: |
+          test -f crates/stylex-rs-compiler/dist/index.js
+          test "$(find crates/stylex-rs-compiler/dist -maxdepth 1 -name '*.node' | wc -l)" -eq 1
+          pnpm run --filter=@stylexswc/rs-compiler bench:revisions -- \
+            --base "$BASE_SUBJECT" \
+            --candidate "$GITHUB_WORKSPACE/crates/stylex-rs-compiler" \
+            --rounds 10 \
+            --seed 1
+
+      - name: Evaluate paired revision benchmark
+        if: github.event_name == 'pull_request'
+        run: |
+          pnpm run --filter=@stylexswc/rs-compiler bench:verdict -- \
+            --primary benchmark/results/revisions-raw-stats.v1.json \
+            --output-json benchmark/results/compare-revisions.verdict.v1.json \
+            --summary-md benchmark/results/compare-revisions.summary.md \
+            --retry-output benchmark/results/revisions-retry-raw-stats.v1.json \
+            --retry-seed 2
+
+      - name: Record paired benchmark identity
+        if: always() && github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ steps.paired-identities.outputs.base-sha }}
+          CANDIDATE_SHA: ${{ steps.paired-identities.outputs.candidate-sha }}
+          NODE_ABI: ${{ steps.paired-identities.outputs.node-abi }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const identity = {
+            schemaVersion: 1,
+            runId: process.env.GITHUB_RUN_ID,
+            prNumber: Number(process.env.PR_NUMBER),
+            candidateSha: process.env.CANDIDATE_SHA,
+            baseSha: process.env.BASE_SHA,
+            target: process.env.BENCHMARK_TARGET,
+            nodeAbi: process.env.NODE_ABI,
+            subjectSchemaVersion: Number(process.env.BENCHMARK_SUBJECT_SCHEMA_VERSION),
+          };
+          fs.writeFileSync(
+            'crates/stylex-rs-compiler/benchmark/results/paired-benchmark-identity.v1.json',
+            `${JSON.stringify(identity, null, 2)}\n`
+          );
+          NODE
+
+      - name: Prepare bounded benchmark artifacts
+        if: always() && github.event_name == 'pull_request'
+        working-directory: crates/stylex-rs-compiler/benchmark/results
+        run: |
+          test -f revisions-raw-stats.v1.json
+          test -f compare-revisions.verdict.v1.json
+          test -f compare-revisions.summary.md
+          test -f paired-benchmark-identity.v1.json
+          test "$(stat -c %s compare-revisions.verdict.v1.json)" -le 1048576
+          test "$(stat -c %s compare-revisions.summary.md)" -le 1048576
+          test "$(stat -c %s paired-benchmark-identity.v1.json)" -le 4096
+
+          raw_files=(revisions-raw-stats.v1.json)
+          if [[ -f revisions-retry-raw-stats.v1.json ]]; then
+            raw_files+=(revisions-retry-raw-stats.v1.json)
+          fi
+          tar -czf paired-benchmark-raw.tar.gz "${raw_files[@]}"
+          test "$(stat -c %s paired-benchmark-raw.tar.gz)" -le 104857600
+
+      - name: Upload paired benchmark report
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: paired-benchmark-report
+          path: |
+            crates/stylex-rs-compiler/benchmark/results/compare-revisions.verdict.v1.json
+            crates/stylex-rs-compiler/benchmark/results/paired-benchmark-identity.v1.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload paired benchmark diagnostics
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: paired-benchmark-raw
+          path: crates/stylex-rs-compiler/benchmark/results/paired-benchmark-raw.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
 
       - name: Save turbo build cache
         if: always()

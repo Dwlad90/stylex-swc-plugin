@@ -1,0 +1,144 @@
+name: Report paired PR benchmark
+
+on:
+  workflow_run:
+    workflows:
+      - Pull Request Validation
+    types:
+      - completed
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: paired-benchmark-report-${{ github.event.workflow_run.pull_requests[0].number }}
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: Report paired benchmark
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.pull_requests[0].number != null
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout trusted reporter
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+          sparse-checkout: |
+            .github/scripts/*
+            crates/stylex-rs-compiler/benchmark/fixtures.v1.json
+          sparse-checkout-cone-mode: false
+
+      - name: Download report from source run
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: paired-benchmark-report
+          path: ${{ runner.temp }}/paired-benchmark-report
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Resolve trusted source identities
+        id: identities
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha }}
+          SOURCE_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pr_json=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER")
+          resolution=$(
+            node .github/scripts/resolve-benchmark-source.mjs \
+              --source-head-sha "$SOURCE_HEAD_SHA" \
+              --source-base-sha "$SOURCE_BASE_SHA" \
+              --current-head-sha "$(jq -r '.head.sha' <<< "$pr_json")" \
+              --current-base-sha "$(jq -r '.base.sha' <<< "$pr_json")" \
+              --current-merge-sha "$(jq -r '.merge_commit_sha' <<< "$pr_json")"
+          )
+          if [[ "$(jq -r '.stale' <<< "$resolution")" == "true" ]]; then
+            echo "The PR head or base changed after the source run; skipping stale report."
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "stale=false" >> "$GITHUB_OUTPUT"
+          echo "base-sha=$(jq -r '.baseSha' <<< "$resolution")" >> "$GITHUB_OUTPUT"
+          echo "candidate-sha=$(jq -r '.candidateSha' <<< "$resolution")" >> "$GITHUB_OUTPUT"
+
+      - name: Validate and render report
+        id: render
+        if: steps.identities.outputs.stale == 'false' && steps.download.outcome == 'success'
+        continue-on-error: true
+        env:
+          BASE_SHA: ${{ steps.identities.outputs.base-sha }}
+          CANDIDATE_SHA: ${{ steps.identities.outputs.candidate-sha }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          REPORT_DIR: ${{ runner.temp }}/paired-benchmark-report
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          test "$(find "$REPORT_DIR" -type f | wc -l)" -eq 2
+          test "$(stat -c %s "$REPORT_DIR/compare-revisions.verdict.v1.json")" -le 1048576
+          test "$(stat -c %s "$REPORT_DIR/paired-benchmark-identity.v1.json")" -le 4096
+          node .github/scripts/render-benchmark-report.mjs \
+            --input "$REPORT_DIR/compare-revisions.verdict.v1.json" \
+            --identity "$REPORT_DIR/paired-benchmark-identity.v1.json" \
+            --output "$RUNNER_TEMP/paired-benchmark-comment.md" \
+            --run-url "$RUN_URL" \
+            --conclusion "$RUN_CONCLUSION" \
+            --run-id "$RUN_ID" \
+            --pr-number "$PR_NUMBER" \
+            --candidate-sha "$CANDIDATE_SHA" \
+            --base-sha "$BASE_SHA"
+
+      - name: Render unavailable report
+        if: >-
+          steps.identities.outputs.stale == 'false' && (steps.download.outcome != 'success' ||
+          steps.render.outcome != 'success')
+        env:
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          cat > "$RUNNER_TEMP/paired-benchmark-comment.md" <<EOF
+          <!-- stylex-paired-benchmark -->
+          ## Paired revision benchmark
+
+          Suite status: **unavailable**
+          Workflow conclusion: **$RUN_CONCLUSION**
+          [Source workflow run]($RUN_URL)
+
+          The source run did not produce a valid paired benchmark report. Inspect the workflow diagnostics.
+          <!-- stylex-paired-benchmark -->
+          EOF
+
+      - name: Upsert authoritative PR comment
+        if: steps.identities.outputs.stale == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          mapfile -t comment_ids < <(
+            gh api --paginate "repos/$REPOSITORY/issues/$PR_NUMBER/comments" \
+              --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | contains("<!-- stylex-paired-benchmark -->")) | .id'
+          )
+          jq -Rs '{body: .}' "$RUNNER_TEMP/paired-benchmark-comment.md" > "$RUNNER_TEMP/comment.json"
+
+          if [[ ${#comment_ids[@]} -eq 0 ]]; then
+            gh api "repos/$REPOSITORY/issues/$PR_NUMBER/comments" \
+              --method POST --input "$RUNNER_TEMP/comment.json"
+          else
+            gh api "repos/$REPOSITORY/issues/comments/${comment_ids[0]}" \
+              --method PATCH --input "$RUNNER_TEMP/comment.json"
+            for duplicate_id in "${comment_ids[@]:1}"; do
+              gh api "repos/$REPOSITORY/issues/comments/$duplicate_id" --method DELETE
+            done
+          fi

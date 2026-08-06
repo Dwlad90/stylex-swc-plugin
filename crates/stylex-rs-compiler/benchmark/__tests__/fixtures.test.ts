@@ -12,6 +12,11 @@ const workspaceRoot = path.resolve(packageDir, '../..');
 describe('loadAllFixtures', () => {
   const fixtures = loadAllFixtures({ packageDir, workspaceRoot });
 
+  test('loads the complete versioned registry', () => {
+    expect(fixtures).toHaveLength(23);
+    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(23);
+  });
+
   test('produces at least one fixture of each expected group', () => {
     expect(fixtures.some(fixture => fixture.name.startsWith('Performance -'))).toBe(true);
     expect(fixtures.some(fixture => fixture.name.startsWith('Rollup plugin -'))).toBe(true);

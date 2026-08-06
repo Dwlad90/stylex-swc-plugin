@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    {
+      "name": "button-props",
+      "file": "crates/stylex-transform/tests/fixture/button-props/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "buttons-demo",
+      "file": "crates/stylex-transform/tests/fixture/buttons-demo/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "card",
+      "file": "crates/stylex-transform/tests/fixture/card/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "consts",
+      "file": "crates/stylex-transform/tests/fixture/consts/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "counter",
+      "file": "crates/stylex-transform/tests/fixture/counter/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "counter-with-dynamic-styles",
+      "file": "crates/stylex-transform/tests/fixture/counter-with-dynamic-styles/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "global-tokens",
+      "file": "crates/stylex-transform/tests/fixture/global-tokens/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "global-tokens-xs",
+      "file": "crates/stylex-transform/tests/fixture/global-tokens-xs/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "namespace-cleaning",
+      "file": "crates/stylex-transform/tests/fixture/namespace-cleaning/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "namespace-cleaning-no-unused",
+      "file": "crates/stylex-transform/tests/fixture/namespace-cleaning-no-unused/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "page",
+      "file": "crates/stylex-transform/tests/fixture/page/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "page-tsx",
+      "file": "crates/stylex-transform/tests/fixture/page-tsx/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "page-with-keyframes",
+      "file": "crates/stylex-transform/tests/fixture/page-with-keyframes/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "spot-loader",
+      "file": "crates/stylex-transform/tests/fixture/spot-loader/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "typography",
+      "file": "crates/stylex-transform/tests/fixture/typography/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "use-memo",
+      "file": "crates/stylex-transform/tests/fixture/use-memo/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Performance - Colors StyleX transformation",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/colors.stylex.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Performance - Basic theme transformation",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/createTheme-basic.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Performance - Complex theme transformation",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/createTheme-complex.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Performance - Basic create transformation",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/create-basic.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Performance - Complex create transformation",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/create-complex.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Rollup plugin - lotsOfStyles.js",
+      "file": "apps/rollup-large-example/lotsOfStyles.js",
+      "category": "rollup",
+      "weight": "heavy",
+      "batchSize": 1
+    },
+    {
+      "name": "Rollup plugin - lotsOfStylesDynamic.js",
+      "file": "apps/rollup-large-example/lotsOfStylesDynamic.js",
+      "category": "rollup",
+      "weight": "heavy",
+      "batchSize": 1
+    }
+  ]
+}

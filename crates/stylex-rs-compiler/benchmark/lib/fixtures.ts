@@ -1,11 +1,9 @@
 /**
  * Single registry of every benchmarkable fixture.
  *
- * `bench.ts` previously walked the transform-fixtures directory at import
- * time, `bench-compare.ts` maintained its own hard-coded list, and
- * `perf_fixtures` / rollup fixtures were duplicated across both. Both now
- * read from this module so fixture names, weight classes, categories, and
- * (later) calibrated batch sizes stay consistent across entry points.
+ * The versioned JSON manifest is shared by measurement and the trusted PR
+ * reporter, so fixture names, weight classes, categories, and calibrated
+ * batch sizes cannot drift across the trust boundary.
  *
  * Batch sizes are all `1` until Phase 0 calibration lands. Fast fixtures
  * will move above sub-millisecond noise once calibrated; do not add an
@@ -29,23 +27,13 @@ export interface LoadFixturesOptions extends FixtureRegistryPaths {
   filter?: readonly string[];
 }
 
-interface ListedFixture {
+interface FixtureManifestEntry {
+  name: string;
   file: string;
-  displayName: string;
+  category: FixtureCategory;
+  weight: FixtureWeight;
+  batchSize: number;
 }
-
-const PERF_FIXTURES: readonly ListedFixture[] = [
-  { file: 'colors.stylex.js', displayName: 'Performance - Colors StyleX transformation' },
-  { file: 'createTheme-basic.js', displayName: 'Performance - Basic theme transformation' },
-  { file: 'createTheme-complex.js', displayName: 'Performance - Complex theme transformation' },
-  { file: 'create-basic.js', displayName: 'Performance - Basic create transformation' },
-  { file: 'create-complex.js', displayName: 'Performance - Complex create transformation' },
-];
-
-const ROLLUP_FIXTURES: readonly ListedFixture[] = [
-  { file: 'lotsOfStyles.js', displayName: 'Rollup plugin - lotsOfStyles.js' },
-  { file: 'lotsOfStylesDynamic.js', displayName: 'Rollup plugin - lotsOfStylesDynamic.js' },
-];
 
 export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor[] {
   const requested = new Set<FixtureCategory>(
@@ -54,82 +42,73 @@ export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor
       : (['transform', 'perf', 'rollup'] as const)
   );
 
-  const all: FixtureDescriptor[] = [];
-  if (requested.has('transform')) all.push(...loadTransformFixtures(options.workspaceRoot));
-  if (requested.has('perf')) {
-    all.push(
-      ...loadListedFixtures({
-        baseDir: path.join(options.packageDir, 'benchmark', 'perf_fixtures'),
-        entries: PERF_FIXTURES,
-        weight: 'standard',
-        category: 'perf',
-      })
-    );
-  }
-  if (requested.has('rollup')) {
-    all.push(
-      ...loadListedFixtures({
-        baseDir: path.join(options.workspaceRoot, 'apps/rollup-large-example'),
-        entries: ROLLUP_FIXTURES,
-        weight: 'heavy',
-        category: 'rollup',
-      })
-    );
-  }
+  const all = loadManifest(options.packageDir)
+    .filter(fixture => requested.has(fixture.category))
+    .map(fixture => {
+      const filePath = path.join(options.workspaceRoot, fixture.file);
+      return {
+        name: fixture.name,
+        filePath,
+        code: fs.readFileSync(filePath, 'utf-8'),
+        weight: fixture.weight,
+        category: fixture.category,
+        batchSize: fixture.batchSize,
+      };
+    });
 
   if (!options.filter || options.filter.length === 0) return all;
   return all.filter(fixture => options.filter!.some(needle => fixture.name.includes(needle)));
 }
 
-/**
- * Transform fixtures come from `crates/stylex-transform/tests/fixture`
- * and are discovered by walking for `input.stylex.js`. Stable name is the
- * containing directory — renaming a directory therefore breaks trend
- * history. Accepted risk, flagged here for fixture authors.
- */
-function loadTransformFixtures(workspaceRoot: string): FixtureDescriptor[] {
-  const root = path.join(workspaceRoot, 'crates/stylex-transform/tests/fixture');
-  const filePaths: string[] = [];
-  walkForInputs(root, filePaths);
-  filePaths.sort();
-
-  return filePaths.map(filePath => ({
-    name: path.basename(path.dirname(filePath)),
-    filePath,
-    code: fs.readFileSync(filePath, 'utf-8'),
-    weight: 'standard' as const,
-    category: 'transform' as const,
-    batchSize: 1,
-  }));
-}
-
-function loadListedFixtures(args: {
-  baseDir: string;
-  entries: readonly ListedFixture[];
-  weight: FixtureWeight;
-  category: FixtureCategory;
-}): FixtureDescriptor[] {
-  return args.entries.map(entry => {
-    const filePath = path.join(args.baseDir, entry.file);
-    return {
-      name: entry.displayName,
-      filePath,
-      code: fs.readFileSync(filePath, 'utf-8'),
-      weight: args.weight,
-      category: args.category,
-      batchSize: 1,
-    };
-  });
-}
-
-function walkForInputs(dir: string, out: string[]): void {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walkForInputs(full, out);
-    } else if (entry.name === 'input.stylex.js') {
-      out.push(full);
-    }
+function loadManifest(packageDir: string): readonly FixtureManifestEntry[] {
+  const manifestPath = path.join(packageDir, 'benchmark', 'fixtures.v1.json');
+  const input = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as unknown;
+  if (!isRecord(input) || input.schemaVersion !== 1 || !Array.isArray(input.fixtures)) {
+    throw new Error('Benchmark fixture manifest must use schema version 1');
   }
+
+  const fixtures = input.fixtures.map((fixture, index) => parseManifestEntry(fixture, index));
+  if (
+    fixtures.length === 0 ||
+    new Set(fixtures.map(fixture => fixture.name)).size !== fixtures.length
+  ) {
+    throw new Error('Benchmark fixture manifest names must be non-empty and unique');
+  }
+  return fixtures;
+}
+
+function parseManifestEntry(input: unknown, index: number): FixtureManifestEntry {
+  const context = `Benchmark fixture manifest entry ${String(index)}`;
+  if (!isRecord(input)) throw new Error(`${context} must be an object`);
+  if (typeof input.name !== 'string' || input.name.length === 0) {
+    throw new Error(`${context}.name must be a non-empty string`);
+  }
+  if (
+    typeof input.file !== 'string' ||
+    input.file.length === 0 ||
+    path.isAbsolute(input.file) ||
+    input.file.split(/[\\/]/).includes('..')
+  ) {
+    throw new Error(`${context}.file must be a relative path`);
+  }
+  if (input.category !== 'transform' && input.category !== 'perf' && input.category !== 'rollup') {
+    throw new Error(`${context}.category is unsupported`);
+  }
+  if (input.weight !== 'standard' && input.weight !== 'heavy') {
+    throw new Error(`${context}.weight is unsupported`);
+  }
+  if (!Number.isSafeInteger(input.batchSize) || Number(input.batchSize) <= 0) {
+    throw new Error(`${context}.batchSize must be a positive integer`);
+  }
+  return {
+    name: input.name,
+    file: input.file,
+    category: input.category,
+    weight: input.weight,
+    batchSize: Number(input.batchSize),
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }

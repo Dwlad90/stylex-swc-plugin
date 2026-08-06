@@ -21,6 +21,7 @@
     "bench": "node --import tsx/esm benchmark/bench.ts",
     "bench:compare": "node --import tsx/esm benchmark/bench-compare.ts",
     "bench:revisions": "node --import tsx/esm benchmark/bench-revisions.ts",
+    "bench:verdict": "node --import tsx/esm benchmark/compare-revisions.ts",
     "build": "napi build --platform --release --output-dir dist --js transform.js --dts transform.d.ts",
     "build:debug": "napi build --platform",
     "build:ts": "tsc",

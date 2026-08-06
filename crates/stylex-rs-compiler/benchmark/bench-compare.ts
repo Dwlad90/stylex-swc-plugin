@@ -1,13 +1,12 @@
 /**
  * Head-to-head benchmark: `@stylexswc/rs-compiler` (NAPI-RS/SWC) vs
- * `@stylexjs/babel-plugin` (Babel) on identical fixtures with identical
- * options.
+ * `@stylexjs/babel-plugin` (Babel) — the README performance claim.
  *
- * Phase 2 will replace the hard-coded `{rust, babel}` split with a
- * subject-parameterized comparer built directly on `lib/subjects.ts`.
- * Until then this entry point stays two-compiler-specific but runs
- * through the shared runner so subject scheduling, fixture loading, and
- * sample extraction match the historical entry point.
+ * The underlying comparer is subject-parameterized (`lib/runner.ts`
+ * accepts arbitrary named subjects). This entry point wires the two
+ * concrete subjects the README compares and prints a Rust-versus-Babel
+ * speedup table. For arbitrary base-vs-candidate comparisons used by
+ * PR/release gates, use `bench:revisions`.
  *
  * Usage:
  *   pnpm bench:compare                     # both compilers, comparison table
@@ -26,9 +25,8 @@ import { parseArgs } from 'node:util';
 import * as babel from '@babel/core';
 import stylexBabelPluginModule from '@stylexjs/babel-plugin';
 import chalk from 'chalk';
-import type { BenchOptions } from 'tinybench';
 
-import type { StyleXOptions } from '../dist/index.js';
+import { createPairedBenchConfigs, createStylexOptions } from './lib/config.js';
 import { captureEnvironment } from './lib/env.js';
 import { loadAllFixtures } from './lib/fixtures.js';
 import { formatLatency } from './lib/format.js';
@@ -48,12 +46,17 @@ const COMPILERS: readonly CompilerName[] = ['rust', 'babel'];
 // pnpm forwards a literal `--` separator; drop it so parseArgs sees only flags.
 const rawArgs = process.argv.slice(2).filter(arg => arg !== '--');
 
+const DEFAULT_ROUNDS = 3;
+const DEFAULT_SEED = 1;
+
 const { values: cliOptions } = parseArgs({
   args: rawArgs,
   options: {
     compiler: { type: 'string', short: 'c', default: 'both' },
     fixture: { type: 'string', short: 'f', multiple: true },
     time: { type: 'string', short: 't', default: '1000' },
+    rounds: { type: 'string', default: String(DEFAULT_ROUNDS) },
+    seed: { type: 'string', default: String(DEFAULT_SEED) },
     help: { type: 'boolean', short: 'h', default: false },
   },
 });
@@ -67,6 +70,8 @@ Options:
   -f, --fixture <substring>         only run fixtures whose name contains the
                                     substring; repeatable
   -t, --time <ms>                   time budget per task (default: 1000)
+      --rounds <n>                  balanced rounds per fixture (default: ${DEFAULT_ROUNDS})
+      --seed <n>                    subject-order permutation seed (default: ${DEFAULT_SEED})
   -h, --help                        show this help
 `);
   process.exit(0);
@@ -77,11 +82,9 @@ if (!['both', 'rust', 'babel'].includes(cliOptions.compiler)) {
   process.exit(1);
 }
 
-const timeBudgetMs = Number.parseInt(cliOptions.time, 10);
-if (Number.isNaN(timeBudgetMs) || timeBudgetMs <= 0) {
-  console.error(chalk.red(`Invalid --time value: ${cliOptions.time}`));
-  process.exit(1);
-}
+const timeBudgetMs = parsePositiveInt('time', cliOptions.time);
+const rounds = parsePositiveInt('rounds', cliOptions.rounds);
+const seed = parsePositiveInt('seed', cliOptions.seed);
 
 const selectedCompilers: readonly CompilerName[] =
   cliOptions.compiler === 'both' ? COMPILERS : [cliOptions.compiler as CompilerName];
@@ -90,30 +93,17 @@ const benchmarkDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.resolve(benchmarkDir, '..');
 const workspaceRoot = path.resolve(packageDir, '../..');
 
-const stylexOptions: StyleXOptions = {
-  dev: false,
-  treeshakeCompensation: true,
-  unstable_moduleResolution: {
-    type: 'haste',
-    rootDir: packageDir,
-  },
-};
+const stylexOptions = createStylexOptions(packageDir);
+const benchConfigs = createPairedBenchConfigs(timeBudgetMs);
 
-const STANDARD_CONFIG: BenchOptions = {
-  retainSamples: true,
-  warmup: true,
-  time: timeBudgetMs,
-  iterations: 20,
-};
-
-const HEAVY_CONFIG: BenchOptions = {
-  retainSamples: true,
-  warmup: true,
-  time: Math.min(timeBudgetMs, 500),
-  iterations: 5,
-  warmupIterations: 1,
-  warmupTime: 100,
-};
+function parsePositiveInt(name: string, value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    console.error(chalk.red(`Invalid --${name} value: ${value}`));
+    process.exit(1);
+  }
+  return parsed;
+}
 
 function getPackageVersion(packageJsonPath: string): string {
   try {
@@ -164,8 +154,28 @@ async function buildSubjects(): Promise<LoadedSubject[]> {
   return subjects;
 }
 
-function samplesFor(fixture: FixtureRawStats, subject: string): RawLatencySamples | undefined {
-  return fixture.rounds[0]?.perSubject[subject];
+interface AggregatedSamples {
+  p50: number;
+  opsPerSec: number;
+}
+
+function samplesFor(fixture: FixtureRawStats, subject: string): AggregatedSamples | undefined {
+  const perRound: RawLatencySamples[] = [];
+  for (const round of fixture.rounds) {
+    const samples = round.perSubject[subject];
+    if (samples) perRound.push(samples);
+  }
+  if (perRound.length === 0) return undefined;
+  return {
+    p50: median(perRound.map(s => s.p50)),
+    opsPerSec: median(perRound.map(s => s.opsPerSec)),
+  };
+}
+
+function median(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!;
 }
 
 async function runBenchmarks(): Promise<void> {
@@ -199,15 +209,25 @@ async function runBenchmarks(): Promise<void> {
     process.exit(1);
   }
 
+  console.log(`Rounds: ${rounds}, seed: ${seed}`);
+
   const { fixtures: rawFixtures } = await runRounds({
     subjects,
     fixtures,
     stylexOptions,
-    rounds: 1,
-    seed: 1,
-    standardBench: STANDARD_CONFIG,
-    heavyBench: HEAVY_CONFIG,
+    rounds,
+    seed,
+    standardBench: benchConfigs.standard,
+    heavyBench: benchConfigs.heavy,
   });
+
+  for (const fixture of rawFixtures) {
+    for (const round of fixture.rounds) {
+      console.log(
+        `  [${fixture.name}] round ${round.round} order=[${round.subjectOrder.join(', ')}]`
+      );
+    }
+  }
 
   const rows: Record<string, string | number>[] = [];
   const reportLines: string[] = [];

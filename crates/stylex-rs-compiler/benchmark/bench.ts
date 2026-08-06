@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import chalk from 'chalk';
 import type { BenchOptions } from 'tinybench';
 
-import type { StyleXOptions } from '../dist/index.js';
+import { createStylexOptions } from './lib/config.js';
 import { captureEnvironment } from './lib/env.js';
 import { loadAllFixtures } from './lib/fixtures.js';
 import { formatLatency } from './lib/format.js';
@@ -52,14 +52,7 @@ const packageDir = path.resolve(benchmarkDir, '..');
 const workspaceRoot = path.resolve(packageDir, '../..');
 const resultsDir = path.resolve(benchmarkDir, 'results');
 
-const stylexOptions: StyleXOptions = {
-  dev: false,
-  treeshakeCompensation: true,
-  unstable_moduleResolution: {
-    type: 'haste',
-    rootDir: packageDir,
-  },
-};
+const stylexOptions = createStylexOptions(packageDir);
 
 interface BenchmarkEntry {
   name: string;

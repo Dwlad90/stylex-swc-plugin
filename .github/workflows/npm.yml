@@ -146,6 +146,14 @@ jobs:
         uses: ./.github/actions/turbo-save
         with:
           cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+      # Container builds run as `--user 0:0`, so `dist` and everything in it
+      # come back owned by root. The runner user can still read those files,
+      # but it cannot create the manifest inside the directory -- the write
+      # below fails with "Permission denied" on exactly the docker legs.
+      - name: Reclaim ownership of docker-built artifacts
+        if: ${{ matrix.settings.docker }}
+        shell: bash
+        run: sudo chown -R "$(id -u):$(id -g)" crates/stylex-rs-compiler/dist
       - name: Record candidate artifact checksums
         shell: bash
         run: |
@@ -156,7 +164,7 @@ jobs:
             echo "release_ref=${{ inputs.release-ref }}"
             echo "files:"
             find . -type f \( -name '*.node' -o -name '*.js' -o -name '*.d.ts' \) -print | LC_ALL=C sort | while read -r file; do
-              sha=$(shasum -a 256 "$file" | cut -d ' ' -f 1)
+              sha=$(node "$GITHUB_WORKSPACE/.github/scripts/sha256.mjs" "$file")
               echo "  ${file#./}: sha256=${sha}"
             done
           } > candidate-artifact-manifest.txt
@@ -572,6 +580,15 @@ jobs:
                 --retry-seed 2
               pnpm run --filter=@stylexswc/rs-compiler bench
             '
+      # The musl container runs as root and creates benchmark/results, which is
+      # gitignored and so does not exist in the checkout. Every host step below
+      # writes into that directory, so hand it back before they run.
+      - name: Reclaim ownership of container-written results
+        if: >-
+          ${{ !cancelled() && matrix.settings.container && steps.paired-bench-musl.outcome ==
+          'success' }}
+        shell: bash
+        run: sudo chown -R "$(id -u):$(id -g)" crates/stylex-rs-compiler
       # These steps intentionally survive a failing verdict -- a detected
       # regression must still publish its evidence -- but are gated on the
       # paired benchmark having produced results. An earlier failure leaves
@@ -594,7 +611,7 @@ jobs:
             echo "::error::No native binary in candidate dist"
             exit 1
           fi
-          NATIVE_SHA=$(shasum -a 256 "$native_binary" | cut -d ' ' -f 1)
+          NATIVE_SHA=$(node "$GITHUB_WORKSPACE/.github/scripts/sha256.mjs" "$native_binary")
           NATIVE_BASENAME=$(basename "$native_binary")
           export NATIVE_SHA NATIVE_BASENAME
           mkdir -p benchmark/results

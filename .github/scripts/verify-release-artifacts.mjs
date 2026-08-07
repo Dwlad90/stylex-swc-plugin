@@ -12,11 +12,10 @@
  *     the publish step before pnpm publish runs.
  */
 
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { fail, failWithErrors, requireEnv } from './lib/ci.mjs';
+import { fail, failWithErrors, requireEnv, sha256File } from './lib/ci.mjs';
 
 const ARTIFACTS_DIR = requireEnv('ARTIFACTS_DIR');
 const summaryPath = path.join(ARTIFACTS_DIR, 'paired-release-aggregate', 'summary.json');
@@ -47,7 +46,7 @@ for (const identity of summary.identities) {
     errors.push(`Missing native binary for ${target}: ${candidatePath}`);
     continue;
   }
-  const actualSha = sha256(candidatePath);
+  const actualSha = sha256File(candidatePath);
   if (actualSha !== expectedSha) {
     errors.push(
       `Checksum mismatch for ${target}: expected ${expectedSha}, got ${actualSha} (${candidatePath})`
@@ -62,9 +61,3 @@ if (errors.length > 0) {
 }
 
 console.log(`All ${summary.identities.length} target(s) verified against benchmark manifests.`);
-
-function sha256(file) {
-  const hash = crypto.createHash('sha256');
-  hash.update(fs.readFileSync(file));
-  return hash.digest('hex');
-}

@@ -483,6 +483,7 @@ jobs:
           fi
           echo "BASE_PACKAGE_DIR=$pkg_dir" >> "$GITHUB_ENV"
       - name: Run paired revisions benchmark (native runner)
+        id: paired-bench-native
         if: ${{ !matrix.settings.container }}
         shell: bash
         run: |
@@ -518,11 +519,15 @@ jobs:
             --budget benchmark/budget.json \
             --output-json benchmark/results/budget-report.v1.json \
             --summary-md benchmark/results/budget-report.md
-      - name: Run historical bench for trend series (native runner)
+      # Single-subject measurement of the candidate. Writes output.json, which
+      # the aggregate job appends to the trend series on the `benchmarks`
+      # branch. Not a comparison -- the release gate is the paired run above.
+      - name: Measure trend-series datapoint (native runner)
         if: ${{ !matrix.settings.container }}
         shell: bash
         run: pnpm run --filter=@stylexswc/rs-compiler bench
       - name: Run paired benchmark inside musl container
+        id: paired-bench-musl
         if: ${{ matrix.settings.container }}
         shell: bash
         env:
@@ -567,8 +572,15 @@ jobs:
                 --retry-seed 2
               pnpm run --filter=@stylexswc/rs-compiler bench
             '
+      # These steps intentionally survive a failing verdict -- a detected
+      # regression must still publish its evidence -- but are gated on the
+      # paired benchmark having produced results. An earlier failure leaves
+      # nothing to bundle and would otherwise report as extra failures that
+      # bury the real one.
       - name: Record benchmark identity and checksums
-        if: always()
+        if: >-
+          ${{ !cancelled() && (steps.paired-bench-native.outcome == 'success' ||
+          steps.paired-bench-musl.outcome == 'success') }}
         shell: bash
         env:
           TARGET_LABEL: ${{ matrix.settings.label }}
@@ -604,7 +616,9 @@ jobs:
             fs.writeFileSync('benchmark/results/release-benchmark-identity.v1.json', JSON.stringify(identity, null, 2) + '\n');
           "
       - name: Prepare bounded artifacts
-        if: always()
+        if: >-
+          ${{ !cancelled() && (steps.paired-bench-native.outcome == 'success' ||
+          steps.paired-bench-musl.outcome == 'success') }}
         shell: bash
         run: |
           cd crates/stylex-rs-compiler/benchmark/results
@@ -624,7 +638,9 @@ jobs:
           tar -czf paired-release-raw.tar.gz "${raw_files[@]}"
           test "$(wc -c < paired-release-raw.tar.gz)" -le 104857600
       - name: Upload paired release report
-        if: always()
+        if: >-
+          ${{ !cancelled() && (steps.paired-bench-native.outcome == 'success' ||
+          steps.paired-bench-musl.outcome == 'success') }}
         uses: actions/upload-artifact@v7
         with:
           name: paired-release-report-${{ matrix.settings.target }}
@@ -636,9 +652,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Upload absolute budget report
-        if:
-          ${{ always() && matrix.settings.target == 'x86_64-unknown-linux-gnu' &&
-          !matrix.settings.container }}
+        if: >-
+          ${{ !cancelled() && matrix.settings.target == 'x86_64-unknown-linux-gnu' &&
+          !matrix.settings.container && steps.paired-bench-native.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: paired-release-budget
@@ -650,7 +666,9 @@ jobs:
           if-no-files-found: error
           retention-days: 90
       - name: Upload paired release diagnostics
-        if: always()
+        if: >-
+          ${{ !cancelled() && (steps.paired-bench-native.outcome == 'success' ||
+          steps.paired-bench-musl.outcome == 'success') }}
         uses: actions/upload-artifact@v7
         with:
           name: paired-release-raw-${{ matrix.settings.target }}

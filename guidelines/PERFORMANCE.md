@@ -39,7 +39,7 @@ retained samples, never display strings.
 Current defaults (10 rounds, 10000 resamples, 95% one-sided, warn 1.10, fail
 1.20, batch size 1) are starting values, not measurements. Before treating them
 as calibrated, archive >=10 same-vs-same hosted-runner runs with zero
-suite-level false failures (judged over the whole 23-fixture suite) and injected
+suite-level false failures (judged over the whole 22-fixture suite) and injected
 10%/20%/larger slowdowns showing 20% blocks reliably. Fast fixtures get batching
 -- 0.10 ms to 0.30 ms must stay detectable -- never an absolute-delta exemption.
 Record the resulting parameters and evidence here.

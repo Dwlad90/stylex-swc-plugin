@@ -2,13 +2,6 @@
   "schemaVersion": 1,
   "fixtures": [
     {
-      "name": "button-props",
-      "file": "crates/stylex-transform/tests/fixture/button-props/input.stylex.js",
-      "category": "transform",
-      "weight": "standard",
-      "batchSize": 1
-    },
-    {
       "name": "buttons-demo",
       "file": "crates/stylex-transform/tests/fixture/buttons-demo/input.stylex.js",
       "category": "transform",

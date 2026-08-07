@@ -362,7 +362,12 @@ jobs:
           echo "::warning::No PR-side benchmark baseline was restored; results" \
             "are informational for this run."
 
-      - name: Run historical benchmarks
+      # Measures this revision once, single-subject. The result is only a
+      # datapoint; the step below hands it to github-action-benchmark, which
+      # appends it to the trend series and compares against the restored
+      # baseline. Advisory only -- the blocking check is the paired benchmark
+      # further down, which measures base and candidate on this same runner.
+      - name: Measure trend-series datapoint
         run: pnpm run bench --filter @stylexswc/rs-compiler
 
       - name: Store benchmark result
@@ -371,6 +376,12 @@ jobs:
           tool: 'customSmallerIsBetter'
           output-file-path: 'crates/stylex-rs-compiler/benchmark/results/output.json'
           external-data-json-path: './cache/benchmark-data.json'
+          # Advisory only. This is a cross-run comparison against a cached
+          # datapoint from another machine (~16% noise on hosted Linux, ~34% on
+          # macOS), so it must never gate. It also runs before the paired
+          # benchmark, so failing here skips the real gate. Commenting needs
+          # pull-requests: write, which this job deliberately does not hold --
+          # benchmark-report.yml posts the PR comment from the default branch.
           fail-on-alert: false
           comment-on-alert: false
           summary-always: true
@@ -394,14 +405,44 @@ jobs:
       - name: Resolve paired benchmark identities
         id: paired-identities
         env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           git fetch --no-tags origin develop
 
           candidate_sha=$(git rev-parse HEAD)
-          if [[ -n "$PR_MERGE_SHA" && "$candidate_sha" != "$PR_MERGE_SHA" ]]; then
-            echo "::error::Checked-out candidate $candidate_sha does not match PR merge SHA $PR_MERGE_SHA."
-            exit 1
+
+          # The candidate is whatever `refs/pull/N/merge` resolved to at
+          # checkout -- that commit is what actually gets benchmarked, so it is
+          # the identity we record.
+          #
+          # Do not gate on `github.event.pull_request.merge_commit_sha`. GitHub
+          # recomputes the test-merge asynchronously, so the webhook payload
+          # routinely carries the previous value while the ref already points at
+          # the new one. Failing on that mismatch kills runs that measured the
+          # correct commit. Staleness is adjudicated downstream by
+          # benchmark-report.yml, which re-reads live PR state and drops a
+          # report whose head or base has moved.
+          #
+          # Only pull_request runs check out a merge ref; push and schedule runs
+          # check out the develop tip, where HEAD has a single parent.
+          if [[ "$EVENT_NAME" == 'pull_request' ]]; then
+            parent_count=$(($(git rev-list --parents -n 1 HEAD | wc -w) - 1))
+            if [[ "$parent_count" -ne 2 ]]; then
+              echo "::error::Expected a two-parent merge commit at HEAD; CHECKOUT_REF" \
+                "must resolve to refs/pull/N/merge (got $parent_count)."
+              exit 1
+            fi
+
+            merged_head_sha=$(git rev-parse 'HEAD^2')
+            if [[ -n "$PR_HEAD_SHA" && "$merged_head_sha" != "$PR_HEAD_SHA" ]]; then
+              echo "::warning::Merge ref was rebuilt: HEAD^2 $merged_head_sha is not the" \
+                "event's head $PR_HEAD_SHA. Benchmarking the ref as checked out."
+            elif [[ -n "$PR_MERGE_SHA" && "$candidate_sha" != "$PR_MERGE_SHA" ]]; then
+              echo "::warning::Event payload merge SHA $PR_MERGE_SHA is stale;" \
+                "benchmarking the current merge ref $candidate_sha."
+            fi
           fi
 
           base_sha=$(git merge-base origin/develop "$candidate_sha")
@@ -508,6 +549,7 @@ jobs:
           key: ${{ steps.base-subject-cache.outputs.cache-primary-key }}
 
       - name: Run paired revision benchmark
+        id: paired-bench
         if: github.event_name == 'pull_request'
         env:
           BASE_SUBJECT: ${{ runner.temp }}/stylex-base-subject
@@ -530,8 +572,15 @@ jobs:
             --retry-output benchmark/results/revisions-retry-raw-stats.v1.json \
             --retry-seed 2
 
+      # The identity and artifact steps below intentionally survive a failing
+      # verdict -- a detected regression must still publish its evidence. They
+      # are gated on the paired benchmark having produced results, because an
+      # earlier failure (build, sanity check, base subject) leaves nothing to
+      # bundle and would otherwise report as a second, misleading failure.
       - name: Record paired benchmark identity
-        if: always() && github.event_name == 'pull_request'
+        if: >-
+          !cancelled() && github.event_name == 'pull_request' && steps.paired-bench.outcome ==
+          'success'
         env:
           BASE_SHA: ${{ steps.paired-identities.outputs.base-sha }}
           CANDIDATE_SHA: ${{ steps.paired-identities.outputs.candidate-sha }}
@@ -557,7 +606,9 @@ jobs:
           NODE
 
       - name: Prepare bounded benchmark artifacts
-        if: always() && github.event_name == 'pull_request'
+        if: >-
+          !cancelled() && github.event_name == 'pull_request' && steps.paired-bench.outcome ==
+          'success'
         working-directory: crates/stylex-rs-compiler/benchmark/results
         run: |
           test -f revisions-raw-stats.v1.json
@@ -576,7 +627,9 @@ jobs:
           test "$(stat -c %s paired-benchmark-raw.tar.gz)" -le 104857600
 
       - name: Upload paired benchmark report
-        if: always() && github.event_name == 'pull_request'
+        if: >-
+          !cancelled() && github.event_name == 'pull_request' && steps.paired-bench.outcome ==
+          'success'
         uses: actions/upload-artifact@v7
         with:
           name: paired-benchmark-report
@@ -587,7 +640,9 @@ jobs:
           retention-days: 14
 
       - name: Upload paired benchmark diagnostics
-        if: always() && github.event_name == 'pull_request'
+        if: >-
+          !cancelled() && github.event_name == 'pull_request' && steps.paired-bench.outcome ==
+          'success'
         uses: actions/upload-artifact@v7
         with:
           name: paired-benchmark-raw

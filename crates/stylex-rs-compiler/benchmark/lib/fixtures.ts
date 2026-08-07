@@ -8,6 +8,12 @@
  * Batch sizes are all `1` until Phase 0 calibration lands. Fast fixtures
  * will move above sub-millisecond noise once calibrated; do not add an
  * absolute-delta floor as a shortcut.
+ *
+ * Only fixtures that actually produce StyleX rules belong here. The
+ * transform test corpus also contains negative fixtures that compile to
+ * zero rules (`button-props`, which never imports `stylex`); registering
+ * one trips the runner's sanity check and fails every benchmark job.
+ * `fixtures.test.ts` enforces this against the real binding.
  */
 
 import fs from 'node:fs';

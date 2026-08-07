@@ -9,6 +9,20 @@ const fixtureManifestPath = path.resolve(
   scriptDir,
   '../../crates/stylex-rs-compiler/benchmark/fixtures.v1.json'
 );
+
+/**
+ * Floor, not an exact count. This manifest comes from the trusted
+ * default-branch checkout, so pinning its exact length guards nothing at the
+ * trust boundary -- it only forces a second edit on every fixture change, and
+ * a missed one fails CI. The boundary check is
+ * `verdict.fixtures.length === BENCHMARK_FIXTURES.size`, which derives from
+ * the manifest. This floor only catches a truncated or gutted manifest.
+ *
+ * Declared before the call below: `BENCHMARK_FIXTURES` initializes at module
+ * load, so a later `const` would be in the temporal dead zone.
+ */
+const MIN_BENCHMARK_FIXTURES = 10;
+
 export const BENCHMARK_FIXTURES = loadBenchmarkFixtures(fixtureManifestPath);
 
 const FIXTURE_STATUSES = new Set(['pass', 'warn', 'improvement-warn', 'failed']);
@@ -19,7 +33,12 @@ export function loadBenchmarkFixtures(manifestPath) {
   const manifest = record(input, 'fixture manifest');
   equal(manifest.schemaVersion, 1, 'fixture manifest.schemaVersion');
   const fixtures = array(manifest.fixtures, 'fixture manifest.fixtures');
-  if (fixtures.length !== 23) fail('fixture manifest must contain exactly 23 benchmarks');
+  if (fixtures.length < MIN_BENCHMARK_FIXTURES) {
+    fail(
+      `fixture manifest must contain at least ${String(MIN_BENCHMARK_FIXTURES)} benchmarks, ` +
+        `found ${String(fixtures.length)}`
+    );
+  }
 
   const result = new Map();
   for (const [index, value] of fixtures.entries()) {

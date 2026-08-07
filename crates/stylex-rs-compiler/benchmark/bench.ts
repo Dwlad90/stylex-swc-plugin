@@ -1,5 +1,10 @@
 /**
- * Historical single-subject benchmark entry point.
+ * Single-subject benchmark entry point.
+ *
+ * Measures the current revision alone, once. It compares nothing: CI feeds
+ * the result to `github-action-benchmark`, which is what maintains the
+ * trend series over time. Base-vs-candidate comparison lives in
+ * `bench-revisions.ts`.
  *
  * Emits three observable artifacts, kept stable for downstream consumers:
  *  - `results/output.json`         — `customSmallerIsBetter` entries used

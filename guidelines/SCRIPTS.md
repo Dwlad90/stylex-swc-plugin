@@ -40,7 +40,7 @@ accept `--help`. Policy: [Performance](./PERFORMANCE.md).
 
 | Script                                           | Does                                                               | Writes to `benchmark/results/`                            |
 | ------------------------------------------------ | ------------------------------------------------------------------ | --------------------------------------------------------- |
-| `bench`                                          | Historical run, 23 fixtures                                        | `output.json`, `output-extended.txt`, `raw-stats.v1.json` |
+| `bench`                                          | Single-subject run, 22 fixtures                                    | `output.json`, `output-extended.txt`, `raw-stats.v1.json` |
 | `bench:compare`                                  | Rust vs Babel                                                      | `compare-output.txt`                                      |
 | `bench:revisions --base <dir> --candidate <dir>` | Paired measurement                                                 | `revisions-raw-stats.v1.json`                             |
 | `bench:verdict --primary <raw-stats>`            | Ratios, bootstrap bound, one retry; exits 1 on a reproduced breach | `compare-revisions.verdict.v1.json`, `.summary.md`        |

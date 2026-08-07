@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1785964939285,
+  "lastUpdate": 1786119658803,
   "repoUrl": "https://github.com/Dwlad90/stylex-swc-plugin",
   "entries": {
     "Benchmark": [
@@ -185,7 +185,191 @@ window.BENCHMARK_DATA = {
             "extra": "p95 87.24 ms | 27.61 ops/sec | 13 samples"
           }
         ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Dwlad90",
+            "email": "dwlad90@gmail.com",
+            "username": "Dwlad90"
+          },
+          "committer": {
+            "name": "Dwlad90",
+            "email": "dwlad90@gmail.com",
+            "username": "Dwlad90"
+          },
+          "id": "6959d636c3fd1b0baed4637453a16c6dec7d76b4",
+          "message": "fix(ci): compare release verdicts against the status the engine emits",
+          "timestamp": "2026-08-07T18:31:06+03:00",
+          "tree_id": "86236c6b67c240b99812e9dea86e4001bf5f7da9",
+          "url": "https://github.com/Dwlad90/stylex-swc-plugin/commit/6959d636c3fd1b0baed4637453a16c6dec7d76b4"
+        },
+        "date": 1786119658803,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "buttons-demo",
+            "value": 0.837146,
+            "unit": "ms",
+            "range": "±2.08%",
+            "extra": "p95 1.45 ms | 1,120.21 ops/sec | 1062 samples"
+          },
+          {
+            "name": "card",
+            "value": 0.355958,
+            "unit": "ms",
+            "range": "±2.32%",
+            "extra": "p95 719.67 µs | 2,591.89 ops/sec | 2341 samples"
+          },
+          {
+            "name": "consts",
+            "value": 0.203667,
+            "unit": "ms",
+            "range": "±1.34%",
+            "extra": "p95 390.92 µs | 4,610.45 ops/sec | 4265 samples"
+          },
+          {
+            "name": "counter",
+            "value": 1.954584,
+            "unit": "ms",
+            "range": "±3.32%",
+            "extra": "p95 3.87 ms | 497.19 ops/sec | 453 samples"
+          },
+          {
+            "name": "counter-with-dynamic-styles",
+            "value": 2.164438,
+            "unit": "ms",
+            "range": "±3.48%",
+            "extra": "p95 4.49 ms | 427.14 ops/sec | 398 samples"
+          },
+          {
+            "name": "global-tokens",
+            "value": 3.067291,
+            "unit": "ms",
+            "range": "±2.54%",
+            "extra": "p95 4.5 ms | 315.99 ops/sec | 309 samples"
+          },
+          {
+            "name": "global-tokens-xs",
+            "value": 0.745437,
+            "unit": "ms",
+            "range": "±0.84%",
+            "extra": "p95 959.5 µs | 1,293.81 ops/sec | 1276 samples"
+          },
+          {
+            "name": "namespace-cleaning",
+            "value": 1.2435,
+            "unit": "ms",
+            "range": "±1.38%",
+            "extra": "p95 1.84 ms | 767.26 ops/sec | 746 samples"
+          },
+          {
+            "name": "namespace-cleaning-no-unused",
+            "value": 1.054416,
+            "unit": "ms",
+            "range": "±0.54%",
+            "extra": "p95 1.19 ms | 936.47 ops/sec | 932 samples"
+          },
+          {
+            "name": "page",
+            "value": 0.462333,
+            "unit": "ms",
+            "range": "±0.77%",
+            "extra": "p95 684.83 µs | 2,063.02 ops/sec | 2017 samples"
+          },
+          {
+            "name": "page-tsx",
+            "value": 3.814209,
+            "unit": "ms",
+            "range": "±1.36%",
+            "extra": "p95 4.65 ms | 257.39 ops/sec | 255 samples"
+          },
+          {
+            "name": "page-with-keyframes",
+            "value": 3.499042,
+            "unit": "ms",
+            "range": "±0.61%",
+            "extra": "p95 3.87 ms | 282.96 ops/sec | 283 samples"
+          },
+          {
+            "name": "spot-loader",
+            "value": 1.686375,
+            "unit": "ms",
+            "range": "±1.67%",
+            "extra": "p95 2.36 ms | 591 ops/sec | 573 samples"
+          },
+          {
+            "name": "typography",
+            "value": 2.112,
+            "unit": "ms",
+            "range": "±0.98%",
+            "extra": "p95 2.67 ms | 462.98 ops/sec | 459 samples"
+          },
+          {
+            "name": "use-memo",
+            "value": 0.527605,
+            "unit": "ms",
+            "range": "±0.77%",
+            "extra": "p95 743.33 µs | 1,841.74 ops/sec | 1802 samples"
+          },
+          {
+            "name": "Performance - Colors StyleX transformation",
+            "value": 0.52327,
+            "unit": "ms",
+            "range": "±0.51%",
+            "extra": "p95 670.63 µs | 1,855.11 ops/sec | 1838 samples"
+          },
+          {
+            "name": "Performance - Basic theme transformation",
+            "value": 0.537,
+            "unit": "ms",
+            "range": "±1.13%",
+            "extra": "p95 813.25 µs | 1,763.66 ops/sec | 1711 samples"
+          },
+          {
+            "name": "Performance - Complex theme transformation",
+            "value": 13.973042,
+            "unit": "ms",
+            "range": "±1.91%",
+            "extra": "p95 15.66 ms | 72.19 ops/sec | 72 samples"
+          },
+          {
+            "name": "Performance - Basic create transformation",
+            "value": 0.49725,
+            "unit": "ms",
+            "range": "±0.64%",
+            "extra": "p95 679.62 µs | 1,932.77 ops/sec | 1903 samples"
+          },
+          {
+            "name": "Performance - Complex create transformation",
+            "value": 7.080417,
+            "unit": "ms",
+            "range": "±1.97%",
+            "extra": "p95 8.87 ms | 142 ops/sec | 141 samples"
+          },
+          {
+            "name": "Rollup plugin - lotsOfStyles.js",
+            "value": 5577.100229,
+            "unit": "ms",
+            "range": "±7.92%",
+            "extra": "p95 6.64 s | 0.18 ops/sec | 10 samples"
+          },
+          {
+            "name": "Rollup plugin - lotsOfStylesDynamic.js",
+            "value": 41.654479,
+            "unit": "ms",
+            "range": "±6.38%",
+            "extra": "p95 51.34 ms | 23.61 ops/sec | 12 samples"
+          }
+        ],
+        "release": {
+          "ref": "fix_release-benchmarks",
+          "candidateVersion": "0.18.3",
+          "previousVersion": "0.18.3",
+          "target": "x86_64-apple-darwin",
+          "nativeSha256": "f22b2cae0db8de4040c9002b050bbcdebb49c2e1f50a39f4b6ff2cf75152aae8"
+        }
       }
     ]
   }
-}
+};

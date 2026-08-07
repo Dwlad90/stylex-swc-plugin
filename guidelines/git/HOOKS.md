@@ -18,6 +18,17 @@ Lefthook writes into the common git dir, so one install covers every worktree.
 Escape hatches: `git commit --no-verify`, `LEFTHOOK=0`, or an untracked
 `lefthook-local.yml` for per-developer overrides.
 
+## Committing without a terminal
+
+A bare `git commit` reaches the commitizen prompt, which needs a TTY. Without
+one -- a script, an agent, some IDE integrations -- the prompt has nothing to
+read, commitizen exits non-zero, and **the commit aborts**. The husky hook
+swallowed that failure and fell through to the editor; this one does not, so
+that abandoning the prompt is a real abort rather than a silent empty message.
+
+Pass a message instead: `git commit -m` or `-F` sets the commit source to
+`message`, which the guard skips before commitizen is ever reached.
+
 ## Partial staging caveat
 
 Lefthook has no equivalent of lint-staged's stash. Formatters see the

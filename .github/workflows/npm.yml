@@ -49,7 +49,7 @@ permissions:
         default: false
 
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.release-ref }}
+  group: ${{ github.workflow }}-${{ inputs.release-ref || github.ref }}
   cancel-in-progress: true
 
 jobs:

@@ -50,3 +50,8 @@ export function escapeMarkdownCell(value: string): string {
     .replace(/`/g, '\\`')
     .replace(/\p{Cc}/gu, ' ');
 }
+
+/** Build one Markdown table row from already escaped cells. */
+export function markdownTableRow(cells: readonly string[]): string {
+  return `| ${cells.join(' | ')} |`;
+}

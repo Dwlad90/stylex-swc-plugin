@@ -40,7 +40,8 @@ export function parseRawStats(
   const file = requireRecord(value, source);
   if (file.schemaVersion !== RAW_STATS_SCHEMA_VERSION) {
     throw new Error(
-      `${source} schemaVersion ${String(file.schemaVersion)} is not supported (expected ${String(RAW_STATS_SCHEMA_VERSION)})`
+      `${source} schemaVersion ${String(file.schemaVersion)} is not supported ` +
+        `(expected ${String(RAW_STATS_SCHEMA_VERSION)})`
     );
   }
 

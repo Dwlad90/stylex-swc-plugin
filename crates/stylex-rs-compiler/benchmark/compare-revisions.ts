@@ -233,11 +233,19 @@ function printSummary(report: VerdictReport): void {
   const base = report.subjects.base.label;
   const candidate = report.subjects.candidate.label;
   console.log(chalk.bold(`\nPaired verdict: ${base} vs ${candidate}`));
-  console.log(
-    `  thresholds: warn>=${report.thresholds.warn.toFixed(2)}, fail>=${report.thresholds.fail.toFixed(2)}, improvement<=${report.thresholds.improvementWarn.toFixed(2)}`
-  );
+  const thresholdSummary = [
+    `warn>=${report.thresholds.warn.toFixed(2)}`,
+    `fail>=${report.thresholds.fail.toFixed(2)}`,
+    `improvement<=${report.thresholds.improvementWarn.toFixed(2)}`,
+  ].join(', ');
+  console.log(`  thresholds: ${thresholdSummary}`);
   for (const fixture of report.fixtures) {
-    const line = `  ${fixture.name.padEnd(40)} point=${fixture.interval.point.toFixed(3)} lower=${fixture.interval.lower.toFixed(3)} upper=${fixture.interval.upper.toFixed(3)} status=${fixture.status}`;
+    const interval = [
+      `point=${fixture.interval.point.toFixed(3)}`,
+      `lower=${fixture.interval.lower.toFixed(3)}`,
+      `upper=${fixture.interval.upper.toFixed(3)}`,
+    ].join(' ');
+    const line = `  ${fixture.name.padEnd(40)} ${interval} status=${fixture.status}`;
     if (fixture.status === 'failed') console.log(chalk.red(line));
     else if (fixture.status === 'flagged') console.log(chalk.yellow(line));
     else if (fixture.status === 'warn' || fixture.status === 'improvement-warn')
@@ -417,7 +425,14 @@ function writeFailureArtifacts(argv: readonly string[], error: unknown): void {
     suiteStatus: 'error',
     error: { message: errorMessage(error) },
   };
-  const markdown = `## Paired revision benchmark\n\nSuite status: **error**\n\n${escapeFailureMessage(artifact.error.message)}\n`;
+  const markdown = [
+    '## Paired revision benchmark',
+    '',
+    'Suite status: **error**',
+    '',
+    escapeFailureMessage(artifact.error.message),
+    '',
+  ].join('\n');
 
   try {
     const resolvedOutput = path.resolve(outputJson);

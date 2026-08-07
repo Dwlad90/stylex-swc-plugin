@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { formatLatency } from '../lib/format.js';
+import { formatLatency, markdownTableRow } from '../lib/format.js';
 
 describe('formatLatency', () => {
   test('nanosecond scale', () => {
@@ -27,5 +27,11 @@ describe('formatLatency', () => {
     expect(formatLatency(Number.NaN)).toBe('n/a');
     expect(formatLatency(Infinity)).toBe('n/a');
     expect(formatLatency(-Infinity)).toBe('n/a');
+  });
+});
+
+describe('markdownTableRow', () => {
+  test('joins pre-escaped cells into a table row', () => {
+    expect(markdownTableRow(['name', 'pass'])).toBe('| name | pass |');
   });
 });

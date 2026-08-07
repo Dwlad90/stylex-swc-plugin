@@ -14,7 +14,7 @@
  * verdict evaluation itself never re-measures.
  */
 
-import { escapeMarkdownCell } from './format.js';
+import { escapeMarkdownCell, markdownTableRow } from './format.js';
 import { parseRawStats } from './raw-stats.js';
 import { bootstrapMedianRatio, ensureFinitePositive, median, roundRatios } from './stats.js';
 import type {
@@ -140,14 +140,16 @@ export function evaluateRawStats(primaryInput: unknown, options: EvaluateOptions
         verdict.status = 'failed';
         verdict.messages = [
           ...verdict.messages,
-          `retry reproduced lower bound ${retryVerdict.interval.lower.toFixed(3)} >= ${thresholds.fail.toFixed(2)}`,
+          `retry reproduced lower bound ${retryVerdict.interval.lower.toFixed(3)} >= ` +
+            thresholds.fail.toFixed(2),
         ];
         hasReproducedFailure = true;
       } else {
         verdict.status = 'pass';
         verdict.messages = [
           ...verdict.messages,
-          `retry lower bound ${retryVerdict.interval.lower.toFixed(3)} did not reproduce the breach`,
+          `retry lower bound ${retryVerdict.interval.lower.toFixed(3)} did not ` +
+            'reproduce the breach',
         ];
       }
     }
@@ -190,7 +192,8 @@ function evaluateFixture(
     const candidateSamples = round.perSubject[candidate.label];
     if (!baseSamples || !candidateSamples) {
       throw new Error(
-        `Fixture "${fixture.name}" round ${round.round} is missing samples for ${base.label} or ${candidate.label}`
+        `Fixture "${fixture.name}" round ${round.round} is missing samples for ` +
+          `${base.label} or ${candidate.label}`
       );
     }
     ensureFinitePositive(fixture.name, `${base.label}.p50`, baseSamples.p50);
@@ -224,7 +227,8 @@ function evaluateFixture(
     // downgrade a regression flag either.
     if (status === 'pass') status = 'improvement-warn';
     messages.push(
-      `upper bound ${interval.upper.toFixed(3)} <= ${thresholds.improvementWarn.toFixed(2)} — possible broken benchmark`
+      `upper bound ${interval.upper.toFixed(3)} <= ` +
+        `${thresholds.improvementWarn.toFixed(2)} — possible broken benchmark`
     );
   }
 
@@ -276,7 +280,8 @@ function validateRetry(
     if (!primary) throw new Error(`Primary raw stats is missing flagged fixture "${name}"`);
     if (retry.rounds.length !== primary.rounds.length) {
       throw new Error(
-        `Retry fixture "${name}" must contain ${primary.rounds.length} rounds (received ${retry.rounds.length})`
+        `Retry fixture "${name}" must contain ${primary.rounds.length} rounds ` +
+          `(received ${retry.rounds.length})`
       );
     }
     if (
@@ -309,11 +314,18 @@ const STATUS_LABEL: Record<FixtureStatus, string> = {
 
 /** Render the verdict as a Markdown table body suitable for `GITHUB_STEP_SUMMARY`. */
 export function renderVerdictMarkdown(report: VerdictReport): string {
+  const base = escapeMarkdownCell(report.subjects.base.label);
+  const candidate = escapeMarkdownCell(report.subjects.candidate.label);
+  const thresholds = [
+    `warn \\>= ${report.thresholds.warn.toFixed(2)}`,
+    `fail \\>= ${report.thresholds.fail.toFixed(2)}`,
+    `improvement \\<= ${report.thresholds.improvementWarn.toFixed(2)}`,
+  ].join(', ');
   const header = [
-    `## Paired revision benchmark: ${escapeMarkdownCell(report.subjects.base.label)} vs ${escapeMarkdownCell(report.subjects.candidate.label)}`,
+    `## Paired revision benchmark: ${base} vs ${candidate}`,
     '',
     `Suite status: **${STATUS_LABEL[report.suiteStatus]}**`,
-    `Thresholds: warn \\>= ${report.thresholds.warn.toFixed(2)}, fail \\>= ${report.thresholds.fail.toFixed(2)}, improvement \\<= ${report.thresholds.improvementWarn.toFixed(2)}`,
+    `Thresholds: ${thresholds}`,
     '',
     '| Fixture | Category | Point | Lower | Upper | Status | Notes |',
     '| --- | --- | --- | --- | --- | --- | --- |',
@@ -321,7 +333,15 @@ export function renderVerdictMarkdown(report: VerdictReport): string {
 
   const rows = report.fixtures.map(fixture => {
     const notes = fixture.messages.length > 0 ? fixture.messages.join('; ') : '';
-    return `| ${escapeMarkdownCell(fixture.name)} | ${escapeMarkdownCell(fixture.category)} | ${fixture.interval.point.toFixed(3)} | ${fixture.interval.lower.toFixed(3)} | ${fixture.interval.upper.toFixed(3)} | ${escapeMarkdownCell(STATUS_LABEL[fixture.status])} | ${escapeMarkdownCell(notes)} |`;
+    return markdownTableRow([
+      escapeMarkdownCell(fixture.name),
+      escapeMarkdownCell(fixture.category),
+      fixture.interval.point.toFixed(3),
+      fixture.interval.lower.toFixed(3),
+      fixture.interval.upper.toFixed(3),
+      escapeMarkdownCell(STATUS_LABEL[fixture.status]),
+      escapeMarkdownCell(notes),
+    ]);
   });
 
   return [...header, ...rows, ''].join('\n');

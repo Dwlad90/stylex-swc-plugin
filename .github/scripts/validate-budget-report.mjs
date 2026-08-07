@@ -59,5 +59,6 @@ if (measured === 0) {
 }
 
 console.log(
-  `Absolute p95 budget: ${report.status} (${measured} benchmarks, budget state ${String(report.budgetState)})`
+  `Absolute p95 budget: ${report.status} (${measured} benchmarks, ` +
+    `budget state ${String(report.budgetState)})`
 );

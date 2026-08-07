@@ -23,7 +23,7 @@
  * ceilings only move through a reviewed change (see `budget.json`).
  */
 
-import { escapeMarkdownCell } from './format.js';
+import { escapeMarkdownCell, markdownTableRow } from './format.js';
 import {
   assertUnique,
   requireArray,
@@ -198,7 +198,9 @@ export function evaluateBudget(rawStatsInput: unknown, budgetInput: unknown): Bu
     if (report.status === 'breach' && report.ceilingMs !== undefined) {
       problems.push({
         kind: 'breach',
-        message: `${fixture.name}: p95 ${formatMs(report.observedP95Ms)} exceeds ceiling ${formatMs(report.ceilingMs)}`,
+        message:
+          `${fixture.name}: p95 ${formatMs(report.observedP95Ms)} exceeds ceiling ` +
+          formatMs(report.ceilingMs),
       });
     }
     return report;
@@ -245,7 +247,8 @@ function selectSubject(raw: RawStatsFile, budget: BudgetFile): SubjectDescriptor
 
   if (raw.subjects.length > 1) {
     throw new Error(
-      `Raw stats has ${String(raw.subjects.length)} subjects but no paired roles — cannot tell which one the budget applies to`
+      `Raw stats has ${String(raw.subjects.length)} subjects but no paired roles — ` +
+        'cannot tell which one the budget applies to'
     );
   }
   const only = raw.subjects[0];
@@ -284,12 +287,16 @@ function checkEnvironment(
   if (environment.runnerImage === undefined) {
     problems.push({
       kind: 'environment-runner-image',
-      message: `raw stats records no runner image; ceilings seeded on ${canonical.runnerImages.join(', ')} cannot be compared`,
+      message:
+        'raw stats records no runner image; ceilings seeded on ' +
+        `${canonical.runnerImages.join(', ')} cannot be compared`,
     });
   } else if (!canonical.runnerImages.includes(environment.runnerImage)) {
     problems.push({
       kind: 'environment-runner-image',
-      message: `runner image drifted to ${environment.runnerImage} (seeded on ${canonical.runnerImages.join(', ')}) — recalibration required`,
+      message:
+        `runner image drifted to ${environment.runnerImage} ` +
+        `(seeded on ${canonical.runnerImages.join(', ')}) — recalibration required`,
     });
   }
 
@@ -299,12 +306,16 @@ function checkEnvironment(
     if (environment.runnerImageVersion === undefined) {
       problems.push({
         kind: 'environment-runner-image-version',
-        message: `raw stats records no runner image version; ceilings seeded on ${canonical.runnerImageVersions.join(', ')} cannot be compared`,
+        message:
+          'raw stats records no runner image version; ceilings seeded on ' +
+          `${canonical.runnerImageVersions.join(', ')} cannot be compared`,
       });
     } else if (!canonical.runnerImageVersions.includes(environment.runnerImageVersion)) {
       problems.push({
         kind: 'environment-runner-image-version',
-        message: `runner image rebuilt to ${environment.runnerImageVersion} (seeded on ${canonical.runnerImageVersions.join(', ')}) — recalibration required`,
+        message:
+          `runner image rebuilt to ${environment.runnerImageVersion} ` +
+          `(seeded on ${canonical.runnerImageVersions.join(', ')}) — recalibration required`,
       });
     }
   }
@@ -345,12 +356,14 @@ function measureFixture(
     const samples = round.perSubject[subjectLabel];
     if (!samples) {
       throw new Error(
-        `Fixture "${fixture.name}" round ${String(round.round)} has no samples for subject "${subjectLabel}"`
+        `Fixture "${fixture.name}" round ${String(round.round)} has no samples ` +
+          `for subject "${subjectLabel}"`
       );
     }
     if (!Number.isFinite(samples.p95) || samples.p95 <= 0) {
       throw new Error(
-        `Fixture "${fixture.name}" round ${String(round.round)} p95 must be a positive finite number`
+        `Fixture "${fixture.name}" round ${String(round.round)} p95 must be ` +
+          'a positive finite number'
       );
     }
     return samples.p95;
@@ -386,7 +399,8 @@ export function parseBudget(value: unknown, source: string): BudgetFile {
   const file = requireRecord(value, source);
   if (file.schemaVersion !== BUDGET_SCHEMA_VERSION) {
     throw new Error(
-      `${source} schemaVersion ${String(file.schemaVersion)} is not supported (expected ${String(BUDGET_SCHEMA_VERSION)})`
+      `${source} schemaVersion ${String(file.schemaVersion)} is not supported ` +
+        `(expected ${String(BUDGET_SCHEMA_VERSION)})`
     );
   }
   const state = file.state;
@@ -418,7 +432,8 @@ export function parseBudget(value: unknown, source: string): BudgetFile {
   const canonical = parseCanonical(file.canonical, `${source}.canonical`);
   if (state === 'enforced' && canonical.runnerImageVersions.length === 0) {
     throw new Error(
-      `${source}.canonical.runnerImageVersions must pin at least one image build while state is "enforced"`
+      `${source}.canonical.runnerImageVersions must pin at least one image build ` +
+        'while state is "enforced"'
     );
   }
 
@@ -483,12 +498,14 @@ function parseEntry(value: unknown, context: string): BudgetEntry {
   const derived = observedUpperMs * headroom;
   if (Math.abs(ceilingMs - derived) > derived * CEILING_DERIVATION_TOLERANCE) {
     throw new Error(
-      `${context}.ceilingMs must equal observedUpperMs * headroom (${derived.toPrecision(6)}), received ${ceilingMs.toPrecision(6)}`
+      `${context}.ceilingMs must equal observedUpperMs * headroom ` +
+        `(${derived.toPrecision(6)}), received ${ceilingMs.toPrecision(6)}`
     );
   }
   if (runs < MIN_SEEDING_RUNS) {
     throw new Error(
-      `${context}.runs must be at least ${String(MIN_SEEDING_RUNS)} — seed ceilings from repeated clean runs`
+      `${context}.runs must be at least ${String(MIN_SEEDING_RUNS)} — ` +
+        'seed ceilings from repeated clean runs'
     );
   }
 
@@ -526,12 +543,26 @@ const STATUS_LABEL: Record<BudgetStatus, string> = {
 
 /** Render the budget report as Markdown suitable for `GITHUB_STEP_SUMMARY`. */
 export function renderBudgetMarkdown(report: BudgetReport): string {
+  const canonicalRunner =
+    `${escapeMarkdownCell(report.canonical.runner)} ` +
+    `(${escapeMarkdownCell(describeImages(report.canonical))})`;
+  const canonical = [
+    escapeMarkdownCell(report.canonical.target),
+    `Node ${escapeMarkdownCell(report.canonical.node)}`,
+    canonicalRunner,
+  ].join(', ');
+  const measured = [
+    escapeMarkdownCell(report.environment.target),
+    `Node ${escapeMarkdownCell(report.environment.node)}`,
+    `image ${escapeMarkdownCell(describeMeasuredImage(report.environment))}`,
+    `CPU ${escapeMarkdownCell(report.environment.cpu.model)}`,
+  ].join(', ');
   const lines = [
     `## Absolute p95 budget: ${escapeMarkdownCell(report.subject.label)}`,
     '',
     `Status: **${STATUS_LABEL[report.status]}**${report.reportOnly ? ' (report-only)' : ''}`,
-    `Canonical: ${escapeMarkdownCell(report.canonical.target)}, Node ${escapeMarkdownCell(report.canonical.node)}, ${escapeMarkdownCell(report.canonical.runner)} (${escapeMarkdownCell(describeImages(report.canonical))})`,
-    `Measured: ${escapeMarkdownCell(report.environment.target)}, Node ${escapeMarkdownCell(report.environment.node)}, image ${escapeMarkdownCell(describeMeasuredImage(report.environment))}, CPU ${escapeMarkdownCell(report.environment.cpu.model)}`,
+    `Canonical: ${canonical}`,
+    `Measured: ${measured}`,
     '',
     '| Benchmark | p95 (ms) | Ceiling (ms) | Used | Status |',
     '| --- | --- | --- | --- | --- |',
@@ -542,7 +573,13 @@ export function renderBudgetMarkdown(report: BudgetReport): string {
     const used =
       fixture.utilization === undefined ? '—' : `${(fixture.utilization * 100).toFixed(1)}%`;
     lines.push(
-      `| ${escapeMarkdownCell(fixture.name)} | ${fixture.observedP95Ms.toFixed(4)} | ${ceiling} | ${used} | ${escapeMarkdownCell(fixture.status)} |`
+      markdownTableRow([
+        escapeMarkdownCell(fixture.name),
+        fixture.observedP95Ms.toFixed(4),
+        ceiling,
+        used,
+        escapeMarkdownCell(fixture.status),
+      ])
     );
   }
 

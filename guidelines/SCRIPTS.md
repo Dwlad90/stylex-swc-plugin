@@ -9,8 +9,9 @@ Use `pnpm` (>=11) exclusively -- never npm, yarn, or bun. Requires Node >=22.
 
 ## Per-Package
 
-`pnpm --filter=@stylexswc/<pkg> <build|test|lint|typecheck|format|format:check>`;
-add `test -- <pattern>` to run matching tests.
+Run `pnpm --filter=@stylexswc/<pkg> <script>`, where `<script>` is `build`,
+`test`, `lint`, `typecheck`, `format`, or `format:check`. Add
+`test -- <pattern>` to run matching tests.
 
 ## Dependencies
 
@@ -38,13 +39,14 @@ cargo build --release                                     # release build
 In `crates/stylex-rs-compiler`; run `build` first (they use `dist/*.node`). All
 accept `--help`. Policy: [Performance](./PERFORMANCE.md).
 
-| Script                                           | Does                                                               | Writes to `benchmark/results/`                            |
-| ------------------------------------------------ | ------------------------------------------------------------------ | --------------------------------------------------------- |
-| `bench`                                          | Single-subject run, 22 fixtures                                    | `output.json`, `output-extended.txt`, `raw-stats.v1.json` |
-| `bench:compare`                                  | Rust vs Babel                                                      | `compare-output.txt`                                      |
-| `bench:revisions --base <dir> --candidate <dir>` | Paired measurement                                                 | `revisions-raw-stats.v1.json`                             |
-| `bench:verdict --primary <raw-stats>`            | Ratios, bootstrap bound, one retry; exits 1 on a reproduced breach | `compare-revisions.verdict.v1.json`, `.summary.md`        |
-| `bench:budget`                                   | p95 vs `budget.json`                                               | `budget-report.v1.json`, `budget-report.md`               |
+- `bench`: single-subject run over 22 fixtures; writes output and raw stats.
+- `bench:compare`: compares Rust against Babel; writes `compare-output.txt`.
+- `bench:revisions`: paired measurement; writes revision raw stats.
+- `bench:verdict`: bootstrap verdict and retry; writes JSON and Markdown.
+- `bench:budget`: p95 versus `budget.json`; writes JSON and Markdown.
+
+All JSON and Markdown artifacts are written under `benchmark/results/`. The
+exact filenames are documented by each command's `--help` output.
 
 Subject dirs need `package.json`, `dist/index.js` exporting `transform`, and one
 `*.node`. Passing the same dir as base and candidate (with differing

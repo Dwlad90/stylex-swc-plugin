@@ -41,7 +41,7 @@ interface RevisionInput {
   packageDir: string;
 }
 
-interface CliOptions {
+interface PairedRunOptions {
   base: RevisionInput;
   candidate: RevisionInput;
   rounds: number;
@@ -133,7 +133,7 @@ async function main(): Promise<void> {
   console.log(chalk.green(`Raw stats saved to ${outputPath}`));
 }
 
-function parseCli(argv: readonly string[]): CliOptions {
+function parseCli(argv: readonly string[]): PairedRunOptions {
   const rawArgs = argv.filter(arg => arg !== '--');
 
   const { values } = parseArgs({

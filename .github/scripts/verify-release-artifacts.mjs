@@ -28,14 +28,13 @@ if (!Array.isArray(summary.identities) || summary.identities.length === 0) {
 }
 
 const errors = [];
-for (const identity of summary.identities) {
-  const target = identity.target;
-  const expectedSha = identity.nativeSha256;
-  const nativeBasename = identity.nativeBinary;
-  if (!target || !expectedSha || !nativeBasename) {
-    errors.push(`Incomplete identity entry: ${JSON.stringify(identity)}`);
+for (const value of summary.identities) {
+  const artifact = parseReleaseArtifact(value);
+  if (artifact === undefined) {
+    errors.push(`Incomplete identity entry: ${JSON.stringify(value)}`);
     continue;
   }
+  const { target, expectedSha, nativeBasename } = artifact;
   const bindingsDir = path.join(ARTIFACTS_DIR, `bindings-${target}`);
   if (!fs.existsSync(bindingsDir)) {
     errors.push(`Missing bindings artifact directory for ${target}: ${bindingsDir}`);
@@ -49,7 +48,8 @@ for (const identity of summary.identities) {
   const actualSha = sha256File(candidatePath);
   if (actualSha !== expectedSha) {
     errors.push(
-      `Checksum mismatch for ${target}: expected ${expectedSha}, got ${actualSha} (${candidatePath})`
+      `Checksum mismatch for ${target}: expected ${expectedSha}, ` +
+        `got ${actualSha} (${candidatePath})`
     );
     continue;
   }
@@ -61,3 +61,30 @@ if (errors.length > 0) {
 }
 
 console.log(`All ${summary.identities.length} target(s) verified against benchmark manifests.`);
+
+/**
+ * Convert the aggregate identity into the domain record used during
+ * publication. Keeping this validation at the boundary prevents path and
+ * checksum operations from depending on loosely shaped JSON values.
+ */
+function parseReleaseArtifact(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  if (
+    typeof value.target !== 'string' ||
+    !/^[a-zA-Z0-9._-]+$/.test(value.target) ||
+    typeof value.nativeSha256 !== 'string' ||
+    typeof value.nativeBinary !== 'string' ||
+    value.nativeBinary.length === 0 ||
+    value.nativeBinary !== path.basename(value.nativeBinary) ||
+    !/^[a-f\d]{64}$/.test(value.nativeSha256)
+  ) {
+    return undefined;
+  }
+  return {
+    target: value.target,
+    expectedSha: value.nativeSha256,
+    nativeBasename: value.nativeBinary,
+  };
+}

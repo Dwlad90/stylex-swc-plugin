@@ -155,7 +155,15 @@ export function renderReport(input, { runUrl, conclusion }) {
   const report = validateVerdict(input);
   const rows = report.fixtures.map(fixture => {
     const notes = fixture.messages.map(escapeMarkdown).join('; ');
-    return `| ${escapeMarkdown(fixture.name)} | ${escapeMarkdown(fixture.category)} | ${fixed(fixture.interval.point)} | ${fixed(fixture.interval.lower)} | ${fixed(fixture.interval.upper)} | ${escapeMarkdown(fixture.status)} | ${notes} |`;
+    return markdownTableRow([
+      escapeMarkdown(fixture.name),
+      escapeMarkdown(fixture.category),
+      fixed(fixture.interval.point),
+      fixed(fixture.interval.lower),
+      fixed(fixture.interval.upper),
+      escapeMarkdown(fixture.status),
+      notes,
+    ]);
   });
 
   return [
@@ -182,6 +190,10 @@ export function escapeMarkdown(value) {
     .replaceAll('>', '&gt;')
     .replace(/([\\`*_[\]{}()#+.!|>~-])/g, '\\$1')
     .replace(/[\p{Cc}\p{Cf}]/gu, ' ');
+}
+
+function markdownTableRow(cells) {
+  return `| ${cells.join(' | ')} |`;
 }
 
 function validateSubject(value, expectedLabel, context) {

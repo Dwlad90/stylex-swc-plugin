@@ -84,16 +84,28 @@ function writeArtifacts(options: CliOptions, report: BudgetReport): void {
 
 function printSummary(report: BudgetReport): void {
   console.log(chalk.bold(`\nAbsolute p95 budget: ${report.subject.label}`));
-  console.log(
-    `  canonical: ${report.canonical.target}, Node ${report.canonical.node}, image ${describeImages(report.canonical)}`
-  );
-  console.log(
-    `  measured:  ${report.environment.target}, Node ${report.environment.node}, image ${describeMeasuredImage(report.environment)}, CPU ${report.environment.cpu.model}`
-  );
+  const canonical = [
+    report.canonical.target,
+    `Node ${report.canonical.node}`,
+    `image ${describeImages(report.canonical)}`,
+  ].join(', ');
+  const measured = [
+    report.environment.target,
+    `Node ${report.environment.node}`,
+    `image ${describeMeasuredImage(report.environment)}`,
+    `CPU ${report.environment.cpu.model}`,
+  ].join(', ');
+  console.log(`  canonical: ${canonical}`);
+  console.log(`  measured:  ${measured}`);
 
   for (const fixture of report.fixtures) {
     const ceiling = fixture.ceilingMs === undefined ? 'none' : `${fixture.ceilingMs.toFixed(4)} ms`;
-    const line = `  ${fixture.name.padEnd(40)} p95=${fixture.observedP95Ms.toFixed(4)} ms ceiling=${ceiling} status=${fixture.status}`;
+    const line = [
+      `  ${fixture.name.padEnd(40)}`,
+      `p95=${fixture.observedP95Ms.toFixed(4)} ms`,
+      `ceiling=${ceiling}`,
+      `status=${fixture.status}`,
+    ].join(' ');
     if (fixture.status === 'breach') console.log(chalk.red(line));
     else if (fixture.status === 'unbudgeted') console.log(chalk.yellow(line));
     else console.log(line);
@@ -112,7 +124,8 @@ function printSummary(report: BudgetReport): void {
   } else if (report.status === 'unseeded') {
     console.log(
       chalk.yellow.bold(
-        'Budget not enforced — ceilings are pending calibration. Archive this report as a seeding run.'
+        'Budget not enforced — ceilings are pending calibration. ' +
+          'Archive this report as a seeding run.'
       )
     );
   } else {
@@ -185,7 +198,14 @@ function writeFailureArtifacts(argv: readonly string[], error: unknown): void {
     status: 'error' as const,
     error: { message },
   };
-  const markdown = `## Absolute p95 budget\n\nStatus: **error**\n\n${escapeFailureMessage(message)}\n`;
+  const markdown = [
+    '## Absolute p95 budget',
+    '',
+    'Status: **error**',
+    '',
+    escapeFailureMessage(message),
+    '',
+  ].join('\n');
 
   try {
     const outputJson =

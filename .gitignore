@@ -69,3 +69,6 @@ test-results/
 
 # Python
 __pycache__/
+
+# Agent scratch / local issue tracker, see docs/agents/issue-tracker.md
+/.scratch

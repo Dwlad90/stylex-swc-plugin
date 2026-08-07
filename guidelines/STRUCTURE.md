@@ -275,3 +275,5 @@ other means) or thin wrappers:
 - `.oxlintrc.jsonc` -- root Oxlint config (one root config, path overrides).
 - `scripts/packages/` -- shared `scripty` build/check scripts used by most TS
   packages.
+- `docs/agents/` -- machine-read configuration for the agent skills (issue
+  tracker, triage labels, domain docs).

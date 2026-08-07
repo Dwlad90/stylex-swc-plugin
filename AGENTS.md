@@ -51,6 +51,24 @@ Or run from the package directory without the `--filter` flag.
 - [Git Conventions](./guidelines/git/CONVENTIONS.md)
 - [Official StyleX Links](./guidelines/LINKS.md)
 
+## Agent skills
+
+### Issue tracker
+
+Local markdown under `.scratch/<feature>/`, shared across every worktree and
+never committed. See
+[docs/agents/issue-tracker.md](./docs/agents/issue-tracker.md).
+
+### Triage labels
+
+The five default triage roles, recorded in each issue file's `Status:` line.
+See [docs/agents/triage-labels.md](./docs/agents/triage-labels.md).
+
+### Domain docs
+
+Multi-context: one `CONTEXT.md` per crate, package, and app, indexed by a root
+`CONTEXT-MAP.md`. See [docs/agents/domain.md](./docs/agents/domain.md).
+
 ## Post actions scripts
 
 When writing code, use necessary scripts to run code after the main action has

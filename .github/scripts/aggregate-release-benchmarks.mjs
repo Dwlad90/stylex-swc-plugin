@@ -35,6 +35,20 @@ const EXPECTED_TARGETS = (process.env.EXPECTED_TARGETS ?? '')
   .map(s => s.trim())
   .filter(Boolean);
 
+/**
+ * Suite statuses emitted by `bench:verdict` (see benchmark/lib/verdict.ts).
+ * Only `pass` may publish: `failed` is a reproduced breach, and `flagged`
+ * means a breach was detected but the retry never resolved it.
+ *
+ * Both sets are checked. This gate previously compared against `'passed'`,
+ * a string the verdict never emits, so every target was rejected and the
+ * release could never be published. Validating the value against the known
+ * set means a renamed status fails loudly instead of silently inverting the
+ * gate in either direction.
+ */
+const PASSING_SUITE_STATUS = 'pass';
+const KNOWN_SUITE_STATUSES = new Set(['pass', 'flagged', 'failed']);
+
 const REPORTS_DIR = requireEnv('REPORTS_DIR');
 const PAGES_DIR = requireEnv('PAGES_DIR');
 const NODE_VERSION = requireEnv('NODE_VERSION');
@@ -84,7 +98,12 @@ for (const target of EXPECTED_TARGETS) {
   }
 
   const status = verdict.suiteStatus;
-  if (status !== 'passed') {
+  if (!KNOWN_SUITE_STATUSES.has(status)) {
+    errors.push(
+      `Target ${target} verdict suiteStatus=${status} is not a recognised status ` +
+        `(expected one of ${[...KNOWN_SUITE_STATUSES].join(', ')})`
+    );
+  } else if (status !== PASSING_SUITE_STATUS) {
     errors.push(`Target ${target} verdict suiteStatus=${status}`);
   }
   results.push({ target, verdict, identity, benchmarkOutput });
@@ -195,7 +214,12 @@ function updateHistory(entries) {
         nativeSha256: identity.nativeSha256,
       },
     };
-    const suiteName = 'Benchmark.js Benchmark';
+    // Must match github-action-benchmark's `name` input, which neither
+    // workflow sets, so it is the action's default "Benchmark". The files
+    // already on the `benchmarks` branch use that key; appending under any
+    // other name silently forks each target's history into two series
+    // instead of continuing the existing one.
+    const suiteName = 'Benchmark';
     if (!existing.entries[suiteName]) existing.entries[suiteName] = [];
     existing.entries[suiteName].push(historyEntry);
     existing.lastUpdate = nowMs;
@@ -210,7 +234,11 @@ function readDataFile(file) {
     return { lastUpdate: 0, repoUrl: REPO_URL, entries: {} };
   }
   const raw = fs.readFileSync(file, 'utf8');
-  const match = raw.match(/window\.BENCHMARK_DATA\s*=\s*([\s\S]*?);\s*$/);
+  // The trailing semicolon is optional: github-action-benchmark wrote the
+  // files already on the `benchmarks` branch without one, while
+  // writeDataFile below emits one. Requiring it rejected every pre-existing
+  // history file and failed the aggregate job.
+  const match = raw.match(/window\.BENCHMARK_DATA\s*=\s*([\s\S]*?);?\s*$/);
   if (!match) {
     throw new Error(`Malformed benchmark history file: ${file}`);
   }

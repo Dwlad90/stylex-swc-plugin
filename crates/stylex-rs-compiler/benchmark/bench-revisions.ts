@@ -6,10 +6,10 @@
  * shared fixture registry, and run under balanced seeded-randomized
  * subject order inside a single process. The output is
  * `results/revisions-raw-stats.v1.json` — the input consumed by the
- * Phase 3 verdict engine. Never parse the human-readable summary.
+ * verdict engine. Never parse the human-readable summary.
  *
- * Verdict statistics (ratios, bootstrap CI) are deliberately not
- * computed here: they belong to the Phase 3 verdict layer.
+ * Verdict statistics (ratios, bootstrap CI) are deliberately not computed
+ * here: they belong to the verdict layer.
  *
  * Usage:
  *   pnpm bench:revisions --base <base-pkg-dir> --candidate <candidate-pkg-dir>

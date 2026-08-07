@@ -8,6 +8,28 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
+/**
+ * These tests drive the real bash scripts, stubbing only `git` and `gh` on
+ * PATH. Everything else the scripts call must genuinely be present -- the
+ * scripts declare their own prerequisites through `require_commands`, and
+ * stubbing those would test the stub instead of the parsing.
+ *
+ * So the suite skips rather than fails when a prerequisite is absent, which
+ * keeps `pnpm test:scripts` runnable on a workstation without `jq`. CI runs it
+ * on a full runner where the tools exist, so nothing is quietly lost.
+ */
+function missing(...commands) {
+  const absent = commands.filter(
+    command => spawnSync('command', ['-v', command], { shell: true }).status !== 0
+  );
+  return absent.length > 0 ? `requires ${absent.join(', ')} on PATH` : false;
+}
+
+/** `start-release.sh` plus `scripts/functions.sh`. */
+const NEEDS_SHELL = missing('bash', 'grep', 'sed', 'sort', 'tail', 'tr');
+/** `delete-draft-release.sh` additionally parses the release list with jq. */
+const NEEDS_JQ = missing('bash', 'grep', 'sed', 'sort', 'tail', 'tr', 'jq');
+
 function createHarness(releases = '') {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'stylex-release-scripts-'));
   const bin = path.join(directory, 'bin');
@@ -70,36 +92,44 @@ function run(script, args, env) {
   });
 }
 
-void test('start-release preview validates and prints the plan without dispatching', () => {
-  const harness = createHarness();
-  const result = run(
-    'scripts/git/start-release.sh',
-    ['--preview', '--no-fetch', '--ref', 'feature'],
-    harness.env
-  );
+void test(
+  'start-release preview validates and prints the plan without dispatching',
+  { skip: NEEDS_SHELL },
+  () => {
+    const harness = createHarness();
+    const result = run(
+      'scripts/git/start-release.sh',
+      ['--preview', '--no-fetch', '--ref', 'feature'],
+      harness.env
+    );
 
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Next version:\s+0\.18\.4/);
-  assert.match(result.stdout, /Preview only, nothing dispatched/);
-  assert.doesNotMatch(fs.readFileSync(harness.log, 'utf8'), /gh workflow run/);
-});
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Next version:\s+0\.18\.4/);
+    assert.match(result.stdout, /Preview only, nothing dispatched/);
+    assert.doesNotMatch(fs.readFileSync(harness.log, 'utf8'), /gh workflow run/);
+  }
+);
 
-void test('start-release dispatches the validated workflow inputs non-interactively', () => {
-  const harness = createHarness();
-  const result = run(
-    'scripts/git/start-release.sh',
-    ['--yes', '--no-fetch', '--ref', 'feature', '--pre', 'rc', '--npm-dry-run'],
-    harness.env
-  );
+void test(
+  'start-release dispatches the validated workflow inputs non-interactively',
+  { skip: NEEDS_SHELL },
+  () => {
+    const harness = createHarness();
+    const result = run(
+      'scripts/git/start-release.sh',
+      ['--yes', '--no-fetch', '--ref', 'feature', '--pre', 'rc', '--npm-dry-run'],
+      harness.env
+    );
 
-  assert.equal(result.status, 0, result.stderr);
-  const commands = fs.readFileSync(harness.log, 'utf8');
-  assert.match(commands, /gh workflow run release\.yml/);
-  assert.match(commands, /--raw-field prerelease=true/);
-  assert.match(commands, /--raw-field dry-run=true/);
-});
+    assert.equal(result.status, 0, result.stderr);
+    const commands = fs.readFileSync(harness.log, 'utf8');
+    assert.match(commands, /gh workflow run release\.yml/);
+    assert.match(commands, /--raw-field prerelease=true/);
+    assert.match(commands, /--raw-field dry-run=true/);
+  }
+);
 
-void test('delete-draft-release refuses a published release', () => {
+void test('delete-draft-release refuses a published release', { skip: NEEDS_JQ }, () => {
   const harness = createHarness(
     '{"id":1,"tagName":"0.18.4","isDraft":false,"createdAt":"2026-01-01"}'
   );
@@ -110,21 +140,25 @@ void test('delete-draft-release refuses a published release', () => {
   assert.doesNotMatch(fs.readFileSync(harness.log, 'utf8'), /-X DELETE/);
 });
 
-void test('delete-draft-release dry-run reports every deletion without executing it', () => {
-  const harness = createHarness(
-    '{"id":2,"tagName":"0.18.4-dev.1","isDraft":true,"createdAt":"2026-01-01"}'
-  );
-  const env = { ...harness.env, FAKE_REMOTE_TAG_STATUS: '0', FAKE_LOCAL_TAG_STATUS: '0' };
-  const result = run('scripts/git/delete-draft-release.sh', ['0.18.4-dev.1', '--dry-run'], env);
+void test(
+  'delete-draft-release dry-run reports every deletion without executing it',
+  { skip: NEEDS_JQ },
+  () => {
+    const harness = createHarness(
+      '{"id":2,"tagName":"0.18.4-dev.1","isDraft":true,"createdAt":"2026-01-01"}'
+    );
+    const env = { ...harness.env, FAKE_REMOTE_TAG_STATUS: '0', FAKE_LOCAL_TAG_STATUS: '0' };
+    const result = run('scripts/git/delete-draft-release.sh', ['0.18.4-dev.1', '--dry-run'], env);
 
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /\[dry-run\] gh api -X DELETE/);
-  assert.match(result.stdout, /\[dry-run\] git push origin --delete/);
-  assert.match(result.stdout, /\[dry-run\] git tag --delete/);
-  assert.doesNotMatch(fs.readFileSync(harness.log, 'utf8'), /gh api -X DELETE/);
-});
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /\[dry-run\] gh api -X DELETE/);
+    assert.match(result.stdout, /\[dry-run\] git push origin --delete/);
+    assert.match(result.stdout, /\[dry-run\] git tag --delete/);
+    assert.doesNotMatch(fs.readFileSync(harness.log, 'utf8'), /gh api -X DELETE/);
+  }
+);
 
-void test('delete-draft-release treats a remote query failure as fatal', () => {
+void test('delete-draft-release treats a remote query failure as fatal', { skip: NEEDS_JQ }, () => {
   const harness = createHarness(
     '{"id":2,"tagName":"0.18.4-dev.1","isDraft":true,"createdAt":"2026-01-01"}'
   );

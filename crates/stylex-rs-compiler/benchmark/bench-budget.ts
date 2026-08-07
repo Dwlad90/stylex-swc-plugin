@@ -186,7 +186,7 @@ if (isMainModule(import.meta.url)) {
     process.exitCode = main();
   } catch (error: unknown) {
     writeFailureArtifacts(process.argv.slice(2), error);
-    console.error(chalk.red('check-budget failed:'), error);
+    console.error(chalk.red('bench:budget failed:'), error);
     process.exitCode = EXIT_FAILED;
   }
 }

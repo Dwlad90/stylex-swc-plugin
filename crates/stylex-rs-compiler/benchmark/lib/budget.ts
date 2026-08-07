@@ -88,7 +88,7 @@ export interface BudgetCanonicalEnvironment {
 /**
  * Human-readable rules that travel with the ceilings. Parsed and required
  * rather than ignored, so the rules cannot silently rot away from the file
- * they govern. Phase 7 expands these into the performance policy document.
+ * they govern. `guidelines/PERFORMANCE.md` expands on them.
  */
 export interface BudgetPolicy {
   seeding: string;
@@ -118,7 +118,7 @@ export interface BudgetEntry {
 export interface BudgetFile {
   schemaVersion: typeof BUDGET_SCHEMA_VERSION;
   /**
-   * `pending-calibration` until Phase 0 seeding lands: the check reports
+   * `pending-calibration` until the ceilings are seeded: the check reports
    * observed p95 values so runs can be archived, and never blocks.
    * `enforced` requires one entry per measured fixture and blocks breaches.
    */

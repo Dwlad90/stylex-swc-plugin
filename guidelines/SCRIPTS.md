@@ -7,12 +7,15 @@ Use `pnpm` (>=11) exclusively -- never npm, yarn, or bun. Requires Node >=24.11.
 `pnpm build`, `test`, `lint`, `lint:check` (JSON report), `format`,
 `format:check` (oxfmt plus Rust/TOML), `test:visual`, `typecheck`.
 
+`pnpm test:scripts` runs the CI-side suites under `.github/scripts` and
+`scripts/git` with `node --test`. `pnpm test` runs it first; CI runs it as its
+own `basic-checks` leg.
+
 ## Per-Package
 
 Run `pnpm --filter=@stylexswc/<pkg> <script>`, where `<script>` is `build`,
-`test`, `typecheck`, `format`, or `format:check`. Linting runs once from the
-workspace root. Add
-`test -- <pattern>` to run matching tests.
+`test`, `typecheck`, `format`, or `format:check`; `test -- <pattern>` runs
+matching tests. Linting runs once from the workspace root.
 
 ## Dependencies
 

@@ -5,8 +5,8 @@
  * reporter, so fixture names, weight classes, categories, and calibrated
  * batch sizes cannot drift across the trust boundary.
  *
- * Batch sizes are all `1` until Phase 0 calibration lands. Fast fixtures
- * will move above sub-millisecond noise once calibrated; do not add an
+ * Batch sizes are all `1` until they are calibrated. Fast fixtures are
+ * lifted above sub-millisecond noise by batching; do not add an
  * absolute-delta floor as a shortcut.
  *
  * Only fixtures that actually produce StyleX rules belong here. The

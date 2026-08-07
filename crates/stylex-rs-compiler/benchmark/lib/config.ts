@@ -1,10 +1,9 @@
 /**
  * Shared benchmark configuration.
  *
- * `bench.ts`, `bench-compare.ts`, and `bench-revisions.ts` previously
- * carried their own copies of `stylexOptions` and the tinybench option
- * blocks; they are unified here so that any divergence in measurement
- * conditions must be an explicit, intentional override.
+ * `bench.ts`, `bench-compare.ts`, and `bench-revisions.ts` share these
+ * `stylexOptions` and tinybench option blocks, so any divergence in
+ * measurement conditions must be an explicit, intentional override.
  */
 
 import type { BenchOptions } from 'tinybench';

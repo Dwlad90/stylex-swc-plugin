@@ -33,25 +33,22 @@ import {
   parseReleaseVerdict,
 } from './lib/benchmark-artifacts.mjs';
 import { fail, failWithErrors, requireEnv } from './lib/ci.mjs';
-
-const EXPECTED_TARGETS = (process.env.EXPECTED_TARGETS ?? '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-
 /**
  * Suite statuses emitted by `bench:verdict` (see benchmark/lib/verdict.ts).
  * Only `pass` may publish: `failed` is a reproduced breach, and `flagged`
  * means a breach was detected but the retry never resolved it.
  *
- * Both sets are checked. This gate previously compared against `'passed'`,
- * a string the verdict never emits, so every target was rejected and the
- * release could never be published. Validating the value against the known
- * set means a renamed status fails loudly instead of silently inverting the
- * gate in either direction.
+ * Both the vocabulary and the passing value come from `lib/json.mjs`, the one
+ * CI-side mirror of the engine's statuses. Never hard-code a status string
+ * here: checking against the shared set means a renamed status fails loudly
+ * instead of silently inverting the gate in either direction.
  */
-const PASSING_SUITE_STATUS = 'pass';
-const KNOWN_SUITE_STATUSES = new Set(['pass', 'flagged', 'failed']);
+import { PASSING_SUITE_STATUS, SUITE_STATUSES } from './lib/json.mjs';
+
+const EXPECTED_TARGETS = (process.env.EXPECTED_TARGETS ?? '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
 
 const REPORTS_DIR = requireEnv('REPORTS_DIR');
 const PAGES_DIR = requireEnv('PAGES_DIR');
@@ -115,10 +112,10 @@ for (const target of EXPECTED_TARGETS) {
   }
 
   const status = verdict.suiteStatus;
-  if (!KNOWN_SUITE_STATUSES.has(status)) {
+  if (!SUITE_STATUSES.has(status)) {
     errors.push(
       `Target ${target} verdict suiteStatus=${status} is not a recognised status ` +
-        `(expected one of ${[...KNOWN_SUITE_STATUSES].join(', ')})`
+        `(expected one of ${[...SUITE_STATUSES].join(', ')})`
     );
   } else if (status !== PASSING_SUITE_STATUS) {
     errors.push(`Target ${target} verdict suiteStatus=${status}`);
@@ -251,10 +248,9 @@ function readDataFile(file) {
     return { lastUpdate: 0, repoUrl: REPO_URL, entries: {} };
   }
   const raw = fs.readFileSync(file, 'utf8');
-  // The trailing semicolon is optional: github-action-benchmark wrote the
-  // files already on the `benchmarks` branch without one, while
-  // writeDataFile below emits one. Requiring it rejected every pre-existing
-  // history file and failed the aggregate job.
+  // The trailing semicolon is optional: `writeDataFile` below emits one, but
+  // the files github-action-benchmark already wrote to the `benchmarks`
+  // branch have none. Requiring it would reject every pre-existing history.
   const match = raw.match(/window\.BENCHMARK_DATA\s*=\s*([\s\S]*?);?\s*$/);
   if (!match) {
     throw new Error(`Malformed benchmark history file: ${file}`);

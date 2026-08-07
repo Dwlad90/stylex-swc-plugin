@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { FIXTURE_STATUSES, SUITE_STATUSES } from './lib/json.mjs';
 import {
   BENCHMARK_FIXTURES,
   REPORT_MARKER,
   renderReport,
+  renderUnavailableReport,
   validateIdentity,
   validateVerdict,
 } from './render-benchmark-report.mjs';
@@ -37,12 +39,27 @@ function validVerdict() {
   };
 }
 
+function validIdentity() {
+  return {
+    schemaVersion: 1,
+    runId: '123',
+    prNumber: 42,
+    headSha: 'a'.repeat(40),
+    candidateSha: 'b'.repeat(40),
+    baseSha: 'c'.repeat(40),
+    target: 'aarch64-unknown-linux-gnu',
+    nodeAbi: '137',
+    subjectSchemaVersion: 1,
+  };
+}
+
 void test('renders one marker-delimited escaped report', () => {
   const verdict = validVerdict();
   verdict.fixtures[0].messages = ['unsafe | `note` <tag> [link](url) *bold*'];
   const markdown = renderReport(verdict, {
     runUrl: 'https://github.com/example/repo/actions/runs/1',
     conclusion: 'success',
+    identity: validIdentity(),
   });
 
   assert.equal(markdown.split(REPORT_MARKER).length - 1, 2);
@@ -50,67 +67,59 @@ void test('renders one marker-delimited escaped report', () => {
   assert.doesNotMatch(markdown, /<tag>/);
 });
 
-void test('binds identity metadata to the trusted source run', () => {
-  const identity = {
-    schemaVersion: 1,
-    runId: '123',
-    prNumber: 42,
-    candidateSha: 'a'.repeat(40),
-    baseSha: 'b'.repeat(40),
-    target: 'aarch64-unknown-linux-gnu',
-    nodeAbi: '137',
-    subjectSchemaVersion: 1,
-  };
-  const expected = {
-    runId: '123',
-    prNumber: 42,
-    candidateSha: 'a'.repeat(40),
-    baseSha: 'b'.repeat(40),
-  };
+void test('the unavailable fallback carries the same marker as a real report', () => {
+  const markdown = renderUnavailableReport({
+    runUrl: 'https://github.com/example/repo/actions/runs/1',
+    conclusion: 'failure',
+  });
+
+  assert.equal(markdown.split('\n')[0], REPORT_MARKER);
+  assert.equal(markdown.split(REPORT_MARKER).length - 1, 2);
+  assert.match(markdown, /Suite status: \*\*unavailable\*\*/);
+});
+
+void test('binds identity to fields derivable from the workflow_run event', () => {
+  const identity = validIdentity();
+  const expected = { runId: '123', prNumber: 42, headSha: identity.headSha };
 
   assert.equal(validateIdentity(identity, expected), identity);
   assert.throws(
-    () => validateIdentity({ ...identity, candidateSha: 'c'.repeat(40) }, expected),
-    /candidateSha/
+    () => validateIdentity({ ...identity, headSha: 'd'.repeat(40) }, expected),
+    /headSha/
   );
+  assert.throws(() => validateIdentity({ ...identity, runId: '124' }, expected), /runId/);
 });
 
-void test('resolves a merge candidate separately from the source PR head', () => {
+void test('records the merge and merge-base SHAs as provenance, not as assertions', () => {
+  // Neither is derivable from the workflow_run event, so a changed value must
+  // not reject an otherwise valid report -- only a malformed one may.
+  const identity = validIdentity();
+  const expected = { runId: '123', prNumber: 42, headSha: identity.headSha };
+
+  assert.doesNotThrow(() =>
+    validateIdentity({ ...identity, candidateSha: 'e'.repeat(40) }, expected)
+  );
+  assert.doesNotThrow(() => validateIdentity({ ...identity, baseSha: 'f'.repeat(40) }, expected));
+  assert.throws(() => validateIdentity({ ...identity, baseSha: 'nope' }, expected), /baseSha/);
+});
+
+void test('a moved base branch does not invalidate a report for an unchanged head', () => {
   const sourceHeadSha = 'a'.repeat(40);
-  const sourceBaseSha = 'b'.repeat(40);
-  const currentMergeSha = 'c'.repeat(40);
 
   assert.deepEqual(
-    resolveBenchmarkSource({
-      sourceHeadSha,
-      sourceBaseSha,
-      currentHeadSha: sourceHeadSha,
-      currentBaseSha: sourceBaseSha,
-      currentMergeSha,
-    }),
-    { stale: false, candidateSha: currentMergeSha, baseSha: sourceBaseSha }
+    resolveBenchmarkSource({ sourceHeadSha, currentHeadSha: sourceHeadSha }),
+    { stale: false, headSha: sourceHeadSha },
+    'the base branch tip is not part of the staleness decision'
   );
 
-  assert.deepEqual(
-    resolveBenchmarkSource({
-      sourceHeadSha,
-      sourceBaseSha,
-      currentHeadSha: 'd'.repeat(40),
-      currentBaseSha: sourceBaseSha,
-      currentMergeSha,
-    }),
-    { stale: true, candidateSha: currentMergeSha, baseSha: sourceBaseSha }
-  );
+  assert.deepEqual(resolveBenchmarkSource({ sourceHeadSha, currentHeadSha: 'd'.repeat(40) }), {
+    stale: true,
+    headSha: 'd'.repeat(40),
+  });
 
-  assert.deepEqual(
-    resolveBenchmarkSource({
-      sourceHeadSha,
-      sourceBaseSha,
-      currentHeadSha: sourceHeadSha,
-      currentBaseSha: 'e'.repeat(40),
-      currentMergeSha,
-    }),
-    { stale: true, candidateSha: currentMergeSha, baseSha: sourceBaseSha }
+  assert.throws(
+    () => resolveBenchmarkSource({ sourceHeadSha, currentHeadSha: 'short' }),
+    /currentHeadSha/
   );
 });
 
@@ -132,4 +141,36 @@ void test('rejects non-finite numbers and inconsistent suite status', () => {
   const inconsistent = validVerdict();
   inconsistent.suiteStatus = 'failed';
   assert.throws(() => validateVerdict(inconsistent), /inconsistent/);
+});
+
+void test('accepts every status the verdict engine can emit', () => {
+  // A vocabulary narrower than the engine's renders a real signal as
+  // "unavailable", so assert the whole vocabulary round-trips.
+  const flagged = validVerdict();
+  flagged.suiteStatus = 'flagged';
+  flagged.fixtures[0].status = 'flagged';
+  flagged.fixtures[0].messages = ['lower bound 1.400 >= 1.20 — retry required'];
+  flagged.flagged = [flagged.fixtures[0].name];
+
+  assert.equal(validateVerdict(flagged).suiteStatus, 'flagged');
+  assert.match(
+    renderReport(flagged, { runUrl: 'https://example.test/1', conclusion: 'success' }),
+    /Suite status: \*\*flagged\*\*/
+  );
+
+  for (const status of ['pass', 'warn', 'improvement-warn']) {
+    const verdict = validVerdict();
+    verdict.fixtures[0].status = status;
+    assert.equal(validateVerdict(verdict).fixtures[0].status, status);
+  }
+});
+
+void test('the shared vocabulary mirrors benchmark/lib/verdict.ts', () => {
+  // Kept as an explicit list: a rename in verdict.ts must fail here rather
+  // than silently rejecting valid artifacts in production.
+  assert.deepEqual([...SUITE_STATUSES], ['pass', 'flagged', 'failed']);
+  assert.deepEqual(
+    [...FIXTURE_STATUSES],
+    ['pass', 'warn', 'improvement-warn', 'flagged', 'failed']
+  );
 });

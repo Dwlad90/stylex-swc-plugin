@@ -1,10 +1,9 @@
 /**
  * Presentation helpers shared by every benchmark entry point.
  *
- * Previously `bench.ts` and `bench-compare.ts` each carried their own copy
- * of the latency formatter with slightly different unit rules (ns/µs/ms vs
- * µs/ms/s). Keeping one formatter — and one Markdown escaper — avoids drift
- * between the human-readable outputs and the CI job summaries.
+ * One latency formatter and one Markdown escaper for every entry point, so
+ * unit rules cannot drift between the human-readable outputs and the CI job
+ * summaries.
  */
 
 export function formatLatency(milliseconds: number): string {

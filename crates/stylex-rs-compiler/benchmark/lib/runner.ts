@@ -36,7 +36,7 @@ export interface RunOptions {
   subjects: readonly LoadedSubject[];
   fixtures: readonly FixtureDescriptor[];
   stylexOptions: StyleXOptions;
-  /** Number of independent rounds per fixture. Phase 0 will calibrate. */
+  /** Number of independent rounds per fixture. */
   rounds: number;
   /** Seed for round-level subject-order permutation. */
   seed: number;
@@ -126,8 +126,7 @@ async function runSingleRound(
   for (const subject of order) {
     const label = subject.descriptor.label;
     bench.add(label, () => {
-      // Batch size accounts for sub-millisecond fixtures once Phase 0
-      // calibration lands; `batchSize` defaults to 1 today.
+      // Batching lifts sub-millisecond fixtures above timer noise.
       for (let i = 0; i < fixture.batchSize; i++) {
         subject.run(fixture, options.stylexOptions);
       }

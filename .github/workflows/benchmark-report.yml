@@ -51,35 +51,29 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
           REPOSITORY: ${{ github.repository }}
-          SOURCE_BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha }}
           SOURCE_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           pr_json=$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER")
           resolution=$(
             node .github/scripts/resolve-benchmark-source.mjs \
               --source-head-sha "$SOURCE_HEAD_SHA" \
-              --source-base-sha "$SOURCE_BASE_SHA" \
-              --current-head-sha "$(jq -r '.head.sha' <<< "$pr_json")" \
-              --current-base-sha "$(jq -r '.base.sha' <<< "$pr_json")" \
-              --current-merge-sha "$(jq -r '.merge_commit_sha' <<< "$pr_json")"
+              --current-head-sha "$(jq -r '.head.sha' <<< "$pr_json")"
           )
           if [[ "$(jq -r '.stale' <<< "$resolution")" == "true" ]]; then
-            echo "The PR head or base changed after the source run; skipping stale report."
+            echo "The PR head changed after the source run; skipping stale report."
             echo "stale=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           echo "stale=false" >> "$GITHUB_OUTPUT"
-          echo "base-sha=$(jq -r '.baseSha' <<< "$resolution")" >> "$GITHUB_OUTPUT"
-          echo "candidate-sha=$(jq -r '.candidateSha' <<< "$resolution")" >> "$GITHUB_OUTPUT"
+          echo "head-sha=$(jq -r '.headSha' <<< "$resolution")" >> "$GITHUB_OUTPUT"
 
       - name: Validate and render report
         id: render
         if: steps.identities.outputs.stale == 'false' && steps.download.outcome == 'success'
         continue-on-error: true
         env:
-          BASE_SHA: ${{ steps.identities.outputs.base-sha }}
-          CANDIDATE_SHA: ${{ steps.identities.outputs.candidate-sha }}
+          HEAD_SHA: ${{ steps.identities.outputs.head-sha }}
           PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
           REPORT_DIR: ${{ runner.temp }}/paired-benchmark-report
           RUN_ID: ${{ github.event.workflow_run.id }}
@@ -97,9 +91,11 @@ jobs:
             --conclusion "$RUN_CONCLUSION" \
             --run-id "$RUN_ID" \
             --pr-number "$PR_NUMBER" \
-            --candidate-sha "$CANDIDATE_SHA" \
-            --base-sha "$BASE_SHA"
+            --head-sha "$HEAD_SHA"
 
+      # Same renderer, so the marker and the comment layout have one
+      # definition. A divergent copy here would break the upsert below, which
+      # finds the previous comment by that marker.
       - name: Render unavailable report
         if: >-
           steps.identities.outputs.stale == 'false' && (steps.download.outcome != 'success' ||
@@ -108,17 +104,11 @@ jobs:
           RUN_URL: ${{ github.event.workflow_run.html_url }}
           RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
         run: |
-          cat > "$RUNNER_TEMP/paired-benchmark-comment.md" <<EOF
-          <!-- stylex-paired-benchmark -->
-          ## Paired revision benchmark
-
-          Suite status: **unavailable**
-          Workflow conclusion: **$RUN_CONCLUSION**
-          [Source workflow run]($RUN_URL)
-
-          The source run did not produce a valid paired benchmark report. Inspect the workflow diagnostics.
-          <!-- stylex-paired-benchmark -->
-          EOF
+          node .github/scripts/render-benchmark-report.mjs \
+            --unavailable true \
+            --output "$RUNNER_TEMP/paired-benchmark-comment.md" \
+            --run-url "$RUN_URL" \
+            --conclusion "$RUN_CONCLUSION"
 
       - name: Upsert authoritative PR comment
         if: steps.identities.outputs.stale == 'false'
@@ -127,9 +117,13 @@ jobs:
           PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
           REPOSITORY: ${{ github.repository }}
         run: |
+          # The renderer emits the marker as the first line of every comment it
+          # writes, so read it back rather than repeating the literal here.
+          export MARKER
+          MARKER=$(head -n 1 "$RUNNER_TEMP/paired-benchmark-comment.md")
           mapfile -t comment_ids < <(
             gh api --paginate "repos/$REPOSITORY/issues/$PR_NUMBER/comments" \
-              --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | contains("<!-- stylex-paired-benchmark -->")) | .id'
+              --jq '.[] | select(.user.login == "github-actions[bot]") | select(.body | contains(env.MARKER)) | .id'
           )
           jq -Rs '{body: .}' "$RUNNER_TEMP/paired-benchmark-comment.md" > "$RUNNER_TEMP/comment.json"
 

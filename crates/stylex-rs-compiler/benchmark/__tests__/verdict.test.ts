@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, test } from 'vitest';
 
-import { runComparison, type RetryRequest } from '../compare-revisions.js';
+import { runComparison, type RetryRequest } from '../bench-verdict.js';
 import {
   RAW_STATS_SCHEMA_VERSION,
   type BootstrapConfig,
@@ -418,13 +418,13 @@ describe('renderVerdictMarkdown', () => {
   });
 });
 
-describe('compare-revisions CLI diagnostics', () => {
+describe('bench:verdict CLI diagnostics', () => {
   test('writes JSON and Markdown artifacts before failing malformed input', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stylex-verdict-'));
     const primaryPath = path.join(tempDir, 'primary.json');
     const outputPath = path.join(tempDir, 'verdict.json');
     const summaryPath = path.join(tempDir, 'compare-revisions.summary.md');
-    const scriptPath = fileURLToPath(new URL('../compare-revisions.ts', import.meta.url));
+    const scriptPath = fileURLToPath(new URL('../bench-verdict.ts', import.meta.url));
 
     try {
       fs.writeFileSync(primaryPath, '{"schemaVersion":999}\n', 'utf8');
@@ -458,7 +458,7 @@ describe('compare-revisions CLI diagnostics', () => {
     const primaryPath = path.join(tempDir, 'primary.json');
     const outputPath = path.join(tempDir, 'verdict.json');
     const summaryPath = path.join(tempDir, 'custom-summary.md');
-    const scriptPath = fileURLToPath(new URL('../compare-revisions.ts', import.meta.url));
+    const scriptPath = fileURLToPath(new URL('../bench-verdict.ts', import.meta.url));
 
     try {
       fs.writeFileSync(primaryPath, `${JSON.stringify(rawStats([fixture('x', [1], [1])]))}\n`);

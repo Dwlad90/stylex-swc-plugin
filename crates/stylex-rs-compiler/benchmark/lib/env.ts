@@ -2,9 +2,9 @@
  * Environment metadata capture for raw-stats and reporting.
  *
  * `github-action-benchmark` compares numbers alone, but the budget check
- * (Phase 6) requires knowing the OS image, Node version, CPU, and target
- * that produced a measurement so an image change forces recalibration
- * instead of a silent regression comparison.
+ * requires knowing the OS image, Node version, CPU, and target that
+ * produced a measurement so an image change forces recalibration instead
+ * of a silent regression comparison.
  */
 
 import { execSync } from 'node:child_process';

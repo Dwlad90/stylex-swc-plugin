@@ -1,7 +1,7 @@
 /**
  * Shared plumbing for the benchmark gate entry points.
  *
- * Both gates (`compare-revisions.ts`, `check-budget.ts`) have the same
+ * Both gates (`bench-verdict.ts`, `bench-budget.ts`) have the same
  * obligations: write complete diagnostics *before* exiting non-zero, so a
  * failed CI job still uploads an artifact explaining itself, and never
  * crash inside the failure path itself.

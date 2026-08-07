@@ -1,18 +1,26 @@
+/**
+ * Decide whether a completed benchmark run still describes the current PR.
+ *
+ * A benchmark measures the PR head against `merge-base(develop, head)`. That
+ * comparison stays valid for as long as the head is unchanged: it is a
+ * statement about what the branch does to the code it forked from, not about
+ * the current tip of the base branch.
+ *
+ * So staleness is decided by the head SHA alone. The previous rule also
+ * compared `pull_requests[0].base.sha` -- the base *branch tip* -- between the
+ * source run and now, which meant any unrelated push to `develop` in the
+ * minutes between measuring and reporting silently discarded a perfectly valid
+ * report and left the PR with no comment at all.
+ */
+
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export function resolveBenchmarkSource(input) {
   const sourceHeadSha = sha(input.sourceHeadSha, 'sourceHeadSha');
-  const sourceBaseSha = sha(input.sourceBaseSha, 'sourceBaseSha');
   const currentHeadSha = sha(input.currentHeadSha, 'currentHeadSha');
-  const currentBaseSha = sha(input.currentBaseSha, 'currentBaseSha');
-  const currentMergeSha = sha(input.currentMergeSha, 'currentMergeSha');
 
-  return {
-    stale: sourceHeadSha !== currentHeadSha || sourceBaseSha !== currentBaseSha,
-    candidateSha: currentMergeSha,
-    baseSha: sourceBaseSha,
-  };
+  return { stale: sourceHeadSha !== currentHeadSha, headSha: currentHeadSha };
 }
 
 function sha(value, name) {
@@ -32,13 +40,7 @@ function parseCli(argv) {
     }
     values.set(name, value);
   }
-  for (const required of [
-    '--source-head-sha',
-    '--source-base-sha',
-    '--current-head-sha',
-    '--current-base-sha',
-    '--current-merge-sha',
-  ]) {
+  for (const required of ['--source-head-sha', '--current-head-sha']) {
     if (!values.has(required)) throw new Error(`${required} is required`);
   }
   return values;
@@ -56,10 +58,7 @@ if (isMainModule()) {
     const options = parseCli(process.argv.slice(2));
     const result = resolveBenchmarkSource({
       sourceHeadSha: options.get('--source-head-sha'),
-      sourceBaseSha: options.get('--source-base-sha'),
       currentHeadSha: options.get('--current-head-sha'),
-      currentBaseSha: options.get('--current-base-sha'),
-      currentMergeSha: options.get('--current-merge-sha'),
     });
     process.stdout.write(`${JSON.stringify(result)}\n`);
   } catch (error) {

@@ -42,9 +42,8 @@ type TransformFn = (
  * Load an `@stylexswc/rs-compiler`-shaped subject from an on-disk package.
  *
  * The loader imports the entry via a `file://` URL so the runtime resolves
- * it exactly like `import`. Later phases will validate that two
- * independently loaded NAPI subjects can coexist in one process — this is
- * the primitive they build on.
+ * it exactly like `import`, giving each subject its own resolution scope so
+ * two independently built NAPI bindings can coexist in one process.
  */
 export async function loadSubject(options: LoadSubjectOptions): Promise<LoadedSubject> {
   const entry = path.join(options.packageDir, 'dist/index.js');

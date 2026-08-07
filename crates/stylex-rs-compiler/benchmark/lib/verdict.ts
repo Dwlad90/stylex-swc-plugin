@@ -8,7 +8,7 @@
  *      band (default 1.10), a fail band (default 1.20), and an
  *      improbable-improvement upper bound (default 0.50).
  *
- * The engine is deliberately I/O-free. `compare-revisions.ts` handles
+ * The engine is deliberately I/O-free. `bench-verdict.ts` handles
  * argument parsing, artifact writing, and the targeted-retry loop.
  * A single-fixture reproduced fail block turns into a suite failure —
  * verdict evaluation itself never re-measures.

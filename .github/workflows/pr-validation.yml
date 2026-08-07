@@ -93,9 +93,13 @@ jobs:
           - id: format-check
             name: Check formatting
             command: pnpm run format:check
-          - id: benchmark-reporter-tests
-            name: Test benchmark reporter
-            command: node --test .github/scripts/render-benchmark-report.test.mjs
+          # Every CI-side script suite, not just the reporter: `test:scripts`
+          # also covers the release artifact parsers and the release shell
+          # scripts, which the full `test` run alone would not guard on the
+          # paths that use them.
+          - id: ci-script-tests
+            name: Test CI scripts
+            command: pnpm run test:scripts
           # Disabled for now; re-enable when we want the dependency graph
           # enforced on every PR. `pnpm run deps:check:typescript` still works
           # locally in the meantime.
@@ -356,11 +360,20 @@ jobs:
             ${{ env.BENCHMARK_CACHE_KEY_NAMESPACE }}-develop-
             ${{ env.BENCHMARK_CACHE_KEY_NAMESPACE }}-
 
+      # Cache eviction must be visible rather than looking like a clean
+      # comparison. With no restored series github-action-benchmark has nothing
+      # to compare against and cannot raise an alert at all, so this run only
+      # seeds the series -- the warning says so instead of leaving an empty
+      # comparison to be read as a pass.
       - name: Report missing baseline
         if: ${{ steps.benchmark-cache-restore.outputs.cache-matched-key == '' }}
         run: |
-          echo "::warning::No PR-side benchmark baseline was restored; results" \
-            "are informational for this run."
+          echo "::warning::No PR-side benchmark baseline was restored; this run" \
+            "seeds a new series and performs no comparison."
+          {
+            echo "> **No benchmark baseline restored.** This run seeds a new"
+            echo "> trend series; no comparison was performed."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Measures this revision once, single-subject. The result is only a
       # datapoint; the step below hands it to github-action-benchmark, which
@@ -391,10 +404,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # The key must be unique per run. Keyed on run_attempt alone it resolved to
-      # `<prefix>-1` on every run, so after the first save every later one failed
-      # with "Unable to reserve cache" and the baseline stayed frozen at whatever
-      # the first run measured. restore-keys above picks the newest prefix match.
+      # The key must be unique per run: cache entries are immutable, so a key
+      # that repeats across runs (e.g. `run_attempt` alone) makes every save
+      # after the first fail with "Unable to reserve cache" and freezes the
+      # baseline. restore-keys above picks the newest prefix match.
       - name: Save benchmark cache
         if: always()
         uses: actions/cache/save@v6
@@ -423,10 +436,11 @@ jobs:
           # the new one. Failing on that mismatch kills runs that measured the
           # correct commit. Staleness is adjudicated downstream by
           # benchmark-report.yml, which re-reads live PR state and drops a
-          # report whose head or base has moved.
+          # report whose head has moved.
           #
           # Only pull_request runs check out a merge ref; push and schedule runs
           # check out the develop tip, where HEAD has a single parent.
+          head_sha=$candidate_sha
           if [[ "$EVENT_NAME" == 'pull_request' ]]; then
             parent_count=$(($(git rev-list --parents -n 1 HEAD | wc -w) - 1))
             if [[ "$parent_count" -ne 2 ]]; then
@@ -435,7 +449,12 @@ jobs:
               exit 1
             fi
 
+            # The PR head that was actually merged into the benchmarked tree.
+            # This is the one identity the trusted reporter can rederive from
+            # the workflow_run event, so it is what binds the artifact to this
+            # PR revision -- see render-benchmark-report.mjs.
             merged_head_sha=$(git rev-parse 'HEAD^2')
+            head_sha=$merged_head_sha
             if [[ -n "$PR_HEAD_SHA" && "$merged_head_sha" != "$PR_HEAD_SHA" ]]; then
               echo "::warning::Merge ref was rebuilt: HEAD^2 $merged_head_sha is not the" \
                 "event's head $PR_HEAD_SHA. Benchmarking the ref as checked out."
@@ -456,6 +475,7 @@ jobs:
           )
 
           echo "candidate-sha=$candidate_sha" >> "$GITHUB_OUTPUT"
+          echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
           echo "base-sha=$base_sha" >> "$GITHUB_OUTPUT"
           echo "node-abi=$node_abi" >> "$GITHUB_OUTPUT"
           echo "toolchain-hash=$toolchain_hash" >> "$GITHUB_OUTPUT"
@@ -478,31 +498,7 @@ jobs:
           NODE_ABI: ${{ steps.paired-identities.outputs.node-abi }}
           TOOLCHAIN_HASH: ${{ steps.paired-identities.outputs.toolchain-hash }}
           BASE_SUBJECT: ${{ runner.temp }}/stylex-base-subject
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const path = require('node:path');
-
-          const subject = process.env.BASE_SUBJECT;
-          const expected = {
-            schemaVersion: Number(process.env.BENCHMARK_SUBJECT_SCHEMA_VERSION),
-            baseSha: process.env.BASE_SHA,
-            target: process.env.BENCHMARK_TARGET,
-            nodeAbi: process.env.NODE_ABI,
-            toolchainHash: process.env.TOOLCHAIN_HASH,
-          };
-          const actual = JSON.parse(fs.readFileSync(path.join(subject, 'manifest.json'), 'utf8'));
-          if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-            throw new Error(`Base subject manifest mismatch: ${JSON.stringify(actual)}`);
-          }
-          for (const required of ['package.json', 'dist/index.js', 'dist/transform.js']) {
-            if (!fs.statSync(path.join(subject, required)).isFile()) {
-              throw new Error(`Base subject is missing ${required}`);
-            }
-          }
-          const native = fs.readdirSync(path.join(subject, 'dist')).filter(name => name.endsWith('.node'));
-          if (native.length !== 1) throw new Error('Base subject must contain exactly one native binding');
-          NODE
+        run: node .github/scripts/base-subject.mjs verify
 
       - name: Build base subject in isolated worktree
         if: steps.base-subject-cache.outputs.cache-hit != 'true'
@@ -524,22 +520,7 @@ jobs:
           cp -R -L "$BASE_WORKTREE/crates/stylex-rs-compiler/node_modules/picomatch" \
             "$BASE_SUBJECT/node_modules/picomatch"
 
-          BASE_SUBJECT="$BASE_SUBJECT" BASE_SHA="$BASE_SHA" NODE_ABI="$NODE_ABI" \
-            TOOLCHAIN_HASH="$TOOLCHAIN_HASH" node <<'NODE'
-          const fs = require('node:fs');
-          const path = require('node:path');
-          const manifest = {
-            schemaVersion: Number(process.env.BENCHMARK_SUBJECT_SCHEMA_VERSION),
-            baseSha: process.env.BASE_SHA,
-            target: process.env.BENCHMARK_TARGET,
-            nodeAbi: process.env.NODE_ABI,
-            toolchainHash: process.env.TOOLCHAIN_HASH,
-          };
-          fs.writeFileSync(
-            path.join(process.env.BASE_SUBJECT, 'manifest.json'),
-            `${JSON.stringify(manifest, null, 2)}\n`
-          );
-          NODE
+          node .github/scripts/base-subject.mjs write
 
       - name: Save immutable base subject
         if: steps.base-subject-cache.outputs.cache-hit != 'true'
@@ -580,38 +561,22 @@ jobs:
       # are gated on the paired benchmark having produced results, because an
       # earlier failure (build, sanity check, base subject) leaves nothing to
       # bundle and would otherwise report as a second, misleading failure.
+      #
+      # `paired-bench` itself only runs on pull_request, so its outcome being
+      # `success` already implies the event -- no need to retest it here.
       - name: Record paired benchmark identity
-        if: >-
-          !cancelled() && github.event_name == 'pull_request' && steps.paired-bench.outcome ==
-          'success'
+        if: ${{ !cancelled() && steps.paired-bench.outcome == 'success' }}
         env:
           BASE_SHA: ${{ steps.paired-identities.outputs.base-sha }}
           CANDIDATE_SHA: ${{ steps.paired-identities.outputs.candidate-sha }}
+          HEAD_SHA: ${{ steps.paired-identities.outputs.head-sha }}
           NODE_ABI: ${{ steps.paired-identities.outputs.node-abi }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const identity = {
-            schemaVersion: 1,
-            runId: process.env.GITHUB_RUN_ID,
-            prNumber: Number(process.env.PR_NUMBER),
-            candidateSha: process.env.CANDIDATE_SHA,
-            baseSha: process.env.BASE_SHA,
-            target: process.env.BENCHMARK_TARGET,
-            nodeAbi: process.env.NODE_ABI,
-            subjectSchemaVersion: Number(process.env.BENCHMARK_SUBJECT_SCHEMA_VERSION),
-          };
-          fs.writeFileSync(
-            'crates/stylex-rs-compiler/benchmark/results/paired-benchmark-identity.v1.json',
-            `${JSON.stringify(identity, null, 2)}\n`
-          );
-          NODE
+          IDENTITY_OUTPUT: crates/stylex-rs-compiler/benchmark/results/paired-benchmark-identity.v1.json
+        run: node .github/scripts/record-paired-benchmark-identity.mjs
 
       - name: Prepare bounded benchmark artifacts
-        if: >-
-          !cancelled() && github.event_name == 'pull_request' && steps.paired-bench.outcome ==
-          'success'
+        if: ${{ !cancelled() && steps.paired-bench.outcome == 'success' }}
         working-directory: crates/stylex-rs-compiler/benchmark/results
         run: |
           test -f revisions-raw-stats.v1.json
@@ -630,9 +595,7 @@ jobs:
           test "$(stat -c %s paired-benchmark-raw.tar.gz)" -le 104857600
 
       - name: Upload paired benchmark report
-        if: >-
-          !cancelled() && github.event_name == 'pull_request' && steps.paired-bench.outcome ==
-          'success'
+        if: ${{ !cancelled() && steps.paired-bench.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: paired-benchmark-report
@@ -643,9 +606,7 @@ jobs:
           retention-days: 14
 
       - name: Upload paired benchmark diagnostics
-        if: >-
-          !cancelled() && github.event_name == 'pull_request' && steps.paired-bench.outcome ==
-          'success'
+        if: ${{ !cancelled() && steps.paired-bench.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: paired-benchmark-raw

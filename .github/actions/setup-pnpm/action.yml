@@ -29,7 +29,7 @@ runs:
     # root package.json, so the pnpm version is pinned in one place. Setting both
     # is only tolerated while they match exactly — once they drift, every job
     # fails with "Multiple versions of pnpm specified".
-    - uses: pnpm/action-setup@v6.0.10
+    - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
       name: Install pnpm
       id: pnpm-install
 

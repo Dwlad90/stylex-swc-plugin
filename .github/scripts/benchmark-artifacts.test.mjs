@@ -11,6 +11,12 @@ import {
   parseReleaseVerdict,
   verifyArtifactFiles,
 } from './lib/benchmark-artifacts.mjs';
+import {
+  assertBaseSubjectContents,
+  assertBaseSubjectManifest,
+  buildBaseSubjectManifest,
+  buildPairedBenchmarkIdentity,
+} from './lib/paired-benchmark.mjs';
 
 const FILES = [
   { path: 'index.js', sha256: 'a'.repeat(64) },
@@ -95,6 +101,83 @@ void test('release identity validation requires one native artifact and complete
   assert.throws(
     () => parseReleaseBenchmarkIdentity({ ...identity, files: FILES.slice(0, 1) }),
     /exactly one native artifact/
+  );
+});
+
+void test('release verdict validation accepts an unresolved flagged suite', () => {
+  // `flagged` means a breach was detected and the retry did not resolve it.
+  // The aggregate job rejects it as non-passing, but validation must accept
+  // the artifact so the rejection names the status rather than a parse error.
+  const verdict = validVerdict();
+  verdict.suiteStatus = 'flagged';
+  verdict.fixtures[0].status = 'flagged';
+  verdict.flagged = [verdict.fixtures[0].name];
+
+  assert.equal(parseReleaseVerdict(verdict).suiteStatus, 'flagged');
+});
+
+void test('release verdict validation does not pin PR-only subject labels', () => {
+  // Release runs label subjects by version, not `base`/`candidate`.
+  const verdict = validVerdict();
+  verdict.subjects.base.label = '1.2.2';
+  verdict.subjects.candidate.label = '1.2.3';
+
+  assert.equal(parseReleaseVerdict(verdict).suiteStatus, 'pass');
+});
+
+void test('base subject manifest verification names the field that moved', () => {
+  const expected = {
+    schemaVersion: 1,
+    baseSha: 'a'.repeat(40),
+    target: 'aarch64-unknown-linux-gnu',
+    nodeAbi: '137',
+    toolchainHash: 'deadbeef',
+  };
+  const manifest = buildBaseSubjectManifest(expected);
+
+  assert.deepEqual(manifest, expected);
+  assert.doesNotThrow(() => assertBaseSubjectManifest(manifest, expected));
+  assert.throws(
+    () => assertBaseSubjectManifest({ ...manifest, baseSha: 'b'.repeat(40) }, expected),
+    /base subject manifest\.baseSha/
+  );
+  assert.throws(() => buildBaseSubjectManifest({ ...expected, baseSha: 'nope' }), /baseSha/);
+});
+
+void test('base subject contents require one loadable native binding', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'stylex-subject-'));
+  fs.mkdirSync(path.join(directory, 'dist'));
+  fs.writeFileSync(path.join(directory, 'package.json'), '{}');
+  fs.writeFileSync(path.join(directory, 'dist/index.js'), '');
+  assert.throws(() => assertBaseSubjectContents(directory), /missing dist\/transform\.js/);
+
+  fs.writeFileSync(path.join(directory, 'dist/transform.js'), '');
+  assert.throws(() => assertBaseSubjectContents(directory), /exactly one native binding/);
+
+  fs.writeFileSync(path.join(directory, 'dist/rs-compiler.linux-arm64-gnu.node'), '');
+  assert.equal(assertBaseSubjectContents(directory), 'rs-compiler.linux-arm64-gnu.node');
+});
+
+void test('paired benchmark identity validates every recorded SHA', () => {
+  const input = {
+    runId: '123',
+    prNumber: 42,
+    headSha: 'a'.repeat(40),
+    candidateSha: 'b'.repeat(40),
+    baseSha: 'c'.repeat(40),
+    target: 'aarch64-unknown-linux-gnu',
+    nodeAbi: '137',
+    subjectSchemaVersion: 1,
+  };
+
+  assert.deepEqual(buildPairedBenchmarkIdentity(input), { schemaVersion: 1, ...input });
+  assert.throws(
+    () => buildPairedBenchmarkIdentity({ ...input, headSha: 'HEAD' }),
+    /identity\.headSha/
+  );
+  assert.throws(
+    () => buildPairedBenchmarkIdentity({ ...input, prNumber: Number.NaN }),
+    /identity\.prNumber/
   );
 });
 

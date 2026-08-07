@@ -24,8 +24,8 @@ export interface FixtureDescriptor {
   weight: FixtureWeight;
   category: FixtureCategory;
   /**
-   * Number of `transform` invocations per timed operation. Phase 0 will
-   * calibrate this per fixture; until then all fixtures batch by 1.
+   * Number of `transform` invocations per timed operation. Raised per
+   * fixture to lift sub-millisecond work above timer noise; 1 by default.
    */
   batchSize: number;
 }

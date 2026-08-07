@@ -141,7 +141,7 @@ export interface BootstrapInterval {
  * Deterministic bootstrap of the median of round ratios.
  *
  * Returns both one-sided lower and upper bounds at the requested
- * confidence level; the verdict engine (Phase 3) reads both — the lower
+ * confidence level; the verdict engine reads both — the lower
  * bound gates regressions and the upper bound flags improbably-large
  * improvements.
  */

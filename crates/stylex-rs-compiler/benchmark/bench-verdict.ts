@@ -51,6 +51,7 @@ import {
   evaluateRawStats,
   renderVerdictMarkdown,
   VERDICT_SCHEMA_VERSION,
+  type SuiteStatus,
   type VerdictReport,
   type VerdictThresholds,
 } from './lib/verdict.js';
@@ -112,8 +113,37 @@ async function main(): Promise<number> {
   writeArtifacts(options, report);
   printSummary(report);
 
-  if (report.suiteStatus === 'failed') return EXIT_FAILED;
-  return EXIT_PASS;
+  return exitCodeFor(report.suiteStatus);
+}
+
+/**
+ * Every suite status this gate can exit on.
+ *
+ * `Record<SuiteStatus, number>` is what makes this exhaustive: adding a status
+ * to the engine is a type error here rather than a silent zero.
+ *
+ * `flagged` should not reach here -- `runComparison` always resolves a flagged
+ * primary through the targeted retry, which turns every flagged fixture into
+ * `pass` or `failed`. If it does, the retry silently did not run and the gate
+ * has no evidence either way, so it fails rather than publishing an unresolved
+ * breach as a pass.
+ */
+const EXIT_CODE_BY_SUITE_STATUS: Record<SuiteStatus, number> = {
+  pass: EXIT_PASS,
+  flagged: EXIT_FAILED,
+  failed: EXIT_FAILED,
+};
+
+function exitCodeFor(suiteStatus: SuiteStatus): number {
+  if (suiteStatus === 'flagged') {
+    console.error(
+      chalk.red(
+        'Suite status is "flagged": the targeted retry did not resolve a detected ' +
+          'breach. Refusing to report a pass.'
+      )
+    );
+  }
+  return EXIT_CODE_BY_SUITE_STATUS[suiteStatus];
 }
 
 export async function runComparison(
@@ -385,7 +415,7 @@ if (isMainModule(import.meta.url)) {
     })
     .catch((error: unknown) => {
       writeFailureArtifacts(process.argv.slice(2), error);
-      console.error(chalk.red('compare-revisions failed:'), error);
+      console.error(chalk.red('bench:verdict failed:'), error);
       process.exitCode = EXIT_FAILED;
     });
 }

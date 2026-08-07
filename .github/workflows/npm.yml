@@ -719,7 +719,11 @@ jobs:
         env:
           RELEASE_REF: ${{ inputs.release-ref }}
         run: |
-          if git diff --quiet; then
+          # Must see untracked files: a target measured for the first time has
+          # no tracked history yet, so its data.js and index.html are both new.
+          # `git diff` reports only tracked modifications and would report that
+          # run as clean, dropping the very first datapoint for every new target.
+          if [ -z "$(git status --porcelain)" ]; then
             echo "No history changes to push"
             exit 0
           fi

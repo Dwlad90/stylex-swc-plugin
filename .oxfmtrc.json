@@ -47,6 +47,7 @@
     "**/perf_fixtures/**",
     "**/performance_fixture/**",
     "**/*.toml",
+    ".github/scripts/templates/benchmark-index.html",
     "pnpm-lock.yaml"
   ]
 }

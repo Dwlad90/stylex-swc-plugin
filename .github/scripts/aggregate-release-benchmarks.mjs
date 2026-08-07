@@ -32,6 +32,7 @@ import {
   parseReleaseBenchmarkIdentity,
   parseReleaseVerdict,
 } from './lib/benchmark-artifacts.mjs';
+import { ensureViewerPage, historyDataDir } from './lib/benchmark-history.mjs';
 import { fail, failWithErrors, requireEnv } from './lib/ci.mjs';
 /**
  * Suite statuses emitted by `bench:verdict` (see benchmark/lib/verdict.ts).
@@ -204,8 +205,11 @@ function updateHistory(entries) {
       console.warn(`Skipping history update for ${target}: no output.json entries`);
       continue;
     }
-    const dataDir = path.join(PAGES_DIR, 'dev/bench/releases', target, `node-${NODE_VERSION}`);
+    const dataDir = historyDataDir(PAGES_DIR, target, NODE_VERSION);
     fs.mkdirSync(dataDir, { recursive: true });
+    if (ensureViewerPage(dataDir)) {
+      console.log(`Added benchmark viewer page: ${path.join(dataDir, 'index.html')}`);
+    }
     const dataFile = path.join(dataDir, 'data.js');
     const existing = readDataFile(dataFile);
     const benches = benchmarkOutput.map(entry => ({

@@ -26,20 +26,32 @@ import * as babel from '@babel/core';
 import stylexBabelPluginModule from '@stylexjs/babel-plugin';
 import chalk from 'chalk';
 
+import { parsePositiveInt } from './lib/cli.js';
 import { createPairedBenchConfigs, createStylexOptions } from './lib/config.js';
 import { captureEnvironment } from './lib/env.js';
 import { loadAllFixtures } from './lib/fixtures.js';
 import { formatLatency } from './lib/format.js';
+import { isRecord } from './lib/json.js';
 import { runRounds } from './lib/runner.js';
 import { createSubject, loadSubject, type LoadedSubject } from './lib/subjects.js';
 import type { FixtureRawStats, RawLatencySamples } from './lib/types.js';
 
 // Node's CJS interop hands back either the plugin itself or the module
 // namespace depending on the loader; unwrap `.default` when present.
-const stylexBabelPlugin = ((stylexBabelPluginModule as unknown as { default?: unknown }).default ??
-  stylexBabelPluginModule) as babel.PluginTarget;
+const pluginCandidate =
+  isRecord(stylexBabelPluginModule) && stylexBabelPluginModule.default !== undefined
+    ? stylexBabelPluginModule.default
+    : stylexBabelPluginModule;
+if (!isPluginTarget(pluginCandidate)) {
+  throw new Error('@stylexjs/babel-plugin did not export a Babel plugin function');
+}
+const stylexBabelPlugin = pluginCandidate;
 
 type CompilerName = 'rust' | 'babel';
+
+function isPluginTarget(value: unknown): value is babel.PluginTarget {
+  return typeof value === 'function';
+}
 
 const COMPILERS: readonly CompilerName[] = ['rust', 'babel'];
 
@@ -96,15 +108,6 @@ const workspaceRoot = path.resolve(packageDir, '../..');
 const stylexOptions = createStylexOptions(packageDir);
 const benchConfigs = createPairedBenchConfigs(timeBudgetMs);
 
-function parsePositiveInt(name: string, value: string): number {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    console.error(chalk.red(`Invalid --${name} value: ${value}`));
-    process.exit(1);
-  }
-  return parsed;
-}
-
 function getPackageVersion(packageJsonPath: string): string {
   try {
     const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as { version?: string };
@@ -144,14 +147,18 @@ async function buildSubjects(): Promise<LoadedSubject[]> {
             parserOpts: { sourceType: 'module', plugins: ['jsx'] },
             plugins: [[stylexBabelPlugin, stylexOptions]],
           });
-          const metadata = result?.metadata as unknown as { stylex?: unknown[] } | undefined;
-          return metadata?.stylex?.length ?? 0;
+          return stylexRuleCount(result?.metadata);
         }
       )
     );
   }
 
   return subjects;
+}
+
+function stylexRuleCount(metadata: unknown): number {
+  if (!isRecord(metadata) || !Array.isArray(metadata.stylex)) return 0;
+  return metadata.stylex.length;
 }
 
 interface AggregatedSamples {

@@ -4,11 +4,12 @@ Commands: [Scripts](./SCRIPTS.md).
 
 ## What blocks
 
-Only paired same-runner, same-process comparisons block: `bench:revisions` +
-`bench:verdict` on non-draft PRs and on every published target, plus
-`bench:budget` on `x86_64-unknown-linux-gnu`. The `github-action-benchmark`
-history is reporting only -- cross-run noise is ~16% on hosted Linux and ~34%
-on `x86_64-apple-darwin`, too coarse for a 10-20% regression.
+Only release comparisons block: paired same-runner, same-process
+`bench:revisions` + `bench:verdict` on every published target, plus
+`bench:budget` on `x86_64-unknown-linux-gnu`. PR paired comparisons and the
+`github-action-benchmark` history are advisory. Cross-run noise is ~16% on
+hosted Linux and ~34% on `x86_64-apple-darwin`, too coarse for a 10-20%
+regression.
 
 ## Subjects
 

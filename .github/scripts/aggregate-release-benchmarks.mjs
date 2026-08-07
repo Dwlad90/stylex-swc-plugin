@@ -20,14 +20,18 @@
  * @property {string} releaseRef
  * @property {string} candidateVersion
  * @property {string} previousVersion
- * @property {string} nativeBinary
- * @property {string} nativeSha256
+ * @property {{path: string, sha256: string}[]} files
  */
 
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import {
+  findNativeArtifact,
+  parseReleaseBenchmarkIdentity,
+  parseReleaseVerdict,
+} from './lib/benchmark-artifacts.mjs';
 import { fail, failWithErrors, requireEnv } from './lib/ci.mjs';
 
 const EXPECTED_TARGETS = (process.env.EXPECTED_TARGETS ?? '')
@@ -85,8 +89,21 @@ for (const target of EXPECTED_TARGETS) {
     continue;
   }
 
-  const verdict = JSON.parse(fs.readFileSync(verdictPath, 'utf8'));
-  const identity = JSON.parse(fs.readFileSync(identityPath, 'utf8'));
+  let verdict;
+  let identity;
+  try {
+    verdict = parseReleaseVerdict(
+      JSON.parse(fs.readFileSync(verdictPath, 'utf8')),
+      `${target} verdict`
+    );
+    identity = parseReleaseBenchmarkIdentity(
+      JSON.parse(fs.readFileSync(identityPath, 'utf8')),
+      `${target} identity`
+    );
+  } catch (error) {
+    errors.push(`Invalid versioned artifact for ${target}: ${error.message}`);
+    continue;
+  }
   const benchmarkOutput = fs.existsSync(benchOutputPath)
     ? JSON.parse(fs.readFileSync(benchOutputPath, 'utf8'))
     : null;
@@ -158,7 +175,7 @@ function writeSummary(entries) {
       continue;
     }
     const flagged = (r.verdict.flagged ?? []).join(', ') || '-';
-    const sha = (r.identity.nativeSha256 ?? '').slice(0, 12);
+    const sha = findNativeArtifact(r.identity).sha256.slice(0, 12);
     summaryLines.push(`| ${target} | ${r.verdict.suiteStatus} | ${flagged} | \`${sha}\` |`);
   }
   summaryLines.push('');
@@ -211,7 +228,7 @@ function updateHistory(entries) {
         candidateVersion: CANDIDATE_VERSION,
         previousVersion: PREVIOUS_VERSION,
         target,
-        nativeSha256: identity.nativeSha256,
+        nativeSha256: findNativeArtifact(identity).sha256,
       },
     };
     // Must match github-action-benchmark's `name` input, which neither

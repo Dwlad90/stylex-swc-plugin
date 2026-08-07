@@ -11,6 +11,8 @@ import type { BenchOptions } from 'tinybench';
 
 import type { StyleXOptions } from '../../dist/index.js';
 
+export const DEFAULT_PAIRED_TIME_BUDGET_MS = 300;
+
 export function createStylexOptions(packageDir: string): StyleXOptions {
   return {
     dev: false,

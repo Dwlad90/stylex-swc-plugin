@@ -56,3 +56,27 @@ export function escapeFailureMessage(message: string): string {
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
+
+export function parsePositiveFloat(name: string, value: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`Invalid --${name} value: ${value}`);
+  }
+  return parsed;
+}
+
+export function parsePositiveInt(name: string, value: string): number {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid --${name} value: ${value}`);
+  }
+  return parsed;
+}
+
+export function parseConfidence(name: string, value: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed >= 1) {
+    throw new Error(`Invalid --${name} value: ${value} (must be in (0, 1))`);
+  }
+  return parsed;
+}

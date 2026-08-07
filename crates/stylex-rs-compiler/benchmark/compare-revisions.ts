@@ -30,9 +30,16 @@ import {
   escapeFailureMessage,
   findArgument,
   isMainModule,
+  parseConfidence,
+  parsePositiveFloat,
+  parsePositiveInt,
   writeArtifact,
 } from './lib/cli.js';
-import { createPairedBenchConfigs, createStylexOptions } from './lib/config.js';
+import {
+  createPairedBenchConfigs,
+  createStylexOptions,
+  DEFAULT_PAIRED_TIME_BUDGET_MS,
+} from './lib/config.js';
 import { captureEnvironment } from './lib/env.js';
 import { loadAllFixtures } from './lib/fixtures.js';
 import { parseRawStats } from './lib/raw-stats.js';
@@ -280,7 +287,7 @@ function parseCli(argv: readonly string[]): CliOptions {
       'summary-md': { type: 'string' },
       'retry-output': { type: 'string' },
       'retry-seed': { type: 'string', default: '1' },
-      'retry-time': { type: 'string', default: '1000' },
+      'retry-time': { type: 'string', default: String(DEFAULT_PAIRED_TIME_BUDGET_MS) },
       warn: { type: 'string', default: String(DEFAULT_THRESHOLDS.warn) },
       fail: { type: 'string', default: String(DEFAULT_THRESHOLDS.fail) },
       'improvement-warn': {
@@ -337,30 +344,6 @@ function deriveDefaultOutput(primaryPath: string): string {
   return path.join(dir, 'compare-revisions.verdict.v1.json');
 }
 
-function parsePositiveFloat(name: string, value: string): number {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error(`Invalid --${name} value: ${value}`);
-  }
-  return parsed;
-}
-
-function parsePositiveInt(name: string, value: string): number {
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
-    throw new Error(`Invalid --${name} value: ${value}`);
-  }
-  return parsed;
-}
-
-function parseConfidence(name: string, value: string): number {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0 || parsed >= 1) {
-    throw new Error(`Invalid --${name} value: ${value} (must be in (0, 1))`);
-  }
-  return parsed;
-}
-
 function printUsage(): void {
   console.log(`
 ${chalk.bold('StyleX revisions verdict')}
@@ -376,7 +359,7 @@ Options:
                               instead of measuring automatically
   --retry-output <path>       automatic retry raw-stats output
   --retry-seed <n>            automatic retry subject-order seed (default: 1)
-  --retry-time <ms>           automatic retry time budget per task (default: 1000)
+  --retry-time <ms>           automatic retry time budget per task (default: ${DEFAULT_PAIRED_TIME_BUDGET_MS})
   --output-json <path>        verdict JSON output (default: alongside primary)
   --summary-md <path>         Markdown summary output (default: alongside verdict JSON)
   --warn <n>                  lower-bound warn threshold (default: ${DEFAULT_THRESHOLDS.warn})

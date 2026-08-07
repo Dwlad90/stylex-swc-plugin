@@ -49,8 +49,10 @@ permissions:
         default: false
 
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.release-ref || github.ref }}
-  cancel-in-progress: true
+  # Every release updates the same benchmarks branch. Serialize complete runs
+  # rather than cancelling or racing a valid release with another ref.
+  group: stylex-release-publish
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -155,20 +157,12 @@ jobs:
         shell: bash
         run: sudo chown -R "$(id -u):$(id -g)" crates/stylex-rs-compiler/dist
       - name: Record candidate artifact checksums
-        shell: bash
-        run: |
-          cd crates/stylex-rs-compiler/dist
-          {
-            echo "target=${{ matrix.settings.target }}"
-            echo "candidate_version=${{ inputs.candidate-version }}"
-            echo "release_ref=${{ inputs.release-ref }}"
-            echo "files:"
-            find . -type f \( -name '*.node' -o -name '*.js' -o -name '*.d.ts' \) -print | LC_ALL=C sort | while read -r file; do
-              sha=$(node "$GITHUB_WORKSPACE/.github/scripts/sha256.mjs" "$file")
-              echo "  ${file#./}: sha256=${sha}"
-            done
-          } > candidate-artifact-manifest.txt
-          cat candidate-artifact-manifest.txt
+        env:
+          ARTIFACT_DIR: crates/stylex-rs-compiler/dist
+          TARGET: ${{ matrix.settings.target }}
+          CANDIDATE_VERSION: ${{ inputs.candidate-version }}
+          RELEASE_REF: ${{ inputs.release-ref }}
+        run: node .github/scripts/record-candidate-artifacts.mjs
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
@@ -277,7 +271,7 @@ jobs:
       - name: Test bindings
         run: |
           docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "
-            npm install -g pnpm@11.20.0 &&
+            corepack enable && corepack prepare pnpm@11.20.0 --activate &&
             pnpm run test --filter @stylexswc/rs-compiler --only
           "
       - name: Save turbo build cache
@@ -326,7 +320,7 @@ jobs:
       - name: Test bindings
         run: |
           docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim sh -c "
-            npm install -g pnpm@11.20.0 &&
+            corepack enable && corepack prepare pnpm@11.20.0 --activate &&
             pnpm run test --filter @stylexswc/rs-compiler --only
           "
       - name: Save turbo build cache
@@ -375,7 +369,7 @@ jobs:
       - name: Test bindings
         run: |
           docker run --rm -e CI=true -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c "
-            npm install -g pnpm@11.20.0 &&
+            corepack enable && corepack prepare pnpm@11.20.0 --activate &&
             pnpm install --frozen-lockfile &&
             pnpm run test --filter @stylexswc/rs-compiler --only
           "
@@ -454,15 +448,14 @@ jobs:
           name: bindings-${{ matrix.settings.target }}
           path: crates/stylex-rs-compiler/dist
       - name: Verify candidate artifact manifest
-        shell: bash
-        run: |
-          test -f crates/stylex-rs-compiler/dist/candidate-artifact-manifest.txt
-          test -f crates/stylex-rs-compiler/dist/index.js
-          native_count=$(find crates/stylex-rs-compiler/dist -maxdepth 1 -name '*.node' | wc -l)
-          if [ "$native_count" -ne 1 ]; then
-            echo "::error::Expected exactly one native binding, found $native_count"
-            exit 1
-          fi
+        env:
+          ARTIFACT_DIR: crates/stylex-rs-compiler/dist
+          TARGET_LABEL: ${{ matrix.settings.label }}
+          NODE_VERSION: ${{ matrix.node }}
+          SUBJECT_SCHEMA_VERSION: '1'
+          IDENTITY_OUTPUT: >-
+            crates/stylex-rs-compiler/benchmark/results/release-benchmark-identity.v1.json
+        run: node .github/scripts/record-release-benchmark-identity.mjs
       - name: Install previous npm package (native runner)
         if: ${{ !matrix.settings.container }}
         shell: bash
@@ -472,8 +465,8 @@ jobs:
           rm -rf "$BASE_DIR"
           mkdir -p "$BASE_DIR"
           cd "$BASE_DIR"
-          npm init -y >/dev/null
-          npm install "@stylexswc/rs-compiler@${PREVIOUS_VERSION}" --no-save --no-audit --no-fund --ignore-scripts
+          node -e 'require("node:fs").writeFileSync("package.json", "{\"private\":true}\n")'
+          pnpm add --save-exact --ignore-scripts "@stylexswc/rs-compiler@${PREVIOUS_VERSION}"
           resolved=$(node -p "require('@stylexswc/rs-compiler/package.json').version")
           if [ "$resolved" != "$PREVIOUS_VERSION" ]; then
             echo "::error::Installed previous version '$resolved' does not match '$PREVIOUS_VERSION'"
@@ -545,13 +538,14 @@ jobs:
             -e PREVIOUS_VERSION -e CANDIDATE_VERSION -e RELEASE_REF -e TARGET \
             -v $(pwd):/build -w /build "$IMAGE" sh -eu -c '
               apk add --no-cache git bash >/dev/null
-              npm install -g pnpm@11.20.0 >/dev/null
+              corepack enable
+              corepack prepare pnpm@11.20.0 --activate
               pnpm install --frozen-lockfile
               base_dir=/tmp/stylex-base-npm
               rm -rf "$base_dir"
               mkdir -p "$base_dir"
               cd "$base_dir"
-              npm init -y >/dev/null
+              node -e "require(\"node:fs\").writeFileSync(\"package.json\", \"{\\\"private\\\":true}\\n\")"
               # Releases up to and including 0.18.3 published the musl binding
               # with libc: ["glibc"], so npm treats it as a platform mismatch
               # inside Alpine and silently skips the optional dependency. The
@@ -559,14 +553,12 @@ jobs:
               # immutable, so name the binding explicitly; --force is what
               # bypasses the bad libc constraint.
               #
-              # Both packages must be in ONE install. A second `npm install
-              # --no-save` reconciles node_modules against package.json, which
-              # records neither package, and prunes whatever the first install
-              # put there -- that removed the base package and broke the load
-              # check below.
-              npm install "@stylexswc/rs-compiler@${PREVIOUS_VERSION}" \
+              # Install both packages in one transaction so dependency
+              # reconciliation cannot prune either half of the baseline.
+              pnpm add --save-exact --ignore-scripts --force \
+                "@stylexswc/rs-compiler@${PREVIOUS_VERSION}" \
                 "@stylexswc/rs-compiler-linux-x64-musl@${PREVIOUS_VERSION}" \
-                --no-save --no-audit --no-fund --ignore-scripts --force
+                >/dev/null
               resolved=$(node -p "require(\"@stylexswc/rs-compiler/package.json\").version")
               if [ "$resolved" != "$PREVIOUS_VERSION" ]; then
                 echo "Installed previous version $resolved does not match $PREVIOUS_VERSION"
@@ -608,44 +600,6 @@ jobs:
       # paired benchmark having produced results. An earlier failure leaves
       # nothing to bundle and would otherwise report as extra failures that
       # bury the real one.
-      - name: Record benchmark identity and checksums
-        if: >-
-          ${{ !cancelled() && (steps.paired-bench-native.outcome == 'success' ||
-          steps.paired-bench-musl.outcome == 'success') }}
-        shell: bash
-        env:
-          TARGET_LABEL: ${{ matrix.settings.label }}
-          NODE_VERSION: ${{ matrix.node }}
-          SUBJECT_SCHEMA_VERSION: '1'
-        run: |
-          set -eu
-          cd crates/stylex-rs-compiler
-          native_binary=$(find dist -maxdepth 1 -name '*.node' | head -n 1)
-          if [ -z "$native_binary" ]; then
-            echo "::error::No native binary in candidate dist"
-            exit 1
-          fi
-          NATIVE_SHA=$(node "$GITHUB_WORKSPACE/.github/scripts/sha256.mjs" "$native_binary")
-          NATIVE_BASENAME=$(basename "$native_binary")
-          export NATIVE_SHA NATIVE_BASENAME
-          mkdir -p benchmark/results
-          node -e "
-            const fs = require('fs');
-            const identity = {
-              schemaVersion: 1,
-              target: process.env.TARGET,
-              targetLabel: process.env.TARGET_LABEL,
-              node: process.env.NODE_VERSION,
-              releaseRef: process.env.RELEASE_REF,
-              candidateVersion: process.env.CANDIDATE_VERSION,
-              previousVersion: process.env.PREVIOUS_VERSION,
-              runId: process.env.GITHUB_RUN_ID,
-              nativeBinary: process.env.NATIVE_BASENAME,
-              nativeSha256: process.env.NATIVE_SHA,
-              subjectSchemaVersion: Number(process.env.SUBJECT_SCHEMA_VERSION),
-            };
-            fs.writeFileSync('benchmark/results/release-benchmark-identity.v1.json', JSON.stringify(identity, null, 2) + '\n');
-          "
       - name: Prepare bounded artifacts
         if: >-
           ${{ !cancelled() && (steps.paired-bench-native.outcome == 'success' ||

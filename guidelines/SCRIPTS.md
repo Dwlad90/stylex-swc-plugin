@@ -1,6 +1,6 @@
 # Scripts
 
-Use `pnpm` (>=11) exclusively -- never npm, yarn, or bun. Requires Node >=22.
+Use `pnpm` (>=11) exclusively -- never npm, yarn, or bun. Requires Node >=24.11.
 
 ## Root (Turbo)
 
@@ -10,7 +10,8 @@ Use `pnpm` (>=11) exclusively -- never npm, yarn, or bun. Requires Node >=22.
 ## Per-Package
 
 Run `pnpm --filter=@stylexswc/<pkg> <script>`, where `<script>` is `build`,
-`test`, `lint`, `typecheck`, `format`, or `format:check`. Add
+`test`, `typecheck`, `format`, or `format:check`. Linting runs once from the
+workspace root. Add
 `test -- <pattern>` to run matching tests.
 
 ## Dependencies
@@ -52,7 +53,7 @@ Subject dirs need `package.json`, `dist/index.js` exporting `transform`, and one
 `*.node`. Passing the same dir as base and candidate (with differing
 `--base-label`/`--candidate-label`) is a same-vs-same calibration run.
 
-Flags -- `bench:revisions`: `--rounds` (10), `--seed` (1), `--time` (1000 ms),
+Flags -- `bench:revisions`: `--rounds` (10), `--seed` (1), `--time` (300 ms),
 repeatable `--category` (`transform|perf|rollup`) and `--fixture` substring.
 `bench:verdict`: `--warn` (1.10), `--fail` (1.20), `--improvement-warn` (0.50),
 `--seed` (1), `--resamples` (10000), `--confidence` (0.95), `--retry <path>`.

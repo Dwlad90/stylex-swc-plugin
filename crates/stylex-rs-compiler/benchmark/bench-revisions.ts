@@ -26,7 +26,12 @@ import { parseArgs } from 'node:util';
 
 import chalk from 'chalk';
 
-import { createPairedBenchConfigs, createStylexOptions } from './lib/config.js';
+import { parsePositiveInt } from './lib/cli.js';
+import {
+  createPairedBenchConfigs,
+  createStylexOptions,
+  DEFAULT_PAIRED_TIME_BUDGET_MS,
+} from './lib/config.js';
 import { captureEnvironment } from './lib/env.js';
 import { loadAllFixtures } from './lib/fixtures.js';
 import { formatLatency } from './lib/format.js';
@@ -145,7 +150,7 @@ function parseCli(argv: readonly string[]): PairedRunOptions {
       'candidate-label': { type: 'string', default: 'candidate' },
       rounds: { type: 'string', default: '10' },
       seed: { type: 'string', default: '1' },
-      time: { type: 'string', default: '300' },
+      time: { type: 'string', default: String(DEFAULT_PAIRED_TIME_BUDGET_MS) },
       fixture: { type: 'string', multiple: true },
       category: { type: 'string', multiple: true },
       help: { type: 'boolean', short: 'h', default: false },
@@ -195,21 +200,13 @@ Options:
   --candidate-label <name>  label for the candidate subject (default: candidate)
   --rounds <n>              rounds per fixture (default: 10)
   --seed <n>                subject-order permutation seed (default: 1)
-  --time <ms>               tinybench time budget per task (default: 300)
+  --time <ms>               tinybench time budget per task (default: ${DEFAULT_PAIRED_TIME_BUDGET_MS})
   --category <name>         restrict to a fixture category; repeatable
                             (transform | perf | rollup)
   --fixture <substring>     only fixtures whose name contains substring;
                             repeatable
   -h, --help                show this help
 `);
-}
-
-function parsePositiveInt(name: string, value: string): number {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error(`Invalid --${name} value: ${value}`);
-  }
-  return parsed;
 }
 
 function parseCategories(input: string[] | undefined): readonly FixtureCategory[] {

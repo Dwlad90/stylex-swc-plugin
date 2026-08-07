@@ -71,8 +71,8 @@ export async function runRounds(options: RunOptions): Promise<RunResult> {
 
   for (const fixture of options.fixtures) {
     const roundStats: FixtureRoundStats[] = [];
-    for (let round = 0; round < options.rounds; round++) {
-      const order = permuteSubjects(options.subjects, rng);
+    const schedule = createBalancedSchedule(options.subjects, options.rounds, rng);
+    for (const [round, order] of schedule.entries()) {
       const perSubject = await runSingleRound(fixture, order, options);
       roundStats.push({
         round,
@@ -173,6 +173,29 @@ function permuteSubjects<T>(subjects: readonly T[], rng: () => number): readonly
     copy[j] = tmp as T;
   }
   return copy;
+}
+
+/**
+ * Randomize each block, then rotate it so every subject occupies every timing
+ * position once per complete block. Independent shuffles can leave a paired
+ * run split 8/2 and turn warm-cache or temporal drift into an apparent
+ * regression; counterbalancing caps that bias without reducing randomness.
+ */
+function createBalancedSchedule<T>(
+  subjects: readonly T[],
+  rounds: number,
+  rng: () => number
+): readonly (readonly T[])[] {
+  if (subjects.length <= 1) return Array.from({ length: rounds }, () => subjects);
+
+  const schedule: (readonly T[])[] = [];
+  while (schedule.length < rounds) {
+    const block = permuteSubjects(subjects, rng);
+    for (let offset = 0; offset < block.length && schedule.length < rounds; offset++) {
+      schedule.push([...block.slice(offset), ...block.slice(0, offset)]);
+    }
+  }
+  return schedule;
 }
 
 /**

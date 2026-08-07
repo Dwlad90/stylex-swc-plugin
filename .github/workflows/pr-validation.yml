@@ -564,6 +564,9 @@ jobs:
 
       - name: Evaluate paired revision benchmark
         if: github.event_name == 'pull_request'
+        # PR measurements are advisory. The trusted reporter publishes a
+        # reproduced regression without turning it into a required check.
+        continue-on-error: true
         run: |
           pnpm run --filter=@stylexswc/rs-compiler bench:verdict -- \
             --primary benchmark/results/revisions-raw-stats.v1.json \

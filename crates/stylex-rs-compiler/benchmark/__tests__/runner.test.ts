@@ -48,13 +48,13 @@ function subject(label: string) {
   return createSubject({ label, version: '1.0.0', resolvedFrom: `/${label}` }, () => 1);
 }
 
-async function run(subjects: ReturnType<typeof subject>[]) {
+async function run(subjects: ReturnType<typeof subject>[], rounds = 1, seed = 1) {
   return runRounds({
     subjects,
     fixtures: [FIXTURE],
     stylexOptions: {},
-    rounds: 1,
-    seed: 1,
+    rounds,
+    seed,
     standardBench: BENCH,
     heavyBench: BENCH,
   });
@@ -70,6 +70,24 @@ describe('runRounds paired roles', () => {
     expect(paired?.candidate).toBe('candidate');
     expect(paired?.ratios).toBeUndefined();
     expect(paired?.confidence).toBeUndefined();
+  });
+
+  test('counterbalances each subject position across paired rounds', async () => {
+    const { fixtures } = await run([subject('base'), subject('candidate')], 10);
+    const orders = fixtures[0]?.rounds.map(round => round.subjectOrder);
+
+    expect(orders).toHaveLength(10);
+    expect(orders?.filter(order => order[0] === 'base')).toHaveLength(5);
+    expect(orders?.filter(order => order[0] === 'candidate')).toHaveLength(5);
+  });
+
+  test('reproduces the counterbalanced order from the same seed', async () => {
+    const first = await run([subject('base'), subject('candidate')], 4, 7);
+    const second = await run([subject('base'), subject('candidate')], 4, 7);
+
+    expect(first.fixtures[0]?.rounds.map(round => round.subjectOrder)).toEqual(
+      second.fixtures[0]?.rounds.map(round => round.subjectOrder)
+    );
   });
 
   test('a single-subject run records no paired block', async () => {

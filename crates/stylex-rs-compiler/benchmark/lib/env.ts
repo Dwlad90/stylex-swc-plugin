@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import { isRecord } from './json.js';
 import type { RawStatsEnvironment } from './types.js';
 
 export interface CaptureEnvironmentOptions {
@@ -55,7 +56,8 @@ export function captureEnvironment(options: CaptureEnvironmentOptions): RawStats
 
 function readJsonField(filePath: string, field: string): string {
   try {
-    const raw = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Record<string, unknown>;
+    const raw: unknown = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    if (!isRecord(raw)) return 'unknown';
     const value = raw[field];
     return typeof value === 'string' ? value : 'unknown';
   } catch {

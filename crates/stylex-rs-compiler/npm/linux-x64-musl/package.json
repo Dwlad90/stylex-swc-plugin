@@ -27,7 +27,7 @@
     "Rust"
   ],
   "libc": [
-    "glibc"
+    "musl"
   ],
   "main": "rs-compiler.linux-x64-musl.node",
   "os": [

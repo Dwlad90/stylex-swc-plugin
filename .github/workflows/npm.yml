@@ -552,7 +552,21 @@ jobs:
               mkdir -p "$base_dir"
               cd "$base_dir"
               npm init -y >/dev/null
-              npm install "@stylexswc/rs-compiler@${PREVIOUS_VERSION}" --no-save --no-audit --no-fund --ignore-scripts
+              # Releases up to and including 0.18.3 published the musl binding
+              # with libc: ["glibc"], so npm treats it as a platform mismatch
+              # inside Alpine and silently skips the optional dependency. The
+              # metadata is corrected going forward, but published baselines are
+              # immutable, so name the binding explicitly; --force is what
+              # bypasses the bad libc constraint.
+              #
+              # Both packages must be in ONE install. A second `npm install
+              # --no-save` reconciles node_modules against package.json, which
+              # records neither package, and prunes whatever the first install
+              # put there -- that removed the base package and broke the load
+              # check below.
+              npm install "@stylexswc/rs-compiler@${PREVIOUS_VERSION}" \
+                "@stylexswc/rs-compiler-linux-x64-musl@${PREVIOUS_VERSION}" \
+                --no-save --no-audit --no-fund --ignore-scripts --force
               resolved=$(node -p "require(\"@stylexswc/rs-compiler/package.json\").version")
               if [ "$resolved" != "$PREVIOUS_VERSION" ]; then
                 echo "Installed previous version $resolved does not match $PREVIOUS_VERSION"

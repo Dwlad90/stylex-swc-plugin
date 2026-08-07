@@ -19,6 +19,9 @@ on:
 env:
   APP_NAME: 'rs-compiler'
   CI: true
+  # Belt and braces with lefthook's own CI detection. A runner that blocked on
+  # /dev/tty waiting for the commitizen prompt would hang with no useful error.
+  LEFTHOOK: '0'
   TURBO_TELEMETRY_DISABLED: 1
   DO_NOT_TRACK: 1
   CHECKOUT_REF: >-

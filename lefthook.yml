@@ -1,0 +1,117 @@
+# Git hooks. Replaces husky (hook runner) + lint-staged (staged-file filtering).
+#
+# Installed by `pnpm install` via the `prepare` script, which calls
+# `scripts/git/install-hooks.sh`. That wrapper exists because lefthook refuses
+# to install while `core.hooksPath` is set -- it prints advice and exits 0, so a
+# leftover husky `core.hooksPath` silently leaves you with no hooks at all.
+#
+# Lefthook writes hooks into the *common* git dir, so a single install covers
+# every worktree of a bare checkout, matching the previous husky behaviour.
+
+# A dev with a stale global lefthook on $PATH would otherwise shadow the npm
+# binary and silently skip config it cannot parse.
+min_version: 2.1.10
+
+# Turns "hooks were never installed" from silence into an error. Paired with
+# install-hooks.sh this is what guarantees the checks actually ran.
+assert_lefthook_installed: true
+
+prepare-commit-msg:
+  jobs:
+    # Must be a script file, not an inline `run:`. Lefthook only substitutes
+    # `{1}` in command templates -- `{2}` and `{3}` pass through as literals --
+    # and the commitizen guard reads COMMIT_SOURCE ($2) and SHA ($3). Scripts
+    # under source_dir receive the full git hook argv, so the guard works as-is.
+    - name: commitizen
+      # Opens /dev/tty as stdin so the commitizen prompt is usable. Ignored when
+      # `no_tty` is set or LEFTHOOK=0, which is why CI can never block on it.
+      interactive: true
+      script: commitizen.sh
+      runner: sh
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
+
+pre-commit:
+  # Deliberate deviation from the husky setup, which ran unconditionally.
+  # `stage_fixed` below rewrites files in place; doing that while a rebase
+  # replays commits mutates history mid-flight. The old prepare-commit-msg hook
+  # already opted out of merge/squash, so this extends an existing intent.
+  skip:
+    - merge
+    - rebase
+
+  # Independent file groups run concurrently, mirroring how lint-staged ran the
+  # task lists of different patterns in parallel. Ordering *within* a group is
+  # expressed by `piped: true` -- see each group's comment for why its order is
+  # load-bearing.
+  parallel: true
+
+  jobs:
+    - name: version-mismatch
+      run: ./scripts/git/version-mismatch-check.sh
+
+    # Lint first so that autofixes are then formatted, not the reverse.
+    - name: js-ts
+      glob: '*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'
+      group:
+        piped: true
+        jobs:
+          - run: oxlint --fix --no-error-on-unmatched-pattern {staged_files}
+          - run: oxfmt --no-error-on-unmatched-pattern {staged_files}
+            stage_fixed: true
+
+    # `package.json` is excluded here and handled by its own job below. Under
+    # lint-staged the manifest also matched this group, so `oxfmt` here raced
+    # `syncpack format` on the same file; the exclusion is what serialises the
+    # two. Keeping them in separate concurrent jobs would reintroduce the race,
+    # which is why the manifest gets a dedicated job rather than an extra entry.
+    - name: data-files
+      glob: '*.{json,jsonc,yml,yaml,css,html,vue}'
+      exclude:
+        - '**/package.json'
+        - 'package.json'
+      run: oxfmt --no-error-on-unmatched-pattern {staged_files}
+      stage_fixed: true
+
+    # Markdown is split out of the group above for the same reason `package.json`
+    # is: two tasks touching one file have to be sequenced. The alert check reads
+    # what oxfmt just wrote, so running it concurrently could read a half-written
+    # file.
+    #
+    # The checker takes the staged paths so the hook stays proportional to the
+    # commit; `pnpm lint:markdown` passes none and sweeps the whole tree.
+    - name: markdown
+      glob: '*.{md,mdx}'
+      group:
+        piped: true
+        jobs:
+          - run: oxfmt --no-error-on-unmatched-pattern {staged_files}
+            stage_fixed: true
+          - run: node scripts/deps/check-markdown.mjs {staged_files}
+
+    # Syncpack owns manifest ordering, which is why `sortPackageJson` is
+    # disabled in `.oxfmtrc.json`. The script sequences it against oxfmt and
+    # documents why it has to build syncpack's arguments by hand.
+    #
+    # Invoked via `run:` rather than `script:` because pre-commit receives no
+    # argv from git, and `script:` jobs are handed the hook argv -- only a
+    # command template expands `{staged_files}` into arguments.
+    #
+    # Both glob entries are required. Unlike lint-staged's micromatch, which
+    # matched a bare `package.json` by basename at any depth, lefthook matches
+    # the whole path -- so `package.json` alone catches only the root manifest
+    # and every workspace manifest silently skips this job *and* is excluded
+    # from `data-files`, leaving it unformatted.
+    - name: manifests
+      glob:
+        - 'package.json'
+        - '**/package.json'
+      run: sh .lefthook/pre-commit/manifests.sh {staged_files}
+      stage_fixed: true
+
+    - name: shell
+      glob: '*.sh'
+      run: shellcheck -x {staged_files}

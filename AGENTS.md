@@ -17,6 +17,7 @@ Rust reimplementation of Facebook's `StyleX` CSS-in-JS compiler, built on
   or `.expect()`
 - Commits: conventional commits via `commitizen` --
   `<type>(<scope>): <description>`
+- Git hooks: `lefthook` (`lefthook.yml`); `pnpm install` installs them
 
 ## Common Commands
 
@@ -49,6 +50,7 @@ Or run from the package directory without the `--filter` flag.
 - [Implement Code](./guidelines/coding/IMPLEMENT.md)
 - [Git Branching](./guidelines/git/BRANCHING.md)
 - [Git Conventions](./guidelines/git/CONVENTIONS.md)
+- [Git Hooks](./guidelines/git/HOOKS.md)
 - [Official StyleX Links](./guidelines/LINKS.md)
 
 ## Agent skills

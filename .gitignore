@@ -72,3 +72,6 @@ __pycache__/
 
 # Agent scratch / local issue tracker, see docs/agents/issue-tracker.md
 /.scratch
+
+# Per-developer lefthook overrides
+lefthook-local.yml

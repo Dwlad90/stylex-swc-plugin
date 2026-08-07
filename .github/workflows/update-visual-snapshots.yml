@@ -15,6 +15,10 @@ env:
   TURBO_TELEMETRY_DISABLED: 1
   DO_NOT_TRACK: 1
   PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+  # This workflow commits regenerated snapshots. Hooks are not installed on a
+  # runner, but that rests entirely on install-hooks.sh's CI guard -- this makes
+  # the intent local to the workflow that would be affected if it ever changed.
+  LEFTHOOK: '0'
 
 jobs:
   playwright-image:
@@ -170,7 +174,7 @@ jobs:
           echo "$snapshot_status"
 
           git add -- ':(glob)apps/**/visual-tests/.playwright-snapshots/**'
-          git commit -m "chore: update visual test snapshots [skip ci]"
+          git commit --no-verify -m "chore: update visual test snapshots [skip ci]"
           git push origin "HEAD:$BRANCH_NAME"
 
       - name: Save turbo build cache

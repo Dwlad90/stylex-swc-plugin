@@ -4,6 +4,10 @@ env:
   APP_NAME: 'rs-compiler'
   MACOSX_DEPLOYMENT_TARGET: '10.13'
   CARGO_INCREMENTAL: '1'
+  # This workflow commits to the benchmarks branch. Hooks are not installed on a
+  # runner, but that rests entirely on install-hooks.sh's CI guard -- this makes
+  # the intent local to the workflow that would be affected if it ever changed.
+  LEFTHOOK: '0'
 permissions:
   contents: read
   id-token: write
@@ -730,7 +734,7 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "chore(benchmarks): record ${RELEASE_REF} release results"
+          git commit --no-verify -m "chore(benchmarks): record ${RELEASE_REF} release results"
           git push origin benchmarks
       - name: Upload aggregate summary
         if: always()

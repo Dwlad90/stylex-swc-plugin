@@ -49,11 +49,10 @@ updates:
           - 'oxfmt'
           - 'publint'
           - '@arethetypeswrong/*'
-          - 'lint-staged'
           - 'shellcheck'
       git-tools:
         patterns:
-          - 'husky'
+          - 'lefthook'
           - '@commitlint/*'
           - 'commitizen'
           - 'cz-conventional-changelog'

@@ -16,6 +16,9 @@ releases=""
 
 cd "$REPO_ROOT"
 
+# shellcheck source=scripts/git/lib/github.sh
+. "$SCRIPT_DIR/lib/github.sh"
+
 usage() {
   cat <<EOF
 Usage: $0 [<tag>] [--remote <name>] [--dry-run] [--yes|--no-confirm]
@@ -34,18 +37,6 @@ Options:
   --yes, --no-confirm       Skip interactive confirmation.
   -h, --help                Show this help message.
 EOF
-}
-
-error() {
-  echo "Error: $1" >&2
-  exit 1
-}
-
-check_dependencies() {
-  command -v gh >/dev/null 2>&1 ||
-    error "gh (GitHub CLI) is required to read and delete releases."
-  command -v jq >/dev/null 2>&1 ||
-    error "jq is required to inspect the release list."
 }
 
 parse_args() {
@@ -88,26 +79,6 @@ run() {
   fi
 }
 
-# Resolves owner/repo from the same remote the tag deletion will target, so gh
-# and git can never act on two different repositories.
-resolve_repository() {
-  local url
-
-  url="$(git remote get-url "$remote" 2>/dev/null)" ||
-    error "Git remote '$remote' does not exist."
-
-  url="${url%.git}"
-
-  case "$url" in
-    *github.com[:/]*)
-      printf '%s\n' "${url#*github.com}" | sed 's|^[:/]||'
-      ;;
-    *)
-      error "Remote '$remote' ($url) is not a GitHub remote."
-      ;;
-  esac
-}
-
 # Every release, drafts included. The published-vs-draft guard reads from this
 # snapshot, so it must not be capped -- a published release paged out of the
 # window would silently stop protecting its tag.
@@ -126,28 +97,6 @@ releases_jq() {
 # of order.
 latest_draft_tag() {
   releases_jq -r '[.[] | select(.isDraft)] | max_by(.id) | .tagName // ""'
-}
-
-confirm() {
-  local answer
-
-  if [ "$yes" = true ] || [ "$dry_run" = true ]; then
-    return 0
-  fi
-
-  printf 'Continue? [y/N] '
-  read -r answer ||
-    error "Interactive input unavailable. Pass --yes to run non-interactively."
-
-  case "$answer" in
-    y | Y | yes | YES)
-      return 0
-      ;;
-    *)
-      echo "Aborted."
-      exit 0
-      ;;
-  esac
 }
 
 # 0 -> the ref exists, 2 -> it does not. Anything else is a transport or auth
@@ -172,9 +121,9 @@ remote_tag_state() {
 
 main() {
   parse_args "$@"
-  check_dependencies
+  require_commands gh jq git
 
-  repository="$(resolve_repository)"
+  repository="$(resolve_github_repository "$remote")"
   releases="$(fetch_releases)"
 
   if [ -z "$tag" ]; then
@@ -218,7 +167,13 @@ main() {
     echo "  - no tag exists for $tag"
   fi
 
-  confirm
+  # A dry run deletes nothing, so there is nothing to confirm.
+  local skip_confirm=false
+  if [ "$yes" = true ] || [ "$dry_run" = true ]; then
+    skip_confirm=true
+  fi
+
+  confirm_or_exit "$skip_confirm"
 
   echo "Deleting draft release $tag..."
   run gh api -X DELETE "repos/$repository/releases/$release_id" --silent

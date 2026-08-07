@@ -93,8 +93,15 @@ export interface BootstrapInterval {
 export interface FixturePairedStats {
   base: string;
   candidate: string;
-  ratios: readonly number[];
-  confidence: BootstrapInterval;
+  /**
+   * Bootstrap statistics, present only when the producer was asked for
+   * them. `bench-revisions.ts` records the roles above but deliberately
+   * leaves the statistics to the verdict engine, so a release raw-stats
+   * file carries roles without ratios. Consumers that resolve a subject
+   * by role must not require these.
+   */
+  ratios?: readonly number[];
+  confidence?: BootstrapInterval;
 }
 
 export interface FixtureRawStats {

@@ -175,15 +175,26 @@ function permuteSubjects<T>(subjects: readonly T[], rng: () => number): readonly
   return copy;
 }
 
+/**
+ * Roles are recorded for every two-subject run; the bootstrap statistics
+ * only when a config asks for them.
+ *
+ * The two are separable on purpose. `base`/`candidate` are identity — the
+ * budget check resolves which subject its ceilings describe from them, and
+ * must keep working on a release run that defers ratios and confidence
+ * bounds to the verdict engine. Gating the roles on `bootstrap` left every
+ * release raw-stats file role-less and failed the budget step outright.
+ */
 function computePairedStats(
   subjects: readonly LoadedSubject[],
   rounds: readonly FixtureRoundStats[],
   bootstrap: BootstrapConfig | undefined
 ): FixturePairedStats | undefined {
-  if (subjects.length !== 2 || bootstrap === undefined) return undefined;
+  if (subjects.length !== 2) return undefined;
 
   const base = subjects[0]!.descriptor.label;
   const candidate = subjects[1]!.descriptor.label;
+  if (bootstrap === undefined) return { base, candidate };
 
   const basePerRound = rounds.map(round => round.perSubject[base]?.p50 ?? Number.NaN);
   const candidatePerRound = rounds.map(round => round.perSubject[candidate]?.p50 ?? Number.NaN);

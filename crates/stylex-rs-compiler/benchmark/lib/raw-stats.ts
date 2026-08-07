@@ -227,11 +227,25 @@ function parseSamples(value: unknown, context: string): RawLatencySamples {
   };
 }
 
+/**
+ * Roles are required; the bootstrap statistics are optional and must be
+ * present or absent together. A release run records roles alone -- see
+ * `computePairedStats` in runner.ts.
+ */
 function parsePaired(value: unknown, context: string): FixturePairedStats {
   const paired = requireRecord(value, context);
-  return {
+  const roles = {
     base: requireString(paired.base, `${context}.base`),
     candidate: requireString(paired.candidate, `${context}.candidate`),
+  };
+
+  if (paired.ratios === undefined && paired.confidence === undefined) return roles;
+  if (paired.ratios === undefined || paired.confidence === undefined) {
+    throw new Error(`${context} must declare ratios and confidence together, or neither`);
+  }
+
+  return {
+    ...roles,
     ratios: requireArray(paired.ratios, `${context}.ratios`).map((ratio, index) =>
       requirePositiveNumber(ratio, `${context}.ratios[${index}]`)
     ),

@@ -145,7 +145,7 @@ function parseCli(argv: readonly string[]): CliOptions {
       'candidate-label': { type: 'string', default: 'candidate' },
       rounds: { type: 'string', default: '10' },
       seed: { type: 'string', default: '1' },
-      time: { type: 'string', default: '1000' },
+      time: { type: 'string', default: '300' },
       fixture: { type: 'string', multiple: true },
       category: { type: 'string', multiple: true },
       help: { type: 'boolean', short: 'h', default: false },
@@ -195,7 +195,7 @@ Options:
   --candidate-label <name>  label for the candidate subject (default: candidate)
   --rounds <n>              rounds per fixture (default: 10)
   --seed <n>                subject-order permutation seed (default: 1)
-  --time <ms>               tinybench time budget per task (default: 1000)
+  --time <ms>               tinybench time budget per task (default: 300)
   --category <name>         restrict to a fixture category; repeatable
                             (transform | perf | rollup)
   --fixture <substring>     only fixtures whose name contains substring;

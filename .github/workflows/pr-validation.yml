@@ -108,6 +108,11 @@ jobs:
           - id: hooks-validate
             name: Validate git hook config
             command: pnpm run hooks:validate
+          # The pre-push counterpart. Same reasoning as shellcheck above: a
+          # check that lives only in a hook is silent for anyone who bypasses.
+          - id: lint-dead-exports
+            name: Lint dead exports
+            command: pnpm run lint:dead-exports
           # Every CI-side script suite, not just the reporter: `test:scripts`
           # also covers the release artifact parsers and the release shell
           # scripts, which the full `test` run alone would not guard on the

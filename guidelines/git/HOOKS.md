@@ -11,11 +11,14 @@ Lefthook writes into the common git dir, so one install covers every worktree.
 - `prepare-commit-msg` -- the `commitizen` prompt, skipped on amend and on
   `message`/`merge`/`squash` commit sources. Aborting the prompt aborts the
   commit.
-- `pre-commit` -- lint and format of staged files (JS/TS, data files, Markdown,
-  manifests, shell, Rust, TOML) plus the version-mismatch check on commits that
-  touch a manifest or the lockfile. Skipped during merges and rebases.
+- `pre-commit` -- leftover merge-conflict markers, lint and format of staged
+  files (JS/TS, data files, Markdown, manifests, shell, Rust, TOML), plus the
+  version-mismatch check on commits that touch a manifest or the lockfile.
+  Skipped during merges and rebases.
 - `commit-msg` -- `commitlint`.
-- `pre-push` -- `cargo fmt --check` and the full Markdown sweep. Budget is 10s.
+- `pre-push` -- merge-conflict markers in the commits being pushed,
+  `cargo fmt --check`, the Markdown sweep, and knip's dead-export scan. Measured
+  at 4s against a 10s budget.
 - `post-checkout` / `post-merge` / `post-rewrite` --
   `scripts/git/install-changed-deps.mjs`, which reinstalls only when a lockfile
   actually moved.
@@ -41,15 +44,45 @@ never reads `Cargo.toml`, and with no config at all it falls back to edition
 the command line -- it overrides the config file, which is how the hook would
 end up formatting against a stale edition after a bump.
 
-`clippy` is opt-in on `pre-push` because it measures 0.56s cached and ~43s cold:
+Two `pre-push` jobs are opt-in, both behind the same `STYLEX_SLOW` shell test:
+
+- `clippy`, because it measures 0.56s cached and ~43s cold.
+- `rust-audit` (`scripts/git/audit-rust.sh`), because `cargo audit` refreshes
+  the RustSec advisory database over the network.
 
 ```sh
-STYLEX_SLOW=1 git push          # run it with the push
-lefthook run pre-push --job clippy   # run it on its own
+STYLEX_SLOW=1 git push               # run them with the push
+lefthook run pre-push --job clippy   # run one on its own
+pnpm audit:rust                      # ...or the audit directly
 ```
 
-CI runs clippy on every PR regardless, so the opt-in only affects how early you
-hear about it.
+CI runs clippy on every PR regardless, so that opt-in only affects how early you
+hear about it. **The supply-chain check has no CI counterpart yet** -- it is the
+one check here that a bypass silences completely.
+
+## Supply-chain policy
+
+`deny.toml` holds it: the licence allow-list, the advisory ignores, and the
+duplicate/wildcard settings. It is green today, so anything either tool reports
+is new. `cargo deny` walks the feature-resolved graph and `cargo audit` reads
+`Cargo.lock` wholesale, which is why they disagree about `swc_css_parser` and
+why both run.
+
+Neither tool is a workspace dependency. `audit-rust.sh` prints an install line
+for whichever is missing and does not fail -- hard-failing on a tool nobody
+installed only teaches people to stop opting in.
+
+## Dead exports
+
+`pnpm lint:dead-exports` is `knip --include exports,types`. The scope is
+deliberate: a bare `knip` reports ~950 "unused files", nearly all demo apps and
+config, and `pnpm deps:check` already owns the dependency category.
+
+Two settings make it usable. `ignoreExportsUsedInFile` drops 28 findings that
+were only ever "exported and used next to the export". `tags: ["-knipignore"]`
+lets a single export opt out with a JSDoc `@knipignore` and a reason, which is
+what the demo apps' `scales` token scales use -- narrower than ignoring the file
+and it keeps everything else in that file covered.
 
 ## Dependency reinstalls
 
@@ -129,6 +162,14 @@ before editing:
 Run `pnpm hooks:validate` after editing, and note what it does not catch: it is
 pure JSON-schema validation, so every semantic trap above passes it cleanly.
 
-The guard logic is covered by `scripts/git/hooks.test.mjs` and
-`scripts/git/install-changed-deps.test.mjs`, which run under `pnpm hooks:test`
-and `pnpm test:scripts`.
+`scripts/git/__snapshots__/lefthook-dump.yml` is a golden copy of the merged,
+resolved config -- what lefthook will actually run. Any config change fails
+`lefthook-config.test.mjs` until you review the diff and accept it with
+`pnpm hooks:dump`. That is the point: it does not know which configs are good,
+it makes every change to them visible in a diff a reviewer reads. The same test
+asserts outright that no `group:` sets both `parallel` and `piped`, because that
+one fails silently rather than loudly.
+
+The hooks are covered by `hooks.test.mjs`, `install-changed-deps.test.mjs`,
+`no-merge-conflicts.test.mjs` and `lefthook-config.test.mjs` under
+`scripts/git/`, which run under `pnpm hooks:test` and `pnpm test:scripts`.

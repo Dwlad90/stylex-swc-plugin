@@ -1,0 +1,76 @@
+# cargo-deny policy for the crate graph.
+#
+# Run by `pnpm audit:rust` and, behind `STYLEX_SLOW=1`, by the `pre-push` hook.
+# See guidelines/git/HOOKS.md.
+#
+# The point of this file is that it is green today, so anything it reports
+# tomorrow is new. Every exception below is listed individually with its reason
+# rather than relaxed at the category level, because a category relaxed once
+# stops reporting the next occurrence too.
+
+[graph]
+all-features = true
+
+[advisories]
+# `vulnerability` has no knob -- it always denies. `unmaintained` and `unsound`
+# are left at their denying defaults and the current findings are ignored by ID,
+# so a *new* one still fails the check.
+ignore = [
+  # Both arrive through `swc_core`, are test-only helpers never reachable from
+  # the compiler at runtime, and have no upgrade that does not mean waiting on
+  # SWC. Recheck when swc_core moves.
+  "RUSTSEC-2020-0095", # difference unmaintained <- testing
+  "RUSTSEC-2021-0139", # ansi_term unmaintained <- swc_ecma_transforms_testing
+]
+
+# `cargo audit` additionally reports RUSTSEC-2023-0055 and RUSTSEC-2023-0086
+# (lexical / lexical-core, unsound, via swc_css_parser). They are absent here
+# because cargo-deny walks the feature-resolved graph while cargo-audit reads
+# Cargo.lock wholesale, and nothing in this workspace enables that path -- CSS
+# is parsed by the local stylex_css_parser crate. cargo-audit treats them as
+# warnings and still exits 0, so neither tool needs them listed. If cargo-deny
+# ever starts reporting them, that means the graph changed and it is worth
+# looking at rather than silencing.
+
+[licenses]
+# Permissive plus MPL-2.0. MPL is file-level copyleft: modifying an MPL file
+# means publishing that file, which linking a dependency does not do. It is in
+# the shipped graph via `cssparser`, `dtoa-short` and `colored`.
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  # The LLVM toolchain licence, carried by `wasi` and `ar_archive_writer`.
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "ISC",
+  "MIT",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+
+# `self_cell` is "Apache-2.0 OR GPL-2.0-only" and `r-efi` is
+# "MIT OR Apache-2.0 OR LGPL-2.1-or-later". Both resolve to a permissive option
+# from the list above, so neither needs an exception -- noted here so the next
+# person who greps the graph for "GPL" does not have to re-derive it.
+
+[bans]
+# Duplicate versions are a size and compile-time cost, not a correctness
+# problem, and the workspace does not control most of them -- `swc_core` alone
+# accounts for the phf and hashbrown spreads. Warn so they stay visible.
+multiple-versions = "warn"
+# The crates here depend on each other by `{ path = ... }` with no version,
+# which cargo-deny counts as a wildcard. `allow-wildcard-paths` does not help:
+# it is skipped for any crate that could be published, and none of these set
+# `publish = false` even though they ship as an npm `.node` addon rather than to
+# crates.io. Denying would mean ~20 findings this check cannot distinguish from
+# the real case, a `"*"` on a registry dependency. Warn until the manifests
+# declare their publish status, then this can go back to "deny".
+wildcards = "warn"
+
+[sources]
+unknown-git = "deny"
+unknown-registry = "deny"

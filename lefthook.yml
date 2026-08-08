@@ -63,6 +63,12 @@ pre-commit:
   parallel: true
 
   jobs:
+    # No glob: a conflicted index is a property of the commit, not of any file
+    # extension, and this is the one job whose cost does not scale with the
+    # commit -- `git diff --check --cached` is a single call.
+    - name: merge-conflicts
+      run: bash ./scripts/git/no-merge-conflicts.sh staged
+
     # Glob-gated on the files that can actually invalidate it. It used to be the
     # only job without a glob, so it swept every workspace manifest on commits
     # that touched no manifest at all. Both entries are required for the same
@@ -190,6 +196,13 @@ pre-push:
   parallel: true
 
   jobs:
+    # Reads the ref updates git writes to stdin, so it checks exactly the
+    # commits being pushed rather than the working tree. `use_stdin` is what
+    # forwards them; without it the loop reads nothing and passes vacuously.
+    - name: merge-conflicts
+      run: bash ./scripts/git/no-merge-conflicts.sh pushed
+      use_stdin: true
+
     - name: rust-fmt
       glob: '*.rs'
       run: cargo fmt --all -- --check
@@ -197,6 +210,14 @@ pre-push:
     - name: markdown-sweep
       glob: '*.{md,mdx}'
       run: node scripts/deps/check-markdown.mjs
+
+    # Dead exports are worth hearing about before the PR, not in review. Scoped
+    # to `exports,types` deliberately: knip's other categories are noise here
+    # (a bare run reports ~950 "unused files", nearly all of them demo apps and
+    # config), and `deps:check` already owns the dependency category.
+    - name: dead-exports
+      glob: '*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'
+      run: ./node_modules/.bin/knip --include exports,types
 
     # Opt-in only: `STYLEX_SLOW=1 git push`, or force it any time with
     # `lefthook run pre-push --job clippy`. Measured at 0.56s fully cached but
@@ -213,6 +234,16 @@ pre-push:
       only:
         - run: test -n "$STYLEX_SLOW"
       run: cargo clippy --all-targets --all-features --workspace -- -D warnings
+
+    # A compiler's dependency tree is a supply-chain surface, and nothing else
+    # here looks at it. Same opt-in as clippy: cargo-audit refreshes the RustSec
+    # advisory database over the network, which is not something to put in the
+    # default path of every push. Policy lives in `deny.toml`; the script skips
+    # whichever tool is not installed rather than failing.
+    - name: rust-audit
+      only:
+        - run: test -n "$STYLEX_SLOW"
+      run: ./scripts/git/audit-rust.sh
 
 # Ergonomics, not gates: these keep the two dependency graphs in step with the
 # ref you just moved to. They may mutate the working tree, but git ignores their

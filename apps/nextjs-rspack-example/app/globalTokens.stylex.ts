@@ -287,6 +287,12 @@ export const globalTokens = stylex.defineVars({
   },
 });
 
+/**
+ * Reference token scale kept as part of the demo surface: it shows the shape a
+ * `defineVars` scale takes, and nothing imports it on purpose.
+ *
+ * @knipignore
+ */
 export const scales = stylex.defineVars({
   small: 'scale(0.95)',
   medium: 'scale(1)',

@@ -15,8 +15,13 @@ own `basic-checks` leg.
 the pre-commit `shell` job. It is folded into `lint` and `lint:check` for the
 local sweep, but deliberately not into `lint:node` -- CI runs it as its own
 `basic-checks` leg, which needs no build, so folding it in would only make it
-run twice. `pnpm hooks:validate` schema-checks `lefthook.yml` and
-`pnpm hooks:test` runs just the git-hook suites -- see
+run twice. `pnpm hooks:validate` schema-checks `lefthook.yml`, `pnpm hooks:dump`
+re-baselines the resolved-config golden file, and `pnpm hooks:test` runs just
+the git-hook suites.
+
+`pnpm lint:dead-exports` runs knip's export scan (its own `basic-checks` leg and
+a `pre-push` job). `pnpm audit:rust` runs `cargo deny` plus `cargo audit`; both
+tools are optional installs and the script says how to get them. See
 [Git Hooks](./git/HOOKS.md).
 
 ## Per-Package

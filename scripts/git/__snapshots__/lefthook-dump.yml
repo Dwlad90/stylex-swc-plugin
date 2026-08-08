@@ -1,0 +1,113 @@
+assert_lefthook_installed: true
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: ./node_modules/.bin/commitlint --edit {1}
+min_version: 2.1.10
+post-checkout:
+  jobs:
+    - name: install-changed-deps
+      run: if [ "{3}" = "1" ]; then node scripts/git/install-changed-deps.mjs; fi
+      interactive: true
+post-merge:
+  jobs:
+    - name: install-changed-deps
+      run: node scripts/git/install-changed-deps.mjs
+      interactive: true
+post-rewrite:
+  jobs:
+    - name: install-changed-deps
+      run: node scripts/git/install-changed-deps.mjs
+      interactive: true
+pre-commit:
+  parallel: true
+  skip:
+    - merge
+    - rebase
+  jobs:
+    - name: merge-conflicts
+      run: bash ./scripts/git/no-merge-conflicts.sh staged
+    - name: version-mismatch
+      run: ./scripts/git/version-mismatch-check.sh
+      glob:
+        - package.json
+        - '**/package.json'
+        - pnpm-lock.yaml
+    - name: js-ts
+      glob:
+        - '*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'
+      group:
+        piped: true
+        jobs:
+          - run: ./node_modules/.bin/oxlint --fix --no-error-on-unmatched-pattern {staged_files}
+          - run: ./node_modules/.bin/oxfmt --no-error-on-unmatched-pattern {staged_files}
+            stage_fixed: true
+    - name: data-files
+      run: ./node_modules/.bin/oxfmt --no-error-on-unmatched-pattern {staged_files}
+      glob:
+        - '*.{json,jsonc,yml,yaml,css,html,vue}'
+      exclude:
+        - '**/package.json'
+        - package.json
+      stage_fixed: true
+    - name: markdown
+      glob:
+        - '*.{md,mdx}'
+      group:
+        piped: true
+        jobs:
+          - run: ./node_modules/.bin/oxfmt --no-error-on-unmatched-pattern {staged_files}
+            stage_fixed: true
+          - run: node scripts/deps/check-markdown.mjs {staged_files}
+    - name: manifests
+      run: sh .lefthook/pre-commit/manifests.sh {staged_files}
+      glob:
+        - package.json
+        - '**/package.json'
+      stage_fixed: true
+    - name: shell
+      run: ./node_modules/.bin/shellcheck -x {staged_files}
+      glob:
+        - '*.sh'
+    - name: rust
+      run: rustfmt {staged_files}
+      glob:
+        - '*.rs'
+      stage_fixed: true
+    - name: toml
+      run: ./node_modules/.bin/taplo format {staged_files}
+      glob:
+        - '*.toml'
+      stage_fixed: true
+pre-push:
+  parallel: true
+  jobs:
+    - name: merge-conflicts
+      run: bash ./scripts/git/no-merge-conflicts.sh pushed
+      use_stdin: true
+    - name: rust-fmt
+      run: cargo fmt --all -- --check
+      glob:
+        - '*.rs'
+    - name: markdown-sweep
+      run: node scripts/deps/check-markdown.mjs
+      glob:
+        - '*.{md,mdx}'
+    - name: dead-exports
+      run: ./node_modules/.bin/knip --include exports,types
+      glob:
+        - '*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'
+    - name: clippy
+      run: cargo clippy --all-targets --all-features --workspace -- -D warnings
+      only:
+        - run: test -n "$STYLEX_SLOW"
+    - name: rust-audit
+      run: ./scripts/git/audit-rust.sh
+      only:
+        - run: test -n "$STYLEX_SLOW"
+prepare-commit-msg:
+  jobs:
+    - name: commitizen
+      script: commitizen.sh
+      runner: sh
+      interactive: true

@@ -24,7 +24,7 @@
     "@types/node": "^26.1.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
-    "autoprefixer": "^10.5.2",
+    "autoprefixer": "^10.5.4",
     "jest": "^30.4.2",
     "jest-chain-transform": "^0.0.8",
     "jest-environment-jsdom": "30.4.1",

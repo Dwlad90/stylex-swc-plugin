@@ -3,11 +3,10 @@
   "indent": "  ",
   "semverGroups": [
     {
-      "label": "TypeScript and its Oxlint type-aware companion are pinned exactly and updated as a pair",
-      "dependencies": ["typescript", "oxlint-tsgolint"],
-      "dependencyTypes": ["dev", "prod"],
+      "label": "Ranges are catalogued, not linted -- see `catalogs` in pnpm-workspace.yaml",
+      "dependencyTypes": ["**"],
       "packages": ["**"],
-      "range": ""
+      "isIgnored": true
     }
   ],
   "sortAz": [
@@ -54,21 +53,9 @@
   ],
   "versionGroups": [
     {
-      "label": "TypeScript must resolve to one identical exact version everywhere",
-      "dependencies": ["typescript", "oxlint-tsgolint"],
-      "dependencyTypes": ["dev", "prod"],
+      "label": "Versions are catalogued, not linted -- do not restore, see pnpm-workspace.yaml",
+      "dependencyTypes": ["**"],
       "packages": ["**"],
-      "preferVersion": "highestSemver"
-    },
-    {
-      "label": "Accept everything except peerDependencies",
-      "dependencyTypes": [
-        "!dev",
-        "!prod",
-        "!resolutions",
-        "!overrides",
-        "!pnpmOverrides"
-      ],
       "isIgnored": true
     }
   ],

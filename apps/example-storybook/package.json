@@ -34,7 +34,7 @@
     "rollup-plugin-jsx-remove-attributes": "^3.1.2",
     "rollup-plugin-node-externals": "^9.0.1",
     "serve": "^14.2.6",
-    "storybook": "^10.5.5",
+    "storybook": "^10.5.6",
     "vite": "^8.2.0",
     "vitest": "^4.1.10"
   },

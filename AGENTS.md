@@ -21,21 +21,15 @@ Rust reimplementation of Facebook's `StyleX` CSS-in-JS compiler, built on
 
 Per package: `pnpm run --filter=@stylexswc/<pkg> <script>` -- `build`, `test`,
 `typecheck`, `format:check`, `test:visual` (playwright visual regression). Drop
-`--filter` to run from the package directory.
+`--filter` to run from the package directory. Linting and formatting have no
+per-package scripts: one root process each.
 
-Linting and formatting run once from the root; there are no per-package lint
-scripts.
-
-- `pnpm lint:check` -- one Oxlint process over every Node file; includes
-  `pnpm lint:shell` (shellcheck of every tracked `*.sh`)
-- `pnpm lint:type-aware` -- builds first, then the type-aware rules once at the
-  root. Its findings are errors and `lint:check` never reports them, so run it
-  before calling TypeScript work done. `pnpm lint:all` runs both.
-- `pnpm format:check` -- one Oxfmt process, plus rustfmt and Taplo for Rust and
-  TOML
-
-After writing code, run `pnpm typecheck`, `pnpm format:check`, `pnpm lint:check`
-(plus `pnpm lint:type-aware` when TypeScript changed) and `pnpm test`.
+After writing code run `pnpm typecheck`, `pnpm format:check` (Oxfmt, plus
+rustfmt and Taplo for Rust and TOML), `pnpm lint:check` (Oxlint over every Node
+file, and shellcheck via `pnpm lint:shell`) and `pnpm test`. When TypeScript
+changed add `pnpm lint:type-aware`: it builds first, and its findings are errors
+`lint:check` never reports, so run it before calling that work done.
+`pnpm lint:all` runs both linters.
 
 Tests that import `@stylexswc/rs-compiler` exercise `dist/*.node`, not the Rust
 sources: edit a crate and you must rebuild before the JS suite means anything --

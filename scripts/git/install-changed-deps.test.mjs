@@ -3,18 +3,18 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 import {
+  createWorkspace,
   git,
-  makeTemporaryDirectory,
   missing,
   pathVariable,
   readLog,
-  writeRecordingStub,
+  repoRoot,
+  stubPath,
+  writeStubs,
 } from './lib/test-harness.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const script = path.join(repoRoot, 'scripts/git/install-changed-deps.mjs');
 
 /**
@@ -34,11 +34,15 @@ const NEEDS_GIT = missing('git', 'sh');
  * A repository with both lockfiles on `main` and a `feature` branch that the
  * caller mutates, so that checking `feature` out produces exactly the reflog
  * move the script inspects.
+ *
+ * `stubs` defaults to recording no-ops for both package managers, since that is
+ * what all but three cases want; pass `{}` to make a tool genuinely absent, or
+ * a `body` to make one fail.
  */
-function createRepository({ pnpmLock, cargoLock }) {
-  const directory = makeTemporaryDirectory('install-changed-deps-');
-  const bin = path.join(directory, 'bin');
-  const log = path.join(directory, 'commands.log');
+function createRepository({ pnpmLock, cargoLock, stubs = { pnpm: {}, cargo: {} } }) {
+  const { directory, bin, log } = createWorkspace('install-changed-deps-');
+
+  writeStubs(bin, stubs);
 
   git(directory, 'init', '--initial-branch=main', '--quiet');
   git(directory, 'config', 'user.email', 'test@example.com');
@@ -68,17 +72,13 @@ function createRepository({ pnpmLock, cargoLock }) {
   return { bin, directory, log };
 }
 
-function stub(bin, name, body = '') {
-  writeRecordingStub(path.join(bin, name), name, body);
-}
-
 function run({ directory, bin, log }, environment = {}) {
   const result = spawnSync(process.execPath, [script], {
     cwd: directory,
     encoding: 'utf8',
     env: {
       ...process.env,
-      [pathVariable]: `${bin}${path.delimiter}${process.env[pathVariable]}`,
+      [pathVariable]: stubPath(bin),
       FAKE_COMMAND_LOG: log,
       STYLEX_SKIP_INSTALL: '',
       ...environment,
@@ -91,9 +91,6 @@ function run({ directory, bin, log }, environment = {}) {
 void test('install-changed-deps', { skip: NEEDS_GIT }, async t => {
   await t.test('runs neither installer when no lockfile moved', () => {
     const harness = createRepository({});
-    stub(harness.bin, 'pnpm');
-    stub(harness.bin, 'cargo');
-
     const result = run(harness);
 
     assert.equal(result.status, 0);
@@ -102,9 +99,6 @@ void test('install-changed-deps', { skip: NEEDS_GIT }, async t => {
 
   await t.test('installs node dependencies when pnpm-lock.yaml moved', () => {
     const harness = createRepository({ pnpmLock: true });
-    stub(harness.bin, 'pnpm');
-    stub(harness.bin, 'cargo');
-
     const result = run(harness);
 
     assert.equal(result.status, 0);
@@ -114,9 +108,6 @@ void test('install-changed-deps', { skip: NEEDS_GIT }, async t => {
 
   await t.test('fetches crates when Cargo.lock moved', () => {
     const harness = createRepository({ cargoLock: true });
-    stub(harness.bin, 'pnpm');
-    stub(harness.bin, 'cargo');
-
     const result = run(harness);
 
     assert.equal(result.status, 0);
@@ -126,9 +117,6 @@ void test('install-changed-deps', { skip: NEEDS_GIT }, async t => {
 
   await t.test('handles both lockfiles in one move', () => {
     const harness = createRepository({ pnpmLock: true, cargoLock: true });
-    stub(harness.bin, 'pnpm');
-    stub(harness.bin, 'cargo');
-
     const result = run(harness);
 
     assert.equal(result.status, 0);
@@ -141,9 +129,6 @@ void test('install-changed-deps', { skip: NEEDS_GIT }, async t => {
   // the choice of `fetch` is pinned by a test rather than only by a comment.
   await t.test('never builds crates', () => {
     const harness = createRepository({ cargoLock: true });
-    stub(harness.bin, 'pnpm');
-    stub(harness.bin, 'cargo');
-
     const result = run(harness);
 
     assert.doesNotMatch(result.log, /cargo (build|check|test)/);
@@ -151,9 +136,6 @@ void test('install-changed-deps', { skip: NEEDS_GIT }, async t => {
 
   await t.test('does nothing when STYLEX_SKIP_INSTALL is set', () => {
     const harness = createRepository({ pnpmLock: true, cargoLock: true });
-    stub(harness.bin, 'pnpm');
-    stub(harness.bin, 'cargo');
-
     const result = run(harness, { STYLEX_SKIP_INSTALL: '1' });
 
     assert.equal(result.status, 0);
@@ -161,9 +143,10 @@ void test('install-changed-deps', { skip: NEEDS_GIT }, async t => {
   });
 
   await t.test('propagates a failing install', () => {
-    const harness = createRepository({ pnpmLock: true });
-    stub(harness.bin, 'pnpm', 'exit 1');
-    stub(harness.bin, 'cargo');
+    const harness = createRepository({
+      pnpmLock: true,
+      stubs: { pnpm: { body: 'exit 1' }, cargo: {} },
+    });
 
     const result = run(harness);
 
@@ -171,9 +154,10 @@ void test('install-changed-deps', { skip: NEEDS_GIT }, async t => {
   });
 
   await t.test('propagates a failing cargo fetch', () => {
-    const harness = createRepository({ cargoLock: true });
-    stub(harness.bin, 'pnpm');
-    stub(harness.bin, 'cargo', 'exit 1');
+    const harness = createRepository({
+      cargoLock: true,
+      stubs: { pnpm: {}, cargo: { body: 'exit 1' } },
+    });
 
     assert.notEqual(run(harness).status, 0);
   });
@@ -181,9 +165,11 @@ void test('install-changed-deps', { skip: NEEDS_GIT }, async t => {
   // The two dependency graphs are independent, so a broken `pnpm install` is no
   // reason to leave the crate cache stale.
   await t.test('still fetches crates when the node install fails', () => {
-    const harness = createRepository({ pnpmLock: true, cargoLock: true });
-    stub(harness.bin, 'pnpm', 'exit 1');
-    stub(harness.bin, 'cargo');
+    const harness = createRepository({
+      pnpmLock: true,
+      cargoLock: true,
+      stubs: { pnpm: { body: 'exit 1' }, cargo: {} },
+    });
 
     const result = run(harness);
 
@@ -195,10 +181,12 @@ void test('install-changed-deps', { skip: NEEDS_GIT }, async t => {
   // install. Reporting it is useful; failing on it is not, because the hook has
   // no bearing on whether the checkout succeeded.
   await t.test('warns rather than fails when a tool is absent', () => {
-    const harness = createRepository({ pnpmLock: true, cargoLock: true });
+    const harness = createRepository({ pnpmLock: true, cargoLock: true, stubs: {} });
 
     // git has to stay reachable -- it is absent `pnpm` and `cargo` under test.
-    const result = run(harness, { [pathVariable]: `${harness.bin}:/usr/bin:/bin` });
+    const result = run(harness, {
+      [pathVariable]: [harness.bin, '/usr/bin', '/bin'].join(path.delimiter),
+    });
 
     assert.equal(result.status, 0);
     assert.match(result.stderr, /`pnpm` is not on PATH/);
@@ -209,8 +197,6 @@ void test('install-changed-deps', { skip: NEEDS_GIT }, async t => {
   // previous ref to diff against, and must not be read as "everything changed".
   await t.test('exits quietly when there is no previous ref', () => {
     const harness = createRepository({ pnpmLock: true });
-    stub(harness.bin, 'pnpm');
-    stub(harness.bin, 'cargo');
     fs.rmSync(path.join(harness.directory, '.git/logs'), { recursive: true, force: true });
 
     const result = run(harness);

@@ -30,4 +30,11 @@ if [ "$HOOKS_PATH" = ".husky/_" ]; then
   git config --unset core.hooksPath
 fi
 
-exec pnpm exec lefthook install
+# Addressed by path like every other npm binary in the hooks -- see the
+# `Gotchas` section of guidelines/git/HOOKS.md. npm runs `prepare` from the
+# package root, so the relative path resolves, and it pins the install to the
+# workspace's own lefthook rather than to whatever a stale global provides.
+#
+# Never `--force`: that writes lefthook's hooks into husky's `.husky/_`,
+# resurrecting the directory this migration deletes.
+exec ./node_modules/.bin/lefthook install

@@ -5,20 +5,20 @@
 `pnpm build`, `test`, `lint`, `lint:check` (JSON report), `format`,
 `format:check` (oxfmt plus Rust/TOML), `test:visual`, `typecheck`.
 
-- `pnpm test:scripts` -- `node --test` over the CI-side suites in
-  `.github/scripts` and `scripts/git`. `pnpm test` runs it first; CI runs it as
-  its own `basic-checks` leg.
+- `pnpm test:scripts` -- `node --test` over `.github/scripts` and `scripts/git`.
+  `pnpm test` runs it first, CI runs it as a `basic-checks` leg, and `pre-push`
+  runs it when the push touches those directories.
 - `pnpm lint:shell` -- shellchecks every tracked `*.sh`; the CI counterpart of
-  the pre-commit `shell` job. Folded into `lint` and `lint:check` for the local
-  sweep, but deliberately not into `lint:node` -- CI runs it as its own
-  build-free `basic-checks` leg, so folding it in would only make it run twice.
+  the pre-commit `shell` job. Folded into `lint` and `lint:check` but
+  deliberately not `lint:node` -- CI runs it as its own build-free
+  `basic-checks` leg, so folding it in would only run it twice.
 - `pnpm hooks:validate` schema-checks `lefthook.yml`, `pnpm hooks:dump`
-  re-baselines the resolved-config golden file, `pnpm hooks:test` runs just the
-  git-hook suites.
-- `pnpm lint:dead-exports` -- knip's export scan; its own `basic-checks` leg and
-  a `pre-push` job.
-- `pnpm audit:rust` -- `cargo deny` plus `cargo audit`; both tools are optional
-  installs and the script says how to get them.
+  re-baselines the resolved-config golden, `pnpm hooks:test` runs the
+  `scripts/git` half of `test:scripts`.
+- `pnpm lint:dead-exports` -- knip's export scan; a `basic-checks` leg and a
+  `pre-push` job.
+- `pnpm audit:rust` -- `cargo deny` plus `cargo audit`; both optional installs,
+  and the script says how to get them.
 
 See [Git Hooks](./git/HOOKS.md).
 

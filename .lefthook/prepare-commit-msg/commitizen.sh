@@ -27,4 +27,4 @@ esac
 # Deliberately not `pnpm exec`: one less process sitting between the terminal
 # and the prompt. Lefthook runs jobs from the repository root, so the relative
 # path resolves.
-exec node_modules/.bin/cz --hook
+exec ./node_modules/.bin/cz --hook

@@ -203,21 +203,61 @@ pre-push:
       run: bash ./scripts/git/no-merge-conflicts.sh pushed
       use_stdin: true
 
+    # `cargo fmt` has no per-file mode, so unlike its pre-commit counterpart
+    # this one is whole-workspace by necessity: the glob decides *whether* it
+    # runs, not what it looks at. Safe here in a way it is not in pre-commit --
+    # nothing is staged, so a wider scope cannot pull unrelated files into a
+    # commit.
     - name: rust-fmt
       glob: '*.rs'
+      # A push to `develop` or `master` is about to be re-checked by CI, which
+      # runs `format:check`, `lint-dead-exports` and `ci-script-tests` as their
+      # own legs -- so every job carrying this anchor has a CI counterpart and
+      # nothing is lost by skipping it locally. `merge-conflicts` deliberately
+      # does not: it is a single `git diff --check`, and it is the one check
+      # here with no CI equivalent on a direct push.
+      #
+      # `ref` matches the branch you are *on*, not the refspec, which is the
+      # same thing in every workflow this repository uses.
+      skip: &on_shared_branches
+        - ref: develop
+        - ref: master
       run: cargo fmt --all -- --check
 
-    - name: markdown-sweep
+    # `{push_files}` rather than a bare sweep, so the job stays proportional to
+    # the push the same way the pre-commit `markdown` job stays proportional to
+    # the commit. That is also the right scope for what this backstops: the
+    # commits that reached here without pre-commit running, via `--no-verify` or
+    # a merge/rebase skip.
+    - name: markdown
       glob: '*.{md,mdx}'
-      run: node scripts/deps/check-markdown.mjs
+      skip: *on_shared_branches
+      run: node scripts/deps/check-markdown.mjs {push_files}
 
     # Dead exports are worth hearing about before the PR, not in review. Scoped
     # to `exports,types` deliberately: knip's other categories are noise here
     # (a bare run reports ~950 "unused files", nearly all of them demo apps and
     # config), and `deps:check` already owns the dependency category.
+    #
+    # Whole-graph by necessity, like `rust-fmt`: an export is dead only relative
+    # to every importer, so there is nothing to narrow to `{push_files}`.
     - name: dead-exports
       glob: '*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'
+      skip: *on_shared_branches
       run: ./node_modules/.bin/knip --include exports,types
+
+    # The suites that cover this repository's own scripts, including these
+    # hooks. Glob-gated rather than unconditional: at ~15s it is over the budget
+    # above, and it can only regress when something under these paths changes.
+    # CI runs it on every PR as `ci-script-tests` regardless.
+    - name: script-tests
+      glob:
+        - 'scripts/**/*'
+        - '.github/scripts/**/*'
+        - '.lefthook/**/*'
+        - 'lefthook.yml'
+      skip: *on_shared_branches
+      run: pnpm run test:scripts
 
     # Opt-in only: `STYLEX_SLOW=1 git push`, or force it any time with
     # `lefthook run pre-push --job clippy`. Measured at 0.56s fully cached but

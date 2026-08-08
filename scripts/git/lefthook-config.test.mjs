@@ -3,9 +3,9 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+import { repoRoot } from './lib/test-harness.mjs';
+
 const lefthook = path.join(repoRoot, 'node_modules/.bin/lefthook');
 const golden = path.join(repoRoot, 'scripts/git/__snapshots__/lefthook-dump.yml');
 

@@ -2,18 +2,17 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 import {
-  makeTemporaryDirectory,
+  createWorkspace,
   missing,
   pathVariable,
+  readInvocations,
   readLog,
-  writeExecutable,
-  writeRecordingStub,
+  repoRoot,
+  stubPath,
+  writeStubs,
 } from './lib/test-harness.mjs';
-
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 /**
  * These tests drive the real git hook scripts, stubbing only the commands they
@@ -28,43 +27,26 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../
 const NEEDS_SHELL = missing('sh');
 
 /**
- * A throwaway directory with a logging stub for every command the script under
- * test invokes. Returns the log path so assertions read the recorded argv.
+ * Every script under test addresses its npm binaries as
+ * `./node_modules/.bin/<tool>`, relative to the directory it is run from, so
+ * that is where their stubs go -- not on `PATH`.
  */
-function createHarness(prefix, stubs) {
-  const directory = makeTemporaryDirectory(prefix);
-  const bin = path.join(directory, 'bin');
-  const log = path.join(directory, 'commands.log');
-
-  for (const [name, body] of Object.entries(stubs)) {
-    writeRecordingStub(path.join(bin, name), name, body ?? '');
-  }
-
-  return { bin, directory, log };
-}
+const NODE_MODULES_BIN = 'node_modules/.bin';
 
 void test('prepare-commit-msg guard', { skip: NEEDS_SHELL }, async t => {
   const script = path.join(repoRoot, '.lefthook/prepare-commit-msg/commitizen.sh');
 
-  /**
-   * `cz` is resolved as `node_modules/.bin/cz` relative to the working
-   * directory, so the stub goes there rather than on PATH.
-   */
   function runGuard(commitSource, sha) {
-    const harness = createHarness('stylex-hooks-cz-', {});
-    const log = harness.log;
-    writeExecutable(
-      path.join(harness.directory, 'node_modules/.bin/cz'),
-      `#!/usr/bin/env sh\nprintf 'cz %s\\n' "$*" >> "$FAKE_COMMAND_LOG"\n`
-    );
+    const workspace = createWorkspace('stylex-hooks-cz-');
+    writeStubs(path.join(workspace.directory, NODE_MODULES_BIN), { cz: {} });
 
     const result = spawnSync('sh', [script, '/tmp/COMMIT_EDITMSG', commitSource, sha], {
-      cwd: harness.directory,
-      env: { ...process.env, FAKE_COMMAND_LOG: log },
+      cwd: workspace.directory,
+      env: { ...process.env, FAKE_COMMAND_LOG: workspace.log },
       encoding: 'utf8',
     });
 
-    return { ran: readLog(log).includes('cz --hook'), status: result.status };
+    return { ran: readLog(workspace.log).includes('cz --hook'), status: result.status };
   }
 
   /**
@@ -96,41 +78,31 @@ void test('pre-commit manifests', { skip: NEEDS_SHELL }, async t => {
   const script = path.join(repoRoot, '.lefthook/pre-commit/manifests.sh');
 
   /**
-   * The stubs live at `./node_modules/.bin/`, not on `PATH`, because that is
-   * where the script looks: lefthook adds nothing to `PATH`, so the hook has to
-   * address its binaries by path. Each stub records its name and then one
-   * argument per line, so an argument containing a space is distinguishable
-   * from two arguments.
+   * `perArgument` recording, because what this suite is really asserting is
+   * argument *shape*: `--source` interleaved before each path, and a path
+   * containing a space arriving as one argument rather than two.
    */
   function runManifests(manifests, { environment = {} } = {}) {
-    const harness = createHarness('stylex-hooks-manifests-', {});
-
-    for (const tool of ['syncpack', 'oxfmt']) {
-      writeExecutable(
-        path.join(harness.directory, 'node_modules/.bin', tool),
-        // `/bin/sh`, not `/usr/bin/env sh`: the empty-PATH case below cannot
-        // find `env` either.
-        `#!/bin/sh\nprintf -- '---\\n${tool}\\n' >> "$FAKE_COMMAND_LOG"\nfor argument in "$@"; do printf '%s\\n' "$argument" >> "$FAKE_COMMAND_LOG"; done\n`
-      );
-    }
+    const workspace = createWorkspace('stylex-hooks-manifests-');
+    writeStubs(path.join(workspace.directory, NODE_MODULES_BIN), {
+      // `/bin/sh`, not `/usr/bin/env sh`: the empty-PATH case below cannot find
+      // `env` either.
+      syncpack: { shebang: '#!/bin/sh', perArgument: true },
+      oxfmt: { shebang: '#!/bin/sh', perArgument: true },
+    });
 
     const result = spawnSync('/bin/sh', [script, ...manifests], {
-      cwd: harness.directory,
+      cwd: workspace.directory,
       env: {
         ...process.env,
-        FAKE_COMMAND_LOG: harness.log,
-        [pathVariable]: harness.bin,
+        FAKE_COMMAND_LOG: workspace.log,
+        [pathVariable]: stubPath(workspace.bin),
         ...environment,
       },
       encoding: 'utf8',
     });
 
-    const invocations = readLog(harness.log)
-      .split('---\n')
-      .filter(Boolean)
-      .map(block => block.split('\n').filter(Boolean));
-
-    return { invocations, status: result.status };
+    return { invocations: readInvocations(workspace.log), status: result.status };
   }
 
   await t.test('interleaves --source before every manifest', () => {
@@ -196,49 +168,67 @@ void test('pre-commit manifests', { skip: NEEDS_SHELL }, async t => {
 void test('install-hooks.sh', { skip: NEEDS_SHELL }, async t => {
   const script = path.join(repoRoot, 'scripts/git/install-hooks.sh');
 
+  /**
+   * Runs in a throwaway directory rather than the repository, because the
+   * script ends in a real `./node_modules/.bin/lefthook install`. Pointed at
+   * the checkout it would rewrite this clone's hooks as a side effect of
+   * running the suite.
+   */
   function runInstall({ hooksPath, env = {} }) {
-    const harness = createHarness('stylex-hooks-install-', {
-      git: `case "$*" in
+    const workspace = createWorkspace('stylex-hooks-install-');
+
+    writeStubs(workspace.bin, {
+      git: {
+        body: `case "$*" in
   "config --get core.hooksPath") [ -n "${hooksPath}" ] && printf '%s\\n' "${hooksPath}" || exit 1 ;;
 esac`,
-      pnpm: '',
+      },
     });
+    writeStubs(path.join(workspace.directory, NODE_MODULES_BIN), { lefthook: {} });
 
     const result = spawnSync('sh', [script], {
-      cwd: repoRoot,
+      cwd: workspace.directory,
       env: {
         ...process.env,
         CI: '',
         LEFTHOOK: '',
         ...env,
-        FAKE_COMMAND_LOG: harness.log,
-        [pathVariable]: `${harness.bin}:${process.env[pathVariable]}`,
+        FAKE_COMMAND_LOG: workspace.log,
+        [pathVariable]: stubPath(workspace.bin),
       },
       encoding: 'utf8',
     });
 
-    return { log: readLog(harness.log), status: result.status };
+    return { log: readLog(workspace.log), status: result.status };
   }
 
   await t.test("unsets husky's core.hooksPath before installing", () => {
     const { log, status } = runInstall({ hooksPath: '.husky/_' });
     assert.equal(status, 0);
     assert.match(log, /git config --unset core\.hooksPath/);
-    assert.match(log, /pnpm exec lefthook install/);
+    assert.match(log, /lefthook install/);
   });
 
   await t.test('leaves a custom core.hooksPath alone', () => {
     const { log, status } = runInstall({ hooksPath: '.config/githooks' });
     assert.equal(status, 0);
     assert.doesNotMatch(log, /--unset/, 'a deliberate custom hooks path must survive');
-    assert.match(log, /pnpm exec lefthook install/);
+    assert.match(log, /lefthook install/);
   });
 
   await t.test('installs when no core.hooksPath is set', () => {
     const { log, status } = runInstall({ hooksPath: '' });
     assert.equal(status, 0);
     assert.doesNotMatch(log, /--unset/);
-    assert.match(log, /pnpm exec lefthook install/);
+    assert.match(log, /lefthook install/);
+  });
+
+  // `--force` would write lefthook's hooks into husky's `.husky/_`, resurrecting
+  // the directory this migration deletes -- on exactly the clones the unset
+  // above exists to rescue.
+  await t.test('never installs with --force', () => {
+    const { log } = runInstall({ hooksPath: '.husky/_' });
+    assert.doesNotMatch(log, /--force|\s-f\b/);
   });
 
   /**

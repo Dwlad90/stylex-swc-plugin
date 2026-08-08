@@ -89,14 +89,33 @@ pre-push:
       run: cargo fmt --all -- --check
       glob:
         - '*.rs'
-    - name: markdown-sweep
-      run: node scripts/deps/check-markdown.mjs
+      skip:
+        - ref: develop
+        - ref: master
+    - name: markdown
+      run: node scripts/deps/check-markdown.mjs {push_files}
       glob:
         - '*.{md,mdx}'
+      skip:
+        - ref: develop
+        - ref: master
     - name: dead-exports
       run: ./node_modules/.bin/knip --include exports,types
       glob:
         - '*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'
+      skip:
+        - ref: develop
+        - ref: master
+    - name: script-tests
+      run: pnpm run test:scripts
+      glob:
+        - scripts/**/*
+        - .github/scripts/**/*
+        - .lefthook/**/*
+        - lefthook.yml
+      skip:
+        - ref: develop
+        - ref: master
     - name: clippy
       run: cargo clippy --all-targets --all-features --workspace -- -D warnings
       only:

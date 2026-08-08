@@ -3,11 +3,8 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 
-import { git, makeTemporaryDirectory, missing } from './lib/test-harness.mjs';
-
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+import { git, makeTemporaryDirectory, missing, repoRoot } from './lib/test-harness.mjs';
 const script = path.join(repoRoot, 'scripts/git/no-merge-conflicts.sh');
 
 const NEEDS_GIT = missing('git', 'bash');

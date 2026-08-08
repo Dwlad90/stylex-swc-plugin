@@ -15,21 +15,19 @@ Rust reimplementation of Facebook's `StyleX` CSS-in-JS compiler, built on
   `.expect()`
 - Commits: conventional commits via `commitizen` --
   `<type>(<scope>): <description>`
-- Git hooks: `lefthook` (`lefthook.yml`); `pnpm install` installs them
+- Git hooks: `lefthook` (`lefthook.yml`), installed by `pnpm install`
 
 ## Commands
 
 Per package: `pnpm run --filter=@stylexswc/<pkg> <script>` -- `build`, `test`,
-`typecheck`, `format:check`, `test:visual` (playwright visual regression). Drop
-`--filter` to run from the package directory. Linting and formatting have no
-per-package scripts: one root process each.
+`typecheck`, `format:check`, `test:visual` (playwright visual regression); drop
+`--filter` inside the package. Lint and format are root-only, one process each.
 
-After writing code run `pnpm typecheck`, `pnpm format:check` (Oxfmt, plus
-rustfmt and Taplo for Rust and TOML), `pnpm lint:check` (Oxlint over every Node
-file, and shellcheck via `pnpm lint:shell`) and `pnpm test`. When TypeScript
-changed add `pnpm lint:type-aware`: it builds first, and its findings are errors
-`lint:check` never reports, so run it before calling that work done.
-`pnpm lint:all` runs both linters.
+After writing code run `pnpm typecheck`, `pnpm format:check` (Oxfmt; rustfmt and
+Taplo for Rust and TOML), `pnpm lint:check` (Oxlint over every Node file,
+shellcheck via `pnpm lint:shell`) and `pnpm test`. TypeScript changes also need
+`pnpm lint:type-aware`: it builds first and reports errors `lint:check` never
+does, so it gates calling that work done. `pnpm lint:all` runs both linters.
 
 Tests that import `@stylexswc/rs-compiler` exercise `dist/*.node`, not the Rust
 sources: edit a crate and you must rebuild before the JS suite means anything --

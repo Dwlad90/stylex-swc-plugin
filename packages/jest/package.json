@@ -40,7 +40,7 @@
     "@swc/jest": "^0.2.39",
     "@types/node": "^26.1.0",
     "jest": "^30.4.2",
-    "publint": "^0.3.22"
+    "publint": "^0.3.23"
   },
   "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "engines": {

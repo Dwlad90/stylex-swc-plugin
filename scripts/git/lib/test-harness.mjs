@@ -1,11 +1,16 @@
 /**
- * Shared primitives for the git-hook script suites.
+ * Shared primitives for the repository's script suites, under `scripts/git`
+ * and `.github/scripts` alike.
  *
  * Every suite works the same way: stand up a throwaway directory, drop
  * executable stubs that record their own argv, and run the real script against
  * them. The workspace shape, the recording stubs, the `PATH` overlay and the
  * skip guard are identical across the suites, so they live here rather than
  * drifting in four files.
+ *
+ * Every spawn goes through `hermeticEnvironment` -- `pre-push` runs these
+ * suites, so they have to survive the environment git hands a hook. A new
+ * `spawnSync` here or in a suite needs it too.
  *
  * Not a `*.test.mjs` file, so `pnpm test:scripts` and `pnpm hooks:test` do not
  * try to run it as a suite.
@@ -77,8 +82,23 @@ export function stubPath(bin) {
   return [bin, process.env[pathVariable]].filter(Boolean).join(path.delimiter);
 }
 
+/**
+ * `process.env` with every `GIT_*` variable dropped, plus `overrides`.
+ *
+ * Git exports `GIT_DIR`, `GIT_INDEX_FILE` and friends to the hooks it runs, and
+ * `pre-push` runs these suites. Inherited, they aim every `git` call here at the
+ * repository being pushed rather than the throwaway one under test -- so the
+ * suites pass from a terminal and fail from the hook, which is the one place
+ * their result is load-bearing.
+ */
+export function hermeticEnvironment(overrides = {}) {
+  const inherited = Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_'));
+
+  return { ...Object.fromEntries(inherited), ...overrides };
+}
+
 export function git(cwd, ...args) {
-  const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8', env: hermeticEnvironment() });
   assert.equal(result.status, 0, `git ${args.join(' ')} failed: ${result.stderr}`);
   return result.stdout.trim();
 }

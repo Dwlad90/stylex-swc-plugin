@@ -7,6 +7,7 @@ import test from 'node:test';
 import {
   createWorkspace,
   git,
+  hermeticEnvironment,
   missing,
   pathVariable,
   readLog,
@@ -76,13 +77,12 @@ function run({ directory, bin, log }, environment = {}) {
   const result = spawnSync(process.execPath, [script], {
     cwd: directory,
     encoding: 'utf8',
-    env: {
-      ...process.env,
+    env: hermeticEnvironment({
       [pathVariable]: stubPath(bin),
       FAKE_COMMAND_LOG: log,
       STYLEX_SKIP_INSTALL: '',
       ...environment,
-    },
+    }),
   });
 
   return { ...result, log: readLog(log) };

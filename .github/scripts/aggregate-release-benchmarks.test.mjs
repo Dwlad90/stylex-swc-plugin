@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { hermeticEnvironment } from '../../scripts/git/lib/test-harness.mjs';
 import {
   ensureViewerPage,
   historyDataDir,
@@ -90,7 +91,11 @@ function setUp(t) {
     JSON.stringify([{ name: 'transform', value: 1.5, unit: 'ms', range: '', extra: '' }])
   );
 
-  const git = args => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
+  // `hermeticEnvironment` because `pre-push` runs this suite: inherited, git's
+  // own `GIT_DIR` would aim these fixture commands at the repository being
+  // pushed rather than at `root`.
+  const git = args =>
+    execFileSync('git', args, { cwd: root, stdio: 'pipe', env: hermeticEnvironment() });
   git(['init', '-q']);
   git(['config', 'user.email', 'test@example.com']);
   git(['config', 'user.name', 'Test']);

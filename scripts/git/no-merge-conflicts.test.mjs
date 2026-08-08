@@ -4,7 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { git, makeTemporaryDirectory, missing, repoRoot } from './lib/test-harness.mjs';
+import {
+  git,
+  hermeticEnvironment,
+  makeTemporaryDirectory,
+  missing,
+  repoRoot,
+} from './lib/test-harness.mjs';
 const script = path.join(repoRoot, 'scripts/git/no-merge-conflicts.sh');
 
 const NEEDS_GIT = missing('git', 'bash');
@@ -34,7 +40,7 @@ const CONFLICTED_FILE = [
 const ZERO_OID = '0'.repeat(40);
 
 function tryGit(cwd, ...args) {
-  return spawnSync('git', args, { cwd, encoding: 'utf8' });
+  return spawnSync('git', args, { cwd, encoding: 'utf8', env: hermeticEnvironment() });
 }
 
 function write(cwd, file, contents) {
@@ -131,6 +137,7 @@ function run(cwd, { mode, stdin, from } = {}) {
   return spawnSync('bash', mode ? [script, mode] : [script], {
     cwd: from ? path.join(cwd, from) : cwd,
     encoding: 'utf8',
+    env: hermeticEnvironment(),
     input: stdin ?? (mode === 'pushed' ? pushedInput(cwd) : ''),
   });
 }
@@ -552,6 +559,7 @@ void test('no-merge-conflicts.sh pushed', { skip: NEEDS_GIT }, async t => {
     const tag = spawnSync('git', ['mktag'], {
       cwd: repository,
       encoding: 'utf8',
+      env: hermeticEnvironment(),
       input: `object ${blob}\ntype blob\ntag blob-tag\ntagger Test <test@example.com> 0 +0000\n\nmessage\n`,
     });
 

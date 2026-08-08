@@ -5,6 +5,7 @@ import test from 'node:test';
 
 import {
   createWorkspace,
+  hermeticEnvironment,
   missing,
   pathVariable,
   readInvocations,
@@ -42,7 +43,7 @@ void test('prepare-commit-msg guard', { skip: NEEDS_SHELL }, async t => {
 
     const result = spawnSync('sh', [script, '/tmp/COMMIT_EDITMSG', commitSource, sha], {
       cwd: workspace.directory,
-      env: { ...process.env, FAKE_COMMAND_LOG: workspace.log },
+      env: hermeticEnvironment({ FAKE_COMMAND_LOG: workspace.log }),
       encoding: 'utf8',
     });
 
@@ -93,12 +94,11 @@ void test('pre-commit manifests', { skip: NEEDS_SHELL }, async t => {
 
     const result = spawnSync('/bin/sh', [script, ...manifests], {
       cwd: workspace.directory,
-      env: {
-        ...process.env,
+      env: hermeticEnvironment({
         FAKE_COMMAND_LOG: workspace.log,
         [pathVariable]: stubPath(workspace.bin),
         ...environment,
-      },
+      }),
       encoding: 'utf8',
     });
 
@@ -188,14 +188,13 @@ esac`,
 
     const result = spawnSync('sh', [script], {
       cwd: workspace.directory,
-      env: {
-        ...process.env,
+      env: hermeticEnvironment({
         CI: '',
         LEFTHOOK: '',
         ...env,
         FAKE_COMMAND_LOG: workspace.log,
         [pathVariable]: stubPath(workspace.bin),
-      },
+      }),
       encoding: 'utf8',
     });
 

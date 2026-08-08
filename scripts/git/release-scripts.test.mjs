@@ -6,6 +6,8 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { hermeticEnvironment } from './lib/test-harness.mjs';
+
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 /**
@@ -70,12 +72,11 @@ fi
   return {
     directory,
     log,
-    env: {
-      ...process.env,
+    env: hermeticEnvironment({
       PATH: `${bin}:${process.env[pathVariable] ?? ''}`,
       FAKE_COMMAND_LOG: log,
       FAKE_RELEASES: releases,
-    },
+    }),
   };
 }
 

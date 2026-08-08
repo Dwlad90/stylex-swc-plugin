@@ -164,8 +164,16 @@ jobs:
       - name: Git configure
         uses: ./.github/actions/gitconfig
 
+      - name: 🛠️ Setup environment
+        uses: ./.github/actions/setup
+        with:
+          rust-target: 'x86_64-unknown-linux-gnu'
+
+      # After the setup step, not before it: the bumper is Node and wants the
+      # version this repository pins rather than whatever the runner image
+      # happens to ship.
       - name: 🔧 Bump version
-        run: ./scripts/git/bump-version.sh ${{ needs.calculate-version.outputs.new_version }}
+        run: node ./scripts/git/bump-version.mjs ${{ needs.calculate-version.outputs.new_version }}
 
       - name: 🎯 Update StyleX compatibility target
         if: ${{ github.event.inputs['stylex-version'] != '' }}
@@ -175,11 +183,6 @@ jobs:
           ./scripts/git/update-stylex-compatibility.sh \
             --version "$STYLEX_VERSION" \
             --yes
-
-      - name: 🛠️ Setup environment
-        uses: ./.github/actions/setup
-        with:
-          rust-target: 'x86_64-unknown-linux-gnu'
 
       - name: Install dependencies
         run: |

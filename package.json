@@ -18,7 +18,7 @@
     "docs": "scripty  --rust",
     "format": "oxfmt && turbo run format --continue",
     "format:check": "oxfmt --check && turbo run format:check --continue",
-    "hooks:dump": "lefthook dump > scripts/git/__snapshots__/lefthook-dump.yml",
+    "hooks:dump": "./scripts/git/dump-lefthook-config.sh",
     "hooks:test": "node --test scripts/git/*.test.mjs",
     "hooks:validate": "lefthook validate",
     "lint": "oxlint && pnpm run lint:json && pnpm run lint:markdown && pnpm run lint:shell && turbo run lint:crates:workspace --filter=//",

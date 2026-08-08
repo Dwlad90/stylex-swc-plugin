@@ -13,8 +13,9 @@
   deliberately not `lint:node` -- CI runs it as its own build-free
   `basic-checks` leg, so folding it in would only run it twice.
 - `pnpm hooks:validate` schema-checks `lefthook.yml`, `pnpm hooks:dump`
-  re-baselines the resolved-config golden, `pnpm hooks:test` runs the
-  `scripts/git` half of `test:scripts`.
+  re-baselines the resolved-config golden (refused while a `lefthook-local.yml`
+  would pollute it), `pnpm hooks:test` runs the `scripts/git` half of
+  `test:scripts`.
 - `pnpm lint:dead-exports` -- knip's export scan; a `basic-checks` leg and a
   `pre-push` job.
 - `pnpm audit:rust` -- `cargo deny` plus `cargo audit`; both optional installs,

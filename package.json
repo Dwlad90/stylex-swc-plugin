@@ -67,7 +67,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-storybook": "^9.1.10",
     "eslint-plugin-turbo": "^2.10.8",
-    "knip": "^6.29.0",
+    "knip": "^6.31.0",
     "lefthook": "^2.1.10",
     "oxfmt": "^0.61.0",
     "oxlint": "^1.76.0",

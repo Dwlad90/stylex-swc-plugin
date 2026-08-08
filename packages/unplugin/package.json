@@ -148,7 +148,7 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/node": "^26.1.0",
     "esno": "^4.7.0",
-    "publint": "^0.3.22",
+    "publint": "^0.3.23",
     "rollup": "^4.62.3",
     "tsdown": "^0.22.14",
     "typescript": "7.0.2",

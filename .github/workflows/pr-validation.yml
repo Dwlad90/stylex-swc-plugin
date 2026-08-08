@@ -96,6 +96,18 @@ jobs:
           - id: format-check
             name: Check formatting
             command: pnpm run format:check
+          # `shellcheck` used to run in the pre-commit hook and nowhere else, so
+          # a `--no-verify` push meant shell scripts were never linted at all.
+          # A bypass should cost you later feedback, never no feedback.
+          - id: lint-shell
+            name: Lint shell scripts
+            command: pnpm run lint:shell
+          # A malformed `lefthook.yml` should fail a PR rather than a
+          # developer's next commit. Note this is pure JSON-schema validation --
+          # it does not catch semantic errors, so it is a floor, not a gate.
+          - id: hooks-validate
+            name: Validate git hook config
+            command: pnpm run hooks:validate
           # Every CI-side script suite, not just the reporter: `test:scripts`
           # also covers the release artifact parsers and the release shell
           # scripts, which the full `test` run alone would not guard on the

@@ -73,6 +73,9 @@ importers:
       '@stylexswc/typescript-config':
         specifier: 0.18.3
         version: link:packages/typescript-config
+      '@taplo/cli':
+        specifier: ^0.7.0
+        version: 0.7.0
       commitizen:
         specifier: ^4.3.2
         version: 4.3.2(@types/node@26.1.2)(typescript@7.0.2)

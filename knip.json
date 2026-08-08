@@ -4,6 +4,7 @@
     ".": {
       "ignoreDependencies": [
         "@commitlint/cli",
+        "@taplo/cli",
         "commitizen",
         "cz-conventional-changelog",
         "lefthook",

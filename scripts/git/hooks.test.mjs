@@ -1,10 +1,17 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+
+import {
+  makeTemporaryDirectory,
+  missing,
+  pathVariable,
+  readLog,
+  writeExecutable,
+  writeRecordingStub,
+} from './lib/test-harness.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -18,46 +25,25 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../
  *
  * The interactive prompt itself needs a real TTY and is not testable here.
  */
-function missing(...commands) {
-  const absent = commands.filter(
-    command => spawnSync('sh', ['-c', 'command -v "$1"', 'sh', command]).status !== 0
-  );
-  return absent.length > 0 ? `requires ${absent.join(', ')} on PATH` : false;
-}
-
 const NEEDS_SHELL = missing('sh');
-const pathVariable = ['PA', 'TH'].join('');
-
-function writeExecutable(file, contents) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, contents);
-  fs.chmodSync(file, 0o755);
-}
 
 /**
  * A throwaway directory with a logging stub for every command the script under
  * test invokes. Returns the log path so assertions read the recorded argv.
  */
 function createHarness(prefix, stubs) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const directory = makeTemporaryDirectory(prefix);
   const bin = path.join(directory, 'bin');
   const log = path.join(directory, 'commands.log');
 
   for (const [name, body] of Object.entries(stubs)) {
-    writeExecutable(
-      path.join(bin, name),
-      `#!/usr/bin/env sh\nprintf '${name} %s\\n' "$*" >> "$FAKE_COMMAND_LOG"\n${body ?? ''}\n`
-    );
+    writeRecordingStub(path.join(bin, name), name, body ?? '');
   }
 
   return { bin, directory, log };
 }
 
-function readLog(log) {
-  return fs.existsSync(log) ? fs.readFileSync(log, 'utf8') : '';
-}
-
-test('prepare-commit-msg guard', { skip: NEEDS_SHELL }, async t => {
+void test('prepare-commit-msg guard', { skip: NEEDS_SHELL }, async t => {
   const script = path.join(repoRoot, '.lefthook/prepare-commit-msg/commitizen.sh');
 
   /**
@@ -106,26 +92,35 @@ test('prepare-commit-msg guard', { skip: NEEDS_SHELL }, async t => {
   }
 });
 
-test('pre-commit manifests', { skip: NEEDS_SHELL }, async t => {
+void test('pre-commit manifests', { skip: NEEDS_SHELL }, async t => {
   const script = path.join(repoRoot, '.lefthook/pre-commit/manifests.sh');
 
   /**
-   * `pnpm` is stubbed to record one argument per line, so an argument
-   * containing a space is distinguishable from two arguments.
+   * The stubs live at `./node_modules/.bin/`, not on `PATH`, because that is
+   * where the script looks: lefthook adds nothing to `PATH`, so the hook has to
+   * address its binaries by path. Each stub records its name and then one
+   * argument per line, so an argument containing a space is distinguishable
+   * from two arguments.
    */
-  function runManifests(manifests) {
+  function runManifests(manifests, { environment = {} } = {}) {
     const harness = createHarness('stylex-hooks-manifests-', {});
-    writeExecutable(
-      path.join(harness.bin, 'pnpm'),
-      `#!/usr/bin/env sh\nprintf -- '---\\n' >> "$FAKE_COMMAND_LOG"\nfor argument in "$@"; do printf '%s\\n' "$argument" >> "$FAKE_COMMAND_LOG"; done\n`
-    );
 
-    const result = spawnSync('sh', [script, ...manifests], {
+    for (const tool of ['syncpack', 'oxfmt']) {
+      writeExecutable(
+        path.join(harness.directory, 'node_modules/.bin', tool),
+        // `/bin/sh`, not `/usr/bin/env sh`: the empty-PATH case below cannot
+        // find `env` either.
+        `#!/bin/sh\nprintf -- '---\\n${tool}\\n' >> "$FAKE_COMMAND_LOG"\nfor argument in "$@"; do printf '%s\\n' "$argument" >> "$FAKE_COMMAND_LOG"; done\n`
+      );
+    }
+
+    const result = spawnSync('/bin/sh', [script, ...manifests], {
       cwd: harness.directory,
       env: {
         ...process.env,
         FAKE_COMMAND_LOG: harness.log,
-        [pathVariable]: `${harness.bin}:${process.env[pathVariable]}`,
+        [pathVariable]: harness.bin,
+        ...environment,
       },
       encoding: 'utf8',
     });
@@ -144,7 +139,6 @@ test('pre-commit manifests', { skip: NEEDS_SHELL }, async t => {
 
     const [syncpack, oxfmt] = invocations;
     assert.deepEqual(syncpack, [
-      'exec',
       'syncpack',
       'format',
       '--config',
@@ -157,12 +151,27 @@ test('pre-commit manifests', { skip: NEEDS_SHELL }, async t => {
 
     // The originals, not the rewritten list -- the subshell must not leak.
     assert.deepEqual(oxfmt, [
-      'exec',
       'oxfmt',
       '--no-error-on-unmatched-pattern',
       'package.json',
       'packages/a/package.json',
     ]);
+  });
+
+  // The binaries are addressed by path precisely so the hook works in a GUI git
+  // client or an IDE commit dialog, where the ambient environment is whatever
+  // the desktop session happened to export. An empty PATH is the strongest
+  // available statement of that.
+  await t.test('resolves its binaries with an empty PATH', () => {
+    const { invocations, status } = runManifests(['package.json'], {
+      environment: { [pathVariable]: '' },
+    });
+
+    assert.equal(status, 0);
+    assert.deepEqual(
+      invocations.map(([tool]) => tool),
+      ['syncpack', 'oxfmt']
+    );
   });
 
   await t.test('keeps a path containing a space as one argument', () => {
@@ -184,7 +193,7 @@ test('pre-commit manifests', { skip: NEEDS_SHELL }, async t => {
   });
 });
 
-test('install-hooks.sh', { skip: NEEDS_SHELL }, async t => {
+void test('install-hooks.sh', { skip: NEEDS_SHELL }, async t => {
   const script = path.join(repoRoot, 'scripts/git/install-hooks.sh');
 
   function runInstall({ hooksPath, env = {} }) {

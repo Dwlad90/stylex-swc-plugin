@@ -11,6 +11,14 @@ Use `pnpm` (>=11) exclusively -- never npm, yarn, or bun. Requires Node >=24.11.
 `scripts/git` with `node --test`. `pnpm test` runs it first; CI runs it as its
 own `basic-checks` leg.
 
+`pnpm lint:shell` shellchecks every tracked `*.sh` and is the CI counterpart of
+the pre-commit `shell` job. It is folded into `lint` and `lint:check` for the
+local sweep, but deliberately not into `lint:node` -- CI runs it as its own
+`basic-checks` leg, which needs no build, so folding it in would only make it
+run twice. `pnpm hooks:validate` schema-checks `lefthook.yml` and
+`pnpm hooks:test` runs just the git-hook suites -- see
+[Git Hooks](./git/HOOKS.md).
+
 ## Per-Package
 
 Run `pnpm --filter=@stylexswc/<pkg> <script>`, where `<script>` is `build`,

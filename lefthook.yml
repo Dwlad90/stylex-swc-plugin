@@ -7,6 +7,16 @@
 #
 # Lefthook writes hooks into the *common* git dir, so a single install covers
 # every worktree of a bare checkout, matching the previous husky behaviour.
+#
+# Every npm-provided tool is invoked through `./node_modules/.bin/<tool>`.
+# Lefthook adds nothing to `PATH`, so a bare `oxlint` resolves from whatever the
+# caller happens to have -- which works in an interactive shell and fails in a
+# GUI client, an IDE commit dialog, or any minimal environment. It also silently
+# picked up `/opt/homebrew/bin/shellcheck` instead of the pinned devDependency.
+# Relative paths are safe because no job sets `root:`, so every job runs from the
+# repository root; a job that later sets `root:` needs an absolute path instead.
+# `rustfmt` and `cargo` are the exception -- they come from the Rust toolchain,
+# not from node_modules, and are resolved from `PATH` by necessity.
 
 # A dev with a stale global lefthook on $PATH would otherwise shadow the npm
 # binary and silently skip config it cannot parse.
@@ -18,10 +28,13 @@ assert_lefthook_installed: true
 
 prepare-commit-msg:
   jobs:
-    # Must be a script file, not an inline `run:`. Lefthook only substitutes
-    # `{1}` in command templates -- `{2}` and `{3}` pass through as literals --
-    # and the commitizen guard reads COMMIT_SOURCE ($2) and SHA ($3). Scripts
-    # under source_dir receive the full git hook argv, so the guard works as-is.
+    # Must be a script file, not an inline `run:`. Lefthook registers `{N}` only
+    # for arguments git actually passed; anything beyond that count survives into
+    # the shell as a literal. A bare `git commit` hands prepare-commit-msg only
+    # `$1`, so `{2}` and `{3}` -- which the commitizen guard needs for
+    # COMMIT_SOURCE and SHA -- would expand to nothing usable. Scripts under
+    # source_dir receive the full, unmodified git hook argv, so the guard works
+    # as-is regardless of how many arguments git supplied.
     - name: commitizen
       # Opens /dev/tty as stdin so the commitizen prompt is usable. Ignored when
       # `no_tty` is set or LEFTHOOK=0, which is why CI can never block on it.
@@ -32,7 +45,7 @@ prepare-commit-msg:
 commit-msg:
   jobs:
     - name: commitlint
-      run: pnpm exec commitlint --edit {1}
+      run: ./node_modules/.bin/commitlint --edit {1}
 
 pre-commit:
   # Deliberate deviation from the husky setup, which ran unconditionally.
@@ -50,7 +63,15 @@ pre-commit:
   parallel: true
 
   jobs:
+    # Glob-gated on the files that can actually invalidate it. It used to be the
+    # only job without a glob, so it swept every workspace manifest on commits
+    # that touched no manifest at all. Both entries are required for the same
+    # whole-path reason the `manifests` job documents below.
     - name: version-mismatch
+      glob:
+        - 'package.json'
+        - '**/package.json'
+        - 'pnpm-lock.yaml'
       run: ./scripts/git/version-mismatch-check.sh
 
     # Lint first so that autofixes are then formatted, not the reverse.
@@ -59,8 +80,8 @@ pre-commit:
       group:
         piped: true
         jobs:
-          - run: oxlint --fix --no-error-on-unmatched-pattern {staged_files}
-          - run: oxfmt --no-error-on-unmatched-pattern {staged_files}
+          - run: ./node_modules/.bin/oxlint --fix --no-error-on-unmatched-pattern {staged_files}
+          - run: ./node_modules/.bin/oxfmt --no-error-on-unmatched-pattern {staged_files}
             stage_fixed: true
 
     # `package.json` is excluded here and handled by its own job below. Under
@@ -73,7 +94,7 @@ pre-commit:
       exclude:
         - '**/package.json'
         - 'package.json'
-      run: oxfmt --no-error-on-unmatched-pattern {staged_files}
+      run: ./node_modules/.bin/oxfmt --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
 
     # Markdown is split out of the group above for the same reason `package.json`
@@ -88,7 +109,7 @@ pre-commit:
       group:
         piped: true
         jobs:
-          - run: oxfmt --no-error-on-unmatched-pattern {staged_files}
+          - run: ./node_modules/.bin/oxfmt --no-error-on-unmatched-pattern {staged_files}
             stage_fixed: true
           - run: node scripts/deps/check-markdown.mjs {staged_files}
 
@@ -114,4 +135,113 @@ pre-commit:
 
     - name: shell
       glob: '*.sh'
-      run: shellcheck -x {staged_files}
+      run: ./node_modules/.bin/shellcheck -x {staged_files}
+
+    # `rustfmt`, never `cargo fmt`. `cargo fmt` has no per-file mode -- it
+    # rewrites the whole workspace, so combined with `stage_fixed` a one-line
+    # change could stage unrelated files that merely happened to be
+    # unformatted. What this protects is the commit: nothing you did not stage
+    # can be added to it.
+    #
+    # Note the weaker guarantee on the *working tree*. rustfmt follows `mod`
+    # declarations, so staging a `lib.rs` or `mod.rs` also reformats its
+    # submodules on disk even though they are not in `{staged_files}`. Those
+    # rewrites are not staged -- `stage_fixed` only re-adds the paths lefthook
+    # passed in -- so they show up as ordinary unstaged changes. `--skip-children`
+    # would suppress it but is nightly-only.
+    #
+    # The edition comes from `rustfmt.toml`, which rustfmt finds by walking up
+    # from each input file. It matters that it is set there: invoked directly,
+    # rustfmt never reads `Cargo.toml`, so with no config it would fall back to
+    # edition 2015 and reject valid 2024 code as a parse error. Deliberately not
+    # passed as `--edition` here -- a CLI flag overrides the config file, so an
+    # edition bump would silently keep formatting against the stale value.
+    #
+    # `cargo fmt --all -- --check` stays in CI and in pre-push as the backstop
+    # for anything the per-file path misses; it reads the same `rustfmt.toml`,
+    # so the two cannot disagree.
+    - name: rust
+      glob: '*.rs'
+      run: rustfmt {staged_files}
+      stage_fixed: true
+
+    # `@taplo/cli` is a root devDependency purely so this job has a binary to
+    # call; the crates that run `format:toml` through turbo depend on it
+    # individually.
+    - name: toml
+      glob: '*.toml'
+      run: ./node_modules/.bin/taplo format {staged_files}
+      stage_fixed: true
+
+# The local gate between commit and CI. Budget is 10s; everything unconditional
+# here is measured well under it.
+#
+# This is a convenience gate, never a guarantee. Lefthook skips *every* job in
+# `pre-commit` and `pre-push` when the resolved file list is empty, keyed on the
+# hook name rather than on whether a job uses a file template or has a glob, and
+# there is no config-level opt-out (`--force` / `--all-files` / `--file` are CLI
+# only). A push whose commits change no file therefore runs nothing. The first
+# push of a new branch is unaffected: `@{push}` does not resolve, so lefthook
+# runs the jobs.
+pre-push:
+  # Unbounded -- lefthook spawns one goroutine per job with a plain WaitGroup,
+  # with no CPU cap and no knob to throttle it. Fine at this size; worth
+  # remembering before the list grows.
+  parallel: true
+
+  jobs:
+    - name: rust-fmt
+      glob: '*.rs'
+      run: cargo fmt --all -- --check
+
+    - name: markdown-sweep
+      glob: '*.{md,mdx}'
+      run: node scripts/deps/check-markdown.mjs
+
+    # Opt-in only: `STYLEX_SLOW=1 git push`, or force it any time with
+    # `lefthook run pre-push --job clippy`. Measured at 0.56s fully cached but
+    # 42.86s on a cold populate, and any touched crate pushes it back toward the
+    # cold figure -- a minute of blocked terminal per push is what trains people
+    # into `--no-verify`. CI runs clippy on every PR regardless.
+    #
+    # The condition has to be `run:` with a shell test. `skip`/`only` accept
+    # only `ref:` and `run:`; an `env:` key passes `lefthook validate` (the
+    # schema types them as bare arrays) and is a silent no-op. Tags cannot
+    # express this either -- `LEFTHOOK_EXCLUDE` only appends to `exclude_tags`
+    # and there is no `LEFTHOOK_INCLUDE`.
+    - name: clippy
+      only:
+        - run: test -n "$STYLEX_SLOW"
+      run: cargo clippy --all-targets --all-features --workspace -- -D warnings
+
+# Ergonomics, not gates: these keep the two dependency graphs in step with the
+# ref you just moved to. They may mutate the working tree, but git ignores their
+# exit status, so they can never fail the operation that triggered them.
+#
+# `interactive: true` because `pnpm install` can prompt (e.g. before purging
+# node_modules when the store location changed) and without a TTY the prompt
+# hides behind lefthook's spinner and the hook appears to hang. `interactive`
+# opens /dev/tty directly and ignores `no_tty`, and is honoured only when stdin
+# is already a real terminal.
+#
+# Set `STYLEX_SKIP_INSTALL=1` to opt out.
+post-checkout:
+  jobs:
+    # git passes `$3 = 1` for a branch checkout and `0` for a file checkout;
+    # only the former can change a lockfile. post-checkout receives three
+    # arguments, so `{3}` is genuinely substituted here.
+    - name: install-changed-deps
+      run: if [ "{3}" = "1" ]; then node scripts/git/install-changed-deps.mjs; fi
+      interactive: true
+
+post-merge:
+  jobs:
+    - name: install-changed-deps
+      run: node scripts/git/install-changed-deps.mjs
+      interactive: true
+
+post-rewrite:
+  jobs:
+    - name: install-changed-deps
+      run: node scripts/git/install-changed-deps.mjs
+      interactive: true

@@ -3,7 +3,9 @@
 # Formats the staged package.json manifests passed as arguments.
 #
 # Runs from the repository root: lefthook hands over repo-relative staged paths,
-# so `.syncpackrc` is resolved the same way the arguments are.
+# so `.syncpackrc` -- and the `./node_modules/.bin` invocations below -- resolve
+# the same way the arguments do. On why the binaries are addressed by path
+# rather than through `pnpm exec`, see guidelines/git/HOOKS.md.
 #
 # Both tools run here, in this order, so that they are sequenced against each
 # other. Two concurrent writers to one manifest is the race this file exists to
@@ -31,7 +33,7 @@ fi
   done
   shift "$paths"
 
-  exec pnpm exec syncpack format --config .syncpackrc "$@"
+  exec ./node_modules/.bin/syncpack format --config .syncpackrc "$@"
 )
 
-pnpm exec oxfmt --no-error-on-unmatched-pattern "$@"
+./node_modules/.bin/oxfmt --no-error-on-unmatched-pattern "$@"

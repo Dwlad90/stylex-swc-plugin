@@ -27,6 +27,7 @@ Rust reimplementation of Facebook's `StyleX` CSS-in-JS compiler, built on
 - `pnpm lint:type-aware` -- type-aware lint rules; builds first, then runs
   `lint:node:type-aware` once at the root. Its findings are errors and are not
   reported by `lint:check`, so run it before calling TypeScript work done.
+- `pnpm lint:shell` -- shellcheck every tracked `*.sh`; part of `lint:check`
 - `pnpm lint:all` -- `lint:check` plus `lint:type-aware`
 - `pnpm format:check` -- check formatting (one root Oxfmt process, plus rustfmt
   and Taplo for Rust and TOML)

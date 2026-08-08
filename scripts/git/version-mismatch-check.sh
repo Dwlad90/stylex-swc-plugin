@@ -5,7 +5,10 @@ set -e
 
 echo "Checking dependency versions across workspace..."
 
-if pnpm exec syncpack lint; then
+# Addressed by path, not `pnpm exec` -- see "Binaries are addressed by path" in
+# guidelines/git/HOOKS.md. Both callers, the hook and CI, run from the
+# repository root.
+if ./node_modules/.bin/syncpack lint; then
     echo "All dependencies are in sync across the workspace."
     exit 0
 fi

@@ -142,7 +142,7 @@
   },
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.5",
-    "@nuxt/kit": "^4.5.1",
+    "@nuxt/kit": "^4.5.2",
     "@nuxt/schema": "^4.5.1",
     "@rollup/plugin-commonjs": "^29.0.3",
     "@rollup/plugin-node-resolve": "^16.0.3",

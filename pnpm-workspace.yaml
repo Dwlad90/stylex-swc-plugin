@@ -83,11 +83,48 @@ overrides:
 patchedDependencies:
   'scripty@3.0.0': patches/scripty@3.0.0.patch
 
+# `true` only where the script produces something the package needs to work --
+# a platform binary, a native binding. A postinstall that merely prints or
+# phones home gets `false`: the entry is the audit trail, so silence is not the
+# same as approval.
 allowBuilds:
-  '@swc/core': true
-  'core-js': true
-  'core-js-pure': true
+  # Validates the native binding; on failure it shells out to
+  # `npm install --no-save @swc/wasm` and swaps the Rust binding for wasm. Three
+  # reasons that fallback is not worth having: prebuilt bindings exist for all
+  # six targets built here, so it never fires; `@swc/wasm` is absent from
+  # `pnpm-lock.yaml`, so what it installs is pruned as extraneous by the next
+  # `pnpm install`; and the `execSync` bypasses the lockfile,
+  # `minimumReleaseAge` and the supply-chain gate. If a binding ever does go
+  # missing, a loud failure at `require` beats a silent swap to wasm in a repo
+  # that exists to be fast -- see `guidelines/PERFORMANCE.md`.
+  '@swc/core': false
+  # Banner, not build. Both postinstalls are the same 62-line OpenCollective
+  # funding notice -- one `writeFileSync` into `os.tmpdir()` to avoid repeating
+  # itself, and an ANSI block on stdout. Nothing is compiled, downloaded or
+  # linked, so approving them would buy an advert.
+  'core-js': false
+  'core-js-pure': false
+  # Resolves and integrity-checks the platform binary behind `.bin/esbuild`.
   'esbuild': true
-  'oxc-resolver': true
+  # Denied, not approved. lefthook's postinstall runs `lefthook install -f`,
+  # and the `-f` is the problem: pnpm runs dependency postinstalls before the
+  # root `prepare`, so on a clone still carrying husky's
+  # `core.hooksPath=.husky/_` it force-writes lefthook's hooks into `.husky/_`
+  # -- resurrecting the directory this migration deletes. `prepare` ->
+  # `scripts/git/install-hooks.sh` unsets the path first and then installs,
+  # which is the ordering that actually works. The postinstall also self-
+  # disables under CI, so approving it would buy nothing there either.
+  'lefthook': false
+  # Nothing to approve: 11.24.2 declares no `preinstall`/`install`/`postinstall`
+  # and ships no `binding.gyp`, yet pnpm still lists it under `ignoredBuilds`,
+  # so the entry cannot simply be deleted -- removing it re-raises
+  # `ERR_PNPM_IGNORED_BUILDS`. `false` because approving a script that does not
+  # exist only pre-approves whatever a future release adds; denied, that release
+  # has to be looked at first. The native binding arrives through the
+  # `@oxc-resolver/binding-*` optional deps, which no build step touches.
+  'oxc-resolver': false
+  # Picks between a prebuilt libvips and a source build; without it the native
+  # binding is the one thing sharp cannot do without.
   'sharp': true
+  # `napi-postinstall` linking the correct platform binary.
   'unrs-resolver': true

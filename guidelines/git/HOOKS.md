@@ -4,7 +4,12 @@ Driven by `lefthook` and configured in `lefthook.yml`. Hook scripts live in
 `.lefthook/<hook>/`; anything CI also invokes stays in `scripts/git/`.
 
 Installed by `pnpm install`, via `prepare` -> `scripts/git/install-hooks.sh`.
-Lefthook writes into the common git dir, so one install covers every worktree.
+Lefthook writes into the common git dir, so one install covers every worktree's
+_hooks_. The jobs are a separate matter: they shell out to
+`./node_modules/.bin/<tool>` relative to the worktree they fire in, so a
+worktree without its own `pnpm install` runs the hooks and then fails inside
+them -- `sh: ./node_modules/.bin/commitlint: No such file or directory`. Install
+per worktree; the hook plumbing is what you get for free, not the tooling.
 
 ## The hooks
 
@@ -83,6 +88,24 @@ were only ever "exported and used next to the export". `tags: ["-knipignore"]`
 lets a single export opt out with a JSDoc `@knipignore` and a reason, which is
 what the demo apps' `scales` token scales use -- narrower than ignoring the file
 and it keeps everything else in that file covered.
+
+## Why lefthook's own postinstall is denied
+
+`pnpm-workspace.yaml` carries `allowBuilds: {lefthook: false}`. That is a
+deliberate deny, not an oversight, and `pnpm approve-builds` is the wrong
+response to the `ERR_PNPM_IGNORED_BUILDS` error that prompts for it.
+
+The package's postinstall runs `lefthook install -f`. pnpm runs dependency
+postinstalls **before** the root `prepare`, so on a clone that still carries
+husky's `core.hooksPath=.husky/_` the `-f` force-writes lefthook's hooks into
+`.husky/_` -- recreating the directory this setup removed, and leaving the
+hooks somewhere nothing else looks. `install-hooks.sh` exists precisely to
+unset that path _first_ and then install, which is the only ordering that
+works.
+
+Approving it would also buy nothing in CI, where the postinstall self-disables:
+it returns early when `CI` is set and `LEFTHOOK` is not truthy, and the
+workflows set `LEFTHOOK: '0'`.
 
 ## Dependency reinstalls
 

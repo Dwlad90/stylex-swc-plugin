@@ -13,14 +13,16 @@ crate_target_dir="${workspace_root}/target/test-${crate_slug}"
 # -E: Extended regexp
 # -r: Recursive
 if grep -qRE --include="*.rs" "$PATTERNS" src tests; then
-    # Common arguments for all tests
-    common_args="--target-dir $crate_target_dir --all-features"
+    # Common arguments for all tests. An array rather than a string so the
+    # target directory survives a path containing spaces instead of being split
+    # into two arguments.
+    common_args=(--target-dir "$crate_target_dir" --all-features)
 
     #Add arguments from call command
     args=("$@")
 
-    NODE_ENV="test" cargo nextest run $common_args "${args[@]}"
-    NODE_ENV="test" cargo test $common_args --doc "${args[@]}"
+    NODE_ENV="test" cargo nextest run "${common_args[@]}" "${args[@]}"
+    NODE_ENV="test" cargo test "${common_args[@]}" --doc "${args[@]}"
 else
     exit 0
 fi

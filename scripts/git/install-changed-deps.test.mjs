@@ -175,6 +175,14 @@ void test('install-changed-deps', { skip: NEEDS_GIT }, async t => {
     assert.notEqual(result.status, 0);
   });
 
+  await t.test('propagates a failing cargo fetch', () => {
+    const harness = createRepository({ cargoLock: true });
+    stub(harness.bin, 'pnpm');
+    stub(harness.bin, 'cargo', 'exit 1');
+
+    assert.notEqual(run(harness).status, 0);
+  });
+
   // The two dependency graphs are independent, so a broken `pnpm install` is no
   // reason to leave the crate cache stale.
   await t.test('still fetches crates when the node install fails', () => {

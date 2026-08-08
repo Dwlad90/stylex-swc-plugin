@@ -63,15 +63,24 @@ case "$mode" in
         continue
       fi
 
+      # Resolve the type before the commit, so that "object is not in the
+      # database" is distinguishable from "object is not a commit". Collapsing
+      # the two is a fail-open: an oid git cannot find would be skipped as
+      # though it were a tag, and the push would sail through unchecked.
+      object_type=$(git cat-file -t "$local_oid" 2>/dev/null) || {
+        echo "Unable to inspect local object $local_oid" >&2
+        exit 2
+      }
+
       local_commit=$(git rev-parse --verify --quiet "${local_oid}^{commit}") || local_commit=''
 
       if [ -z "$local_commit" ]; then
-        # Annotated tags can point at non-commit objects, which have no tree to
-        # inspect. Anything else that fails to resolve is a real problem.
-        if [ "$(git cat-file -t "$local_oid" 2>/dev/null)" = 'commit' ]; then
+        if [ "$object_type" = 'commit' ]; then
           echo "Unable to inspect local commit $local_oid" >&2
           exit 2
         fi
+        # A tag pointing at a tree or blob has no tree to diff. Skipping it is
+        # correct; erroring would break `git push --tags`.
         continue
       fi
 

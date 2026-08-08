@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { makeTemporaryDirectory, missing } from './lib/test-harness.mjs';
+import { git, makeTemporaryDirectory, missing } from './lib/test-harness.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const script = path.join(repoRoot, 'scripts/git/no-merge-conflicts.sh');
@@ -35,12 +35,6 @@ const CONFLICTED_FILE = [
 ].join('\n');
 
 const ZERO_OID = '0'.repeat(40);
-
-function git(cwd, ...args) {
-  const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
-  assert.equal(result.status, 0, `git ${args.join(' ')} failed: ${result.stderr}`);
-  return result.stdout.trim();
-}
 
 function tryGit(cwd, ...args) {
   return spawnSync('git', args, { cwd, encoding: 'utf8' });

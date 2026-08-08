@@ -6,6 +6,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
+  git,
   makeTemporaryDirectory,
   missing,
   pathVariable,
@@ -28,12 +29,6 @@ const script = path.join(repoRoot, 'scripts/git/install-changed-deps.mjs');
  * someone debugs a stale `node_modules` for an afternoon.
  */
 const NEEDS_GIT = missing('git', 'sh');
-
-function git(cwd, ...args) {
-  const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
-  assert.equal(result.status, 0, `git ${args.join(' ')} failed: ${result.stderr}`);
-  return result.stdout.trim();
-}
 
 /**
  * A repository with both lockfiles on `main` and a `feature` branch that the

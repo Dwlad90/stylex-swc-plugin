@@ -42,9 +42,15 @@
     "peerDependencies"
   ],
   "source": [
-    "package.json",
-    "*/*/package.json",
-    "!*/fixtures/*"
+    "**/package.json",
+    "!**/node_modules/**",
+    "!crates/stylex-path-resolver/fixtures/**",
+    "!crates/stylex-transform/src/shared/structures/tests/fixtures/**",
+    "!crates/stylex-transform/tests/__virtual__/**",
+    "!crates/stylex-transform/tests/fixture/**",
+    "!packages/postcss-plugin/__tests__/__auto_discovery_fixtures__/**",
+    "!crates/stylex-rs-compiler/npm/**",
+    "!**/.next/**"
   ],
   "versionGroups": [
     {

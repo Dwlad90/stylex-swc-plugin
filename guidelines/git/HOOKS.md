@@ -83,6 +83,12 @@ The file's own comments explain each job's shape. Traps:
   only `ref:` and `run:`, and an `env:` key is a silent no-op.
 - `pre-commit` and `pre-push` skip _every_ job on an empty file list, so
   `pre-push` is a convenience gate, never a guarantee.
+- A `--source` passed to `syncpack` on the command line _overrides_ the
+  negations in `.syncpackrc`, it does not intersect with them. `manifests.sh`
+  interleaves one `--source` per staged path, so staging a fixture or generated
+  manifest still formats it even though `.syncpackrc` excludes that path from
+  `syncpack lint`. Formatting only sorts keys, so nothing is currently broken by
+  it -- but do not read the exclusion list as protection the hook honours.
 
 Run `pnpm hooks:validate` after editing -- it is schema-only, so every trap
 above passes it. Then `pnpm hooks:test`: any config change fails against the

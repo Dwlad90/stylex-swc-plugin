@@ -1,34 +1,32 @@
 # Scripts
 
-Use `pnpm` (>=11) exclusively -- never npm, yarn, or bun. Requires Node >=24.11.
-
 ## Root (Turbo)
 
 `pnpm build`, `test`, `lint`, `lint:check` (JSON report), `format`,
 `format:check` (oxfmt plus Rust/TOML), `test:visual`, `typecheck`.
 
-`pnpm test:scripts` runs the CI-side suites under `.github/scripts` and
-`scripts/git` with `node --test`. `pnpm test` runs it first; CI runs it as its
-own `basic-checks` leg.
+- `pnpm test:scripts` -- `node --test` over the CI-side suites in
+  `.github/scripts` and `scripts/git`. `pnpm test` runs it first; CI runs it as
+  its own `basic-checks` leg.
+- `pnpm lint:shell` -- shellchecks every tracked `*.sh`; the CI counterpart of
+  the pre-commit `shell` job. Folded into `lint` and `lint:check` for the local
+  sweep, but deliberately not into `lint:node` -- CI runs it as its own
+  build-free `basic-checks` leg, so folding it in would only make it run twice.
+- `pnpm hooks:validate` schema-checks `lefthook.yml`, `pnpm hooks:dump`
+  re-baselines the resolved-config golden file, `pnpm hooks:test` runs just the
+  git-hook suites.
+- `pnpm lint:dead-exports` -- knip's export scan; its own `basic-checks` leg and
+  a `pre-push` job.
+- `pnpm audit:rust` -- `cargo deny` plus `cargo audit`; both tools are optional
+  installs and the script says how to get them.
 
-`pnpm lint:shell` shellchecks every tracked `*.sh` and is the CI counterpart of
-the pre-commit `shell` job. It is folded into `lint` and `lint:check` for the
-local sweep, but deliberately not into `lint:node` -- CI runs it as its own
-`basic-checks` leg, which needs no build, so folding it in would only make it
-run twice. `pnpm hooks:validate` schema-checks `lefthook.yml`, `pnpm hooks:dump`
-re-baselines the resolved-config golden file, and `pnpm hooks:test` runs just
-the git-hook suites.
-
-`pnpm lint:dead-exports` runs knip's export scan (its own `basic-checks` leg and
-a `pre-push` job). `pnpm audit:rust` runs `cargo deny` plus `cargo audit`; both
-tools are optional installs and the script says how to get them. See
-[Git Hooks](./git/HOOKS.md).
+See [Git Hooks](./git/HOOKS.md).
 
 ## Per-Package
 
-Run `pnpm --filter=@stylexswc/<pkg> <script>`, where `<script>` is `build`,
-`test`, `typecheck`, `format`, or `format:check`; `test -- <pattern>` runs
-matching tests. Linting runs once from the workspace root.
+`pnpm --filter=@stylexswc/<pkg> <script>`, where `<script>` is `build`, `test`,
+`typecheck`, `format` or `format:check`; `test -- <pattern>` runs matching
+tests. Linting runs once from the workspace root.
 
 ## Dependencies
 
@@ -62,8 +60,8 @@ accept `--help`. Policy: [Performance](./PERFORMANCE.md).
 - `bench:verdict`: bootstrap verdict and retry; writes JSON and Markdown.
 - `bench:budget`: p95 versus `budget.json`; writes JSON and Markdown.
 
-All JSON and Markdown artifacts are written under `benchmark/results/`. The
-exact filenames are documented by each command's `--help` output.
+JSON and Markdown artifacts land under `benchmark/results/`; each command's
+`--help` documents the exact filenames.
 
 Subject dirs need `package.json`, `dist/index.js` exporting `transform`, and one
 `*.node`. Passing the same dir as base and candidate (with differing

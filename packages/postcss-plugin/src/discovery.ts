@@ -310,16 +310,6 @@ export function resolveImportSourcesWithMetadata({
   };
 }
 
-export function resolveImportSources({
-  importSources,
-  rsOptions,
-}: {
-  importSources?: ImportSource[];
-  rsOptions?: StyleXPluginOption['rsOptions'];
-}): ImportSource[] {
-  return resolveImportSourcesWithMetadata({ importSources, rsOptions }).importSources;
-}
-
 export interface IncludeResolution {
   include: Array<string | RegExp>;
   discoveredDependencyDirectories: string[];
@@ -362,18 +352,6 @@ export function resolveIncludeWithMetadata({
     discoveredDependencyDirectories,
     hasExplicitInclude,
   };
-}
-
-export function resolveInclude({
-  cwd,
-  include,
-  importSources,
-}: {
-  cwd: string;
-  include?: StyleXPluginOption['include'];
-  importSources: ImportSource[];
-}): Array<string | RegExp> {
-  return resolveIncludeWithMetadata({ cwd, include, importSources }).include;
 }
 
 export function resolveExclude({

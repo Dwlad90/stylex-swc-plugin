@@ -136,6 +136,7 @@ function createRun(root) {
   return {
     root,
     staged: new Map(),
+    /** @type {string[]} */
     problems: [],
     get changed() {
       return [...this.staged.keys()];

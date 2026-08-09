@@ -4,6 +4,276 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  bundlers:
+    '@babel/core':
+      specifier: ^8.0.1
+      version: 8.0.1
+    '@farmfe/cli':
+      specifier: ^1.0.5
+      version: 1.0.5
+    '@farmfe/core':
+      specifier: ^1.7.11
+      version: 1.7.11
+    '@farmfe/plugin-react':
+      specifier: ^1.2.6
+      version: 1.2.6
+    '@pmmmwh/react-refresh-webpack-plugin':
+      specifier: ^0.6.2
+      version: 0.6.2
+    '@rollup/plugin-commonjs':
+      specifier: ^29.0.3
+      version: 29.0.3
+    '@rollup/plugin-html':
+      specifier: ^2.0.0
+      version: 2.0.0
+    '@rollup/plugin-node-resolve':
+      specifier: ^16.0.3
+      version: 16.0.3
+    '@rollup/plugin-replace':
+      specifier: ^6.0.3
+      version: 6.0.3
+    '@rollup/plugin-swc':
+      specifier: ^0.4.1
+      version: 0.4.1
+    '@rsbuild/core':
+      specifier: ^2.1.9
+      version: 2.1.9
+    '@rsbuild/plugin-react':
+      specifier: ^2.1.0
+      version: 2.1.0
+    '@rspack/cli':
+      specifier: ^2.1.7
+      version: 2.1.7
+    '@rspack/core':
+      specifier: ^2.1.7
+      version: 2.1.7
+    '@rspack/dev-server':
+      specifier: ^2.1.0
+      version: 2.1.0
+    '@swc/core':
+      specifier: ^1.15.43
+      version: 1.15.47
+    '@vitejs/plugin-react':
+      specifier: ^6.0.5
+      version: 6.0.5
+    '@vitejs/plugin-react-swc':
+      specifier: ^4.3.3
+      version: 4.3.3
+    '@vitejs/plugin-vue':
+      specifier: ^6.0.8
+      version: 6.0.8
+    css-loader:
+      specifier: ^7.1.4
+      version: 7.1.4
+    css-minimizer-webpack-plugin:
+      specifier: ^8.0.0
+      version: 8.0.0
+    esbuild:
+      specifier: ^0.28.1
+      version: 0.28.1
+    file-loader:
+      specifier: ^6.2.0
+      version: 6.2.0
+    html-webpack-plugin:
+      specifier: ^5.6.8
+      version: 5.6.8
+    mini-css-extract-plugin:
+      specifier: ^2.10.2
+      version: 2.10.2
+    postcss-loader:
+      specifier: ^8.2.1
+      version: 8.2.1
+    rollup:
+      specifier: ^4.62.3
+      version: 4.62.3
+    rollup-plugin-jsx-remove-attributes:
+      specifier: ^3.1.2
+      version: 3.1.2
+    rollup-plugin-node-externals:
+      specifier: ^9.0.1
+      version: 9.0.1
+    rollup-plugin-serve:
+      specifier: ^3.0.0
+      version: 3.0.0
+    swc-loader:
+      specifier: ^0.2.7
+      version: 0.2.7
+    vite:
+      specifier: ^8.2.0
+      version: 8.2.0
+    vite-plugin-solid:
+      specifier: ^2.11.14
+      version: 2.11.14
+    webpack:
+      specifier: ^5.109.2
+      version: 5.109.2
+    webpack-cli:
+      specifier: ^7.2.2
+      version: 7.2.2
+    webpack-dev-server:
+      specifier: ^6.0.0
+      version: 6.0.0
+  frameworks:
+    '@chromatic-com/storybook':
+      specifier: ^5.2.1
+      version: 5.2.1
+    '@storybook/addon-a11y':
+      specifier: ^10.5.5
+      version: 10.5.5
+    '@storybook/addon-docs':
+      specifier: ^10.5.5
+      version: 10.5.5
+    '@storybook/addon-links':
+      specifier: ^10.5.5
+      version: 10.5.5
+    '@storybook/addon-vitest':
+      specifier: ^10.5.5
+      version: 10.5.5
+    '@storybook/react':
+      specifier: ^10.5.5
+      version: 10.5.5
+    '@storybook/react-vite':
+      specifier: ^10.5.5
+      version: 10.5.5
+    next:
+      specifier: ^16.2.12
+      version: 16.2.12
+    next-rspack:
+      specifier: ^16.2.12
+      version: 16.2.12
+    react:
+      specifier: ^19.2.8
+      version: 19.2.8
+    react-dom:
+      specifier: ^19.2.8
+      version: 19.2.8
+    react-refresh:
+      specifier: ^0.18.0
+      version: 0.18.0
+    solid-js:
+      specifier: ^1.9.14
+      version: 1.9.14
+    storybook:
+      specifier: ^10.5.5
+      version: 10.5.5
+    vue:
+      specifier: ^3.5.35
+      version: 3.5.35
+  internal:
+    '@stylexswc/design-system':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/jest':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/nextjs-plugin':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/playwright':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/postcss-plugin':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/rollup-plugin':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/rs-compiler':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/turbopack-plugin':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/unplugin':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/webpack-plugin':
+      specifier: 0.18.3
+      version: 0.18.3
+  runtime:
+    '@stylexjs/open-props':
+      specifier: ^0.11.1
+      version: 0.11.1
+    '@stylexjs/stylex':
+      specifier: ^0.19.0
+      version: 0.19.0
+    autoprefixer:
+      specifier: ^10.5.2
+      version: 10.5.2
+    postcss:
+      specifier: ^8.5.18
+      version: 8.5.25
+    postcss-nesting:
+      specifier: ^14.0.1
+      version: 14.0.1
+    prop-types:
+      specifier: ^15.8.1
+      version: 15.8.1
+  testing:
+    '@jest/globals':
+      specifier: ^30.4.1
+      version: 30.4.1
+    '@playwright/test':
+      specifier: ^1.62.1
+      version: 1.62.1
+    '@swc/jest':
+      specifier: ^0.2.39
+      version: 0.2.39
+    '@testing-library/jest-dom':
+      specifier: ^7.0.0
+      version: 7.0.0
+    '@testing-library/react':
+      specifier: ^16.3.2
+      version: 16.3.2
+    '@vitest/browser':
+      specifier: ^4.1.10
+      version: 4.1.10
+    '@vitest/browser-playwright':
+      specifier: ^4.1.10
+      version: 4.1.10
+    '@vitest/coverage-v8':
+      specifier: ^4.1.9
+      version: 4.1.9
+    jest:
+      specifier: ^30.4.2
+      version: 30.4.2
+    jest-chain-transform:
+      specifier: ^0.0.8
+      version: 0.0.8
+    jest-environment-jsdom:
+      specifier: 30.4.1
+      version: 30.4.1
+    jsdom:
+      specifier: ^29.1.1
+      version: 29.1.1
+    playwright:
+      specifier: ^1.62.1
+      version: 1.62.1
+    serve:
+      specifier: ^14.2.6
+      version: 14.2.6
+    vitest:
+      specifier: ^4.1.10
+      version: 4.1.10
+  tooling:
+    rimraf:
+      specifier: ^6.1.3
+      version: 6.1.3
+  types:
+    '@types/node':
+      specifier: ^26.1.0
+      version: 26.1.2
+    '@types/react':
+      specifier: ^19.2.18
+      version: 19.2.18
+    '@types/react-dom':
+      specifier: ^19.2.4
+      version: 19.2.4
+    typescript:
+      specifier: 7.0.2
+      version: 7.0.2
+
 overrides:
   '@babel/core@<7.26.10': '>=7.26.10'
   '@babel/helpers@<7.26.10': 7.26.10
@@ -128,1222 +398,1234 @@ importers:
   apps/esbuild-unplugin-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       esbuild:
-        specifier: ^0.28.1
+        specifier: catalog:bundlers
         version: 0.28.1
       rimraf:
-        specifier: ^6.1.3
+        specifier: catalog:tooling
         version: 6.1.3
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
 
   apps/example-storybook:
     dependencies:
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@chromatic-com/storybook':
-        specifier: ^5.2.1
+        specifier: catalog:frameworks
         version: 5.2.1(storybook@10.5.5(@types/react@19.2.18)(prettier@3.9.6)(react@19.2.8))
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@storybook/addon-a11y':
-        specifier: ^10.5.5
+        specifier: catalog:frameworks
         version: 10.5.5(storybook@10.5.5(@types/react@19.2.18)(prettier@3.9.6)(react@19.2.8))
       '@storybook/addon-docs':
-        specifier: ^10.5.5
+        specifier: catalog:frameworks
         version: 10.5.5(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.1)(rollup@4.62.3)(storybook@10.5.5(@types/react@19.2.18)(prettier@3.9.6)(react@19.2.8))(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))(webpack@5.109.2)
       '@storybook/addon-links':
-        specifier: ^10.5.5
+        specifier: catalog:frameworks
         version: 10.5.5(@types/react@19.2.18)(react@19.2.8)(storybook@10.5.5(@types/react@19.2.18)(prettier@3.9.6)(react@19.2.8))
       '@storybook/addon-vitest':
-        specifier: ^10.5.5
+        specifier: catalog:frameworks
         version: 10.5.5(@vitest/browser-playwright@4.1.10)(@vitest/browser@4.1.10)(@vitest/runner@4.1.10)(react@19.2.8)(storybook@10.5.5(@types/react@19.2.18)(prettier@3.9.6)(react@19.2.8))(vitest@4.1.10)
       '@storybook/react':
-        specifier: ^10.5.5
+        specifier: catalog:frameworks
         version: 10.5.5(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(storybook@10.5.5(@types/react@19.2.18)(prettier@3.9.6)(react@19.2.8))(supports-color@8.1.1)(typescript@7.0.2)
       '@storybook/react-vite':
-        specifier: ^10.5.5
+        specifier: catalog:frameworks
         version: 10.5.5(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rollup@4.62.3)(storybook@10.5.5(@types/react@19.2.18)(prettier@3.9.6)(react@19.2.8))(supports-color@8.1.1)(typescript@7.0.2)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))(webpack@5.109.2)
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@stylexswc/postcss-plugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/postcss-plugin
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       '@testing-library/react':
-        specifier: ^16.3.2
+        specifier: catalog:testing
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       '@vitejs/plugin-react-swc':
-        specifier: ^4.3.3
+        specifier: catalog:bundlers
         version: 4.3.3(@swc/helpers@0.5.23)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))
       '@vitest/browser':
-        specifier: ^4.1.10
+        specifier: catalog:testing
         version: 4.1.10(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))(vitest@4.1.10)
       '@vitest/browser-playwright':
-        specifier: ^4.1.10
+        specifier: catalog:testing
         version: 4.1.10(playwright@1.62.1)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))(vitest@4.1.10)
       '@vitest/coverage-v8':
-        specifier: ^4.1.9
+        specifier: catalog:testing
         version: 4.1.9(@vitest/browser@4.1.10)(vitest@4.1.10)
       autoprefixer:
-        specifier: ^10.5.2
+        specifier: catalog:runtime
         version: 10.5.2(postcss@8.5.25)
       jsdom:
-        specifier: ^29.1.1
+        specifier: catalog:testing
         version: 29.1.1
       playwright:
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       postcss-nesting:
-        specifier: ^14.0.1
+        specifier: catalog:runtime
         version: 14.0.1(postcss@8.5.25)
       prop-types:
-        specifier: ^15.8.1
+        specifier: catalog:runtime
         version: 15.8.1
       rimraf:
-        specifier: ^6.1.3
+        specifier: catalog:tooling
         version: 6.1.3
       rollup-plugin-jsx-remove-attributes:
-        specifier: ^3.1.2
+        specifier: catalog:bundlers
         version: 3.1.2(@rollup/pluginutils@5.4.0(rollup@4.62.3))(astring@1.9.0)(estree-walker@3.0.3)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))
       rollup-plugin-node-externals:
-        specifier: ^9.0.1
+        specifier: catalog:bundlers
         version: 9.0.1(rollup@4.62.3)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
       storybook:
-        specifier: ^10.5.5
+        specifier: catalog:frameworks
         version: 10.5.5(@types/react@19.2.18)(prettier@3.9.6)(react@19.2.8)
       vite:
-        specifier: ^8.2.0
+        specifier: catalog:bundlers
         version: 8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.10
+        specifier: catalog:testing
         version: 4.1.10(@types/node@26.1.2)(@vitest/browser-playwright@4.1.10)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))
 
   apps/farm-unplugin-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@farmfe/cli':
-        specifier: ^1.0.5
+        specifier: catalog:bundlers
         version: 1.0.5
       '@farmfe/core':
-        specifier: ^1.7.11
+        specifier: catalog:bundlers
         version: 1.7.11(supports-color@8.1.1)
       '@farmfe/plugin-react':
-        specifier: ^1.2.6
+        specifier: catalog:bundlers
         version: 1.2.6
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       react-refresh:
-        specifier: ^0.18.0
+        specifier: catalog:frameworks
         version: 0.18.0
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
 
   apps/nextjs-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/nextjs-plugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/nextjs-plugin
       next:
-        specifier: ^16.2.12
+        specifier: catalog:frameworks
         version: 16.2.12(@babel/core@8.0.1)(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
+      '@babel/core':
+        specifier: catalog:bundlers
+        version: 8.0.1
       '@jest/globals':
-        specifier: ^30.4.1
+        specifier: catalog:testing
         version: 30.4.1(supports-color@8.1.1)
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexswc/jest':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/jest
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@swc/jest':
-        specifier: ^0.2.39
+        specifier: catalog:testing
         version: 0.2.39(@swc/core@1.15.47(@swc/helpers@0.5.23))
       '@testing-library/jest-dom':
-        specifier: ^7.0.0
+        specifier: catalog:testing
         version: 7.0.0(@testing-library/dom@10.4.1)
       '@testing-library/react':
-        specifier: ^16.3.2
+        specifier: catalog:testing
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/node':
-        specifier: ^26.1.0
+        specifier: catalog:types
         version: 26.1.2
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       jest:
-        specifier: ^30.4.2
+        specifier: catalog:testing
         version: 30.4.2(@types/node@26.1.2)(esbuild-register@3.6.0(esbuild@0.28.1)(supports-color@8.1.1))(supports-color@8.1.1)
       jest-chain-transform:
-        specifier: ^0.0.8
+        specifier: catalog:testing
         version: 0.0.8(@jest/transform@30.4.1(supports-color@8.1.1))
       jest-environment-jsdom:
-        specifier: 30.4.1
+        specifier: catalog:testing
         version: 30.4.1(supports-color@8.1.1)
       playwright:
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       rimraf:
-        specifier: ^6.1.3
+        specifier: catalog:tooling
         version: 6.1.3
       typescript:
-        specifier: 7.0.2
+        specifier: catalog:types
         version: 7.0.2
 
   apps/nextjs-postcss-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/nextjs-plugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/nextjs-plugin
       '@stylexswc/postcss-plugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/postcss-plugin
       next:
-        specifier: ^16.2.12
+        specifier: catalog:frameworks
         version: 16.2.12(@babel/core@8.0.1)(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
+      '@babel/core':
+        specifier: catalog:bundlers
+        version: 8.0.1
       '@jest/globals':
-        specifier: ^30.4.1
+        specifier: catalog:testing
         version: 30.4.1(supports-color@8.1.1)
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexswc/jest':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/jest
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@swc/jest':
-        specifier: ^0.2.39
+        specifier: catalog:testing
         version: 0.2.39(@swc/core@1.15.47(@swc/helpers@0.5.23))
       '@testing-library/jest-dom':
-        specifier: ^7.0.0
+        specifier: catalog:testing
         version: 7.0.0(@testing-library/dom@10.4.1)
       '@testing-library/react':
-        specifier: ^16.3.2
+        specifier: catalog:testing
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/node':
-        specifier: ^26.1.0
+        specifier: catalog:types
         version: 26.1.2
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       autoprefixer:
-        specifier: ^10.5.2
+        specifier: catalog:runtime
         version: 10.5.2(postcss@8.5.25)
       jest:
-        specifier: ^30.4.2
+        specifier: catalog:testing
         version: 30.4.2(@types/node@26.1.2)(esbuild-register@3.6.0(esbuild@0.28.1)(supports-color@8.1.1))(supports-color@8.1.1)
       jest-chain-transform:
-        specifier: ^0.0.8
+        specifier: catalog:testing
         version: 0.0.8(@jest/transform@30.4.1(supports-color@8.1.1))
       jest-environment-jsdom:
-        specifier: 30.4.1
+        specifier: catalog:testing
         version: 30.4.1(supports-color@8.1.1)
       rimraf:
-        specifier: ^6.1.3
+        specifier: catalog:tooling
         version: 6.1.3
       typescript:
-        specifier: 7.0.2
+        specifier: catalog:types
         version: 7.0.2
 
   apps/nextjs-rspack-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/nextjs-plugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/nextjs-plugin
       next:
-        specifier: ^16.2.12
+        specifier: catalog:frameworks
         version: 16.2.12(@babel/core@8.0.1)(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       next-rspack:
-        specifier: ^16.2.12
+        specifier: catalog:frameworks
         version: 16.2.12(@swc/helpers@0.5.23)
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
+      '@babel/core':
+        specifier: catalog:bundlers
+        version: 8.0.1
       '@jest/globals':
-        specifier: ^30.4.1
+        specifier: catalog:testing
         version: 30.4.1(supports-color@8.1.1)
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexswc/jest':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/jest
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@swc/jest':
-        specifier: ^0.2.39
+        specifier: catalog:testing
         version: 0.2.39(@swc/core@1.15.47(@swc/helpers@0.5.23))
       '@testing-library/jest-dom':
-        specifier: ^7.0.0
+        specifier: catalog:testing
         version: 7.0.0(@testing-library/dom@10.4.1)
       '@testing-library/react':
-        specifier: ^16.3.2
+        specifier: catalog:testing
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/node':
-        specifier: ^26.1.0
+        specifier: catalog:types
         version: 26.1.2
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       jest:
-        specifier: ^30.4.2
+        specifier: catalog:testing
         version: 30.4.2(@types/node@26.1.2)(esbuild-register@3.6.0(esbuild@0.28.1)(supports-color@8.1.1))(supports-color@8.1.1)
       jest-chain-transform:
-        specifier: ^0.0.8
+        specifier: catalog:testing
         version: 0.0.8(@jest/transform@30.4.1(supports-color@8.1.1))
       jest-environment-jsdom:
-        specifier: 30.4.1
+        specifier: catalog:testing
         version: 30.4.1(supports-color@8.1.1)
       playwright:
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       rimraf:
-        specifier: ^6.1.3
+        specifier: catalog:tooling
         version: 6.1.3
       typescript:
-        specifier: 7.0.2
+        specifier: catalog:types
         version: 7.0.2
 
   apps/nextjs-turbopack-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/nextjs-plugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/nextjs-plugin
       '@stylexswc/postcss-plugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/postcss-plugin
       next:
-        specifier: ^16.2.12
+        specifier: catalog:frameworks
         version: 16.2.12(@babel/core@8.0.1)(@playwright/test@1.62.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
+      '@babel/core':
+        specifier: catalog:bundlers
+        version: 8.0.1
       '@jest/globals':
-        specifier: ^30.4.1
+        specifier: catalog:testing
         version: 30.4.1(supports-color@8.1.1)
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexswc/jest':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/jest
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/turbopack-plugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/turbopack-plugin
       '@swc/jest':
-        specifier: ^0.2.39
+        specifier: catalog:testing
         version: 0.2.39(@swc/core@1.15.47(@swc/helpers@0.5.23))
       '@testing-library/jest-dom':
-        specifier: ^7.0.0
+        specifier: catalog:testing
         version: 7.0.0(@testing-library/dom@10.4.1)
       '@testing-library/react':
-        specifier: ^16.3.2
+        specifier: catalog:testing
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@types/node':
-        specifier: ^26.1.0
+        specifier: catalog:types
         version: 26.1.2
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       autoprefixer:
-        specifier: ^10.5.2
+        specifier: catalog:runtime
         version: 10.5.2(postcss@8.5.25)
       jest:
-        specifier: ^30.4.2
+        specifier: catalog:testing
         version: 30.4.2(@types/node@26.1.2)(esbuild-register@3.6.0(esbuild@0.28.1)(supports-color@8.1.1))(supports-color@8.1.1)
       jest-chain-transform:
-        specifier: ^0.0.8
+        specifier: catalog:testing
         version: 0.0.8(@jest/transform@30.4.1(supports-color@8.1.1))
       jest-environment-jsdom:
-        specifier: 30.4.1
+        specifier: catalog:testing
         version: 30.4.1(supports-color@8.1.1)
       rimraf:
-        specifier: ^6.1.3
+        specifier: catalog:tooling
         version: 6.1.3
       typescript:
-        specifier: 7.0.2
+        specifier: catalog:types
         version: 7.0.2
 
   apps/rollup-example:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@rollup/plugin-commonjs':
-        specifier: ^29.0.3
+        specifier: catalog:bundlers
         version: 29.0.3(rollup@4.62.3)
       '@rollup/plugin-html':
-        specifier: ^2.0.0
+        specifier: catalog:bundlers
         version: 2.0.0(rollup@4.62.3)
       '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
+        specifier: catalog:bundlers
         version: 16.0.3(rollup@4.62.3)
       '@rollup/plugin-replace':
-        specifier: ^6.0.3
+        specifier: catalog:bundlers
         version: 6.0.3(rollup@4.62.3)
       '@rollup/plugin-swc':
-        specifier: ^0.4.1
+        specifier: catalog:bundlers
         version: 0.4.1(@swc/core@1.15.47(@swc/helpers@0.5.23))(rollup@4.62.3)
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@stylexswc/rollup-plugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/rollup-plugin
       rollup:
-        specifier: ^4.62.3
+        specifier: catalog:bundlers
         version: 4.62.3
       rollup-plugin-serve:
-        specifier: ^3.0.0
+        specifier: catalog:bundlers
         version: 3.0.0
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
 
   apps/rollup-large-example:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/rollup-plugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/rollup-plugin
 
   apps/rollup-unplugin-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@rollup/plugin-commonjs':
-        specifier: ^29.0.3
+        specifier: catalog:bundlers
         version: 29.0.3(rollup@4.62.3)
       '@rollup/plugin-html':
-        specifier: ^2.0.0
+        specifier: catalog:bundlers
         version: 2.0.0(rollup@4.62.3)
       '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
+        specifier: catalog:bundlers
         version: 16.0.3(rollup@4.62.3)
       '@rollup/plugin-replace':
-        specifier: ^6.0.3
+        specifier: catalog:bundlers
         version: 6.0.3(rollup@4.62.3)
       '@rollup/plugin-swc':
-        specifier: ^0.4.1
+        specifier: catalog:bundlers
         version: 0.4.1(@swc/core@1.15.47(@swc/helpers@0.5.23))(rollup@4.62.3)
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       rollup:
-        specifier: ^4.62.3
+        specifier: catalog:bundlers
         version: 4.62.3
       rollup-plugin-serve:
-        specifier: ^3.0.0
+        specifier: catalog:bundlers
         version: 3.0.0
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
 
   apps/rsbuild-unplugin-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@rsbuild/core':
-        specifier: ^2.1.9
+        specifier: catalog:bundlers
         version: 2.1.9(core-js@3.48.0)
       '@rsbuild/plugin-react':
-        specifier: ^2.1.0
+        specifier: catalog:bundlers
         version: 2.1.0(@rsbuild/core@2.1.9(core-js@3.48.0))(@rspack/core@2.1.7(@swc/helpers@0.5.23))
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
 
   apps/rsbuild-unplugin-placeholder-css-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@rsbuild/core':
-        specifier: ^2.1.9
+        specifier: catalog:bundlers
         version: 2.1.9(core-js@3.48.0)
       '@rsbuild/plugin-react':
-        specifier: ^2.1.0
+        specifier: catalog:bundlers
         version: 2.1.0(@rsbuild/core@2.1.9(core-js@3.48.0))(@rspack/core@2.1.7(@swc/helpers@0.5.23))
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
 
   apps/rspack-unplugin-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@rspack/cli':
-        specifier: ^2.1.7
+        specifier: catalog:bundlers
         version: 2.1.7(@rspack/core@2.1.7(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0))
       '@rspack/core':
-        specifier: ^2.1.7
+        specifier: catalog:bundlers
         version: 2.1.7(@swc/helpers@0.5.23)
       '@rspack/dev-server':
-        specifier: ^2.1.0
+        specifier: catalog:bundlers
         version: 2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0)
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
 
   apps/rspack-unplugin-placeholder-css-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@rspack/cli':
-        specifier: ^2.1.7
+        specifier: catalog:bundlers
         version: 2.1.7(@rspack/core@2.1.7(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0))
       '@rspack/core':
-        specifier: ^2.1.7
+        specifier: catalog:bundlers
         version: 2.1.7(@swc/helpers@0.5.23)
       '@rspack/dev-server':
-        specifier: ^2.1.0
+        specifier: catalog:bundlers
         version: 2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0)
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
 
   apps/solid-unplugin-example:
     dependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
     devDependencies:
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
       solid-js:
-        specifier: ^1.9.14
+        specifier: catalog:frameworks
         version: 1.9.14
       vite:
-        specifier: ^8.2.0
+        specifier: catalog:bundlers
         version: 8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0)
       vite-plugin-solid:
-        specifier: ^2.11.14
+        specifier: catalog:bundlers
         version: 2.11.14(@testing-library/jest-dom@7.0.0(@testing-library/dom@10.4.1))(solid-js@1.9.14)(supports-color@8.1.1)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))
 
   apps/vite-unplugin-example:
     dependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       '@vitejs/plugin-react':
-        specifier: ^6.0.5
+        specifier: catalog:bundlers
         version: 6.0.5(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
       vite:
-        specifier: ^8.2.0
+        specifier: catalog:bundlers
         version: 8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0)
 
   apps/vite-unplugin-placeholder-css-example:
     dependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       '@vitejs/plugin-react':
-        specifier: ^6.0.5
+        specifier: catalog:bundlers
         version: 6.0.5(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
       vite:
-        specifier: ^8.2.0
+        specifier: catalog:bundlers
         version: 8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0)
 
   apps/vue-unplugin-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       vue:
-        specifier: ^3.5.35
+        specifier: catalog:frameworks
         version: 3.5.35(typescript@7.0.2)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@vitejs/plugin-vue':
-        specifier: ^6.0.8
+        specifier: catalog:bundlers
         version: 6.0.8(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))(vue@3.5.35(typescript@7.0.2))
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
       typescript:
-        specifier: 7.0.2
+        specifier: catalog:types
         version: 7.0.2
       vite:
-        specifier: ^8.2.0
+        specifier: catalog:bundlers
         version: 8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0)
 
   apps/vue-unplugin-placeholder-css-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       vue:
-        specifier: ^3.5.35
+        specifier: catalog:frameworks
         version: 3.5.35(typescript@7.0.2)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@vitejs/plugin-vue':
-        specifier: ^6.0.8
+        specifier: catalog:bundlers
         version: 6.0.8(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))(vue@3.5.35(typescript@7.0.2))
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
       typescript:
-        specifier: 7.0.2
+        specifier: catalog:types
         version: 7.0.2
       vite:
-        specifier: ^8.2.0
+        specifier: catalog:bundlers
         version: 8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0)
 
   apps/webpack-example:
     dependencies:
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@pmmmwh/react-refresh-webpack-plugin':
-        specifier: ^0.6.2
+        specifier: catalog:bundlers
         version: 0.6.2(react-refresh@0.18.0)(type-fest@4.41.0)(webpack-dev-server@6.0.0)(webpack@5.109.2)
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@stylexswc/postcss-plugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/postcss-plugin
       '@stylexswc/webpack-plugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/webpack-plugin
       '@swc/core':
-        specifier: ^1.15.43
+        specifier: catalog:bundlers
         version: 1.15.47(@swc/helpers@0.5.23)
       autoprefixer:
-        specifier: ^10.5.2
+        specifier: catalog:runtime
         version: 10.5.2(postcss@8.5.25)
       css-loader:
-        specifier: ^7.1.4
+        specifier: catalog:bundlers
         version: 7.1.4(@rspack/core@2.1.7(@swc/helpers@0.5.23))(webpack@5.109.2)
       file-loader:
-        specifier: ^6.2.0
+        specifier: catalog:bundlers
         version: 6.2.0(webpack@5.109.2)
       html-webpack-plugin:
-        specifier: ^5.6.8
+        specifier: catalog:bundlers
         version: 5.6.8(@rspack/core@2.1.7(@swc/helpers@0.5.23))(webpack@5.109.2)
       mini-css-extract-plugin:
-        specifier: ^2.10.2
+        specifier: catalog:bundlers
         version: 2.10.2(webpack@5.109.2)
       postcss:
-        specifier: ^8.5.18
+        specifier: catalog:runtime
         version: 8.5.25
       postcss-loader:
-        specifier: ^8.2.1
+        specifier: catalog:bundlers
         version: 8.2.1(@rspack/core@2.1.7(@swc/helpers@0.5.23))(postcss@8.5.25)(typescript@7.0.2)(webpack@5.109.2)
       react-refresh:
-        specifier: ^0.18.0
+        specifier: catalog:frameworks
         version: 0.18.0
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
       swc-loader:
-        specifier: ^0.2.7
+        specifier: catalog:bundlers
         version: 0.2.7(@swc/core@1.15.47(@swc/helpers@0.5.23))(webpack@5.109.2)
       webpack:
-        specifier: ^5.109.2
+        specifier: catalog:bundlers
         version: 5.109.2(@swc/core@1.15.47(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.25))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.25)(webpack-cli@7.2.2)
       webpack-cli:
-        specifier: ^7.2.2
+        specifier: catalog:bundlers
         version: 7.2.2(js-yaml@4.3.1)(json5@2.2.3)(webpack-bundle-analyzer@4.10.2)(webpack-dev-server@6.0.0)(webpack@5.109.2)
       webpack-dev-server:
-        specifier: ^6.0.0
+        specifier: catalog:bundlers
         version: 6.0.0(supports-color@8.1.1)(tslib@2.8.1)(webpack-cli@7.2.2)(webpack@5.109.2)
 
   apps/webpack-unplugin-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@swc/core':
-        specifier: ^1.15.43
+        specifier: catalog:bundlers
         version: 1.15.47(@swc/helpers@0.5.23)
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       html-webpack-plugin:
-        specifier: ^5.6.8
+        specifier: catalog:bundlers
         version: 5.6.8(@rspack/core@2.1.7(@swc/helpers@0.5.23))(webpack@5.109.2)
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
       swc-loader:
-        specifier: ^0.2.7
+        specifier: catalog:bundlers
         version: 0.2.7(@swc/core@1.15.47(@swc/helpers@0.5.23))(webpack@5.109.2)
       webpack:
-        specifier: ^5.109.2
+        specifier: catalog:bundlers
         version: 5.109.2(@swc/core@1.15.47(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.25))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.25)(webpack-cli@7.2.2)
       webpack-cli:
-        specifier: ^7.2.2
+        specifier: catalog:bundlers
         version: 7.2.2(js-yaml@4.3.1)(json5@2.2.3)(webpack-bundle-analyzer@4.10.2)(webpack-dev-server@6.0.0)(webpack@5.109.2)
       webpack-dev-server:
-        specifier: ^6.0.0
+        specifier: catalog:bundlers
         version: 6.0.0(supports-color@8.1.1)(tslib@2.8.1)(webpack-cli@7.2.2)(webpack@5.109.2)
 
   apps/webpack-unplugin-placeholder-css-example:
     dependencies:
       '@stylexjs/open-props':
-        specifier: ^0.11.1
+        specifier: catalog:runtime
         version: 0.11.1
       '@stylexjs/stylex':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0
       '@stylexswc/design-system':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/design-system
       '@stylexswc/rs-compiler':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../crates/stylex-rs-compiler
       '@stylexswc/unplugin':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/unplugin
       react:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8
       react-dom:
-        specifier: ^19.2.8
+        specifier: catalog:frameworks
         version: 19.2.8(react@19.2.8)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.62.1
+        specifier: catalog:testing
         version: 1.62.1
       '@stylexswc/playwright':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/playwright
       '@swc/core':
-        specifier: ^1.15.43
+        specifier: catalog:bundlers
         version: 1.15.47(@swc/helpers@0.5.23)
       '@types/react':
-        specifier: ^19.2.18
+        specifier: catalog:types
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: catalog:types
         version: 19.2.4(@types/react@19.2.18)
       css-loader:
-        specifier: ^7.1.4
+        specifier: catalog:bundlers
         version: 7.1.4(@rspack/core@2.1.7(@swc/helpers@0.5.23))(webpack@5.109.2)
       css-minimizer-webpack-plugin:
-        specifier: ^8.0.0
+        specifier: catalog:bundlers
         version: 8.0.0(clean-css@5.3.3)(csso@5.0.5)(esbuild@0.28.1)(lightningcss@1.33.0)(webpack@5.109.2)
       html-webpack-plugin:
-        specifier: ^5.6.8
+        specifier: catalog:bundlers
         version: 5.6.8(@rspack/core@2.1.7(@swc/helpers@0.5.23))(webpack@5.109.2)
       mini-css-extract-plugin:
-        specifier: ^2.10.2
+        specifier: catalog:bundlers
         version: 2.10.2(webpack@5.109.2)
       serve:
-        specifier: ^14.2.6
+        specifier: catalog:testing
         version: 14.2.6(supports-color@8.1.1)
       swc-loader:
-        specifier: ^0.2.7
+        specifier: catalog:bundlers
         version: 0.2.7(@swc/core@1.15.47(@swc/helpers@0.5.23))(webpack@5.109.2)
       webpack:
-        specifier: ^5.109.2
+        specifier: catalog:bundlers
         version: 5.109.2(@swc/core@1.15.47(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@7.1.9(postcss@8.5.25))(csso@5.0.5)(esbuild@0.28.1)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.25)(webpack-cli@7.2.2)
       webpack-cli:
-        specifier: ^7.2.2
+        specifier: catalog:bundlers
         version: 7.2.2(js-yaml@4.3.1)(json5@2.2.3)(webpack-bundle-analyzer@4.10.2)(webpack-dev-server@6.0.0)(webpack@5.109.2)
       webpack-dev-server:
-        specifier: ^6.0.0
+        specifier: catalog:bundlers
         version: 6.0.0(supports-color@8.1.1)(tslib@2.8.1)(webpack-cli@7.2.2)(webpack@5.109.2)
 
   crates/stylex-ast:
@@ -1547,6 +1829,9 @@ importers:
       '@babel/core':
         specifier: ^8.0.1
         version: 8.0.1
+      '@emnapi/runtime':
+        specifier: 2.0.0-alpha.3
+        version: 2.0.0-alpha.3
       '@napi-rs/cli':
         specifier: ^3.8.2
         version: 3.8.2(@emnapi/core@2.0.0-alpha.3)(@emnapi/runtime@2.0.0-alpha.3)(@types/node@26.1.2)(supports-color@8.1.1)
@@ -5821,9 +6106,6 @@ packages:
   '@types/http-errors@2.0.5':
     resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
 
-  '@types/http-proxy@1.17.17':
-    resolution: {integrity: sha512-ED6LB+Z1AVylNTu7hdzuBqOgMnvG/ld6wGCG8wFnAzKX5uyW2K3WD52v0gnLCTK/VLpXtKckgWuyScYK6cSPaw==}
-
   '@types/is-glob@4.0.4':
     resolution: {integrity: sha512-3mFBtIPQ0TQetKRDe94g8YrxJZxdMillMGegyv6zRBXvq4peRRhf2wLZ/Dl53emtTsC29dQQBwYvovS20yXpiQ==}
 
@@ -7865,9 +8147,6 @@ packages:
     resolution: {integrity: sha512-aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg==}
     engines: {node: '>= 0.6'}
 
-  eventemitter3@4.0.7:
-    resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
-
   events-universal@1.0.1:
     resolution: {integrity: sha512-LUd5euvbMLpwOF8m6ivPCbhQeSiYVNb8Vs0fQ8QjXo0JTkEHpz8pxdQf0gStltaPpw0Cca8b39KxvK9cfKRiAw==}
 
@@ -8096,15 +8375,6 @@ packages:
 
   flatted@3.4.4:
     resolution: {integrity: sha512-5+ybhBZANEJxaH3X5evAFatUxLfEHSr7n6kYJ+1Qd0mUqr4eu9gIf6GDbWHf8RJijHrjjO8G+la14SlL2SeS1Q==}
-
-  follow-redirects@1.16.0:
-    resolution: {integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==}
-    engines: {node: '>=4.0'}
-    peerDependencies:
-      debug: '*'
-    peerDependenciesMeta:
-      debug:
-        optional: true
 
   for-each@0.3.5:
     resolution: {integrity: sha512-dKx12eRCVIzqCxFGplyFKJMPvLEWgmNtUrpTiJIR5u97zEhRG8ySrtboPHZXx7daLxQVrl643cTzbab2tkQjxg==}
@@ -8382,17 +8652,9 @@ packages:
     resolution: {integrity: sha512-T1gkAiYYDWYx3V5Bmyu7HcfcvL7mUrTWiM6yOfa3PIphViJ/gFPbvidQ+veqSOHci/PxBcDabeUNCzpOODJZig==}
     engines: {node: '>= 14'}
 
-  http-proxy-middleware@3.0.5:
-    resolution: {integrity: sha512-GLZZm1X38BPY4lkXA01jhwxvDoOkkXqjgVyUzVxiEK4iuRu03PZoYHhHRwxnfhQMDuaxi3vVri0YgSro/1oWqg==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
-
   http-proxy-middleware@4.2.0:
     resolution: {integrity: sha512-ZA+oNOoM+GLoFTIzhkJptVQov73Srep2LBqhF8hG8CIPKO3nam1jonXVQ/QUH8RbwsmaaVz2SOJdzBNBHNtKbw==}
     engines: {node: ^22.15.0 || ^24.0.0 || >=26.0.0}
-
-  http-proxy@1.18.1:
-    resolution: {integrity: sha512-7mz/721AbnJwIVbnaSv1Cz3Am0ZLT/UBwkC92VlxhXv/k/BBQfM2fXElQNC27BVGr0uwUpplYPQM9LnaBMR5NQ==}
-    engines: {node: '>=8.0.0'}
 
   https-proxy-agent@7.0.6:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
@@ -10264,9 +10526,6 @@ packages:
     resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
     engines: {node: '>=0.10.0'}
 
-  requires-port@1.0.0:
-    resolution: {integrity: sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ==}
-
   resolve-cwd@3.0.0:
     resolution: {integrity: sha512-OrZaX2Mb+rJCpH/6CpSqt9xFVpN++x01XnN2ie9g6P5/3xelLAkXWVADpdz1IHD/KFfEXyE6V0U01OQ3UO2rEg==}
     engines: {node: '>=8'}
@@ -11911,19 +12170,9 @@ snapshots:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.29.7
 
-  '@babel/plugin-syntax-async-generators@7.8.4(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
-      '@babel/helper-plugin-utils': 7.29.7
-
   '@babel/plugin-syntax-bigint@7.8.3(@babel/core@7.29.7(supports-color@8.1.1))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
-      '@babel/helper-plugin-utils': 7.29.7
-
-  '@babel/plugin-syntax-bigint@7.8.3(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
       '@babel/helper-plugin-utils': 7.29.7
 
   '@babel/plugin-syntax-class-properties@7.12.13(@babel/core@7.29.7(supports-color@8.1.1))':
@@ -11931,19 +12180,9 @@ snapshots:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.29.7
 
-  '@babel/plugin-syntax-class-properties@7.12.13(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
-      '@babel/helper-plugin-utils': 7.29.7
-
   '@babel/plugin-syntax-class-static-block@7.14.5(@babel/core@7.29.7(supports-color@8.1.1))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
-      '@babel/helper-plugin-utils': 7.29.7
-
-  '@babel/plugin-syntax-class-static-block@7.14.5(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
       '@babel/helper-plugin-utils': 7.29.7
 
   '@babel/plugin-syntax-import-attributes@7.27.1(@babel/core@7.29.7(supports-color@8.1.1))':
@@ -11951,19 +12190,9 @@ snapshots:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.29.7
 
-  '@babel/plugin-syntax-import-attributes@7.27.1(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
-      '@babel/helper-plugin-utils': 7.29.7
-
   '@babel/plugin-syntax-import-meta@7.10.4(@babel/core@7.29.7(supports-color@8.1.1))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
-      '@babel/helper-plugin-utils': 7.29.7
-
-  '@babel/plugin-syntax-import-meta@7.10.4(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
       '@babel/helper-plugin-utils': 7.29.7
 
   '@babel/plugin-syntax-json-strings@7.8.3(@babel/core@7.29.7(supports-color@8.1.1))':
@@ -11971,9 +12200,9 @@ snapshots:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.29.7
 
-  '@babel/plugin-syntax-json-strings@7.8.3(@babel/core@8.0.1)':
+  '@babel/plugin-syntax-jsx@7.29.7(@babel/core@7.29.7(supports-color@8.1.1))':
     dependencies:
-      '@babel/core': 8.0.1
+      '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.29.7
 
   '@babel/plugin-syntax-jsx@7.29.7(@babel/core@8.0.1)':
@@ -11986,19 +12215,9 @@ snapshots:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.29.7
 
-  '@babel/plugin-syntax-logical-assignment-operators@7.10.4(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
-      '@babel/helper-plugin-utils': 7.29.7
-
   '@babel/plugin-syntax-nullish-coalescing-operator@7.8.3(@babel/core@7.29.7(supports-color@8.1.1))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
-      '@babel/helper-plugin-utils': 7.29.7
-
-  '@babel/plugin-syntax-nullish-coalescing-operator@7.8.3(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
       '@babel/helper-plugin-utils': 7.29.7
 
   '@babel/plugin-syntax-numeric-separator@7.10.4(@babel/core@7.29.7(supports-color@8.1.1))':
@@ -12006,19 +12225,9 @@ snapshots:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.29.7
 
-  '@babel/plugin-syntax-numeric-separator@7.10.4(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
-      '@babel/helper-plugin-utils': 7.29.7
-
   '@babel/plugin-syntax-object-rest-spread@7.8.3(@babel/core@7.29.7(supports-color@8.1.1))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
-      '@babel/helper-plugin-utils': 7.29.7
-
-  '@babel/plugin-syntax-object-rest-spread@7.8.3(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
       '@babel/helper-plugin-utils': 7.29.7
 
   '@babel/plugin-syntax-optional-catch-binding@7.8.3(@babel/core@7.29.7(supports-color@8.1.1))':
@@ -12026,19 +12235,9 @@ snapshots:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.29.7
 
-  '@babel/plugin-syntax-optional-catch-binding@7.8.3(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
-      '@babel/helper-plugin-utils': 7.29.7
-
   '@babel/plugin-syntax-optional-chaining@7.8.3(@babel/core@7.29.7(supports-color@8.1.1))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
-      '@babel/helper-plugin-utils': 7.29.7
-
-  '@babel/plugin-syntax-optional-chaining@7.8.3(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
       '@babel/helper-plugin-utils': 7.29.7
 
   '@babel/plugin-syntax-private-property-in-object@7.14.5(@babel/core@7.29.7(supports-color@8.1.1))':
@@ -12046,24 +12245,14 @@ snapshots:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.29.7
 
-  '@babel/plugin-syntax-private-property-in-object@7.14.5(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
-      '@babel/helper-plugin-utils': 7.29.7
-
   '@babel/plugin-syntax-top-level-await@7.14.5(@babel/core@7.29.7(supports-color@8.1.1))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.29.7
 
-  '@babel/plugin-syntax-top-level-await@7.14.5(@babel/core@8.0.1)':
+  '@babel/plugin-syntax-typescript@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))':
     dependencies:
-      '@babel/core': 8.0.1
-      '@babel/helper-plugin-utils': 7.29.7
-
-  '@babel/plugin-syntax-typescript@7.28.6(@babel/core@8.0.1)':
-    dependencies:
-      '@babel/core': 8.0.1
+      '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.29.7
 
   '@babel/runtime@8.0.0': {}
@@ -12516,7 +12705,6 @@ snapshots:
   '@emnapi/runtime@2.0.0-alpha.3':
     dependencies:
       tslib: 2.8.1
-    optional: true
 
   '@emnapi/wasi-threads@1.2.1':
     dependencies:
@@ -12699,7 +12887,7 @@ snapshots:
       farm-plugin-replace-dirname: 0.2.1
       fast-glob: 3.3.3
       fs-extra: 11.3.6
-      http-proxy-middleware: 3.0.5(supports-color@8.1.1)
+      http-proxy-middleware: 4.2.0(supports-color@8.1.1)
       is-plain-object: 5.0.0
       koa: 2.16.4(supports-color@8.1.1)
       koa-compress: 5.1.1
@@ -15181,10 +15369,6 @@ snapshots:
 
   '@types/http-errors@2.0.5': {}
 
-  '@types/http-proxy@1.17.17':
-    dependencies:
-      '@types/node': 26.1.2
-
   '@types/is-glob@4.0.4': {}
 
   '@types/istanbul-lib-coverage@2.0.6': {}
@@ -16054,25 +16238,6 @@ snapshots:
       '@babel/plugin-syntax-optional-chaining': 7.8.3(@babel/core@7.29.7(supports-color@8.1.1))
       '@babel/plugin-syntax-private-property-in-object': 7.14.5(@babel/core@7.29.7(supports-color@8.1.1))
       '@babel/plugin-syntax-top-level-await': 7.14.5(@babel/core@7.29.7(supports-color@8.1.1))
-
-  babel-preset-current-node-syntax@1.2.0(@babel/core@8.0.1):
-    dependencies:
-      '@babel/core': 8.0.1
-      '@babel/plugin-syntax-async-generators': 7.8.4(@babel/core@8.0.1)
-      '@babel/plugin-syntax-bigint': 7.8.3(@babel/core@8.0.1)
-      '@babel/plugin-syntax-class-properties': 7.12.13(@babel/core@8.0.1)
-      '@babel/plugin-syntax-class-static-block': 7.14.5(@babel/core@8.0.1)
-      '@babel/plugin-syntax-import-attributes': 7.27.1(@babel/core@8.0.1)
-      '@babel/plugin-syntax-import-meta': 7.10.4(@babel/core@8.0.1)
-      '@babel/plugin-syntax-json-strings': 7.8.3(@babel/core@8.0.1)
-      '@babel/plugin-syntax-logical-assignment-operators': 7.10.4(@babel/core@8.0.1)
-      '@babel/plugin-syntax-nullish-coalescing-operator': 7.8.3(@babel/core@8.0.1)
-      '@babel/plugin-syntax-numeric-separator': 7.10.4(@babel/core@8.0.1)
-      '@babel/plugin-syntax-object-rest-spread': 7.8.3(@babel/core@8.0.1)
-      '@babel/plugin-syntax-optional-catch-binding': 7.8.3(@babel/core@8.0.1)
-      '@babel/plugin-syntax-optional-chaining': 7.8.3(@babel/core@8.0.1)
-      '@babel/plugin-syntax-private-property-in-object': 7.14.5(@babel/core@8.0.1)
-      '@babel/plugin-syntax-top-level-await': 7.14.5(@babel/core@8.0.1)
 
   babel-preset-jest@30.4.0(@babel/core@7.29.7(supports-color@8.1.1)):
     dependencies:
@@ -17210,8 +17375,6 @@ snapshots:
 
   etag@1.8.1: {}
 
-  eventemitter3@4.0.7: {}
-
   events-universal@1.0.1:
     dependencies:
       bare-events: 2.7.0
@@ -17485,10 +17648,6 @@ snapshots:
   flat@5.0.2: {}
 
   flatted@3.4.4: {}
-
-  follow-redirects@1.16.0(debug@4.4.3(supports-color@8.1.1)):
-    optionalDependencies:
-      debug: 4.4.3(supports-color@8.1.1)
 
   for-each@0.3.5:
     dependencies:
@@ -17801,17 +17960,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  http-proxy-middleware@3.0.5(supports-color@8.1.1):
-    dependencies:
-      '@types/http-proxy': 1.17.17
-      debug: 4.4.3(supports-color@8.1.1)
-      http-proxy: 1.18.1(debug@4.4.3(supports-color@8.1.1))
-      is-glob: 4.0.3
-      is-plain-object: 5.0.0
-      micromatch: 4.0.8
-    transitivePeerDependencies:
-      - supports-color
-
   http-proxy-middleware@4.2.0(supports-color@8.1.1):
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
@@ -17821,14 +17969,6 @@ snapshots:
       micromatch: 4.0.8
     transitivePeerDependencies:
       - supports-color
-
-  http-proxy@1.18.1(debug@4.4.3(supports-color@8.1.1)):
-    dependencies:
-      eventemitter3: 4.0.7
-      follow-redirects: 1.16.0(debug@4.4.3(supports-color@8.1.1))
-      requires-port: 1.0.0
-    transitivePeerDependencies:
-      - debug
 
   https-proxy-agent@7.0.6(supports-color@8.1.1):
     dependencies:
@@ -18362,15 +18502,15 @@ snapshots:
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/generator': 7.29.8
-      '@babel/plugin-syntax-jsx': 7.29.7(@babel/core@8.0.1)
-      '@babel/plugin-syntax-typescript': 7.28.6(@babel/core@8.0.1)
+      '@babel/plugin-syntax-jsx': 7.29.7(@babel/core@7.29.7(supports-color@8.1.1))
+      '@babel/plugin-syntax-typescript': 7.28.6(@babel/core@7.29.7(supports-color@8.1.1))
       '@babel/types': 7.29.8
       '@jest/expect-utils': 30.4.1
       '@jest/get-type': 30.1.0
       '@jest/snapshot-utils': 30.4.1
       '@jest/transform': 30.4.1(supports-color@8.1.1)
       '@jest/types': 30.4.1
-      babel-preset-current-node-syntax: 1.2.0(@babel/core@8.0.1)
+      babel-preset-current-node-syntax: 1.2.0(@babel/core@7.29.7(supports-color@8.1.1))
       chalk: 4.1.2
       expect: 30.4.1
       graceful-fs: 4.2.11
@@ -19870,8 +20010,6 @@ snapshots:
   require-directory@2.1.1: {}
 
   require-from-string@2.0.2: {}
-
-  requires-port@1.0.0: {}
 
   resolve-cwd@3.0.0:
     dependencies:

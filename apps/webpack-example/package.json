@@ -12,30 +12,30 @@
     "test:visual": "playwright test"
   },
   "dependencies": {
-    "@stylexjs/stylex": "^0.19.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "@stylexjs/stylex": "catalog:runtime",
+    "react": "catalog:frameworks",
+    "react-dom": "catalog:frameworks"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
-    "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
-    "@stylexswc/playwright": "0.18.3",
-    "@stylexswc/postcss-plugin": "0.18.3",
-    "@stylexswc/webpack-plugin": "0.18.3",
-    "@swc/core": "^1.15.43",
-    "autoprefixer": "^10.5.2",
-    "css-loader": "^7.1.4",
-    "file-loader": "^6.2.0",
-    "html-webpack-plugin": "^5.6.8",
-    "mini-css-extract-plugin": "^2.10.2",
-    "postcss": "^8.5.18",
-    "postcss-loader": "^8.2.1",
-    "react-refresh": "^0.18.0",
-    "serve": "^14.2.6",
-    "swc-loader": "^0.2.7",
-    "webpack": "^5.109.2",
-    "webpack-cli": "^7.2.2",
-    "webpack-dev-server": "^6.0.0"
+    "@playwright/test": "catalog:testing",
+    "@pmmmwh/react-refresh-webpack-plugin": "catalog:bundlers",
+    "@stylexswc/playwright": "catalog:internal",
+    "@stylexswc/postcss-plugin": "catalog:internal",
+    "@stylexswc/webpack-plugin": "catalog:internal",
+    "@swc/core": "catalog:bundlers",
+    "autoprefixer": "catalog:runtime",
+    "css-loader": "catalog:bundlers",
+    "file-loader": "catalog:bundlers",
+    "html-webpack-plugin": "catalog:bundlers",
+    "mini-css-extract-plugin": "catalog:bundlers",
+    "postcss": "catalog:runtime",
+    "postcss-loader": "catalog:bundlers",
+    "react-refresh": "catalog:frameworks",
+    "serve": "catalog:testing",
+    "swc-loader": "catalog:bundlers",
+    "webpack": "catalog:bundlers",
+    "webpack-cli": "catalog:bundlers",
+    "webpack-dev-server": "catalog:bundlers"
   },
   "main": "./dist/index.js"
 }

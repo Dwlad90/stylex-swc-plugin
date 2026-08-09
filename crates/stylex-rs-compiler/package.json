@@ -55,6 +55,7 @@
   },
   "devDependencies": {
     "@babel/core": "^8.0.1",
+    "@emnapi/runtime": "2.0.0-alpha.3",
     "@napi-rs/cli": "^3.8.2",
     "@stylexjs/babel-plugin": "^0.19.0",
     "@stylexswc/ast": "0.18.3",

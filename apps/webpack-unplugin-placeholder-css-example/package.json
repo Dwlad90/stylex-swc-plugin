@@ -11,28 +11,28 @@
     "test:visual": "playwright test"
   },
   "dependencies": {
-    "@stylexjs/open-props": "^0.11.1",
-    "@stylexjs/stylex": "^0.19.0",
-    "@stylexswc/design-system": "0.18.3",
-    "@stylexswc/rs-compiler": "0.18.3",
-    "@stylexswc/unplugin": "0.18.3",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "@stylexjs/open-props": "catalog:runtime",
+    "@stylexjs/stylex": "catalog:runtime",
+    "@stylexswc/design-system": "catalog:internal",
+    "@stylexswc/rs-compiler": "catalog:internal",
+    "@stylexswc/unplugin": "catalog:internal",
+    "react": "catalog:frameworks",
+    "react-dom": "catalog:frameworks"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
-    "@stylexswc/playwright": "0.18.3",
-    "@swc/core": "^1.15.43",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "css-loader": "^7.1.4",
-    "css-minimizer-webpack-plugin": "^8.0.0",
-    "html-webpack-plugin": "^5.6.8",
-    "mini-css-extract-plugin": "^2.10.2",
-    "serve": "^14.2.6",
-    "swc-loader": "^0.2.7",
-    "webpack": "^5.109.2",
-    "webpack-cli": "^7.2.2",
-    "webpack-dev-server": "^6.0.0"
+    "@playwright/test": "catalog:testing",
+    "@stylexswc/playwright": "catalog:internal",
+    "@swc/core": "catalog:bundlers",
+    "@types/react": "catalog:types",
+    "@types/react-dom": "catalog:types",
+    "css-loader": "catalog:bundlers",
+    "css-minimizer-webpack-plugin": "catalog:bundlers",
+    "html-webpack-plugin": "catalog:bundlers",
+    "mini-css-extract-plugin": "catalog:bundlers",
+    "serve": "catalog:testing",
+    "swc-loader": "catalog:bundlers",
+    "webpack": "catalog:bundlers",
+    "webpack-cli": "catalog:bundlers",
+    "webpack-dev-server": "catalog:bundlers"
   }
 }

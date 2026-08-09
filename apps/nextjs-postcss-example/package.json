@@ -1,35 +1,6 @@
 {
   "name": "@stylexswc/next-postcss-example",
   "version": "0.18.3",
-  "dependencies": {
-    "@stylexjs/open-props": "^0.11.1",
-    "@stylexjs/stylex": "^0.19.0",
-    "@stylexswc/design-system": "0.18.3",
-    "@stylexswc/nextjs-plugin": "0.18.3",
-    "@stylexswc/postcss-plugin": "0.18.3",
-    "next": "^16.2.12",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
-  },
-  "devDependencies": {
-    "@jest/globals": "^30.4.1",
-    "@playwright/test": "^1.62.1",
-    "@stylexswc/jest": "0.18.3",
-    "@stylexswc/playwright": "0.18.3",
-    "@stylexswc/rs-compiler": "0.18.3",
-    "@swc/jest": "^0.2.39",
-    "@testing-library/jest-dom": "^7.0.0",
-    "@testing-library/react": "^16.3.2",
-    "@types/node": "^26.1.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "autoprefixer": "^10.5.2",
-    "jest": "^30.4.2",
-    "jest-chain-transform": "^0.0.8",
-    "jest-environment-jsdom": "30.4.1",
-    "rimraf": "^6.1.3",
-    "typescript": "7.0.2"
-  },
   "private": true,
   "scripts": {
     "build": "next build --webpack",
@@ -45,5 +16,35 @@
     "test:ci": "jest --ci",
     "test:visual": "playwright test",
     "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "@stylexjs/open-props": "catalog:runtime",
+    "@stylexjs/stylex": "catalog:runtime",
+    "@stylexswc/design-system": "catalog:internal",
+    "@stylexswc/nextjs-plugin": "catalog:internal",
+    "@stylexswc/postcss-plugin": "catalog:internal",
+    "next": "catalog:frameworks",
+    "react": "catalog:frameworks",
+    "react-dom": "catalog:frameworks"
+  },
+  "devDependencies": {
+    "@babel/core": "catalog:bundlers",
+    "@jest/globals": "catalog:testing",
+    "@playwright/test": "catalog:testing",
+    "@stylexswc/jest": "catalog:internal",
+    "@stylexswc/playwright": "catalog:internal",
+    "@stylexswc/rs-compiler": "catalog:internal",
+    "@swc/jest": "catalog:testing",
+    "@testing-library/jest-dom": "catalog:testing",
+    "@testing-library/react": "catalog:testing",
+    "@types/node": "catalog:types",
+    "@types/react": "catalog:types",
+    "@types/react-dom": "catalog:types",
+    "autoprefixer": "catalog:runtime",
+    "jest": "catalog:testing",
+    "jest-chain-transform": "catalog:testing",
+    "jest-environment-jsdom": "catalog:testing",
+    "rimraf": "catalog:tooling",
+    "typescript": "catalog:types"
   }
 }

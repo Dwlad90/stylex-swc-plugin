@@ -49,8 +49,8 @@ catalogs:
       specifier: ^2.1.7
       version: 2.1.7
     '@rspack/dev-server':
-      specifier: ^2.1.0
-      version: 2.1.0
+      specifier: ^2.2.0
+      version: 2.2.0
     '@swc/core':
       specifier: ^1.15.43
       version: 1.15.47
@@ -1369,13 +1369,13 @@ importers:
         version: 1.62.1
       '@rspack/cli':
         specifier: catalog:bundlers
-        version: 2.1.7(@rspack/core@2.1.7(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0))
+        version: 2.1.7(@rspack/core@2.1.7(@swc/helpers@0.5.23))(@rspack/dev-server@2.2.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0))
       '@rspack/core':
         specifier: catalog:bundlers
         version: 2.1.7(@swc/helpers@0.5.23)
       '@rspack/dev-server':
         specifier: catalog:bundlers
-        version: 2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0)
+        version: 2.2.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0)
       '@stylexswc/playwright':
         specifier: catalog:internal
         version: link:../../packages/playwright
@@ -1418,13 +1418,13 @@ importers:
         version: 1.62.1
       '@rspack/cli':
         specifier: catalog:bundlers
-        version: 2.1.7(@rspack/core@2.1.7(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0))
+        version: 2.1.7(@rspack/core@2.1.7(@swc/helpers@0.5.23))(@rspack/dev-server@2.2.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0))
       '@rspack/core':
         specifier: catalog:bundlers
         version: 2.1.7(@swc/helpers@0.5.23)
       '@rspack/dev-server':
         specifier: catalog:bundlers
-        version: 2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0)
+        version: 2.2.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0)
       '@stylexswc/playwright':
         specifier: catalog:internal
         version: link:../../packages/playwright
@@ -5903,8 +5903,8 @@ packages:
       '@rspack/core':
         optional: true
 
-  '@rspack/dev-server@2.1.0':
-    resolution: {integrity: sha512-WkCi6bWThVX5Ziv04srPaRoCoUY5FJolO4gqzE7xPO0XbXShsGnwn0vGD0DFfnYFcw9VSsxlmeCDV799lNYclA==}
+  '@rspack/dev-server@2.2.0':
+    resolution: {integrity: sha512-Bd0DNphOJ5/KAm3bFpUUZeP7O6jvVDNdXJEmlpsVZLfdSgjmrd6Ut/EHCBv95tmiwOQN0M41SdvlUU4f855HFA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@rspack/core': ^2.0.0
@@ -15179,11 +15179,11 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 2.1.7
       '@rspack/binding-win32-x64-msvc': 2.1.7
 
-  '@rspack/cli@2.1.7(@rspack/core@2.1.7(@swc/helpers@0.5.23))(@rspack/dev-server@2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0))':
+  '@rspack/cli@2.1.7(@rspack/core@2.1.7(@swc/helpers@0.5.23))(@rspack/dev-server@2.2.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0))':
     dependencies:
       '@rspack/core': 2.1.7(@swc/helpers@0.5.23)
     optionalDependencies:
-      '@rspack/dev-server': 2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0)
+      '@rspack/dev-server': 2.2.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0)
 
   '@rspack/core@1.6.7(@swc/helpers@0.5.23)':
     dependencies:
@@ -15203,7 +15203,7 @@ snapshots:
     optionalDependencies:
       '@rspack/core': 2.1.7(@swc/helpers@0.5.23)
 
-  '@rspack/dev-server@2.1.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0)':
+  '@rspack/dev-server@2.2.0(@rspack/core@2.1.7(@swc/helpers@0.5.23))(selfsigned@5.5.0)':
     dependencies:
       '@rspack/core': 2.1.7(@swc/helpers@0.5.23)
       '@rspack/dev-middleware': 2.0.3(@rspack/core@2.1.7(@swc/helpers@0.5.23))

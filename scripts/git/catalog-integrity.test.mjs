@@ -76,13 +76,48 @@ catalogs:
 `;
 
 /**
- * @param {{workspaceYaml?: string, manifests?: Record<string, object>}} [overrides]
+ * The lockfile's record of the catalogs above -- three levels rather than two,
+ * because pnpm writes the range it was given beside the version it resolved.
+ * Only the block the check reads is here; nothing in `importers:` or
+ * `snapshots:` is load-bearing for it.
+ */
+const LOCK_YAML = `lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+
+catalogs:
+  bundlers:
+    '@swc/core':
+      specifier: ^1.15.43
+      version: 1.15.43
+    webpack:
+      specifier: ^5.109.2
+      version: 5.109.2
+
+  peers:
+    webpack:
+      specifier: '>=5.0.0'
+      version: 5.109.2
+
+  testing:
+    vitest:
+      specifier: ^4.1.10
+      version: 4.1.10
+
+importers:
+  .: {}
+`;
+
+/**
+ * @param {{workspaceYaml?: string, lockYaml?: string, manifests?: Record<string, object>}} [overrides]
  */
 function createFixture(overrides = {}) {
   const root = makeTemporaryDirectory('stylex-catalog-integrity-');
   const file = relative => path.join(root, relative);
 
   writeText(file('pnpm-workspace.yaml'), overrides.workspaceYaml ?? WORKSPACE_YAML);
+  writeText(file('pnpm-lock.yaml'), overrides.lockYaml ?? LOCK_YAML);
   writeJson(file('.syncpackrc'), SYNCPACK);
 
   writeJson(file('package.json'), {
@@ -109,11 +144,27 @@ function createFixture(overrides = {}) {
 
 const SCRIPT = path.join(repoRoot, 'scripts/git/catalog-integrity.mjs');
 
-function check(root, ...extra) {
-  return spawnSync('node', [SCRIPT, 'manifests', '--root', root, ...extra], {
+function run(root, ...args) {
+  return spawnSync('node', [SCRIPT, ...args, '--root', root], {
     encoding: 'utf8',
     env: hermeticEnvironment(),
   });
+}
+
+function check(root, ...extra) {
+  return run(root, 'manifests', ...extra);
+}
+
+/**
+ * `lockfile` mode against a baseline written from `lockYaml`. `current` names
+ * the lockfile to compare; omitted, the check reads `<root>/pnpm-lock.yaml`.
+ */
+function checkLockfile(root, lockYaml, current) {
+  const baseline = path.join(root, 'baseline-lock.yaml');
+
+  writeText(baseline, lockYaml);
+
+  return run(root, 'lockfile', '--baseline', baseline, ...(current ? ['--current', current] : []));
 }
 
 void test('a fully catalogued workspace passes', () => {
@@ -308,10 +359,18 @@ void test('each exempt family would fail the check if it were in scope', () => {
 
 void test('an unknown mode fails rather than checking nothing', () => {
   const { root } = createFixture();
-  const result = check(root, 'lockfile');
+  const result = run(root, 'everything');
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /unknown mode `lockfile`/);
+  assert.match(result.stderr, /unknown mode `everything`/);
+});
+
+void test('no mode at all is a usage error, not a default', () => {
+  const { root } = createFixture();
+  const result = run(root);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /usage: catalog-integrity\.mjs <manifests\|lockfile>/);
 });
 
 void test('a workspace file with no catalogs fails loudly', () => {
@@ -351,4 +410,179 @@ void test('the real workspace passes its own check', () => {
   const result = check(repoRoot);
 
   assert.equal(result.status, 0, result.stderr);
+});
+
+/**
+ * `lockfile` mode -- a dependabot update dropping a catalog entry from
+ * `pnpm-lock.yaml`. Why that is worth a check of its own rather than left to
+ * the reinstall that would probably repair it is in `checkLockfile`'s docblock.
+ */
+void test('a lockfile still recording every baseline entry passes', () => {
+  const { root } = createFixture();
+  const result = checkLockfile(root, LOCK_YAML);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /lockfile ok/);
+});
+
+void test('an entry dropped from the lockfile fails, naming the catalog and the package', () => {
+  const { root } = createFixture({
+    lockYaml: LOCK_YAML.replace(
+      '    webpack:\n      specifier: ^5.109.2\n      version: 5.109.2\n',
+      ''
+    ),
+  });
+
+  const result = checkLockfile(root, LOCK_YAML);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /no longer records `bundlers\.webpack`/);
+  // The `peers` entry for the same package is a different entry and survived.
+  assert.doesNotMatch(result.stderr, /peers\.webpack/);
+});
+
+void test('a whole catalog dropped reports every entry it carried, not just one', () => {
+  const { root } = createFixture({
+    lockYaml: LOCK_YAML.replace(/ {2}bundlers:\n(?: {4}.+\n| {6}.+\n)+/, ''),
+  });
+
+  const result = checkLockfile(root, LOCK_YAML);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /no longer records `bundlers\.@swc\/core`/);
+  assert.match(result.stderr, /no longer records `bundlers\.webpack`/);
+});
+
+void test('a lockfile with no catalogs block at all names every baseline entry', () => {
+  const { root } = createFixture({ lockYaml: "lockfileVersion: '9.0'\n\nimporters:\n  .: {}\n" });
+  const result = checkLockfile(root, LOCK_YAML);
+
+  assert.equal(result.status, 1);
+
+  for (const entry of [
+    'bundlers.@swc/core',
+    'bundlers.webpack',
+    'peers.webpack',
+    'testing.vitest',
+  ]) {
+    assert.ok(result.stderr.includes(`\`${entry}\``), `expected \`${entry}\` in: ${result.stderr}`);
+  }
+});
+
+/**
+ * A moved range is what a dependency update *is*. Only an entry that stopped
+ * existing is a failure, so the check compares presence and nothing else --
+ * otherwise the guard would fire on every PR it is meant to let through.
+ */
+void test('a specifier and version that moved is an update, not a dropped entry', () => {
+  const { root } = createFixture({
+    lockYaml: LOCK_YAML.replaceAll('5.109.2', '5.110.0'),
+  });
+
+  const result = checkLockfile(root, LOCK_YAML);
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+void test('lockfile mode without a baseline fails rather than comparing nothing', () => {
+  const { root } = createFixture();
+  const result = run(root, 'lockfile');
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /lockfile mode needs `--baseline <file>`/);
+});
+
+/**
+ * A baseline pointed at the wrong file would make this check pass on any
+ * lockfile at all. Silence is the one outcome it must never produce, so an
+ * empty baseline is a failure rather than a vacuous success.
+ */
+void test('a baseline recording no catalog entries fails loudly', () => {
+  const { root } = createFixture();
+  const result = checkLockfile(root, "lockfileVersion: '9.0'\n");
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /records no catalog entries, so this check would assert nothing/);
+});
+
+void test('a baseline that does not exist fails loudly', () => {
+  const { root } = createFixture();
+  const result = run(root, 'lockfile', '--baseline', path.join(root, 'absent-lock.yaml'));
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /absent-lock\.yaml/);
+});
+
+for (const option of ['--baseline', '--current']) {
+  void test(`\`${option}\` is rejected by manifests mode rather than ignored`, () => {
+    const { root } = createFixture();
+    const result = check(root, option, path.join(root, 'pnpm-lock.yaml'));
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, new RegExp(`\`\\${option}\` means nothing to manifests mode`));
+  });
+}
+
+/**
+ * `--current` is the whole reason this check can catch anything. Compare a
+ * *reinstalled* lockfile against the base commit's and the install has already
+ * put back whatever the update dropped, so the guard confirms the accidental
+ * repair instead of reporting the corruption -- which is why the workflow reads
+ * both sides out of git and names them both.
+ */
+void test('`--current` compares the named lockfile, not the one on disk', () => {
+  const { root, file } = createFixture();
+  const dropped = path.join(root, 'as-delivered-lock.yaml');
+
+  // On disk: whole. Named: missing an entry, the way the update left it.
+  writeText(dropped, LOCK_YAML.replace(/ {4}vitest:\n(?: {6}.+\n)+/, ''));
+
+  const result = checkLockfile(root, LOCK_YAML, dropped);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /as-delivered-lock\.yaml no longer records `testing\.vitest`/);
+  // The repaired lockfile beside it is not what was asked about.
+  assert.equal(checkLockfile(root, LOCK_YAML, file('pnpm-lock.yaml')).status, 0);
+});
+
+void test('the real lockfile records every entry it records', () => {
+  const result = run(repoRoot, 'lockfile', '--baseline', path.join(repoRoot, 'pnpm-lock.yaml'));
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+/**
+ * The reader accepts one shape per file and rejects everything else. A scalar
+ * where a mapping belongs parses cleanly and means something else entirely, so
+ * without these it would be read as an entry -- and a check that misreads a
+ * file it then passes is the one outcome silence must never come from.
+ */
+void test('a range where a catalog belongs is rejected, not read as a catalog', () => {
+  const { root } = createFixture({ workspaceYaml: "catalogs:\n  webpack: '^5.0.0'\n" });
+  const result = check(root);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /`catalogs\.webpack` is a value where a mapping belongs/);
+});
+
+void test('a lockfile leaf written as a bare version is rejected, not enumerated', () => {
+  const { root } = createFixture();
+  const result = checkLockfile(root, 'catalogs:\n  testing:\n    vitest: 4.1.10\n');
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /`catalogs\.testing\.vitest` is a value where a mapping belongs/);
+});
+
+void test('a catalog nested deeper than an entry goes is rejected', () => {
+  const { root } = createFixture({
+    workspaceYaml: "catalogs:\n  bundlers:\n    webpack:\n      specifier: '^5.0.0'\n",
+  });
+
+  const result = check(root);
+
+  assert.equal(result.status, 1);
+  assert.match(
+    result.stderr,
+    /`catalogs\.bundlers\.webpack` nests deeper than a catalog entry goes/
+  );
 });

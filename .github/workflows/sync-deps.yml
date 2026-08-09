@@ -38,9 +38,42 @@ jobs:
       - name: Git configure
         uses: ./.github/actions/gitconfig
 
+      # Dependabot has understood catalogs since early 2025, but an update can
+      # drop an entry from `pnpm-lock.yaml` -- still declared in
+      # pnpm-workspace.yaml, still referenced by a manifest, resolving to
+      # nothing. The sync below reinstalls and would most likely put it back,
+      # which is exactly why this runs first: "most likely, as a side effect" is
+      # not a guard for the lockfile of a repository that ships native bindings,
+      # and a check placed after the repair would only ever confirm that the
+      # repair worked.
+      #
+      # Both sides come out of git rather than off disk, so no later step can
+      # move them: the head commit's lockfile as dependabot wrote it, against
+      # the base commit's lockfile from before the update. `fetch-depth: 0`
+      # above is what makes the base commit readable here.
+      #
+      # The assertion lives in a script with a test suite rather than in bash
+      # here, because inline workflow YAML has no seam to test through.
+      #
+      # `Setup pnpm` above installs with `--frozen-lockfile` on a pull request,
+      # so it neither rewrites the lockfile before this reads it nor hides the
+      # problem -- a dropped entry it does notice fails that step instead, which
+      # is the same loud outcome with a vaguer message.
+      - name: Assert no catalog entry vanished from the lockfile
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git show "$BASE_SHA:pnpm-lock.yaml" > "$RUNNER_TEMP/base-lock.yaml"
+          git show 'HEAD:pnpm-lock.yaml' > "$RUNNER_TEMP/head-lock.yaml"
+          node ./scripts/git/catalog-integrity.mjs lockfile \
+            --baseline "$RUNNER_TEMP/base-lock.yaml" \
+            --current "$RUNNER_TEMP/head-lock.yaml"
+
       - name: Sync dependencies
         run: |
-          # `syncpack fix` aligns the declared ranges in package.json files.
+          # `syncpack fix` aligns the declared ranges in package.json files. It
+          # no longer asserts anything about versions -- the catalogs do that --
+          # so what it fixes here is formatting and field order.
           pnpm syncpack fix
           # `dedupe` collapses the resolutions in the lockfile. A dependabot PR
           # only re-resolves the package it bumps, so open ranges elsewhere keep

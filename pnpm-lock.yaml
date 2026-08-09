@@ -470,7 +470,7 @@ catalogs:
       specifier: ^3.0.0
       version: 3.0.0
     '@types/node':
-      specifier: ^26.1.0
+      specifier: ^26.1.2
       version: 26.1.2
     '@types/picomatch':
       specifier: ^4.0.3

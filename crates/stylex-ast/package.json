@@ -32,11 +32,11 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/constants": "0.18.3",
-    "@stylexswc/macros": "0.18.3",
-    "@stylexswc/utils": "0.18.3",
-    "@taplo/cli": "^0.7.0",
-    "npm-run-all2": "^9.0.3"
+    "@stylexswc/constants": "catalog:internal",
+    "@stylexswc/macros": "catalog:internal",
+    "@stylexswc/utils": "catalog:internal",
+    "@taplo/cli": "catalog:tooling",
+    "npm-run-all2": "catalog:tooling"
   },
   "keywords": [
     "stylex",

@@ -32,16 +32,16 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/ast": "0.18.3",
-    "@stylexswc/constants": "0.18.3",
-    "@stylexswc/enums": "0.18.3",
-    "@stylexswc/macros": "0.18.3",
-    "@stylexswc/path-resolver": "0.18.3",
-    "@stylexswc/structures": "0.18.3",
-    "@stylexswc/stylex-js": "0.18.3",
-    "@stylexswc/types": "0.18.3",
-    "@taplo/cli": "^0.7.0",
-    "npm-run-all2": "^9.0.3"
+    "@stylexswc/ast": "catalog:internal",
+    "@stylexswc/constants": "catalog:internal",
+    "@stylexswc/enums": "catalog:internal",
+    "@stylexswc/macros": "catalog:internal",
+    "@stylexswc/path-resolver": "catalog:internal",
+    "@stylexswc/structures": "catalog:internal",
+    "@stylexswc/stylex-js": "catalog:internal",
+    "@stylexswc/types": "catalog:internal",
+    "@taplo/cli": "catalog:tooling",
+    "npm-run-all2": "catalog:tooling"
   },
   "keywords": [
     "stylex",

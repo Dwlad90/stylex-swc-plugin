@@ -2,25 +2,11 @@
   "name": "@stylexswc/atoms",
   "description": "StyleX atoms for the StyleX SWC plugin",
   "version": "0.18.3",
-  "config": {
-    "scripty": {
-      "path": "../../scripts/packages"
-    }
-  },
-  "devDependencies": {
-    "@stylexswc/constants": "0.18.3",
-    "@taplo/cli": "^0.7.0",
-    "npm-run-all2": "^9.0.3"
-  },
+  "private": true,
+  "sideEffects": false,
   "files": [
     "dist"
   ],
-  "keywords": [
-    "stylex",
-    "swc",
-    "swc-plugin"
-  ],
-  "private": true,
   "publishConfig": {
     "access": "public"
   },
@@ -40,5 +26,19 @@
     "test:flamegraph": "scripty",
     "test:profile": "NODE_ENV=test cargo flamegraph --root --test"
   },
-  "sideEffects": false
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "devDependencies": {
+    "@stylexswc/constants": "catalog:internal",
+    "@taplo/cli": "catalog:tooling",
+    "npm-run-all2": "catalog:tooling"
+  },
+  "keywords": [
+    "stylex",
+    "swc",
+    "swc-plugin"
+  ]
 }

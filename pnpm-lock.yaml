@@ -161,13 +161,43 @@ catalogs:
       specifier: ^3.5.35
       version: 3.5.35
   internal:
+    '@stylexswc/ast':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/atoms':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/constants':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/css':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/css-parser':
+      specifier: 0.18.3
+      version: 0.18.3
     '@stylexswc/design-system':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/enums':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/evaluator':
       specifier: 0.18.3
       version: 0.18.3
     '@stylexswc/jest':
       specifier: 0.18.3
       version: 0.18.3
+    '@stylexswc/logs':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/macros':
+      specifier: 0.18.3
+      version: 0.18.3
     '@stylexswc/nextjs-plugin':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/path-resolver':
       specifier: 0.18.3
       version: 0.18.3
     '@stylexswc/playwright':
@@ -176,22 +206,46 @@ catalogs:
     '@stylexswc/postcss-plugin':
       specifier: 0.18.3
       version: 0.18.3
+    '@stylexswc/regex':
+      specifier: 0.18.3
+      version: 0.18.3
     '@stylexswc/rollup-plugin':
       specifier: 0.18.3
       version: 0.18.3
     '@stylexswc/rs-compiler':
       specifier: 0.18.3
       version: 0.18.3
+    '@stylexswc/structures':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/stylex-js':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/transform':
+      specifier: 0.18.3
+      version: 0.18.3
     '@stylexswc/turbopack-plugin':
       specifier: 0.18.3
       version: 0.18.3
+    '@stylexswc/types':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/typescript-config':
+      specifier: 0.18.3
+      version: 0.18.3
     '@stylexswc/unplugin':
+      specifier: 0.18.3
+      version: 0.18.3
+    '@stylexswc/utils':
       specifier: 0.18.3
       version: 0.18.3
     '@stylexswc/webpack-plugin':
       specifier: 0.18.3
       version: 0.18.3
   runtime:
+    '@stylexjs/babel-plugin':
+      specifier: ^0.19.0
+      version: 0.19.0
     '@stylexjs/open-props':
       specifier: ^0.11.1
       version: 0.11.1
@@ -201,6 +255,12 @@ catalogs:
     autoprefixer:
       specifier: ^10.5.2
       version: 10.5.2
+    chalk:
+      specifier: ^6.0.0
+      version: 6.0.0
+    picomatch:
+      specifier: ^4.0.4
+      version: 4.0.5
     postcss:
       specifier: ^8.5.18
       version: 8.5.25
@@ -253,17 +313,41 @@ catalogs:
     serve:
       specifier: ^14.2.6
       version: 14.2.6
+    tinybench:
+      specifier: ^6.1.2
+      version: 6.1.2
     vitest:
       specifier: ^4.1.10
       version: 4.1.10
   tooling:
+    '@emnapi/runtime':
+      specifier: 2.0.0-alpha.3
+      version: 2.0.0-alpha.3
+    '@napi-rs/cli':
+      specifier: ^3.8.2
+      version: 3.8.2
+    '@taplo/cli':
+      specifier: ^0.7.0
+      version: 0.7.0
+    npm-run-all2:
+      specifier: ^9.0.3
+      version: 9.0.3
     rimraf:
       specifier: ^6.1.3
       version: 6.1.3
+    tsx:
+      specifier: ^4.23.1
+      version: 4.23.5
   types:
+    '@types/babel__core':
+      specifier: ^7.20.5
+      version: 7.20.5
     '@types/node':
       specifier: ^26.1.0
       version: 26.1.2
+    '@types/picomatch':
+      specifier: ^4.0.3
+      version: 4.0.3
     '@types/react':
       specifier: ^19.2.18
       version: 19.2.18
@@ -1631,398 +1715,398 @@ importers:
   crates/stylex-ast:
     devDependencies:
       '@stylexswc/constants':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-constants
       '@stylexswc/macros':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-macros
       '@stylexswc/utils':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-utils
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-atoms:
     devDependencies:
       '@stylexswc/constants':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-constants
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-constants:
     devDependencies:
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-css:
     devDependencies:
       '@stylexswc/ast':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-ast
       '@stylexswc/constants':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-constants
       '@stylexswc/css-parser':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-css-parser
       '@stylexswc/enums':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-enums
       '@stylexswc/evaluator':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-evaluator
       '@stylexswc/macros':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-macros
       '@stylexswc/regex':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-regex
       '@stylexswc/structures':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-structures
       '@stylexswc/types':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-types
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-css-parser:
     devDependencies:
       '@stylexswc/macros':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-macros
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-enums:
     devDependencies:
       '@stylexswc/macros':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-macros
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-evaluator:
     devDependencies:
       '@stylexswc/ast':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-ast
       '@stylexswc/constants':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-constants
       '@stylexswc/enums':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-enums
       '@stylexswc/macros':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-macros
       '@stylexswc/path-resolver':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-path-resolver
       '@stylexswc/structures':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-structures
       '@stylexswc/stylex-js':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-js
       '@stylexswc/types':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-types
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-js:
     devDependencies:
       '@stylexswc/constants':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-constants
       '@stylexswc/macros':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-macros
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-logs:
     devDependencies:
       '@stylexswc/macros':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-macros
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-macros:
     devDependencies:
       '@stylexswc/constants':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-constants
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-path-resolver:
     devDependencies:
       '@stylexswc/macros':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-macros
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-regex:
     devDependencies:
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-rs-compiler:
     dependencies:
       picomatch:
-        specifier: ^4.0.4
+        specifier: catalog:runtime
         version: 4.0.5
     devDependencies:
       '@babel/core':
-        specifier: ^8.0.1
+        specifier: catalog:bundlers
         version: 8.0.1
       '@emnapi/runtime':
-        specifier: 2.0.0-alpha.3
+        specifier: catalog:tooling
         version: 2.0.0-alpha.3
       '@napi-rs/cli':
-        specifier: ^3.8.2
+        specifier: catalog:tooling
         version: 3.8.2(@emnapi/core@2.0.0-alpha.3)(@emnapi/runtime@2.0.0-alpha.3)(@types/node@26.1.2)(supports-color@8.1.1)
       '@stylexjs/babel-plugin':
-        specifier: ^0.19.0
+        specifier: catalog:runtime
         version: 0.19.0(supports-color@8.1.1)
       '@stylexswc/ast':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-ast
       '@stylexswc/enums':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-enums
       '@stylexswc/logs':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-logs
       '@stylexswc/macros':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-macros
       '@stylexswc/regex':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-regex
       '@stylexswc/structures':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-structures
       '@stylexswc/transform':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-transform
       '@stylexswc/types':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-types
       '@stylexswc/typescript-config':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../../packages/typescript-config
       '@stylexswc/utils':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-utils
       '@swc/core':
-        specifier: ^1.15.43
+        specifier: catalog:bundlers
         version: 1.15.47(@swc/helpers@0.5.23)
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       '@types/babel__core':
-        specifier: ^7.20.5
+        specifier: catalog:types
         version: 7.20.5
       '@types/node':
-        specifier: ^26.1.0
+        specifier: catalog:types
         version: 26.1.2
       '@types/picomatch':
-        specifier: ^4.0.3
+        specifier: catalog:types
         version: 4.0.3
       chalk:
-        specifier: ^6.0.0
+        specifier: catalog:runtime
         version: 6.0.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
       tinybench:
-        specifier: ^6.1.2
+        specifier: catalog:testing
         version: 6.1.2
       tsx:
-        specifier: ^4.23.1
+        specifier: catalog:tooling
         version: 4.23.5
       typescript:
-        specifier: 7.0.2
+        specifier: catalog:types
         version: 7.0.2
       vitest:
-        specifier: ^4.1.10
+        specifier: catalog:testing
         version: 4.1.10(@types/node@26.1.2)(@vitest/browser-playwright@4.1.10)(@vitest/coverage-v8@4.1.9)(jsdom@29.1.1)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.5)(yaml@2.9.0))
 
   crates/stylex-structures:
     devDependencies:
       '@stylexswc/ast':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-ast
       '@stylexswc/constants':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-constants
       '@stylexswc/enums':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-enums
       '@stylexswc/macros':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-macros
       '@stylexswc/utils':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-utils
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-styleq:
     devDependencies:
       '@stylexswc/constants':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-constants
       '@stylexswc/enums':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-enums
       '@stylexswc/macros':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-macros
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-test-parser:
     devDependencies:
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-transform:
     devDependencies:
       '@stylexswc/ast':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-ast
       '@stylexswc/atoms':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-atoms
       '@stylexswc/constants':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-constants
       '@stylexswc/css':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-css
       '@stylexswc/css-parser':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-css-parser
       '@stylexswc/enums':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-enums
       '@stylexswc/logs':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-logs
       '@stylexswc/macros':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-macros
       '@stylexswc/path-resolver':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-path-resolver
       '@stylexswc/regex':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-regex
       '@stylexswc/structures':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-structures
       '@stylexswc/types':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-types
       '@stylexswc/utils':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-utils
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-types:
     devDependencies:
       '@stylexswc/structures':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-structures
       '@stylexswc/utils':
-        specifier: 0.18.3
+        specifier: catalog:internal
         version: link:../stylex-utils
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   crates/stylex-utils:
     devDependencies:
       '@taplo/cli':
-        specifier: ^0.7.0
+        specifier: catalog:tooling
         version: 0.7.0
       npm-run-all2:
-        specifier: ^9.0.3
+        specifier: catalog:tooling
         version: 9.0.3
 
   packages/design-system:

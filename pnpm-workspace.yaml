@@ -241,6 +241,12 @@ catalogs:
     '@arethetypeswrong/cli': '^0.18.5'
     '@arethetypeswrong/core': '^0.18.5'
     '@commitlint/cli': '^21.2.1'
+    # `tooling` rather than `runtime`, despite the name: no code we ship
+    # imports this. It exists only because `@napi-rs/cli` pins it as an
+    # *exact* optional peer, so it belongs beside the CLI that pins it, and
+    # its range is exact for the same reason -- a caret here would not
+    # satisfy the pin.
+    '@emnapi/runtime': '2.0.0-alpha.3'
     '@napi-rs/cli': '^3.8.2'
     '@taplo/cli': '^0.7.0'
     'commitizen': '^4.3.2'

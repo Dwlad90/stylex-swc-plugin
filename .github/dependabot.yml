@@ -10,78 +10,155 @@ updates:
       prefix: 'npm'
       include: 'scope'
     open-pull-requests-limit: 20
+    # The groups mirror the catalogs of pnpm-workspace.yaml, so "which catalog
+    # does this live in" and "which PR will bump it" have one answer and a PR
+    # title names a bucket a reader already recognises.
+    #
+    # Two properties are load-bearing and easy to break while editing:
+    #
+    #   - No package is matched by two groups. Dependabot takes the first match,
+    #     so an overlap is not fatal -- but a group named after a catalog that
+    #     silently never bumps half its packages is worse than a wrong name.
+    #     This is why the patterns are mostly exact: `@swc/core` is a bundler
+    #     while `@swc/jest` is a test dependency, `postcss-loader` is a bundler
+    #     while `postcss` is runtime, `vite` and `vitest` are different catalogs.
+    #     A scope glob appears only where the whole scope belongs to one catalog.
+    #   - No group filters on `dependency-type`. Dependabot reports every catalog
+    #     dependency as a production dependency regardless of what the manifest
+    #     says, so a type filter would silently mis-sort the whole workspace.
+    #     Matching on name alone is what makes that upstream bug harmless here.
+    #
+    # `peers` is the one catalog with no group of its own, deliberately. A group
+    # matches a package *name*, and every package in `peers` also has a
+    # development range in a semantic catalog -- so a `peers` group could only be
+    # the duplicate match the first property forbids. The two entries for one
+    # package move in the same PR, which is what should happen to them anyway.
     groups:
-      core-dependencies:
-        patterns:
-          - '@stylexjs/*'
-          - 'postcss'
-      nextjs:
-        patterns:
-          - 'next'
-          - '@next/*'
+      # Listed ahead of the catalog groups: a group is a lockstep assertion
+      # ("these move together or CI breaks"), and neither coupling below is
+      # something the catalog partition encodes.
+      #
       # TypeScript and the Oxlint type-aware backend are version-locked to each
-      # other, so they have to move in one PR.
-      typescript-types:
+      # other. Folded into the ten-package `types` group, a routine `@types/node`
+      # bump would drag a TypeScript upgrade along or block on one.
+      typescript-lockstep:
         patterns:
           - 'typescript'
           - 'oxlint-tsgolint'
-          - '@types/*'
-      build-tools:
+      # Both live in `runtime`, but the pairing is about release cadence rather
+      # than taxonomy: StyleX ships its core and its postcss integration
+      # together, and this repository tracks that pair.
+      stylex-core:
         patterns:
-          - 'turbo'
-          - 'tsdown'
-          - 'esbuild'
-          - 'webpack'
-          - 'rollup'
-          - 'vite'
-          - 'rspack'
-          - 'rsbuild'
+          - '@stylexjs/*'
+          - 'postcss'
       bundlers:
         patterns:
-          - 'webpack'
-          - 'rollup'
+          - '@babel/core'
+          - '@farmfe/*'
+          - '@pmmmwh/react-refresh-webpack-plugin'
+          - '@rollup/*'
+          - '@rsbuild/*'
+          - '@rspack/*'
+          - '@swc/core'
+          - '@vitejs/*'
+          - 'css-loader'
+          - 'css-minimizer-webpack-plugin'
           - 'esbuild'
+          - 'file-loader'
+          - 'html-webpack-plugin'
+          - 'loader-utils'
+          - 'mini-css-extract-plugin'
+          - 'postcss-loader'
+          - 'rollup'
+          - 'rollup-plugin-*'
+          - 'swc-loader'
+          - 'tsdown'
+          - 'turbo'
+          - 'unplugin'
           - 'vite'
-          - 'rspack'
-      code-quality:
+          - 'vite-plugin-*'
+          - 'webpack'
+          - 'webpack-cli'
+          - 'webpack-dev-server'
+      frameworks:
         patterns:
-          - 'oxlint'
-          - 'oxfmt'
-          - 'publint'
-          - '@arethetypeswrong/*'
-          - 'shellcheck'
-      git-tools:
-        patterns:
-          - 'lefthook'
-          - '@commitlint/*'
-          - 'commitizen'
-          - 'cz-conventional-changelog'
-      version-management:
-        patterns:
-          - '@changesets/*'
-          - 'syncpack'
-      dev-utilities:
-        patterns:
-          - 'scripty'
-          - 'del-cli'
-      test-dependencies:
-        patterns:
-          - 'vitest'
-          - 'jest'
-          - '@testing-library/*'
-      e2e:
-        patterns:
-          - 'playwright'
-          - '@playwright/*'
-      react-ecosystem:
-        patterns:
+          - '@chromatic-com/storybook'
+          - '@nuxt/*'
+          - '@storybook/*'
+          - 'next'
+          - 'next-rspack'
           - 'react'
           - 'react-dom'
-          - '@types/react'
-          - '@types/react-dom'
-      babel-dependencies:
+          - 'react-refresh'
+          - 'solid-js'
+          - 'storybook'
+          - 'vue'
+      # This repository's own published packages. The release bumper owns their
+      # versions in every place they appear, the catalog included, so dependabot
+      # finds nothing newer than what a release just published -- the group
+      # exists so that a PR here is legible as the anomaly it would be.
+      internal:
         patterns:
-          - '@babel/*'
+          - '@stylexswc/*'
+      runtime:
+        patterns:
+          - 'autoprefixer'
+          - 'browserslist'
+          - 'chalk'
+          - 'fast-glob'
+          - 'glob-parent'
+          - 'is-glob'
+          - 'lightningcss'
+          - 'picomatch'
+          - 'postcss-nesting'
+          - 'prop-types'
+      testing:
+        patterns:
+          - '@jest/*'
+          - '@playwright/test'
+          - '@swc/jest'
+          - '@testing-library/*'
+          - '@vitest/*'
+          - 'jest'
+          - 'jest-chain-transform'
+          - 'jest-environment-jsdom'
+          - 'jsdom'
+          - 'memfs'
+          - 'playwright'
+          - 'serve'
+          - 'tinybench'
+          - 'vitest'
+      tooling:
+        patterns:
+          - '@arethetypeswrong/*'
+          - '@commitlint/*'
+          - '@emnapi/runtime'
+          - '@napi-rs/cli'
+          - '@taplo/cli'
+          - 'commitizen'
+          - 'cz-conventional-changelog'
+          - 'del-cli'
+          - 'eslint-plugin-react-hooks'
+          - 'eslint-plugin-storybook'
+          - 'eslint-plugin-turbo'
+          - 'esno'
+          - 'knip'
+          - 'lefthook'
+          - 'npm-run-all2'
+          - 'oxfmt'
+          - 'oxlint'
+          - 'publint'
+          - 'rimraf'
+          - 'scripty'
+          - 'shellcheck'
+          - 'syncpack'
+          - 'tsx'
+      # `typescript` and `oxlint-tsgolint` are in this catalog but not in this
+      # group -- see `typescript-lockstep` above.
+      types:
+        patterns:
+          - '@types/*'
     versioning-strategy: auto
     labels:
       - 'dependencies'

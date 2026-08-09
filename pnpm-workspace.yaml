@@ -119,7 +119,7 @@ catalogs:
     '@rsbuild/core': '^2.1.9'
     '@rsbuild/plugin-react': '^2.1.0'
     '@rspack/cli': '^2.1.7'
-    '@rspack/core': '^2.1.7'
+    '@rspack/core': '^2.1.8'
     '@rspack/dev-server': '^2.1.0'
     '@swc/core': '^1.15.43'
     '@vitejs/plugin-react': '^6.0.5'

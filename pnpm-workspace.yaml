@@ -154,7 +154,7 @@ catalogs:
     '@nuxt/schema': '^4.5.1'
     '@storybook/addon-a11y': '^10.5.5'
     '@storybook/addon-docs': '^10.5.5'
-    '@storybook/addon-links': '^10.5.5'
+    '@storybook/addon-links': '^10.5.7'
     '@storybook/addon-vitest': '^10.5.5'
     '@storybook/react': '^10.5.5'
     '@storybook/react-vite': '^10.5.5'

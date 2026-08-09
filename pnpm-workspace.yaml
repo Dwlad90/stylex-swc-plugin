@@ -151,7 +151,7 @@ catalogs:
   frameworks:
     '@chromatic-com/storybook': '^5.2.1'
     '@nuxt/kit': '^4.5.1'
-    '@nuxt/schema': '^4.5.1'
+    '@nuxt/schema': '^4.5.2'
     '@storybook/addon-a11y': '^10.5.5'
     '@storybook/addon-docs': '^10.5.5'
     '@storybook/addon-links': '^10.5.5'

@@ -2,26 +2,11 @@
   "name": "@stylexswc/webpack-plugin",
   "description": "StyleX plugin for webpack powered by a Rust NAPI-RS/SWC compiler. Fast StyleX transforms and CSS extraction without Babel.",
   "version": "0.18.3",
-  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
-  "config": {
-    "scripty": {
-      "path": "../../scripts/packages"
-    }
-  },
-  "dependencies": {
-    "@stylexswc/plugin-shared": "0.18.3"
-  },
-  "devDependencies": {
-    "@stylexjs/babel-plugin": "^0.19.0",
-    "@stylexjs/stylex": "^0.19.0",
-    "@stylexswc/typescript-config": "0.18.3",
-    "@types/node": "^26.1.0",
-    "css-loader": "^7.1.4",
-    "memfs": "^4.17.0",
-    "mini-css-extract-plugin": "^2.10.2",
-    "vitest": "^4.1.10",
-    "webpack": "^5.109.2"
-  },
+  "private": false,
+  "license": "MIT",
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -34,6 +19,40 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "build": "scripty --ts",
+    "check:artifacts": "scripty",
+    "clean": "del-cli dist",
+    "postbuild": "pnpm run check:artifacts",
+    "prebuild": "pnpm run clean",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run",
+    "typecheck": "scripty --ts"
+  },
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "dependencies": {
+    "@stylexswc/plugin-shared": "catalog:internal"
+  },
+  "devDependencies": {
+    "@stylexjs/babel-plugin": "catalog:runtime",
+    "@stylexjs/stylex": "catalog:runtime",
+    "@stylexswc/typescript-config": "catalog:internal",
+    "@types/node": "catalog:types",
+    "css-loader": "catalog:bundlers",
+    "memfs": "catalog:testing",
+    "mini-css-extract-plugin": "catalog:bundlers",
+    "vitest": "catalog:testing",
+    "webpack": "catalog:bundlers"
+  },
+  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/webpack-plugin#readme",
   "keywords": [
     "atomic-css",
@@ -47,29 +66,10 @@
     "webpack",
     "webpack-plugin"
   ],
-  "license": "MIT",
   "main": "dist/index.js",
-  "private": false,
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Dwlad90/stylex-swc-plugin.git",
     "directory": "packages/webpack-plugin"
-  },
-  "scripts": {
-    "build": "scripty --ts",
-    "check:artifacts": "scripty",
-    "clean": "del-cli dist",
-    "postbuild": "pnpm run check:artifacts",
-    "prebuild": "pnpm run clean",
-    "prepublishOnly": "pnpm run build",
-    "test": "vitest run",
-    "typecheck": "scripty --ts"
-  },
-  "sideEffects": [
-    "**/*.css"
-  ]
+  }
 }

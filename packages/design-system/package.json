@@ -2,19 +2,9 @@
   "name": "@stylexswc/design-system",
   "description": "A design system for stylex workspace examples",
   "version": "0.18.3",
-  "config": {
-    "scripty": {
-      "path": "../../scripts/packages"
-    }
-  },
-  "dependencies": {
-    "@stylexjs/stylex": "^0.19.0",
-    "@stylexswc/rs-compiler": "0.18.3",
-    "react": "^19.2.8"
-  },
-  "devDependencies": {
-    "@types/react": "^19.2.18"
-  },
+  "private": true,
+  "license": "MIT",
+  "sideEffects": true,
   "exports": {
     ".": "./dist/index.js",
     "./Text": "./dist/Text.js",
@@ -25,8 +15,6 @@
   "files": [
     "dist/*"
   ],
-  "license": "MIT",
-  "private": true,
   "scripts": {
     "build": "scripty --ts",
     "check:artifacts": "scripty",
@@ -36,5 +24,17 @@
     "test": "echo \"Error: no test specified\" && exit 0",
     "typecheck": "scripty --ts"
   },
-  "sideEffects": true
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "dependencies": {
+    "@stylexjs/stylex": "catalog:runtime",
+    "@stylexswc/rs-compiler": "catalog:internal",
+    "react": "catalog:frameworks"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:types"
+  }
 }

@@ -53,30 +53,30 @@
     }
   },
   "dependencies": {
-    "scripty": "3.0.0"
+    "scripty": "catalog:tooling"
   },
   "devDependencies": {
-    "@babel/core": "^8.0.1",
-    "@commitlint/cli": "^21.2.1",
-    "@stylexjs/eslint-plugin": "^0.19.0",
-    "@stylexswc/typescript-config": "0.18.3",
-    "@taplo/cli": "^0.7.0",
-    "commitizen": "^4.3.2",
-    "cz-conventional-changelog": "^3.3.0",
-    "del-cli": "^7.0.0",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-storybook": "^9.1.10",
-    "eslint-plugin-turbo": "^2.10.8",
-    "knip": "^6.29.0",
-    "lefthook": "^2.1.10",
-    "oxfmt": "^0.61.0",
-    "oxlint": "^1.76.0",
-    "oxlint-tsgolint": "7.0.2001",
-    "playwright": "^1.62.1",
-    "shellcheck": "^4.1.0",
-    "syncpack": "^15.3.2",
-    "turbo": "^2.10.7",
-    "typescript": "7.0.2"
+    "@babel/core": "catalog:bundlers",
+    "@commitlint/cli": "catalog:tooling",
+    "@stylexjs/eslint-plugin": "catalog:runtime",
+    "@stylexswc/typescript-config": "catalog:internal",
+    "@taplo/cli": "catalog:tooling",
+    "commitizen": "catalog:tooling",
+    "cz-conventional-changelog": "catalog:tooling",
+    "del-cli": "catalog:tooling",
+    "eslint-plugin-react-hooks": "catalog:tooling",
+    "eslint-plugin-storybook": "catalog:tooling",
+    "eslint-plugin-turbo": "catalog:tooling",
+    "knip": "catalog:tooling",
+    "lefthook": "catalog:tooling",
+    "oxfmt": "catalog:tooling",
+    "oxlint": "catalog:tooling",
+    "oxlint-tsgolint": "catalog:types",
+    "playwright": "catalog:testing",
+    "shellcheck": "catalog:tooling",
+    "syncpack": "catalog:tooling",
+    "turbo": "catalog:bundlers",
+    "typescript": "catalog:types"
   },
   "engines": {
     "node": ">=24.11"

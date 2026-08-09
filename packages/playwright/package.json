@@ -27,9 +27,9 @@
     }
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
-    "@stylexswc/typescript-config": "0.18.3",
-    "@types/node": "^26.1.0"
+    "@playwright/test": "catalog:testing",
+    "@stylexswc/typescript-config": "catalog:internal",
+    "@types/node": "catalog:types"
   },
   "keywords": [
     "playwright"

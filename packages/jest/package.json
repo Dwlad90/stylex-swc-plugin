@@ -29,18 +29,18 @@
     }
   },
   "dependencies": {
-    "@stylexswc/rs-compiler": "0.18.3"
+    "@stylexswc/rs-compiler": "catalog:internal"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "^0.18.5",
-    "@jest/globals": "^30.4.1",
-    "@jest/transform": "^30.4.1",
-    "@jest/types": "^30.4.1",
-    "@stylexswc/typescript-config": "0.18.3",
-    "@swc/jest": "^0.2.39",
-    "@types/node": "^26.1.0",
-    "jest": "^30.4.2",
-    "publint": "^0.3.22"
+    "@arethetypeswrong/cli": "catalog:tooling",
+    "@jest/globals": "catalog:testing",
+    "@jest/transform": "catalog:testing",
+    "@jest/types": "catalog:testing",
+    "@stylexswc/typescript-config": "catalog:internal",
+    "@swc/jest": "catalog:testing",
+    "@types/node": "catalog:types",
+    "jest": "catalog:testing",
+    "publint": "catalog:tooling"
   },
   "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "engines": {

@@ -2,29 +2,9 @@
   "name": "@stylexswc/nextjs-plugin",
   "description": "StyleX plugin for Next.js powered by a Rust NAPI-RS/SWC compiler. Supports Webpack, Rspack, and Turbopack builds with CSS extraction.",
   "version": "0.18.3",
-  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
-  "config": {
-    "scripty": {
-      "path": "../../scripts/packages"
-    }
-  },
-  "dependencies": {
-    "@stylexswc/rs-compiler": "0.18.3",
-    "@stylexswc/rspack-plugin": "0.18.3",
-    "@stylexswc/turbopack-plugin": "0.18.3",
-    "@stylexswc/webpack-plugin": "0.18.3",
-    "next-rspack": "^16.2.12"
-  },
-  "devDependencies": {
-    "@stylexswc/typescript-config": "0.18.3",
-    "@types/node": "^26.1.0",
-    "next": "^16.2.12",
-    "postcss": "^8.5.18",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "vitest": "^4.1.10",
-    "webpack": "^5.109.2"
-  },
+  "private": false,
+  "license": "MIT",
+  "sideEffects": false,
   "exports": {
     "./turbopack": {
       "types": "./dist/turbopack.d.ts",
@@ -46,6 +26,47 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "build": "scripty --ts",
+    "check:artifacts": "scripty",
+    "clean": "del-cli dist",
+    "postbuild": "pnpm run check:artifacts",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run",
+    "typecheck": "scripty --ts"
+  },
+  "config": {
+    "scripty": {
+      "path": "../../scripts/packages"
+    }
+  },
+  "dependencies": {
+    "@stylexswc/rs-compiler": "catalog:internal",
+    "@stylexswc/rspack-plugin": "catalog:internal",
+    "@stylexswc/turbopack-plugin": "catalog:internal",
+    "@stylexswc/webpack-plugin": "catalog:internal",
+    "next-rspack": "catalog:frameworks"
+  },
+  "devDependencies": {
+    "@babel/core": "catalog:bundlers",
+    "@stylexswc/typescript-config": "catalog:internal",
+    "@types/node": "catalog:types",
+    "next": "catalog:frameworks",
+    "postcss": "catalog:runtime",
+    "react": "catalog:frameworks",
+    "react-dom": "catalog:frameworks",
+    "vitest": "catalog:testing",
+    "webpack": "catalog:bundlers"
+  },
+  "peerDependencies": {
+    "next": "catalog:peers",
+    "next-rspack": "catalog:frameworks"
+  },
+  "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/nextjs-plugin#readme",
   "keywords": [
     "app-router",
@@ -62,35 +83,15 @@
     "swc",
     "turbopack"
   ],
-  "license": "MIT",
   "main": "dist/index.js",
-  "peerDependencies": {
-    "next": ">=15.0.0",
-    "next-rspack": "^16.2.12"
-  },
   "peerDependenciesMeta": {
     "next-rspack": {
       "optional": true
     }
   },
-  "private": false,
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Dwlad90/stylex-swc-plugin.git",
     "directory": "packages/nextjs-plugin"
-  },
-  "scripts": {
-    "build": "scripty --ts",
-    "check:artifacts": "scripty",
-    "clean": "del-cli dist",
-    "postbuild": "pnpm run check:artifacts",
-    "prepublishOnly": "pnpm run build",
-    "test": "vitest run",
-    "typecheck": "scripty --ts"
-  },
-  "sideEffects": false
+  }
 }

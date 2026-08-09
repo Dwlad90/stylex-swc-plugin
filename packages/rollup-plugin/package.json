@@ -27,17 +27,17 @@
     }
   },
   "dependencies": {
-    "@stylexjs/babel-plugin": "^0.19.0",
-    "@stylexswc/rs-compiler": "0.18.3",
-    "lightningcss": "^1.32.0"
+    "@stylexjs/babel-plugin": "catalog:runtime",
+    "@stylexswc/rs-compiler": "catalog:internal",
+    "lightningcss": "catalog:runtime"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^29.0.3",
-    "@rollup/plugin-node-resolve": "^16.0.3",
-    "@types/node": "^26.1.0",
-    "browserslist": "^4.28.4",
-    "rollup": "^4.62.3",
-    "vitest": "^4.1.10"
+    "@rollup/plugin-commonjs": "catalog:bundlers",
+    "@rollup/plugin-node-resolve": "catalog:bundlers",
+    "@types/node": "catalog:types",
+    "browserslist": "catalog:runtime",
+    "rollup": "catalog:bundlers",
+    "vitest": "catalog:testing"
   },
   "bugs": "https://github.com/Dwlad90/stylex-swc-plugin/issues",
   "homepage": "https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/rollup-plugin#readme",

@@ -266,7 +266,7 @@ catalogs:
     'eslint-plugin-storybook': '^9.1.10'
     'eslint-plugin-turbo': '^2.10.8'
     'esno': '^4.7.0'
-    'knip': '^6.29.0'
+    'knip': '^6.32.0'
     'lefthook': '^2.1.10'
     'npm-run-all2': '^9.0.3'
     'oxfmt': '^0.61.0'

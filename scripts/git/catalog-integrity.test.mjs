@@ -110,8 +110,13 @@ importers:
 `;
 
 /**
- * @param {{workspaceYaml?: string, lockYaml?: string, manifests?: Record<string, object>}} [overrides]
+ * @typedef {object} FixtureOverrides
+ * @property {string} [workspaceYaml]
+ * @property {string} [lockYaml]
+ * @property {Record<string, object>} [manifests]
  */
+
+/** @param {FixtureOverrides} [overrides] */
 function createFixture(overrides = {}) {
   const root = makeTemporaryDirectory('stylex-catalog-integrity-');
   const file = relative => path.join(root, relative);
@@ -353,7 +358,10 @@ void test('each exempt family would fail the check if it were in scope', () => {
     const result = check(root);
 
     assert.equal(result.status, 1, `${file} was expected to fail without its exclusion`);
-    assert.match(result.stderr, new RegExp(range.replaceAll(/[.^]/g, '\\$&')));
+    assert.ok(
+      result.stderr.includes(range),
+      `${file} was expected to fail citing ${range}, got: ${result.stderr}`
+    );
   }
 });
 

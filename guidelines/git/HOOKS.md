@@ -21,11 +21,9 @@ the commit source to `message`, which skips the prompt.
 - `pre-commit` -- conflict markers, lint and format of staged files (JS/TS,
   data, Markdown, manifests, shell, Rust, TOML), version-mismatch check when a
   manifest or lockfile is touched. Skipped during merges and rebases.
-  - The version-mismatch job runs `scripts/git/version-mismatch-check.sh`, which
-    is `syncpack lint` plus `scripts/git/catalog-integrity.mjs manifests` -- the
-    check that every dependency version is declared once, by name, in
-    `pnpm-workspace.yaml`. The `pr-validation` matrix invokes the same script,
-    so either half reaches both call sites with no change to their wiring.
+  - The version-mismatch job runs `scripts/git/version-mismatch-check.sh`, the
+    same manifest gate CI runs; what it asserts is documented in
+    [Scripts](../SCRIPTS.md).
 - `commit-msg` -- `commitlint`.
 - `pre-push` -- conflict markers on the pushed commits, `cargo fmt --check`,
   Markdown over the pushed files, knip dead exports (`pnpm lint:dead-exports`),

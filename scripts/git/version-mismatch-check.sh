@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # The manifest gate, run by the lefthook `version-mismatch` pre-commit job and
-# by the `pr-validation` matrix. Two assertions, deliberately in one script so
-# that both call sites pick up either of them with no change to their wiring.
+# in CI by the `pr-validation` matrix and the docs-validation format job. Two
+# assertions, deliberately in one script so that every call site picks up
+# either of them with no change to its wiring.
 #
 #   1. `syncpack lint`  -- formatting, field ordering and manifest shape. It no
 #      longer asserts anything about *versions*; see the `catalogs` comment in

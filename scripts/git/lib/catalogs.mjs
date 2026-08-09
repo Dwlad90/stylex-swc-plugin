@@ -39,12 +39,22 @@ const ENTRY = /^(?:'([^']*)'|"([^"]*)"|([^\s#][^:]*?))\s*:\s*(?:'([^']*)'|"([^"]
 /** `<key>:` with nothing after it -- a nested block, not a leaf. */
 const BLOCK = /^(?:'([^']*)'|"([^"]*)"|([^\s#][^:]*?))\s*:$/;
 
+/**
+ * `ENTRY` for a writer: the whole `<key>: <value>` line, with indentation,
+ * quoting and trailing comment each captured intact so the value can be
+ * replaced and the rest put back exactly as found. Still only grammar --
+ * nothing in this module writes; `bump-version.mjs` is the one that does.
+ */
+export const ENTRY_LINE =
+  /^(\s+)('[^']*'|"[^"]*"|[^\s#][^:]*)(:\s*)('[^']*'|"[^"]*"|\S+)(\s*(?:#.*)?)$/;
+
 /** Blank lines and comments belong to no block and end none. */
-function ignorable(line) {
+export function ignorable(line) {
   return line.trim() === '' || line.trimStart().startsWith('#');
 }
 
-function indentOf(line) {
+/** A YAML line's indentation, which is what delimits a block. */
+export function indentOf(line) {
   return line.length - line.trimStart().length;
 }
 

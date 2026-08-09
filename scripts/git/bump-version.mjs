@@ -40,6 +40,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { ENTRY_LINE, ignorable, indentOf } from './lib/catalogs.mjs';
 import {
   DEPENDENCY_FIELDS,
   findPublishedPlatformManifests,
@@ -79,9 +80,6 @@ const README_BADGE = /stylex-swc-plugin\/\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/g;
 function isInternalRange(name, range) {
   return name.startsWith('@stylexswc/') && isLiteralRange(range);
 }
-
-/** One `<key>: <value>` line of a YAML block, keeping the quoting intact. */
-const YAML_ENTRY = /^(\s+)('[^']*'|"[^"]*"|[^\s#][^:]*)(:\s*)('[^']*'|"[^"]*"|\S+)(\s*(?:#.*)?)$/;
 
 function fail(message) {
   process.stderr.write(`bump-version: ${message}\n`);
@@ -192,7 +190,10 @@ function bumpCargo(run, version) {
 
   if (hits.length !== 1) {
     run.problem(
-      `${file} has ${hits.length} \`version = "..."\` lines under [workspace.package]; expected exactly one`
+      [
+        `${file} has ${hits.length} \`version = "..."\` lines under`,
+        `[workspace.package]; expected exactly one`,
+      ].join(' ')
     );
     return;
   }
@@ -222,7 +223,10 @@ function assertCratesInheritVersion(run) {
         section = header[1].trim();
       } else if (section === 'package' && TOML_VERSION.test(line)) {
         run.problem(
-          `${file} declares a literal \`version\`; crates must inherit it with \`version.workspace = true\``
+          [
+            `${file} declares a literal \`version\`; crates must inherit it`,
+            `with \`version.workspace = true\``,
+          ].join(' ')
         );
         break;
       }
@@ -295,16 +299,6 @@ function bumpReadme(run, version) {
   run.write(file, before, before.replaceAll(README_BADGE, `${README_BADGE_PREFIX}${version}`));
 }
 
-/** A YAML line's indentation, which is what delimits a block. */
-function indentOf(line) {
-  return line.length - line.trimStart().length;
-}
-
-/** Blank lines and comments belong to no block and end none. */
-function ignorable(line) {
-  return line.trim() === '' || line.trimStart().startsWith('#');
-}
-
 /**
  * The `internal` catalog block of `pnpm-workspace.yaml`, rewritten line by line
  * rather than through a YAML round-trip: the file is mostly comments explaining
@@ -367,7 +361,7 @@ function findInternalCatalogEntries(text) {
       break;
     }
 
-    entries.push({ index, match: line.match(YAML_ENTRY) });
+    entries.push({ index, match: line.match(ENTRY_LINE) });
   }
 
   return { lines, entries };

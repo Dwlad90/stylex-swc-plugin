@@ -28,7 +28,6 @@ NC := \033[0m # No Color
 	pkg-jest-build pkg-jest-lint pkg-jest-test pkg-jest-typecheck pkg-jest-clean \
 	pkg-design-build pkg-design-lint pkg-design-test pkg-design-typecheck pkg-design-clean \
 	pkg-playwright-build pkg-playwright-lint pkg-playwright-test pkg-playwright-typecheck pkg-playwright-clean \
-	pkg-eslint-build pkg-eslint-lint pkg-eslint-test pkg-eslint-typecheck pkg-eslint-clean \
 	pkg-typescript-build pkg-typescript-lint pkg-typescript-test pkg-typescript-typecheck pkg-typescript-clean \
 	crate-compiler-build crate-compiler-format crate-compiler-lint crate-compiler-clean crate-compiler-docs \
 	crate-shared-build crate-shared-format crate-shared-lint crate-shared-clean crate-shared-docs \
@@ -140,7 +139,7 @@ lint-check: ## Run linting with output to files
 	$(TURBO) run lint:check --continue
 	@echo "$(GREEN)Lint checks completed!$(NC)"
 
-format: ## Format all code (Prettier, Rust, TOML)
+format: ## Format all code (Oxfmt, Rust, TOML)
 	@echo "$(YELLOW)Formatting code...$(NC)"
 	$(PNPM) format
 	@echo "$(YELLOW)Formatting Rust code...$(NC)"
@@ -465,27 +464,6 @@ pkg-playwright-typecheck: ## Typecheck Playwright package
 pkg-playwright-clean: ## Clean Playwright package
 	@echo "$(YELLOW)Cleaning playwright package...$(NC)"
 	cd packages/playwright && $(PNPM) run clean
-
-# ESLint config package
-pkg-eslint-build: ## Build ESLint config package
-	@echo "$(YELLOW)Building eslint-config package...$(NC)"
-	cd packages/eslint-config && $(PNPM) run build
-
-pkg-eslint-lint: ## Lint ESLint config package
-	@echo "$(YELLOW)Linting eslint-config package...$(NC)"
-	cd packages/eslint-config && $(PNPM) run lint
-
-pkg-eslint-test: ## Test ESLint config package
-	@echo "$(YELLOW)Testing eslint-config package...$(NC)"
-	cd packages/eslint-config && $(PNPM) run test
-
-pkg-eslint-typecheck: ## Typecheck ESLint config package
-	@echo "$(YELLOW)Typechecking eslint-config package...$(NC)"
-	cd packages/eslint-config && $(PNPM) run typecheck
-
-pkg-eslint-clean: ## Clean ESLint config package
-	@echo "$(YELLOW)Cleaning eslint-config package...$(NC)"
-	cd packages/eslint-config && $(PNPM) run clean
 
 # TypeScript config package
 pkg-typescript-build: ## Build TypeScript config package

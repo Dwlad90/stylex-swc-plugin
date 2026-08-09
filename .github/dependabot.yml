@@ -50,6 +50,7 @@ updates:
       # together, and this repository tracks that pair.
       stylex-core:
         patterns:
+          # Also matches `@stylexjs/eslint-plugin`, an Oxlint `jsPlugins` input.
           - '@stylexjs/*'
           - 'postcss'
       bundlers:
@@ -139,6 +140,7 @@ updates:
           - 'commitizen'
           - 'cz-conventional-changelog'
           - 'del-cli'
+          # `eslint-plugin-*` below: Oxlint `jsPlugins` inputs, not ESLint.
           - 'eslint-plugin-react-hooks'
           - 'eslint-plugin-storybook'
           - 'eslint-plugin-turbo'

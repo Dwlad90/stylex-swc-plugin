@@ -183,92 +183,92 @@ catalogs:
       version: 3.5.35
   internal:
     '@stylexswc/ast':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/atoms':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/constants':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/css':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/css-parser':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/design-system':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/enums':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/evaluator':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/jest':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/logs':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/macros':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/nextjs-plugin':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/path-resolver':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/playwright':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/plugin-shared':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/postcss-plugin':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/regex':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/rollup-plugin':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/rs-compiler':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/rspack-plugin':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/structures':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/stylex-js':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/transform':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/turbopack-plugin':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/types':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/typescript-config':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/unplugin':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/utils':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
     '@stylexswc/webpack-plugin':
-      specifier: 0.18.3
-      version: 0.18.3
+      specifier: 0.18.4-dev.1
+      version: 0.18.4-dev.1
   peers:
     '@farmfe/core':
       specifier: '>=1.7.11 <2.0.0'

@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/evaluator",
   "description": "JS expression evaluation engine for StyleX SWC plugin",
-  "version": "0.18.3",
+  "version": "0.18.4-dev.1",
   "private": true,
   "sideEffects": false,
   "files": [

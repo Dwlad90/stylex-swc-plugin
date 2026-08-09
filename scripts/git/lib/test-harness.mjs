@@ -49,13 +49,29 @@ export function missing(...commands) {
 }
 
 function writeExecutable(file, contents) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, contents);
+  writeText(file, contents);
   fs.chmodSync(file, 0o755);
 }
 
 export function makeTemporaryDirectory(prefix) {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+}
+
+/**
+ * Writes `contents` to `file`, creating the directories above it.
+ *
+ * Every suite that stands up a repository-shaped fixture needs this, and each
+ * had its own copy. `writeExecutable` above already depended on the same two
+ * lines.
+ */
+export function writeText(file, contents) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, contents);
+}
+
+/** `writeText` for a manifest or config, formatted the way the repo writes them. */
+export function writeJson(file, value) {
+  writeText(file, `${JSON.stringify(value, null, 2)}\n`);
 }
 
 /**

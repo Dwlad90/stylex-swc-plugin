@@ -40,7 +40,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { findPublishedPlatformManifests, findSourceManifests } from './lib/manifests.mjs';
+import {
+  DEPENDENCY_FIELDS,
+  findPublishedPlatformManifests,
+  findSourceManifests,
+  isLiteralRange,
+} from './lib/manifests.mjs';
 
 /** `<major>.<minor>.<patch>` with an optional prerelease tail. */
 const VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
@@ -63,27 +68,16 @@ const TOML_VERSION = /^(\s*version\s*=\s*")([^"]*)(".*)$/;
 const README_BADGE_PREFIX = 'stylex-swc-plugin/';
 const README_BADGE = /stylex-swc-plugin\/\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/g;
 
-/** The dependency fields an internal `@stylexswc/*` range can appear in. */
-const DEPENDENCY_FIELDS = [
-  'dependencies',
-  'devDependencies',
-  'peerDependencies',
-  'optionalDependencies',
-];
-
 /**
+ * An internal dependency whose range this script owns.
+ *
  * A specifier carrying a scheme -- `workspace:`, `file:`, `link:`, `catalog:`
  * and anything else of that shape -- is a reference, not a version range, and
  * is not ours to rewrite. `catalog:` matters most: overwriting it with a
  * literal would quietly undo the catalog migration on the next release.
  */
-const SPECIFIER_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
-
-/** An internal dependency whose range this script owns. */
 function isInternalRange(name, range) {
-  return (
-    name.startsWith('@stylexswc/') && typeof range === 'string' && !SPECIFIER_SCHEME.test(range)
-  );
+  return name.startsWith('@stylexswc/') && isLiteralRange(range);
 }
 
 /** One `<key>: <value>` line of a YAML block, keeping the quoting intact. */

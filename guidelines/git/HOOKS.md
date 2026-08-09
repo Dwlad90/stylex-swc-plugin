@@ -21,6 +21,11 @@ the commit source to `message`, which skips the prompt.
 - `pre-commit` -- conflict markers, lint and format of staged files (JS/TS,
   data, Markdown, manifests, shell, Rust, TOML), version-mismatch check when a
   manifest or lockfile is touched. Skipped during merges and rebases.
+  - The version-mismatch job runs `scripts/git/version-mismatch-check.sh`, which
+    is `syncpack lint` plus `scripts/git/catalog-integrity.mjs manifests` -- the
+    check that every dependency version is declared once, by name, in
+    `pnpm-workspace.yaml`. The `pr-validation` matrix invokes the same script,
+    so either half reaches both call sites with no change to their wiring.
 - `commit-msg` -- `commitlint`.
 - `pre-push` -- conflict markers on the pushed commits, `cargo fmt --check`,
   Markdown over the pushed files, knip dead exports (`pnpm lint:dead-exports`),
@@ -88,7 +93,10 @@ The file's own comments explain each job's shape. Traps:
   interleaves one `--source` per staged path, so staging a fixture or generated
   manifest still formats it even though `.syncpackrc` excludes that path from
   `syncpack lint`. Formatting only sorts keys, so nothing is currently broken by
-  it -- but do not read the exclusion list as protection the hook honours.
+  it -- but do not read the exclusion list as protection the hook honours. The
+  version-mismatch job is unaffected: it takes no staged paths, so the checks it
+  runs read `.syncpackrc`'s scope through `scripts/git/lib/manifests.mjs` and
+  exempt the four families as written.
 
 Run `pnpm hooks:validate` after editing -- it is schema-only, so every trap
 above passes it. Then `pnpm hooks:test`: any config change fails against the

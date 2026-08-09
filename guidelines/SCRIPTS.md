@@ -21,6 +21,15 @@
 - `pnpm audit:rust` -- `cargo deny` plus `cargo audit`; both optional installs,
   and the script says how to get them.
 
+The manifest gate is `scripts/git/version-mismatch-check.sh`, invoked with no
+arguments by the pre-commit `version-mismatch` job and by the `pr-validation`
+matrix. It is `syncpack lint` plus
+`node scripts/git/catalog-integrity.mjs manifests`, which asserts that every
+dependency version is declared once, by name, in `pnpm-workspace.yaml` -- and
+names the file, the dependency and a suggested catalog when one is not. Both
+halves run on every invocation, so a failing commit reports everything it got
+wrong at once.
+
 See [Git Hooks](./git/HOOKS.md).
 
 ## Per-Package

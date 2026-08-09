@@ -18,6 +18,39 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
+ * The manifest fields a dependency specifier can appear in.
+ *
+ * Here rather than in each caller for the reason the scope below is here: the
+ * release bumper and the catalog check walk the same four fields, and a fifth
+ * one added to a single copy is a field one of them silently stops seeing.
+ */
+export const DEPENDENCY_FIELDS = [
+  'dependencies',
+  'devDependencies',
+  'peerDependencies',
+  'optionalDependencies',
+];
+
+/** A specifier carrying a scheme: `catalog:`, `workspace:`, `link:`, `npm:`. */
+const SPECIFIER_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+
+/**
+ * Whether `specifier` is a literal version range rather than a reference to
+ * one declared elsewhere.
+ *
+ * The two callers ask this question for opposite reasons -- the bumper to find
+ * the ranges it owns, the catalog check to find the ranges nobody should be
+ * writing -- but it is one question, and two copies of the answer can disagree
+ * about a specifier form neither was thinking of.
+ *
+ * @param {unknown} specifier
+ * @returns {boolean}
+ */
+export function isLiteralRange(specifier) {
+  return typeof specifier === 'string' && !SPECIFIER_SCHEME.test(specifier);
+}
+
+/**
  * `.syncpackrc`'s `source` list, split into the patterns that select and the
  * patterns that exclude. Syncpack spells an exclusion as a leading `!`;
  * `fs.globSync` takes the two apart instead, so the `!` is stripped here.

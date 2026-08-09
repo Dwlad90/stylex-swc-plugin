@@ -17,7 +17,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { hermeticEnvironment, makeTemporaryDirectory, repoRoot } from './lib/test-harness.mjs';
+import {
+  hermeticEnvironment,
+  makeTemporaryDirectory,
+  repoRoot,
+  writeJson,
+  writeText,
+} from './lib/test-harness.mjs';
 
 const CURRENT = '0.18.3';
 
@@ -67,16 +73,6 @@ catalogs:
 
 function manifest(name, extra = {}) {
   return { name, version: CURRENT, ...extra };
-}
-
-function writeJson(file, value) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
-}
-
-function writeText(file, contents) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, contents);
 }
 
 /**

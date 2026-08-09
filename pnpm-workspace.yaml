@@ -2,21 +2,31 @@ packages:
   - apps/*
   - crates/*
   - packages/*
+  # Depth 3, so `packages/*` does not reach it. Listed explicitly because
+  # `cleanupUnusedCatalogs` below decides what is used by asking pnpm, and pnpm
+  # only knows about workspace members: outside the globs the playground's two
+  # `catalog:` references resolve for nobody, and the next install deleted
+  # `bundlers.vite-plugin-inspect` -- declared here and nowhere else -- leaving
+  # the manifest pointing at an entry that no longer exists. Adding it is also
+  # what makes `pnpm -C playground run dev` (the `play` script in
+  # `packages/unplugin`) install anything at all.
+  - packages/unplugin/playground
 autoInstallPeers: true
 # `prefer`, deliberately not `strict`. Strict makes a plain `pnpm add <dep>`
 # fail whenever the dependency is not already catalogued, and with named
 # catalogs the fix is a judgement call about *which* catalog -- one the error
 # cannot make for you. `prefer` reuses the catalogued range automatically when
 # there is one, and leaves teaching the convention to a check that can name the
-# file, the dependency and a suggested catalog. No such check exists yet: until
-# it does, an uncatalogued dependency is caught in review, not by tooling.
+# file, the dependency and a suggested catalog. That check is
+# `scripts/git/catalog-integrity.mjs`, which pre-commit and CI both run through
+# `scripts/git/version-mismatch-check.sh`.
 catalogMode: prefer
-# Keep entries nothing references yet. The catalogs below are declared ahead of
-# the manifests that will reference them, so with cleanup enabled the next
-# install would delete all 163 of them. This flips to `true` once every
-# manifest references a catalog, at which point anything it removes is a
-# manifest the migration failed to wire up.
-cleanupUnusedCatalogs: false
+# Every manifest now references a catalog, so an entry nothing references is
+# rot with no reason to survive and the next install removes it. What "nothing
+# references" means is worth stating: pnpm reads the workspace *members*, not
+# the manifests syncpack lints -- the two sets differ, which is why the
+# playground is listed explicitly above.
+cleanupUnusedCatalogs: true
 dedupePeerDependents: true
 linkWorkspacePackages: deep
 minimumReleaseAge: 4320

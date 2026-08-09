@@ -116,7 +116,7 @@ catalogs:
     '@rollup/plugin-node-resolve': '^16.0.3'
     '@rollup/plugin-replace': '^6.0.3'
     '@rollup/plugin-swc': '^0.4.1'
-    '@rsbuild/core': '^2.1.9'
+    '@rsbuild/core': '^2.1.10'
     '@rsbuild/plugin-react': '^2.1.0'
     '@rspack/cli': '^2.1.7'
     '@rspack/core': '^2.1.7'

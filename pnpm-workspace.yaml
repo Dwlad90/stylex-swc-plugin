@@ -164,7 +164,7 @@ catalogs:
     'react-dom': '^19.2.8'
     'react-refresh': '^0.18.0'
     'solid-js': '^1.9.14'
-    'storybook': '^10.5.5'
+    'storybook': '^10.5.7'
     'vue': '^3.5.35'
 
   internal:

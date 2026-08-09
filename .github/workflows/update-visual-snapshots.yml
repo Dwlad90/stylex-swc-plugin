@@ -16,7 +16,7 @@ env:
   DO_NOT_TRACK: 1
   PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
   # This workflow commits regenerated snapshots. Hooks are not installed on a
-  # runner, but that rests entirely on install-hooks.sh's CI guard -- this makes
+  # runner, but that rests entirely on install-hooks.mjs's CI guard -- this makes
   # the intent local to the workflow that would be affected if it ever changed.
   LEFTHOOK: '0'
 

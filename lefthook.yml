@@ -1,7 +1,7 @@
 # Git hooks. Replaces husky (hook runner) + lint-staged (staged-file filtering).
 #
 # Installed by `pnpm install` via the `prepare` script, which calls
-# `scripts/git/install-hooks.sh`. That wrapper exists because lefthook refuses
+# `scripts/git/install-hooks.mjs`. That wrapper exists because lefthook refuses
 # to install while `core.hooksPath` is set -- it prints advice and exits 0, so a
 # leftover husky `core.hooksPath` silently leaves you with no hooks at all.
 #
@@ -23,7 +23,7 @@
 min_version: 2.1.10
 
 # Turns "hooks were never installed" from silence into an error. Paired with
-# install-hooks.sh this is what guarantees the checks actually ran.
+# install-hooks.mjs this is what guarantees the checks actually ran.
 assert_lefthook_installed: true
 
 prepare-commit-msg:

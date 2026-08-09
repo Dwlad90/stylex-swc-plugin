@@ -5,7 +5,7 @@ env:
   MACOSX_DEPLOYMENT_TARGET: '10.13'
   CARGO_INCREMENTAL: '1'
   # This workflow commits to the benchmarks branch. Hooks are not installed on a
-  # runner, but that rests entirely on install-hooks.sh's CI guard -- this makes
+  # runner, but that rests entirely on install-hooks.mjs's CI guard -- this makes
   # the intent local to the workflow that would be affected if it ever changed.
   LEFTHOOK: '0'
 permissions:

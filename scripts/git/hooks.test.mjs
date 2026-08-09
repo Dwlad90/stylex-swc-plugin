@@ -165,8 +165,8 @@ void test('pre-commit manifests', { skip: NEEDS_SHELL }, async t => {
   });
 });
 
-void test('install-hooks.sh', { skip: NEEDS_SHELL }, async t => {
-  const script = path.join(repoRoot, 'scripts/git/install-hooks.sh');
+void test('install-hooks.mjs', { skip: NEEDS_SHELL }, async t => {
+  const script = path.join(repoRoot, 'scripts/git/install-hooks.mjs');
 
   /**
    * Runs in a throwaway directory rather than the repository, because the
@@ -186,7 +186,7 @@ esac`,
     });
     writeStubs(path.join(workspace.directory, NODE_MODULES_BIN), { lefthook: {} });
 
-    const result = spawnSync('sh', [script], {
+    const result = spawnSync(process.execPath, [script], {
       cwd: workspace.directory,
       env: hermeticEnvironment({
         CI: '',

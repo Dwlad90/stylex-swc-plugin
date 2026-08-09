@@ -367,7 +367,7 @@ allowBuilds:
   # root `prepare`, so on a clone still carrying husky's
   # `core.hooksPath=.husky/_` it force-writes lefthook's hooks into `.husky/_`
   # -- resurrecting the directory this migration deletes. `prepare` ->
-  # `scripts/git/install-hooks.sh` unsets the path first and then installs,
+  # `scripts/git/install-hooks.mjs` unsets the path first and then installs,
   # which is the ordering that actually works. The postinstall also self-
   # disables under CI, so approving it would buy nothing there either.
   'lefthook': false

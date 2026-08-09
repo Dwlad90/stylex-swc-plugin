@@ -1,5 +1,18 @@
 # Scripts
 
+## Invoking a script from `package.json`
+
+Name the interpreter -- `sh ./scripts/x.sh`, `bash ./scripts/y.sh`,
+`node scripts/z.mjs` -- never `./scripts/x.sh` on its own. npm and pnpm hand a
+script line to `cmd.exe` on Windows, which cannot execute a `*.sh` by path: it
+fails with `'.' is not recognized as an internal or external command`. The
+release workflow's Windows build legs run `pnpm install`, so this reaches
+lifecycle scripts too; `prepare` in particular is Node for that reason, since it
+runs on every install on every platform before any guard inside it can.
+
+Match the prefix to the shebang. `sh` over a `#!/usr/bin/env bash` script drops
+it into dash on Linux, where its bashisms fail.
+
 ## Root (Turbo)
 
 `pnpm build`, `test`, `lint`, `lint:check` (JSON report), `format`,

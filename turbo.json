@@ -17,6 +17,7 @@
     "GITHUB_STEP_SUMMARY",
     "ImageOS",
     "ImageVersion",
+    "LEFTHOOK",
     "RUNNER_IMAGE"
   ],
   "futureFlags": {

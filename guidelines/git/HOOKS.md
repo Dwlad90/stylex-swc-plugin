@@ -5,7 +5,7 @@
 (`commitizen.sh`, `manifests.sh`); anything runnable on its own -- by CI, an npm
 script, or plain arguments -- lives in `scripts/git/`.
 
-`pnpm install` installs them (`prepare` -> `scripts/git/install-hooks.sh`) into
+`pnpm install` installs them (`prepare` -> `scripts/git/install-hooks.mjs`) into
 the common git dir, so one install hooks every worktree -- but jobs resolve
 `./node_modules/.bin/<tool>` in the worktree they fire in, so install per
 worktree anyway.

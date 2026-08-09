@@ -293,8 +293,8 @@ catalogs:
       specifier: ^0.19.0
       version: 0.19.0
     autoprefixer:
-      specifier: ^10.5.2
-      version: 10.5.2
+      specifier: ^10.5.4
+      version: 10.5.4
     browserslist:
       specifier: ^4.28.4
       version: 4.28.7
@@ -723,7 +723,7 @@ importers:
         version: 4.1.9(@vitest/browser@4.1.10)(vitest@4.1.10)
       autoprefixer:
         specifier: catalog:runtime
-        version: 10.5.2(postcss@8.5.25)
+        version: 10.5.4(postcss@8.5.25)
       jsdom:
         specifier: catalog:testing
         version: 29.1.1
@@ -954,7 +954,7 @@ importers:
         version: 19.2.4(@types/react@19.2.18)
       autoprefixer:
         specifier: catalog:runtime
-        version: 10.5.2(postcss@8.5.25)
+        version: 10.5.4(postcss@8.5.25)
       jest:
         specifier: catalog:testing
         version: 30.4.2(@types/node@26.1.2)(esbuild-register@3.6.0(esbuild@0.28.1)(supports-color@8.1.1))(supports-color@8.1.1)
@@ -1121,7 +1121,7 @@ importers:
         version: 19.2.4(@types/react@19.2.18)
       autoprefixer:
         specifier: catalog:runtime
-        version: 10.5.2(postcss@8.5.25)
+        version: 10.5.4(postcss@8.5.25)
       jest:
         specifier: catalog:testing
         version: 30.4.2(@types/node@26.1.2)(esbuild-register@3.6.0(esbuild@0.28.1)(supports-color@8.1.1))(supports-color@8.1.1)
@@ -1679,7 +1679,7 @@ importers:
         version: 1.15.47(@swc/helpers@0.5.23)
       autoprefixer:
         specifier: catalog:runtime
-        version: 10.5.2(postcss@8.5.25)
+        version: 10.5.4(postcss@8.5.25)
       css-loader:
         specifier: catalog:bundlers
         version: 7.1.4(@rspack/core@2.1.7(@swc/helpers@0.5.23))(webpack@5.109.2)
@@ -7195,8 +7195,8 @@ packages:
     resolution: {integrity: sha512-+q/t7Ekv1EDY2l6Gda6LLiX14rU9TV20Wa3ofeQmwPFZbOMo9DXrLbOjFaaclkXKWidIaopwAObQDqwWtGUjqg==}
     engines: {node: '>= 4.0.0'}
 
-  autoprefixer@10.5.2:
-    resolution: {integrity: sha512-rD5t5DwOjJdmSORcTq64j8MawTC+tbQ+HHqjR4NDumamy/ambn1UJrlKL+KdwujWxMkFjPM3pPHOEA9tl4767Q==}
+  autoprefixer@10.5.4:
+    resolution: {integrity: sha512-MaU0U/za7N3r6brxD4YB/l4NSrFzLPlANv6wEuQVaIPlD3L4W9rFcQPbL/EilY9BHhHvhfcz3gInDLrEtWT4EA==}
     engines: {node: ^10 || ^12 || >=14}
     hasBin: true
     peerDependencies:
@@ -16425,7 +16425,7 @@ snapshots:
 
   at-least-node@1.0.0: {}
 
-  autoprefixer@10.5.2(postcss@8.5.25):
+  autoprefixer@10.5.4(postcss@8.5.25):
     dependencies:
       browserslist: 4.28.7
       caniuse-lite: 1.0.30001806

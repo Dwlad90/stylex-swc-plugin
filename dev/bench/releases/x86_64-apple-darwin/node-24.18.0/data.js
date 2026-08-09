@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786135515316,
+  "lastUpdate": 1786287957693,
   "repoUrl": "https://github.com/Dwlad90/stylex-swc-plugin",
   "entries": {
     "Benchmark": [
@@ -736,6 +736,190 @@ window.BENCHMARK_DATA = {
           "previousVersion": "0.18.3",
           "target": "x86_64-apple-darwin",
           "nativeSha256": "6ac977c5363abdb812775c1a91139f71e24557b7932fd878c4e6ab04f27d1791"
+        }
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Dwlad90",
+            "email": "22377836+Dwlad90@users.noreply.github.com",
+            "username": "Dwlad90"
+          },
+          "committer": {
+            "name": "Dwlad90",
+            "email": "22377836+Dwlad90@users.noreply.github.com",
+            "username": "Dwlad90"
+          },
+          "id": "7f1606d03cd77e8fcb36bcc9f1d10ed3defec2c0",
+          "message": "Bump version to 0.18.4-dev.1",
+          "timestamp": "2026-08-09T14:41:44Z",
+          "tree_id": "5697a039b3018f3a163b16dbd45fe096cdc8e05a",
+          "url": "https://github.com/Dwlad90/stylex-swc-plugin/commit/7f1606d03cd77e8fcb36bcc9f1d10ed3defec2c0"
+        },
+        "date": 1786287957693,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "buttons-demo",
+            "value": 0.891687,
+            "unit": "ms",
+            "range": "±2.76%",
+            "extra": "p95 1.71 ms | 1,079.75 ops/sec | 990 samples"
+          },
+          {
+            "name": "card",
+            "value": 0.370938,
+            "unit": "ms",
+            "range": "±0.97%",
+            "extra": "p95 512.75 µs | 2,628.62 ops/sec | 2552 samples"
+          },
+          {
+            "name": "consts",
+            "value": 0.178917,
+            "unit": "ms",
+            "range": "±0.81%",
+            "extra": "p95 258.42 µs | 5,353.37 ops/sec | 5146 samples"
+          },
+          {
+            "name": "counter",
+            "value": 1.356708,
+            "unit": "ms",
+            "range": "±2.33%",
+            "extra": "p95 1.95 ms | 697.71 ops/sec | 674 samples"
+          },
+          {
+            "name": "counter-with-dynamic-styles",
+            "value": 1.813438,
+            "unit": "ms",
+            "range": "±3.18%",
+            "extra": "p95 3.44 ms | 506.96 ops/sec | 478 samples"
+          },
+          {
+            "name": "global-tokens",
+            "value": 3.396541,
+            "unit": "ms",
+            "range": "±2.38%",
+            "extra": "p95 5.03 ms | 299.42 ops/sec | 289 samples"
+          },
+          {
+            "name": "global-tokens-xs",
+            "value": 0.670333,
+            "unit": "ms",
+            "range": "±0.29%",
+            "extra": "p95 720.79 µs | 1,466.77 ops/sec | 1464 samples"
+          },
+          {
+            "name": "namespace-cleaning",
+            "value": 1.045625,
+            "unit": "ms",
+            "range": "±0.27%",
+            "extra": "p95 1.1 ms | 948.05 ops/sec | 947 samples"
+          },
+          {
+            "name": "namespace-cleaning-no-unused",
+            "value": 0.948291,
+            "unit": "ms",
+            "range": "±0.18%",
+            "extra": "p95 981.58 µs | 1,045.91 ops/sec | 1046 samples"
+          },
+          {
+            "name": "page",
+            "value": 0.404083,
+            "unit": "ms",
+            "range": "±0.30%",
+            "extra": "p95 473.87 µs | 2,408.14 ops/sec | 2398 samples"
+          },
+          {
+            "name": "page-tsx",
+            "value": 3.163771,
+            "unit": "ms",
+            "range": "±0.34%",
+            "extra": "p95 3.29 ms | 313.87 ops/sec | 314 samples"
+          },
+          {
+            "name": "page-with-keyframes",
+            "value": 3.069375,
+            "unit": "ms",
+            "range": "±0.45%",
+            "extra": "p95 3.25 ms | 322.92 ops/sec | 323 samples"
+          },
+          {
+            "name": "spot-loader",
+            "value": 1.440708,
+            "unit": "ms",
+            "range": "±0.74%",
+            "extra": "p95 1.65 ms | 698.13 ops/sec | 693 samples"
+          },
+          {
+            "name": "typography",
+            "value": 1.8695,
+            "unit": "ms",
+            "range": "±1.07%",
+            "extra": "p95 2.46 ms | 509.58 ops/sec | 505 samples"
+          },
+          {
+            "name": "use-memo",
+            "value": 0.439604,
+            "unit": "ms",
+            "range": "±0.40%",
+            "extra": "p95 548.25 µs | 2,205.76 ops/sec | 2192 samples"
+          },
+          {
+            "name": "Performance - Colors StyleX transformation",
+            "value": 0.473,
+            "unit": "ms",
+            "range": "±0.30%",
+            "extra": "p95 522.67 µs | 2,075.14 ops/sec | 2068 samples"
+          },
+          {
+            "name": "Performance - Basic theme transformation",
+            "value": 0.4725,
+            "unit": "ms",
+            "range": "±0.17%",
+            "extra": "p95 491.13 µs | 2,097.31 ops/sec | 2095 samples"
+          },
+          {
+            "name": "Performance - Complex theme transformation",
+            "value": 11.799792,
+            "unit": "ms",
+            "range": "±2.95%",
+            "extra": "p95 16.59 ms | 81.1 ops/sec | 81 samples"
+          },
+          {
+            "name": "Performance - Basic create transformation",
+            "value": 0.438333,
+            "unit": "ms",
+            "range": "±0.14%",
+            "extra": "p95 456.33 µs | 2,265.21 ops/sec | 2264 samples"
+          },
+          {
+            "name": "Performance - Complex create transformation",
+            "value": 5.596229,
+            "unit": "ms",
+            "range": "±0.91%",
+            "extra": "p95 6.36 ms | 176.1 ops/sec | 176 samples"
+          },
+          {
+            "name": "Rollup plugin - lotsOfStyles.js",
+            "value": 4039.128313,
+            "unit": "ms",
+            "range": "±1.82%",
+            "extra": "p95 4.25 s | 0.25 ops/sec | 10 samples"
+          },
+          {
+            "name": "Rollup plugin - lotsOfStylesDynamic.js",
+            "value": 21.237375,
+            "unit": "ms",
+            "range": "±0.70%",
+            "extra": "p95 21.96 ms | 46.82 ops/sec | 24 samples"
+          }
+        ],
+        "release": {
+          "ref": "0.18.4-dev.1",
+          "candidateVersion": "0.18.4-dev.1",
+          "previousVersion": "0.18.3",
+          "target": "x86_64-apple-darwin",
+          "nativeSha256": "7a83e6742bf37d4e6bdff959f6d99f9516bd296275eca4d1322ff2f0369ae9ed"
         }
       }
     ]

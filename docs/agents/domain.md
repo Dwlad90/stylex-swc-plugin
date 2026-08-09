@@ -3,25 +3,31 @@
 How the engineering skills should consume this repo's domain documentation when
 exploring the codebase.
 
-This repo is **multi-context**: a pnpm + Cargo monorepo where `crates/`,
-`packages/`, and `apps/` each hold separately-modelled contexts.
+This repo is **multi-context**: a pnpm + Cargo monorepo where `crates/` and
+`packages/` each hold separately-modelled contexts.
 
 ## Before exploring, read these
 
 - **`CONTEXT-MAP.md`** at the repo root -- one row per context, with its path
   and a one-line statement of what it is responsible for. Use it to pick which
   contexts are relevant; don't read them all.
-- **`<context>/CONTEXT.md`** -- the glossary for that crate, package, or app.
+- **`<context>/CONTEXT.md`** -- the glossary for that crate or package.
 - **`docs/adr/`** at the repo root -- decisions that span contexts.
 - **`<context>/docs/adr/`** -- decisions scoped to one crate or package.
 
 Read only the ADRs that touch the area you are about to work in.
 
-If any of these files don't exist, **proceed silently**. Don't flag their
-absence; don't suggest creating them upfront. Today none of them exist yet --
-that is expected. `/domain-modeling` (reached via `/grill-with-docs` and
-`/improve-codebase-architecture`) creates them lazily, when a term or decision
+`CONTEXT-MAP.md` is the inventory: what it lists, exists. An absent file means
+nothing has needed defining there yet, so **proceed silently** past it.
+`/domain-modeling` (reached via `/grill-with-docs` and
+`/improve-codebase-architecture`) adds files lazily, when a term or decision
 actually gets resolved.
+
+**Staleness is a delete signal.** When an entry stops matching the code, remove
+the term -- and the file, and its map row, once nothing true is left. A wrong
+definition gets believed; a missing one sends the reader to the source, which
+is always right. Rewrite an entry only when you have just confirmed the new
+wording against the code.
 
 ## Where they go
 
@@ -34,8 +40,8 @@ crates/stylex-transform/
 ```
 
 Root-level `CONTEXT-MAP.md` and `docs/adr/` hold only what genuinely spans
-contexts. Add a `CONTEXT-MAP.md` row whenever a new context grows a
-`CONTEXT.md`.
+contexts. The map moves with the files: a row appears when a context grows a
+`CONTEXT.md`, and goes when one is deleted.
 
 ## Use the glossary's vocabulary
 

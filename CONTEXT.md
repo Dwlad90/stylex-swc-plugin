@@ -2,8 +2,8 @@
 
 A Rust reimplementation of Facebook's StyleX CSS-in-JS compiler, published as
 npm packages built from a Cargo workspace. Root glossary: cross-context terms
-only — `crates/`, `packages/` and `apps/` are modelled separately, so a term
-particular to one belongs in its own file.
+only — each crate and package is modelled separately, so a term particular to
+one belongs in its own file. [CONTEXT-MAP.md](./CONTEXT-MAP.md) lists them.
 
 ## Language
 

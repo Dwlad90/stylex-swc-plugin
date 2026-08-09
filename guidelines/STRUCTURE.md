@@ -9,204 +9,46 @@ Atomic crates arranged in a strict dependency DAG (higher layers depend only on
 lower layers). Each crate owns exactly one concern -- no re-export facades, no
 mixed-domain files.
 
-**Layer 0 -- Primitives (no internal dependencies):**
+The layer decides what a crate may depend on. What each one is _responsible
+for_, and the vocabulary it defines, is in
+[CONTEXT-MAP.md](../CONTEXT-MAP.md).
 
-- `stylex-constants` -- static lookup tables, keyword sets, and compile-time
-  constants
-- `stylex-regex` -- pre-compiled `lazy_static!` regex patterns for CSS value
-  matching
-- `stylex-styleq` -- Rust port of the runtime
-  [`styleq`](https://github.com/necolas/styleq) class-name merger
-- `stylex-utils` -- lightweight SWC AST helpers
+- **0 -- Primitives** (no internal dependencies): `stylex-constants`,
+  `stylex-regex`, `stylex-styleq`, `stylex-utils`
+- **1 -- Macros**: `stylex-macros`
+- **2 -- Domain leaves**: `stylex-enums`, `stylex-js`, `stylex-logs`,
+  `stylex-css-parser`, `stylex-path-resolver`
+- **3 -- Core data structures**: `stylex-structures`
+- **4 -- Type system**: `stylex-types`
+- **5 -- AST foundations**: `stylex-ast`
+- **6 -- Evaluation and inline syntax**: `stylex-evaluator`, `stylex-atoms`
+- **7 -- CSS processing**: `stylex-css`
+- **8 -- StyleX transform**: `stylex-transform`
+- **9 -- Compilers** (top-level consumers): `stylex-rs-compiler`
 
-**Layer 1 -- Macros:**
-
-- `stylex-macros` -- error-handling and diagnostic macros (`stylex_panic!`,
-  `stylex_bail!`, `stylex_unwrap!`, etc.)
-
-**Layer 2 -- Domain Leaves:**
-
-- `stylex-enums` -- enum modules: `CSSSyntax`, `ValueWithDefault`,
-  `ImportPathResolution`, `StyleVarsToKeep`, and more
-- `stylex-js` -- JS runtime guard helpers (`is_valid_callee`,
-  `is_mutation_expr`, `is_invalid_method`)
-- `stylex-logs` -- structured logging with ANSI-colored `[StyleX]`-branded
-  output for the NAPI-RS pipeline
-- `stylex-css-parser` -- CSS value parser with type, property, and at-rule
-  coverage
-- `stylex-path-resolver` -- import path resolution with partial `package.json`
-  exports support
-
-**Layer 3 -- Core Data Structures:**
-
-- `stylex-structures` -- foundational struct modules: `StylexOptions`,
-  `UidGenerator`, `PluginPass`, `NamedImportSource`, `Order`, and more
-
-**Layer 4 -- Type System:**
-
-- `stylex-types` -- cross-coupled core types (`InjectableStyle*`, `MetaData`)
-  and the `StyleOptions` trait
-
-**Layer 5 -- AST Foundations:**
-
-- `stylex-ast` -- SWC AST factory and convertor functions (semantically named
-  `create_*`, `convert_*`)
-
-**Layer 6 -- Evaluation:**
-
-- `stylex-evaluator` -- pure JS expression evaluator; no transform side effects
-
-**Layer 7 -- CSS Processing:**
-
-- `stylex-css` -- unified CSS processing: generation (LTR/RTL), whitespace
-  normalization, value parsing, property ordering strategies, and pseudo-class
-  selector utilities
-
-**Layer 8 -- StyleX Transform:**
-
-- `stylex-transform` -- main SWC transform: `StyleXTransform`, `StateManager`,
-  SWC `Fold` visitor, and all injection logic
-
-**Layer 9 -- Compilers (top-level consumers):**
-
-- `stylex-rs-compiler` -- NAPI-RS compiler exposing the full pipeline to Node.js
+`stylex-test-parser` sits outside the DAG: nothing depends on it, and it is a
+developer binary rather than part of the compiler.
 
 Workspace dependencies are defined in the root `Cargo.toml`.
 
-<details>
-<summary>Dependency graph</summary>
-
-```mermaid
-graph TD
-  subgraph L0["Primitives"]
-    stylex_constants["constants"]
-    stylex_regex["regex"]
-    stylex_styleq["styleq"]
-    stylex_utils["utils"]
-  end
-
-  subgraph L1["Proc Macros"]
-    stylex_macros["macros"]
-  end
-
-  subgraph L2["Domain Leaves"]
-    stylex_enums["enums"]
-    stylex_js["js"]
-    stylex_logs["logs"]
-    stylex_css_parser["css-parser"]
-    stylex_path_resolver["path-resolver"]
-  end
-
-  subgraph L3["Core Data Structures"]
-    stylex_structures["structures"]
-  end
-
-  subgraph L4["Type System"]
-    stylex_types["types"]
-  end
-
-  subgraph L5["AST Foundations"]
-    stylex_ast["ast"]
-  end
-
-  subgraph L6["Evaluation"]
-    stylex_evaluator["evaluator"]
-  end
-
-  subgraph L7["CSS Processing"]
-    stylex_css["css"]
-  end
-
-  subgraph L8["StyleX Transform"]
-    stylex_transform["transform"]
-  end
-
-  subgraph L9["Compilers"]
-    stylex_compiler_rs["rs-compiler"]
-  end
-
-  stylex_utils         --> stylex_regex
-
-  stylex_macros        --> stylex_constants
-
-  stylex_enums         --> stylex_macros
-  stylex_js            --> stylex_constants
-  stylex_js            --> stylex_macros
-  stylex_logs          --> stylex_macros
-  stylex_css_parser    --> stylex_macros
-  stylex_path_resolver --> stylex_macros
-
-  stylex_structures    --> stylex_constants
-  stylex_structures    --> stylex_enums
-  stylex_structures    --> stylex_macros
-
-  stylex_types         --> stylex_constants
-  stylex_types         --> stylex_enums
-  stylex_types         --> stylex_macros
-  stylex_types         --> stylex_structures
-  stylex_types         --> stylex_utils
-
-  stylex_ast           --> stylex_constants
-  stylex_ast           --> stylex_macros
-  stylex_ast           --> stylex_types
-  stylex_ast           --> stylex_utils
-
-  stylex_evaluator     --> stylex_ast
-  stylex_evaluator     --> stylex_constants
-  stylex_evaluator     --> stylex_js
-  stylex_evaluator     --> stylex_macros
-  stylex_evaluator     --> stylex_path_resolver
-  stylex_evaluator     --> stylex_types
-
-  stylex_css           --> stylex_ast
-  stylex_css           --> stylex_constants
-  stylex_css           --> stylex_css_parser
-  stylex_css           --> stylex_enums
-  stylex_css           --> stylex_evaluator
-  stylex_css           --> stylex_macros
-  stylex_css           --> stylex_regex
-  stylex_css           --> stylex_structures
-  stylex_css           --> stylex_types
-  stylex_css           --> stylex_utils
-
-  stylex_transform     --> stylex_ast
-  stylex_transform     --> stylex_constants
-  stylex_transform     --> stylex_css
-  stylex_transform     --> stylex_css_parser
-  stylex_transform     --> stylex_enums
-  stylex_transform     --> stylex_evaluator
-  stylex_transform     --> stylex_logs
-  stylex_transform     --> stylex_macros
-  stylex_transform     --> stylex_path_resolver
-  stylex_transform     --> stylex_regex
-  stylex_transform     --> stylex_structures
-  stylex_transform     --> stylex_styleq
-  stylex_transform     --> stylex_types
-  stylex_transform     --> stylex_utils
-
-  stylex_compiler_rs   --> stylex_ast
-  stylex_compiler_rs   --> stylex_enums
-  stylex_compiler_rs   --> stylex_logs
-  stylex_compiler_rs   --> stylex_macros
-  stylex_compiler_rs   --> stylex_regex
-  stylex_compiler_rs   --> stylex_structures
-  stylex_compiler_rs   --> stylex_transform
-  stylex_compiler_rs   --> stylex_types
-  stylex_compiler_rs   --> stylex_utils
-```
-
-</details>
-
 ## TS/JS Packages (`packages/`)
 
-Integration plugins:
+How they stack (each package's `dependencies` is the authority):
 
-- `nextjs-plugin`, `postcss-plugin`, `unplugin`, `webpack-plugin`,
-  `rollup-plugin`, `turbopack-plugin`, `jest`
+- `plugin-shared` -- the shared core, on `rs-compiler`
+- `webpack-plugin`, `rspack-plugin` -- on `plugin-shared` alone; they reach
+  `rs-compiler` through it
+- `turbopack-plugin` -- on `rs-compiler`, plus `plugin-shared` for
+  `source-map-options` only, not the loader core
+- `nextjs-plugin` -- composes the webpack, rspack and turbopack plugins rather
+  than the core directly
+- `rollup-plugin`, `unplugin`, `postcss-plugin`, `jest` -- on `rs-compiler`
+  alone; their hosts have no loader chain to share
 
-Shared configs:
+Shared configs: `typescript-config`, `playwright` (neither depends on the
+compiler), `design-system` (does).
 
-- `typescript-config`, `playwright`, `design-system`
+What each is responsible for is in [CONTEXT-MAP.md](../CONTEXT-MAP.md).
 
 ## Example Apps (`apps/`)
 

@@ -57,6 +57,7 @@ see [Testing](./guidelines/coding/TESTING.md).
 - Triage labels: the five default triage roles, recorded in each issue file's
   `Status:` line --
   [docs/agents/triage-labels.md](./docs/agents/triage-labels.md)
-- Domain docs: this repo is multi-context -- one `CONTEXT.md` per crate, package
-  and app, indexed by a root `CONTEXT-MAP.md` --
+- Domain docs: this repo is multi-context -- a `CONTEXT.md` glossary per crate
+  and package, indexed by the root `CONTEXT-MAP.md`. Read before exploring an
+  unfamiliar area or naming a domain concept --
   [docs/agents/domain.md](./docs/agents/domain.md)

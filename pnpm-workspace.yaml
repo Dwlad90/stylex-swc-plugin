@@ -165,7 +165,7 @@ catalogs:
     'react-refresh': '^0.18.0'
     'solid-js': '^1.9.14'
     'storybook': '^10.5.5'
-    'vue': '^3.5.35'
+    'vue': '^3.5.41'
 
   internal:
     '@stylexswc/ast': '0.18.4-dev.1'

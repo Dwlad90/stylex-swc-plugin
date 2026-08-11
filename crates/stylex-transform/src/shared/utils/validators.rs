@@ -420,11 +420,14 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
     return;
   }
 
-  let call_expr = Expr::from(call.clone());
+  // Cloned only where it is about to be reported, as `validate_stylex_create`
+  // does: every path that needs it diverges, so the call that compiles pays
+  // nothing.
+  let fault_expr = || Expr::from(call.clone());
 
   if !call.args.is_empty() {
     build_code_frame_error_and_panic_at(
-      &call_expr,
+      &fault_expr(),
       &illegal_argument_length(STYLEX_DEFINE_MARKER, 0),
       state,
     );
@@ -459,13 +462,13 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
         unbound_call_value(STYLEX_DEFINE_MARKER)
       };
 
-      build_code_frame_error_and_panic(&call_expr, &call_expr, &error_message, state)
+      build_code_frame_error_and_panic_at(&fault_expr(), &error_message, state)
     },
   };
 
   if !is_variable_named_exported(define_marker_top_level_expr, state) {
     build_code_frame_error_and_panic_at(
-      &call_expr,
+      &fault_expr(),
       &non_export_named_declaration(STYLEX_DEFINE_MARKER),
       state,
     );

@@ -62,10 +62,10 @@ fn test_default_marker_with_empty_prefix() {
     .as_values()
     .expect("Expected FlatCompiledStylesValues");
 
-  assert!(map.contains_key("default-marker"));
+  assert!(map.contains_key("-default-marker"));
 
-  if let Some(FlatCompiledStylesValue::String(s)) = map.get("default-marker").map(|v| v.as_ref()) {
-    assert_eq!(s, "default-marker");
+  if let Some(FlatCompiledStylesValue::String(s)) = map.get("-default-marker").map(|v| v.as_ref()) {
+    assert_eq!(s, "-default-marker");
   } else {
     panic!("Expected string value for marker class");
   }

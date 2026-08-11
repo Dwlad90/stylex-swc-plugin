@@ -100,3 +100,20 @@ stylex_test!(
     });
   "#
 );
+
+// An explicitly empty `classNamePrefix` is honoured rather than replaced by
+// the default, so the position-try name carries no prefix.
+stylex_test!(
+  position_try_with_empty_class_name_prefix,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_class_name_prefix("")),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const name = stylex.positionTry({
+      positionAnchor: '--anchor',
+      top: '0',
+      left: '0',
+      width: '100px',
+      height: '100px'
+    });
+  "#
+);

@@ -85,3 +85,23 @@ stylex_test!(
     });
   "#
 );
+
+// An explicitly empty `classNamePrefix` is honoured rather than replaced by
+// the default, so the animation name carries no prefix.
+stylex_test!(
+  keyframes_with_empty_class_name_prefix,
+  |tr| build_test_transform(tr.comments.clone(), |b| b
+    .with_class_name_prefix("")
+    .with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const name = stylex.keyframes({
+      from: {
+        color: 'red',
+      },
+      to: {
+        color: 'blue',
+      }
+    });
+  "#
+);

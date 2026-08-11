@@ -38,11 +38,9 @@ pub(crate) fn stylex_keyframes(
   frames: &EvaluateResultValue,
   state: &mut StateManager,
 ) -> (String, InjectableStyleKind) {
-  let mut class_name_prefix = state.options.class_name_prefix.clone();
-
-  if class_name_prefix.is_empty() {
-    class_name_prefix = "x".to_string();
-  }
+  // NOTE: an unset `classNamePrefix` arrives here already defaulted to `x`,
+  // so an empty one was asked for explicitly and is honoured as empty.
+  let class_name_prefix = state.options.class_name_prefix.clone();
 
   let Some(frames) = frames.as_expr().and_then(|expr| expr.as_object()) else {
     stylex_panic!("{}", VALUES_MUST_BE_OBJECT)

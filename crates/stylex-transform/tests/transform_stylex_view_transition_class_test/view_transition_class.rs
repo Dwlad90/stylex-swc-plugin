@@ -111,3 +111,28 @@ stylex_test_transform!(
   "#,
   r#""#
 );
+
+// An explicitly empty `classNamePrefix` is honoured rather than replaced by
+// the default, so the view-transition class carries no prefix. The input
+// repeats `basic_object` so the two snapshots differ only by that prefix.
+stylex_test!(
+  view_transition_class_with_empty_class_name_prefix,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_class_name_prefix("")),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const cls = stylex.viewTransitionClass({
+      group: {
+        transitionProperty: 'none',
+      },
+      imagePair: {
+        borderRadius: 16,
+      },
+      old: {
+        animationDuration: '0.5s',
+      },
+      new: {
+        animationTimingFunction: 'ease-out',
+      },
+    });
+  "#
+);

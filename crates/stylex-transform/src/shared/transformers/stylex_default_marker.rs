@@ -19,11 +19,10 @@ use stylex_structures::stylex_state_options::StyleXStateOptions;
 /// A map with the default marker class name as both key and value,
 /// plus a `$$css` marker set to true
 pub(crate) fn stylex_default_marker(options: &StyleXStateOptions) -> NestedStringObject {
-  let prefix = if !options.class_name_prefix.is_empty() {
-    format!("{}-", options.class_name_prefix)
-  } else {
-    String::new()
-  };
+  // NOTE: the prefix is always applied, including when it is empty — an
+  // unset `classNamePrefix` arrives here already defaulted to `x`, so an
+  // empty one was asked for explicitly and keeps its separator.
+  let prefix = format!("{}-", options.class_name_prefix);
 
   let marker_class = format!("{}default-marker", prefix);
 

@@ -24,6 +24,13 @@ use, picked by preference: `index.css`, then `style.css`, then `main.css`, then
 the first `.css` asset present.
 _Avoid_: target file, output css, main stylesheet
 
+**Stylesheet href**:
+The URL written into the injected `<link>` tag, as opposed to the path the CSS
+asset is emitted at. The two differ whenever a host serves the bundle from
+somewhere other than the origin root — Vite's `base` — so the emitted path stays
+root-relative while the href is resolved against that base.
+_Avoid_: css url, link path, asset url
+
 **Bundler source**:
 An asset's content object. webpack and Rspack each declare their own
 incompatible `Source`, so the shared injection helper is generic over it —

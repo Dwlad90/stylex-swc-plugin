@@ -8,12 +8,13 @@ import type { StyleXMetadata, TransformedOptions } from '@stylexswc/rs-compiler'
 import { createUnplugin } from 'unplugin';
 import type { UnpluginFactory, UnpluginInstance } from 'unplugin';
 import type { Connect } from 'vite';
-import type { HotPayload, ModuleNode, UserConfig, ViteDevServer } from 'vite';
+import type { HotPayload, ModuleNode, ViteDevServer } from 'vite';
 
 import type { UnpluginStylexRSOptions } from './types';
 import generateHash from './utils/generateHash';
 import getStyleXRules from './utils/getStyleXRules';
 import normalizeOptions, { identityTransformCss } from './utils/normalizeOptions';
+import resolveStylesheetHref from './utils/resolveStylesheetHref';
 
 type StyleXRules = Record<string, StyleXMetadata['stylex']>;
 
@@ -299,7 +300,9 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   // Mutable state for each compilation - reset in buildStart
   const stylexRules: StyleXRules = {};
 
-  let viteConfig: UserConfig | null = null;
+  // Each field is read from the hook that reports the value we actually want,
+  // which is not the same hook for both. Stays null for hosts other than Vite.
+  let viteConfig: { assetsDir?: string; base?: string } | null = null;
 
   let hasCssToExtract = false;
   let cssFileName: string | null = null;
@@ -498,13 +501,17 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
     vite: {
       config(config) {
-        viteConfig = {
-          build: config.build,
-          base: config.base,
-        };
+        // Deliberately the *user* `assetsDir`: leaving it unset keeps the
+        // stylesheet at the output root, whereas the resolved config always
+        // reports Vite's `assets` default and would relocate it.
+        viteConfig = { ...viteConfig, assetsDir: config.build?.assetsDir };
       },
 
       configResolved(config) {
+        // `base`, unlike `assetsDir`, is wanted in its resolved form: the user
+        // value may be unset or missing the trailing slash Vite normalizes in.
+        viteConfig = { ...viteConfig, base: config.base };
+
         config.optimizeDeps.exclude = config.optimizeDeps.exclude || [];
         config.optimizeDeps.exclude.push('@stylexjs/open-props');
       },
@@ -642,7 +649,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           stylexRules,
           normalizedOptions,
           transformedOptions,
-          viteConfig?.build?.assetsDir
+          viteConfig?.assetsDir
         );
 
         if (!collectedCSS) return;
@@ -740,7 +747,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           stylexRules,
           normalizedOptions,
           transformedOptions,
-          viteConfig?.build?.assetsDir
+          viteConfig?.assetsDir
         );
 
         if (!collectedCSS) return undefined;
@@ -793,7 +800,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           stylexRules,
           normalizedOptions,
           transformedOptions,
-          viteConfig?.build?.assetsDir
+          viteConfig?.assetsDir
         );
 
         if (!processedFileName) {
@@ -804,6 +811,9 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
         if (isDev) {
           wsSend ||= ctx.server?.ws.send.bind(ctx.server.ws);
+          // Deliberately the base-less path, unlike the href below. It is matched
+          // against request URLs, which Vite has already stripped the base from,
+          // and sent as an HMR path, which is likewise base-less.
           cssFileName ||= normalizedFileName;
         }
 
@@ -812,7 +822,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             tag: 'link',
             attrs: {
               rel: 'stylesheet',
-              href: normalizedFileName,
+              href: resolveStylesheetHref(viteConfig?.base, normalizedFileName, ctx.path),
             },
             injectTo: 'head',
           },

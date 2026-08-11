@@ -353,12 +353,19 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
 }
 
 pub fn fill_state_declarations(state: &mut StateManager, decl: &VarDeclarator) {
-  // Dedup span-insensitively so the same declaration seen on multiple passes
-  // is stored once, while the live AST's spans are kept intact.
+  // Dedup on position first, then content. Every filler runs in the `Discover`
+  // cycle over the pristine AST, so the same declaration seen on more than one
+  // of those passes carries the same span and is still stored once — while two
+  // declarations that merely *read* the same, `var m = f(); var m = f();`, stay
+  // two entries. Collapsing those lost the second one, and a transform that
+  // pins a call to its declarator by span then found nothing to rewrite.
+  //
+  // Content is still compared span-insensitively, which is what decides the
+  // synthesized declarators that share `DUMMY_SP`.
   if !state
     .declarations
     .iter()
-    .any(|existing| existing.eq_ignore_span(decl))
+    .any(|existing| existing.span == decl.span && existing.eq_ignore_span(decl))
   {
     state.declarations.push(decl.clone());
   }

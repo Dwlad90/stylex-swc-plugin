@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use swc_core::{
-  common::{DUMMY_SP, FileName, SyntaxContext},
+  common::{BytePos, DUMMY_SP, FileName, Span, SyntaxContext},
   ecma::ast::{
     BinaryOp, BindingIdent, Decl, ExportDecl, Expr, Ident, Lit, Module, ModuleDecl, ModuleItem,
     Number, Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
@@ -568,6 +568,41 @@ mod fill_state_declarations_tests {
     let decl2 = make_var_declarator("y", make_num_expr(2.0));
     fill_state_declarations(&mut state, &decl1);
     fill_state_declarations(&mut state, &decl2);
+    assert_eq!(state.declarations.len(), 2);
+  }
+
+  /// `var m = f(); var m = f();` — two declarations that read the same but sit
+  /// at different positions. Collapsing them loses the second one, and a
+  /// transform that pins a call to its declarator by span then finds nothing
+  /// to rewrite, leaving the call in the output.
+  #[test]
+  fn adds_identical_declarations_from_different_positions() {
+    let mut state = StateManager::default();
+
+    let first = VarDeclarator {
+      span: Span {
+        lo: BytePos(1),
+        hi: BytePos(10),
+      },
+      ..make_var_declarator("m", make_num_expr(1.0))
+    };
+    let second = VarDeclarator {
+      span: Span {
+        lo: BytePos(20),
+        hi: BytePos(30),
+      },
+      ..make_var_declarator("m", make_num_expr(1.0))
+    };
+
+    fill_state_declarations(&mut state, &first);
+    fill_state_declarations(&mut state, &second);
+
+    assert_eq!(state.declarations.len(), 2);
+
+    // Re-recording either one on a later discovery pass is still a no-op.
+    fill_state_declarations(&mut state, &first);
+    fill_state_declarations(&mut state, &second);
+
     assert_eq!(state.declarations.len(), 2);
   }
 }

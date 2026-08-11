@@ -72,3 +72,19 @@ stylex_test!(
     export const baz = defineMarker();
   "#
 );
+
+// A redeclared marker. Both declarations are compiled, and to the same class —
+// they name one export, and the class is derived from that name. Leaving either
+// call in place would throw at runtime, where `defineMarker` exists only to
+// report that it was never compiled away.
+stylex_test!(
+  marker_redeclared_under_the_same_name,
+  |tr| stylex_transform(tr.comments.clone(), |b| b
+    .with_filename(FileName::Real("/stylex/packages/markers.stylex.ts".into()))),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    var dupMarker = stylex.defineMarker();
+    var dupMarker = stylex.defineMarker();
+    export { dupMarker };
+  "#
+);

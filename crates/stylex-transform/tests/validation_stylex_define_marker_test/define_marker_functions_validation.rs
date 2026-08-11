@@ -108,3 +108,56 @@ stylex_test_panic!(
     const second = stylex.defineMarker();
   "#
 );
+
+// A call in a nested scope is bound to a variable, just never to an export, so
+// the missing export is what it is told about.
+stylex_test_panic!(
+  invalid_export_marker_in_a_nested_scope,
+  "The return value of defineMarker() must be bound to a named export.",
+  |tr| define_marker_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    function useMarker() {
+      const marker = stylex.defineMarker();
+      return marker;
+    }
+  "#
+);
+
+stylex_test_panic!(
+  invalid_export_marker_in_a_nested_scope_after_an_exported_one,
+  "The return value of defineMarker() must be bound to a named export.",
+  |tr| define_marker_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const first = stylex.defineMarker();
+    function useMarker() {
+      const second = stylex.defineMarker();
+      return second;
+    }
+  "#
+);
+
+// Bound to a destructuring pattern rather than a plain identifier: here it is
+// the variable that is wrong, not the export.
+stylex_test_panic!(
+  invalid_binding_destructured_marker,
+  "defineMarker() calls must be bound to a bare variable.",
+  |tr| define_marker_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const { marker } = stylex.defineMarker();
+    export { marker };
+  "#
+);
+
+// Not bound to a variable at all.
+stylex_test_panic!(
+  invalid_binding_bare_call_statement,
+  "defineMarker() calls must be bound to a bare variable.",
+  |tr| define_marker_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    stylex.defineMarker();
+  "#
+);

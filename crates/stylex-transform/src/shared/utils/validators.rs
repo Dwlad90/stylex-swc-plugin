@@ -436,16 +436,31 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
   // marker through behind an exported one.
   let define_marker_top_level_expr = match state.find_top_level_expr_by_span(call) {
     Some(define_marker_top_level_expr) => define_marker_top_level_expr,
+    // Missing from the top level does not mean unbound. A call in a nested
+    // scope still initialises a declarator, and the discovery pass records
+    // declarators from every scope, so what that declarator looks like is what
+    // separates the two failures: bound to a plain identifier and the export is
+    // what is missing, bound to anything else — a destructuring pattern — and
+    // the variable is. Answered from the recorded declarations, on the error
+    // path only, so nothing is re-walked to tell them apart.
+    //
     // The call itself is the fault site. `defineMarker()` takes no arguments —
     // the check above has already panicked otherwise — so there is never an
     // argument to point at, unlike the `defineVars` / `defineConsts` validators
     // this shape was copied from.
-    None => build_code_frame_error_and_panic(
-      &call_expr,
-      &call_expr,
-      &unbound_call_value(STYLEX_DEFINE_MARKER),
-      state,
-    ),
+    None => {
+      let is_bound_to_a_bare_variable = state
+        .find_call_declaration_by_span(call)
+        .is_some_and(|declaration| declaration.name.as_ident().is_some());
+
+      let error_message = if is_bound_to_a_bare_variable {
+        non_export_named_declaration(STYLEX_DEFINE_MARKER)
+      } else {
+        unbound_call_value(STYLEX_DEFINE_MARKER)
+      };
+
+      build_code_frame_error_and_panic(&call_expr, &call_expr, &error_message, state)
+    },
   };
 
   if !is_variable_named_exported(define_marker_top_level_expr, state) {

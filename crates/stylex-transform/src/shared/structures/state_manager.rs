@@ -1158,6 +1158,15 @@ impl StateManager {
     })
   }
 
+  /// The declarator initialised by *this* call node, for callers that only read
+  /// it. See [`Self::find_call_declaration_index_by_span`], which this defers
+  /// to, for how the match is made.
+  pub(crate) fn find_call_declaration_by_span(&self, call: &CallExpr) -> Option<&VarDeclarator> {
+    self
+      .declarations
+      .get(self.find_call_declaration_index_by_span(call)?)
+  }
+
   pub(crate) fn find_call_declaration(&self, call: &CallExpr) -> Option<&VarDeclarator> {
     self.declarations.iter().find(|decl| {
       decl

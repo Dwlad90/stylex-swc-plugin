@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { build, createServer } from 'vite';
+import type { Plugin, PluginOption } from 'vite';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import type { UnpluginStylexRSOptions } from '../src/types';
@@ -18,13 +19,13 @@ afterEach(async () => {
 // installed; the compiler only cares that the import resolves.
 const stylexRuntimeStub = {
   name: 'stylex-runtime-stub',
-  resolveId(id: string) {
+  resolveId(id) {
     return id === '@stylexjs/stylex' ? '\0stylex-runtime-stub' : null;
   },
-  load(id: string) {
+  load(id) {
     return id === '\0stylex-runtime-stub' ? 'export const create = value => value;' : null;
   },
-};
+} satisfies Plugin;
 
 // Each fixture gets its own root so the temp directories cannot collide, and
 // every root is registered for the afterEach cleanup.
@@ -92,41 +93,84 @@ export const styles = stylex.create({
 const buildFixtureHtml =
   '<!doctype html><html><head></head><body><script type="module" src="/main.js"></script></body></html>\n';
 
+// One document pulling in one StyleX module is all either host below needs to
+// reach the link injection.
+const linkFixtureFiles: Record<string, string> = {
+  'index.html': buildFixtureHtml,
+  'main.js': buildFixtureSource,
+};
+
+// The host is the only thing the two fixtures disagree about, so `dev` is the
+// only knob: everything that decides the injected href is shared.
+function linkFixturePlugins(dev: boolean): PluginOption[] {
+  return [
+    stylexRuntimeStub,
+    stylexSwc({
+      fileName: 'stylex.css',
+      rsOptions: { dev, unstable_moduleResolution: { type: 'commonJS' } },
+    }),
+  ];
+}
+
 // Builds for real rather than calling the href helper directly: what only a
 // build can settle is which base Vite actually hands the plugin. The per-base
 // string cases are covered far more precisely in resolveStylesheetHref.test.ts.
 async function buildIndexHtml(base: string, pages: string[] = []): Promise<Record<string, string>> {
   const root = await writeFixtureRoot('.stylex-vite-base-', {
-    'index.html': buildFixtureHtml,
-    'main.js': buildFixtureSource,
+    ...linkFixtureFiles,
     ...Object.fromEntries(pages.map(page => [page, buildFixtureHtml])),
   });
 
   await build({
     base,
     build: {
+      // Spelled out because the assertions read the emitted HTML back off disk.
       write: true,
       rolldownOptions: { input: ['index.html', ...pages].map(page => path.join(root, page)) },
     },
+    configFile: false,
     logLevel: 'silent',
-    plugins: [
-      stylexRuntimeStub,
-      stylexSwc({
-        fileName: 'stylex.css',
-        rsOptions: { dev: false, unstable_moduleResolution: { type: 'commonJS' } },
-      }),
-    ],
+    plugins: linkFixturePlugins(false),
     root,
   });
 
   const built = await Promise.all(
-    ['index.html', ...pages].map(async page => [
-      page,
-      await readFile(path.join(root, 'dist', page), 'utf8'),
-    ])
+    ['index.html', ...pages].map(
+      async (page): Promise<[string, string]> => [
+        page,
+        await readFile(path.join(root, 'dist', page), 'utf8'),
+      ]
+    )
   );
 
   return Object.fromEntries(built);
+}
+
+// The dev server is the one host where the injected href and the path the CSS
+// middleware answers on are allowed to differ, and it resolves `base` on its
+// own terms, so it needs its own fixture rather than the build one above.
+async function transformDevIndexHtml(base: string): Promise<string> {
+  const root = await writeFixtureRoot('.stylex-vite-dev-base-', linkFixtureFiles);
+
+  const server = await createServer({
+    base,
+    configFile: false,
+    logLevel: 'silent',
+    optimizeDeps: { noDiscovery: true },
+    plugins: linkFixturePlugins(true),
+    root,
+    server: { middlewareMode: true, preTransformRequests: false },
+  });
+
+  try {
+    // Collects the rules the injection needs; nothing has requested the module
+    // yet at the point the document is transformed.
+    await server.transformRequest('/main.js');
+
+    return await server.transformIndexHtml('/index.html', buildFixtureHtml);
+  } finally {
+    await server.close();
+  }
 }
 
 const containerConsts = `import * as stylex from '@stylexjs/stylex';
@@ -294,6 +338,12 @@ export const styles = stylex.create({
     expect(built['index.html']).toContain('href="/stylex.css"');
   });
 
+  test('should inject the stylesheet link under a sub-path base', async () => {
+    const built = await buildIndexHtml('/app/');
+
+    expect(built['index.html']).toContain('href="/app/stylex.css"');
+  });
+
   test('should inject the stylesheet link under a full-URL base', async () => {
     const built = await buildIndexHtml('https://cdn.example.com/app/');
 
@@ -305,5 +355,11 @@ export const styles = stylex.create({
 
     expect(built['index.html']).toContain('href="./stylex.css"');
     expect(built['pages/about.html']).toContain('href="../stylex.css"');
+  });
+
+  test('should inject a base-prefixed stylesheet link in dev', async () => {
+    const html = await transformDevIndexHtml('/app/');
+
+    expect(html).toContain('href="/app/stylex.css"');
   });
 });

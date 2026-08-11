@@ -28,7 +28,9 @@ _Avoid_: target file, output css, main stylesheet
 The URL written into the injected `<link>` tag, as opposed to the path the CSS
 asset is emitted at. The two differ whenever a host serves the bundle from
 somewhere other than the origin root — Vite's `base` — so the emitted path stays
-root-relative while the href is resolved against that base.
+root-relative while the href is resolved against that base. In dev there is a
+third form again: the served path, which stays base-less because that is what
+HMR payloads carry and what the CSS middleware matches.
 _Avoid_: css url, link path, asset url
 
 **Bundler source**:

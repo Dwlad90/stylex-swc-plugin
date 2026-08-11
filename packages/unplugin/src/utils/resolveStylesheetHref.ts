@@ -1,3 +1,7 @@
+const RELATIVE_BASE = './';
+const LEADING_SLASH = /^\//;
+const TRAILING_SLASH = /\/$/;
+
 /**
  * Resolves the href for the injected stylesheet link against the host's base,
  * so the stylesheet is served from wherever the rest of the bundle is served
@@ -6,6 +10,10 @@
  * The root-relative path stays the fallback, which is what keeps a nested route
  * resolving the stylesheet against the origin rather than against its own
  * directory.
+ *
+ * Only `base` is honoured. A host that rewrites asset URLs one by one — Vite's
+ * `experimental.renderBuiltUrl` — does not reach the injected link, so the
+ * stylesheet stays on the base while such a host's own assets may not.
  *
  * @param base The host's resolved base. Vite normalizes this to a trailing
  *   slash, but an unset or unnormalized value is tolerated.
@@ -28,13 +36,13 @@ export default function resolveStylesheetHref(
   // Vite normalizes every relative base to exactly `./` when it resolves the
   // config, so anything else starting with a dot is an ordinary prefix.
   if (base === RELATIVE_BASE) {
-    return `${climbToOutputRoot(documentPath)}${rootRelativeFileName.slice(1)}`;
+    const documentRelativeFileName = rootRelativeFileName.replace(LEADING_SLASH, '');
+
+    return `${climbToOutputRoot(documentPath)}${documentRelativeFileName}`;
   }
 
-  return `${base.replace(/\/$/, '')}${rootRelativeFileName}`;
+  return `${base.replace(TRAILING_SLASH, '')}${rootRelativeFileName}`;
 }
-
-const RELATIVE_BASE = './';
 
 // The document path is a URL path, not a file system path: hosts normalize the
 // separator to `/` before it gets here, so this stays correct on Windows.

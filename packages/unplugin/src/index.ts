@@ -300,9 +300,11 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
   // Mutable state for each compilation - reset in buildStart
   const stylexRules: StyleXRules = {};
 
-  // Each field is read from the hook that reports the value we actually want,
-  // which is not the same hook for both. Stays null for hosts other than Vite.
-  let viteConfig: { assetsDir?: string; base?: string } | null = null;
+  // Not one config snapshot: each is read from the hook that reports the value
+  // we actually want, which is a different hook for each. Both stay undefined
+  // for hosts other than Vite.
+  let viteUserAssetsDir: string | undefined;
+  let viteResolvedBase: string | undefined;
 
   let hasCssToExtract = false;
   let cssFileName: string | null = null;
@@ -503,14 +505,16 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
       config(config) {
         // Deliberately the *user* `assetsDir`: leaving it unset keeps the
         // stylesheet at the output root, whereas the resolved config always
-        // reports Vite's `assets` default and would relocate it.
-        viteConfig = { ...viteConfig, assetsDir: config.build?.assetsDir };
+        // reports Vite's `assets` default and would relocate it. The cost is
+        // that an `assetsDir` a later plugin's `config` hook returns is merged
+        // in after this runs, so it is invisible here.
+        viteUserAssetsDir = config.build?.assetsDir;
       },
 
       configResolved(config) {
         // `base`, unlike `assetsDir`, is wanted in its resolved form: the user
         // value may be unset or missing the trailing slash Vite normalizes in.
-        viteConfig = { ...viteConfig, base: config.base };
+        viteResolvedBase = config.base;
 
         config.optimizeDeps.exclude = config.optimizeDeps.exclude || [];
         config.optimizeDeps.exclude.push('@stylexjs/open-props');
@@ -649,7 +653,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           stylexRules,
           normalizedOptions,
           transformedOptions,
-          viteConfig?.assetsDir
+          viteUserAssetsDir
         );
 
         if (!collectedCSS) return;
@@ -685,6 +689,10 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
         server.middlewares.use(
           (req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {
             const requestedCssFileName = cssFileName;
+            // A substring match on purpose: `cssFileName` is base-less, while
+            // this middleware runs ahead of Vite's base middleware, so a
+            // non-root base is still attached to `req.url` here. The HMR
+            // timestamp query is likewise only tolerated by matching loosely.
             if (!requestedCssFileName || !req.url?.includes(requestedCssFileName)) {
               next();
               return;
@@ -747,7 +755,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           stylexRules,
           normalizedOptions,
           transformedOptions,
-          viteConfig?.assetsDir
+          viteUserAssetsDir
         );
 
         if (!collectedCSS) return undefined;
@@ -800,7 +808,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
           stylexRules,
           normalizedOptions,
           transformedOptions,
-          viteConfig?.assetsDir
+          viteUserAssetsDir
         );
 
         if (!processedFileName) {
@@ -811,9 +819,11 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
 
         if (isDev) {
           wsSend ||= ctx.server?.ws.send.bind(ctx.server.ws);
-          // Deliberately the base-less path, unlike the href below. It is matched
-          // against request URLs, which Vite has already stripped the base from,
-          // and sent as an HMR path, which is likewise base-less.
+          // Deliberately the base-less path, unlike the href below. It is sent
+          // as an HMR path, which is base-less, and matched against request
+          // URLs, which still carry the base: the middleware is registered from
+          // `configureServer`, so it runs ahead of Vite's own base middleware.
+          // Hence the substring match there rather than an exact one.
           cssFileName ||= normalizedFileName;
         }
 
@@ -822,7 +832,7 @@ export const unpluginFactory: UnpluginFactory<UnpluginStylexRSOptions | undefine
             tag: 'link',
             attrs: {
               rel: 'stylesheet',
-              href: resolveStylesheetHref(viteConfig?.base, normalizedFileName, ctx.path),
+              href: resolveStylesheetHref(viteResolvedBase, normalizedFileName, ctx.path),
             },
             injectTo: 'head',
           },

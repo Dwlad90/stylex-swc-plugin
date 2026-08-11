@@ -55,10 +55,17 @@ describe('resolveStylesheetHref', () => {
     expect(resolveStylesheetHref('/app/', '/assets/stylex.css')).toBe('/app/assets/stylex.css');
   });
 
+  // `/a.b/` rather than something like `/../app/`: a base whose first character
+  // is a dot never reaches here, because Vite warns and falls back to `/`, and
+  // a dot segment is collapsed away when it resolves the base as a URL.
   test('should treat a dotted base that is not the relative base as an ordinary prefix', () => {
-    expect(resolveStylesheetHref('/../app/', '/stylex.css', '/pages/about.html')).toBe(
-      '/../app/stylex.css'
+    expect(resolveStylesheetHref('/a.b/', '/stylex.css', '/pages/about.html')).toBe(
+      '/a.b/stylex.css'
     );
+  });
+
+  test('should not eat a character when the file name has no leading slash', () => {
+    expect(resolveStylesheetHref('./', 'stylex.css', '/index.html')).toBe('./stylex.css');
   });
 
   test('should ignore the document path unless the base is relative', () => {

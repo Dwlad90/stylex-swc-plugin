@@ -1149,7 +1149,9 @@ impl StateManager {
   /// Returns the position rather than a reference so callers can both read the
   /// declarator and later rewrite its initializer without searching twice. The
   /// position stays valid only while `declarations` is not pushed to or
-  /// reordered, which no transform does mid-call.
+  /// reordered — `apply_dynamic_style_functions` does push, so a caller that
+  /// holds one across a transform has to check that its own path cannot reach
+  /// there.
   ///
   /// Span-less calls never match, for the reason given on
   /// [`Self::find_top_level_expr_by_span`].

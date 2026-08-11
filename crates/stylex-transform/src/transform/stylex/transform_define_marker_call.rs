@@ -77,6 +77,19 @@ where
     let marker_obj_ast =
       convert_object_to_ast(&NestedStringObject::FlatCompiledStylesValues(marker_result));
 
+    // The recorded declaration still holds the `defineMarker()` call this
+    // returns a marker object in place of. A `when` selector in the same file
+    // resolves the marker through that declaration, so it has to see the
+    // object rather than the call it can no longer evaluate.
+    if let Some(declaration) = self.state.declarations.iter_mut().find(|declaration| {
+      declaration
+        .name
+        .as_ident()
+        .is_some_and(|ident| ident.sym == *export_name)
+    }) {
+      declaration.init = Some(Box::new(marker_obj_ast.clone()));
+    }
+
     Some(marker_obj_ast)
   }
 }

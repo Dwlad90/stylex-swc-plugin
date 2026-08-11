@@ -39,3 +39,52 @@ pub trait StyleOptions {
   /// Downcast to concrete type for bridge during migration.
   fn as_any_mut(&mut self) -> &mut dyn Any;
 }
+
+/// The value accepted in the second slot of the `stylex.when.*` functions.
+///
+/// That slot holds either a custom marker or the StyleX options, and the
+/// marker itself is either a class-name string, an import proxy, or a
+/// compiled `$$css` style object. Each accessor below performs one of those
+/// type tests and returns `None` when it does not apply, so `when`'s
+/// resolution chain stays a direct translation of its JavaScript original.
+///
+/// Object-safe — used as `dyn WhenMarkerValue` by `stylex-css`, which sits
+/// below the evaluator and cannot name the evaluated-value types itself.
+/// `StyleXStateOptions` is implemented here; `EvaluateResultValue`
+/// implements it in the `stylex-transform` crate.
+pub trait WhenMarkerValue {
+  /// The `typeof options === 'string'` test: a marker passed as a literal
+  /// class name, used verbatim.
+  fn as_str_value(&self) -> Option<&str>;
+
+  /// The `__IS_PROXY === true` test: an import proxy standing in for a
+  /// marker defined in another file, resolved through its `toString`.
+  fn as_proxy_string(&self) -> Option<String>;
+
+  /// The `$$css === true` test, yielding the first key that is not `$$css`
+  /// — the class name a compiled marker object carries.
+  fn first_css_key(&self) -> Option<&str>;
+
+  /// The `classNamePrefix` property, absent on every marker shape and
+  /// present only on the options. `None` reproduces JavaScript's `!= null`
+  /// check, which decides whether the default marker gains a prefix.
+  fn class_name_prefix(&self) -> Option<&str>;
+}
+
+impl WhenMarkerValue for StyleXStateOptions {
+  fn as_str_value(&self) -> Option<&str> {
+    None
+  }
+
+  fn as_proxy_string(&self) -> Option<String> {
+    None
+  }
+
+  fn first_css_key(&self) -> Option<&str> {
+    None
+  }
+
+  fn class_name_prefix(&self) -> Option<&str> {
+    Some(&self.class_name_prefix)
+  }
+}

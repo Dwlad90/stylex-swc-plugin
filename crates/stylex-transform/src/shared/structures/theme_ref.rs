@@ -45,19 +45,22 @@ impl ThemeRef {
     }
   }
 
+  /// The value behind the `toString` key, reachable without the `&mut self`
+  /// and `StateManager` that keyed lookups need. Both constructors seed
+  /// `class_name_prefix` from `options.class_name_prefix`, so this is the
+  /// same string `get("toString")` returns.
+  pub(crate) fn to_string_value(&self) -> String {
+    // NOTE: hash the cached base id instead of recomputing the prefix.
+    format!("{}{}", self.class_name_prefix, create_hash(&self.base_id))
+  }
+
   pub(crate) fn get(&mut self, key: &str, state: &StateManager) -> ThemeRefResult {
     if key == "__IS_PROXY" {
       return ThemeRefResult::Proxy;
     }
 
     if key == "toString" {
-      // NOTE: hash the cached base id instead of recomputing the prefix.
-      let value = format!(
-        "{}{}",
-        state.options.class_name_prefix,
-        create_hash(&self.base_id)
-      );
-      return ThemeRefResult::ToString(value);
+      return ThemeRefResult::ToString(self.to_string_value());
     }
 
     if key.starts_with("--") {

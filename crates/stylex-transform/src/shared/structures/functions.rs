@@ -4,7 +4,10 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use swc_core::{atoms::Atom, ecma::ast::Expr};
 
-use crate::shared::structures::{theme_ref::ThemeRef, types::FlatCompiledStyles};
+use crate::shared::{
+  enums::data_structures::evaluate_result_value::EvaluateResultValue,
+  structures::{theme_ref::ThemeRef, types::FlatCompiledStyles},
+};
 use stylex_enums::{
   js::{ArrayJS, MathJS, ObjectJS, StringJS},
   value_with_default::ValueWithDefault,
@@ -27,16 +30,25 @@ pub enum CallbackType {
 pub type StylexTypeFn = Rc<dyn Fn(ValueWithDefault) -> Expr + 'static>;
 pub type StylexExprFn = fn(Expr, &mut dyn StyleOptions) -> Expr;
 
+/// The `stylex.when.*` functions, which alone among the StyleX helpers take a
+/// second argument: an optional custom marker to observe instead of the
+/// default one. Both arguments stay `EvaluateResultValue` because a marker
+/// imported from another file resolves to a `ThemeRef`, which no `Expr` can
+/// represent.
+pub type StylexWhenFn =
+  fn(EvaluateResultValue, Option<EvaluateResultValue>, &mut dyn StyleOptions) -> Expr;
+
 pub enum FunctionType {
   ArrayArgs(fn(Vec<Expr>, &mut dyn StyleOptions, &FunctionMap) -> Expr),
   StylexExprFn(StylexExprFn),
+  StylexWhenFn(StylexWhenFn),
   StylexTypeFn(StylexTypeFn),
   StylexFnsFactory(fn(input: String) -> StylexTypeFn),
 
   Mapper(Rc<dyn Fn() -> Expr + 'static>),
   ThemeRefMapper(Rc<dyn Fn() -> ThemeRef + 'static>),
   Callback(Box<CallbackType>),
-  DefaultMarker(Arc<IndexMap<String, StylexExprFn>>),
+  DefaultMarker(Arc<IndexMap<String, StylexWhenFn>>),
   /// An env function from the `env` config option.
   /// Takes evaluated arguments as `Expr`s and returns an `Expr`.
   EnvFunction(JSFunction),
@@ -48,6 +60,7 @@ impl Clone for FunctionType {
     match self {
       Self::ArrayArgs(e) => Self::ArrayArgs(*e),
       Self::StylexExprFn(e) => Self::StylexExprFn(*e),
+      Self::StylexWhenFn(e) => Self::StylexWhenFn(*e),
       Self::StylexTypeFn(e) => Self::StylexTypeFn(e.clone()),
       Self::StylexFnsFactory(e) => Self::StylexFnsFactory(*e),
       Self::Callback(v) => Self::Callback(v.clone()),
@@ -65,6 +78,7 @@ impl std::fmt::Debug for FunctionType {
     match self {
       FunctionType::ArrayArgs(_) => write!(f, "ArrayArgs"),
       FunctionType::StylexExprFn(_) => write!(f, "StylexExprWithStateFn"),
+      FunctionType::StylexWhenFn(_) => write!(f, "StylexWhenFn"),
       FunctionType::StylexTypeFn(_) => write!(f, "StylexExprFn"),
       FunctionType::StylexFnsFactory(_) => write!(f, "StylexFnsFactory"),
       FunctionType::Mapper(_) => write!(f, "Mapper"),

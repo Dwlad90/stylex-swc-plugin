@@ -741,7 +741,7 @@ pub(in super::super) fn evaluate(
                 FunctionType::DefaultMarker(default_marker) => {
                   if let Some(expr_fn) = default_marker.get(&prop_name) {
                     func = Some(Box::new(FunctionConfig {
-                      fn_ptr: FunctionType::StylexExprFn(*expr_fn),
+                      fn_ptr: FunctionType::StylexWhenFn(*expr_fn),
                       takes_path: false,
                     }));
 
@@ -862,6 +862,13 @@ pub(in super::super) fn evaluate(
 
           return Some(EvaluateResultValue::Expr(func_result));
         },
+        FunctionType::StylexWhenFn(_) => {
+          stylex_panic_with_context!(
+            path,
+            traversal_state,
+            "stylex.when functions are not supported in this context."
+          )
+        },
         FunctionType::StylexTypeFn(_) => {
           stylex_panic_with_context!(
             path,
@@ -940,6 +947,14 @@ pub(in super::super) fn evaluate(
               }),
             traversal_state,
           );
+          return Some(EvaluateResultValue::Expr(func_result));
+        },
+        FunctionType::StylexWhenFn(func) => {
+          let mut args = evaluate_func_call_args(call, state, traversal_state, fns).into_iter();
+          let pseudo = args
+            .next()
+            .unwrap_or_else(|| stylex_panic!("stylex.when functions require a selector argument."));
+          let func_result = (func)(pseudo, args.next(), traversal_state);
           return Some(EvaluateResultValue::Expr(func_result));
         },
         FunctionType::StylexTypeFn(func) => {

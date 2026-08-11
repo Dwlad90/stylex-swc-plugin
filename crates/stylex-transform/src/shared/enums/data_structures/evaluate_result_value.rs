@@ -11,7 +11,7 @@ use stylex_macros::stylex_unimplemented;
 use swc_core::{
   atoms::Atom,
   ecma::{
-    ast::{Expr, KeyValueProp, Lit},
+    ast::{Expr, KeyValueProp, Lit, Prop, PropName, PropOrSpread},
     codegen::Config,
   },
 };
@@ -20,7 +20,9 @@ use crate::shared::{
   structures::{functions::FunctionConfig, theme_ref::ThemeRef, types::EvaluationCallback},
   utils::log::build_code_frame_error::{CodeFrame, create_module, print_module},
 };
+use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_structures::stylex_env::EnvEntry;
+use stylex_types::traits::WhenMarkerValue;
 
 pub enum EvaluateResultValue {
   Null,
@@ -251,5 +253,71 @@ impl EvaluateResultValue {
       },
       _ => None,
     }
+  }
+}
+
+/// Lets `stylex-css` read a marker out of an evaluated value without naming
+/// any of the evaluator's types. Every accessor mirrors one of the type tests
+/// the `when` functions perform on their second argument.
+impl WhenMarkerValue for EvaluateResultValue {
+  fn as_str_value(&self) -> Option<&str> {
+    match self {
+      Self::Expr(Expr::Lit(Lit::Str(str_lit))) => str_lit.value.as_str(),
+      _ => None,
+    }
+  }
+
+  fn as_proxy_string(&self) -> Option<String> {
+    match self {
+      Self::ThemeRef(theme_ref) => Some(theme_ref.to_string_value()),
+      _ => None,
+    }
+  }
+
+  fn first_css_key(&self) -> Option<&str> {
+    let Self::Expr(Expr::Object(object)) = self else {
+      return None;
+    };
+
+    let props: Vec<(&str, &Expr)> = object
+      .props
+      .iter()
+      .filter_map(|prop| match prop {
+        PropOrSpread::Prop(prop) => match prop.as_ref() {
+          Prop::KeyValue(key_value) => {
+            prop_name_as_str(&key_value.key).map(|key| (key, key_value.value.as_ref()))
+          },
+          _ => None,
+        },
+        PropOrSpread::Spread(_) => None,
+      })
+      .collect();
+
+    let is_compiled = props.iter().any(|(key, value)| {
+      *key == COMPILED_KEY && matches!(value, Expr::Lit(Lit::Bool(compiled)) if compiled.value)
+    });
+
+    if !is_compiled {
+      return None;
+    }
+
+    props
+      .into_iter()
+      .find(|(key, _)| *key != COMPILED_KEY)
+      .map(|(key, _)| key)
+  }
+
+  fn class_name_prefix(&self) -> Option<&str> {
+    None
+  }
+}
+
+/// Reads a property name as a string, for the key shapes a compiled StyleX
+/// object can carry.
+fn prop_name_as_str(key: &PropName) -> Option<&str> {
+  match key {
+    PropName::Ident(ident) => Some(ident.sym.as_str()),
+    PropName::Str(str_lit) => str_lit.value.as_str(),
+    _ => None,
   }
 }

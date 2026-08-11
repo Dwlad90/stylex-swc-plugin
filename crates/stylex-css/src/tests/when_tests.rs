@@ -117,7 +117,7 @@ fn test_with_custom_options() {
 fn test_with_empty_prefix() {
   let options = StyleXStateOptions::default().with_class_name_prefix("");
   let result = ancestor(":hover", Some(&options)).unwrap();
-  assert_eq!(result, ":where(.default-marker:hover *)");
+  assert_eq!(result, ":where(.-default-marker:hover *)");
 }
 
 // --- ancestor additional tests ---
@@ -181,7 +181,7 @@ fn descendant_with_custom_options() {
 fn descendant_with_empty_prefix() {
   let options = StyleXStateOptions::default().with_class_name_prefix("");
   let result = descendant(":active", Some(&options)).unwrap();
-  assert_eq!(result, ":where(:has(.default-marker:active))");
+  assert_eq!(result, ":where(:has(.-default-marker:active))");
 }
 
 #[test]
@@ -223,7 +223,7 @@ fn sibling_before_with_custom_options() {
 fn sibling_before_with_empty_prefix() {
   let options = StyleXStateOptions::default().with_class_name_prefix("");
   let result = sibling_before(":focus", Some(&options)).unwrap();
-  assert_eq!(result, ":where(.default-marker:focus ~ *)");
+  assert_eq!(result, ":where(.-default-marker:focus ~ *)");
 }
 
 #[test]
@@ -265,7 +265,7 @@ fn sibling_after_with_custom_options() {
 fn sibling_after_with_empty_prefix() {
   let options = StyleXStateOptions::default().with_class_name_prefix("");
   let result = sibling_after(":active", Some(&options)).unwrap();
-  assert_eq!(result, ":where(:has(~ .default-marker:active))");
+  assert_eq!(result, ":where(:has(~ .-default-marker:active))");
 }
 
 #[test]
@@ -312,7 +312,7 @@ fn any_sibling_with_empty_prefix() {
   let result = any_sibling(":focus", Some(&options)).unwrap();
   assert_eq!(
     result,
-    ":where(.default-marker:focus ~ *, :has(~ .default-marker:focus))"
+    ":where(.-default-marker:focus ~ *, :has(~ .-default-marker:focus))"
   );
 }
 
@@ -477,4 +477,143 @@ fn sibling_after_with_first_child() {
 fn any_sibling_with_last_child() {
   let result = any_sibling(":last-child", None).unwrap();
   assert!(result.contains(":last-child"));
+}
+
+// --- custom marker resolution ---
+
+/// Stands in for the evaluated values the compiler passes as the second
+/// argument, so this crate can exercise the resolution chain without naming
+/// the evaluator's types.
+#[derive(Default)]
+struct TestMarker {
+  str_value: Option<String>,
+  proxy_string: Option<String>,
+  css_key: Option<String>,
+}
+
+impl TestMarker {
+  fn str_value(value: &str) -> Self {
+    Self {
+      str_value: Some(value.to_string()),
+      ..Default::default()
+    }
+  }
+
+  fn proxy(value: &str) -> Self {
+    Self {
+      proxy_string: Some(value.to_string()),
+      ..Default::default()
+    }
+  }
+
+  fn stylex_style(key: &str) -> Self {
+    Self {
+      css_key: Some(key.to_string()),
+      ..Default::default()
+    }
+  }
+}
+
+impl WhenMarkerValue for TestMarker {
+  fn as_str_value(&self) -> Option<&str> {
+    self.str_value.as_deref()
+  }
+
+  fn as_proxy_string(&self) -> Option<String> {
+    self.proxy_string.clone()
+  }
+
+  fn first_css_key(&self) -> Option<&str> {
+    self.css_key.as_deref()
+  }
+
+  fn class_name_prefix(&self) -> Option<&str> {
+    None
+  }
+}
+
+#[test]
+fn ancestor_with_string_marker() {
+  let marker = TestMarker::str_value("myMarker");
+  let result = ancestor(":hover", Some(&marker)).unwrap();
+  assert_eq!(result, ":where(.myMarker:hover *)");
+}
+
+#[test]
+fn descendant_with_string_marker() {
+  let marker = TestMarker::str_value("myMarker");
+  let result = descendant(":focus", Some(&marker)).unwrap();
+  assert_eq!(result, ":where(:has(.myMarker:focus))");
+}
+
+#[test]
+fn sibling_before_with_string_marker() {
+  let marker = TestMarker::str_value("myMarker");
+  let result = sibling_before(":hover", Some(&marker)).unwrap();
+  assert_eq!(result, ":where(.myMarker:hover ~ *)");
+}
+
+#[test]
+fn sibling_after_with_string_marker() {
+  let marker = TestMarker::str_value("myMarker");
+  let result = sibling_after(":focus", Some(&marker)).unwrap();
+  assert_eq!(result, ":where(:has(~ .myMarker:focus))");
+}
+
+#[test]
+fn any_sibling_with_string_marker() {
+  let marker = TestMarker::str_value("myMarker");
+  let result = any_sibling(":active", Some(&marker)).unwrap();
+  assert_eq!(
+    result,
+    ":where(.myMarker:active ~ *, :has(~ .myMarker:active))"
+  );
+}
+
+#[test]
+fn ancestor_with_proxy_marker() {
+  let marker = TestMarker::proxy("x1lc2aw");
+  let result = ancestor(":hover", Some(&marker)).unwrap();
+  assert_eq!(result, ":where(.x1lc2aw:hover *)");
+}
+
+#[test]
+fn ancestor_with_stylex_style_marker() {
+  let marker = TestMarker::stylex_style("x7y81dc");
+  let result = ancestor("[data-open]", Some(&marker)).unwrap();
+  assert_eq!(result, ":where(.x7y81dc[data-open] *)");
+}
+
+/// A marker carries no `classNamePrefix`, so one that resolves to none of the
+/// known shapes falls back to an unprefixed `default-marker`.
+#[test]
+fn ancestor_with_unresolvable_marker_falls_back_unprefixed() {
+  let marker = TestMarker::default();
+  let result = ancestor(":hover", Some(&marker)).unwrap();
+  assert_eq!(result, ":where(.default-marker:hover *)");
+}
+
+/// A string marker wins over every other shape, as the type test that
+/// selects it runs first.
+#[test]
+fn string_marker_takes_precedence_over_other_shapes() {
+  let marker = TestMarker {
+    str_value: Some("literal".to_string()),
+    proxy_string: Some("proxy".to_string()),
+    css_key: Some("compiled".to_string()),
+  };
+  let result = ancestor(":hover", Some(&marker)).unwrap();
+  assert_eq!(result, ":where(.literal:hover *)");
+}
+
+/// The proxy shape is tried before the compiled-object shape.
+#[test]
+fn proxy_marker_takes_precedence_over_stylex_style() {
+  let marker = TestMarker {
+    str_value: None,
+    proxy_string: Some("proxy".to_string()),
+    css_key: Some("compiled".to_string()),
+  };
+  let result = ancestor(":hover", Some(&marker)).unwrap();
+  assert_eq!(result, ":where(.proxy:hover *)");
 }

@@ -147,12 +147,12 @@ exports[`Home render styles successfully 1`] = `
         target="_blank"
       >
         <h2
-          class="x5dnj3y xd0elhf xepzqcl x1s688f x1nq7u67 x1d8287x xt3l3uh xr45gp9"
+          class="x5dnj3y xd0elhf xepzqcl x1s688f x1nq7u67 x1d8287x xt3l3uh x16judjq"
         >
           Docs
            
           <span
-            class="x1rg5ohu xfujts0 x12w9bfk x13dflua x11xpdln"
+            class="x1rg5ohu x1ds4k80 x6zqiki x12w9bfk x13dflua x11xpdln"
           >
             →
           </span>
@@ -170,12 +170,12 @@ exports[`Home render styles successfully 1`] = `
         target="_blank"
       >
         <h2
-          class="x5dnj3y xd0elhf xepzqcl x1s688f x1nq7u67 x1d8287x xt3l3uh xr45gp9"
+          class="x5dnj3y xd0elhf xepzqcl x1s688f x1nq7u67 x1d8287x xt3l3uh x16judjq"
         >
           API
            
           <span
-            class="x1rg5ohu xfujts0 x12w9bfk x13dflua x11xpdln"
+            class="x1rg5ohu x1ds4k80 x6zqiki x12w9bfk x13dflua x11xpdln"
           >
             →
           </span>
@@ -193,12 +193,12 @@ exports[`Home render styles successfully 1`] = `
         target="_blank"
       >
         <h2
-          class="x5dnj3y xd0elhf xepzqcl x1s688f x1nq7u67 x1d8287x xt3l3uh xr45gp9"
+          class="x5dnj3y xd0elhf xepzqcl x1s688f x1nq7u67 x1d8287x xt3l3uh x16judjq"
         >
           Playground
            
           <span
-            class="x1rg5ohu xfujts0 x12w9bfk x13dflua x11xpdln"
+            class="x1rg5ohu x1ds4k80 x6zqiki x12w9bfk x13dflua x11xpdln"
           >
             →
           </span>
@@ -216,12 +216,12 @@ exports[`Home render styles successfully 1`] = `
         target="_blank"
       >
         <h2
-          class="x5dnj3y xd0elhf xepzqcl x1s688f x1nq7u67 x1d8287x xt3l3uh xr45gp9"
+          class="x5dnj3y xd0elhf xepzqcl x1s688f x1nq7u67 x1d8287x xt3l3uh x16judjq"
         >
           Templates
            
           <span
-            class="x1rg5ohu xfujts0 x12w9bfk x13dflua x11xpdln"
+            class="x1rg5ohu x1ds4k80 x6zqiki x12w9bfk x13dflua x11xpdln"
           >
             →
           </span>

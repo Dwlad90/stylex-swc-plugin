@@ -1,29 +1,45 @@
-use log::debug;
-
 use stylex_structures::stylex_state_options::StyleXStateOptions;
+use stylex_types::traits::WhenMarkerValue;
 
-pub fn from_proxy(_value: &StyleXStateOptions) -> Option<String> {
-  debug!("from_proxy is not implemented");
-  None
+pub fn from_proxy(value: &dyn WhenMarkerValue) -> Option<String> {
+  value.as_proxy_string()
 }
 
-pub fn from_stylex_style(_value: &StyleXStateOptions) -> Option<String> {
-  debug!("from_stylex_style is not implemented");
-  None
+pub fn from_stylex_style(value: &dyn WhenMarkerValue) -> Option<String> {
+  value.first_css_key().map(str::to_string)
 }
 
 /// Gets the default marker class name based on options.
-fn get_default_marker_class_name(options: &StyleXStateOptions) -> String {
+fn get_default_marker_class_name(options: &dyn WhenMarkerValue) -> String {
   from_proxy(options)
     .or_else(|| from_stylex_style(options))
     .unwrap_or_else(|| {
-      let prefix = if !options.class_name_prefix.is_empty() {
-        format!("{}-", options.class_name_prefix)
-      } else {
-        String::new()
+      // NOTE: a marker carries no `classNamePrefix`, so a value that reached
+      // here without resolving yields the bare `default-marker`, prefixed
+      // only when the options themselves occupy this slot.
+      let prefix = match options.class_name_prefix() {
+        Some(class_name_prefix) => format!("{}-", class_name_prefix),
+        None => String::new(),
       };
       format!("{}default-marker", prefix)
     })
+}
+
+/// Resolves the second argument of every `when` function, which holds either
+/// a marker class name used verbatim or a value to derive the marker from.
+///
+/// `None` stands for the `options` default parameter these functions declare.
+/// Building the defaults on that branch costs an allocation, but the compiler
+/// always passes its own options, so only callers with nothing to say — the
+/// tests — reach it.
+fn resolve_marker(options: Option<&dyn WhenMarkerValue>) -> String {
+  match options {
+    Some(options) => match options.as_str_value() {
+      Some(marker) => marker.to_string(),
+      None => get_default_marker_class_name(options),
+    },
+    None => get_default_marker_class_name(&StyleXStateOptions::default()),
+  }
 }
 
 /// Validates that a pseudo selector starts with ':' but not '::'
@@ -99,11 +115,9 @@ fn is_valid_attribute_selector(selector: &str) -> bool {
 ///
 /// # Returns
 /// A :where() clause for the ancestor observer
-pub fn ancestor(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<String, String> {
+pub fn ancestor(pseudo: &str, options: Option<&dyn WhenMarkerValue>) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
-  let default_marker = options
-    .map(get_default_marker_class_name)
-    .unwrap_or_else(|| "x-default-marker".to_string());
+  let default_marker = resolve_marker(options);
   Ok(format!(":where(.{}{} *)", default_marker, pseudo))
 }
 
@@ -116,11 +130,9 @@ pub fn ancestor(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<St
 ///
 /// # Returns
 /// A :has() clause for the descendant observer
-pub fn descendant(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<String, String> {
+pub fn descendant(pseudo: &str, options: Option<&dyn WhenMarkerValue>) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
-  let default_marker = options
-    .map(get_default_marker_class_name)
-    .unwrap_or_else(|| "x-default-marker".to_string());
+  let default_marker = resolve_marker(options);
   Ok(format!(":where(:has(.{}{}))", default_marker, pseudo))
 }
 
@@ -135,12 +147,10 @@ pub fn descendant(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<
 /// A :where() clause for the previous sibling observer
 pub fn sibling_before(
   pseudo: &str,
-  options: Option<&StyleXStateOptions>,
+  options: Option<&dyn WhenMarkerValue>,
 ) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
-  let default_marker = options
-    .map(get_default_marker_class_name)
-    .unwrap_or_else(|| "x-default-marker".to_string());
+  let default_marker = resolve_marker(options);
   Ok(format!(":where(.{}{} ~ *)", default_marker, pseudo))
 }
 
@@ -153,11 +163,12 @@ pub fn sibling_before(
 ///
 /// # Returns
 /// A :has() clause for the next sibling observer
-pub fn sibling_after(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<String, String> {
+pub fn sibling_after(
+  pseudo: &str,
+  options: Option<&dyn WhenMarkerValue>,
+) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
-  let default_marker = options
-    .map(get_default_marker_class_name)
-    .unwrap_or_else(|| "x-default-marker".to_string());
+  let default_marker = resolve_marker(options);
   Ok(format!(":where(:has(~ .{}{}))", default_marker, pseudo))
 }
 
@@ -170,11 +181,9 @@ pub fn sibling_after(pseudo: &str, options: Option<&StyleXStateOptions>) -> Resu
 ///
 /// # Returns
 /// A :where() clause for the any sibling observer
-pub fn any_sibling(pseudo: &str, options: Option<&StyleXStateOptions>) -> Result<String, String> {
+pub fn any_sibling(pseudo: &str, options: Option<&dyn WhenMarkerValue>) -> Result<String, String> {
   validate_pseudo_selector(pseudo)?;
-  let default_marker = options
-    .map(get_default_marker_class_name)
-    .unwrap_or_else(|| "x-default-marker".to_string());
+  let default_marker = resolve_marker(options);
   Ok(format!(
     ":where(.{}{} ~ *, :has(~ .{}{}))",
     default_marker, pseudo, default_marker, pseudo

@@ -1110,6 +1110,44 @@ impl StateManager {
     })
   }
 
+  /// Find the top level expression recorded from *this* call node, matched by
+  /// span.
+  ///
+  /// [`Self::find_top_level_expr`] compares span-insensitively, so calls that
+  /// differ only in source position all resolve to the first of them — every
+  /// `defineMarker()` in a module is the same expression. Spans are unique per
+  /// position and the discovery pass records them untouched, so they are what
+  /// pins an entry to the call it was recorded from.
+  pub(crate) fn find_top_level_expr_by_span(&self, call: &CallExpr) -> Option<&TopLevelExpression> {
+    if call.span.is_dummy() {
+      return None;
+    }
+
+    self
+      .top_level_expressions
+      .iter()
+      .find(|TopLevelExpression(_, expr, _)| {
+        matches!(expr, Expr::Call(recorded_call) if recorded_call.span == call.span)
+      })
+  }
+
+  /// Position of the declarator initialised by *this* call node, matched by
+  /// span for the reason given on [`Self::find_top_level_expr_by_span`].
+  ///
+  /// Returns the position rather than a reference so callers can both read the
+  /// declarator and later rewrite its initializer without searching twice.
+  pub(crate) fn find_call_declaration_index_by_span(&self, call: &CallExpr) -> Option<usize> {
+    if call.span.is_dummy() {
+      return None;
+    }
+
+    self.declarations.iter().position(|decl| {
+      decl.init.as_ref().is_some_and(
+        |init| matches!(**init, Expr::Call(ref recorded_call) if recorded_call.span == call.span),
+      )
+    })
+  }
+
   pub(crate) fn find_call_declaration(&self, call: &CallExpr) -> Option<&VarDeclarator> {
     self.declarations.iter().find(|decl| {
       decl

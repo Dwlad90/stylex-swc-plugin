@@ -95,3 +95,16 @@ stylex_test_panic!(
     export { marker as themeMarker };
   "#
 );
+
+// Each call is validated against its own declaration: an unexported marker is
+// still an error when an exported one precedes it in the same file.
+stylex_test_panic!(
+  invalid_export_unexported_marker_after_an_exported_one,
+  "The return value of defineMarker() must be bound to a named export.",
+  |tr| define_marker_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const first = stylex.defineMarker();
+    const second = stylex.defineMarker();
+  "#
+);

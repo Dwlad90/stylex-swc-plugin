@@ -430,7 +430,11 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
     );
   }
 
-  let define_marker_top_level_expr = match state.find_top_level_expr(call, |_| false, None) {
+  // Matched by span: two `defineMarker()` calls are indistinguishable without
+  // their positions, so a span-insensitive lookup would validate every call in
+  // the module against the first one's declaration and let an unexported
+  // marker through behind an exported one.
+  let define_marker_top_level_expr = match state.find_top_level_expr_by_span(call) {
     Some(define_marker_top_level_expr) => define_marker_top_level_expr,
     None => build_code_frame_error_and_panic(
       &call_expr,

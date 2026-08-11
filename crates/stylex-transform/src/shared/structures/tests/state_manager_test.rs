@@ -2,12 +2,12 @@
 mod state_manager {
   use rustc_hash::FxHashSet;
   use swc_core::{
-    common::{DUMMY_SP, SyntaxContext},
+    common::{BytePos, DUMMY_SP, Span, SyntaxContext},
     ecma::ast::{
-      AssignPatProp, BindingIdent, Decl, Expr, ExprStmt, Ident, IdentName, ImportDecl, ImportPhase,
-      Lit, MemberExpr, MemberProp, Module, ModuleDecl, ModuleItem, ObjectLit, ObjectPat,
-      ObjectPatProp, Pat, Prop, PropName, PropOrSpread, Stmt, Str, VarDecl, VarDeclKind,
-      VarDeclarator,
+      AssignPatProp, BindingIdent, CallExpr, Callee, Decl, Expr, ExprStmt, Ident, IdentName,
+      ImportDecl, ImportPhase, Lit, MemberExpr, MemberProp, Module, ModuleDecl, ModuleItem,
+      ObjectLit, ObjectPat, ObjectPatProp, Pat, Prop, PropName, PropOrSpread, Stmt, Str, VarDecl,
+      VarDeclKind, VarDeclarator,
     },
   };
 
@@ -15,6 +15,8 @@ mod state_manager {
     DeclId, InsertionSlot, StateManager, build_decl_use_graph, compute_live_set,
     flush_pending_insertions,
   };
+  use stylex_enums::top_level_expression::TopLevelExpressionKind;
+  use stylex_structures::top_level_expression::TopLevelExpression;
   use stylex_utils::hash::stable_hash_unspanned;
 
   fn ident(name: &str) -> Ident {
@@ -312,5 +314,115 @@ mod state_manager {
 
     assert!(state.decl_uses.is_empty());
     assert!(state.roots.contains(&id("b")));
+  }
+
+  /// A zero-argument call, the shape every `defineMarker()` shares, carrying
+  /// only the position that tells two of them apart.
+  fn call_at(span: Span) -> CallExpr {
+    CallExpr {
+      span,
+      ctxt: SyntaxContext::empty(),
+      callee: Callee::Expr(Box::new(ident_expr("defineMarker"))),
+      args: vec![],
+      type_args: None,
+    }
+  }
+
+  fn span_at(lo: u32, hi: u32) -> Span {
+    Span {
+      lo: BytePos(lo),
+      hi: BytePos(hi),
+    }
+  }
+
+  #[test]
+  fn find_top_level_expr_by_span_pins_the_entry_recorded_from_that_call() {
+    let mut state = StateManager::default();
+
+    let first = call_at(span_at(1, 10));
+    let second = call_at(span_at(20, 30));
+
+    state.top_level_expressions.push(TopLevelExpression(
+      TopLevelExpressionKind::NamedExport,
+      Expr::Call(first.clone()),
+      Some("first".into()),
+    ));
+    state.top_level_expressions.push(TopLevelExpression(
+      TopLevelExpressionKind::Stmt,
+      Expr::Call(second.clone()),
+      Some("second".into()),
+    ));
+
+    // The two calls are equal ignoring spans, so only the span tells the
+    // entries apart.
+    assert_eq!(
+      state.find_top_level_expr_by_span(&second).map(|tpe| &tpe.0),
+      Some(&TopLevelExpressionKind::Stmt)
+    );
+    assert_eq!(
+      state.find_top_level_expr_by_span(&first).map(|tpe| &tpe.0),
+      Some(&TopLevelExpressionKind::NamedExport)
+    );
+    assert!(
+      state
+        .find_top_level_expr_by_span(&call_at(span_at(40, 50)))
+        .is_none()
+    );
+  }
+
+  #[test]
+  fn find_top_level_expr_by_span_never_matches_a_spanless_call() {
+    let mut state = StateManager::default();
+
+    state.top_level_expressions.push(TopLevelExpression(
+      TopLevelExpressionKind::NamedExport,
+      Expr::Call(call_at(DUMMY_SP)),
+      Some("synthesized".into()),
+    ));
+
+    assert!(
+      state
+        .find_top_level_expr_by_span(&call_at(DUMMY_SP))
+        .is_none()
+    );
+  }
+
+  #[test]
+  fn find_call_declaration_index_by_span_pins_the_declarator_that_call_initialises() {
+    let mut state = StateManager::default();
+
+    let first = call_at(span_at(1, 10));
+    let second = call_at(span_at(20, 30));
+
+    state
+      .declarations
+      .push(var_declarator("first", Expr::Call(first.clone())));
+    state
+      .declarations
+      .push(var_declarator("second", Expr::Call(second.clone())));
+    state
+      .declarations
+      .push(var_declarator("notACall", ident_expr("other")));
+
+    assert_eq!(state.find_call_declaration_index_by_span(&second), Some(1));
+    assert_eq!(state.find_call_declaration_index_by_span(&first), Some(0));
+    assert_eq!(
+      state.find_call_declaration_index_by_span(&call_at(span_at(40, 50))),
+      None
+    );
+  }
+
+  #[test]
+  fn find_call_declaration_index_by_span_never_matches_a_spanless_call() {
+    let mut state = StateManager::default();
+
+    state
+      .declarations
+      .push(var_declarator("synthesized", Expr::Call(call_at(DUMMY_SP))));
+
+    assert_eq!(
+      state.find_call_declaration_index_by_span(&call_at(DUMMY_SP)),
+      None
+    );
   }
 }

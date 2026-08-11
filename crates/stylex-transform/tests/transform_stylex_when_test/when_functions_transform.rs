@@ -156,6 +156,40 @@ stylex_test!(
   "#
 );
 
+// Two markers defined in the same file: each selector has to resolve to the
+// class of the marker it names, not to the first marker in the file.
+stylex_test!(
+  when_ancestor_with_two_same_file_custom_markers,
+  |tr| build_test_transform(tr.comments.clone(), |b| b
+    .with_treeshake_compensation(true)
+    .with_runtime_injection()
+    .with_cwd(std::path::PathBuf::from("/stylex/packages/"))
+    .with_filename(swc_core::common::FileName::Real(
+      "/stylex/packages/vars.stylex.js".into()
+    ))
+    .with_unstable_module_resolution(ModuleResolution {
+      root_dir: Some("/stylex/packages/".to_string()),
+      theme_file_extension: None,
+      ..ModuleResolution::common_js(None)
+    })),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const firstMarker = stylex.defineMarker();
+    export const secondMarker = stylex.defineMarker();
+
+    export const styles = stylex.create({
+      foo: {
+        backgroundColor: {
+          default: 'blue',
+          [stylex.when.ancestor(':hover', firstMarker)]: 'red',
+          [stylex.when.ancestor(':focus', secondMarker)]: 'green',
+        },
+      },
+    });
+  "#
+);
+
 // A marker that evaluates to null or undefined is the same as no marker at
 // all, so the selector falls back to the prefixed default marker rather than
 // treating the value as an unresolvable marker.

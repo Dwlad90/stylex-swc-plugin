@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use stylex_macros::stylex_panic;
 use swc_core::{
-  common::{EqIgnoreSpan, comments::Comments},
+  common::comments::Comments,
   ecma::ast::{CallExpr, Expr},
 };
 
@@ -37,11 +37,21 @@ where
       return None;
     }
 
-    let (var_name, parent_var_decl) = self.get_call_var_name(call);
+    // The marker's identity is its export name, so the call has to be tied
+    // back to the declarator it initialises. Nothing in the AST carries that
+    // link, and a span-insensitive lookup resolves every `defineMarker()` in
+    // the module — they are all the same expression — to the first
+    // declarator, hashing every export to one class. The span does carry it.
+    let parent_var_decl_index = self.state.find_call_declaration_index_by_span(call)?;
 
-    let parent_var_decl = parent_var_decl?;
-
-    parent_var_decl.name.as_ident()?;
+    let export_name = self
+      .state
+      .declarations
+      .get(parent_var_decl_index)?
+      .name
+      .as_ident()?
+      .sym
+      .to_string();
 
     let file_name = match self
       .state
@@ -51,15 +61,7 @@ where
       None => stylex_panic!("{}", cannot_generate_hash(STYLEX_DEFINE_MARKER)),
     };
 
-    let export_name = match var_name {
-      Some(name) => name,
-      None => stylex_panic!(
-        "defineMarker(): The variable name could not be determined. Ensure the call is bound to a named variable."
-      ),
-    };
     let export_id = gen_file_based_identifier(&file_name, &export_name, None);
-
-    self.state.export_id = Some(export_id.clone());
 
     let hash = create_hash(&export_id);
     let mut id = String::with_capacity(self.state.options.class_name_prefix.len() + hash.len());
@@ -81,17 +83,7 @@ where
     // returns a marker object in place of. A `when` selector in the same file
     // resolves the marker through that declaration, so it has to see the
     // object rather than the call it can no longer evaluate.
-    //
-    // Matched on the call rather than on `export_name`, as
-    // `StateManager::update_references` does for the other transforms: it
-    // pins the one declaration this call initialises instead of the first
-    // one that happens to share its name, and it makes a second pass a no-op
-    // once the call has been replaced.
-    if let Some(declaration) = self.state.declarations.iter_mut().find(|declaration| {
-      declaration.init.as_ref().is_some_and(|init| {
-        matches!(**init, Expr::Call(ref existing_call) if existing_call.eq_ignore_span(call))
-      })
-    }) {
+    if let Some(declaration) = self.state.declarations.get_mut(parent_var_decl_index) {
       declaration.init = Some(Box::new(marker_obj_ast.clone()));
     }
 

@@ -106,13 +106,17 @@ fn resolve_when_marker<'a>(
   marker: Option<&'a EvaluateResultValue>,
   state: &'a StateManager,
 ) -> &'a dyn WhenMarkerValue {
-  let Some(marker) = marker else {
+  // A marker that is absent and one that evaluates to null or undefined are
+  // the same case: both hand the slot to the options.
+  let Some(marker) = marker.filter(|marker| !is_nullish(marker)) else {
     return &state.options;
   };
 
+  // NOTE: the two borrowing shapes are asked first, so only a marker that is
+  // genuinely a proxy pays for building its class name here.
   let is_resolvable = marker.as_str_value().is_some()
-    || marker.as_proxy_string().is_some()
-    || marker.first_css_key().is_some();
+    || marker.first_css_key().is_some()
+    || marker.as_proxy_string().is_some();
 
   if !is_resolvable {
     warn!(
@@ -123,6 +127,17 @@ fn resolve_when_marker<'a>(
   }
 
   marker
+}
+
+/// Whether an evaluated value is JavaScript's `null` or `undefined`, the two
+/// values the nullish coalescing in a `when` call treats as no marker at all.
+fn is_nullish(value: &EvaluateResultValue) -> bool {
+  match value {
+    EvaluateResultValue::Null => true,
+    EvaluateResultValue::Expr(Expr::Lit(Lit::Null(_))) => true,
+    EvaluateResultValue::Expr(Expr::Ident(ident)) => ident.sym == *"undefined",
+    _ => false,
+  }
 }
 
 static STYLEX_WHEN_MAP: LazyLock<Arc<IndexMap<String, StylexWhenFn>>> = LazyLock::new(|| {

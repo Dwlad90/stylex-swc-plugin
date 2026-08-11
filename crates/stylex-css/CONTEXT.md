@@ -41,9 +41,19 @@ _Avoid_: minification, formatting, cleanup
 
 **Marker**:
 The class name that `when.*` selectors observe on an ancestor or descendant, so
-a rule can react to a pseudo-class active on another element. Configurable;
-`defaultMarker` when it is not.
+a rule can react to a pseudo-class active on another element. Set per call by
+the second argument to `when.*`, which reaches this crate as a
+[when marker value](../stylex-types/CONTEXT.md); the default marker when that
+argument is absent.
 _Avoid_: sentinel, flag class, hook class
+
+**Default marker**:
+The marker a `when.*` selector falls back to, `{prefix}-default-marker`. The
+separator is always present, so an explicitly empty `classNamePrefix` yields
+`-default-marker` -- an unset one arrives here already defaulted to `x`. A
+second argument that resolves to no known marker shape carries no prefix at
+all and so falls back to a bare `default-marker`.
+_Avoid_: fallback class, base marker
 
 **Nested CSS rule**:
 The final rule string, built by wrapping a declaration in its at-rules and

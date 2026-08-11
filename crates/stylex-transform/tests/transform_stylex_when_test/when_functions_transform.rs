@@ -155,3 +155,44 @@ stylex_test!(
     });
   "#
 );
+
+// A marker that evaluates to null or undefined is the same as no marker at
+// all, so the selector falls back to the prefixed default marker rather than
+// treating the value as an unresolvable marker.
+stylex_test!(
+  when_ancestor_with_null_marker,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      container: {
+        color: {
+          default: 'blue',
+          [stylex.when.ancestor(':hover', null)]: 'red',
+        },
+      },
+    });
+
+    console.log(styles.container);
+  "#
+);
+
+stylex_test!(
+  when_ancestor_with_undefined_marker,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      container: {
+        color: {
+          default: 'blue',
+          [stylex.when.ancestor(':hover', undefined)]: 'red',
+        },
+      },
+    });
+
+    console.log(styles.container);
+  "#
+);

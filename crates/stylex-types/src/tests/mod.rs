@@ -1,3 +1,5 @@
+mod traits_test;
+
 use ctor::ctor;
 
 #[ctor(unsafe)]

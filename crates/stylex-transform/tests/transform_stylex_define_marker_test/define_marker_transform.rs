@@ -88,3 +88,16 @@ stylex_test!(
     export { dupMarker };
   "#
 );
+
+// A destructured export alongside a marker is ordinary JavaScript: the marker
+// compiles and the destructuring is left alone.
+stylex_test!(
+  marker_beside_a_destructured_export,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const marker = stylex.defineMarker();
+    export const { a } = { a: 1 };
+    export const [ b ] = [ 2 ];
+  "#
+);

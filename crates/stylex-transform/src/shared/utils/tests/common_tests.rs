@@ -1993,16 +1993,18 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
 }
 
 // ──────────────────────────────────────────────
-// fill_top_level_expressions - non-ident var pattern panic
+// fill_top_level_expressions - non-ident var patterns
 // ──────────────────────────────────────────────
 
 mod fill_top_level_non_ident_pattern_tests {
   use super::*;
   use swc_core::ecma::ast::{ArrayPat, ObjectPat};
 
+  /// `export const [ a ] = expr;` exports no single name to record, so it is
+  /// skipped rather than rejected — it is ordinary JavaScript, and the APIs
+  /// that do require a name report that against the call themselves.
   #[test]
-  #[should_panic]
-  fn panics_for_array_pattern_in_export_decl() {
+  fn export_decl_with_array_pattern_skipped() {
     let mut state = StateManager::default();
     let decl = VarDeclarator {
       span: DUMMY_SP,
@@ -2030,6 +2032,9 @@ mod fill_top_level_non_ident_pattern_tests {
       shebang: None,
     };
     fill_top_level_expressions(&module, &mut state);
+
+    assert!(state.top_level_expressions.is_empty());
+    assert!(state.declarations.is_empty());
   }
 
   #[test]

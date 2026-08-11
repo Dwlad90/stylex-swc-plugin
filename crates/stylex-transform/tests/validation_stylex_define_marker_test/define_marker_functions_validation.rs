@@ -139,7 +139,8 @@ stylex_test_panic!(
 );
 
 // Bound to a destructuring pattern rather than a plain identifier: here it is
-// the variable that is wrong, not the export.
+// the variable that is wrong, not the export. Exported or not, and whichever
+// pattern it is.
 stylex_test_panic!(
   invalid_binding_destructured_marker,
   "defineMarker() calls must be bound to a bare variable.",
@@ -148,6 +149,26 @@ stylex_test_panic!(
     import * as stylex from '@stylexjs/stylex';
     const { marker } = stylex.defineMarker();
     export { marker };
+  "#
+);
+
+stylex_test_panic!(
+  invalid_binding_destructured_marker_export,
+  "defineMarker() calls must be bound to a bare variable.",
+  |tr| define_marker_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const { marker } = stylex.defineMarker();
+  "#
+);
+
+stylex_test_panic!(
+  invalid_binding_array_destructured_marker_export,
+  "defineMarker() calls must be bound to a bare variable.",
+  |tr| define_marker_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const [ marker ] = stylex.defineMarker();
   "#
 );
 

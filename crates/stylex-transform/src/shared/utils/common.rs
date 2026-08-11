@@ -296,15 +296,18 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
     ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export_decl)) => {
       if let Decl::Var(decl_var) = &export_decl.decl {
         for decl in &decl_var.decls {
-          if let Some(decl_init) = decl.init.as_ref() {
-            let ident_sym = match decl.name.as_ident() {
-              Some(i) => i.sym.clone(),
-              None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
-            };
+          // A declarator bound to a pattern rather than a name exports no
+          // single name to record, so it is skipped here exactly as it is in
+          // the statement arm below — `export const { a } = expr;` is ordinary
+          // JavaScript, and an API that does require a name reports that
+          // itself, against the call the author wrote.
+          if let Some(decl_init) = decl.init.as_ref()
+            && let Some(ident) = decl.name.as_ident()
+          {
             state.top_level_expressions.push(TopLevelExpression(
               TopLevelExpressionKind::NamedExport,
               decl_init.as_ref().clone(),
-              Some(ident_sym),
+              Some(ident.sym.clone()),
             ));
             fill_state_declarations(state, decl);
           }

@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/esbuild-unplugin-example",
   "description": "A simple esbuild unplugin example to test @stylexswc/unplugin/esbuild",
-  "version": "0.18.4-dev.1",
+  "version": "0.18.4-rc.1",
   "private": true,
   "license": "MIT",
   "scripts": {

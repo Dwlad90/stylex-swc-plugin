@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-example",
-  "version": "0.18.4-dev.1",
+  "version": "0.18.4-rc.1",
   "private": true,
   "scripts": {
     "build": "next build --webpack",

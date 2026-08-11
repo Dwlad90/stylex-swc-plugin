@@ -44,6 +44,9 @@ where
     // declarator, hashing every export to one class. The span does carry it.
     let parent_var_decl_index = self.state.find_call_declaration_index_by_span(call)?;
 
+    // Kept as the interned `Atom` the binding already carries: it only ever
+    // feeds `gen_file_based_identifier`, which takes `&str`, so re-allocating
+    // it as a `String` would buy nothing.
     let export_name = self
       .state
       .declarations
@@ -51,7 +54,7 @@ where
       .name
       .as_ident()?
       .sym
-      .to_string();
+      .clone();
 
     let file_name = match self
       .state
@@ -83,6 +86,11 @@ where
     // returns a marker object in place of. A `when` selector in the same file
     // resolves the marker through that declaration, so it has to see the
     // object rather than the call it can no longer evaluate.
+    //
+    // The index taken above still addresses that declarator: nothing between
+    // here and there takes `&mut self.state` — `get_filename_for_hashing`
+    // borrows it shared, and the rest only reads `options` — so the vector
+    // cannot have been pushed to or reordered.
     if let Some(declaration) = self.state.declarations.get_mut(parent_var_decl_index) {
       declaration.init = Some(Box::new(marker_obj_ast.clone()));
     }

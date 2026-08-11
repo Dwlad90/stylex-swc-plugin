@@ -371,6 +371,28 @@ mod state_manager {
   }
 
   #[test]
+  fn find_top_level_expr_by_span_ignores_a_non_call_entry_at_the_same_position() {
+    let mut state = StateManager::default();
+
+    let call = call_at(span_at(1, 10));
+
+    state.top_level_expressions.push(TopLevelExpression(
+      TopLevelExpressionKind::NamedExport,
+      Expr::Ident(Ident {
+        span: span_at(1, 10),
+        sym: "notACall".into(),
+        optional: false,
+        ctxt: SyntaxContext::empty(),
+      }),
+      Some("notACall".into()),
+    ));
+
+    // The span is only ever consulted to tell two recorded *calls* apart, so a
+    // position match on some other expression is not a match.
+    assert!(state.find_top_level_expr_by_span(&call).is_none());
+  }
+
+  #[test]
   fn find_top_level_expr_by_span_never_matches_a_spanless_call() {
     let mut state = StateManager::default();
 

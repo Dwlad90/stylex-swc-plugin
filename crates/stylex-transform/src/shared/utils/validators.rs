@@ -436,14 +436,13 @@ pub(crate) fn validate_stylex_define_marker_indent(call: &CallExpr, state: &mut 
   // marker through behind an exported one.
   let define_marker_top_level_expr = match state.find_top_level_expr_by_span(call) {
     Some(define_marker_top_level_expr) => define_marker_top_level_expr,
+    // The call itself is the fault site. `defineMarker()` takes no arguments —
+    // the check above has already panicked otherwise — so there is never an
+    // argument to point at, unlike the `defineVars` / `defineConsts` validators
+    // this shape was copied from.
     None => build_code_frame_error_and_panic(
       &call_expr,
-      &call
-        .args
-        .get(2)
-        .cloned()
-        .unwrap_or_else(|| create_expr_or_spread(call_expr.clone()))
-        .expr,
+      &call_expr,
       &unbound_call_value(STYLEX_DEFINE_MARKER),
       state,
     ),

@@ -1118,6 +1118,11 @@ impl StateManager {
   /// `defineMarker()` in a module is the same expression. Spans are unique per
   /// position and the discovery pass records them untouched, so they are what
   /// pins an entry to the call it was recorded from.
+  ///
+  /// A dummy span identifies nothing, so a span-less call never matches — a
+  /// synthesized call is not something the discovery pass can have recorded,
+  /// and matching one against a recorded entry would resurrect the very
+  /// conflation this lookup exists to avoid.
   pub(crate) fn find_top_level_expr_by_span(&self, call: &CallExpr) -> Option<&TopLevelExpression> {
     if call.span.is_dummy() {
       return None;
@@ -1135,7 +1140,12 @@ impl StateManager {
   /// span for the reason given on [`Self::find_top_level_expr_by_span`].
   ///
   /// Returns the position rather than a reference so callers can both read the
-  /// declarator and later rewrite its initializer without searching twice.
+  /// declarator and later rewrite its initializer without searching twice. The
+  /// position stays valid only while `declarations` is not pushed to or
+  /// reordered, which no transform does mid-call.
+  ///
+  /// Span-less calls never match, for the reason given on
+  /// [`Self::find_top_level_expr_by_span`].
   pub(crate) fn find_call_declaration_index_by_span(&self, call: &CallExpr) -> Option<usize> {
     if call.span.is_dummy() {
       return None;

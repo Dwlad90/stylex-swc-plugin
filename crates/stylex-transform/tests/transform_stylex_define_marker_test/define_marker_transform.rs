@@ -39,6 +39,19 @@ stylex_test!(
   "#
 );
 
+// Two declarators under one `export const`: `fill_top_level_expressions`
+// records these from a loop over the declaration's `decls`, a different path
+// to the one-statement-per-marker form above.
+stylex_test!(
+  multiple_marker_exports_in_one_declaration,
+  |tr| stylex_transform(tr.comments.clone(), |b| b
+    .with_filename(FileName::Real("/stylex/packages/markers.stylex.ts".into()))),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const firstMarker = stylex.defineMarker(), secondMarker = stylex.defineMarker();
+  "#
+);
+
 stylex_test!(
   multiple_markers_exported_by_a_separate_export_statement,
   |tr| stylex_transform(tr.comments.clone(), |b| b

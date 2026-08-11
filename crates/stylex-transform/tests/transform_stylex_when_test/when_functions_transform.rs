@@ -196,3 +196,27 @@ stylex_test!(
     console.log(styles.container);
   "#
 );
+
+// A second argument that evaluates to a plain object is neither a marker, a
+// class name nor a compiled `$$css` style. The reference implementation lets
+// it fall through to an unprefixed `default-marker` rather than rejecting it,
+// so the compiler does too — while warning, since no element carries that
+// class. Covers the fallback branch of `resolve_when_marker`.
+stylex_test!(
+  when_ancestor_with_unresolvable_marker,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      container: {
+        color: {
+          default: 'blue',
+          [stylex.when.ancestor(':hover', { notAMarker: 1 })]: 'red',
+        },
+      },
+    });
+
+    console.log(styles.container);
+  "#
+);

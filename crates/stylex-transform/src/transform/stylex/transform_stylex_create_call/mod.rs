@@ -87,13 +87,6 @@ use stylex_types::{
   structures::injectable_style::InjectableStyle,
 };
 
-/// Lazily-initialized Arc-wrapped map of stylex.when helper functions.
-///
-/// Thread-safety: Arc ensures safe sharing across threads; Lazy guarantees
-/// one-time initialization. Lifecycle: Initialized on first access, immutable
-/// thereafter. Contains pure, stateless transformation functions (ancestor,
-/// descendant, etc.) that convert expressions to CSS selectors for relational
-/// styling.
 /// Resolves the value that occupies the second slot of a `when` call: the
 /// custom marker when one was passed, and the StyleX options otherwise.
 ///
@@ -112,11 +105,12 @@ fn resolve_when_marker<'a>(
     return &state.options;
   };
 
-  // NOTE: the two borrowing shapes are asked first, so only a marker that is
-  // genuinely a proxy pays for building its class name here.
-  let is_resolvable = marker.as_str_value().is_some()
-    || marker.first_css_key().is_some()
-    || marker.as_proxy_string().is_some();
+  // NOTE: every test here is a borrow or a discriminant check, so deciding
+  // whether to warn costs nothing. Asking `as_proxy_string` instead would
+  // hash the marker's base id and throw the result away, leaving
+  // `from_proxy` to compute the very same string again.
+  let is_resolvable =
+    marker.as_str_value().is_some() || marker.first_css_key().is_some() || marker.is_proxy();
 
   if !is_resolvable {
     warn!(
@@ -140,118 +134,54 @@ fn is_nullish(value: &EvaluateResultValue) -> bool {
   }
 }
 
+/// Registers one `stylex.when.*` entry.
+///
+/// The five functions differ only in the name they are exposed under and the
+/// `stylex-css` function they delegate to; the surrounding work — read the
+/// selector out of the evaluated first argument, resolve the marker from the
+/// second, and attribute either failure to the right function — is identical,
+/// so it lives here once instead of five times.
+macro_rules! insert_when_fn {
+  ($map:expr, $js_name:literal, $when_fn:path) => {
+    $map.insert(
+      $js_name.to_string(),
+      (|pseudo: EvaluateResultValue,
+        marker: Option<EvaluateResultValue>,
+        state: &mut dyn stylex_types::traits::StyleOptions| {
+        let state = downcast_style_options_to_state_manager(state);
+        let expr_str = match pseudo
+          .as_expr()
+          .and_then(|expr| convert_expr_to_str(expr, state, &FunctionMap::default()))
+        {
+          Some(s) => s,
+          None => stylex_panic!("stylex.when {}: expression is not a string", $js_name),
+        };
+        let marker = resolve_when_marker($js_name, marker.as_ref(), state);
+        let result = match $when_fn(&expr_str, Some(marker)) {
+          Ok(v) => v,
+          Err(e) => stylex_panic!("stylex.when {} error: {}", $js_name, e),
+        };
+        create_string_expr(&result)
+      }) as StylexWhenFn,
+    );
+  };
+}
+
+/// Lazily-initialized Arc-wrapped map of stylex.when helper functions.
+///
+/// Thread-safety: Arc ensures safe sharing across threads; Lazy guarantees
+/// one-time initialization. Lifecycle: Initialized on first access, immutable
+/// thereafter. Contains pure, stateless transformation functions (ancestor,
+/// descendant, etc.) that convert expressions to CSS selectors for relational
+/// styling.
 static STYLEX_WHEN_MAP: LazyLock<Arc<IndexMap<String, StylexWhenFn>>> = LazyLock::new(|| {
   let mut map: IndexMap<String, StylexWhenFn> = IndexMap::default();
 
-  map.insert(
-    "ancestor".to_string(),
-    |pseudo: EvaluateResultValue,
-     marker: Option<EvaluateResultValue>,
-     state: &mut dyn stylex_types::traits::StyleOptions| {
-      let state = downcast_style_options_to_state_manager(state);
-      let expr_str = match pseudo
-        .as_expr()
-        .and_then(|expr| convert_expr_to_str(expr, state, &FunctionMap::default()))
-      {
-        Some(s) => s,
-        None => stylex_panic!("stylex.when ancestor: expression is not a string"),
-      };
-      let marker = resolve_when_marker("ancestor", marker.as_ref(), state);
-      let result = match stylex_when::ancestor(&expr_str, Some(marker)) {
-        Ok(v) => v,
-        Err(e) => stylex_panic!("stylex.when ancestor error: {}", e),
-      };
-      create_string_expr(&result)
-    },
-  );
-
-  map.insert(
-    "descendant".to_string(),
-    |pseudo: EvaluateResultValue,
-     marker: Option<EvaluateResultValue>,
-     state: &mut dyn stylex_types::traits::StyleOptions| {
-      let state = downcast_style_options_to_state_manager(state);
-      let expr_str = match pseudo
-        .as_expr()
-        .and_then(|expr| convert_expr_to_str(expr, state, &FunctionMap::default()))
-      {
-        Some(s) => s,
-        None => stylex_panic!("stylex.when descendant: expression is not a string"),
-      };
-      let marker = resolve_when_marker("descendant", marker.as_ref(), state);
-      let result = match stylex_when::descendant(&expr_str, Some(marker)) {
-        Ok(v) => v,
-        Err(e) => stylex_panic!("stylex.when descendant error: {}", e),
-      };
-      create_string_expr(&result)
-    },
-  );
-
-  map.insert(
-    "siblingBefore".to_string(),
-    |pseudo: EvaluateResultValue,
-     marker: Option<EvaluateResultValue>,
-     state: &mut dyn stylex_types::traits::StyleOptions| {
-      let state = downcast_style_options_to_state_manager(state);
-      let expr_str = match pseudo
-        .as_expr()
-        .and_then(|expr| convert_expr_to_str(expr, state, &FunctionMap::default()))
-      {
-        Some(s) => s,
-        None => stylex_panic!("stylex.when siblingBefore: expression is not a string"),
-      };
-      let marker = resolve_when_marker("siblingBefore", marker.as_ref(), state);
-      let result = match stylex_when::sibling_before(&expr_str, Some(marker)) {
-        Ok(v) => v,
-        Err(e) => stylex_panic!("stylex.when siblingBefore error: {}", e),
-      };
-      create_string_expr(&result)
-    },
-  );
-
-  map.insert(
-    "siblingAfter".to_string(),
-    |pseudo: EvaluateResultValue,
-     marker: Option<EvaluateResultValue>,
-     state: &mut dyn stylex_types::traits::StyleOptions| {
-      let state = downcast_style_options_to_state_manager(state);
-      let expr_str = match pseudo
-        .as_expr()
-        .and_then(|expr| convert_expr_to_str(expr, state, &FunctionMap::default()))
-      {
-        Some(s) => s,
-        None => stylex_panic!("stylex.when siblingAfter: expression is not a string"),
-      };
-      let marker = resolve_when_marker("siblingAfter", marker.as_ref(), state);
-      let result = match stylex_when::sibling_after(&expr_str, Some(marker)) {
-        Ok(v) => v,
-        Err(e) => stylex_panic!("stylex.when siblingAfter error: {}", e),
-      };
-      create_string_expr(&result)
-    },
-  );
-
-  map.insert(
-    "anySibling".to_string(),
-    |pseudo: EvaluateResultValue,
-     marker: Option<EvaluateResultValue>,
-     state: &mut dyn stylex_types::traits::StyleOptions| {
-      let state = downcast_style_options_to_state_manager(state);
-      let expr_str = match pseudo
-        .as_expr()
-        .and_then(|expr| convert_expr_to_str(expr, state, &FunctionMap::default()))
-      {
-        Some(s) => s,
-        None => stylex_panic!("stylex.when anySibling: expression is not a string"),
-      };
-      let marker = resolve_when_marker("anySibling", marker.as_ref(), state);
-      let result = match stylex_when::any_sibling(&expr_str, Some(marker)) {
-        Ok(v) => v,
-        Err(e) => stylex_panic!("stylex.when anySibling error: {}", e),
-      };
-      create_string_expr(&result)
-    },
-  );
+  insert_when_fn!(map, "ancestor", stylex_when::ancestor);
+  insert_when_fn!(map, "descendant", stylex_when::descendant);
+  insert_when_fn!(map, "siblingBefore", stylex_when::sibling_before);
+  insert_when_fn!(map, "siblingAfter", stylex_when::sibling_after);
+  insert_when_fn!(map, "anySibling", stylex_when::any_sibling);
 
   Arc::new(map)
 });

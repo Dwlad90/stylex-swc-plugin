@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use stylex_macros::stylex_panic;
 use swc_core::{
-  common::comments::Comments,
+  common::{EqIgnoreSpan, comments::Comments},
   ecma::ast::{CallExpr, Expr},
 };
 
@@ -81,11 +81,16 @@ where
     // returns a marker object in place of. A `when` selector in the same file
     // resolves the marker through that declaration, so it has to see the
     // object rather than the call it can no longer evaluate.
+    //
+    // Matched on the call rather than on `export_name`, as
+    // `StateManager::update_references` does for the other transforms: it
+    // pins the one declaration this call initialises instead of the first
+    // one that happens to share its name, and it makes a second pass a no-op
+    // once the call has been replaced.
     if let Some(declaration) = self.state.declarations.iter_mut().find(|declaration| {
-      declaration
-        .name
-        .as_ident()
-        .is_some_and(|ident| ident.sym == *export_name)
+      declaration.init.as_ref().is_some_and(|init| {
+        matches!(**init, Expr::Call(ref existing_call) if existing_call.eq_ignore_span(call))
+      })
     }) {
       declaration.init = Some(Box::new(marker_obj_ast.clone()));
     }

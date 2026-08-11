@@ -11,7 +11,7 @@ use stylex_macros::stylex_unimplemented;
 use swc_core::{
   atoms::Atom,
   ecma::{
-    ast::{Expr, KeyValueProp, Lit, Prop, PropName, PropOrSpread},
+    ast::{Expr, KeyValueProp, Lit, ObjectLit, Prop, PropName, PropOrSpread},
     codegen::Config,
   },
 };
@@ -267,6 +267,10 @@ impl WhenMarkerValue for EvaluateResultValue {
     }
   }
 
+  fn is_proxy(&self) -> bool {
+    matches!(self, Self::ThemeRef(_))
+  }
+
   fn as_proxy_string(&self) -> Option<String> {
     match self {
       Self::ThemeRef(theme_ref) => Some(theme_ref.to_string_value()),
@@ -279,37 +283,42 @@ impl WhenMarkerValue for EvaluateResultValue {
       return None;
     };
 
-    let props: Vec<(&str, &Expr)> = object
-      .props
-      .iter()
-      .filter_map(|prop| match prop {
-        PropOrSpread::Prop(prop) => match prop.as_ref() {
-          Prop::KeyValue(key_value) => {
-            prop_name_as_str(&key_value.key).map(|key| (key, key_value.value.as_ref()))
-          },
-          _ => None,
-        },
-        PropOrSpread::Spread(_) => None,
-      })
-      .collect();
-
-    let is_compiled = props.iter().any(|(key, value)| {
-      *key == COMPILED_KEY && matches!(value, Expr::Lit(Lit::Bool(compiled)) if compiled.value)
+    // Two lazy passes rather than one collected `Vec`: inspecting a marker
+    // object then costs no allocation. The second pass stops at the first
+    // non-`$$css` key — the marker class — so for the two-key object
+    // `defineMarker` emits, neither pass reads more than it must.
+    let is_compiled = key_value_props(object).any(|(key, value)| {
+      key == COMPILED_KEY && matches!(value, Expr::Lit(Lit::Bool(compiled)) if compiled.value)
     });
 
     if !is_compiled {
       return None;
     }
 
-    props
-      .into_iter()
-      .find(|(key, _)| *key != COMPILED_KEY)
+    key_value_props(object)
       .map(|(key, _)| key)
+      .find(|key| *key != COMPILED_KEY)
   }
 
   fn class_name_prefix(&self) -> Option<&str> {
     None
   }
+}
+
+/// The plain key/value properties of an object literal, paired with their
+/// values. Spreads, getters, setters, methods, shorthands and computed or
+/// numeric keys are skipped, none of which a compiled StyleX object carries —
+/// so what remains is exactly what `Object.keys` walks in the original.
+fn key_value_props(object: &ObjectLit) -> impl Iterator<Item = (&str, &Expr)> {
+  object.props.iter().filter_map(|prop| match prop {
+    PropOrSpread::Prop(prop) => match prop.as_ref() {
+      Prop::KeyValue(key_value) => {
+        prop_name_as_str(&key_value.key).map(|key| (key, key_value.value.as_ref()))
+      },
+      _ => None,
+    },
+    PropOrSpread::Spread(_) => None,
+  })
 }
 
 /// Reads a property name as a string, for the key shapes a compiled StyleX

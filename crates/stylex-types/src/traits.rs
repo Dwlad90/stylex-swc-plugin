@@ -57,6 +57,12 @@ pub trait WhenMarkerValue {
   /// class name, used verbatim.
   fn as_str_value(&self) -> Option<&str>;
 
+  /// The `__IS_PROXY === true` test on its own, without resolving the proxy.
+  /// Callers that only need to know whether a value *is* a marker should ask
+  /// this rather than discarding an `as_proxy_string` result, which costs a
+  /// hash and two allocations.
+  fn is_proxy(&self) -> bool;
+
   /// The `__IS_PROXY === true` test: an import proxy standing in for a
   /// marker defined in another file, resolved through its `toString`.
   fn as_proxy_string(&self) -> Option<String>;
@@ -74,6 +80,10 @@ pub trait WhenMarkerValue {
 impl WhenMarkerValue for StyleXStateOptions {
   fn as_str_value(&self) -> Option<&str> {
     None
+  }
+
+  fn is_proxy(&self) -> bool {
+    false
   }
 
   fn as_proxy_string(&self) -> Option<String> {

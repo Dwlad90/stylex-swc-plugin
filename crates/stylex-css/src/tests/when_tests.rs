@@ -519,6 +519,10 @@ impl WhenMarkerValue for TestMarker {
     self.str_value.as_deref()
   }
 
+  fn is_proxy(&self) -> bool {
+    self.proxy_string.is_some()
+  }
+
   fn as_proxy_string(&self) -> Option<String> {
     self.proxy_string.clone()
   }

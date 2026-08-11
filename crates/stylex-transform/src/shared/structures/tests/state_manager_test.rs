@@ -435,6 +435,34 @@ mod state_manager {
   }
 
   #[test]
+  fn find_call_declaration_by_span_reads_the_declarator_at_that_position() {
+    let mut state = StateManager::default();
+
+    let first = call_at(span_at(1, 10));
+    let second = call_at(span_at(20, 30));
+
+    state
+      .declarations
+      .push(var_declarator("first", Expr::Call(first)));
+    state
+      .declarations
+      .push(var_declarator("second", Expr::Call(second.clone())));
+
+    assert_eq!(
+      state
+        .find_call_declaration_by_span(&second)
+        .and_then(|decl| decl.name.as_ident())
+        .map(|ident| ident.sym.as_str()),
+      Some("second")
+    );
+    assert!(
+      state
+        .find_call_declaration_by_span(&call_at(span_at(40, 50)))
+        .is_none()
+    );
+  }
+
+  #[test]
   fn find_call_declaration_index_by_span_never_matches_a_spanless_call() {
     let mut state = StateManager::default();
 

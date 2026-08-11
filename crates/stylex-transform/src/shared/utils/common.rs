@@ -294,25 +294,7 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
     ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export_decl)) => {
       if let Decl::Var(decl_var) = &export_decl.decl {
         for decl in &decl_var.decls {
-          // A declarator bound to a pattern rather than a name exports no
-          // single name to record, so it is skipped here exactly as it is in
-          // the statement arm below — `export const { a } = expr;` is ordinary
-          // JavaScript, and an API that does require a name reports that
-          // itself, against the call the author wrote. Its position is still
-          // worth keeping: nothing else marks the call as program level.
-          if let Some(decl_init) = decl.init.as_ref() {
-            match decl.name.as_ident() {
-              Some(ident) => {
-                state.top_level_expressions.push(TopLevelExpression(
-                  TopLevelExpressionKind::NamedExport,
-                  decl_init.as_ref().clone(),
-                  Some(ident.sym.clone()),
-                ));
-                fill_state_declarations(state, decl);
-              },
-              None => record_pattern_bound_top_level_call(state, decl_init),
-            }
-          }
+          record_top_level_declarator(state, TopLevelExpressionKind::NamedExport, decl);
         }
       }
     },
@@ -336,44 +318,57 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
     },
     ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) => {
       for decl in &var.decls {
-        if let Some(decl_init) = decl.init.as_ref() {
-          match decl.name.as_ident() {
-            Some(stmt_ident) => {
-              state.top_level_expressions.push(TopLevelExpression(
-                TopLevelExpressionKind::Stmt,
-                decl_init.as_ref().clone(),
-                Some(stmt_ident.sym.clone()),
-              ));
-
-              fill_state_declarations(state, decl);
-            },
-            None => record_pattern_bound_top_level_call(state, decl_init),
-          }
-        }
+        record_top_level_declarator(state, TopLevelExpressionKind::Stmt, decl);
       }
     },
     _ => {},
   });
 }
 
-/// Remember where a call sits when it initialises a top-level declarator that
-/// binds a pattern, the one program-level position no recorded top-level
-/// expression covers. See [`StateManager::pattern_bound_top_level_calls`].
-fn record_pattern_bound_top_level_call(state: &mut StateManager, decl_init: &Expr) {
-  if let Expr::Call(call) = decl_init
-    && !call.span.is_dummy()
-  {
-    state.pattern_bound_top_level_calls.insert(call.span);
+/// Record one declarator of a top-level variable declaration, `kind` telling
+/// an exported one from a plain statement.
+///
+/// A declarator bound to a pattern rather than a name declares no single name
+/// to record, so it contributes no top-level expression — `export const { a } =
+/// expr;` is ordinary JavaScript, and an API that does require a name reports
+/// that itself, against the call the author wrote. Its position is still worth
+/// keeping: nothing else marks the call as program level.
+fn record_top_level_declarator(
+  state: &mut StateManager,
+  kind: TopLevelExpressionKind,
+  decl: &VarDeclarator,
+) {
+  let Some(decl_init) = decl.init.as_ref() else {
+    return;
+  };
+
+  match decl.name.as_ident() {
+    Some(ident) => {
+      state.top_level_expressions.push(TopLevelExpression(
+        kind,
+        decl_init.as_ref().clone(),
+        Some(ident.sym.clone()),
+      ));
+
+      fill_state_declarations(state, decl);
+    },
+    None => {
+      if let Expr::Call(call) = decl_init.as_ref()
+        && !call.span.is_dummy()
+      {
+        state.pattern_bound_top_level_calls.insert(call.span);
+      }
+    },
   }
 }
 
 pub fn fill_state_declarations(state: &mut StateManager, decl: &VarDeclarator) {
   // Dedup on position first, then content. Every filler runs in the `Discover`
   // cycle over the pristine AST, so the same declaration seen on more than one
-  // of those passes carries the same span and is still stored once — while two
+  // of those passes carries the same span and is stored once — while two
   // declarations that merely *read* the same, `var m = f(); var m = f();`, stay
-  // two entries. Collapsing those lost the second one, and a transform that
-  // pins a call to its declarator by span then found nothing to rewrite.
+  // two entries, as a lookup that pins a call to its declarator by span needs
+  // them to be.
   //
   // Content is still compared span-insensitively, which is what decides the
   // synthesized declarators that share `DUMMY_SP`.

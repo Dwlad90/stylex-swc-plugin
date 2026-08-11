@@ -1998,7 +1998,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
 
 mod fill_top_level_non_ident_pattern_tests {
   use super::*;
-  use swc_core::ecma::ast::{ArrayPat, ObjectPat};
+  use swc_core::ecma::ast::{ArrayPat, CallExpr, Callee, ObjectPat};
 
   /// `export const [ a ] = expr;` exports no single name to record, so it is
   /// skipped rather than rejected — it is ordinary JavaScript, and the APIs
@@ -2037,10 +2037,10 @@ mod fill_top_level_non_ident_pattern_tests {
     assert!(state.declarations.is_empty());
   }
 
+  /// A statement declarator bound to a pattern declares no single name, so it
+  /// contributes no top-level expression either.
   #[test]
   fn stmt_var_with_object_pattern_skipped() {
-    // Stmt var decls skip non-ident patterns (line 467:
-    // `decl.name.as_ident().is_some()`)
     let mut state = StateManager::default();
     let decl = VarDeclarator {
       span: DUMMY_SP,
@@ -2067,6 +2067,95 @@ mod fill_top_level_non_ident_pattern_tests {
     fill_top_level_expressions(&module, &mut state);
     // Object pattern is skipped, no expressions added
     assert!(state.top_level_expressions.is_empty());
+  }
+
+  /// A pattern-bound declarator initialised by a call keeps the call's
+  /// position, which is what marks it program level.
+  #[test]
+  fn export_decl_with_pattern_records_the_initializing_call_position() {
+    let call_span = Span {
+      lo: BytePos(11),
+      hi: BytePos(30),
+    };
+
+    let mut state = StateManager::default();
+    fill_top_level_expressions(
+      &pattern_bound_export(Expr::Call(make_call_expr(call_span))),
+      &mut state,
+    );
+
+    assert!(state.top_level_expressions.is_empty());
+    assert_eq!(
+      state
+        .pattern_bound_top_level_calls
+        .iter()
+        .copied()
+        .collect::<Vec<_>>(),
+      vec![call_span]
+    );
+  }
+
+  /// A span-less call identifies no position, so there is nothing to record —
+  /// see `StateManager::find_top_level_expr_by_span` for why a dummy span is
+  /// never a match.
+  #[test]
+  fn export_decl_with_pattern_ignores_a_span_less_call() {
+    let mut state = StateManager::default();
+    fill_top_level_expressions(
+      &pattern_bound_export(Expr::Call(make_call_expr(DUMMY_SP))),
+      &mut state,
+    );
+
+    assert!(state.pattern_bound_top_level_calls.is_empty());
+  }
+
+  /// A pattern-bound declarator initialised by anything else records nothing.
+  #[test]
+  fn export_decl_with_pattern_ignores_a_non_call_initializer() {
+    let mut state = StateManager::default();
+    fill_top_level_expressions(&pattern_bound_export(make_num_expr(1.0)), &mut state);
+
+    assert!(state.pattern_bound_top_level_calls.is_empty());
+  }
+
+  fn make_call_expr(span: Span) -> CallExpr {
+    CallExpr {
+      span,
+      ctxt: SyntaxContext::empty(),
+      callee: Callee::Expr(Box::new(Expr::Ident(make_ident("defineMarker")))),
+      args: vec![],
+      type_args: None,
+    }
+  }
+
+  /// `export const { a } = <init>;`
+  fn pattern_bound_export(init: Expr) -> Module {
+    let decl = VarDeclarator {
+      span: DUMMY_SP,
+      name: Pat::Object(ObjectPat {
+        span: DUMMY_SP,
+        props: vec![],
+        optional: false,
+        type_ann: None,
+      }),
+      init: Some(Box::new(init)),
+      definite: false,
+    };
+
+    Module {
+      span: DUMMY_SP,
+      body: vec![ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl {
+        span: DUMMY_SP,
+        decl: Decl::Var(Box::new(VarDecl {
+          span: DUMMY_SP,
+          kind: VarDeclKind::Const,
+          declare: false,
+          decls: vec![decl],
+          ctxt: SyntaxContext::empty(),
+        })),
+      }))],
+      shebang: None,
+    }
   }
 }
 

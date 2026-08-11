@@ -202,18 +202,22 @@ where
       // A call bound to a top-level pattern — `export const { foo } =
       // stylex.create(…);` — is program level too, and the recorded top-level
       // expressions, keyed by the name a pattern does not give, cannot say so.
+      //
+      // Asked first: it is a hash lookup on two integers, where
+      // `find_top_level_expr` compares this call against every recorded one
+      // with `eq_ignore_span` — a deep walk of the whole style object.
       let is_program_level = self
         .state
-        .find_top_level_expr(
-          call,
-          |tpe: &TopLevelExpression| matches!(tpe.1, Expr::Array(_)),
-          None,
-        )
-        .is_some()
+        .pattern_bound_top_level_calls
+        .contains(&call.span)
         || self
           .state
-          .pattern_bound_top_level_calls
-          .contains(&call.span);
+          .find_top_level_expr(
+            call,
+            |tpe: &TopLevelExpression| matches!(tpe.1, Expr::Array(_)),
+            None,
+          )
+          .is_some();
 
       let mut first_arg = call.args.first()?.expr.clone();
 

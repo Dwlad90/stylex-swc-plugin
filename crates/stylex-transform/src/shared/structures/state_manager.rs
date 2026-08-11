@@ -421,6 +421,12 @@ pub struct StateManager {
   /// ([`ModuleBindingsCollector`]).
   pub(crate) binding_writes: FxHashSet<Id>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
+  /// Spans of the calls that initialise a top-level declarator bound to a
+  /// pattern rather than a name — `export const { foo } = stylex.create(…);`.
+  /// [`Self::top_level_expressions`] is keyed by the exported name and so has
+  /// no entry for them, but they are still program level, and a transform that
+  /// hoists its result out of a nested position must not hoist here.
+  pub(crate) pattern_bound_top_level_calls: FxHashSet<Span>,
   pub(crate) call_expressions: CallExpressionState,
   pub(crate) seen: FxHashMap<u64, Rc<SeenValue>>,
   pub(crate) cache: CacheState,
@@ -536,6 +542,7 @@ impl StateManager {
       declarations_state: DeclarationState::default(),
       binding_writes: FxHashSet::default(),
       top_level_expressions: vec![],
+      pattern_bound_top_level_calls: FxHashSet::default(),
       call_expressions: CallExpressionState::default(),
       jsx_spread_attr_exprs_map: FxHashMap::default(),
 

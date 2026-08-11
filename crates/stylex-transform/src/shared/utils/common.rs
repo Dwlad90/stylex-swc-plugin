@@ -22,9 +22,7 @@ use crate::shared::{
   },
   utils::ast::convertors::{convert_str_lit_to_atom, convert_wtf8_to_atom},
 };
-use stylex_constants::constants::messages::{
-  INVALID_UTF8, SPREAD_NOT_SUPPORTED, VAR_DECL_NAME_NOT_IDENT,
-};
+use stylex_constants::constants::messages::{INVALID_UTF8, SPREAD_NOT_SUPPORTED};
 use stylex_regex::regex::JSON_REGEX;
 
 use super::ast::convertors::expand_shorthand_prop;
@@ -300,16 +298,20 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
           // single name to record, so it is skipped here exactly as it is in
           // the statement arm below — `export const { a } = expr;` is ordinary
           // JavaScript, and an API that does require a name reports that
-          // itself, against the call the author wrote.
-          if let Some(decl_init) = decl.init.as_ref()
-            && let Some(ident) = decl.name.as_ident()
-          {
-            state.top_level_expressions.push(TopLevelExpression(
-              TopLevelExpressionKind::NamedExport,
-              decl_init.as_ref().clone(),
-              Some(ident.sym.clone()),
-            ));
-            fill_state_declarations(state, decl);
+          // itself, against the call the author wrote. Its position is still
+          // worth keeping: nothing else marks the call as program level.
+          if let Some(decl_init) = decl.init.as_ref() {
+            match decl.name.as_ident() {
+              Some(ident) => {
+                state.top_level_expressions.push(TopLevelExpression(
+                  TopLevelExpressionKind::NamedExport,
+                  decl_init.as_ref().clone(),
+                  Some(ident.sym.clone()),
+                ));
+                fill_state_declarations(state, decl);
+              },
+              None => record_pattern_bound_top_level_call(state, decl_init),
+            }
           }
         }
       }
@@ -334,25 +336,35 @@ pub fn fill_top_level_expressions(module: &Module, state: &mut StateManager) {
     },
     ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) => {
       for decl in &var.decls {
-        if let Some(decl_init) = decl.init.as_ref()
-          && decl.name.as_ident().is_some()
-        {
-          let stmt_ident_sym = match decl.name.as_ident() {
-            Some(i) => i.sym.clone(),
-            None => stylex_panic!("{}", VAR_DECL_NAME_NOT_IDENT),
-          };
-          state.top_level_expressions.push(TopLevelExpression(
-            TopLevelExpressionKind::Stmt,
-            decl_init.as_ref().clone(),
-            Some(stmt_ident_sym),
-          ));
+        if let Some(decl_init) = decl.init.as_ref() {
+          match decl.name.as_ident() {
+            Some(stmt_ident) => {
+              state.top_level_expressions.push(TopLevelExpression(
+                TopLevelExpressionKind::Stmt,
+                decl_init.as_ref().clone(),
+                Some(stmt_ident.sym.clone()),
+              ));
 
-          fill_state_declarations(state, decl);
+              fill_state_declarations(state, decl);
+            },
+            None => record_pattern_bound_top_level_call(state, decl_init),
+          }
         }
       }
     },
     _ => {},
   });
+}
+
+/// Remember where a call sits when it initialises a top-level declarator that
+/// binds a pattern, the one program-level position no recorded top-level
+/// expression covers. See [`StateManager::pattern_bound_top_level_calls`].
+fn record_pattern_bound_top_level_call(state: &mut StateManager, decl_init: &Expr) {
+  if let Expr::Call(call) = decl_init
+    && !call.span.is_dummy()
+  {
+    state.pattern_bound_top_level_calls.insert(call.span);
+  }
 }
 
 pub fn fill_state_declarations(state: &mut StateManager, decl: &VarDeclarator) {

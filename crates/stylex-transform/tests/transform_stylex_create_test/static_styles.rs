@@ -979,3 +979,32 @@ stylex_test!(
     })?.root;
   "#
 );
+
+// A call bound to a top-level pattern is already program level, so its result
+// stays inline rather than being hoisted into a temporary.
+stylex_test!(
+  destructured_export_of_a_create_call,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const { foo } = stylex.create({
+      foo: {
+        color: 'red',
+      },
+    });
+  "#
+);
+
+stylex_test!(
+  destructured_statement_of_a_create_call,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const { foo } = stylex.create({
+      foo: {
+        color: 'red',
+      },
+    });
+    console.log(foo);
+  "#
+);

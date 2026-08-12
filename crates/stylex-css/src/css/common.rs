@@ -750,17 +750,20 @@ pub fn normalize_css_property_value(
   css_property_value: &str,
   options: &StyleXStateOptions,
 ) -> String {
+  // A value that is nothing but a number has no CSS grammar to normalize, and
+  // round-tripping it through the parser is what loses it: SWC holds an integer
+  // as `i64`, so anything past 2^63 comes back saturated. Re-spell it directly.
+  //
+  // Checked before the function scans below, which cannot match a bare number
+  // and would only be discarded.
+  if let Some(number) = parse_bare_number(css_property_value) {
+    return strip_leading_zero(&to_js_string(number));
+  }
+
   let should_normalize_spacing_only = COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES
     .iter()
     .any(|css_fnc| contains_css_function_call(css_property_value, css_fnc))
     || contains_relative_color_function(css_property_value);
-
-  // A value that is nothing but a number has no CSS grammar to normalize, and
-  // round-tripping it through the parser is what loses it: SWC holds an integer
-  // as `i64`, so anything past 2^63 comes back saturated. Re-spell it directly.
-  if let Some(number) = parse_bare_number(css_property_value) {
-    return strip_leading_zero(&to_js_string(number));
-  }
 
   let is_pseudo = css_property.starts_with(':');
   let structure = scan_value_structure(css_property_value);
@@ -839,8 +842,13 @@ pub fn normalize_css_property_value(
     Some(css_property),
   );
 
-  // Collected before codegen, which lowercases the names it emits.
-  let authored_function_names = collect_function_names(&parsed_ast);
+  // Collected before codegen, which lowercases the names it emits. A value with
+  // no `(` has no function to restore, so the extra traversal is skipped.
+  let authored_function_names = if css_property_value.contains('(') {
+    collect_function_names(&parsed_ast)
+  } else {
+    Vec::new()
+  };
 
   let stringified = stringify(&parsed_ast);
   let value = extract_css_value(&stringified);

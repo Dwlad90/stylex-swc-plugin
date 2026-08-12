@@ -24,7 +24,12 @@ fn css_value_parsers_match_expected_tokens() {
 fn core_cleanup_patterns_match() {
   assert!(CLEAN_CSS_VAR.is_match(r"\31 ").unwrap());
   assert!(IS_CSS_VAR.is_match("var(--token_1)").unwrap());
+  assert!(IS_CSS_VAR.is_match("var(--token-1)").unwrap());
   assert!(!IS_CSS_VAR.is_match("var(token)").unwrap());
+  // The name class is ASCII: `/^var\(--[a-zA-Z0-9-_]+\)$/` rejects these, and a
+  // Unicode-aware `\w` would have accepted them.
+  assert!(!IS_CSS_VAR.is_match("var(--épaisseur)").unwrap());
+  assert!(!IS_CSS_VAR.is_match("var(--日本)").unwrap());
   assert!(DASHIFY_REGEX.is_match("fooBar").unwrap());
 }
 

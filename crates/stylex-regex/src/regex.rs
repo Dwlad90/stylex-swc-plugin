@@ -18,10 +18,11 @@ pub static LENGTH_UNIT_TESTER_REGEX: Lazy<Regex> = Lazy::new(|| {
 pub static CLEAN_CSS_VAR: Lazy<Regex> =
   Lazy::new(|| Regex::new(r#"\\3(\d) "#).expect("Clean CSS var regex is valid"));
 
-// Updated: More permissive CSS variable name matching (allows dots,
-// underscores, etc.)
+// The character class is spelled out rather than written as `[\w-]`: `\w` is
+// Unicode-aware here but ASCII-only in the `/^var\(--[a-zA-Z0-9-_]+\)$/` this
+// mirrors, so `[\w-]` also accepted names like `var(--épaisseur)`.
 pub static IS_CSS_VAR: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"^var\(--[\w-]+\)$"#).expect("Is CSS var regex is valid"));
+  Lazy::new(|| Regex::new(r#"^var\(--[a-zA-Z0-9-_]+\)$"#).expect("Is CSS var regex is valid"));
 
 // Improved: Using positive lookbehind to avoid capturing the prefix
 // This simplifies replacement from "$1-$2" to "-$1"

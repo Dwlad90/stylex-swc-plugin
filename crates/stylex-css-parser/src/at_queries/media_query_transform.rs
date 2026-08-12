@@ -345,17 +345,18 @@ fn ranges_overlap(range1: &(String, f32, f32), range2: &(String, f32, f32)) -> b
 
 /// Just normalize media query syntax without applying negation logic
 fn normalize_media_query_syntax(result: Vec<KeyValueProp>) -> Vec<KeyValueProp> {
-  let (media, non_media): (Vec<KeyValueProp>, Vec<KeyValueProp>) = result
+  // The key is read once and carried, rather than re-derived after the split:
+  // `key_value_to_str` allocates on every call.
+  let (media, non_media): (Vec<(String, KeyValueProp)>, Vec<(String, KeyValueProp)>) = result
     .into_iter()
-    .partition(|kv| key_value_to_str(kv).starts_with("@media "));
+    .map(|kv| (key_value_to_str(&kv), kv))
+    .partition(|(key, _)| key.starts_with("@media "));
 
   // Media keys move last, as they do on the negation path: upstream deletes and
   // re-adds each one, which in JS appends it to the end of the object.
-  let mut final_result = non_media;
+  let mut final_result: Vec<KeyValueProp> = non_media.into_iter().map(|(_, kv)| kv).collect();
 
-  final_result.extend(media.into_iter().map(|kv| {
-    let key = key_value_to_str(&kv);
-
+  final_result.extend(media.into_iter().map(|(key, kv)| {
     match MediaQuery::parser().parse_to_end(&key) {
       Ok(mq) => KeyValueProp {
         key: PropName::Str(Str {

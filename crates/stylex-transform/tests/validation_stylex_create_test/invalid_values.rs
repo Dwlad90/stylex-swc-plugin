@@ -372,3 +372,15 @@ stylex_test_panic!(
     const styles = stylex.create({ x: { color } });
   "#
 );
+
+// The upstream evaluator has no BigIntLiteral case, so a BigInt value deopts
+// as an unsupported expression rather than compiling to a `px` length.
+stylex_test_panic!(
+  big_int_value_is_an_unsupported_expression,
+  "Unsupported expression: BigIntLiteral",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { width: 10n } });
+  "#
+);

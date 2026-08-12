@@ -40,9 +40,51 @@ mod create_hash_tests {
 
   #[test]
   fn matches_radix_fmt_base36_output() {
-    for input in ["", "hello", "world", "日本語", "a very long input string"] {
+    // ASCII only: this pins `to_base36` against `radix_fmt`, and ASCII is the
+    // range where the raw murmur2-over-bytes value is still the hashed value.
+    // Non-ASCII parity is covered by `matches_upstream_hash_for_non_ascii`.
+    for input in ["", "hello", "world", "a very long input string"] {
       let raw = murmur2::murmur2(input.as_bytes(), 1);
       assert_eq!(create_hash(input), radix_fmt::radix(raw, 36).to_string());
+    }
+  }
+
+  /// Golden vectors produced by running `murmurhash2_32_gc` from
+  /// `@stylexjs/babel-plugin@0.19.0`'s `src/shared/hash.js` (`hash`, i.e. seed
+  /// 1, base 36) over each input.
+  ///
+  /// These are the values a class name must be built from for the two compilers
+  /// to be interchangeable. The `content` pair is the reproduction from
+  /// https://github.com/Dwlad90/stylex-swc-plugin/issues/1248, where both
+  /// compilers emitted byte-identical CSS under different class names.
+  #[test]
+  fn matches_upstream_hash_for_non_ascii() {
+    for (input, expected) in [
+      ("<>content\"•\"null", "e0tt08"),
+      ("<>content'•'null", "wywlkd"),
+      ("•", "19lqsls"),
+      ("日本語", "csni84"),
+      ("<>font-family\"日本語\"null", "1v1enns"),
+      ("--épaisseur", "xirl07"),
+      // Astral scalars hash as their surrogate halves, matching `charCodeAt`.
+      ("🎉", "yd2se2"),
+      ("<>content\"🎉\"null", "w4zyq6"),
+      ("a🎉b", "yp8u9f"),
+    ] {
+      assert_eq!(create_hash(input), expected, "input: {:?}", input);
+    }
+  }
+
+  /// The ASCII fast path and the UTF-16 path must agree wherever both apply.
+  #[test]
+  fn matches_upstream_hash_for_ascii() {
+    for (input, expected) in [
+      ("", "ph554m"),
+      ("hello", "1a4283y"),
+      ("world", "ck8emq"),
+      ("a very long input string", "1ida9zx"),
+    ] {
+      assert_eq!(create_hash(input), expected, "input: {:?}", input);
     }
   }
 
@@ -155,6 +197,38 @@ mod create_short_hash_tests {
   fn produces_short_output() {
     // base62 encoded, mod 62^5, should be at most 5 chars
     assert!(create_short_hash("test").len() <= 5);
+  }
+
+  /// Golden vectors produced by running `createShortHash` from
+  /// `@stylexjs/babel-plugin@0.19.0`'s `src/shared/hash.js` over each input.
+  #[test]
+  fn matches_upstream_short_hash() {
+    for (input, expected) in [
+      ("", "gFYqE"),
+      ("hello", "2hHSQ"),
+      ("a very long input string", "aTxoT"),
+      ("<>content\"•\"null", "vNlxw"),
+      ("<>content'•'null", "AuiFx"),
+      ("日本語", "qMRvw"),
+      ("--épaisseur", "DAgHH"),
+      ("🎉", "GcIck"),
+      // Fewer than 5 chars whenever the value needs fewer base-62 digits.
+      ("•", "cBiC"),
+    ] {
+      assert_eq!(create_short_hash(input), expected, "input: {:?}", input);
+    }
+  }
+
+  /// `toBase62` loops `while (_num > 0)`, so a value of zero yields the empty
+  /// string rather than `"0"`. `murmur2("k580145052") == 2748398496 == 3 * 62^5`,
+  /// making this the reachable case rather than a hypothetical one.
+  ///
+  /// The empty string is what upstream emits, so it is reproduced rather than
+  /// corrected — diverging here would reintroduce the class of mismatch this
+  /// module exists to close.
+  #[test]
+  fn matches_upstream_empty_short_hash_when_value_is_a_multiple_of_62_pow_5() {
+    assert_eq!(create_short_hash("k580145052"), "");
   }
 }
 

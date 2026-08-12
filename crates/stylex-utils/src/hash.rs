@@ -21,6 +21,7 @@ use swc_core::{
 
 const MAX_UNSPANNED_HASH_COLLECTION_LEN: usize = 128;
 const BASE36_DIGITS: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+const BASE62_DIGITS: &[u8; 62] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 /// Hashes a float value by converting to its bit representation first.
 pub fn hash_f64(value: f64) -> u64 {
@@ -30,10 +31,37 @@ pub fn hash_f64(value: f64) -> u64 {
   hasher.finish()
 }
 
+/// Runs murmur2 over the string's UTF-16 code units, each masked to its low
+/// byte.
+///
+/// `murmurhash2_32_gc` derives its block count from `str.length` and reads each
+/// byte as `str.charCodeAt(i) & 0xff`, so the hash is defined over UTF-16 code
+/// units rather than UTF-8 bytes. The two encodings only coincide while the
+/// input is ASCII; past that, hashing UTF-8 bytes yields a different class name
+/// for byte-identical CSS — which is visible in `content` values, non-ASCII
+/// `font-family` names, unicode custom properties, and export ids derived from
+/// a non-ASCII file path.
+///
+/// Masking each code unit to its low byte is lossy in exactly the same way the
+/// original is: `\u{1F389}` hashes as its two surrogate halves, `0xD83C` and
+/// `0xDF89`, contributing `0x3C` and `0x89`.
+#[inline]
+fn murmur2_code_units(value: &str) -> u32 {
+  // Every ASCII scalar is a single UTF-16 code unit below `0x80`, so its low
+  // byte is already its UTF-8 byte — hash in place, without a buffer.
+  if value.is_ascii() {
+    return murmur2::murmur2(value.as_bytes(), 1);
+  }
+
+  let code_units: Vec<u8> = value.encode_utf16().map(|unit| unit as u8).collect();
+
+  murmur2::murmur2(&code_units, 1)
+}
+
 /// Creates a base-36 hash of a string using murmur2.
 #[inline]
 pub fn create_hash(value: &str) -> String {
-  to_base36(murmur2::murmur2(value.as_bytes(), 1))
+  to_base36(murmur2_code_units(value))
 }
 
 /// Creates a StyleX key hash without allocating through `format!`.
@@ -47,30 +75,51 @@ pub fn create_key_hash(namespace: &str, key: &str) -> String {
   create_hash(&value)
 }
 
-/// `u32::MAX` in base-36 is `"1z141z3"` (7 chars), so a 7-byte stack buffer
-/// is sufficient for every input. We write digits least-significant-first
-/// from the back of the buffer and `String::from(&str)` once at the end —
-/// avoiding both the special-case `"0".to_string()` allocation and the
-/// pre-loop divisor calculation in the previous implementation.
-fn to_base36(mut value: u32) -> String {
-  let mut buf = [0u8; 7];
+/// Writes `value` in the radix implied by `digits`, least-significant digit
+/// first from the back of `buf`, and collects the populated suffix.
+///
+/// A zero value writes no digits at all, leaving the representation of zero to
+/// the caller — the two callers disagree about it, which is the whole reason
+/// they stay separate wrappers.
+///
+/// `buf` must be wide enough for the largest `value` the caller admits; a
+/// narrower buffer panics on the underflow rather than truncating silently.
+fn to_radix(mut value: u32, digits: &[u8], buf: &mut [u8]) -> String {
+  let radix = digits.len() as u32;
   let mut idx = buf.len();
 
-  if value == 0 {
+  while value > 0 {
     idx -= 1;
-    buf[idx] = b'0';
-  } else {
-    while value > 0 {
-      idx -= 1;
-      buf[idx] = BASE36_DIGITS[(value % 36) as usize];
-      value /= 36;
-    }
+    buf[idx] = digits[(value % radix) as usize];
+    value /= radix;
   }
 
-  // SAFETY: `BASE36_DIGITS` only ever contains ASCII alphanumerics, so the
-  // populated slice is guaranteed valid UTF-8.
-  debug_assert!(std::str::from_utf8(&buf[idx..]).is_ok());
-  unsafe { std::str::from_utf8_unchecked(&buf[idx..]) }.to_owned()
+  // `digits` holds only ASCII alphanumerics, so widening each byte to a `char`
+  // is exact — and collecting checks the encoding instead of asserting it.
+  buf[idx..].iter().map(|&digit| char::from(digit)).collect()
+}
+
+/// `u32::MAX` in base-36 is `"1z141z3"`, so 7 digits covers every input.
+///
+/// Zero is `"0"`, matching `(0).toString(36)`.
+fn to_base36(value: u32) -> String {
+  if value == 0 {
+    return "0".to_owned();
+  }
+
+  to_radix(value, BASE36_DIGITS, &mut [0u8; 7])
+}
+
+/// `62u32.pow(5) - 1` in base-62 is `"zzzzz"`, so 5 digits covers every value
+/// `create_short_hash` reduces into range.
+///
+/// Zero is the empty string: `toBase62` loops `while (_num > 0)` and so returns
+/// `''` rather than `"0"`. That is reachable — the murmur2 value lands on a
+/// multiple of `62^5` for roughly one input in 916 million — and the empty
+/// string is what upstream emits, so it is reproduced here rather than
+/// corrected.
+fn to_base62(value: u32) -> String {
+  to_radix(value, BASE62_DIGITS, &mut [0u8; 5])
 }
 
 /// Deterministic hash using `DefaultHasher` (SipHash-based).
@@ -135,8 +184,8 @@ pub fn stable_hash_unspanned_call(call: &CallExpr) -> u64 {
 
 /// Creates a short base-62 hash of a string using murmur2.
 pub fn create_short_hash(value: &str) -> String {
-  let hash = murmur2::murmur2(value.as_bytes(), 1) % (62u32.pow(5));
-  base62::encode(hash)
+  let hash = murmur2_code_units(value) % (62u32.pow(5));
+  to_base62(hash)
 }
 
 fn hash_expr_unspanned<H: Hasher>(expr: &Expr, state: &mut H) -> bool {

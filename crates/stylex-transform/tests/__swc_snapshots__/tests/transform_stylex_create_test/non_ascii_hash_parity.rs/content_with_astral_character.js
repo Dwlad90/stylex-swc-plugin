@@ -1,13 +1,13 @@
 import _inject from "@stylexjs/stylex/lib/stylex-inject";
 var _inject2 = _inject;
-import * as stylex from "@stylexjs/stylex";
+import * as stylex from '@stylexjs/stylex';
 _inject2({
-    ltr: '.xn9malq{--shape:"•"}',
-    priority: 1
+    ltr: '.xw4zyq6{content:"🎉"}',
+    priority: 3000
 });
 export const styles = {
-    shape: {
-        "--shape": "xn9malq",
+    root: {
+        kah6P1: "xw4zyq6",
         $$css: true
     }
 };

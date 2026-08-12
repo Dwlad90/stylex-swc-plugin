@@ -13,7 +13,6 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-base62.workspace = true
 indexmap.workspace = true
 murmur2.workspace = true
 radix_fmt.workspace = true

@@ -192,3 +192,71 @@ stylex_test!(
     const styles = stylex.create({ x: { color: 'red !important' } });
   "#
 );
+
+// A unit suffix belongs only to a value the author wrote as a number. Each case
+// below is a distinct producer of a style value, so together they pin the JS
+// type all the way from the source to the emitted declaration.
+// See https://github.com/Dwlad90/stylex-swc-plugin/issues/1249.
+
+stylex_test!(
+  numeric_string_keeps_no_unit,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      x: {
+        gridTemplateColumns: {
+          '@media (min-width: 768px)': 'repeat(2, 1fr)',
+          default: '1',
+        },
+      },
+    });
+  "#
+);
+
+stylex_test!(
+  numeric_string_and_number_side_by_side,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { width: 1, height: '1', padding: '2' } });
+  "#
+);
+
+stylex_test!(
+  numeric_string_from_a_local_constant_keeps_no_unit,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const asNumber = 10;
+    const asString = '10';
+    const styles = stylex.create({ x: { width: asNumber, height: asString } });
+  "#
+);
+
+stylex_test!(
+  template_literal_is_a_string_not_a_number,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { width: `${10}` } });
+  "#
+);
+
+stylex_test!(
+  first_that_works_keeps_each_element_type,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { width: stylex.firstThatWorks(1, '2') } });
+  "#
+);
+
+stylex_test!(
+  keyframes_value_types_are_preserved,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const name = stylex.keyframes({ '0%': { width: 10, height: '10' } });
+  "#
+);

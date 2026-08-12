@@ -1,10 +1,11 @@
 use crate::values::common::{split_value, split_value_required};
+use stylex_structures::raw_value::TRawValue;
 
 // ── split_value ──────────────────────────────────────────────────────
 
 #[test]
 fn split_value_single_value() {
-  let (top, right, bottom, left) = split_value(Some("10px"));
+  let (top, right, bottom, left) = split_value(Some(&TRawValue::from("10px")));
   assert_eq!(top, "10px");
   assert!(right.is_none());
   assert!(bottom.is_none());
@@ -13,7 +14,7 @@ fn split_value_single_value() {
 
 #[test]
 fn split_value_two_values() {
-  let (top, right, bottom, left) = split_value(Some("10px 20px"));
+  let (top, right, bottom, left) = split_value(Some(&TRawValue::from("10px 20px")));
   assert_eq!(top, "10px");
   assert_eq!(right.unwrap(), "20px");
   assert!(bottom.is_none());
@@ -22,7 +23,7 @@ fn split_value_two_values() {
 
 #[test]
 fn split_value_three_values() {
-  let (top, right, bottom, left) = split_value(Some("10px 20px 30px"));
+  let (top, right, bottom, left) = split_value(Some(&TRawValue::from("10px 20px 30px")));
   assert_eq!(top, "10px");
   assert_eq!(right.unwrap(), "20px");
   assert_eq!(bottom.unwrap(), "30px");
@@ -31,7 +32,7 @@ fn split_value_three_values() {
 
 #[test]
 fn split_value_four_values() {
-  let (top, right, bottom, left) = split_value(Some("10px 20px 30px 40px"));
+  let (top, right, bottom, left) = split_value(Some(&TRawValue::from("10px 20px 30px 40px")));
   assert_eq!(top, "10px");
   assert_eq!(right.unwrap(), "20px");
   assert_eq!(bottom.unwrap(), "30px");
@@ -49,7 +50,7 @@ fn split_value_none_input() {
 
 #[test]
 fn split_value_empty_string() {
-  let (top, right, bottom, left) = split_value(Some(""));
+  let (top, right, bottom, left) = split_value(Some(&TRawValue::from("")));
   assert_eq!(top, "");
   assert!(right.is_none());
   assert!(bottom.is_none());
@@ -60,7 +61,7 @@ fn split_value_empty_string() {
 
 #[test]
 fn split_value_required_single() {
-  let (top, right, bottom, left) = split_value_required(Some("10px"));
+  let (top, right, bottom, left) = split_value_required(Some(&TRawValue::from("10px")));
   assert_eq!(top, "10px");
   assert_eq!(right, "10px"); // falls back to top
   assert_eq!(bottom, "10px"); // falls back to top
@@ -69,7 +70,7 @@ fn split_value_required_single() {
 
 #[test]
 fn split_value_required_two() {
-  let (top, right, bottom, left) = split_value_required(Some("10px 20px"));
+  let (top, right, bottom, left) = split_value_required(Some(&TRawValue::from("10px 20px")));
   assert_eq!(top, "10px");
   assert_eq!(right, "20px");
   assert_eq!(bottom, "10px"); // falls back to top
@@ -78,7 +79,7 @@ fn split_value_required_two() {
 
 #[test]
 fn split_value_required_three() {
-  let (top, right, bottom, left) = split_value_required(Some("10px 20px 30px"));
+  let (top, right, bottom, left) = split_value_required(Some(&TRawValue::from("10px 20px 30px")));
   assert_eq!(top, "10px");
   assert_eq!(right, "20px");
   assert_eq!(bottom, "30px");
@@ -87,7 +88,8 @@ fn split_value_required_three() {
 
 #[test]
 fn split_value_required_four() {
-  let (top, right, bottom, left) = split_value_required(Some("10px 20px 30px 40px"));
+  let (top, right, bottom, left) =
+    split_value_required(Some(&TRawValue::from("10px 20px 30px 40px")));
   assert_eq!(top, "10px");
   assert_eq!(right, "20px");
   assert_eq!(bottom, "30px");
@@ -105,7 +107,7 @@ fn split_value_required_none() {
 
 #[test]
 fn split_value_with_zero_values() {
-  let (top, right, bottom, left) = split_value_required(Some("0"));
+  let (top, right, bottom, left) = split_value_required(Some(&TRawValue::from("0")));
   assert_eq!(top, "0");
   assert_eq!(right, "0");
   assert_eq!(bottom, "0");
@@ -114,7 +116,7 @@ fn split_value_with_zero_values() {
 
 #[test]
 fn split_value_with_mixed_units() {
-  let (top, right, bottom, left) = split_value_required(Some("10px 2em"));
+  let (top, right, bottom, left) = split_value_required(Some(&TRawValue::from("10px 2em")));
   assert_eq!(top, "10px");
   assert_eq!(right, "2em");
   assert_eq!(bottom, "10px");

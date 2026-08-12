@@ -15,12 +15,12 @@ use crate::shared::{
     pre_rule_set::PreRuleSet,
     state::EvaluationState,
     state_manager::StateManager,
-    types::ClassesToOriginalPaths,
   },
   utils::{
     ast::convertors::{
-      convert_key_value_to_str, convert_lit_to_string, create_number_expr, expand_shorthand_prop,
-      expr_tpl_to_string, handle_tpl_to_expression, transform_bin_expr_to_number,
+      convert_key_value_to_str, convert_lit_to_raw_value, create_number_expr,
+      expand_shorthand_prop, expr_tpl_to_string, handle_tpl_to_expression,
+      transform_bin_expr_to_number,
     },
     common::get_var_decl_by_ident,
   },
@@ -30,7 +30,7 @@ use stylex_constants::constants::messages::{
   ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
 };
 use stylex_regex::regex::CSS_VALUE_SPLIT_REGEX;
-use stylex_structures::order_pair::OrderPair;
+use stylex_structures::{order_pair::OrderPair, raw_value::TRawValue};
 
 use super::flat_map_expanded_shorthands::flat_map_expanded_shorthands;
 
@@ -110,7 +110,7 @@ pub(crate) fn flatten_raw_style_object_logic(
         // Collect the various values for each value in the array
         // that belongs to the same property.
 
-        let mut equivalent_pairs: ClassesToOriginalPaths = IndexMap::new();
+        let mut equivalent_pairs: IndexMap<String, Vec<TRawValue>> = IndexMap::new();
 
         property_array.elems.iter().for_each(|each_val| {
           if let Some(property) = each_val {
@@ -119,8 +119,8 @@ pub(crate) fn flatten_raw_style_object_logic(
                 let pairs = flat_map_expanded_shorthands(
                   (
                     css_property_key.clone(),
-                    match convert_lit_to_string(property_lit) {
-                      Some(val) => PreRuleValue::String(val),
+                    match convert_lit_to_raw_value(property_lit) {
+                      Some(val) => PreRuleValue::Raw(val),
                       None => PreRuleValue::Null,
                     },
                   ),
@@ -147,8 +147,8 @@ pub(crate) fn flatten_raw_style_object_logic(
           // Remove nulls and deduplicate
           let mut values = values
             .into_iter()
-            .filter(|v| !v.is_empty())
-            .collect::<Vec<String>>();
+            .filter(|v| !v.as_css_text().is_empty())
+            .collect::<Vec<TRawValue>>();
 
           values.dedup();
 
@@ -159,7 +159,7 @@ pub(crate) fn flatten_raw_style_object_logic(
           } else {
             let pre_rule_value = if let Some(first_value) = values.first() {
               if values.len() == 1 {
-                PreRuleValue::String(first_value.clone())
+                PreRuleValue::Raw(first_value.clone())
               } else {
                 PreRuleValue::Vec(values.clone())
               }
@@ -184,13 +184,13 @@ pub(crate) fn flatten_raw_style_object_logic(
           && !css_property_key.starts_with('@')
           && !css_property_key.starts_with('[')
         {
-          let value = convert_lit_to_string(property_lit);
+          let value = convert_lit_to_raw_value(property_lit);
 
           let pairs = flat_map_expanded_shorthands(
             (
               css_property_key,
               match value {
-                Some(val) => PreRuleValue::String(val),
+                Some(val) => PreRuleValue::Raw(val),
                 None => PreRuleValue::Null,
               },
             ),
@@ -206,7 +206,7 @@ pub(crate) fn flatten_raw_style_object_logic(
 
               let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
                 property.as_str(),
-                PreRuleValue::String(pair_value.to_string()),
+                PreRuleValue::Raw(pair_value.clone()),
                 Some(normalized_key_path),
               ));
 
@@ -235,7 +235,7 @@ pub(crate) fn flatten_raw_style_object_logic(
 
         let pre_rule = PreRules::StylesPreRule(StylesPreRule::new(
           css_property_key.as_str(),
-          PreRuleValue::String(result),
+          PreRuleValue::string(result),
           Some(normalized_key_path),
         ));
 

@@ -37,7 +37,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   pub(super) fn pre_rule_factory(key: &str, value: &str, path_key: &[&str]) -> PreRules {
     PreRules::StylesPreRule(StylesPreRule::new(
       key,
-      PreRuleValue::String(value.to_string()),
+      PreRuleValue::string(value),
       Some(path_key.iter().map(|s| s.to_string()).collect()),
     ))
   }
@@ -53,7 +53,7 @@ mod flatten_style_object_with_legacy_shorthand_expansion {
   pub(super) fn pre_rule_vec_factory(key: &str, value: &[&str], path_key: &[&str]) -> PreRules {
     PreRules::StylesPreRule(StylesPreRule::new(
       key,
-      PreRuleValue::Vec(value.iter().map(|x| x.to_string()).collect()),
+      PreRuleValue::Vec(value.iter().map(|x| (*x).into()).collect()),
       Some(path_key.iter().map(|s| s.to_string()).collect()),
     ))
   }

@@ -5,6 +5,7 @@ mod convert_style_to_class_name {
     utils::core::convert_style_to_class_name::convert_style_to_class_name,
   };
   use stylex_enums::style_resolution::StyleResolution;
+  use stylex_structures::raw_value::TRawValue;
   use stylex_structures::stylex_state_options::StyleXStateOptions;
   fn convert(styles: (&str, &PreRuleValue)) -> String {
     let result = convert_style_to_class_name(
@@ -26,7 +27,7 @@ mod convert_style_to_class_name {
 
   #[test]
   fn converts_style_to_class_name() {
-    let result = convert(("margin", &PreRuleValue::String("10".to_string())));
+    let result = convert(("margin", &PreRuleValue::number(10.0)));
 
     assert_eq!(result, "margin:10px")
   }
@@ -34,7 +35,7 @@ mod convert_style_to_class_name {
   #[test]
   fn prefixes_classname_with_property_name_when_options_debug_is_true() {
     let (_, class_name, _) = convert_style_to_class_name(
-      ("margin", &PreRuleValue::String("10".to_string())),
+      ("margin", &PreRuleValue::number(10.0)),
       &mut [],
       &mut [],
       &mut [],
@@ -55,7 +56,7 @@ mod convert_style_to_class_name {
   #[test]
   fn prefixes_classname_with_prefix_only_when_options_enable_debug_class_names_is_false() {
     let (_, class_name, _) = convert_style_to_class_name(
-      ("margin", &PreRuleValue::String("10".to_string())),
+      ("margin", &PreRuleValue::number(10.0)),
       &mut [],
       &mut [],
       &mut [],
@@ -77,7 +78,7 @@ mod convert_style_to_class_name {
   #[test]
   fn prefixes_classname_with_prefix_only_when_options_debug_is_false() {
     let (_, class_name, _) = convert_style_to_class_name(
-      ("margin", &PreRuleValue::String("10".to_string())),
+      ("margin", &PreRuleValue::number(10.0)),
       &mut [],
       &mut [],
       &mut [],
@@ -97,35 +98,35 @@ mod convert_style_to_class_name {
 
   #[test]
   fn converts_margin_number_to_px() {
-    let result = convert(("margin", &PreRuleValue::String("10".to_string())));
+    let result = convert(("margin", &PreRuleValue::number(10.0)));
 
     assert_eq!(result, "margin:10px")
   }
 
   #[test]
   fn keeps_number_for_z_index() {
-    let result = convert(("zIndex", &PreRuleValue::String("10".to_string())));
+    let result = convert(("zIndex", &PreRuleValue::number(10.0)));
 
     assert_eq!(result, "z-index:10")
   }
 
   #[test]
   fn keeps_fr_for_zero_fraction_values() {
-    let result = convert(("gridTemplateRows", &PreRuleValue::String("0fr".to_string())));
+    let result = convert(("gridTemplateRows", &PreRuleValue::string("0fr")));
 
     assert_eq!(result, "grid-template-rows:0fr")
   }
 
   #[test]
   fn keeps_percent_for_zero_percentage_values() {
-    let result = convert(("flexBasis", &PreRuleValue::String("0%".to_string())));
+    let result = convert(("flexBasis", &PreRuleValue::string("0%")));
 
     assert_eq!(result, "flex-basis:0%")
   }
 
   #[test]
   fn keeps_number_for_opacity() {
-    let result = convert(("opacity", &PreRuleValue::String("0.25".to_string())));
+    let result = convert(("opacity", &PreRuleValue::string("0.25")));
 
     assert_eq!(result, "opacity:.25")
   }
@@ -135,9 +136,9 @@ mod convert_style_to_class_name {
     let result = convert((
       "height",
       &PreRuleValue::Vec(vec![
-        "500".to_string(),
-        "100vh".to_string(),
-        "100dvh".to_string(),
+        TRawValue::Number(500.0),
+        "100vh".into(),
+        "100dvh".into(),
       ]),
     ));
 
@@ -149,9 +150,9 @@ mod convert_style_to_class_name {
     let result = convert((
       "height",
       &PreRuleValue::Vec(vec![
-        "500".to_string(),
-        "var(--height)".to_string(),
-        "100dvh".to_string(),
+        TRawValue::Number(500.0),
+        "var(--height)".into(),
+        "100dvh".into(),
       ]),
     ));
 
@@ -163,10 +164,10 @@ mod convert_style_to_class_name {
     let result = convert((
       "height",
       &PreRuleValue::Vec(vec![
-        "500".to_string(),
-        "var(--x)".to_string(),
-        "var(--y)".to_string(),
-        "100dvh".to_string(),
+        TRawValue::Number(500.0),
+        "var(--x)".into(),
+        "var(--y)".into(),
+        "100dvh".into(),
       ]),
     ));
 
@@ -178,11 +179,11 @@ mod convert_style_to_class_name {
     let result = convert((
       "height",
       &PreRuleValue::Vec(vec![
-        "500".to_string(),
-        "100vh".to_string(),
-        "var(--x)".to_string(),
-        "var(--y)".to_string(),
-        "100dvh".to_string(),
+        TRawValue::Number(500.0),
+        "100vh".into(),
+        "var(--x)".into(),
+        "var(--y)".into(),
+        "100dvh".into(),
       ]),
     ));
 
@@ -197,9 +198,9 @@ mod convert_style_to_class_name {
     let result = convert((
       "height",
       &PreRuleValue::Vec(vec![
-        "var(--x)".to_string(),
-        "500".to_string(),
-        "100dvh".to_string(),
+        "var(--x)".into(),
+        TRawValue::Number(500.0),
+        "100dvh".into(),
       ]),
     ));
 
@@ -211,10 +212,10 @@ mod convert_style_to_class_name {
     let result = convert((
       "height",
       &PreRuleValue::Vec(vec![
-        "var(--x)".to_string(),
-        "var(--y)".to_string(),
-        "var(--z)".to_string(),
-        "100dvh".to_string(),
+        "var(--x)".into(),
+        "var(--y)".into(),
+        "var(--z)".into(),
+        "100dvh".into(),
       ]),
     ));
 
@@ -226,10 +227,10 @@ mod convert_style_to_class_name {
     let result = convert((
       "height",
       &PreRuleValue::Vec(vec![
-        "var(--w)".to_string(),
-        "var(--x)".to_string(),
-        "var(--y)".to_string(),
-        "var(--z)".to_string(),
+        "var(--w)".into(),
+        "var(--x)".into(),
+        "var(--y)".into(),
+        "var(--z)".into(),
       ]),
     ));
 

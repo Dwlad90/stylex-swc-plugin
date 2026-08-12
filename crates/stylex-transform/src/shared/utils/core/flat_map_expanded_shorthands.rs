@@ -1,6 +1,6 @@
 use log::warn;
 use stylex_macros::stylex_panic;
-use swc_core::ecma::ast::Expr;
+use swc_core::ecma::ast::{Expr, Lit};
 
 use crate::shared::{
   structures::pre_rule::PreRuleValue, utils::ast::convertors::convert_lit_to_string,
@@ -13,7 +13,8 @@ use stylex_enums::{
   property_validation_mode::PropertyValidationMode, style_resolution::StyleResolution,
 };
 use stylex_structures::{
-  order::Order, order_pair::OrderPair, stylex_state_options::StyleXStateOptions,
+  order::Order, order_pair::OrderPair, raw_value::TRawValue,
+  stylex_state_options::StyleXStateOptions,
 };
 
 pub(crate) fn flat_map_expanded_shorthands(
@@ -23,7 +24,7 @@ pub(crate) fn flat_map_expanded_shorthands(
   let (key, raw_value) = obj_entry;
 
   let value = match raw_value {
-    PreRuleValue::String(value) => Some(value),
+    PreRuleValue::Raw(value) => Some(value),
     PreRuleValue::Vec(_) => {
       let msg = "Cannot use fallbacks for shorthands. Use the expansion instead.";
       match options.property_validation_mode {
@@ -40,10 +41,13 @@ pub(crate) fn flat_map_expanded_shorthands(
       }
     },
     PreRuleValue::Expr(expr) => match expr {
-      Expr::Lit(lit) => Some(match convert_lit_to_string(&lit) {
+      // A numeric literal stays a number: the unit suffix is decided later, per
+      // expanded property, by `transform_value`.
+      Expr::Lit(Lit::Num(num)) => Some(TRawValue::Number(num.value)),
+      Expr::Lit(lit) => Some(TRawValue::String(match convert_lit_to_string(&lit) {
         Some(s) => s,
         None => stylex_panic!("Failed to convert literal value to string in shorthand expansion."),
-      }),
+      })),
       _ => {
         let msg = "Cannot use expressions for shorthands. Use the expansion instead.";
         match options.property_validation_mode {

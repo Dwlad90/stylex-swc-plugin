@@ -4,12 +4,27 @@ mod common_css_tests {
     structures::state_manager::StateManager,
     utils::css::common::{get_number_suffix, transform_value_cached},
   };
+  use stylex_structures::raw_value::TRawValue;
 
   #[test]
   fn should_transform_css_property_value() {
+    // Only a number takes the property's unit suffix; a numeric-looking string
+    // is emitted as authored.
     assert_eq!(
-      transform_value_cached("padding", "1", &mut StateManager::default()),
+      transform_value_cached(
+        "padding",
+        &TRawValue::from(1.0),
+        &mut StateManager::default()
+      ),
       "1px"
+    );
+    assert_eq!(
+      transform_value_cached(
+        "padding",
+        &TRawValue::from("1"),
+        &mut StateManager::default()
+      ),
+      "1"
     );
   }
 

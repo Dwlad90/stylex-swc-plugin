@@ -1,6 +1,9 @@
 use crate::values::parser::parse_css;
+use stylex_structures::raw_value::TRawValue;
 
-pub fn split_value_required(strng: Option<&str>) -> (String, String, String, String) {
+pub fn split_value_required(
+  strng: Option<&TRawValue>,
+) -> (TRawValue, TRawValue, TRawValue, TRawValue) {
   let values = split_value(strng);
 
   let top = values.0;
@@ -12,14 +15,31 @@ pub fn split_value_required(strng: Option<&str>) -> (String, String, String, Str
 }
 
 pub fn split_value(
-  value: Option<&str>,
-) -> (String, Option<String>, Option<String>, Option<String>) {
-  let nodes = parse_css(value.unwrap_or_default());
+  value: Option<&TRawValue>,
+) -> (
+  TRawValue,
+  Option<TRawValue>,
+  Option<TRawValue>,
+  Option<TRawValue>,
+) {
+  // Upstream `splitValue` returns a number untouched, so a shorthand hands the
+  // authored number to each expanded property and each appends its own unit
+  // suffix. Parsing it as CSS text would lose that.
+  if let Some(TRawValue::Number(number)) = value {
+    return (TRawValue::Number(*number), None, None, None);
+  }
 
-  let top = nodes.first().cloned().unwrap_or(String::default());
-  let right = nodes.get(1).cloned();
-  let bottom = nodes.get(2).cloned();
-  let left = nodes.get(3).cloned();
+  let value = value.map(TRawValue::as_css_text).unwrap_or_default();
+  let nodes = parse_css(value.as_ref());
+
+  let top = nodes
+    .first()
+    .cloned()
+    .map(TRawValue::String)
+    .unwrap_or_default();
+  let right = nodes.get(1).cloned().map(TRawValue::String);
+  let bottom = nodes.get(2).cloned().map(TRawValue::String);
+  let left = nodes.get(3).cloned().map(TRawValue::String);
 
   (top, right, bottom, left)
 }

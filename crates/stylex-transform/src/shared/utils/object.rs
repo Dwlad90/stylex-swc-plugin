@@ -13,9 +13,9 @@ use crate::shared::{
   utils::core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
 };
 use stylex_ast::ast::convertors::get_key_values_from_object;
-use stylex_structures::{order_pair::OrderPair, pair::Pair};
+use stylex_structures::{order_pair::OrderPair, pair::Pair, raw_value::TRawValue};
 
-use super::ast::convertors::convert_key_value_to_str;
+use super::{ast::convertors::convert_key_value_to_str, css::common::transform_value_cached};
 
 pub(crate) fn obj_map<F>(
   prop_values: ObjMapType,
@@ -94,7 +94,7 @@ pub(crate) fn obj_entries(obj: &Expr) -> Vec<KeyValueProp> {
   get_key_values_from_object(object)
 }
 
-pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, String> {
+pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, TRawValue> {
   let mut map = IndexMap::with_capacity(entries.len());
 
   for OrderPair(key, value) in entries {
@@ -110,22 +110,24 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, String
   map
 }
 
-pub(crate) fn obj_map_keys_string(
-  entries: &IndexMap<String, String>,
+/// Maps each key and converts each raw value to its final CSS text.
+///
+/// The two steps are fused because their order is observable: upstream
+/// dashifies before calling `transformValue`, so the property name that decides
+/// the unit suffix is the dashed one.
+pub(crate) fn obj_map_keys_and_transform_values(
+  entries: &IndexMap<String, TRawValue>,
+  state: &mut StateManager,
   mapper: impl Fn(&str) -> String,
+  wrap: impl Fn(String, String) -> FlatCompiledStylesValue,
 ) -> FlatCompiledStyles {
   let mut map = IndexMap::with_capacity(entries.len());
 
   for (key, value) in entries {
     let mapped_key = mapper(key);
+    let value = transform_value_cached(mapped_key.as_str(), value, state);
 
-    map.insert(
-      mapped_key.clone(),
-      Rc::new(FlatCompiledStylesValue::KeyValue(Pair::new(
-        mapped_key,
-        value.clone(),
-      ))),
-    );
+    map.insert(mapped_key.clone(), Rc::new(wrap(mapped_key, value)));
   }
 
   map
@@ -162,7 +164,7 @@ pub(crate) fn obj_map_keys_key_value(
 pub(crate) fn preprocess_object_properties(
   style: &Expr,
   state: &mut StateManager,
-) -> IndexMap<String, String> {
+) -> IndexMap<String, TRawValue> {
   let res: Vec<OrderPair> = obj_entries(&style.clone())
     .iter()
     .flat_map(|pair| {

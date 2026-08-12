@@ -507,7 +507,7 @@ fn aliases_all_called_with_some_value() {
   for (alias_name, value, expected_key) in entries {
     let func = Aliases::get(alias_name)
       .unwrap_or_else(|| panic!("Alias '{}' should be registered", alias_name));
-    let result = func(Some(value.to_string()))
+    let result = func(Some(value.into()))
       .unwrap_or_else(|e| panic!("Alias '{}' should return Ok, got: {}", alias_name, e));
     assert_eq!(
       result[0].0, expected_key,
@@ -516,7 +516,7 @@ fn aliases_all_called_with_some_value() {
     );
     assert_eq!(
       result[0].1,
-      Some(value.to_string()),
+      Some(value.into()),
       "Alias '{}' first pair value mismatch",
       alias_name
     );

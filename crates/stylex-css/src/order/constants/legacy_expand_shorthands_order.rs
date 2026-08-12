@@ -1,6 +1,6 @@
 use crate::values::{common::split_value_required, parser::parse_css};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
-use stylex_structures::order_pair::OrderPair;
+use stylex_structures::{order_pair::OrderPair, raw_value::TRawValue};
 
 /// Helper function to check if a string is a valid list-style-type value
 /// Matches: [a-z-]+ or quoted strings like "..." or '...'
@@ -30,7 +30,7 @@ impl Shorthands {
     }
   }
 
-  fn border(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderTop".into(), raw_value.to_owned()),
       OrderPair("borderInlineEnd".into(), raw_value.to_owned()),
@@ -39,8 +39,8 @@ impl Shorthands {
     ])
   }
 
-  fn border_color(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+  fn border_color(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (top, right, bottom, left) = split_value_required(raw_value.as_ref());
 
     Ok(vec![
       OrderPair("borderTopColor".into(), Some(top)),
@@ -49,14 +49,14 @@ impl Shorthands {
       OrderPair("borderInlineStartColor".into(), Some(left)),
     ])
   }
-  fn border_horizontal(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_horizontal(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderInlineStart".into(), raw_value.to_owned()),
       OrderPair("borderInlineEnd".into(), raw_value),
     ])
   }
-  fn border_style(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+  fn border_style(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (top, right, bottom, left) = split_value_required(raw_value.as_ref());
 
     Ok(vec![
       OrderPair("borderTopStyle".into(), Some(top)),
@@ -65,14 +65,14 @@ impl Shorthands {
       OrderPair("borderInlineStartStyle".into(), Some(left)),
     ])
   }
-  fn border_vertical(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_vertical(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderTop".into(), raw_value.to_owned()),
       OrderPair("borderBottom".into(), raw_value),
     ])
   }
-  fn border_width(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+  fn border_width(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (top, right, bottom, left) = split_value_required(raw_value.as_ref());
 
     Ok(vec![
       OrderPair("borderTopWidth".into(), Some(top)),
@@ -82,63 +82,63 @@ impl Shorthands {
     ])
   }
 
-  fn border_horizontal_color(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_horizontal_color(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderInlineStartColor".into(), raw_value.to_owned()),
       OrderPair("borderInlineEndColor".into(), raw_value),
     ])
   }
-  fn border_horizontal_style(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_horizontal_style(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderInlineStartStyle".into(), raw_value.to_owned()),
       OrderPair("borderInlineEndStyle".into(), raw_value),
     ])
   }
-  fn border_horizontal_width(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_horizontal_width(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderInlineStartWidth".into(), raw_value.to_owned()),
       OrderPair("borderInlineEndWidth".into(), raw_value),
     ])
   }
-  fn border_inline_color(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_inline_color(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderInlineStartColor".into(), raw_value.to_owned()),
       OrderPair("borderInlineEndColor".into(), raw_value),
     ])
   }
-  fn border_inline_style(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_inline_style(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderInlineStartStyle".into(), raw_value.to_owned()),
       OrderPair("borderInlineEndStyle".into(), raw_value),
     ])
   }
-  fn border_inline_width(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_inline_width(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderInlineStartWidth".into(), raw_value.to_owned()),
       OrderPair("borderInlineEndWidth".into(), raw_value),
     ])
   }
-  fn border_vertical_color(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_vertical_color(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderTopColor".into(), raw_value.to_owned()),
       OrderPair("borderBottomColor".into(), raw_value),
     ])
   }
-  fn border_vertical_style(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_vertical_style(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderTopStyle".into(), raw_value.to_owned()),
       OrderPair("borderBottomStyle".into(), raw_value),
     ])
   }
-  fn border_vertical_width(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_vertical_width(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("borderTopWidth".into(), raw_value.to_owned()),
       OrderPair("borderBottomWidth".into(), raw_value),
     ])
   }
 
-  fn border_radius(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+  fn border_radius(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (top, right, bottom, left) = split_value_required(raw_value.as_ref());
 
     Ok(vec![
       OrderPair("borderStartStartRadius".into(), Some(top)),
@@ -148,21 +148,25 @@ impl Shorthands {
     ])
   }
 
-  fn contain_intrinsic_size(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let parts = split_value_required(raw_value.as_deref());
+  fn contain_intrinsic_size(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let parts = split_value_required(raw_value.as_ref());
     let parts = [parts.0, parts.1, parts.2, parts.3];
 
-    let mut coll: Vec<String> = Vec::with_capacity(parts.len());
+    let mut coll: Vec<TRawValue> = Vec::with_capacity(parts.len());
 
     for part in parts {
-      if let Some(last_element) = coll.last()
-        && last_element == "auto"
-        && !part.is_empty()
-      {
+      let follows_auto = coll
+        .last()
+        .is_some_and(|last_element| last_element.as_css_text() == "auto");
+
+      if follows_auto && !part.as_css_text().is_empty() {
+        let combined = format!("auto {}", part.as_css_text());
+
         coll.pop();
-        coll.push(format!("auto {}", part));
+        coll.push(TRawValue::String(combined));
         continue;
       }
+
       coll.push(part);
     }
 
@@ -175,8 +179,8 @@ impl Shorthands {
     ])
   }
 
-  fn inset(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+  fn inset(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (top, right, bottom, left) = split_value_required(raw_value.as_ref());
 
     Ok(vec![
       OrderPair("top".into(), Some(top)),
@@ -185,8 +189,8 @@ impl Shorthands {
       OrderPair("insetInlineStart".into(), Some(left)),
     ])
   }
-  fn inset_inline(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (start, end, _, _) = split_value_required(raw_value.as_deref());
+  fn inset_inline(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (start, end, _, _) = split_value_required(raw_value.as_ref());
 
     let mut result = vec![];
 
@@ -195,36 +199,36 @@ impl Shorthands {
 
     Ok(result)
   }
-  fn inset_block(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (top, bottom, _, _) = split_value_required(raw_value.as_deref());
+  fn inset_block(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (top, bottom, _, _) = split_value_required(raw_value.as_ref());
 
     Ok(vec![
       OrderPair("top".into(), Some(top)),
       OrderPair("bottom".into(), Some(bottom)),
     ])
   }
-  fn start(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn start(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("insetInlineStart".into(), raw_value),
       OrderPair("left".into(), None),
       OrderPair("right".into(), None),
     ])
   }
-  fn end(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn end(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("insetInlineEnd".into(), raw_value),
       OrderPair("left".into(), None),
       OrderPair("right".into(), None),
     ])
   }
-  fn left(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn left(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("left".into(), raw_value),
       OrderPair("insetInlineStart".into(), None),
       OrderPair("insetInlineEnd".into(), None),
     ])
   }
-  fn right(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn right(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("right".into(), raw_value),
       OrderPair("insetInlineStart".into(), None),
@@ -232,16 +236,16 @@ impl Shorthands {
     ])
   }
 
-  fn gap(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (row, column, _, _) = split_value_required(raw_value.as_deref());
+  fn gap(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (row, column, _, _) = split_value_required(raw_value.as_ref());
 
     Ok(vec![
       OrderPair("rowGap".into(), Some(row)),
       OrderPair("columnGap".into(), Some(column)),
     ])
   }
-  fn margin(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+  fn margin(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (top, right, bottom, left) = split_value_required(raw_value.as_ref());
 
     Ok(vec![
       OrderPair("marginTop".into(), Some(top)),
@@ -250,8 +254,8 @@ impl Shorthands {
       OrderPair("marginInlineStart".into(), Some(left)),
     ])
   }
-  fn margin_horizontal(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (start, end, _, _) = split_value_required(raw_value.as_deref());
+  fn margin_horizontal(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (start, end, _, _) = split_value_required(raw_value.as_ref());
 
     let mut result = vec![];
 
@@ -260,36 +264,36 @@ impl Shorthands {
 
     Ok(result)
   }
-  fn margin_start(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn margin_start(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("marginInlineStart".into(), raw_value),
       OrderPair("marginLeft".into(), None),
       OrderPair("marginRight".into(), None),
     ])
   }
-  fn margin_end(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn margin_end(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("marginInlineEnd".into(), raw_value),
       OrderPair("marginLeft".into(), None),
       OrderPair("marginRight".into(), None),
     ])
   }
-  fn margin_left(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn margin_left(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("marginLeft".into(), raw_value),
       OrderPair("marginInlineStart".into(), None),
       OrderPair("marginInlineEnd".into(), None),
     ])
   }
-  fn margin_right(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn margin_right(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("marginRight".into(), raw_value),
       OrderPair("marginInlineStart".into(), None),
       OrderPair("marginInlineEnd".into(), None),
     ])
   }
-  fn margin_vertical(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (top, bottom, _, _) = split_value_required(raw_value.as_deref());
+  fn margin_vertical(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (top, bottom, _, _) = split_value_required(raw_value.as_ref());
 
     Ok(vec![
       OrderPair("marginTop".into(), Some(top)),
@@ -297,8 +301,8 @@ impl Shorthands {
     ])
   }
 
-  fn list_style(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let Some(raw_value_str) = raw_value.as_deref() else {
+  fn list_style(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let Some(raw_value_str) = raw_value.as_ref().map(TRawValue::as_css_text) else {
       return Ok(vec![
         OrderPair("listStyleType".into(), None),
         OrderPair("listStylePosition".into(), None),
@@ -306,7 +310,7 @@ impl Shorthands {
       ]);
     };
 
-    let parts: Vec<String> = parse_css(raw_value_str);
+    let parts: Vec<String> = parse_css(raw_value_str.as_ref());
 
     // Global values that must be the only value
     let list_style_global_values = ["inherit", "initial", "revert", "unset"];
@@ -316,7 +320,7 @@ impl Shorthands {
 
     // Handle global keywords - must be the only value
     if parts.len() == 1 && list_style_global_values.contains(&parts[0].as_str()) {
-      let global_value = Some(parts[0].clone());
+      let global_value = Some(TRawValue::String(parts[0].clone()));
       return Ok(vec![
         OrderPair("listStyleType".into(), global_value.clone()),
         OrderPair("listStylePosition".into(), global_value.clone()),
@@ -324,9 +328,9 @@ impl Shorthands {
       ]);
     }
 
-    let mut image: Option<String> = None;
-    let mut position: Option<String> = None;
-    let mut list_type: Option<String> = None;
+    let mut image: Option<TRawValue> = None;
+    let mut position: Option<TRawValue> = None;
+    let mut list_type: Option<TRawValue> = None;
     let mut remaining_parts: Vec<String> = Vec::new();
 
     // First pass: assign values that can only belong to one property
@@ -341,7 +345,7 @@ impl Shorthands {
         if position.is_some() {
           return Err(format!("Invalid listStyle value: '{}'", raw_value_str));
         }
-        position = Some(part.clone());
+        position = Some(TRawValue::String(part.clone()));
       }
       // Check if it's a type value that's not 'none' (unambiguous)
       // Type values are: keywords (letters and hyphens) or quoted strings
@@ -349,7 +353,7 @@ impl Shorthands {
         if list_type.is_some() {
           return Err(format!("Invalid listStyle value: '{}'", raw_value_str));
         }
-        list_type = Some(part.clone());
+        list_type = Some(TRawValue::String(part.clone()));
       }
       // Keep ambiguous values for second pass
       else {
@@ -361,14 +365,14 @@ impl Shorthands {
     for part in remaining_parts {
       // If 'none' and type is not yet assigned, assign to type
       if part == "none" && list_type.is_none() {
-        list_type = Some(part);
+        list_type = Some(TRawValue::String(part));
       }
       // Otherwise assign to image
       else {
         if image.is_some() {
           return Err(format!("Invalid listStyle value: '{}'", raw_value_str));
         }
-        image = Some(part);
+        image = Some(TRawValue::String(part));
       }
     }
 
@@ -379,15 +383,15 @@ impl Shorthands {
     ])
   }
 
-  fn overflow(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (x, y, _, _) = split_value_required(raw_value.as_deref());
+  fn overflow(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (x, y, _, _) = split_value_required(raw_value.as_ref());
     Ok(vec![
       OrderPair("overflowX".into(), Some(x)),
       OrderPair("overflowY".into(), Some(y)),
     ])
   }
-  fn padding(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (top, right, bottom, left) = split_value_required(raw_value.as_deref());
+  fn padding(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (top, right, bottom, left) = split_value_required(raw_value.as_ref());
 
     Ok(vec![
       OrderPair("paddingTop".into(), Some(top)),
@@ -396,8 +400,8 @@ impl Shorthands {
       OrderPair("paddingInlineStart".into(), Some(left)),
     ])
   }
-  fn padding_horizontal(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (start, end, _, _) = split_value_required(raw_value.as_deref());
+  fn padding_horizontal(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (start, end, _, _) = split_value_required(raw_value.as_ref());
 
     let mut result = vec![];
 
@@ -406,36 +410,36 @@ impl Shorthands {
 
     Ok(result)
   }
-  fn padding_start(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn padding_start(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("paddingInlineStart".into(), val),
       OrderPair("paddingLeft".into(), None),
       OrderPair("paddingRight".into(), None),
     ])
   }
-  fn padding_end(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn padding_end(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("paddingInlineEnd".into(), val),
       OrderPair("paddingLeft".into(), None),
       OrderPair("paddingRight".into(), None),
     ])
   }
-  fn padding_left(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn padding_left(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("paddingLeft".into(), val),
       OrderPair("paddingInlineStart".into(), None),
       OrderPair("paddingInlineEnd".into(), None),
     ])
   }
-  fn padding_right(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn padding_right(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![
       OrderPair("paddingRight".into(), val),
       OrderPair("paddingInlineStart".into(), None),
       OrderPair("paddingInlineEnd".into(), None),
     ])
   }
-  fn padding_vertical(raw_value: Option<String>) -> Result<Vec<OrderPair>, String> {
-    let (top, bottom, _, _) = split_value_required(raw_value.as_deref());
+  fn padding_vertical(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
+    let (top, bottom, _, _) = split_value_required(raw_value.as_ref());
 
     Ok(vec![
       OrderPair("paddingTop".into(), Some(top)),
@@ -443,7 +447,7 @@ impl Shorthands {
     ])
   }
 
-  pub fn get(name: &str) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
+  pub fn get(name: &str) -> Option<fn(Option<TRawValue>) -> Result<Vec<OrderPair>, String>> {
     match name {
       "border" => Some(Shorthands::border),
       "borderColor" => Some(Shorthands::border_color),
@@ -497,151 +501,151 @@ pub struct Aliases;
 
 #[allow(dead_code)]
 impl Aliases {
-  fn inset_block_start(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn inset_block_start(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("top".into(), val)])
   }
-  fn inset_block_end(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn inset_block_end(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("bottom".into(), val)])
   }
 
-  fn block_size(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn block_size(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("height".into(), val)])
   }
-  fn inline_size(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn inline_size(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("width".into(), val)])
   }
-  fn min_block_size(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn min_block_size(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("minHeight".into(), val)])
   }
-  fn min_inline_size(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn min_inline_size(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("minWidth".into(), val)])
   }
-  fn max_block_size(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn max_block_size(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("maxHeight".into(), val)])
   }
-  fn max_inline_size(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn max_inline_size(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("maxWidth".into(), val)])
   }
-  fn border_start(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_start(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderInlineStart".into(), val)])
   }
-  fn border_end(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_end(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderInlineEnd".into(), val)])
   }
-  fn border_block_start_width(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_block_start_width(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderTopWidth".into(), val)])
   }
-  fn border_block_start_style(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_block_start_style(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderTopStyle".into(), val)])
   }
-  fn border_block_start_color(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_block_start_color(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderTopColor".into(), val)])
   }
-  fn border_block_end_width(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_block_end_width(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderBottomWidth".into(), val)])
   }
-  fn border_block_end_style(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_block_end_style(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderBottomStyle".into(), val)])
   }
-  fn border_block_end_color(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_block_end_color(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderBottomColor".into(), val)])
   }
-  fn border_start_start_radius(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_start_start_radius(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderTopStartRadius".into(), val)])
   }
-  fn border_start_end_radius(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_start_end_radius(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderTopEndRadius".into(), val)])
   }
-  fn border_end_start_radius(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_end_start_radius(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderBottomStartRadius".into(), val)])
   }
-  fn border_end_end_radius(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn border_end_end_radius(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("borderBottomEndRadius".into(), val)])
   }
 
-  fn grid_row_gap(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn grid_row_gap(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("rowGap".into(), value)])
   }
-  fn grid_column_gap(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn grid_column_gap(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("columnGap".into(), value)])
   }
 
-  fn margin_block_start(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn margin_block_start(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("marginTop".into(), val)])
   }
-  fn margin_block_end(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn margin_block_end(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("marginBottom".into(), val)])
   }
-  fn margin_inline_start(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn margin_inline_start(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("marginInlineStart".into(), val)])
   }
-  fn margin_inline_end(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn margin_inline_end(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("marginInlineEnd".into(), val)])
   }
 
-  fn overflow_block(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn overflow_block(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("overflowY".into(), value)])
   }
-  fn overflow_inline(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn overflow_inline(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("overflowX".into(), value)])
   }
 
-  fn padding_block_start(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn padding_block_start(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("paddingTop".into(), val)])
   }
-  fn padding_block_end(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn padding_block_end(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("paddingBottom".into(), val)])
   }
 
-  fn padding_inline_start(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn padding_inline_start(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("paddingInlineStart".into(), val)])
   }
-  fn padding_inline_end(val: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn padding_inline_end(val: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("paddingInlineEnd".into(), val)])
   }
 
-  fn scroll_margin_block_start(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn scroll_margin_block_start(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("scrollMarginTop".into(), value)])
   }
-  fn scroll_margin_block_end(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn scroll_margin_block_end(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Ok(vec![OrderPair("scrollMarginBottom".into(), value)])
   }
 
-  fn float(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn float(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     if let Some(ref val) = value {
       if val == "inline-start" || val == "start" {
         return Ok(vec![OrderPair(
           "float".into(),
-          Some(format!("var({})", LOGICAL_FLOAT_START_VAR)),
+          Some(format!("var({})", LOGICAL_FLOAT_START_VAR).into()),
         )]);
       } else if val == "inline-end" || val == "end" {
         return Ok(vec![OrderPair(
           "float".into(),
-          Some(format!("var({})", LOGICAL_FLOAT_END_VAR)),
+          Some(format!("var({})", LOGICAL_FLOAT_END_VAR).into()),
         )]);
       }
     }
     Ok(vec![OrderPair("float".into(), value)])
   }
 
-  fn clear(value: Option<String>) -> Result<Vec<OrderPair>, String> {
+  fn clear(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     if let Some(ref val) = value {
       if val == "inline-start" || val == "start" {
         return Ok(vec![OrderPair(
           "clear".into(),
-          Some(format!("var({})", LOGICAL_FLOAT_START_VAR)),
+          Some(format!("var({})", LOGICAL_FLOAT_START_VAR).into()),
         )]);
       } else if val == "inline-end" || val == "end" {
         return Ok(vec![OrderPair(
           "clear".into(),
-          Some(format!("var({})", LOGICAL_FLOAT_END_VAR)),
+          Some(format!("var({})", LOGICAL_FLOAT_END_VAR).into()),
         )]);
       }
     }
     Ok(vec![OrderPair("clear".into(), value)])
   }
 
-  pub fn get(name: &str) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
+  pub fn get(name: &str) -> Option<fn(Option<TRawValue>) -> Result<Vec<OrderPair>, String>> {
     match name {
       "insetBlockStart" => Some(Aliases::inset_block_start),
       "insetBlockEnd" => Some(Aliases::inset_block_end),

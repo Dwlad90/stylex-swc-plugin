@@ -8,16 +8,12 @@ use crate::shared::{
     flat_compiled_styles_value::FlatCompiledStylesValue, obj_map_type::ObjMapType,
   },
   structures::{state_manager::StateManager, types::FlatCompiledStyles},
-  utils::{
-    css::common::transform_value_cached,
-    object::{
-      Pipe, obj_map, obj_map_keys_key_value, obj_map_keys_string, preprocess_object_properties,
-    },
+  utils::object::{
+    Pipe, obj_map, obj_map_keys_and_transform_values, obj_map_keys_key_value,
+    preprocess_object_properties,
   },
 };
-use stylex_constants::constants::messages::{
-  ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
-};
+use stylex_constants::constants::messages::{VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT};
 use stylex_structures::pair::Pair;
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
@@ -43,17 +39,12 @@ pub(crate) fn stylex_view_transition_class(
 
     let pipe_result = Pipe::create(style.clone())
       .pipe(|style| preprocess_object_properties(&style, state))
-      .pipe(|entries| obj_map_keys_string(&entries, |key| dashify(key).into_owned()))
       .pipe(|entries| {
-        obj_map(
-          ObjMapType::Map(entries),
+        obj_map_keys_and_transform_values(
+          &entries,
           state,
-          |entry, state| match entry.as_ref() {
-            FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
-              transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
-            )),
-            _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
-          },
+          |key| dashify(key).into_owned(),
+          |_, value| FlatCompiledStylesValue::String(value),
         )
       })
       .done();

@@ -34,6 +34,7 @@ use stylex_constants::constants::messages::{
   ILLEGAL_PROP_VALUE, VAR_DECL_INIT_REQUIRED, non_static_value,
 };
 use stylex_enums::misc::BinaryExprType;
+use stylex_structures::raw_value::TRawValue;
 use stylex_utils::swc::get_default_expr_ctx;
 
 pub fn expr_to_num(
@@ -658,5 +659,17 @@ pub fn convert_expr_to_bool(
         expr.get_type(get_default_expr_ctx())
       )
     },
+  }
+}
+
+/// Reads a literal as an authored style value, keeping the JS type distinction
+/// that decides whether a unit suffix is appended later.
+///
+/// A numeric literal stays a number; everything else that has a string form
+/// becomes one. `None` means the literal is not a usable style value.
+pub(crate) fn convert_lit_to_raw_value(lit: &Lit) -> Option<TRawValue> {
+  match lit {
+    Lit::Num(num) => Some(TRawValue::Number(num.value)),
+    _ => convert_lit_to_string(lit).map(TRawValue::String),
   }
 }

@@ -10,6 +10,7 @@ pub mod order;
 pub mod order_pair;
 pub mod pair;
 pub mod plugin_pass;
+pub mod raw_value;
 pub mod style_vars_to_keep;
 pub mod stylex_env;
 pub mod stylex_options;

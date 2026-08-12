@@ -1,3 +1,4 @@
+use stylex_structures::raw_value::TRawValue;
 use stylex_structures::{order::Order, order_pair::OrderPair};
 
 use crate::order::structures::legacy_expand_shorthands_order::LegacyExpandShorthandsOrder;
@@ -64,14 +65,28 @@ fn get_expansion_fn_for_alias_overflow_block() {
 fn get_expansion_fn_for_alias_float() {
   let func = LegacyExpandShorthandsOrder::get_expansion_fn("float").unwrap();
   let result = func(Some("start".into())).unwrap();
-  assert!(result[0].1.as_deref().unwrap().contains("var("));
+  assert!(
+    result[0]
+      .1
+      .as_ref()
+      .map(TRawValue::as_css_text)
+      .unwrap_or_default()
+      .contains("var(")
+  );
 }
 
 #[test]
 fn get_expansion_fn_for_alias_clear() {
   let func = LegacyExpandShorthandsOrder::get_expansion_fn("clear").unwrap();
   let result = func(Some("end".into())).unwrap();
-  assert!(result[0].1.as_deref().unwrap().contains("var("));
+  assert!(
+    result[0]
+      .1
+      .as_ref()
+      .map(TRawValue::as_css_text)
+      .unwrap_or_default()
+      .contains("var(")
+  );
 }
 
 // ── Unknown ─────────────────────────────────────────────────────────

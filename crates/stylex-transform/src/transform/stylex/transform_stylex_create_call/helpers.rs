@@ -8,7 +8,7 @@ pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec
     .flat_map(|(i, dynamic_style)| {
       let obj_entry = (
         dynamic_style.key.clone(),
-        PreRuleValue::String(create_shorthand_key(i)),
+        PreRuleValue::string(create_shorthand_key(i)),
       );
 
       let options = StyleXStateOptions::default()
@@ -19,7 +19,7 @@ pub(super) fn legacy_expand_shorthands(dynamic_styles: Vec<DynamicStyle>) -> Vec
     .filter_map(|OrderPair(key, value)| {
       let value = value?;
 
-      let index = value[1..].parse::<usize>().ok()?;
+      let index = value.as_css_text()[1..].parse::<usize>().ok()?;
       let that_dyn_style = dynamic_styles.get(index)?;
 
       let key = key.into_owned();

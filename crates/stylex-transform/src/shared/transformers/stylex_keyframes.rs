@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
-use swc_core::ecma::ast::Expr;
+use swc_core::ecma::ast::{Expr, Lit};
 
 use crate::shared::{
   enums::data_structures::{
@@ -19,15 +19,13 @@ use crate::shared::{
     ast::convertors::{convert_expr_to_str, convert_key_value_to_str, create_string_expr},
     common::downcast_style_options_to_state_manager,
     core::flat_map_expanded_shorthands::flat_map_expanded_shorthands,
-    css::common::transform_value_cached,
-    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_string},
+    object::{Pipe, obj_entries, obj_from_entries, obj_map, obj_map_keys_and_transform_values},
   },
 };
-use stylex_constants::constants::messages::{
-  ENTRY_MUST_BE_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
-};
+use stylex_ast::ast::convertors::normalize_expr;
+use stylex_constants::constants::messages::{VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT};
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
-use stylex_structures::{order_pair::OrderPair, pair::Pair};
+use stylex_structures::{order_pair::OrderPair, pair::Pair, raw_value::TRawValue};
 use stylex_types::{
   enums::data_structures::injectable_style::InjectableStyleKind,
   structures::injectable_style::InjectableStyle,
@@ -53,20 +51,12 @@ pub(crate) fn stylex_keyframes(
 
     let pipe_result = Pipe::create(frame)
       .pipe(|frame| expand_frame_shorthands(frame, state))
-      .pipe(|entries| obj_map_keys_string(&entries, |key| dashify(key).into_owned()))
       .pipe(|entries| {
-        obj_map(
-          ObjMapType::Map(entries),
+        obj_map_keys_and_transform_values(
+          &entries,
           state,
-          |entry, state| match entry.as_ref() {
-            FlatCompiledStylesValue::KeyValue(pair) => {
-              Rc::new(FlatCompiledStylesValue::KeyValue(Pair::new(
-                pair.key.clone(),
-                transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
-              )))
-            },
-            _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
-          },
+          |key| dashify(key).into_owned(),
+          |key, value| FlatCompiledStylesValue::KeyValue(Pair::new(key, value)),
         )
       })
       .done();
@@ -189,17 +179,23 @@ fn construct_keyframes_obj(frames: &FlatCompiledStyles) -> String {
     .join("")
 }
 
-fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<String, String> {
+fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<String, TRawValue> {
   let res: Vec<_> = obj_entries(&frame.clone())
     .iter()
     .flat_map(|pair| {
       let key = convert_key_value_to_str(pair);
-      let value = match convert_expr_to_str(pair.value.as_ref(), state, &FunctionMap::default()) {
-        Some(v) => v,
-        None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
+      // A numeric frame value keeps its JS type all the way to
+      // `transform_value`, which is what appends the unit suffix; only a
+      // non-numeric value is coerced to a string here.
+      let value = match normalize_expr(pair.value.as_ref()) {
+        Expr::Lit(Lit::Num(num)) => PreRuleValue::number(num.value),
+        _ => match convert_expr_to_str(pair.value.as_ref(), state, &FunctionMap::default()) {
+          Some(value) => PreRuleValue::string(value),
+          None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
+        },
       };
 
-      flat_map_expanded_shorthands((key, PreRuleValue::String(value)), &state.options)
+      flat_map_expanded_shorthands((key, value), &state.options)
         .into_iter()
         .filter_map(|pair| {
           pair.1.as_ref()?;

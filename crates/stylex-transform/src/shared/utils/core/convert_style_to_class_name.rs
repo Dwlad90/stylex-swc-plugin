@@ -56,20 +56,14 @@ pub(crate) fn convert_style_to_class_name(
     format!("{}{}", pseudo_hash_string, at_rule_hash_string)
   };
 
-  let value = match raw_value {
-    PreRuleValue::String(value) => PreRuleValue::String(transform_value_cached(key, value, state)),
-    PreRuleValue::Vec(vec) => PreRuleValue::Vec(
-      vec
-        .iter()
-        .map(|each_value| transform_value_cached(key, each_value.as_str(), state))
-        .collect(),
-    ),
-    PreRuleValue::Expr(_) | PreRuleValue::Null => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
-  };
-
-  let value = match value {
-    PreRuleValue::String(value) => vec![value],
+  let value: Vec<String> = match raw_value {
+    PreRuleValue::Raw(raw_value) => vec![transform_value_cached(key, raw_value, state)],
     PreRuleValue::Vec(values) => {
+      let values: Vec<String> = values
+        .iter()
+        .map(|each_value| transform_value_cached(key, each_value, state))
+        .collect();
+
       if values
         .iter()
         .any(|value| value.starts_with("var(") && value.ends_with(')'))

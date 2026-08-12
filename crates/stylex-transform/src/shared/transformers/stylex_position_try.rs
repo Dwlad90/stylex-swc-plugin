@@ -16,13 +16,12 @@ use crate::shared::{
   utils::{
     ast::convertors::{convert_lit_to_string, create_string_expr},
     common::downcast_style_options_to_state_manager,
-    css::common::transform_value_cached,
-    object::{Pipe, obj_map, obj_map_keys_string, preprocess_object_properties},
+    object::{Pipe, obj_map, obj_map_keys_and_transform_values, preprocess_object_properties},
   },
 };
 use stylex_ast::ast::factories::{create_object_lit, create_string_key_value_prop};
 use stylex_constants::constants::messages::{
-  ENTRY_MUST_BE_TUPLE, THEME_VAR_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
+  THEME_VAR_TUPLE, VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT,
 };
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
 use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
@@ -47,17 +46,12 @@ pub(crate) fn stylex_position_try(
   let extended_object = {
     let pipe_result = Pipe::create(styles.clone())
       .pipe(|styles| preprocess_object_properties(&Expr::Object(styles), state))
-      .pipe(|entries| obj_map_keys_string(&entries, |key| dashify(key).into_owned()))
       .pipe(|entries| {
-        obj_map(
-          ObjMapType::Map(entries),
+        obj_map_keys_and_transform_values(
+          &entries,
           state,
-          |entry, state| match entry.as_ref() {
-            FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
-              transform_value_cached(pair.key.as_str(), pair.value.as_str(), state),
-            )),
-            _ => stylex_panic!("{}", ENTRY_MUST_BE_TUPLE),
-          },
+          |key| dashify(key).into_owned(),
+          |_, value| FlatCompiledStylesValue::String(value),
         )
       })
       .done();

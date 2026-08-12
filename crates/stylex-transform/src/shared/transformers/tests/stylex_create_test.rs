@@ -1067,7 +1067,7 @@ mod stylex_create {
           "default",
           &[
             ("borderStyle-ksu8eU", "borderStyle-xbsl7fq"),
-            ("borderWidth-kMzoRj", "borderWidth-xmkeg23"),
+            ("borderWidth-kMzoRj", "borderWidth-xji7ma4"),
             ("overflow-kVQacm", "overflow-xb3r6kr"),
           ],
         )],
@@ -1083,8 +1083,8 @@ mod stylex_create {
               (".borderStyle-xbsl7fq{border-style:dashed}", 2000.0),
             ),
             (
-              "borderWidth-xmkeg23",
-              (".borderWidth-xmkeg23{border-width:1px}", 2000.0),
+              "borderWidth-xji7ma4",
+              (".borderWidth-xji7ma4{border-width:1}", 2000.0),
             ),
           ],
         )],
@@ -1093,7 +1093,7 @@ mod stylex_create {
           &[
             ("overflow-xb3r6kr", &["overflow"]),
             ("borderStyle-xbsl7fq", &["borderStyle"]),
-            ("borderWidth-xmkeg23", &["borderWidth"]),
+            ("borderWidth-xji7ma4", &["borderWidth"]),
           ],
         )],
       );

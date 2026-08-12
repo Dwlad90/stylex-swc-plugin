@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use crate::raw_value::TRawValue;
+
 // JS-parity: stylex/packages/shared — `OrderPair` is constructed with static
 // property name literals (~1000 sites in `application_order.rs`,
 // `legacy_expand_shorthands_order.rs`, `property_specificity_order.rs`); the
@@ -7,5 +9,5 @@ use std::borrow::Cow;
 // `flat_map_expanded_shorthands`. `Cow<'static, str>` lets all literal sites
 // avoid heap allocation while still permitting owned strings on the rare
 // dynamic path.
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub struct OrderPair(pub Cow<'static, str>, pub Option<String>);
+#[derive(Debug, PartialEq, Clone)]
+pub struct OrderPair(pub Cow<'static, str>, pub Option<TRawValue>);

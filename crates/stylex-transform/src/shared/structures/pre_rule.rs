@@ -14,14 +14,30 @@ use super::{
   state_manager::StateManager,
   types::{ClassName, ClassNameToOriginalPaths},
 };
+use stylex_structures::raw_value::TRawValue;
 use stylex_types::structures::injectable_style::InjectableStyle;
 
+/// A style value on its way to becoming a CSS declaration, mirroring the type
+/// of upstream's `PreRule.value` (`string | number | Array<string | number>`).
+///
+/// `Raw` keeps the authored JS type, which decides whether a unit suffix is
+/// appended: `width: 1` compiles to `1px`, `width: '1'` to `1`.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PreRuleValue {
   Expr(Expr),
-  String(String),
-  Vec(Vec<String>),
+  Raw(TRawValue),
+  Vec(Vec<TRawValue>),
   Null,
+}
+
+impl PreRuleValue {
+  pub(crate) fn string(value: impl Into<String>) -> Self {
+    PreRuleValue::Raw(TRawValue::String(value.into()))
+  }
+
+  pub(crate) fn number(value: f64) -> Self {
+    PreRuleValue::Raw(TRawValue::Number(value))
+  }
 }
 
 #[derive(Debug, Clone, PartialEq)]

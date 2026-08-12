@@ -1,13 +1,13 @@
 use crate::order::constants::application_order::{Aliases, Shorthands};
 
-use stylex_structures::{order::Order, order_pair::OrderPair};
+use stylex_structures::{order::Order, order_pair::OrderPair, raw_value::TRawValue};
 
 pub struct ApplicationOrder {}
 
 impl Order for ApplicationOrder {
   fn get_expansion_fn(
     property: &str,
-  ) -> Option<fn(Option<String>) -> Result<Vec<OrderPair>, String>> {
+  ) -> Option<fn(Option<TRawValue>) -> Result<Vec<OrderPair>, String>> {
     let alias_fn = Aliases::get(property);
 
     if let Some(alias_fn) = alias_fn {

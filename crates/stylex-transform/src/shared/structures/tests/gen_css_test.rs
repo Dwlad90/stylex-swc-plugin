@@ -34,7 +34,7 @@ mod converting_pre_rule_to_css {
   fn should_convert_a_pre_rule_to_css() {
     let result = StylesPreRule::new(
       "color",
-      PreRuleValue::String("red".to_string()),
+      PreRuleValue::string("red"),
       Some(vec!["color".to_string()]),
     )
     .compiled(&mut get_state());

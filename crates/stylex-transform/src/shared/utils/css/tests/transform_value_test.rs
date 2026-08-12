@@ -3,6 +3,7 @@ mod transform_value_content_property_tests {
   use crate::shared::{
     structures::state_manager::StateManager, utils::css::common::transform_value,
   };
+  use stylex_structures::raw_value::TRawValue;
   use stylex_structures::stylex_options::StyleXOptions;
 
   #[test]
@@ -24,7 +25,7 @@ mod transform_value_content_property_tests {
     let state_manager = StateManager::new(StyleXOptions::default());
 
     for input in functions {
-      let output = transform_value("content", input, &state_manager);
+      let output = transform_value("content", &TRawValue::from(input), &state_manager);
       assert_eq!(output, input);
     }
   }
@@ -48,7 +49,7 @@ mod transform_value_content_property_tests {
     let state_manager = StateManager::new(StyleXOptions::default());
 
     for keyword in keywords {
-      let output = transform_value("content", keyword, &state_manager);
+      let output = transform_value("content", &TRawValue::from(keyword), &state_manager);
       assert_eq!(output, keyword);
     }
   }
@@ -68,7 +69,7 @@ mod transform_value_content_property_tests {
     let state_manager = StateManager::new(StyleXOptions::default());
 
     for input in mixed_values {
-      let output = transform_value("content", input, &state_manager);
+      let output = transform_value("content", &TRawValue::from(input), &state_manager);
       assert_eq!(output, input);
     }
   }
@@ -78,13 +79,13 @@ mod transform_value_content_property_tests {
     let strings = vec![
       ("Hello world", "\"Hello world\""),
       ("Simple text", "\"Simple text\""),
-      ("123", "\"123px\""),
+      ("123", "\"123\""),
     ];
 
     let state_manager = StateManager::new(StyleXOptions::default());
 
     for (input, expected) in strings {
-      let output = transform_value("content", input, &state_manager);
+      let output = transform_value("content", &TRawValue::from(input), &state_manager);
       assert_eq!(output, expected);
     }
   }
@@ -109,7 +110,7 @@ mod transform_value_content_property_tests {
     let state_manager = StateManager::new(StyleXOptions::default());
 
     for (key, value, expected) in variables {
-      let output = transform_value(key, value, &state_manager);
+      let output = transform_value(key, &TRawValue::from(value), &state_manager);
       assert_eq!(
         output, expected,
         "Failed for property '{}' with value '{}': expected '{}', got '{}'",

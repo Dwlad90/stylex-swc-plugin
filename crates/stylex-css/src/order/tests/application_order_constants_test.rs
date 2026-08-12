@@ -23,7 +23,7 @@ fn shorthands_get_animation_returns_ok() {
 #[test]
 fn shorthands_get_animation_with_value() {
   let func = Shorthands::get("animation").unwrap();
-  let result = func(Some("fadeIn 1s".to_string())).unwrap();
+  let result = func(Some("fadeIn 1s".into())).unwrap();
   assert_eq!(
     result[0],
     OrderPair("animation".into(), Some("fadeIn 1s".into()))

@@ -329,3 +329,15 @@ stylex_test!(
     });
   "#
 );
+
+// A BigInt is unsupported as a style *value*, but as a key it is stringified
+// like any other numeric key. Only the value position rejects it.
+stylex_test!(
+  big_int_key_is_stringified_like_a_numeric_key,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({ 10n: { color: 'red' } });
+    const name = stylex.keyframes({ 10n: { opacity: 1 } });
+  "#
+);

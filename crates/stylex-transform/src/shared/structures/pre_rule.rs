@@ -17,8 +17,8 @@ use super::{
 use stylex_structures::raw_value::TRawValue;
 use stylex_types::structures::injectable_style::InjectableStyle;
 
-/// A style value on its way to becoming a CSS declaration, mirroring the type
-/// of upstream's `PreRule.value` (`string | number | Array<string | number>`).
+/// A style value on its way to becoming a CSS declaration:
+/// `string | number | Array<string | number>`.
 ///
 /// `Raw` keeps the authored JS type, which decides whether a unit suffix is
 /// appended: `width: 1` compiles to `1px`, `width: '1'` to `1`.

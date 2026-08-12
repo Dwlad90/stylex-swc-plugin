@@ -2,9 +2,8 @@ use std::{borrow::Cow, fmt};
 
 use stylex_utils::number::to_js_string;
 
-/// A style value as authored, mirroring upstream's `TRawValue` (`number |
-/// string`). Paired with an `Option`, it is upstream's `TStyleValue`, where
-/// `None` is `null`.
+/// A style value as authored: `number | string`. Paired with an `Option`, where
+/// `None` is a `null` value.
 ///
 /// The two cases have to stay distinguishable all the way to
 /// `transform_value`, because only a `Number` gets a unit suffix appended:

@@ -288,3 +288,14 @@ stylex_test!(
     const styles = stylex.create({ a: { animationName: slide } });
   "#
 );
+
+// A number handed to a shorthand reaches each expanded property as a number, so
+// every part takes that property's own unit suffix.
+stylex_test!(
+  numeric_shorthand_expands_with_units,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { borderWidth: 1, margin: 4, flex: 1 } });
+  "#
+);

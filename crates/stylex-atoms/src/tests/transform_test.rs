@@ -1001,11 +1001,10 @@ fn convert_member_prop_to_string_numeric_renders_js_edge_values() {
     Some("-Infinity")
   );
   // A magnitude beyond the safe-integer range stays on the float path rather
-  // than going through a saturating `as i64` cast. It renders via the shortest
-  // round-tripping decimal (not JS's `"1e+21"` spelling), which is still a valid
-  // JS literal that parses to the same value.
+  // than going through a saturating `as i64` cast, and renders in JS's
+  // exponential spelling — the key the property is actually looked up by.
   assert_eq!(
     convert_member_prop_to_string(&computed_num_prop(1e21, None)).as_deref(),
-    Some("1000000000000000000000")
+    Some("1e+21")
   );
 }

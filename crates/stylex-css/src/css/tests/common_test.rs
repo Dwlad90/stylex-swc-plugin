@@ -1347,6 +1347,14 @@ mod convert_css_function_camel_case_tests {
     let r = normalize_css_property_value("transform", "rotate(45deg)", &opts());
     assert_eq!(r, "rotate(45deg)");
   }
+
+  /// A dashed function name is a custom function, which SWC neither lowercases
+  /// nor reports as a plain identifier — so it carries its own case through.
+  #[test]
+  fn dashed_function_name_keeps_its_case() {
+    let r = normalize_css_property_value("color", "--Foo(1px)", &opts());
+    assert_eq!(r, "--Foo(1px)");
+  }
 }
 
 // ── normalize_css_property_value: CSS variable property path ──────────
@@ -1806,5 +1814,122 @@ mod restore_js_number_spelling_tests {
       restore_js_number_spelling("\"日本\" 1e3px"),
       "\"日本\" 1000px"
     );
+  }
+}
+
+#[cfg(test)]
+mod number_and_function_scanner_edge_cases {
+  use crate::css::common::{restore_function_names, restore_js_number_spelling};
+  use swc_core::atoms::Atom;
+
+  /// An escaped quote does not end the string, so its contents stay content.
+  #[test]
+  fn keeps_scanning_past_an_escaped_quote() {
+    assert_eq!(
+      restore_js_number_spelling("\"a\\\"1e3\" 1e3px"),
+      "\"a\\\"1e3\" 1000px"
+    );
+    assert_eq!(
+      restore_function_names(
+        "\"a\\\"translatey(0)\" translatey(0)",
+        &[Atom::from("translateY")]
+      ),
+      "\"a\\\"translatey(0)\" translateY(0)"
+    );
+  }
+
+  /// A `url()` body is not CSS-tokenized: nested parens and quotes inside it
+  /// are ordinary characters, and it ends only at its own closing paren.
+  #[test]
+  fn treats_a_url_body_as_opaque() {
+    assert_eq!(
+      restore_js_number_spelling("url(a(1e3)b) 1e3px"),
+      "url(a(1e3)b) 1000px"
+    );
+    assert_eq!(
+      restore_js_number_spelling("url(\"x)1e3\") 1e3px"),
+      "url(\"x)1e3\") 1000px"
+    );
+    assert_eq!(
+      restore_function_names(
+        "url(a(translatey(0))) translatey(0)",
+        &[Atom::from("translateY")]
+      ),
+      "url(a(translatey(0))) translateY(0)"
+    );
+    assert_eq!(
+      restore_function_names(
+        "url('x)translatey(0)') translatey(0)",
+        &[Atom::from("translateY")]
+      ),
+      "url('x)translatey(0)') translateY(0)"
+    );
+  }
+
+  /// Only a real `url` call is opaque — an identifier merely ending in `url`
+  /// is an ordinary function.
+  #[test]
+  fn does_not_treat_an_identifier_ending_in_url_as_a_url() {
+    assert_eq!(restore_js_number_spelling("blurl(1e3)"), "blurl(1000)");
+    assert_eq!(
+      restore_js_number_spelling("--my-url(1e3)"),
+      "--my-url(1000)"
+    );
+    assert_eq!(
+      restore_js_number_spelling("URL(1e3) 1e3px"),
+      "URL(1e3) 1000px"
+    );
+  }
+
+  /// A signed exponent is part of the number.
+  #[test]
+  fn reads_a_signed_exponent() {
+    assert_eq!(restore_js_number_spelling("1e+3px"), "1000px");
+    assert_eq!(restore_js_number_spelling("1e-3px"), ".001px");
+    assert_eq!(restore_js_number_spelling("+5px"), "5px");
+  }
+
+  /// A lone separator is not a number.
+  #[test]
+  fn does_not_read_a_bare_separator_as_a_number() {
+    assert_eq!(restore_js_number_spelling("."), ".");
+    assert_eq!(restore_js_number_spelling("a . b"), "a . b");
+    assert_eq!(restore_js_number_spelling("-"), "-");
+    assert_eq!(restore_js_number_spelling("1 / 2"), "1 / 2");
+  }
+
+  #[test]
+  fn accepts_a_trailing_decimal_point() {
+    assert_eq!(restore_js_number_spelling("5.px"), "5px");
+  }
+}
+
+#[cfg(test)]
+mod is_url_function_tests {
+  use crate::css::common::is_url_function;
+
+  #[test]
+  fn recognises_a_url_call() {
+    assert!(is_url_function("url(", 3));
+    assert!(is_url_function("URL(", 3));
+    assert!(is_url_function("a url(", 5));
+  }
+
+  /// The name must be exactly `url`: a longer identifier that merely ends in
+  /// those three letters is an ordinary function.
+  #[test]
+  fn rejects_an_identifier_merely_ending_in_url() {
+    assert!(!is_url_function("blurl(", 5));
+    assert!(!is_url_function("9url(", 4));
+    assert!(!is_url_function("--my-url(", 8));
+    assert!(!is_url_function("_url(", 4));
+    assert!(!is_url_function("\\url(", 4));
+  }
+
+  #[test]
+  fn rejects_anything_that_is_not_url() {
+    assert!(!is_url_function("rgb(", 3));
+    assert!(!is_url_function("(", 0));
+    assert!(!is_url_function("rl(", 2));
   }
 }

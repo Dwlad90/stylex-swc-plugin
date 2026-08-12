@@ -1071,12 +1071,9 @@ pub(crate) fn restore_js_number_spelling(value: &str) -> String {
 
     match number_token_end(bytes, index, result.as_bytes().last().copied()) {
       Some(end) => {
-        match value[index..end].parse::<f64>() {
-          Ok(number) => result.push_str(&strip_leading_zero(&to_js_string(number))),
-          // Not representable as an `f64`, so there is nothing to re-spell.
-          Err(_) => result.push_str(&value[index..end]),
-        }
+        let number = parse_number_token(&value[index..end]);
 
+        result.push_str(&strip_leading_zero(&to_js_string(number)));
         index = end;
       },
       None => {
@@ -1150,6 +1147,15 @@ fn number_token_end(bytes: &[u8], index: usize, previous: Option<u8>) -> Option<
   Some(end)
 }
 
+/// The token as an `f64`.
+///
+/// [`number_token_end`] only ever yields a literal `f64` can parse, so the
+/// default is unreachable; taking it keeps this total rather than adding a
+/// branch no input can take.
+fn parse_number_token(token: &str) -> f64 {
+  token.parse::<f64>().unwrap_or_default()
+}
+
 fn take_digits(bytes: &[u8], end: &mut usize) -> bool {
   let start = *end;
 
@@ -1174,7 +1180,7 @@ fn strip_leading_zero(number: &str) -> String {
 
 /// Whether the `(` at `open_paren_index` opens a `url()` function, whose body
 /// is not CSS-tokenized and so carries no function names of its own.
-fn is_url_function(value: &str, open_paren_index: usize) -> bool {
+pub(crate) fn is_url_function(value: &str, open_paren_index: usize) -> bool {
   let mut preceding = value[..open_paren_index].chars().rev();
 
   for expected in ['l', 'r', 'u'] {

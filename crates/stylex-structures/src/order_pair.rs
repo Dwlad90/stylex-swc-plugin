@@ -22,3 +22,7 @@ impl OrderPair {
     }
   }
 }
+
+#[cfg(test)]
+#[path = "tests/order_pair_test.rs"]
+mod tests;

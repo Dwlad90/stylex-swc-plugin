@@ -122,3 +122,24 @@ fn split_value_with_mixed_units() {
   assert_eq!(bottom, "10px");
   assert_eq!(left, "2em");
 }
+
+/// A number is handed back untouched: each expanded property appends its own
+/// unit suffix, which parsing it as CSS text would lose.
+#[test]
+fn split_value_returns_a_number_unchanged() {
+  let (top, right, bottom, left) = split_value(Some(&TRawValue::Number(10.0)));
+
+  assert_eq!(top, TRawValue::Number(10.0));
+  assert!(right.is_none());
+  assert!(bottom.is_none());
+  assert!(left.is_none());
+}
+
+#[test]
+fn split_value_required_repeats_a_number_across_every_side() {
+  let (top, right, bottom, left) = split_value_required(Some(&TRawValue::Number(10.0)));
+
+  for side in [top, right, bottom, left] {
+    assert_eq!(side, TRawValue::Number(10.0));
+  }
+}

@@ -61,8 +61,12 @@ pub(crate) fn transform_value_cached(
   state: &mut StateManager,
 ) -> String {
   // Keyed by JS identity, not CSS text: `width: 1` and `width: '1'` read the
-  // same but compile to different declarations.
-  let cache_key = format!("{}:{}", key, value.identity_key());
+  // same but compile to different declarations. Built in one allocation — this
+  // runs once per declaration.
+  let mut cache_key = String::with_capacity(key.len() + 1);
+  cache_key.push_str(key);
+  cache_key.push(':');
+  value.write_identity_key(&mut cache_key);
 
   let cache = state.css_property_seen().get(&cache_key);
 

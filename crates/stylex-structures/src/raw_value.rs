@@ -49,15 +49,28 @@ impl TRawValue {
   /// Used wherever values are compared as JS values rather than as CSS —
   /// deduplication and caching both need the type to be part of the identity.
   pub fn identity_key(&self) -> String {
-    let (tag, text) = match self {
-      TRawValue::String(value) => ('s', Cow::Borrowed(value.as_str())),
-      TRawValue::Number(value) => ('n', Cow::Owned(to_js_string(*value))),
-    };
-
-    let mut key = String::with_capacity(text.len() + 1);
-    key.push(tag);
-    key.push_str(&text);
+    let mut key = String::new();
+    self.write_identity_key(&mut key);
     key
+  }
+
+  /// [`Self::identity_key`], appended to an existing buffer.
+  ///
+  /// Callers that build a compound key (`"{property}:{identity}"`) sit on the
+  /// hottest path in the compiler — one per declaration — so they compose the
+  /// whole key in a single allocation rather than concatenating two.
+  pub fn write_identity_key(&self, out: &mut String) {
+    match self {
+      TRawValue::String(value) => {
+        out.reserve(value.len() + 1);
+        out.push('s');
+        out.push_str(value);
+      },
+      TRawValue::Number(value) => {
+        out.push('n');
+        out.push_str(&to_js_string(*value));
+      },
+    }
   }
 }
 

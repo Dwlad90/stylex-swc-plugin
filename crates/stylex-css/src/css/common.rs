@@ -17,9 +17,7 @@ use stylex_constants::constants::{
     LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_UNCLOSED_FUNCTION, LINT_UNCLOSED_STRING,
   },
   number_properties::NUMBER_PROPERTY_SUFFIXIES,
-  priorities::{
-    AT_RULE_PRIORITIES, CAMEL_CASE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY,
-  },
+  priorities::{AT_RULE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY},
   shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
   shorthands_of_shorthands::SHORTHANDS_OF_SHORTHANDS,
   unitless_number_properties::UNITLESS_NUMBER_PROPERTIES,
@@ -33,14 +31,16 @@ use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
 use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_utils::string::dashify;
 use swc_core::{
+  atoms::Atom,
   common::{BytePos, input::StringInput, source_map::SmallPos},
   css::{
-    ast::{Ident, Stylesheet},
+    ast::{Function, FunctionName, Ident, Stylesheet},
     codegen::{
       CodeGenerator, CodegenConfig, Emit,
       writer::basic::{BasicCssWriter, BasicCssWriterConfig},
     },
     parser::{error::Error, parse_string_input, parser::ParserConfig},
+    visit::{Visit, VisitWith},
   },
 };
 
@@ -832,12 +832,15 @@ pub fn normalize_css_property_value(
     Some(css_property),
   );
 
+  // Collected before codegen, which lowercases the names it emits.
+  let authored_function_names = collect_function_names(&parsed_ast);
+
   let stringified = stringify(&parsed_ast);
   let value = extract_css_value(&stringified);
   let normalized_spacing = normalize_spacing(value);
   let negative_leading_zero_restored = restore_negative_leading_zero(&normalized_spacing);
 
-  convert_css_function_to_camel_case(&negative_leading_zero_restored)
+  restore_function_names(&negative_leading_zero_restored, &authored_function_names)
 }
 
 /// Returns the numeric suffix for a CSS property (`"px"`, `"ms"`, `""`, etc.).
@@ -857,25 +860,48 @@ pub fn get_value_from_ident(ident: &Ident) -> String {
   ident.value.to_string()
 }
 
-/// Restores the camelCase spelling of every function name in a value (e.g.
-/// `translatey(0)` → `translateY(0)`).
+/// Collects every function name in the value, in the order they appear.
 ///
-/// SWC's tokenizer lowercases identifiers, so `transform: translateX(0px)
-/// translateY(0)` comes back out of codegen with both names folded. Every
-/// function in the value has to be restored, not just the first: a value like
-/// `translateX(0px) translateY(0)` otherwise keeps one name and loses the
-/// other, which changes the emitted CSS and every hash derived from it.
+/// The parser keeps the name the author wrote; codegen is what lowercases it,
+/// so the authored spelling has to be taken from the AST beforehand.
+fn collect_function_names(ast: &Stylesheet) -> Vec<Atom> {
+  struct FunctionNameCollector {
+    names: Vec<Atom>,
+  }
+
+  impl Visit for FunctionNameCollector {
+    fn visit_function(&mut self, func: &Function) {
+      if let FunctionName::Ident(name) = &func.name {
+        self.names.push(name.value.clone());
+      }
+
+      // A nested function is emitted after its parent, so visiting the parent
+      // first keeps `names` in the same order the string scan will find them.
+      func.visit_children_with(self);
+    }
+  }
+
+  let mut collector = FunctionNameCollector { names: Vec::new() };
+  ast.visit_with(&mut collector);
+
+  collector.names
+}
+
+/// Restores the function names the author wrote (e.g. `translatey(0)` back to
+/// `translateY(0)`).
 ///
-/// Quoted strings are copied through untouched, so a function name that only
-/// appears inside a `content` string is left alone.
+/// SWC's codegen lowercases function names when minifying — CSS function names
+/// are case-insensitive — which would rewrite `translateY(0)` to
+/// `translatey(0)` and change every hash derived from it. `authored` supplies
+/// the original spellings in source order.
 ///
-/// KNOWN DIVERGENCE: the original spelling is gone by the time this runs, so a
-/// name is restored to its canonical form rather than the author's. A value
-/// written `translatex(0)` — valid, since CSS function names are
-/// case-insensitive — comes out as `translateX(0)`, and hashes accordingly.
-/// Restoring the authored case would mean reading the value from source instead
-/// of round-tripping it through the parser.
-pub(crate) fn convert_css_function_to_camel_case(value: &str) -> String {
+/// Matching is case-insensitive and searches forward, so a name the AST does
+/// not account for (a `url()` body, say) leaves the scan aligned rather than
+/// shifting every later name onto the wrong function.
+///
+/// Quoted strings and `url()` bodies are copied through untouched, so a name
+/// that only appears inside one is left alone.
+pub(crate) fn restore_function_names(value: &str, authored: &[Atom]) -> String {
   if !value.contains('(') {
     return value.to_string();
   }
@@ -886,8 +912,10 @@ pub(crate) fn convert_css_function_to_camel_case(value: &str) -> String {
   let mut ident_start: Option<usize> = None;
   let mut in_quote: Option<char> = None;
   let mut escaped = false;
+  let mut url_depth: usize = 0;
+  let mut next_authored = 0;
 
-  for ch in value.chars() {
+  for (idx, ch) in value.char_indices() {
     if let Some(quote) = in_quote {
       result.push(ch);
 
@@ -902,6 +930,19 @@ pub(crate) fn convert_css_function_to_camel_case(value: &str) -> String {
       continue;
     }
 
+    if url_depth > 0 {
+      result.push(ch);
+
+      match ch {
+        '(' => url_depth += 1,
+        ')' => url_depth -= 1,
+        '"' | '\'' => in_quote = Some(ch),
+        _ => {},
+      }
+
+      continue;
+    }
+
     match ch {
       '"' | '\'' => {
         in_quote = Some(ch);
@@ -909,11 +950,17 @@ pub(crate) fn convert_css_function_to_camel_case(value: &str) -> String {
         result.push(ch);
       },
       '(' => {
-        if let Some(start) = ident_start
-          && let Some(camel_case_name) = CAMEL_CASE_PRIORITIES.get(&result[start..])
+        if is_url_function(value, idx) {
+          url_depth = 1;
+        } else if let Some(start) = ident_start
+          && let Some(offset) = authored[next_authored..]
+            .iter()
+            .position(|name| name.eq_ignore_ascii_case(&result[start..]))
         {
+          let name = &authored[next_authored + offset];
           result.truncate(start);
-          result.push_str(camel_case_name);
+          result.push_str(name);
+          next_authored += offset + 1;
         }
 
         ident_start = None;
@@ -934,6 +981,25 @@ pub(crate) fn convert_css_function_to_camel_case(value: &str) -> String {
   }
 
   result
+}
+
+/// Whether the `(` at `open_paren_index` opens a `url()` function, whose body
+/// is not CSS-tokenized and so carries no function names of its own.
+fn is_url_function(value: &str, open_paren_index: usize) -> bool {
+  let mut preceding = value[..open_paren_index].chars().rev();
+
+  for expected in ['l', 'r', 'u'] {
+    if !preceding
+      .next()
+      .is_some_and(|ch| ch.eq_ignore_ascii_case(&expected))
+    {
+      return false;
+    }
+  }
+
+  !preceding
+    .next()
+    .is_some_and(|ch| ch.is_alphanumeric() || matches!(ch, '-' | '_' | '\\'))
 }
 
 /// Serializes an SWC `Stylesheet` AST back to a minified CSS string.

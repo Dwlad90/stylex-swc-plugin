@@ -70,18 +70,3 @@ pub static AT_RULE_PRIORITIES: phf::Map<&'static str, &'static f64> = phf_map! {
 };
 
 pub static PSEUDO_ELEMENT_PRIORITY: f64 = 5000.0;
-
-pub static CAMEL_CASE_PRIORITIES: phf::Map<&'static str, &'static str> = phf_map! {
-  "translatex" => "translateX",
-  "translatey" => "translateY",
-  "translatez" => "translateZ",
-  "scalex" => "scaleX",
-  "scaley" => "scaleY",
-  "scalez" => "scaleZ",
-  "rotatex" => "rotateX",
-  "rotatey" => "rotateY",
-  "rotatez" => "rotateZ",
-  "skewx" => "skewX",
-  "skewy" => "skewY",
-  "skewz" => "skewZ",
-};

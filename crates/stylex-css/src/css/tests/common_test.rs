@@ -1337,14 +1337,13 @@ mod convert_css_function_camel_case_tests {
 
   #[test]
   fn no_function_returns_as_is() {
-    // No parentheses → convert_css_function_to_camel_case returns as-is
+    // No parentheses → restore_function_names returns as-is
     let r = normalize_css_property_value("color", "red", &opts());
     assert_eq!(r, "red");
   }
 
   #[test]
-  fn unknown_function_not_camel_cased() {
-    // rotate3d is not in CAMEL_CASE_PRIORITIES
+  fn already_lowercase_function_is_unchanged() {
     let r = normalize_css_property_value("transform", "rotate(45deg)", &opts());
     assert_eq!(r, "rotate(45deg)");
   }
@@ -1645,65 +1644,94 @@ mod stringify_css_var_numeric_tests {
 }
 
 #[cfg(test)]
-mod convert_css_function_to_camel_case_tests {
-  use crate::css::common::convert_css_function_to_camel_case;
+mod restore_function_names_tests {
+  use crate::css::common::restore_function_names;
+  use swc_core::atoms::Atom;
+
+  fn authored(names: &[&str]) -> Vec<Atom> {
+    names.iter().map(|name| Atom::from(*name)).collect()
+  }
 
   #[test]
   fn restores_every_function_not_only_the_first() {
     assert_eq!(
-      convert_css_function_to_camel_case("translatex(0px) translatey(0) scale(1) rotate(30deg)"),
+      restore_function_names(
+        "translatex(0px) translatey(0) scale(1) rotate(30deg)",
+        &authored(&["translateX", "translateY", "scale", "rotate"])
+      ),
       "translateX(0px) translateY(0) scale(1) rotate(30deg)"
     );
+  }
+
+  /// The authored spelling wins whatever it is — there is no canonical list, so
+  /// an author-invented name survives exactly as written.
+  #[test]
+  fn preserves_author_case_for_any_name() {
     assert_eq!(
-      convert_css_function_to_camel_case("skewx(10deg) skewy(20deg) skewz(30deg)"),
-      "skewX(10deg) skewY(20deg) skewZ(30deg)"
+      restore_function_names(
+        "aaa(1px) translatex(2px)",
+        &authored(&["AAA", "translateX"])
+      ),
+      "AAA(1px) translateX(2px)"
+    );
+    assert_eq!(
+      restore_function_names("translatex(1px)", &authored(&["TRANSLATEX"])),
+      "TRANSLATEX(1px)"
+    );
+    assert_eq!(
+      restore_function_names("lineargradient(red,blue)", &authored(&["linearGradient"])),
+      "linearGradient(red,blue)"
     );
   }
 
   #[test]
-  fn leaves_unmapped_and_nested_names_alone() {
+  fn restores_nested_functions_in_visit_order() {
     assert_eq!(
-      convert_css_function_to_camel_case("repeat(2,1fr) minmax(0,1fr)"),
-      "repeat(2,1fr) minmax(0,1fr)"
+      restore_function_names("minmax(0,calc(1px + 2px))", &authored(&["MinMax", "CalC"])),
+      "MinMax(0,CalC(1px + 2px))"
     );
+  }
+
+  /// A name the AST does not account for must not shift every later name onto
+  /// the wrong function.
+  #[test]
+  fn skips_names_absent_from_the_ast() {
     assert_eq!(
-      convert_css_function_to_camel_case("perspective(120px) rotatex(0deg)"),
-      "perspective(120px) rotateX(0deg)"
+      restore_function_names("unknown(1) translatey(2px)", &authored(&["translateY"])),
+      "unknown(1) translateY(2px)"
     );
   }
 
   #[test]
   fn leaves_values_without_functions_alone() {
-    assert_eq!(convert_css_function_to_camel_case("red"), "red");
+    assert_eq!(restore_function_names("red", &authored(&[])), "red");
     assert_eq!(
-      convert_css_function_to_camel_case("translatey"),
+      restore_function_names("translatey", &authored(&["translateY"])),
       "translatey"
     );
   }
 
-  /// KNOWN DIVERGENCE: an author-written lowercase name is canonicalised rather
-  /// than preserved, because the parser has already discarded the spelling.
+  /// A function name inside a quoted string or a `url()` body is content, not a
+  /// function call.
   #[test]
-  fn canonicalises_rather_than_preserves_author_case() {
+  fn does_not_rewrite_inside_quoted_strings_or_urls() {
     assert_eq!(
-      convert_css_function_to_camel_case("translatex(1px) translatey(2px)"),
-      "translateX(1px) translateY(2px)"
-    );
-  }
-
-  /// A function name inside a quoted string is content, not a function call.
-  #[test]
-  fn does_not_rewrite_inside_quoted_strings() {
-    assert_eq!(
-      convert_css_function_to_camel_case("\"translatey(0)\""),
+      restore_function_names("\"translatey(0)\"", &authored(&["translateY"])),
       "\"translatey(0)\""
     );
     assert_eq!(
-      convert_css_function_to_camel_case("'translatey(0)' translatey(0)"),
+      restore_function_names("'translatey(0)' translatey(0)", &authored(&["translateY"])),
       "'translatey(0)' translateY(0)"
     );
     assert_eq!(
-      convert_css_function_to_camel_case("\"a\\\"translatey(0)\""),
+      restore_function_names(
+        "url(http://x/translatey(0)) translatey(0)",
+        &authored(&["translateY"])
+      ),
+      "url(http://x/translatey(0)) translateY(0)"
+    );
+    assert_eq!(
+      restore_function_names("\"a\\\"translatey(0)\"", &authored(&["translateY"])),
       "\"a\\\"translatey(0)\""
     );
   }

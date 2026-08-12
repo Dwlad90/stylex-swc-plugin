@@ -3,13 +3,13 @@
 exports[`Home render styles successfully 1`] = `
 <div>
   <main
-    class="x78zum5 xdt5ytf x194s8ni x6s0dn4 xl56j7k xg6iff7 x1mzwx4i xnipg8d xyybb43 xe7sfg1 xcy2wq9 x1gd32pu xzin03d xa35f3z xgfkjs0 xd2su76"
+    class="x78zum5 xdt5ytf x194s8ni x6s0dn4 xl56j7k xg6iff7 x1mzwx4i xnipg8d xe7sfg1 xyybb43 xcy2wq9 x1gd32pu xzin03d xa35f3z xgfkjs0 xd2su76"
   >
     <div
       class="x78zum5 xdt5ytf x1ifg3mr x6s0dn4 xl56j7k xh8yej3 x17fpy1y"
     >
       <h1
-        class="xwlf911 x1q0g3np xyc1elr x1rm9ig3 x1xlr1w8 xo5v014 x2b8uid x72az59 xuxw1ft"
+        class="x1q0g3np xwlf911 xyc1elr x1rm9ig3 x1xlr1w8 xo5v014 x2b8uid x72az59 xuxw1ft"
       >
         Next.js 
         <span
@@ -20,7 +20,7 @@ exports[`Home render styles successfully 1`] = `
          StyleX
       </h1>
       <p
-        class="x1mrxg6j xyc1elr x6zkbqi x1dbl2gt x196owhh x16o7m8e x2b8uid x1w2vvpw"
+        class="x1mrxg6j xyc1elr x6zkbqi x1dbl2gt x16o7m8e x196owhh x2b8uid x1w2vvpw"
       >
         The expressive styling system for ambitious interfaces
       </p>
@@ -36,7 +36,7 @@ exports[`Home render styles successfully 1`] = `
           class="x78zum5 xfuhwk7 xl56j7k"
         >
           <button
-            class="x78zum5 xmq2k0k x6s0dn4 xhdciwt xnrm1is xyc1elr x1ketmjs x1heor9g x1ypdohk xjbqb8w x1cms9bs x1t3vbwv x18rnd24 x1v1d69g x1y0btm7 xmkeg23 x7m3u8q x13dflua xts7igz"
+            class="x78zum5 xmq2k0k x6s0dn4 xhdciwt xnrm1is xyc1elr x1ketmjs x1heor9g x1ypdohk xjbqb8w x1t3vbwv x1cms9bs x1v1d69g x18rnd24 x1y0btm7 xmkeg23 x7m3u8q x13dflua xts7igz"
           >
             <span
               class="x1041hz7 xa35f3z x2lah0s x1fsd2vl x170jfvy x138xwbu x16rqkct"
@@ -44,7 +44,7 @@ exports[`Home render styles successfully 1`] = `
             Red
           </button>
           <button
-            class="x78zum5 xmq2k0k x6s0dn4 xhdciwt xnrm1is xyc1elr x1ketmjs x1heor9g x1ypdohk xjbqb8w x1cms9bs x1t3vbwv x18rnd24 x1v1d69g x1y0btm7 xmkeg23 x7m3u8q x13dflua xts7igz"
+            class="x78zum5 xmq2k0k x6s0dn4 xhdciwt xnrm1is xyc1elr x1ketmjs x1heor9g x1ypdohk xjbqb8w x1t3vbwv x1cms9bs x1v1d69g x18rnd24 x1y0btm7 xmkeg23 x7m3u8q x13dflua xts7igz"
           >
             <span
               class="xclj6jl xa35f3z x2lah0s x1fsd2vl x170jfvy x138xwbu x16rqkct"
@@ -77,7 +77,7 @@ exports[`Home render styles successfully 1`] = `
             Light
           </button>
           <button
-            class="x78zum5 xmq2k0k x6s0dn4 xhdciwt xnrm1is xyc1elr x1ketmjs x1heor9g x1ypdohk xjbqb8w x1cms9bs x1t3vbwv x18rnd24 x1v1d69g x1y0btm7 xmkeg23 x7m3u8q x13dflua xts7igz"
+            class="x78zum5 xmq2k0k x6s0dn4 xhdciwt xnrm1is xyc1elr x1ketmjs x1heor9g x1ypdohk xjbqb8w x1t3vbwv x1cms9bs x1v1d69g x18rnd24 x1y0btm7 xmkeg23 x7m3u8q x13dflua xts7igz"
           >
             Dark
           </button>
@@ -94,7 +94,7 @@ exports[`Home render styles successfully 1`] = `
           class="x78zum5 x4w8xnv x6s0dn4 xl56j7k"
         >
           <button
-            class="x78zum5 x6s0dn4 xl56j7k x1useyqa xsdox4t xyc1elr x1iqemal x1iikomf xa5msgn x1ypdohk xjbqb8w x1cms9bs x1t3vbwv x1ixmb96 x1y0btm7 xmkeg23 x7m3u8q x1jplu5e x13dflua x10oofgx"
+            class="x78zum5 x6s0dn4 xl56j7k x1useyqa xsdox4t xyc1elr x1iqemal x1iikomf xa5msgn x1ypdohk xjbqb8w x1t3vbwv x1cms9bs x1ixmb96 x1y0btm7 xmkeg23 x7m3u8q x1jplu5e x13dflua x10oofgx"
           >
             -
           </button>
@@ -104,7 +104,7 @@ exports[`Home render styles successfully 1`] = `
             0
           </div>
           <button
-            class="x78zum5 x6s0dn4 xl56j7k x1useyqa xsdox4t xyc1elr x1iqemal x1iikomf xa5msgn x1ypdohk xjbqb8w x1cms9bs x1t3vbwv x1ixmb96 x1y0btm7 xmkeg23 x7m3u8q x1jplu5e x13dflua x10oofgx"
+            class="x78zum5 x6s0dn4 xl56j7k x1useyqa xsdox4t xyc1elr x1iqemal x1iikomf xa5msgn x1ypdohk xjbqb8w x1t3vbwv x1cms9bs x1ixmb96 x1y0btm7 xmkeg23 x7m3u8q x1jplu5e x13dflua x10oofgx"
           >
             +
           </button>
@@ -138,21 +138,21 @@ exports[`Home render styles successfully 1`] = `
       </span>
     </a>
     <div
-      class="xrvj5dj xtp8ymz xx3cr9d xtffbmy x1440gg2 x1ffn2c6 xl858mc x193iq5w x15hltav"
+      class="xrvj5dj xtp8ymz xx3cr9d xtffbmy x1440gg2 x1ffn2c6 x193iq5w xl858mc x15hltav"
     >
       <a
-        class="x1ymzxv2 x78zum5 xdt5ytf x6s0dn4 x1nhvcw1 xe22hk5 xyc1elr x1heor9g x2b8uid x1hl2dhg xjbqb8w x5sqffz x18rnd24 x1ouhu56 xsh8189 x19mtl4q x1y0btm7 xmkeg23 xg5u98n x1gnnqk1 x1rfyatg x1lz31oe x1d8287x xmz27jc x14hzyko"
+        class="x78zum5 x1ymzxv2 xdt5ytf x6s0dn4 x1nhvcw1 xe22hk5 xyc1elr x1heor9g x2b8uid x1hl2dhg xjbqb8w x5sqffz xsh8189 x19mtl4q x18rnd24 x1ouhu56 x1y0btm7 xmkeg23 xg5u98n x1gnnqk1 x1rfyatg x1lz31oe x1d8287x xmz27jc x14hzyko"
         href="https://stylexjs.com/docs/learn/"
         rel="noopener noreferrer"
         target="_blank"
       >
         <h2
-          class="x14xbwn8 x1q9qhhw x1iqemal x1s688f xa5msgn x1d8287x xt3l3uh x1w2cd9y"
+          class="x1q9qhhw x14xbwn8 x1iqemal x1s688f xa5msgn x1d8287x xt3l3uh x1w2cd9y"
         >
           Docs
            
           <span
-            class="x1rg5ohu x1hpm7yk x1qbu6wm x12w9bfk x13dflua x11xpdln"
+            class="x1rg5ohu x1hpm7yk x1qbu6wm x13dflua x12w9bfk x11xpdln"
           >
             →
           </span>
@@ -164,18 +164,18 @@ exports[`Home render styles successfully 1`] = `
         </p>
       </a>
       <a
-        class="x1ymzxv2 x78zum5 xdt5ytf x6s0dn4 x1nhvcw1 xe22hk5 xyc1elr x1heor9g x2b8uid x1hl2dhg xjbqb8w x5sqffz x18rnd24 x1ouhu56 xsh8189 x19mtl4q x1y0btm7 xmkeg23 xg5u98n x1gnnqk1 x1rfyatg x1lz31oe x1d8287x xmz27jc x14hzyko"
+        class="x78zum5 x1ymzxv2 xdt5ytf x6s0dn4 x1nhvcw1 xe22hk5 xyc1elr x1heor9g x2b8uid x1hl2dhg xjbqb8w x5sqffz xsh8189 x19mtl4q x18rnd24 x1ouhu56 x1y0btm7 xmkeg23 xg5u98n x1gnnqk1 x1rfyatg x1lz31oe x1d8287x xmz27jc x14hzyko"
         href="https://stylexjs.com/docs/api/"
         rel="noopener noreferrer"
         target="_blank"
       >
         <h2
-          class="x14xbwn8 x1q9qhhw x1iqemal x1s688f xa5msgn x1d8287x xt3l3uh x1w2cd9y"
+          class="x1q9qhhw x14xbwn8 x1iqemal x1s688f xa5msgn x1d8287x xt3l3uh x1w2cd9y"
         >
           API
            
           <span
-            class="x1rg5ohu x1hpm7yk x1qbu6wm x12w9bfk x13dflua x11xpdln"
+            class="x1rg5ohu x1hpm7yk x1qbu6wm x13dflua x12w9bfk x11xpdln"
           >
             →
           </span>
@@ -187,18 +187,18 @@ exports[`Home render styles successfully 1`] = `
         </p>
       </a>
       <a
-        class="x1ymzxv2 x78zum5 xdt5ytf x6s0dn4 x1nhvcw1 xe22hk5 xyc1elr x1heor9g x2b8uid x1hl2dhg xjbqb8w x5sqffz x18rnd24 x1ouhu56 xsh8189 x19mtl4q x1y0btm7 xmkeg23 xg5u98n x1gnnqk1 x1rfyatg x1lz31oe x1d8287x xmz27jc x14hzyko"
+        class="x78zum5 x1ymzxv2 xdt5ytf x6s0dn4 x1nhvcw1 xe22hk5 xyc1elr x1heor9g x2b8uid x1hl2dhg xjbqb8w x5sqffz xsh8189 x19mtl4q x18rnd24 x1ouhu56 x1y0btm7 xmkeg23 xg5u98n x1gnnqk1 x1rfyatg x1lz31oe x1d8287x xmz27jc x14hzyko"
         href="https://stylexjs.com/playground/"
         rel="noopener noreferrer"
         target="_blank"
       >
         <h2
-          class="x14xbwn8 x1q9qhhw x1iqemal x1s688f xa5msgn x1d8287x xt3l3uh x1w2cd9y"
+          class="x1q9qhhw x14xbwn8 x1iqemal x1s688f xa5msgn x1d8287x xt3l3uh x1w2cd9y"
         >
           Playground
            
           <span
-            class="x1rg5ohu x1hpm7yk x1qbu6wm x12w9bfk x13dflua x11xpdln"
+            class="x1rg5ohu x1hpm7yk x1qbu6wm x13dflua x12w9bfk x11xpdln"
           >
             →
           </span>
@@ -210,18 +210,18 @@ exports[`Home render styles successfully 1`] = `
         </p>
       </a>
       <a
-        class="x1ymzxv2 x78zum5 xdt5ytf x6s0dn4 x1nhvcw1 xe22hk5 xyc1elr x1heor9g x2b8uid x1hl2dhg xjbqb8w x5sqffz x18rnd24 x1ouhu56 xsh8189 x19mtl4q x1y0btm7 xmkeg23 xg5u98n x1gnnqk1 x1rfyatg x1lz31oe x1d8287x xmz27jc x14hzyko"
+        class="x78zum5 x1ymzxv2 xdt5ytf x6s0dn4 x1nhvcw1 xe22hk5 xyc1elr x1heor9g x2b8uid x1hl2dhg xjbqb8w x5sqffz xsh8189 x19mtl4q x18rnd24 x1ouhu56 x1y0btm7 xmkeg23 xg5u98n x1gnnqk1 x1rfyatg x1lz31oe x1d8287x xmz27jc x14hzyko"
         href="https://github.com/nmn/nextjs-app-dir-stylex"
         rel="noopener noreferrer"
         target="_blank"
       >
         <h2
-          class="x14xbwn8 x1q9qhhw x1iqemal x1s688f xa5msgn x1d8287x xt3l3uh x1w2cd9y"
+          class="x1q9qhhw x14xbwn8 x1iqemal x1s688f xa5msgn x1d8287x xt3l3uh x1w2cd9y"
         >
           Templates
            
           <span
-            class="x1rg5ohu x1hpm7yk x1qbu6wm x12w9bfk x13dflua x11xpdln"
+            class="x1rg5ohu x1hpm7yk x1qbu6wm x13dflua x12w9bfk x11xpdln"
           >
             →
           </span>

@@ -8,39 +8,39 @@ _inject2({
     priority: 3000
 });
 _inject2({
-    ltr: "@media all and (max-width:1067px){.fontSize-x1r6akvx.fontSize-x1r6akvx{font-size:.75rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.fontSize-x1f3yvym.fontSize-x1f3yvym{font-size:.75rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media all and (max-width:1067px){.fontSize-xfpxvwb.fontSize-xfpxvwb{font-size:1rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.fontSize-x17vjwcc.fontSize-x17vjwcc{font-size:1rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media all and (max-width:1067px){.fontSize-xc57lpn.fontSize-xc57lpn{font-size:1.25rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.fontSize-x19ppoyo.fontSize-x19ppoyo{font-size:1.25rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media all and (max-width:1067px){.fontSize-x10gvik0.fontSize-x10gvik0{font-size:1.5rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.fontSize-x3gzoht.fontSize-x3gzoht{font-size:1.5rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media all and (max-width:1067px){.fontSize-xsqjmrb.fontSize-xsqjmrb{font-size:1.75rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.fontSize-xd310an.fontSize-xd310an{font-size:1.75rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media all and (max-width:1067px){.fontSize-x1unjt1s.fontSize-x1unjt1s{font-size:2rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.fontSize-xeuu8e4.fontSize-xeuu8e4{font-size:2rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media all and (max-width:1067px){.fontSize-xcmgggk.fontSize-xcmgggk{font-size:2.25rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.fontSize-x1jbhjkf.fontSize-x1jbhjkf{font-size:2.25rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media all and (max-width:1067px){.fontSize-xwq55y6.fontSize-xwq55y6{font-size:2.5rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.fontSize-x14h6vv3.fontSize-x14h6vv3{font-size:2.5rem}}",
     priority: 3200
 });
 _inject2({
-    ltr: "@media all and (max-width:1067px){.fontSize-x1n9uav1.fontSize-x1n9uav1{font-size:2.75rem}}",
+    ltr: "@media (all) and (max-width: 1067px){.fontSize-x1eh3tls.fontSize-x1eh3tls{font-size:2.75rem}}",
     priority: 3200
 });
 _inject2({
@@ -53,39 +53,39 @@ const c = {
         $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:6"
     },
     "p-2": {
-        fontSize: "fontSize-x1r6akvx",
+        fontSize: "fontSize-x1f3yvym",
         $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:9"
     },
     "p-1": {
-        fontSize: "fontSize-xfpxvwb",
+        fontSize: "fontSize-x17vjwcc",
         $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:15"
     },
     p: {
-        fontSize: "fontSize-xc57lpn",
+        fontSize: "fontSize-x19ppoyo",
         $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:21"
     },
     "p+1": {
-        fontSize: "fontSize-x10gvik0",
+        fontSize: "fontSize-x3gzoht",
         $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:27"
     },
     "p+2": {
-        fontSize: "fontSize-xsqjmrb",
+        fontSize: "fontSize-xd310an",
         $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:33"
     },
     "1": {
-        fontSize: "fontSize-x1unjt1s",
+        fontSize: "fontSize-xeuu8e4",
         $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:39"
     },
     "2": {
-        fontSize: "fontSize-xcmgggk",
+        fontSize: "fontSize-x1jbhjkf",
         $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:45"
     },
     "p+3": {
-        fontSize: "fontSize-xwq55y6",
+        fontSize: "fontSize-x14h6vv3",
         $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:51"
     },
     "p+4": {
-        fontSize: "fontSize-x1n9uav1",
+        fontSize: "fontSize-x1eh3tls",
         $$css: "tests/fixture/namespace-cleaning-no-unused/input.stylex.js:57"
     }
 };

@@ -139,10 +139,6 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     })
     .collect();
 
-  if media_pairs.len() <= 1 {
-    return result;
-  }
-
   let mut parsed_media_pairs = Vec::with_capacity(media_pairs.len());
   for (media_key, original_kv) in media_pairs {
     match MediaQuery::parser().parse_to_end(&media_key) {
@@ -155,7 +151,9 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     }
   }
 
-  // Check if all media queries are disjoint ranges - if so, just normalize syntax
+  // Disjoint ranges need no negations: upstream builds them anyway, but its
+  // `MediaQuery.toString()` collapses the redundant clauses back out, so only
+  // the syntax normalization survives.
   if are_media_queries_disjoint(&parsed_media_pairs) {
     return normalize_media_query_syntax(result);
   }
@@ -345,29 +343,31 @@ fn ranges_overlap(range1: &(String, f32, f32), range2: &(String, f32, f32)) -> b
 
 /// Just normalize media query syntax without applying negation logic
 fn normalize_media_query_syntax(result: Vec<KeyValueProp>) -> Vec<KeyValueProp> {
-  result
+  let (media, non_media): (Vec<KeyValueProp>, Vec<KeyValueProp>) = result
     .into_iter()
-    .map(|kv| {
-      let key = key_value_to_str(&kv);
-      if key.starts_with("@media ") {
-        if let Ok(mq) = MediaQuery::parser().parse_to_end(&key) {
-          let normalized_key = mq.to_string();
-          KeyValueProp {
-            key: PropName::Str(Str {
-              span: DUMMY_SP,
-              value: Wtf8Atom::from(normalized_key),
-              raw: None,
-            }),
-            value: kv.value,
-          }
-        } else {
-          kv
-        }
-      } else {
-        kv
-      }
-    })
-    .collect()
+    .partition(|kv| key_value_to_str(kv).starts_with("@media "));
+
+  // Media keys move last, as they do on the negation path: upstream deletes and
+  // re-adds each one, which in JS appends it to the end of the object.
+  let mut final_result = non_media;
+
+  final_result.extend(media.into_iter().map(|kv| {
+    let key = key_value_to_str(&kv);
+
+    match MediaQuery::parser().parse_to_end(&key) {
+      Ok(mq) => KeyValueProp {
+        key: PropName::Str(Str {
+          span: DUMMY_SP,
+          value: Wtf8Atom::from(mq.to_string()),
+          raw: None,
+        }),
+        value: kv.value,
+      },
+      Err(_) => kv,
+    }
+  }));
+
+  final_result
 }
 
 #[cfg(test)]

@@ -1267,3 +1267,48 @@ mod media_query_transformer {
     assert!(result_str.contains("only screen"));
   }
 }
+
+/// Upstream deletes and re-adds every `@media` key, which in JS moves it to the
+/// end of the object — including when there is only one, where nothing else
+/// about the key changes. The resulting order reaches the emitted CSS, so it
+/// has to be reproduced here.
+#[test]
+fn single_media_query_moves_after_the_default() {
+  let props = vec![create_key_value_prop(
+    "color",
+    json!({
+      "@media (max-width: 900px) and (min-width: 100px)": "red",
+      "default": "blue",
+    }),
+  )];
+
+  let result = last_media_query_wins_transform(&props);
+  let color = match &*result[0].value {
+    Expr::Object(object) => object,
+    _ => panic!("expected an object value"),
+  };
+
+  let keys: Vec<String> = color
+    .props
+    .iter()
+    .filter_map(|prop| match prop {
+      PropOrSpread::Prop(prop) => match &**prop {
+        Prop::KeyValue(kv) => match &kv.key {
+          PropName::Str(key) => Some(convert_atom_to_string(&key.value)),
+          _ => None,
+        },
+        _ => None,
+      },
+      _ => None,
+    })
+    .collect();
+
+  assert_eq!(
+    keys,
+    vec![
+      "default".to_string(),
+      // The lone query is re-stringified too, which reorders its features.
+      "@media (min-width: 100px) and (max-width: 900px)".to_string(),
+    ]
+  );
+}

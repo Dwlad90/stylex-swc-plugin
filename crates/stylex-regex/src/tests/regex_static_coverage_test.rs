@@ -30,6 +30,12 @@ fn core_cleanup_patterns_match() {
   // Unicode-aware `\w` would have accepted them.
   assert!(!IS_CSS_VAR.is_match("var(--épaisseur)").unwrap());
   assert!(!IS_CSS_VAR.is_match("var(--日本)").unwrap());
+  // The `-` before `_` is a literal, not a `0x2D`–`0x5F` range: the class is
+  // copied verbatim from upstream's `/^var\(--[a-zA-Z0-9-_]+\)$/`, and if
+  // `fancy-regex` read it as a range these punctuation names would match.
+  assert!(!IS_CSS_VAR.is_match("var(--a:b)").unwrap());
+  assert!(!IS_CSS_VAR.is_match("var(--a.b)").unwrap());
+  assert!(!IS_CSS_VAR.is_match("var(--a[b)").unwrap());
   assert!(DASHIFY_REGEX.is_match("fooBar").unwrap());
 }
 

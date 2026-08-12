@@ -55,6 +55,26 @@ pub fn char_code_at(s: &str, index: usize) -> Option<u32> {
   s.encode_utf16().nth(index).map(u32::from)
 }
 
+/// `char_code_at` for an index that arrived as a JS number, applying
+/// `charCodeAt`'s own argument coercion.
+///
+/// `charCodeAt` runs `ToIntegerOrInfinity` on its argument: `NaN` becomes `0`,
+/// fractional values truncate toward zero, and any negative or infinite index is
+/// out of range. `index as usize` saturates rather than wrapping, so a bare cast
+/// would silently turn `charCodeAt(-1)` — which JS answers with `NaN` — into the
+/// code unit at index 0.
+pub fn char_code_at_f64(s: &str, index: f64) -> Option<u32> {
+  if index.is_nan() {
+    return char_code_at(s, 0);
+  }
+
+  if index < 0.0 || index.is_infinite() {
+    return None;
+  }
+
+  char_code_at(s, index as usize)
+}
+
 #[cfg(test)]
 #[path = "tests/string_test.rs"]
 mod tests;

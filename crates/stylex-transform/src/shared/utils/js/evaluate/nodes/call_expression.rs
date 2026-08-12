@@ -1278,7 +1278,7 @@ pub(in super::super) fn evaluate(
                 stylex_panic!("The first argument of String.charCodeAt() must be a number.")
               });
 
-              let char_code = char_code_at(&base_str, *char_index as usize).unwrap_or_else(|| {
+              let char_code = char_code_at_f64(&base_str, *char_index).unwrap_or_else(|| {
                 stylex_panic!("String.charCodeAt() returned no result for the given index.")
               });
 

@@ -84,7 +84,7 @@ use stylex_enums::{
 };
 use stylex_structures::{named_import_source::ImportSources, stylex_env::EnvEntry};
 use stylex_utils::{
-  collection::sort_numbers_factory, hash::stable_hash_unspanned, string::char_code_at,
+  collection::sort_numbers_factory, hash::stable_hash_unspanned, string::char_code_at_f64,
   swc::get_default_expr_ctx,
 };
 

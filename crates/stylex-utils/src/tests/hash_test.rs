@@ -75,6 +75,46 @@ mod create_hash_tests {
     }
   }
 
+  /// The ASCII fast path skips the UTF-16 buffer on the claim that an ASCII
+  /// scalar's low code-unit byte *is* its UTF-8 byte. Pin that claim against the
+  /// general path rather than trusting it, since every ASCII class name in the
+  /// codebase is produced by the branch this test is the only check on.
+  #[test]
+  fn ascii_fast_path_agrees_with_the_utf16_path() {
+    for input in [
+      "",
+      "a",
+      "ab",
+      "abc",
+      "hello",
+      "<>content\"x\"null",
+      "a very long input string",
+    ] {
+      let code_units: Vec<u8> = input
+        .encode_utf16()
+        .map(|unit| (unit & 0xff) as u8)
+        .collect();
+
+      assert_eq!(
+        create_hash(input),
+        radix_fmt::radix(murmur2::murmur2(&code_units, 1), 36).to_string(),
+        "input: {:?}",
+        input
+      );
+    }
+  }
+
+  /// A hash of exactly zero renders as `"0"` in base 36 — `(0).toString(36)` —
+  /// where the same value renders as the empty string in base 62. The two
+  /// wrappers disagree deliberately, so each side needs a reachable case;
+  /// `murmur2("k4127446806") == 0` is this one, and
+  /// `matches_upstream_empty_short_hash_when_value_is_a_multiple_of_62_pow_5`
+  /// covers the other.
+  #[test]
+  fn matches_upstream_hash_when_value_is_zero() {
+    assert_eq!(create_hash("k4127446806"), "0");
+  }
+
   /// The ASCII fast path and the UTF-16 path must agree wherever both apply.
   #[test]
   fn matches_upstream_hash_for_ascii() {

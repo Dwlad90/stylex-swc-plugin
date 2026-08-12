@@ -166,6 +166,27 @@ mod char_code_at_tests {
     assert_eq!(char_code_at("🎉", 2), None);
   }
 
+  /// `charCodeAt` coerces its argument with `ToIntegerOrInfinity`, which a bare
+  /// `as usize` does not reproduce: the cast saturates, so `-1.0` would land on
+  /// index 0.
+  #[test]
+  fn coerces_a_numeric_index_like_to_integer_or_infinity() {
+    use crate::string::char_code_at_f64;
+
+    // `NaN` coerces to 0, so `"abc".charCodeAt(NaN) === 97`.
+    assert_eq!(char_code_at_f64("abc", f64::NAN), Some(97));
+    // Fractional indices truncate toward zero.
+    assert_eq!(char_code_at_f64("abc", 1.9), Some(98));
+    assert_eq!(char_code_at_f64("abc", 0.0), Some(97));
+    // Negative and infinite indices are out of range — `NaN` in JS — rather
+    // than index 0 or a saturated `usize`.
+    assert_eq!(char_code_at_f64("abc", -1.0), None);
+    assert_eq!(char_code_at_f64("abc", -0.5), None);
+    assert_eq!(char_code_at_f64("abc", f64::NEG_INFINITY), None);
+    assert_eq!(char_code_at_f64("abc", f64::INFINITY), None);
+    assert_eq!(char_code_at_f64("abc", 3.0), None);
+  }
+
   #[test]
   fn astral_scalars_shift_following_indices() {
     // `"a🎉b".charCodeAt(3) === 98` — the surrogate pair consumes indices 1

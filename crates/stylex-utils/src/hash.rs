@@ -45,6 +45,13 @@ pub fn hash_f64(value: f64) -> u64 {
 /// Masking each code unit to its low byte is lossy in exactly the same way the
 /// original is: `\u{1F389}` hashes as its two surrogate halves, `0xD83C` and
 /// `0xDF89`, contributing `0x3C` and `0x89`.
+///
+/// Limitation: a `&str` cannot hold an *unpaired* surrogate, while a JS string
+/// literal can (`Str::value` is a `Wtf8Atom`). An input that reached this
+/// function has therefore already lost any lone surrogate, and no masking
+/// choice here can reproduce the byte babel would have contributed for it. Such
+/// literals are vanishingly rare in style values and are the one input class
+/// where the two compilers can still disagree.
 #[inline]
 fn murmur2_code_units(value: &str) -> u32 {
   // Every ASCII scalar is a single UTF-16 code unit below `0x80`, so its low
@@ -53,7 +60,12 @@ fn murmur2_code_units(value: &str) -> u32 {
     return murmur2::murmur2(value.as_bytes(), 1);
   }
 
-  let code_units: Vec<u8> = value.encode_utf16().map(|unit| unit as u8).collect();
+  // A non-ASCII scalar always costs at least as many UTF-8 bytes as UTF-16 code
+  // units (2 or 3 bytes for one unit, 4 for a surrogate pair), so the UTF-8
+  // length is an upper bound that sizes the buffer in one allocation —
+  // `EncodeUtf16`'s own lower-bound hint would under-reserve and reallocate.
+  let mut code_units = Vec::with_capacity(value.len());
+  code_units.extend(value.encode_utf16().map(|unit| (unit & 0xff) as u8));
 
   murmur2::murmur2(&code_units, 1)
 }
@@ -83,10 +95,22 @@ pub fn create_key_hash(namespace: &str, key: &str) -> String {
 /// they stay separate wrappers.
 ///
 /// `buf` must be wide enough for the largest `value` the caller admits; a
-/// narrower buffer panics on the underflow rather than truncating silently.
+/// narrower buffer panics rather than truncating silently — the `debug_assert`
+/// names the requirement, and in release the index of the wrapped `idx` still
+/// panics instead of writing a wrong digit.
+///
+/// The assertion carries no formatted message on purpose: its arguments would be
+/// evaluated only on a failure no caller can reach, leaving regions that no test
+/// can ever cover.
 fn to_radix(mut value: u32, digits: &[u8], buf: &mut [u8]) -> String {
   let radix = digits.len() as u32;
   let mut idx = buf.len();
+
+  debug_assert!(
+    u64::from(radix)
+      .checked_pow(buf.len() as u32)
+      .is_none_or(|capacity| capacity > u64::from(value))
+  );
 
   while value > 0 {
     idx -= 1;
@@ -94,9 +118,14 @@ fn to_radix(mut value: u32, digits: &[u8], buf: &mut [u8]) -> String {
     value /= radix;
   }
 
-  // `digits` holds only ASCII alphanumerics, so widening each byte to a `char`
-  // is exact — and collecting checks the encoding instead of asserting it.
-  buf[idx..].iter().map(|&digit| char::from(digit)).collect()
+  // `digits` holds only ASCII alphanumerics, so the populated suffix is valid
+  // UTF-8 by construction. Validating it is a single pass over at most 7 bytes
+  // and copies once, where widening each byte to a `char` would re-encode digit
+  // by digit; `unwrap_or_default` keeps the check without `unsafe` and without
+  // an `expect` the project forbids.
+  std::str::from_utf8(&buf[idx..])
+    .map(str::to_owned)
+    .unwrap_or_default()
 }
 
 /// `u32::MAX` in base-36 is `"1z141z3"`, so 7 digits covers every input.

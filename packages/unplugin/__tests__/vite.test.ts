@@ -135,12 +135,10 @@ async function buildIndexHtml(base: string, pages: string[] = []): Promise<Recor
   });
 
   const built = await Promise.all(
-    ['index.html', ...pages].map(
-      async (page): Promise<[string, string]> => [
-        page,
-        await readFile(path.join(root, 'dist', page), 'utf8'),
-      ]
-    )
+    ['index.html', ...pages].map(async (page): Promise<[string, string]> => [
+      page,
+      await readFile(path.join(root, 'dist', page), 'utf8'),
+    ])
   );
 
   return Object.fromEntries(built);

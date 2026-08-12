@@ -1790,6 +1790,18 @@ mod restore_js_number_spelling_tests {
     assert_eq!(restore_js_number_spelling("var(--x1000)"), "var(--x1000)");
   }
 
+  /// A CSS identifier may hold non-ASCII characters. Guarding on the preceding
+  /// *byte* reads a UTF-8 continuation byte there and misses the identifier, so
+  /// the digits that follow get re-spelled as a number of their own.
+  #[test]
+  fn does_not_split_a_non_ascii_identifier() {
+    assert_eq!(restore_js_number_spelling("名前007"), "名前007");
+    assert_eq!(restore_js_number_spelling("ü007"), "ü007");
+    assert_eq!(restore_js_number_spelling("var(--é1e3)"), "var(--é1e3)");
+    // The guard must not swallow a number that legitimately follows one.
+    assert_eq!(restore_js_number_spelling("名前 1e3"), "名前 1000");
+  }
+
   /// The `e` of a unit belongs to the unit, not to an exponent.
   #[test]
   fn does_not_read_a_unit_as_an_exponent() {

@@ -1069,7 +1069,11 @@ pub(crate) fn restore_js_number_spelling(value: &str) -> String {
       continue;
     }
 
-    match number_token_end(bytes, index, result.as_bytes().last().copied()) {
+    // The preceding *character*, not the preceding byte: a byte-wise `last()`
+    // reads a UTF-8 continuation byte after a non-ASCII ident char, which the
+    // guard would not recognise as an ident and would re-spell the digits that
+    // follow (`名前007` -> `名前7`).
+    match number_token_end(bytes, index, result.chars().next_back()) {
       Some(end) => {
         let number = parse_number_token(&value[index..end]);
 
@@ -1102,13 +1106,16 @@ fn copy_char(value: &str, index: usize, result: &mut String) -> usize {
 /// there is one.
 ///
 /// A number only starts where a value can: never partway through an identifier
-/// (`translate3d`), a hex colour (`#123`), or a dashed name (`--x1`). The
-/// exponent is only taken when digits follow it, so the `e` of `1em` stays with
-/// the unit.
-fn number_token_end(bytes: &[u8], index: usize, previous: Option<u8>) -> Option<usize> {
-  if let Some(previous) = previous
-    && (previous.is_ascii_alphanumeric() || matches!(previous, b'#' | b'-' | b'_' | b'\\'))
-  {
+/// (`translate3d`, `名前007`), a hex colour (`#123`), or a dashed name (`--x1`).
+/// The exponent is only taken when digits follow it, so the `e` of `1em` stays
+/// with the unit.
+///
+/// `previous` is the preceding character, so `is_alphanumeric` covers the
+/// non-ASCII characters a CSS identifier is also allowed to contain.
+fn number_token_end(bytes: &[u8], index: usize, previous: Option<char>) -> Option<usize> {
+  if previous.is_some_and(|previous| {
+    previous.is_alphanumeric() || matches!(previous, '#' | '-' | '_' | '\\')
+  }) {
     return None;
   }
 

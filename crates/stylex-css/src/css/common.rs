@@ -29,7 +29,7 @@ use stylex_regex::regex::{
 };
 use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
 use stylex_types::structures::injectable_style::InjectableStyle;
-use stylex_utils::string::dashify;
+use stylex_utils::{number::to_js_string, string::dashify};
 use swc_core::{
   atoms::Atom,
   common::{BytePos, input::StringInput, source_map::SmallPos},
@@ -755,6 +755,13 @@ pub fn normalize_css_property_value(
     .any(|css_fnc| contains_css_function_call(css_property_value, css_fnc))
     || contains_relative_color_function(css_property_value);
 
+  // A value that is nothing but a number has no CSS grammar to normalize, and
+  // round-tripping it through the parser is what loses it: SWC holds an integer
+  // as `i64`, so anything past 2^63 comes back saturated. Re-spell it directly.
+  if let Some(number) = parse_bare_number(css_property_value) {
+    return strip_leading_zero(&to_js_string(number));
+  }
+
   let is_pseudo = css_property.starts_with(':');
   let structure = scan_value_structure(css_property_value);
 
@@ -840,7 +847,10 @@ pub fn normalize_css_property_value(
   let normalized_spacing = normalize_spacing(value);
   let negative_leading_zero_restored = restore_negative_leading_zero(&normalized_spacing);
 
-  restore_function_names(&negative_leading_zero_restored, &authored_function_names)
+  let names_restored =
+    restore_function_names(&negative_leading_zero_restored, &authored_function_names);
+
+  restore_js_number_spelling(&names_restored)
 }
 
 /// Returns the numeric suffix for a CSS property (`"px"`, `"ms"`, `""`, etc.).
@@ -981,6 +991,185 @@ pub(crate) fn restore_function_names(value: &str, authored: &[Atom]) -> String {
   }
 
   result
+}
+
+/// The value as an `f64` when it is a bare number and nothing else.
+///
+/// Deliberately stricter than `f64::from_str`, which also accepts `inf`,
+/// `infinity` and `NaN` — none of which are CSS numbers.
+fn parse_bare_number(value: &str) -> Option<f64> {
+  if number_token_end(value.as_bytes(), 0, None)? != value.len() {
+    return None;
+  }
+
+  value.parse::<f64>().ok()
+}
+
+/// Re-spells every number in the value the way JS `String(Number)` does.
+///
+/// SWC's codegen rewrites numbers when minifying, folding trailing zeros into
+/// an exponent: `1000` becomes `1e3`, `123000` becomes `123e3`, and
+/// `1.0000000000000001e+21` becomes `10000000000000001e5`. None of those are
+/// spellings a style value ever has on the way in, and each one changes the
+/// hash built from it.
+///
+/// Every number reaching here has already been through that rewrite, so
+/// re-rendering each one from its value restores the single spelling a JS
+/// number has. The leading zero is then dropped again, which is a
+/// normalization the value is meant to carry.
+///
+/// Quoted strings and `url()` bodies are copied through untouched.
+pub(crate) fn restore_js_number_spelling(value: &str) -> String {
+  let bytes = value.as_bytes();
+  let mut result = String::with_capacity(value.len());
+  let mut index = 0;
+  let mut in_quote: Option<u8> = None;
+  let mut escaped = false;
+  let mut url_depth: usize = 0;
+
+  while index < bytes.len() {
+    let byte = bytes[index];
+
+    if let Some(quote) = in_quote {
+      index = copy_char(value, index, &mut result);
+
+      if escaped {
+        escaped = false;
+      } else if byte == b'\\' {
+        escaped = true;
+      } else if byte == quote {
+        in_quote = None;
+      }
+
+      continue;
+    }
+
+    if url_depth > 0 {
+      index = copy_char(value, index, &mut result);
+
+      match byte {
+        b'(' => url_depth += 1,
+        b')' => url_depth -= 1,
+        b'"' | b'\'' => in_quote = Some(byte),
+        _ => {},
+      }
+
+      continue;
+    }
+
+    if byte == b'"' || byte == b'\'' {
+      in_quote = Some(byte);
+      index = copy_char(value, index, &mut result);
+      continue;
+    }
+
+    if byte == b'(' && is_url_function(value, index) {
+      url_depth = 1;
+      index = copy_char(value, index, &mut result);
+      continue;
+    }
+
+    match number_token_end(bytes, index, result.as_bytes().last().copied()) {
+      Some(end) => {
+        match value[index..end].parse::<f64>() {
+          Ok(number) => result.push_str(&strip_leading_zero(&to_js_string(number))),
+          // Not representable as an `f64`, so there is nothing to re-spell.
+          Err(_) => result.push_str(&value[index..end]),
+        }
+
+        index = end;
+      },
+      None => {
+        index = copy_char(value, index, &mut result);
+      },
+    }
+  }
+
+  result
+}
+
+/// Copies the character starting at `index` and returns the next index.
+///
+/// Byte-wise copying would split a multi-byte character; every byte this
+/// scanner branches on is ASCII, so whole characters can be carried across
+/// untouched.
+fn copy_char(value: &str, index: usize, result: &mut String) -> usize {
+  let char_len = value[index..].chars().next().map_or(1, char::len_utf8);
+
+  result.push_str(&value[index..index + char_len]);
+
+  index + char_len
+}
+
+/// The end of the number token starting at `index`, or `None` when nothing
+/// there is one.
+///
+/// A number only starts where a value can: never partway through an identifier
+/// (`translate3d`), a hex colour (`#123`), or a dashed name (`--x1`). The
+/// exponent is only taken when digits follow it, so the `e` of `1em` stays with
+/// the unit.
+fn number_token_end(bytes: &[u8], index: usize, previous: Option<u8>) -> Option<usize> {
+  if let Some(previous) = previous
+    && (previous.is_ascii_alphanumeric() || matches!(previous, b'#' | b'-' | b'_' | b'\\'))
+  {
+    return None;
+  }
+
+  let mut end = index;
+
+  if matches!(bytes.get(end), Some(b'-' | b'+')) {
+    end += 1;
+  }
+
+  let digits_before_point = take_digits(bytes, &mut end);
+
+  if bytes.get(end) == Some(&b'.') {
+    end += 1;
+    let digits_after_point = take_digits(bytes, &mut end);
+
+    if !digits_before_point && !digits_after_point {
+      return None;
+    }
+  } else if !digits_before_point {
+    return None;
+  }
+
+  // `1e3` is one number; the `e` of `1em` belongs to the unit.
+  if matches!(bytes.get(end), Some(b'e' | b'E')) {
+    let mut exponent_end = end + 1;
+
+    if matches!(bytes.get(exponent_end), Some(b'-' | b'+')) {
+      exponent_end += 1;
+    }
+
+    if take_digits(bytes, &mut exponent_end) {
+      end = exponent_end;
+    }
+  }
+
+  Some(end)
+}
+
+fn take_digits(bytes: &[u8], end: &mut usize) -> bool {
+  let start = *end;
+
+  while matches!(bytes.get(*end), Some(byte) if byte.is_ascii_digit()) {
+    *end += 1;
+  }
+
+  *end > start
+}
+
+/// Drops the zero before the decimal point (`0.5` -> `.5`), the same
+/// normalization the minified spelling carried.
+///
+/// A negative decimal keeps its zero (`-0.24`), matching
+/// [`restore_negative_leading_zero`].
+fn strip_leading_zero(number: &str) -> String {
+  match number.strip_prefix("0.") {
+    Some(rest) => format!(".{}", rest),
+    None => number.to_string(),
+  }
 }
 
 /// Whether the `(` at `open_paren_index` opens a `url()` function, whose body

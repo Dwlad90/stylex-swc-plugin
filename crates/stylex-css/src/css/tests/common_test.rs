@@ -1736,3 +1736,75 @@ mod restore_function_names_tests {
     );
   }
 }
+
+#[cfg(test)]
+mod restore_js_number_spelling_tests {
+  use crate::css::common::restore_js_number_spelling;
+
+  /// SWC folds trailing zeros into an exponent when minifying; a JS number is
+  /// never spelled that way.
+  #[test]
+  fn expands_the_minified_exponent_form() {
+    assert_eq!(restore_js_number_spelling("1e3px"), "1000px");
+    assert_eq!(restore_js_number_spelling("123e3px"), "123000px");
+    assert_eq!(
+      restore_js_number_spelling("10000000000000001e5px"),
+      "1.0000000000000001e+21px"
+    );
+    assert_eq!(restore_js_number_spelling("1e22"), "1e+22");
+  }
+
+  #[test]
+  fn leaves_ordinary_numbers_alone() {
+    assert_eq!(restore_js_number_spelling("10px"), "10px");
+    assert_eq!(restore_js_number_spelling(".5"), ".5");
+    assert_eq!(restore_js_number_spelling("1.25rem"), "1.25rem");
+    assert_eq!(restore_js_number_spelling("red"), "red");
+  }
+
+  /// The zero before a decimal point is dropped, except on a negative, which
+  /// this pipeline restores on purpose.
+  #[test]
+  fn drops_only_the_positive_leading_zero() {
+    assert_eq!(restore_js_number_spelling("0.5"), ".5");
+    assert_eq!(restore_js_number_spelling("-0.24px"), "-0.24px");
+  }
+
+  /// A number never starts partway through an identifier, a hex colour or a
+  /// dashed name.
+  #[test]
+  fn does_not_split_identifiers_hex_colours_or_dashed_names() {
+    assert_eq!(
+      restore_js_number_spelling("translate3d(0,0,0)"),
+      "translate3d(0,0,0)"
+    );
+    assert_eq!(restore_js_number_spelling("#1000ff"), "#1000ff");
+    assert_eq!(restore_js_number_spelling("var(--x1000)"), "var(--x1000)");
+  }
+
+  /// The `e` of a unit belongs to the unit, not to an exponent.
+  #[test]
+  fn does_not_read_a_unit_as_an_exponent() {
+    assert_eq!(restore_js_number_spelling("1em"), "1em");
+    assert_eq!(restore_js_number_spelling("2ex"), "2ex");
+  }
+
+  #[test]
+  fn leaves_strings_and_urls_untouched() {
+    assert_eq!(restore_js_number_spelling("\"1e3\""), "\"1e3\"");
+    assert_eq!(
+      restore_js_number_spelling("url(http://x/1e3) 1e3px"),
+      "url(http://x/1e3) 1000px"
+    );
+  }
+
+  /// Multi-byte characters must survive the scan intact.
+  #[test]
+  fn preserves_non_ascii_content() {
+    assert_eq!(restore_js_number_spelling("\"•\""), "\"•\"");
+    assert_eq!(
+      restore_js_number_spelling("\"日本\" 1e3px"),
+      "\"日本\" 1000px"
+    );
+  }
+}

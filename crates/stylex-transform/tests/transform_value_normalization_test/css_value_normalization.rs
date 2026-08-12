@@ -314,3 +314,18 @@ stylex_test!(
     });
   "#
 );
+
+// Numbers keep the single spelling a JS number has. SWC's minifier folds
+// trailing zeros into an exponent and holds integers as i64, neither of which a
+// style value ever carries in.
+stylex_test!(
+  numbers_keep_their_js_spelling,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      a: { width: 1000, height: 123000, top: 1e21 },
+      b: { opacity: 1e20, zIndex: 12345678901234567890 },
+    });
+  "#
+);

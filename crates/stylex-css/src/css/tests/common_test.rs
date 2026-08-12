@@ -1643,3 +1643,58 @@ mod stringify_css_var_numeric_tests {
     assert_eq!(result, "red");
   }
 }
+
+#[cfg(test)]
+mod convert_css_function_to_camel_case_tests {
+  use crate::css::common::convert_css_function_to_camel_case;
+
+  #[test]
+  fn restores_every_function_not_only_the_first() {
+    assert_eq!(
+      convert_css_function_to_camel_case("translatex(0px) translatey(0) scale(1) rotate(30deg)"),
+      "translateX(0px) translateY(0) scale(1) rotate(30deg)"
+    );
+    assert_eq!(
+      convert_css_function_to_camel_case("skewx(10deg) skewy(20deg) skewz(30deg)"),
+      "skewX(10deg) skewY(20deg) skewZ(30deg)"
+    );
+  }
+
+  #[test]
+  fn leaves_unmapped_and_nested_names_alone() {
+    assert_eq!(
+      convert_css_function_to_camel_case("repeat(2,1fr) minmax(0,1fr)"),
+      "repeat(2,1fr) minmax(0,1fr)"
+    );
+    assert_eq!(
+      convert_css_function_to_camel_case("perspective(120px) rotatex(0deg)"),
+      "perspective(120px) rotateX(0deg)"
+    );
+  }
+
+  #[test]
+  fn leaves_values_without_functions_alone() {
+    assert_eq!(convert_css_function_to_camel_case("red"), "red");
+    assert_eq!(
+      convert_css_function_to_camel_case("translatey"),
+      "translatey"
+    );
+  }
+
+  /// A function name inside a quoted string is content, not a function call.
+  #[test]
+  fn does_not_rewrite_inside_quoted_strings() {
+    assert_eq!(
+      convert_css_function_to_camel_case("\"translatey(0)\""),
+      "\"translatey(0)\""
+    );
+    assert_eq!(
+      convert_css_function_to_camel_case("'translatey(0)' translatey(0)"),
+      "'translatey(0)' translateY(0)"
+    );
+    assert_eq!(
+      convert_css_function_to_camel_case("\"a\\\"translatey(0)\""),
+      "\"a\\\"translatey(0)\""
+    );
+  }
+}

@@ -3,7 +3,7 @@ var _inject2 = _inject;
 import { COMMON_SIZES } from "@/app/components/Test";
 import * as stylex from "@stylexjs/stylex";
 _inject2({
-    ltr: "@keyframes xn4wiy6-B{from{transform:perspective(120px) rotatex(0deg) rotatey(0deg);}to{transform:perspective(120px) rotatex(-180.1deg) rotatey(0deg);}}",
+    ltr: "@keyframes xzy8526-B{from{transform:perspective(120px) rotateX(0deg) rotateY(0deg);}to{transform:perspective(120px) rotateX(-180.1deg) rotateY(0deg);}}",
     priority: 0
 });
 _inject2({
@@ -43,7 +43,7 @@ _inject2({
     priority: 3000
 });
 _inject2({
-    ltr: ".animationName-x13cdbti{animation-name:xn4wiy6-B}",
+    ltr: ".animationName-xq2y9i0{animation-name:xzy8526-B}",
     priority: 3000
 });
 _inject2({
@@ -128,7 +128,7 @@ const styles = {
         backgroundColor: "backgroundColor-x1mdjlir",
         borderRadius: "borderRadius-x12oqio5",
         zIndex: "zIndex-x11uqc5h",
-        animationName: "animationName-x13cdbti",
+        animationName: "animationName-xq2y9i0",
         animationDuration: "animationDuration-x1m9vv7p",
         animationIterationCount: "animationIterationCount-xa4qsjk",
         animationTimingFunction: "animationTimingFunction-x4hg4is",

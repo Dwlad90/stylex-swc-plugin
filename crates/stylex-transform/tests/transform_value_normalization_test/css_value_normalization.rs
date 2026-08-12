@@ -260,3 +260,31 @@ stylex_test!(
     const name = stylex.keyframes({ '0%': { width: 10, height: '10' } });
   "#
 );
+
+// SWC's tokenizer lowercases function names, so every function in a value has
+// to have its camelCase spelling restored — not just the first one.
+// See https://github.com/Dwlad90/stylex-swc-plugin/issues/1249.
+
+stylex_test!(
+  camel_case_restored_for_every_transform_function,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      x: { transform: 'translateX(0px) translateY(0) scale(1) rotate(30deg)' },
+    });
+  "#
+);
+
+stylex_test!(
+  camel_case_restored_inside_keyframes,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const slide = stylex.keyframes({
+      '0%': { transform: 'translateX(0px) translateY(0) scale(1) rotate(30deg)' },
+      '100%': { transform: 'translateX(100px) translateY(-300px) scale(0.7)' },
+    });
+    const styles = stylex.create({ a: { animationName: slide } });
+  "#
+);

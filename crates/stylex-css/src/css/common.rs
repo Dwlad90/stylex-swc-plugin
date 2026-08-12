@@ -857,22 +857,75 @@ pub fn get_value_from_ident(ident: &Ident) -> String {
   ident.value.to_string()
 }
 
-/// Converts a CSS function name to its camelCase equivalent (e.g.
-/// `oklab(…)` → `oklab(…)`) when a known mapping exists.
-fn convert_css_function_to_camel_case(function: &str) -> String {
-  let Some(items) = function.find('(') else {
-    return function.to_string();
-  };
+/// Restores the camelCase spelling of every function name in a value (e.g.
+/// `translatey(0)` → `translateY(0)`).
+///
+/// SWC's tokenizer lowercases identifiers, so `transform: translateX(0px)
+/// translateY(0)` comes back out of codegen with both names folded. Every
+/// function in the value has to be restored, not just the first: a value like
+/// `translateX(0px) translateY(0)` otherwise keeps one name and loses the
+/// other, which changes the emitted CSS and every hash derived from it.
+///
+/// Quoted strings are copied through untouched, so a function name that only
+/// appears inside a `content` string is left alone.
+pub(crate) fn convert_css_function_to_camel_case(value: &str) -> String {
+  if !value.contains('(') {
+    return value.to_string();
+  }
 
-  let (name, args) = function.split_at(items);
+  let mut result = String::with_capacity(value.len());
+  // Where the identifier currently being read starts *in `result`*, so a match
+  // can be rewritten in place once its `(` arrives.
+  let mut ident_start: Option<usize> = None;
+  let mut in_quote: Option<char> = None;
+  let mut escaped = false;
 
-  let Some(camel_case_name) = CAMEL_CASE_PRIORITIES.get(name) else {
-    return function.to_string();
-  };
+  for ch in value.chars() {
+    if let Some(quote) = in_quote {
+      result.push(ch);
 
-  let mut result = String::with_capacity(camel_case_name.len() + args.len());
-  result.push_str(camel_case_name);
-  result.push_str(args);
+      if escaped {
+        escaped = false;
+      } else if ch == '\\' {
+        escaped = true;
+      } else if ch == quote {
+        in_quote = None;
+      }
+
+      continue;
+    }
+
+    match ch {
+      '"' | '\'' => {
+        in_quote = Some(ch);
+        ident_start = None;
+        result.push(ch);
+      },
+      '(' => {
+        if let Some(start) = ident_start
+          && let Some(camel_case_name) = CAMEL_CASE_PRIORITIES.get(&result[start..])
+        {
+          result.truncate(start);
+          result.push_str(camel_case_name);
+        }
+
+        ident_start = None;
+        result.push(ch);
+      },
+      _ if ch.is_alphanumeric() || ch == '-' || ch == '_' => {
+        if ident_start.is_none() {
+          ident_start = Some(result.len());
+        }
+
+        result.push(ch);
+      },
+      _ => {
+        ident_start = None;
+        result.push(ch);
+      },
+    }
+  }
+
   result
 }
 

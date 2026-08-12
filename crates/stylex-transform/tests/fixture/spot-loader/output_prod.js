@@ -14,7 +14,7 @@ const styles = {
         kWkggS: "x1mdjlir",
         kaIpWk: "x12oqio5",
         kY2c9j: "x11uqc5h",
-        kKVMdj: "x13cdbti",
+        kKVMdj: "xq2y9i0",
         k44tkh: "x1m9vv7p",
         ko0y90: "xa4qsjk",
         kyAemX: "x4hg4is",

@@ -120,7 +120,7 @@ mod char_code_at_tests {
   use crate::string::char_code_at;
 
   #[test]
-  fn returns_code_point_at_index() {
+  fn returns_code_unit_at_index() {
     assert_eq!(char_code_at("abc", 0), Some(97)); // 'a'
     assert_eq!(char_code_at("abc", 1), Some(98)); // 'b'
     assert_eq!(char_code_at("abc", 2), Some(99)); // 'c'
@@ -135,5 +135,26 @@ mod char_code_at_tests {
   #[test]
   fn handles_unicode() {
     assert_eq!(char_code_at("é", 0), Some(0xe9));
+    // `"日本語".charCodeAt(i)` — one code unit per scalar in the BMP.
+    assert_eq!(char_code_at("日本語", 0), Some(26085));
+    assert_eq!(char_code_at("日本語", 1), Some(26412));
+    assert_eq!(char_code_at("日本語", 2), Some(35486));
+  }
+
+  #[test]
+  fn indexes_astral_scalars_by_code_unit() {
+    // `"🎉".length === 2`, and the two indices read back as the surrogate
+    // halves rather than the `0x1F389` scalar.
+    assert_eq!(char_code_at("🎉", 0), Some(55356)); // 0xD83C
+    assert_eq!(char_code_at("🎉", 1), Some(57225)); // 0xDF89
+    assert_eq!(char_code_at("🎉", 2), None);
+  }
+
+  #[test]
+  fn astral_scalars_shift_following_indices() {
+    // `"a🎉b".charCodeAt(3) === 98` — the surrogate pair consumes indices 1
+    // and 2, so `'b'` lands at 3, not at 2.
+    assert_eq!(char_code_at("a🎉b", 0), Some(97));
+    assert_eq!(char_code_at("a🎉b", 3), Some(98));
   }
 }

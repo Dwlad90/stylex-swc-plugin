@@ -38,10 +38,16 @@ pub fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> Cow<'_, str
   }
 }
 
-/// Returns the Unicode code point of the character at the given index,
-/// or `None` if the index is out of bounds.
+/// Returns the UTF-16 code unit at the given index, or `None` if the index is
+/// out of bounds.
+///
+/// `charCodeAt` indexes by UTF-16 code unit and returns a single code unit, so
+/// an astral scalar occupies two indices and reads back as its surrogate halves
+/// — `"🎉"` is `0xD83C` at 0 and `0xDF89` at 1, never the `0x1F389` scalar.
+/// Indexing by `char` instead would return the whole scalar and shift every
+/// index that follows one.
 pub fn char_code_at(s: &str, index: usize) -> Option<u32> {
-  s.chars().nth(index).map(|c| c as u32)
+  s.encode_utf16().nth(index).map(u32::from)
 }
 
 #[cfg(test)]

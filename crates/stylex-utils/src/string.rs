@@ -9,8 +9,13 @@ use stylex_regex::regex::DASHIFY_REGEX;
 /// This is used to convert JavaScript-style CSS property names (e.g.
 /// `marginTop`, `WebkitTransform`) to their CSS equivalents (`margin-top`,
 /// `-webkit-transform`).
+/// `dashify` lowercases unconditionally, so the borrowed fast path is only
+/// sound for input the lowercasing cannot change. ASCII without an uppercase
+/// letter qualifies; anything non-ASCII does not, because a scalar can lowercase
+/// to something other than itself while satisfying neither `is_uppercase` nor
+/// `is_lowercase` — a titlecase scalar such as `ǅ` lowercases to `ǆ`.
 pub fn dashify(s: &str) -> Cow<'_, str> {
-  if !s.chars().any(char::is_uppercase) {
+  if s.is_ascii() && !s.bytes().any(|byte| byte.is_ascii_uppercase()) {
     return Cow::Borrowed(s);
   }
 

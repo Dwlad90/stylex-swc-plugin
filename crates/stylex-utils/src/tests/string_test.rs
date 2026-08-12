@@ -59,6 +59,22 @@ mod dashify_tests {
     assert_eq!(dashify("opacity"), "opacity");
   }
 
+  /// The lowercasing is unconditional, so it must reach scalars that the
+  /// `[A-Z]` hyphenation pass does not match. Expectations produced by running
+  /// `str.replace(/(^|[a-z])([A-Z])/g, '$1-$2').toLowerCase()`.
+  #[test]
+  fn lowercases_non_ascii_without_hyphenating() {
+    // Titlecase: neither uppercase nor lowercase, but lowercases to `ǆ`.
+    assert_eq!(dashify("ǅ"), "ǆ");
+    assert_eq!(dashify("ǅBar"), "ǆbar");
+    // Uppercase outside ASCII lowercases without gaining a hyphen, because
+    // `[A-Z]` does not match it.
+    assert_eq!(dashify("Ä"), "ä");
+    // Already-lowercase non-ASCII is unchanged.
+    assert_eq!(dashify("é"), "é");
+    assert_eq!(dashify("naïveColor"), "naïve-color");
+  }
+
   #[test]
   fn handles_single_uppercase() {
     assert_eq!(dashify("A"), "-a");

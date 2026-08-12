@@ -13,6 +13,7 @@ This implementation provides media query transformation:
 use super::media_query::{
   MediaAndRules, MediaNotRule, MediaOrRules, MediaQuery, MediaQueryRule, MediaRuleValue,
 };
+use stylex_macros::stylex_panic;
 use swc_core::{
   atoms::Wtf8Atom,
   common::DUMMY_SP,
@@ -148,7 +149,7 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
         // no later phase rejects it, so returning here emitted the broken query
         // verbatim into the stylesheet. The caller catches this and reports it
         // as invalid media query syntax.
-        panic!("Invalid media query: {}", media_key);
+        stylex_panic!("Invalid media query: {}", media_key);
       },
     }
   }

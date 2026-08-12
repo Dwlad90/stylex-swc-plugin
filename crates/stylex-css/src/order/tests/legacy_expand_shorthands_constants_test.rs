@@ -1,6 +1,5 @@
 use crate::order::constants::legacy_expand_shorthands_order::{Aliases, Shorthands};
 use stylex_structures::order_pair::OrderPair;
-use stylex_structures::raw_value::TRawValue;
 
 // ── Shorthands::get ─────────────────────────────────────────────────
 
@@ -104,11 +103,7 @@ fn shorthands_get_contain_intrinsic_size_auto() {
   let func = Shorthands::get("containIntrinsicSize").unwrap();
   let result = func(Some("auto 300px".into())).unwrap();
   assert_eq!(result.len(), 2);
-  let width = result[0]
-    .1
-    .as_ref()
-    .map(TRawValue::as_css_text)
-    .unwrap_or_default();
+  let width = result[0].value_text();
   assert!(width.contains("auto"));
 }
 
@@ -658,56 +653,28 @@ fn aliases_get_float_start() {
   let func = Aliases::get("float").unwrap();
   let result = func(Some("start".into())).unwrap();
   assert_eq!(result[0].0, "float");
-  assert!(
-    result[0]
-      .1
-      .as_ref()
-      .map(TRawValue::as_css_text)
-      .unwrap_or_default()
-      .contains("var(")
-  );
+  assert!(result[0].value_text().contains("var("));
 }
 
 #[test]
 fn aliases_get_float_inline_start() {
   let func = Aliases::get("float").unwrap();
   let result = func(Some("inline-start".into())).unwrap();
-  assert!(
-    result[0]
-      .1
-      .as_ref()
-      .map(TRawValue::as_css_text)
-      .unwrap_or_default()
-      .contains("var(")
-  );
+  assert!(result[0].value_text().contains("var("));
 }
 
 #[test]
 fn aliases_get_float_end() {
   let func = Aliases::get("float").unwrap();
   let result = func(Some("end".into())).unwrap();
-  assert!(
-    result[0]
-      .1
-      .as_ref()
-      .map(TRawValue::as_css_text)
-      .unwrap_or_default()
-      .contains("var(")
-  );
+  assert!(result[0].value_text().contains("var("));
 }
 
 #[test]
 fn aliases_get_float_inline_end() {
   let func = Aliases::get("float").unwrap();
   let result = func(Some("inline-end".into())).unwrap();
-  assert!(
-    result[0]
-      .1
-      .as_ref()
-      .map(TRawValue::as_css_text)
-      .unwrap_or_default()
-      .contains("var(")
-  );
+  assert!(result[0].value_text().contains("var("));
 }
 
 #[test]
@@ -728,56 +695,28 @@ fn aliases_get_float_none() {
 fn aliases_get_clear_start() {
   let func = Aliases::get("clear").unwrap();
   let result = func(Some("start".into())).unwrap();
-  assert!(
-    result[0]
-      .1
-      .as_ref()
-      .map(TRawValue::as_css_text)
-      .unwrap_or_default()
-      .contains("var(")
-  );
+  assert!(result[0].value_text().contains("var("));
 }
 
 #[test]
 fn aliases_get_clear_end() {
   let func = Aliases::get("clear").unwrap();
   let result = func(Some("end".into())).unwrap();
-  assert!(
-    result[0]
-      .1
-      .as_ref()
-      .map(TRawValue::as_css_text)
-      .unwrap_or_default()
-      .contains("var(")
-  );
+  assert!(result[0].value_text().contains("var("));
 }
 
 #[test]
 fn aliases_get_clear_inline_start() {
   let func = Aliases::get("clear").unwrap();
   let result = func(Some("inline-start".into())).unwrap();
-  assert!(
-    result[0]
-      .1
-      .as_ref()
-      .map(TRawValue::as_css_text)
-      .unwrap_or_default()
-      .contains("var(")
-  );
+  assert!(result[0].value_text().contains("var("));
 }
 
 #[test]
 fn aliases_get_clear_inline_end() {
   let func = Aliases::get("clear").unwrap();
   let result = func(Some("inline-end".into())).unwrap();
-  assert!(
-    result[0]
-      .1
-      .as_ref()
-      .map(TRawValue::as_css_text)
-      .unwrap_or_default()
-      .contains("var(")
-  );
+  assert!(result[0].value_text().contains("var("));
 }
 
 #[test]

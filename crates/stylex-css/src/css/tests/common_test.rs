@@ -1681,6 +1681,16 @@ mod convert_css_function_to_camel_case_tests {
     );
   }
 
+  /// KNOWN DIVERGENCE: an author-written lowercase name is canonicalised rather
+  /// than preserved, because the parser has already discarded the spelling.
+  #[test]
+  fn canonicalises_rather_than_preserves_author_case() {
+    assert_eq!(
+      convert_css_function_to_camel_case("translatex(1px) translatey(2px)"),
+      "translateX(1px) translateY(2px)"
+    );
+  }
+
   /// A function name inside a quoted string is content, not a function call.
   #[test]
   fn does_not_rewrite_inside_quoted_strings() {

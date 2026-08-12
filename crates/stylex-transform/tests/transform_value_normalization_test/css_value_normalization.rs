@@ -299,3 +299,18 @@ stylex_test!(
     const styles = stylex.create({ x: { borderWidth: 1, margin: 4, flex: 1 } });
   "#
 );
+
+// Fallback arrays drop falsy values and keep only the first of each repeat.
+// `0` is falsy where the string `"0"` is not, and the two are distinct entries.
+stylex_test!(
+  fallback_array_drops_falsy_and_repeated_values,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      x: { width: stylex.firstThatWorks(0, '2px') },
+      y: { height: stylex.firstThatWorks('0', 0, '2px') },
+      z: { top: stylex.firstThatWorks('1px', '2px', '1px') },
+    });
+  "#
+);

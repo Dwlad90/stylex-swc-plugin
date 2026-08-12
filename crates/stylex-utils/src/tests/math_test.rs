@@ -80,6 +80,8 @@ mod round_f64_tests {
   #[test]
   fn rounds_negative() {
     assert_eq!(round_f64(-2.345, 2), -2.35);
+    // An exact negative tie breaks towards positive infinity, as Math.round does.
+    assert_eq!(round_f64(-1.555, 2), -1.55);
   }
 
   #[test]

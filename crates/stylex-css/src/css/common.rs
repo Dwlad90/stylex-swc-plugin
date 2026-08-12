@@ -868,6 +868,13 @@ pub fn get_value_from_ident(ident: &Ident) -> String {
 ///
 /// Quoted strings are copied through untouched, so a function name that only
 /// appears inside a `content` string is left alone.
+///
+/// KNOWN DIVERGENCE: the original spelling is gone by the time this runs, so a
+/// name is restored to its canonical form rather than the author's. A value
+/// written `translatex(0)` — valid, since CSS function names are
+/// case-insensitive — comes out as `translateX(0)`, and hashes accordingly.
+/// Restoring the authored case would mean reading the value from source instead
+/// of round-tripping it through the parser.
 pub(crate) fn convert_css_function_to_camel_case(value: &str) -> String {
   if !value.contains('(') {
     return value.to_string();

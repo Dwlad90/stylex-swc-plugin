@@ -44,7 +44,7 @@ pub(crate) fn stylex_view_transition_class(
           &entries,
           state,
           |key| dashify(key).into_owned(),
-          |_, value| FlatCompiledStylesValue::String(value),
+          |pair| FlatCompiledStylesValue::String(pair.value),
         )
       })
       .done();

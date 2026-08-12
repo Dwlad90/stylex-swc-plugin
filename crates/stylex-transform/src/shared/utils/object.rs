@@ -119,7 +119,7 @@ pub(crate) fn obj_map_keys_and_transform_values(
   entries: &IndexMap<String, TRawValue>,
   state: &mut StateManager,
   mapper: impl Fn(&str) -> String,
-  wrap: impl Fn(String, String) -> FlatCompiledStylesValue,
+  wrap: impl Fn(Pair) -> FlatCompiledStylesValue,
 ) -> FlatCompiledStyles {
   let mut map = IndexMap::with_capacity(entries.len());
 
@@ -127,7 +127,10 @@ pub(crate) fn obj_map_keys_and_transform_values(
     let mapped_key = mapper(key);
     let value = transform_value_cached(mapped_key.as_str(), value, state);
 
-    map.insert(mapped_key.clone(), Rc::new(wrap(mapped_key, value)));
+    map.insert(
+      mapped_key.clone(),
+      Rc::new(wrap(Pair::new(mapped_key, value))),
+    );
   }
 
   map

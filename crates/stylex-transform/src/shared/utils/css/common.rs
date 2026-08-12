@@ -60,12 +60,9 @@ pub(crate) fn transform_value_cached(
   value: &TRawValue,
   state: &mut StateManager,
 ) -> String {
-  // The variant is part of the key: `width: 1` and `width: '1'` are the same
-  // text but compile to different declarations.
-  let cache_key = match value {
-    TRawValue::String(value) => format!("s{}:{}", key, value),
-    TRawValue::Number(value) => format!("n{}:{}", key, value),
-  };
+  // Keyed by JS identity, not CSS text: `width: 1` and `width: '1'` read the
+  // same but compile to different declarations.
+  let cache_key = format!("{}:{}", key, value.identity_key());
 
   let cache = state.css_property_seen().get(&cache_key);
 

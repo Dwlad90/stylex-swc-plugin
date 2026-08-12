@@ -384,3 +384,15 @@ stylex_test_panic!(
     const styles = stylex.create({ x: { width: 10n } });
   "#
 );
+
+// An unparseable `@media` key is reported, not emitted verbatim into the
+// stylesheet as a broken at-rule.
+stylex_test_panic!(
+  invalid_media_query_syntax_is_reported,
+  "Invalid media query syntax",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { color: { '@media (((': 'red', default: 'blue' } } });
+  "#
+);

@@ -5,7 +5,7 @@ use swc_core::{
   atoms::{Atom, Wtf8Atom},
   ecma::{
     ast::{
-      BigInt, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, MemberProp, Number, ObjectLit, Prop,
+      BigInt, Bool, CallExpr, Expr, Ident, KeyValueProp, Lit, MemberProp, ObjectLit, Prop,
       PropName, PropOrSpread, Str, Tpl, TplElement, VarDeclarator,
     },
     parser::Context,
@@ -21,13 +21,6 @@ use super::factories::{
   create_big_int_lit, create_boolean_lit, create_ident, create_null_lit, create_number_lit,
   create_string_lit,
 };
-
-/// Renders a numeric AST literal exactly as JS `String(Number)` does, derived
-/// from its parsed value rather than the raw source token (e.g. `0x10` ->
-/// `"16"`).
-pub fn convert_number_to_js_string(n: &Number) -> String {
-  to_js_string(n.value)
-}
 
 /// Reads the static key of a member property as a string:
 /// - non-computed identifier → the identifier name
@@ -72,7 +65,7 @@ pub fn normalize_expr_mut(mut expr: &mut Expr) -> &mut Expr {
 fn convert_static_member_key_expr_to_string(expr: &Expr) -> Option<String> {
   match expr {
     Expr::Lit(Lit::Str(s)) => s.value.as_str().map(|value| value.to_string()),
-    Expr::Lit(Lit::Num(n)) => Some(convert_number_to_js_string(n)),
+    Expr::Lit(Lit::Num(n)) => Some(to_js_string(n.value)),
     Expr::Lit(Lit::BigInt(big_int)) => Some(big_int.value.to_string()),
     Expr::Tpl(tpl) => convert_tpl_to_string_lit(tpl).and_then(|lit| convert_lit_to_string(&lit)),
     _ => None,
@@ -277,7 +270,7 @@ pub fn convert_atom_to_str_ref(atom: &swc_core::atoms::Wtf8Atom) -> &str {
 pub fn convert_lit_to_string(value: &Lit) -> Option<String> {
   match value {
     Lit::Str(strng) => Some(convert_str_lit_to_string(strng)),
-    Lit::Num(num) => Some(convert_number_to_js_string(num)),
+    Lit::Num(num) => Some(to_js_string(num.value)),
     Lit::BigInt(big_int) => Some(format!("{}", big_int.value)),
     _ => None,
   }

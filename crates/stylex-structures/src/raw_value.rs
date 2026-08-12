@@ -31,6 +31,34 @@ impl TRawValue {
       TRawValue::Number(value) => Some(*value),
     }
   }
+
+  /// Whether JS would treat this value as falsy — `0`, `-0`, `NaN` or `""`.
+  ///
+  /// Note that the *string* `"0"` is truthy, so a falsy check cannot be done on
+  /// the rendered CSS text.
+  pub fn is_falsy(&self) -> bool {
+    match self {
+      TRawValue::String(value) => value.is_empty(),
+      TRawValue::Number(value) => *value == 0.0 || value.is_nan(),
+    }
+  }
+
+  /// A key that tells two values apart the way JS does, by type as well as by
+  /// text: the number `0` and the string `"0"` are distinct.
+  ///
+  /// Used wherever values are compared as JS values rather than as CSS —
+  /// deduplication and caching both need the type to be part of the identity.
+  pub fn identity_key(&self) -> String {
+    let (tag, text) = match self {
+      TRawValue::String(value) => ('s', Cow::Borrowed(value.as_str())),
+      TRawValue::Number(value) => ('n', Cow::Owned(to_js_string(*value))),
+    };
+
+    let mut key = String::with_capacity(text.len() + 1);
+    key.push(tag);
+    key.push_str(&text);
+    key
+  }
 }
 
 /// An absent value splits as the empty string, matching the CSS text a missing

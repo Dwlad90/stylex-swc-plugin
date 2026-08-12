@@ -51,7 +51,7 @@ pub(crate) fn stylex_position_try(
           &entries,
           state,
           |key| dashify(key).into_owned(),
-          |_, value| FlatCompiledStylesValue::String(value),
+          |pair| FlatCompiledStylesValue::String(pair.value),
         )
       })
       .done();

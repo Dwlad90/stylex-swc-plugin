@@ -267,24 +267,18 @@ mod transform_media_coverage {
     assert_eq!(result.len(), 3);
   }
 
-  /// Invalid media keys are preserved unchanged. The transform must never drop
-  /// declarations while trying to normalize media-query order.
+  /// An unparseable media key is rejected rather than passed through: nothing
+  /// downstream validates it, so preserving it emitted the broken query
+  /// verbatim into the stylesheet.
   #[test]
-  fn media_key_that_fails_to_parse_is_silently_dropped() {
+  #[should_panic(expected = "Invalid media query")]
+  fn media_key_that_fails_to_parse_is_rejected() {
     let props = vec![
       str_kv("@media (color)", "red"),
       str_kv("@media !!!invalid!!!css", "blue"),
     ];
 
-    let result = transform_media_queries_in_result(props);
-
-    assert_eq!(result.len(), 2);
-    assert!(result.iter().any(|kv| {
-      matches!(
-        &kv.key,
-        PropName::Str(s) if s.value.as_str() == Some("@media !!!invalid!!!css")
-      )
-    }));
+    transform_media_queries_in_result(props);
   }
 }
 
@@ -304,10 +298,11 @@ mod are_media_queries_disjoint_coverage {
     )
   }
 
-  /// Invalid media keys are handled before are_media_queries_disjoint is called,
-  /// so the nested object is preserved unchanged and no panic/indexing failure occurs.
+  /// An invalid media key is rejected before are_media_queries_disjoint is
+  /// reached, so the disjoint check never sees a half-parsed set.
   #[test]
-  fn invalid_media_key_via_transform_causes_disjoint_check_to_return_false() {
+  #[should_panic(expected = "Invalid media query")]
+  fn invalid_media_key_via_transform_is_rejected() {
     // Build an outer prop with a nested object containing two "media" keys,
     // one valid and one syntactically invalid, at depth=1.
     let inner_obj = ObjectLit {
@@ -333,13 +328,7 @@ mod are_media_queries_disjoint_coverage {
       value: Box::new(Expr::Object(inner_obj)),
     };
 
-    let result = last_media_query_wins_transform(&[outer_prop]);
-
-    assert_eq!(result.len(), 1);
-    let Expr::Object(inner_obj) = result[0].value.as_ref() else {
-      panic!("Expected Object value");
-    };
-    assert_eq!(inner_obj.props.len(), 2);
+    last_media_query_wins_transform(&[outer_prop]);
   }
 
   #[test]

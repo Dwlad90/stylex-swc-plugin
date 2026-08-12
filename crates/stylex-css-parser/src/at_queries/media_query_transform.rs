@@ -144,9 +144,11 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     match MediaQuery::parser().parse_to_end(&media_key) {
       Ok(media_query) => parsed_media_pairs.push((media_key, original_kv, media_query)),
       Err(_) => {
-        // Preserve the original AST. Dropping an invalid `@media` key here would
-        // hide the real parser error from the later flattening/validation phase.
-        return result;
+        // An unparseable query is a hard error, not something to pass through:
+        // no later phase rejects it, so returning here emitted the broken query
+        // verbatim into the stylesheet. The caller catches this and reports it
+        // as invalid media query syntax.
+        panic!("Invalid media query: {}", media_key);
       },
     }
   }

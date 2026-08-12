@@ -11,3 +11,14 @@ use crate::raw_value::TRawValue;
 // dynamic path.
 #[derive(Debug, PartialEq, Clone)]
 pub struct OrderPair(pub Cow<'static, str>, pub Option<TRawValue>);
+
+impl OrderPair {
+  /// The value rendered as CSS text, or the empty string when the pair carries
+  /// no value — the same text an absent shorthand part contributes.
+  pub fn value_text(&self) -> Cow<'_, str> {
+    match &self.1 {
+      Some(value) => value.as_css_text(),
+      None => Cow::Borrowed(""),
+    }
+  }
+}

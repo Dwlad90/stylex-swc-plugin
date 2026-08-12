@@ -1,5 +1,6 @@
 use indexmap::IndexMap;
 use log::warn;
+use rustc_hash::FxHashSet;
 use stylex_css_parser::at_queries::media_query_transform::last_media_query_wins_transform;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::{
@@ -144,13 +145,14 @@ pub(crate) fn flatten_raw_style_object_logic(
         });
 
         for (property, values) in equivalent_pairs {
-          // Remove nulls and deduplicate
-          let mut values = values
+          // Drop falsy values, then deduplicate by JS identity: every repeat is
+          // removed, not just adjacent ones, and `0` and `"0"` stay distinct.
+          let mut seen = FxHashSet::default();
+          let values = values
             .into_iter()
-            .filter(|v| !v.as_css_text().is_empty())
+            .filter(|value| !value.is_falsy())
+            .filter(|value| seen.insert(value.identity_key()))
             .collect::<Vec<TRawValue>>();
-
-          values.dedup();
 
           if values.is_empty() {
             let pre_rule = PreRules::NullPreRule(NullPreRule::new());

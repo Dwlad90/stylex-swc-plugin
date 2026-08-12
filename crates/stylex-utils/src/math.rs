@@ -47,10 +47,11 @@ pub fn round_to_decimal_places(value: f64, decimal_places: u32) -> f64 {
 /// Simple rounding to the given number of decimal places.
 ///
 /// Unlike `round_to_decimal_places`, this always rounds without special
-/// handling for single decimal places.
+/// handling for single decimal places. Ties break like JS `Math.round`, so the
+/// two agree on every input.
 pub fn round_f64(value: f64, decimal_places: u32) -> f64 {
   let multiplier = 10f64.powi(decimal_places as i32);
-  (value * multiplier).round() / multiplier
+  js_math_round(value * multiplier) / multiplier
 }
 
 #[cfg(test)]

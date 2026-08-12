@@ -56,7 +56,7 @@ pub(crate) fn stylex_keyframes(
           &entries,
           state,
           |key| dashify(key).into_owned(),
-          |key, value| FlatCompiledStylesValue::KeyValue(Pair::new(key, value)),
+          FlatCompiledStylesValue::KeyValue,
         )
       })
       .done();

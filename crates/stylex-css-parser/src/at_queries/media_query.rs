@@ -264,17 +264,18 @@ impl MediaQuery {
     Self::new(rule)
   }
 
+  /// Takes `rule` by value and consumes each combinator's children, so a tree
+  /// is normalized without being deep-cloned once per level of its own depth.
   pub fn normalize(rule: MediaQueryRule) -> MediaQueryRule {
     match rule {
-      MediaQueryRule::And(ref and_rules) => {
-        let mut flattened: Vec<MediaQueryRule> = Vec::new();
-        for r in &and_rules.rules {
-          let norm = Self::normalize(r.clone());
-          match norm {
+      MediaQueryRule::And(and_rules) => {
+        let mut flattened: Vec<MediaQueryRule> = Vec::with_capacity(and_rules.rules.len());
+        for r in and_rules.rules {
+          match Self::normalize(r) {
             MediaQueryRule::And(inner_and) => {
               flattened.extend(inner_and.rules);
             },
-            _ => {
+            norm => {
               flattened.push(norm);
             },
           }
@@ -286,16 +287,13 @@ impl MediaQuery {
         }
         MediaQueryRule::And(MediaAndRules::new(merged))
       },
-      MediaQueryRule::Or(ref or_rules) => {
-        let normalized_rules: Vec<MediaQueryRule> = or_rules
-          .rules
-          .iter()
-          .map(|r| Self::normalize(r.clone()))
-          .collect();
+      MediaQueryRule::Or(or_rules) => {
+        let normalized_rules: Vec<MediaQueryRule> =
+          or_rules.rules.into_iter().map(Self::normalize).collect();
         MediaQueryRule::Or(MediaOrRules::new(normalized_rules))
       },
-      MediaQueryRule::Not(ref not_rule) => {
-        let normalized_operand = Self::normalize(not_rule.rule.as_ref().clone());
+      MediaQueryRule::Not(not_rule) => {
+        let normalized_operand = Self::normalize(*not_rule.rule);
 
         match normalized_operand {
           MediaQueryRule::MediaKeyword(ref keyword) if keyword.key == "all" && keyword.not => {
@@ -306,14 +304,14 @@ impl MediaQuery {
             ));
           },
           MediaQueryRule::Not(inner_not) => {
-            return Self::normalize(inner_not.rule.as_ref().clone());
+            return Self::normalize(*inner_not.rule);
           },
           _ => {},
         }
 
         MediaQueryRule::Not(MediaNotRule::new(normalized_operand))
       },
-      _ => rule,
+      other => other,
     }
   }
 }

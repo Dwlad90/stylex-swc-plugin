@@ -75,6 +75,7 @@ impl TryFrom<&str> for MathJS {
 #[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
 pub enum CallableGlobalJS {
   String,
+  Number,
 }
 
 impl TryFrom<&str> for CallableGlobalJS {
@@ -83,6 +84,7 @@ impl TryFrom<&str> for CallableGlobalJS {
   fn try_from(value: &str) -> Result<Self, Self::Error> {
     match value {
       "String" => Ok(CallableGlobalJS::String),
+      "Number" => Ok(CallableGlobalJS::Number),
       _ => Err(()),
     }
   }

@@ -22,7 +22,7 @@ _inject2({
     priority: 0
 });
 _inject2({
-    ltr: '@property --x-ke45ok { syntax: "*"; inherits: true;}',
+    ltr: '@property --x-ke45ok { syntax: "*"; inherits: false;}',
     priority: 0
 });
 export const styles = {

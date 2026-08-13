@@ -209,6 +209,20 @@ stylex_test!(
 );
 
 stylex_test!(
+  dynamic_style_in_hover_generates_at_property_with_inherits_false,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      repro: (color) => ({
+        ':hover': {
+          color,
+        },
+      }),
+    });
+  "#
+);
+
+stylex_test!(
   media_queries,
   r#"
     import * as stylex from '@stylexjs/stylex';

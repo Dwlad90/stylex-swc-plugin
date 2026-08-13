@@ -276,7 +276,7 @@ where
 
         for (variable_name, paths) in dynamic_fns_names {
           // Pseudo elements can only access css vars via inheritance
-          let is_pseudo_element = paths.iter().any(|path| path.starts_with(':'));
+          let is_pseudo_element = paths.iter().any(|path| path.starts_with("::"));
 
           injected_inherit_styles.insert(
             variable_name.clone().into(),

@@ -11,10 +11,7 @@ use helpers::*;
 
 // Import error handling macros from shared utilities
 use crate::{expr_to_str_or_deopt, stylex_panic_with_context};
-use stylex_constants::constants::{
-  api_names::STYLEX_ENV,
-  common::{MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS},
-};
+use stylex_constants::constants::api_names::STYLEX_ENV;
 
 use indexmap::IndexMap;
 use log::{debug, warn};
@@ -24,10 +21,9 @@ use swc_core::{
   atoms::Atom,
   ecma::{
     ast::{
-      ArrayLit, AssignTarget, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr,
-      ExprOrSpread, Ident, ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName,
-      Number, ObjectLit, OptChainBase, Pat, Prop, PropName, PropOrSpread, SimpleAssignTarget,
-      TplElement, UnaryOp, VarDeclarator,
+      ArrayLit, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
+      ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit,
+      OptChainBase, Pat, Prop, PropName, PropOrSpread, TplElement, VarDeclarator,
     },
     utils::{ExprExt, ident::IdentLike},
   },
@@ -64,16 +60,15 @@ use stylex_ast::ast::factories::{
   create_object_expression, create_object_lit, create_string_lit,
 };
 use stylex_constants::constants::{
-  common::{INVALID_METHODS, VALID_CALLEES},
   evaluation_errors::{
     IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, OBJECT_METHOD, PATH_WITHOUT_NODE,
     UNEXPECTED_MEMBER_LOOKUP, unsupported_expression, unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, BUILT_IN_FUNCTION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
-    ILLEGAL_PROP_ARRAY_VALUE, INVALID_UTF8, KEY_VALUE_EXPECTED, MEMBER_NOT_RESOLVED,
-    MEMBER_OBJ_NOT_IDENT, OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND, SPREAD_MUST_BE_OBJECT,
-    SPREAD_NOT_SUPPORTED, THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
+    ILLEGAL_PROP_ARRAY_VALUE, KEY_VALUE_EXPECTED, MEMBER_NOT_RESOLVED, MEMBER_OBJ_NOT_IDENT,
+    OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND, SPREAD_MUST_BE_OBJECT, SPREAD_NOT_SUPPORTED,
+    THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
   },
 };
 use stylex_enums::{
@@ -81,6 +76,10 @@ use stylex_enums::{
   js::{ArrayJS, MathJS, ObjectJS, StringJS},
   misc::BinaryExprType,
   value_with_default::ValueWithDefault,
+};
+use stylex_js::helpers::{
+  get_callee_name, get_method_name, is_id_prop, is_invalid_method, is_mutating_array_method,
+  is_mutating_object_method, is_mutation_expr, is_valid_callee,
 };
 use stylex_structures::{named_import_source::ImportSources, stylex_env::EnvEntry};
 use stylex_utils::{

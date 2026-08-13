@@ -1,8 +1,12 @@
 # stylex-js
 
 Predicates over JavaScript semantics, asked while deciding whether an expression
-is safe to evaluate at compile time. Every function here answers one yes/no
-question about an AST node; none of them transforms anything.
+is safe to evaluate at compile time. Most functions here answer one yes/no
+question about an AST node; the rest read a name off one. None of them
+transforms anything.
+
+The evaluator in `stylex-transform` is the consumer, and these are the only
+copies -- a change to the set of foldable callees lands in one place.
 
 ## Language
 

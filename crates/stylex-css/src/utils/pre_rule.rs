@@ -1,5 +1,7 @@
 use std::cmp::Ordering;
 
+use crate::utils::pseudo::is_pseudo_element;
+
 pub fn sort_pseudos(pseudos: &[String]) -> Vec<String> {
   if pseudos.len() < 2 {
     return pseudos.to_owned();
@@ -8,10 +10,10 @@ pub fn sort_pseudos(pseudos: &[String]) -> Vec<String> {
   let mut acc: Vec<Vec<String>> = Vec::new();
 
   for pseudo in pseudos {
-    if pseudo.starts_with("::") {
+    if is_pseudo_element(pseudo) {
       acc.push(vec![pseudo.to_string()]);
     } else if let Some(last_element) = acc.last_mut() {
-      if last_element.len() == 1 && !last_element[0].starts_with("::") {
+      if last_element.len() == 1 && !is_pseudo_element(&last_element[0]) {
         last_element.push(pseudo.to_string());
       } else {
         acc.push(vec![pseudo.to_string()]);

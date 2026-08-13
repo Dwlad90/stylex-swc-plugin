@@ -1,6 +1,8 @@
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 use stylex_types::traits::WhenMarkerValue;
 
+use crate::utils::pseudo::is_pseudo_element;
+
 pub fn from_proxy(value: &dyn WhenMarkerValue) -> Option<String> {
   value.as_proxy_string()
 }
@@ -48,7 +50,7 @@ fn validate_pseudo_selector(pseudo: &str) -> Result<(), String> {
     return Err("Pseudo selector must start with \":\" or \"[\"".to_string());
   }
 
-  if pseudo.starts_with("::") {
+  if is_pseudo_element(pseudo) {
     return Err(
       "Pseudo selector cannot start with \"::\" (pseudo-elements are not supported)".to_string(),
     );

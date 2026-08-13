@@ -55,6 +55,13 @@ second argument that resolves to no known marker shape carries no prefix at
 all and so falls back to a bare `default-marker`.
 _Avoid_: fallback class, base marker
 
+**Pseudo element**:
+A selector segment carrying a `::` prefix — `::before`, `::thumb` — as against
+the single colon of a pseudo class. The test is `is_pseudo_element`
+(`utils::pseudo`); every site that classifies a segment calls it rather than
+spelling the prefix out, so the rule moves in one place.
+_Avoid_: pseudo selector, double-colon check
+
 **Nested CSS rule**:
 The final rule string, built by wrapping a declaration in its at-rules and
 pseudo selectors. Pseudos and at-rules are each sorted first (`sort_pseudos`,

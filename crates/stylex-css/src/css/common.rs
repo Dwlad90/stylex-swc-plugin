@@ -9,6 +9,7 @@ use crate::css::{
   },
   validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
 };
+use crate::utils::pseudo::is_pseudo_element;
 use stylex_constants::constants::{
   common::{COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES, COLOR_RELATIVE_VALUE_FUNCTIONS},
   long_hand_logical::LONG_HAND_LOGICAL,
@@ -151,20 +152,18 @@ fn push_selector(
 
   // Pseudo-elements (::before, ::after, etc.) must come after pseudo-classes
   // in the selector. e.g. `.class:hover::before` not `.class::before:hover`.
-  // Classification keys on the `::` prefix; this assumes pseudo-elements are
-  // normalized to the modern double-colon form (StyleX does this upstream).
-  // Legacy single-colon elements (`:before`, `:after`, `:first-line`,
-  // `:first-letter`) would be mis-sorted into the pseudo-class group — not a
-  // concern given the normalization, but noted here so it is not a surprise.
-  // Pseudo-classes first (`::`-prefixed entries are excluded, which also
-  // drops `::thumb`)...
-  for pseudo in pseudos.iter().filter(|pseudo| !pseudo.starts_with("::")) {
+  // Classification is `is_pseudo_element`, so entries must already be
+  // normalized to the modern double-colon form; a legacy `:before` would be
+  // mis-sorted into the pseudo-class group.
+  // Pseudo-classes first (pseudo-elements are excluded, which also drops
+  // `::thumb`)...
+  for pseudo in pseudos.iter().filter(|pseudo| !is_pseudo_element(pseudo)) {
     result.push_str(pseudo);
   }
   // ...then pseudo-elements, still skipping the expanded `::thumb`.
   for pseudo in pseudos
     .iter()
-    .filter(|pseudo| pseudo.starts_with("::") && pseudo.as_str() != "::thumb")
+    .filter(|pseudo| is_pseudo_element(pseudo) && pseudo.as_str() != "::thumb")
   {
     result.push_str(pseudo);
   }
@@ -249,7 +248,7 @@ fn get_compound_pseudo_priority(key: &str) -> Option<f64> {
   let total = parts
     .iter()
     .map(|part| {
-      if part.starts_with("::") {
+      if is_pseudo_element(part) {
         PSEUDO_ELEMENT_PRIORITY
       } else {
         **PSEUDO_CLASS_PRIORITIES.get(*part).unwrap_or(&&40.0)
@@ -281,7 +280,7 @@ fn get_at_rule_priority(key: &str) -> Option<f64> {
 }
 
 fn get_pseudo_element_priority(key: &str) -> Option<f64> {
-  if key.starts_with("::") {
+  if is_pseudo_element(key) {
     return Some(PSEUDO_ELEMENT_PRIORITY);
   }
 

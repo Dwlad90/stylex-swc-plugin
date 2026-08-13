@@ -74,7 +74,7 @@ use stylex_constants::constants::{
   common::COMPILED_KEY,
   messages::{EXPECTED_COMPILED_STYLES, non_static_value},
 };
-use stylex_css::utils::when as stylex_when;
+use stylex_css::utils::{pseudo::is_pseudo_element, when as stylex_when};
 use stylex_enums::{counter_mode::CounterMode, style_resolution::StyleResolution};
 use stylex_regex::regex::VAR_EXTRACTION_REGEX;
 use stylex_structures::{
@@ -270,7 +270,7 @@ where
           let is_pseudo_element = inline_style
             .path
             .iter()
-            .any(|segment| segment.starts_with("::"));
+            .any(|segment| is_pseudo_element(segment));
 
           injected_inherit_styles.insert(
             variable_name.as_str().into(),

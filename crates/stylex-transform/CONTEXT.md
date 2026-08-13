@@ -68,6 +68,15 @@ compile-time counterpart of the runtime function it is named for, so
 `stylex_create.rs` is where `stylex.create` semantics actually live.
 _Avoid_: handler, visitor, rewriter
 
+**Property registration**:
+The `@property` rule the `create` transformer injects for each CSS variable a
+dynamic style function writes. Its `inherits` descriptor is decided per
+variable: `true` only when some segment of the variable's authored path is a
+pseudo _element_ (a `::` prefix), because a pseudo element can reach a variable
+no other way; every other case — including pseudo _classes_ such as `:hover` —
+registers `inherits: false`.
+_Avoid_: at-property, var declaration, custom property rule
+
 **Runtime binding**:
 The `sx` import the transform injects when compiled output needs runtime help.
 `get_stylex_runtime_binding` reuses an existing import source when it can, and

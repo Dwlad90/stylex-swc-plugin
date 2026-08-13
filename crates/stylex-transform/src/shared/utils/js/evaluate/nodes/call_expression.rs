@@ -3,6 +3,46 @@ use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_utils::math::js_math_round;
 use swc_core::ecma::ast::CallExpr;
 
+/// Applies a call to one of the JavaScript globals the compiler folds.
+///
+/// Surplus arguments are ignored and a missing one is `undefined`, as in
+/// JavaScript: `String(1, 2)` is `"1"` and `String()` is `""`.
+fn evaluate_callable_global(
+  global: CallableGlobalJS,
+  call: &CallExpr,
+  path: &Expr,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Option<EvaluateResultValue> {
+  let args = evaluate_func_call_args(call, state, traversal_state, fns);
+
+  if !state.confident {
+    return None;
+  }
+
+  // An argument that evaluated to nothing while staying confident was dropped
+  // rather than deopted, so the remaining arguments no longer line up with
+  // what was written. Refuse rather than fold a shifted argument list.
+  if args.len() != call.args.len() {
+    return deopt(path, state, ARGUMENT_WITHOUT_VALUE);
+  }
+
+  match global {
+    CallableGlobalJS::String => {
+      let coerced = match args.first() {
+        Some(arg) => match evaluate_result_to_js_string(arg) {
+          Some(coerced) => coerced,
+          None => return deopt(path, state, UNCOERCIBLE_VALUE),
+        },
+        None => String::new(),
+      };
+
+      Some(EvaluateResultValue::Expr(create_string_expr(&coerced)))
+    },
+  }
+}
+
 pub(in super::super) fn evaluate(
   call: &CallExpr,
   state: &mut EvaluationState,
@@ -16,7 +56,28 @@ pub(in super::super) fn evaluate(
 
   if let Callee::Expr(callee_expr) = &call.callee {
     if get_binding(callee_expr, traversal_state).is_none() && is_valid_callee(callee_expr) {
-      // skip built-in function evaluation
+      // A valid callee with no binding in scope is the global itself, not a
+      // function the module declared, so calling it folds. `Math` reaches here
+      // too — it is a valid callee because its *methods* fold — and is not
+      // callable, so it stays unfolded and deopts below.
+      if let Ok(global) = CallableGlobalJS::try_from(get_callee_name(callee_expr)) {
+        // Spread arguments are not evaluated: the argument list is unknowable
+        // without the spread operand's length. Rejected here rather than by
+        // the shared argument evaluation, which reads through a spread to its
+        // operand and would fold `String(...['a','b'])` to `"a,b"`. The
+        // wording is the spread element's own, which is what an author sees
+        // for this input elsewhere, rather than the member built-ins'
+        // `SPREAD_NOT_SUPPORTED` — those reject a spread they could otherwise
+        // have used, which is a different complaint.
+        if call.args.iter().any(|arg| arg.spread.is_some()) {
+          return deopt(path, state, &unsupported_expression("SpreadElement"));
+        }
+
+        func = Some(Box::new(FunctionConfig {
+          fn_ptr: FunctionType::Callback(Box::new(CallbackType::Global(global))),
+          takes_path: false,
+        }));
+      }
     } else if let Expr::Ident(ident) = callee_expr.as_ref() {
       let ident_id = ident.to_id();
 
@@ -1007,6 +1068,12 @@ pub(in super::super) fn evaluate(
           return Some(EvaluateResultValue::Expr(func_result));
         },
         FunctionType::Callback(func) => {
+          // A callable global takes its arguments and nothing else — there is
+          // no receiver for a `context` to carry.
+          if let CallbackType::Global(global) = func.as_ref() {
+            return evaluate_callable_global(*global, call, path, state, traversal_state, fns);
+          }
+
           let context = match context {
             Some(c) => c,
             None => stylex_panic!("Object.entries() requires an object argument."),
@@ -1288,6 +1355,9 @@ pub(in super::super) fn evaluate(
               return Some(EvaluateResultValue::Expr(create_number_expr(
                 char_code as f64,
               )));
+            },
+            CallbackType::Global(_) => {
+              stylex_unreachable!("Callable globals are applied before the receiver is read.")
             },
             CallbackType::Custom(arrow_fn) => {
               let args = evaluate_func_call_args(call, state, traversal_state, fns);

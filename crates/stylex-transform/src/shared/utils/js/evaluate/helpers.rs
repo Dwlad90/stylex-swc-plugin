@@ -137,6 +137,50 @@ pub(super) fn evaluate_func_call_args(
     .collect()
 }
 
+/// `ToString` over an evaluated value, bridging the evaluator's own value
+/// representation to the ECMAScript coercion.
+///
+/// `None` means the value has no compile-time string form, so the caller
+/// deopts. The variants that stand for a JavaScript object take the
+/// `Object.prototype` default; the ones that stand for a function have none,
+/// because `String(fn)` is its source text and the evaluator keeps no source.
+pub(super) fn evaluate_result_to_js_string(value: &EvaluateResultValue) -> Option<String> {
+  match value {
+    EvaluateResultValue::Expr(expr) => coercions::to_js_string(expr),
+
+    // The evaluator's own array representation, joined by the same rule as an
+    // array literal's.
+    EvaluateResultValue::Vec(items) => {
+      let mut parts = Vec::with_capacity(items.len());
+
+      for item in items {
+        parts.push(match item {
+          // A confidently evaluated element with no value is `undefined`,
+          // which joins as nothing.
+          EvaluateResultValue::Null => String::new(),
+          EvaluateResultValue::Expr(expr) if coercions::joins_as_empty(expr) => String::new(),
+          item => evaluate_result_to_js_string(item)?,
+        });
+      }
+
+      Some(parts.join(","))
+    },
+
+    // A `defineVars` group carries its own `toString`, which answers the var
+    // group hash rather than the object default.
+    EvaluateResultValue::ThemeRef(theme_ref) => Some(theme_ref.to_string_value()),
+
+    EvaluateResultValue::Map(_)
+    | EvaluateResultValue::Entries(_)
+    | EvaluateResultValue::EnvObject(_) => Some(coercions::OBJECT_TO_STRING.to_string()),
+
+    EvaluateResultValue::Null
+    | EvaluateResultValue::Callback(_)
+    | EvaluateResultValue::FunctionConfig(_)
+    | EvaluateResultValue::FunctionConfigMap(_) => None,
+  }
+}
+
 pub(super) fn args_to_numbers(
   args: &[EvaluateResultValue],
   state: &mut EvaluationState,

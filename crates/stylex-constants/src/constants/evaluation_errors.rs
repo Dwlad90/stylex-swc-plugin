@@ -39,6 +39,18 @@ pub static UNDEFINED_CONST: &str = "Referenced constant is not defined.";
 
 pub static OBJECT_METHOD: &str = "Unsupported object method.\n\n";
 
+/// A callable global was given a value the compiler cannot coerce — a
+/// function, whose string form is its own source text. Deopting says so
+/// instead of folding to a value that would be confidently wrong.
+pub static UNCOERCIBLE_VALUE: &str =
+  "Cannot coerce this value at compile time.\nOnly static values can be passed to String().\n\n";
+
+/// An argument evaluated to no value at all while the evaluation stayed
+/// confident, so the arguments that follow it no longer line up with what was
+/// written. Refusing beats folding a shifted argument list.
+pub static ARGUMENT_WITHOUT_VALUE: &str =
+  "An argument has no compile-time value.\nEvery argument must evaluate to a static value.\n\n";
+
 pub fn unsupported_operator(op: &str) -> String {
   format!("Unsupported operator: {}\n\n", op)
 }

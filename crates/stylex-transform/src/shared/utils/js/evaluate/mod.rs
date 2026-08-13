@@ -61,8 +61,9 @@ use stylex_ast::ast::factories::{
 };
 use stylex_constants::constants::{
   evaluation_errors::{
-    IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, OBJECT_METHOD, PATH_WITHOUT_NODE,
-    UNEXPECTED_MEMBER_LOOKUP, unsupported_expression, unsupported_operator,
+    ARGUMENT_WITHOUT_VALUE, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, OBJECT_METHOD,
+    PATH_WITHOUT_NODE, UNCOERCIBLE_VALUE, UNEXPECTED_MEMBER_LOOKUP, unsupported_expression,
+    unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, BUILT_IN_FUNCTION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
@@ -73,10 +74,11 @@ use stylex_constants::constants::{
 };
 use stylex_enums::{
   import_path_resolution::ImportPathResolution,
-  js::{ArrayJS, MathJS, ObjectJS, StringJS},
+  js::{ArrayJS, CallableGlobalJS, MathJS, ObjectJS, StringJS},
   misc::BinaryExprType,
   value_with_default::ValueWithDefault,
 };
+use stylex_js::coercions;
 use stylex_js::helpers::{
   get_callee_name, get_method_name, is_id_prop, is_invalid_method, is_mutating_array_method,
   is_mutating_object_method, is_mutation_expr, is_valid_callee,

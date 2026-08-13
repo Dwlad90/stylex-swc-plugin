@@ -308,9 +308,9 @@ test('transform: glob pattern with curly braces', () => {
   expect(resultJs.metadata).toStrictEqual({ stylex: [] });
 });
 
-// The at-rule priority is deliberately left unrounded; `stylex_create_theme.rs`
-// records why. Asserted here because the value crosses the napi boundary as a
-// double and nothing else in this suite reads it.
+// The at-rule priority is deliberately left unrounded; `var_group_priority` in
+// `define_vars_utils.rs` records why. Asserted here because the value crosses
+// the napi boundary as a double and nothing else in this suite reads it.
 test('transform: at-rule priority reaches metadata unrounded', () => {
   const code = `
     import * as stylex from '@stylexjs/stylex';

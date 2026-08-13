@@ -167,7 +167,7 @@ pub(crate) fn wrap_with_at_rules(ltr: &str, at_rule: &str) -> String {
     })
 }
 
-pub(crate) fn priority_for_at_rule(at_rule: &str) -> f64 {
+fn priority_for_at_rule(at_rule: &str) -> f64 {
   if at_rule == "default" {
     1.0
   } else {
@@ -178,17 +178,22 @@ pub(crate) fn priority_for_at_rule(at_rule: &str) -> f64 {
 /// Priority of a var group's rule at `at_rule`.
 ///
 /// Neither this nor [`theme_override_priority`] rounds its result, and neither
-/// may start to. Rule priorities are compared for equality when the stylesheet
-/// is sorted, and a tie hands the ordering to a by-content tie-break — so two
-/// rules that should be ordered by priority must not collide.
+/// may start to. The computed value *is* the priority: the stylesheet sort
+/// compares priorities for equality and falls through to a by-content tie-break
+/// on a tie, so rounding one is not a cosmetic change — it moves rules relative
+/// to each other, and can collapse two priorities onto one.
 ///
-/// The pair that makes this concrete: five at-rules deep this function returns
-/// exactly `0.6`, while [`theme_override_priority`] returns
-/// `0.6000000000000001` for a single at-rule. Rounding either to one decimal
-/// place ties them, and the override can then sort ahead of the rule it
+/// A single at-rule makes that observable. This function returns exactly `0.6`
+/// five at-rules deep, while [`theme_override_priority`] returns
+/// `0.6000000000000001` for one at-rule; round either to a single decimal place
+/// and they tie, at which point the override can sort ahead of the rule it
 /// overrides — both declare the same custom property at equal specificity, so
-/// the order decides the winner. The same collision recurs one rung up, at
-/// `1.2000000000000002` against a group nested nine deep.
+/// order decides the winner.
+///
+/// The gap is an artefact of the arithmetic, not a guarantee: at most depths
+/// `0.4 + n / 10.0` is exact and the two functions genuinely do collide (two
+/// at-rules against a group six deep both give exactly `0.7`). Nothing here
+/// separates that pair — only the sum's own precision does, where it has any.
 pub(crate) fn var_group_priority(at_rule: &str) -> f64 {
   priority_for_at_rule(at_rule) / 10.0
 }

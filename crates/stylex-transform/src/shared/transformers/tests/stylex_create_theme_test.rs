@@ -4,22 +4,24 @@ mod stylex_create_theme {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::PropOrSpread;
 
-  use crate::shared::utils::core::define_vars_utils::{
-    theme_override_priority, var_group_priority,
-  };
   use crate::shared::{
     enums::data_structures::evaluate_result_value::EvaluateResultValue,
     structures::{state_manager::StateManager, types::InjectableStylesMap},
     transformers::stylex_create_theme::stylex_create_theme,
-    utils::ast::convertors::create_string_expr,
+    utils::{
+      ast::convertors::create_string_expr,
+      core::define_vars_utils::{theme_override_priority, var_group_priority},
+    },
   };
   use stylex_ast::ast::factories::{
     create_key_value_prop, create_nested_object_prop, create_object_expression,
     create_string_key_value_prop,
   };
   use stylex_constants::constants::common::SPLIT_TOKEN;
-  use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-  use stylex_types::structures::injectable_style::InjectableStyle;
+  use stylex_types::{
+    enums::data_structures::injectable_style::InjectableStyleKind,
+    structures::injectable_style::InjectableStyle,
+  };
 
   fn default_vars_factory(args: &[(&str, &str)]) -> EvaluateResultValue {
     let props = args
@@ -556,50 +558,64 @@ mod stylex_create_theme {
       &mut IndexMap::default(),
     );
 
-    // The at-rule rule is the one whose key carries the at-rule's hash suffix;
-    // the default rule is keyed by the override class name alone.
-    let at_rule_priority = css_output
-      .iter()
-      .find(|(key, _)| key.as_str().contains('-'))
-      .and_then(|(_, style)| match &**style {
-        InjectableStyleKind::Regular(style) => style.priority,
-        InjectableStyleKind::Const(_) => None,
-      });
+    // Each rule is identified by what it emits rather than by its key: the
+    // at-rule rule is the one wrapped in the at-rule, the default rule is not.
+    let priority_of = |wrapped: bool| {
+      css_output.values().find_map(|style| match &**style {
+        InjectableStyleKind::Regular(style) if style.ltr.starts_with('@') == wrapped => {
+          style.priority
+        },
+        InjectableStyleKind::Regular(_) | InjectableStyleKind::Const(_) => None,
+      })
+    };
 
-    match at_rule_priority {
-      Some(priority) => assert_eq!(
-        priority.to_bits(),
-        0.6000000000000001_f64.to_bits(),
-        "expected 0.6000000000000001, got {priority}"
-      ),
-      None => panic!("expected an at-rule rule alongside the default one"),
+    match (priority_of(false), priority_of(true)) {
+      (Some(default), Some(at_rule)) => {
+        assert_eq!(
+          default.to_bits(),
+          0.5_f64.to_bits(),
+          "expected the default override at 0.5, got {default}"
+        );
+        assert_eq!(
+          at_rule.to_bits(),
+          0.6000000000000001_f64.to_bits(),
+          "expected 0.6000000000000001, got {at_rule}"
+        );
+      },
+      _ => panic!("expected a default override rule alongside an at-rule one"),
     }
   }
 
-  /// The drift above is what keeps a one-at-rule override apart from a var group
-  /// nested five at-rules deep, whose priority is exactly `0.6`. Were the two
-  /// equal, the stylesheet sort would fall through to its by-content tie-break
-  /// and could place the override before the rule it overrides.
+  /// The drift above is what holds this one pair apart: a one-at-rule override
+  /// against a var group nested five deep, whose priority is exactly `0.6`. Were
+  /// the two equal, the stylesheet sort would fall through to its by-content
+  /// tie-break and could place the override before the rule it overrides.
+  ///
+  /// That pair is the exception, not the rule. Two at-rules against a group six
+  /// deep both come to exactly `0.7` and do tie — asserted here so the case above
+  /// is not read as a guarantee that the two priority scales never meet.
   #[test]
-  fn separates_the_override_from_a_five_deep_var_group() {
-    let five_deep = "@media a".to_owned()
-      + SPLIT_TOKEN
-      + "@media b"
-      + SPLIT_TOKEN
-      + "@media c"
-      + SPLIT_TOKEN
-      + "@media d"
-      + SPLIT_TOKEN
-      + "@media e";
+  fn override_and_var_group_priorities_differ_only_where_the_sum_is_inexact() {
+    let nested = |depth: usize| {
+      (0..depth)
+        .map(|index| format!("@media m{index}"))
+        .collect::<Vec<_>>()
+        .join(SPLIT_TOKEN)
+    };
 
-    let group = var_group_priority(&five_deep);
-    let override_rule = theme_override_priority("@media (min-width: 1024px)");
+    let five_deep = var_group_priority(&nested(5));
 
-    assert_eq!(group.to_bits(), 0.6_f64.to_bits());
+    assert_eq!(five_deep.to_bits(), 0.6_f64.to_bits());
     assert_ne!(
-      override_rule.to_bits(),
-      group.to_bits(),
+      theme_override_priority("@media (min-width: 1024px)").to_bits(),
+      five_deep.to_bits(),
       "a tie here would hand rule order to the by-content tie-break"
+    );
+
+    assert_eq!(
+      theme_override_priority(&nested(2)).to_bits(),
+      var_group_priority(&nested(6)).to_bits(),
+      "one at-rule deeper the sum is exact and the two do collide"
     );
   }
 }

@@ -32,6 +32,31 @@ stylex_test!(
   "#
 );
 
+// `:first-child` carries a pseudo-class priority of 52, so the ancestor
+// selector lands on `3000 + 10 + 52 / 100`, the only shape of rule priority
+// that needs two decimal places. The emitted `_inject2` call has to carry it
+// whole: rounding it to one place would both lose the digit the metadata keeps
+// and merge this rule with `:first-of-type`, one step away at `3010.53`.
+stylex_test!(
+  when_ancestor_function_with_two_decimal_priority,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import { when, create } from '@stylexjs/stylex';
+
+    const styles = create({
+      container: {
+        backgroundColor: {
+          default: 'blue',
+          [when.ancestor(':first-child')]: 'red',
+          [when.ancestor(':first-of-type')]: 'green',
+        },
+      },
+    });
+
+    console.log(styles.container);
+  "#
+);
+
 stylex_test!(
   when_sibling_before_function,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

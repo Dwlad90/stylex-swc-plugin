@@ -1,8 +1,13 @@
-// Tests for NAPI conversion helpers and key classification utilities.
+// Tests for the JavaScript-semantics predicates and the identifier extractors
+// beside them.
 // Source: crates/stylex-js/src/helpers.rs
 
 use super::*;
 use swc_core::{
+  atoms::{
+    Wtf8Atom,
+    wtf8::{CodePoint, Wtf8Buf},
+  },
   common::DUMMY_SP,
   ecma::ast::{
     AssignExpr, AssignOp, ComputedPropName, Ident, IdentName, MemberExpr, Number,
@@ -179,4 +184,27 @@ fn id_prop_extraction_for_computed_string() {
   assert_eq!(is_id_prop(&computed_number), None);
 
   assert_eq!(is_id_prop(&member_ident("plain")), None);
+}
+
+#[test]
+#[should_panic(expected = "String value contains invalid UTF-8 encoding.")]
+fn id_prop_extraction_panics_for_invalid_utf8() {
+  // A lone surrogate: valid WTF-8 storage, invalid UTF-8 decoding.
+  let mut lone_surrogate = Wtf8Buf::new();
+
+  match CodePoint::from_u32(0xd800) {
+    Some(code_point) => lone_surrogate.push(code_point),
+    None => panic!("U+D800 is within the code-point range."),
+  }
+
+  let computed_invalid = MemberProp::Computed(ComputedPropName {
+    span: DUMMY_SP,
+    expr: Box::new(Expr::Lit(Lit::Str(Str {
+      span: DUMMY_SP,
+      value: Wtf8Atom::new(lone_surrogate),
+      raw: None,
+    }))),
+  });
+
+  let _ = is_id_prop(&computed_invalid);
 }

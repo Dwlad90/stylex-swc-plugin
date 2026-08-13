@@ -1,5 +1,6 @@
-use stylex_constants::constants::common::{
-  INVALID_METHODS, MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS, VALID_CALLEES,
+use stylex_constants::constants::{
+  common::{INVALID_METHODS, MUTATING_ARRAY_METHODS, MUTATING_OBJECT_METHODS, VALID_CALLEES},
+  messages::INVALID_UTF8,
 };
 use stylex_macros::stylex_panic;
 use swc_core::{
@@ -94,7 +95,10 @@ pub fn is_id_prop(prop: &MemberProp) -> Option<&Atom> {
   if let MemberProp::Computed(comp_prop) = prop
     && let Expr::Lit(Lit::Str(strng)) = comp_prop.expr.as_ref()
   {
-    return strng.value.as_atom();
+    return Some(match strng.value.as_atom() {
+      Some(atom) => atom,
+      None => stylex_panic!("{}", INVALID_UTF8),
+    });
   }
 
   None

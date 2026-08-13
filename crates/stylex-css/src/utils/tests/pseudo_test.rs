@@ -40,6 +40,14 @@ fn a_double_colon_prefix_is_a_pseudo_element() {
   }
 }
 
+/// The prefix is the whole test, so a segment that is nothing but the prefix
+/// still lands on the element side rather than falling between the two.
+#[test]
+fn a_bare_double_colon_reads_as_a_pseudo_element() {
+  assert_kind("::", Kind::Element);
+  assert_kind(":::", Kind::Element);
+}
+
 // ── pseudo classes ───────────────────────────────────────────────────
 
 #[test]

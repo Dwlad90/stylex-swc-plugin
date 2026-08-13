@@ -58,8 +58,8 @@ fn validate_pseudo_selector(pseudo: &str) -> Result<(), String> {
     );
   }
 
-  if pseudo.starts_with("[") {
-    if !pseudo.ends_with("]") {
+  if pseudo.starts_with('[') {
+    if !pseudo.ends_with(']') {
       return Err("Attribute selector must end with \"]\"".to_string());
     }
 

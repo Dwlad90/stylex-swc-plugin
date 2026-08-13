@@ -91,40 +91,38 @@ pub(crate) struct StylesPreRule {
 }
 
 impl StylesPreRule {
-  fn get_pseudos(key_path: &Option<Vec<String>>) -> Vec<String> {
-    let mut unsorted_pseudos = key_path.clone().unwrap_or_default();
+  /// Collects the key path segments a rule kind owns, in authored order.
+  ///
+  /// Each of the three kinds walks the same path and keeps a disjoint slice of
+  /// it, so the filter is passed in rather than the path being cloned once per
+  /// kind.
+  fn select_key_path(key_path: &Option<Vec<String>>, keep: impl Fn(&str) -> bool) -> Vec<String> {
+    key_path
+      .iter()
+      .flatten()
+      .filter(|key| keep(key))
+      .cloned()
+      .collect()
+  }
 
+  fn get_pseudos(key_path: &Option<Vec<String>>) -> Vec<String> {
     // The single colon is deliberate: selector assembly needs both kinds, so
     // narrowing this to `::` would drop every pseudo class on the floor.
-    unsorted_pseudos = unsorted_pseudos
-      .iter()
-      .filter(|key| is_pseudo_selector(key) || key.starts_with("["))
-      .cloned()
-      .collect();
+    let unsorted_pseudos = Self::select_key_path(key_path, |key| {
+      is_pseudo_selector(key) || key.starts_with('[')
+    });
 
     sort_pseudos(&unsorted_pseudos)
   }
 
   fn get_at_rules(key_path: &Option<Vec<String>>) -> Vec<String> {
-    let mut unsorted_at_rules = key_path.clone().unwrap_or_default();
-
-    unsorted_at_rules = unsorted_at_rules
-      .iter()
-      .filter(|key| key.starts_with('@'))
-      .cloned()
-      .collect();
+    let unsorted_at_rules = Self::select_key_path(key_path, |key| key.starts_with('@'));
 
     sort_at_rules(&unsorted_at_rules)
   }
 
   fn get_const_rules(key_path: &Option<Vec<String>>) -> Vec<String> {
-    let mut unsorted_const_rules = key_path.clone().unwrap_or_default();
-
-    unsorted_const_rules = unsorted_const_rules
-      .iter()
-      .filter(|key| key.starts_with("var(--"))
-      .cloned()
-      .collect();
+    let unsorted_const_rules = Self::select_key_path(key_path, |key| key.starts_with("var(--"));
 
     sort_at_rules(&unsorted_const_rules)
   }

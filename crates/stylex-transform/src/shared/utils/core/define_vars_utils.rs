@@ -48,6 +48,8 @@ pub(crate) fn construct_css_variables_string(
 
     result.insert(
       format!("{}{}", theme_name_hash, suffix).into(),
+      // Deliberately unrounded, as in `stylex_create_theme`: the exact value is
+      // what keeps a var group apart from a theme override of the same depth.
       InjectableStyle::regular(ltr, Some(priority_for_at_rule(at_rule) / 10.0)),
     );
   }

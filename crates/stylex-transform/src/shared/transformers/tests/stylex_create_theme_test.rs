@@ -4,6 +4,7 @@ mod stylex_create_theme {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::PropOrSpread;
 
+  use crate::shared::utils::core::define_vars_utils::priority_for_at_rule;
   use crate::shared::{
     enums::data_structures::evaluate_result_value::EvaluateResultValue,
     structures::{state_manager::StateManager, types::InjectableStylesMap},
@@ -14,6 +15,7 @@ mod stylex_create_theme {
     create_key_value_prop, create_nested_object_prop, create_object_expression,
     create_string_key_value_prop,
   };
+  use stylex_constants::constants::common::SPLIT_TOKEN;
   use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
   use stylex_types::structures::injectable_style::InjectableStyle;
 
@@ -552,19 +554,50 @@ mod stylex_create_theme {
       &mut IndexMap::default(),
     );
 
+    // The at-rule rule is the one whose key carries the at-rule's hash suffix;
+    // the default rule is keyed by the override class name alone.
     let at_rule_priority = css_output
-      .values()
-      .filter_map(|style| match &**style {
+      .iter()
+      .find(|(key, _)| key.as_str().contains('-'))
+      .and_then(|(_, style)| match &**style {
         InjectableStyleKind::Regular(style) => style.priority,
-        _ => None,
-      })
-      .find(|priority| *priority != 0.5)
-      .expect("an at-rule rule is injected alongside the default one");
+        InjectableStyleKind::Const(_) => None,
+      });
 
-    assert_eq!(
-      at_rule_priority.to_bits(),
-      0.6000000000000001_f64.to_bits(),
-      "expected 0.6000000000000001, got {at_rule_priority}"
+    match at_rule_priority {
+      Some(priority) => assert_eq!(
+        priority.to_bits(),
+        0.6000000000000001_f64.to_bits(),
+        "expected 0.6000000000000001, got {priority}"
+      ),
+      None => panic!("expected an at-rule rule alongside the default one"),
+    }
+  }
+
+  /// The drift above is what keeps a one-at-rule override apart from a var group
+  /// nested five at-rules deep, whose priority is exactly `0.6`. Were the two
+  /// equal, the stylesheet sort would fall through to its by-content tie-break
+  /// and could place the override before the rule it overrides.
+  #[test]
+  fn separates_the_override_from_a_five_deep_var_group() {
+    let five_deep = "@media a".to_owned()
+      + SPLIT_TOKEN
+      + "@media b"
+      + SPLIT_TOKEN
+      + "@media c"
+      + SPLIT_TOKEN
+      + "@media d"
+      + SPLIT_TOKEN
+      + "@media e";
+
+    let var_group_priority = priority_for_at_rule(&five_deep) / 10.0;
+    let override_priority = 0.4 + priority_for_at_rule("@media (min-width: 1024px)") / 10.0;
+
+    assert_eq!(var_group_priority.to_bits(), 0.6_f64.to_bits());
+    assert_ne!(
+      override_priority.to_bits(),
+      var_group_priority.to_bits(),
+      "a tie here would hand rule order to the by-content tie-break"
     );
   }
 }

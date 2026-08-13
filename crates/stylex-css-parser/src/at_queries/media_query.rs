@@ -1725,6 +1725,20 @@ fn media_query_rule_parser() -> TokenParser<MediaQueryRule> {
   or_combinator_parser()
 }
 
+/// Returns the sole rule when `rules` holds exactly one, otherwise groups them
+/// with `combine`. A lone rule needs no combinator wrapper. The array
+/// conversion hands back the original `Vec` on any other length, so both arms
+/// are reachable and neither needs fallible indexing.
+fn collapse_single_rule(
+  rules: Vec<MediaQueryRule>,
+  combine: impl FnOnce(Vec<MediaQueryRule>) -> MediaQueryRule,
+) -> MediaQueryRule {
+  match <[MediaQueryRule; 1]>::try_from(rules) {
+    Ok([only]) => only,
+    Err(rules) => combine(rules),
+  }
+}
+
 /// Parse OR-separated media query rules (comma-separated OR "or" keyword)
 fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
   TokenParser::new(
@@ -1780,11 +1794,9 @@ fn or_combinator_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // If we only have one rule, return it directly
-      if rules.len() == 1 {
-        Ok(rules.into_iter().next().unwrap())
-      } else {
-        Ok(MediaQueryRule::Or(MediaOrRules::new(rules)))
-      }
+      Ok(collapse_single_rule(rules, |rules| {
+        MediaQueryRule::Or(MediaOrRules::new(rules))
+      }))
     },
     "or_combinator_parser",
   )
@@ -1835,11 +1847,9 @@ fn and_combinator_parser() -> TokenParser<MediaQueryRule> {
       }
 
       // If we only have one rule, return it directly
-      if rules.len() == 1 {
-        Ok(rules.into_iter().next().unwrap())
-      } else {
-        Ok(MediaQueryRule::And(MediaAndRules::new(rules)))
-      }
+      Ok(collapse_single_rule(rules, |rules| {
+        MediaQueryRule::And(MediaAndRules::new(rules))
+      }))
     },
     "and_combinator_parser",
   )

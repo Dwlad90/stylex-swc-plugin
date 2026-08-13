@@ -22,9 +22,10 @@ pub fn split_value(
   Option<TRawValue>,
   Option<TRawValue>,
 ) {
-  // Upstream `splitValue` returns a number untouched, so a shorthand hands the
-  // authored number to each expanded property and each appends its own unit
-  // suffix. Parsing it as CSS text would lose that.
+  // A number is returned untouched, so a shorthand hands the authored number
+  // to each expanded property and each appends its own unit suffix. Parsing it
+  // as CSS text would settle the unit here instead, and every expansion would
+  // inherit the shorthand's.
   if let Some(TRawValue::Number(number)) = value {
     return (TRawValue::Number(*number), None, None, None);
   }

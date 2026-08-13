@@ -112,8 +112,8 @@ pub(crate) fn obj_from_entries(entries: &[OrderPair]) -> IndexMap<String, TRawVa
 
 /// Maps each key and converts each raw value to its final CSS text.
 ///
-/// The two steps are fused because their order is observable: upstream
-/// dashifies before calling `transformValue`, so the property name that decides
+/// The two steps are fused because their order is observable: the key is
+/// dashified before the value is transformed, so the property name that decides
 /// the unit suffix is the dashed one.
 pub(crate) fn obj_map_keys_and_transform_values(
   entries: &IndexMap<String, TRawValue>,

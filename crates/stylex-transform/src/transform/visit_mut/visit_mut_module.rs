@@ -164,9 +164,8 @@ impl ModuleBindingsCollector {
   /// spelled out syntactically in this module are recorded. A binding that
   /// *escapes* into a call (`const a = []; mutate(a);`) is not, because
   /// deopting on every identifier passed as an argument would disable
-  /// evaluation for nearly every StyleX module. This matches Babel StyleX,
-  /// which tracks `constantViolations` only; the escape case stays a known
-  /// unsoundness in both implementations.
+  /// evaluation for nearly every StyleX module. The escape case is therefore a
+  /// known unsoundness, accepted deliberately rather than overlooked.
   fn add_binding_write(&mut self, ident: &Ident) {
     self.binding_writes.insert(ident.to_id());
   }

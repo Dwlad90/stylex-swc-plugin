@@ -91,9 +91,9 @@ use stylex_types::{
 /// custom marker when one was passed, and the StyleX options otherwise.
 ///
 /// A marker that matches none of the shapes `when` understands is left to the
-/// fallback rather than rejected, matching the reference implementation — but
-/// since that silently produces CSS no marker class can match, it is worth a
-/// warning.
+/// fallback rather than rejected, so an unfamiliar marker never fails the
+/// build — but since the fallback silently produces CSS that no marker class
+/// can match, it is worth a warning.
 fn resolve_when_marker<'a>(
   when_fn_name: &str,
   marker: Option<&'a EvaluateResultValue>,

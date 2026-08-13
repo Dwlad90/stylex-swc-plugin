@@ -298,10 +298,9 @@ fn _evaluate(
       nodes::typescript_expression::evaluate(&ts_instantiation.expr, state, traversal_state, fns)
     },
     Expr::Seq(sec) => nodes::sequence_expression::evaluate(sec, state, traversal_state, fns),
-    // The upstream evaluator recognises only string, numeric, boolean and null
-    // literals; a BigInt has no case there and falls through to the
-    // unsupported-expression deopt, so it must not evaluate to a value here
-    // either.
+    // Only string, numeric, boolean and null literals evaluate to a value.
+    // A BigInt is none of those — it has no CSS spelling and no safe lossy
+    // conversion to one — so it deopts rather than evaluating.
     Expr::Lit(Lit::BigInt(_)) => {
       return deopt(
         normalized_path,

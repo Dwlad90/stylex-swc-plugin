@@ -34,24 +34,25 @@ pub fn hash_f64(value: f64) -> u64 {
 /// Runs murmur2 over the string's UTF-16 code units, each masked to its low
 /// byte.
 ///
-/// `murmurhash2_32_gc` derives its block count from `str.length` and reads each
-/// byte as `str.charCodeAt(i) & 0xff`, so the hash is defined over UTF-16 code
-/// units rather than UTF-8 bytes. The two encodings only coincide while the
+/// The block count comes from the string's length in UTF-16 code units, and
+/// each byte read is a code unit masked to its low byte, so the hash is defined
+/// over UTF-16 code units rather than UTF-8 bytes. The two encodings only
+/// coincide while the
 /// input is ASCII; past that, hashing UTF-8 bytes yields a different class name
 /// for byte-identical CSS — which is visible in `content` values, non-ASCII
 /// `font-family` names, unicode custom properties, and export ids derived from
 /// a non-ASCII file path.
 ///
-/// Masking each code unit to its low byte is lossy in exactly the same way the
-/// original is: `\u{1F389}` hashes as its two surrogate halves, `0xD83C` and
-/// `0xDF89`, contributing `0x3C` and `0x89`.
+/// Masking each code unit to its low byte is lossy by definition: `\u{1F389}`
+/// hashes as its two surrogate halves, `0xD83C` and `0xDF89`, contributing
+/// `0x3C` and `0x89`.
 ///
 /// Limitation: a `&str` cannot hold an *unpaired* surrogate, while a JS string
 /// literal can (`Str::value` is a `Wtf8Atom`). An input that reached this
 /// function has therefore already lost any lone surrogate, and no masking
-/// choice here can reproduce the byte babel would have contributed for it. Such
-/// literals are vanishingly rare in style values and are the one input class
-/// where the two compilers can still disagree.
+/// choice here can recover the code unit it would have contributed. Such
+/// literals are vanishingly rare in style values, and are the one input class
+/// whose hash is not fully determined by the authored source.
 #[inline]
 fn murmur2_code_units(value: &str) -> u32 {
   // Every ASCII scalar is a single UTF-16 code unit below `0x80`, so its low
@@ -130,7 +131,8 @@ fn to_radix(mut value: u32, digits: &[u8], buf: &mut [u8]) -> String {
 
 /// `u32::MAX` in base-36 is `"1z141z3"`, so 7 digits covers every input.
 ///
-/// Zero is `"0"`, matching `(0).toString(36)`.
+/// Zero is `"0"`, spelled explicitly because the digit loop would otherwise
+/// leave the buffer empty.
 fn to_base36(value: u32) -> String {
   if value == 0 {
     return "0".to_owned();
@@ -142,11 +144,11 @@ fn to_base36(value: u32) -> String {
 /// `62u32.pow(5) - 1` in base-62 is `"zzzzz"`, so 5 digits covers every value
 /// `create_short_hash` reduces into range.
 ///
-/// Zero is the empty string: `toBase62` loops `while (_num > 0)` and so returns
-/// `''` rather than `"0"`. That is reachable — the murmur2 value lands on a
-/// multiple of `62^5` for roughly one input in 916 million — and the empty
-/// string is what upstream emits, so it is reproduced here rather than
-/// corrected.
+/// Zero is the empty string: `to_radix` loops `while value > 0` and so yields
+/// `""` rather than `"0"`. That is reachable — the murmur2 value lands on a
+/// multiple of `62^5` for roughly one input in 916 million — and it is left
+/// uncorrected on purpose. This feeds class-name hashing, where changing the
+/// spelling of any digit silently renames every class it reaches.
 fn to_base62(value: u32) -> String {
   to_radix(value, BASE62_DIGITS, &mut [0u8; 5])
 }

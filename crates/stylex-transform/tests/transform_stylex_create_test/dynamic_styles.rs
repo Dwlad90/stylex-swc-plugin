@@ -222,6 +222,23 @@ stylex_test!(
   "#
 );
 
+// The module reported in issue #1251, verbatim. Neither variable sits on a
+// pseudo element, so both `@property` rules must declare `inherits: false`.
+stylex_test!(
+  default_and_hover_dynamic_values_generate_at_property_with_inherits_false,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      a: (backgroundColor, backgroundColorHover) => ({
+        backgroundColor: {
+          default: backgroundColor,
+          ':hover': backgroundColorHover,
+        },
+      }),
+    });
+  "#
+);
+
 stylex_test!(
   media_queries,
   r#"

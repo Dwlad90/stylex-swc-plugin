@@ -23,9 +23,11 @@ _Avoid_: allowed function, safe call, whitelisted callee
 
 **Coercion**:
 What ECMAScript says a value converts to when another type is asked for --
-`ToString` over an already-evaluated expression. Answers only what the language
-answers: a value with no compile-time form of that type gets `None`, and the
-caller [deopts](../stylex-transform/CONTEXT.md) rather than inventing one.
+`ToString` and `ToNumber` over an already-evaluated expression. Answers only
+what the language answers: a value with no compile-time form of that type gets
+`None`, and the caller [deopts](../stylex-transform/CONTEXT.md) rather than
+inventing one. `NaN` is not that case -- it is a value the language produces,
+and it is returned rather than refused.
 _Avoid_: conversion, cast, stringify, formatting
 
 **Mutation expression**:

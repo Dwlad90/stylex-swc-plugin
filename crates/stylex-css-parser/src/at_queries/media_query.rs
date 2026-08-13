@@ -619,6 +619,71 @@ impl DimensionIntervals {
   }
 }
 
+/// Whether distributing `rules` by DeMorgan can only ever yield contradictions,
+/// so the whole subtree can be dropped without expanding it.
+///
+/// Distribution never removes a constraint, it only adds one negated operand
+/// per `not (A and B)` clause. So if the numeric constraints already present
+/// contradict each other, every leaf below this point contradicts too — but
+/// only when every leaf is decided by that numeric merge. A rule the merge
+/// cannot read hands the list back unchanged instead of empty, which is a
+/// surviving branch, so this demands that each rule is either a numeric
+/// constraint itself or a two-operand `not (A and B)` whose operands both
+/// become one when negated.
+///
+/// Without this the ladder of disjoint breakpoints that authors actually write
+/// costs 2^n branch expansions: each negated neighbour splits the list in two
+/// and the dead half is only recognized after it has been expanded in full.
+fn distribution_is_hopeless(rules: &[MediaQueryRule]) -> bool {
+  /// Whether `not operand` is one of the numeric constraints the merge reads.
+  /// Only a bare pair qualifies: negating an operand that is itself a `not`
+  /// leaves a double negation the merge declines to read.
+  fn negation_is_numeric(operand: &MediaQueryRule) -> bool {
+    matches!(operand, MediaQueryRule::Pair(_))
+      && DIMENSIONS
+        .iter()
+        .any(|dim| dimension_constraint(operand, dim).is_some())
+  }
+
+  let mut dimensions = new_dimension_intervals();
+
+  for rule in rules {
+    let numeric = dimensions.iter_mut().find_map(|(dim, state)| {
+      dimension_constraint(rule, dim).map(|(bound, length, negated)| {
+        state.push(constraint_interval(bound, length, negated), &length.unit);
+      })
+    });
+
+    if numeric.is_some() {
+      continue;
+    }
+
+    // The only other rule that may appear is a clause distribution will turn
+    // into numeric constraints on both branches.
+    let distributable = matches!(
+      rule,
+      MediaQueryRule::Not(not_rule)
+        if matches!(
+          not_rule.rule.as_ref(),
+          MediaQueryRule::And(and_rules)
+            if and_rules.rules.len() == 2
+              && and_rules.rules.iter().all(negation_is_numeric)
+        )
+    );
+
+    if !distributable {
+      return false;
+    }
+  }
+
+  // Mixed units are handed back unchanged rather than merged, so they are not
+  // a contradiction this may act on.
+  !dimensions.iter().any(|(_, state)| state.unit_conflict)
+    && dimensions
+      .iter()
+      .any(|(_, state)| !state.intervals.is_empty() && state.intersect().is_none())
+}
+
 /// Merge the numeric width/height constraints of an `and` list into a single
 /// interval per dimension.
 ///
@@ -630,6 +695,11 @@ impl DimensionIntervals {
 /// into one `Vec` is the shape the canonicalization pipeline is specified
 /// against, so it stays.
 fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
+  // Every branch below this one contradicts, so none of them need building.
+  if distribution_is_hopeless(&rules) {
+    return Vec::new();
+  }
+
   let mut dimensions = new_dimension_intervals();
 
   // Handle DeMorgan's law: not (A and B) = (not A) or (not B)

@@ -2544,3 +2544,53 @@ fn nudged_bounds_keep_their_authored_precision() {
     "@media ((min-width: 100px) and (max-width: 199.99px)) or (min-width: 300.01px)"
   );
 }
+
+// ---------------------------------------------------------------------------
+// DeMorgan distribution pruning
+// ---------------------------------------------------------------------------
+
+/// Every `not (A and B)` clause splits the rule list in two, so a query
+/// carrying one negation per neighbouring breakpoint costs 2^n expansions
+/// unless dead branches are recognized before they are built. The ladder below
+/// is what the last-media-query-wins transform hands to `normalize` for the
+/// first of a dozen disjoint breakpoints; it has to stay cheap, and it has to
+/// still canonicalize to the bare range the negations do not touch.
+#[test]
+fn a_ladder_of_negated_disjoint_ranges_collapses_to_its_own_range() {
+  let mut query = String::from("@media (min-width: 100px) and (max-width: 200px)");
+  for i in 0..12 {
+    let lower = 300 + i * 200;
+    query.push_str(&format!(
+      " and (not ((min-width: {lower}px) and (max-width: {}px)))",
+      lower + 100
+    ));
+  }
+
+  let parsed = MediaQuery::parser().parse_to_end(&query).unwrap();
+
+  assert_eq!(
+    parsed.to_string(),
+    "@media (min-width: 100px) and (max-width: 200px)"
+  );
+}
+
+/// A branch whose numeric constraints already contradict is dropped, but only
+/// when the merge decides every leaf below it. A rule the merge cannot read —
+/// `(orientation: portrait)` here — makes it hand the list back unchanged
+/// instead, so that branch survives and must not be pruned away.
+#[test]
+fn a_non_numeric_rule_keeps_a_numerically_dead_branch_alive() {
+  let parsed = MediaQuery::parser()
+    .parse_to_end(
+      "@media (min-width: 100px) and (max-width: 200px) and (orientation: portrait) \
+       and (not ((min-width: 50px) and (max-width: 300px)))",
+    )
+    .unwrap();
+
+  assert_eq!(
+    parsed.to_string(),
+    "@media ((min-width: 100px) and (max-width: 200px) and (orientation: portrait) \
+     and (not (min-width: 50px))) or ((min-width: 100px) and (max-width: 200px) \
+     and (orientation: portrait) and (not (max-width: 300px)))"
+  );
+}

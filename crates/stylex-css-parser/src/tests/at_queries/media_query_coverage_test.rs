@@ -21,13 +21,27 @@ fn normalize_not_of_not_all_returns_all() {
   }
 }
 
+/// `(min-width: 1000px) and (max-width: 500px)` — an unsatisfiable range that
+/// makes `merge_intervals_for_and` return an empty vec.
+fn contradictory_and() -> MediaQueryRule {
+  let min_rule = MediaQueryRule::Pair(MediaRulePair::new(
+    "min-width",
+    MediaRuleValue::Length(crate::css_types::Length::new(1000.0, "px".to_string())),
+  ));
+  let max_rule = MediaQueryRule::Pair(MediaRulePair::new(
+    "max-width",
+    MediaRuleValue::Length(crate::css_types::Length::new(500.0, "px".to_string())),
+  ));
+  MediaQueryRule::And(MediaAndRules::new(vec![min_rule, max_rule]))
+}
+
 #[test]
-fn normalize_not_of_and_single_not_all_returns_all() {
-  // Builds: Not(And([MediaKeyword("all", not=true)]))
-  // normalize() arm and returns MediaKeyword("all", not=false)
-  let keyword = MediaQueryRule::MediaKeyword(MediaKeyword::new("all", true, false));
-  let and_rule = MediaQueryRule::And(MediaAndRules::new(vec![keyword]));
-  let not_rule = MediaQueryRule::Not(MediaNotRule::new(and_rule));
+fn normalize_not_of_contradictory_and_returns_all() {
+  // The operand normalizes to the bare `not all` keyword, which the `not` arm
+  // flips back to `all`. Upstream snapshots this same top-level bare keyword
+  // for its own negated contradiction, `@media not ((min-width: 500px) and
+  // (max-width: 600px) and (max-width: 400px))`.
+  let not_rule = MediaQueryRule::Not(MediaNotRule::new(contradictory_and()));
   let normalized = MediaQuery::normalize(not_rule);
   match normalized {
     MediaQueryRule::MediaKeyword(kw) => {
@@ -59,41 +73,25 @@ fn normalize_and_with_only_and_children_flattens_and_returns_and() {
 }
 
 #[test]
-fn normalize_and_with_empty_result_after_merge_returns_and_with_not_all() {
-  // Contradictory min-width/max-width that cause merge to return empty vec
-  // Parsed: (min-width: 1000px) and (max-width: 500px) → contradiction → empty merged
-  // normalize() hits the `merged.is_empty()` branch
-  let min_rule = MediaQueryRule::Pair(MediaRulePair::new(
-    "min-width",
-    MediaRuleValue::Length(crate::css_types::Length::new(1000.0, "px".to_string())),
-  ));
-  let max_rule = MediaQueryRule::Pair(MediaRulePair::new(
-    "max-width",
-    MediaRuleValue::Length(crate::css_types::Length::new(500.0, "px".to_string())),
-  ));
-  let and_rule = MediaQueryRule::And(MediaAndRules::new(vec![min_rule, max_rule]));
-  let normalized = MediaQuery::normalize(and_rule);
-  // Contradiction returns And([MediaKeyword(not all)])
+fn normalize_and_with_empty_result_after_merge_returns_not_all_keyword() {
+  // The merge returns an empty vec, so normalize() hits its `merged.is_empty()`
+  // branch.
+  let normalized = MediaQuery::normalize(contradictory_and());
+  // Contradiction returns the bare MediaKeyword(not all)
   match normalized {
-    MediaQueryRule::And(a) => {
-      assert_eq!(a.rules.len(), 1);
-      match &a.rules[0] {
-        MediaQueryRule::MediaKeyword(kw) => {
-          assert_eq!(kw.key, "all");
-          assert!(kw.not);
-        },
-        other => panic!("Expected MediaKeyword(not all), got {:?}", other),
-      }
+    MediaQueryRule::MediaKeyword(kw) => {
+      assert_eq!(kw.key, "all");
+      assert!(kw.not);
     },
-    other => panic!("Expected And([not all]), got {:?}", other),
+    other => panic!("Expected MediaKeyword(not all), got {:?}", other),
   }
 }
 
 #[test]
-fn normalize_and_empty_flattened_returns_not_all_keyword() {
-  // Construct AND([]) which produces is_empty()
-  // We need to trigger the empty AND path. An AND with inner-ANDs that yield nothing.
-  // Actually the only path to flattened.is_empty() is if and_rules.rules itself is empty.
+fn normalize_empty_and_returns_not_all_keyword() {
+  // Construct AND([]). Like upstream, there is no early return for the empty
+  // flattened list: the merge runs, returns empty, and the `merged.is_empty()`
+  // branch yields the bare `not all` keyword.
   let and_rule = MediaQueryRule::And(MediaAndRules::new(vec![]));
   let normalized = MediaQuery::normalize(and_rule);
   match normalized {

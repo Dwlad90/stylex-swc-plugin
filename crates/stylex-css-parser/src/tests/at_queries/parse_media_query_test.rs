@@ -2936,21 +2936,13 @@ mod style_value_parser_at_queries {
 
         // This should result in an impossible constraint (always false)
         match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
-            assert_eq!(and_rules.r#type, "and");
-            assert_eq!(and_rules.rules.len(), 1);
-
-            match &and_rules.rules[0] {
-              crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
-                assert_eq!(keyword.r#type, "media-keyword");
-                assert_eq!(keyword.key, "all");
-                assert!(keyword.not);
-                assert!(!keyword.only);
-              },
-              _ => stylex_panic!("Expected MediaKeyword rule inside And"),
-            }
+          crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
+            assert_eq!(keyword.r#type, "media-keyword");
+            assert_eq!(keyword.key, "all");
+            assert!(keyword.not);
+            assert!(!keyword.only);
           },
-          _ => stylex_panic!("Expected And rule"),
+          _ => stylex_panic!("Expected MediaKeyword rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media not all");
@@ -3174,21 +3166,13 @@ mod style_value_parser_at_queries {
         // This creates a logical contradiction: width ≤ 200px AND width > 300px
         // The result should be an impossible constraint (not all)
         match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
-            assert_eq!(and_rules.r#type, "and");
-            assert_eq!(and_rules.rules.len(), 1);
-
-            match &and_rules.rules[0] {
-              crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
-                assert_eq!(keyword.r#type, "media-keyword");
-                assert_eq!(keyword.key, "all");
-                assert!(keyword.not);
-                assert!(!keyword.only);
-              },
-              _ => stylex_panic!("Expected MediaKeyword rule inside And"),
-            }
+          crate::at_queries::media_query::MediaQueryRule::MediaKeyword(keyword) => {
+            assert_eq!(keyword.r#type, "media-keyword");
+            assert_eq!(keyword.key, "all");
+            assert!(keyword.not);
+            assert!(!keyword.only);
           },
-          _ => stylex_panic!("Expected And rule"),
+          _ => stylex_panic!("Expected MediaKeyword rule"),
         }
 
         assert_eq!(parsed.to_string(), "@media not all");

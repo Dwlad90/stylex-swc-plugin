@@ -280,15 +280,9 @@ impl MediaQuery {
           }
         }
 
-        if flattened.is_empty() {
-          return MediaQueryRule::MediaKeyword(MediaKeyword::new("all".to_string(), true, false));
-        }
-
         let merged = merge_intervals_for_and(flattened);
         if merged.is_empty() {
-          return MediaQueryRule::And(MediaAndRules::new(vec![MediaQueryRule::MediaKeyword(
-            MediaKeyword::new("all".to_string(), true, false),
-          )]));
+          return MediaQueryRule::MediaKeyword(MediaKeyword::new("all".to_string(), true, false));
         }
         MediaQueryRule::And(MediaAndRules::new(merged))
       },
@@ -310,18 +304,6 @@ impl MediaQuery {
               false,
               false,
             ));
-          },
-          MediaQueryRule::And(ref and_rules) if and_rules.rules.len() == 1 => {
-            if let MediaQueryRule::MediaKeyword(keyword) = &and_rules.rules[0]
-              && keyword.key == "all"
-              && keyword.not
-            {
-              return MediaQueryRule::MediaKeyword(MediaKeyword::new(
-                "all".to_string(),
-                false,
-                false,
-              ));
-            }
           },
           MediaQueryRule::Not(inner_not) => {
             return Self::normalize(inner_not.rule.as_ref().clone());

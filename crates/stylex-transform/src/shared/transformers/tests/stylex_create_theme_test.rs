@@ -14,6 +14,7 @@ mod stylex_create_theme {
     create_key_value_prop, create_nested_object_prop, create_object_expression,
     create_string_key_value_prop,
   };
+  use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
   use stylex_types::structures::injectable_style::InjectableStyle;
 
   fn default_vars_factory(args: &[(&str, &str)]) -> EvaluateResultValue {
@@ -517,5 +518,53 @@ mod stylex_create_theme {
         )
       ])
     )
+  }
+
+  /// `0.4 + 2 / 10` is `0.6000000000000001`, not `0.6`. Rounding it to `0.6`
+  /// would tie the rule with a var group nested five at-rules deep, whose
+  /// priority is exactly `0.6`, and a tie is resolved by content rather than by
+  /// priority — which can order the override before the rule it overrides.
+  ///
+  /// Compared bitwise because `0.6000000000000001` and `0.6` are adjacent
+  /// doubles: an `assert_eq!` on a rounded value would still read as passing.
+  #[test]
+  fn keeps_the_single_at_rule_priority_unrounded() {
+    let export_id = "TestTheme.stylex.js//buttonTheme";
+
+    let mut default_vars = default_vars_factory(&[
+      ("__varGroupHash__", export_id),
+      ("bgColor", "var(--xgck17p)"),
+    ]);
+
+    let created_theme = style_object_factory(
+      &[(
+        "bgColor",
+        &[("default", "blue"), ("@media (min-width: 1024px)", "green")],
+        &[],
+      )],
+      &[],
+    );
+
+    let (_class_name_output, css_output) = stylex_create_theme(
+      &mut default_vars,
+      &created_theme,
+      &mut StateManager::default(),
+      &mut IndexMap::default(),
+    );
+
+    let at_rule_priority = css_output
+      .values()
+      .filter_map(|style| match &**style {
+        InjectableStyleKind::Regular(style) => style.priority,
+        _ => None,
+      })
+      .find(|priority| *priority != 0.5)
+      .expect("an at-rule rule is injected alongside the default one");
+
+    assert_eq!(
+      at_rule_priority.to_bits(),
+      0.6000000000000001_f64.to_bits(),
+      "expected 0.6000000000000001, got {at_rule_priority}"
+    );
   }
 }

@@ -307,3 +307,35 @@ test('transform: glob pattern with curly braces', () => {
   expect(resultJs.code, '.js should not match include').toBe(code);
   expect(resultJs.metadata).toStrictEqual({ stylex: [] });
 });
+
+// `0.4 + 2 / 10` is `0.6000000000000001`, not `0.6`. Rounding it to `0.6` would
+// tie the rule with a var group nested five at-rules deep, whose priority is
+// exactly `0.6`; ties are then resolved by rule content rather than by
+// priority, which can order an override before the rule it overrides.
+//
+// Asserted here as well as in Rust because the priority crosses the napi
+// boundary as a double, and nothing else in this suite reads it.
+test('transform: at-rule priority reaches metadata unrounded', () => {
+  const code = `
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({ accent: 'red' });
+    export const theme = stylex.createTheme(vars, {
+      accent: {
+        default: 'blue',
+        '@media (min-width: 1024px)': 'green',
+      },
+    });
+  `;
+
+  const result = transform(path.join(cwd, 'theme.stylex.js'), code, {
+    dev: false,
+    treeshakeCompensation: true,
+    unstable_moduleResolution: { type: 'commonJS', rootDir: cwd },
+  });
+
+  const priorities = result.metadata.stylex.map(([, , priority]) => priority);
+
+  expect(priorities, 'default override then the @media one').toStrictEqual([
+    0.1, 0.5, 0.6000000000000001,
+  ]);
+});

@@ -2,7 +2,7 @@ use crate::shared::structures::state_manager::StateManager;
 use stylex_constants::constants::common::{CSS_CONTENT_FUNCTIONS, CSS_CONTENT_KEYWORDS};
 use stylex_structures::raw_value::TRawValue;
 use stylex_types::traits::StyleOptions;
-use stylex_utils::{math::round_to_decimal_places, number::to_js_string};
+use stylex_utils::{math::round_f64, number::to_js_string};
 
 // Re-export moved functions from stylex_css so existing callers keep compiling.
 #[allow(unused_imports)]
@@ -27,7 +27,7 @@ pub(crate) fn transform_value(key: &str, raw_value: &TRawValue, state: &StateMan
   let value = match raw_value.as_number() {
     Some(number) => format!(
       "{0}{1}",
-      to_js_string(round_to_decimal_places(number, 4)),
+      to_js_string(round_f64(number, 4)),
       get_number_suffix(key)
     ),
     None => raw_value.as_css_text().into_owned(),

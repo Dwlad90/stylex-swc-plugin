@@ -325,9 +325,11 @@ fn get_pseudo_class_priority(key: &str) -> Option<f64> {
     return Some(40.0 + pseudo_base(pseudo.as_str()));
   }
 
-  // Pseudo elements are priced by `get_pseudo_element_priority`, which runs
-  // first, so a colon here is a pseudo class by elimination — the predicate
-  // only makes that explicit.
+  // This function prices pseudo classes only; pseudo elements are priced by
+  // `get_pseudo_element_priority`. The bare colon this replaced also matched
+  // `::before`, which was unreachable because `get_priority` probes elements
+  // first — so the narrowing changes no output, and it holds whether or not
+  // that ordering survives.
   if is_pseudo_class(key) {
     let prop: &str = key.split('(').next().unwrap_or(key);
 
@@ -767,6 +769,10 @@ pub fn normalize_css_property_value(
     .any(|css_fnc| contains_css_function_call(css_property_value, css_fnc))
     || contains_relative_color_function(css_property_value);
 
+  // The single colon is deliberate: this only decides how `build_css_rule`
+  // spells the error text — a selector wrapping its value, or a declaration
+  // inside `* { ... }`. Both kinds of pseudo are selectors, so narrowing this
+  // to `::` would print every pseudo class as a declaration.
   let is_pseudo = is_pseudo_selector(css_property);
   let structure = scan_value_structure(css_property_value);
 

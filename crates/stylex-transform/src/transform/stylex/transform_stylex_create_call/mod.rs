@@ -273,7 +273,7 @@ where
             .any(|segment| segment.starts_with("::"));
 
           injected_inherit_styles.insert(
-            variable_name.clone().into(),
+            variable_name.as_str().into(),
             InjectableStyle::regular(
               create_property_rule(variable_name, is_pseudo_element),
               Some(0f64),

@@ -94,6 +94,8 @@ impl StylesPreRule {
   fn get_pseudos(key_path: &Option<Vec<String>>) -> Vec<String> {
     let mut unsorted_pseudos = key_path.clone().unwrap_or_default();
 
+    // The single colon is deliberate: selector assembly needs both kinds, so
+    // narrowing this to `::` would drop every pseudo class on the floor.
     unsorted_pseudos = unsorted_pseudos
       .iter()
       .filter(|key| is_pseudo_selector(key) || key.starts_with("["))

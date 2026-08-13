@@ -48,8 +48,10 @@ pub(crate) fn construct_css_variables_string(
 
     result.insert(
       format!("{}{}", theme_name_hash, suffix).into(),
-      // Deliberately unrounded, as in `stylex_create_theme`: the exact value is
-      // what keeps a var group apart from a theme override of the same depth.
+      // Unrounded for the same reason as in `stylex_create_theme`, though every
+      // `n / 10.0` here is already exact at one decimal place, so no value moves.
+      // The exactness matters downstream: five at-rules deep this is precisely
+      // `0.6`, which a theme override carrying one at-rule must not tie with.
       InjectableStyle::regular(ltr, Some(priority_for_at_rule(at_rule) / 10.0)),
     );
   }

@@ -59,8 +59,9 @@ _Avoid_: fallback class, base marker
 A selector segment carrying a `::` prefix — `::before`, `::thumb` — as against
 the single colon of a pseudo class. The test is `is_pseudo_element`
 (`utils::pseudo`); every site that classifies a segment calls it rather than
-spelling the prefix out, so the rule moves in one place.
-_Avoid_: pseudo selector, double-colon check
+spelling the prefix out, so the rule moves in one place. Not a synonym for
+pseudo selector, which is the wider term covering both kinds.
+_Avoid_: double-colon check
 
 **Pseudo class**:
 A selector segment carrying exactly one leading colon — `:hover`,
@@ -73,7 +74,7 @@ A key opening with a colon, whichever kind of pseudo follows — the test
 (`is_pseudo_selector`) that a key introduces a nested selector rather than a
 declaration. Distinct from pseudo class: `::before` is a pseudo selector and
 not a pseudo class.
-_Avoid_: nested key, conditional key
+_Avoid_: nested key, colon key
 
 **Nested CSS rule**:
 The final rule string, built by wrapping a declaration in its at-rules and

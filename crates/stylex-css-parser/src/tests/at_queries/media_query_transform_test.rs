@@ -1,5 +1,4 @@
 //! Media query transform tests.
-//! Media query transform tests for CSS-in-JS functionality
 
 use crate::at_queries::media_query_transform::last_media_query_wins_transform;
 use serde_json::{Value, json};
@@ -1236,10 +1235,10 @@ mod media_query_transformer {
   }
 }
 
-/// Upstream deletes and re-adds every `@media` key, which in JS moves it to the
-/// end of the object — including when there is only one, where nothing else
-/// about the key changes. The resulting order reaches the emitted CSS, so it
-/// has to be reproduced here.
+/// Every `@media` key is deleted and re-added, which moves it to the end of the
+/// object — including when there is only one, where nothing else about the key
+/// changes. The resulting order reaches the emitted CSS, so it is asserted
+/// here.
 #[test]
 fn single_media_query_moves_after_the_default() {
   let props = vec![create_key_value_prop(

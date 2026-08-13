@@ -1,8 +1,8 @@
 /*!
 Media query transformation functionality.
 
-Implements the "last media query wins" transformation logic for CSS-in-JS.
-This ensures proper specificity handling when multiple media queries target the same properties.
+Implements the "last media query wins" transformation logic. This ensures proper
+specificity handling when multiple media queries target the same properties.
 
 This implementation provides media query transformation:
 1. DFS traversal of the style object
@@ -27,7 +27,7 @@ fn key_value_to_str(key_value: &KeyValueProp) -> String {
   }
 }
 
-/// Main entry point - equivalent to lastMediaQueryWinsTransform in JS
+/// Main entry point for the last-media-query-wins transform
 pub fn last_media_query_wins_transform(styles: &[KeyValueProp]) -> Vec<KeyValueProp> {
   dfs_process_queries_with_depth(styles, 0)
 }
@@ -45,7 +45,7 @@ fn create_object_from_key_values(key_values: Vec<KeyValueProp>) -> ObjectLit {
   }
 }
 
-/// DFS traversal with depth tracking - matches JS dfsProcessQueries exactly
+/// DFS traversal with depth tracking
 fn dfs_process_queries_with_depth(obj: &[KeyValueProp], depth: u32) -> Vec<KeyValueProp> {
   let mut result = Vec::new();
 
@@ -99,7 +99,7 @@ fn dfs_process_queries_with_depth(obj: &[KeyValueProp], depth: u32) -> Vec<KeyVa
   }
 }
 
-/// Transform media queries in the result object - matches JS logic exactly
+/// Transform media queries in the result object
 fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueProp> {
   // Check if we have any media queries
   let has_media_queries = result.iter().any(|kv| {
@@ -139,8 +139,8 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     }
   }
 
-  // Build negations array - JS logic: for each media query, collect all later
-  // queries in reverse declaration order.
+  // Build negations array: for each media query, collect all later queries in
+  // reverse declaration order.
   let mut accumulated_negations = vec![Vec::new(); parsed_media_pairs.len()];
   let mut later_negations = Vec::new();
   for i in (0..parsed_media_pairs.len()).rev() {
@@ -179,8 +179,7 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
   final_result
 }
 
-/// Combine media query with negations - matches JS
-/// combineMediaQueryWithNegations exactly
+/// Combine a media query with the negations of every query that follows it
 fn combine_media_query_with_negations(
   current: MediaQuery,
   negations: Vec<MediaQuery>,
@@ -189,8 +188,7 @@ fn combine_media_query_with_negations(
     return current;
   }
 
-  // Create NOT rules from negations - matches JS: negations.map((mq) => ({ type:
-  // 'not', rule: mq.queries }))
+  // Wrap each negated query in a `not` rule
   let not_rules: Vec<MediaQueryRule> = negations
     .into_iter()
     .map(|mq| MediaQueryRule::Not(MediaNotRule::new(mq.queries)))

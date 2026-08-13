@@ -38,9 +38,9 @@ fn contradictory_and() -> MediaQueryRule {
 #[test]
 fn normalize_not_of_contradictory_and_returns_all() {
   // The operand normalizes to the bare `not all` keyword, which the `not` arm
-  // flips back to `all`. Upstream snapshots this same top-level bare keyword
-  // for its own negated contradiction, `@media not ((min-width: 500px) and
-  // (max-width: 600px) and (max-width: 400px))`.
+  // flips back to `all`. A negated contradiction such as `@media not
+  // ((min-width: 500px) and (max-width: 600px) and (max-width: 400px))`
+  // canonicalizes to this same top-level bare keyword.
   let not_rule = MediaQueryRule::Not(MediaNotRule::new(contradictory_and()));
   let normalized = MediaQuery::normalize(not_rule);
   match normalized {
@@ -89,9 +89,9 @@ fn normalize_and_with_empty_result_after_merge_returns_not_all_keyword() {
 
 #[test]
 fn normalize_empty_and_returns_not_all_keyword() {
-  // Construct AND([]). Like upstream, there is no early return for the empty
-  // flattened list: the merge runs, returns empty, and the `merged.is_empty()`
-  // branch yields the bare `not all` keyword.
+  // Construct AND([]). There is no early return for the empty flattened list:
+  // the merge runs, returns empty, and the `merged.is_empty()` branch yields
+  // the bare `not all` keyword.
   let and_rule = MediaQueryRule::And(MediaAndRules::new(vec![]));
   let normalized = MediaQuery::normalize(and_rule);
   match normalized {

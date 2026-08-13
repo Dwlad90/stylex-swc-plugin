@@ -531,8 +531,7 @@ stylex_test!(
 #[test]
 #[ignore]
 fn stylex_types_functions_todo() {
-  // Placeholder for describe.skip('function value: stylex.types.*()') in JS
-  // tests.
+  // Placeholder for `function value: stylex.types.*()` coverage.
 }
 
 stylex_test!(

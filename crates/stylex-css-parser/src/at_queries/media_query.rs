@@ -582,7 +582,7 @@ impl DimensionIntervals {
 }
 
 /// Merge the numeric width/height constraints of an `and` list into a single
-/// interval per dimension, mirroring upstream `mergeIntervalsForAnd`.
+/// interval per dimension.
 ///
 /// An empty result means the constraints contradict each other; the caller
 /// turns that into `not all`.

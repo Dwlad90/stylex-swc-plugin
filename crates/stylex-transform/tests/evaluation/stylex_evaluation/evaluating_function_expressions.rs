@@ -305,6 +305,25 @@ stylex_test_transform!(
   "#
 );
 
+// A negative tie rounds towards positive infinity, so `-1.5` gives `-1`, not the
+// `-2` that rounding away from zero would produce.
+stylex_test_transform!(
+  math_round_negative,
+  |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
+  r#"
+    const x = Math.round(-1.5);
+    const x = Math.round(-2.5);
+    const x = Math.round(-2.51);
+    const x = Math.round(-2.49);
+  "#,
+  r#"
+    -1;
+    -2;
+    -3;
+    -2;
+  "#
+);
+
 stylex_test_transform!(
   math_ceil,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),

@@ -1,5 +1,6 @@
 use super::super::*;
 use stylex_ast::ast::convertors::get_key_values_from_object;
+use stylex_utils::math::js_math_round;
 use swc_core::ecma::ast::CallExpr;
 
 pub(in super::super) fn evaluate(
@@ -1147,7 +1148,9 @@ pub(in super::super) fn evaluate(
               });
 
               let result = match func.as_ref() {
-                CallbackType::Math(MathJS::Round) => num.round(),
+                // Not `f64::round`: it breaks ties away from zero, so it answers
+                // `-2` where `Math.round(-1.5)` is `-1`.
+                CallbackType::Math(MathJS::Round) => js_math_round(num),
                 CallbackType::Math(MathJS::Ceil) => num.ceil(),
                 CallbackType::Math(MathJS::Floor) => num.floor(),
                 _ => stylex_unreachable!("Invalid function type"),

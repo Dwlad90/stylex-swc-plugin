@@ -16,7 +16,9 @@ use crate::shared::{
   utils::{
     ast::convertors::{convert_expr_to_str, convert_key_value_to_str},
     common::get_css_value,
-    core::define_vars_utils::{collect_vars_by_at_rules, priority_for_at_rule, wrap_with_at_rules},
+    core::define_vars_utils::{
+      collect_vars_by_at_rules, theme_override_priority, wrap_with_at_rules,
+    },
     validators::validate_theme_variables,
   },
 };
@@ -167,12 +169,7 @@ pub(crate) fn stylex_create_theme(
     };
     let rule = format!(".{override_class_name}, .{override_class_name}:root{{{decls}}}");
 
-    // Kept unrounded: one at-rule gives `0.6000000000000001`, and rounding that
-    // to `0.6` would tie it with a var group nested five at-rules deep, whose
-    // priority is exactly `0.6`. The stylesheet sort compares priorities for
-    // equality, so a tie falls through to the by-content tie-break and can
-    // place the override before the rule it is meant to override.
-    let priority = 0.4 + priority_for_at_rule(at_rule) / 10.0;
+    let priority = theme_override_priority(at_rule);
 
     let (suffix, ltr) = if at_rule == "default" {
       (String::new(), rule)

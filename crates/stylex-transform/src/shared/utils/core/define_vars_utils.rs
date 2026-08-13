@@ -48,11 +48,7 @@ pub(crate) fn construct_css_variables_string(
 
     result.insert(
       format!("{}{}", theme_name_hash, suffix).into(),
-      // Unrounded for the same reason as in `stylex_create_theme`, though every
-      // `n / 10.0` here is already exact at one decimal place, so no value moves.
-      // The exactness matters downstream: five at-rules deep this is precisely
-      // `0.6`, which a theme override carrying one at-rule must not tie with.
-      InjectableStyle::regular(ltr, Some(priority_for_at_rule(at_rule) / 10.0)),
+      InjectableStyle::regular(ltr, Some(var_group_priority(at_rule))),
     );
   }
 
@@ -177,4 +173,29 @@ pub(crate) fn priority_for_at_rule(at_rule: &str) -> f64 {
   } else {
     1.0 + at_rule.split(SPLIT_TOKEN).count() as f64
   }
+}
+
+/// Priority of a var group's rule at `at_rule`.
+///
+/// Neither this nor [`theme_override_priority`] rounds its result, and neither
+/// may start to. Rule priorities are compared for equality when the stylesheet
+/// is sorted, and a tie hands the ordering to a by-content tie-break — so two
+/// rules that should be ordered by priority must not collide.
+///
+/// The pair that makes this concrete: five at-rules deep this function returns
+/// exactly `0.6`, while [`theme_override_priority`] returns
+/// `0.6000000000000001` for a single at-rule. Rounding either to one decimal
+/// place ties them, and the override can then sort ahead of the rule it
+/// overrides — both declare the same custom property at equal specificity, so
+/// the order decides the winner. The same collision recurs one rung up, at
+/// `1.2000000000000002` against a group nested nine deep.
+pub(crate) fn var_group_priority(at_rule: &str) -> f64 {
+  priority_for_at_rule(at_rule) / 10.0
+}
+
+/// Priority of a theme override's rule at `at_rule`.
+///
+/// See [`var_group_priority`] for why this result is never rounded.
+pub(crate) fn theme_override_priority(at_rule: &str) -> f64 {
+  0.4 + priority_for_at_rule(at_rule) / 10.0
 }

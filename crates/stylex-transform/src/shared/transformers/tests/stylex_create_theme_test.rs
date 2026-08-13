@@ -4,7 +4,9 @@ mod stylex_create_theme {
   use indexmap::IndexMap;
   use swc_core::ecma::ast::PropOrSpread;
 
-  use crate::shared::utils::core::define_vars_utils::priority_for_at_rule;
+  use crate::shared::utils::core::define_vars_utils::{
+    theme_override_priority, var_group_priority,
+  };
   use crate::shared::{
     enums::data_structures::evaluate_result_value::EvaluateResultValue,
     structures::{state_manager::StateManager, types::InjectableStylesMap},
@@ -590,13 +592,13 @@ mod stylex_create_theme {
       + SPLIT_TOKEN
       + "@media e";
 
-    let var_group_priority = priority_for_at_rule(&five_deep) / 10.0;
-    let override_priority = 0.4 + priority_for_at_rule("@media (min-width: 1024px)") / 10.0;
+    let group = var_group_priority(&five_deep);
+    let override_rule = theme_override_priority("@media (min-width: 1024px)");
 
-    assert_eq!(var_group_priority.to_bits(), 0.6_f64.to_bits());
+    assert_eq!(group.to_bits(), 0.6_f64.to_bits());
     assert_ne!(
-      override_priority.to_bits(),
-      var_group_priority.to_bits(),
+      override_rule.to_bits(),
+      group.to_bits(),
       "a tie here would hand rule order to the by-content tie-break"
     );
   }

@@ -35,7 +35,8 @@ _Avoid_: bailout, failure, fallback, error
 
 **Callable global**:
 A JavaScript global the evaluator folds when the global _itself_ is called —
-`String(x)`. A [valid callee](../stylex-js/CONTEXT.md) is the wider set, because
+`String(x)`, `Number(x)`. A [valid callee](../stylex-js/CONTEXT.md) is the wider
+set, because
 it also admits globals that only contribute methods: `Math` is a valid callee so
 that `Math.round(1.5)` folds, and is not a callable global, so a bare `Math(x)`
 is rejected rather than folded. Only a global with no binding in scope is one at

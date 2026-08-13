@@ -62,7 +62,7 @@ use stylex_ast::ast::factories::{
 use stylex_constants::constants::{
   evaluation_errors::{
     ARGUMENT_WITHOUT_VALUE, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, OBJECT_METHOD,
-    PATH_WITHOUT_NODE, UNCOERCIBLE_VALUE, UNEXPECTED_MEMBER_LOOKUP, unsupported_expression,
+    PATH_WITHOUT_NODE, UNEXPECTED_MEMBER_LOOKUP, uncoercible_value, unsupported_expression,
     unsupported_operator,
   },
   messages::{

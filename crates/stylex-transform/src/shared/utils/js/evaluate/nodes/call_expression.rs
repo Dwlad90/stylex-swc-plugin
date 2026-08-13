@@ -33,12 +33,27 @@ fn evaluate_callable_global(
       let coerced = match args.first() {
         Some(arg) => match evaluate_result_to_js_string(arg) {
           Some(coerced) => coerced,
-          None => return deopt(path, state, UNCOERCIBLE_VALUE),
+          None => return deopt(path, state, &uncoercible_value("String")),
         },
+        // `String()` is the empty string, not `String(undefined)`.
         None => String::new(),
       };
 
       Some(EvaluateResultValue::Expr(create_string_expr(&coerced)))
+    },
+    CallableGlobalJS::Number => {
+      let coerced = match args.first() {
+        Some(arg) => match evaluate_result_to_js_number(arg) {
+          // `NaN` arrives here as a value and flows into the declaration, the
+          // same as upstream: `Number('10px')` writes `NaN` into the rule.
+          Some(coerced) => coerced,
+          None => return deopt(path, state, &uncoercible_value("Number")),
+        },
+        // `Number()` is zero, not `Number(undefined)`.
+        None => 0.0,
+      };
+
+      Some(EvaluateResultValue::Expr(create_number_expr(coerced)))
     },
   }
 }

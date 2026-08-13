@@ -341,6 +341,8 @@ stylex_test!(
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
       root: { opacity: Number(() => 1) },
+      inAnArray: { opacity: Number([() => 1]) },
+      besideANumber: { opacity: Number([() => 1, 2]) },
     });
   "#
 );

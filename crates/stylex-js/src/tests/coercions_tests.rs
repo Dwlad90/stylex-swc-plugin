@@ -391,6 +391,16 @@ fn a_function_coerces_to_not_a_number() {
   // Its source text is unknown but irrelevant: no source text is a numeric
   // literal, so the number is `NaN` either way. `ToString` has no such luck.
   assert!(matches!(to_js_number(&arrow_expr()), Some(value) if value.is_nan()));
+  // Which means a function inside an array does not make the array's number
+  // unknowable either — the join is not a numeric literal whatever it holds.
+  assert!(matches!(
+    to_js_number(&array_expr(vec![Some(arrow_expr())])),
+    Some(value) if value.is_nan()
+  ));
+  assert!(matches!(
+    to_js_number(&array_expr(vec![Some(arrow_expr()), Some(num_expr(2.0))])),
+    Some(value) if value.is_nan()
+  ));
 }
 
 #[test]

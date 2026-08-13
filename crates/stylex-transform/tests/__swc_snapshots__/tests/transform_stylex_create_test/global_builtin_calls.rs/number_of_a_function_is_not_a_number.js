@@ -9,5 +9,13 @@ export const styles = {
     root: {
         kSiTet: "x1yfwku",
         $$css: true
+    },
+    inAnArray: {
+        kSiTet: "x1yfwku",
+        $$css: true
+    },
+    besideANumber: {
+        kSiTet: "x1yfwku",
+        $$css: true
     }
 };

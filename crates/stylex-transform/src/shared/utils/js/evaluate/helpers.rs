@@ -145,8 +145,33 @@ pub(super) fn evaluate_func_call_args(
 /// `Object.prototype` default; the ones that stand for a function have none,
 /// because `String(fn)` is its source text and the evaluator keeps no source.
 pub(super) fn evaluate_result_to_js_string(value: &EvaluateResultValue) -> Option<String> {
+  evaluate_result_to_string_of(value, None)
+}
+
+/// `ToNumber` over an evaluated value, bridging the evaluator's own value
+/// representation to the ECMAScript coercion.
+///
+/// Everything that is not already a number reaches its number through its
+/// primitive string form, so this refuses where the string coercion does —
+/// except on the functions, which have a number even though they have no
+/// string, whether they stand alone or sit inside an array.
+pub(super) fn evaluate_result_to_js_number(value: &EvaluateResultValue) -> Option<f64> {
   match value {
-    EvaluateResultValue::Expr(expr) => coercions::to_js_string(expr),
+    EvaluateResultValue::Expr(expr) => coercions::to_js_number(expr),
+    _ => evaluate_result_to_string_of(value, Some(coercions::FUNCTION_TO_NUMBER))
+      .map(|strng| coercions::string_to_js_number(&strng)),
+  }
+}
+
+fn evaluate_result_to_string_of(
+  value: &EvaluateResultValue,
+  function_form: Option<&str>,
+) -> Option<String> {
+  match value {
+    EvaluateResultValue::Expr(expr) => match function_form {
+      Some(_) => coercions::to_js_string_for_number(expr),
+      None => coercions::to_js_string(expr),
+    },
 
     // The evaluator's own array representation, joined by the same rule as an
     // array literal's.
@@ -159,7 +184,7 @@ pub(super) fn evaluate_result_to_js_string(value: &EvaluateResultValue) -> Optio
           // which joins as nothing.
           EvaluateResultValue::Null => String::new(),
           EvaluateResultValue::Expr(expr) if coercions::joins_as_empty(expr) => String::new(),
-          item => evaluate_result_to_js_string(item)?,
+          item => evaluate_result_to_string_of(item, function_form)?,
         });
       }
 
@@ -174,31 +199,11 @@ pub(super) fn evaluate_result_to_js_string(value: &EvaluateResultValue) -> Optio
     | EvaluateResultValue::Entries(_)
     | EvaluateResultValue::EnvObject(_) => Some(coercions::OBJECT_TO_STRING.to_string()),
 
-    EvaluateResultValue::Null
-    | EvaluateResultValue::Callback(_)
-    | EvaluateResultValue::FunctionConfig(_)
-    | EvaluateResultValue::FunctionConfigMap(_) => None,
-  }
-}
-
-/// `ToNumber` over an evaluated value, bridging the evaluator's own value
-/// representation to the ECMAScript coercion.
-///
-/// Everything that is not already a number reaches its number through its
-/// primitive string form, so this refuses on the values
-/// `evaluate_result_to_js_string` refuses on — except the functions, which
-/// have a number even though they have no string.
-pub(super) fn evaluate_result_to_js_number(value: &EvaluateResultValue) -> Option<f64> {
-  match value {
-    EvaluateResultValue::Expr(expr) => coercions::to_js_number(expr),
-
-    // A function is `NaN` without its source text being known, because no
-    // source text is a numeric literal.
     EvaluateResultValue::Callback(_)
     | EvaluateResultValue::FunctionConfig(_)
-    | EvaluateResultValue::FunctionConfigMap(_) => Some(f64::NAN),
+    | EvaluateResultValue::FunctionConfigMap(_) => function_form.map(str::to_string),
 
-    _ => evaluate_result_to_js_string(value).map(|strng| coercions::string_to_js_number(&strng)),
+    EvaluateResultValue::Null => None,
   }
 }
 

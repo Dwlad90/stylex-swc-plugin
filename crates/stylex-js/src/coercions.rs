@@ -15,11 +15,32 @@ use swc_core::ecma::ast::{Expr, Lit};
 /// default, which no value reaching the evaluator overrides.
 pub const OBJECT_TO_STRING: &str = "[object Object]";
 
+/// What a function contributes to the string `ToNumber` works from.
+///
+/// A function's real `ToString` is its source text, which this evaluator does
+/// not retain — but `ToNumber` needs only that the text is *not* a numeric
+/// literal, which every function's source text also is. So the stand-in yields
+/// the number the source would have, and a function inside an array stops
+/// making the whole array's number unknowable.
+pub const FUNCTION_TO_NUMBER: &str = "function";
+
 /// ECMA-262 `ToString`, over an already-evaluated expression.
 ///
 /// Returns `None` for values with no compile-time string form — a function,
 /// whose `ToString` is its source text, which this evaluator does not retain.
 pub fn to_js_string(expr: &Expr) -> Option<String> {
+  to_js_string_of(expr, None)
+}
+
+/// `ToString` as `ToNumber` needs it, which is the same string except that a
+/// function renders as [`FUNCTION_TO_NUMBER`] rather than refusing. Exported
+/// because the evaluator's own array representation needs the same leniency
+/// when it walks a nested value.
+pub fn to_js_string_for_number(expr: &Expr) -> Option<String> {
+  to_js_string_of(expr, Some(FUNCTION_TO_NUMBER))
+}
+
+fn to_js_string_of(expr: &Expr, function_form: Option<&str>) -> Option<String> {
   match expr {
     Expr::Lit(Lit::Str(strng)) => Some(match strng.value.as_str() {
       Some(value) => value.to_string(),
@@ -46,22 +67,23 @@ pub fn to_js_string(expr: &Expr) -> Option<String> {
           // that can occupy the slot.
           None => String::new(),
           Some(elem) if elem.spread.is_some() => return None,
-          Some(elem) => js_array_element_to_string(&elem.expr)?,
+          Some(elem) => js_array_element_to_string(&elem.expr, function_form)?,
         });
       }
 
       Some(parts.join(","))
     },
     Expr::Object(_) => Some(OBJECT_TO_STRING.to_string()),
+    Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => function_form.map(str::to_string),
     _ => None,
   }
 }
 
 /// ECMA-262 `ToNumber`, over an already-evaluated expression.
 ///
-/// Returns `None` on the same values `to_js_string` does, because everything
-/// that is not already a number reaches its number through its primitive
-/// string form. `NaN` is a value, not a refusal: `Number('10px')` is `NaN` in
+/// Refuses on less than `to_js_string` does: a function has a number even
+/// though it has no string, because [`FUNCTION_TO_NUMBER`] stands in for the
+/// source text. `NaN` is a value, not a refusal — `Number('10px')` is `NaN` in
 /// JavaScript and lands in the stylesheet as `NaN`.
 pub fn to_js_number(expr: &Expr) -> Option<f64> {
   match expr {
@@ -72,15 +94,10 @@ pub fn to_js_number(expr: &Expr) -> Option<f64> {
     // its own: it stringifies to `"undefined"`, which is not a numeric
     // literal.
     Expr::Lit(Lit::Null(_)) => Some(0.0),
-    // A function's primitive value is its source text, which this evaluator
-    // does not retain — and does not need to: no function's source text is a
-    // numeric literal, so the number is `NaN` whatever the source said. This
-    // is the one value `ToNumber` can answer for where `ToString` cannot.
-    Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => Some(f64::NAN),
     // Everything else takes `ToNumber` of its primitive value, which for a
     // string is itself and for an object is its `ToString` — an array's join,
     // and `[object Object]` for anything else.
-    _ => to_js_string(expr).map(|strng| string_to_js_number(&strng)),
+    _ => to_js_string_for_number(expr).map(|strng| string_to_js_number(&strng)),
   }
 }
 
@@ -100,7 +117,7 @@ pub fn string_to_js_number(value: &str) -> f64 {
   }
 
   match non_decimal_digits(literal) {
-    Some((radix, digits)) => digits_to_number(digits, radix),
+    Some((radix, digits)) => digits_to_number(radix, digits),
     None => decimal_to_number(literal),
   }
 }
@@ -147,7 +164,7 @@ fn non_decimal_digits(literal: &str) -> Option<(u32, &str)> {
   Some((radix, &literal[2..]))
 }
 
-fn digits_to_number(digits: &str, radix: u32) -> f64 {
+fn digits_to_number(radix: u32, digits: &str) -> f64 {
   if digits.is_empty() {
     return f64::NAN;
   }
@@ -246,12 +263,12 @@ pub fn joins_as_empty(expr: &Expr) -> bool {
   }
 }
 
-fn js_array_element_to_string(expr: &Expr) -> Option<String> {
+fn js_array_element_to_string(expr: &Expr, function_form: Option<&str>) -> Option<String> {
   if joins_as_empty(expr) {
     return Some(String::new());
   }
 
-  to_js_string(expr)
+  to_js_string_of(expr, function_form)
 }
 
 #[cfg(test)]

@@ -51,10 +51,6 @@ fn dfs_process_queries_with_depth(obj: &[KeyValueProp], depth: u32) -> Vec<KeyVa
 
   for prop in obj {
     match &*prop.value {
-      Expr::Array(_) => {
-        // Ignore `firstThatWorks` arrays - pass through unchanged
-        result.push(prop.clone());
-      },
       Expr::Object(obj_lit) => {
         // Extract key-value pairs from the object. If the object contains
         // spreads/shorthands/methods, preserve it unchanged; silently dropping
@@ -88,7 +84,8 @@ fn dfs_process_queries_with_depth(obj: &[KeyValueProp], depth: u32) -> Vec<KeyVa
         });
       },
       _ => {
-        // Non-object values pass through unchanged
+        // Non-object values pass through unchanged, including the `firstThatWorks`
+        // arrays this transform deliberately ignores.
         result.push(prop.clone());
       },
     }

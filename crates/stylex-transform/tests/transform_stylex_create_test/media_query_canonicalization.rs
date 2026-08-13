@@ -41,6 +41,31 @@ const INPUT_CODE: &str = r#"
 
 stylex_test!(authored_media_queries_are_canonicalized, INPUT_CODE);
 
+/// A style-level `@media` key wrapping a block of properties, authored in a
+/// form canonicalization would rewrite: conditions height-first, no space after
+/// the colon, and a range query. The transform only rewrites keys nested at
+/// least one level below the style object, so both keys must survive verbatim —
+/// pinning that means the snapshot can tell pass-through apart from
+/// canonicalization, which a key that was already canonical cannot.
+stylex_test!(
+  style_level_media_keys_are_left_verbatim,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      a: {
+        '@media (max-height:120px) and (min-width: 720px)': {
+          display: 'block',
+        },
+      },
+      b: {
+        '@media (width >= 1460px)': {
+          color: 'blue',
+        },
+      },
+    });
+  "#
+);
+
 stylex_test!(
   media_query_order_opt_out_keeps_queries_verbatim,
   |tr| build_test_transform(tr.comments.clone(), |b| {

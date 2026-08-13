@@ -508,55 +508,62 @@ fn has_balanced_parens(input: &str) -> bool {
   count == 0
 }
 
+/// Which side of a dimension a rule bounds: `min-width` bounds it from below,
+/// `max-width` from above.
+#[derive(Clone, Copy)]
+enum Bound {
+  Min,
+  Max,
+}
+
 /// The numeric `min-`/`max-` constraint a rule places on `dim`, if any, plus
 /// whether it arrived negated. `None` means the rule says nothing about `dim`,
 /// which for every dimension means it is not an interval-mergeable rule at all.
 fn dimension_constraint<'a>(
   rule: &'a MediaQueryRule,
   dim: &str,
-) -> Option<(&'a str, &'a Length, bool)> {
+) -> Option<(Bound, &'a Length, bool)> {
   let (inner, negated) = match rule {
     MediaQueryRule::Not(not_rule) => (not_rule.rule.as_ref(), true),
     other => (other, false),
   };
 
-  match inner {
-    MediaQueryRule::Pair(pair)
-      if pair.key == format!("min-{}", dim) || pair.key == format!("max-{}", dim) =>
-    {
-      match &pair.value {
-        MediaRuleValue::Length(length) => Some((pair.key.as_str(), length, negated)),
-        _ => None,
-      }
-    },
+  let MediaQueryRule::Pair(pair) = inner else {
+    return None;
+  };
+
+  let bound = match (pair.key.strip_prefix("min-"), pair.key.strip_prefix("max-")) {
+    (Some(rest), _) if rest == dim => Bound::Min,
+    (_, Some(rest)) if rest == dim => Bound::Max,
+    _ => return None,
+  };
+
+  match &pair.value {
+    MediaRuleValue::Length(length) => Some((bound, length, negated)),
     _ => None,
   }
 }
 
 /// The accumulated numeric constraints on a single dimension. `unit` is set by
-/// the first interval recorded; a later interval in a different unit is a
-/// conflict, which makes the whole merge bail out.
+/// the first interval pushed; a later interval in a different unit sets
+/// `unit_conflict`, which makes the whole merge bail out.
 #[derive(Default)]
 struct DimensionIntervals {
   intervals: Vec<(f32, f32)>,
   unit: String,
+  unit_conflict: bool,
 }
 
 impl DimensionIntervals {
-  /// Record `interval`, returning `false` if `unit` conflicts with the unit
-  /// already established for this dimension.
-  fn record(&mut self, interval: (f32, f32), unit: &str) -> bool {
-    let consistent = match self.intervals.is_empty() {
-      true => {
-        self.unit = unit.to_string();
-        true
-      },
-      false => self.unit == unit,
-    };
+  /// Add `interval` to this dimension, flagging a unit that disagrees with the
+  /// one the first interval established.
+  fn push(&mut self, interval: (f32, f32), unit: &str) {
+    match self.intervals.is_empty() {
+      true => self.unit = unit.to_string(),
+      false => self.unit_conflict |= self.unit != unit,
+    }
 
     self.intervals.push(interval);
-
-    consistent
   }
 
   /// Intersect every recorded interval. `None` means the constraints
@@ -584,8 +591,13 @@ impl DimensionIntervals {
 /// Merge the numeric width/height constraints of an `and` list into a single
 /// interval per dimension.
 ///
-/// An empty result means the constraints contradict each other; the caller
-/// turns that into `not all`.
+/// The returned `Vec` carries three outcomes, and callers must read all three:
+/// empty means the constraints contradict each other, which the caller turns
+/// into `not all`; `rules` handed back unchanged means the list was not
+/// interval-mergeable, whether from a non-numeric rule or from units that
+/// disagree; anything else is the merged interval pairs. Collapsing the three
+/// into one `Vec` is the shape the canonicalization pipeline is specified
+/// against, so it stays.
 fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
   const EPSILON: f32 = 0.01;
 
@@ -593,7 +605,6 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
     ("width", DimensionIntervals::default()),
     ("height", DimensionIntervals::default()),
   ];
-  let mut has_any_unit_conflicts = false;
 
   // Handle DeMorgan's law: not (A and B) = (not A) or (not B)
   for rule in &rules {
@@ -644,21 +655,19 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
     let mut mergeable = false;
 
     for (dim, state) in dimensions.iter_mut() {
-      let Some((key, length, negated)) = dimension_constraint(rule, dim) else {
+      let Some((bound, length, negated)) = dimension_constraint(rule, dim) else {
         continue;
       };
 
       // A negated `min-` bound is a `max-` bound just below it, and vice versa.
-      let interval = match (key.starts_with("min-"), negated) {
-        (true, false) => (length.value, f32::INFINITY),
-        (false, false) => (f32::NEG_INFINITY, length.value),
-        (true, true) => (f32::NEG_INFINITY, length.value - EPSILON),
-        (false, true) => (length.value + EPSILON, f32::INFINITY),
+      let interval = match (bound, negated) {
+        (Bound::Min, false) => (length.value, f32::INFINITY),
+        (Bound::Max, false) => (f32::NEG_INFINITY, length.value),
+        (Bound::Min, true) => (f32::NEG_INFINITY, length.value - EPSILON),
+        (Bound::Max, true) => (length.value + EPSILON, f32::INFINITY),
       };
 
-      if !state.record(interval, &length.unit) {
-        has_any_unit_conflicts = true;
-      }
+      state.push(interval, &length.unit);
 
       mergeable = true;
       break;
@@ -671,7 +680,7 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
   }
 
   // Mixed units cannot be intersected numerically; leave the rules untouched.
-  if has_any_unit_conflicts {
+  if dimensions.iter().any(|(_, state)| state.unit_conflict) {
     return rules;
   }
 

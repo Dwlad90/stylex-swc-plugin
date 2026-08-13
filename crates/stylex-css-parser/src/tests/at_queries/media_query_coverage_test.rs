@@ -585,7 +585,11 @@ fn double_inequality_strict_greater_both_succeeds() {
 fn double_inequality_mixed_strict_op1_inclusive_op2_succeeds() {
   // (400px < width <= 700px) → mixed strict first
   let result = MediaQuery::parser().parse_to_end("@media (400px < width <= 700px)");
-  assert!(result.is_ok());
+  assert!(result.is_ok(), "Failed: {:?}", result);
+  assert_eq!(
+    result.unwrap().to_string(),
+    "@media (min-width: 400.01px) and (max-width: 700px)"
+  );
 }
 
 #[test]

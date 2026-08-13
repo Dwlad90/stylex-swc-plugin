@@ -263,25 +263,19 @@ where
       let mut injected_inherit_styles: InjectableStylesMap = IndexMap::default();
 
       if let Some(fns) = &evaluated_arg.fns {
-        let dynamic_fns_names = fns
-          .values()
-          .flat_map(|(_, map)| {
-            map.keys().map(|k| {
-              let path = map.get(k).map(|p| p.path.clone()).unwrap_or_default();
-
-              (k.clone(), path)
-            })
-          })
-          .collect::<Vec<(String, Vec<String>)>>();
-
-        for (variable_name, paths) in dynamic_fns_names {
+        for (variable_name, inline_style) in
+          fns.values().flat_map(|(_, inline_styles)| inline_styles)
+        {
           // Pseudo elements can only access css vars via inheritance
-          let is_pseudo_element = paths.iter().any(|path| path.starts_with("::"));
+          let is_pseudo_element = inline_style
+            .path
+            .iter()
+            .any(|segment| segment.starts_with("::"));
 
           injected_inherit_styles.insert(
             variable_name.clone().into(),
             InjectableStyle::regular(
-              create_property_rule(&variable_name, is_pseudo_element),
+              create_property_rule(variable_name, is_pseudo_element),
               Some(0f64),
             ),
           );

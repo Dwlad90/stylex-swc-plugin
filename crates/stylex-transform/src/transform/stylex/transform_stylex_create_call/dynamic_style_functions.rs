@@ -2,6 +2,7 @@ use super::*;
 use crate::shared::structures::types::{ClassPathsMap, DynamicFns};
 use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_ast::ast::factories::create_arrow_expression_with_params;
+use stylex_css::utils::pseudo::is_pseudo_selector;
 
 pub(super) fn apply_dynamic_style_functions<C>(
   transform: &mut StyleXTransform<C>,
@@ -53,7 +54,7 @@ where
                         .take(
                           v.path
                             .iter()
-                            .position(|p| !p.starts_with(':') && !p.starts_with('@'))
+                            .position(|p| !is_pseudo_selector(p) && !p.starts_with('@'))
                             .map_or(0, |index| index + 1),
                         )
                         .cloned()

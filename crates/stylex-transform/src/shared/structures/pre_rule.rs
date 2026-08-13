@@ -6,7 +6,10 @@ use swc_core::ecma::ast::Expr;
 use crate::shared::utils::{
   common::type_of, core::convert_style_to_class_name::convert_style_to_class_name,
 };
-use stylex_css::utils::pre_rule::{sort_at_rules, sort_pseudos};
+use stylex_css::utils::{
+  pre_rule::{sort_at_rules, sort_pseudos},
+  pseudo::is_pseudo_selector,
+};
 
 use super::{
   null_pre_rule::NullPreRule,
@@ -93,7 +96,7 @@ impl StylesPreRule {
 
     unsorted_pseudos = unsorted_pseudos
       .iter()
-      .filter(|key| key.starts_with(':') || key.starts_with("["))
+      .filter(|key| is_pseudo_selector(key) || key.starts_with("["))
       .cloned()
       .collect();
 

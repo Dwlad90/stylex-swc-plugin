@@ -62,6 +62,19 @@ the single colon of a pseudo class. The test is `is_pseudo_element`
 spelling the prefix out, so the rule moves in one place.
 _Avoid_: pseudo selector, double-colon check
 
+**Pseudo class**:
+A selector segment carrying exactly one leading colon — `:hover`,
+`:nth-child(2)`. Tested by `is_pseudo_class`, which is the colon prefix minus
+the pseudo elements.
+_Avoid_: state selector, single-colon check
+
+**Pseudo selector**:
+A key opening with a colon, whichever kind of pseudo follows — the test
+(`is_pseudo_selector`) that a key introduces a nested selector rather than a
+declaration. Distinct from pseudo class: `::before` is a pseudo selector and
+not a pseudo class.
+_Avoid_: nested key, conditional key
+
 **Nested CSS rule**:
 The final rule string, built by wrapping a declaration in its at-rules and
 pseudo selectors. Pseudos and at-rules are each sorted first (`sort_pseudos`,

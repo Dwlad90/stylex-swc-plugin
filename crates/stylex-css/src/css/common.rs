@@ -9,7 +9,7 @@ use crate::css::{
   },
   validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
 };
-use crate::utils::pseudo::is_pseudo_element;
+use crate::utils::pseudo::{is_pseudo_class, is_pseudo_element, is_pseudo_selector};
 use stylex_constants::constants::{
   common::{COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES, COLOR_RELATIVE_VALUE_FUNCTIONS},
   long_hand_logical::LONG_HAND_LOGICAL,
@@ -325,7 +325,10 @@ fn get_pseudo_class_priority(key: &str) -> Option<f64> {
     return Some(40.0 + pseudo_base(pseudo.as_str()));
   }
 
-  if key.starts_with(':') {
+  // Pseudo elements are priced by `get_pseudo_element_priority`, which runs
+  // first, so a colon here is a pseudo class by elimination — the predicate
+  // only makes that explicit.
+  if is_pseudo_class(key) {
     let prop: &str = key.split('(').next().unwrap_or(key);
 
     return Some(**PSEUDO_CLASS_PRIORITIES.get(prop).unwrap_or(&&40.0));
@@ -764,7 +767,7 @@ pub fn normalize_css_property_value(
     .any(|css_fnc| contains_css_function_call(css_property_value, css_fnc))
     || contains_relative_color_function(css_property_value);
 
-  let is_pseudo = css_property.starts_with(':');
+  let is_pseudo = is_pseudo_selector(css_property);
   let structure = scan_value_structure(css_property_value);
 
   if structure.has_unclosed_function {

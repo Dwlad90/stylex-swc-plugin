@@ -42,6 +42,7 @@ use stylex_constants::constants::{
   },
   time_units::get_time_units,
 };
+use stylex_css::utils::pseudo::is_pseudo_selector;
 use stylex_structures::inline_style::InlineStyle;
 use stylex_utils::hash::create_hash;
 
@@ -360,7 +361,7 @@ fn evaluate_partial_object_recursively(
 
                   let prop_name = full_key_path
                     .iter()
-                    .find(|&k| !k.starts_with(':') && !k.starts_with('@') && k != "default")
+                    .find(|&k| !is_pseudo_selector(k) && !k.starts_with('@') && k != "default")
                     .unwrap_or(&key_str)
                     .clone();
 

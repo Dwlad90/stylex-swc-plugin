@@ -1,4 +1,4 @@
-use super::{ArrayJS, MathJS, ObjectJS, StringJS};
+use super::{ArrayJS, CallableGlobalJS, MathJS, ObjectJS, StringJS};
 
 #[test]
 fn array_js_try_from_maps_known_methods() {
@@ -27,6 +27,17 @@ fn math_js_try_from_maps_known_methods() {
   assert_eq!(MathJS::try_from("min"), Ok(MathJS::Min));
   assert_eq!(MathJS::try_from("abs"), Ok(MathJS::Abs));
   assert_eq!(MathJS::try_from("random"), Err(()));
+}
+
+#[test]
+fn callable_global_js_try_from_maps_foldable_callees() {
+  assert_eq!(
+    CallableGlobalJS::try_from("String"),
+    Ok(CallableGlobalJS::String)
+  );
+  // `Math` is a valid callee because its methods fold; calling it is not.
+  assert_eq!(CallableGlobalJS::try_from("Math"), Err(()));
+  assert_eq!(CallableGlobalJS::try_from("console"), Err(()));
 }
 
 #[test]

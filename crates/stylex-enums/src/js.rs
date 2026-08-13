@@ -68,6 +68,26 @@ impl TryFrom<&str> for MathJS {
   }
 }
 
+/// A global the compiler folds when it is *called* — `String(x)` — as opposed
+/// to the method enums above, which name what may be called *on* a global.
+/// Kept apart from them because a callable global is a different concept: it
+/// maps a callee name, not a method name.
+#[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
+pub enum CallableGlobalJS {
+  String,
+}
+
+impl TryFrom<&str> for CallableGlobalJS {
+  type Error = ();
+
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
+    match value {
+      "String" => Ok(CallableGlobalJS::String),
+      _ => Err(()),
+    }
+  }
+}
+
 #[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
 pub enum StringJS {
   Concat,

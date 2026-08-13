@@ -17,6 +17,7 @@ swc_core = { workspace = true, features = ["common", "ecma_ast", "swc_atoms"] }
 
 stylex_constants = { path = "../stylex-constants" }
 stylex_macros = { path = "../stylex-macros" }
+stylex_utils = { path = "../stylex-utils" }
 
 [dev-dependencies]
 

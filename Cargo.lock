@@ -2763,6 +2763,7 @@ version = "0.18.4-rc.1"
 dependencies = [
  "stylex_constants",
  "stylex_macros",
+ "stylex_utils",
  "swc_core",
 ]
 

@@ -267,7 +267,7 @@ where
           fns.values().flat_map(|(_, inline_styles)| inline_styles)
         {
           // Pseudo elements can only access css vars via inheritance
-          let is_pseudo_element = inline_style
+          let has_pseudo_element_segment = inline_style
             .path
             .iter()
             .any(|segment| is_pseudo_element(segment));
@@ -275,7 +275,7 @@ where
           injected_inherit_styles.insert(
             variable_name.as_str().into(),
             InjectableStyle::regular(
-              create_property_rule(variable_name, is_pseudo_element),
+              create_property_rule(variable_name, has_pseudo_element_segment),
               Some(0f64),
             ),
           );

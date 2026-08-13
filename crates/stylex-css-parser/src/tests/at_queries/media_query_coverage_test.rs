@@ -1686,14 +1686,12 @@ fn normalize_not_of_and_single_keyword_not_not_all_stays_as_not() {
 }
 
 // ---------------------------------------------------------------------------
-// Test merge_intervals_for_and with empty result (contradiction) triggering
-// the or_rules empty branch
+// Negating a contradictory range is a tautology, so it normalizes away before
+// the DeMorgan distribution ever sees it
 // ---------------------------------------------------------------------------
 
 #[test]
-fn demorgan_both_branches_empty_yields_no_or_rules() {
-  // Create a Not(And([min, max])) where both branches when expanded are contradictions
-  // This exercises the "if !or_rules.is_empty()" check returning an empty or_rules
+fn not_of_a_contradictory_range_normalizes_to_all() {
   let min_rule = MediaQueryRule::Pair(MediaRulePair::new(
     "min-width",
     MediaRuleValue::Length(crate::css_types::Length::new(900.0, "px".to_string())),
@@ -1704,10 +1702,20 @@ fn demorgan_both_branches_empty_yields_no_or_rules() {
   ));
   let inner_and = MediaQueryRule::And(MediaAndRules::new(vec![min_rule, max_rule]));
   let not_and = MediaQueryRule::Not(MediaNotRule::new(inner_and));
-  // Wrap in outer And to trigger DeMorgan's path
   let and_outer = MediaQueryRule::And(MediaAndRules::new(vec![not_and]));
+
   let normalized = MediaQuery::normalize(and_outer);
-  let _ = format!("{:?}", normalized);
+
+  match &normalized {
+    MediaQueryRule::And(and_rules) => match &and_rules.rules[..] {
+      [MediaQueryRule::MediaKeyword(keyword)] => {
+        assert_eq!(keyword.key, "all");
+        assert!(!keyword.not);
+      },
+      other => panic!("Expected And([MediaKeyword(all)]), got {:?}", other),
+    },
+    other => panic!("Expected And, got {:?}", other),
+  }
 }
 
 // ---------------------------------------------------------------------------

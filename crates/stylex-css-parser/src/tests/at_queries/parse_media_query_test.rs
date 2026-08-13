@@ -4479,6 +4479,23 @@ mod style_value_parser_at_queries {
     }
 
     #[test]
+    fn media_range_with_two_contradictory_negated_ranges_collapses_to_the_base_range() {
+      let input = "@media (min-width: 900px) and (max-width: 1440px) and (not ((min-width: 600px) and (max-width: 800px))) and (not ((min-width: 400px) and (max-width: 500px)))";
+      let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
+      assert_eq!(
+        parsed.to_string(),
+        "@media (min-width: 900px) and (max-width: 1440px)"
+      );
+    }
+
+    #[test]
+    fn media_range_with_a_negated_range_contradicting_both_arms_collapses_to_not_all() {
+      let input = "@media (min-width: 900px) and (max-width: 1000px) and (not ((min-width: 500px) and (max-width: 1500px)))";
+      let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
+      assert_eq!(parsed.to_string(), "@media not all");
+    }
+
+    #[test]
     fn media_min_width_100px_and_orientation_landscape_should_not_simplify() {
       let input = "@media (min-width: 100px) and (orientation: landscape)";
       let parsed = MediaQuery::parser().parse_to_end(input).unwrap();

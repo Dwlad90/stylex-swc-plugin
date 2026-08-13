@@ -597,36 +597,22 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
       right_branch_rules.push(MediaQueryRule::Not(MediaNotRule::new(right.clone())));
 
       // Recursively process each branch
-      let left_branch = merge_intervals_for_and(left_branch_rules);
-      let right_branch = merge_intervals_for_and(right_branch_rules);
+      let left_branch = merge_intervals_for_and(left_branch_rules)?;
+      let right_branch = merge_intervals_for_and(right_branch_rules)?;
 
-      let mut or_rules = Vec::new();
+      // Contradictory branches are dropped; a branch of several rules is
+      // re-wrapped in `and`. An `or` left empty by this is kept as-is and
+      // collapsed to `not all` by serialization.
+      let or_rules: Vec<MediaQueryRule> = [left_branch, right_branch]
+        .into_iter()
+        .filter(|branch| !branch.is_empty())
+        .map(|mut branch| match branch.len() {
+          1 => branch.remove(0),
+          _ => MediaQueryRule::And(MediaAndRules::new(branch)),
+        })
+        .collect();
 
-      // Add left branch if not empty
-      if let Ok(left_result) = left_branch
-        && !left_result.is_empty()
-      {
-        if left_result.len() == 1 {
-          or_rules.push(left_result.into_iter().next().unwrap());
-        } else {
-          or_rules.push(MediaQueryRule::And(MediaAndRules::new(left_result)));
-        }
-      }
-
-      // Add right branch if not empty
-      if let Ok(right_result) = right_branch
-        && !right_result.is_empty()
-      {
-        if right_result.len() == 1 {
-          or_rules.push(right_result.into_iter().next().unwrap());
-        } else {
-          or_rules.push(MediaQueryRule::And(MediaAndRules::new(right_result)));
-        }
-      }
-
-      if !or_rules.is_empty() {
-        return Ok(vec![MediaQueryRule::Or(MediaOrRules::new(or_rules))]);
-      }
+      return Ok(vec![MediaQueryRule::Or(MediaOrRules::new(or_rules))]);
     }
   }
 

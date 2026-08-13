@@ -9,7 +9,7 @@ fn stylex_transform(
 
 stylex_test!(
   stylex_metadata_is_correctly_set,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({

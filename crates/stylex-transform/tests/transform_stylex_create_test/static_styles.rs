@@ -748,7 +748,7 @@ stylex_test!(
 
 stylex_test!(
   media_queries,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -765,7 +765,7 @@ stylex_test!(
 
 stylex_test!(
   media_queries_with_last_query_wins,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -785,6 +785,7 @@ stylex_test!(
   media_queries_without_last_query_wins,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_enable_media_query_order(false)
+      .with_runtime_injection()
   }),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -805,6 +806,7 @@ stylex_test!(
   media_queries_without_last_query_wins_v2,
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_enable_media_query_order(true)
+      .with_runtime_injection()
   }),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -840,7 +842,7 @@ stylex_test!(
 
 stylex_test!(
   media_query_with_pseudo_classes,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -859,7 +861,7 @@ stylex_test!(
 
 stylex_test!(
   media_query_with_array_fallbacks,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({

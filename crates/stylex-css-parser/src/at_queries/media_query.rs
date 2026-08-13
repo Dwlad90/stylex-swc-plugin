@@ -506,6 +506,14 @@ fn has_balanced_parens(input: &str) -> bool {
   count == 0
 }
 
+/// The dimensions whose `min-`/`max-` bounds merge into a single interval.
+const DIMENSIONS: [&str; 2] = ["width", "height"];
+
+/// A fresh, empty interval accumulator per entry of [`DIMENSIONS`].
+fn new_dimension_intervals() -> [(&'static str, DimensionIntervals); DIMENSIONS.len()] {
+  DIMENSIONS.map(|dim| (dim, DimensionIntervals::default()))
+}
+
 /// Which side of a dimension a rule bounds: `min-width` bounds it from below,
 /// `max-width` from above.
 #[derive(Clone, Copy)]
@@ -542,12 +550,37 @@ fn dimension_constraint<'a>(
   }
 }
 
+/// How far a negated bound is nudged past the value it excludes: `not
+/// (min-width: 600px)` is `max-width: 599.99px`.
+const EPSILON: f64 = 0.01;
+
+/// The interval a single constraint imposes on its dimension.
+///
+/// The arithmetic is `f64` even though `Length` stores `f32`, because the
+/// nudge is what makes a negated bound exclusive: at widths past roughly
+/// 2^24 an `f32` cannot represent `value - 0.01` as anything but `value`, so
+/// the exclusion silently disappears and a contradiction such as
+/// `(min-width: 1e7px) and (not (min-width: 1e7px))` reads back as the
+/// satisfiable `width == 1e7px`. Emission narrows to `f32` again, so this only
+/// affects which comparisons the merge sees, never the printed value.
+fn constraint_interval(bound: Bound, length: &Length, negated: bool) -> (f64, f64) {
+  let value = f64::from(length.value);
+
+  // A negated `min-` bound is a `max-` bound just below it, and vice versa.
+  match (bound, negated) {
+    (Bound::Min, false) => (value, f64::INFINITY),
+    (Bound::Max, false) => (f64::NEG_INFINITY, value),
+    (Bound::Min, true) => (f64::NEG_INFINITY, value - EPSILON),
+    (Bound::Max, true) => (value + EPSILON, f64::INFINITY),
+  }
+}
+
 /// The accumulated numeric constraints on a single dimension. `unit` is set by
 /// the first interval pushed; a later interval in a different unit sets
 /// `unit_conflict`, which makes the whole merge bail out.
 #[derive(Default)]
 struct DimensionIntervals {
-  intervals: Vec<(f32, f32)>,
+  intervals: Vec<(f64, f64)>,
   unit: String,
   unit_conflict: bool,
 }
@@ -555,7 +588,7 @@ struct DimensionIntervals {
 impl DimensionIntervals {
   /// Add `interval` to this dimension, flagging a unit that disagrees with the
   /// one the first interval established.
-  fn push(&mut self, interval: (f32, f32), unit: &str) {
+  fn push(&mut self, interval: (f64, f64), unit: &str) {
     match self.intervals.is_empty() {
       true => self.unit = unit.to_string(),
       false => self.unit_conflict |= self.unit != unit,
@@ -566,9 +599,9 @@ impl DimensionIntervals {
 
   /// Intersect every recorded interval. `None` means the constraints
   /// contradict each other.
-  fn intersect(&self) -> Option<(f32, f32)> {
-    let mut lower = f32::NEG_INFINITY;
-    let mut upper = f32::INFINITY;
+  fn intersect(&self) -> Option<(f64, f64)> {
+    let mut lower = f64::NEG_INFINITY;
+    let mut upper = f64::INFINITY;
 
     for (l, u) in &self.intervals {
       if *l > lower {
@@ -597,12 +630,7 @@ impl DimensionIntervals {
 /// into one `Vec` is the shape the canonicalization pipeline is specified
 /// against, so it stays.
 fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
-  const EPSILON: f32 = 0.01;
-
-  let mut dimensions = [
-    ("width", DimensionIntervals::default()),
-    ("height", DimensionIntervals::default()),
-  ];
+  let mut dimensions = new_dimension_intervals();
 
   // Handle DeMorgan's law: not (A and B) = (not A) or (not B)
   for rule in &rules {
@@ -657,15 +685,7 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
         continue;
       };
 
-      // A negated `min-` bound is a `max-` bound just below it, and vice versa.
-      let interval = match (bound, negated) {
-        (Bound::Min, false) => (length.value, f32::INFINITY),
-        (Bound::Max, false) => (f32::NEG_INFINITY, length.value),
-        (Bound::Min, true) => (f32::NEG_INFINITY, length.value - EPSILON),
-        (Bound::Max, true) => (length.value + EPSILON, f32::INFINITY),
-      };
-
-      state.push(interval, &length.unit);
+      state.push(constraint_interval(bound, length, negated), &length.unit);
 
       mergeable = true;
       break;
@@ -695,15 +715,15 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
 
     if lower.is_finite() {
       result.push(MediaQueryRule::Pair(MediaRulePair::new(
-        format!("min-{}", dim),
-        MediaRuleValue::Length(Length::new(lower, state.unit.clone())),
+        format!("min-{dim}"),
+        MediaRuleValue::Length(Length::new(lower as f32, state.unit.clone())),
       )));
     }
 
     if upper.is_finite() {
       result.push(MediaQueryRule::Pair(MediaRulePair::new(
-        format!("max-{}", dim),
-        MediaRuleValue::Length(Length::new(upper, state.unit.clone())),
+        format!("max-{dim}"),
+        MediaRuleValue::Length(Length::new(upper as f32, state.unit.clone())),
       )));
     }
   }

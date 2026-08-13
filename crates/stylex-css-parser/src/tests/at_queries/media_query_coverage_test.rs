@@ -2513,3 +2513,34 @@ fn parenthesized_expression_main_branch_missing_close_paren() {
   let result = (parser.run)(&mut token_list);
   assert!(result.is_err());
 }
+
+// ---------------------------------------------------------------------------
+// Interval arithmetic precision
+// ---------------------------------------------------------------------------
+
+/// The 0.01 nudge that makes a negated bound exclusive has to survive the
+/// merge. `Length` stores an `f32`, where `1e7 - 0.01` rounds straight back to
+/// `1e7`, so an `f32` merge reads this contradiction as the satisfiable
+/// `width == 1e7px` and emits a rule that matches.
+#[test]
+fn negated_bound_at_a_width_f32_cannot_nudge_is_still_a_contradiction() {
+  let parsed = MediaQuery::parser()
+    .parse_to_end("@media (min-width: 10000000px) and (not (min-width: 10000000px))")
+    .unwrap();
+
+  assert_eq!(parsed.to_string(), "@media not all");
+}
+
+/// The nudge still prints as authored at the widths people write, so widening
+/// the merge to `f64` does not move any existing bound.
+#[test]
+fn nudged_bounds_keep_their_authored_precision() {
+  let parsed = MediaQuery::parser()
+    .parse_to_end("@media (min-width: 100px) and (not ((min-width: 200px) and (max-width: 300px)))")
+    .unwrap();
+
+  assert_eq!(
+    parsed.to_string(),
+    "@media ((min-width: 100px) and (max-width: 199.99px)) or (min-width: 300.01px)"
+  );
+}

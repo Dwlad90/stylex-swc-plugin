@@ -44,8 +44,10 @@ fn resolve_marker(options: Option<&dyn WhenMarkerValue>) -> String {
   }
 }
 
-/// Validates that a pseudo selector starts with ':' but not '::'
+/// Validates that a selector opens with ':' or '[', and is not a pseudo element.
 fn validate_pseudo_selector(pseudo: &str) -> Result<(), String> {
+  // The single colon is deliberate: pseudo elements must pass this gate so that
+  // `is_pseudo_element` can reject them with their own message.
   if !is_pseudo_selector(pseudo) && !pseudo.starts_with('[') {
     return Err("Pseudo selector must start with \":\" or \"[\"".to_string());
   }

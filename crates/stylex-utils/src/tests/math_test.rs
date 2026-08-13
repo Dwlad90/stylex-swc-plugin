@@ -3,6 +3,13 @@ mod round_f64_tests {
   use crate::math::round_f64;
 
   #[test]
+  fn rounds_to_one_decimal() {
+    assert_eq!(round_f64(0.30000000000000004, 1), 0.3);
+    assert_eq!(round_f64(0.25, 1), 0.3);
+    assert_eq!(round_f64(0.0, 1), 0.0);
+  }
+
+  #[test]
   fn rounds_to_two_decimals() {
     assert_eq!(round_f64(1.555, 2), 1.56);
   }

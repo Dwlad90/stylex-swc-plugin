@@ -30,7 +30,7 @@ use stylex_ast::ast::convertors::{get_expr_from_var_decl, get_key_values_from_ob
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
 };
-use stylex_css::utils::pseudo::is_pseudo_selector;
+use stylex_css::utils::condition::is_conditional_key;
 use stylex_regex::regex::CSS_VALUE_SPLIT_REGEX;
 use stylex_structures::{order_pair::OrderPair, raw_value::TRawValue};
 
@@ -183,10 +183,7 @@ pub(crate) fn flatten_raw_style_object_logic(
         }
       },
       Expr::Lit(property_lit) => {
-        if !is_pseudo_selector(&css_property_key)
-          && !css_property_key.starts_with('@')
-          && !css_property_key.starts_with('[')
-        {
+        if !is_conditional_key(&css_property_key) {
           let value = convert_lit_to_raw_value(property_lit);
 
           let pairs = flat_map_expanded_shorthands(
@@ -278,7 +275,7 @@ pub(crate) fn flatten_raw_style_object_logic(
       },
       Expr::Call(_) => stylex_panic!("{}", non_static_value("stylex")),
       Expr::Object(obj) => {
-        if !is_pseudo_selector(&key) && !key.starts_with('@') && !key.starts_with('[') {
+        if !is_conditional_key(&key) {
           if obj.props.is_empty() {
             return flattened;
           }

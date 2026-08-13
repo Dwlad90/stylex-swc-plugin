@@ -35,7 +35,7 @@ use stylex_constants::constants::{
     non_static_value, non_style_object, unbound_call_value,
   },
 };
-use stylex_css::utils::pseudo::is_pseudo_selector;
+use stylex_css::utils::condition::is_conditional_key;
 
 use super::ast::convertors::{convert_key_value_to_str, convert_lit_to_string};
 use stylex_ast::ast::convertors::{get_key_values_from_object, normalize_expr};
@@ -665,7 +665,7 @@ pub(crate) fn validate_namespace(
       Expr::Object(object) => {
         let key = convert_key_value_to_str(namespace);
 
-        if key.starts_with('@') || is_pseudo_selector(&key) || key.starts_with('[') {
+        if is_conditional_key(&key) {
           if conditions.contains(&key) {
             let object_expr = Expr::Object(object.clone());
             build_code_frame_error_and_panic_at(&object_expr, DUPLICATE_CONDITIONAL, state);
@@ -714,9 +714,7 @@ pub(crate) fn validate_conditional_styles(
   let inner_key = convert_key_value_to_str(inner_key_value);
   let inner_value = inner_key_value.value.clone();
 
-  if !(is_pseudo_selector(&inner_key)
-      || inner_key.starts_with('@')
-      || inner_key.starts_with('[')
+  if !(is_conditional_key(&inner_key)
       // This is a placeholder for `defineConsts` values that are later inlined
       || inner_key.starts_with("var(--")
       || inner_key == "default")

@@ -73,8 +73,17 @@ _Avoid_: state selector, single-colon check
 A key opening with a colon, whichever kind of pseudo follows — the test
 (`is_pseudo_selector`) that a key introduces a nested selector rather than a
 declaration. Distinct from pseudo class: `::before` is a pseudo selector and
-not a pseudo class.
+not a pseudo class. Narrower than conditional key, which also admits at-rules
+and attribute selectors.
 _Avoid_: nested key, colon key
+
+**Conditional key**:
+A key that opens a nested block rather than declaring a property: a pseudo
+selector, an at-rule (`@media ...`), or an attribute selector
+(`[data-active]`). The test is `is_conditional_key` (`utils::condition`).
+Sites deliberately admitting only some of the three spell those out rather
+than widening to this term.
+_Avoid_: condition key, nested key, at-or-pseudo
 
 **Nested CSS rule**:
 The final rule string, built by wrapping a declaration in its at-rules and

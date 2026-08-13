@@ -10,9 +10,7 @@ This implementation provides media query transformation:
 3. Use pure AST manipulation, not range-based logic
 */
 
-use super::media_query::{
-  MediaAndRules, MediaNotRule, MediaOrRules, MediaQuery, MediaQueryRule, MediaRuleValue,
-};
+use super::media_query::{MediaAndRules, MediaNotRule, MediaOrRules, MediaQuery, MediaQueryRule};
 use stylex_macros::stylex_panic;
 use swc_core::{
   atoms::Wtf8Atom,
@@ -32,16 +30,6 @@ fn key_value_to_str(key_value: &KeyValueProp) -> String {
 /// Main entry point - equivalent to lastMediaQueryWinsTransform in JS
 pub fn last_media_query_wins_transform(styles: &[KeyValueProp]) -> Vec<KeyValueProp> {
   dfs_process_queries_with_depth(styles, 0)
-}
-
-/// Internal helper function for backwards compatibility with existing tests
-/// This preserves the old `Vec<MediaQuery> -> Vec<MediaQuery>` signature for
-/// internal use
-pub fn last_media_query_wins_transform_internal(queries: Vec<MediaQuery>) -> Vec<MediaQuery> {
-  // For now, just return the queries unchanged since the main tests are using
-  // KeyValueProp The real transformation happens in
-  // last_media_query_wins_transform with KeyValueProp input
-  queries
 }
 
 /// Helper function to create ObjectLit from key-value pairs
@@ -143,7 +131,7 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
   let mut parsed_media_pairs = Vec::with_capacity(media_pairs.len());
   for (media_key, original_kv) in media_pairs {
     match MediaQuery::parser().parse_to_end(&media_key) {
-      Ok(media_query) => parsed_media_pairs.push((media_key, original_kv, media_query)),
+      Ok(media_query) => parsed_media_pairs.push((original_kv, media_query)),
       Err(_) => {
         // An unparseable query is a hard error, not something to pass through:
         // no later phase rejects it, so returning here emitted the broken query
@@ -154,20 +142,13 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     }
   }
 
-  // Disjoint ranges need no negations: upstream builds them anyway, but its
-  // `MediaQuery.toString()` collapses the redundant clauses back out, so only
-  // the syntax normalization survives.
-  if are_media_queries_disjoint(&parsed_media_pairs) {
-    return normalize_media_query_syntax(result);
-  }
-
   // Build negations array - JS logic: for each media query, collect all later
   // queries in reverse declaration order.
   let mut accumulated_negations = vec![Vec::new(); parsed_media_pairs.len()];
   let mut later_negations = Vec::new();
   for i in (0..parsed_media_pairs.len()).rev() {
     accumulated_negations[i] = later_negations.clone();
-    later_negations.push(parsed_media_pairs[i].2.clone());
+    later_negations.push(parsed_media_pairs[i].1.clone());
   }
 
   // Convert back to Vec, preserving order (non-media first, then media)
@@ -181,7 +162,7 @@ fn transform_media_queries_in_result(result: Vec<KeyValueProp>) -> Vec<KeyValueP
     }
   }
 
-  for (i, (_, original_kv, base_mq)) in parsed_media_pairs.into_iter().enumerate() {
+  for (i, (original_kv, base_mq)) in parsed_media_pairs.into_iter().enumerate() {
     let mut reversed_negations = accumulated_negations[i].clone();
     reversed_negations.reverse();
 
@@ -240,138 +221,6 @@ fn combine_media_query_with_negations(
   };
 
   MediaQuery::new_from_rule(combined_ast)
-}
-
-/// Check if all media queries represent disjoint width/height ranges
-fn are_media_queries_disjoint(media_pairs: &[(String, KeyValueProp, MediaQuery)]) -> bool {
-  let mut ranges = Vec::new();
-
-  for (_, _, media_query) in media_pairs {
-    if let Some(range) = extract_width_height_range(media_query) {
-      ranges.push(range);
-    } else {
-      // If any query is not a simple width/height range, don't apply disjoint logic
-      return false;
-    }
-  }
-
-  // Check if all ranges are disjoint (no overlaps)
-  for i in 0..ranges.len() {
-    for j in (i + 1)..ranges.len() {
-      if ranges_overlap(&ranges[i], &ranges[j]) {
-        return false;
-      }
-    }
-  }
-
-  true
-}
-
-/// Extract width/height range from a media query if it's a simple range
-#[cfg_attr(coverage_nightly, coverage(off))]
-fn extract_width_height_range(mq: &MediaQuery) -> Option<(String, f32, f32)> {
-  match &mq.queries {
-    MediaQueryRule::And(and_rules) if and_rules.rules.len() == 2 => {
-      let mut min_val = None;
-      let mut max_val = None;
-      let mut dimension = None;
-
-      for rule in &and_rules.rules {
-        if let MediaQueryRule::Pair(pair) = rule {
-          if pair.key.starts_with("min-width") || pair.key.starts_with("max-width") {
-            if dimension.is_none() {
-              dimension = Some("width".to_string());
-            } else if dimension.as_ref() != Some(&"width".to_string()) {
-              return None; // Mixed dimensions
-            }
-
-            if let MediaRuleValue::Length(length) = &pair.value {
-              if pair.key.starts_with("min-") {
-                min_val = Some(length.value);
-              } else {
-                max_val = Some(length.value);
-              }
-            } else {
-              return None; // Non-length value
-            }
-          } else if pair.key.starts_with("min-height") || pair.key.starts_with("max-height") {
-            if dimension.is_none() {
-              dimension = Some("height".to_string());
-            } else if dimension.as_ref() != Some(&"height".to_string()) {
-              return None; // Mixed dimensions
-            }
-
-            if let MediaRuleValue::Length(length) = &pair.value {
-              if pair.key.starts_with("min-") {
-                min_val = Some(length.value);
-              } else {
-                max_val = Some(length.value);
-              }
-            } else {
-              return None; // Non-length value
-            }
-          } else {
-            return None; // Not a width/height rule
-          }
-        } else {
-          return None; // Not a simple pair rule
-        }
-      }
-
-      if let (Some(dim), Some(min), Some(max)) = (dimension, min_val, max_val) {
-        Some((dim, min, max))
-      } else {
-        None
-      }
-    },
-    _ => None,
-  }
-}
-
-/// Check if two ranges overlap
-#[cfg_attr(coverage_nightly, coverage(off))]
-fn ranges_overlap(range1: &(String, f32, f32), range2: &(String, f32, f32)) -> bool {
-  // Only compare ranges of the same dimension
-  if range1.0 != range2.0 {
-    return false;
-  }
-
-  let (_, min1, max1) = range1;
-  let (_, min2, max2) = range2;
-
-  // Two ranges [min1, max1] and [min2, max2] overlap if:
-  // min1 <= max2 && min2 <= max1
-  min1 <= max2 && min2 <= max1
-}
-
-/// Just normalize media query syntax without applying negation logic
-fn normalize_media_query_syntax(result: Vec<KeyValueProp>) -> Vec<KeyValueProp> {
-  // The key is read once and carried, rather than re-derived after the split:
-  // `key_value_to_str` allocates on every call.
-  let (media, non_media): (Vec<(String, KeyValueProp)>, Vec<(String, KeyValueProp)>) = result
-    .into_iter()
-    .map(|kv| (key_value_to_str(&kv), kv))
-    .partition(|(key, _)| key.starts_with("@media "));
-
-  // Media keys move last, as they do on the negation path: upstream deletes and
-  // re-adds each one, which in JS appends it to the end of the object.
-  let mut final_result: Vec<KeyValueProp> = non_media.into_iter().map(|(_, kv)| kv).collect();
-
-  final_result.extend(media.into_iter().map(|(key, kv)| {
-    match MediaQuery::parser().parse_to_end(&key) {
-      Ok(mq) => KeyValueProp {
-        key: PropName::Str(Str {
-          span: DUMMY_SP,
-          value: Wtf8Atom::from(mq.to_string()),
-          raw: None,
-        }),
-        value: kv.value,
-      },
-      Err(_) => kv,
-    }
-  }));
-
-  final_result
 }
 
 #[cfg(test)]

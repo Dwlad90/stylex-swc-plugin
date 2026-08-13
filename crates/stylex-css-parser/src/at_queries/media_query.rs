@@ -10,7 +10,6 @@ use crate::{
   token_parser::{TokenParser, tokens},
   token_types::SimpleToken,
 };
-use rustc_hash::FxHashMap;
 use std::fmt::{self, Display};
 
 /// Fraction type for media query values like (aspect-ratio: 16/9)
@@ -285,7 +284,7 @@ impl MediaQuery {
           return MediaQueryRule::MediaKeyword(MediaKeyword::new("all".to_string(), true, false));
         }
 
-        let merged = merge_and_simplify_ranges(flattened);
+        let merged = merge_intervals_for_and(flattened);
         if merged.is_empty() {
           return MediaQueryRule::And(MediaAndRules::new(vec![MediaQueryRule::MediaKeyword(
             MediaKeyword::new("all".to_string(), true, false),
@@ -527,48 +526,91 @@ fn has_balanced_parens(input: &str) -> bool {
   count == 0
 }
 
-#[cfg_attr(coverage_nightly, coverage(off))]
-fn is_numeric_length(val: &MediaRuleValue) -> bool {
-  matches!(val, MediaRuleValue::Length(_))
-}
+/// The numeric `min-`/`max-` constraint a rule places on `dim`, if any, plus
+/// whether it arrived negated. `None` means the rule says nothing about `dim`,
+/// which for every dimension means it is not an interval-mergeable rule at all.
+fn dimension_constraint<'a>(
+  rule: &'a MediaQueryRule,
+  dim: &str,
+) -> Option<(&'a str, &'a Length, bool)> {
+  let (inner, negated) = match rule {
+    MediaQueryRule::Not(not_rule) => (not_rule.rule.as_ref(), true),
+    other => (other, false),
+  };
 
-fn is_numeric_width_or_height_pair(rule: &MediaQueryRule) -> bool {
-  matches!(
-    rule,
-    MediaQueryRule::Pair(pair) if matches!(
-      pair.key.as_str(),
-      "min-width" | "max-width" | "min-height" | "max-height"
-    ) && is_numeric_length(&pair.value)
-  )
-}
-
-#[cfg_attr(coverage_nightly, coverage(off))]
-fn merge_and_simplify_ranges(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
-  match merge_intervals_for_and(rules.clone()) {
-    Ok(merged) => {
-      if merged.is_empty() {
-        // Contradiction detected - return empty Vec, which the caller will handle
-        Vec::new()
-      } else {
-        merged
+  match inner {
+    MediaQueryRule::Pair(pair)
+      if pair.key == format!("min-{}", dim) || pair.key == format!("max-{}", dim) =>
+    {
+      match &pair.value {
+        MediaRuleValue::Length(length) => Some((pair.key.as_str(), length, negated)),
+        _ => None,
       }
     },
-    Err(_) => rules, // Return original rules on error
+    _ => None,
   }
 }
 
-#[cfg_attr(coverage_nightly, coverage(off))]
-fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryRule>, String> {
+/// The accumulated numeric constraints on a single dimension. `unit` is set by
+/// the first interval recorded; a later interval in a different unit is a
+/// conflict, which makes the whole merge bail out.
+#[derive(Default)]
+struct DimensionIntervals {
+  intervals: Vec<(f32, f32)>,
+  unit: String,
+}
+
+impl DimensionIntervals {
+  /// Record `interval`, returning `false` if `unit` conflicts with the unit
+  /// already established for this dimension.
+  fn record(&mut self, interval: (f32, f32), unit: &str) -> bool {
+    let consistent = match self.intervals.is_empty() {
+      true => {
+        self.unit = unit.to_string();
+        true
+      },
+      false => self.unit == unit,
+    };
+
+    self.intervals.push(interval);
+
+    consistent
+  }
+
+  /// Intersect every recorded interval. `None` means the constraints
+  /// contradict each other.
+  fn intersect(&self) -> Option<(f32, f32)> {
+    let mut lower = f32::NEG_INFINITY;
+    let mut upper = f32::INFINITY;
+
+    for (l, u) in &self.intervals {
+      if *l > lower {
+        lower = *l;
+      }
+      if *u < upper {
+        upper = *u;
+      }
+    }
+
+    match lower > upper {
+      true => None,
+      false => Some((lower, upper)),
+    }
+  }
+}
+
+/// Merge the numeric width/height constraints of an `and` list into a single
+/// interval per dimension, mirroring upstream `mergeIntervalsForAnd`.
+///
+/// An empty result means the constraints contradict each other; the caller
+/// turns that into `not all`.
+fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Vec<MediaQueryRule> {
   const EPSILON: f32 = 0.01;
-  let dimensions = ["width", "height"];
 
-  // Track intervals for each dimension: [min, max]
-  let mut intervals: FxHashMap<&str, Vec<(f32, f32)>> = FxHashMap::default();
-  intervals.insert("width", Vec::new());
-  intervals.insert("height", Vec::new());
-
-  // Track units for each dimension
-  let mut units: FxHashMap<&str, String> = FxHashMap::default();
+  let mut dimensions = [
+    ("width", DimensionIntervals::default()),
+    ("height", DimensionIntervals::default()),
+  ];
   let mut has_any_unit_conflicts = false;
 
   // Handle DeMorgan's law: not (A and B) = (not A) or (not B)
@@ -597,8 +639,8 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
       right_branch_rules.push(MediaQueryRule::Not(MediaNotRule::new(right.clone())));
 
       // Recursively process each branch
-      let left_branch = merge_intervals_for_and(left_branch_rules)?;
-      let right_branch = merge_intervals_for_and(right_branch_rules)?;
+      let left_branch = merge_intervals_for_and(left_branch_rules);
+      let right_branch = merge_intervals_for_and(right_branch_rules);
 
       // Contradictory branches are dropped; a branch of several rules is
       // re-wrapped in `and`. An `or` left empty by this is kept as-is and
@@ -612,130 +654,72 @@ fn merge_intervals_for_and(rules: Vec<MediaQueryRule>) -> Result<Vec<MediaQueryR
         })
         .collect();
 
-      return Ok(vec![MediaQueryRule::Or(MediaOrRules::new(or_rules))]);
+      return vec![MediaQueryRule::Or(MediaOrRules::new(or_rules))];
     }
   }
 
   for rule in &rules {
-    for dim in &dimensions {
-      match &rule {
-        // Handle min-width/min-height/max-width/max-height pairs
-        MediaQueryRule::Pair(pair)
-          if (pair.key == format!("min-{}", dim) || pair.key == format!("max-{}", dim))
-            && is_numeric_length(&pair.value) =>
-        {
-          if let MediaRuleValue::Length(length) = &pair.value {
-            let val = length.value;
+    let mut mergeable = false;
 
-            // Track unit conflicts
-            let dim_intervals = intervals.get(dim).unwrap();
-            if dim_intervals.is_empty() {
-              units.insert(dim, length.unit.clone());
-            } else if units.get(dim) != Some(&length.unit) {
-              has_any_unit_conflicts = true;
-            }
+    for (dim, state) in dimensions.iter_mut() {
+      let Some((key, length, negated)) = dimension_constraint(rule, dim) else {
+        continue;
+      };
 
-            let interval = if pair.key.starts_with("min-") {
-              (val, f32::INFINITY)
-            } else {
-              (f32::NEG_INFINITY, val)
-            };
+      // A negated `min-` bound is a `max-` bound just below it, and vice versa.
+      let interval = match (key.starts_with("min-"), negated) {
+        (true, false) => (length.value, f32::INFINITY),
+        (false, false) => (f32::NEG_INFINITY, length.value),
+        (true, true) => (f32::NEG_INFINITY, length.value - EPSILON),
+        (false, true) => (length.value + EPSILON, f32::INFINITY),
+      };
 
-            intervals.get_mut(dim).unwrap().push(interval);
-            break;
-          }
-        },
-
-        // Handle NOT rules with min/max constraints
-        MediaQueryRule::Not(not_rule) => {
-          if let MediaQueryRule::Pair(pair) = not_rule.rule.as_ref()
-            && (pair.key == format!("min-{}", dim) || pair.key == format!("max-{}", dim))
-            && is_numeric_length(&pair.value)
-            && let MediaRuleValue::Length(length) = &pair.value
-          {
-            let val = length.value;
-
-            // Track unit conflicts
-            let dim_intervals = intervals.get(dim).unwrap();
-            if dim_intervals.is_empty() {
-              units.insert(dim, length.unit.clone());
-            } else if units.get(dim) != Some(&length.unit) {
-              has_any_unit_conflicts = true;
-            }
-
-            // NOT min-width becomes max-width with adjusted value, and vice versa
-            let interval = if pair.key.starts_with("min-") {
-              (f32::NEG_INFINITY, val - EPSILON)
-            } else {
-              (val + EPSILON, f32::INFINITY)
-            };
-
-            intervals.get_mut(dim).unwrap().push(interval);
-            break;
-          }
-        },
-
-        _ => {},
+      if !state.record(interval, &length.unit) {
+        has_any_unit_conflicts = true;
       }
+
+      mergeable = true;
+      break;
     }
 
-    // Check if this rule contains only width/height media query rules
-    if !is_numeric_width_or_height_pair(rule)
-      && !matches!(
-        rule,
-        MediaQueryRule::Not(not_rule) if matches!(
-          not_rule.rule.as_ref(),
-          nested_rule if is_numeric_width_or_height_pair(nested_rule)
-        )
-      )
-    {
-      return Ok(rules);
+    // Anything that is not a numeric width/height constraint blocks the merge.
+    if !mergeable {
+      return rules;
     }
+  }
+
+  // Mixed units cannot be intersected numerically; leave the rules untouched.
+  if has_any_unit_conflicts {
+    return rules;
   }
 
   let mut result = Vec::new();
 
-  // Return original rules if unit conflicts detected
-  if has_any_unit_conflicts {
-    return Ok(rules);
-  }
-
-  for dim in &dimensions {
-    let dim_intervals = intervals.get(dim).unwrap();
-    if dim_intervals.is_empty() {
+  for (dim, state) in &dimensions {
+    if state.intervals.is_empty() {
       continue;
     }
 
-    let mut lower = f32::NEG_INFINITY;
-    let mut upper = f32::INFINITY;
-    for (l, u) in dim_intervals {
-      if *l > lower {
-        lower = *l;
-      }
-      if *u < upper {
-        upper = *u;
-      }
-    }
+    let Some((lower, upper)) = state.intersect() else {
+      return Vec::new();
+    };
 
-    if lower > upper {
-      return Ok(Vec::new());
-    }
-
-    if lower != f32::NEG_INFINITY && lower.is_finite() {
+    if lower.is_finite() {
       result.push(MediaQueryRule::Pair(MediaRulePair::new(
         format!("min-{}", dim),
-        MediaRuleValue::Length(Length::new(lower, units.get(dim).unwrap().clone())),
+        MediaRuleValue::Length(Length::new(lower, state.unit.clone())),
       )));
     }
 
-    if upper != f32::INFINITY && upper.is_finite() {
+    if upper.is_finite() {
       result.push(MediaQueryRule::Pair(MediaRulePair::new(
         format!("max-{}", dim),
-        MediaRuleValue::Length(Length::new(upper, units.get(dim).unwrap().clone())),
+        MediaRuleValue::Length(Length::new(upper, state.unit.clone())),
       )));
     }
   }
-  Ok(if result.is_empty() { rules } else { result })
+
+  if result.is_empty() { rules } else { result }
 }
 
 /// Extract an ident value from a token that is guaranteed by the parser to be an Ident.

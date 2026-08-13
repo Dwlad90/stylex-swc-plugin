@@ -1,12 +1,7 @@
 //! Media query transform tests.
 //! Media query transform tests for CSS-in-JS functionality
 
-use crate::at_queries::{
-  media_query::MediaQuery,
-  media_query_transform::{
-    last_media_query_wins_transform, last_media_query_wins_transform_internal,
-  },
-};
+use crate::at_queries::media_query_transform::last_media_query_wins_transform;
 use serde_json::{Value, json};
 use swc_core::{
   atoms::Wtf8Atom,
@@ -755,7 +750,7 @@ mod media_query_transformer {
     assert_eq!(
       serde_json::to_string(&result_json).unwrap(),
       serde_json::to_string(&expected_styles).unwrap(),
-      "Mixed width disjoint ranges should not be modified"
+      "Mixed width disjoint ranges should be transformed with negation logic"
     );
   }
 
@@ -1049,49 +1044,6 @@ mod media_query_transformer {
       serde_json::to_string(&expected_styles).unwrap(),
       "Combination of keywords and rules should handle negations correctly"
     );
-  }
-
-  // Helper functions for backwards compatibility with internal API
-
-  /// Internal tests (for legacy MediaQuery API compatibility)
-
-  #[test]
-  fn internal_basic_usage_multiple_widths() {
-    let queries = vec![
-      MediaQuery::parser()
-        .parse_to_end("@media (max-width: 1440px)")
-        .unwrap(),
-      MediaQuery::parser()
-        .parse_to_end("@media (max-width: 1024px)")
-        .unwrap(),
-      MediaQuery::parser()
-        .parse_to_end("@media (max-width: 768px)")
-        .unwrap(),
-    ];
-
-    let result = last_media_query_wins_transform_internal(queries);
-
-    // Simple test - just verify the transformation doesn't crash
-    assert!(result.len() >= 3);
-  }
-
-  #[test]
-  fn internal_does_not_modify_single_queries() {
-    let queries = vec![
-      MediaQuery::parser()
-        .parse_to_end("@media (max-width: 1440px)")
-        .unwrap(),
-    ];
-
-    let result = last_media_query_wins_transform_internal(queries);
-    assert_eq!(result.len(), 1);
-  }
-
-  #[test]
-  fn internal_empty_queries() {
-    let queries = vec![];
-    let result = last_media_query_wins_transform_internal(queries);
-    assert_eq!(result.len(), 0);
   }
 
   #[test]

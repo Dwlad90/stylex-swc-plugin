@@ -223,8 +223,7 @@ mod transform_media_coverage {
   /// negation accumulation loop body is exercised.
   #[test]
   fn multiple_media_queries_fill_accumulated_negations() {
-    // Two distinct media queries that both parse successfully, with overlapping ranges
-    // so that are_media_queries_disjoint returns false and we enter the negation path.
+    // Two distinct media queries that both parse successfully.
     let props = vec![
       str_kv("default", "1 / 2"),
       str_kv("@media (color)", "colorful"),
@@ -280,26 +279,9 @@ mod transform_media_coverage {
 
     transform_media_queries_in_result(props);
   }
-}
 
-// ---------------------------------------------------------------------------
-// are_media_queries_disjoint
-// ---------------------------------------------------------------------------
-
-#[cfg(test)]
-mod are_media_queries_disjoint_coverage {
-  use super::*;
-
-  fn parsed_pair(key: &str) -> (String, KeyValueProp, MediaQuery) {
-    (
-      key.to_string(),
-      str_kv(key, "value"),
-      MediaQuery::parser().parse_to_end(key).unwrap(),
-    )
-  }
-
-  /// An invalid media key is rejected before are_media_queries_disjoint is
-  /// reached, so the disjoint check never sees a half-parsed set.
+  /// An invalid media key nested at depth >= 1 is rejected end to end, not just
+  /// when `transform_media_queries_in_result` is called directly.
   #[test]
   #[should_panic(expected = "Invalid media query")]
   fn invalid_media_key_via_transform_is_rejected() {
@@ -329,93 +311,6 @@ mod are_media_queries_disjoint_coverage {
     };
 
     last_media_query_wins_transform(&[outer_prop]);
-  }
-
-  #[test]
-  fn direct_call_with_invalid_key_returns_false() {
-    let media_pairs = vec![
-      parsed_pair("@media (min-width: 100px) and (max-width: 300px)"),
-      parsed_pair("@media (min-width: 200px) and (max-width: 400px)"),
-    ];
-
-    let result = are_media_queries_disjoint(&media_pairs);
-
-    assert!(
-      !result,
-      "Expected are_media_queries_disjoint to return false for overlapping ranges"
-    );
-  }
-
-  #[test]
-  fn first_key_failing_to_parse_returns_false() {
-    let media_pairs = vec![parsed_pair("@media (color)")];
-    assert!(
-      !are_media_queries_disjoint(&media_pairs),
-      "a parsed non-range query must not use disjoint-range fast path"
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// normalize_media_query_syntax — (kv else branch when key fails to parse)
-// ---------------------------------------------------------------------------
-
-#[cfg(test)]
-mod normalize_media_coverage {
-  use super::*;
-
-  /// Covers when a key starts with "@media " but parse_to_end fails,
-  /// normalize_media_query_syntax returns the kv unchanged (the `else { kv }` arm).
-  /// Calls normalize_media_query_syntax directly since it's in scope (private fn).
-  #[test]
-  fn direct_call_with_invalid_key_returns_kv_unchanged() {
-    let invalid_key = "@media !!!invalid!!!";
-    let props = vec![str_kv(invalid_key, "red")];
-
-    // Call normalize_media_query_syntax directly
-    let result = normalize_media_query_syntax(props);
-
-    // With a single prop that fails to parse, it should be returned unchanged
-    assert_eq!(result.len(), 1);
-    // The key should be unchanged (the else { kv } branch )
-    if let PropName::Str(s) = &result[0].key {
-      assert_eq!(s.value.as_str().unwrap(), invalid_key);
-    } else {
-      panic!("Expected Str key");
-    }
-  }
-
-  /// Covers both the successful Ok branch and the failed Err branch in normalize_media_query_syntax.
-  #[test]
-  fn normalize_processes_valid_keys_and_skips_invalid() {
-    let valid_kv = str_kv("@media (max-width: 768px)", "red");
-    let invalid_kv = str_kv("@media !!!invalid", "blue");
-    let non_media_kv = str_kv("color", "green");
-
-    let props = vec![valid_kv, invalid_kv, non_media_kv];
-    let result = normalize_media_query_syntax(props);
-
-    assert_eq!(result.len(), 3);
-
-    // The non-media key should be unchanged
-    let non_media = result.iter().find(|kv| {
-      if let PropName::Str(s) = &kv.key {
-        !s.value.as_str().unwrap_or("").starts_with("@media")
-      } else {
-        false
-      }
-    });
-    assert!(non_media.is_some());
-
-    // The invalid key should appear unchanged in the result
-    let has_invalid = result.iter().any(|kv| {
-      if let PropName::Str(s) = &kv.key {
-        s.value.as_str().unwrap_or("") == "@media !!!invalid"
-      } else {
-        false
-      }
-    });
-    assert!(has_invalid, "Invalid key should be preserved unchanged");
   }
 }
 

@@ -7,7 +7,7 @@ _inject2({
 });
 _inject2({
     ltr: "@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:lightgreen;}}",
-    priority: 0.6
+    priority: 0.6000000000000001
 });
 _inject2({
     ltr: "@supports (color: oklab(0 0 0)){@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.2 -0.4);}}}",
@@ -15,7 +15,7 @@ _inject2({
 });
 _inject2({
     ltr: "@supports (color: oklab(0 0 0)){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.3 -0.4);}}",
-    priority: 0.6
+    priority: 0.6000000000000001
 });
 export const variables = {
     "TestTheme.stylex.js//buttonTheme": "x2y918k TestTheme.stylex.js//buttonTheme",

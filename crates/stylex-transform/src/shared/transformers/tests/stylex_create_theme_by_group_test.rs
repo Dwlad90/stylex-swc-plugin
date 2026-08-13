@@ -444,7 +444,7 @@ mod stylex_create_theme {
           "x2y918k-1lveb7",
           (
             "@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:lightgreen;}}",
-            0.6
+            0.6000000000000001
           )
         ),
         (
@@ -458,7 +458,7 @@ mod stylex_create_theme {
           "x2y918k-kpd015",
           (
             "@supports (color: oklab(0 0 0)){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.3 -0.4);}}",
-            0.6
+            0.6000000000000001
           )
         )
       ])
@@ -516,7 +516,7 @@ mod stylex_create_theme {
           "x2y918k-1lveb7",
           (
             "@media (prefers-color-scheme: dark){.x2y918k, .x2y918k:root{--xgck17p:lightgreen;}}",
-            0.6
+            0.6000000000000001
           )
         ),
         (
@@ -530,7 +530,7 @@ mod stylex_create_theme {
           "x2y918k-kpd015",
           (
             "@supports (color: oklab(0 0 0)){.x2y918k, .x2y918k:root{--xgck17p:oklab(0.7 -0.3 -0.4);}}",
-            0.6
+            0.6000000000000001
           )
         )
       ])

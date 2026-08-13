@@ -16,7 +16,7 @@ use stylex_constants::constants::{
 };
 use stylex_enums::value_with_default::ValueWithDefault;
 use stylex_types::structures::injectable_style::InjectableStyle;
-use stylex_utils::{hash::create_hash, math::round_to_decimal_places};
+use stylex_utils::hash::create_hash;
 
 pub(crate) fn construct_css_variables_string(
   variables: &FlatCompiledStyles,
@@ -48,14 +48,7 @@ pub(crate) fn construct_css_variables_string(
 
     result.insert(
       format!("{}{}", theme_name_hash, suffix).into(),
-      InjectableStyle::regular(
-        ltr,
-        // Round to avoid floating-point precision issues (0.1 + 0.2 = 0.30000000000000004)
-        Some(round_to_decimal_places(
-          priority_for_at_rule(at_rule) / 10.0,
-          1,
-        )),
-      ),
+      InjectableStyle::regular(ltr, Some(priority_for_at_rule(at_rule) / 10.0)),
     );
   }
 

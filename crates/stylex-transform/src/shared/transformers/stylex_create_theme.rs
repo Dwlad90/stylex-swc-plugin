@@ -28,9 +28,7 @@ use stylex_constants::constants::{
   },
 };
 use stylex_types::structures::injectable_style::InjectableStyle;
-use stylex_utils::{
-  collection::find_and_swap_remove, hash::create_hash, math::round_to_decimal_places,
-};
+use stylex_utils::{collection::find_and_swap_remove, hash::create_hash};
 
 pub(crate) fn stylex_create_theme(
   theme_vars: &mut EvaluateResultValue,
@@ -169,7 +167,12 @@ pub(crate) fn stylex_create_theme(
     };
     let rule = format!(".{override_class_name}, .{override_class_name}:root{{{decls}}}");
 
-    let priority = round_to_decimal_places(0.4 + priority_for_at_rule(at_rule) / 10.0, 1);
+    // Kept unrounded: one at-rule gives `0.6000000000000001`, and rounding that
+    // to `0.6` would tie it with a var group nested five at-rules deep, whose
+    // priority is exactly `0.6`. The stylesheet sort compares priorities for
+    // equality, so a tie falls through to the by-content tie-break and can
+    // place the override before the rule it is meant to override.
+    let priority = 0.4 + priority_for_at_rule(at_rule) / 10.0;
 
     let (suffix, ltr) = if at_rule == "default" {
       (String::new(), rule)

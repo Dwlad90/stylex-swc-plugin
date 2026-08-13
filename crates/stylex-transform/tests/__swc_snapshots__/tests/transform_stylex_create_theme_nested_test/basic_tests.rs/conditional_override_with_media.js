@@ -18,7 +18,7 @@ _inject2({
 });
 _inject2({
     ltr: "@media (prefers-color-scheme: dark){.x10oxme4, .x10oxme4:root{--x1n06l0x:lightgreen;}}",
-    priority: 0.6
+    priority: 0.6000000000000001
 });
 export const theme = {
     xop34xu: "x10oxme4 xop34xu",

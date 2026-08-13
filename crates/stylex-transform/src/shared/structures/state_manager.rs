@@ -57,10 +57,7 @@ use stylex_structures::{
   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
 };
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
-use stylex_utils::{
-  hash::{stable_hash_unspanned, stable_hash_unspanned_call},
-  math::round_f64,
-};
+use stylex_utils::hash::{stable_hash_unspanned, stable_hash_unspanned_call};
 
 use super::{
   seen_value::SeenValue,
@@ -1381,7 +1378,7 @@ impl StateManager {
 
     let mut stylex_inject_args = vec![
       create_string_key_value_prop("ltr", css_ltr),
-      create_key_value_prop("priority", create_number_expr(round_f64(*priority, 1))),
+      create_key_value_prop("priority", create_number_expr(*priority)),
     ];
 
     if let Some(const_key) = const_key
@@ -1906,7 +1903,7 @@ fn build_atom_inject_item(metadata: &MetaData, inject_var_ident: &Ident) -> Modu
 
   let mut stylex_inject_args = vec![
     create_string_key_value_prop("ltr", css_ltr),
-    create_key_value_prop("priority", create_number_expr(round_f64(*priority, 1))),
+    create_key_value_prop("priority", create_number_expr(*priority)),
   ];
 
   if let Some(rtl) = css_rtl {

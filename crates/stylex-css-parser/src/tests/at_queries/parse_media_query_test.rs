@@ -1,7 +1,105 @@
 use crate::at_queries::media_query::MediaQuery;
 
+/// Assertions over a parsed `MediaQueryRule` tree.
+///
+/// Walking the tree inline costs a nested `match` per level, each with a panic
+/// arm, which buries the values a test is actually pinning under its own
+/// scaffolding. These read a level at a time instead: the `*_branches`
+/// functions descend one combinator and hand back its rules, and the
+/// `assert_*` functions pin one leaf. Every panic names the rule it wanted, so
+/// a failure still says which level of the tree went wrong.
+#[cfg(test)]
+mod rule_assertions {
+  use stylex_macros::stylex_panic;
+
+  use crate::at_queries::media_query::{MediaQueryRule, MediaRuleValue};
+
+  /// The rules of an `or` combinator, asserting its arity.
+  pub(super) fn or_branches(rule: &MediaQueryRule, count: usize) -> &[MediaQueryRule] {
+    match rule {
+      MediaQueryRule::Or(or_rules) => {
+        assert_eq!(or_rules.r#type, "or");
+        assert_eq!(or_rules.rules.len(), count);
+        &or_rules.rules
+      },
+      _ => stylex_panic!("Expected Or rule"),
+    }
+  }
+
+  /// The rules of an `and` combinator, asserting its arity.
+  pub(super) fn and_branches(rule: &MediaQueryRule, count: usize) -> &[MediaQueryRule] {
+    match rule {
+      MediaQueryRule::And(and_rules) => {
+        assert_eq!(and_rules.r#type, "and");
+        assert_eq!(and_rules.rules.len(), count);
+        &and_rules.rules
+      },
+      _ => stylex_panic!("Expected And rule"),
+    }
+  }
+
+  /// A `pair` whose value is a length, such as `(min-width: 576px)`.
+  pub(super) fn assert_length_pair(rule: &MediaQueryRule, key: &str, value: f32, unit: &str) {
+    match rule {
+      MediaQueryRule::Pair(pair) => {
+        assert_eq!(pair.r#type, "pair");
+        assert_eq!(pair.key, key);
+        match &pair.value {
+          MediaRuleValue::Length(length) => {
+            assert_eq!(length.value, value);
+            assert_eq!(length.unit, unit);
+          },
+          _ => stylex_panic!("Expected Length value for {}", key),
+        }
+      },
+      _ => stylex_panic!("Expected Pair rule for {}", key),
+    }
+  }
+
+  /// A `pair` whose value is a keyword, such as `(orientation: portrait)`.
+  pub(super) fn assert_string_pair(rule: &MediaQueryRule, key: &str, value: &str) {
+    match rule {
+      MediaQueryRule::Pair(pair) => {
+        assert_eq!(pair.r#type, "pair");
+        assert_eq!(pair.key, key);
+        match &pair.value {
+          MediaRuleValue::String(s) => assert_eq!(s, value),
+          _ => stylex_panic!("Expected String value for {}", key),
+        }
+      },
+      _ => stylex_panic!("Expected Pair rule for {}", key),
+    }
+  }
+
+  /// A bare feature name carrying no value, such as `(color)`.
+  pub(super) fn assert_word_rule(rule: &MediaQueryRule, key_value: &str) {
+    match rule {
+      MediaQueryRule::WordRule(word_rule) => {
+        assert_eq!(word_rule.r#type, "word-rule");
+        assert_eq!(word_rule.key_value, key_value);
+      },
+      _ => stylex_panic!("Expected WordRule for {}", key_value),
+    }
+  }
+
+  /// A media type such as `screen`, with its `not` / `only` prefixes.
+  pub(super) fn assert_media_keyword(rule: &MediaQueryRule, key: &str, not: bool, only: bool) {
+    match rule {
+      MediaQueryRule::MediaKeyword(keyword) => {
+        assert_eq!(keyword.r#type, "media-keyword");
+        assert_eq!(keyword.key, key);
+        assert_eq!(keyword.not, not);
+        assert_eq!(keyword.only, only);
+      },
+      _ => stylex_panic!("Expected MediaKeyword rule for {}", key),
+    }
+  }
+}
+
 #[cfg(test)]
 mod style_value_parser_at_queries {
+  #[allow(unused_imports)]
+  use super::rule_assertions::*;
   use super::*;
 
   #[cfg(test)]
@@ -1998,7 +2096,6 @@ mod style_value_parser_at_queries {
       use stylex_macros::stylex_panic;
 
       use super::*;
-      use crate::at_queries::media_query::{MediaQueryRule, MediaRuleValue};
 
       #[test]
       fn media_orientation_portrait_or_landscape() {
@@ -2383,87 +2480,15 @@ mod style_value_parser_at_queries {
         let input = "@media (min-width: 576px) and (max-width: 767px), (hover: none) and (any-pointer: coarse)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          MediaQueryRule::Or(or_rules) => {
-            assert_eq!(or_rules.r#type, "or");
-            assert_eq!(or_rules.rules.len(), 2);
+        let branches = or_branches(&parsed.queries, 2);
 
-            match &or_rules.rules[0] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
+        let widths = and_branches(&branches[0], 2);
+        assert_length_pair(&widths[0], "min-width", 576.0, "px");
+        assert_length_pair(&widths[1], "max-width", 767.0, "px");
 
-                match &and_rules.rules[0] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "min-width");
-                    match &pair.value {
-                      MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 576.0);
-                        assert_eq!(length.unit, "px");
-                      },
-                      _ => stylex_panic!("Expected Length value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "max-width");
-                    match &pair.value {
-                      MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 767.0);
-                        assert_eq!(length.unit, "px");
-                      },
-                      _ => stylex_panic!("Expected Length value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-
-            match &or_rules.rules[1] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
-
-                match &and_rules.rules[0] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "hover");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "none");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "any-pointer");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "coarse");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-          },
-          _ => stylex_panic!("Expected Or rule"),
-        }
+        let pointers = and_branches(&branches[1], 2);
+        assert_string_pair(&pointers[0], "hover", "none");
+        assert_string_pair(&pointers[1], "any-pointer", "coarse");
 
         assert_eq!(
           parsed.to_string(),
@@ -2477,79 +2502,14 @@ mod style_value_parser_at_queries {
         let input = "@media (min-width: 576px), (orientation: portrait) and (max-width: 767px), (prefers-color-scheme: dark)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          MediaQueryRule::Or(or_rules) => {
-            assert_eq!(or_rules.r#type, "or");
-            assert_eq!(or_rules.rules.len(), 3);
+        let branches = or_branches(&parsed.queries, 3);
+        assert_length_pair(&branches[0], "min-width", 576.0, "px");
 
-            match &or_rules.rules[0] {
-              MediaQueryRule::Pair(pair) => {
-                assert_eq!(pair.r#type, "pair");
-                assert_eq!(pair.key, "min-width");
-                match &pair.value {
-                  MediaRuleValue::Length(length) => {
-                    assert_eq!(length.value, 576.0);
-                    assert_eq!(length.unit, "px");
-                  },
-                  _ => stylex_panic!("Expected Length value"),
-                }
-              },
-              _ => stylex_panic!("Expected Pair rule"),
-            }
+        let portrait = and_branches(&branches[1], 2);
+        assert_string_pair(&portrait[0], "orientation", "portrait");
+        assert_length_pair(&portrait[1], "max-width", 767.0, "px");
 
-            match &or_rules.rules[1] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
-
-                match &and_rules.rules[0] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "orientation");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "portrait");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "max-width");
-                    match &pair.value {
-                      MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 767.0);
-                        assert_eq!(length.unit, "px");
-                      },
-                      _ => stylex_panic!("Expected Length value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-
-            match &or_rules.rules[2] {
-              MediaQueryRule::Pair(pair) => {
-                assert_eq!(pair.r#type, "pair");
-                assert_eq!(pair.key, "prefers-color-scheme");
-                match &pair.value {
-                  MediaRuleValue::String(s) => {
-                    assert_eq!(s, "dark");
-                  },
-                  _ => stylex_panic!("Expected String value"),
-                }
-              },
-              _ => stylex_panic!("Expected Pair rule"),
-            }
-          },
-          _ => stylex_panic!("Expected Or rule"),
-        }
+        assert_string_pair(&branches[2], "prefers-color-scheme", "dark");
 
         assert_eq!(
           parsed.to_string(),
@@ -2563,101 +2523,17 @@ mod style_value_parser_at_queries {
         let input = "@media (min-width: 768px) and (max-width: 991px), (orientation: landscape) and (update: fast), (prefers-reduced-motion: reduce)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          MediaQueryRule::Or(or_rules) => {
-            assert_eq!(or_rules.r#type, "or");
-            assert_eq!(or_rules.rules.len(), 3);
+        let branches = or_branches(&parsed.queries, 3);
 
-            match &or_rules.rules[0] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
+        let widths = and_branches(&branches[0], 2);
+        assert_length_pair(&widths[0], "min-width", 768.0, "px");
+        assert_length_pair(&widths[1], "max-width", 991.0, "px");
 
-                match &and_rules.rules[0] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "min-width");
-                    match &pair.value {
-                      MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 768.0);
-                        assert_eq!(length.unit, "px");
-                      },
-                      _ => stylex_panic!("Expected Length value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
+        let landscape = and_branches(&branches[1], 2);
+        assert_string_pair(&landscape[0], "orientation", "landscape");
+        assert_string_pair(&landscape[1], "update", "fast");
 
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "max-width");
-                    match &pair.value {
-                      MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 991.0);
-                        assert_eq!(length.unit, "px");
-                      },
-                      _ => stylex_panic!("Expected Length value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-
-            match &or_rules.rules[1] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
-
-                match &and_rules.rules[0] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "orientation");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "landscape");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "update");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "fast");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-
-            match &or_rules.rules[2] {
-              MediaQueryRule::Pair(pair) => {
-                assert_eq!(pair.r#type, "pair");
-                assert_eq!(pair.key, "prefers-reduced-motion");
-                match &pair.value {
-                  MediaRuleValue::String(s) => {
-                    assert_eq!(s, "reduce");
-                  },
-                  _ => stylex_panic!("Expected String value"),
-                }
-              },
-              _ => stylex_panic!("Expected Pair rule"),
-            }
-          },
-          _ => stylex_panic!("Expected Or rule"),
-        }
+        assert_string_pair(&branches[2], "prefers-reduced-motion", "reduce");
 
         assert_eq!(
           parsed.to_string(),
@@ -2671,123 +2547,19 @@ mod style_value_parser_at_queries {
         let input = "@media (min-width: 992px) and (max-width: 1199px), (pointer: fine) and (hover: hover), (any-pointer: coarse) and (any-hover: none)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          MediaQueryRule::Or(or_rules) => {
-            assert_eq!(or_rules.r#type, "or");
-            assert_eq!(or_rules.rules.len(), 3);
+        let branches = or_branches(&parsed.queries, 3);
 
-            match &or_rules.rules[0] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
+        let widths = and_branches(&branches[0], 2);
+        assert_length_pair(&widths[0], "min-width", 992.0, "px");
+        assert_length_pair(&widths[1], "max-width", 1199.0, "px");
 
-                match &and_rules.rules[0] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "min-width");
-                    match &pair.value {
-                      MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 992.0);
-                        assert_eq!(length.unit, "px");
-                      },
-                      _ => stylex_panic!("Expected Length value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
+        let pointer = and_branches(&branches[1], 2);
+        assert_string_pair(&pointer[0], "pointer", "fine");
+        assert_string_pair(&pointer[1], "hover", "hover");
 
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "max-width");
-                    match &pair.value {
-                      MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 1199.0);
-                        assert_eq!(length.unit, "px");
-                      },
-                      _ => stylex_panic!("Expected Length value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-
-            match &or_rules.rules[1] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
-
-                match &and_rules.rules[0] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "pointer");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "fine");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "hover");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "hover");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-
-            match &or_rules.rules[2] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
-
-                match &and_rules.rules[0] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "any-pointer");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "coarse");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "any-hover");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "none");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-          },
-          _ => stylex_panic!("Expected Or rule"),
-        }
+        let any_pointer = and_branches(&branches[2], 2);
+        assert_string_pair(&any_pointer[0], "any-pointer", "coarse");
+        assert_string_pair(&any_pointer[1], "any-hover", "none");
 
         assert_eq!(
           parsed.to_string(),
@@ -2801,123 +2573,19 @@ mod style_value_parser_at_queries {
         let input = "@media (min-width: 576px) and (max-width: 767px), (hover: none) and (any-pointer: coarse), (prefers-reduced-transparency: reduce) and (forced-colors: active)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          MediaQueryRule::Or(or_rules) => {
-            assert_eq!(or_rules.r#type, "or");
-            assert_eq!(or_rules.rules.len(), 3);
+        let branches = or_branches(&parsed.queries, 3);
 
-            match &or_rules.rules[0] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
+        let widths = and_branches(&branches[0], 2);
+        assert_length_pair(&widths[0], "min-width", 576.0, "px");
+        assert_length_pair(&widths[1], "max-width", 767.0, "px");
 
-                match &and_rules.rules[0] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "min-width");
-                    match &pair.value {
-                      MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 576.0);
-                        assert_eq!(length.unit, "px");
-                      },
-                      _ => stylex_panic!("Expected Length value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
+        let pointers = and_branches(&branches[1], 2);
+        assert_string_pair(&pointers[0], "hover", "none");
+        assert_string_pair(&pointers[1], "any-pointer", "coarse");
 
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "max-width");
-                    match &pair.value {
-                      MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 767.0);
-                        assert_eq!(length.unit, "px");
-                      },
-                      _ => stylex_panic!("Expected Length value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-
-            match &or_rules.rules[1] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
-
-                match &and_rules.rules[0] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "hover");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "none");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "any-pointer");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "coarse");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-
-            match &or_rules.rules[2] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
-
-                match &and_rules.rules[0] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "prefers-reduced-transparency");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "reduce");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "forced-colors");
-                    match &pair.value {
-                      MediaRuleValue::String(s) => {
-                        assert_eq!(s, "active");
-                      },
-                      _ => stylex_panic!("Expected String value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-          },
-          _ => stylex_panic!("Expected Or rule"),
-        }
+        let accessibility = and_branches(&branches[2], 2);
+        assert_string_pair(&accessibility[0], "prefers-reduced-transparency", "reduce");
+        assert_string_pair(&accessibility[1], "forced-colors", "active");
 
         assert_eq!(
           parsed.to_string(),
@@ -2930,77 +2598,15 @@ mod style_value_parser_at_queries {
         let input = "@media (color) and (min-width: 400px), screen and (max-width: 700px)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          MediaQueryRule::Or(or_rules) => {
-            assert_eq!(or_rules.r#type, "or");
-            assert_eq!(or_rules.rules.len(), 2);
+        let branches = or_branches(&parsed.queries, 2);
 
-            match &or_rules.rules[0] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
+        let color = and_branches(&branches[0], 2);
+        assert_word_rule(&color[0], "color");
+        assert_length_pair(&color[1], "min-width", 400.0, "px");
 
-                match &and_rules.rules[0] {
-                  MediaQueryRule::WordRule(word_rule) => {
-                    assert_eq!(word_rule.r#type, "word-rule");
-                    assert_eq!(word_rule.key_value, "color");
-                  },
-                  _ => stylex_panic!("Expected WordRule for color"),
-                }
-
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "min-width");
-                    match &pair.value {
-                      MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 400.0);
-                        assert_eq!(length.unit, "px");
-                      },
-                      _ => stylex_panic!("Expected Length value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-
-            match &or_rules.rules[1] {
-              MediaQueryRule::And(and_rules) => {
-                assert_eq!(and_rules.r#type, "and");
-                assert_eq!(and_rules.rules.len(), 2);
-
-                match &and_rules.rules[0] {
-                  MediaQueryRule::MediaKeyword(keyword) => {
-                    assert_eq!(keyword.r#type, "media-keyword");
-                    assert_eq!(keyword.key, "screen");
-                    assert!(!keyword.not);
-                    assert!(!keyword.only);
-                  },
-                  _ => stylex_panic!("Expected MediaKeyword rule for screen"),
-                }
-
-                match &and_rules.rules[1] {
-                  MediaQueryRule::Pair(pair) => {
-                    assert_eq!(pair.r#type, "pair");
-                    assert_eq!(pair.key, "max-width");
-                    match &pair.value {
-                      MediaRuleValue::Length(length) => {
-                        assert_eq!(length.value, 700.0);
-                        assert_eq!(length.unit, "px");
-                      },
-                      _ => stylex_panic!("Expected Length value"),
-                    }
-                  },
-                  _ => stylex_panic!("Expected Pair rule"),
-                }
-              },
-              _ => stylex_panic!("Expected And rule"),
-            }
-          },
-          _ => stylex_panic!("Expected Or rule"),
-        }
+        let screen = and_branches(&branches[1], 2);
+        assert_media_keyword(&screen[0], "screen", false, false);
+        assert_length_pair(&screen[1], "max-width", 700.0, "px");
 
         assert_eq!(
           parsed.to_string(),
@@ -3667,43 +3273,9 @@ mod style_value_parser_at_queries {
         let input = "@media (1000px > width >= 700px)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
-            assert_eq!(and_rules.r#type, "and");
-            assert_eq!(and_rules.rules.len(), 2);
-
-            match &and_rules.rules[0] {
-              crate::at_queries::media_query::MediaQueryRule::Pair(pair) => {
-                assert_eq!(pair.r#type, "pair");
-                assert_eq!(pair.key, "min-width");
-                match &pair.value {
-                  crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                    assert_eq!(length.value, 700.0);
-                    assert_eq!(length.unit, "px");
-                  },
-                  _ => stylex_panic!("Expected Length value"),
-                }
-              },
-              _ => stylex_panic!("Expected Pair rule"),
-            }
-
-            match &and_rules.rules[1] {
-              crate::at_queries::media_query::MediaQueryRule::Pair(pair) => {
-                assert_eq!(pair.r#type, "pair");
-                assert_eq!(pair.key, "max-width");
-                match &pair.value {
-                  crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                    assert_eq!(length.value, 999.99);
-                    assert_eq!(length.unit, "px");
-                  },
-                  _ => stylex_panic!("Expected Length value"),
-                }
-              },
-              _ => stylex_panic!("Expected Pair rule"),
-            }
-          },
-          _ => stylex_panic!("Expected And rule"),
-        }
+        let bounds = and_branches(&parsed.queries, 2);
+        assert_length_pair(&bounds[0], "min-width", 700.0, "px");
+        assert_length_pair(&bounds[1], "max-width", 999.99, "px");
 
         assert_eq!(
           parsed.to_string(),
@@ -3716,43 +3288,9 @@ mod style_value_parser_at_queries {
         let input = "@media (1000px >= width > 700px)";
         let parsed = MediaQuery::parser().parse_to_end(input).unwrap();
 
-        match &parsed.queries {
-          crate::at_queries::media_query::MediaQueryRule::And(and_rules) => {
-            assert_eq!(and_rules.r#type, "and");
-            assert_eq!(and_rules.rules.len(), 2);
-
-            match &and_rules.rules[0] {
-              crate::at_queries::media_query::MediaQueryRule::Pair(pair) => {
-                assert_eq!(pair.r#type, "pair");
-                assert_eq!(pair.key, "min-width");
-                match &pair.value {
-                  crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                    assert_eq!(length.value, 700.01);
-                    assert_eq!(length.unit, "px");
-                  },
-                  _ => stylex_panic!("Expected Length value"),
-                }
-              },
-              _ => stylex_panic!("Expected Pair rule"),
-            }
-
-            match &and_rules.rules[1] {
-              crate::at_queries::media_query::MediaQueryRule::Pair(pair) => {
-                assert_eq!(pair.r#type, "pair");
-                assert_eq!(pair.key, "max-width");
-                match &pair.value {
-                  crate::at_queries::media_query::MediaRuleValue::Length(length) => {
-                    assert_eq!(length.value, 1000.0);
-                    assert_eq!(length.unit, "px");
-                  },
-                  _ => stylex_panic!("Expected Length value"),
-                }
-              },
-              _ => stylex_panic!("Expected Pair rule"),
-            }
-          },
-          _ => stylex_panic!("Expected And rule"),
-        }
+        let bounds = and_branches(&parsed.queries, 2);
+        assert_length_pair(&bounds[0], "min-width", 700.01, "px");
+        assert_length_pair(&bounds[1], "max-width", 1000.0, "px");
 
         assert_eq!(
           parsed.to_string(),

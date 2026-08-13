@@ -64,3 +64,18 @@ stylex_test!(
     });
   "#
 );
+
+// `Number(x)` folds in the same position, through the numeric-literal grammar:
+// `:root, .xop34xu{--xu6xznv:31;--x138e37c:NaN;}`. `NaN` is a value here too —
+// upstream writes it into the rule rather than failing.
+stylex_test!(
+  token_values_wrapped_in_number,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      size: Number('0x1f'),
+      ratio: Number('10px'),
+    });
+  "#
+);

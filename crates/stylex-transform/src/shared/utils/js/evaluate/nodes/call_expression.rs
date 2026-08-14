@@ -55,6 +55,33 @@ fn evaluate_callable_global(
 
       Some(EvaluateResultValue::Expr(create_number_expr(coerced)))
     },
+    CallableGlobalJS::Array => {
+      // One numeric argument is a length rather than an element: `Array(3)`
+      // is three holes where `Array('3')` is the one-element list. Every
+      // other argument list folds to itself, including no arguments at all.
+      if let [EvaluateResultValue::Expr(count)] = args.as_slice()
+        && let Some(count) = coercions::js_number_value(count)
+      {
+        let Some(length) = coercions::to_array_length(count) else {
+          return deopt(path, state, INVALID_ARRAY_LENGTH);
+        };
+
+        if length > MAX_FOLDED_ARRAY_LENGTH {
+          return deopt(path, state, &array_length_too_large());
+        }
+
+        // A hole holds the same absent value a confidently evaluated element
+        // with no value already does. The fold succeeds and the
+        // holes reach the existing style-array check, which is what refuses
+        // them — a counted array is rejected as a value, not as a call.
+        return Some(EvaluateResultValue::Vec(vec![
+          EvaluateResultValue::Null;
+          length
+        ]));
+      }
+
+      Some(EvaluateResultValue::Vec(args))
+    },
   }
 }
 

@@ -359,3 +359,228 @@ stylex_test_panic!(
     });
   "#
 );
+
+// Two arguments are two elements, so the declaration repeats exactly as the
+// equivalent array literal's does: `.x1rrpg6l{color:red;color:blue}`.
+stylex_test!(
+  array_of_several_values_is_a_style_array,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      fromCall: { color: Array('red', 'blue') },
+      fromLiteral: { color: ['red', 'blue'] },
+      numbers: { opacity: Array(1, 2) },
+      durations: { transitionDuration: Array('1s', '2s') },
+    });
+  "#
+);
+
+// A lone argument is a length only when it is a number. A string is an
+// element, so `Array('3')` is `.xvck8lq{color:3}` rather than three holes, and
+// a `null` element drops out as it does from a literal array.
+stylex_test!(
+  array_of_a_single_value_is_a_one_element_array,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      string: { color: Array('red') },
+      numericString: { color: Array('3') },
+      withNull: { color: Array(null, 'red') },
+    });
+  "#
+);
+
+// No elements is no declaration, whether the length is absent or zero.
+stylex_test!(
+  array_of_no_elements_declares_nothing,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      noArguments: { color: Array() },
+      zeroLength: { color: Array(0) },
+    });
+  "#
+);
+
+// Calls compose: the coerced elements produce `.x433f35{color:red;color:1}`,
+// and an array reached through a coercion joins with commas.
+stylex_test!(
+  array_calls_nest_with_the_other_globals,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      coercedElements: { color: Array(String('red'), String(1)) },
+      joined: { color: String(Array('a', 'b')) },
+      joinedHoles: { color: String(Array(3)) },
+    });
+  "#
+);
+
+// The fold reaches a computed key and every branch of a nested value object:
+// `.x1rrpg6l` for the default and `.x1ehdwse:hover{color:green}` beside it.
+stylex_test!(
+  array_folds_in_a_computed_key_and_a_nested_value,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      computed: { [String('color')]: Array('red', 'blue') },
+      nested: { color: { default: Array('red', 'blue'), ':hover': 'green' } },
+    });
+  "#
+);
+
+// A declared `Array` is an ordinary function, so it is called rather than
+// folded: `.xrrf2x5{color:x}`.
+stylex_test!(
+  a_locally_declared_array_shadows_the_global,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const Array = () => ['x'];
+    export const styles = stylex.create({
+      root: { color: Array('red', 'blue') },
+    });
+  "#
+);
+
+// A dynamic style's parameter has no compile-time value, so the call stays in
+// the emitted function and the declaration becomes a custom property.
+stylex_test!(
+  array_of_a_dynamic_style_parameter,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: (color) => ({ color: Array(color, 'blue') }),
+    });
+  "#
+);
+
+// A single numeric argument is a length, and every hole it makes is
+// `undefined`. The fold succeeds; the style-array check is what refuses.
+stylex_test_panic!(
+  array_of_a_length_reaches_the_style_array_check,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Array(3) },
+    });
+  "#
+);
+
+// One hole is enough, and the same check refuses an array element.
+stylex_test_panic!(
+  array_of_a_length_of_one_reaches_the_style_array_check,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Array(1) },
+    });
+  "#
+);
+
+stylex_test_panic!(
+  array_of_an_array_reaches_the_style_array_check,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Array(Array('red', 'blue')) },
+    });
+  "#
+);
+
+// A fraction, a negative, and `NaN` are not array lengths, so there is no
+// array to fold and the build fails rather than inventing one.
+stylex_test_panic!(
+  array_of_a_fractional_length_is_rejected,
+  "Invalid array length.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Array(2.5) },
+    });
+  "#
+);
+
+stylex_test_panic!(
+  array_of_a_negative_length_is_rejected,
+  "Invalid array length.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Array(-1) },
+    });
+  "#
+);
+
+// `NaN` and `Infinity` reach the evaluator as their identifiers rather than as
+// numeric literals. Both are counts all the same, and neither is a length —
+// read as elements instead, they would be refused by the wrong check.
+stylex_test_panic!(
+  array_of_a_not_a_number_length_is_rejected,
+  "Invalid array length.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Array(NaN) },
+    });
+  "#
+);
+
+stylex_test_panic!(
+  array_of_an_infinite_length_is_rejected,
+  "Invalid array length.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Array(Infinity) },
+    });
+  "#
+);
+
+// `2 ** 32` is one past the largest length, so it is not a length either.
+stylex_test_panic!(
+  array_of_a_length_past_the_limit_is_rejected,
+  "Invalid array length.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Array(4294967296) },
+    });
+  "#
+);
+
+// A length JavaScript accepts but the compiler will not materialise. Every
+// hole past the first already fails the style-array check, so the refusal
+// costs nothing a stylesheet could have used.
+stylex_test_panic!(
+  array_of_an_unmaterialisable_length_is_rejected,
+  "Array length is too large to evaluate at compile time.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Array(4294967295) },
+    });
+  "#
+);
+
+// A spread argument is not evaluated, for the same reason it is not for
+// `String` and `Number`.
+stylex_test_panic!(
+  array_of_a_spread_argument_is_rejected,
+  "Unsupported expression: SpreadElement",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Array(...['red', 'blue']) },
+    });
+  "#
+);

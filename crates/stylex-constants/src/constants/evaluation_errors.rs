@@ -56,6 +56,30 @@ pub fn uncoercible_value(callee: &str) -> String {
   )
 }
 
+/// `Array(n)` was given a count that is not an array length — a fraction, a
+/// negative, `NaN`, or a value at or past `2 ** 32`. JavaScript raises a
+/// `RangeError` for each of these, so there is no array to fold.
+pub static INVALID_ARRAY_LENGTH: &str = "Invalid array length.\n\n";
+
+/// The most holes `Array(n)` will materialise.
+///
+/// A length is only a count until the array exists, and every hole costs the
+/// width of an evaluated value, so `Array(2 ** 32 - 1)` — a length JavaScript
+/// accepts — is an allocation the compiler does not survive. Bounded at a
+/// count no stylesheet reaches: a counted array used as a style value is
+/// refused whatever its length, and the one shape that folds to something
+/// usable, the join `String(Array(n))`, is `n - 1` commas.
+pub const MAX_FOLDED_ARRAY_LENGTH: usize = 65_536;
+
+/// `Array(n)` was given a length that is legal in JavaScript but past
+/// [`MAX_FOLDED_ARRAY_LENGTH`].
+pub fn array_length_too_large() -> String {
+  format!(
+    "Array length is too large to evaluate at compile time.\nAt most {} elements are supported.\n\n",
+    MAX_FOLDED_ARRAY_LENGTH
+  )
+}
+
 pub fn unsupported_operator(op: &str) -> String {
   format!("Unsupported operator: {}\n\n", op)
 }

@@ -35,13 +35,21 @@ _Avoid_: bailout, failure, fallback, error
 
 **Callable global**:
 A JavaScript global the evaluator folds when the global _itself_ is called —
-`String(x)`, `Number(x)`. A [valid callee](../stylex-js/CONTEXT.md) is the wider
-set, because
+`String(x)`, `Number(x)`, `Array(x)`. A
+[valid callee](../stylex-js/CONTEXT.md) is the wider set, because
 it also admits globals that only contribute methods: `Math` is a valid callee so
 that `Math.round(1.5)` folds, and is not a callable global, so a bare `Math(x)`
 is rejected rather than folded. Only a global with no binding in scope is one at
 all — a declared `String` is an ordinary function and is called, not folded.
 _Avoid_: built-in function, global function, wrapper call
+
+**Hole**:
+An array element `Array(n)` created by counting rather than by listing. Held as
+the same absent value a confidently evaluated element with no value already is,
+so it joins as nothing and reaches the style-array check unchanged. A style
+array cannot contain one, which is where a counted array is refused — the fold
+itself succeeds.
+_Avoid_: empty slot, gap, undefined element
 
 **Binding write**:
 A binding whose value can differ from its declaration initializer, either

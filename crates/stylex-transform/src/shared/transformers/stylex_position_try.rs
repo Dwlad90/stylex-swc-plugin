@@ -102,12 +102,16 @@ pub(crate) fn stylex_position_try(
 
   let position_try_name = format!("--{}{}", class_name_prefix, create_hash(&ltr_string));
 
-  let ltr = format!("@position-try {}{{{}}}", position_try_name, ltr_string);
+  // The space before the block is part of the rule text the reference
+  // implementation emits. It sits outside the hash, which is taken from the body
+  // alone, so the name is unaffected either way -- but the rule text is compared
+  // byte for byte wherever both compilers' output meets.
+  let ltr = format!("@position-try {} {{{}}}", position_try_name, ltr_string);
   let rtl = if ltr_string == rtl_string {
     None
   } else {
     Some(format!(
-      "@position-try {}{{{}}}",
+      "@position-try {} {{{}}}",
       position_try_name, rtl_string
     ))
   };

@@ -870,3 +870,77 @@ stylex_test_panic!(
     });
   "#
 );
+
+// --- Positions the fold has to reach, and coercions composing ---------------
+//
+// The per-global cases above all coerce a plain declaration value. These pin
+// the remaining positions a style object offers, so a later narrowing of where
+// the fold applies cannot pass unnoticed.
+
+// A computed key is coerced before it names a property, so `[String('color')]`
+// declares `color` and hashes as the literal key does — including when the
+// coercion composes: `.x1t391ir{background-color:blue}`.
+stylex_test!(
+  a_coerced_computed_key_folds,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      fromString: { [String('color')]: 'red' },
+      fromNumber: { [String('width')]: Number('10') },
+      fromNested: { [String(String('backgroundColor'))]: 'blue' },
+    });
+  "#
+);
+
+// Every branch of a nested value coerces on its own, default and condition
+// alike: `.x1e2nbdu{color:red}` beside `.x17z2mba:hover{color:blue}`, and the
+// hexadecimal `0x14` reaching `:hover{width:20px}`.
+stylex_test!(
+  coercions_fold_at_every_branch_of_a_nested_value,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      strings: { color: { default: String('red'), ':hover': String('blue') } },
+      numbers: { width: { default: Number('10'), ':hover': Number('0x14') } },
+      arrays: { color: { default: Array('red', 'blue'), ':hover': Array('green') } },
+    });
+  "#
+);
+
+// A media query is a branch like any other, so a coercion inside one folds and
+// keeps its at-rule priority.
+stylex_test!(
+  a_coercion_folds_inside_a_media_query_branch,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: {
+        color: {
+          default: String('red'),
+          ':hover': String('blue'),
+          '@media (min-width: 768px)': String('green'),
+        },
+      },
+    });
+  "#
+);
+
+// All four globals compose in one expression: an array of coercions joins,
+// a coerced hexadecimal string round-trips through a string, an object takes
+// the `Object.prototype` default, and a joined array keeps its empty element.
+stylex_test!(
+  calls_of_every_global_compose,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      a: { color: String(Array(String('red'), String('blue'))) },
+      b: { width: Number(String(Number('0x1f'))) },
+      c: { color: String(Object({ a: 1 })) },
+      d: { content: String(Array(Number('1'), String(2), null)) },
+    });
+  "#
+);

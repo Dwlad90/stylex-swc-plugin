@@ -33,9 +33,18 @@ impl LogicalOp {
 /// Folds `||`, `&&` and `??` over evaluated values, returning the winning
 /// operand verbatim.
 ///
-/// Both sides are evaluated up front, each under its own confidence, so a side
-/// the fold never consults cannot deopt the expression — `token ?? 'red'` folds
-/// whether or not the fallback would have.
+/// Each side is evaluated under a confidence of its own, so a side the fold
+/// never consults cannot deopt the expression — `token ?? 'red'` folds whether
+/// or not the fallback would have.
+///
+/// The right side is evaluated only where the guard actually asks about it,
+/// which is the short-circuit the language performs and this node's whole
+/// reason for existing. It is not merely a saving: evaluating an operand is
+/// what queues a `*.stylex.js` theme import for tree-shake compensation, so a
+/// losing `tokens.color` evaluated anyway would leave an import behind for a
+/// value that never reached the stylesheet. Which operand the fold keeps is
+/// unchanged by the laziness — a left side that wins wins whatever the right
+/// side would have said.
 pub(in super::super) fn evaluate(
   op: LogicalOp,
   bin: &BinExpr,
@@ -44,15 +53,23 @@ pub(in super::super) fn evaluate(
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
   let left = evaluate_operand(&bin.left, state, traversal_state, fns);
+
+  let decision = match left.confident {
+    true => decide(op, left.value.as_ref()),
+    // The right side is still evaluated below, because which path the deopt
+    // names depends on it: an unconfident right side is the one reported, and
+    // only a confident one lets the left side's own reason through.
+    false => Decision::Refuse,
+  };
+
+  if matches!(decision, Decision::Left) {
+    return Some(operand_value(left.value));
+  }
+
   let right = evaluate_operand(&bin.right, state, traversal_state, fns);
 
-  if left.confident
-    && let Some(winner) = fold(op, left.value.as_ref(), right.confident)
-  {
-    return Some(match winner {
-      Winner::Left => operand_value(left.value),
-      Winner::Right => operand_value(right.value),
-    });
+  if matches!(decision, Decision::Right) && right.confident {
+    return Some(operand_value(right.value));
   }
 
   if !left.confident {
@@ -111,14 +128,19 @@ fn evaluate_operand(
   }
 }
 
-/// Which side of the operator the fold keeps.
-enum Winner {
+/// What the left side alone settles.
+enum Decision {
+  /// The left operand is the answer, whatever the right side holds.
   Left,
+  /// The right operand is the answer if it evaluated confidently, and the
+  /// caller deopts on it if it did not.
   Right,
+  /// The guard declines to fold, and the caller deopts.
+  Refuse,
 }
 
-/// The operand the reference implementation's guard lets through, or `None`
-/// where it declines to fold and the caller deopts.
+/// The operand the reference implementation's guard lets through, decided from
+/// the left side alone so the right one is evaluated only where it is consulted.
 ///
 /// The guards are reproduced in the shape upstream writes them, including the
 /// nullish one — `leftConfident && !!(left ?? rightConfident)` tests the left
@@ -128,31 +150,26 @@ enum Winner {
 /// alone, and a silent CSS difference between two builds of the same source is
 /// worse than inheriting the restriction. Reported upstream rather than fixed
 /// locally.
-fn fold(
-  op: LogicalOp,
-  left: Option<&EvaluateResultValue>,
-  right_confident: bool,
-) -> Option<Winner> {
+fn decide(op: LogicalOp, left: Option<&EvaluateResultValue>) -> Decision {
   match op {
-    LogicalOp::Or => {
-      if truthiness(left)? {
-        Some(Winner::Left)
-      } else {
-        right_confident.then_some(Winner::Right)
-      }
+    LogicalOp::Or => match truthiness(left) {
+      Some(true) => Decision::Left,
+      Some(false) => Decision::Right,
+      None => Decision::Refuse,
     },
-    LogicalOp::And => {
-      if truthiness(left)? {
-        right_confident.then_some(Winner::Right)
-      } else {
-        Some(Winner::Left)
-      }
+    LogicalOp::And => match truthiness(left) {
+      Some(true) => Decision::Right,
+      Some(false) => Decision::Left,
+      None => Decision::Refuse,
     },
     LogicalOp::Nullish => {
       if is_nullish(left) {
-        right_confident.then_some(Winner::Right)
+        Decision::Right
       } else {
-        truthiness(left)?.then_some(Winner::Left)
+        match truthiness(left) {
+          Some(true) => Decision::Left,
+          Some(false) | None => Decision::Refuse,
+        }
       }
     },
   }

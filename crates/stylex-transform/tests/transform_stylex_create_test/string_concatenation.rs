@@ -160,3 +160,25 @@ stylex_test_panic!(
     });
   "#
 );
+
+// `undefined` is a value the evaluator now hands back rather than a failure to
+// resolve — from `void x`, and from a key an object does not carry — so it
+// reaches the arithmetic path as an ordinary identifier. `ToNumber` of it is
+// `NaN`, which is a value and lands in the stylesheet; asked of the binding
+// table instead it resolves to no declaration and fails the build, which is
+// what this pins against. `Infinity` is the same identifier shape with a
+// number that is not `NaN`.
+stylex_test!(
+  the_nullish_and_numeric_globals_coerce_under_arithmetic,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const size = { s: 1 };
+    export const styles = stylex.create({
+      a: { flexGrow: 1 + size.missing },
+      b: { flexGrow: void 0 * 2 },
+      c: { flexGrow: Infinity - 1 },
+      d: { flexGrow: NaN + 1 },
+    });
+  "#
+);

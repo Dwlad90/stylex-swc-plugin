@@ -29,6 +29,7 @@ use stylex_constants::constants::messages::{
   ILLEGAL_PROP_VALUE, VAR_DECL_INIT_REQUIRED, non_static_value,
 };
 use stylex_enums::misc::BinaryExprType;
+use stylex_js::coercions;
 use stylex_structures::raw_value::TRawValue;
 use stylex_utils::swc::get_default_expr_ctx;
 
@@ -39,7 +40,17 @@ pub fn expr_to_num(
   fns: &FunctionMap,
 ) -> Result<f64, anyhow::Error> {
   let result = match &expr_num {
-    Expr::Ident(ident) => ident_to_number(ident, state, traversal_state, &FunctionMap::default()),
+    // `undefined`, `NaN` and `Infinity` are ordinary identifiers rather than
+    // literals, and the evaluator now hands two of them back as values in their
+    // own right — `void x`, and a key an object does not carry. Asked of the
+    // binding table instead, they resolve to no declaration and fail the build,
+    // where JavaScript answers `NaN`, `NaN` and `Infinity`. The shared coercion
+    // names exactly those three and refuses every other identifier, so an
+    // ordinary binding still reads its declaration below.
+    Expr::Ident(ident) => match coercions::to_js_number(expr_num) {
+      Some(number) => number,
+      None => ident_to_number(ident, state, traversal_state, &FunctionMap::default()),
+    },
     Expr::Lit(lit) => return convert_lit_to_number(lit),
     Expr::Unary(unary) => convert_unary_to_num(unary, state, traversal_state, fns),
     Expr::Bin(lit) => {

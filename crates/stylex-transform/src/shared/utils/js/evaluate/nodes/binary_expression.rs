@@ -62,10 +62,11 @@ const RIGHT_NOT_A_NUMBER: &str = "Right expression is not a number";
 const LEFT_NOT_A_STRING: &str = "Left expression is not a string";
 const RIGHT_NOT_A_STRING: &str = "Right expression is not a string";
 
-/// The reason the `+` dispatch records, which runs before either path has
-/// claimed the operator and so cannot borrow either one's wording: a right side
-/// beside a string left side is on its way to concatenation, and naming it a
-/// failed number would describe a coercion nothing was about to perform.
+/// The reasons the `+` dispatch records, which runs before either path has
+/// claimed the operator and so cannot borrow either one's wording: an operand
+/// of `+` is on its way to concatenation as readily as to addition, and naming
+/// it a failed number would describe a coercion nothing was about to perform.
+const LEFT_HAS_NO_VALUE: &str = "Left expression could not be evaluated";
 const RIGHT_HAS_NO_VALUE: &str = "Right expression could not be evaluated";
 
 /// One side of the expression, evaluated. An operand that resolves to nothing
@@ -103,7 +104,10 @@ pub(crate) fn binary_expr_to_num_or_str(
 
   let left = evaluate_operand(
     &binary_expr.left,
-    LEFT_NOT_A_NUMBER,
+    match op {
+      BinaryOp::Add => LEFT_HAS_NO_VALUE,
+      _ => LEFT_NOT_A_NUMBER,
+    },
     state,
     traversal_state,
     fns,
@@ -208,7 +212,9 @@ fn binary_expr_to_string(
     ));
   }
 
-  let left = operand_to_string(
+  // The left side's buffer is grown rather than a third one allocated for the
+  // join, which is what a chain of `+` folds through once per operand.
+  let mut joined = operand_to_string(
     &binary_expr.left,
     LEFT_NOT_A_STRING,
     state,
@@ -223,7 +229,9 @@ fn binary_expr_to_string(
     fns,
   )?;
 
-  Result::Ok(BinaryExprType::String(format!("{}{}", left, right)))
+  joined.push_str(&right);
+
+  Result::Ok(BinaryExprType::String(joined))
 }
 
 /// One side of the expression, evaluated and taken through `ToString` — the

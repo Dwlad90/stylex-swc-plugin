@@ -203,9 +203,11 @@ pub fn to_js_boolean(expr: &Expr) -> Option<bool> {
     // the empty string — the one string that is falsy. Unlike `ToString`, this
     // never has to read the text.
     Expr::Lit(Lit::Str(strng)) => Some(!strng.value.is_empty()),
-    // Both zeroes and `NaN` are the falsy numbers, and `f64` equality already
-    // answers `false` for `NaN` and `true` for `-0.0`.
-    Expr::Lit(Lit::Num(num)) => Some(num.value != 0.0),
+    // Both zeroes and `NaN` are the falsy numbers. `-0.0 != 0.0` is already
+    // `false`, but `NaN != 0.0` is `true` — every comparison against `NaN` is
+    // false *except* the inequality, so it has to be named rather than left to
+    // fall out of the arithmetic.
+    Expr::Lit(Lit::Num(num)) => Some(num.value != 0.0 && !num.value.is_nan()),
     Expr::Lit(Lit::Bool(bool_lit)) => Some(bool_lit.value),
     Expr::Lit(Lit::Null(_)) => Some(false),
     // `0n` is falsy the way `0` is, and is the only big integer that is.
@@ -219,12 +221,16 @@ pub fn to_js_boolean(expr: &Expr) -> Option<bool> {
     // among them, since only primitives appear on the falsy list.
     Expr::Object(_) | Expr::Array(_) | Expr::Lit(Lit::Regex(_)) => Some(true),
     Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => Some(true),
+    // `void x` is `undefined` and so falsy, whatever it was applied to. Named
+    // here as well as in [`is_nullish`] so the two answer the same value: a
+    // `??` that folds on it and a `||` that refused would disagree about a
+    // value the language does not.
+    Expr::Unary(unary) if unary.op == UnaryOp::Void => Some(false),
     _ => None,
   }
 }
 
-/// Whether an expression is nullish — the values `??` takes its right side for,
-/// and the ones `?.` short-circuits on.
+/// Whether an expression is nullish — the values `??` takes its right side for.
 ///
 /// A plain question about the expression rather than a coercion, and answered
 /// as a plain `false` for anything else: a value this crate cannot read is not

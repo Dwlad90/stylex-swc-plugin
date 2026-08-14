@@ -923,7 +923,12 @@ fn the_falsy_primitives_are_the_whole_of_the_falsy_list() {
   assert_eq!(to_js_boolean(&bool_expr(false)), Some(false));
   assert_eq!(to_js_boolean(&null_expr()), Some(false));
   assert_eq!(to_js_boolean(&ident_expr("undefined")), Some(false));
+  // `NaN` reaches the coercion two ways — as the global it was written as, and
+  // as the number a fold arrived at — and is falsy by both routes. The second
+  // is the one an inequality against zero answers wrongly.
   assert_eq!(to_js_boolean(&ident_expr("NaN")), Some(false));
+  assert_eq!(to_js_boolean(&num_expr(f64::NAN)), Some(false));
+  assert_eq!(to_js_boolean(&void_expr(num_expr(0.0))), Some(false));
 }
 
 #[test]
@@ -933,8 +938,25 @@ fn a_primitive_that_is_not_on_that_list_is_truthy() {
   assert_eq!(to_js_boolean(&str_expr("0")), Some(true));
   assert_eq!(to_js_boolean(&str_expr("false")), Some(true));
   assert_eq!(to_js_boolean(&num_expr(-1.0)), Some(true));
+  assert_eq!(to_js_boolean(&num_expr(f64::INFINITY)), Some(true));
   assert_eq!(to_js_boolean(&bool_expr(true)), Some(true));
   assert_eq!(to_js_boolean(&ident_expr("Infinity")), Some(true));
+}
+
+#[test]
+fn the_two_spellings_of_a_value_agree_on_its_boolean_and_its_nullishness() {
+  // `void x` and `NaN` each reach a coercion two ways, and a caller that folds
+  // `??` on one spelling and refuses `||` on the other would disagree about a
+  // value the language does not.
+  for expr in [void_expr(num_expr(0.0)), ident_expr("undefined")] {
+    assert_eq!(to_js_boolean(&expr), Some(false));
+    assert!(is_nullish(&expr));
+  }
+
+  for expr in [num_expr(f64::NAN), ident_expr("NaN")] {
+    assert_eq!(to_js_boolean(&expr), Some(false));
+    assert!(!is_nullish(&expr));
+  }
 }
 
 #[test]

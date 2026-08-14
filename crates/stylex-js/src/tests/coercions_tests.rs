@@ -455,3 +455,61 @@ fn a_count_that_is_not_an_array_length_has_none() {
   assert_eq!(to_array_length(4_294_967_296.0), None);
   assert_eq!(to_array_length(1e30), None);
 }
+
+#[test]
+fn null_and_undefined_coerce_to_an_empty_object() {
+  // `ToObject` of either is a fresh object rather than a wrapper around
+  // anything, which is why `Object(null)` carries no properties.
+  assert_eq!(to_object(&null_expr()), Some(ObjectCoercion::EmptyObject));
+  assert_eq!(
+    to_object(&ident_expr("undefined")),
+    Some(ObjectCoercion::EmptyObject)
+  );
+}
+
+#[test]
+fn a_value_that_is_already_an_object_coerces_to_itself() {
+  // An array is an object too, so `ToObject` returns it unchanged.
+  assert_eq!(
+    to_object(&empty_object_expr()),
+    Some(ObjectCoercion::Identity)
+  );
+  assert_eq!(
+    to_object(&array_expr(vec![Some(str_expr("a"))])),
+    Some(ObjectCoercion::Identity)
+  );
+}
+
+#[test]
+fn a_function_coerces_to_itself_and_says_so() {
+  // Also returned unchanged, and reported apart because a caller may have no
+  // way to hold a function.
+  assert_eq!(to_object(&arrow_expr()), Some(ObjectCoercion::Function));
+}
+
+#[test]
+fn a_primitive_coerces_to_a_wrapper_object() {
+  assert_eq!(to_object(&str_expr("red")), Some(ObjectCoercion::Wrapper));
+  assert_eq!(to_object(&num_expr(10.0)), Some(ObjectCoercion::Wrapper));
+  assert_eq!(to_object(&bool_expr(true)), Some(ObjectCoercion::Wrapper));
+  // The numeric globals arrive as identifiers and box like the numbers they
+  // are, unlike the `undefined` that arrives the same way.
+  assert_eq!(to_object(&ident_expr("NaN")), Some(ObjectCoercion::Wrapper));
+  assert_eq!(
+    to_object(&ident_expr("Infinity")),
+    Some(ObjectCoercion::Wrapper)
+  );
+}
+
+#[test]
+fn a_value_of_no_readable_kind_has_no_object_coercion() {
+  // Which of the three outcomes applies cannot be read off this, so the caller
+  // deopts rather than picking one.
+  assert_eq!(to_object(&ident_expr("someBinding")), None);
+  // An array is an object however its elements were written, so a spread does
+  // not make its kind unreadable the way it makes its string form unknowable.
+  assert_eq!(
+    to_object(&spread_array_expr(array_expr(vec![]))),
+    Some(ObjectCoercion::Identity)
+  );
+}

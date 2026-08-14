@@ -295,6 +295,51 @@ pub fn to_array_length(count: f64) -> Option<usize> {
     .then_some(count as usize)
 }
 
+/// Which outcome `ToObject` takes over a value.
+///
+/// Reported rather than carried out, because not every outcome produces a value
+/// a caller can hold: naming the wrapper and the function keeps a boxed
+/// primitive out of the caller's value type and lets it decide what a function
+/// means where it sits.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum ObjectCoercion {
+  /// `null` and `undefined`, which `ToObject` answers with a fresh empty
+  /// object rather than a wrapper around anything.
+  EmptyObject,
+  /// A value that already is an object — an array among them — which
+  /// `ToObject` returns unchanged.
+  Identity,
+  /// A function, which is an object and which `ToObject` also returns
+  /// unchanged. Told apart from [`ObjectCoercion::Identity`] because a caller
+  /// that has to hold the result may have no representation for a function.
+  Function,
+  /// A primitive, which `ToObject` boxes in a wrapper object.
+  Wrapper,
+}
+
+/// ECMA-262 `ToObject`, reported as which outcome it takes rather than as a
+/// value.
+///
+/// `None` is a value whose kind cannot be read off the expression, so the
+/// caller deopts instead of guessing which outcome applies.
+pub fn to_object(expr: &Expr) -> Option<ObjectCoercion> {
+  match expr {
+    Expr::Lit(Lit::Null(_)) => Some(ObjectCoercion::EmptyObject),
+    // `undefined` survives evaluation as the global identifier it was written
+    // as, and so do `NaN` and `Infinity`, which are numbers and box like one.
+    Expr::Ident(ident) => match ident.sym.as_ref() {
+      "undefined" => Some(ObjectCoercion::EmptyObject),
+      "NaN" | "Infinity" => Some(ObjectCoercion::Wrapper),
+      _ => None,
+    },
+    Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => Some(ObjectCoercion::Function),
+    // A regular expression is an object, so it passes through as one.
+    Expr::Object(_) | Expr::Array(_) | Expr::Lit(Lit::Regex(_)) => Some(ObjectCoercion::Identity),
+    Expr::Lit(_) => Some(ObjectCoercion::Wrapper),
+    _ => None,
+  }
+}
+
 fn js_array_element_to_string(expr: &Expr, function_form: Option<&str>) -> Option<String> {
   if joins_as_empty(expr) {
     return Some(String::new());

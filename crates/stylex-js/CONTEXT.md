@@ -23,12 +23,23 @@ _Avoid_: allowed function, safe call, whitelisted callee
 
 **Coercion**:
 What ECMAScript says a value converts to when another type is asked for --
-`ToString` and `ToNumber` over an already-evaluated expression. Answers only
-what the language answers: a value with no compile-time form of that type gets
-`None`, and the caller [deopts](../stylex-transform/CONTEXT.md) rather than
-inventing one. `NaN` is not that case -- it is a value the language produces,
-and it is returned rather than refused.
+`ToString`, `ToNumber` and `ToObject` over an already-evaluated expression.
+Answers only what the language answers: a value with no compile-time form of
+that type gets `None`, and the caller
+[deopts](../stylex-transform/CONTEXT.md) rather than inventing one. `NaN` is not
+that case -- it is a value the language produces, and it is returned rather
+than refused.
 _Avoid_: conversion, cast, stringify, formatting
+
+**Object coercion**:
+Which of `ToObject`'s outcomes a value takes, reported rather than carried out:
+a fresh empty object for `null` and `undefined`, the value itself for an object,
+and a boxed wrapper for a primitive. A function is the identity too and is
+reported apart from the other objects, because a caller may have no way to hold
+one. Reported rather than carried out because only one outcome produces a value
+worth holding -- the caller decides what a wrapper or a function means where it
+sits.
+_Avoid_: boxing, object conversion, wrapping
 
 **Mutation expression**:
 An expression that writes through a member — `a.x = 1`, `++a.x`, `delete a.x`.

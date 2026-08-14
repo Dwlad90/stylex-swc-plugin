@@ -263,6 +263,38 @@ pub fn joins_as_empty(expr: &Expr) -> bool {
   }
 }
 
+/// The number an expression *is*, as opposed to what it would coerce to.
+///
+/// `Array(3)` is a length where `Array('3')` is an element, so a caller that
+/// has to tell a number from a numeric string asks this rather than
+/// [`to_js_number`]. `NaN` and `Infinity` survive evaluation as the global
+/// identifiers they were written as and are numbers all the same; `undefined`
+/// arrives the same way and is not one.
+pub fn js_number_value(expr: &Expr) -> Option<f64> {
+  match expr {
+    Expr::Lit(Lit::Num(num)) => Some(num.value),
+    Expr::Ident(ident) => match ident.sym.as_ref() {
+      "NaN" => Some(f64::NAN),
+      "Infinity" => Some(f64::INFINITY),
+      _ => None,
+    },
+    _ => None,
+  }
+}
+
+/// ECMA-262 `ArrayCreate`'s length check: a length is an integer in
+/// `0..2 ** 32`.
+///
+/// `None` is every count JavaScript answers with a `RangeError` — a fraction,
+/// a negative, `NaN`, an infinity, or a value at or past the limit — for which
+/// no array exists.
+pub fn to_array_length(count: f64) -> Option<usize> {
+  const LENGTH_LIMIT: f64 = 4_294_967_296.0;
+
+  (count.is_finite() && count.fract() == 0.0 && (0.0..LENGTH_LIMIT).contains(&count))
+    .then_some(count as usize)
+}
+
 fn js_array_element_to_string(expr: &Expr, function_form: Option<&str>) -> Option<String> {
   if joins_as_empty(expr) {
     return Some(String::new());

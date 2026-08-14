@@ -408,3 +408,50 @@ fn a_value_with_no_string_form_has_no_number_either() {
   assert_eq!(to_js_number(&ident_expr("someBinding")), None);
   assert_eq!(to_js_number(&spread_array_expr(array_expr(vec![]))), None);
 }
+
+#[test]
+fn only_a_number_has_a_number_value() {
+  // What the value *is*, not what it coerces to: a numeric string coerces to
+  // a number but is not one.
+  assert_eq!(js_number_value(&num_expr(3.0)), Some(3.0));
+  assert_eq!(js_number_value(&num_expr(-0.0)), Some(-0.0));
+  assert_eq!(js_number_value(&str_expr("3")), None);
+  assert_eq!(js_number_value(&bool_expr(true)), None);
+  assert_eq!(js_number_value(&null_expr()), None);
+  assert_eq!(js_number_value(&array_expr(vec![])), None);
+  assert_eq!(js_number_value(&empty_object_expr()), None);
+}
+
+#[test]
+fn the_numeric_globals_have_a_number_value() {
+  // These survive evaluation as the identifiers they were written as, and are
+  // numbers all the same. `undefined` arrives the same way and is not one.
+  assert!(matches!(js_number_value(&ident_expr("NaN")), Some(value) if value.is_nan()));
+  assert_eq!(
+    js_number_value(&ident_expr("Infinity")),
+    Some(f64::INFINITY)
+  );
+  assert_eq!(js_number_value(&ident_expr("undefined")), None);
+  assert_eq!(js_number_value(&ident_expr("someBinding")), None);
+}
+
+#[test]
+fn an_array_length_is_an_integer_below_two_to_the_thirty_second() {
+  assert_eq!(to_array_length(0.0), Some(0));
+  assert_eq!(to_array_length(-0.0), Some(0));
+  assert_eq!(to_array_length(1.0), Some(1));
+  assert_eq!(to_array_length(4_294_967_295.0), Some(4_294_967_295));
+}
+
+#[test]
+fn a_count_that_is_not_an_array_length_has_none() {
+  // Each of these is a `RangeError` in JavaScript, so no array exists.
+  assert_eq!(to_array_length(2.5), None);
+  assert_eq!(to_array_length(-1.0), None);
+  assert_eq!(to_array_length(f64::NAN), None);
+  assert_eq!(to_array_length(f64::INFINITY), None);
+  assert_eq!(to_array_length(f64::NEG_INFINITY), None);
+  // The limit is exclusive: `2 ** 32` is one past the largest length.
+  assert_eq!(to_array_length(4_294_967_296.0), None);
+  assert_eq!(to_array_length(1e30), None);
+}

@@ -44,10 +44,11 @@ pub(crate) fn flat_map_expanded_shorthands(
       // A numeric literal stays a number: the unit suffix is decided later, per
       // expanded property, by `transform_value`.
       Expr::Lit(Lit::Num(num)) => Some(TRawValue::Number(num.value)),
-      Expr::Lit(lit) => Some(TRawValue::String(match convert_lit_to_string(&lit) {
-        Some(s) => s,
-        None => stylex_panic!("Failed to convert literal value to string in shorthand expansion."),
-      })),
+      // A literal that spells no string is no value, which is what `null` is --
+      // the same answer `PreRuleValue::Null` gives below, reached by the same
+      // route, so the expansion yields a property with nothing to declare and
+      // callers drop it as they already drop a null.
+      Expr::Lit(lit) => convert_lit_to_string(&lit).map(TRawValue::String),
       _ => {
         let msg = "Cannot use expressions for shorthands. Use the expansion instead.";
         match options.property_validation_mode {

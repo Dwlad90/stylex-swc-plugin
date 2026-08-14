@@ -136,3 +136,27 @@ stylex_test!(
     });
   "#
 );
+
+// The same rule as every other at-rule body assembled from pairs: a value that
+// spells no CSS text declares nothing, so `animation-duration:` never reaches
+// the body, and the class name is the one an empty body produces.
+//
+// `x1od172d` for the first two is measured output of
+// `@stylexjs/babel-plugin` 0.19.0 for the `null` spelling, the one it handles
+// deliberately.
+stylex_test!(
+  a_value_that_spells_nothing_declares_nothing,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const nullish = stylex.viewTransitionClass({
+      group: { animationDuration: null },
+    });
+    export const blank = stylex.viewTransitionClass({
+      group: { animationDuration: ' ' },
+    });
+    export const withSibling = stylex.viewTransitionClass({
+      group: { animationDuration: null, opacity: 0.5 },
+    });
+  "#
+);

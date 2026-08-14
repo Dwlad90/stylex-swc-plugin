@@ -161,13 +161,7 @@ fn construct_keyframes_obj(frames: &FlatCompiledStyles) -> String {
       let value = match value.as_ref() {
         FlatCompiledStylesValue::KeyValues(pairs) => pairs
           .iter()
-          .map(|pair| {
-            if pair.key.is_empty() || pair.value.is_empty() {
-              String::default()
-            } else {
-              format!("{}:{};", pair.key, pair.value)
-            }
-          })
+          .filter_map(Pair::as_declaration)
           .collect::<Vec<String>>()
           .join(""),
         _ => stylex_panic!("Value must be a key value pair array"),

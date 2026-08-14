@@ -88,27 +88,18 @@ fn construct_view_transition_class_style_str(
   style_strings: Rc<FlatCompiledStylesValue>,
   _state: &mut StateManager,
 ) -> Rc<FlatCompiledStylesValue> {
-  let fmt_pair = |pair: &Pair| {
-    let mut result = String::with_capacity(pair.key.len() + pair.value.len() + 2);
-    result.push_str(&pair.key);
-    result.push(':');
-    result.push_str(&pair.value);
-    result.push(';');
-    result
-  };
-
   match style_strings.as_ref() {
-    FlatCompiledStylesValue::KeyValue(pair) => {
-      Rc::new(FlatCompiledStylesValue::String(fmt_pair(pair)))
-    },
+    FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
+      pair.as_declaration().unwrap_or_default(),
+    )),
     FlatCompiledStylesValue::KeyValues(pairs) => {
       let capacity = pairs
         .iter()
         .map(|pair| pair.key.len() + pair.value.len() + 2)
         .sum();
       let mut result_string = String::with_capacity(capacity);
-      for pair in pairs {
-        result_string.push_str(&fmt_pair(pair));
+      for declaration in pairs.iter().filter_map(Pair::as_declaration) {
+        result_string.push_str(&declaration);
       }
       Rc::new(FlatCompiledStylesValue::String(result_string))
     },

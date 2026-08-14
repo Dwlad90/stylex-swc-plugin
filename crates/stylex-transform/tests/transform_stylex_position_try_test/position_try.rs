@@ -117,3 +117,42 @@ stylex_test!(
     });
   "#
 );
+
+// A value that spells no CSS text declares nothing, so `top:` never reaches the
+// at-rule body. `null` means nothing anywhere; a blank string normalizes to the
+// same nothing.
+//
+// The body is what the name is hashed from, so `--x1rdsnup` recurring is the
+// claim that the declaration is really gone rather than emitted empty: it is the
+// name a body with only the anchor produces. Measured output of
+// `@stylexjs/babel-plugin` 0.19.0 for each input.
+stylex_test!(
+  a_value_that_spells_nothing_declares_nothing,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const nullish = stylex.positionTry({ positionAnchor: '--a', top: null });
+    export const empty = stylex.positionTry({ positionAnchor: '--a', top: '' });
+    export const blank = stylex.positionTry({ positionAnchor: '--a', top: ' ' });
+    export const anchorOnly = stylex.positionTry({ positionAnchor: '--a' });
+  "#
+);
+
+// Only the declaration that spells nothing drops; the ones around it are
+// untouched.
+stylex_test!(
+  a_dropped_value_keeps_its_siblings,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const dropped = stylex.positionTry({
+      positionAnchor: '--a',
+      top: null,
+      left: '10px',
+    });
+    export const sibling = stylex.positionTry({
+      positionAnchor: '--a',
+      left: '10px',
+    });
+  "#
+);

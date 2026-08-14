@@ -1,4 +1,4 @@
-use std::{fmt::Write, rc::Rc};
+use std::rc::Rc;
 
 use stylex_macros::stylex_panic;
 use swc_core::ecma::ast::{Expr, PropOrSpread};
@@ -161,6 +161,24 @@ fn tuple_to_pair(style: &FlatCompiledStylesValue) -> Pair {
   }
 }
 
+/// Writes a `[key, value]` tuple as declarations under the outer key.
+///
+/// The doubled `key:key;key:value;` form is what the reference implementation
+/// emits, so the property name appears as its own value ahead of the real one.
+/// That first half is a companion to the real value rather than a declaration in
+/// its own right, so when the value spells no CSS text neither half is written.
+fn write_tuple_declarations(output: &mut String, key: &str, pair: &Pair) {
+  let Some(value_declaration) = Pair::new(key, &pair.value).as_declaration() else {
+    return;
+  };
+
+  if let Some(name_declaration) = Pair::new(key, &pair.key).as_declaration() {
+    output.push_str(&name_declaration);
+  }
+
+  output.push_str(&value_declaration);
+}
+
 fn construct_position_try_obj(styles: &FlatCompiledStyles) -> String {
   let mut sorted_keys = styles.keys().collect::<Vec<_>>();
   sorted_keys.sort_unstable();
@@ -175,16 +193,18 @@ fn construct_position_try_obj(styles: &FlatCompiledStyles) -> String {
 
     match v.as_ref() {
       FlatCompiledStylesValue::String(val) => {
-        let _ = write!(output, "{}:{};", k, val);
+        if let Some(declaration) = Pair::new(k, val).as_declaration() {
+          output.push_str(&declaration);
+        }
       },
       // A `[key, value]` tuple serializes each element as a value under the
       // outer key.
       FlatCompiledStylesValue::KeyValue(pair) => {
-        let _ = write!(output, "{}:{};{}:{};", k, pair.key, k, pair.value);
+        write_tuple_declarations(&mut output, k, pair);
       },
       FlatCompiledStylesValue::KeyValues(pairs) => {
         for pair in pairs {
-          let _ = write!(output, "{}:{};{}:{};", k, pair.key, k, pair.value);
+          write_tuple_declarations(&mut output, k, pair);
         }
       },
       _ => {},

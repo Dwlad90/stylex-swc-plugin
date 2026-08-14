@@ -28,6 +28,13 @@ pub(in super::super) fn evaluate(
   )
 }
 
+/// `ToNumber` over a boolean: the number a comparison result becomes when the
+/// surrounding expression is being evaluated as a number.
+#[inline]
+fn convert_bool_to_number(value: bool) -> f64 {
+  if value { 1.0 } else { 0.0 }
+}
+
 pub(crate) fn binary_expr_to_num(
   binary_expr: &BinExpr,
   state: &mut EvaluationState,
@@ -83,76 +90,20 @@ pub(crate) fn binary_expr_to_num(
     BinaryOp::BitAnd => ((left_num as i32) & right_num as i32) as f64,
     BinaryOp::BitOr => ((left_num as i32) | right_num as i32) as f64,
     BinaryOp::BitXor => ((left_num as i32) ^ right_num as i32) as f64,
-    BinaryOp::In => {
-      if right_num == 0.0 {
-        1.0
-      } else {
-        0.0
-      }
-    },
-    BinaryOp::InstanceOf => {
-      if right_num == 0.0 {
-        1.0
-      } else {
-        0.0
-      }
-    },
-    BinaryOp::EqEq => {
-      if left_num == right_num {
-        1.0
-      } else {
-        0.0
-      }
-    },
-    BinaryOp::NotEq => {
-      if left_num != right_num {
-        1.0
-      } else {
-        0.0
-      }
-    },
-    BinaryOp::EqEqEq => {
-      if left_num == right_num {
-        1.0
-      } else {
-        0.0
-      }
-    },
-    BinaryOp::NotEqEq => {
-      if left_num != right_num {
-        1.0
-      } else {
-        0.0
-      }
-    },
-    BinaryOp::Lt => {
-      if left_num < right_num {
-        1.0
-      } else {
-        0.0
-      }
-    },
-    BinaryOp::LtEq => {
-      if left_num <= right_num {
-        1.0
-      } else {
-        0.0
-      }
-    },
-    BinaryOp::Gt => {
-      if left_num > right_num {
-        1.0
-      } else {
-        0.0
-      }
-    },
-    BinaryOp::GtEq => {
-      if left_num >= right_num {
-        1.0
-      } else {
-        0.0
-      }
-    },
+    // `in` and `instanceof` ask a question about an object, which this path has
+    // already coerced away to a number. What they answer here is therefore not
+    // the operator's meaning; it is left as found, because nothing real StyleX
+    // source can write reaches either arm.
+    BinaryOp::In => convert_bool_to_number(right_num == 0.0),
+    BinaryOp::InstanceOf => convert_bool_to_number(right_num == 0.0),
+    BinaryOp::EqEq => convert_bool_to_number(left_num == right_num),
+    BinaryOp::NotEq => convert_bool_to_number(left_num != right_num),
+    BinaryOp::EqEqEq => convert_bool_to_number(left_num == right_num),
+    BinaryOp::NotEqEq => convert_bool_to_number(left_num != right_num),
+    BinaryOp::Lt => convert_bool_to_number(left_num < right_num),
+    BinaryOp::LtEq => convert_bool_to_number(left_num <= right_num),
+    BinaryOp::Gt => convert_bool_to_number(left_num > right_num),
+    BinaryOp::GtEq => convert_bool_to_number(left_num >= right_num),
     // #region Logical
     BinaryOp::LogicalOr => {
       if let Some(value) =

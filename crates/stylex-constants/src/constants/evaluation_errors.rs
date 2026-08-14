@@ -80,6 +80,18 @@ pub fn array_length_too_large() -> String {
   )
 }
 
+/// A global that only contributes methods was called as a function — `Math(x)`.
+///
+/// It reaches the fold at all because its methods are foldable, so the callee
+/// is recognised and the call is not. Naming the callee says what the author
+/// wrote wrong.
+pub fn not_a_function(callee: &str) -> String {
+  format!(
+    "{} is not a function.\nOnly its methods can be called.\n\n",
+    callee
+  )
+}
+
 pub fn unsupported_operator(op: &str) -> String {
   format!("Unsupported operator: {}\n\n", op)
 }

@@ -69,3 +69,33 @@ stylex_test!(
     });
   "#
 );
+
+// An object argument is returned unchanged, so a coerced override emits what
+// the bare one does: `.x1dd033s, .x1dd033s:root{--x17y9eti:#fff;}`.
+stylex_test!(
+  theme_override_wrapped_in_object,
+  |tr| stylex_transform(tr.comments.clone(), "src/themes/light.stylex.js"),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from '@design-system/tokens/src/colors.stylex';
+    export const lightTheme = stylex.createTheme(colors, {
+      primary: Object({ default: '#fff' }),
+    });
+  "#
+);
+
+// The token group is an object, so it is returned unchanged: its own
+// `toString` still answers the variable group hash, and a member of the
+// coerced group still resolves to the `var(…)` it names.
+stylex_test!(
+  create_with_a_token_group_wrapped_in_object,
+  |tr| stylex_transform(tr.comments.clone(), "src/components/Card.js"),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { colors } from '@design-system/tokens/src/colors.stylex';
+    export const styles = stylex.create({
+      root: { color: String(Object(colors)) },
+      reference: { color: Object(colors).primary },
+    });
+  "#
+);

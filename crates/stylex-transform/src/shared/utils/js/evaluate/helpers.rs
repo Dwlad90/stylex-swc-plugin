@@ -163,6 +163,34 @@ pub(super) fn evaluate_result_to_js_number(value: &EvaluateResultValue) -> Optio
   }
 }
 
+/// `ToObject` over an evaluated value, bridging the evaluator's own value
+/// representation to the ECMAScript coercion.
+///
+/// `None` means the value's kind cannot be read, so the caller deopts. Every
+/// variant the evaluator has of its own stands for either an object or a
+/// function upstream, so only the expression variant can reach a wrapper.
+pub(super) fn evaluate_result_to_js_object(
+  value: &EvaluateResultValue,
+) -> Option<coercions::ObjectCoercion> {
+  match value {
+    EvaluateResultValue::Expr(expr) => coercions::to_object(expr),
+
+    // A confidently evaluated value that is absent is `undefined`, which
+    // `ToObject` answers with a fresh empty object.
+    EvaluateResultValue::Null => Some(coercions::ObjectCoercion::EmptyObject),
+
+    EvaluateResultValue::Vec(_)
+    | EvaluateResultValue::Map(_)
+    | EvaluateResultValue::Entries(_)
+    | EvaluateResultValue::EnvObject(_)
+    | EvaluateResultValue::ThemeRef(_) => Some(coercions::ObjectCoercion::Identity),
+
+    EvaluateResultValue::Callback(_)
+    | EvaluateResultValue::FunctionConfig(_)
+    | EvaluateResultValue::FunctionConfigMap(_) => Some(coercions::ObjectCoercion::Function),
+  }
+}
+
 fn evaluate_result_to_string_of(
   value: &EvaluateResultValue,
   function_form: Option<&str>,

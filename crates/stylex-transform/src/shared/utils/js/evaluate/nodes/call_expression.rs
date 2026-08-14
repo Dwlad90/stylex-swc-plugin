@@ -28,30 +28,55 @@ fn evaluate_callable_global(
     return deopt(path, state, ARGUMENT_WITHOUT_VALUE);
   }
 
+  // Each coercion below reads the one argument that matters through this, so
+  // the no-argument form and the refusal read once rather than three times.
+  // `None` is the caller's cue to return: the deopt is already recorded.
+  fn coerce_first<T>(
+    args: &[EvaluateResultValue],
+    path: &Expr,
+    state: &mut EvaluationState,
+    callee: &str,
+    no_arguments: T,
+    coerce: impl Fn(&EvaluateResultValue) -> Option<T>,
+  ) -> Option<T> {
+    match args.first() {
+      Some(arg) => match coerce(arg) {
+        Some(coerced) => Some(coerced),
+        None => {
+          deopt(path, state, &uncoercible_value(callee));
+          None
+        },
+      },
+      None => Some(no_arguments),
+    }
+  }
+
   match global {
     CallableGlobalJS::String => {
-      let coerced = match args.first() {
-        Some(arg) => match evaluate_result_to_js_string(arg) {
-          Some(coerced) => coerced,
-          None => return deopt(path, state, &uncoercible_value("String")),
-        },
-        // `String()` is the empty string, not `String(undefined)`.
-        None => String::new(),
-      };
+      // `String()` is the empty string, not `String(undefined)`.
+      let coerced = coerce_first(
+        &args,
+        path,
+        state,
+        "String",
+        String::new(),
+        evaluate_result_to_js_string,
+      )?;
 
       Some(EvaluateResultValue::Expr(create_string_expr(&coerced)))
     },
     CallableGlobalJS::Number => {
-      let coerced = match args.first() {
-        Some(arg) => match evaluate_result_to_js_number(arg) {
-          // `NaN` arrives here as a value and flows into the declaration, the
-          // same as upstream: `Number('10px')` writes `NaN` into the rule.
-          Some(coerced) => coerced,
-          None => return deopt(path, state, &uncoercible_value("Number")),
-        },
-        // `Number()` is zero, not `Number(undefined)`.
-        None => 0.0,
-      };
+      // `Number()` is zero, not `Number(undefined)`. `NaN` is not a refusal: it
+      // arrives as a value and flows into the declaration, the same as
+      // upstream, where `Number('10px')` writes `NaN` into the rule.
+      let coerced = coerce_first(
+        &args,
+        path,
+        state,
+        "Number",
+        0.0,
+        evaluate_result_to_js_number,
+      )?;
 
       Some(EvaluateResultValue::Expr(create_number_expr(coerced)))
     },
@@ -82,6 +107,32 @@ fn evaluate_callable_global(
 
       Some(EvaluateResultValue::Vec(args))
     },
+    CallableGlobalJS::Object => {
+      // `Object()` is `Object(undefined)`, unlike `String()` and `Number()`,
+      // whose no-argument forms are not their `undefined` ones.
+      let coercion = coerce_first(
+        &args,
+        path,
+        state,
+        "Object",
+        coercions::ObjectCoercion::EmptyObject,
+        evaluate_result_to_js_object,
+      )?;
+
+      match coercion {
+        coercions::ObjectCoercion::EmptyObject => Some(EvaluateResultValue::Expr(Expr::Object(
+          create_object_lit(vec![]),
+        ))),
+        coercions::ObjectCoercion::Identity => args.into_iter().next(),
+        // A boxed wrapper and a function are told apart by the coercion and
+        // refused alike here: neither is an array, a string or a number, so
+        // both end at this rejection, and neither is represented. See
+        // `docs/adr/0001-a-refused-fold-borrows-a-later-diagnostic.md`.
+        coercions::ObjectCoercion::Function | coercions::ObjectCoercion::Wrapper => {
+          deopt(path, state, ILLEGAL_PROP_VALUE)
+        },
+      }
+    },
   }
 }
 
@@ -99,10 +150,10 @@ pub(in super::super) fn evaluate(
   if let Callee::Expr(callee_expr) = &call.callee {
     if get_binding(callee_expr, traversal_state).is_none() && is_valid_callee(callee_expr) {
       // A valid callee with no binding in scope is the global itself, not a
-      // function the module declared, so calling it folds. `Math` reaches here
-      // too — it is a valid callee because its *methods* fold — and is not
-      // callable, so it stays unfolded and deopts below.
-      if let Ok(global) = CallableGlobalJS::try_from(get_callee_name(callee_expr)) {
+      // function the module declared, so calling it folds.
+      let callee_name = get_callee_name(callee_expr);
+
+      if let Ok(global) = CallableGlobalJS::try_from(callee_name) {
         // Spread arguments are not evaluated: the argument list is unknowable
         // without the spread operand's length. Rejected here rather than by
         // the shared argument evaluation, which reads through a spread to its
@@ -119,6 +170,12 @@ pub(in super::super) fn evaluate(
           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Global(global))),
           takes_path: false,
         }));
+      } else {
+        // A valid callee that is not a callable global contributes methods and
+        // nothing else — `Math` today, and any later addition of that shape.
+        // There is nothing to fold, so it names the callee rather than deopting
+        // into the catch-all's `Unsupported expression`.
+        return deopt(path, state, &not_a_function(callee_name));
       }
     } else if let Expr::Ident(ident) = callee_expr.as_ref() {
       let ident_id = ident.to_id();

@@ -35,13 +35,25 @@ _Avoid_: bailout, failure, fallback, error
 
 **Callable global**:
 A JavaScript global the evaluator folds when the global _itself_ is called —
-`String(x)`, `Number(x)`, `Array(x)`. A
+`String(x)`, `Number(x)`, `Array(x)`, `Object(x)`. A
 [valid callee](../stylex-js/CONTEXT.md) is the wider set, because
 it also admits globals that only contribute methods: `Math` is a valid callee so
 that `Math.round(1.5)` folds, and is not a callable global, so a bare `Math(x)`
 is rejected rather than folded. Only a global with no binding in scope is one at
 all — a declared `String` is an ordinary function and is called, not folded.
 _Avoid_: built-in function, global function, wrapper call
+
+**Refused fold**:
+A deopt raised by a fold that recognised its callee and will not produce a
+value. Every refusal in this area is one — there is no separate error-raising
+path — so whether an author sees a failed build or working runtime code depends
+on where the call sat, not on which refusal it was: in a static position the
+`stylex.*` call it belongs to fails, and inside a dynamic style function the
+call is left for the runtime instead. Some refusals therefore borrow a
+diagnostic from further down the pipeline instead of routing a value to it, for
+the reasons in
+[docs/adr/0001](./docs/adr/0001-a-refused-fold-borrows-a-later-diagnostic.md).
+_Avoid_: fold error, hard error, invalid call
 
 **Hole**:
 An array element `Array(n)` created by counting rather than by listing. Held as

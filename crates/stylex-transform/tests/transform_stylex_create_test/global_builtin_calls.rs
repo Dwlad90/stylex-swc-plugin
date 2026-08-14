@@ -584,3 +584,289 @@ stylex_test_panic!(
     });
   "#
 );
+
+// `Object()`, `Object(null)` and `Object(undefined)` are all a fresh empty
+// object, which carries no declaration: upstream emits `{ root: { $$css: true
+// } }` and no rules for each.
+stylex_test!(
+  object_of_a_nullish_value_declares_nothing,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      nullValue: { color: Object(null) },
+      undefinedValue: { color: Object(undefined) },
+      noArguments: { color: Object() },
+    });
+  "#
+);
+
+// An object argument is returned unchanged, so a coerced nested value emits
+// what the bare one does: `.x1e2nbdu{color:red}` and
+// `.x17z2mba:hover{color:blue}`.
+stylex_test!(
+  object_of_an_object_is_the_object,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      wrapped: { color: Object({ default: 'red', ':hover': 'blue' }) },
+      bare: { color: { default: 'red', ':hover': 'blue' } },
+    });
+  "#
+);
+
+// An array is an object too, so it is returned unchanged as well: both write
+// `.x1rrpg6l{color:red;color:blue}`.
+stylex_test!(
+  object_of_an_array_is_the_array,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      wrapped: { color: Object(['red', 'blue']) },
+      bare: { color: ['red', 'blue'] },
+    });
+  "#
+);
+
+// Surplus arguments are ignored, as they are for the other globals: the second
+// object never reaches the declaration.
+stylex_test!(
+  object_ignores_arguments_past_the_first,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      surplus: { color: Object({ default: 'red' }, { default: 'blue' }) },
+    });
+  "#
+);
+
+// The identity composes with itself and with the other coercions. An empty
+// object takes the `Object.prototype` string default and the number that
+// string has, so `String(Object(null))` is `[object Object]` and
+// `Number(Object(null))` is `NaN`.
+stylex_test!(
+  object_calls_nest_with_the_other_globals,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      nested: { color: Object(Object({ default: 'red' })) },
+      stringified: { color: String(Object(null)) },
+      numbered: { width: Number(Object(null)) },
+    });
+  "#
+);
+
+// A local binding is inlined before the coercion, and a coerced branch of a
+// nested value drops out of it the same way a bare nullish one would: only
+// `.x1e2nbdu{color:red}` survives in `branch`.
+stylex_test!(
+  object_folds_over_a_binding_and_inside_a_nested_value,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const value = { default: 'red', ':hover': 'blue' };
+    export const styles = stylex.create({
+      binding: { color: Object(value) },
+      branch: { color: { default: 'red', ':hover': Object(null) } },
+    });
+  "#
+);
+
+// A declared `Object` is an ordinary function, so it is called rather than
+// folded and its return value is the declaration's.
+stylex_test!(
+  a_locally_declared_object_shadows_the_global,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const Object = () => 'red';
+    export const styles = stylex.create({
+      root: { color: Object('ignored') },
+    });
+  "#
+);
+
+// A parameter has no compile-time value, so the call is left for the runtime
+// and the declaration becomes a custom property rather than folding.
+stylex_test!(
+  object_of_a_dynamic_style_parameter,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: (color) => ({ color: Object(color) }),
+    });
+  "#
+);
+
+// `Math` is a valid callee because its methods fold, so a bare call reaches
+// the fold and has nothing to fold. The reference implementation leaks a
+// `TypeError` from inside its own evaluator for this input; the observable
+// outcome both share is that the module does not compile.
+stylex_test_panic!(
+  math_called_as_a_function_is_rejected,
+  "Math is not a function.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { width: Math(1) },
+    });
+  "#
+);
+
+stylex_test_panic!(
+  math_called_with_no_arguments_is_rejected,
+  "Math is not a function.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { width: Math() },
+    });
+  "#
+);
+
+// The rejection is of the call, not of the global: its methods keep folding,
+// and a declared `Math` is an ordinary function that is called.
+stylex_test!(
+  math_methods_fold_and_a_declared_math_is_called,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      method: { width: Math.pow(2, 3) },
+    });
+  "#
+);
+
+stylex_test!(
+  a_locally_declared_math_shadows_the_global,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const Math = () => 'red';
+    export const styles = stylex.create({
+      root: { color: Math('ignored') },
+    });
+  "#
+);
+
+// A primitive argument is a wrapper object upstream, whose only observable
+// effect is this rejection — it is not an array, a string or a number, and it
+// never becomes one.
+stylex_test_panic!(
+  object_of_a_string_reaches_the_style_value_check,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Object('red') },
+    });
+  "#
+);
+
+stylex_test_panic!(
+  object_of_a_number_reaches_the_style_value_check,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { width: Object(10) },
+    });
+  "#
+);
+
+stylex_test_panic!(
+  object_of_a_boolean_reaches_the_style_value_check,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Object(true) },
+    });
+  "#
+);
+
+// `NaN` reaches the evaluator as its identifier rather than as a numeric
+// literal, and is a number that boxes like one.
+stylex_test_panic!(
+  object_of_a_not_a_number_reaches_the_style_value_check,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { width: Object(NaN) },
+    });
+  "#
+);
+
+// A coercion of a primitive is still a primitive, so wrapping one changes
+// nothing about the rejection.
+stylex_test_panic!(
+  object_of_a_string_call_reaches_the_style_value_check,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Object(String('red')) },
+    });
+  "#
+);
+
+// A spread argument is not evaluated, for the same reason it is not for the
+// other globals.
+stylex_test_panic!(
+  object_of_a_spread_argument_is_rejected,
+  "Unsupported expression: SpreadElement",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Object(...[{ default: 'red' }]) },
+    });
+  "#
+);
+
+// A function is returned unchanged rather than boxed, and is no more usable
+// for it: it is not an array, a string or a number either, so it ends at the
+// same rejection a wrapper does.
+stylex_test_panic!(
+  object_of_a_function_reaches_the_style_value_check,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Object(() => 'red') },
+    });
+  "#
+);
+
+stylex_test_panic!(
+  object_of_a_declared_function_reaches_the_style_value_check,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const value = () => 'red';
+    export const styles = stylex.create({
+      root: { color: Object(value) },
+    });
+  "#
+);
+
+// A regular expression is an object, so the identity hands it on — and it is
+// not an array, a string or a number, so the style-value check refuses it.
+// Upstream refuses the regular expression a step earlier, as an expression its
+// evaluator will not read at all; that difference predates this fold and shows
+// on a bare `color: /re/` with no coercion anywhere.
+stylex_test_panic!(
+  object_of_a_regular_expression_reaches_the_style_value_check,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: Object(/re/) },
+    });
+  "#
+);

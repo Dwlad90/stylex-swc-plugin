@@ -2445,24 +2445,33 @@ mod convert_ident_to_expr_extended_tests {
 }
 
 // ──────────────────────────────────────────────
-// convert_expr_to_str - should_panic for unsupported expr
+// convert_expr_to_str - no string for an expression that is not one
 // ──────────────────────────────────────────────
 
-mod convert_expr_to_str_panic_tests {
+mod convert_expr_to_str_non_string_tests {
   use super::*;
   use crate::shared::utils::ast::convertors::convert_expr_to_str;
-  use swc_core::ecma::ast::ArrayLit;
+  use swc_core::ecma::ast::{ArrayLit, ObjectLit};
 
+  /// An expression that spells no string answers `None` rather than raising, so
+  /// each caller decides what a non-string means to it — an animation step
+  /// declares nothing, a namespace name is a hard error.
   #[test]
-  #[should_panic]
-  fn panics_for_array_expr() {
+  fn answers_none_for_an_expression_that_is_not_a_string() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let expr = Expr::Array(ArrayLit {
+
+    let array = Expr::Array(ArrayLit {
       span: Default::default(),
       elems: vec![],
     });
-    convert_expr_to_str(&expr, &mut state, &fns);
+    assert_eq!(convert_expr_to_str(&array, &mut state, &fns), None);
+
+    let object = Expr::Object(ObjectLit {
+      span: Default::default(),
+      props: vec![],
+    });
+    assert_eq!(convert_expr_to_str(&object, &mut state, &fns), None);
   }
 }
 

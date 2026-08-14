@@ -23,7 +23,7 @@ use crate::shared::{
   },
 };
 use stylex_ast::ast::convertors::normalize_expr;
-use stylex_constants::constants::messages::{VALUE_MUST_BE_STRING, VALUES_MUST_BE_OBJECT};
+use stylex_constants::constants::messages::VALUES_MUST_BE_OBJECT;
 use stylex_css::css::{generate_ltr::generate_ltr, generate_rtl::generate_rtl};
 use stylex_structures::{order_pair::OrderPair, pair::Pair, raw_value::TRawValue};
 use stylex_types::{
@@ -188,11 +188,17 @@ fn expand_frame_shorthands(frame: &Expr, state: &mut StateManager) -> IndexMap<S
       // `transform_value`, which is what appends the unit suffix; only a
       // non-numeric value is coerced to a string here.
       let value = match normalize_expr(pair.value.as_ref()) {
-        Expr::Lit(Lit::Num(num)) => PreRuleValue::number(num.value),
-        _ => match convert_expr_to_str(pair.value.as_ref(), state, &FunctionMap::default()) {
-          Some(value) => PreRuleValue::string(value),
-          None => stylex_panic!("{}", VALUE_MUST_BE_STRING),
-        },
+        Expr::Lit(Lit::Num(num)) => Some(PreRuleValue::number(num.value)),
+        _ => convert_expr_to_str(pair.value.as_ref(), state, &FunctionMap::default())
+          .map(PreRuleValue::string),
+      };
+
+      // A step value that is not a string or a number declares nothing. An
+      // animation step has no condition to apply and no fallback to choose
+      // from, so a nested value object and a fallback array mean nothing here,
+      // and neither does `null` -- the step keeps whatever else it declares.
+      let Some(value) = value else {
+        return vec![];
       };
 
       flat_map_expanded_shorthands((key, value), &state.options)

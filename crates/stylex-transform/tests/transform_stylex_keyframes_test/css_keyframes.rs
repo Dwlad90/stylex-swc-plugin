@@ -105,3 +105,71 @@ stylex_test!(
     });
   "#
 );
+
+// A step value that is not a string or a number declares nothing. There is no
+// condition to apply inside an animation step and no fallback to choose from, so
+// a nested value object and a fallback array mean nothing there; `null` means
+// nothing anywhere, and `undefined` is a global identifier with no binding to
+// read. All of them leave the step with whatever else it declares —
+// here, nothing.
+//
+// The animation name is a hash of the steps, so `x1mv4754-B` recurring is the
+// claim that the declaration is really gone rather than emitted empty: it is the
+// name a `from` step that declared nothing produces. Measured output of
+// `@stylexjs/babel-plugin` 0.19.0 for each input.
+stylex_test!(
+  a_step_value_that_is_not_a_string_declares_nothing,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const nested = stylex.keyframes({
+      from: { color: { default: 'red' } },
+      to: { color: 'blue' },
+    });
+    export const array = stylex.keyframes({
+      from: { color: ['red', 'blue'] },
+      to: { color: 'blue' },
+    });
+    export const nullish = stylex.keyframes({
+      from: { color: null },
+      to: { color: 'blue' },
+    });
+    export const boolean = stylex.keyframes({
+      from: { color: true },
+      to: { color: 'blue' },
+    });
+    export const undef = stylex.keyframes({
+      from: { color: undefined },
+      to: { color: 'blue' },
+    });
+  "#
+);
+
+// Only the declaration that cannot be read drops; the step keeps its siblings,
+// and reaches the name a step declaring only that sibling produces.
+stylex_test!(
+  a_dropped_step_declaration_keeps_its_siblings,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const dropped = stylex.keyframes({
+      from: { color: null, opacity: 0.5 },
+      to: { color: 'blue' },
+    });
+    export const sibling = stylex.keyframes({
+      from: { opacity: 0.5 },
+      to: { color: 'blue' },
+    });
+  "#
+);
+
+// A shorthand expands to longhands that each drop, so the step declares
+// nothing rather than a partial expansion.
+stylex_test!(
+  a_shorthand_step_value_that_is_not_a_string_declares_nothing,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const name = stylex.keyframes({
+      from: { margin: null },
+      to: { color: 'blue' },
+    });
+  "#
+);

@@ -69,23 +69,27 @@ pub fn expr_to_num(
   Result::Ok(result)
 }
 
-fn ident_to_string(ident: &Ident, state: &mut StateManager, functions: &FunctionMap) -> String {
+/// The string the binding behind an identifier spells, or `None` when it spells
+/// no string.
+///
+/// `None` covers both an identifier bound to something that is not a string and
+/// one with no binding to read at all -- `undefined`, which is an ordinary
+/// global identifier rather than a literal. Neither is decided here, for the
+/// reason given on [`convert_expr_to_str`].
+fn ident_to_string(
+  ident: &Ident,
+  state: &mut StateManager,
+  functions: &FunctionMap,
+) -> Option<String> {
   let var_decl = get_var_decl_by_ident(ident, state, functions);
 
   match &var_decl {
-    Some(var_decl) => {
-      let var_decl_expr = get_expr_from_var_decl(var_decl);
-
-      match &var_decl_expr {
-        Expr::Lit(lit) => match convert_lit_to_string(lit) {
-          Some(s) => s,
-          None => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
-        },
-        Expr::Ident(ident) => ident_to_string(ident, state, functions),
-        _ => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
-      }
+    Some(var_decl) => match get_expr_from_var_decl(var_decl) {
+      Expr::Lit(lit) => convert_lit_to_string(lit),
+      Expr::Ident(ident) => ident_to_string(ident, state, functions),
+      _ => None,
     },
-    None => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
+    None => None,
   }
 }
 
@@ -103,18 +107,22 @@ pub fn convert_ident_to_expr(
   }
 }
 
+/// The string an expression spells, or `None` when it spells no string —
+/// an object, an array, `null`, a boolean.
+///
+/// `None` is the answer for every non-string rather than a panic, because what
+/// a non-string means is the caller's question, not the converter's: a step of
+/// an animation declares nothing, a namespace name is a hard error. Answering
+/// it here would force one of those onto the other.
 pub fn convert_expr_to_str(
   expr_string: &Expr,
   state: &mut StateManager,
   functions: &FunctionMap,
 ) -> Option<String> {
   match &expr_string {
-    Expr::Ident(ident) => Some(ident_to_string(ident, state, functions)),
+    Expr::Ident(ident) => ident_to_string(ident, state, functions),
     Expr::Lit(lit) => convert_lit_to_string(lit),
-    _ => stylex_panic!(
-      "Expression in not a string, got {:?}",
-      expr_string.get_type(get_default_expr_ctx())
-    ),
+    _ => None,
   }
 }
 

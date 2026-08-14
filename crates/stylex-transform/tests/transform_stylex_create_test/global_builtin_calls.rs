@@ -928,19 +928,17 @@ stylex_test!(
   "#
 );
 
-// All four globals compose in one expression: an array of coercions joins,
-// a coerced hexadecimal string round-trips through a string, an object takes
-// the `Object.prototype` default, and a joined array keeps its empty element.
+// The pairwise nestings are covered per global above; this is the one claim
+// they leave open — all four in a single expression. `Number` reads the
+// hexadecimal, `Object` hands its argument back, `Array` collects both, and
+// `String` joins the result: `.x8qzml7{color:31,[object Object]}`.
 stylex_test!(
-  calls_of_every_global_compose,
+  all_four_globals_compose_in_one_expression,
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
-      a: { color: String(Array(String('red'), String('blue'))) },
-      b: { width: Number(String(Number('0x1f'))) },
-      c: { color: String(Object({ a: 1 })) },
-      d: { content: String(Array(Number('1'), String(2), null)) },
+      root: { color: String(Array(Number('0x1f'), Object({ a: 1 }))) },
     });
   "#
 );

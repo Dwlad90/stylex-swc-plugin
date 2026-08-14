@@ -9,14 +9,16 @@ This repo is a bare checkout with sibling worktrees:
 ```
 stylex-swc-plugin.git/
 ├── .bare/            <- the bare git dir
-├── .scratch/         <- the tracker: real dir, shared by every worktree
-├── develop/          <- worktree, contains .scratch -> ../.scratch
-├── master/           <- worktree, contains .scratch -> ../.scratch
-└── <branch>/         <- worktree, contains .scratch -> ../.scratch
+├── scratch/          <- the tracker: a worktree on orphan branch scratch
+├── develop/          <- worktree, contains .scratch -> ../scratch
+├── master/           <- worktree, contains .scratch -> ../scratch
+└── <branch>/         <- worktree, contains .scratch -> ../scratch
 ```
 
-The real `.scratch/` lives **outside every worktree**, next to `.bare`. Each
-worktree gets a relative symlink `.scratch -> ../.scratch`, so:
+`scratch/` sits next to `.bare`, **outside every code worktree**. It is itself a
+worktree, checked out from the orphan branch `scratch`, which shares no history
+with `develop` or `master`. Each code worktree gets a relative symlink
+`.scratch -> ../scratch`, so:
 
 - One tracker, shared across all branches -- an issue filed while on `develop`
   is visible from a feature worktree.
@@ -24,13 +26,19 @@ worktree gets a relative symlink `.scratch -> ../.scratch`, so:
 - The path stays valid if the whole tree is moved, because the link is
   relative.
 
-Always address the tracker through the in-worktree path `.scratch/...`. Do not
-write to the parent directory directly, and do not `git add` anything under
-`.scratch`.
+Always read and edit tracker files through the in-worktree path `.scratch/...`,
+never through the parent directory. Committing is the one exception -- see
+below.
 
-### Why it is never committed
+### Why it never lands on a code branch
 
-Two independent guards, deliberately kept separate:
+Tracker state **is** committed -- but only to the orphan branch `scratch`, and
+only from the `scratch/` worktree. From a code worktree, never `git add`
+anything under `.scratch`: the path there is a symlink into another branch's
+checkout, and staging it would carry tracker state onto `develop` or `master`.
+
+Two independent guards keep that from happening by accident, deliberately kept
+separate:
 
 - **`.bare/info/exclude`** carries `/.scratch`. This lives in the shared git
   dir, so it covers **every** worktree immediately, including ones created
@@ -52,15 +60,15 @@ worktree; it is idempotent and safe to re-run:
 
 ```sh
 cd "$(git rev-parse --show-toplevel)"
-[ -e .scratch ] || [ -L .scratch ] || ln -s ../.scratch .scratch
+[ -e .scratch ] || [ -L .scratch ] || ln -s ../scratch .scratch
 ```
 
-The guard matters: a bare `ln -s ../.scratch .scratch` run when `.scratch` is
+The guard matters: a bare `ln -s ../scratch .scratch` run when `.scratch` is
 already a **directory** does not fail -- it silently creates `.scratch/.scratch`
 inside it. `ln -sfn` does not help either; `-f` replaces an existing file or
 symlink, but a real directory still absorbs the link.
 
-Check the result with `readlink .scratch` (expect `../.scratch`). If `.scratch`
+Check the result with `readlink .scratch` (expect `../scratch`). If `.scratch`
 turns out to be a real directory rather than a link, that worktree has forked
 tracker state -- move its contents into the shared directory and replace it
 with the link, rather than leaving two trackers.

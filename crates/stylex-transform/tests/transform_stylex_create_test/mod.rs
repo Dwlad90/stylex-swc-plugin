@@ -3,6 +3,7 @@ mod dynamic_styles;
 mod env;
 mod global_builtin_calls;
 mod legacy_deprecated;
+mod logical_operators;
 mod media_query_canonicalization;
 mod non_ascii_hash_parity;
 mod static_styles;

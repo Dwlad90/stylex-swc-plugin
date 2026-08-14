@@ -95,53 +95,6 @@ fn test_binary_expr_to_num_bitwise() {
 }
 
 #[test]
-fn test_binary_expr_to_num_logical() {
-  let mut state = EvaluationState::new();
-  let mut traversal_state = StateManager::default();
-  let fns = FunctionMap::default();
-  let left = Box::new(create_number_expr(0.0));
-  let right = Box::new(create_number_expr(5.0));
-  let bin_or = BinExpr {
-    op: BinaryOp::LogicalOr,
-    left,
-    right,
-    span: Default::default(),
-  };
-  let res_or = binary_expr_to_num(&bin_or, &mut state, &mut traversal_state, &fns).unwrap();
-  match res_or {
-    BinaryExprType::Number(n) => assert_eq!(n, 5.0),
-    _ => panic!("Expected number result"),
-  }
-  let left = Box::new(create_number_expr(2.0));
-  let right = Box::new(create_number_expr(0.0));
-  let bin_and = BinExpr {
-    op: BinaryOp::LogicalAnd,
-    left,
-    right,
-    span: Default::default(),
-  };
-  let res_and = binary_expr_to_num(&bin_and, &mut state, &mut traversal_state, &fns).unwrap();
-  match res_and {
-    BinaryExprType::Number(n) => assert_eq!(n, 0.0),
-    _ => panic!("Expected number result"),
-  }
-  let left = Box::new(create_number_expr(0.0));
-  let right = Box::new(create_number_expr(7.0));
-  let bin_nullish = BinExpr {
-    op: BinaryOp::NullishCoalescing,
-    left,
-    right,
-    span: Default::default(),
-  };
-  let res_nullish =
-    binary_expr_to_num(&bin_nullish, &mut state, &mut traversal_state, &fns).unwrap();
-  match res_nullish {
-    BinaryExprType::Number(n) => assert_eq!(n, 7.0),
-    _ => panic!("Expected number result"),
-  }
-}
-
-#[test]
 fn test_binary_expr_to_string_add() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
@@ -289,45 +242,6 @@ fn test_binary_expr_to_num_left_unresolved_returns_err() {
 }
 
 #[test]
-fn test_binary_expr_to_num_logical_or_with_unresolved_right_returns_left() {
-  let mut state = EvaluationState::new();
-  let mut traversal_state = StateManager::default();
-  let fns = FunctionMap::default();
-  let left = Box::new(create_number_expr(3.0));
-  let right = Box::new(create_ident_expr("unknown"));
-  let bin = BinExpr {
-    op: BinaryOp::LogicalOr,
-    left,
-    right: right.clone(),
-    span: Default::default(),
-  };
-  let res = binary_expr_to_num(&bin, &mut state, &mut traversal_state, &fns).unwrap();
-
-  match res {
-    BinaryExprType::Number(n) => assert_eq!(n, 3.0),
-    _ => {
-      panic!("Expected number result equal to left operand when right is unresolved for LogicalOr")
-    },
-  }
-
-  let left = Box::new(create_number_expr(0.0));
-
-  let bin = BinExpr {
-    op: BinaryOp::LogicalOr,
-    left,
-    right,
-    span: Default::default(),
-  };
-
-  let res = binary_expr_to_num(&bin, &mut state, &mut traversal_state, &fns);
-
-  assert!(
-    res.is_err(),
-    "Expected error when left side is unresolved and state is not confident"
-  );
-}
-
-#[test]
 fn test_binary_expr_to_string_right_unresolved_returns_null_on_add() {
   let mut state = EvaluationState::new();
   // Force non-confident path on unresolved right
@@ -347,26 +261,6 @@ fn test_binary_expr_to_string_right_unresolved_returns_null_on_add() {
     res.is_err(),
     "Expected error when right side is unresolved and op is Add in string evaluator"
   );
-}
-
-#[test]
-fn test_binary_expr_to_string_right_unresolved_logical_or_returns_left() {
-  let mut state = EvaluationState::new();
-  let mut traversal_state = StateManager::default();
-  let fns = FunctionMap::default();
-  let left = Box::new(create_string_expr("foo"));
-  let right = Box::new(create_ident_expr("baz"));
-  let bin = BinExpr {
-    op: BinaryOp::LogicalOr,
-    left,
-    right,
-    span: Default::default(),
-  };
-  let res = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns).unwrap();
-  match res {
-    BinaryExprType::String(s) => assert_eq!(s, "foo"),
-    _ => panic!("Expected left string when right is unresolved and op is LogicalOr"),
-  }
 }
 
 // ──────────────────────────────────────────────
@@ -507,34 +401,31 @@ mod binary_expr_to_num_comparison_tests {
     assert_eq!(eval_bin(BinaryOp::ZeroFillRShift, 8.0, 1.0), 4.0);
   }
 
+  /// The three logical operators never reach this path — the node dispatches
+  /// them elsewhere — and it refuses rather than coercing them to a number.
   #[test]
-  fn logical_or_truthy_left() {
-    assert_eq!(eval_bin(BinaryOp::LogicalOr, 5.0, 3.0), 5.0);
-  }
+  fn logical_operators_are_refused() {
+    for op in [
+      BinaryOp::LogicalOr,
+      BinaryOp::LogicalAnd,
+      BinaryOp::NullishCoalescing,
+    ] {
+      let mut state = EvaluationState::new();
+      let mut traversal_state = StateManager::default();
+      let fns = FunctionMap::default();
+      let bin = BinExpr {
+        span: Default::default(),
+        op,
+        left: Box::new(create_number_expr(5.0)),
+        right: Box::new(create_number_expr(3.0)),
+      };
 
-  #[test]
-  fn logical_or_falsy_left() {
-    assert_eq!(eval_bin(BinaryOp::LogicalOr, 0.0, 3.0), 3.0);
-  }
-
-  #[test]
-  fn logical_and_truthy_left() {
-    assert_eq!(eval_bin(BinaryOp::LogicalAnd, 5.0, 3.0), 3.0);
-  }
-
-  #[test]
-  fn logical_and_falsy_left() {
-    assert_eq!(eval_bin(BinaryOp::LogicalAnd, 0.0, 3.0), 0.0);
-  }
-
-  #[test]
-  fn nullish_coalescing_nonzero_left() {
-    assert_eq!(eval_bin(BinaryOp::NullishCoalescing, 5.0, 3.0), 5.0);
-  }
-
-  #[test]
-  fn nullish_coalescing_zero_left() {
-    assert_eq!(eval_bin(BinaryOp::NullishCoalescing, 0.0, 3.0), 3.0);
+      assert!(
+        binary_expr_to_num(&bin, &mut state, &mut traversal_state, &fns).is_err(),
+        "expected {:?} to be refused by the number path",
+        op
+      );
+    }
   }
 }
 

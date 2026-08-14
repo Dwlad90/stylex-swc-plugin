@@ -208,14 +208,6 @@ pub(super) fn evaluate_result_to_js_object(
 /// Only the expression variant can reach a primitive and so reach the falsy
 /// list at all: every variant the evaluator has of its own stands for an object
 /// or a function upstream, and those are truthy whatever they hold.
-///
-/// `expect` rather than `allow`, so the day the logical-expression node reaches
-/// for this the attribute fails and has to go, rather than sitting on a helper
-/// that does have a caller.
-#[expect(
-  dead_code,
-  reason = "the logical-expression node is the caller, and lands next"
-)]
 pub(super) fn evaluate_result_to_js_boolean(value: &EvaluateResultValue) -> Option<bool> {
   match value {
     EvaluateResultValue::Expr(expr) => coercions::to_js_boolean(expr),

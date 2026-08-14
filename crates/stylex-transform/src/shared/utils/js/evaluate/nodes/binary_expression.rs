@@ -1,4 +1,5 @@
 use super::super::*;
+use super::logical_expression;
 use anyhow::anyhow;
 use stylex_macros::{as_expr_or_err, as_expr_or_opt_err, convert_expr_to_str_or_err};
 use swc_core::ecma::ast::{BinExpr, BinaryOp};
@@ -9,6 +10,15 @@ pub(in super::super) fn evaluate(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
+  // The reference implementation keeps `||`, `&&` and `??` on a node of their
+  // own, evaluated over values and tested ahead of this one. SWC folds all
+  // three into `BinExpr`, so the split happens here instead — before either of
+  // the paths below, which coerce their operands and so cannot answer for an
+  // operator that returns one of them unchanged.
+  if let Some(op) = logical_expression::LogicalOp::of(bin.op) {
+    return logical_expression::evaluate(op, bin, state, traversal_state, fns);
+  }
+
   unwrap_or_panic!(
     binary_expr_to_num(bin, state, traversal_state, fns)
       .or_else(|num_error| {
@@ -55,12 +65,6 @@ pub(crate) fn binary_expr_to_num(
 
   let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
     if !state.confident {
-      if op == BinaryOp::LogicalOr && left_num != 0.0 {
-        state.confident = true;
-
-        return Result::Ok(BinaryExprType::Number(left_num));
-      }
-
       return Result::Err(anyhow::anyhow!("Right expression is not a number"));
     }
 
@@ -104,36 +108,14 @@ pub(crate) fn binary_expr_to_num(
     BinaryOp::LtEq => convert_bool_to_number(left_num <= right_num),
     BinaryOp::Gt => convert_bool_to_number(left_num > right_num),
     BinaryOp::GtEq => convert_bool_to_number(left_num >= right_num),
-    // #region Logical
-    BinaryOp::LogicalOr => {
-      if let Some(value) =
-        evaluate_left_and_right_expression(state, traversal_state, fns, &left, &right)
-      {
-        return value;
-      }
-
-      if left_num != 0.0 { left_num } else { right_num }
-    },
-    BinaryOp::LogicalAnd => {
-      if let Some(value) =
-        evaluate_left_and_right_expression(state, traversal_state, fns, &left, &right)
-      {
-        return value;
-      }
-
-      if left_num != 0.0 { right_num } else { left_num }
-    },
-    BinaryOp::NullishCoalescing => {
-      if let Some(value) =
-        evaluate_left_and_right_expression(state, traversal_state, fns, &left, &right)
-      {
-        return value;
-      }
-
-      if left_num == 0.0 { right_num } else { left_num }
-    },
-    // #endregion Logical
     BinaryOp::ZeroFillRShift => ((left_num as i32) >> right_num as i32) as f64,
+    // Unreachable: the three logical operators are dispatched to their own node
+    // before this path can run, and there they return an operand rather than a
+    // number. Refused on the same terms as any other operator this path has no
+    // answer for, rather than coerced to one.
+    BinaryOp::LogicalOr | BinaryOp::LogicalAnd | BinaryOp::NullishCoalescing => {
+      return Result::Err(anyhow!(unsupported_operator(op.as_str())));
+    },
   };
 
   Result::Ok(BinaryExprType::Number(result))
@@ -164,12 +146,6 @@ fn binary_expr_to_string(
 
   let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
     if !state.confident {
-      if op == BinaryOp::LogicalOr {
-        state.confident = true;
-
-        return Result::Ok(BinaryExprType::String(left_str));
-      }
-
       return Result::Err(anyhow::anyhow!("Right expression is not a string"));
     }
 

@@ -63,6 +63,14 @@ array cannot contain one, which is where a counted array is refused — the fold
 itself succeeds.
 _Avoid_: empty slot, gap, undefined element
 
+**Winning operand**:
+The side of `||`, `&&` or `??` the fold keeps, returned as the value it already
+was rather than re-created as a literal — so a winning object stays an object
+and a winning array stays an array. The three operators are decided on their own
+evaluator node, because they answer with an operand where every other binary
+operator answers with a coercion of both.
+_Avoid_: result, chosen branch, short-circuit value
+
 **Binding write**:
 A binding whose value can differ from its declaration initializer, either
 rebound or mutated in place. Both make the initializer an unsound stand-in at

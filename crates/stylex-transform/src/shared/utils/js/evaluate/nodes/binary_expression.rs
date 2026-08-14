@@ -197,6 +197,35 @@ fn binary_expr_to_string(
   Result::Ok(BinaryExprType::String(result))
 }
 
+/// The string a string-literal operand spells, or an empty string for an
+/// operand that is not one — which the caller reads as "this side is not a
+/// string" and so declines to concatenate.
+///
+/// `side` names the operand in the diagnostics, which are unreachable by
+/// construction: the arm is entered only for a `Lit::Str`, and one always has
+/// a literal form that always converts. They are kept as assertions rather
+/// than folded into the empty string, which would report a real failure as an
+/// ordinary non-string.
+fn string_literal_or_empty(expr: &Expr, side: &str) -> String {
+  match expr {
+    Expr::Lit(Lit::Str(_)) => match expr.as_lit() {
+      Some(lit) => convert_lit_to_string(lit).unwrap_or_else(|| {
+        stylex_panic!(
+          "{} is not a string: {:?}",
+          side,
+          expr.get_type(get_default_expr_ctx())
+        )
+      }),
+      None => stylex_panic!(
+        "{} is not a string: {:?}",
+        side,
+        expr.get_type(get_default_expr_ctx())
+      ),
+    },
+    _ => String::default(),
+  }
+}
+
 fn evaluate_left_and_right_expression(
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
@@ -224,41 +253,8 @@ fn evaluate_left_and_right_expression(
   let right_confident = state.confident;
 
   if left_result.is_err() || right_result.is_err() {
-    let left_str = match left_expr {
-      Expr::Lit(Lit::Str(_)) => match left_expr.as_lit() {
-        Some(lit) => convert_lit_to_string(lit).unwrap_or_else(|| {
-          {
-            stylex_panic!(
-              "Left is not a string: {:?}",
-              left_expr.get_type(get_default_expr_ctx())
-            )
-          }
-        }),
-        None => stylex_panic!(
-          "Left is not a string: {:?}",
-          left_expr.get_type(get_default_expr_ctx())
-        ),
-      },
-      _ => String::default(),
-    };
-
-    let right_str = match right_expr {
-      Expr::Lit(Lit::Str(_)) => match right_expr.as_lit() {
-        Some(lit) => convert_lit_to_string(lit).unwrap_or_else(|| {
-          {
-            stylex_panic!(
-              "Right is not a string: {:?}",
-              left_expr.get_type(get_default_expr_ctx())
-            )
-          }
-        }),
-        None => stylex_panic!(
-          "Right is not a string: {:?}",
-          left_expr.get_type(get_default_expr_ctx())
-        ),
-      },
-      _ => String::default(),
-    };
+    let left_str = string_literal_or_empty(left_expr, "Left");
+    let right_str = string_literal_or_empty(right_expr, "Right");
 
     if !left_str.is_empty() && !right_str.is_empty() {
       return Some(Result::Ok(BinaryExprType::String(format!(

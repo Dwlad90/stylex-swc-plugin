@@ -77,6 +77,7 @@ pub enum CallableGlobalJS {
   String,
   Number,
   Array,
+  Object,
 }
 
 impl TryFrom<&str> for CallableGlobalJS {
@@ -87,6 +88,7 @@ impl TryFrom<&str> for CallableGlobalJS {
       "String" => Ok(CallableGlobalJS::String),
       "Number" => Ok(CallableGlobalJS::Number),
       "Array" => Ok(CallableGlobalJS::Array),
+      "Object" => Ok(CallableGlobalJS::Object),
       _ => Err(()),
     }
   }

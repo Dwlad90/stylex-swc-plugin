@@ -43,6 +43,10 @@ fn callable_global_js_try_from_maps_foldable_callees() {
     CallableGlobalJS::try_from("Array"),
     Ok(CallableGlobalJS::Array)
   );
+  assert_eq!(
+    CallableGlobalJS::try_from("Object"),
+    Ok(CallableGlobalJS::Object)
+  );
   // `Math` is a valid callee because its methods fold; calling it is not.
   assert_eq!(CallableGlobalJS::try_from("Math"), Err(()));
   assert_eq!(CallableGlobalJS::try_from("console"), Err(()));

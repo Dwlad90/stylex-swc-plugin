@@ -8,7 +8,7 @@
 
 use stylex_utils::number;
 use swc_core::ecma::ast::{
-  BlockStmtOrExpr, Expr, Ident, Lit, ObjectLit, Prop, PropName, PropOrSpread,
+  BigIntValue, BlockStmtOrExpr, Expr, Ident, Lit, ObjectLit, Prop, PropName, PropOrSpread, UnaryOp,
 };
 
 /// What `ToString` produces for an object that still takes the
@@ -184,6 +184,60 @@ pub fn to_js_number(expr: &Expr) -> Option<f64> {
     // Everything else takes `ToNumber` of its primitive value, which for a
     // string is itself and for an array is its join.
     _ => to_js_string_with(expr, FunctionForm::NotANumber).map(|strng| string_to_js_number(&strng)),
+  }
+}
+
+/// ECMA-262 `ToBoolean`, over an already-evaluated expression.
+///
+/// Refuses on strictly less than the other two coercions: every object is
+/// truthy whatever it holds, so an object this crate cannot read a *string* out
+/// of still has a boolean. `ToBoolean` is the one coercion that never reaches
+/// `ToPrimitive`, which is why an own `toString` does not enter into it —
+/// `Boolean({ toString: () => '' })` is `true`.
+///
+/// `None` is an expression whose kind cannot be read at all, so the caller
+/// deopts rather than guessing which side of the falsy list it falls on.
+pub fn to_js_boolean(expr: &Expr) -> Option<bool> {
+  match expr {
+    // A string that is not valid UTF-8 holds a lone surrogate, and so is not
+    // the empty string — the one string that is falsy. Unlike `ToString`, this
+    // never has to read the text.
+    Expr::Lit(Lit::Str(strng)) => Some(!strng.value.is_empty()),
+    // Both zeroes and `NaN` are the falsy numbers, and `f64` equality already
+    // answers `false` for `NaN` and `true` for `-0.0`.
+    Expr::Lit(Lit::Num(num)) => Some(num.value != 0.0),
+    Expr::Lit(Lit::Bool(bool_lit)) => Some(bool_lit.value),
+    Expr::Lit(Lit::Null(_)) => Some(false),
+    // `0n` is falsy the way `0` is, and is the only big integer that is.
+    Expr::Lit(Lit::BigInt(big_int)) => Some(*big_int.value != BigIntValue::from(0u8)),
+    Expr::Ident(ident) => match surviving_global(ident)? {
+      SurvivingGlobal::Undefined => Some(false),
+      SurvivingGlobal::NaN => Some(false),
+      SurvivingGlobal::Infinity => Some(true),
+    },
+    // Every object is truthy — the empty ones and the empty regular expression
+    // among them, since only primitives appear on the falsy list.
+    Expr::Object(_) | Expr::Array(_) | Expr::Lit(Lit::Regex(_)) => Some(true),
+    Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => Some(true),
+    _ => None,
+  }
+}
+
+/// Whether an expression is nullish — the values `??` takes its right side for,
+/// and the ones `?.` short-circuits on.
+///
+/// A plain question about the expression rather than a coercion, and answered
+/// as a plain `false` for anything else: a value this crate cannot read is not
+/// nullish, because the two spellings of nullish are both syntax it can always
+/// recognise.
+pub fn is_nullish(expr: &Expr) -> bool {
+  match expr {
+    Expr::Lit(Lit::Null(_)) => true,
+    Expr::Ident(ident) => surviving_global(ident) == Some(SurvivingGlobal::Undefined),
+    // `void x` is `undefined` whatever `x` is, which is the third spelling the
+    // reference implementation recognises alongside the other two.
+    Expr::Unary(unary) => unary.op == UnaryOp::Void,
+    _ => false,
   }
 }
 

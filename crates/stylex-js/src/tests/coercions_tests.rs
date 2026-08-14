@@ -11,7 +11,7 @@ use swc_core::{
     ArrayLit, ArrowExpr, AssignProp, BigInt, BindingIdent, BlockStmt, BlockStmtOrExpr, Bool,
     ComputedPropName, ExprOrSpread, GetterProp, Ident, IdentName, KeyValueProp, MethodProp, Null,
     Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Regex, SetterProp, SpreadElement, Str,
-    ThisExpr,
+    ThisExpr, UnaryExpr,
   },
 };
 
@@ -903,4 +903,113 @@ fn a_value_of_no_readable_kind_has_no_object_coercion() {
     to_object(&spread_array_expr(array_expr(vec![]))),
     Some(ObjectCoercion::Identity)
   );
+}
+
+/// `void 0` — the third spelling of `undefined`, and the only one that is an
+/// operator rather than a literal or a name.
+fn void_expr(operand: Expr) -> Expr {
+  Expr::Unary(UnaryExpr {
+    span: DUMMY_SP,
+    op: UnaryOp::Void,
+    arg: Box::new(operand),
+  })
+}
+
+#[test]
+fn the_falsy_primitives_are_the_whole_of_the_falsy_list() {
+  assert_eq!(to_js_boolean(&str_expr("")), Some(false));
+  assert_eq!(to_js_boolean(&num_expr(0.0)), Some(false));
+  assert_eq!(to_js_boolean(&num_expr(-0.0)), Some(false));
+  assert_eq!(to_js_boolean(&bool_expr(false)), Some(false));
+  assert_eq!(to_js_boolean(&null_expr()), Some(false));
+  assert_eq!(to_js_boolean(&ident_expr("undefined")), Some(false));
+  assert_eq!(to_js_boolean(&ident_expr("NaN")), Some(false));
+}
+
+#[test]
+fn a_primitive_that_is_not_on_that_list_is_truthy() {
+  // `'0'` and `'false'` are the two that catch a reader out: a non-empty
+  // string is truthy whatever it spells.
+  assert_eq!(to_js_boolean(&str_expr("0")), Some(true));
+  assert_eq!(to_js_boolean(&str_expr("false")), Some(true));
+  assert_eq!(to_js_boolean(&num_expr(-1.0)), Some(true));
+  assert_eq!(to_js_boolean(&bool_expr(true)), Some(true));
+  assert_eq!(to_js_boolean(&ident_expr("Infinity")), Some(true));
+}
+
+#[test]
+fn zero_is_the_only_falsy_big_integer() {
+  assert_eq!(to_js_boolean(&big_int_expr(0)), Some(false));
+  assert_eq!(to_js_boolean(&big_int_expr(1)), Some(true));
+  assert_eq!(to_js_boolean(&big_int_expr(-1)), Some(true));
+}
+
+#[test]
+fn every_object_is_truthy_however_empty_it_is() {
+  assert_eq!(to_js_boolean(&empty_object_expr()), Some(true));
+  assert_eq!(to_js_boolean(&array_expr(vec![])), Some(true));
+  assert_eq!(to_js_boolean(&regex_expr("", "")), Some(true));
+  assert_eq!(to_js_boolean(&arrow_expr()), Some(true));
+}
+
+#[test]
+fn an_own_conversion_method_does_not_enter_into_the_boolean() {
+  // `ToBoolean` is the one coercion that never reaches `ToPrimitive`, so an
+  // object whose `toString` answers the empty string is still truthy — where
+  // its string coercion is the falsy value that method returns.
+  let overriding = object_expr(vec![key_value_prop(
+    ident_key("toString"),
+    returning_arrow(str_expr("")),
+  )]);
+
+  assert_eq!(to_js_string(&overriding).as_deref(), Some(""));
+  assert_eq!(to_js_boolean(&overriding), Some(true));
+}
+
+#[test]
+fn an_object_with_no_string_form_still_has_a_boolean() {
+  // A spread makes the elements unnameable and so the join unknowable, but an
+  // array is truthy without any of them being read.
+  let spread = spread_array_expr(array_expr(vec![]));
+
+  assert_eq!(to_js_string(&spread), None);
+  assert_eq!(to_js_boolean(&spread), Some(true));
+}
+
+#[test]
+fn a_value_of_no_readable_kind_has_no_boolean() {
+  // Which side of the falsy list this falls on cannot be read off it, so the
+  // caller deopts rather than picking one.
+  assert_eq!(to_js_boolean(&ident_expr("someBinding")), None);
+  assert_eq!(to_js_boolean(&this_expr()), None);
+}
+
+#[test]
+fn the_nullish_values_are_null_undefined_and_void() {
+  assert!(is_nullish(&null_expr()));
+  assert!(is_nullish(&ident_expr("undefined")));
+  // `void` yields `undefined` whatever it is applied to, so the operand is
+  // never read.
+  assert!(is_nullish(&void_expr(num_expr(0.0))));
+  assert!(is_nullish(&void_expr(str_expr("red"))));
+}
+
+#[test]
+fn a_falsy_value_that_is_not_nullish_says_so() {
+  // The distinction `??` rests on, and the one `||` does not draw: each of
+  // these is falsy and none of them is nullish.
+  assert!(!is_nullish(&str_expr("")));
+  assert!(!is_nullish(&num_expr(0.0)));
+  assert!(!is_nullish(&bool_expr(false)));
+  assert!(!is_nullish(&ident_expr("NaN")));
+}
+
+#[test]
+fn a_value_this_crate_cannot_read_is_not_nullish() {
+  // Both spellings of nullish are syntax the predicate always recognises, so
+  // anything else is answered rather than refused.
+  assert!(!is_nullish(&ident_expr("someBinding")));
+  assert!(!is_nullish(&this_expr()));
+  assert!(!is_nullish(&empty_object_expr()));
+  assert!(!is_nullish(&arrow_expr()));
 }

@@ -23,7 +23,8 @@ _Avoid_: allowed function, safe call, whitelisted callee
 
 **Coercion**:
 What ECMAScript says a value converts to when another type is asked for --
-`ToString`, `ToNumber` and `ToObject` over an already-evaluated expression.
+`ToString`, `ToNumber`, `ToBoolean` and `ToObject` over an already-evaluated
+expression.
 Answers only what the language answers: a value with no compile-time form of
 that type gets `None`, and the caller
 [deopts](../stylex-transform/CONTEXT.md) rather than inventing one. `NaN` is not
@@ -40,6 +41,14 @@ one. Reported rather than carried out because only one outcome produces a value
 worth holding -- the caller decides what a wrapper or a function means where it
 sits.
 _Avoid_: boxing, object conversion, wrapping
+
+**Nullish**:
+`null`, `undefined` and `void x` -- the values `??` takes its right side for. A
+plain question about an expression rather than a coercion, and it sits beside
+them because that is what `??` asks before it asks for a boolean. Answered as a
+plain no for a value the crate cannot read, since both spellings are syntax it
+always recognises.
+_Avoid_: empty, falsy, missing, absent
 
 **Mutation expression**:
 An expression that writes through a member — `a.x = 1`, `++a.x`, `delete a.x`.

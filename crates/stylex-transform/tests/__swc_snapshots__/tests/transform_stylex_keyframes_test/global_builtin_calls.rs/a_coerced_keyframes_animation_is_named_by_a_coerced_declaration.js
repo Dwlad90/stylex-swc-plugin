@@ -1,0 +1,22 @@
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
+var _inject2 = _inject;
+import * as stylex from '@stylexjs/stylex';
+_inject2({
+    ltr: "@keyframes x2up61p-B{from{color:red;}to{color:blue;}}",
+    priority: 0
+});
+_inject2({
+    ltr: ".xx2qnu0{animation-name:x2up61p-B}",
+    priority: 3000
+});
+_inject2({
+    ltr: ".x1q3qbx4{animation-duration:1s}",
+    priority: 3000
+});
+export const styles = {
+    root: {
+        kKVMdj: "xx2qnu0",
+        k44tkh: "x1q3qbx4",
+        $$css: true
+    }
+};

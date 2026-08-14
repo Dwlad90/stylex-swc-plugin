@@ -156,13 +156,16 @@ impl PreRule for StylesPreRule {
   }
 
   fn compiled(&mut self, state: &mut StateManager) -> CompiledResult {
-    let (_, class_name, rule) = convert_style_to_class_name(
+    let Some((_, class_name, rule)) = convert_style_to_class_name(
       (self.property.as_str(), &self.value),
       &mut self.pseudos,
       &mut self.at_rules,
       &mut self.const_rules,
       state,
-    );
+    ) else {
+      // The value carries no CSS text, so there is no declaration to name.
+      return CompiledResult::Null;
+    };
 
     let mut classes_to_original_paths = IndexMap::new();
 

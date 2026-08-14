@@ -1,22 +1,39 @@
 #[cfg(test)]
 mod convert_style_to_class_name {
   use crate::shared::{
-    structures::{pre_rule::PreRuleValue, state_manager::StateManager},
+    structures::{pre_rule::PreRuleValue, state_manager::StateManager, types::ClassName},
     utils::core::convert_style_to_class_name::convert_style_to_class_name,
   };
   use stylex_enums::style_resolution::StyleResolution;
   use stylex_structures::raw_value::TRawValue;
   use stylex_structures::stylex_state_options::StyleXStateOptions;
+  /// The declaration text, for a pair that compiles to one.
   fn convert(styles: (&str, &PreRuleValue)) -> String {
-    let result = convert_style_to_class_name(
+    match try_convert(styles) {
+      Some(declaration) => declaration,
+      None => panic!("expected `{}` to compile to a declaration", styles.0),
+    }
+  }
+
+  /// The declaration text, or `None` when the pair carries no CSS text and is
+  /// left undeclared.
+  fn try_convert(styles: (&str, &PreRuleValue)) -> Option<String> {
+    convert_style_to_class_name(
       styles,
       &mut [],
       &mut [],
       &mut [],
       &mut StateManager::default(),
-    );
+    )
+    .map(|(_, _, rule)| extract_body(rule.ltr))
+  }
 
-    extract_body(result.2.ltr)
+  /// The class name a pair compiles to, under the given options.
+  fn class_name_of(styles: (&str, &PreRuleValue), state: &mut StateManager) -> ClassName {
+    match convert_style_to_class_name(styles, &mut [], &mut [], &mut [], state) {
+      Some((_, class_name, _)) => class_name,
+      None => panic!("expected `{}` to compile to a declaration", styles.0),
+    }
   }
 
   fn extract_body(s: String) -> String {
@@ -34,11 +51,8 @@ mod convert_style_to_class_name {
 
   #[test]
   fn prefixes_classname_with_property_name_when_options_debug_is_true() {
-    let (_, class_name, _) = convert_style_to_class_name(
+    let class_name = class_name_of(
       ("margin", &PreRuleValue::number(10.0)),
-      &mut [],
-      &mut [],
-      &mut [],
       &mut StateManager {
         options: StyleXStateOptions::default()
           .with_class_name_prefix("x")
@@ -55,11 +69,8 @@ mod convert_style_to_class_name {
 
   #[test]
   fn prefixes_classname_with_prefix_only_when_options_enable_debug_class_names_is_false() {
-    let (_, class_name, _) = convert_style_to_class_name(
+    let class_name = class_name_of(
       ("margin", &PreRuleValue::number(10.0)),
-      &mut [],
-      &mut [],
-      &mut [],
       &mut StateManager {
         options: StyleXStateOptions::default()
           .with_class_name_prefix("x")
@@ -77,11 +88,8 @@ mod convert_style_to_class_name {
 
   #[test]
   fn prefixes_classname_with_prefix_only_when_options_debug_is_false() {
-    let (_, class_name, _) = convert_style_to_class_name(
+    let class_name = class_name_of(
       ("margin", &PreRuleValue::number(10.0)),
-      &mut [],
-      &mut [],
-      &mut [],
       &mut StateManager {
         options: StyleXStateOptions::default()
           .with_class_name_prefix("x")
@@ -129,6 +137,69 @@ mod convert_style_to_class_name {
     let result = convert(("opacity", &PreRuleValue::string("0.25")));
 
     assert_eq!(result, "opacity:.25")
+  }
+
+  /// `color:` is not a declaration a browser accepts, so a value that carries
+  /// no CSS text leaves the property undeclared instead.
+  #[test]
+  fn declares_nothing_for_a_value_with_no_css_text() {
+    assert_eq!(try_convert(("color", &PreRuleValue::string(""))), None);
+    assert_eq!(try_convert(("color", &PreRuleValue::string(" "))), None);
+    assert_eq!(try_convert(("color", &PreRuleValue::string("  \t "))), None);
+  }
+
+  /// The test is on the transformed value, not the authored one: quoting is what
+  /// gives a blank `content` its text.
+  #[test]
+  fn declares_a_blank_content_value_as_empty_quotes() {
+    assert_eq!(
+      try_convert(("content", &PreRuleValue::string(" "))),
+      Some("content:\"\"".to_string())
+    );
+  }
+
+  /// A blank entry drops out of a fallback array rather than emitting an empty
+  /// declaration beside the ones that spell a value.
+  #[test]
+  fn drops_a_blank_entry_from_a_fallback_array() {
+    assert_eq!(
+      try_convert((
+        "color",
+        &PreRuleValue::Vec(vec![" ".into(), "red".into(), "".into()])
+      )),
+      Some("color:red".to_string())
+    );
+  }
+
+  /// Blank entries drop before the `var()` chain is composed, so they cannot
+  /// break the contiguity the chain requires.
+  #[test]
+  fn drops_a_blank_entry_between_variable_fallbacks() {
+    assert_eq!(
+      try_convert((
+        "height",
+        &PreRuleValue::Vec(vec!["var(--x)".into(), " ".into(), "var(--y)".into()])
+      )),
+      Some("height:var(--y,var(--x))".to_string())
+    );
+  }
+
+  /// An array with nothing left to declare answers the same as a lone blank.
+  #[test]
+  fn declares_nothing_for_a_fallback_array_of_blanks() {
+    assert_eq!(
+      try_convert(("color", &PreRuleValue::Vec(vec![" ".into(), "".into()]))),
+      None
+    );
+  }
+
+  /// `0` carries text even though JS calls it falsy.
+  #[test]
+  fn declares_a_zero_value() {
+    assert_eq!(
+      try_convert(("zIndex", &PreRuleValue::number(0.0))),
+      Some("z-index:0".to_string())
+    );
   }
 
   #[test]

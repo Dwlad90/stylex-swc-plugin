@@ -85,6 +85,21 @@ composes several; `NullPreRule` is the empty one. Compiling a pre-rule yields
 that produced it).
 _Avoid_: draft rule, intermediate style, raw rule
 
+**Blank value**:
+A style value that carries no CSS text — an empty or whitespace-only string.
+A declaration built from one is `color:`, which no browser accepts, so the
+property is left undeclared and compiles to `null` exactly as an authored
+`null` does. Distinct from **falsy**, which is a JS question and disagrees at
+both ends: `0` is falsy but spells a value, and `" "` is truthy but spells
+nothing.
+
+Judged _after_ transformation, because transformation is what decides whether a
+value spells anything — a blank `content` is quoted into `""`, which does. A
+blank entry of a fallback array drops there too, before the `var()` chain is
+composed, so the class name is hashed from the entries that survive: a blank
+entry beside `red` yields the class name a lone `red` yields.
+_Avoid_: empty value, falsy value, null value
+
 **Producer / consumer**:
 A `stylex` call that creates styles (`create`, `defineVars`, `defineConsts`,
 `keyframes`, `createTheme`, `positionTry`, `viewTransitionClass`) versus one

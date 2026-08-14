@@ -13,15 +13,26 @@ use crate::shared::{
 use stylex_constants::constants::messages::{ILLEGAL_PROP_VALUE, NON_CONTIGUOUS_VARS};
 use stylex_css::utils::pre_rule::{sort_at_rules, sort_pseudos};
 use stylex_types::structures::injectable_style::InjectableStyle;
-use stylex_utils::{hash::create_hash, string::dashify};
+use stylex_utils::{
+  hash::create_hash,
+  string::{dashify, is_blank_css_text},
+};
 
+/// Compiles a resolved property/value pair into the class name that carries it
+/// and the rule that class name injects.
+///
+/// `None` when the transformed value carries no CSS text: the declaration would
+/// be `color:`, which is invalid CSS a browser discards, so the property is left
+/// undeclared instead. The test is on the *transformed* value rather than the
+/// authored one, because transformation is what decides whether a blank value
+/// spells anything -- a blank `content` is quoted into `""`, which does.
 pub(crate) fn convert_style_to_class_name(
   obj_entry: (&str, &PreRuleValue),
   pseudos: &mut [String],
   at_rules: &mut [String],
   const_rules: &mut [String],
   state: &mut StateManager,
-) -> (RuleKey, ClassName, InjectableStyle) {
+) -> Option<(RuleKey, ClassName, InjectableStyle)> {
   let debug = state.options.debug;
   let enable_debug_class_names = state.options.enable_debug_class_names;
 
@@ -59,9 +70,15 @@ pub(crate) fn convert_style_to_class_name(
   let value: Vec<String> = match raw_value {
     PreRuleValue::Raw(raw_value) => vec![transform_value_cached(key, raw_value, state)],
     PreRuleValue::Vec(values) => {
+      // A blank entry drops before the fallback chain is built, so the class
+      // name is hashed from the entries that survive: a blank beside `red`
+      // yields the class name a lone `red` yields. It also has to go before
+      // `variable_fallbacks`, which requires the `var()` entries it composes to
+      // be contiguous.
       let values: Vec<String> = values
         .iter()
         .map(|each_value| transform_value_cached(key, each_value, state))
+        .filter(|value| !is_blank_css_text(value))
         .collect();
 
       if values
@@ -75,6 +92,13 @@ pub(crate) fn convert_style_to_class_name(
     },
     PreRuleValue::Expr(_) | PreRuleValue::Null => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
   };
+
+  // A lone value is judged here; a fallback array arrives with its blank
+  // entries already gone, so `all` over no values -- also `true` -- is what
+  // answers for an array that emptied.
+  if value.iter().all(|text| is_blank_css_text(text)) {
+    return None;
+  }
 
   let string_to_hash = format!(
     "<>{}{}{}",
@@ -101,11 +125,11 @@ pub(crate) fn convert_style_to_class_name(
     &state.options,
   );
 
-  (
+  Some((
     RuleKey::from(key),
     ClassName::from(class_name_hashed),
     css_rules,
-  )
+  ))
 }
 
 fn variable_fallbacks(values: &[String]) -> Vec<String> {

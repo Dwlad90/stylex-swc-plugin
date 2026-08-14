@@ -1,4 +1,23 @@
 use super::*;
+use stylex_ast::ast::convertors::create_ident_expr;
+
+/// `undefined`, as a value the evaluator is confident about.
+///
+/// Spelled as the identifier rather than as no value, because a confident
+/// `None` is how the evaluator says it *failed* to resolve something and the
+/// caller turns one into a deopt — so an expression whose value genuinely is
+/// `undefined` has to hand back a value, or it fails a build it should have
+/// folded.
+///
+/// One helper rather than one construction per site, because the four places
+/// that answer `undefined` have to agree on what they hand back: `void x`, a
+/// key an object does not carry, an index past the end of an array, and the
+/// winning operand of a logical that evaluated confidently to nothing. `??`
+/// reads all four through the same nullish bridge, and a site that answered
+/// differently would fold differently for no reason an author could see.
+pub(super) fn js_undefined() -> EvaluateResultValue {
+  EvaluateResultValue::Expr(create_ident_expr("undefined"))
+}
 
 /// Normalizes different argument types into an ObjectLit for JavaScript object
 /// methods.

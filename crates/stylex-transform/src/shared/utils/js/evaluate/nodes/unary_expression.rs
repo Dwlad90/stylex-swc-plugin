@@ -1,5 +1,4 @@
 use super::super::*;
-use stylex_ast::ast::convertors::create_ident_expr;
 use swc_core::ecma::ast::{Lit, UnaryExpr, UnaryOp};
 
 pub(in super::super) fn evaluate(
@@ -15,7 +14,7 @@ pub(in super::super) fn evaluate(
   // evaluator's caller turns a confident `None` into a deopt, so returning
   // nothing here would fail the build on an expression that has a value.
   if unary.op == UnaryOp::Void {
-    return Some(EvaluateResultValue::Expr(create_ident_expr("undefined")));
+    return Some(js_undefined());
   }
 
   let argument = &unary.arg;

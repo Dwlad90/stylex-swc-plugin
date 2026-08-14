@@ -21,7 +21,7 @@ use crate::shared::{
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
   utils::{
     common::get_var_decl_by_ident,
-    js::evaluate::{binary_expr_to_num, evaluate_cached},
+    js::evaluate::{binary_expr_to_num_or_str, evaluate_cached},
   },
 };
 use stylex_ast::ast::convertors::get_expr_from_var_decl;
@@ -45,7 +45,7 @@ pub fn expr_to_num(
     Expr::Bin(lit) => {
       let mut state = Box::new(EvaluationState::new());
 
-      match binary_expr_to_num(lit, &mut state, traversal_state, fns)
+      match binary_expr_to_num_or_str(lit, &mut state, traversal_state, fns)
         .unwrap_or_else(|error| stylex_panic!("{}", error))
       {
         BinaryExprType::Number(number) => number,
@@ -160,7 +160,7 @@ pub fn ident_to_number(
 
       match &var_decl_expr {
         Expr::Bin(bin_expr) => {
-          match binary_expr_to_num(bin_expr, state, traversal_state, fns)
+          match binary_expr_to_num_or_str(bin_expr, state, traversal_state, fns)
             .unwrap_or_else(|error| stylex_panic!("{}", error))
           {
             BinaryExprType::Number(number) => number,

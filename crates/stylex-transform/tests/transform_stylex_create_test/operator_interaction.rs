@@ -123,7 +123,7 @@ stylex_test!(
 // its truthiness guard produces for a bare `0`.
 stylex_test_panic!(
   a_nullish_over_an_addition_still_refuses_a_falsy_left_side,
-  "unknown error",
+  "a > flexGrow > unknown error",
   r#"
     import * as stylex from '@stylexjs/stylex';
     const zero = 0;

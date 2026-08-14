@@ -9,7 +9,7 @@ pub(crate) use cache::evaluate_cached;
 pub(crate) use deopt::deopt;
 pub(crate) use helpers::evaluate_result_is_nullish;
 use helpers::*;
-pub(crate) use nodes::binary_expression::binary_expr_to_num;
+pub(crate) use nodes::binary_expression::binary_expr_to_num_or_str;
 
 // Import error handling macros from shared utilities
 use crate::{expr_to_str_or_deopt, stylex_panic_with_context};

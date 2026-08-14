@@ -174,9 +174,13 @@ stylex_test!(
 // The message is asserted rather than the mere fact of failure — before the
 // operator was implemented at all these inputs failed too, for the unrelated
 // reason that every `??` was refused.
+//
+// The property path is asserted with it. A value that genuinely cannot fold has
+// to be findable inside a large style object, and the deopt reason alone would
+// name every such value identically.
 stylex_test_panic!(
   nullish_refuses_a_zero_left_side,
-  "unknown error",
+  "a > flexGrow > unknown error",
   r#"
     import * as stylex from '@stylexjs/stylex';
     const zero = 0;
@@ -186,7 +190,7 @@ stylex_test_panic!(
 
 stylex_test_panic!(
   nullish_refuses_a_false_left_side,
-  "unknown error",
+  "a > color > unknown error",
   r#"
     import * as stylex from '@stylexjs/stylex';
     const off = false;
@@ -196,7 +200,7 @@ stylex_test_panic!(
 
 stylex_test_panic!(
   nullish_refuses_an_empty_string_left_side,
-  "unknown error",
+  "a > color > unknown error",
   r#"
     import * as stylex from '@stylexjs/stylex';
     const blank = '';

@@ -1,7 +1,5 @@
 use super::super::*;
-use stylex_ast::ast::convertors::{
-  convert_member_prop_to_string, create_ident_expr, normalize_expr,
-};
+use stylex_ast::ast::convertors::{convert_member_prop_to_string, normalize_expr};
 use swc_core::ecma::ast::MemberExpr;
 
 pub(in super::super) fn evaluate(
@@ -89,6 +87,14 @@ pub(in super::super) fn evaluate(
               _ => stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED),
             };
 
+            // An index past the end is `undefined` in the language, and the
+            // object arm below now folds the matching case — a key the object
+            // does not carry. This arm is deliberately left answering no value
+            // instead, because no StyleX source reaches it: an array binding
+            // evaluates to the `Vec` variant, which `match object` has no arm
+            // for at all, so indexing one refuses at the catch-all below
+            // whether the index is in range or not. Making the two agree is a
+            // matter of teaching `Vec` to be indexed, which is its own scope.
             let property = elems.get(value)?;
 
             let Some(expr) = property.as_ref() else {
@@ -193,7 +199,7 @@ pub(in super::super) fn evaluate(
             // fold, where a deopt here would send the whole declaration to the
             // runtime.
             let Some(property) = property else {
-              return Some(EvaluateResultValue::Expr(create_ident_expr("undefined")));
+              return Some(js_undefined());
             };
 
             if let PropOrSpread::Prop(prop) = property {

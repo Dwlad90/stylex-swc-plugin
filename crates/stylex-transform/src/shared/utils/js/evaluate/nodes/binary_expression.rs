@@ -20,7 +20,7 @@ pub(in super::super) fn evaluate(
   }
 
   unwrap_or_panic!(
-    binary_expr_to_num(bin, state, traversal_state, fns)
+    binary_expr_to_num_or_str(bin, state, traversal_state, fns)
       .or_else(|num_error| {
         binary_expr_to_string(bin, state, traversal_state, fns).or_else::<String, _>(|str_error| {
           debug!("Binary expression to string error: {}", str_error);
@@ -62,6 +62,12 @@ const RIGHT_NOT_A_NUMBER: &str = "Right expression is not a number";
 const LEFT_NOT_A_STRING: &str = "Left expression is not a string";
 const RIGHT_NOT_A_STRING: &str = "Right expression is not a string";
 
+/// The reason the `+` dispatch records, which runs before either path has
+/// claimed the operator and so cannot borrow either one's wording: a right side
+/// beside a string left side is on its way to concatenation, and naming it a
+/// failed number would describe a coercion nothing was about to perform.
+const RIGHT_HAS_NO_VALUE: &str = "Right expression could not be evaluated";
+
 /// One side of the expression, evaluated. An operand that resolves to nothing
 /// while the evaluator is still confident is this path's own bug rather than an
 /// expression it cannot fold, which is why the two answers differ.
@@ -79,7 +85,15 @@ fn evaluate_operand(
   }
 }
 
-pub(crate) fn binary_expr_to_num(
+/// Every binary operator but the three logical ones, folded to whichever of a
+/// number and a string its operands decide.
+///
+/// Named for both because `+` returns either: it is the one operator whose
+/// result type is not the path's to choose, and reading the name as a promise
+/// of a number is how a caller comes to treat `'1' + 2` as arithmetic. The two
+/// callers outside this node want a number specifically and refuse the other
+/// answer themselves.
+pub(crate) fn binary_expr_to_num_or_str(
   binary_expr: &BinExpr,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
@@ -110,7 +124,7 @@ pub(crate) fn binary_expr_to_num(
   if matches!(op, BinaryOp::Add) {
     let right = evaluate_operand(
       &binary_expr.right,
-      RIGHT_NOT_A_NUMBER,
+      RIGHT_HAS_NO_VALUE,
       state,
       traversal_state,
       fns,

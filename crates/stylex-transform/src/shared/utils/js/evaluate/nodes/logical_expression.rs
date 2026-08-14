@@ -1,5 +1,4 @@
 use super::super::*;
-use stylex_ast::ast::convertors::create_ident_expr;
 use swc_core::ecma::ast::{BinExpr, BinaryOp};
 
 /// The reason recorded for an expression that lost no confidence on either side
@@ -190,7 +189,7 @@ fn is_nullish(value: Option<&EvaluateResultValue>) -> bool {
 /// The winning operand as a value, spelling a confidently absent one as the
 /// `undefined` the language gives it.
 fn operand_value(value: Option<EvaluateResultValue>) -> EvaluateResultValue {
-  value.unwrap_or_else(|| EvaluateResultValue::Expr(create_ident_expr("undefined")))
+  value.unwrap_or_else(js_undefined)
 }
 
 #[cfg(test)]

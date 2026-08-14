@@ -1,5 +1,5 @@
 use super::*;
-use stylex_ast::ast::convertors::create_null_expr;
+use stylex_ast::ast::convertors::{create_ident_expr, create_null_expr};
 use swc_core::common::DUMMY_SP;
 
 fn bin(op: BinaryOp, left: Expr, right: Expr) -> BinExpr {

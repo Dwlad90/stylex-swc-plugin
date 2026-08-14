@@ -120,3 +120,21 @@ stylex_test!(
     });
   "#
 );
+
+// A step value the compiler cannot resolve is still an error, not a dropped
+// declaration. A step value that is merely *not a string* -- an object, an
+// array, `null` -- declares nothing and compiles, so this pins the line between
+// the two: a name with no binding to read is not the same as a value with
+// nothing to say, and reading one as the other would swallow a typo.
+stylex_test_panic!(
+  unresolvable_step_value_is_rejected,
+  "Only static values are allowed inside of a keyframes() call.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const name = stylex.keyframes({
+      from: { color: someUndeclaredBinding },
+      to: { color: 'blue' },
+    });
+  "#
+);

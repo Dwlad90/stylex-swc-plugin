@@ -165,22 +165,23 @@ fn tuple_to_pair(style: &FlatCompiledStylesValue) -> Pair {
   }
 }
 
-/// Writes a `[key, value]` tuple as declarations under the outer key.
+/// The declarations a direction-resolved value contributes to `property`, or
+/// `None` when it contributes none.
 ///
-/// The doubled `key:key;key:value;` form is what the reference implementation
-/// emits, so the property name appears as its own value ahead of the real one.
-/// That first half is a companion to the real value rather than a declaration in
-/// its own right, so when the value spells no CSS text neither half is written.
-fn write_tuple_declarations(output: &mut String, key: &str, pair: &Pair) {
-  let Some(value_declaration) = Pair::new(key, &pair.value).as_declaration() else {
-    return;
-  };
+/// `resolved` is not a key/value pair despite its type: both halves are *values*
+/// for the same `property`, and the reference implementation emits them as the
+/// doubled `property:first;property:second;` form, where the first half repeats
+/// the property name as its own value. That repeat is a companion to the real
+/// value rather than a declaration in its own right, so a real value spelling no
+/// CSS text takes the repeat with it -- otherwise a stray `top:top;` survives a
+/// dropped `top` and moves the name the body is hashed into.
+fn tuple_declarations(property: &str, resolved: &Pair) -> Option<String> {
+  let value = Pair::new(property, &resolved.value).as_declaration()?;
 
-  if let Some(name_declaration) = Pair::new(key, &pair.key).as_declaration() {
-    output.push_str(&name_declaration);
+  match Pair::new(property, &resolved.key).as_declaration() {
+    Some(repeated_name) => Some(repeated_name + &value),
+    None => Some(value),
   }
-
-  output.push_str(&value_declaration);
 }
 
 fn construct_position_try_obj(styles: &FlatCompiledStyles) -> String {
@@ -195,23 +196,20 @@ fn construct_position_try_obj(styles: &FlatCompiledStyles) -> String {
       None => stylex_panic!("Expected property key to exist in compiled styles."),
     };
 
-    match v.as_ref() {
-      FlatCompiledStylesValue::String(val) => {
-        if let Some(declaration) = Pair::new(k, val).as_declaration() {
-          output.push_str(&declaration);
-        }
-      },
-      // A `[key, value]` tuple serializes each element as a value under the
-      // outer key.
-      FlatCompiledStylesValue::KeyValue(pair) => {
-        write_tuple_declarations(&mut output, k, pair);
-      },
-      FlatCompiledStylesValue::KeyValues(pairs) => {
-        for pair in pairs {
-          write_tuple_declarations(&mut output, k, pair);
-        }
-      },
-      _ => {},
+    let declarations = match v.as_ref() {
+      FlatCompiledStylesValue::String(val) => Pair::new(k, val).as_declaration(),
+      FlatCompiledStylesValue::KeyValue(resolved) => tuple_declarations(k, resolved),
+      FlatCompiledStylesValue::KeyValues(resolved) => Some(
+        resolved
+          .iter()
+          .filter_map(|resolved| tuple_declarations(k, resolved))
+          .collect(),
+      ),
+      _ => None,
+    };
+
+    if let Some(declarations) = declarations {
+      output.push_str(&declarations);
     }
   }
 

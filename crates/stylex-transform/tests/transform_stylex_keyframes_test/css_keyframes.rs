@@ -173,3 +173,27 @@ stylex_test!(
     });
   "#
 );
+
+// A blank step value declares nothing for the same reason a blank style value
+// does: `color:` is not valid CSS. The reference implementation reaches a null
+// dereference inside its value normaliser here, so this converges on what it
+// does deliberately for `null` -- the animation name is the one a step
+// declaring nothing produces.
+stylex_test!(
+  a_blank_step_value_declares_nothing,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const empty = stylex.keyframes({
+      from: { color: '' },
+      to: { color: 'blue' },
+    });
+    export const blank = stylex.keyframes({
+      from: { color: ' ' },
+      to: { color: 'blue' },
+    });
+    export const blankWithSibling = stylex.keyframes({
+      from: { color: ' ', opacity: 0.5 },
+      to: { color: 'blue' },
+    });
+  "#
+);

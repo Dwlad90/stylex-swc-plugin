@@ -277,21 +277,25 @@ fn _evaluate_style_object(
         prop
           .as_prop()
           .and_then(|prop| prop.as_key_value())
-          .map(|key_value| {
+          .and_then(|key_value| {
             let key = convert_key_value_to_str(key_value);
-            let value = if let Some(strng) =
-              convert_expr_to_str(key_value.value.as_ref(), state, functions)
-            {
-              FlatCompiledStylesValue::String(strng)
-            } else {
-              FlatCompiledStylesValue::Bool(convert_expr_to_bool(
-                key_value.value.as_ref(),
-                state,
-                functions,
-              ))
+
+            // A compiled style object carries class-name strings and the `$$css`
+            // flag, so a value that is not a string is read as that flag -- but
+            // only when it is one. An object or an array is neither, and reading
+            // one as `true` would invent a flag from a shape that cannot appear
+            // here, so the property is skipped instead.
+            let value = match convert_expr_to_str(key_value.value.as_ref(), state, functions) {
+              Some(class_names) => FlatCompiledStylesValue::String(class_names),
+              None => match key_value.value.as_ref() {
+                value @ (Expr::Lit(Lit::Bool(_)) | Expr::Lit(Lit::Null(_))) => {
+                  FlatCompiledStylesValue::Bool(convert_expr_to_bool(value, state, functions))
+                },
+                _ => return None,
+              },
             };
 
-            (key, Rc::new(value))
+            Some((key, Rc::new(value)))
           })
       })
       .collect();

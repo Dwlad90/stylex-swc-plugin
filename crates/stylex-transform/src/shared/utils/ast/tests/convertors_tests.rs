@@ -1775,6 +1775,50 @@ mod convert_expr_to_str_tests {
     let result = convert_expr_to_str(&expr, &mut state, &fns);
     assert_eq!(result, Some("42".to_string()));
   }
+
+  /// A literal that is not a string spells no string. Callers decide what that
+  /// means to them, so nothing is raised here.
+  #[test]
+  fn non_string_literal_returns_none() {
+    let mut state = StateManager::default();
+    let fns = FunctionMap::default();
+
+    let null = Expr::Lit(Lit::Null(swc_core::ecma::ast::Null {
+      span: Default::default(),
+    }));
+    assert_eq!(convert_expr_to_str(&null, &mut state, &fns), None);
+
+    let boolean = Expr::Lit(Lit::Bool(true.into()));
+    assert_eq!(convert_expr_to_str(&boolean, &mut state, &fns), None);
+  }
+
+  /// An identifier with no binding to read spells no string either -- which is
+  /// what `undefined` is, an ordinary global rather than a literal.
+  #[test]
+  fn unbound_ident_returns_none() {
+    let mut state = StateManager::default();
+    let fns = FunctionMap::default();
+    let expr = make_ident_expr("undefined");
+    assert_eq!(convert_expr_to_str(&expr, &mut state, &fns), None);
+  }
+
+  /// An identifier bound to something that is not a string spells no string,
+  /// however many hops it takes to find that out.
+  #[test]
+  fn ident_bound_to_a_non_string_returns_none() {
+    let mut state = StateManager::default();
+    let fns = FunctionMap::default();
+    let decl = make_var_declarator(
+      "shape",
+      Expr::Object(swc_core::ecma::ast::ObjectLit {
+        span: Default::default(),
+        props: vec![],
+      }),
+    );
+    fill_state_declarations(&mut state, &decl);
+    let expr = make_ident_expr("shape");
+    assert_eq!(convert_expr_to_str(&expr, &mut state, &fns), None);
+  }
 }
 
 // ──────────────────────────────────────────────

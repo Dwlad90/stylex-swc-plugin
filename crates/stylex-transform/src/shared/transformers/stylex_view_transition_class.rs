@@ -93,6 +93,8 @@ fn construct_view_transition_class_style_str(
       pair.as_declaration().unwrap_or_default(),
     )),
     FlatCompiledStylesValue::KeyValues(pairs) => {
+      // An upper bound: the pairs that turn out to declare nothing are dropped
+      // below, so this over-reserves rather than reallocating.
       let capacity = pairs
         .iter()
         .map(|pair| pair.key.len() + pair.value.len() + 2)
@@ -131,6 +133,13 @@ fn construct_final_view_transition_css_str(styles: FlatCompiledStyles, class_nam
   result
 }
 
+/// The string the class name is hashed from.
+///
+/// This writes `selector:body;` rather than a declaration, so it deliberately
+/// does not ask [`Pair::as_declaration`]: a selector whose body came out empty
+/// still has to appear, because the reference implementation hashes it that way
+/// and the name has to agree. What the emitted CSS carries is decided by
+/// [`construct_final_view_transition_css_str`], not here.
 fn concat_view_transition_class_style_str(
   style_strings: &FlatCompiledStyles,
   state: &mut StateManager,

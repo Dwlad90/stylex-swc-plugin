@@ -1,11 +1,6 @@
 use super::super::*;
-use swc_core::{
-  common::SyntaxContext,
-  ecma::{
-    ast::{Lit, UnaryExpr, UnaryOp},
-    utils::quote_ident,
-  },
-};
+use stylex_ast::ast::convertors::create_ident_expr;
+use swc_core::ecma::ast::{Lit, UnaryExpr, UnaryOp};
 
 pub(in super::super) fn evaluate(
   unary: &UnaryExpr,
@@ -13,8 +8,14 @@ pub(in super::super) fn evaluate(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
+  // `void x` is `undefined` whatever `x` is, so the operand is never evaluated
+  // and an operand that would have deopted cannot deopt this.
+  //
+  // Answered as the `undefined` identifier rather than as no value: the
+  // evaluator's caller turns a confident `None` into a deopt, so returning
+  // nothing here would fail the build on an expression that has a value.
   if unary.op == UnaryOp::Void {
-    return None;
+    return Some(EvaluateResultValue::Expr(create_ident_expr("undefined")));
   }
 
   let argument = &unary.arg;
@@ -78,10 +79,6 @@ pub(in super::super) fn evaluate(
 
       Some(EvaluateResultValue::Expr(create_string_expr(arg_type)))
     },
-    UnaryOp::Void => Some(EvaluateResultValue::Expr(Expr::Ident(quote_ident!(
-      SyntaxContext::empty(),
-      "undefined"
-    )))),
     _ => deopt(
       &Expr::from(unary.clone()),
       state,

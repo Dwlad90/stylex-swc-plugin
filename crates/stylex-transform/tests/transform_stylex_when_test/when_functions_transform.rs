@@ -256,6 +256,29 @@ stylex_test!(
   "#
 );
 
+// `void 0` is the third spelling of `undefined`, and the reference
+// implementation reads it as one: the marker slot falls to the options and the
+// selector carries the prefixed default marker, exactly as `null` and
+// `undefined` do.
+stylex_test!(
+  when_ancestor_with_void_marker,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      container: {
+        color: {
+          default: 'blue',
+          [stylex.when.ancestor(':hover', void 0)]: 'red',
+        },
+      },
+    });
+
+    console.log(styles.container);
+  "#
+);
+
 // A second argument that evaluates to a plain object is neither a marker, a
 // class name nor a compiled `$$css` style. The reference implementation lets
 // it fall through to an unprefixed `default-marker` rather than rejecting it,

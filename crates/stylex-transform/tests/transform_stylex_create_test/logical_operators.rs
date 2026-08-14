@@ -89,6 +89,22 @@ stylex_test!(
   "#
 );
 
+// `.x1e2nbdu{color:red}` for both — `void x` is the third spelling of
+// `undefined`, and the operators take their right side for it the way they do
+// for the other two. The operand is never evaluated, so the string it is
+// applied to here neither reaches the fold nor could deopt it.
+stylex_test!(
+  nullish_and_or_take_the_fallback_for_void,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      a: { color: void 0 ?? 'red' },
+      b: { color: void 'blue' || 'red' },
+    });
+  "#
+);
+
 // `.xju2f9n{color:blue}` and `.x1u857p9{background-color:green}` — `||` takes
 // the fallback for an empty string, `&&` takes the right side for a set one.
 stylex_test!(

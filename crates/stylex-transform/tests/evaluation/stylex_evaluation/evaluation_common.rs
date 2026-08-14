@@ -345,13 +345,20 @@ stylex_test_transform!(
   "#
 );
 
-stylex_test_panic!(
-  evaluates_void_unary_value_expressions,
-  "Failed to evaluate expression",
+// `void` evaluates to `undefined` without ever looking at its operand, so an
+// operand that could not be evaluated on its own does not stop it.
+stylex_test_transform!(
+  void_evaluates_to_undefined_without_reading_its_operand,
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
     void 1;
-
+    void "a";
+    void unknownBinding;
+  "#,
+  r#"
+    undefined;
+    undefined;
+    undefined;
   "#
 );
 

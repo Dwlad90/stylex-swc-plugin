@@ -387,6 +387,24 @@ stylex_test!(
   "#
 );
 
+// `null` is the one element a fallback array drops rather than refuses: the
+// entries around it keep their order and their place in the chain, and an
+// array holding nothing else declares nothing at all. Measured against
+// `@stylexjs/babel-plugin@0.19.0`: `x` is `color:red;color:blue`, `y` is the
+// `.xju2f9n` a lone `'blue'` produces, and `z` declares nothing.
+stylex_test!(
+  null_in_a_fallback_array_is_dropped,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      x: { color: ['red', null, 'blue'] },
+      y: { color: [null, 'blue'] },
+      z: { color: [null] },
+    });
+  "#
+);
+
 // Only the blank branch of a nested value drops; the conditions around it are
 // untouched.
 stylex_test!(

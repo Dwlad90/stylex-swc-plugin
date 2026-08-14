@@ -474,13 +474,15 @@ fn object_to_primitive(object: &ObjectLit, hint: ToPrimitiveHint) -> Option<Obje
       // The object does not override this one, so `Object.prototype`'s
       // applies: its `toString` answers the default text, while its `valueOf`
       // answers the object itself, which is not a primitive and is passed over.
-      None if name == TO_STRING => return Some(ObjectPrimitive::Default),
+      None if name == TO_STRING => break,
       None => continue,
       Some(returned) => return Some(ObjectPrimitive::Returned(returned?)),
     }
   }
 
-  None
+  // Both orders end in `toString`, so the loop leaves off at the default rather
+  // than at a refusal however it is left.
+  Some(ObjectPrimitive::Default)
 }
 
 /// Which primitive a conversion prefers, and so which of the two methods an
@@ -581,13 +583,15 @@ fn prop_name(prop: &Prop) -> Option<&str> {
     // value, but named rather than defaulted so a later reader is not left to
     // decide.
     Prop::Assign(assign) => Some(assign.key.sym.as_ref()),
-    _ => match prop_key(prop)? {
+    // The two arms above are the whole of what [`prop_key`] has no key for, so
+    // what is left always carries one.
+    _ => prop_key(prop).and_then(|key| match key {
       PropName::Ident(ident) => Some(ident.sym.as_ref()),
       // A key that is not valid UTF-8 holds a lone surrogate, which neither
       // ASCII name spells.
       PropName::Str(strng) => strng.value.as_str(),
       PropName::Num(_) | PropName::BigInt(_) | PropName::Computed(_) => None,
-    },
+    }),
   }
 }
 

@@ -4,7 +4,7 @@ use rustc_hash::FxHashSet;
 use stylex_css_parser::at_queries::media_query_transform::last_media_query_wins_transform;
 use stylex_macros::stylex_panic;
 use swc_core::ecma::{
-  ast::{Expr, KeyValueProp, Prop, PropName, PropOrSpread},
+  ast::{Expr, KeyValueProp, Lit, Prop, PropName, PropOrSpread},
   utils::quote_str,
 };
 
@@ -117,7 +117,18 @@ pub(crate) fn flatten_raw_style_object_logic(
         property_array.elems.iter().for_each(|each_val| {
           if let Some(property) = each_val {
             match property.expr.as_ref() {
-              Expr::Lit(property_lit) => {
+              // `null` is the one element that contributes nothing without
+              // making the array itself wrong: it drops, and the entries
+              // around it keep their order and their place in the chain.
+              Expr::Lit(Lit::Null(_)) => {},
+              // A string and a number are the only values a declaration in a
+              // fallback chain can carry. A boolean, a big integer and a
+              // regular expression are literals all the same, so they reach
+              // here and are refused by what they are rather than passed on to
+              // spell nothing -- which would drop a fallback the author wrote
+              // and leave the remaining chain hashed as though it were the
+              // whole of it.
+              Expr::Lit(property_lit @ (Lit::Str(_) | Lit::Num(_))) => {
                 let pairs = flat_map_expanded_shorthands(
                   (
                     css_property_key.clone(),

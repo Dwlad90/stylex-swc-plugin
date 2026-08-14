@@ -8,9 +8,10 @@ use super::*;
 use swc_core::{
   common::DUMMY_SP,
   ecma::ast::{
-    ArrayLit, ArrowExpr, BigInt, BlockStmtOrExpr, Bool, ComputedPropName, ExprOrSpread, Ident,
-    IdentName, KeyValueProp, Null, Number, ObjectLit, Prop, PropName, PropOrSpread, Regex,
-    SpreadElement, Str,
+    ArrayLit, ArrowExpr, AssignProp, BigInt, BindingIdent, BlockStmt, BlockStmtOrExpr, Bool,
+    ComputedPropName, ExprOrSpread, GetterProp, Ident, IdentName, KeyValueProp, MethodProp, Null,
+    Number, ObjectLit, Pat, Prop, PropName, PropOrSpread, Regex, SetterProp, SpreadElement, Str,
+    ThisExpr,
   },
 };
 
@@ -702,6 +703,192 @@ fn a_primitive_coerces_to_a_wrapper_object() {
   assert_eq!(
     to_object(&ident_expr("Infinity")),
     Some(ObjectCoercion::Wrapper)
+  );
+}
+
+/// An expression the evaluator reduced to no value at all — neither a literal,
+/// nor one of the surviving globals, nor an object, array, or function.
+fn this_expr() -> Expr {
+  Expr::This(ThisExpr { span: DUMMY_SP })
+}
+
+fn binding_pat(name: &str) -> Pat {
+  Pat::Ident(BindingIdent {
+    id: Ident::new(name.into(), DUMMY_SP, Default::default()),
+    type_ann: None,
+  })
+}
+
+/// A one-parameter arrow returning `body` — a form the crate refuses, because a
+/// default initialiser on that parameter would make the body depend on it.
+fn parameterised_arrow(body: Expr) -> Expr {
+  Expr::Arrow(ArrowExpr {
+    span: DUMMY_SP,
+    params: vec![binding_pat("x")],
+    body: Box::new(BlockStmtOrExpr::Expr(Box::new(body))),
+    is_async: false,
+    is_generator: false,
+    type_params: None,
+    return_type: None,
+    ctxt: Default::default(),
+  })
+}
+
+/// A block-bodied arrow, whose statements are more than the crate reads.
+fn block_bodied_arrow() -> Expr {
+  Expr::Arrow(ArrowExpr {
+    span: DUMMY_SP,
+    params: vec![],
+    body: Box::new(BlockStmtOrExpr::BlockStmt(BlockStmt::default())),
+    is_async: false,
+    is_generator: false,
+    type_params: None,
+    return_type: None,
+    ctxt: Default::default(),
+  })
+}
+
+fn getter_prop(name: &str) -> PropOrSpread {
+  PropOrSpread::Prop(Box::new(Prop::Getter(GetterProp {
+    key: ident_key(name),
+    ..Default::default()
+  })))
+}
+
+fn setter_prop(name: &str) -> PropOrSpread {
+  PropOrSpread::Prop(Box::new(Prop::Setter(SetterProp {
+    key: ident_key(name),
+    param: Box::new(binding_pat("value")),
+    ..Default::default()
+  })))
+}
+
+fn method_prop(name: &str) -> PropOrSpread {
+  PropOrSpread::Prop(Box::new(Prop::Method(MethodProp {
+    key: ident_key(name),
+    function: Box::default(),
+  })))
+}
+
+fn shorthand_prop(name: &str) -> PropOrSpread {
+  PropOrSpread::Prop(Box::new(Prop::Shorthand(Ident::new(
+    name.into(),
+    DUMMY_SP,
+    Default::default(),
+  ))))
+}
+
+fn assign_prop(name: &str, value: Expr) -> PropOrSpread {
+  PropOrSpread::Prop(Box::new(Prop::Assign(AssignProp {
+    span: DUMMY_SP,
+    key: Ident::new(name.into(), DUMMY_SP, Default::default()),
+    value: Box::new(value),
+  })))
+}
+
+#[test]
+fn an_expression_that_is_not_a_value_has_no_coercion_at_all() {
+  // Unlike an identifier, which may still be one of the globals that survive
+  // evaluation, this is not a value of any kind — so neither coercion has an
+  // answer and its `ToObject` outcome cannot be read off it either.
+  assert_eq!(to_js_string(&this_expr()), None);
+  assert_eq!(to_js_number(&this_expr()), None);
+  assert_eq!(to_object(&this_expr()), None);
+}
+
+#[test]
+fn an_object_whose_own_method_cannot_be_applied_has_no_number_either() {
+  // A number asks for `valueOf` first, so an unapplicable one refuses before
+  // the `Object.prototype` default is ever reached.
+  let not_callable = object_expr(vec![key_value_prop(
+    ident_key("valueOf"),
+    str_expr("notfn"),
+  )]);
+
+  assert_eq!(to_js_number(&not_callable), None);
+}
+
+#[test]
+fn a_conversion_method_written_as_a_method_or_an_accessor_has_no_coercion() {
+  // Each of these is an own `toString`, so the `Object.prototype` default no
+  // longer applies — and none of them is a form this crate can apply.
+  assert_eq!(
+    to_js_string(&object_expr(vec![method_prop("toString")])),
+    None
+  );
+  assert_eq!(
+    to_js_string(&object_expr(vec![getter_prop("toString")])),
+    None
+  );
+  assert_eq!(
+    to_js_string(&object_expr(vec![setter_prop("toString")])),
+    None
+  );
+}
+
+#[test]
+fn a_conversion_arrow_the_crate_cannot_read_has_no_coercion() {
+  let parameterised = object_expr(vec![key_value_prop(
+    ident_key("toString"),
+    parameterised_arrow(str_expr("red")),
+  )]);
+
+  assert_eq!(to_js_string(&parameterised), None);
+
+  let block_bodied = object_expr(vec![key_value_prop(
+    ident_key("toString"),
+    block_bodied_arrow(),
+  )]);
+
+  assert_eq!(to_js_string(&block_bodied), None);
+}
+
+#[test]
+fn a_shorthand_or_assignment_property_names_a_method_the_same_way() {
+  // Neither carries a key node, so both are named from the identifier they
+  // were written as — and neither is a form the coercion can apply.
+  assert_eq!(
+    to_js_string(&object_expr(vec![shorthand_prop("toString")])),
+    None
+  );
+  assert_eq!(
+    to_js_string(&object_expr(vec![assign_prop("toString", str_expr("red"))])),
+    None
+  );
+  // Under any other name they leave the default in place.
+  assert_eq!(
+    to_js_string(&object_expr(vec![shorthand_prop("a")])).as_deref(),
+    Some(OBJECT_TO_STRING)
+  );
+}
+
+#[test]
+fn a_key_that_is_not_a_name_is_not_a_conversion_method() {
+  // A numeric key is readable — it is not the computed key `Symbol.toPrimitive`
+  // is spelled with — but it names neither method, so the default stands.
+  let numeric = object_expr(vec![key_value_prop(
+    PropName::Num(Number {
+      span: DUMMY_SP,
+      value: 1.0,
+      raw: None,
+    }),
+    str_expr("a"),
+  )]);
+
+  assert_eq!(to_js_string(&numeric).as_deref(), Some(OBJECT_TO_STRING));
+
+  let big_int_key = object_expr(vec![key_value_prop(
+    PropName::BigInt(BigInt {
+      span: DUMMY_SP,
+      value: Box::new(1.into()),
+      raw: None,
+    }),
+    str_expr("a"),
+  )]);
+
+  assert_eq!(
+    to_js_string(&big_int_key).as_deref(),
+    Some(OBJECT_TO_STRING)
   );
 }
 

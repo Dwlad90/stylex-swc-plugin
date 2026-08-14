@@ -17,6 +17,31 @@ fn test_unsupported_expression() {
 }
 
 #[test]
+fn test_uncoercible_value() {
+  assert_eq!(
+    uncoercible_value("String"),
+    "Cannot coerce this value at compile time.\nOnly static values can be passed to String().\n\n"
+  );
+  assert!(uncoercible_value("Number").contains("Number()"));
+}
+
+#[test]
+fn test_array_length_too_large() {
+  assert_eq!(
+    array_length_too_large(65_536),
+    "Array length is too large to evaluate at compile time.\nAt most 65536 elements are supported.\n\n"
+  );
+}
+
+#[test]
+fn test_not_a_function() {
+  assert_eq!(
+    not_a_function("Math"),
+    "Math is not a function.\nOnly its methods can be called.\n\n"
+  );
+}
+
+#[test]
 fn test_static_constants() {
   assert!(!PATH_WITHOUT_NODE.is_empty());
   assert!(!UNEXPECTED_MEMBER_LOOKUP.is_empty());

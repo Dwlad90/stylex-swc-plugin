@@ -115,6 +115,83 @@ stylex_test_panic!(
   "#
 );
 
+// A boolean is a literal, so it reaches the array unlike an object or a nested
+// array -- but it is no more a value a declaration can carry, and the reference
+// implementation refuses it with the same complaint. Dropping it instead would
+// lose a fallback the author wrote and hash the rest as though it were the
+// whole chain.
+stylex_test_panic!(
+  invalid_value_array_holding_a_boolean,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        color: ['red', true],
+      },
+    });
+  "#
+);
+
+stylex_test_panic!(
+  invalid_value_array_holding_a_false,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        color: ['red', false],
+      },
+    });
+  "#
+);
+
+// A shorthand's array is read element by element, so the refusal reaches it
+// too.
+stylex_test_panic!(
+  invalid_value_shorthand_array_holding_a_boolean,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        margin: [1, true],
+      },
+    });
+  "#
+);
+
+// A big integer is refused too, though by the evaluator rather than by this
+// rule -- it never reaches the array. Pinned all the same, because what
+// matters is that no element that is not a string or a number is quietly
+// dropped, whichever stage says so.
+stylex_test_panic!(
+  invalid_value_array_holding_a_big_integer,
+  "Unsupported expression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        color: ['red', 1n],
+      },
+    });
+  "#
+);
+
+// A regular expression does reach the array, and is refused by the rule.
+stylex_test_panic!(
+  invalid_value_array_holding_a_regular_expression,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        color: ['red', /x/],
+      },
+    });
+  "#
+);
+
 stylex_test!(
   valid_value_number,
   r#"

@@ -6,6 +6,7 @@ mod legacy_deprecated;
 mod logical_operators;
 mod media_query_canonicalization;
 mod non_ascii_hash_parity;
+mod operator_interaction;
 mod static_styles;
 mod string_coercion;
 mod string_concatenation;

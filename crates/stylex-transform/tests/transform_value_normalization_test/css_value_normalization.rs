@@ -1,4 +1,5 @@
 use crate::utils::prelude::*;
+use swc_core::common::FileName;
 
 fn stylex_transform(
   comments: TestComments,
@@ -339,5 +340,97 @@ stylex_test!(
     import stylex from 'stylex';
     const styles = stylex.create({ 10n: { color: 'red' } });
     const name = stylex.keyframes({ 10n: { opacity: 1 } });
+  "#
+);
+
+// A value with no CSS text emits no declaration. `.x1tfe9bt{color:}` is not
+// valid CSS and a browser discards the whole declaration, so the property is
+// reverted the way an explicit `null` reverts it — the neighbouring property
+// still compiles. Measured against `@stylexjs/babel-plugin@0.19.0` for
+// `color: null`, which is the case it handles deliberately; a blank string
+// reaches a null dereference inside its value normaliser instead.
+//
+// The styles are exported so the compiled object is pinned too: the property
+// survives as `null`, which is what lets a later namespace revert it. Dropping
+// the key instead would compile the same CSS and merge differently.
+stylex_test!(
+  empty_value_emits_no_declaration,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({ x: { color: '', backgroundColor: 'red' } });
+  "#
+);
+
+// Whitespace normalization leaves a space-only value empty, so it drops for the
+// same reason — including every longhand a shorthand expands to.
+stylex_test!(
+  whitespace_only_value_emits_no_declaration,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      x: { color: ' ' },
+      y: { padding: '  ' },
+    });
+  "#
+);
+
+// A blank entry drops out of a fallback array, leaving the class name of the
+// values that remain — the same one a lone `'red'` produces.
+stylex_test!(
+  blank_value_in_a_fallback_array_is_dropped,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { color: [' ', 'red'] } });
+  "#
+);
+
+// Only the blank branch of a nested value drops; the conditions around it are
+// untouched.
+stylex_test!(
+  blank_value_in_a_nested_value_drops_only_that_branch,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({
+      x: { color: { default: '', ':hover': 'red' } },
+    });
+  "#
+);
+
+// `content` is the exception, and the reason a lone value is judged after
+// transformation rather than before: a blank `content` is quoted into `""`,
+// which is CSS text and a meaningful declaration.
+//
+// `content_property_values_are_wrapped_in_quotes` above already covers the
+// empty string. This case is the whitespace-only one, which reaches the same
+// declaration only because the drop reads the quoted text rather than the
+// authored space.
+stylex_test!(
+  blank_content_value_still_emits_its_empty_quotes,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    const styles = stylex.create({ x: { content: ' ' } });
+  "#
+);
+
+// `defineVars` keeps an empty token value. A custom property definition is
+// valid with an empty value, and the token is still read back through `var()`,
+// so the drop belongs to declaration emission inside `create` and stops there.
+// `:root, .xop34xu{--xcb2f4a:;}` is measured output of
+// `@stylexjs/babel-plugin@0.19.0` for this file name and root directory.
+stylex_test!(
+  empty_token_value_still_emits_its_custom_property,
+  |tr| stylex_transform(tr.comments.clone(), |b| b
+    .with_filename(FileName::Real("/stylex/packages/vars.stylex.js".into()))
+    .with_unstable_module_resolution(ModuleResolution::common_js(Some(
+      "/stylex/packages/".to_string()
+    )))),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({ background: '' });
   "#
 );

@@ -8,6 +8,7 @@ mod nodes;
 pub(crate) use cache::evaluate_cached;
 pub(crate) use deopt::deopt;
 use helpers::*;
+pub(crate) use nodes::binary_expression::binary_expr_to_num;
 
 // Import error handling macros from shared utilities
 use crate::{expr_to_str_or_deopt, stylex_panic_with_context};
@@ -42,10 +43,10 @@ use crate::shared::{
   },
   utils::{
     ast::convertors::{
-      binary_expr_to_num, binary_expr_to_string, convert_atom_to_str_ref, convert_atom_to_string,
-      convert_expr_to_bool, convert_expr_to_str, convert_key_value_to_str, convert_lit_to_string,
-      create_big_int_expr, create_bool_expr, create_number_expr, create_string_expr,
-      expand_shorthand_prop, expr_to_num, extract_tpl_cooked_value,
+      convert_atom_to_str_ref, convert_atom_to_string, convert_expr_to_bool, convert_expr_to_str,
+      convert_key_value_to_str, convert_lit_to_string, create_big_int_expr, create_bool_expr,
+      create_number_expr, create_string_expr, expand_shorthand_prop, expr_to_num,
+      extract_tpl_cooked_value,
     },
     common::{
       deep_merge_props, get_import_by_ident, get_var_decl_by_ident, get_var_decl_from,

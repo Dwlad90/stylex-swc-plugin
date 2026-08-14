@@ -89,3 +89,28 @@ stylex_test!(
     });
   "#
 );
+
+// `Object` and `Array` fold in a step like the other globals, and then declare
+// nothing: `Object(null)` folds to an empty object and `Array('red', 'blue')` to
+// an array, neither of which means anything inside an animation step. This is the
+// half of the coverage that had to wait for a step value to accept more than a
+// string.
+//
+// `x1mv4754-B` is the name a `from` step declaring nothing produces; the array
+// case differs only because its neighbouring step does. Both are measured output
+// of `@stylexjs/babel-plugin` 0.19.0.
+stylex_test!(
+  object_and_array_calls_in_a_step_declare_nothing,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const objectCall = stylex.keyframes({
+      from: { color: Object(null) },
+      to: { color: 'blue' },
+    });
+    export const arrayCall = stylex.keyframes({
+      from: { color: Array('red', 'blue') },
+      to: { color: 'green' },
+    });
+  "#
+);

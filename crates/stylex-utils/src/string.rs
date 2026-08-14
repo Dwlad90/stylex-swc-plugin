@@ -22,6 +22,17 @@ pub fn dashify(s: &str) -> Cow<'_, str> {
   Cow::Owned(DASHIFY_REGEX.replace_all(s, "-$1").to_lowercase())
 }
 
+/// Whether a value spells no CSS text at all — empty, or nothing but
+/// whitespace.
+///
+/// A declaration built from one of these is `color:`, which no browser accepts,
+/// so the property is left undeclared instead. Asked of both an authored value
+/// and the value it transforms to, which is why it lives here rather than on
+/// either type.
+pub fn is_blank_css_text(s: &str) -> bool {
+  s.trim().is_empty()
+}
+
 /// Strips surrounding double-quote characters from a string.
 pub fn remove_quotes(s: &str) -> Cow<'_, str> {
   let trimmed = s.trim_matches('"');

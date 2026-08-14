@@ -195,3 +195,25 @@ mod char_code_at_tests {
     assert_eq!(char_code_at("a🎉b", 3), Some(98));
   }
 }
+
+#[cfg(test)]
+mod is_blank_css_text_tests {
+  use crate::string::is_blank_css_text;
+
+  #[test]
+  fn recognises_text_that_spells_nothing() {
+    assert!(is_blank_css_text(""));
+    assert!(is_blank_css_text(" "));
+    assert!(is_blank_css_text("  \t\n "));
+  }
+
+  #[test]
+  fn keeps_text_that_spells_a_value() {
+    assert!(!is_blank_css_text("0"));
+    assert!(!is_blank_css_text("red"));
+    // Surrounding whitespace does not make a value blank.
+    assert!(!is_blank_css_text(" red "));
+    // Empty *quotes* are CSS text, which is what a blank `content` becomes.
+    assert!(!is_blank_css_text("\"\""));
+  }
+}

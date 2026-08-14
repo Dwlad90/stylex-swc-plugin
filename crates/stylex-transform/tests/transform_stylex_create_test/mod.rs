@@ -7,3 +7,4 @@ mod logical_operators;
 mod media_query_canonicalization;
 mod non_ascii_hash_parity;
 mod static_styles;
+mod string_concatenation;

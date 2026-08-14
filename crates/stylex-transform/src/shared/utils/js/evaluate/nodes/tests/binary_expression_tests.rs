@@ -481,10 +481,11 @@ mod binary_expr_to_string_non_add_tests {
       left: Box::new(create_number_expr(42.0)),
       right: Box::new(create_string_expr("world")),
     };
-    // Left is not a string, but doesn't necessarily panic -
-    // it may return Ok with concatenation via evaluate_cached
     let result = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns);
-    assert!(result.is_ok());
+    match result.unwrap() {
+      BinaryExprType::String(s) => assert_eq!(s, "42world"),
+      _ => panic!("Expected string result"),
+    }
   }
 
   #[test]
@@ -499,7 +500,10 @@ mod binary_expr_to_string_non_add_tests {
       right: Box::new(create_number_expr(42.0)),
     };
     let result = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns);
-    assert!(result.is_ok());
+    match result.unwrap() {
+      BinaryExprType::String(s) => assert_eq!(s, "hello42"),
+      _ => panic!("Expected string result"),
+    }
   }
 }
 

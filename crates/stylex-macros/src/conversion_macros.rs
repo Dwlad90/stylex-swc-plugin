@@ -54,30 +54,6 @@ macro_rules! as_expr_or_err {
 }
 
 /// Macro to unwrap an `Option<EvaluateResultValue>` to `Expr` for functions
-/// returning `Option<Result>`. Returns the expression on success, or returns
-/// `Some(Err(anyhow::Error))` on failure.
-///
-/// This macro is designed for use in functions that return `Option<Result<T, anyhow::Error>>`.
-///
-/// # Usage
-/// ```ignore
-/// let expr = as_expr_or_opt_err!(result_value, "Argument not expression");
-/// ```
-///
-/// # Arguments
-/// - `$opt`: The EvaluateResultValue to unwrap
-/// - `$error_msg`: Error message string literal
-#[macro_export]
-macro_rules! as_expr_or_opt_err {
-  ($opt:expr, $error_msg:expr) => {
-    match $opt.as_expr() {
-      Some(expr) => expr,
-      None => return Some(Err(anyhow!($error_msg))),
-    }
-  };
-}
-
-/// Macro to unwrap an `Option<EvaluateResultValue>` to `Expr` for functions
 /// returning primitives. Returns the expression on success, or panics with the
 /// error message on failure.
 ///

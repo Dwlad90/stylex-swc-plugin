@@ -71,6 +71,14 @@ evaluator node, because they answer with an operand where every other binary
 operator answers with a coercion of both.
 _Avoid_: result, chosen branch, short-circuit value
 
+**String operand**:
+An evaluated side of `+` that already _is_ a string, which is what decides
+whether the operator concatenates or adds — either side being one is enough.
+The question is asked of the operands, never of whether coercing them to
+numbers happened to succeed: `'1'` coerces perfectly well, and answering on the
+coercion is how `'1' + 2` came to fold to `3`.
+_Avoid_: stringable operand, non-numeric operand
+
 **Binding write**:
 A binding whose value can differ from its declaration initializer, either
 rebound or mutated in place. Both make the initializer an unsound stand-in at

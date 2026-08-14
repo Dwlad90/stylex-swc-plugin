@@ -1,7 +1,7 @@
 use super::super::*;
 use super::logical_expression;
 use anyhow::anyhow;
-use stylex_macros::{as_expr_or_err, as_expr_or_opt_err, convert_expr_to_str_or_err};
+use stylex_macros::{as_expr_or_err, convert_expr_to_str_or_err};
 use swc_core::ecma::ast::{BinExpr, BinaryOp};
 
 pub(in super::super) fn evaluate(
@@ -45,6 +45,32 @@ fn convert_bool_to_number(value: bool) -> f64 {
   if value { 1.0 } else { 0.0 }
 }
 
+/// Whether an already-evaluated operand *is* a string, rather than whether it
+/// converts to one. An evaluated string always arrives as a string literal, so
+/// nothing else can answer yes here — a number does not become a string by
+/// having a spelling.
+#[inline]
+fn is_string(expr: &Expr) -> bool {
+  matches!(expr, Expr::Lit(Lit::Str(_)))
+}
+
+/// One side of the expression, evaluated. An operand that resolves to nothing
+/// while the evaluator is still confident is this path's own bug rather than an
+/// expression it cannot fold, which is why the two answers differ.
+fn evaluate_operand(
+  operand: &Expr,
+  side: &str,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Result<EvaluateResultValue, anyhow::Error> {
+  match evaluate_cached(operand, state, traversal_state, fns) {
+    Some(value) => Result::Ok(value),
+    None if !state.confident => Result::Err(anyhow!("{} expression is not a number", side)),
+    None => stylex_panic!("{} expression is not a number", side),
+  }
+}
+
 pub(crate) fn binary_expr_to_num(
   binary_expr: &BinExpr,
   state: &mut EvaluationState,
@@ -52,38 +78,37 @@ pub(crate) fn binary_expr_to_num(
   fns: &FunctionMap,
 ) -> Result<BinaryExprType, anyhow::Error> {
   let op = binary_expr.op;
-  let Some(left) = evaluate_cached(&binary_expr.left, state, traversal_state, fns) else {
-    if !state.confident {
-      return Result::Err(anyhow::anyhow!("Left expression is not a number"));
-    }
 
-    stylex_panic!("Left expression is not a number")
-  };
-
+  let left = evaluate_operand(&binary_expr.left, "Left", state, traversal_state, fns)?;
   let left_expr = as_expr_or_err!(left, "Left argument not expression");
+
+  // `+` is the one operator whose result type its operands decide rather than
+  // the path that claimed it: JavaScript concatenates as soon as either side is
+  // a string, and only adds when neither is. Asked after the numeric coercion
+  // instead, `'1' + 2` would answer `3` — both sides coerce, so the number path
+  // would never yield to the string one.
+  //
+  // It is therefore also the only operator that asks anything of its right side
+  // before its left has coerced. The rest are left in the order they had, so a
+  // left side with no numeric form goes on refusing there rather than deopting
+  // on a right side the refusal never needed. `evaluate_cached` memoises, so
+  // the second look below costs nothing.
+  if matches!(op, BinaryOp::Add) {
+    let right = evaluate_operand(&binary_expr.right, "Right", state, traversal_state, fns)?;
+
+    if is_string(left_expr) || right.as_expr().is_some_and(is_string) {
+      return binary_expr_to_string(binary_expr, state, traversal_state, fns);
+    }
+  }
+
   let left_num = expr_to_num(left_expr, state, traversal_state, fns)?;
 
-  let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
-    if !state.confident {
-      return Result::Err(anyhow::anyhow!("Right expression is not a number"));
-    }
-
-    stylex_panic!("Right expression is not a number")
-  };
-
+  let right = evaluate_operand(&binary_expr.right, "Right", state, traversal_state, fns)?;
   let right_expr = as_expr_or_err!(right, "Right argument not expression");
   let right_num = expr_to_num(right_expr, state, traversal_state, fns)?;
 
   let result = match &op {
-    BinaryOp::Add => {
-      if let Some(value) =
-        evaluate_left_and_right_expression(state, traversal_state, fns, &left, &right)
-      {
-        return value;
-      }
-
-      left_num + right_num
-    },
+    BinaryOp::Add => left_num + right_num,
     BinaryOp::Sub => left_num - right_num,
     BinaryOp::Mul => left_num * right_num,
     BinaryOp::Div => left_num / right_num,
@@ -171,100 +196,6 @@ fn binary_expr_to_string(
   };
 
   Result::Ok(BinaryExprType::String(result))
-}
-
-/// The string a string-literal operand spells, or an empty string for an
-/// operand that is not one — which the caller reads as "this side is not a
-/// string" and so declines to concatenate.
-///
-/// `side` names the operand in the diagnostics, which are unreachable by
-/// construction: the arm is entered only for a `Lit::Str`, and one always has
-/// a literal form that always converts. They are kept as assertions rather
-/// than folded into the empty string, which would report a real failure as an
-/// ordinary non-string.
-fn string_literal_or_empty(expr: &Expr, side: &str) -> String {
-  match expr {
-    Expr::Lit(Lit::Str(_)) => match expr.as_lit() {
-      Some(lit) => convert_lit_to_string(lit).unwrap_or_else(|| {
-        stylex_panic!(
-          "{} is not a string: {:?}",
-          side,
-          expr.get_type(get_default_expr_ctx())
-        )
-      }),
-      None => stylex_panic!(
-        "{} is not a string: {:?}",
-        side,
-        expr.get_type(get_default_expr_ctx())
-      ),
-    },
-    _ => String::default(),
-  }
-}
-
-fn evaluate_left_and_right_expression(
-  state: &mut EvaluationState,
-  traversal_state: &mut StateManager,
-  fns: &FunctionMap,
-  left: &EvaluateResultValue,
-  right: &EvaluateResultValue,
-) -> Option<Result<BinaryExprType, anyhow::Error>> {
-  let left_expr = as_expr_or_opt_err!(left, "Left argument not expression");
-  let right_expr = as_expr_or_opt_err!(right, "Right argument not expression");
-
-  let mut state_for_left = EvaluationState {
-    confident: true,
-    deopt_path: None,
-    ..state.clone()
-  };
-  let left_result = expr_to_num(left_expr, &mut state_for_left, traversal_state, fns);
-  let left_confident = state.confident;
-
-  let mut state_for_right = EvaluationState {
-    confident: true,
-    deopt_path: None,
-    ..state.clone()
-  };
-  let right_result = expr_to_num(right_expr, &mut state_for_right, traversal_state, fns);
-  let right_confident = state.confident;
-
-  if left_result.is_err() || right_result.is_err() {
-    let left_str = string_literal_or_empty(left_expr, "Left");
-    let right_str = string_literal_or_empty(right_expr, "Right");
-
-    if !left_str.is_empty() && !right_str.is_empty() {
-      return Some(Result::Ok(BinaryExprType::String(format!(
-        "{}{}",
-        left_str, right_str
-      ))));
-    }
-  }
-
-  if !left_confident {
-    let deopt_reason = state_for_left
-      .deopt_reason
-      .as_deref()
-      .unwrap_or("unknown error")
-      .to_string();
-
-    deopt(left_expr, state, &deopt_reason);
-
-    return Some(Result::Ok(BinaryExprType::Null));
-  }
-
-  if !right_confident {
-    let deopt_reason = state_for_right
-      .deopt_reason
-      .as_deref()
-      .unwrap_or("unknown error")
-      .to_string();
-
-    deopt(right_expr, state, &deopt_reason);
-
-    return Some(Result::Ok(BinaryExprType::Null));
-  }
-
-  None
 }
 
 #[cfg(test)]

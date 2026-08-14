@@ -35,7 +35,7 @@ fn evaluate_callable_global(
     args: &[EvaluateResultValue],
     path: &Expr,
     state: &mut EvaluationState,
-    callee: &str,
+    callee: CallableGlobalJS,
     no_arguments: T,
     coerce: impl Fn(&EvaluateResultValue) -> Option<T>,
   ) -> Option<T> {
@@ -43,7 +43,7 @@ fn evaluate_callable_global(
       Some(arg) => match coerce(arg) {
         Some(coerced) => Some(coerced),
         None => {
-          deopt(path, state, &uncoercible_value(callee));
+          deopt(path, state, &uncoercible_value(callee.name()));
           None
         },
       },
@@ -58,7 +58,7 @@ fn evaluate_callable_global(
         &args,
         path,
         state,
-        "String",
+        global,
         String::new(),
         evaluate_result_to_js_string,
       )?;
@@ -73,7 +73,7 @@ fn evaluate_callable_global(
         &args,
         path,
         state,
-        "Number",
+        global,
         0.0,
         evaluate_result_to_js_number,
       )?;
@@ -91,8 +91,12 @@ fn evaluate_callable_global(
           return deopt(path, state, INVALID_ARRAY_LENGTH);
         };
 
-        if length > MAX_FOLDED_ARRAY_LENGTH {
-          return deopt(path, state, &array_length_too_large());
+        if length > coercions::MAX_FOLDED_ARRAY_LENGTH {
+          return deopt(
+            path,
+            state,
+            &array_length_too_large(coercions::MAX_FOLDED_ARRAY_LENGTH),
+          );
         }
 
         // A hole holds the same absent value a confidently evaluated element
@@ -114,7 +118,7 @@ fn evaluate_callable_global(
         &args,
         path,
         state,
-        "Object",
+        global,
         coercions::ObjectCoercion::EmptyObject,
         evaluate_result_to_js_object,
       )?;

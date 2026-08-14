@@ -12,6 +12,15 @@ same thing borrowed, used on paths that usually pass a declaration through
 unchanged.
 _Avoid_: declaration, property-value, tuple
 
+**CSS text**:
+What a value spells once it reaches a stylesheet, via `as_css_text`. On a
+**Pair** that is the whole `key:value;`, and `None` when either half is
+[blank CSS text](../stylex-utils/CONTEXT.md) — `top:` is not valid CSS, so
+nothing is emitted rather than an empty declaration. On a `TRawValue` it is the
+value half alone, and always exists. This is the name for the emitted string,
+which is why a pair still is not called a declaration.
+_Avoid_: declaration, serialized pair, rule text
+
 **Order pair**:
 `OrderPair(property, Option<value>)` — one entry in an expansion of a shorthand,
 where `None` means the property is emitted as null to clear it. Its key is

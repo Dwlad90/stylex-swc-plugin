@@ -27,6 +27,16 @@ _Avoid_: small hash, truncated hash
 style within a `stylex.create` namespace gets its class name.
 _Avoid_: style hash, namespace hash
 
+**Blank CSS text**:
+A string that spells no CSS value at all — empty, or nothing but whitespace —
+via `is_blank_css_text`. Asked of an authored value and of the value it
+transforms to, so it lives here rather than on either type. A property whose
+value is blank CSS text is left undeclared, because `color:` is not something a
+browser accepts. Named against
+[CSS text](../stylex-structures/CONTEXT.md), which is what a value spells when
+it is not blank.
+_Avoid_: empty value, blank string, whitespace check
+
 **Structural hash**:
 `stable_hash_unspanned`, a hash of an AST expression that ignores spans, so two
 syntactically identical expressions in different source positions collide on

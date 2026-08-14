@@ -44,10 +44,10 @@ pub(crate) fn flat_map_expanded_shorthands(
       // A numeric literal stays a number: the unit suffix is decided later, per
       // expanded property, by `transform_value`.
       Expr::Lit(Lit::Num(num)) => Some(TRawValue::Number(num.value)),
-      // `null` and a boolean are values with nothing to declare -- the same
-      // answer `PreRuleValue::Null` gives below, reached by the same route, so
-      // the expansion yields a property callers drop as they already drop a
-      // null.
+      // `null` and a boolean are values with nothing to declare -- both are
+      // dropped by the reference implementation, and both reach here the same
+      // answer `PreRuleValue::Null` gives below, so the expansion yields a
+      // property callers drop as they already drop a null.
       //
       // Every other literal that spells no string is a different thing: a
       // regular expression is not an absent value, it is an unusable one, and

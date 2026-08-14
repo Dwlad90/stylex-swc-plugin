@@ -90,18 +90,18 @@ fn construct_view_transition_class_style_str(
 ) -> Rc<FlatCompiledStylesValue> {
   match style_strings.as_ref() {
     FlatCompiledStylesValue::KeyValue(pair) => Rc::new(FlatCompiledStylesValue::String(
-      pair.as_declaration().unwrap_or_default(),
+      pair.as_css_text().unwrap_or_default(),
     )),
     FlatCompiledStylesValue::KeyValues(pairs) => {
-      // An upper bound: the pairs that turn out to declare nothing are dropped
+      // An upper bound: the pairs that turn out to spell nothing are dropped
       // below, so this over-reserves rather than reallocating.
       let capacity = pairs
         .iter()
         .map(|pair| pair.key.len() + pair.value.len() + 2)
         .sum();
       let mut result_string = String::with_capacity(capacity);
-      for declaration in pairs.iter().filter_map(Pair::as_declaration) {
-        result_string.push_str(&declaration);
+      for css_text in pairs.iter().filter_map(Pair::as_css_text) {
+        result_string.push_str(&css_text);
       }
       Rc::new(FlatCompiledStylesValue::String(result_string))
     },
@@ -135,10 +135,10 @@ fn construct_final_view_transition_css_str(styles: FlatCompiledStyles, class_nam
 
 /// The string the class name is hashed from.
 ///
-/// This writes `selector:body;` rather than a declaration, so it deliberately
-/// does not ask [`Pair::as_declaration`]: a selector whose body came out empty
-/// still has to appear, because the reference implementation hashes it that way
-/// and the name has to agree. What the emitted CSS carries is decided by
+/// This writes `selector:body;`, which is not a rule's CSS text at all, so it
+/// deliberately does not ask [`Pair::as_css_text`]: a selector whose body is
+/// empty still has to appear, because the reference implementation hashes it
+/// that way and the name has to agree. What the emitted CSS carries is set by
 /// [`construct_final_view_transition_css_str`], not here.
 fn concat_view_transition_class_style_str(
   style_strings: &FlatCompiledStyles,

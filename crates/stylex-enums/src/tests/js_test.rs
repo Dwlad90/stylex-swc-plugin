@@ -53,6 +53,18 @@ fn callable_global_js_try_from_maps_foldable_callees() {
 }
 
 #[test]
+fn callable_global_js_name_is_the_name_it_was_mapped_from() {
+  for global in [
+    CallableGlobalJS::String,
+    CallableGlobalJS::Number,
+    CallableGlobalJS::Array,
+    CallableGlobalJS::Object,
+  ] {
+    assert_eq!(CallableGlobalJS::try_from(global.name()), Ok(global));
+  }
+}
+
+#[test]
 fn string_js_try_from_maps_known_methods() {
   assert_eq!(StringJS::try_from("concat"), Ok(StringJS::Concat));
   assert_eq!(StringJS::try_from("charCodeAt"), Ok(StringJS::CharCodeAt));

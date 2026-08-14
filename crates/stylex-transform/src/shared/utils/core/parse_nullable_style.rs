@@ -10,9 +10,7 @@ use crate::shared::{
   },
   structures::{functions::FunctionMap, state_manager::StateManager, types::FlatCompiledStyles},
   utils::{
-    ast::convertors::{
-      convert_expr_to_bool, convert_expr_to_str, convert_key_value_to_str, convert_lit_to_string,
-    },
+    ast::convertors::{convert_key_value_to_str, convert_lit_to_string},
     js::evaluate::evaluate,
   },
 };
@@ -259,49 +257,4 @@ fn parse_nullable_key_value(
       stylex_panic!("Unhandled literal type in nullable style parsing array");
     },
   }
-}
-
-fn _evaluate_style_object(
-  path: &Expr,
-  state: &mut StateManager,
-  functions: &FunctionMap,
-) -> Option<StyleObject> {
-  let parsed_obj = evaluate(path, state, functions);
-  if parsed_obj.confident
-    && let Some(EvaluateResultValue::Expr(Expr::Object(obj))) = parsed_obj.value.as_ref()
-  {
-    let style_value: FlatCompiledStyles = obj
-      .props
-      .iter()
-      .filter_map(|prop| {
-        prop
-          .as_prop()
-          .and_then(|prop| prop.as_key_value())
-          .and_then(|key_value| {
-            let key = convert_key_value_to_str(key_value);
-
-            // A compiled style object carries class-name strings and the `$$css`
-            // flag, so a value that is not a string is read as that flag -- but
-            // only when it is one. An object or an array is neither, and reading
-            // one as `true` would invent a flag from a shape that cannot appear
-            // here, so the property is skipped instead.
-            let value = match convert_expr_to_str(key_value.value.as_ref(), state, functions) {
-              Some(class_names) => FlatCompiledStylesValue::String(class_names),
-              None => match key_value.value.as_ref() {
-                value @ (Expr::Lit(Lit::Bool(_)) | Expr::Lit(Lit::Null(_))) => {
-                  FlatCompiledStylesValue::Bool(convert_expr_to_bool(value, state, functions))
-                },
-                _ => return None,
-              },
-            };
-
-            Some((key, Rc::new(value)))
-          })
-      })
-      .collect();
-
-    return Some(StyleObject::Style(style_value));
-  };
-
-  None
 }

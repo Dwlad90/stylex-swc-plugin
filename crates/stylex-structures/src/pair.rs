@@ -16,25 +16,25 @@ impl Pair {
     }
   }
 
-  /// The CSS declaration this pair spells, or `None` when it spells none.
+  /// The `key:value;` CSS text this pair spells, or `None` when it spells none.
   ///
-  /// A half that carries no CSS text leaves nothing to declare: `top:` is not
-  /// valid CSS and a browser discards it, so the declaration is omitted rather
-  /// than emitted empty. Every at-rule body assembled from pairs asks this, so
-  /// that a blank value drops before the body is hashed and the name is the one
-  /// a body without that declaration produces.
-  pub fn as_declaration(&self) -> Option<String> {
+  /// A half that is [blank CSS text](is_blank_css_text) leaves nothing to
+  /// declare: `top:` is not valid CSS and a browser discards it, so the text is
+  /// omitted rather than emitted empty. Every at-rule body assembled from pairs
+  /// asks this, so that a blank value drops before the body is hashed and the
+  /// name is the one a body without it produces.
+  pub fn as_css_text(&self) -> Option<String> {
     if is_blank_css_text(&self.key) || is_blank_css_text(&self.value) {
       return None;
     }
 
-    let mut declaration = String::with_capacity(self.key.len() + self.value.len() + 2);
-    declaration.push_str(&self.key);
-    declaration.push(':');
-    declaration.push_str(&self.value);
-    declaration.push(';');
+    let mut css_text = String::with_capacity(self.key.len() + self.value.len() + 2);
+    css_text.push_str(&self.key);
+    css_text.push(':');
+    css_text.push_str(&self.value);
+    css_text.push(';');
 
-    Some(declaration)
+    Some(css_text)
   }
 }
 

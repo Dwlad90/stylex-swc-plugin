@@ -80,6 +80,20 @@ pub enum CallableGlobalJS {
   Object,
 }
 
+impl CallableGlobalJS {
+  /// The name the global is called by — the inverse of [`TryFrom<&str>`], so a
+  /// diagnostic naming the callee reads the name off the enum rather than
+  /// repeating a literal that can drift from it.
+  pub fn name(self) -> &'static str {
+    match self {
+      CallableGlobalJS::String => "String",
+      CallableGlobalJS::Number => "Number",
+      CallableGlobalJS::Array => "Array",
+      CallableGlobalJS::Object => "Object",
+    }
+  }
+}
+
 impl TryFrom<&str> for CallableGlobalJS {
   type Error = ();
 

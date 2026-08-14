@@ -9,7 +9,7 @@
 use stylex_constants::constants::messages::INVALID_UTF8;
 use stylex_macros::stylex_panic;
 use stylex_utils::number;
-use swc_core::ecma::ast::{Expr, Lit};
+use swc_core::ecma::ast::{Expr, Ident, Lit};
 
 /// What `ToString` produces for any ordinary object: the `Object.prototype`
 /// default, which no value reaching the evaluator overrides.
@@ -22,25 +22,92 @@ pub const OBJECT_TO_STRING: &str = "[object Object]";
 /// literal, which every function's source text also is. So the stand-in yields
 /// the number the source would have, and a function inside an array stops
 /// making the whole array's number unknowable.
-pub const FUNCTION_TO_NUMBER: &str = "function";
+const FUNCTION_TO_NUMBER: &str = "function";
+
+/// How a coercion renders a function it walks over — the one arm on which
+/// `ToString` and `ToNumber` part company.
+///
+/// `ToString` proper has no answer, because a function's string is its source
+/// text and this evaluator retains none. `ToNumber` reaches its number
+/// *through* that string and needs only that the text is not a numeric literal,
+/// so [`FUNCTION_TO_NUMBER`] serves it exactly.
+///
+/// Carried as a type rather than as the stand-in text itself, so a walker
+/// threading it through a nested value says which coercion it is performing
+/// rather than which string it happens to substitute.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum FunctionForm {
+  /// Refuse, leaving the caller to deopt rather than invent a source text.
+  Refuse,
+  /// Stand in with text that is not a numeric literal, so a function inside an
+  /// array stops making the whole array's number unknowable.
+  NotANumber,
+}
+
+impl FunctionForm {
+  /// The string a function renders as under this form. Exported because the
+  /// evaluator's own function values never take the shape of a function
+  /// expression and so reach the same decision by their own route.
+  pub fn render(self) -> Option<String> {
+    match self {
+      FunctionForm::Refuse => None,
+      FunctionForm::NotANumber => Some(FUNCTION_TO_NUMBER.to_string()),
+    }
+  }
+}
+
+/// `Array.prototype.join(',')` over elements each rendered by `render`, which
+/// answers `None` for an element with no string form and so refuses the whole
+/// join. Exported because the evaluator's own array representation joins by the
+/// same rule as an array literal's, and the two must not drift.
+pub fn join_js_elements<T>(
+  elements: impl IntoIterator<Item = T>,
+  render: impl FnMut(T) -> Option<String>,
+) -> Option<String> {
+  elements
+    .into_iter()
+    .map(render)
+    .collect::<Option<Vec<_>>>()
+    .map(|parts| parts.join(","))
+}
+
+/// A value the language spells as an identifier rather than as a literal, and
+/// which therefore reaches a coercion still written as the name it was authored
+/// with.
+///
+/// These three are the only identifiers that can: anything the module bound
+/// would have been inlined by the evaluator before a coercion ever saw it, so
+/// an identifier still standing here is one of the globals below or a value the
+/// coercion cannot read. Every coercion asks this rather than matching the
+/// names itself, so the set is decided once.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+enum SurvivingGlobal {
+  Undefined,
+  NaN,
+  Infinity,
+}
+
+fn surviving_global(ident: &Ident) -> Option<SurvivingGlobal> {
+  match ident.sym.as_ref() {
+    "undefined" => Some(SurvivingGlobal::Undefined),
+    "NaN" => Some(SurvivingGlobal::NaN),
+    "Infinity" => Some(SurvivingGlobal::Infinity),
+    _ => None,
+  }
+}
 
 /// ECMA-262 `ToString`, over an already-evaluated expression.
 ///
 /// Returns `None` for values with no compile-time string form — a function,
 /// whose `ToString` is its source text, which this evaluator does not retain.
 pub fn to_js_string(expr: &Expr) -> Option<String> {
-  to_js_string_of(expr, None)
+  to_js_string_with(expr, FunctionForm::Refuse)
 }
 
-/// `ToString` as `ToNumber` needs it, which is the same string except that a
-/// function renders as [`FUNCTION_TO_NUMBER`] rather than refusing. Exported
-/// because the evaluator's own array representation needs the same leniency
-/// when it walks a nested value.
-pub fn to_js_string_for_number(expr: &Expr) -> Option<String> {
-  to_js_string_of(expr, Some(FUNCTION_TO_NUMBER))
-}
-
-fn to_js_string_of(expr: &Expr, function_form: Option<&str>) -> Option<String> {
+/// `ToString` under a chosen [`FunctionForm`]. Exported because the evaluator's
+/// own value representation walks the same values and has to walk them the same
+/// way.
+pub fn to_js_string_with(expr: &Expr, function_form: FunctionForm) -> Option<String> {
   match expr {
     Expr::Lit(Lit::Str(strng)) => Some(match strng.value.as_str() {
       Some(value) => value.to_string(),
@@ -49,32 +116,27 @@ fn to_js_string_of(expr: &Expr, function_form: Option<&str>) -> Option<String> {
     Expr::Lit(Lit::Num(num)) => Some(number::to_js_string(num.value)),
     Expr::Lit(Lit::Bool(bool_lit)) => Some(bool_lit.value.to_string()),
     Expr::Lit(Lit::Null(_)) => Some("null".to_string()),
-    // `undefined`, `NaN` and `Infinity` survive evaluation as the global
-    // identifiers they were written as; nothing else can, because a binding in
-    // scope would have been inlined.
-    Expr::Ident(ident) => match ident.sym.as_ref() {
-      "undefined" => Some("undefined".to_string()),
-      "NaN" => Some(number::to_js_string(f64::NAN)),
-      "Infinity" => Some(number::to_js_string(f64::INFINITY)),
-      _ => None,
+    // A big integer renders as its digits with no `n` suffix, which is the one
+    // place its string and its source text part company.
+    Expr::Lit(Lit::BigInt(big_int)) => Some(format!("{}", big_int.value)),
+    // A regular expression is the one object whose `ToString` is not the
+    // `Object.prototype` default: it answers its own source text, which unlike
+    // a function's the evaluator does retain.
+    Expr::Lit(Lit::Regex(regex)) => Some(format!("/{}/{}", regex.exp, regex.flags)),
+    Expr::Ident(ident) => match surviving_global(ident)? {
+      SurvivingGlobal::Undefined => Some("undefined".to_string()),
+      SurvivingGlobal::NaN => Some(number::to_js_string(f64::NAN)),
+      SurvivingGlobal::Infinity => Some(number::to_js_string(f64::INFINITY)),
     },
-    Expr::Array(array) => {
-      let mut parts = Vec::with_capacity(array.elems.len());
-
-      for elem in &array.elems {
-        parts.push(match elem {
-          // A hole joins as nothing, the same as the `null` and `undefined`
-          // that can occupy the slot.
-          None => String::new(),
-          Some(elem) if elem.spread.is_some() => return None,
-          Some(elem) => js_array_element_to_string(&elem.expr, function_form)?,
-        });
-      }
-
-      Some(parts.join(","))
-    },
+    Expr::Array(array) => join_js_elements(&array.elems, |elem| match elem {
+      // A hole joins as nothing, the same as the `null` and `undefined` that
+      // can occupy the slot.
+      None => Some(String::new()),
+      Some(elem) if elem.spread.is_some() => None,
+      Some(elem) => js_array_element_to_string(&elem.expr, function_form),
+    }),
     Expr::Object(_) => Some(OBJECT_TO_STRING.to_string()),
-    Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => function_form.map(str::to_string),
+    Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => function_form.render(),
     _ => None,
   }
 }
@@ -97,7 +159,7 @@ pub fn to_js_number(expr: &Expr) -> Option<f64> {
     // Everything else takes `ToNumber` of its primitive value, which for a
     // string is itself and for an object is its `ToString` — an array's join,
     // and `[object Object]` for anything else.
-    _ => to_js_string_for_number(expr).map(|strng| string_to_js_number(&strng)),
+    _ => to_js_string_with(expr, FunctionForm::NotANumber).map(|strng| string_to_js_number(&strng)),
   }
 }
 
@@ -258,7 +320,7 @@ fn is_digits_or_empty(value: &str) -> bool {
 pub fn joins_as_empty(expr: &Expr) -> bool {
   match expr {
     Expr::Lit(Lit::Null(_)) => true,
-    Expr::Ident(ident) => ident.sym == *"undefined",
+    Expr::Ident(ident) => surviving_global(ident) == Some(SurvivingGlobal::Undefined),
     _ => false,
   }
 }
@@ -273,14 +335,28 @@ pub fn joins_as_empty(expr: &Expr) -> bool {
 pub fn js_number_value(expr: &Expr) -> Option<f64> {
   match expr {
     Expr::Lit(Lit::Num(num)) => Some(num.value),
-    Expr::Ident(ident) => match ident.sym.as_ref() {
-      "NaN" => Some(f64::NAN),
-      "Infinity" => Some(f64::INFINITY),
-      _ => None,
+    Expr::Ident(ident) => match surviving_global(ident)? {
+      SurvivingGlobal::NaN => Some(f64::NAN),
+      SurvivingGlobal::Infinity => Some(f64::INFINITY),
+      SurvivingGlobal::Undefined => None,
     },
     _ => None,
   }
 }
+
+/// The most holes a folded `Array(n)` will materialise.
+///
+/// A length is only a count until the array exists, and every hole costs the
+/// width of an evaluated value, so `Array(2 ** 32 - 1)` — a length JavaScript
+/// accepts — is an allocation the compiler does not survive. Bounded at a count
+/// no stylesheet reaches: a counted array used as a style value is refused
+/// whatever its length, and the one shape that folds to something usable, the
+/// join `String(Array(n))`, is `n - 1` commas.
+///
+/// A budget rather than a rule of the language, which is why it sits beside
+/// [`to_array_length`] rather than inside it: the coercion answers what
+/// JavaScript says, and the caller decides what it can afford.
+pub const MAX_FOLDED_ARRAY_LENGTH: usize = 65_536;
 
 /// ECMA-262 `ArrayCreate`'s length check: a length is an integer in
 /// `0..2 ** 32`.
@@ -298,9 +374,8 @@ pub fn to_array_length(count: f64) -> Option<usize> {
 /// Which outcome `ToObject` takes over a value.
 ///
 /// Reported rather than carried out, because not every outcome produces a value
-/// a caller can hold: naming the wrapper and the function keeps a boxed
-/// primitive out of the caller's value type and lets it decide what a function
-/// means where it sits.
+/// a caller can hold: naming the wrapper keeps a boxed primitive out of the
+/// caller's value type.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum ObjectCoercion {
   /// `null` and `undefined`, which `ToObject` answers with a fresh empty
@@ -310,8 +385,16 @@ pub enum ObjectCoercion {
   /// `ToObject` returns unchanged.
   Identity,
   /// A function, which is an object and which `ToObject` also returns
-  /// unchanged. Told apart from [`ObjectCoercion::Identity`] because a caller
-  /// that has to hold the result may have no representation for a function.
+  /// unchanged.
+  ///
+  /// Reported apart from [`ObjectCoercion::Identity`] even though the
+  /// coercion treats the two alike, and apart from
+  /// [`ObjectCoercion::Wrapper`] even though the only caller refuses both:
+  /// what it separates is the *identity*, because an evaluator that reduces a
+  /// function to its return value folds `Object(() => 'red')` to `red` if the
+  /// two ever merge. Wrong output, not a lost distinction, is what the variant
+  /// prevents — see the transform crate's ADR
+  /// `0001-a-refused-fold-borrows-a-later-diagnostic`.
   Function,
   /// A primitive, which `ToObject` boxes in a wrapper object.
   Wrapper,
@@ -325,12 +408,10 @@ pub enum ObjectCoercion {
 pub fn to_object(expr: &Expr) -> Option<ObjectCoercion> {
   match expr {
     Expr::Lit(Lit::Null(_)) => Some(ObjectCoercion::EmptyObject),
-    // `undefined` survives evaluation as the global identifier it was written
-    // as, and so do `NaN` and `Infinity`, which are numbers and box like one.
-    Expr::Ident(ident) => match ident.sym.as_ref() {
-      "undefined" => Some(ObjectCoercion::EmptyObject),
-      "NaN" | "Infinity" => Some(ObjectCoercion::Wrapper),
-      _ => None,
+    // `NaN` and `Infinity` are numbers, so they box like one.
+    Expr::Ident(ident) => match surviving_global(ident)? {
+      SurvivingGlobal::Undefined => Some(ObjectCoercion::EmptyObject),
+      SurvivingGlobal::NaN | SurvivingGlobal::Infinity => Some(ObjectCoercion::Wrapper),
     },
     Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => Some(ObjectCoercion::Function),
     // A regular expression is an object, so it passes through as one.
@@ -340,12 +421,12 @@ pub fn to_object(expr: &Expr) -> Option<ObjectCoercion> {
   }
 }
 
-fn js_array_element_to_string(expr: &Expr, function_form: Option<&str>) -> Option<String> {
+fn js_array_element_to_string(expr: &Expr, function_form: FunctionForm) -> Option<String> {
   if joins_as_empty(expr) {
     return Some(String::new());
   }
 
-  to_js_string_of(expr, function_form)
+  to_js_string_with(expr, function_form)
 }
 
 #[cfg(test)]

@@ -8,8 +8,8 @@ use super::*;
 use swc_core::{
   common::DUMMY_SP,
   ecma::ast::{
-    ArrayLit, ArrowExpr, BlockStmtOrExpr, Bool, ExprOrSpread, Ident, IdentName, KeyValueProp, Null,
-    Number, ObjectLit, Prop, PropName, PropOrSpread, Str,
+    ArrayLit, ArrowExpr, BigInt, BlockStmtOrExpr, Bool, ExprOrSpread, Ident, IdentName,
+    KeyValueProp, Null, Number, ObjectLit, Prop, PropName, PropOrSpread, Regex, Str,
   },
 };
 
@@ -42,6 +42,22 @@ fn null_expr() -> Expr {
 
 fn ident_expr(name: &str) -> Expr {
   Expr::Ident(Ident::new(name.into(), DUMMY_SP, Default::default()))
+}
+
+fn big_int_expr(value: i64) -> Expr {
+  Expr::Lit(Lit::BigInt(BigInt {
+    span: DUMMY_SP,
+    value: Box::new(value.into()),
+    raw: None,
+  }))
+}
+
+fn regex_expr(exp: &str, flags: &str) -> Expr {
+  Expr::Lit(Lit::Regex(Regex {
+    span: DUMMY_SP,
+    exp: exp.into(),
+    flags: flags.into(),
+  }))
 }
 
 fn array_expr(elems: Vec<Option<Expr>>) -> Expr {
@@ -124,6 +140,29 @@ fn booleans_null_and_undefined_use_their_javascript_spellings() {
   assert_eq!(
     to_js_string(&ident_expr("Infinity")).as_deref(),
     Some("Infinity")
+  );
+}
+
+#[test]
+fn a_big_integer_renders_its_digits_without_the_suffix() {
+  assert_eq!(to_js_string(&big_int_expr(1)).as_deref(), Some("1"));
+  assert_eq!(to_js_string(&big_int_expr(-42)).as_deref(), Some("-42"));
+  // And it is a number, unlike every other object-shaped value.
+  assert_eq!(to_js_number(&big_int_expr(10)), Some(10.0));
+}
+
+#[test]
+fn a_regular_expression_renders_its_own_source() {
+  assert_eq!(to_js_string(&regex_expr("x", "")).as_deref(), Some("/x/"));
+  assert_eq!(
+    to_js_string(&regex_expr("a+b", "gi")).as_deref(),
+    Some("/a+b/gi")
+  );
+  // Its source is not a numeric literal, so it has a number all the same.
+  assert!(
+    to_js_number(&regex_expr("x", ""))
+      .expect("a regular expression has a number")
+      .is_nan()
   );
 }
 

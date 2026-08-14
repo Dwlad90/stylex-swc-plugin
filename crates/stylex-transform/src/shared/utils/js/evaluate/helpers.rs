@@ -145,7 +145,7 @@ pub(super) fn evaluate_func_call_args(
 /// `Object.prototype` default; the ones that stand for a function have none,
 /// because `String(fn)` is its source text and the evaluator keeps no source.
 pub(super) fn evaluate_result_to_js_string(value: &EvaluateResultValue) -> Option<String> {
-  evaluate_result_to_string_of(value, None)
+  evaluate_result_to_string_of(value, coercions::FunctionForm::Refuse)
 }
 
 /// `ToNumber` over an evaluated value, bridging the evaluator's own value
@@ -158,7 +158,7 @@ pub(super) fn evaluate_result_to_js_string(value: &EvaluateResultValue) -> Optio
 pub(super) fn evaluate_result_to_js_number(value: &EvaluateResultValue) -> Option<f64> {
   match value {
     EvaluateResultValue::Expr(expr) => coercions::to_js_number(expr),
-    _ => evaluate_result_to_string_of(value, Some(coercions::FUNCTION_TO_NUMBER))
+    _ => evaluate_result_to_string_of(value, coercions::FunctionForm::NotANumber)
       .map(|strng| coercions::string_to_js_number(&strng)),
   }
 }
@@ -193,31 +193,20 @@ pub(super) fn evaluate_result_to_js_object(
 
 fn evaluate_result_to_string_of(
   value: &EvaluateResultValue,
-  function_form: Option<&str>,
+  function_form: coercions::FunctionForm,
 ) -> Option<String> {
   match value {
-    EvaluateResultValue::Expr(expr) => match function_form {
-      Some(_) => coercions::to_js_string_for_number(expr),
-      None => coercions::to_js_string(expr),
-    },
+    EvaluateResultValue::Expr(expr) => coercions::to_js_string_with(expr, function_form),
 
     // The evaluator's own array representation, joined by the same rule as an
     // array literal's.
-    EvaluateResultValue::Vec(items) => {
-      let mut parts = Vec::with_capacity(items.len());
-
-      for item in items {
-        parts.push(match item {
-          // A confidently evaluated element with no value is `undefined`,
-          // which joins as nothing.
-          EvaluateResultValue::Null => String::new(),
-          EvaluateResultValue::Expr(expr) if coercions::joins_as_empty(expr) => String::new(),
-          item => evaluate_result_to_string_of(item, function_form)?,
-        });
-      }
-
-      Some(parts.join(","))
-    },
+    EvaluateResultValue::Vec(items) => coercions::join_js_elements(items, |item| match item {
+      // A confidently evaluated element with no value is `undefined`, which
+      // joins as nothing.
+      EvaluateResultValue::Null => Some(String::new()),
+      EvaluateResultValue::Expr(expr) if coercions::joins_as_empty(expr) => Some(String::new()),
+      item => evaluate_result_to_string_of(item, function_form),
+    }),
 
     // A `defineVars` group carries its own `toString`, which answers the var
     // group hash rather than the object default.
@@ -229,7 +218,7 @@ fn evaluate_result_to_string_of(
 
     EvaluateResultValue::Callback(_)
     | EvaluateResultValue::FunctionConfig(_)
-    | EvaluateResultValue::FunctionConfigMap(_) => function_form.map(str::to_string),
+    | EvaluateResultValue::FunctionConfigMap(_) => function_form.render(),
 
     EvaluateResultValue::Null => None,
   }

@@ -61,10 +61,9 @@ use stylex_ast::ast::factories::{
 };
 use stylex_constants::constants::{
   evaluation_errors::{
-    ARGUMENT_WITHOUT_VALUE, IMPORT_PATH_RESOLUTION_ERROR, INVALID_ARRAY_LENGTH,
-    MAX_FOLDED_ARRAY_LENGTH, NON_CONSTANT, OBJECT_METHOD, PATH_WITHOUT_NODE,
-    UNEXPECTED_MEMBER_LOOKUP, array_length_too_large, not_a_function, uncoercible_value,
-    unsupported_expression, unsupported_operator,
+    ARGUMENT_WITHOUT_VALUE, IMPORT_PATH_RESOLUTION_ERROR, INVALID_ARRAY_LENGTH, NON_CONSTANT,
+    OBJECT_METHOD, PATH_WITHOUT_NODE, UNEXPECTED_MEMBER_LOOKUP, array_length_too_large,
+    not_a_function, uncoercible_value, unsupported_expression, unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, BUILT_IN_FUNCTION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,

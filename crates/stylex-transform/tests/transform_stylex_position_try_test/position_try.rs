@@ -138,6 +138,21 @@ stylex_test!(
   "#
 );
 
+// A boolean is the one value that spells nothing without being blank or absent,
+// and it reaches the drop through the shorthand expansion rather than through
+// the value normalizer. Pinned separately because it is the only input that
+// exercises that arm of the expansion -- `create` refuses a boolean before the
+// expansion runs, and a keyframes step drops one by its own route.
+stylex_test!(
+  a_boolean_value_declares_nothing,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const boolean = stylex.positionTry({ positionAnchor: '--a', top: true });
+    export const anchorOnly = stylex.positionTry({ positionAnchor: '--a' });
+  "#
+);
+
 // Only the declaration that spells nothing drops; the ones around it are
 // untouched.
 stylex_test!(

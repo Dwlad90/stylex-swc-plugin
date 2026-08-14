@@ -165,20 +165,20 @@ fn tuple_to_pair(style: &FlatCompiledStylesValue) -> Pair {
   }
 }
 
-/// The declarations a direction-resolved value contributes to `property`, or
-/// `None` when it contributes none.
+/// The CSS text a direction-resolved value contributes to `property`, or `None`
+/// when it contributes none.
 ///
-/// `resolved` is not a key/value pair despite its type: both halves are *values*
-/// for the same `property`, and the reference implementation emits them as the
-/// doubled `property:first;property:second;` form, where the first half repeats
+/// `resolved` does not hold a key and a value despite its type: both halves are
+/// *values* for the same `property`, and the reference implementation emits them
+/// doubled as `property:first;property:second;`, where the first half repeats
 /// the property name as its own value. That repeat is a companion to the real
-/// value rather than a declaration in its own right, so a real value spelling no
-/// CSS text takes the repeat with it -- otherwise a stray `top:top;` survives a
-/// dropped `top` and moves the name the body is hashed into.
-fn tuple_declarations(property: &str, resolved: &Pair) -> Option<String> {
-  let value = Pair::new(property, &resolved.value).as_declaration()?;
+/// value rather than CSS text in its own right, so a real value spelling nothing
+/// takes the repeat with it -- otherwise a stray `top:top;` survives a dropped
+/// `top` and moves the name the body is hashed into.
+fn doubled_css_text(property: &str, resolved: &Pair) -> Option<String> {
+  let value = Pair::new(property, &resolved.value).as_css_text()?;
 
-  match Pair::new(property, &resolved.key).as_declaration() {
+  match Pair::new(property, &resolved.key).as_css_text() {
     Some(repeated_name) => Some(repeated_name + &value),
     None => Some(value),
   }
@@ -196,20 +196,20 @@ fn construct_position_try_obj(styles: &FlatCompiledStyles) -> String {
       None => stylex_panic!("Expected property key to exist in compiled styles."),
     };
 
-    let declarations = match v.as_ref() {
-      FlatCompiledStylesValue::String(val) => Pair::new(k, val).as_declaration(),
-      FlatCompiledStylesValue::KeyValue(resolved) => tuple_declarations(k, resolved),
+    let css_text = match v.as_ref() {
+      FlatCompiledStylesValue::String(val) => Pair::new(k, val).as_css_text(),
+      FlatCompiledStylesValue::KeyValue(resolved) => doubled_css_text(k, resolved),
       FlatCompiledStylesValue::KeyValues(resolved) => Some(
         resolved
           .iter()
-          .filter_map(|resolved| tuple_declarations(k, resolved))
+          .filter_map(|resolved| doubled_css_text(k, resolved))
           .collect(),
       ),
       _ => None,
     };
 
-    if let Some(declarations) = declarations {
-      output.push_str(&declarations);
+    if let Some(css_text) = css_text {
+      output.push_str(&css_text);
     }
   }
 

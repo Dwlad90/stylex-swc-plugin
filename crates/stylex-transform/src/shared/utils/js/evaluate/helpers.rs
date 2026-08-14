@@ -201,6 +201,43 @@ pub(super) fn evaluate_result_to_js_object(
   }
 }
 
+/// `ToBoolean` over an evaluated value, bridging the evaluator's own value
+/// representation to the ECMAScript coercion.
+///
+/// `None` means the value's truthiness cannot be read, so the caller deopts.
+/// Only the expression variant can reach a primitive and so reach the falsy
+/// list at all: every variant the evaluator has of its own stands for an object
+/// or a function upstream, and those are truthy whatever they hold.
+///
+/// `expect` rather than `allow`, so the day the logical-expression node reaches
+/// for this the attribute fails and has to go, rather than sitting on a helper
+/// that does have a caller.
+#[expect(
+  dead_code,
+  reason = "the logical-expression node is the caller, and lands next"
+)]
+pub(super) fn evaluate_result_to_js_boolean(value: &EvaluateResultValue) -> Option<bool> {
+  match value {
+    EvaluateResultValue::Expr(expr) => coercions::to_js_boolean(expr),
+
+    // Unreachable for the reason given on `evaluate_result_to_js_object`, and
+    // refused on the same terms: read as "absent" a bare `Null` is falsy, read
+    // as "unknown" it has no truthiness at all, and a refusal deopts under
+    // either where `false` would let `x && y` fold to the wrong operand under
+    // the second.
+    EvaluateResultValue::Null => None,
+
+    EvaluateResultValue::Vec(_)
+    | EvaluateResultValue::Map(_)
+    | EvaluateResultValue::Entries(_)
+    | EvaluateResultValue::EnvObject(_)
+    | EvaluateResultValue::ThemeRef(_)
+    | EvaluateResultValue::Callback(_)
+    | EvaluateResultValue::FunctionConfig(_)
+    | EvaluateResultValue::FunctionConfigMap(_) => Some(true),
+  }
+}
+
 fn evaluate_result_to_string_of(
   value: &EvaluateResultValue,
   function_form: coercions::FunctionForm,

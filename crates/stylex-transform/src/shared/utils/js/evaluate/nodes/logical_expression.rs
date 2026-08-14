@@ -182,10 +182,7 @@ fn truthiness(value: Option<&EvaluateResultValue>) -> Option<bool> {
 /// one of them.
 fn is_nullish(value: Option<&EvaluateResultValue>) -> bool {
   match value {
-    Some(EvaluateResultValue::Expr(expr)) => coercions::is_nullish(expr),
-    // Every other variant the evaluator has stands for an object or a function,
-    // and neither is nullish.
-    Some(_) => false,
+    Some(value) => evaluate_result_is_nullish(value),
     None => true,
   }
 }

@@ -230,6 +230,45 @@ pub(super) fn evaluate_result_to_js_boolean(value: &EvaluateResultValue) -> Opti
   }
 }
 
+/// Whether an evaluated value is nullish, bridging the evaluator's own value
+/// representation to the coercion crate's question.
+///
+/// Answers rather than refuses, because nullishness is a question about the
+/// value's identity that every variant can settle: only the expression variant
+/// can hold `null` or one of the spellings of `undefined`, and every variant
+/// the evaluator has of its own stands for an object or a function.
+///
+/// The absent-value variant is nullish here, where the `ToBoolean` bridge
+/// refuses on it. The parting is possible rather than merely chosen: this
+/// question is a `bool`, so there is no refusal to give, and a total match has
+/// to pick one of the two readings of the variant. It picks "absent", which is
+/// the reading the marker slot of a `when` call needs — an absent marker and a
+/// marker that evaluated to nothing hand the slot to the options alike.
+///
+/// The other reading, "unknown", would want a refusal, and its absence costs
+/// nothing only because the variant cannot arrive at either caller: every
+/// `Null` the evaluator builds is placed inside a `Vec`, and both callers take
+/// their value from `evaluate_cached`, which answers `None` rather than
+/// `Some(Null)` for a value that is absent. Should that change, `??` is the
+/// caller to revisit — it would fold to its right side under a reading that
+/// meant "no idea", where the `ToBoolean` bridge's refusal deopts.
+pub(crate) fn evaluate_result_is_nullish(value: &EvaluateResultValue) -> bool {
+  match value {
+    EvaluateResultValue::Expr(expr) => coercions::is_nullish(expr),
+
+    EvaluateResultValue::Null => true,
+
+    EvaluateResultValue::Vec(_)
+    | EvaluateResultValue::Map(_)
+    | EvaluateResultValue::Entries(_)
+    | EvaluateResultValue::EnvObject(_)
+    | EvaluateResultValue::ThemeRef(_)
+    | EvaluateResultValue::Callback(_)
+    | EvaluateResultValue::FunctionConfig(_)
+    | EvaluateResultValue::FunctionConfigMap(_) => false,
+  }
+}
+
 fn evaluate_result_to_string_of(
   value: &EvaluateResultValue,
   function_form: coercions::FunctionForm,
@@ -321,3 +360,7 @@ pub(super) fn evaluate_theme_ref(
     state.options.class_name_prefix.clone(),
   )
 }
+
+#[cfg(test)]
+#[path = "tests/helpers_tests.rs"]
+mod tests;

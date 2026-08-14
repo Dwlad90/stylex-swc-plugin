@@ -55,6 +55,7 @@ use crate::{
         flat_map_expanded_shorthands::flat_map_expanded_shorthands,
         js_to_ast::{NestedStringObject, convert_object_to_ast, remove_objects_with_spreads},
       },
+      js::evaluate::evaluate_result_is_nullish,
       log::build_code_frame_error::{build_code_frame_error, build_code_frame_error_and_panic},
       validators::{is_create_call, validate_stylex_create},
     },
@@ -101,7 +102,7 @@ fn resolve_when_marker<'a>(
 ) -> &'a dyn WhenMarkerValue {
   // A marker that is absent and one that evaluates to null or undefined are
   // the same case: both hand the slot to the options.
-  let Some(marker) = marker.filter(|marker| !is_nullish(marker)) else {
+  let Some(marker) = marker.filter(|marker| !evaluate_result_is_nullish(marker)) else {
     return &state.options;
   };
 
@@ -121,17 +122,6 @@ fn resolve_when_marker<'a>(
   }
 
   marker
-}
-
-/// Whether an evaluated value is JavaScript's `null` or `undefined`, the two
-/// values the nullish coalescing in a `when` call treats as no marker at all.
-fn is_nullish(value: &EvaluateResultValue) -> bool {
-  match value {
-    EvaluateResultValue::Null => true,
-    EvaluateResultValue::Expr(Expr::Lit(Lit::Null(_))) => true,
-    EvaluateResultValue::Expr(Expr::Ident(ident)) => ident.sym == *"undefined",
-    _ => false,
-  }
 }
 
 /// Registers one `stylex.when.*` entry.

@@ -71,6 +71,15 @@ evaluator node, because they answer with an operand where every other binary
 operator answers with a coercion of both.
 _Avoid_: result, chosen branch, short-circuit value
 
+**Coercion bridge**:
+A helper that answers one of the [coercion crate](../stylex-js/CONTEXT.md)'s
+questions over `EvaluateResultValue` rather than over an expression, deciding
+for each evaluator-only variant what the value it stands for would have
+answered. There is exactly one per question and every caller goes through it,
+because a private copy of a question is how two call sites come to disagree
+about the same value.
+_Avoid_: adapter, wrapper, converter
+
 **String operand**:
 An evaluated side of `+` that already _is_ a string, which is what decides
 whether the operator concatenates or adds — either side being one is enough.

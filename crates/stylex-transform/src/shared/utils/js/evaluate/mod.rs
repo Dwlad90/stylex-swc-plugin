@@ -7,6 +7,7 @@ mod nodes;
 
 pub(crate) use cache::evaluate_cached;
 pub(crate) use deopt::deopt;
+pub(crate) use helpers::evaluate_result_is_nullish;
 use helpers::*;
 pub(crate) use nodes::binary_expression::binary_expr_to_num;
 

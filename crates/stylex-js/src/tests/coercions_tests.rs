@@ -8,8 +8,9 @@ use super::*;
 use swc_core::{
   common::DUMMY_SP,
   ecma::ast::{
-    ArrayLit, ArrowExpr, BigInt, BlockStmtOrExpr, Bool, ExprOrSpread, Ident, IdentName,
-    KeyValueProp, Null, Number, ObjectLit, Prop, PropName, PropOrSpread, Regex, Str,
+    ArrayLit, ArrowExpr, BigInt, BlockStmtOrExpr, Bool, ComputedPropName, ExprOrSpread, Ident,
+    IdentName, KeyValueProp, Null, Number, ObjectLit, Prop, PropName, PropOrSpread, Regex,
+    SpreadElement, Str,
   },
 };
 
@@ -242,6 +243,170 @@ fn objects_use_the_object_prototype_default() {
   });
 
   assert_eq!(to_js_string(&with_prop).as_deref(), Some("[object Object]"));
+}
+
+fn object_expr(props: Vec<PropOrSpread>) -> Expr {
+  Expr::Object(ObjectLit {
+    span: DUMMY_SP,
+    props,
+  })
+}
+
+fn key_value_prop(key: PropName, value: Expr) -> PropOrSpread {
+  PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+    key,
+    value: Box::new(value),
+  })))
+}
+
+fn ident_key(name: &str) -> PropName {
+  PropName::Ident(IdentName::new(name.into(), DUMMY_SP))
+}
+
+/// A zero-parameter arrow returning `body` — the shape an own conversion
+/// method is written in.
+fn returning_arrow(body: Expr) -> Expr {
+  Expr::Arrow(ArrowExpr {
+    span: DUMMY_SP,
+    params: vec![],
+    body: Box::new(BlockStmtOrExpr::Expr(Box::new(body))),
+    is_async: false,
+    is_generator: false,
+    type_params: None,
+    return_type: None,
+    ctxt: Default::default(),
+  })
+}
+
+#[test]
+fn an_own_to_string_answers_the_string_coercion() {
+  // `String({ toString: () => 'red' })` is `'red'` in a runtime, so answering
+  // the `Object.prototype` default would be a value no runtime produces.
+  let overriding = object_expr(vec![key_value_prop(
+    ident_key("toString"),
+    returning_arrow(str_expr("red")),
+  )]);
+
+  assert_eq!(to_js_string(&overriding).as_deref(), Some("red"));
+
+  // The same name spelled as a string key is the same own property.
+  let string_key = object_expr(vec![key_value_prop(
+    PropName::Str(Str {
+      span: DUMMY_SP,
+      value: "toString".into(),
+      raw: None,
+    }),
+    returning_arrow(str_expr("red")),
+  )]);
+
+  assert_eq!(to_js_string(&string_key).as_deref(), Some("red"));
+}
+
+#[test]
+fn the_two_hints_ask_for_the_methods_in_opposite_orders() {
+  // `String` prefers `toString` and `Number` prefers `valueOf`, which is the
+  // whole of the difference between them.
+  let both = object_expr(vec![
+    key_value_prop(ident_key("toString"), returning_arrow(str_expr("1"))),
+    key_value_prop(ident_key("valueOf"), returning_arrow(num_expr(2.0))),
+  ]);
+
+  assert_eq!(to_js_string(&both).as_deref(), Some("1"));
+  assert_eq!(to_js_number(&both), Some(2.0));
+}
+
+#[test]
+fn a_missing_method_falls_through_the_way_object_prototype_does() {
+  // `Object.prototype.valueOf` answers the object itself, which is not a
+  // primitive, so a number falls through to an own `toString`.
+  let to_string_only = object_expr(vec![key_value_prop(
+    ident_key("toString"),
+    returning_arrow(str_expr("7")),
+  )]);
+
+  assert_eq!(to_js_number(&to_string_only), Some(7.0));
+
+  // `Object.prototype.toString` answers a primitive, so a string never reaches
+  // an own `valueOf`.
+  let value_of_only = object_expr(vec![key_value_prop(
+    ident_key("valueOf"),
+    returning_arrow(str_expr("v")),
+  )]);
+
+  assert_eq!(
+    to_js_string(&value_of_only).as_deref(),
+    Some(OBJECT_TO_STRING)
+  );
+  // The number still goes through that own `valueOf`, whose `'v'` is not a
+  // numeric literal.
+  assert!(to_js_number(&value_of_only).is_some_and(f64::is_nan));
+}
+
+#[test]
+fn a_method_in_a_form_that_cannot_be_applied_has_no_coercion() {
+  // A value that is not callable ends in a `TypeError` rather than a value,
+  // and a method answering an object has not answered a primitive.
+  let not_callable = object_expr(vec![key_value_prop(
+    ident_key("toString"),
+    str_expr("notfn"),
+  )]);
+
+  assert_eq!(to_js_string(&not_callable), None);
+
+  let returns_object = object_expr(vec![key_value_prop(
+    ident_key("toString"),
+    returning_arrow(empty_object_expr()),
+  )]);
+
+  assert_eq!(to_js_string(&returns_object), None);
+}
+
+#[test]
+fn an_object_whose_keys_cannot_be_named_has_no_coercion() {
+  // A spread may carry an override in, and a computed key is how
+  // `Symbol.toPrimitive` is spelled — neither can be read off the literal.
+  let spread = object_expr(vec![PropOrSpread::Spread(SpreadElement {
+    dot3_token: DUMMY_SP,
+    expr: Box::new(empty_object_expr()),
+  })]);
+
+  assert_eq!(to_js_string(&spread), None);
+
+  let computed = object_expr(vec![key_value_prop(
+    PropName::Computed(ComputedPropName {
+      span: DUMMY_SP,
+      expr: Box::new(str_expr("a")),
+    }),
+    num_expr(1.0),
+  )]);
+
+  assert_eq!(to_js_string(&computed), None);
+}
+
+#[test]
+fn an_object_carrying_the_override_deeper_still_coerces() {
+  // Only an *own* key replaces the default: a nested one does not.
+  let nested = object_expr(vec![key_value_prop(
+    ident_key("a"),
+    object_expr(vec![key_value_prop(ident_key("toString"), arrow_expr())]),
+  )]);
+
+  assert_eq!(to_js_string(&nested).as_deref(), Some(OBJECT_TO_STRING));
+}
+
+#[test]
+fn an_overriding_object_inside_an_array_converts_through_its_own_method() {
+  // `Array.prototype.join` takes each element's `ToString`, own method and
+  // all.
+  let element = object_expr(vec![key_value_prop(
+    ident_key("toString"),
+    returning_arrow(str_expr("z")),
+  )]);
+
+  assert_eq!(
+    to_js_string(&array_expr(vec![Some(num_expr(1.0)), Some(element)])).as_deref(),
+    Some("1,z")
+  );
 }
 
 #[test]

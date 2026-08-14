@@ -192,6 +192,132 @@ stylex_test_panic!(
   "#
 );
 
+// An object's conversion runs through its own `toString` where it has one, so
+// this is `.x1e2nbdu{color:red}` -- the rule a plain `'red'` produces, and the
+// class name `@stylexjs/babel-plugin@0.19.0` emits for the same input.
+// Answering the `Object.prototype` default here would be a confidently wrong
+// colour rather than a refused one.
+stylex_test!(
+  string_of_an_object_that_overrides_to_string,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: String({ toString: () => 'red' }) },
+    });
+  "#
+);
+
+// A number prefers `valueOf` where a string prefers `toString`, which is the
+// whole of the difference between the two conversions. Measured output:
+// `.xfo62xy{width:2px}` for the pair, `.x1ftt334{width:5px}` for the lone
+// `valueOf`.
+stylex_test!(
+  number_of_an_object_that_overrides_value_of,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      valueOfOnly: { width: Number({ valueOf: () => 5 }) },
+      bothMethods: { width: Number({ toString: () => '1', valueOf: () => 2 }) },
+      toStringOnly: { width: Number({ toString: () => '7' }) },
+    });
+  "#
+);
+
+// `Object.prototype.toString` answers a primitive, so a string conversion
+// never reaches an own `valueOf` -- `.x19y1wga{color:[object Object]}`.
+stylex_test!(
+  string_of_an_object_that_overrides_only_value_of,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: String({ valueOf: () => 'v' }) },
+    });
+  "#
+);
+
+// `Array.prototype.join` takes each element's `ToString`, own method and all:
+// `.xiotjdv{color:1,z}`.
+stylex_test!(
+  string_of_an_array_holding_an_overriding_object,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: String([1, { toString: () => 'z' }]) },
+    });
+  "#
+);
+
+// A spread reaches the coercion already flattened by the evaluator, so an
+// override it carries in is an own key like any other: `.xju2f9n{color:blue}`,
+// the class name measured upstream.
+stylex_test!(
+  string_of_an_object_spreading_an_override,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const base = { toString: () => 'blue' };
+    export const styles = stylex.create({
+      root: { color: String({ ...base }) },
+    });
+  "#
+);
+
+// A method that is not callable, and one that answers an object rather than a
+// primitive, both end in a `TypeError` upstream rather than in a value. There
+// is nothing to fold, so the build fails here too.
+stylex_test_panic!(
+  string_of_an_object_whose_to_string_is_not_callable_is_rejected,
+  "Cannot coerce this value at compile time",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: String({ toString: 'notfn' }) },
+    });
+  "#
+);
+
+stylex_test_panic!(
+  string_of_an_object_whose_to_string_answers_an_object_is_rejected,
+  "Cannot coerce this value at compile time",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: String({ toString: () => ({}) }) },
+    });
+  "#
+);
+
+// Only an *own* key replaces the default. A nested one is just a property
+// value, so the object still folds.
+stylex_test!(
+  string_of_an_object_carrying_the_override_deeper,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { color: String({ a: { toString: () => 'red' } }) },
+    });
+  "#
+);
+
+// A lone surrogate is a legal JavaScript string with no Rust `str`. The
+// coercion refuses so the deopt carries the key path the property sits on,
+// rather than failing from inside the coercion with only its own location.
+stylex_test_panic!(
+  string_of_a_lone_surrogate_is_rejected,
+  "root > content > Cannot coerce this value at compile time",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      root: { content: String('\uD800') },
+    });
+  "#
+);
+
 // The numeric-literal grammar, not Rust's float parsing: `0x1f` is `31` and
 // surrounding whitespace is part of no literal, so `'  10  '` is `10`. The
 // empty string is `0`, which drops the unit — `.xnalus7{width:0}`.

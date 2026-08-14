@@ -175,9 +175,19 @@ pub(super) fn evaluate_result_to_js_object(
   match value {
     EvaluateResultValue::Expr(expr) => coercions::to_object(expr),
 
-    // A confidently evaluated value that is absent is `undefined`, which
-    // `ToObject` answers with a fresh empty object.
-    EvaluateResultValue::Null => Some(coercions::ObjectCoercion::EmptyObject),
+    // Unreachable, and refused rather than answered for that reason.
+    //
+    // `Null` stands for a confidently evaluated value that is absent, which is
+    // `undefined` -- whose `ToObject` is a fresh empty object. But no caller
+    // can hand one over: every `Null` the evaluator builds is placed inside a
+    // `Vec`, and an argument list is collected from `evaluate_cached`, which
+    // answers `None` rather than `Some(Null)` for a value that is absent. A
+    // bare `Null` therefore only becomes reachable if that changes, and on the
+    // day it does the meaning may be "absent" or may be "unknown" -- so this
+    // refuses, which deopts under either, where answering an empty object
+    // would fold `Object(x)` to `{}` under the second. The nested case, which
+    // *is* reachable, is decided in `evaluate_result_to_string_of` below.
+    EvaluateResultValue::Null => None,
 
     EvaluateResultValue::Vec(_)
     | EvaluateResultValue::Map(_)
@@ -220,6 +230,9 @@ fn evaluate_result_to_string_of(
     | EvaluateResultValue::FunctionConfig(_)
     | EvaluateResultValue::FunctionConfigMap(_) => function_form.render(),
 
+    // Unreachable for the reason given on `evaluate_result_to_js_object`, and
+    // refused on the same terms. The `Vec` arm above is where a `Null` that
+    // reaches this bridge is actually decided.
     EvaluateResultValue::Null => None,
   }
 }

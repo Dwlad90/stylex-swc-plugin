@@ -6,14 +6,23 @@
 //! compile-time form of that type — the caller deopts rather than inventing
 //! one.
 
-use stylex_constants::constants::messages::INVALID_UTF8;
-use stylex_macros::stylex_panic;
 use stylex_utils::number;
-use swc_core::ecma::ast::{Expr, Ident, Lit};
+use swc_core::ecma::ast::{
+  BlockStmtOrExpr, Expr, Ident, Lit, ObjectLit, Prop, PropName, PropOrSpread,
+};
 
-/// What `ToString` produces for any ordinary object: the `Object.prototype`
-/// default, which no value reaching the evaluator overrides.
+/// What `ToString` produces for an object that still takes the
+/// `Object.prototype` default.
+///
+/// Not every object does, which is why [`keeps_default_primitive`] is asked
+/// before this is answered.
 pub const OBJECT_TO_STRING: &str = "[object Object]";
+
+/// The two methods `OrdinaryToPrimitive` asks an object for, which an object
+/// may own rather than inherit and so take its conversion away from the
+/// `Object.prototype` default.
+const TO_STRING: &str = "toString";
+const VALUE_OF: &str = "valueOf";
 
 /// What a function contributes to the string `ToNumber` works from.
 ///
@@ -109,10 +118,12 @@ pub fn to_js_string(expr: &Expr) -> Option<String> {
 /// way.
 pub fn to_js_string_with(expr: &Expr, function_form: FunctionForm) -> Option<String> {
   match expr {
-    Expr::Lit(Lit::Str(strng)) => Some(match strng.value.as_str() {
-      Some(value) => value.to_string(),
-      None => stylex_panic!("{}", INVALID_UTF8),
-    }),
+    // A string that is not valid UTF-8 holds a lone surrogate, which Rust has
+    // no `str` for. Refusing hands the caller the same deopt every other
+    // unreadable value gets, which names the property the value sits on --
+    // where panicking here would report the coercion's own source location and
+    // lose that key path.
+    Expr::Lit(Lit::Str(strng)) => strng.value.as_str().map(ToString::to_string),
     Expr::Lit(Lit::Num(num)) => Some(number::to_js_string(num.value)),
     Expr::Lit(Lit::Bool(bool_lit)) => Some(bool_lit.value.to_string()),
     Expr::Lit(Lit::Null(_)) => Some("null".to_string()),
@@ -135,7 +146,13 @@ pub fn to_js_string_with(expr: &Expr, function_form: FunctionForm) -> Option<Str
       Some(elem) if elem.spread.is_some() => None,
       Some(elem) => js_array_element_to_string(&elem.expr, function_form),
     }),
-    Expr::Object(_) => Some(OBJECT_TO_STRING.to_string()),
+    // An object converts through the method pair a string prefers: its own
+    // `toString` where it has one, and the `Object.prototype` default where it
+    // does not.
+    Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::String)? {
+      ObjectPrimitive::Default => Some(OBJECT_TO_STRING.to_string()),
+      ObjectPrimitive::Returned(returned) => to_js_string_with(returned, function_form),
+    },
     Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_) => function_form.render(),
     _ => None,
   }
@@ -156,9 +173,16 @@ pub fn to_js_number(expr: &Expr) -> Option<f64> {
     // its own: it stringifies to `"undefined"`, which is not a numeric
     // literal.
     Expr::Lit(Lit::Null(_)) => Some(0.0),
+    // An object converts through the method pair a number prefers, which is
+    // the reverse of the string one: an own `valueOf` answers ahead of an own
+    // `toString`, so `Number({ valueOf: () => 2, toString: () => '1' })` is
+    // `2`. An array owns neither and so still reaches its join below.
+    Expr::Object(object) => match object_to_primitive(object, ToPrimitiveHint::Number)? {
+      ObjectPrimitive::Default => Some(string_to_js_number(OBJECT_TO_STRING)),
+      ObjectPrimitive::Returned(returned) => to_js_number(returned),
+    },
     // Everything else takes `ToNumber` of its primitive value, which for a
-    // string is itself and for an object is its `ToString` — an array's join,
-    // and `[object Object]` for anything else.
+    // string is itself and for an array is its join.
     _ => to_js_string_with(expr, FunctionForm::NotANumber).map(|strng| string_to_js_number(&strng)),
   }
 }
@@ -418,6 +442,152 @@ pub fn to_object(expr: &Expr) -> Option<ObjectCoercion> {
     Expr::Object(_) | Expr::Array(_) | Expr::Lit(Lit::Regex(_)) => Some(ObjectCoercion::Identity),
     Expr::Lit(_) => Some(ObjectCoercion::Wrapper),
     _ => None,
+  }
+}
+
+/// Whether an object literal's primitive conversion is still the
+/// `Object.prototype` default, and so is [`OBJECT_TO_STRING`].
+///
+/// An own `toString` or `valueOf` replaces that default and `Symbol.toPrimitive`
+/// precedes it, so an object carrying any of them coerces to a value this crate
+/// cannot compute -- `String({ toString: () => 'red' })` is `red`, not
+/// `[object Object]`. Answering the default for one of those would put a
+/// confidently wrong value in the stylesheet, which is the one outcome a
+/// refused fold exists to prevent.
+/// ECMA-262 `OrdinaryToPrimitive` over an object literal: the value the first
+/// of the object's two conversion methods to answer a primitive returns.
+///
+/// `None` is an object this crate cannot convert -- one whose keys it cannot
+/// name, one whose own method is not a form it can apply, and one JavaScript
+/// itself refuses with `Cannot convert object to primitive value`. Each is a
+/// refusal rather than the default, because the default would be a value no
+/// runtime produces.
+fn object_to_primitive(object: &ObjectLit, hint: ToPrimitiveHint) -> Option<ObjectPrimitive<'_>> {
+  // A spread contributes keys this crate cannot name, and a computed key is
+  // how `Symbol.toPrimitive` is spelled -- which precedes both methods below.
+  if !object.props.iter().all(readable_key) {
+    return None;
+  }
+
+  for name in hint.method_order() {
+    match own_conversion_method(object, name) {
+      // The object does not override this one, so `Object.prototype`'s
+      // applies: its `toString` answers the default text, while its `valueOf`
+      // answers the object itself, which is not a primitive and is passed over.
+      None if name == TO_STRING => return Some(ObjectPrimitive::Default),
+      None => continue,
+      Some(returned) => return Some(ObjectPrimitive::Returned(returned?)),
+    }
+  }
+
+  None
+}
+
+/// Which primitive a conversion prefers, and so which of the two methods an
+/// object is asked for first. `String(x)` prefers a string and `Number(x)` a
+/// number, which is the whole of the difference between them here.
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+enum ToPrimitiveHint {
+  String,
+  Number,
+}
+
+impl ToPrimitiveHint {
+  fn method_order(self) -> [&'static str; 2] {
+    match self {
+      ToPrimitiveHint::String => [TO_STRING, VALUE_OF],
+      ToPrimitiveHint::Number => [VALUE_OF, TO_STRING],
+    }
+  }
+}
+
+/// What an object literal converts to under [`object_to_primitive`].
+enum ObjectPrimitive<'a> {
+  /// The `Object.prototype` pair, whose primitive is [`OBJECT_TO_STRING`].
+  Default,
+  /// The expression an own conversion method returns.
+  Returned(&'a Expr),
+}
+
+/// The body of an own `name` method the coercion can apply, as
+/// `Some(Some(body))`.
+///
+/// `None` is an object that does not own `name` at all, and `Some(None)` one
+/// that owns it in a form this crate cannot apply -- a method shorthand, a
+/// getter, a parameterised or block-bodied arrow, or a value that is not
+/// callable, which JavaScript answers with a `TypeError` rather than a value.
+/// The two are told apart because only the first falls through to the other
+/// method.
+fn own_conversion_method<'a>(object: &'a ObjectLit, name: &str) -> Option<Option<&'a Expr>> {
+  let prop = object.props.iter().find_map(|prop| match prop {
+    PropOrSpread::Prop(prop) if prop_name(prop) == Some(name) => Some(prop.as_ref()),
+    _ => None,
+  })?;
+
+  let Prop::KeyValue(key_value) = prop else {
+    return Some(None);
+  };
+
+  let Expr::Arrow(arrow) = key_value.value.as_ref() else {
+    return Some(None);
+  };
+
+  // A conversion method is called with no arguments, so a parameter would only
+  // ever bind `undefined` -- but a default initialiser on one makes the body
+  // depend on it, which is more than this crate reads. A block body is more
+  // than it reads either.
+  if !arrow.params.is_empty() {
+    return Some(None);
+  }
+
+  let BlockStmtOrExpr::Expr(body) = arrow.body.as_ref() else {
+    return Some(None);
+  };
+
+  // A method answering an object has not answered a primitive. JavaScript
+  // moves on to the other method, whose `Object.prototype` version answers the
+  // object again and ends in a `TypeError` -- so there is no value to fold.
+  if matches!(
+    body.as_ref(),
+    Expr::Object(_) | Expr::Array(_) | Expr::Arrow(_) | Expr::Fn(_) | Expr::Class(_)
+  ) {
+    return Some(None);
+  }
+
+  Some(Some(body.as_ref()))
+}
+
+fn readable_key(prop: &PropOrSpread) -> bool {
+  match prop {
+    PropOrSpread::Spread(_) => false,
+    PropOrSpread::Prop(prop) => !matches!(prop_key(prop), Some(PropName::Computed(_))),
+  }
+}
+
+fn prop_key(prop: &Prop) -> Option<&PropName> {
+  match prop {
+    Prop::Shorthand(_) | Prop::Assign(_) => None,
+    Prop::KeyValue(key_value) => Some(&key_value.key),
+    Prop::Getter(getter) => Some(&getter.key),
+    Prop::Setter(setter) => Some(&setter.key),
+    Prop::Method(method) => Some(&method.key),
+  }
+}
+
+fn prop_name(prop: &Prop) -> Option<&str> {
+  match prop {
+    Prop::Shorthand(ident) => Some(ident.sym.as_ref()),
+    // Only reachable inside a destructuring pattern, never in an evaluated
+    // value, but named rather than defaulted so a later reader is not left to
+    // decide.
+    Prop::Assign(assign) => Some(assign.key.sym.as_ref()),
+    _ => match prop_key(prop)? {
+      PropName::Ident(ident) => Some(ident.sym.as_ref()),
+      // A key that is not valid UTF-8 holds a lone surrogate, which neither
+      // ASCII name spells.
+      PropName::Str(strng) => strng.value.as_str(),
+      PropName::Num(_) | PropName::BigInt(_) | PropName::Computed(_) => None,
+    },
   }
 }
 

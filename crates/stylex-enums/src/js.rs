@@ -76,6 +76,7 @@ impl TryFrom<&str> for MathJS {
 pub enum CallableGlobalJS {
   String,
   Number,
+  Array,
 }
 
 impl TryFrom<&str> for CallableGlobalJS {
@@ -85,6 +86,7 @@ impl TryFrom<&str> for CallableGlobalJS {
     match value {
       "String" => Ok(CallableGlobalJS::String),
       "Number" => Ok(CallableGlobalJS::Number),
+      "Array" => Ok(CallableGlobalJS::Array),
       _ => Err(()),
     }
   }

@@ -1,7 +1,7 @@
 use super::super::*;
 use super::logical_expression;
 use anyhow::anyhow;
-use stylex_macros::{as_expr_or_err, convert_expr_to_str_or_err};
+use stylex_macros::as_expr_or_err;
 use swc_core::ecma::ast::{BinExpr, BinaryOp};
 
 pub(in super::super) fn evaluate(
@@ -54,20 +54,28 @@ fn is_string(expr: &Expr) -> bool {
   matches!(expr, Expr::Lit(Lit::Str(_)))
 }
 
+/// The reason each side records when it cannot be read as what the path it is
+/// on needs. Named rather than built at the call site so the operand helpers
+/// stay at one argument per thing they actually need.
+const LEFT_NOT_A_NUMBER: &str = "Left expression is not a number";
+const RIGHT_NOT_A_NUMBER: &str = "Right expression is not a number";
+const LEFT_NOT_A_STRING: &str = "Left expression is not a string";
+const RIGHT_NOT_A_STRING: &str = "Right expression is not a string";
+
 /// One side of the expression, evaluated. An operand that resolves to nothing
 /// while the evaluator is still confident is this path's own bug rather than an
 /// expression it cannot fold, which is why the two answers differ.
 fn evaluate_operand(
   operand: &Expr,
-  side: &str,
+  reason: &str,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Result<EvaluateResultValue, anyhow::Error> {
   match evaluate_cached(operand, state, traversal_state, fns) {
     Some(value) => Result::Ok(value),
-    None if !state.confident => Result::Err(anyhow!("{} expression is not a number", side)),
-    None => stylex_panic!("{} expression is not a number", side),
+    None if !state.confident => Result::Err(anyhow!("{}", reason)),
+    None => stylex_panic!("{}", reason),
   }
 }
 
@@ -79,7 +87,13 @@ pub(crate) fn binary_expr_to_num(
 ) -> Result<BinaryExprType, anyhow::Error> {
   let op = binary_expr.op;
 
-  let left = evaluate_operand(&binary_expr.left, "Left", state, traversal_state, fns)?;
+  let left = evaluate_operand(
+    &binary_expr.left,
+    LEFT_NOT_A_NUMBER,
+    state,
+    traversal_state,
+    fns,
+  )?;
   let left_expr = as_expr_or_err!(left, "Left argument not expression");
 
   // `+` is the one operator whose result type its operands decide rather than
@@ -94,7 +108,13 @@ pub(crate) fn binary_expr_to_num(
   // on a right side the refusal never needed. `evaluate_cached` memoises, so
   // the second look below costs nothing.
   if matches!(op, BinaryOp::Add) {
-    let right = evaluate_operand(&binary_expr.right, "Right", state, traversal_state, fns)?;
+    let right = evaluate_operand(
+      &binary_expr.right,
+      RIGHT_NOT_A_NUMBER,
+      state,
+      traversal_state,
+      fns,
+    )?;
 
     if is_string(left_expr) || right.as_expr().is_some_and(is_string) {
       return binary_expr_to_string(binary_expr, state, traversal_state, fns);
@@ -103,7 +123,13 @@ pub(crate) fn binary_expr_to_num(
 
   let left_num = expr_to_num(left_expr, state, traversal_state, fns)?;
 
-  let right = evaluate_operand(&binary_expr.right, "Right", state, traversal_state, fns)?;
+  let right = evaluate_operand(
+    &binary_expr.right,
+    RIGHT_NOT_A_NUMBER,
+    state,
+    traversal_state,
+    fns,
+  )?;
   let right_expr = as_expr_or_err!(right, "Right argument not expression");
   let right_num = expr_to_num(right_expr, state, traversal_state, fns)?;
 
@@ -146,6 +172,13 @@ pub(crate) fn binary_expr_to_num(
   Result::Ok(BinaryExprType::Number(result))
 }
 
+/// `+` over operands at least one of which is a string: `ToString` of each
+/// side, joined.
+///
+/// Only `+` has a string result. Every other operator reaches here through the
+/// number path's fallback, having already refused there, and is refused again
+/// so the caller deopts rather than failing the build — which is also what the
+/// language asks for, since `'a' * 'b'` is a value rather than an error.
 fn binary_expr_to_string(
   binary_expr: &BinExpr,
   state: &mut EvaluationState,
@@ -153,49 +186,60 @@ fn binary_expr_to_string(
   fns: &FunctionMap,
 ) -> Result<BinaryExprType, anyhow::Error> {
   let op = binary_expr.op;
-  let Some(left) = evaluate_cached(&binary_expr.left, state, traversal_state, fns) else {
-    if !state.confident {
-      return Result::Err(anyhow::anyhow!("Left expression is not a string"));
-    }
 
-    stylex_panic!("Left expression is not a string")
-  };
-
-  let left_expr = as_expr_or_err!(left, "Left argument not expression");
-  let left_str = convert_expr_to_str_or_err!(
-    left_expr,
-    traversal_state,
-    fns,
-    "Left expression is not a string"
-  );
-
-  let Some(right) = evaluate_cached(&binary_expr.right, state, traversal_state, fns) else {
-    if !state.confident {
-      return Result::Err(anyhow::anyhow!("Right expression is not a string"));
-    }
-
-    stylex_panic!("Right expression is not a string")
-  };
-
-  let right_expr = as_expr_or_err!(right, "Right argument not expression");
-  let right_str = convert_expr_to_str_or_err!(
-    right_expr,
-    traversal_state,
-    fns,
-    "Right expression is not a string"
-  );
-
-  let result = match &op {
-    BinaryOp::Add => {
-      format!("{}{}", left_str, right_str)
-    },
-    _ => stylex_panic!(
+  if !matches!(op, BinaryOp::Add) {
+    return Result::Err(anyhow!(
       "For string expressions, only addition is supported, got {:?}",
       op
-    ),
-  };
+    ));
+  }
 
-  Result::Ok(BinaryExprType::String(result))
+  let left = operand_to_string(
+    &binary_expr.left,
+    LEFT_NOT_A_STRING,
+    state,
+    traversal_state,
+    fns,
+  )?;
+  let right = operand_to_string(
+    &binary_expr.right,
+    RIGHT_NOT_A_STRING,
+    state,
+    traversal_state,
+    fns,
+  )?;
+
+  Result::Ok(BinaryExprType::String(format!("{}{}", left, right)))
+}
+
+/// One side of the expression, evaluated and taken through `ToString` — the
+/// coercion the rest of the evaluator already shares, from `stylex_js`.
+///
+/// This arm used to keep a second, weaker string coercion of its own, which
+/// read a string, a number and a big integer and refused the rest — so
+/// `'x' + true` failed to fold where JavaScript says `"xtrue"`. The shared one
+/// answers for the whole falsy list, for arrays and for objects, and refuses
+/// only where no compile-time string exists at all.
+///
+/// It is also more permissive than the reference implementation on two
+/// operands, and deliberately left that way: a big integer and a regular
+/// expression both have a string here, where upstream refuses either literal
+/// outright with an unsupported-expression diagnostic. The folded strings are
+/// what the language says, so the disagreement costs nothing but a build that
+/// succeeds where the other fails.
+fn operand_to_string(
+  operand: &Expr,
+  reason: &str,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+) -> Result<String, anyhow::Error> {
+  let value = evaluate_operand(operand, reason, state, traversal_state, fns)?;
+
+  match evaluate_result_to_js_string(&value) {
+    Some(strng) => Result::Ok(strng),
+    None => Result::Err(anyhow!("{}", reason)),
+  }
 }
 
 #[cfg(test)]

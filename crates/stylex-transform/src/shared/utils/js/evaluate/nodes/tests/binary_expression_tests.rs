@@ -115,23 +115,6 @@ fn test_binary_expr_to_string_add() {
 }
 
 #[test]
-#[should_panic]
-fn test_binary_expr_to_string_non_add() {
-  let mut state = EvaluationState::new();
-  let mut traversal_state = StateManager::default();
-  let fns = FunctionMap::default();
-  let left = Box::new(create_string_expr("foo"));
-  let right = Box::new(create_string_expr("bar"));
-  let bin = BinExpr {
-    op: BinaryOp::Sub,
-    left,
-    right,
-    span: Default::default(),
-  };
-  let _ = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns);
-}
-
-#[test]
 fn test_binary_expr_to_num_in_operator() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
@@ -430,15 +413,18 @@ mod binary_expr_to_num_comparison_tests {
 }
 
 // ──────────────────────────────────────────────
-// binary_expr_to_string - non-Add operator panic
+// binary_expr_to_string - non-Add operators
 // ──────────────────────────────────────────────
 
 mod binary_expr_to_string_non_add_tests {
   use super::*;
 
+  /// Only `+` has a string result. Every other operator arrives here having
+  /// already been refused by the number path, and is refused again so the
+  /// caller deopts — rather than failing the build over an expression the
+  /// language reads as a value.
   #[test]
-  #[should_panic]
-  fn panics_for_sub_op() {
+  fn refuses_a_sub_op() {
     let mut state = EvaluationState::new();
     let mut traversal_state = StateManager::default();
     let fns = FunctionMap::default();
@@ -448,7 +434,8 @@ mod binary_expr_to_string_non_add_tests {
       left: Box::new(create_string_expr("hello")),
       right: Box::new(create_string_expr("world")),
     };
-    let _ = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns);
+
+    assert!(binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns).is_err());
   }
 
   #[test]

@@ -63,6 +63,20 @@ stylex_test!(
   "#
 );
 
+// `.x1u857p9{background-color:green}` — a property simply missing from an
+// object is `undefined`, which the operator also takes its right side for.
+stylex_test!(
+  nullish_takes_the_fallback_for_a_missing_property,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const color = { primary: 'red' };
+    export const styles = stylex.create({
+      a: { backgroundColor: color.missing ?? 'green' },
+    });
+  "#
+);
+
 // `.xju2f9n{color:blue}` — a `null` left side is one of the two the operator
 // takes its right side for.
 stylex_test!(
@@ -171,5 +185,25 @@ stylex_test_panic!(
     import * as stylex from '@stylexjs/stylex';
     const blank = '';
     export const styles = stylex.create({ a: { color: blank ?? 'red' } });
+  "#
+);
+
+// A missing property reads as `undefined` whether or not a logical operator is
+// waiting for it, so a bare one now reaches the style-value check and fails the
+// build there. Before, it deopted and the whole declaration fell to the runtime
+// instead, which is the shape that kept `token.missing ?? fallback` from
+// folding.
+//
+// The reference implementation fails the same input, wording it `A style value
+// can only contain an array, string or number.`; which of the two refusals an
+// `undefined` value earns is a pre-existing difference in the style-value
+// check, not something the operator decides.
+stylex_test_panic!(
+  a_bare_missing_property_is_rejected_as_a_style_value,
+  "Only static values are allowed inside of a stylex() call.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const color = { primary: 'red' };
+    export const styles = stylex.create({ a: { color: color.missing } });
   "#
 );

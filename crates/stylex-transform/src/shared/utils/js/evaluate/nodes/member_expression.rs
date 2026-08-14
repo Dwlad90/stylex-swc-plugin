@@ -1,5 +1,7 @@
 use super::super::*;
-use stylex_ast::ast::convertors::{convert_member_prop_to_string, normalize_expr};
+use stylex_ast::ast::convertors::{
+  convert_member_prop_to_string, create_ident_expr, normalize_expr,
+};
 use swc_core::ecma::ast::MemberExpr;
 
 pub(in super::super) fn evaluate(
@@ -183,7 +185,16 @@ pub(in super::super) fn evaluate(
                     }
 
                   }
-                })?;
+                });
+
+            // A key the object does not carry reads as `undefined`, which is a
+            // value the evaluator is confident about rather than one it failed
+            // to resolve. Returning it is what lets `token.missing ?? fallback`
+            // fold, where a deopt here would send the whole declaration to the
+            // runtime.
+            let Some(property) = property else {
+              return Some(EvaluateResultValue::Expr(create_ident_expr("undefined")));
+            };
 
             if let PropOrSpread::Prop(prop) = property {
               Some(EvaluateResultValue::Expr(

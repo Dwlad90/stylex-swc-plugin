@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use swc_core::{
   common::{BytePos, DUMMY_SP, FileName, Span, SyntaxContext},
   ecma::ast::{
-    BinaryOp, BindingIdent, Decl, ExportDecl, Expr, Ident, Lit, Module, ModuleDecl, ModuleItem,
-    Number, Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+    BinaryOp, BindingIdent, Decl, ExportDecl, Expr, Lit, Module, ModuleDecl, ModuleItem, Number,
+    Pat, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
   },
 };
 
@@ -19,44 +19,21 @@ use crate::shared::{
   },
 };
 use stylex_ast::ast::convertors::{
-  get_expr_from_var_decl, get_key_values_from_object, normalize_expr,
+  create_number_expr, create_string_expr, get_expr_from_var_decl, get_key_values_from_object,
+  normalize_expr,
 };
+use stylex_ast::ast::factories::create_ident;
 use stylex_evaluator::common::evaluate_bin_expr;
 
 // ──────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────
 
-fn make_ident(name: &str) -> Ident {
-  Ident {
-    span: DUMMY_SP,
-    sym: name.into(),
-    optional: false,
-    ctxt: SyntaxContext::empty(),
-  }
-}
-
-fn make_num_expr(val: f64) -> Expr {
-  Expr::Lit(Lit::Num(Number {
-    value: val,
-    span: DUMMY_SP,
-    raw: None,
-  }))
-}
-
-fn make_str_expr(val: &str) -> Expr {
-  Expr::Lit(Lit::Str(Str {
-    value: val.into(),
-    span: DUMMY_SP,
-    raw: None,
-  }))
-}
-
 fn make_var_declarator(name: &str, init: Expr) -> VarDeclarator {
   VarDeclarator {
     span: DUMMY_SP,
     name: Pat::Ident(BindingIdent {
-      id: make_ident(name),
+      id: create_ident(name),
       type_ann: None,
     }),
     init: Some(Box::new(init)),
@@ -68,7 +45,7 @@ fn make_var_declarator_no_init(name: &str) -> VarDeclarator {
   VarDeclarator {
     span: DUMMY_SP,
     name: Pat::Ident(BindingIdent {
-      id: make_ident(name),
+      id: create_ident(name),
       type_ann: None,
     }),
     init: None,
@@ -301,7 +278,7 @@ mod get_expr_from_var_decl_tests {
 
   #[test]
   fn returns_init_expr_for_number() {
-    let decl = make_var_declarator("x", make_num_expr(42.0));
+    let decl = make_var_declarator("x", create_number_expr(42.0));
     let expr = get_expr_from_var_decl(&decl);
     match expr {
       Expr::Lit(Lit::Num(n)) => assert_eq!(n.value, 42.0),
@@ -311,7 +288,7 @@ mod get_expr_from_var_decl_tests {
 
   #[test]
   fn returns_init_expr_for_string() {
-    let decl = make_var_declarator("name", make_str_expr("hello"));
+    let decl = make_var_declarator("name", create_string_expr("hello"));
     let expr = get_expr_from_var_decl(&decl);
     match expr {
       Expr::Lit(Lit::Str(s)) => assert_eq!(s.value.as_str().unwrap(), "hello"),
@@ -337,7 +314,7 @@ mod normalize_expr_tests {
 
   #[test]
   fn returns_non_paren_expr_unchanged() {
-    let expr = make_num_expr(5.0);
+    let expr = create_number_expr(5.0);
     let result = normalize_expr(&expr);
     match result {
       Expr::Lit(Lit::Num(n)) => assert_eq!(n.value, 5.0),
@@ -347,7 +324,7 @@ mod normalize_expr_tests {
 
   #[test]
   fn unwraps_paren_expr() {
-    let inner = make_num_expr(10.0);
+    let inner = create_number_expr(10.0);
     let expr = Expr::Paren(ParenExpr {
       span: DUMMY_SP,
       expr: Box::new(inner),
@@ -361,7 +338,7 @@ mod normalize_expr_tests {
 
   #[test]
   fn unwraps_nested_paren_expr() {
-    let inner = make_str_expr("nested");
+    let inner = create_string_expr("nested");
     let paren1 = Expr::Paren(ParenExpr {
       span: DUMMY_SP,
       expr: Box::new(inner),
@@ -489,7 +466,7 @@ mod remove_duplicates_tests {
         span: DUMMY_SP,
         sym: key.into(),
       }),
-      value: Box::new(make_num_expr(val)),
+      value: Box::new(create_number_expr(val)),
     })))
   }
 
@@ -547,7 +524,7 @@ mod fill_state_declarations_tests {
   #[test]
   fn adds_declaration_to_empty_state() {
     let mut state = StateManager::default();
-    let decl = make_var_declarator("x", make_num_expr(1.0));
+    let decl = make_var_declarator("x", create_number_expr(1.0));
     fill_state_declarations(&mut state, &decl);
     assert_eq!(state.declarations.len(), 1);
   }
@@ -555,7 +532,7 @@ mod fill_state_declarations_tests {
   #[test]
   fn does_not_add_duplicate_declaration() {
     let mut state = StateManager::default();
-    let decl = make_var_declarator("x", make_num_expr(1.0));
+    let decl = make_var_declarator("x", create_number_expr(1.0));
     fill_state_declarations(&mut state, &decl);
     fill_state_declarations(&mut state, &decl);
     assert_eq!(state.declarations.len(), 1);
@@ -564,8 +541,8 @@ mod fill_state_declarations_tests {
   #[test]
   fn adds_different_declarations() {
     let mut state = StateManager::default();
-    let decl1 = make_var_declarator("x", make_num_expr(1.0));
-    let decl2 = make_var_declarator("y", make_num_expr(2.0));
+    let decl1 = make_var_declarator("x", create_number_expr(1.0));
+    let decl2 = make_var_declarator("y", create_number_expr(2.0));
     fill_state_declarations(&mut state, &decl1);
     fill_state_declarations(&mut state, &decl2);
     assert_eq!(state.declarations.len(), 2);
@@ -584,14 +561,14 @@ mod fill_state_declarations_tests {
         lo: BytePos(1),
         hi: BytePos(10),
       },
-      ..make_var_declarator("m", make_num_expr(1.0))
+      ..make_var_declarator("m", create_number_expr(1.0))
     };
     let second = VarDeclarator {
       span: Span {
         lo: BytePos(20),
         hi: BytePos(30),
       },
-      ..make_var_declarator("m", make_num_expr(1.0))
+      ..make_var_declarator("m", create_number_expr(1.0))
     };
 
     fill_state_declarations(&mut state, &first);
@@ -634,10 +611,10 @@ mod fill_top_level_expressions_tests {
     let decl = VarDeclarator {
       span: DUMMY_SP,
       name: Pat::Ident(BindingIdent {
-        id: make_ident("styles"),
+        id: create_ident("styles"),
         type_ann: None,
       }),
-      init: Some(Box::new(make_num_expr(42.0))),
+      init: Some(Box::new(create_number_expr(42.0))),
       definite: false,
     };
 
@@ -668,10 +645,10 @@ mod fill_top_level_expressions_tests {
     let decl = VarDeclarator {
       span: DUMMY_SP,
       name: Pat::Ident(BindingIdent {
-        id: make_ident("localVar"),
+        id: create_ident("localVar"),
         type_ann: None,
       }),
-      init: Some(Box::new(make_str_expr("value"))),
+      init: Some(Box::new(create_string_expr("value"))),
       definite: false,
     };
 
@@ -719,8 +696,8 @@ mod fill_top_level_expressions_tests {
   fn captures_multiple_decls_in_one_statement() {
     let mut state = StateManager::default();
 
-    let decl1 = make_var_declarator("a", make_num_expr(1.0));
-    let decl2 = make_var_declarator("b", make_num_expr(2.0));
+    let decl1 = make_var_declarator("a", create_number_expr(1.0));
+    let decl2 = make_var_declarator("b", create_number_expr(2.0));
 
     let module = Module {
       span: DUMMY_SP,
@@ -749,7 +726,7 @@ mod fill_top_level_expressions_tests {
       body: vec![ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(
         ExportDefaultExpr {
           span: DUMMY_SP,
-          expr: Box::new(make_num_expr(99.0)),
+          expr: Box::new(create_number_expr(99.0)),
         },
       ))],
       shebang: None,
@@ -774,7 +751,7 @@ mod fill_top_level_expressions_paren_tests {
   fn captures_paren_wrapped_default_export() {
     let mut state = StateManager::default();
 
-    let inner = make_num_expr(99.0);
+    let inner = create_number_expr(99.0);
     let paren = Expr::Paren(ParenExpr {
       span: DUMMY_SP,
       expr: Box::new(inner),
@@ -811,7 +788,7 @@ mod remove_duplicates_extra_tests {
         span: DUMMY_SP,
         sym: key.into(),
       }),
-      value: Box::new(make_num_expr(val)),
+      value: Box::new(create_number_expr(val)),
     })))
   }
 
@@ -822,18 +799,18 @@ mod remove_duplicates_extra_tests {
         value: key.into(),
         raw: None,
       }),
-      value: Box::new(make_num_expr(val)),
+      value: Box::new(create_number_expr(val)),
     })))
   }
 
   fn make_shorthand_prop(name: &str) -> PropOrSpread {
-    PropOrSpread::Prop(Box::new(Prop::Shorthand(make_ident(name))))
+    PropOrSpread::Prop(Box::new(Prop::Shorthand(create_ident(name))))
   }
 
   fn make_spread_prop() -> PropOrSpread {
     PropOrSpread::Spread(SpreadElement {
       dot3_token: DUMMY_SP,
-      expr: Box::new(make_num_expr(1.0)),
+      expr: Box::new(create_number_expr(1.0)),
     })
   }
 
@@ -900,7 +877,7 @@ mod remove_duplicates_extra_tests {
         value: 42.0,
         raw: None,
       }),
-      value: Box::new(make_num_expr(1.0)),
+      value: Box::new(create_number_expr(1.0)),
     })));
     let props = vec![num_key_prop];
     let result = remove_duplicates(props);
@@ -925,7 +902,7 @@ mod deep_merge_props_tests {
         span: DUMMY_SP,
         sym: key.into(),
       }),
-      value: Box::new(make_num_expr(val)),
+      value: Box::new(create_number_expr(val)),
     })))
   }
 
@@ -945,7 +922,7 @@ mod deep_merge_props_tests {
   fn make_spread() -> PropOrSpread {
     PropOrSpread::Spread(SpreadElement {
       dot3_token: DUMMY_SP,
-      expr: Box::new(make_num_expr(0.0)),
+      expr: Box::new(create_number_expr(0.0)),
     })
   }
 
@@ -1028,7 +1005,7 @@ mod get_import_from_tests {
       span: DUMMY_SP,
       specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
         span: DUMMY_SP,
-        local: make_ident(local),
+        local: create_ident(local),
         imported: None,
         is_type_only: false,
       })],
@@ -1048,7 +1025,7 @@ mod get_import_from_tests {
       span: DUMMY_SP,
       specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
         span: DUMMY_SP,
-        local: make_ident(local),
+        local: create_ident(local),
       })],
       src: Box::new(Str {
         span: DUMMY_SP,
@@ -1066,7 +1043,7 @@ mod get_import_from_tests {
       span: DUMMY_SP,
       specifiers: vec![ImportSpecifier::Namespace(ImportStarAsSpecifier {
         span: DUMMY_SP,
-        local: make_ident(local),
+        local: create_ident(local),
       })],
       src: Box::new(Str {
         span: DUMMY_SP,
@@ -1084,8 +1061,8 @@ mod get_import_from_tests {
       span: DUMMY_SP,
       specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
         span: DUMMY_SP,
-        local: make_ident(local),
-        imported: Some(ModuleExportName::Ident(make_ident(imported))),
+        local: create_ident(local),
+        imported: Some(ModuleExportName::Ident(create_ident(imported))),
         is_type_only: false,
       })],
       src: Box::new(Str {
@@ -1105,7 +1082,7 @@ mod get_import_from_tests {
     state
       .top_imports
       .push(make_named_import("stylex", "@stylexjs/stylex"));
-    let ident = make_ident("stylex");
+    let ident = create_ident("stylex");
     let result = get_import_from(&state, &ident);
     assert!(result.is_some());
   }
@@ -1113,7 +1090,7 @@ mod get_import_from_tests {
   #[test]
   fn returns_none_when_not_found() {
     let state = StateManager::default();
-    let ident = make_ident("nonexistent");
+    let ident = create_ident("nonexistent");
     let result = get_import_from(&state, &ident);
     assert!(result.is_none());
   }
@@ -1124,7 +1101,7 @@ mod get_import_from_tests {
     state
       .top_imports
       .push(make_default_import("stylex", "@stylexjs/stylex"));
-    let ident = make_ident("stylex");
+    let ident = create_ident("stylex");
     let result = get_import_from(&state, &ident);
     assert!(result.is_some());
   }
@@ -1135,7 +1112,7 @@ mod get_import_from_tests {
     state
       .top_imports
       .push(make_namespace_import("ns", "module"));
-    let ident = make_ident("ns");
+    let ident = create_ident("ns");
     let result = get_import_from(&state, &ident);
     assert!(result.is_some());
   }
@@ -1148,7 +1125,7 @@ mod get_import_from_tests {
       "create",
       "@stylexjs/stylex",
     ));
-    let ident = make_ident("create");
+    let ident = create_ident("create");
     let result = get_import_from(&state, &ident);
     assert!(result.is_some());
   }
@@ -1161,7 +1138,7 @@ mod get_import_from_tests {
       "create",
       "@stylexjs/stylex",
     ));
-    let ident = make_ident("localName");
+    let ident = create_ident("localName");
     let result = get_import_from(&state, &ident);
     assert!(result.is_some());
   }
@@ -1172,7 +1149,7 @@ mod get_import_from_tests {
     state
       .top_imports
       .push(make_named_import("stylex", "@stylexjs/stylex"));
-    let ident = make_ident("wrongName");
+    let ident = create_ident("wrongName");
     let result = get_import_from(&state, &ident);
     assert!(result.is_none());
   }
@@ -1183,7 +1160,7 @@ mod get_import_from_tests {
       span: DUMMY_SP,
       specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
         span: DUMMY_SP,
-        local: make_ident("localName"),
+        local: create_ident("localName"),
         imported: Some(ModuleExportName::Str(Str {
           span: DUMMY_SP,
           value: "strExport".into(),
@@ -1202,7 +1179,7 @@ mod get_import_from_tests {
     };
     let mut state = StateManager::default();
     state.top_imports.push(import);
-    let ident = make_ident("strExport");
+    let ident = create_ident("strExport");
     let result = get_import_from(&state, &ident);
     assert!(result.is_some());
   }
@@ -1291,9 +1268,9 @@ mod get_var_decl_by_ident_tests {
   fn returns_var_decl_for_known_ident() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let decl = make_var_declarator("x", make_num_expr(10.0));
+    let decl = make_var_declarator("x", create_number_expr(10.0));
     fill_state_declarations(&mut state, &decl);
-    let ident = make_ident("x");
+    let ident = create_ident("x");
     let result = get_var_decl_by_ident(&ident, &mut state, &fns);
     assert!(result.is_some());
   }
@@ -1302,7 +1279,7 @@ mod get_var_decl_by_ident_tests {
   fn returns_none_for_unknown_ident() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let ident = make_ident("nonexistent");
+    let ident = create_ident("nonexistent");
     let result = get_var_decl_by_ident(&ident, &mut state, &fns);
     assert!(result.is_none());
   }
@@ -1336,14 +1313,14 @@ mod get_key_values_from_object_tests {
             span: DUMMY_SP,
             sym: "color".into(),
           }),
-          value: Box::new(make_str_expr("red")),
+          value: Box::new(create_string_expr("red")),
         }))),
         PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
           key: PropName::Ident(IdentName {
             span: DUMMY_SP,
             sym: "size".into(),
           }),
-          value: Box::new(make_num_expr(12.0)),
+          value: Box::new(create_number_expr(12.0)),
         }))),
       ],
     };
@@ -1355,7 +1332,7 @@ mod get_key_values_from_object_tests {
   fn expands_shorthand_props() {
     let obj = ObjectLit {
       span: DUMMY_SP,
-      props: vec![PropOrSpread::Prop(Box::new(Prop::Shorthand(make_ident(
+      props: vec![PropOrSpread::Prop(Box::new(Prop::Shorthand(create_ident(
         "color",
       ))))],
     };
@@ -1398,7 +1375,7 @@ mod get_css_value_tests {
         span: DUMMY_SP,
         sym: "color".into(),
       }),
-      value: Box::new(make_str_expr("red")),
+      value: Box::new(create_string_expr("red")),
     };
     let (expr, css_type) = get_css_value(kv);
     assert!(css_type.is_none());
@@ -1412,14 +1389,14 @@ mod get_css_value_tests {
         span: DUMMY_SP,
         sym: "syntax".into(),
       }),
-      value: Box::new(make_str_expr("<length>")),
+      value: Box::new(create_string_expr("<length>")),
     })));
     let value_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
       key: PropName::Ident(IdentName {
         span: DUMMY_SP,
         sym: "value".into(),
       }),
-      value: Box::new(make_num_expr(10.0)),
+      value: Box::new(create_number_expr(10.0)),
     })));
     let obj = ObjectLit {
       span: DUMMY_SP,
@@ -1444,7 +1421,7 @@ mod get_css_value_tests {
         span: DUMMY_SP,
         sym: "notSyntax".into(),
       }),
-      value: Box::new(make_str_expr("val")),
+      value: Box::new(create_string_expr("val")),
     })));
     let obj = ObjectLit {
       span: DUMMY_SP,
@@ -1523,7 +1500,7 @@ mod deep_merge_props_str_num_key_tests {
         span: DUMMY_SP,
         sym: key.into(),
       }),
-      value: Box::new(make_num_expr(val)),
+      value: Box::new(create_number_expr(val)),
     })))
   }
 
@@ -1622,7 +1599,7 @@ mod fill_top_level_expressions_extra_tests {
       span: DUMMY_SP,
       body: vec![ModuleItem::Stmt(Stmt::Expr(ExprStmt {
         span: DUMMY_SP,
-        expr: Box::new(make_num_expr(42.0)),
+        expr: Box::new(create_number_expr(42.0)),
       }))],
       shebang: None,
     };
@@ -1659,7 +1636,7 @@ mod fill_top_level_expressions_extra_tests {
     use swc_core::ecma::ast::{FnDecl, Function};
     let mut state = StateManager::default();
     let fn_decl = Decl::Fn(FnDecl {
-      ident: make_ident("myFn"),
+      ident: create_ident("myFn"),
       declare: false,
       function: Box::new(Function {
         params: vec![],
@@ -1717,7 +1694,7 @@ mod get_var_decl_by_ident_function_map_tests {
   fn returns_var_decl_from_mapper_function() {
     let mut state = StateManager::default();
     let mut fns = FunctionMap::default();
-    let mapper: Rc<dyn Fn() -> Expr + 'static> = Rc::new(|| make_num_expr(99.0));
+    let mapper: Rc<dyn Fn() -> Expr + 'static> = Rc::new(|| create_number_expr(99.0));
     fns.identifiers.insert(
       "myMapper".into(),
       Box::new(FunctionConfigType::Regular(FunctionConfig {
@@ -1725,7 +1702,7 @@ mod get_var_decl_by_ident_function_map_tests {
         takes_path: false,
       })),
     );
-    let ident = make_ident("myMapper");
+    let ident = create_ident("myMapper");
     let result = get_var_decl_by_ident(&ident, &mut state, &fns);
     assert!(result.is_some());
   }
@@ -1739,7 +1716,7 @@ mod get_var_decl_by_ident_function_map_tests {
       "envObj".into(),
       Box::new(FunctionConfigType::EnvObject(IndexMap::new())),
     );
-    let ident = make_ident("envObj");
+    let ident = create_ident("envObj");
     let result = get_var_decl_by_ident(&ident, &mut state, &fns);
     assert!(result.is_none());
   }
@@ -1761,7 +1738,7 @@ mod deep_merge_props_extra_edge_tests {
         span: DUMMY_SP,
         sym: key.into(),
       }),
-      value: Box::new(make_num_expr(val)),
+      value: Box::new(create_number_expr(val)),
     })))
   }
 
@@ -1805,7 +1782,7 @@ mod deep_merge_props_extra_edge_tests {
     // This triggers the `_ => false` at line 322 in deep_merge_props
     let spread = PropOrSpread::Spread(SpreadElement {
       dot3_token: DUMMY_SP,
-      expr: Box::new(make_num_expr(0.0)),
+      expr: Box::new(create_number_expr(0.0)),
     });
     let inner_old = vec![make_kv_prop("x", 1.0)];
     let old = vec![make_kv_obj_prop("shared", inner_old)];
@@ -1830,7 +1807,7 @@ mod get_key_values_from_object_spread_tests {
       span: DUMMY_SP,
       props: vec![PropOrSpread::Spread(SpreadElement {
         dot3_token: DUMMY_SP,
-        expr: Box::new(make_num_expr(1.0)),
+        expr: Box::new(create_number_expr(1.0)),
       })],
     };
     get_key_values_from_object(&obj);
@@ -1853,7 +1830,7 @@ mod get_import_by_ident_tests {
       span: DUMMY_SP,
       specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
         span: DUMMY_SP,
-        local: make_ident("stylex"),
+        local: create_ident("stylex"),
         imported: None,
         is_type_only: false,
       })],
@@ -1866,14 +1843,14 @@ mod get_import_by_ident_tests {
       with: None,
       phase: Default::default(),
     });
-    let ident = make_ident("stylex");
+    let ident = create_ident("stylex");
     assert!(get_import_by_ident(&ident, &state).is_some());
   }
 
   #[test]
   fn returns_none_for_missing() {
     let state = StateManager::default();
-    let ident = make_ident("missing");
+    let ident = create_ident("missing");
     assert!(get_import_by_ident(&ident, &state).is_none());
   }
 }
@@ -1889,16 +1866,16 @@ mod get_var_decl_from_tests {
   #[test]
   fn finds_matching_declaration() {
     let mut state = StateManager::default();
-    let decl = make_var_declarator("x", make_num_expr(1.0));
+    let decl = make_var_declarator("x", create_number_expr(1.0));
     fill_state_declarations(&mut state, &decl);
-    let ident = make_ident("x");
+    let ident = create_ident("x");
     assert!(get_var_decl_from(&state, &ident).is_some());
   }
 
   #[test]
   fn returns_none_for_no_match() {
     let state = StateManager::default();
-    let ident = make_ident("nonexistent");
+    let ident = create_ident("nonexistent");
     assert!(get_var_decl_from(&state, &ident).is_none());
   }
 }
@@ -1952,7 +1929,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
       _state: &mut dyn stylex_types::traits::StyleOptions,
       _fns: &crate::shared::structures::functions::FunctionMap,
     ) -> Expr {
-      make_num_expr(0.0)
+      create_number_expr(0.0)
     }
     fns.identifiers.insert(
       "arrFn".into(),
@@ -1961,7 +1938,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
         takes_path: false,
       })),
     );
-    let ident = make_ident("arrFn");
+    let ident = create_ident("arrFn");
     get_var_decl_by_ident(&ident, &mut state, &fns);
   }
 
@@ -1974,7 +1951,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
       "mapFn".into(),
       Box::new(FunctionConfigType::Map(Default::default())),
     );
-    let ident = make_ident("mapFn");
+    let ident = create_ident("mapFn");
     get_var_decl_by_ident(&ident, &mut state, &fns);
   }
 
@@ -1987,7 +1964,7 @@ mod get_var_decl_by_ident_fn_map_panic_tests {
       "imapFn".into(),
       Box::new(FunctionConfigType::IndexMap(Default::default())),
     );
-    let ident = make_ident("imapFn");
+    let ident = create_ident("imapFn");
     get_var_decl_by_ident(&ident, &mut state, &fns);
   }
 }
@@ -2014,7 +1991,7 @@ mod fill_top_level_non_ident_pattern_tests {
         optional: false,
         type_ann: None,
       }),
-      init: Some(Box::new(make_num_expr(1.0))),
+      init: Some(Box::new(create_number_expr(1.0))),
       definite: false,
     };
     let module = Module {
@@ -2050,7 +2027,7 @@ mod fill_top_level_non_ident_pattern_tests {
         optional: false,
         type_ann: None,
       }),
-      init: Some(Box::new(make_num_expr(1.0))),
+      init: Some(Box::new(create_number_expr(1.0))),
       definite: false,
     };
     let module = Module {
@@ -2113,7 +2090,7 @@ mod fill_top_level_non_ident_pattern_tests {
   #[test]
   fn export_decl_with_pattern_ignores_a_non_call_initializer() {
     let mut state = StateManager::default();
-    fill_top_level_expressions(&pattern_bound_export(make_num_expr(1.0)), &mut state);
+    fill_top_level_expressions(&pattern_bound_export(create_number_expr(1.0)), &mut state);
 
     assert!(state.pattern_bound_top_level_calls.is_empty());
   }
@@ -2122,7 +2099,7 @@ mod fill_top_level_non_ident_pattern_tests {
     CallExpr {
       span,
       ctxt: SyntaxContext::empty(),
-      callee: Callee::Expr(Box::new(Expr::Ident(make_ident("defineMarker")))),
+      callee: Callee::Expr(Box::new(Expr::Ident(create_ident("defineMarker")))),
       args: vec![],
       type_args: None,
     }
@@ -2174,7 +2151,7 @@ mod get_css_value_panic_tests {
   fn panics_on_spread_in_css_value_object() {
     let spread = PropOrSpread::Spread(SpreadElement {
       dot3_token: DUMMY_SP,
-      expr: Box::new(make_num_expr(1.0)),
+      expr: Box::new(create_number_expr(1.0)),
     });
     let obj = ObjectLit {
       span: DUMMY_SP,
@@ -2227,7 +2204,7 @@ mod get_css_value_panic_tests {
         span: DUMMY_SP,
         sym: "syntax".into(),
       }),
-      value: Box::new(make_str_expr("<length>")),
+      value: Box::new(create_string_expr("<length>")),
     })));
     let num_key_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
       key: PropName::Num(Number {
@@ -2235,14 +2212,14 @@ mod get_css_value_panic_tests {
         value: 42.0,
         raw: None,
       }),
-      value: Box::new(make_num_expr(10.0)),
+      value: Box::new(create_number_expr(10.0)),
     })));
     let value_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
       key: PropName::Ident(IdentName {
         span: DUMMY_SP,
         sym: "value".into(),
       }),
-      value: Box::new(make_num_expr(10.0)),
+      value: Box::new(create_number_expr(10.0)),
     })));
     let obj = ObjectLit {
       span: DUMMY_SP,
@@ -2266,11 +2243,11 @@ mod get_css_value_panic_tests {
         span: DUMMY_SP,
         sym: "syntax".into(),
       }),
-      value: Box::new(make_str_expr("<length>")),
+      value: Box::new(create_string_expr("<length>")),
     })));
     let spread = PropOrSpread::Spread(SpreadElement {
       dot3_token: DUMMY_SP,
-      expr: Box::new(make_num_expr(1.0)),
+      expr: Box::new(create_number_expr(1.0)),
     });
     let obj = ObjectLit {
       span: DUMMY_SP,
@@ -2303,7 +2280,7 @@ mod deep_merge_props_bigint_key_tests {
         span: DUMMY_SP,
         sym: key.into(),
       }),
-      value: Box::new(make_num_expr(val)),
+      value: Box::new(create_number_expr(val)),
     })))
   }
 

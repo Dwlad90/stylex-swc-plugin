@@ -1,7 +1,9 @@
 use crate::shared::{
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
-    ast::convertors::{create_bool_expr, create_null_expr, create_number_expr, create_string_expr},
+    ast::convertors::{
+      create_bool_expr, create_ident_expr, create_null_expr, create_number_expr, create_string_expr,
+    },
     js::evaluate::evaluate,
   },
 };
@@ -21,11 +23,6 @@ use swc_core::{
 // Helper: Create undefined expression
 fn make_undefined_expr() -> Expr {
   Expr::Ident(create_ident("undefined"))
-}
-
-// Helper: Create identifier expression
-fn make_ident_expr(name: &str) -> Expr {
-  Expr::Ident(create_ident(name))
 }
 
 // Helper: Create regular member expression
@@ -105,7 +102,7 @@ fn test_optional_chaining_with_undefined_returns_none() {
 
 #[test]
 fn test_optional_chaining_with_variable_not_confident() {
-  let opt_chain = make_optional_member_expr(make_ident_expr("obj"), "prop");
+  let opt_chain = make_optional_member_expr(create_ident_expr("obj"), "prop");
   let (confident, _has_value) = evaluate_expr(&opt_chain);
   assert!(
     !confident,
@@ -122,7 +119,7 @@ fn test_optional_chaining_null_no_panic() {
 
 #[test]
 fn test_optional_chaining_with_nested_member() {
-  let opt_chain = make_optional_member_expr(make_ident_expr("obj"), "nested");
+  let opt_chain = make_optional_member_expr(create_ident_expr("obj"), "nested");
   let (confident, _has_value) = evaluate_expr(&opt_chain);
   assert!(!confident, "Variable reference should not be confident");
 }
@@ -137,7 +134,10 @@ fn test_optional_chaining_null_short_circuit() {
 #[test]
 fn test_optional_chaining_multiple_levels() {
   let chain = make_optional_member_expr(
-    make_optional_member_expr(make_optional_member_expr(make_ident_expr("obj"), "a"), "b"),
+    make_optional_member_expr(
+      make_optional_member_expr(create_ident_expr("obj"), "a"),
+      "b",
+    ),
     "c",
   );
   let (confident, _has_value) = evaluate_expr(&chain);
@@ -158,7 +158,7 @@ fn test_optional_chaining_computed_property() {
     optional: true,
     base: Box::new(OptChainBase::Member(MemberExpr {
       span: DUMMY_SP,
-      obj: Box::new(make_ident_expr("obj")),
+      obj: Box::new(create_ident_expr("obj")),
       prop: MemberProp::Computed(ComputedPropName {
         span: DUMMY_SP,
         expr: Box::new(create_string_expr("prop")),
@@ -171,8 +171,8 @@ fn test_optional_chaining_computed_property() {
 
 #[test]
 fn test_optional_vs_regular_member_access() {
-  let regular = make_member_expr(make_ident_expr("obj"), "prop");
-  let optional = make_optional_member_expr(make_ident_expr("obj"), "prop");
+  let regular = make_member_expr(create_ident_expr("obj"), "prop");
+  let optional = make_optional_member_expr(create_ident_expr("obj"), "prop");
 
   let (regular_confident, _) = evaluate_expr(&regular);
   let (optional_confident, _) = evaluate_expr(&optional);
@@ -191,7 +191,7 @@ fn test_optional_vs_regular_member_access() {
 
 #[test]
 fn test_await_with_variable() {
-  let await_expr = make_await_expr(make_ident_expr("someVar"));
+  let await_expr = make_await_expr(create_ident_expr("someVar"));
   let (confident, _has_value) = evaluate_expr(&await_expr);
   assert!(!confident, "Variable reference should not be confident");
 }
@@ -236,7 +236,7 @@ fn test_await_removes_await_keyword() {
 #[test]
 fn test_await_with_optional_chaining() {
   // Test: await obj?.prop
-  let optional_member = make_optional_member_expr(make_ident_expr("obj"), "prop");
+  let optional_member = make_optional_member_expr(create_ident_expr("obj"), "prop");
   let await_expr = make_await_expr(optional_member);
   let (confident, _has_value) = evaluate_expr(&await_expr);
   assert!(!confident, "Variable in await should not be confident");
@@ -295,7 +295,7 @@ fn test_boolean_literal_evaluation() {
 
 #[test]
 fn test_variable_reference_not_confident() {
-  let var_expr = make_ident_expr("myVar");
+  let var_expr = create_ident_expr("myVar");
   let (confident, _has_value) = evaluate_expr(&var_expr);
   assert!(!confident, "Variable reference should not be confident");
 }
@@ -328,7 +328,7 @@ fn test_unary_not_boolean() {
 
 #[test]
 fn test_unary_minus_variable() {
-  let unary_expr = make_unary_expr(UnaryOp::Minus, make_ident_expr("x"));
+  let unary_expr = make_unary_expr(UnaryOp::Minus, create_ident_expr("x"));
   let (confident, _has_value) = evaluate_expr(&unary_expr);
   assert!(
     !confident,
@@ -382,7 +382,11 @@ fn test_binary_multiplication_numbers() {
 
 #[test]
 fn test_binary_with_variable() {
-  let bin_expr = make_binary_expr(make_ident_expr("x"), BinaryOp::Add, create_number_expr(5.0));
+  let bin_expr = make_binary_expr(
+    create_ident_expr("x"),
+    BinaryOp::Add,
+    create_number_expr(5.0),
+  );
   let (confident, _has_value) = evaluate_expr(&bin_expr);
   assert!(
     !confident,
@@ -422,7 +426,7 @@ fn test_binary_logical_or() {
 
 #[test]
 fn test_member_access_with_variable() {
-  let member_expr = make_member_expr(make_ident_expr("obj"), "prop");
+  let member_expr = make_member_expr(create_ident_expr("obj"), "prop");
   let (confident, _has_value) = evaluate_expr(&member_expr);
   assert!(
     !confident,
@@ -432,7 +436,7 @@ fn test_member_access_with_variable() {
 
 #[test]
 fn test_member_access_nested() {
-  let nested = make_member_expr(make_member_expr(make_ident_expr("obj"), "a"), "b");
+  let nested = make_member_expr(make_member_expr(create_ident_expr("obj"), "a"), "b");
   let (confident, _has_value) = evaluate_expr(&nested);
   assert!(
     !confident,
@@ -445,7 +449,7 @@ fn test_member_access_nested() {
 #[test]
 fn test_nested_optional_chaining() {
   let nested = make_optional_member_expr(
-    make_optional_member_expr(make_ident_expr("obj"), "prop1"),
+    make_optional_member_expr(create_ident_expr("obj"), "prop1"),
     "prop2",
   );
   let (confident, _has_value) = evaluate_expr(&nested);
@@ -468,7 +472,7 @@ fn test_await_then_optional_chain() {
 
 #[test]
 fn test_unary_on_optional_chain() {
-  let optional = make_optional_member_expr(make_ident_expr("obj"), "prop");
+  let optional = make_optional_member_expr(create_ident_expr("obj"), "prop");
   let unary = make_unary_expr(UnaryOp::Bang, optional);
   let (confident, _has_value) = evaluate_expr(&unary);
   assert!(
@@ -479,8 +483,8 @@ fn test_unary_on_optional_chain() {
 
 #[test]
 fn test_binary_on_optional_chains() {
-  let opt1 = make_optional_member_expr(make_ident_expr("a"), "x");
-  let opt2 = make_optional_member_expr(make_ident_expr("b"), "y");
+  let opt1 = make_optional_member_expr(create_ident_expr("a"), "x");
+  let opt2 = make_optional_member_expr(create_ident_expr("b"), "y");
   let binary = make_binary_expr(opt1, BinaryOp::Add, opt2);
   let (confident, _has_value) = evaluate_expr(&binary);
   assert!(
@@ -499,7 +503,7 @@ fn test_multiple_levels_of_optional_chaining_with_null_at_end() {
 #[test]
 fn test_await_with_multiple_chained_operations() {
   // await (await someVar)
-  let inner_await = make_await_expr(make_ident_expr("someVar"));
+  let inner_await = make_await_expr(create_ident_expr("someVar"));
   let outer_await = make_await_expr(inner_await);
   let (confident, _has_value) = evaluate_expr(&outer_await);
   assert!(
@@ -511,7 +515,7 @@ fn test_await_with_multiple_chained_operations() {
 #[test]
 fn test_complex_expression_await_optional_unary() {
   // Complex: await !(obj?.prop)
-  let optional = make_optional_member_expr(make_ident_expr("obj"), "prop");
+  let optional = make_optional_member_expr(create_ident_expr("obj"), "prop");
   let unary = make_unary_expr(UnaryOp::Bang, optional);
   let await_expr = make_await_expr(unary);
   let (confident, _has_value) = evaluate_expr(&await_expr);
@@ -662,7 +666,7 @@ fn test_regex_test_method_with_variable() {
   // Test: /regex/.test(someVar)
   let regex_expr = make_regex_expr("test", "");
   let member_expr = make_member_expr(regex_expr, "test");
-  let call_expr = make_call_expr(member_expr, vec![make_ident_expr("someVar")]);
+  let call_expr = make_call_expr(member_expr, vec![create_ident_expr("someVar")]);
   let (confident, _has_value) = evaluate_expr(&call_expr);
   assert!(
     !confident,
@@ -688,7 +692,7 @@ fn test_regex_exec_method() {
   // Test: /regex/.exec(someVar)
   let regex_expr = make_regex_expr("test", "");
   let member_expr = make_member_expr(regex_expr, "exec");
-  let call_expr = make_call_expr(member_expr, vec![make_ident_expr("someVar")]);
+  let call_expr = make_call_expr(member_expr, vec![create_ident_expr("someVar")]);
   let (confident, _has_value) = evaluate_expr(&call_expr);
   assert!(
     !confident,
@@ -732,7 +736,7 @@ fn test_regex_test_method_with_nullish_coalescing() {
   let member_expr = make_member_expr(regex_expr, "test");
   // Using binary expression for nullish coalescing
   let nullish = make_binary_expr(
-    make_ident_expr("pattern"),
+    create_ident_expr("pattern"),
     BinaryOp::NullishCoalescing,
     create_string_expr(""),
   );
@@ -863,7 +867,7 @@ fn test_object_eval_failure_reason_includes_property_key() {
     span: DUMMY_SP,
     props: vec![PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
       key: PropName::Ident(IdentName::new("color".into(), DUMMY_SP)),
-      value: Box::new(make_ident_expr("someVar")),
+      value: Box::new(create_ident_expr("someVar")),
     })))],
   });
 
@@ -888,7 +892,7 @@ fn test_object_eval_failure_reason_includes_nested_key() {
     span: DUMMY_SP,
     props: vec![PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
       key: PropName::Ident(IdentName::new("backgroundColor".into(), DUMMY_SP)),
-      value: Box::new(make_ident_expr("dynamicValue")),
+      value: Box::new(create_ident_expr("dynamicValue")),
     })))],
   });
 

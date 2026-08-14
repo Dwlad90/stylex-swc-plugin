@@ -1,41 +1,13 @@
 use super::*;
-use swc_core::{
-  common::SyntaxContext,
-  ecma::ast::{Ident, Str},
-};
-
-fn make_num_expr(val: f64) -> Expr {
-  Expr::Lit(Lit::Num(Number {
-    value: val,
-    span: Default::default(),
-    raw: None,
-  }))
-}
-
-fn make_str_expr(val: &str) -> Expr {
-  Expr::Lit(Lit::Str(Str {
-    value: val.into(),
-    span: Default::default(),
-    raw: None,
-  }))
-}
-
-fn make_ident_expr(name: &str) -> Expr {
-  Expr::Ident(Ident {
-    span: Default::default(),
-    sym: name.into(),
-    optional: false,
-    ctxt: SyntaxContext::empty(),
-  })
-}
+use stylex_ast::ast::convertors::create_ident_expr;
 
 #[test]
 fn test_binary_expr_to_num_arithmetic() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_num_expr(10.0));
-  let right = Box::new(make_num_expr(2.0));
+  let left = Box::new(create_number_expr(10.0));
+  let right = Box::new(create_number_expr(2.0));
   let ops = [
     BinaryOp::Add,
     BinaryOp::Sub,
@@ -65,8 +37,8 @@ fn test_binary_expr_to_num_comparison() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_num_expr(10.0));
-  let right = Box::new(make_num_expr(2.0));
+  let left = Box::new(create_number_expr(10.0));
+  let right = Box::new(create_number_expr(2.0));
   let cases = [
     (BinaryOp::Lt, 0.0),
     (BinaryOp::LtEq, 0.0),
@@ -97,8 +69,8 @@ fn test_binary_expr_to_num_bitwise() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_num_expr(6.0));
-  let right = Box::new(make_num_expr(3.0));
+  let left = Box::new(create_number_expr(6.0));
+  let right = Box::new(create_number_expr(3.0));
   let cases = [
     (BinaryOp::BitAnd, 2.0),
     (BinaryOp::BitOr, 7.0),
@@ -127,8 +99,8 @@ fn test_binary_expr_to_num_logical() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_num_expr(0.0));
-  let right = Box::new(make_num_expr(5.0));
+  let left = Box::new(create_number_expr(0.0));
+  let right = Box::new(create_number_expr(5.0));
   let bin_or = BinExpr {
     op: BinaryOp::LogicalOr,
     left,
@@ -140,8 +112,8 @@ fn test_binary_expr_to_num_logical() {
     BinaryExprType::Number(n) => assert_eq!(n, 5.0),
     _ => panic!("Expected number result"),
   }
-  let left = Box::new(make_num_expr(2.0));
-  let right = Box::new(make_num_expr(0.0));
+  let left = Box::new(create_number_expr(2.0));
+  let right = Box::new(create_number_expr(0.0));
   let bin_and = BinExpr {
     op: BinaryOp::LogicalAnd,
     left,
@@ -153,8 +125,8 @@ fn test_binary_expr_to_num_logical() {
     BinaryExprType::Number(n) => assert_eq!(n, 0.0),
     _ => panic!("Expected number result"),
   }
-  let left = Box::new(make_num_expr(0.0));
-  let right = Box::new(make_num_expr(7.0));
+  let left = Box::new(create_number_expr(0.0));
+  let right = Box::new(create_number_expr(7.0));
   let bin_nullish = BinExpr {
     op: BinaryOp::NullishCoalescing,
     left,
@@ -174,8 +146,8 @@ fn test_binary_expr_to_string_add() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_str_expr("foo"));
-  let right = Box::new(make_str_expr("bar"));
+  let left = Box::new(create_string_expr("foo"));
+  let right = Box::new(create_string_expr("bar"));
   let bin = BinExpr {
     op: BinaryOp::Add,
     left,
@@ -195,8 +167,8 @@ fn test_binary_expr_to_string_non_add() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_str_expr("foo"));
-  let right = Box::new(make_str_expr("bar"));
+  let left = Box::new(create_string_expr("foo"));
+  let right = Box::new(create_string_expr("bar"));
   let bin = BinExpr {
     op: BinaryOp::Sub,
     left,
@@ -211,9 +183,9 @@ fn test_binary_expr_to_num_in_operator() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_num_expr(10.0));
-  let right_zero = Box::new(make_num_expr(0.0));
-  let right_non_zero = Box::new(make_num_expr(1.0));
+  let left = Box::new(create_number_expr(10.0));
+  let right_zero = Box::new(create_number_expr(0.0));
+  let right_non_zero = Box::new(create_number_expr(1.0));
 
   let bin_zero = BinExpr {
     op: BinaryOp::In,
@@ -246,9 +218,9 @@ fn test_binary_expr_to_num_instanceof_operator() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_num_expr(10.0));
-  let right_zero = Box::new(make_num_expr(0.0));
-  let right_non_zero = Box::new(make_num_expr(2.0));
+  let left = Box::new(create_number_expr(10.0));
+  let right_zero = Box::new(create_number_expr(0.0));
+  let right_non_zero = Box::new(create_number_expr(2.0));
 
   let bin_zero = BinExpr {
     op: BinaryOp::InstanceOf,
@@ -281,8 +253,8 @@ fn test_binary_expr_add_strings_returns_string() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_str_expr("foo"));
-  let right = Box::new(make_str_expr("bar"));
+  let left = Box::new(create_string_expr("foo"));
+  let right = Box::new(create_string_expr("bar"));
   let bin = BinExpr {
     op: BinaryOp::Add,
     left,
@@ -301,8 +273,8 @@ fn test_binary_expr_to_num_left_unresolved_returns_err() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_ident_expr("x"));
-  let right = Box::new(make_num_expr(1.0));
+  let left = Box::new(create_ident_expr("x"));
+  let right = Box::new(create_number_expr(1.0));
   let bin = BinExpr {
     op: BinaryOp::Add,
     left,
@@ -321,8 +293,8 @@ fn test_binary_expr_to_num_logical_or_with_unresolved_right_returns_left() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_num_expr(3.0));
-  let right = Box::new(make_ident_expr("unknown"));
+  let left = Box::new(create_number_expr(3.0));
+  let right = Box::new(create_ident_expr("unknown"));
   let bin = BinExpr {
     op: BinaryOp::LogicalOr,
     left,
@@ -338,7 +310,7 @@ fn test_binary_expr_to_num_logical_or_with_unresolved_right_returns_left() {
     },
   }
 
-  let left = Box::new(make_num_expr(0.0));
+  let left = Box::new(create_number_expr(0.0));
 
   let bin = BinExpr {
     op: BinaryOp::LogicalOr,
@@ -362,8 +334,8 @@ fn test_binary_expr_to_string_right_unresolved_returns_null_on_add() {
   state.confident = false;
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_str_expr("foo"));
-  let right = Box::new(make_ident_expr("bar"));
+  let left = Box::new(create_string_expr("foo"));
+  let right = Box::new(create_ident_expr("bar"));
   let bin = BinExpr {
     op: BinaryOp::Add,
     left,
@@ -382,8 +354,8 @@ fn test_binary_expr_to_string_right_unresolved_logical_or_returns_left() {
   let mut state = EvaluationState::new();
   let mut traversal_state = StateManager::default();
   let fns = FunctionMap::default();
-  let left = Box::new(make_str_expr("foo"));
-  let right = Box::new(make_ident_expr("baz"));
+  let left = Box::new(create_string_expr("foo"));
+  let right = Box::new(create_ident_expr("baz"));
   let bin = BinExpr {
     op: BinaryOp::LogicalOr,
     left,
@@ -411,8 +383,8 @@ mod binary_expr_to_num_comparison_tests {
     let bin = BinExpr {
       span: Default::default(),
       op,
-      left: Box::new(make_num_expr(left)),
-      right: Box::new(make_num_expr(right)),
+      left: Box::new(create_number_expr(left)),
+      right: Box::new(create_number_expr(right)),
     };
     match binary_expr_to_num(&bin, &mut state, &mut traversal_state, &fns).unwrap() {
       BinaryExprType::Number(n) => n,
@@ -582,8 +554,8 @@ mod binary_expr_to_string_non_add_tests {
     let bin = BinExpr {
       span: Default::default(),
       op: BinaryOp::Sub,
-      left: Box::new(make_str_expr("hello")),
-      right: Box::new(make_str_expr("world")),
+      left: Box::new(create_string_expr("hello")),
+      right: Box::new(create_string_expr("world")),
     };
     let _ = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns);
   }
@@ -596,8 +568,8 @@ mod binary_expr_to_string_non_add_tests {
     let bin = BinExpr {
       span: Default::default(),
       op: BinaryOp::Add,
-      left: Box::new(make_str_expr("hello")),
-      right: Box::new(make_str_expr(" world")),
+      left: Box::new(create_string_expr("hello")),
+      right: Box::new(create_string_expr(" world")),
     };
     let result = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns);
     assert!(result.is_ok());
@@ -615,8 +587,8 @@ mod binary_expr_to_string_non_add_tests {
     let bin = BinExpr {
       span: Default::default(),
       op: BinaryOp::Add,
-      left: Box::new(make_num_expr(42.0)),
-      right: Box::new(make_str_expr("world")),
+      left: Box::new(create_number_expr(42.0)),
+      right: Box::new(create_string_expr("world")),
     };
     // Left is not a string, but doesn't necessarily panic -
     // it may return Ok with concatenation via evaluate_cached
@@ -632,8 +604,8 @@ mod binary_expr_to_string_non_add_tests {
     let bin = BinExpr {
       span: Default::default(),
       op: BinaryOp::Add,
-      left: Box::new(make_str_expr("hello")),
-      right: Box::new(make_num_expr(42.0)),
+      left: Box::new(create_string_expr("hello")),
+      right: Box::new(create_number_expr(42.0)),
     };
     let result = binary_expr_to_string(&bin, &mut state, &mut traversal_state, &fns);
     assert!(result.is_ok());
@@ -655,8 +627,8 @@ mod binary_expr_to_num_error_tests {
     let bin = BinExpr {
       span: Default::default(),
       op: BinaryOp::Sub,
-      left: Box::new(make_str_expr("hello")),
-      right: Box::new(make_num_expr(5.0)),
+      left: Box::new(create_string_expr("hello")),
+      right: Box::new(create_number_expr(5.0)),
     };
     let result = binary_expr_to_num(&bin, &mut state, &mut traversal_state, &fns);
     // Expect error since string can't be converted to number

@@ -1,34 +1,13 @@
 use crate::shared::{
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
-  utils::ast::convertors::convert_string_to_prop_name,
+  utils::ast::convertors::{
+    convert_string_to_prop_name, create_ident_expr, create_number_expr, create_string_expr,
+  },
 };
 use swc_core::{
   common::SyntaxContext,
   ecma::ast::{BinExpr, BinaryOp, Expr, Ident, IdentName, Lit, Str},
 };
-
-fn make_num_expr(val: f64) -> Expr {
-  Expr::Lit(Lit::Num(swc_core::ecma::ast::Number {
-    value: val,
-    span: Default::default(),
-    raw: None,
-  }))
-}
-fn make_str_expr(val: &str) -> Expr {
-  Expr::Lit(Lit::Str(Str {
-    value: val.into(),
-    span: Default::default(),
-    raw: None,
-  }))
-}
-fn make_ident_expr(name: &str) -> Expr {
-  Expr::Ident(Ident {
-    span: Default::default(),
-    sym: name.into(),
-    optional: false,
-    ctxt: SyntaxContext::empty(),
-  })
-}
 
 #[test]
 fn string_to_prop_name_with_quotes() {
@@ -144,7 +123,7 @@ fn test_simple_tpl_to_string_with_expressions() {
   // Create a template literal with expressions: `hello ${name}`
   let tpl = Tpl {
     span: Default::default(),
-    exprs: vec![Box::new(make_ident_expr("name"))],
+    exprs: vec![Box::new(create_ident_expr("name"))],
     quasis: vec![
       TplElement {
         span: Default::default(),
@@ -207,7 +186,7 @@ fn test_convert_simple_tpl_to_str_expr_with_expressions() {
   // Create a template with expressions
   let tpl = Tpl {
     span: Default::default(),
-    exprs: vec![Box::new(make_ident_expr("value"))],
+    exprs: vec![Box::new(create_ident_expr("value"))],
     quasis: vec![
       TplElement {
         span: Default::default(),
@@ -246,7 +225,7 @@ fn test_convert_concat_to_tpl_expr_simple() {
     span: Default::default(),
     callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
       span: Default::default(),
-      obj: Box::new(make_str_expr("hello")),
+      obj: Box::new(create_string_expr("hello")),
       prop: MemberProp::Ident(IdentName {
         span: Default::default(),
         sym: "concat".into(),
@@ -254,7 +233,7 @@ fn test_convert_concat_to_tpl_expr_simple() {
     }))),
     args: vec![ExprOrSpread {
       spread: None,
-      expr: Box::new(make_str_expr("world")),
+      expr: Box::new(create_string_expr("world")),
     }],
     ..Default::default()
   };
@@ -290,7 +269,7 @@ fn test_convert_concat_to_tpl_expr_multiple_args() {
     span: Default::default(),
     callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
       span: Default::default(),
-      obj: Box::new(make_str_expr("prefix")),
+      obj: Box::new(create_string_expr("prefix")),
       prop: MemberProp::Ident(IdentName {
         span: Default::default(),
         sym: "concat".into(),
@@ -299,15 +278,15 @@ fn test_convert_concat_to_tpl_expr_multiple_args() {
     args: vec![
       ExprOrSpread {
         spread: None,
-        expr: Box::new(make_ident_expr("var1")),
+        expr: Box::new(create_ident_expr("var1")),
       },
       ExprOrSpread {
         spread: None,
-        expr: Box::new(make_ident_expr("var2")),
+        expr: Box::new(create_ident_expr("var2")),
       },
       ExprOrSpread {
         spread: None,
-        expr: Box::new(make_ident_expr("var3")),
+        expr: Box::new(create_ident_expr("var3")),
       },
     ],
     ..Default::default()
@@ -345,7 +324,7 @@ fn test_convert_concat_to_tpl_expr_not_concat_method() {
     span: Default::default(),
     callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
       span: Default::default(),
-      obj: Box::new(make_str_expr("hello")),
+      obj: Box::new(create_string_expr("hello")),
       prop: MemberProp::Ident(IdentName {
         span: Default::default(),
         sym: "split".into(), // Not "concat"
@@ -353,7 +332,7 @@ fn test_convert_concat_to_tpl_expr_not_concat_method() {
     }))),
     args: vec![ExprOrSpread {
       spread: None,
-      expr: Box::new(make_str_expr("world")),
+      expr: Box::new(create_string_expr("world")),
     }],
     ..Default::default()
   };
@@ -375,7 +354,7 @@ fn test_convert_concat_to_tpl_expr_non_call_expr() {
   use crate::shared::utils::ast::convertors::convert_concat_to_tpl_expr;
 
   // Test with a non-call expression (e.g., just a string)
-  let expr = make_str_expr("hello");
+  let expr = create_string_expr("hello");
   let result = convert_concat_to_tpl_expr(expr);
 
   // Should remain as string literal
@@ -400,7 +379,7 @@ fn test_convert_concat_to_tpl_expr_with_spread() {
     span: Default::default(),
     callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
       span: Default::default(),
-      obj: Box::new(make_str_expr("prefix")),
+      obj: Box::new(create_string_expr("prefix")),
       prop: MemberProp::Ident(IdentName {
         span: Default::default(),
         sym: "concat".into(),
@@ -408,7 +387,7 @@ fn test_convert_concat_to_tpl_expr_with_spread() {
     }))),
     args: vec![ExprOrSpread {
       spread: Some(Default::default()),
-      expr: Box::new(make_ident_expr("args")),
+      expr: Box::new(create_ident_expr("args")),
     }],
     ..Default::default()
   };
@@ -447,7 +426,7 @@ mod convert_unary_to_num_tests {
     UnaryExpr {
       span: Default::default(),
       op,
-      arg: Box::new(make_num_expr(val)),
+      arg: Box::new(create_number_expr(val)),
     }
   }
 
@@ -566,7 +545,7 @@ mod convert_ident_to_expr_tests {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
 
-    let decl = make_var_declarator("myNum", make_num_expr(42.0));
+    let decl = make_var_declarator("myNum", create_number_expr(42.0));
     fill_state_declarations(&mut state, &decl);
     // Set count so reduce doesn't underflow
 
@@ -589,7 +568,7 @@ mod convert_ident_to_expr_tests {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
 
-    let decl = make_var_declarator("myStr", make_str_expr("hello"));
+    let decl = make_var_declarator("myStr", create_string_expr("hello"));
     fill_state_declarations(&mut state, &decl);
 
     let ident = Ident {
@@ -679,7 +658,7 @@ mod convert_expr_to_bool_tests {
   fn nonzero_number_is_truthy() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let expr = make_num_expr(42.0);
+    let expr = create_number_expr(42.0);
     assert!(convert_expr_to_bool(&expr, &mut state, &fns));
   }
 
@@ -687,7 +666,7 @@ mod convert_expr_to_bool_tests {
   fn zero_number_is_falsy() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let expr = make_num_expr(0.0);
+    let expr = create_number_expr(0.0);
     assert!(!convert_expr_to_bool(&expr, &mut state, &fns));
   }
 
@@ -695,7 +674,7 @@ mod convert_expr_to_bool_tests {
   fn nonempty_string_is_truthy() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let expr = make_str_expr("hello");
+    let expr = create_string_expr("hello");
     assert!(convert_expr_to_bool(&expr, &mut state, &fns));
   }
 
@@ -703,7 +682,7 @@ mod convert_expr_to_bool_tests {
   fn empty_string_is_falsy() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let expr = make_str_expr("");
+    let expr = create_string_expr("");
     assert!(!convert_expr_to_bool(&expr, &mut state, &fns));
   }
 
@@ -788,7 +767,7 @@ mod convert_expr_to_bool_tests {
     let expr = Expr::Unary(UnaryExpr {
       span: Default::default(),
       op: UnaryOp::Void,
-      arg: Box::new(make_num_expr(0.0)),
+      arg: Box::new(create_number_expr(0.0)),
     });
     assert!(!convert_expr_to_bool(&expr, &mut state, &fns));
   }
@@ -800,7 +779,7 @@ mod convert_expr_to_bool_tests {
     let expr = Expr::Unary(UnaryExpr {
       span: Default::default(),
       op: UnaryOp::TypeOf,
-      arg: Box::new(make_num_expr(0.0)),
+      arg: Box::new(create_number_expr(0.0)),
     });
     assert!(convert_expr_to_bool(&expr, &mut state, &fns));
   }
@@ -894,7 +873,7 @@ mod convert_expr_to_bool_tests {
     );
     fill_state_declarations(&mut state, &decl);
 
-    let expr = make_ident_expr("flag");
+    let expr = create_ident_expr("flag");
     assert!(convert_expr_to_bool(&expr, &mut state, &fns));
   }
 }
@@ -911,7 +890,7 @@ mod convert_key_value_to_str_tests {
   fn make_kv(key: PropName) -> KeyValueProp {
     KeyValueProp {
       key,
-      value: Box::new(make_num_expr(0.0)),
+      value: Box::new(create_number_expr(0.0)),
     }
   }
 
@@ -951,7 +930,7 @@ mod convert_key_value_to_str_tests {
   fn computed_string_key_returns_value() {
     let kv = make_kv(PropName::Computed(ComputedPropName {
       span: Default::default(),
-      expr: Box::new(make_str_expr("dynamic")),
+      expr: Box::new(create_string_expr("dynamic")),
     }));
     let result = convert_key_value_to_str(&kv);
     assert!(result.contains("dynamic"));
@@ -1015,7 +994,7 @@ mod expr_tpl_to_string_tests {
 
     let tpl = Tpl {
       span: Default::default(),
-      exprs: vec![Box::new(make_num_expr(42.0))],
+      exprs: vec![Box::new(create_number_expr(42.0))],
       quasis: vec![
         TplElement {
           span: Default::default(),
@@ -1042,12 +1021,12 @@ mod expr_tpl_to_string_tests {
     let mut traversal_state = StateManager::default();
     let fns = FunctionMap::default();
 
-    let decl = make_var_declarator("size", make_str_expr("16px"));
+    let decl = make_var_declarator("size", create_string_expr("16px"));
     fill_state_declarations(&mut traversal_state, &decl);
 
     let tpl = Tpl {
       span: Default::default(),
-      exprs: vec![Box::new(make_ident_expr("size"))],
+      exprs: vec![Box::new(create_ident_expr("size"))],
       quasis: vec![
         TplElement {
           span: Default::default(),
@@ -1076,7 +1055,7 @@ mod expr_tpl_to_string_tests {
 
     let tpl = Tpl {
       span: Default::default(),
-      exprs: vec![Box::new(make_str_expr("world"))],
+      exprs: vec![Box::new(create_string_expr("world"))],
       quasis: vec![
         TplElement {
           span: Default::default(),
@@ -1131,12 +1110,12 @@ mod handle_tpl_to_expression_tests {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
 
-    let decl = make_var_declarator("myVar", make_str_expr("replaced"));
+    let decl = make_var_declarator("myVar", create_string_expr("replaced"));
     fill_state_declarations(&mut state, &decl);
 
     let tpl = Tpl {
       span: Default::default(),
-      exprs: vec![Box::new(make_ident_expr("myVar"))],
+      exprs: vec![Box::new(create_ident_expr("myVar"))],
       quasis: vec![
         TplElement {
           span: Default::default(),
@@ -1176,7 +1155,7 @@ mod handle_tpl_to_expression_tests {
 
     let tpl = Tpl {
       span: Default::default(),
-      exprs: vec![Box::new(make_num_expr(42.0))],
+      exprs: vec![Box::new(create_number_expr(42.0))],
       quasis: vec![
         TplElement {
           span: Default::default(),
@@ -1236,7 +1215,7 @@ mod ident_to_number_tests {
     let mut traversal_state = StateManager::default();
     let fns = FunctionMap::default();
 
-    let decl = make_var_declarator("myNum", make_num_expr(42.0));
+    let decl = make_var_declarator("myNum", create_number_expr(42.0));
     fill_state_declarations(&mut traversal_state, &decl);
 
     let ident = Ident {
@@ -1299,7 +1278,7 @@ mod expr_to_num_tests {
     let mut state = EvaluationState::new();
     let mut traversal_state = StateManager::default();
     let fns = FunctionMap::default();
-    let expr = make_num_expr(2.5);
+    let expr = create_number_expr(2.5);
     let result = expr_to_num(&expr, &mut state, &mut traversal_state, &fns).unwrap();
     assert!((result - 2.5).abs() < f64::EPSILON);
   }
@@ -1310,10 +1289,10 @@ mod expr_to_num_tests {
     let mut traversal_state = StateManager::default();
     let fns = FunctionMap::default();
 
-    let decl = make_var_declarator("val", make_num_expr(99.0));
+    let decl = make_var_declarator("val", create_number_expr(99.0));
     fill_state_declarations(&mut traversal_state, &decl);
 
-    let expr = make_ident_expr("val");
+    let expr = create_ident_expr("val");
     let result = expr_to_num(&expr, &mut state, &mut traversal_state, &fns).unwrap();
     assert_eq!(result, 99.0);
   }
@@ -1326,7 +1305,7 @@ mod expr_to_num_tests {
     let expr = Expr::Unary(UnaryExpr {
       span: Default::default(),
       op: UnaryOp::Minus,
-      arg: Box::new(make_num_expr(5.0)),
+      arg: Box::new(create_number_expr(5.0)),
     });
     let result = expr_to_num(&expr, &mut state, &mut traversal_state, &fns).unwrap();
     assert_eq!(result, -5.0);
@@ -1340,8 +1319,8 @@ mod expr_to_num_tests {
     let expr = Expr::Bin(BinExpr {
       span: Default::default(),
       op: BinaryOp::Add,
-      left: Box::new(make_num_expr(3.0)),
-      right: Box::new(make_num_expr(4.0)),
+      left: Box::new(create_number_expr(3.0)),
+      right: Box::new(create_number_expr(4.0)),
     });
     let result = expr_to_num(&expr, &mut state, &mut traversal_state, &fns).unwrap();
     assert_eq!(result, 7.0);
@@ -1380,7 +1359,7 @@ mod convert_expr_to_str_tests {
   fn string_literal_returns_string() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let expr = make_str_expr("hello");
+    let expr = create_string_expr("hello");
     let result = convert_expr_to_str(&expr, &mut state, &fns);
     assert_eq!(result, Some("hello".to_string()));
   }
@@ -1389,9 +1368,9 @@ mod convert_expr_to_str_tests {
   fn ident_resolves_to_string() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let decl = make_var_declarator("color", make_str_expr("red"));
+    let decl = make_var_declarator("color", create_string_expr("red"));
     fill_state_declarations(&mut state, &decl);
-    let expr = make_ident_expr("color");
+    let expr = create_ident_expr("color");
     let result = convert_expr_to_str(&expr, &mut state, &fns);
     assert_eq!(result, Some("red".to_string()));
   }
@@ -1400,7 +1379,7 @@ mod convert_expr_to_str_tests {
   fn number_literal_returns_string() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let expr = make_num_expr(42.0);
+    let expr = create_number_expr(42.0);
     let result = convert_expr_to_str(&expr, &mut state, &fns);
     assert_eq!(result, Some("42".to_string()));
   }
@@ -1427,7 +1406,7 @@ mod convert_expr_to_str_tests {
   fn unbound_ident_returns_none() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let expr = make_ident_expr("undefined");
+    let expr = create_ident_expr("undefined");
     assert_eq!(convert_expr_to_str(&expr, &mut state, &fns), None);
   }
 
@@ -1445,7 +1424,7 @@ mod convert_expr_to_str_tests {
       }),
     );
     fill_state_declarations(&mut state, &decl);
-    let expr = make_ident_expr("shape");
+    let expr = create_ident_expr("shape");
     assert_eq!(convert_expr_to_str(&expr, &mut state, &fns), None);
   }
 }
@@ -1467,7 +1446,7 @@ mod convert_key_value_to_str_bigint_tests {
         value: Box::new(100u32.into()),
         raw: None,
       }),
-      value: Box::new(make_num_expr(0.0)),
+      value: Box::new(create_number_expr(0.0)),
     };
     let result = convert_key_value_to_str(&kv);
     assert!(result.contains("100"));
@@ -1508,8 +1487,8 @@ mod ident_to_number_extended_tests {
     let bin_expr = Expr::Bin(BinExpr {
       span: Default::default(),
       op: BinaryOp::Add,
-      left: Box::new(make_num_expr(3.0)),
-      right: Box::new(make_num_expr(7.0)),
+      left: Box::new(create_number_expr(3.0)),
+      right: Box::new(create_number_expr(7.0)),
     });
     let decl = make_var_declarator("sum", bin_expr);
     fill_state_declarations(&mut traversal_state, &decl);
@@ -1531,7 +1510,7 @@ mod ident_to_number_extended_tests {
     let unary_expr = Expr::Unary(UnaryExpr {
       span: Default::default(),
       op: UnaryOp::Minus,
-      arg: Box::new(make_num_expr(5.0)),
+      arg: Box::new(create_number_expr(5.0)),
     });
     let decl = make_var_declarator("neg", unary_expr);
     fill_state_declarations(&mut traversal_state, &decl);
@@ -1566,7 +1545,7 @@ mod ident_to_number_extended_tests {
     let mut state = EvaluationState::new();
     let mut traversal_state = StateManager::default();
     let fns = FunctionMap::default();
-    let decl = make_var_declarator("s", make_str_expr("hello"));
+    let decl = make_var_declarator("s", create_string_expr("hello"));
     fill_state_declarations(&mut traversal_state, &decl);
     let ident = Ident {
       span: Default::default(),
@@ -1610,12 +1589,12 @@ mod handle_tpl_to_expression_extended_tests {
   fn replaces_ident_with_var_decl_init_extended() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let decl = make_var_declarator("val", make_num_expr(42.0));
+    let decl = make_var_declarator("val", create_number_expr(42.0));
     fill_state_declarations(&mut state, &decl);
 
     let tpl = Tpl {
       span: Default::default(),
-      exprs: vec![Box::new(make_ident_expr("val"))],
+      exprs: vec![Box::new(create_ident_expr("val"))],
       quasis: vec![
         TplElement {
           span: Default::default(),
@@ -1641,7 +1620,7 @@ mod handle_tpl_to_expression_extended_tests {
     let fns = FunctionMap::default();
     let tpl = Tpl {
       span: Default::default(),
-      exprs: vec![Box::new(make_num_expr(10.0))],
+      exprs: vec![Box::new(create_number_expr(10.0))],
       quasis: vec![
         TplElement {
           span: Default::default(),
@@ -1700,8 +1679,8 @@ mod expr_tpl_to_string_extended_tests {
       exprs: vec![Box::new(Expr::Bin(BinExpr {
         span: Default::default(),
         op: BinaryOp::Add,
-        left: Box::new(make_num_expr(3.0)),
-        right: Box::new(make_num_expr(4.0)),
+        left: Box::new(create_number_expr(3.0)),
+        right: Box::new(create_number_expr(4.0)),
       }))],
       quasis: vec![
         TplElement {
@@ -1729,7 +1708,7 @@ mod expr_tpl_to_string_extended_tests {
     let fns = FunctionMap::default();
     let tpl = Tpl {
       span: Default::default(),
-      exprs: vec![Box::new(make_num_expr(42.0))],
+      exprs: vec![Box::new(create_number_expr(42.0))],
       quasis: vec![
         TplElement {
           span: Default::default(),
@@ -1754,11 +1733,11 @@ mod expr_tpl_to_string_extended_tests {
     let mut state = EvaluationState::new();
     let mut traversal_state = StateManager::default();
     let fns = FunctionMap::default();
-    let decl = make_var_declarator("unit", make_str_expr("em"));
+    let decl = make_var_declarator("unit", create_string_expr("em"));
     fill_state_declarations(&mut traversal_state, &decl);
     let tpl = Tpl {
       span: Default::default(),
-      exprs: vec![Box::new(make_ident_expr("unit"))],
+      exprs: vec![Box::new(create_ident_expr("unit"))],
       quasis: vec![
         TplElement {
           span: Default::default(),
@@ -1795,8 +1774,8 @@ mod transform_bin_expr_to_number_tests {
     let bin = BinExpr {
       span: Default::default(),
       op: BinaryOp::Add,
-      left: Box::new(make_num_expr(3.0)),
-      right: Box::new(make_num_expr(4.0)),
+      left: Box::new(create_number_expr(3.0)),
+      right: Box::new(create_number_expr(4.0)),
     };
     let result = transform_bin_expr_to_number(&bin, &mut state, &mut traversal_state, &fns);
     assert_eq!(result, 7.0);
@@ -1810,8 +1789,8 @@ mod transform_bin_expr_to_number_tests {
     let bin = BinExpr {
       span: Default::default(),
       op: BinaryOp::Mul,
-      left: Box::new(make_num_expr(3.0)),
-      right: Box::new(make_num_expr(5.0)),
+      left: Box::new(create_number_expr(3.0)),
+      right: Box::new(create_number_expr(5.0)),
     };
     let result = transform_bin_expr_to_number(&bin, &mut state, &mut traversal_state, &fns);
     assert_eq!(result, 15.0);
@@ -1835,7 +1814,7 @@ mod convert_expr_to_bool_extra_tests {
     let expr = Expr::Unary(UnaryExpr {
       span: Default::default(),
       op: UnaryOp::Minus,
-      arg: Box::new(make_num_expr(0.0)),
+      arg: Box::new(create_number_expr(0.0)),
     });
     assert!(convert_expr_to_bool(&expr, &mut state, &fns));
   }
@@ -1848,7 +1827,7 @@ mod convert_expr_to_bool_extra_tests {
     let expr = Expr::Unary(UnaryExpr {
       span: Default::default(),
       op: UnaryOp::Plus,
-      arg: Box::new(make_num_expr(0.0)),
+      arg: Box::new(create_number_expr(0.0)),
     });
     assert!(convert_expr_to_bool(&expr, &mut state, &fns));
   }
@@ -1862,7 +1841,7 @@ mod convert_expr_to_bool_extra_tests {
     let expr = Expr::Unary(UnaryExpr {
       span: Default::default(),
       op: UnaryOp::Tilde,
-      arg: Box::new(make_num_expr(1.0)),
+      arg: Box::new(create_number_expr(1.0)),
     });
     assert!(!convert_expr_to_bool(&expr, &mut state, &fns));
   }
@@ -1921,7 +1900,7 @@ mod convert_ident_to_expr_extended_tests {
   fn resolves_ident_to_expr_value() {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
-    let decl = make_var_declarator("x", make_num_expr(42.0));
+    let decl = make_var_declarator("x", create_number_expr(42.0));
     fill_state_declarations(&mut state, &decl);
     let ident = Ident {
       span: Default::default(),
@@ -2047,7 +2026,7 @@ mod convert_expr_to_bool_unsupported_tests {
     let expr = Expr::Unary(UnaryExpr {
       span: Default::default(),
       op: swc_core::ecma::ast::UnaryOp::Delete,
-      arg: Box::new(make_num_expr(1.0)),
+      arg: Box::new(create_number_expr(1.0)),
     });
     convert_expr_to_bool(&expr, &mut state, &fns);
   }
@@ -2068,9 +2047,9 @@ mod convert_key_value_to_str_panic_tests {
     let kv = KeyValueProp {
       key: PropName::Computed(ComputedPropName {
         span: Default::default(),
-        expr: Box::new(make_ident_expr("dynamic")),
+        expr: Box::new(create_ident_expr("dynamic")),
       }),
-      value: Box::new(make_num_expr(0.0)),
+      value: Box::new(create_number_expr(0.0)),
     };
     convert_key_value_to_str(&kv);
   }
@@ -2108,7 +2087,7 @@ mod ident_to_number_edge_tests {
     let mut traversal_state = StateManager::default();
     let fns = FunctionMap::default();
     // Declare val = 42 (as number literal)
-    let decl = make_var_declarator("val", make_num_expr(42.0));
+    let decl = make_var_declarator("val", create_number_expr(42.0));
     fill_state_declarations(&mut traversal_state, &decl);
     let ident = Ident {
       span: Default::default(),
@@ -2177,13 +2156,13 @@ mod convert_expr_to_str_ident_chain_tests {
     let mut state = StateManager::default();
     let fns = FunctionMap::default();
     // inner = "red"
-    let inner_decl = make_var_declarator("inner", make_str_expr("red"));
+    let inner_decl = make_var_declarator("inner", create_string_expr("red"));
     fill_state_declarations(&mut state, &inner_decl);
     // outer = inner (ident)
-    let outer_decl = make_var_declarator("outer", make_ident_expr("inner"));
+    let outer_decl = make_var_declarator("outer", create_ident_expr("inner"));
     fill_state_declarations(&mut state, &outer_decl);
 
-    let expr = make_ident_expr("outer");
+    let expr = create_ident_expr("outer");
     let result = convert_expr_to_str(&expr, &mut state, &fns);
     assert_eq!(result, Some("red".to_string()));
   }
@@ -2206,7 +2185,7 @@ mod convert_unary_to_num_error_tests {
     let unary = UnaryExpr {
       span: Default::default(),
       op: UnaryOp::Minus,
-      arg: Box::new(make_num_expr(5.0)),
+      arg: Box::new(create_number_expr(5.0)),
     };
     let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
     assert_eq!(result, -5.0);
@@ -2220,7 +2199,7 @@ mod convert_unary_to_num_error_tests {
     let unary = UnaryExpr {
       span: Default::default(),
       op: UnaryOp::Plus,
-      arg: Box::new(make_num_expr(5.0)),
+      arg: Box::new(create_number_expr(5.0)),
     };
     let result = convert_unary_to_num(&unary, &mut state, &mut traversal_state, &fns);
     assert_eq!(result, 5.0);
@@ -2243,8 +2222,8 @@ mod convert_expr_to_bool_bin_tests {
     let expr = Expr::Bin(BinExpr {
       span: Default::default(),
       op: BinaryOp::Add,
-      left: Box::new(make_num_expr(3.0)),
-      right: Box::new(make_num_expr(4.0)),
+      left: Box::new(create_number_expr(3.0)),
+      right: Box::new(create_number_expr(4.0)),
     });
     convert_expr_to_bool(&expr, &mut state, &fns);
   }

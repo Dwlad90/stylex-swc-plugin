@@ -23,9 +23,34 @@ after the swap and flip the two `Reference::Diverges` cases in
 `diverges_on_resolving_escapes_inside_a_string` to `Reference::Same`. If they do
 not flip on their own, that is a gap in the port.
 
-**Blocked by:** 07 — Swap normalization onto the ported pipeline.
+**Blocked by:** 07 — Swap normalization onto the ported pipeline. Confirmed
+rather than assumed; see Investigation.
 
 **Status:** ready-for-agent
+
+## Investigation
+
+Attempted ahead of 07 and abandoned, because there is nowhere to put the fix
+that is not the pipeline replacement itself.
+
+`stringify` emits with `minify: true`, and under that setting
+`swc_css_codegen::emit_str` ignores the `raw` field entirely and writes
+`minify_string(&n.value)` (`swc_css_codegen-24.0.0/src/lib.rs:1216-1227`). The
+escape is already resolved in `value` by the time the parser hands it over, so
+the source spelling is gone before codegen is reached.
+
+Writing `raw` back into `value` before codegen does not work either:
+`minify_string` escapes `\` to `\\` (`lib.rs:2759-2761`), so `\2014 A` would
+come out as `\\2014 A` — a second, worse divergence.
+
+Repairing after codegen is impossible in principle, not merely awkward: once
+the escape is resolved, `"—A"` produced from `"\2014 A"` is indistinguishable
+from `"—A"` the author wrote. Reconstructing the difference would mean
+re-reading the original input and splicing — the "reverse a previous step"
+pattern the parent spec names as the thing this effort exists to end.
+
+So the fix is to stop routing strings through that codegen, which is exactly
+what 07 does. Nothing to carry forward but this note.
 
 - [ ] An escape inside a string survives normalization with its source spelling
       intact, for both a BMP and an astral-plane codepoint

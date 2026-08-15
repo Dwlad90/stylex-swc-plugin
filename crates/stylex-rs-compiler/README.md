@@ -543,4 +543,20 @@ reproduction link.
 ## License
 
 MIT — see
-[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)
+[LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE).
+
+This package is the one that ships compiled, so the notices travel with it.
+It contains work that is somebody else's, all MIT:
+
+- **StyleX** (<https://github.com/facebook/stylex>) — Copyright (c) Meta
+  Platforms, Inc. and affiliates. This compiler is a community implementation
+  of StyleX's, not affiliated with or officially supported by Meta.
+- **`styleq`** (<https://github.com/necolas/styleq>) — Copyright (c) Nicolas
+  Gallagher. The runtime class-name merger, ported so the merge can happen at
+  compile time.
+- **`postcss-value-parser`**
+  (<https://github.com/TrySound/postcss-value-parser>) — Copyright (c) Bogdan
+  Chadkin. The CSS declaration-value scanner.
+
+[NOTICE.md](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/NOTICE.md)
+is the full list, with each licence text.

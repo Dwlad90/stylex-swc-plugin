@@ -229,5 +229,11 @@ graph TD
 
 ## License
 
-MIT — see
+Third-party work. Copyright (c) Nicolas Gallagher,
+[`styleq`](https://github.com/necolas/styleq), MIT licensed — the notice is in
+[LICENSE](./LICENSE) beside this file, and
+[NOTICE.md](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/NOTICE.md)
+lists it with everything else here that somebody else wrote.
+
+The workspace itself is MIT — see
 [LICENSE](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/LICENSE)

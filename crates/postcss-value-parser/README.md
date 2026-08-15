@@ -13,7 +13,9 @@ whitespace positions all survive.
 
 Third-party code, carried here rather than depended on. Copyright (c) Bogdan
 Chadkin, `postcss-value-parser` v4.2.0 at revision `43ae6d3`, MIT licensed; the
-full notice is in [LICENSE](./LICENSE).
+full notice is in [LICENSE](./LICENSE), and
+[NOTICE.md](https://github.com/Dwlad90/stylex-swc-plugin/blob/develop/NOTICE.md)
+lists it with everything else in the repository that somebody else wrote.
 
 ## Why it has a crate to itself
 

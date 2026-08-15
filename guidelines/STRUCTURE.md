@@ -122,6 +122,11 @@ other means) or thin wrappers:
 - `rustfmt.toml` -- Rust formatting rules.
 - `clippy.toml` -- Rust linting thresholds.
 - `.oxfmtrc.json` -- formatting rules for all Node files (one root config).
+- `NOTICE.md` -- third-party work that is _in_ the repository: StyleX, `styleq`
+  and `postcss-value-parser`, each with its copyright holder and where its
+  licence text lives. Registry dependencies are not listed there; the lockfiles
+  are the record for those. Add a row when something else is carried, ported or
+  reimplemented here.
 - `.oxlintrc.jsonc` -- root Oxlint config (one root config, path overrides).
 - `scripts/packages/` -- shared `scripty` build/check scripts used by most TS
   packages.

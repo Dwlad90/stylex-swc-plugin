@@ -20,6 +20,8 @@
     "format:rs:check": "cargo fmt -- --check",
     "format:toml": "taplo format",
     "format:toml:check": "taplo format --check",
+    "generate:value-parser-cases": "node scripts/generate-value-parser-cases.mjs | rustfmt --edition 2024 > src/vendor/postcss_value_parser/tests/cases.rs",
+    "generate:value-parser-cases:check": "node scripts/generate-value-parser-cases.mjs | rustfmt --edition 2024 | diff -u src/vendor/postcss_value_parser/tests/cases.rs -",
     "prepublishOnly": "pnpm run build",
     "test": "scripty",
     "test:coverage": "scripty",
@@ -42,7 +44,8 @@
     "@stylexswc/structures": "catalog:internal",
     "@stylexswc/types": "catalog:internal",
     "@taplo/cli": "catalog:tooling",
-    "npm-run-all2": "catalog:tooling"
+    "npm-run-all2": "catalog:tooling",
+    "postcss-value-parser": "catalog:tooling"
   },
   "keywords": [
     "stylex",

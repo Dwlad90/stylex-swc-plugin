@@ -122,6 +122,10 @@ other means) or thin wrappers:
   exposed as a `generate:<name>` script on the crate's `package.json`, paired
   with a `generate:<name>:check` that diffs a fresh run against what is
   committed, so the fixture cannot drift unnoticed. Generated files carry an
-  `@generated` header and are never edited by hand.
+  `@generated` header and are never edited by hand. Pipe the generator through
+  `rustfmt --edition 2024` in both scripts when its rows are long enough for
+  `cargo fmt` to rewrap them -- otherwise the next `pnpm format` reformats the
+  committed fixture and the `:check` fails against a generator that changed
+  nothing.
 - `docs/agents/` -- machine-read configuration for the agent skills (issue
   tracker, triage labels, domain docs).

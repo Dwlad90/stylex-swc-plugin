@@ -271,6 +271,7 @@ catalogs:
     'npm-run-all2': '^9.0.3'
     'oxfmt': '^0.62.0'
     'oxlint': '^1.77.0'
+    'postcss-value-parser': '^4.2.0'
     'publint': '^0.3.23'
     'rimraf': '^6.1.3'
     'scripty': '3.0.0'

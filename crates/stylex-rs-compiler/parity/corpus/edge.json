@@ -1,0 +1,267 @@
+{
+  "set": "edge",
+  "description": "Hand-written edge cases: non-ASCII content, escapes, URL bodies that look like CSS syntax, comments, importance annotations, empty values, and unclosed constructs.",
+  "entries": [
+    {
+      "id": "edge-content-non-ascii",
+      "property": "content",
+      "value": "\"→ Привет 日本語 🙂\"",
+      "origin": "hand-written: non-ASCII content"
+    },
+    {
+      "id": "edge-content-escape-sequence",
+      "property": "content",
+      "value": "\"\\201C\"",
+      "origin": "hand-written: CSS escape sequence"
+    },
+    {
+      "id": "edge-content-escaped-quote",
+      "property": "content",
+      "value": "\"a \\\" b\"",
+      "origin": "hand-written: escaped quote inside a string"
+    },
+    {
+      "id": "edge-content-single-quoted",
+      "property": "content",
+      "value": "'a \\' b'",
+      "origin": "hand-written: escaped quote inside a single-quoted string"
+    },
+    {
+      "id": "edge-content-empty-string",
+      "property": "content",
+      "value": "\"\"",
+      "origin": "hand-written: the empty string as a value"
+    },
+    {
+      "id": "edge-font-family-mixed-quotes",
+      "property": "fontFamily",
+      "value": "'Helvetica Neue', \"Segoe UI\", sans-serif",
+      "origin": "hand-written: both quote characters in one value"
+    },
+    {
+      "id": "edge-url-css-syntax-in-body",
+      "property": "backgroundImage",
+      "value": "url(\"a;b{c}d: e /* f */\")",
+      "origin": "hand-written: URL body containing CSS-looking syntax"
+    },
+    {
+      "id": "edge-url-unquoted",
+      "property": "backgroundImage",
+      "value": "url(image.png?a=1&b=2)",
+      "origin": "hand-written: unquoted URL with query separators"
+    },
+    {
+      "id": "edge-url-data-uri",
+      "property": "backgroundImage",
+      "value": "url(\"data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E\")",
+      "origin": "hand-written: data URI carrying a semicolon and quotes"
+    },
+    {
+      "id": "edge-url-composite-shorthand",
+      "property": "background",
+      "value": "url(\"asset.png\") no-repeat center/cover",
+      "origin": "hand-written: URL inside a composite shorthand"
+    },
+    {
+      "id": "edge-comment-between-tokens",
+      "property": "width",
+      "value": "calc(100% /* half */ - 20px)",
+      "origin": "hand-written: comment inside a value"
+    },
+    {
+      "id": "edge-comment-leading",
+      "property": "color",
+      "value": "/* a */ red",
+      "origin": "hand-written: comment before the value"
+    },
+    {
+      "id": "edge-importance-annotation",
+      "property": "color",
+      "value": "red !important",
+      "origin": "hand-written: importance annotation"
+    },
+    {
+      "id": "edge-importance-spaced",
+      "property": "color",
+      "value": "red   !   important",
+      "origin": "hand-written: importance annotation with unusual spacing"
+    },
+    {
+      "id": "edge-empty-value",
+      "property": "color",
+      "value": "",
+      "origin": "hand-written: the empty value",
+      "note": "Confirms whether an empty value can reach normalization at all."
+    },
+    {
+      "id": "edge-whitespace-only-value",
+      "property": "color",
+      "value": "   ",
+      "origin": "hand-written: whitespace-only value"
+    },
+    {
+      "id": "edge-unclosed-function",
+      "property": "width",
+      "value": "calc(100% - 20px",
+      "origin": "hand-written: unclosed function"
+    },
+    {
+      "id": "edge-unclosed-string",
+      "property": "content",
+      "value": "\"unterminated",
+      "origin": "hand-written: unclosed string"
+    },
+    {
+      "id": "edge-unclosed-comment",
+      "property": "color",
+      "value": "red /* unterminated",
+      "origin": "hand-written: unclosed comment"
+    },
+    {
+      "id": "edge-rule-breaking-token",
+      "property": "height",
+      "value": "1px solid } color: red",
+      "origin": "hand-written: a token that could terminate the generated rule",
+      "note": "Local injection guard; upstream has no equivalent."
+    },
+    {
+      "id": "edge-var-without-double-hyphen",
+      "property": "color",
+      "value": "var(x)",
+      "origin": "hand-written: custom property reference missing its `--` prefix",
+      "note": "Local validation rule; upstream accepts this."
+    },
+    {
+      "id": "edge-var-with-fallback",
+      "property": "color",
+      "value": "var(--x, var(--y, #ABCDEF))",
+      "origin": "hand-written: nested var fallbacks preserving hex case"
+    },
+    {
+      "id": "edge-var-followed-by-unit",
+      "property": "width",
+      "value": "var(--x)px",
+      "origin": "hand-written: function result immediately followed by a unit"
+    },
+    {
+      "id": "edge-relative-color-syntax",
+      "property": "color",
+      "value": "oklch(from var(--brand) l c h / 50%)",
+      "origin": "hand-written: relative colour syntax"
+    },
+    {
+      "id": "edge-future-function",
+      "property": "height",
+      "value": "calc-size(fit-content, size / 2)",
+      "origin": "hand-written: syntax newer than the compiler's grammar"
+    },
+    {
+      "id": "edge-timing-conversion",
+      "property": "transitionDuration",
+      "value": "500ms",
+      "origin": "hand-written: millisecond shortening"
+    },
+    {
+      "id": "edge-timing-below-threshold",
+      "property": "transitionDuration",
+      "value": "5ms",
+      "origin": "hand-written: below the shortening threshold"
+    },
+    {
+      "id": "edge-zero-length",
+      "property": "margin",
+      "value": "0px",
+      "origin": "hand-written: zero length drops its unit"
+    },
+    {
+      "id": "edge-zero-angle",
+      "property": "transform",
+      "value": "rotate(0deg)",
+      "origin": "hand-written: zero angle keeps its unit, inside a function"
+    },
+    {
+      "id": "edge-zero-percentage",
+      "property": "width",
+      "value": "0%",
+      "origin": "hand-written: zero percentage keeps its unit"
+    },
+    {
+      "id": "edge-zero-flex",
+      "property": "gridTemplateColumns",
+      "value": "0fr 1fr",
+      "origin": "hand-written: zero flex unit is kept"
+    },
+    {
+      "id": "edge-leading-zero-strip",
+      "property": "opacity",
+      "value": "0.5",
+      "origin": "hand-written: leading zero is stripped"
+    },
+    {
+      "id": "edge-negative-leading-zero",
+      "property": "letterSpacing",
+      "value": "-0.24px",
+      "origin": "hand-written: negative decimal keeps its leading zero"
+    },
+    {
+      "id": "edge-camel-case-value",
+      "property": "transitionProperty",
+      "value": "backgroundColor",
+      "origin": "hand-written: camel-case value is hyphenated"
+    },
+    {
+      "id": "edge-custom-property-camel-case-value",
+      "property": "--myVar",
+      "value": "backgroundColor",
+      "origin": "hand-written: custom property values are left alone"
+    },
+    {
+      "id": "edge-custom-property-zero",
+      "property": "--myVar",
+      "value": "0px",
+      "origin": "hand-written: zero normalization is skipped for custom properties"
+    },
+    {
+      "id": "edge-large-number",
+      "property": "zIndex",
+      "value": "10000000000000000000000",
+      "origin": "hand-written: a number past what an i64 holds"
+    },
+    {
+      "id": "edge-high-precision-number",
+      "property": "width",
+      "value": "0.30000000000000004px",
+      "origin": "hand-written: float spelling at full double precision"
+    },
+    {
+      "id": "edge-uppercase-keyword",
+      "property": "textTransform",
+      "value": "UPPERCASE",
+      "origin": "hand-written: keyword letter case is preserved"
+    },
+    {
+      "id": "edge-uppercase-function",
+      "property": "width",
+      "value": "CALC(100% - 20PX)",
+      "origin": "hand-written: function and unit letter case"
+    },
+    {
+      "id": "edge-grid-template-multiline",
+      "property": "gridTemplateAreas",
+      "value": "'a a' 'b c'",
+      "origin": "hand-written: adjacent quoted strings"
+    },
+    {
+      "id": "edge-tab-and-newline-separators",
+      "property": "margin",
+      "value": "1px\t2px\n3px  4px",
+      "origin": "hand-written: non-space whitespace between tokens"
+    },
+    {
+      "id": "edge-leading-trailing-whitespace",
+      "property": "transform",
+      "value": "  rotate(10deg)  translate3d( 0 , 0 , 0 )  ",
+      "origin": "hand-written: whitespace around and inside a value"
+    }
+  ]
+}

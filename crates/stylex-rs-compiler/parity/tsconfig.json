@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
+    "noEmit": true,
+    "rootDir": ".",
+    "lib": ["es2023"],
+    "resolveJsonModule": true
+  },
+  "include": ["."],
+  "exclude": ["corpus", "results"]
+}

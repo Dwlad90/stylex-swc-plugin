@@ -1,0 +1,104 @@
+{
+  "set": "reported",
+  "description": "The six normalization divergences reported in issue #1256, one entry per illustrating value.",
+  "entries": [
+    {
+      "id": "reported-whitespace-transition",
+      "property": "transition",
+      "value": "opacity 0.2s ease-in-out",
+      "origin": "issue #1256, symptom 1",
+      "note": "Whitespace between value tokens is dropped: `opacity.2s ease-in-out`."
+    },
+    {
+      "id": "reported-whitespace-background-position",
+      "property": "backgroundPosition",
+      "value": "50% bottom",
+      "origin": "issue #1256, symptom 1",
+      "note": "The keyword fuses onto the percentage: `50%bottom`."
+    },
+    {
+      "id": "reported-whitespace-translate",
+      "property": "translate",
+      "value": "-50% -120%",
+      "origin": "issue #1256, symptom 1",
+      "note": "The second component is read as a subtraction: `-50%-120%`."
+    },
+    {
+      "id": "reported-whitespace-four-value-position",
+      "property": "backgroundPosition",
+      "value": "top 0.75rem left 0.625rem",
+      "origin": "issue #1256, symptom 1",
+      "note": "Spaces after leading-zero stripping must survive."
+    },
+    {
+      "id": "reported-whitespace-outline",
+      "property": "outline",
+      "value": "transparent dotted 0.125rem",
+      "origin": "issue #1256, symptom 1",
+      "note": "The space before the width must survive for the shorthand to parse."
+    },
+    {
+      "id": "reported-whitespace-gradient-stops",
+      "property": "backgroundImage",
+      "value": "linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%)",
+      "origin": "issue #1256, symptom 1",
+      "note": "Spaces between each colour and its position must survive."
+    },
+    {
+      "id": "reported-operator-calc-var",
+      "property": "width",
+      "value": "calc(-1 * var(--spacing))",
+      "origin": "issue #1256, symptom 2",
+      "note": "Spacing around `*` is collapsed: `calc(-1*var(--spacing))`."
+    },
+    {
+      "id": "reported-operator-displaced-space",
+      "property": "width",
+      "value": "max(4.8125rem, 100vw * 0.12)",
+      "origin": "issue #1256, symptom 2",
+      "note": "The space moves rather than vanishing: `100vw* .12`."
+    },
+    {
+      "id": "reported-operator-nested-in-shorthand",
+      "property": "margin",
+      "value": "calc(var(--b) * var(--c)) 0",
+      "origin": "issue #1256, symptom 2",
+      "note": "Operator spacing inside a nested function in a multi-value declaration."
+    },
+    {
+      "id": "reported-hex-shortened",
+      "property": "color",
+      "value": "#ffffff",
+      "origin": "issue #1256, symptom 3",
+      "note": "Six-digit hex is shortened to `#fff`."
+    },
+    {
+      "id": "reported-hex-inside-function",
+      "property": "backgroundImage",
+      "value": "linear-gradient(#000000, #ffffff)",
+      "origin": "issue #1256, symptom 3",
+      "note": "Function bodies must not be a separate normalization regime."
+    },
+    {
+      "id": "reported-quotes-grid-template-areas",
+      "property": "gridTemplateAreas",
+      "value": "'sidebar content'",
+      "origin": "issue #1256, symptom 4",
+      "note": "Single quotes are rewritten to double quotes."
+    },
+    {
+      "id": "reported-function-name-case",
+      "property": "transform",
+      "value": "translateX(-50%) translateY(-50%)",
+      "origin": "issue #1256, symptom 5",
+      "note": "Already fixed on this branch by a restoration pass; must stay fixed."
+    },
+    {
+      "id": "reported-exponent-notation",
+      "property": "left",
+      "value": "-10000px",
+      "origin": "issue #1256, symptom 6",
+      "note": "Already fixed on this branch by a restoration pass; must stay fixed."
+    }
+  ]
+}

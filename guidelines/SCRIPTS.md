@@ -106,6 +106,19 @@ repeatable `--category` (`transform|perf|rollup`) and `--fixture` substring.
 `--seed` (1), `--resamples` (10000), `--confidence` (0.95), `--retry <path>`.
 `bench:budget`: `--report-only`.
 
+## Parity harness
+
+Also in `crates/stylex-rs-compiler`; run `build` first (it reads `dist/`).
+Not a test and not wired into CI. Full docs: `crates/stylex-rs-compiler/parity/README.md`.
+
+- `parity`: runs a corpus of CSS declarations through this compiler and through
+  a pinned `@stylexjs/babel-plugin`, and reports which ones disagree on class
+  name or rule text. Flags: `--only-mismatches`, repeatable `--set`
+  (`reported|edge|harvested`), `--filter <substring>`, `--json <path>`,
+  `--font-size-px-to-rem`.
+- `parity:harvest`: regenerates `parity/corpus/harvested.json` from the Rust
+  test suites. `--check` fails instead of writing when it is out of date.
+
 ## Coverage
 
 `pnpm run test:coverage:workspace` (enforces 100% line coverage) and

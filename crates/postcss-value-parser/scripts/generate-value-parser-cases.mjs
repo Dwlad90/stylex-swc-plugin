@@ -18,7 +18,9 @@ import { fileURLToPath } from 'node:url';
 
 import parser from 'postcss-value-parser';
 
-const { stringify } = parser;
+// Bound rather than destructured: `stringify` is reached through the parser
+// namespace, and pulling it off unbound is the shape the linter flags.
+const stringify = parser.stringify.bind(parser);
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const corpusDir = path.resolve(here, '../../stylex-rs-compiler/parity/corpus');
@@ -559,7 +561,7 @@ for (const input of [...corpusValues(), ...MALFORMED, ...FROM_THE_JAVASCRIPT_TES
   seen.add(input);
 
   const ast = parser(input);
-  const output = ast.toString();
+  const output = stringify(ast.nodes);
   const lines = [];
   rebase(ast.nodes, byteOffsets(input));
   dumpNodes(ast.nodes, 0, lines);
@@ -571,7 +573,7 @@ for (const input of [...corpusValues(), ...MALFORMED, ...FROM_THE_JAVASCRIPT_TES
 const stressCases = STRESS.map(([label, input]) => ({
   label,
   input,
-  output: parser(input).toString(),
+  output: stringify(parser(input).nodes),
 }));
 
 const overrideCases = OVERRIDE_SCENARIOS.map(scenario => ({

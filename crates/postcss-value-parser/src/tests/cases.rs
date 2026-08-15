@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 698 values: the differential harness's whole corpus, plus
+/// 723 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -308,6 +308,96 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "space \"  \" 0..2\nfunction \"rotate\" 2..15 before=\"\" after=\"\" nodes=1\n  word \"10deg\" 9..14\nspace \"  \" 15..17\nfunction \"translate3d\" 17..41 before=\" \" after=\" \" nodes=5\n  word \"0\" 30..31\n  div \",\" 31..34 before=\" \" after=\" \"\n  word \"0\" 34..35\n  div \",\" 35..38 before=\" \" after=\" \"\n  word \"0\" 38..39\nspace \"  \" 41..43",
   },
   ParserCase {
+    input: "calc(calc(calc(calc(calc(calc(calc(calc(1px + 2px) + 3px) + 4px) + 5px) + 6px) + 7px) + 8px) + 9px)",
+    output: "calc(calc(calc(calc(calc(calc(calc(calc(1px + 2px) + 3px) + 4px) + 5px) + 6px) + 7px) + 8px) + 9px)",
+    ast: "function \"calc\" 0..99 before=\"\" after=\"\" nodes=5\n  function \"calc\" 5..92 before=\"\" after=\"\" nodes=5\n    function \"calc\" 10..85 before=\"\" after=\"\" nodes=5\n      function \"calc\" 15..78 before=\"\" after=\"\" nodes=5\n        function \"calc\" 20..71 before=\"\" after=\"\" nodes=5\n          function \"calc\" 25..64 before=\"\" after=\"\" nodes=5\n            function \"calc\" 30..57 before=\"\" after=\"\" nodes=5\n              function \"calc\" 35..50 before=\"\" after=\"\" nodes=5\n                word \"1px\" 40..43\n                space \" \" 43..44\n                word \"+\" 44..45\n                space \" \" 45..46\n                word \"2px\" 46..49\n              space \" \" 50..51\n              word \"+\" 51..52\n              space \" \" 52..53\n              word \"3px\" 53..56\n            space \" \" 57..58\n            word \"+\" 58..59\n            space \" \" 59..60\n            word \"4px\" 60..63\n          space \" \" 64..65\n          word \"+\" 65..66\n          space \" \" 66..67\n          word \"5px\" 67..70\n        space \" \" 71..72\n        word \"+\" 72..73\n        space \" \" 73..74\n        word \"6px\" 74..77\n      space \" \" 78..79\n      word \"+\" 79..80\n      space \" \" 80..81\n      word \"7px\" 81..84\n    space \" \" 85..86\n    word \"+\" 86..87\n    space \" \" 87..88\n    word \"8px\" 88..91\n  space \" \" 92..93\n  word \"+\" 93..94\n  space \" \" 94..95\n  word \"9px\" 95..98",
+  },
+  ParserCase {
+    input: "calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(1px)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+    output: "calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(1px)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+    ast: "function \"calc\" 0..393 before=\"\" after=\"\" nodes=1\n  function \"calc\" 5..392 before=\"\" after=\"\" nodes=1\n    function \"calc\" 10..391 before=\"\" after=\"\" nodes=1\n      function \"calc\" 15..390 before=\"\" after=\"\" nodes=1\n        function \"calc\" 20..389 before=\"\" after=\"\" nodes=1\n          function \"calc\" 25..388 before=\"\" after=\"\" nodes=1\n            function \"calc\" 30..387 before=\"\" after=\"\" nodes=1\n              function \"calc\" 35..386 before=\"\" after=\"\" nodes=1\n                function \"calc\" 40..385 before=\"\" after=\"\" nodes=1\n                  function \"calc\" 45..384 before=\"\" after=\"\" nodes=1\n                    function \"calc\" 50..383 before=\"\" after=\"\" nodes=1\n                      function \"calc\" 55..382 before=\"\" after=\"\" nodes=1\n                        function \"calc\" 60..381 before=\"\" after=\"\" nodes=1\n                          function \"calc\" 65..380 before=\"\" after=\"\" nodes=1\n                            function \"calc\" 70..379 before=\"\" after=\"\" nodes=1\n                              function \"calc\" 75..378 before=\"\" after=\"\" nodes=1\n                                function \"calc\" 80..377 before=\"\" after=\"\" nodes=1\n                                  function \"calc\" 85..376 before=\"\" after=\"\" nodes=1\n                                    function \"calc\" 90..375 before=\"\" after=\"\" nodes=1\n                                      function \"calc\" 95..374 before=\"\" after=\"\" nodes=1\n                                        function \"calc\" 100..373 before=\"\" after=\"\" nodes=1\n                                          function \"calc\" 105..372 before=\"\" after=\"\" nodes=1\n                                            function \"calc\" 110..371 before=\"\" after=\"\" nodes=1\n                                              function \"calc\" 115..370 before=\"\" after=\"\" nodes=1\n                                                function \"calc\" 120..369 before=\"\" after=\"\" nodes=1\n                                                  function \"calc\" 125..368 before=\"\" after=\"\" nodes=1\n                                                    function \"calc\" 130..367 before=\"\" after=\"\" nodes=1\n                                                      function \"calc\" 135..366 before=\"\" after=\"\" nodes=1\n                                                        function \"calc\" 140..365 before=\"\" after=\"\" nodes=1\n                                                          function \"calc\" 145..364 before=\"\" after=\"\" nodes=1\n                                                            function \"calc\" 150..363 before=\"\" after=\"\" nodes=1\n                                                              function \"calc\" 155..362 before=\"\" after=\"\" nodes=1\n                                                                function \"calc\" 160..361 before=\"\" after=\"\" nodes=1\n                                                                  function \"calc\" 165..360 before=\"\" after=\"\" nodes=1\n                                                                    function \"calc\" 170..359 before=\"\" after=\"\" nodes=1\n                                                                      function \"calc\" 175..358 before=\"\" after=\"\" nodes=1\n                                                                        function \"calc\" 180..357 before=\"\" after=\"\" nodes=1\n                                                                          function \"calc\" 185..356 before=\"\" after=\"\" nodes=1\n                                                                            function \"calc\" 190..355 before=\"\" after=\"\" nodes=1\n                                                                              function \"calc\" 195..354 before=\"\" after=\"\" nodes=1\n                                                                                function \"calc\" 200..353 before=\"\" after=\"\" nodes=1\n                                                                                  function \"calc\" 205..352 before=\"\" after=\"\" nodes=1\n                                                                                    function \"calc\" 210..351 before=\"\" after=\"\" nodes=1\n                                                                                      function \"calc\" 215..350 before=\"\" after=\"\" nodes=1\n                                                                                        function \"calc\" 220..349 before=\"\" after=\"\" nodes=1\n                                                                                          function \"calc\" 225..348 before=\"\" after=\"\" nodes=1\n                                                                                            function \"calc\" 230..347 before=\"\" after=\"\" nodes=1\n                                                                                              function \"calc\" 235..346 before=\"\" after=\"\" nodes=1\n                                                                                                function \"calc\" 240..345 before=\"\" after=\"\" nodes=1\n                                                                                                  function \"calc\" 245..344 before=\"\" after=\"\" nodes=1\n                                                                                                    function \"calc\" 250..343 before=\"\" after=\"\" nodes=1\n                                                                                                      function \"calc\" 255..342 before=\"\" after=\"\" nodes=1\n                                                                                                        function \"calc\" 260..341 before=\"\" after=\"\" nodes=1\n                                                                                                          function \"calc\" 265..340 before=\"\" after=\"\" nodes=1\n                                                                                                            function \"calc\" 270..339 before=\"\" after=\"\" nodes=1\n                                                                                                              function \"calc\" 275..338 before=\"\" after=\"\" nodes=1\n                                                                                                                function \"calc\" 280..337 before=\"\" after=\"\" nodes=1\n                                                                                                                  function \"calc\" 285..336 before=\"\" after=\"\" nodes=1\n                                                                                                                    function \"calc\" 290..335 before=\"\" after=\"\" nodes=1\n                                                                                                                      function \"calc\" 295..334 before=\"\" after=\"\" nodes=1\n                                                                                                                        function \"calc\" 300..333 before=\"\" after=\"\" nodes=1\n                                                                                                                          function \"calc\" 305..332 before=\"\" after=\"\" nodes=1\n                                                                                                                            function \"calc\" 310..331 before=\"\" after=\"\" nodes=1\n                                                                                                                              function \"calc\" 315..330 before=\"\" after=\"\" nodes=1\n                                                                                                                                function \"calc\" 320..329 before=\"\" after=\"\" nodes=1\n                                                                                                                                  word \"1px\" 325..328",
+  },
+  ParserCase {
+    input: "var(--a, var(--b, var(--c, var(--d, var(--e, var(--f, red))))))",
+    output: "var(--a, var(--b, var(--c, var(--d, var(--e, var(--f, red))))))",
+    ast: "function \"var\" 0..63 before=\"\" after=\"\" nodes=3\n  word \"--a\" 4..7\n  div \",\" 7..9 before=\"\" after=\" \"\n  function \"var\" 9..62 before=\"\" after=\"\" nodes=3\n    word \"--b\" 13..16\n    div \",\" 16..18 before=\"\" after=\" \"\n    function \"var\" 18..61 before=\"\" after=\"\" nodes=3\n      word \"--c\" 22..25\n      div \",\" 25..27 before=\"\" after=\" \"\n      function \"var\" 27..60 before=\"\" after=\"\" nodes=3\n        word \"--d\" 31..34\n        div \",\" 34..36 before=\"\" after=\" \"\n        function \"var\" 36..59 before=\"\" after=\"\" nodes=3\n          word \"--e\" 40..43\n          div \",\" 43..45 before=\"\" after=\" \"\n          function \"var\" 45..58 before=\"\" after=\"\" nodes=3\n            word \"--f\" 49..52\n            div \",\" 52..54 before=\"\" after=\" \"\n            word \"red\" 54..57",
+  },
+  ParserCase {
+    input: "-webkit-box",
+    output: "-webkit-box",
+    ast: "word \"-webkit-box\" 0..11",
+  },
+  ParserCase {
+    input: "-webkit-linear-gradient(top, #FFFFFF, #000000)",
+    output: "-webkit-linear-gradient(top, #FFFFFF, #000000)",
+    ast: "function \"-webkit-linear-gradient\" 0..46 before=\"\" after=\"\" nodes=5\n  word \"top\" 24..27\n  div \",\" 27..29 before=\"\" after=\" \"\n  word \"#FFFFFF\" 29..36\n  div \",\" 36..38 before=\"\" after=\" \"\n  word \"#000000\" 38..45",
+  },
+  ParserCase {
+    input: "WebkitTransform",
+    output: "WebkitTransform",
+    ast: "word \"WebkitTransform\" 0..15",
+  },
+  ParserCase {
+    input: "-webkit-transform",
+    output: "-webkit-transform",
+    ast: "word \"-webkit-transform\" 0..17",
+  },
+  ParserCase {
+    input: "\"\\2014 A\"",
+    output: "\"\\2014 A\"",
+    ast: "string \"\\\\2014 A\" 0..9 quote=\"\\\"\"",
+  },
+  ParserCase {
+    input: "\"\\1F600\"",
+    output: "\"\\1F600\"",
+    ast: "string \"\\\\1F600\" 0..8 quote=\"\\\"\"",
+  },
+  ParserCase {
+    input: "\"\\2014 A\", sans-serif",
+    output: "\"\\2014 A\", sans-serif",
+    ast: "string \"\\\\2014 A\" 0..9 quote=\"\\\"\"\ndiv \",\" 9..11 before=\"\" after=\" \"\nword \"sans-serif\" 11..21",
+  },
+  ParserCase {
+    input: "\"\\1F600\", sans-serif",
+    output: "\"\\1F600\", sans-serif",
+    ast: "string \"\\\\1F600\" 0..8 quote=\"\\\"\"\ndiv \",\" 8..10 before=\"\" after=\" \"\nword \"sans-serif\" 10..20",
+  },
+  ParserCase {
+    input: "\"→ Привет 日本語 🙂\", sans-serif",
+    output: "\"→ Привет 日本語 🙂\", sans-serif",
+    ast: "string \"→ Привет 日本語 🙂\" 0..33 quote=\"\\\"\"\ndiv \",\" 33..35 before=\"\" after=\" \"\nword \"sans-serif\" 35..45",
+  },
+  ParserCase {
+    input: "My\\ Font, sans-serif",
+    output: "My\\ Font, sans-serif",
+    ast: "word \"My\\\\ Font\" 0..8\ndiv \",\" 8..10 before=\"\" after=\" \"\nword \"sans-serif\" 10..20",
+  },
+  ParserCase {
+    input: "日本語フォント, sans-serif",
+    output: "日本語フォント, sans-serif",
+    ast: "word \"日本語フォント\" 0..21\ndiv \",\" 21..23 before=\"\" after=\" \"\nword \"sans-serif\" 23..33",
+  },
+  ParserCase {
+    input: "[full-start 1fr [content-start",
+    output: "[full-start 1fr [content-start",
+    ast: "word \"[full-start\" 0..11\nspace \" \" 11..12\nword \"1fr\" 12..15\nspace \" \" 15..16\nword \"[content-start\" 16..30",
+  },
+  ParserCase {
+    input: "red {",
+    output: "red {",
+    ast: "word \"red\" 0..3\nspace \" \" 3..4\nword \"{\" 4..5",
+  },
+  ParserCase {
+    input: "10px ++ 20px",
+    output: "10px ++ 20px",
+    ast: "word \"10px\" 0..4\nspace \" \" 4..5\nword \"++\" 5..7\nspace \" \" 7..8\nword \"20px\" 8..12",
+  },
+  ParserCase {
+    input: "0 0 1px #000, 0 0 2px #000, 0 0 3px #000, 0 0 4px #000, 0 0 5px #000, 0 0 6px #000, 0 0 7px #000, 0 0 8px #000, 0 0 9px #000, 0 0 10px #000",
+    output: "0 0 1px #000, 0 0 2px #000, 0 0 3px #000, 0 0 4px #000, 0 0 5px #000, 0 0 6px #000, 0 0 7px #000, 0 0 8px #000, 0 0 9px #000, 0 0 10px #000",
+    ast: "word \"0\" 0..1\nspace \" \" 1..2\nword \"0\" 2..3\nspace \" \" 3..4\nword \"1px\" 4..7\nspace \" \" 7..8\nword \"#000\" 8..12\ndiv \",\" 12..14 before=\"\" after=\" \"\nword \"0\" 14..15\nspace \" \" 15..16\nword \"0\" 16..17\nspace \" \" 17..18\nword \"2px\" 18..21\nspace \" \" 21..22\nword \"#000\" 22..26\ndiv \",\" 26..28 before=\"\" after=\" \"\nword \"0\" 28..29\nspace \" \" 29..30\nword \"0\" 30..31\nspace \" \" 31..32\nword \"3px\" 32..35\nspace \" \" 35..36\nword \"#000\" 36..40\ndiv \",\" 40..42 before=\"\" after=\" \"\nword \"0\" 42..43\nspace \" \" 43..44\nword \"0\" 44..45\nspace \" \" 45..46\nword \"4px\" 46..49\nspace \" \" 49..50\nword \"#000\" 50..54\ndiv \",\" 54..56 before=\"\" after=\" \"\nword \"0\" 56..57\nspace \" \" 57..58\nword \"0\" 58..59\nspace \" \" 59..60\nword \"5px\" 60..63\nspace \" \" 63..64\nword \"#000\" 64..68\ndiv \",\" 68..70 before=\"\" after=\" \"\nword \"0\" 70..71\nspace \" \" 71..72\nword \"0\" 72..73\nspace \" \" 73..74\nword \"6px\" 74..77\nspace \" \" 77..78\nword \"#000\" 78..82\ndiv \",\" 82..84 before=\"\" after=\" \"\nword \"0\" 84..85\nspace \" \" 85..86\nword \"0\" 86..87\nspace \" \" 87..88\nword \"7px\" 88..91\nspace \" \" 91..92\nword \"#000\" 92..96\ndiv \",\" 96..98 before=\"\" after=\" \"\nword \"0\" 98..99\nspace \" \" 99..100\nword \"0\" 100..101\nspace \" \" 101..102\nword \"8px\" 102..105\nspace \" \" 105..106\nword \"#000\" 106..110\ndiv \",\" 110..112 before=\"\" after=\" \"\nword \"0\" 112..113\nspace \" \" 113..114\nword \"0\" 114..115\nspace \" \" 115..116\nword \"9px\" 116..119\nspace \" \" 119..120\nword \"#000\" 120..124\ndiv \",\" 124..126 before=\"\" after=\" \"\nword \"0\" 126..127\nspace \" \" 127..128\nword \"0\" 128..129\nspace \" \" 129..130\nword \"10px\" 130..134\nspace \" \" 134..135\nword \"#000\" 135..139",
+  },
+  ParserCase {
     input: "red",
     output: "red",
     ast: "word \"red\" 0..3",
@@ -558,6 +648,21 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"-1px\" 0..4\nspace \" \" 4..5\nword \"-1px\" 5..9\nspace \" \" 9..10\nword \"#000\" 10..14",
   },
   ParserCase {
+    input: ", ",
+    output: ", ",
+    ast: "div \",\" 0..2 before=\"\" after=\" \"",
+  },
+  ParserCase {
+    input: "0 0 1px #000,",
+    output: "0 0 1px #000,",
+    ast: "word \"0\" 0..1\nspace \" \" 1..2\nword \"0\" 2..3\nspace \" \" 3..4\nword \"1px\" 4..7\nspace \" \" 7..8\nword \"#000\" 8..12\ndiv \",\" 12..13 before=\"\" after=\"\"",
+  },
+  ParserCase {
+    input: "0px 0px {n}px #000",
+    output: "0px 0px {n}px #000",
+    ast: "word \"0px\" 0..3\nspace \" \" 3..4\nword \"0px\" 4..7\nspace \" \" 7..8\nword \"{n}px\" 8..13\nspace \" \" 13..14\nword \"#000\" 14..18",
+  },
+  ParserCase {
     input: "0px 2px 4px var(--shadow-1)",
     output: "0px 2px 4px var(--shadow-1)",
     ast: "word \"0px\" 0..3\nspace \" \" 3..4\nword \"2px\" 4..7\nspace \" \" 7..8\nword \"4px\" 8..11\nspace \" \" 11..12\nfunction \"var\" 12..27 before=\"\" after=\"\" nodes=1\n  word \"--shadow-1\" 16..26",
@@ -738,6 +843,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"lch\" 0..18 before=\"\" after=\"\" nodes=5\n  word \"52.2%\" 4..9\n  space \" \" 9..10\n  word \"72.2\" 10..14\n  space \" \" 14..15\n  word \"50\" 15..17",
   },
   ParserCase {
+    input: "nested more deeply",
+    output: "nested more deeply",
+    ast: "word \"nested\" 0..6\nspace \" \" 6..7\nword \"more\" 7..11\nspace \" \" 11..12\nword \"deeply\" 12..18",
+  },
+  ParserCase {
     input: "oklab(40.101% 0.1147 0.0453)",
     output: "oklab(40.101% 0.1147 0.0453)",
     ast: "function \"oklab\" 0..28 before=\"\" after=\"\" nodes=5\n  word \"40.101%\" 6..13\n  space \" \" 13..14\n  word \"0.1147\" 14..20\n  space \" \" 20..21\n  word \"0.0453\" 21..27",
@@ -766,6 +876,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "oklch(0.7 0.15 180)",
     output: "oklch(0.7 0.15 180)",
     ast: "function \"oklch\" 0..19 before=\"\" after=\"\" nodes=5\n  word \"0.7\" 6..9\n  space \" \" 9..10\n  word \"0.15\" 10..14\n  space \" \" 14..15\n  word \"180\" 15..18",
+  },
+  ParserCase {
+    input: "oklch(from {value} l c h)",
+    output: "oklch(from {value} l c h)",
+    ast: "function \"oklch\" 0..25 before=\"\" after=\"\" nodes=9\n  word \"from\" 6..10\n  space \" \" 10..11\n  word \"{value}\" 11..18\n  space \" \" 18..19\n  word \"l\" 19..20\n  space \" \" 20..21\n  word \"c\" 21..22\n  space \" \" 22..23\n  word \"h\" 23..24",
   },
   ParserCase {
     input: "oklch(from var(--xs74gcj) l c h / 0.5)",
@@ -1903,6 +2018,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"calc\" 0..40 before=\"\" after=\"\" nodes=5\n  word \"100dvh\" 5..11\n  space \" \" 11..12\n  word \"-\" 12..13\n  space \" \" 13..14\n  function \"var\" 14..39 before=\"\" after=\"\" nodes=3\n    word \"--header-height\" 18..33\n    div \",\" 33..35 before=\"\" after=\" \"\n    word \"0px\" 35..38",
   },
   ParserCase {
+    input: "`{}: {}` is recorded as diverging from the reference compiler, yet both spell it the same",
+    output: "`{}: {}` is recorded as diverging from the reference compiler, yet both spell it the same",
+    ast: "word \"`{}\" 0..3\ndiv \":\" 3..5 before=\"\" after=\" \"\nword \"{}`\" 5..8\nspace \" \" 8..9\nword \"is\" 9..11\nspace \" \" 11..12\nword \"recorded\" 12..20\nspace \" \" 20..21\nword \"as\" 21..23\nspace \" \" 23..24\nword \"diverging\" 24..33\nspace \" \" 33..34\nword \"from\" 34..38\nspace \" \" 38..39\nword \"the\" 39..42\nspace \" \" 42..43\nword \"reference\" 43..52\nspace \" \" 52..53\nword \"compiler\" 53..61\ndiv \",\" 61..63 before=\"\" after=\" \"\nword \"yet\" 63..66\nspace \" \" 66..67\nword \"both\" 67..71\nspace \" \" 71..72\nword \"spell\" 72..77\nspace \" \" 77..78\nword \"it\" 78..80\nspace \" \" 80..81\nword \"the\" 81..84\nspace \" \" 84..85\nword \"same\" 85..89",
+  },
+  ParserCase {
     input: ".5",
     output: ".5",
     ast: "word \".5\" 0..2",
@@ -2163,6 +2283,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"50%\" 0..3",
   },
   ParserCase {
+    input: "calc(",
+    output: "calc(",
+    ast: "function \"calc\" 0..5 before=\"\" after=\"\" unclosed nodes=0",
+  },
+  ParserCase {
     input: "calc((100% + 3% -   100px) / 7)",
     output: "calc((100% + 3% -   100px) / 7)",
     ast: "function \"calc\" 0..31 before=\"\" after=\"\" nodes=5\n  function \"\" 5..26 before=\"\" after=\"\" nodes=9\n    word \"100%\" 6..10\n    space \" \" 10..11\n    word \"+\" 11..12\n    space \" \" 12..13\n    word \"3%\" 13..15\n    space \" \" 15..16\n    word \"-\" 16..17\n    space \"   \" 17..20\n    word \"100px\" 20..25\n  space \" \" 26..27\n  word \"/\" 27..28\n  space \" \" 28..29\n  word \"7\" 29..30",
@@ -2186,6 +2311,16 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "calc(var(--x) + 10px)",
     output: "calc(var(--x) + 10px)",
     ast: "function \"calc\" 0..21 before=\"\" after=\"\" nodes=5\n  function \"var\" 5..13 before=\"\" after=\"\" nodes=1\n    word \"--x\" 9..12\n  space \" \" 13..14\n  word \"+\" 14..15\n  space \" \" 15..16\n  word \"10px\" 16..20",
+  },
+  ParserCase {
+    input: "limit 64, found 5000",
+    output: "limit 64, found 5000",
+    ast: "word \"limit\" 0..5\nspace \" \" 5..6\nword \"64\" 6..8\ndiv \",\" 8..10 before=\"\" after=\" \"\nword \"found\" 10..15\nspace \" \" 15..16\nword \"5000\" 16..20",
+  },
+  ParserCase {
+    input: "limit 64, found 65",
+    output: "limit 64, found 65",
+    ast: "word \"limit\" 0..5\nspace \" \" 5..6\nword \"64\" 6..8\ndiv \",\" 8..10 before=\"\" after=\" \"\nword \"found\" 10..15\nspace \" \" 15..16\nword \"65\" 16..18",
   },
   ParserCase {
     input: "max(100px, 200px)",
@@ -2221,11 +2356,6 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "\t\n\r\u{c}\u{b}",
     output: "\t\n\r\u{c}\u{b}",
     ast: "space \"\\t\\n\\r\\u000c\\u000b\" 0..5",
-  },
-  ParserCase {
-    input: "calc(",
-    output: "calc(",
-    ast: "function \"calc\" 0..5 before=\"\" after=\"\" unclosed nodes=0",
   },
   ParserCase {
     input: "calc(1px",
@@ -2651,11 +2781,6 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "content value",
     output: "content value",
     ast: "word \"content value\" 0..14",
-  },
-  ParserCase {
-    input: "-webkit-box",
-    output: "-webkit-box",
-    ast: "word \"-webkit-box\" 0..11",
   },
   ParserCase {
     input: "-WEBKIT-BOX",
@@ -3624,7 +3749,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 508 words paired with their number/unit split, `None` standing for a
+/// 545 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -3717,14 +3842,33 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("3px", Some(("3", "px"))),
   ("4px", Some(("4", "px"))),
   ("10deg", Some(("10", "deg"))),
+  ("5px", Some(("5", "px"))),
+  ("6px", Some(("6", "px"))),
+  ("7px", Some(("7", "px"))),
+  ("8px", Some(("8", "px"))),
+  ("9px", Some(("9", "px"))),
+  ("--a", None),
+  ("--d", None),
+  ("--e", None),
+  ("--f", None),
+  ("-webkit-box", None),
+  ("#FFFFFF", None),
+  ("WebkitTransform", None),
+  ("-webkit-transform", None),
+  ("My\\ Font", None),
+  ("日本語フォント", None),
+  ("[full-start", None),
+  ("[content-start", None),
+  ("{", None),
+  ("10px", Some(("10", "px"))),
+  ("++", None),
+  ("#000", None),
   ("blue", None),
   ("#abcdef", None),
   ("foo", None),
   ("--token", None),
   ("green", None),
   ("#ff0000", None),
-  ("10px", Some(("10", "px"))),
-  ("#000", None),
   ("{color", None),
   ("red}", None),
   ("16px", Some(("16", "px"))),
@@ -3748,7 +3892,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("end", None),
   ("start", None),
   ("gray", None),
-  ("5px", Some(("5", "px"))),
   ("yellow", None),
   ("--divider", None),
   ("./img.jpg", None),
@@ -3758,6 +3901,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("--shadow-1", None),
   ("1px#000", Some(("1", "px#000"))),
   ("-1px", Some(("-1", "px"))),
+  ("{n}px", None),
   ("30px", Some(("30", "px"))),
   ("40px", Some(("40", "px"))),
   ("inset", None),
@@ -3797,6 +3941,9 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("52.2%", Some(("52.2", "%"))),
   ("72.2", Some(("72.2", ""))),
   ("50", Some(("50", ""))),
+  ("nested", None),
+  ("more", None),
+  ("deeply", None),
   ("40.101%", Some(("40.101", "%"))),
   ("0.1147", Some(("0.1147", ""))),
   ("0.0453", Some(("0.0453", ""))),
@@ -3808,6 +3955,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("180", Some(("180", ""))),
   ("0.7", Some(("0.7", ""))),
   ("0.15", Some(("0.15", ""))),
+  ("{value}", None),
   ("--xs74gcj", None),
   ("red;", None),
   ("margin", None),
@@ -3819,7 +3967,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("--bg", None),
   ("222", Some(("222", ""))),
   ("33", Some(("33", ""))),
-  ("--a", None),
   ("--bar", None),
   ("--my-color", None),
   ("--xAbCdEf", None),
@@ -3863,7 +4010,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("24px", Some(("24", "px"))),
   ("2em", Some(("2", "em"))),
   ("32px", Some(("32", "px"))),
-  ("8px", Some(("8", "px"))),
   ("2vw", Some(("2", "vw"))),
   ("3rem", Some(("3", "rem"))),
   ("bar", None),
@@ -3915,7 +4061,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("a(b", None),
   (".png)", None),
   ("deg", None),
-  ("--d", None),
   ("ms", None),
   ("--gap", None),
   ("rem", None),
@@ -3947,6 +4092,20 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("-0.5px", Some(("-0.5", "px"))),
   ("100dvh", Some(("100", "dvh"))),
   ("--header-height", None),
+  ("`{}", None),
+  ("{}`", None),
+  ("is", None),
+  ("recorded", None),
+  ("as", None),
+  ("diverging", None),
+  ("the", None),
+  ("reference", None),
+  ("compiler", None),
+  ("yet", None),
+  ("both", None),
+  ("spell", None),
+  ("it", None),
+  ("same", None),
   ("hidden", None),
   ("visible", None),
   ("--rightpadding", None),
@@ -3982,6 +4141,11 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   (".52", Some((".52", ""))),
   ("3%", Some(("3", "%"))),
   ("/", None),
+  ("limit", None),
+  ("64", Some(("64", ""))),
+  ("found", None),
+  ("5000", Some(("5000", ""))),
+  ("65", Some(("65", ""))),
   ("500px", Some(("500", "px"))),
   ("scroll-position", None),
   ("\\", None),
@@ -4003,7 +4167,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("a→b", None),
   ("🙂🙂🙂", None),
   ("content value", None),
-  ("-webkit-box", None),
   ("-WEBKIT-BOX", None),
   ("linear", None),
   ("--webkit-not-a-prefix", None),
@@ -4066,7 +4229,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("U+Z", None),
   ("12", Some(("12", ""))),
   ("54", Some(("54", ""))),
-  ("65", Some(("65", ""))),
   ("background-image", None),
   ("25%", Some(("25", "%"))),
   ("75%", Some(("75", "%"))),

@@ -3,14 +3,15 @@
 //!
 //! Every expectation here is what this compiler produces **today**, so the
 //! suite is green before the normalization pipeline is replaced and stays a net
-//! under that change. Alongside each one sits a [`Reference`] verdict taken
+//! under that change. Alongside each one sits a [`Reference`](super::support::Reference) verdict taken
 //! from the parity harness in `crates/stylex-rs-compiler/parity` — never from
 //! judgement — recording whether the reference compiler agrees. A case marked
-//! [`Reference::Diverges`] is scheduled to change; a case marked
-//! [`Reference::Same`] must survive untouched.
+//! [`Reference::Diverges`](super::support::Reference::Diverges) is scheduled to
+//! change; a case marked [`Reference::Same`](super::support::Reference::Same)
+//! must survive untouched.
 //!
 //! Regenerate the verdicts with the two runs below — the second is what the
-//! cases under [`rem_enabled_options`] come from, since the harness defaults
+//! cases under [`rem_enabled_options`](super::support::rem_enabled_options) come from, since the harness defaults
 //! the font-size option off and a default run cannot verdict them at all:
 //!
 //! ```sh
@@ -20,6 +21,9 @@
 //!   --json parity/results/font-size-px-to-rem.json
 //! ```
 //!
+//! The `Case`/`Reference` machinery and the shared `check` runner live in
+//! `support`, alongside the same pieces used by `spacing_repair_parity_test`.
+//!
 //! Read `entries[].babel.declarations` for the reference spelling and
 //! `entries[].rust.declarations` for this compiler's. Overlap with the older
 //! `normalize_css_property_value_tests` module in `common_test.rs` is
@@ -28,85 +32,8 @@
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use stylex_structures::stylex_state_options::StyleXStateOptions;
-
-use super::support::{default_options, panic_message, rem_enabled_options};
+use super::support::{check, default_options, diverges, panic_message, rem_enabled_options, same};
 use crate::css::common::{MAX_VALUE_NESTING_DEPTH, normalize_css_property_value};
-
-/// What the reference compiler makes of a case, as the parity harness reported
-/// it.
-#[derive(Clone, Copy)]
-enum Reference {
-  /// The reference compiler spells the value the same way. The expectation is
-  /// the compatibility contract and must survive any pipeline change.
-  Same,
-  /// The reference compiler spells it differently, and this is its spelling.
-  /// The expectation below is what this compiler produces today; replacing the
-  /// pipeline adopts the reference spelling and this case's expectation
-  /// changes.
-  Diverges(&'static str),
-}
-
-/// One normalization case: an input, the declaration text this compiler
-/// produces for it, and the reference compiler's verdict.
-struct Case {
-  property: &'static str,
-  value: &'static str,
-  expected: &'static str,
-  reference: Reference,
-}
-
-const fn same(property: &'static str, value: &'static str, expected: &'static str) -> Case {
-  Case {
-    property,
-    value,
-    expected,
-    reference: Reference::Same,
-  }
-}
-
-const fn diverges(
-  property: &'static str,
-  value: &'static str,
-  expected: &'static str,
-  upstream: &'static str,
-) -> Case {
-  Case {
-    property,
-    value,
-    expected,
-    reference: Reference::Diverges(upstream),
-  }
-}
-
-/// Runs a case table and, for every case claiming a divergence, checks that the
-/// two spellings really do differ.
-///
-/// That second assertion catches exactly one thing, which is the thing that
-/// happens next: a pipeline change that adopts the reference spelling has to
-/// move `expected`, and the case then fails until it is re-verdicted rather
-/// than being quietly left carrying a stale claim. It cannot notice the
-/// reference compiler itself changing — only a fresh harness run does that,
-/// which is why the module header says how to do one.
-fn check(cases: &[Case], options: &StyleXStateOptions) {
-  for case in cases {
-    let actual = normalize_css_property_value(case.property, case.value, options);
-
-    assert_eq!(
-      actual, case.expected,
-      "normalizing `{}: {}`",
-      case.property, case.value
-    );
-
-    if let Reference::Diverges(upstream) = case.reference {
-      assert_ne!(
-        case.expected, upstream,
-        "`{}: {}` is recorded as diverging from the reference compiler, yet both spell it the same",
-        case.property, case.value
-      );
-    }
-  }
-}
 
 // ── Timings ──────────────────────────────────────────────────────────
 

@@ -39,6 +39,27 @@ CSS parser cannot handle — relative color syntax such as `rgb(from red r g b)`
 are normalized by spacing alone rather than parsed and re-serialized.
 _Avoid_: minification, formatting, cleanup
 
+**Spacing repair**:
+The stage of whitespace normalization that puts back the spaces SWC's minifying
+codegen removed — between a function result and the word after it, around a `/`,
+before a hex colour. It reads the codegen's output as text, not as an AST, and
+only ever inserts: a space the minifier swallowed is not recovered.
+_Avoid_: whitespace fix, respacing, pretty-printing
+
+**Reference verdict**:
+What the parity harness recorded when it ran a declaration through both this
+compiler and the reference compiler — `identical`, or a divergence, and in the
+latter case the reference compiler's own spelling. A normalization expectation
+carries one so a pipeline change can be read as predicted or unpredicted. Always
+taken from a harness run, never from judgement.
+_Avoid_: baseline, golden value, upstream expectation
+
+**Reference compiler**:
+`@stylexjs/babel-plugin` at the version the parity harness pins. It is the
+oracle a verdict is measured against, because a class name is a hash of the
+declaration text and both compilers have to produce the same one.
+_Avoid_: upstream, the Babel side, the other compiler
+
 **Marker**:
 The class name that `when.*` selectors observe on an ancestor or descendant, so
 a rule can react to a pseudo-class active on another element. Set per call by

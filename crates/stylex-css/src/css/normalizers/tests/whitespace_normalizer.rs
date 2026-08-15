@@ -1,3 +1,11 @@
+//! Coverage of the whitespace repair pass, asserted against the pass itself.
+//!
+//! **Superseded.** Every input here is re-expressed at the public normalization
+//! entry point in `css/tests/spacing_repair_parity_test.rs`, where each case
+//! also carries the verdict the parity harness recorded against the reference
+//! compiler. That module is the one to add to. This one is kept only until the
+//! pass it addresses is deleted, so that both are green across the change.
+
 use crate::css::normalizers::whitespace_normalizer::{
   extract_css_value, is_css_unit, normalize_spacing,
 };

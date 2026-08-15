@@ -8,7 +8,7 @@
 //! Regenerate the table after adding an input to the generator:
 //!
 //! ```sh
-//! pnpm run --filter=@stylexswc/css generate:value-parser-cases
+//! pnpm run --filter=@stylexswc/postcss-value-parser generate:value-parser-cases
 //! ```
 
 use crate::{
@@ -166,6 +166,16 @@ fn an_override_replaces_the_same_nodes() {
       "function-retyped-as-word" => {
         match nodes.get_mut(1) {
           Some(node) => node.kind = NodeKind::Word,
+          None => panic!("{:?} has no second node", case.input),
+        }
+        stringify(&nodes)
+      },
+      // And the kind that is not tested before the children are: it keeps them
+      // and drops the name and parentheses instead. The two scenarios differ
+      // only in the kind assigned, which is the whole point of having both.
+      "function-retyped-as-unicode-range" => {
+        match nodes.get_mut(1) {
+          Some(node) => node.kind = NodeKind::UnicodeRange,
           None => panic!("{:?} has no second node", case.input),
         }
         stringify(&nodes)

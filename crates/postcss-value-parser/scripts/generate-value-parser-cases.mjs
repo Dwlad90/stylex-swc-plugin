@@ -10,7 +10,7 @@
 //
 // Regenerate with:
 //
-//   pnpm run --filter=@stylexswc/css generate:value-parser-cases
+//   pnpm run --filter=@stylexswc/postcss-value-parser generate:value-parser-cases
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -407,6 +407,17 @@ const OVERRIDE_SCENARIOS = [
       return stringify(nodes);
     },
   },
+  // The other side of that coin. `word` is tested before the children are, so a
+  // function retyped to one loses them; `unicode-range` is not, so a function
+  // retyped to one keeps them and loses its name and parentheses instead.
+  {
+    label: 'function-retyped-as-unicode-range',
+    input: ' rgba(12,  54, 65 ) ',
+    run: nodes => {
+      nodes[1].type = 'unicode-range';
+      return stringify(nodes);
+    },
+  },
 ];
 
 /** Collapses a function to `name[arg,arg,arg]`, ignoring everything else. */
@@ -606,7 +617,7 @@ process.stdout.write(
     '// Every expectation is a literal answer from the JavaScript being stood in for.',
     '// Regenerate after adding an input to the generator, never by eye:',
     '//',
-    '//   pnpm run --filter=@stylexswc/css generate:value-parser-cases',
+    '//   pnpm run --filter=@stylexswc/postcss-value-parser generate:value-parser-cases',
     '',
     '/// One value, and what the JavaScript does with it.',
     'pub(super) struct ParserCase {',

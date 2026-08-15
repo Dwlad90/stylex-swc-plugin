@@ -3,7 +3,7 @@
 // Every expectation is a literal answer from the JavaScript being stood in for.
 // Regenerate after adding an input to the generator, never by eye:
 //
-//   pnpm run --filter=@stylexswc/css generate:value-parser-cases
+//   pnpm run --filter=@stylexswc/postcss-value-parser generate:value-parser-cases
 
 /// One value, and what the JavaScript does with it.
 pub(super) struct ParserCase {
@@ -3590,7 +3590,7 @@ pub(super) struct OverrideCase {
   pub output: &'static str,
 }
 
-/// 5 serialisations that an override or a re-kinded node changed.
+/// 6 serialisations that an override or a re-kinded node changed.
 pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   OverrideCase {
     label: "function-to-bracket-list",
@@ -3616,6 +3616,11 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
     label: "function-retyped-as-word",
     input: " rgba(12,  54, 65 ) ",
     output: " rgba ",
+  },
+  OverrideCase {
+    label: "function-retyped-as-unicode-range",
+    input: " rgba(12,  54, 65 ) ",
+    output: " 12,  54, 65 ",
   },
 ];
 

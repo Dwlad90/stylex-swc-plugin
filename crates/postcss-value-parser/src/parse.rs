@@ -1,6 +1,8 @@
 //! The scanner. See the crate documentation in `lib.rs` for what it is and
 //! who holds its copyright.
 
+use std::borrow::Cow;
+
 use crate::{Node, NodeKind};
 
 const OPEN_PARENTHESES: u32 = b'(' as u32;
@@ -150,8 +152,10 @@ fn parent_is_non_calc_function(stack: &[OpenFunction]) -> bool {
 /// rather than rejected.
 pub fn parse(input: &str) -> Vec<Node> {
   // The scan grows `value` past the input when it has to invent a closing
-  // delimiter, so the buffer is owned rather than borrowed.
-  let mut value: Vec<u8> = input.as_bytes().to_vec();
+  // delimiter, so the buffer has to be growable -- but only three input shapes
+  // ever make it grow. Borrowed until one of them turns up, copied then, which
+  // is the difference between one allocation per declaration value and none.
+  let mut value: Cow<'_, [u8]> = Cow::Borrowed(input.as_bytes());
 
   let mut pos: usize = 0;
   let mut code = char_code_at(&value, pos);
@@ -225,7 +229,7 @@ pub fn parse(input: &str) -> Vec<Node> {
             }
           },
           None => {
-            value.push(quote);
+            value.to_mut().push(quote);
             next = value.len() - 1;
             token.unclosed = true;
           },
@@ -335,7 +339,7 @@ pub fn parse(input: &str) -> Vec<Node> {
               }
             },
             None => {
-              value.push(b')');
+              value.to_mut().push(b')');
               next = value.len() - 1;
               token.unclosed = true;
             },

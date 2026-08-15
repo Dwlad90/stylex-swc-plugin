@@ -1,7 +1,7 @@
-//! The scanner. See the module documentation in `mod.rs` for what it is and
+//! The scanner. See the crate documentation in `lib.rs` for what it is and
 //! who holds its copyright.
 
-use super::{Node, NodeKind};
+use crate::{Node, NodeKind};
 
 const OPEN_PARENTHESES: u32 = b'(' as u32;
 const CLOSE_PARENTHESES: u32 = b')' as u32;

@@ -1,6 +1,6 @@
 {
-  "name": "@stylexswc/css",
-  "description": "CSS generation, normalization and validation for StyleX SWC plugin",
+  "name": "@stylexswc/postcss-value-parser",
+  "description": "Loose CSS declaration-value scanner that preserves the author's own characters",
   "version": "0.18.4-rc.1",
   "private": true,
   "sideEffects": false,
@@ -11,7 +11,6 @@
     "access": "public"
   },
   "scripts": {
-    "bench": "scripty",
     "clean": "del-cli dist",
     "do:nothing": "exit 0",
     "format": "run-p format:rs format:toml",
@@ -20,6 +19,8 @@
     "format:rs:check": "cargo fmt -- --check",
     "format:toml": "taplo format",
     "format:toml:check": "taplo format --check",
+    "generate:value-parser-cases": "node scripts/generate-value-parser-cases.mjs | rustfmt --edition 2024 > src/tests/cases.rs",
+    "generate:value-parser-cases:check": "node scripts/generate-value-parser-cases.mjs | rustfmt --edition 2024 | diff -u src/tests/cases.rs -",
     "prepublishOnly": "pnpm run build",
     "test": "scripty",
     "test:coverage": "scripty",
@@ -32,21 +33,14 @@
     }
   },
   "devDependencies": {
-    "@stylexswc/ast": "catalog:internal",
-    "@stylexswc/constants": "catalog:internal",
-    "@stylexswc/css-parser": "catalog:internal",
-    "@stylexswc/enums": "catalog:internal",
-    "@stylexswc/evaluator": "catalog:internal",
-    "@stylexswc/macros": "catalog:internal",
-    "@stylexswc/regex": "catalog:internal",
-    "@stylexswc/structures": "catalog:internal",
-    "@stylexswc/types": "catalog:internal",
     "@taplo/cli": "catalog:tooling",
-    "npm-run-all2": "catalog:tooling"
+    "npm-run-all2": "catalog:tooling",
+    "postcss-value-parser": "catalog:tooling"
   },
   "keywords": [
+    "css",
+    "parser",
     "stylex",
-    "swc",
-    "swc-plugin"
+    "swc"
   ]
 }

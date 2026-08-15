@@ -5,7 +5,7 @@
 //! crashes the parser, that the offsets the normalizers navigate by are well
 //! formed, and that a walk visits what a caller is promised it will.
 
-use crate::vendor::postcss_value_parser::{
+use crate::{
   Node, NodeKind, ValueParser, parse, stringify, stringify_node, stringify_node_with,
   stringify_with, unit,
 };

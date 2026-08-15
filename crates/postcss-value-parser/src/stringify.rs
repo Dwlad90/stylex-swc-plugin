@@ -1,7 +1,7 @@
-//! Spelling a node list back out. See the module documentation in `mod.rs`
+//! Spelling a node list back out. See the crate documentation in `lib.rs`
 //! for what it is and who holds its copyright.
 
-use super::{Node, NodeKind};
+use crate::{Node, NodeKind};
 
 /// A per-node override, consulted before anything else and free to decline.
 ///

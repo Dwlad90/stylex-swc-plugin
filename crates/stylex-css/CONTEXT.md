@@ -90,19 +90,3 @@ The final rule string, built by wrapping a declaration in its at-rules and
 pseudo selectors. Pseudos and at-rules are each sorted first (`sort_pseudos`,
 `sort_at_rules`), so the same set always nests in the same order.
 _Avoid_: selector, wrapped rule, block
-
-**Value scanner**:
-The loose tokenizer under `vendor/` that reads a declaration value into words,
-spaces, separators, strings, comments and functions, each keeping the
-characters the author typed. Third-party code, kept visibly separate and left
-reading the way it was written, because its serialised output is what a class
-name hashes. Not the [typed value parser](../stylex-css-parser/CONTEXT.md),
-which answers what a value _means_ rather than what it _says_.
-_Avoid_: tokenizer, lexer, value parser
-
-**Node kind**:
-Which of the value scanner's seven token shapes a node is — word, string, div,
-space, comment, function, unicode-range. A discriminant on one record with
-optional fields rather than an enum, so that a normalizer can inspect the kind
-and then assign to the value field without restructuring into a match.
-_Avoid_: node type, token type

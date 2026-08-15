@@ -11,7 +11,7 @@
 //! pnpm run --filter=@stylexswc/css generate:value-parser-cases
 //! ```
 
-use crate::vendor::postcss_value_parser::{
+use crate::{
   Dimension, Node, NodeKind, ValueParser, parse, stringify, stringify_node_with, stringify_with,
   unit,
 };

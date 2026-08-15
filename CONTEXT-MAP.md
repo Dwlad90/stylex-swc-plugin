@@ -12,6 +12,9 @@ layering between crates is in [Project Structure](./guidelines/STRUCTURE.md).
 
 ## Crates
 
+- **postcss-value-parser**
+  ([CONTEXT.md](./crates/postcss-value-parser/CONTEXT.md)) -- third-party: a
+  loose CSS value scanner that answers what a value _says_, not what it means.
 - **stylex-constants**
   ([CONTEXT.md](./crates/stylex-constants/CONTEXT.md)) -- static tables and the
   string constants shared with the StyleX runtime.

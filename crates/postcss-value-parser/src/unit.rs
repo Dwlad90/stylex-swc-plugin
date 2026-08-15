@@ -1,5 +1,5 @@
-//! Splitting a word into a number and a unit. See the module documentation in
-//! `mod.rs` for what it is and who holds its copyright.
+//! Splitting a word into a number and a unit. See the crate documentation in
+//! `lib.rs` for what it is and who holds its copyright.
 
 const MINUS: u32 = b'-' as u32;
 const PLUS: u32 = b'+' as u32;

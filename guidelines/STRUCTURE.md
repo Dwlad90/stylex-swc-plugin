@@ -13,8 +13,8 @@ The layer decides what a crate may depend on. What each one is _responsible
 for_, and the vocabulary it defines, is in
 [CONTEXT-MAP.md](../CONTEXT-MAP.md).
 
-- **0 -- Primitives** (no internal dependencies): `stylex-constants`,
-  `stylex-regex`, `stylex-styleq`, `stylex-utils`
+- **0 -- Primitives** (no internal dependencies): `postcss-value-parser`,
+  `stylex-constants`, `stylex-regex`, `stylex-styleq`, `stylex-utils`
 - **1 -- Macros**: `stylex-macros`
 - **2 -- Domain leaves**: `stylex-enums`, `stylex-js`, `stylex-logs`,
   `stylex-css-parser`, `stylex-path-resolver`
@@ -28,6 +28,14 @@ for_, and the vocabulary it defines, is in
 
 `stylex-test-parser` sits outside the DAG: nothing depends on it, and it is a
 developer binary rather than part of the compiler.
+
+`postcss-value-parser` is third-party code rather than this project's own, and
+that is why it is a crate rather than a module. It has no dependencies, not
+even workspace ones, and the boundary is what keeps it that way -- a module
+inside a crate can quietly reach for a sibling; a crate with an empty
+`[dependencies]` cannot. The workspace `members` glob only matches
+`crates/stylex-*`, so it is listed explicitly in the root `Cargo.toml`.
+Anything else vendored belongs beside it on the same terms.
 
 Workspace dependencies are defined in the root `Cargo.toml`.
 

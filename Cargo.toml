@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-members = ["crates/stylex-*"]
+members = ["crates/postcss-value-parser", "crates/stylex-*"]
 
 [workspace.package]
 edition = "2024"

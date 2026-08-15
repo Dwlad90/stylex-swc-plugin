@@ -3,8 +3,14 @@
 //!
 //! Third-party code. Copyright (c) Bogdan Chadkin <trysound@yandex.ru>,
 //! `postcss-value-parser` v4.2.0 at revision `43ae6d3`. MIT licensed; the full
-//! notice ships beside this module in `LICENSE`, and the behaviour here is that
+//! notice ships beside this crate in `LICENSE`, and the behaviour here is that
 //! library's, quirks and all.
+//!
+//! It has a crate to itself for that reason. It is somebody else's work, it is
+//! left reading the way it was written rather than idiomatised, and a crate
+//! boundary says so in a way a directory name cannot: nothing in here is StyleX
+//! logic, and nothing in here depends on anything that is. It has no
+//! dependencies at all.
 //!
 //! ## What it is for
 //!

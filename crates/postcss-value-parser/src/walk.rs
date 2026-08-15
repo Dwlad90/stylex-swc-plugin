@@ -1,7 +1,7 @@
-//! Visiting every node. See the module documentation in `mod.rs` for what it is
+//! Visiting every node. See the crate documentation in `lib.rs` for what it is
 //! and who holds its copyright.
 
-use super::{Node, NodeKind};
+use crate::{Node, NodeKind};
 
 /// Visits every node in `nodes`, descending into functions.
 ///

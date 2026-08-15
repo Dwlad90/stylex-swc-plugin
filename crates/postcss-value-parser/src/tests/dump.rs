@@ -6,7 +6,7 @@
 //! character, so keep both deliberately dull: no clever escapes, no reordered
 //! fields, no field omitted because it is usually empty.
 
-use crate::vendor::postcss_value_parser::Node;
+use crate::Node;
 
 /// The canonical quoted form of a string field.
 fn dump_string(text: &str) -> String {

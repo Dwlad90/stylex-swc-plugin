@@ -90,6 +90,11 @@ pub static LINT_RULE_BREAKING_TOKEN: &str =
 pub static LINT_VALUE_NESTED_TOO_DEEPLY: &str =
   "Rule contains a value nested more deeply than the compiler supports";
 
+pub static LINT_VALUE_HAS_NO_TOKENS: &str = "Rule contains a value with nothing to normalize";
+
+pub static LINT_IMPORTANT_NOT_LAST: &str =
+  "Rule contains an importance annotation that is not the last token in the value";
+
 pub static LOCAL_ONLY: &str = "The return value of create() should not be exported.";
 
 pub static NON_OBJECT_KEYFRAME: &str = "Every frame within a keyframes() call must be an object.";

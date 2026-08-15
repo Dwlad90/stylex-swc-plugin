@@ -15,6 +15,7 @@ doctest = false
 [dependencies]
 fancy-regex.workspace = true
 log.workspace = true
+postcss_value_parser = { path = "../postcss-value-parser" }
 stylex_constants = { path = "../stylex-constants" }
 stylex_css_parser = { path = "../stylex-css-parser" }
 stylex_enums = { path = "../stylex-enums" }

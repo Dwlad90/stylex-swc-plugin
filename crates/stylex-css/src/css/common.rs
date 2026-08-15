@@ -751,6 +751,23 @@ fn build_css_rule(property: &str, css_property_value: &str, is_pseudo: bool) -> 
   }
 }
 
+/// Builds the rule text an unclosed-function report quotes back at the author.
+///
+/// Reported against the author's actual property name; `--x` has no grammar of
+/// its own, so `color` stands in for it.
+pub(crate) fn build_error_css_rule(css_property: &str, css_property_value: &str) -> String {
+  let error_property = match css_property.starts_with("--") {
+    true => "color",
+    false => css_property,
+  };
+
+  build_css_rule(
+    error_property,
+    css_property_value,
+    is_pseudo_selector(css_property),
+  )
+}
+
 /// Panics with a formatted CSS parse error.
 fn handle_css_parse_errors(errors: &[Error], css_rule: &str) -> ! {
   let error_message = errors[0].message().to_string();
@@ -800,14 +817,7 @@ pub fn normalize_css_property_value(
   let structure = scan_value_structure(css_property_value);
 
   if structure.has_unclosed_function {
-    // Report the error against the author's actual property name; `--x` has no
-    // grammar of its own, so `color` stands in for it.
-    let error_property = if css_property.starts_with("--") {
-      "color"
-    } else {
-      css_property
-    };
-    let css_rule = build_css_rule(error_property, css_property_value, is_pseudo);
+    let css_rule = build_error_css_rule(css_property, css_property_value);
 
     stylex_panic!("{}, css rule: {}", LINT_UNCLOSED_FUNCTION, css_rule);
   }

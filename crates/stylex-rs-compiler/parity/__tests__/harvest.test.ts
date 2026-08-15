@@ -222,9 +222,21 @@ describe('shape 6 — verdict case tables', () => {
     ]);
   });
 
+  test('reads the constructor whose expectation is the input itself', () => {
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          check(&[unchanged("width", "var(--x)px")], &default_options());
+        }
+      `)
+    ).toEqual([['width', 'var(--x)px']]);
+  });
+
   test('skips the definitions of the constructors themselves', () => {
     expect(
       declarationsOf(`
+        const fn unchanged(property: &'static str, value: &'static str) -> Case {}
         const fn same(property: &'static str, value: &'static str) -> Case {}
         const fn diverges(property: &'static str, value: &'static str) -> Case {}
       `)

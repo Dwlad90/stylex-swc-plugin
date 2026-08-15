@@ -120,17 +120,24 @@ function collectRustTestFiles(workspaceRoot: string): string[] {
 /**
  * Calls whose first two arguments are a property literal and a value literal.
  *
- * `normalize_css_property_value` is the direct call form. `same` and `diverges`
- * build one row of a verdict case table, where the arguments after the value
- * are the expected output and the reference compiler's spelling — deliberately
- * not harvested, since deriving expectations from the reference compiler is the
- * whole point of the harness.
+ * `normalize_css_property_value` is the direct call form. `unchanged`, `same`
+ * and `diverges` build one row of a verdict case table, where the arguments
+ * after the value are the expected output and the reference compiler's
+ * spelling — deliberately not harvested, since deriving expectations from the
+ * reference compiler is the whole point of the harness. `unchanged` has no
+ * arguments after the value at all: it is the case whose expectation *is* the
+ * input, which is the majority shape and the reason it exists.
  */
-const PROPERTY_VALUE_CALLS = ['normalize_css_property_value', 'same', 'diverges'] as const;
+const PROPERTY_VALUE_CALLS = [
+  'normalize_css_property_value',
+  'unchanged',
+  'same',
+  'diverges',
+] as const;
 
 /**
- * Shapes 1 and 6 — `normalize_css_property_value("color", "#ff0000", &opts)`
- * and `same("color", "#ff0000", "#f00")`.
+ * Shapes 1 and 6 — `normalize_css_property_value("color", "#ff0000", &opts)`,
+ * `unchanged("color", "red")` and `same("color", "#ff0000", "#f00")`.
  *
  * The forms where both the property and the value are literals sitting next to
  * each other. Between them these are the bulk of the value-normalization unit

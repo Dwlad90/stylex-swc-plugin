@@ -349,16 +349,8 @@ mod get_priority_tests {
 #[cfg(test)]
 mod normalize_css_property_value_tests {
   use crate::css::common::normalize_css_property_value;
+  use crate::css::tests::support::{default_options, panic_message, rem_enabled_options};
   use std::panic::{AssertUnwindSafe, catch_unwind};
-  use stylex_structures::stylex_state_options::StyleXStateOptions;
-
-  fn default_options() -> StyleXStateOptions {
-    StyleXStateOptions::default()
-  }
-
-  fn rem_enabled_options() -> StyleXStateOptions {
-    StyleXStateOptions::default().with_enable_font_size_px_to_rem(true)
-  }
 
   // --- Simple values ---
 
@@ -840,12 +832,7 @@ mod normalize_css_property_value_tests {
       normalize_css_property_value("--my-var", "var(--token", &opts)
     }));
 
-    let panic = result.expect_err("expected an unclosed-function panic");
-    let message = panic
-      .downcast_ref::<String>()
-      .map(String::as_str)
-      .or_else(|| panic.downcast_ref::<&str>().copied())
-      .unwrap_or_default();
+    let message = panic_message(result);
 
     assert!(
       message.contains("* { color: var(--token }"),
@@ -943,11 +930,8 @@ mod normalize_css_property_value_tests {
 #[cfg(test)]
 mod generate_css_rule_tests {
   use crate::css::common::generate_css_rule;
+  use crate::css::tests::support::default_options;
   use stylex_structures::stylex_state_options::StyleXStateOptions;
-
-  fn default_options() -> StyleXStateOptions {
-    StyleXStateOptions::default()
-  }
 
   #[test]
   fn generates_simple_ltr_rule() {
@@ -1293,58 +1277,54 @@ mod get_priority_extended_tests {
 #[cfg(test)]
 mod convert_css_function_camel_case_tests {
   use crate::css::common::normalize_css_property_value;
-  use stylex_structures::stylex_state_options::StyleXStateOptions;
-
-  fn opts() -> StyleXStateOptions {
-    StyleXStateOptions::default()
-  }
+  use crate::css::tests::support::default_options;
 
   #[test]
   fn translatey_becomes_camel_case() {
-    let r = normalize_css_property_value("transform", "translateY(20px)", &opts());
+    let r = normalize_css_property_value("transform", "translateY(20px)", &default_options());
     assert_eq!(r, "translateY(20px)");
   }
 
   #[test]
   fn scalex_becomes_camel_case() {
-    let r = normalize_css_property_value("transform", "scaleX(2)", &opts());
+    let r = normalize_css_property_value("transform", "scaleX(2)", &default_options());
     assert_eq!(r, "scaleX(2)");
   }
 
   #[test]
   fn scaley_becomes_camel_case() {
-    let r = normalize_css_property_value("transform", "scaleY(0.5)", &opts());
+    let r = normalize_css_property_value("transform", "scaleY(0.5)", &default_options());
     assert_eq!(r, "scaleY(.5)");
   }
 
   #[test]
   fn rotatex_becomes_camel_case() {
-    let r = normalize_css_property_value("transform", "rotateX(45deg)", &opts());
+    let r = normalize_css_property_value("transform", "rotateX(45deg)", &default_options());
     assert_eq!(r, "rotateX(45deg)");
   }
 
   #[test]
   fn skewx_becomes_camel_case() {
-    let r = normalize_css_property_value("transform", "skewX(10deg)", &opts());
+    let r = normalize_css_property_value("transform", "skewX(10deg)", &default_options());
     assert_eq!(r, "skewX(10deg)");
   }
 
   #[test]
   fn skewy_becomes_camel_case() {
-    let r = normalize_css_property_value("transform", "skewY(5deg)", &opts());
+    let r = normalize_css_property_value("transform", "skewY(5deg)", &default_options());
     assert_eq!(r, "skewY(5deg)");
   }
 
   #[test]
   fn no_function_returns_as_is() {
     // No parentheses → restore_function_names returns as-is
-    let r = normalize_css_property_value("color", "red", &opts());
+    let r = normalize_css_property_value("color", "red", &default_options());
     assert_eq!(r, "red");
   }
 
   #[test]
   fn already_lowercase_function_is_unchanged() {
-    let r = normalize_css_property_value("transform", "rotate(45deg)", &opts());
+    let r = normalize_css_property_value("transform", "rotate(45deg)", &default_options());
     assert_eq!(r, "rotate(45deg)");
   }
 
@@ -1352,7 +1332,7 @@ mod convert_css_function_camel_case_tests {
   /// nor reports as a plain identifier — so it carries its own case through.
   #[test]
   fn dashed_function_name_keeps_its_case() {
-    let r = normalize_css_property_value("color", "--Foo(1px)", &opts());
+    let r = normalize_css_property_value("color", "--Foo(1px)", &default_options());
     assert_eq!(r, "--Foo(1px)");
   }
 }
@@ -1362,28 +1342,24 @@ mod convert_css_function_camel_case_tests {
 #[cfg(test)]
 mod normalize_css_variable_property_tests {
   use crate::css::common::normalize_css_property_value;
-  use stylex_structures::stylex_state_options::StyleXStateOptions;
-
-  fn opts() -> StyleXStateOptions {
-    StyleXStateOptions::default()
-  }
+  use crate::css::tests::support::default_options;
 
   #[test]
   fn css_variable_uses_color_for_parsing() {
     // When property starts with "--", parsing uses "color" as the property
-    let r = normalize_css_property_value("--xCustom", "10px", &opts());
+    let r = normalize_css_property_value("--xCustom", "10px", &default_options());
     assert_eq!(r, "10px");
   }
 
   #[test]
   fn css_variable_with_hex() {
-    let r = normalize_css_property_value("--xBg", "#ff0000", &opts());
+    let r = normalize_css_property_value("--xBg", "#ff0000", &default_options());
     assert_eq!(r, "#f00");
   }
 
   #[test]
   fn css_variable_with_keyword() {
-    let r = normalize_css_property_value("--xBorder", "solid", &opts());
+    let r = normalize_css_property_value("--xBorder", "solid", &default_options());
     assert_eq!(r, "solid");
   }
 }
@@ -1393,46 +1369,46 @@ mod normalize_css_variable_property_tests {
 #[cfg(test)]
 mod normalize_css_property_value_error_tests {
   use crate::css::common::normalize_css_property_value;
-  use stylex_structures::stylex_state_options::StyleXStateOptions;
-
-  fn opts() -> StyleXStateOptions {
-    StyleXStateOptions::default()
-  }
+  use crate::css::tests::support::default_options;
 
   #[test]
   #[should_panic(expected = "Rule contains an unclosed function")]
   fn panics_on_unclosed_function_paren() {
-    normalize_css_property_value("color", "rgb(255, 0, 0", &opts());
+    normalize_css_property_value("color", "rgb(255, 0, 0", &default_options());
   }
 
   #[test]
   #[should_panic(expected = "Rule contains an unclosed string")]
   fn panics_on_unclosed_double_quoted_string() {
-    normalize_css_property_value("fontFamily", r#""Helvetica Neue"#, &opts());
+    normalize_css_property_value("fontFamily", r#""Helvetica Neue"#, &default_options());
   }
 
   #[test]
   #[should_panic(expected = "Rule contains an unclosed string")]
   fn panics_on_unclosed_single_quoted_string() {
-    normalize_css_property_value("fontFamily", "'Helvetica Neue", &opts());
+    normalize_css_property_value("fontFamily", "'Helvetica Neue", &default_options());
   }
 
   #[test]
   #[should_panic(expected = "Rule contains an unclosed string")]
   fn panics_on_unclosed_string_in_multi_value_property() {
-    normalize_css_property_value("fontFamily", r#""Helvetica Neue, sans-serif"#, &opts());
+    normalize_css_property_value(
+      "fontFamily",
+      r#""Helvetica Neue, sans-serif"#,
+      &default_options(),
+    );
   }
 
   #[test]
   #[should_panic(expected = "Rule contains an unclosed function")]
   fn panics_on_unclosed_function_before_unclosed_string() {
-    normalize_css_property_value("backgroundImage", r#"url("foo)"#, &opts());
+    normalize_css_property_value("backgroundImage", r#"url("foo)"#, &default_options());
   }
 
   #[test]
   #[should_panic(expected = "Rule contains an unclosed function")]
   fn panics_on_unclosed_spacing_only_function() {
-    normalize_css_property_value("color", "hsl(0 0% 0%", &opts());
+    normalize_css_property_value("color", "hsl(0 0% 0%", &default_options());
   }
 
   #[test]
@@ -1441,19 +1417,27 @@ mod normalize_css_property_value_error_tests {
     normalize_css_property_value(
       "fontFamily",
       "'SF Pro Text', 'SF Pro Icons', Helvetica Neue', 'Helvetica', sans-serif",
-      &opts(),
+      &default_options(),
     );
   }
 
   #[test]
   fn normalizes_closed_double_quoted_string() {
-    let r = normalize_css_property_value("fontFamily", r#""Helvetica Neue", sans-serif"#, &opts());
+    let r = normalize_css_property_value(
+      "fontFamily",
+      r#""Helvetica Neue", sans-serif"#,
+      &default_options(),
+    );
     assert_eq!(r, r#""Helvetica Neue",sans-serif"#);
   }
 
   #[test]
   fn normalizes_closed_single_quoted_string() {
-    let r = normalize_css_property_value("fontFamily", "'Helvetica Neue', sans-serif", &opts());
+    let r = normalize_css_property_value(
+      "fontFamily",
+      "'Helvetica Neue', sans-serif",
+      &default_options(),
+    );
     assert_eq!(r, r#""Helvetica Neue",sans-serif"#);
   }
 
@@ -1462,7 +1446,7 @@ mod normalize_css_property_value_error_tests {
     let r = normalize_css_property_value(
       "fontFamily",
       r#"-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif"#,
-      &opts(),
+      &default_options(),
     );
     assert_eq!(
       r,
@@ -1472,27 +1456,30 @@ mod normalize_css_property_value_error_tests {
 
   #[test]
   fn normalizes_escaped_quote_in_string() {
-    let r =
-      normalize_css_property_value("fontFamily", r#""Helvetica \"Neue", sans-serif"#, &opts());
+    let r = normalize_css_property_value(
+      "fontFamily",
+      r#""Helvetica \"Neue", sans-serif"#,
+      &default_options(),
+    );
     assert!(r.contains("Helvetica"));
   }
 
   #[test]
   fn normalizes_quote_inside_comment() {
-    let r = normalize_css_property_value("color", "red /* \" */", &opts());
+    let r = normalize_css_property_value("color", "red /* \" */", &default_options());
     assert!(r.contains("red"));
   }
 
   #[test]
   fn css_variable_property_uses_color_for_parsing() {
     // --foo is a CSS variable, so it uses "color" as the parsing property
-    let r = normalize_css_property_value("--xSomething", "10px", &opts());
+    let r = normalize_css_property_value("--xSomething", "10px", &default_options());
     assert_eq!(r, "10px");
   }
 
   #[test]
   fn css_variable_with_complex_value() {
-    let r = normalize_css_property_value("--xVar", "1px solid #000", &opts());
+    let r = normalize_css_property_value("--xVar", "1px solid #000", &default_options());
     assert_eq!(r, "1px solid #000");
   }
 }

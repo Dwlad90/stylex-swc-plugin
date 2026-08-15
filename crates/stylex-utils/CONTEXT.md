@@ -37,6 +37,27 @@ browser accepts. Named against
 it is not blank.
 _Avoid_: empty value, blank string, whitespace check
 
+**JS float read**:
+`parse_js_float`, which reads a leading float out of a string exactly as
+JavaScript's `parseFloat` does: the longest leading number wins and whatever
+trails it is ignored, which is what makes `10px` yield `10`. Rust's
+`str::parse` is not a substitute — it rejects any trailing character. Reports
+`None` where JavaScript yields NaN, so "there is no number here" cannot pass
+for zero.
+_Avoid_: float parsing, `parse_f64`, string-to-number
+
+**JS number spelling**:
+`to_js_string`, which writes an `f64` back out exactly as JavaScript's
+`String(Number)` does, switching to exponential form at the same boundaries
+Rust's `Display` never does.
+_Avoid_: number formatting, float display
+
+Both are matched to JavaScript because the spelling is **observable**: a
+normalized CSS value reaches the emitted stylesheet and feeds the **Hash**
+above, so a float read or written one digit differently silently produces a
+different class name. Their expectations are generated from a JavaScript
+runtime by `scripts/generate-parse-float-cases.mjs` and never written by hand.
+
 **Structural hash**:
 `stable_hash_unspanned`, a hash of an AST expression that ignores spans, so two
 syntactically identical expressions in different source positions collide on

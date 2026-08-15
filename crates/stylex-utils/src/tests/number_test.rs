@@ -1,4 +1,6 @@
-use crate::number::to_js_string;
+use crate::number::{parse_js_float, to_js_string};
+
+include!("number_parse_float_cases.rs");
 
 /// Every expectation is the literal output of JS `String(value)`, which reaches
 /// both generated code and the class-name hash.
@@ -40,4 +42,37 @@ fn renders_non_finite_values() {
   assert_eq!(to_js_string(f64::NAN), "NaN");
   assert_eq!(to_js_string(f64::INFINITY), "Infinity");
   assert_eq!(to_js_string(f64::NEG_INFINITY), "-Infinity");
+}
+
+/// Compared bit-for-bit so that `-0` cannot pass as `0`: the two are equal under
+/// `==` but spell differently once a caller does arithmetic on them.
+#[test]
+fn should_match_js_parse_float_on_every_generated_case() {
+  for (input, expected) in PARSE_FLOAT_CASES {
+    let actual = parse_js_float(input);
+
+    match (actual, expected) {
+      (Some(actual), Some(expected)) => assert_eq!(
+        actual.to_bits(),
+        expected.to_bits(),
+        "parseFloat({:?}) is {}, got {}",
+        input,
+        expected,
+        actual
+      ),
+      (None, None) => {},
+      _ => panic!(
+        "parseFloat({:?}) is {:?}, got {:?}",
+        input, expected, actual
+      ),
+    }
+  }
+}
+
+/// The failure case has to be visible in the type, so a caller cannot mistake a
+/// legitimate zero for "no number here" the way a NaN sentinel invites.
+#[test]
+fn should_report_failure_rather_than_a_sentinel_value() {
+  assert_eq!(parse_js_float("auto"), None);
+  assert_eq!(parse_js_float("0"), Some(0.0));
 }

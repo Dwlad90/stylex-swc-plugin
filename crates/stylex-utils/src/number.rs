@@ -1,3 +1,98 @@
+/// Reads a leading number out of `input` exactly as JS `parseFloat` does,
+/// returning `None` where JS returns `NaN`. See `CONTEXT.md` for why the
+/// spelling has to match JS rather than merely round-trip.
+///
+/// Rust's `str::parse::<f64>` is not a substitute: it rejects any string with
+/// trailing characters, where this reads as much of a leading number as it can
+/// and ignores the rest — which is the whole point for CSS, where `"10px"` has
+/// to yield `10`. [`to_js_string`] is the complement.
+pub fn parse_js_float(input: &str) -> Option<f64> {
+  let rest = input.trim_start_matches(is_js_whitespace);
+  let bytes = rest.as_bytes();
+
+  let negative = bytes.first() == Some(&b'-');
+  let mut end = usize::from(matches!(bytes.first(), Some(b'+' | b'-')));
+
+  if bytes
+    .get(end..)
+    .is_some_and(|after_sign| after_sign.starts_with(b"Infinity"))
+  {
+    return Some(if negative {
+      f64::NEG_INFINITY
+    } else {
+      f64::INFINITY
+    });
+  }
+
+  let integral_end = skip_ascii_digits(bytes, end);
+  let mut has_digits = integral_end > end;
+  end = integral_end;
+
+  if bytes.get(end) == Some(&b'.') {
+    let fraction_end = skip_ascii_digits(bytes, end + 1);
+    has_digits = has_digits || fraction_end > end + 1;
+
+    // A trailing dot stays in the literal (`1.`), but a lone dot never does.
+    if has_digits {
+      end = fraction_end;
+    }
+  }
+
+  if !has_digits {
+    return None;
+  }
+
+  // An exponent joins the literal only once it is complete: `1e` and `1e+` are
+  // the longest-prefix rule at work, and both read back as `1`.
+  if matches!(bytes.get(end), Some(b'e' | b'E')) {
+    let mut exponent_start = end + 1;
+
+    if matches!(bytes.get(exponent_start), Some(b'+' | b'-')) {
+      exponent_start += 1;
+    }
+
+    let exponent_end = skip_ascii_digits(bytes, exponent_start);
+
+    if exponent_end > exponent_start {
+      end = exponent_end;
+    }
+  }
+
+  // The prefix is a decimal literal by construction, and every spelling this
+  // scan admits is one `f64` also accepts, so the error arm never fires in
+  // practice — reported as failure rather than unwrapped, per the crate rules.
+  rest[..end].parse::<f64>().ok()
+}
+
+/// The whitespace `parseFloat` skips: ECMA-262's `StrWhiteSpace`, which is the
+/// Unicode space separators plus the line terminators and the byte-order mark.
+///
+/// Hand-rolled rather than `char::is_whitespace`, which disagrees at both ends:
+/// it admits U+0085, which JS does not skip, and omits U+FEFF, which JS does.
+fn is_js_whitespace(ch: char) -> bool {
+  match ch {
+    // Space separators (Unicode `Zs`).
+    '\u{20}' | '\u{a0}' | '\u{1680}' | '\u{202f}' | '\u{205f}' | '\u{3000}' => true,
+    '\u{2000}'..='\u{200a}' => true,
+    // Line terminators.
+    '\u{a}' | '\u{d}' | '\u{2028}' | '\u{2029}' => true,
+    // Tab, vertical tab, form feed, and the byte-order mark.
+    '\u{9}' | '\u{b}' | '\u{c}' | '\u{feff}' => true,
+    _ => false,
+  }
+}
+
+/// Index of the first byte at or after `from` that is not an ASCII digit.
+fn skip_ascii_digits(bytes: &[u8], from: usize) -> usize {
+  let mut index = from;
+
+  while matches!(bytes.get(index), Some(byte) if byte.is_ascii_digit()) {
+    index += 1;
+  }
+
+  index
+}
+
 /// Renders an `f64` exactly as JS `String(Number)` does.
 ///
 /// Rust's `f64` `Display` is not a substitute: it never switches to

@@ -20,6 +20,8 @@
     "format:rs:check": "cargo fmt -- --check",
     "format:toml": "taplo format",
     "format:toml:check": "taplo format --check",
+    "generate:parse-float-cases": "node scripts/generate-parse-float-cases.mjs > src/tests/number_parse_float_cases.rs",
+    "generate:parse-float-cases:check": "node scripts/generate-parse-float-cases.mjs | diff -u src/tests/number_parse_float_cases.rs -",
     "prepublishOnly": "pnpm run build",
     "test": "scripty",
     "test:coverage": "scripty",

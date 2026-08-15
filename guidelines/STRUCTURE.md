@@ -117,5 +117,11 @@ other means) or thin wrappers:
 - `.oxlintrc.jsonc` -- root Oxlint config (one root config, path overrides).
 - `scripts/packages/` -- shared `scripty` build/check scripts used by most TS
   packages.
+- `crates/*/scripts/` -- generators for checked-in fixtures a crate's tests read
+  (e.g. `stylex-utils/scripts/generate-parse-float-cases.mjs`). A generator is
+  exposed as a `generate:<name>` script on the crate's `package.json`, paired
+  with a `generate:<name>:check` that diffs a fresh run against what is
+  committed, so the fixture cannot drift unnoticed. Generated files carry an
+  `@generated` header and are never edited by hand.
 - `docs/agents/` -- machine-read configuration for the agent skills (issue
   tracker, triage labels, domain docs).

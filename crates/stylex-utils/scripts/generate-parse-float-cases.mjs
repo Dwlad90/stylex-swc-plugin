@@ -5,8 +5,7 @@
 //
 // Regenerate with:
 //
-//   node crates/stylex-utils/scripts/generate-parse-float-cases.mjs \
-//     > crates/stylex-utils/src/tests/number_parse_float_cases.rs
+//   pnpm run --filter=@stylexswc/utils generate:parse-float-cases
 
 /** Every shape the normalizers encounter, plus the degenerate inputs. */
 const INPUTS = [
@@ -126,6 +125,40 @@ const INPUTS = [
   '0x10',
   '0b11',
   '1_000',
+  // The f64 boundaries, where a wrong rounding decision is invisible in the
+  // decimal spelling and shows up only as a different class name.
+  '1.7976931348623157e308',
+  '1.7976931348623159e308',
+  '-1.7976931348623159e308',
+  '2.2250738585072014e-308',
+  '2.2250738585072011e-308',
+  '2.5e-324',
+  '1e-324',
+  '1e308',
+  '1e309',
+  // Digits that are not ASCII digits. None of these starts a number, and the
+  // byte-index scan must not mistake a lead byte for one.
+  '٥',
+  '５',
+  '−5',
+  'é5',
+  '😀5',
+  '�5',
+  // A multi-byte character *after* a number: the matched prefix ends on an
+  // ASCII boundary, so slicing it can never split the character that follows.
+  '5😀',
+  '1.5é',
+  '10px😀',
+  // Control characters, which are not `StrWhiteSpace` and so start nothing.
+  '\u00005',
+  '5\u0000',
+  '\u001F5',
+  // Repeated signs and dots: only the first can belong to the literal.
+  '++5',
+  '--5',
+  '+-5',
+  '..5',
+  '5..5',
 ];
 
 /** Rust string-literal escaping, kept to ASCII so the table stays readable. */

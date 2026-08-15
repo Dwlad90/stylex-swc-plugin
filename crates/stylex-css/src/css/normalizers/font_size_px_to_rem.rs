@@ -30,14 +30,14 @@ pub fn convert_font_size_to_rem(ast: &mut ValueParser, key: &str) {
         return true;
       }
 
-      match parse_js_float(&dimension.number) {
-        Some(number) => {
-          node.value = format!("{}rem", to_js_string(number / f64::from(ROOT_FONT_SIZE)));
-        },
-        // `unit` splits on a leading number, so the number half always reads
-        // back. Reported rather than unwrapped, per the crate rules.
-        None => return true,
-      }
+      // `unit` splits on a leading number, so the number half always reads
+      // back. The reference implementation does not guard this at all -- a
+      // number that failed to read would be spelled into the value as `NaNrem`
+      // -- so the same spelling stands in for the case, rather than a branch
+      // that no input can take and no test can cover.
+      let number = parse_js_float(&dimension.number).unwrap_or(f64::NAN);
+
+      node.value = format!("{}rem", to_js_string(number / f64::from(ROOT_FONT_SIZE)));
 
       true
     },

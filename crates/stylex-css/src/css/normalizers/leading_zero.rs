@@ -33,10 +33,13 @@ pub fn normalize_leading_zero(ast: &mut ValueParser, _key: &str) {
       // easy to reintroduce as a bug and hard to spot as a difference.
       #[allow(clippy::manual_range_contains)]
       if value < 1.0 && value >= 0.0 {
-        let unit = match dimension {
-          Some(dimension) => dimension.unit,
-          None => String::new(),
-        };
+        // A word whose leading number just parsed is a word `unit` splits, so
+        // the absent case is the reference implementation's ternary rather than
+        // a case this can reach. Written as one so it stays unreachable instead
+        // of becoming a branch nothing can cover.
+        let unit = dimension
+          .map(|dimension| dimension.unit)
+          .unwrap_or_default();
 
         node.value = format!("{}{}", to_js_string(value).replacen("0.", ".", 1), unit);
       }

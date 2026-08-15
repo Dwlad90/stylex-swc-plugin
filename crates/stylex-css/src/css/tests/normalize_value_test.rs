@@ -11,7 +11,7 @@
 //! normalizers are deliberately *not* asserted one by one. Their contract is
 //! the string the fold produces; pinning them individually would re-create the
 //! implementation coupling this effort exists to remove, and would fight the
-//! next maintainer who diffs them against a new upstream release.
+//! next maintainer who diffs them against a new reference-compiler release.
 //!
 //! Where the reference compiler does something that reads as a defect —
 //! `ABC` gaining a leading dash, an importance annotation mid-value crashing —
@@ -227,7 +227,8 @@ fn leaves_an_annotation_with_nothing_to_remove_before_it() {
 /// top-level node — here the space between `a` and `b`, which is why they come
 /// back joined.
 ///
-/// This is an upstream defect and it is reproduced, not corrected: correcting
+/// This is a defect in the reference compiler and it is reproduced, not
+/// corrected: correcting
 /// it would spell the value differently from the reference compiler and name a
 /// different class.
 #[test]
@@ -438,7 +439,7 @@ fn strips_the_zero_in_front_of_a_decimal_point() {
 }
 
 /// A negative number is not below zero *and* at or above it, so it keeps its
-/// zero — the asymmetry is upstream's and is reproduced.
+/// zero — the asymmetry is the reference compiler's and is reproduced.
 #[test]
 fn leaves_a_negative_decimal_and_anything_from_one_up_alone() {
   check(&[
@@ -575,7 +576,8 @@ fn leaves_a_custom_property_name_cased_as_written() {
 /// any other, which spells the Microsoft prefix without its leading dash — and
 /// gives a value in all capitals one it never had.
 ///
-/// Both are upstream defects and both are reproduced. Correcting either would
+/// Both are defects in the reference compiler and both are reproduced.
+/// Correcting either would
 /// name a different class than the reference compiler for the same source.
 #[test]
 fn dashifies_by_the_rule_even_where_the_rule_is_wrong() {

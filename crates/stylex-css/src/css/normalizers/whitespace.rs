@@ -98,12 +98,6 @@ enum ImportantPlan {
 /// accident this port gets to correct — each one moves bytes into the class-name
 /// hash or decides whether a value compiles at all.
 ///
-/// The index the handler tests is the node's index *among its own siblings*,
-/// but the list it tests and removes from is always the top-level one. An
-/// annotation written inside a function therefore removes whichever top-level
-/// node happens to sit at that index, which is not the space before it and
-/// need not be a space at all.
-///
 /// The walk reads the list's length once, before it starts. Removing an element
 /// shortens the list without shortening the walk, so every iteration still to
 /// come now ends one index past the list — and reading that index is where the
@@ -111,46 +105,77 @@ enum ImportantPlan {
 /// escapes it, which is why `red !important` normalizes and
 /// `red !important blue` does not.
 ///
-/// A removal is skipped, rather than crashing, when the preceding top-level
-/// node is not a space — including when the annotation is the very first node
-/// and there is no preceding one.
+/// [`TopLevelList`] carries the other two: which list a removal reads and edits,
+/// and when it declines to remove anything at all.
 fn plan_important_removals(nodes: &[Node]) -> ImportantPlan {
-  let max = nodes.len();
-  let mut top_level_kinds: Vec<NodeKind> = nodes.iter().map(|node| node.kind).collect();
-  let mut removals = Vec::new();
+  // Read once, before the walk starts, exactly as the original reads it. Every
+  // overrun below is the gap between this number and the list's real length.
+  let walk_length = nodes.len();
+  let mut top_level = TopLevelList::of(nodes);
 
   for (index, node) in nodes.iter().enumerate() {
-    visit(node, index, &mut top_level_kinds, &mut removals);
+    plan_node(node, index, &mut top_level);
 
-    if !removals.is_empty() && index + 1 < max {
+    if top_level.lost_a_node() && index + 1 < walk_length {
       return ImportantPlan::Overrun;
     }
   }
 
-  ImportantPlan::Remove(removals)
+  ImportantPlan::Remove(top_level.taken)
+}
+
+/// The top-level node list as the importance handler has left it, and what it
+/// took out.
+///
+/// The two travel together because neither answers anything alone: the kinds
+/// are what the next `nodes[idx - 1]` test reads, and they are only correct
+/// once every removal so far has been applied to them.
+struct TopLevelList {
+  /// The kind of each surviving top-level node, shortened by every removal.
+  /// Only kinds, because the handler only ever asks whether a node is a space.
+  kinds: Vec<NodeKind>,
+  /// The indices removed, in the order they were removed, each one an index
+  /// into the list as it stood at the time.
+  taken: Vec<usize>,
+}
+
+impl TopLevelList {
+  fn of(nodes: &[Node]) -> Self {
+    TopLevelList {
+      kinds: nodes.iter().map(|node| node.kind).collect(),
+      taken: Vec::new(),
+    }
+  }
+
+  /// Removes the node at `index - 1` if it is a space, and reports nothing
+  /// either way — the handler it models does not look.
+  ///
+  /// `index` is the annotation's index among *its own* siblings while the list
+  /// is always the top-level one, which is the quirk that makes an annotation
+  /// inside a function remove an unrelated node.
+  fn take_space_before(&mut self, index: usize) {
+    if index > 0 && self.kinds.get(index - 1) == Some(&NodeKind::Space) {
+      self.taken.push(index - 1);
+      self.kinds.remove(index - 1);
+    }
+  }
+
+  fn lost_a_node(&self) -> bool {
+    !self.taken.is_empty()
+  }
 }
 
 /// One node of the plan walk, and its children when it has any.
-fn visit(
-  node: &Node,
-  index: usize,
-  top_level_kinds: &mut Vec<NodeKind>,
-  removals: &mut Vec<usize>,
-) {
-  if node.kind == NodeKind::Word
-    && node.value == IMPORTANT
-    && index > 0
-    && top_level_kinds.get(index - 1) == Some(&NodeKind::Space)
-  {
-    removals.push(index - 1);
-    top_level_kinds.remove(index - 1);
+fn plan_node(node: &Node, index: usize, top_level: &mut TopLevelList) {
+  if node.kind == NodeKind::Word && node.value == IMPORTANT {
+    top_level.take_space_before(index);
   }
 
   if node.kind == NodeKind::Function
     && let Some(children) = node.nodes.as_deref()
   {
     for (child_index, child) in children.iter().enumerate() {
-      visit(child, child_index, top_level_kinds, removals);
+      plan_node(child, child_index, top_level);
     }
   }
 }

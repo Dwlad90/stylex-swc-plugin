@@ -14,6 +14,12 @@ use crate::css::common::build_error_css_rule;
 /// The reference implementation raises a bare message here; the rule text is
 /// appended so the report names the declaration it came from, which is what
 /// this compiler's message has always carried.
+///
+/// That text is read back off the token list rather than kept from the input,
+/// which nothing has yet rewritten — this runs first. The one value that comes
+/// back spelled differently is the scanner's documented `/*/`, so a rejected
+/// value containing that quotes itself slightly repaired. It is a message, and
+/// only a message: no value that reaches a stylesheet passes through here.
 pub fn detect_unclosed_fns(ast: &mut ValueParser, key: &str) {
   let mut unclosed = false;
 

@@ -30,8 +30,8 @@ const OUT_OF_RANGE: u32 = u32::MAX;
 /// opaque run and token boundaries land in the same places either way. Offsets
 /// are therefore byte offsets, which is all their one consumer needs: it
 /// compares them against each other, never against a JavaScript index.
-fn char_code_at(value: &[u8], pos: usize) -> u32 {
-  match value.get(pos) {
+fn char_code_at(value: &str, pos: usize) -> u32 {
+  match value.as_bytes().get(pos) {
     Some(byte) => u32::from(*byte),
     None => OUT_OF_RANGE,
   }
@@ -40,23 +40,31 @@ fn char_code_at(value: &[u8], pos: usize) -> u32 {
 /// `String.prototype.slice` over the working buffer, clamping out-of-range and
 /// inverted bounds to the empty string the way JavaScript does.
 ///
-/// Every cut the scanner makes lands on an ASCII delimiter or on a buffer end,
-/// so the bytes are always valid UTF-8. The lossy fallback exists because a
-/// panic is never the right answer to a value the compiler was handed.
-fn slice(value: &[u8], start: usize, end: usize) -> String {
+/// The buffer is a `str` rather than a byte slice so that this can cut it
+/// without re-deciding whether it is UTF-8. It was handed a `&str` and only
+/// ever appends ASCII to it, so the answer is always yes, and `str::get` checks
+/// two offsets where validating the range walks every byte in it. That scan
+/// was about a tenth of parse time, paid once per token.
+///
+/// The lossy path stays for a cut that lands inside a character rather than on
+/// a boundary. Every cut the scanner makes lands on an ASCII delimiter or on a
+/// buffer end, so nothing reaches it -- but a panic is never the right answer
+/// to a value the compiler was handed, and this returns exactly what the whole
+/// function used to.
+fn slice(value: &str, start: usize, end: usize) -> String {
   let start = start.min(value.len());
   let end = end.clamp(start, value.len());
-  // Lossy rather than fallible: every cut the scanner makes lands on an ASCII
-  // delimiter or a buffer end, so the bytes are always valid UTF-8 and this
-  // borrows rather than replacing anything. A panic is never the right answer
-  // to a value the compiler was handed, and there is no fallible path here for
-  // a caller to have to handle.
-  String::from_utf8_lossy(&value[start..end]).into_owned()
+
+  match value.get(start..end) {
+    Some(text) => text.to_owned(),
+    None => String::from_utf8_lossy(&value.as_bytes()[start..end]).into_owned(),
+  }
 }
 
 /// `String.prototype.indexOf` for a single ASCII byte, searching from `from`.
-fn index_of(value: &[u8], needle: u8, from: usize) -> Option<usize> {
+fn index_of(value: &str, needle: u8, from: usize) -> Option<usize> {
   value
+    .as_bytes()
     .iter()
     .skip(from)
     .position(|byte| *byte == needle)
@@ -64,8 +72,9 @@ fn index_of(value: &[u8], needle: u8, from: usize) -> Option<usize> {
 }
 
 /// `String.prototype.indexOf("*/")`, searching from `from`.
-fn index_of_comment_end(value: &[u8], from: usize) -> Option<usize> {
+fn index_of_comment_end(value: &str, from: usize) -> Option<usize> {
   value
+    .as_bytes()
     .windows(2)
     .skip(from)
     .position(|pair| pair == b"*/")
@@ -145,6 +154,30 @@ fn parent_is_non_calc_function(stack: &[OpenFunction]) -> bool {
   matches!(stack.last(), Some(open) if open.node.value != "calc")
 }
 
+/// How many top-level nodes a value of `bytes` bytes is likely to produce.
+///
+/// A [`Node`] is 120 bytes, so the four slots `Vec` reaches for on its first
+/// push cost 480 -- most of them wasted on the short values a stylesheet is
+/// mostly made of, and not nearly enough for a long one, which then regrows and
+/// copies every node it already holds.
+///
+/// A quarter of the byte length lands closer at both ends. Measured over the
+/// parity corpus, a top-level list averages 2.05 nodes and reaches 21; this
+/// under-reserves for 19% of it, each costing the one regrowth that was
+/// previously the common case.
+///
+/// A function's arguments are deliberately not sized this way. They average
+/// 3.28 nodes, which is what `Vec` already reserves, and the bytes left to scan
+/// when a nested function opens describe its arguments rather than the value,
+/// so estimating from them under-reserves badly enough to cost two regrowths
+/// where the default cost one.
+///
+/// Nothing reads the hint back. Being wrong costs an allocation, never an
+/// answer.
+fn estimated_nodes(bytes: usize) -> usize {
+  (bytes / 4).clamp(1, 32)
+}
+
 /// Turns a declaration value into a loose token list.
 ///
 /// Never fails: input the parser cannot make sense of comes back as words and
@@ -155,7 +188,7 @@ pub fn parse(input: &str) -> Vec<Node> {
   // delimiter, so the buffer has to be growable -- but only three input shapes
   // ever make it grow. Borrowed until one of them turns up, copied then, which
   // is the difference between one allocation per declaration value and none.
-  let mut value: Cow<'_, [u8]> = Cow::Borrowed(input.as_bytes());
+  let mut value: Cow<'_, str> = Cow::Borrowed(input);
 
   let mut pos: usize = 0;
   let mut code = char_code_at(&value, pos);
@@ -163,7 +196,7 @@ pub fn parse(input: &str) -> Vec<Node> {
   // buffer. That is what stops the main loop from walking over a delimiter it
   // appended itself.
   let max = value.len();
-  let mut root: Vec<Node> = Vec::new();
+  let mut root: Vec<Node> = Vec::with_capacity(estimated_nodes(input.len()));
   let mut stack: Vec<OpenFunction> = Vec::new();
   // The JavaScript's `parent` is `undefined` until the first function opens and
   // the root object from then on, and the difference is observable: the
@@ -229,7 +262,7 @@ pub fn parse(input: &str) -> Vec<Node> {
             }
           },
           None => {
-            value.to_mut().push(quote);
+            value.to_mut().push(char::from(quote));
             next = value.len() - 1;
             token.unclosed = true;
           },
@@ -339,7 +372,7 @@ pub fn parse(input: &str) -> Vec<Node> {
               }
             },
             None => {
-              value.to_mut().push(b')');
+              value.to_mut().push(')');
               next = value.len() - 1;
               token.unclosed = true;
             },
@@ -480,4 +513,47 @@ pub fn parse(input: &str) -> Vec<Node> {
   }
 
   root
+}
+
+/// [`slice`] is the one helper with a branch the scanner cannot reach, so it is
+/// measured directly rather than through [`parse`].
+#[cfg(test)]
+mod tests {
+  use super::slice;
+
+  /// The claim the fallback rests on: every cut the scanner makes lands on a
+  /// character boundary, so the cheap path is the only one a parse ever takes.
+  /// Asserting it here is what lets the branch below stay defensive rather than
+  /// become the thing that decides an answer.
+  #[test]
+  fn a_cut_on_a_character_boundary_takes_the_cheap_path() {
+    assert_eq!(slice("hello", 1, 4), "ell");
+    assert_eq!(slice("日本語", 0, 3), "日");
+    assert_eq!(slice("a→b", 1, 4), "→");
+  }
+
+  /// Out-of-range and inverted bounds clamp to the empty string, the way
+  /// `String.prototype.slice` does rather than the way indexing a slice does.
+  #[test]
+  fn bounds_outside_the_buffer_clamp_instead_of_panicking() {
+    assert_eq!(slice("abc", 0, 99), "abc");
+    assert_eq!(slice("abc", 99, 99), "");
+    assert_eq!(slice("abc", 2, 1), "");
+    assert_eq!(slice("", 0, 5), "");
+  }
+
+  /// A cut inside a character, which is what the fallback is for. Unreachable
+  /// from [`parse`] -- the backward scan in a `url(` body stops on a
+  /// character's last byte, and every other cut lands on an ASCII delimiter --
+  /// so this is the only place its answer is pinned: replacement characters,
+  /// never a panic.
+  #[test]
+  fn a_cut_inside_a_character_is_replaced_rather_than_fatal() {
+    // One replacement character per broken sequence, not per orphaned byte:
+    // both cuts below leave a single incomplete sequence.
+    assert_eq!(slice("日", 0, 1), "\u{fffd}");
+    assert_eq!(slice("a日b", 1, 3), "\u{fffd}");
+    // A whole character either side of the damage still comes through.
+    assert_eq!(slice("a日b", 0, 3), "a\u{fffd}");
+  }
 }

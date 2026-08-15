@@ -2137,6 +2137,9 @@ dependencies = [
 [[package]]
 name = "postcss_value_parser"
 version = "0.18.4-rc.1"
+dependencies = [
+ "criterion",
+]
 
 [[package]]
 name = "potential_utf"

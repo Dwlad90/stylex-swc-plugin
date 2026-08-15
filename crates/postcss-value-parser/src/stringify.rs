@@ -89,9 +89,25 @@ fn write_list(nodes: &[Node], custom: MaybeCustom<'_, '_>, out: &mut String) {
   }
 }
 
+/// A buffer big enough for what `nodes` will spell out to, guessed from the
+/// span they were read from.
+///
+/// The first node's start to the last node's end is the length of the text they
+/// were parsed out of, which is the answer exactly whenever nothing has been
+/// rewritten and close to it when something has. Reading it costs two field
+/// accesses rather than a walk, and it is only a hint: too small buys one
+/// regrowth, too large one oversized buffer, and neither changes a byte of what
+/// comes out.
+fn estimated_len(nodes: &[Node]) -> usize {
+  match (nodes.first(), nodes.last()) {
+    (Some(first), Some(last)) => last.source_end_index.saturating_sub(first.source_index),
+    _ => 0,
+  }
+}
+
 /// Spells a node list back out, in order.
 pub fn stringify(nodes: &[Node]) -> String {
-  let mut out = String::new();
+  let mut out = String::with_capacity(estimated_len(nodes));
   write_list(nodes, &mut None, &mut out);
   out
 }
@@ -108,14 +124,14 @@ pub fn stringify(nodes: &[Node]) -> String {
 /// div nor function is the exception -- it spells out as its children when it
 /// has any.
 pub fn stringify_node(node: &Node) -> String {
-  let mut out = String::new();
+  let mut out = String::with_capacity(estimated_len(std::slice::from_ref(node)));
   write_node(node, &mut None, &mut out);
   out
 }
 
 /// [`stringify`], with an override consulted for every node it reaches.
 pub fn stringify_with(nodes: &[Node], custom: Custom<'_>) -> String {
-  let mut out = String::new();
+  let mut out = String::with_capacity(estimated_len(nodes));
   write_list(nodes, &mut Some(custom), &mut out);
   out
 }
@@ -123,7 +139,7 @@ pub fn stringify_with(nodes: &[Node], custom: Custom<'_>) -> String {
 /// [`stringify_node`], with an override consulted for that node and every node
 /// beneath it.
 pub fn stringify_node_with(node: &Node, custom: Custom<'_>) -> String {
-  let mut out = String::new();
+  let mut out = String::with_capacity(estimated_len(std::slice::from_ref(node)));
   write_node(node, &mut Some(custom), &mut out);
   out
 }

@@ -14,8 +14,16 @@ doctest = false
 
 # No dependencies, and that is the point: the scanner is a self-contained port
 # of one library, and anything it reached for would be a chance to behave
-# differently from it.
+# differently from it. Dev dependencies are a separate question -- nothing under
+# `[dev-dependencies]` reaches the shipped scanner or can change what it emits.
 [dependencies]
+
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+harness = false
+name = "value_parser_bench"
 
 [lints]
 workspace = true

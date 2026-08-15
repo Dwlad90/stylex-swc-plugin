@@ -7,6 +7,13 @@
 //! and the same way of recording a reference-compiler verdict. Kept here so a
 //! change to how the compiler is configured, how it reports a rejection, or how
 //! a verdict is spelled lands in one place.
+//!
+//! A case is built by one of three constructors, picked by what the reference
+//! compiler said: [`unchanged`] when the value comes back as written and the
+//! reference compiler agrees, [`same`] when it is rewritten and the reference
+//! compiler rewrites it identically, [`diverges`] when the two disagree. Values
+//! the compiler rejects have no spelling to compare and go through [`rejects`]
+//! instead.
 
 use std::{
   any::Any,
@@ -85,6 +92,17 @@ pub(super) const fn same(
     expected,
     reference: Reference::Same,
   }
+}
+
+/// A case the compiler returns byte for byte, and the reference compiler spells
+/// the same way.
+///
+/// By a wide margin the common shape: most of what these modules assert is that
+/// a value is *not* rewritten. Writing that as [`same`] means spelling the value
+/// out twice, which invites the two copies to drift and tells a reader nothing
+/// the input did not already say — so "unchanged" is stated once, as itself.
+pub(super) const fn unchanged(property: &'static str, value: &'static str) -> Case {
+  same(property, value, value)
 }
 
 /// A case the reference compiler spells as `reference_spelling`.

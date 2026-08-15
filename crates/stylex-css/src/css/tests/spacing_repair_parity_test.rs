@@ -29,9 +29,8 @@
 //! pipeline replacement is expected to move.
 //!
 //! Alongside each expectation sits a [`Reference`](super::support::Reference)
-//! verdict taken from the parity
-//! harness in `crates/stylex-rs-compiler/parity` — never from judgement.
-//! Regenerate the verdicts with:
+//! verdict taken from the parity harness in `crates/stylex-rs-compiler/parity`
+//! — never from judgement. Regenerate the verdicts with:
 //!
 //! ```sh
 //! pnpm run --filter=@stylexswc/rs-compiler build
@@ -40,13 +39,16 @@
 //!
 //! Read `entries[].babel.declarations` for the reference spelling and
 //! `entries[].rust.declarations` for this compiler's. The `Case`/`Reference`
-//! machinery and the shared `check` runner live in `support`.
+//! machinery and the shared `check` runner live in `support`. Most cases here
+//! use [`unchanged`](super::support::unchanged), which is the case whose
+//! expectation is its own input — the majority shape, since most of what this
+//! module asserts is that a value is not rewritten.
 //!
 //! Two shapes of case are asserted outside the case table, because a `Case`
 //! compares two spellings and these have only one: a rejection, and a
 //! declaration the reference compiler does not emit at all.
 
-use super::support::{check, default_options, diverges, rejects, same};
+use super::support::{check, default_options, diverges, rejects, same, unchanged};
 use crate::css::common::normalize_css_property_value;
 
 /// The diagnostic every rejection below is asserted on.
@@ -71,60 +73,60 @@ fn keeps_a_unit_glued_to_a_function_result() {
   check(
     &[
       // Absolute lengths
-      same("width", "var(--x)px", "var(--x)px"),
-      same("width", "var(--x)cm", "var(--x)cm"),
-      same("width", "var(--x)mm", "var(--x)mm"),
-      same("width", "var(--x)in", "var(--x)in"),
-      same("width", "var(--x)pt", "var(--x)pt"),
-      same("width", "var(--x)pc", "var(--x)pc"),
-      same("width", "var(--x)Q", "var(--x)Q"),
+      unchanged("width", "var(--x)px"),
+      unchanged("width", "var(--x)cm"),
+      unchanged("width", "var(--x)mm"),
+      unchanged("width", "var(--x)in"),
+      unchanged("width", "var(--x)pt"),
+      unchanged("width", "var(--x)pc"),
+      unchanged("width", "var(--x)Q"),
       // Font-relative lengths
-      same("width", "var(--x)em", "var(--x)em"),
-      same("gap", "var(--gap)rem", "var(--gap)rem"),
-      same("width", "var(--x)ex", "var(--x)ex"),
-      same("width", "var(--x)ch", "var(--x)ch"),
-      same("width", "var(--x)lh", "var(--x)lh"),
-      same("width", "var(--x)rlh", "var(--x)rlh"),
-      same("width", "var(--x)cap", "var(--x)cap"),
-      same("width", "var(--x)ic", "var(--x)ic"),
+      unchanged("width", "var(--x)em"),
+      unchanged("gap", "var(--gap)rem"),
+      unchanged("width", "var(--x)ex"),
+      unchanged("width", "var(--x)ch"),
+      unchanged("width", "var(--x)lh"),
+      unchanged("width", "var(--x)rlh"),
+      unchanged("width", "var(--x)cap"),
+      unchanged("width", "var(--x)ic"),
       // Viewport-relative lengths
-      same("width", "var(--x)vw", "var(--x)vw"),
-      same("height", "var(--h)vh", "var(--h)vh"),
-      same("width", "var(--x)vi", "var(--x)vi"),
-      same("width", "var(--x)vb", "var(--x)vb"),
-      same("width", "var(--x)vmin", "var(--x)vmin"),
-      same("width", "var(--x)vmax", "var(--x)vmax"),
-      same("width", "var(--x)dvw", "var(--x)dvw"),
-      same("width", "var(--x)dvh", "var(--x)dvh"),
-      same("width", "var(--x)lvw", "var(--x)lvw"),
-      same("width", "var(--x)lvh", "var(--x)lvh"),
-      same("width", "var(--x)svw", "var(--x)svw"),
-      same("width", "var(--x)svh", "var(--x)svh"),
+      unchanged("width", "var(--x)vw"),
+      unchanged("height", "var(--h)vh"),
+      unchanged("width", "var(--x)vi"),
+      unchanged("width", "var(--x)vb"),
+      unchanged("width", "var(--x)vmin"),
+      unchanged("width", "var(--x)vmax"),
+      unchanged("width", "var(--x)dvw"),
+      unchanged("width", "var(--x)dvh"),
+      unchanged("width", "var(--x)lvw"),
+      unchanged("width", "var(--x)lvh"),
+      unchanged("width", "var(--x)svw"),
+      unchanged("width", "var(--x)svh"),
       // Container-relative lengths
-      same("width", "var(--x)cqw", "var(--x)cqw"),
-      same("width", "var(--x)cqh", "var(--x)cqh"),
-      same("width", "var(--x)cqi", "var(--x)cqi"),
-      same("width", "var(--x)cqb", "var(--x)cqb"),
-      same("width", "var(--x)cqmin", "var(--x)cqmin"),
-      same("width", "var(--x)cqmax", "var(--x)cqmax"),
+      unchanged("width", "var(--x)cqw"),
+      unchanged("width", "var(--x)cqh"),
+      unchanged("width", "var(--x)cqi"),
+      unchanged("width", "var(--x)cqb"),
+      unchanged("width", "var(--x)cqmin"),
+      unchanged("width", "var(--x)cqmax"),
       // Time
-      same("transitionDuration", "var(--d)ms", "var(--d)ms"),
-      same("transitionDuration", "var(--x)s", "var(--x)s"),
+      unchanged("transitionDuration", "var(--d)ms"),
+      unchanged("transitionDuration", "var(--x)s"),
       // Angles
-      same("transform", "rotate(var(--a)deg)", "rotate(var(--a)deg)"),
-      same("transform", "rotate(var(--x)rad)", "rotate(var(--x)rad)"),
-      same("transform", "rotate(var(--x)grad)", "rotate(var(--x)grad)"),
-      same("transform", "rotate(var(--x)turn)", "rotate(var(--x)turn)"),
+      unchanged("transform", "rotate(var(--a)deg)"),
+      unchanged("transform", "rotate(var(--x)rad)"),
+      unchanged("transform", "rotate(var(--x)grad)"),
+      unchanged("transform", "rotate(var(--x)turn)"),
       // Resolution, flex, frequency
-      same("width", "var(--x)dpi", "var(--x)dpi"),
-      same("width", "var(--x)dpcm", "var(--x)dpcm"),
-      same("width", "var(--x)dppx", "var(--x)dppx"),
-      same("gridTemplateColumns", "var(--x)fr", "var(--x)fr"),
-      same("width", "var(--x)Hz", "var(--x)Hz"),
-      same("width", "var(--x)kHz", "var(--x)kHz"),
+      unchanged("width", "var(--x)dpi"),
+      unchanged("width", "var(--x)dpcm"),
+      unchanged("width", "var(--x)dppx"),
+      unchanged("gridTemplateColumns", "var(--x)fr"),
+      unchanged("width", "var(--x)Hz"),
+      unchanged("width", "var(--x)kHz"),
       // The rule is about function results, not about `var()`: any `)` can be
       // followed by a unit.
-      same("width", "calc(1+2)em", "calc(1+2)em"),
+      unchanged("width", "calc(1+2)em"),
     ],
     &default_options(),
   );
@@ -135,26 +137,24 @@ fn keeps_a_unit_glued_to_a_function_result() {
 /// the same way a dimension does.
 #[test]
 fn keeps_a_percent_glued_to_a_function_result() {
-  check(
-    &[same("width", "var(--x)%", "var(--x)%")],
-    &default_options(),
-  );
+  check(&[unchanged("width", "var(--x)%")], &default_options());
 }
 
 /// Unit matching is case-sensitive, because CSS spells two of its units with
-/// capitals and the rest without: `Q` and `Hz` are units and stay glued, while
-/// `PX` and `EM` are not and get separated like any other word.
+/// capitals and the rest without. `PX` and `EM` are not units and get
+/// separated like any other word; the capitalised units that *are* — `Q`, `Hz`
+/// and `kHz` — are asserted glued by
+/// [`keeps_a_unit_glued_to_a_function_result`] above, which is where the whole
+/// unit list lives. The two halves together are what pin case-sensitivity:
+/// lowercasing before the match would keep `PX` glued and fail here, while
+/// rejecting every capital would separate `Q` and fail there.
 ///
-/// Separating them is a divergence — the reference compiler leaves every one of
-/// these exactly as written — but the *case-sensitivity* is not: a compiler
-/// that treated `PX` as a unit would still have to keep `Q` glued, and this is
-/// the table that says so.
+/// Separating these is a divergence — the reference compiler leaves all three
+/// exactly as written — but the case-sensitivity is not.
 #[test]
 fn matches_units_case_sensitively() {
   check(
     &[
-      same("width", "var(--x)Q", "var(--x)Q"),
-      same("width", "var(--x)Hz", "var(--x)Hz"),
       diverges("width", "var(--x)PX", "var(--x) PX", "var(--x)PX"),
       diverges("width", "var(--x)Px", "var(--x) Px", "var(--x)Px"),
       diverges("width", "var(--x)EM", "var(--x) EM", "var(--x)EM"),
@@ -287,12 +287,12 @@ fn separates_a_closing_paren_from_what_follows() {
       // division operator: both compilers space it
       same("width", ")/7", ") / 7"),
       // an uppercase word that is a unit
-      same("width", ")Q", ")Q"),
+      unchanged("width", ")Q"),
       // A `-` is a sign or a subtraction operator, never a separator, so this
       // is the one pair that is deliberately left alone.
-      same("width", ")-1", ")-1"),
+      unchanged("width", ")-1"),
       // Nothing to separate it from.
-      same("width", ")", ")"),
+      unchanged("width", ")"),
     ],
     &default_options(),
   );
@@ -358,7 +358,7 @@ fn separates_a_hex_colour_from_the_token_before_it() {
         "a#fff Z#fff 1#fff %#fff",
       ),
       // A `#` with nothing before it has nothing to be separated from.
-      same("color", "#", "#"),
+      unchanged("color", "#"),
     ],
     &default_options(),
   );
@@ -394,11 +394,7 @@ fn separates_a_number_from_a_percentage() {
 #[test]
 fn leaves_a_number_after_a_percentage_alone_inside_a_colour_function() {
   check(
-    &[same(
-      "color",
-      "oklab(40.101%.1147 .0453)",
-      "oklab(40.101%.1147 .0453)",
-    )],
+    &[unchanged("color", "oklab(40.101%.1147 .0453)")],
     &default_options(),
   );
 }
@@ -441,7 +437,7 @@ fn spaces_the_slash_operator() {
 fn spaces_the_multiplication_operator() {
   check(
     &[
-      same("width", "* 3", "* 3"),
+      unchanged("width", "* 3"),
       diverges("width", "*(100%)", "* (100%)", "*(100%)"),
     ],
     &default_options(),
@@ -481,7 +477,7 @@ fn separates_adjacent_quoted_strings() {
       // that catches a scan which only ever looks one quote back.
       diverges("quotes", r#""""""""#, r#""" "" """#, r#""""""""#),
       // A lone empty string keeps its quotes and gains nothing.
-      same("quotes", r#""""#, r#""""#),
+      unchanged("quotes", r#""""#),
     ],
     &default_options(),
   );
@@ -528,15 +524,11 @@ fn diverges_on_dropping_the_space_around_a_separated_string() {
 fn applies_no_spacing_rule_inside_a_string() {
   check(
     &[
-      same("fontFamily", r#""hello)world""#, r#""hello)world""#),
-      same(
-        "fontFamily",
-        r##""a)b#c%d.5/1*2(""##,
-        r##""a)b#c%d.5/1*2(""##,
-      ),
+      unchanged("fontFamily", r#""hello)world""#),
+      unchanged("fontFamily", r##""a)b#c%d.5/1*2(""##),
       // A doubled backslash is an escaped backslash, not an escaped quote, so
       // the string closes where it looks like it closes.
-      same("fontFamily", r#""a\\b""#, r#""a\\b""#),
+      unchanged("fontFamily", r#""a\\b""#),
     ],
     &default_options(),
   );
@@ -599,43 +591,31 @@ fn diverges_on_an_escaped_quote_inside_a_string() {
 fn copies_url_bodies_verbatim() {
   check(
     &[
-      same("backgroundImage", "url(image.png)", "url(image.png)"),
-      same(
+      unchanged("backgroundImage", "url(image.png)"),
+      unchanged("backgroundImage", "url(http://example.com/img.png)"),
+      unchanged(
         "backgroundImage",
-        "url(http://example.com/img.png)",
-        "url(http://example.com/img.png)",
-      ),
-      same(
-        "backgroundImage",
-        "url(https://fonts.googleapis.com/css2?family=Roboto)",
         "url(https://fonts.googleapis.com/css2?family=Roboto)",
       ),
       // A `/*` inside a quoted body is part of the URL, not a comment opener.
-      same(
-        "backgroundImage",
-        r#"url("a/*b.png")"#,
-        r#"url("a/*b.png")"#,
-      ),
+      unchanged("backgroundImage", r#"url("a/*b.png")"#),
       // A data URL carries both a `;` and a `/`, either of which would end the
-      // value if the body were read as CSS. The payload is left inline and over
-      // the line budget on purpose: the harness harvests string literals, and
-      // splitting it across a `concat!` would take the case out of the corpus
-      // and leave it with no verdict.
-      same(
+      // value if the body were read as CSS. The payload is broken with Rust
+      // line continuations rather than bound to a `const` or joined with
+      // `concat!`: the harness harvests string literals, and either of those
+      // would take the case out of the corpus and leave it with no verdict.
+      // A continuation is still one literal to the scanner, which decodes it
+      // the same way rustc does.
+      unchanged("backgroundImage", "url(data:image/svg+xml;utf8,<svg/>)"),
+      unchanged(
         "backgroundImage",
-        "url(data:image/svg+xml;utf8,<svg/>)",
-        "url(data:image/svg+xml;utf8,<svg/>)",
-      ),
-      same(
-        "backgroundImage",
-        r#"url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==")"#,
-        r#"url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==")"#,
+        "url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYG\
+          AQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==\")",
       ),
       // One `url()` among other components, so the body has to be recognised
       // partway through the value rather than at offset zero.
-      same(
+      unchanged(
         "backgroundImage",
-        "linear-gradient(red,blue),url(http://example.com/a.png)",
         "linear-gradient(red,blue),url(http://example.com/a.png)",
       ),
     ],
@@ -650,12 +630,8 @@ fn copies_url_bodies_verbatim() {
 fn balances_nested_parens_inside_a_url_body() {
   check(
     &[
-      same("backgroundImage", "url(a(b).png)", "url(a(b).png)"),
-      same(
-        "backgroundImage",
-        "url(a(b(c)).png) 10px",
-        "url(a(b(c)).png) 10px",
-      ),
+      unchanged("backgroundImage", "url(a(b).png)"),
+      unchanged("backgroundImage", "url(a(b(c)).png) 10px"),
     ],
     &default_options(),
   );
@@ -698,11 +674,7 @@ fn still_repairs_the_value_after_a_url() {
 #[test]
 fn does_not_close_a_url_on_a_quoted_paren() {
   check(
-    &[same(
-      "backgroundImage",
-      r#"url("a)b.png") 10px"#,
-      r#"url("a)b.png") 10px"#,
-    )],
+    &[unchanged("backgroundImage", r#"url("a)b.png") 10px"#)],
     &default_options(),
   );
 }
@@ -793,8 +765,8 @@ fn does_not_treat_a_url_suffixed_identifier_as_a_url() {
       same("width", "日本(1/2)", "日本(1 / 2)"),
       // Fewer than three characters before the `(`, which is where the
       // byte-indexed lookbehind used to go out of bounds.
-      same("width", "éab(1)", "éab(1)"),
-      same("width", "é(1)", "é(1)"),
+      unchanged("width", "éab(1)"),
+      unchanged("width", "é(1)"),
     ],
     &default_options(),
   );
@@ -855,17 +827,17 @@ fn diverges_on_a_value_that_is_only_a_comment() {
 fn leaves_an_already_spaced_value_alone() {
   check(
     &[
-      same("boxShadow", "1px solid red", "1px solid red"),
-      same("boxShadow", "1px solid #000", "1px solid #000"),
-      same("width", "calc(100% - 20px)", "calc(100% - 20px)"),
-      same("width", "calc(100% - 2px)", "calc(100% - 2px)"),
-      same("color", "var(--color) var(--bg)", "var(--color) var(--bg)"),
-      same("color", "var(--my-color)", "var(--my-color)"),
-      same("margin", "10px 20px", "10px 20px"),
-      same("width", "10px", "10px"),
-      same("color", "red", "red"),
+      unchanged("boxShadow", "1px solid red"),
+      unchanged("boxShadow", "1px solid #000"),
+      unchanged("width", "calc(100% - 20px)"),
+      unchanged("width", "calc(100% - 2px)"),
+      unchanged("color", "var(--color) var(--bg)"),
+      unchanged("color", "var(--my-color)"),
+      unchanged("margin", "10px 20px"),
+      unchanged("width", "10px"),
+      unchanged("color", "red"),
       // A single character has no pair to place a space between.
-      same("color", "a", "a"),
+      unchanged("color", "a"),
     ],
     &default_options(),
   );
@@ -895,16 +867,16 @@ fn normalizes_an_empty_value_to_nothing() {
 fn preserves_non_ascii_content() {
   check(
     &[
-      same("color", "•", "•"),
-      same("fontFamily", "✓", "✓"),
-      same("fontFamily", "日本語", "日本語"),
-      same("fontFamily", "привет", "привет"),
-      same("fontFamily", "שלום", "שלום"),
-      same("fontFamily", "مرحبا", "مرحبا"),
-      same("fontFamily", "😀", "😀"),
-      same("fontFamily", "🎉", "🎉"),
-      same("fontFamily", r#""•""#, r#""•""#),
-      same("fontFamily", r#""•✓日本語😀""#, r#""•✓日本語😀""#),
+      unchanged("color", "•"),
+      unchanged("fontFamily", "✓"),
+      unchanged("fontFamily", "日本語"),
+      unchanged("fontFamily", "привет"),
+      unchanged("fontFamily", "שלום"),
+      unchanged("fontFamily", "مرحبا"),
+      unchanged("fontFamily", "😀"),
+      unchanged("fontFamily", "🎉"),
+      unchanged("fontFamily", r#""•""#),
+      unchanged("fontFamily", r#""•✓日本語😀""#),
     ],
     &default_options(),
   );
@@ -977,9 +949,9 @@ fn restores_the_leading_zero_on_a_negative_decimal() {
 fn leaves_subtraction_operators_alone() {
   check(
     &[
-      same("opacity", ".5px", ".5px"),
-      same("width", "calc(1px-.5px)", "calc(1px-.5px)"),
-      same("width", "calc(var(--x)-.5px)", "calc(var(--x)-.5px)"),
+      unchanged("opacity", ".5px"),
+      unchanged("width", "calc(1px-.5px)"),
+      unchanged("width", "calc(var(--x)-.5px)"),
     ],
     &default_options(),
   );
@@ -1009,8 +981,8 @@ fn diverges_on_a_negative_decimal_after_a_percentage() {
 fn keeps_the_restoration_out_of_strings() {
   check(
     &[
-      same("fontFamily", r#""-.5""#, r#""-.5""#),
-      same("fontFamily", r#""🎉 -.5""#, r#""🎉 -.5""#),
+      unchanged("fontFamily", r#""-.5""#),
+      unchanged("fontFamily", r#""🎉 -.5""#),
       diverges(
         "transform",
         r#"translate(-.5px,"-.25px")"#,

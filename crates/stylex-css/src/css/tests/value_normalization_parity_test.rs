@@ -3,16 +3,18 @@
 //!
 //! Every expectation here is what this compiler produces **today**, so the
 //! suite is green before the normalization pipeline is replaced and stays a net
-//! under that change. Alongside each one sits a [`Reference`](super::support::Reference) verdict taken
-//! from the parity harness in `crates/stylex-rs-compiler/parity` — never from
-//! judgement — recording whether the reference compiler agrees. A case marked
+//! under that change. Alongside each one sits a
+//! [`Reference`](super::support::Reference) verdict taken from the parity
+//! harness in `crates/stylex-rs-compiler/parity` — never from judgement —
+//! recording whether the reference compiler agrees. A case marked
 //! [`Reference::Diverges`](super::support::Reference::Diverges) is scheduled to
 //! change; a case marked [`Reference::Same`](super::support::Reference::Same)
 //! must survive untouched.
 //!
 //! Regenerate the verdicts with the two runs below — the second is what the
-//! cases under [`rem_enabled_options`](super::support::rem_enabled_options) come from, since the harness defaults
-//! the font-size option off and a default run cannot verdict them at all:
+//! cases under [`rem_enabled_options`](super::support::rem_enabled_options)
+//! come from, since the harness defaults the font-size option off and a default
+//! run cannot verdict them at all:
 //!
 //! ```sh
 //! pnpm run --filter=@stylexswc/rs-compiler build
@@ -32,7 +34,9 @@
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use super::support::{check, default_options, diverges, panic_message, rem_enabled_options, same};
+use super::support::{
+  check, default_options, diverges, panic_message, rem_enabled_options, same, unchanged,
+};
 use crate::css::common::{MAX_VALUE_NESTING_DEPTH, normalize_css_property_value};
 
 // ── Timings ──────────────────────────────────────────────────────────
@@ -46,7 +50,7 @@ fn converts_milliseconds_to_seconds() {
       same("transitionDuration", "500ms", ".5s"),
       same("transitionDuration", "1000ms", "1s"),
       same("transitionDuration", "0ms", "0s"),
-      same("transitionDuration", "2s", "2s"),
+      unchanged("transitionDuration", "2s"),
     ],
     &default_options(),
   );
@@ -56,7 +60,7 @@ fn converts_milliseconds_to_seconds() {
 #[test]
 fn keeps_milliseconds_below_the_conversion_threshold() {
   check(
-    &[same("transitionDuration", "5ms", "5ms")],
+    &[unchanged("transitionDuration", "5ms")],
     &default_options(),
   );
 }
@@ -70,9 +74,9 @@ fn normalizes_zero_dimensions_by_unit_kind() {
   check(
     &[
       same("margin", "0px", "0"),
-      same("width", "0%", "0%"),
-      same("gridTemplateColumns", "0fr", "0fr"),
-      same("gridTemplateColumns", "0fr 1fr", "0fr 1fr"),
+      unchanged("width", "0%"),
+      unchanged("gridTemplateColumns", "0fr"),
+      unchanged("gridTemplateColumns", "0fr 1fr"),
       same("image-resolution", "0dpi", "0"),
       same("color", "0Hz", "0"),
       same("color", "0unknown", "0"),
@@ -86,9 +90,9 @@ fn normalizes_zero_dimensions_by_unit_kind() {
 fn leaves_non_zero_dimensions_alone() {
   check(
     &[
-      same("margin", "10px", "10px"),
-      same("width", "16px", "16px"),
-      same("image-orientation", "90deg", "90deg"),
+      unchanged("margin", "10px"),
+      unchanged("width", "16px"),
+      unchanged("image-orientation", "90deg"),
     ],
     &default_options(),
   );
@@ -100,17 +104,9 @@ fn leaves_non_zero_dimensions_alone() {
 fn leaves_zeros_inside_functions_alone() {
   check(
     &[
-      same(
-        "color",
-        "calc(0 - var(--someVar))",
-        "calc(0 - var(--someVar))",
-      ),
-      same(
-        "color",
-        "calc(0px - var(--someVar) + 10px)",
-        "calc(0px - var(--someVar) + 10px)",
-      ),
-      same("width", "calc(0px + 10px)", "calc(0px + 10px)"),
+      unchanged("color", "calc(0 - var(--someVar))"),
+      unchanged("color", "calc(0px - var(--someVar) + 10px)"),
+      unchanged("width", "calc(0px + 10px)"),
     ],
     &default_options(),
   );
@@ -139,9 +135,9 @@ fn diverges_on_a_zero_angle_inside_a_transform_function() {
 fn exempts_custom_properties_from_value_normalization() {
   check(
     &[
-      same("--myVar", "0px", "0px"),
-      same("--myVar", "backgroundColor", "backgroundColor"),
-      same("--my-var", "foo", "foo"),
+      unchanged("--myVar", "0px"),
+      unchanged("--myVar", "backgroundColor"),
+      unchanged("--my-var", "foo"),
     ],
     &default_options(),
   );
@@ -154,7 +150,7 @@ fn strips_the_leading_zero_from_a_decimal() {
   check(
     &[
       same("opacity", "0.5", ".5"),
-      same("grid-column-start", "-1", "-1"),
+      unchanged("grid-column-start", "-1"),
     ],
     &default_options(),
   );
@@ -171,8 +167,8 @@ fn rewrites_single_quotes_to_double_quotes() {
     &[
       diverges("quotes", r#"'""'"#, r#""""#, r#"'""'"#),
       diverges("quotes", r#"'"123"'"#, r#""123""#, r#"'"123"'"#),
-      same("quotes", r#""""#, r#""""#),
-      same("quotes", r#""123""#, r#""123""#),
+      unchanged("quotes", r#""""#),
+      unchanged("quotes", r#""123""#),
     ],
     &default_options(),
   );
@@ -194,12 +190,8 @@ fn rewrites_quotes_in_grid_template_areas() {
         r#""content" "sidebar""#,
         r#"'"content" "sidebar"'"#,
       ),
-      same("gridTemplateAreas", r#""content""#, r#""content""#),
-      same(
-        "gridTemplateAreas",
-        r#""content" "sidebar""#,
-        r#""content" "sidebar""#,
-      ),
+      unchanged("gridTemplateAreas", r#""content""#),
+      unchanged("gridTemplateAreas", r#""content" "sidebar""#),
     ],
     &default_options(),
   );
@@ -219,7 +211,7 @@ fn hyphenates_camel_case_values_for_the_properties_that_take_property_names() {
         "opacity, margin-top",
         "opacity,margin-top",
       ),
-      same("transitionProperty", "--myVar", "--myVar"),
+      unchanged("transitionProperty", "--myVar"),
       same("willChange", "marginTop", "margin-top"),
       same("willChange", "backgroundColor", "background-color"),
     ],
@@ -229,7 +221,7 @@ fn hyphenates_camel_case_values_for_the_properties_that_take_property_names() {
 
 #[test]
 fn leaves_ordinary_keyword_values_alone() {
-  check(&[same("color", "red", "red")], &default_options());
+  check(&[unchanged("color", "red")], &default_options());
 }
 
 // ── Whole-value shapes ───────────────────────────────────────────────
@@ -243,7 +235,7 @@ fn normalizes_shadow_values() {
         "0px 2px 4px var(--shadow-1)",
         "0 2px 4px var(--shadow-1)",
       ),
-      same("boxShadow", "1px 1px #000", "1px 1px #000"),
+      unchanged("boxShadow", "1px 1px #000"),
     ],
     &default_options(),
   );
@@ -253,12 +245,8 @@ fn normalizes_shadow_values() {
 fn normalizes_adjacent_custom_property_references() {
   check(
     &[
-      same(
-        "color",
-        "var(--a) var(--b) var(--c)",
-        "var(--a) var(--b) var(--c)",
-      ),
-      same("color", "var(--someVar)", "var(--someVar)"),
+      unchanged("color", "var(--a) var(--b) var(--c)"),
+      unchanged("color", "var(--someVar)"),
     ],
     &default_options(),
   );
@@ -354,9 +342,8 @@ fn diverges_on_spacing_inside_allowlisted_functions() {
 #[test]
 fn keeps_an_already_tight_allowlisted_value() {
   check(
-    &[same(
+    &[unchanged(
       "color",
-      "clamp(min(10vw,20rem),300px,max(90vw,55rem))",
       "clamp(min(10vw,20rem),300px,max(90vw,55rem))",
     )],
     &default_options(),
@@ -382,9 +369,9 @@ fn converts_font_size_pixels_to_rem_when_enabled() {
 fn converts_nothing_else_when_font_size_conversion_is_enabled() {
   check(
     &[
-      same("fontSize", "2em", "2em"),
-      same("fontSize", "1rem", "1rem"),
-      same("width", "16px", "16px"),
+      unchanged("fontSize", "2em"),
+      unchanged("fontSize", "1rem"),
+      unchanged("width", "16px"),
     ],
     &rem_enabled_options(),
   );
@@ -402,7 +389,7 @@ fn diverges_on_a_sub_rem_font_size_conversion() {
 
 #[test]
 fn leaves_font_size_alone_when_the_option_is_off() {
-  check(&[same("fontSize", "16px", "16px")], &default_options());
+  check(&[unchanged("fontSize", "16px")], &default_options());
 }
 
 // ── Vendor prefixes ──────────────────────────────────────────────────
@@ -414,13 +401,9 @@ fn leaves_font_size_alone_when_the_option_is_off() {
 fn carries_vendor_prefixes_through_unchanged() {
   check(
     &[
-      same("display", "-webkit-box", "-webkit-box"),
+      unchanged("display", "-webkit-box"),
       same("transitionProperty", "WebkitTransform", "-webkit-transform"),
-      same(
-        "transitionProperty",
-        "-webkit-transform",
-        "-webkit-transform",
-      ),
+      unchanged("transitionProperty", "-webkit-transform"),
     ],
     &default_options(),
   );
@@ -510,12 +493,8 @@ fn preserves_non_ascii_content() {
 fn passes_inert_unparsable_values_through() {
   check(
     &[
-      same(
-        "gridTemplateColumns",
-        "[full-start 1fr [content-start",
-        "[full-start 1fr [content-start",
-      ),
-      same("width", "10px ++ 20px", "10px ++ 20px"),
+      unchanged("gridTemplateColumns", "[full-start 1fr [content-start"),
+      unchanged("width", "10px ++ 20px"),
     ],
     &default_options(),
   );

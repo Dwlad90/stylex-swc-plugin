@@ -87,6 +87,9 @@ pub static LINT_UNCLOSED_COMMENT: &str = "Rule contains an unclosed comment";
 pub static LINT_RULE_BREAKING_TOKEN: &str =
   "Rule contains a `{`, `}` or `;` outside of a string or comment";
 
+pub static LINT_VALUE_NESTED_TOO_DEEPLY: &str =
+  "Rule contains a value nested more deeply than the compiler supports";
+
 pub static LOCAL_ONLY: &str = "The return value of create() should not be exported.";
 
 pub static NON_OBJECT_KEYFRAME: &str = "Every frame within a keyframes() call must be an object.";

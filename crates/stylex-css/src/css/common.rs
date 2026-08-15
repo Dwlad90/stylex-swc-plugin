@@ -16,6 +16,7 @@ use stylex_constants::constants::{
   long_hand_physical::LONG_HAND_PHYSICAL,
   messages::{
     LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_UNCLOSED_FUNCTION, LINT_UNCLOSED_STRING,
+    LINT_VALUE_NESTED_TOO_DEEPLY,
   },
   number_properties::NUMBER_PROPERTY_SUFFIXIES,
   priorities::{AT_RULE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY},
@@ -619,6 +620,11 @@ struct ValueStructure {
   /// splice arbitrary CSS into the stylesheet, so it must never take the
   /// "preserve unknown syntax" fallback in [`normalize_css_property_value`].
   has_rule_breaking_token: bool,
+  /// The deepest the value nests functions, counted outside strings and
+  /// comments. Every stage of the SWC path — parse, normalize, emit — recurses
+  /// once per level, so this is what decides whether that path is safe to
+  /// enter. See [`MAX_VALUE_NESTING_DEPTH`].
+  max_nesting_depth: usize,
 }
 
 impl ValueStructure {
@@ -633,6 +639,22 @@ impl ValueStructure {
     !self.has_rule_breaking_token && !self.has_unclosed_comment
   }
 }
+
+/// How deeply a value may nest functions before it is rejected.
+///
+/// Parsing, normalizing and emitting a value each recurse once per nesting
+/// level, and none of them carries a depth limit of its own. Past the point
+/// where the stack runs out the process **aborts** rather than panicking — a
+/// stack overflow is not unwindable, so the `catch_unwind` around compilation
+/// never sees it and no diagnostic is ever produced.
+///
+/// The limit is stated here rather than left to whatever stack the host
+/// happens to provide, so that the same source compiles the same way
+/// everywhere instead of depending on which thread the compiler runs on. It is
+/// set well below the observed cliff — a 2 MiB thread, the smallest in play,
+/// survives past a hundred levels — and far above real CSS, where the deepest
+/// value in the project's own corpus nests eight.
+pub(crate) const MAX_VALUE_NESTING_DEPTH: usize = 64;
 
 fn scan_value_structure(css_property_value: &str) -> ValueStructure {
   let value = css_property_value.as_bytes();
@@ -674,6 +696,7 @@ fn scan_value_structure(css_property_value: &str) -> ValueStructure {
       },
       None if byte == b'(' => {
         paren_depth += 1;
+        structure.max_nesting_depth = structure.max_nesting_depth.max(paren_depth);
       },
       None if byte == b')' => {
         paren_depth = paren_depth.saturating_sub(1);
@@ -795,6 +818,21 @@ pub fn normalize_css_property_value(
 
   if structure.has_unclosed_comment {
     stylex_panic!("{}", LINT_UNCLOSED_COMMENT);
+  }
+
+  // Checked before either path is entered, not just the recursive one, so that
+  // the depth a value may reach is a property of the compiler rather than of
+  // which branch a particular value happens to take.
+  if structure.max_nesting_depth > MAX_VALUE_NESTING_DEPTH {
+    let css_rule = build_css_rule(css_property, css_property_value, is_pseudo);
+
+    stylex_panic!(
+      "{} (limit {}, found {}), css rule: {}",
+      LINT_VALUE_NESTED_TOO_DEEPLY,
+      MAX_VALUE_NESTING_DEPTH,
+      structure.max_nesting_depth,
+      css_rule
+    );
   }
 
   if should_normalize_spacing_only {

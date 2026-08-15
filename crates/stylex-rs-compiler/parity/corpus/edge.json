@@ -270,6 +270,13 @@
       "origin": "hand-written: function nesting well past any hand-written value"
     },
     {
+      "id": "edge-nesting-past-the-depth-limit",
+      "property": "width",
+      "value": "calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(1px)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+      "origin": "hand-written: one level past the compiler's nesting limit",
+      "note": "Rejected here with a diagnostic; upstream recurses until the stack runs out."
+    },
+    {
       "id": "edge-deeply-nested-var-fallbacks",
       "property": "color",
       "value": "var(--a, var(--b, var(--c, var(--d, var(--e, var(--f, red))))))",

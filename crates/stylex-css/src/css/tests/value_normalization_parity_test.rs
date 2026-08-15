@@ -30,7 +30,8 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 
-use crate::css::common::normalize_css_property_value;
+use super::support::{default_options, panic_message, rem_enabled_options};
+use crate::css::common::{MAX_VALUE_NESTING_DEPTH, normalize_css_property_value};
 
 /// What the reference compiler makes of a case, as the parity harness reported
 /// it.
@@ -76,14 +77,6 @@ const fn diverges(
     expected,
     reference: Reference::Diverges(upstream),
   }
-}
-
-fn default_options() -> StyleXStateOptions {
-  StyleXStateOptions::default()
-}
-
-fn rem_enabled_options() -> StyleXStateOptions {
-  StyleXStateOptions::default().with_enable_font_size_px_to_rem(true)
 }
 
 /// Runs a case table and, for every case claiming a divergence, checks that the
@@ -615,15 +608,7 @@ fn rejects_a_value_carrying_an_opening_brace() {
     normalize_css_property_value("color", "red {", &options)
   }));
 
-  let Err(panic) = result else {
-    panic!("expected `red {{` to be rejected");
-  };
-
-  let message = panic
-    .downcast_ref::<String>()
-    .map(String::as_str)
-    .or_else(|| panic.downcast_ref::<&str>().copied())
-    .unwrap_or_default();
+  let message = panic_message(result);
 
   assert!(
     message.contains("* { stylexValue: red { }"),
@@ -633,27 +618,82 @@ fn rejects_a_value_carrying_an_opening_brace() {
 
 // ── Robustness ───────────────────────────────────────────────────────
 
-/// Nesting far past anything a person writes by hand must not lose a level.
-/// Generated, so the parity harness carries no verdict for it; the checked-in
-/// `edge-deeply-nested-calc` case covers the depth a human would write.
-///
-/// The depth is deliberately well under the pipeline's recursion cliff:
-/// normalization recurses once per nesting level with no depth limit, and past
-/// roughly a hundred levels it exhausts a 2 MiB test thread's stack and aborts
-/// the process instead of raising a diagnostic. That is tracked separately; the
-/// assertion here guards the depths that do work.
-#[test]
-fn survives_deep_function_nesting() {
-  let depth = 50;
+/// Builds a value nesting `calc()` `depth` levels deep.
+fn nested_calc(depth: usize) -> String {
   let mut value = String::from("1px");
   for _ in 0..depth {
     value = format!("calc({value} + 1px)");
   }
+  value
+}
 
-  let result = normalize_css_property_value("width", &value, &default_options());
+/// Nesting far past anything a person writes by hand must not lose a level.
+/// Generated, so the parity harness carries no verdict for it; the checked-in
+/// `edge-deeply-nested-calc` case covers the depth a human would write.
+#[test]
+fn survives_function_nesting_up_to_the_limit() {
+  let depth = MAX_VALUE_NESTING_DEPTH;
+
+  let result = normalize_css_property_value("width", &nested_calc(depth), &default_options());
 
   assert_eq!(result.matches("calc(").count(), depth);
   assert!(result.starts_with("calc("));
+}
+
+/// One level past the limit is rejected with a diagnostic naming both depths.
+///
+/// The limit exists because every stage of the pipeline recurses once per
+/// nesting level: without it a deep enough value exhausts the stack, and a
+/// stack overflow aborts the process rather than panicking, so nothing catches
+/// it and no diagnostic is produced. Rejecting early is what keeps the failure
+/// reportable.
+#[test]
+fn rejects_function_nesting_past_the_limit() {
+  let options = default_options();
+  let value = nested_calc(MAX_VALUE_NESTING_DEPTH + 1);
+
+  let result = catch_unwind(AssertUnwindSafe(|| {
+    normalize_css_property_value("width", &value, &options)
+  }));
+
+  let message = panic_message(result);
+
+  assert!(
+    message.contains("nested more deeply") && message.contains("limit 64, found 65"),
+    "expected the rejection to state both depths, got: {message}"
+  );
+
+  // The guard reads the value rather than parsing it, so it holds at any depth
+  // — including ones that used to take the process down with them.
+  let far_past = nested_calc(5_000);
+  let result = catch_unwind(AssertUnwindSafe(|| {
+    normalize_css_property_value("width", &far_past, &options)
+  }));
+
+  assert!(
+    panic_message(result).contains("limit 64, found 5000"),
+    "expected the guard to hold without recursing"
+  );
+}
+
+/// The limit is a property of the compiler, not of which branch a value takes:
+/// the colour-function path bypasses SWC's codegen, and is guarded the same.
+#[test]
+fn rejects_deep_nesting_on_the_colour_function_path() {
+  let options = default_options();
+  let mut value = String::from("red");
+  for _ in 0..=MAX_VALUE_NESTING_DEPTH {
+    value = format!("oklch(from {value} l c h)");
+  }
+
+  let result = catch_unwind(AssertUnwindSafe(|| {
+    normalize_css_property_value("color", &value, &options)
+  }));
+
+  assert!(
+    panic_message(result).contains("nested more deeply"),
+    "expected the colour-function path to reject deep nesting too"
+  );
 }
 
 /// A long comma-separated list is normalized entry by entry, with no truncation

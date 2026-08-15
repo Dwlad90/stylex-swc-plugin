@@ -262,6 +262,109 @@
       "property": "transform",
       "value": "  rotate(10deg)  translate3d( 0 , 0 , 0 )  ",
       "origin": "hand-written: whitespace around and inside a value"
+    },
+    {
+      "id": "edge-deeply-nested-calc",
+      "property": "width",
+      "value": "calc(calc(calc(calc(calc(calc(calc(calc(1px + 2px) + 3px) + 4px) + 5px) + 6px) + 7px) + 8px) + 9px)",
+      "origin": "hand-written: function nesting well past any hand-written value"
+    },
+    {
+      "id": "edge-deeply-nested-var-fallbacks",
+      "property": "color",
+      "value": "var(--a, var(--b, var(--c, var(--d, var(--e, var(--f, red))))))",
+      "origin": "hand-written: a custom-property fallback chain"
+    },
+    {
+      "id": "edge-vendor-prefixed-keyword",
+      "property": "display",
+      "value": "-webkit-box",
+      "origin": "hand-written: vendor-prefixed keyword value"
+    },
+    {
+      "id": "edge-vendor-prefixed-function",
+      "property": "backgroundImage",
+      "value": "-webkit-linear-gradient(top, #FFFFFF, #000000)",
+      "origin": "hand-written: vendor-prefixed function value"
+    },
+    {
+      "id": "edge-vendor-prefixed-camel-case-value",
+      "property": "transitionProperty",
+      "value": "WebkitTransform",
+      "origin": "hand-written: camel-case value naming a vendor-prefixed property"
+    },
+    {
+      "id": "edge-vendor-prefixed-hyphenated-value",
+      "property": "transitionProperty",
+      "value": "-webkit-transform",
+      "origin": "hand-written: already-hyphenated vendor-prefixed value"
+    },
+    {
+      "id": "edge-escape-trailing-space",
+      "property": "content",
+      "value": "\"\\2014 A\"",
+      "origin": "hand-written: escape sequence terminated by a space"
+    },
+    {
+      "id": "edge-escape-astral-plane",
+      "property": "content",
+      "value": "\"\\1F600\"",
+      "origin": "hand-written: escape naming a codepoint outside the BMP"
+    },
+    {
+      "id": "edge-escape-trailing-space-in-font-family",
+      "property": "fontFamily",
+      "value": "\"\\2014 A\", sans-serif",
+      "origin": "hand-written: escape sequence in a property that reaches value normalization",
+      "note": "`content` bypasses value normalization when its value already carries matching quotes, so its verdicts describe the transform path rather than the normalization seam."
+    },
+    {
+      "id": "edge-escape-astral-plane-in-font-family",
+      "property": "fontFamily",
+      "value": "\"\\1F600\", sans-serif",
+      "origin": "hand-written: astral-plane escape in a property that reaches value normalization"
+    },
+    {
+      "id": "edge-non-ascii-string-in-font-family",
+      "property": "fontFamily",
+      "value": "\"→ Привет 日本語 🙂\", sans-serif",
+      "origin": "hand-written: non-ASCII string in a property that reaches value normalization"
+    },
+    {
+      "id": "edge-escaped-identifier",
+      "property": "fontFamily",
+      "value": "My\\ Font, sans-serif",
+      "origin": "hand-written: escaped space inside an identifier"
+    },
+    {
+      "id": "edge-non-ascii-identifier",
+      "property": "fontFamily",
+      "value": "日本語フォント, sans-serif",
+      "origin": "hand-written: non-ASCII identifier outside a string"
+    },
+    {
+      "id": "edge-unclosed-bracket",
+      "property": "gridTemplateColumns",
+      "value": "[full-start 1fr [content-start",
+      "origin": "hand-written: unclosed line-name bracket"
+    },
+    {
+      "id": "edge-unclosed-block-brace",
+      "property": "color",
+      "value": "red {",
+      "origin": "hand-written: an opening brace inside a value"
+    },
+    {
+      "id": "edge-invalid-token-sequence",
+      "property": "width",
+      "value": "10px ++ 20px",
+      "origin": "hand-written: an operator sequence no grammar accepts"
+    },
+    {
+      "id": "edge-long-shadow-list",
+      "property": "boxShadow",
+      "value": "0 0 1px #000, 0 0 2px #000, 0 0 3px #000, 0 0 4px #000, 0 0 5px #000, 0 0 6px #000, 0 0 7px #000, 0 0 8px #000, 0 0 9px #000, 0 0 10px #000",
+      "origin": "hand-written: a long comma-separated list"
     }
   ]
 }

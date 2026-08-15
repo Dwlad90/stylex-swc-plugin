@@ -120,3 +120,13 @@ report entry carries, for both compilers:
 
 `entries[].babel.declarations` is the expectation; `entries[].rust` is what this
 compiler produces today.
+
+**One caveat when the expectation is for a value-normalization test.** The
+harness runs the whole transform, and a few properties never reach value
+normalization at all: `content`, `hyphenateCharacter` and `hyphenate-character`
+are returned verbatim when their value already carries matching quotes, names a
+content function, or is a content keyword. A verdict on one of those describes
+the transform path, not the normalization seam, and the two disagree — `content:
+"\2014 A"` survives the transform unchanged but has its escape resolved at the
+seam. Pick a property that reaches normalization (`fontFamily` covers the same
+string shapes) when sourcing an expectation for a normalization test.

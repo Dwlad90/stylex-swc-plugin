@@ -201,6 +201,49 @@ describe('collection', () => {
   });
 });
 
+describe('shape 6 — verdict case tables', () => {
+  test('takes the property and value, and never the expected output', () => {
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          check(
+            &[
+              same("transitionDuration", "500ms", ".5s"),
+              diverges("transform", "rotate(0rad)", "rotate(0rad)", "rotate(0deg)"),
+            ],
+            &default_options(),
+          );
+        }
+      `)
+    ).toEqual([
+      ['transform', 'rotate(0rad)'],
+      ['transitionDuration', '500ms'],
+    ]);
+  });
+
+  test('skips the definitions of the constructors themselves', () => {
+    expect(
+      declarationsOf(`
+        const fn same(property: &'static str, value: &'static str) -> Case {}
+        const fn diverges(property: &'static str, value: &'static str) -> Case {}
+      `)
+    ).toEqual([]);
+  });
+
+  // A short name would otherwise match the tail of a longer identifier.
+  test('does not match a call whose name merely ends in one of the constructors', () => {
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          assert!(is_same("color", "red"));
+        }
+      `)
+    ).toEqual([]);
+  });
+});
+
 describe('identity', () => {
   test('an id follows the declaration, not its position', () => {
     expect(entryId('color', 'red')).toBe(entryId('color', 'red'));

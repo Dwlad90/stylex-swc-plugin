@@ -6,8 +6,8 @@
  * than transcribing those values by hand — which is how a corpus quietly goes
  * stale — they are extracted from the sources.
  *
- * Five literal shapes carry a CSS declaration in this repo. Each is handled by
- * its own extractor below and each records where it came from, so an unexpected
+ * Six literal shapes carry a CSS declaration in this repo. Each is handled by
+ * an extractor below and each records where it came from, so an unexpected
  * corpus entry can be traced back to the test that motivated it.
  */
 
@@ -74,7 +74,7 @@ export function harvestCorpus(options: HarvestOptions): CorpusEntry[] {
 
   const collected: CorpusEntry[] = [];
   for (const file of files) {
-    collected.push(...extractNormalizeCalls(file));
+    collected.push(...extractPropertyValueCalls(file));
     collected.push(...extractCaseTables(file));
     collected.push(...extractRuleLiterals(file));
     collected.push(...extractStyleObjects(file));
@@ -117,21 +117,35 @@ function collectRustTestFiles(workspaceRoot: string): string[] {
 }
 
 /**
- * Shape 1 — `normalize_css_property_value("color", "#ff0000", &opts)`.
+ * Calls whose first two arguments are a property literal and a value literal.
  *
- * The direct call form, where both the property and the value are literals
- * sitting next to each other. This is the bulk of the value-normalization unit
+ * `normalize_css_property_value` is the direct call form. `same` and `diverges`
+ * build one row of a verdict case table, where the arguments after the value
+ * are the expected output and the reference compiler's spelling — deliberately
+ * not harvested, since deriving expectations from the reference compiler is the
+ * whole point of the harness.
+ */
+const PROPERTY_VALUE_CALLS = ['normalize_css_property_value', 'same', 'diverges'] as const;
+
+/**
+ * Shapes 1 and 6 — `normalize_css_property_value("color", "#ff0000", &opts)`
+ * and `same("color", "#ff0000", "#f00")`.
+ *
+ * The forms where both the property and the value are literals sitting next to
+ * each other. Between them these are the bulk of the value-normalization unit
  * tests.
  */
-function extractNormalizeCalls(file: ScannedFile): CorpusEntry[] {
+function extractPropertyValueCalls(file: ScannedFile): CorpusEntry[] {
   const entries: CorpusEntry[] = [];
-  const callSites = findCallSites(file.source, 'normalize_css_property_value(');
 
-  for (const callStart of callSites) {
-    const argsStart = callStart + 'normalize_css_property_value('.length;
-    const args = literalsBetween(file, argsStart, argsStart + 400).slice(0, 2);
-    if (args.length !== 2) continue;
-    entries.push(entry(args[0]!.value, args[1]!.value, `${file.relativePath}:${args[0]!.line}`));
+  for (const name of PROPERTY_VALUE_CALLS) {
+    const open = `${name}(`;
+    for (const callStart of findCallSites(file.source, open)) {
+      const argsStart = callStart + open.length;
+      const args = literalsBetween(file, argsStart, argsStart + 400).slice(0, 2);
+      if (args.length !== 2) continue;
+      entries.push(entry(args[0]!.value, args[1]!.value, `${file.relativePath}:${args[0]!.line}`));
+    }
   }
 
   return entries;
@@ -323,13 +337,21 @@ function isCssProperty(property: string): boolean {
   return /^[a-z][A-Za-z0-9]*$/.test(property);
 }
 
-/** Byte offsets of every `name(` occurrence that is a call, not a definition. */
+/**
+ * Byte offsets of every `name(` occurrence that is a call, not a definition.
+ *
+ * The character before the name must not be one an identifier can contain, or
+ * a short name like `same` would match the tail of `is_same` and harvest a
+ * declaration from a call that has nothing to do with normalization.
+ */
 function findCallSites(source: string, name: string): number[] {
   const sites: number[] = [];
   let at = source.indexOf(name);
   while (at !== -1) {
     const before = source.slice(Math.max(0, at - 8), at);
-    if (!before.endsWith('fn ')) sites.push(at);
+    const isDefinition = before.endsWith('fn ');
+    const continuesAnIdentifier = at > 0 && /[\w]/.test(source[at - 1] ?? '');
+    if (!isDefinition && !continuesAnIdentifier) sites.push(at);
     at = source.indexOf(name, at + name.length);
   }
   return sites;

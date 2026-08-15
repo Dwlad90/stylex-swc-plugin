@@ -121,7 +121,7 @@ fn plan_important_removals(nodes: &[Node]) -> ImportantPlan {
     }
   }
 
-  ImportantPlan::Remove(top_level.taken)
+  ImportantPlan::Remove(top_level.into_removals())
 }
 
 /// The top-level node list as the importance handler has left it, and what it
@@ -162,6 +162,13 @@ impl TopLevelList {
 
   fn lost_a_node(&self) -> bool {
     !self.taken.is_empty()
+  }
+
+  /// The removals, once the walk that decided them is over. Consumes the list,
+  /// because the kinds are only meaningful mid-walk and nothing downstream
+  /// should be tempted to read them afterwards.
+  fn into_removals(self) -> Vec<usize> {
+    self.taken
   }
 }
 

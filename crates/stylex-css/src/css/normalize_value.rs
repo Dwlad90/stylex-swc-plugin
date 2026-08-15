@@ -36,8 +36,12 @@ use crate::css::normalizers::{
   whitespace::normalize_whitespace, zero_dimensions::normalize_zero_dimensions,
 };
 
-/// One transformation over the token list, named by the property it is being
-/// applied for.
+/// One transformation over the token list, rewriting it in place for the
+/// property its second argument names.
+///
+/// Four of the nine read it — three to decide whether they apply at all, one
+/// to name the declaration in a rejection. It is passed to all nine anyway,
+/// which is what lets the fold below be a list rather than nine call sites.
 type Normalizer = fn(&mut ValueParser, &str);
 
 /// The eight normalizers that always run, in the order they run in.

@@ -6,7 +6,7 @@
  * than transcribing those values by hand — which is how a corpus quietly goes
  * stale — they are extracted from the sources.
  *
- * Six literal shapes carry a CSS declaration in this repo. Each is handled by
+ * Seven literal shapes carry a CSS declaration in this repo. Each is handled by
  * an extractor below and each records where it came from, so an unexpected
  * corpus entry can be traced back to the test that motivated it.
  */
@@ -75,6 +75,7 @@ export function harvestCorpus(options: HarvestOptions): CorpusEntry[] {
   const collected: CorpusEntry[] = [];
   for (const file of files) {
     collected.push(...extractPropertyValueCalls(file));
+    collected.push(...extractRejectionTables(file));
     collected.push(...extractCaseTables(file));
     collected.push(...extractRuleLiterals(file));
     collected.push(...extractStyleObjects(file));
@@ -145,6 +146,44 @@ function extractPropertyValueCalls(file: ScannedFile): CorpusEntry[] {
       const args = literalsBetween(file, argsStart, argsStart + 400).slice(0, 2);
       if (args.length !== 2) continue;
       entries.push(entry(args[0]!.value, args[1]!.value, `${file.relativePath}:${args[0]!.line}`));
+    }
+  }
+
+  return entries;
+}
+
+/**
+ * Shape 7 — a rejection table: one property, then a slice of the values that
+ * property is expected to be rejected for.
+ *
+ * ```rust
+ * rejects("width", &["*(", "/.5 *("], UNCLOSED_FUNCTION, &default_options())
+ * ```
+ *
+ * A rejection has no spelling for a verdict case to compare, so these values
+ * never reach shapes 1 or 6 — but the harness still has something to say about
+ * them, namely whether the reference compiler rejects them too. Only the
+ * literals inside the slice are taken; the diagnostic argument that follows is
+ * a message, not a value, which is why it is bound to a constant at the call
+ * sites rather than written inline.
+ */
+function extractRejectionTables(file: ScannedFile): CorpusEntry[] {
+  const entries: CorpusEntry[] = [];
+  const open = 'rejects(';
+
+  for (const callStart of findCallSites(file.source, open)) {
+    const argsStart = callStart + open.length;
+    const [property, ...rest] = literalsBetween(file, argsStart, argsStart + 800);
+    if (property === undefined) continue;
+
+    // The slice ends at the first `]` after the property, so a literal
+    // belonging to a later argument is never read as one of the values.
+    const sliceEnd = file.masked.indexOf(']', property.end);
+    if (sliceEnd === -1) continue;
+
+    for (const value of rest) {
+      if (value.start > sliceEnd) break;
+      entries.push(entry(property.value, value.value, `${file.relativePath}:${value.line}`));
     }
   }
 

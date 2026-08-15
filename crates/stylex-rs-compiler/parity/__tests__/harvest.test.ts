@@ -244,6 +244,48 @@ describe('shape 6 — verdict case tables', () => {
   });
 });
 
+describe('shape 7 — rejection tables', () => {
+  test('takes every value in the slice, against the property before it', () => {
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          rejects(
+            "width",
+            &["*(", "/.5 /-1 *( *3"],
+            UNCLOSED_FUNCTION,
+            &default_options(),
+          );
+        }
+      `)
+    ).toEqual([
+      ['width', '*('],
+      ['width', '/.5 /-1 *( *3'],
+    ]);
+  });
+
+  // The diagnostic is a message, not a CSS value. Harvesting it would put a
+  // sentence in the corpus and report it as an acceptance divergence.
+  test('stops at the end of the slice, so a later literal argument is not a value', () => {
+    expect(
+      declarationsOf(`
+        #[test]
+        fn t() {
+          rejects("color", &[")("], "unclosed function", &default_options());
+        }
+      `)
+    ).toEqual([['color', ')(']]);
+  });
+
+  test('skips the definition of the runner itself', () => {
+    expect(
+      declarationsOf(`
+        fn rejects(property: &str, values: &[&str], expected: &str) {}
+      `)
+    ).toEqual([]);
+  });
+});
+
 describe('identity', () => {
   test('an id follows the declaration, not its position', () => {
     expect(entryId('color', 'red')).toBe(entryId('color', 'red'));

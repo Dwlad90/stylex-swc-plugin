@@ -121,6 +121,14 @@ report entry carries, for both compilers:
 `entries[].babel.declarations` is the expectation; `entries[].rust` is what this
 compiler produces today.
 
+**A verdict with no declarations is not a verdict.** Both compilers expand or
+drop shorthands such as `background` and `border`, so a subject written on one
+produces an empty `declarations` array on both sides and the entry is reported
+`identical` — agreement about nothing. Check that `entries[].rust.declarations`
+and `entries[].babel.declarations` are non-empty before reading an `identical`
+as evidence, and pick a longhand (`backgroundImage`, `boxShadow`) when writing
+the subject.
+
 **One caveat when the expectation is for a value-normalization test.** The
 harness runs the whole transform, and a few properties never reach value
 normalization at all: `content`, `hyphenateCharacter` and `hyphenate-character`

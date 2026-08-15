@@ -18,6 +18,8 @@ import { fileURLToPath } from 'node:url';
 
 import parser from 'postcss-value-parser';
 
+const { stringify } = parser;
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const corpusDir = path.resolve(here, '../../stylex-rs-compiler/parity/corpus');
 
@@ -364,6 +366,56 @@ const FROM_THE_JAVASCRIPT_TEST_SUITE = [
   'fn( ) fn2( fn3())',
 ];
 
+/**
+ * Serialising with a per-node override, and the one shape that needs no
+ * override to change what comes out: a node whose kind is rewritten after it
+ * was parsed. Every scenario is one the JavaScript exercises itself.
+ *
+ * The Rust test writes the same override a second time and looks the
+ * expectation up by label, so the *behaviour* is spelled twice on purpose and
+ * the *answer* still comes from a real run.
+ */
+const OVERRIDE_SCENARIOS = [
+  {
+    label: 'function-to-bracket-list',
+    input: ' rgba(12,  54, 65 ) ',
+    run: nodes => stringify(nodes, bracketFunctions),
+  },
+  {
+    label: 'function-to-bracket-list-one-node',
+    input: ' rgba(12,  54, 65 ) ',
+    run: nodes => stringify(nodes[1], bracketFunctions),
+  },
+  {
+    label: 'replace-nested-function',
+    input: 'calc(1px + var(--bar))',
+    run: nodes =>
+      stringify(nodes, node =>
+        node.type === 'function' && node.value === 'var' ? '10px' : undefined
+      ),
+  },
+  {
+    label: 'override-declines-every-node',
+    input: ' rgba(12,  54, 65 ) ',
+    run: nodes => stringify(nodes, () => undefined),
+  },
+  {
+    label: 'function-retyped-as-word',
+    input: ' rgba(12,  54, 65 ) ',
+    run: nodes => {
+      nodes[1].type = 'word';
+      return stringify(nodes);
+    },
+  },
+];
+
+/** Collapses a function to `name[arg,arg,arg]`, ignoring everything else. */
+function bracketFunctions(node) {
+  if (node.type !== 'function') return undefined;
+  const args = [node.nodes[0].value, node.nodes[2].value, node.nodes[4].value];
+  return `${node.value}[${args.join(',')}]`;
+}
+
 /** How deep the stress cases nest, and how long they run. */
 const STRESS = [
   ['nested-functions-64', `${'calc('.repeat(64)}1px${')'.repeat(64)}`],
@@ -511,6 +563,12 @@ const stressCases = STRESS.map(([label, input]) => ({
   output: parser(input).toString(),
 }));
 
+const overrideCases = OVERRIDE_SCENARIOS.map(scenario => ({
+  label: scenario.label,
+  input: scenario.input,
+  output: scenario.run(parser(scenario.input).nodes),
+}));
+
 const unitCases = [...unitInputs].map(input => [input, parser.unit(input)]);
 
 const parserRows = parserCases.flatMap(entry => [
@@ -523,6 +581,14 @@ const parserRows = parserCases.flatMap(entry => [
 
 const stressRows = stressCases.flatMap(entry => [
   '  StressCase {',
+  `    label: ${rustLiteral(entry.label)},`,
+  `    input: ${rustLiteral(entry.input)},`,
+  `    output: ${rustLiteral(entry.output)},`,
+  '  },',
+]);
+
+const overrideRows = overrideCases.flatMap(entry => [
+  '  OverrideCase {',
   `    label: ${rustLiteral(entry.label)},`,
   `    input: ${rustLiteral(entry.input)},`,
   `    output: ${rustLiteral(entry.output)},`,
@@ -575,6 +641,23 @@ process.stdout.write(
     `/// ${stressCases.length} values at the sizes where a scanner stops being about CSS.`,
     'pub(super) const STRESS_CASES: &[StressCase] = &[',
     ...stressRows,
+    '];',
+    '',
+    '/// One serialisation that does not spell the tree out plainly — either',
+    '/// because an override replaced a node, or because a node was re-kinded',
+    '/// after parsing. Paired with the Rust that reproduces it by label.',
+    'pub(super) struct OverrideCase {',
+    '  /// Names the override the Rust side has to write to match.',
+    "  pub label: &'static str,",
+    '  /// The value parsed before the override runs.',
+    "  pub input: &'static str,",
+    '  /// What came out.',
+    "  pub output: &'static str,",
+    '}',
+    '',
+    `/// ${overrideCases.length} serialisations that an override or a re-kinded node changed.`,
+    'pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[',
+    ...overrideRows,
     '];',
     '',
     `/// ${unitCases.length} words paired with their number/unit split, \`None\` standing for a`,

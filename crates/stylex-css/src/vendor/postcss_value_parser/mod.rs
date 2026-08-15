@@ -31,12 +31,18 @@
 //! a trailing backslash, which makes the word scan overshoot. All three are
 //! deliberate: correcting any of them would change class names.
 //!
-//! ## One difference from the JavaScript
+//! ## Two differences from the JavaScript
 //!
 //! The word scanner's second `code === slash` test, guarded by `parent.type`,
 //! sits behind an unguarded `code === slash` that already matched — it is dead,
 //! and reaching it would throw on an undefined parent. It is left out rather
 //! than reproduced as a latent panic.
+//!
+//! A walk callback is handed the node and its index, but not the list holding
+//! it: Rust cannot lend out both at once. Nothing reads that third argument —
+//! not the JavaScript's own tests, and not the normalizers, which reach the
+//! list they want to restructure directly instead. [`walk`] spells out what
+//! follows from that.
 
 mod parse;
 mod stringify;
@@ -47,7 +53,7 @@ mod walk;
 mod tests;
 
 pub use parse::parse;
-pub use stringify::stringify;
+pub use stringify::{Custom, stringify, stringify_node, stringify_node_with, stringify_with};
 pub use unit::{Dimension, unit};
 pub use walk::walk;
 

@@ -11,9 +11,12 @@
 //! pnpm run --filter=@stylexswc/css generate:value-parser-cases
 //! ```
 
-use crate::vendor::postcss_value_parser::{Dimension, ValueParser, parse, stringify, unit};
+use crate::vendor::postcss_value_parser::{
+  Dimension, Node, NodeKind, ValueParser, parse, stringify, stringify_node_with, stringify_with,
+  unit,
+};
 
-use super::cases::{PARSER_CASES, STRESS_CASES, UNIT_CASES};
+use super::cases::{OVERRIDE_CASES, PARSER_CASES, STRESS_CASES, UNIT_CASES};
 use super::dump::dump;
 
 #[test]
@@ -114,5 +117,62 @@ fn the_entry_point_parses_and_serializes_like_its_parts() {
       "serialized text differs for {:?}",
       case.input
     );
+  }
+}
+
+/// Collapses a function to `name[arg,arg,arg]`, ignoring everything else. The
+/// twin of `bracketFunctions` in the generator.
+fn bracket_functions(node: &Node) -> Option<String> {
+  if node.kind != NodeKind::Function {
+    return None;
+  }
+
+  let children = node.nodes.as_deref()?;
+  let args: Vec<&str> = [0, 2, 4]
+    .iter()
+    .filter_map(|at| children.get(*at))
+    .map(|child| child.value.as_str())
+    .collect();
+
+  Some(format!("{}[{}]", node.value, args.join(",")))
+}
+
+/// Serialising with a per-node override, against the answers a real run gave.
+///
+/// Each scenario is written twice on purpose — once in the generator, once here
+/// — because an override is behaviour rather than data. What is never written
+/// twice is the answer.
+#[test]
+fn an_override_replaces_the_same_nodes() {
+  for case in OVERRIDE_CASES {
+    let mut nodes = parse(case.input);
+
+    let produced = match case.label {
+      "function-to-bracket-list" => stringify_with(&nodes, &mut bracket_functions),
+      "function-to-bracket-list-one-node" => match nodes.get(1) {
+        Some(node) => stringify_node_with(node, &mut bracket_functions),
+        None => panic!("{:?} has no second node", case.input),
+      },
+      "replace-nested-function" => stringify_with(&nodes, &mut |node: &Node| match node.kind
+        == NodeKind::Function
+        && node.value == "var"
+      {
+        true => Some(String::from("10px")),
+        false => None,
+      }),
+      "override-declines-every-node" => stringify_with(&nodes, &mut |_: &Node| None),
+      // No override at all: a node re-kinded after parsing spells out as its
+      // kind says, dropping the children and parentheses it still carries.
+      "function-retyped-as-word" => {
+        match nodes.get_mut(1) {
+          Some(node) => node.kind = NodeKind::Word,
+          None => panic!("{:?} has no second node", case.input),
+        }
+        stringify(&nodes)
+      },
+      other => panic!("no Rust side for the {other:?} scenario"),
+    };
+
+    assert_eq!(produced, case.output, "the {} scenario differs", case.label);
   }
 }

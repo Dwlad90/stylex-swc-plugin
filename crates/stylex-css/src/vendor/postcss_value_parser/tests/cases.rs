@@ -3578,6 +3578,47 @@ pub(super) const STRESS_CASES: &[StressCase] = &[
   },
 ];
 
+/// One serialisation that does not spell the tree out plainly — either
+/// because an override replaced a node, or because a node was re-kinded
+/// after parsing. Paired with the Rust that reproduces it by label.
+pub(super) struct OverrideCase {
+  /// Names the override the Rust side has to write to match.
+  pub label: &'static str,
+  /// The value parsed before the override runs.
+  pub input: &'static str,
+  /// What came out.
+  pub output: &'static str,
+}
+
+/// 5 serialisations that an override or a re-kinded node changed.
+pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
+  OverrideCase {
+    label: "function-to-bracket-list",
+    input: " rgba(12,  54, 65 ) ",
+    output: " rgba[12,54,65] ",
+  },
+  OverrideCase {
+    label: "function-to-bracket-list-one-node",
+    input: " rgba(12,  54, 65 ) ",
+    output: "rgba[12,54,65]",
+  },
+  OverrideCase {
+    label: "replace-nested-function",
+    input: "calc(1px + var(--bar))",
+    output: "calc(1px + 10px)",
+  },
+  OverrideCase {
+    label: "override-declines-every-node",
+    input: " rgba(12,  54, 65 ) ",
+    output: " rgba(12,  54, 65 ) ",
+  },
+  OverrideCase {
+    label: "function-retyped-as-word",
+    input: " rgba(12,  54, 65 ) ",
+    output: " rgba ",
+  },
+];
+
 /// 508 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.

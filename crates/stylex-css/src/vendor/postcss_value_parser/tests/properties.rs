@@ -5,7 +5,10 @@
 //! crashes the parser, that the offsets the normalizers navigate by are well
 //! formed, and that a walk visits what a caller is promised it will.
 
-use crate::vendor::postcss_value_parser::{Node, NodeKind, ValueParser, parse, stringify, unit};
+use crate::vendor::postcss_value_parser::{
+  Node, NodeKind, ValueParser, parse, stringify, stringify_node, stringify_node_with,
+  stringify_with, unit,
+};
 
 use super::dump::dump;
 
@@ -339,18 +342,58 @@ fn a_walk_that_declines_a_function_does_not_enter_it() {
 /// because the callback's answer is never consulted on that path.
 #[test]
 fn a_bubbling_walk_visits_children_first_and_ignores_the_answer() {
-  let mut parsed = ValueParser::new("calc(1px)");
+  let mut parsed = ValueParser::new("fn2( fn3())");
   let mut seen = Vec::new();
 
   parsed.walk(
     |node, _| {
-      seen.push(node.value.clone());
+      if node.kind == NodeKind::Function {
+        seen.push(node.value.clone());
+      }
       false
     },
     true,
   );
 
-  assert_eq!(seen, ["1px", "calc"]);
+  assert_eq!(seen, ["fn3", "fn2"]);
+}
+
+/// Descent is decided by the node's kind *after* the callback has run, so a
+/// callback that re-kinds a function stops the walk entering it — even though
+/// the children are still there.
+#[test]
+fn re_kinding_a_function_mid_walk_stops_the_walk_entering_it() {
+  let mut parsed = ValueParser::new("fn( ) fn2( fn3())");
+  let mut seen = Vec::new();
+
+  parsed.walk(
+    |node, _| {
+      if node.kind == NodeKind::Function && node.value == "fn2" {
+        node.kind = NodeKind::Word;
+      }
+      seen.push(format!("{}:{}", node.kind, node.value));
+      true
+    },
+    false,
+  );
+
+  // `fn3` never appears: it is still inside the node now calling itself a word.
+  assert_eq!(seen, ["function:fn", "space: ", "word:fn2"]);
+}
+
+/// A walk that does nothing leaves the value spelled exactly as it arrived.
+/// The two values are the ones the JavaScript checks this with.
+#[test]
+fn a_walk_that_does_nothing_changes_nothing() {
+  for input in [
+    " rgba( 34 , 45 , 54, .5 ) ",
+    "w1 w2 w6 \n f(4) ( ) () \t \"s't\" 'st\\\"2'",
+  ] {
+    let mut parsed = ValueParser::new(input);
+
+    assert_eq!(parsed.walk(|_, _| true, false).to_string(), input);
+    assert_eq!(parsed.walk(|_, _| true, true).to_string(), input);
+  }
 }
 
 /// A walk that edits nodes edits the tree, rather than copies of it — the
@@ -547,7 +590,8 @@ fn a_unicode_range_is_not_a_word_followed_by_a_signed_number() {
 fn a_function_with_no_child_list_serializes_as_its_name() {
   let node = Node::new(NodeKind::Function, String::from("calc"), 0, 4);
 
-  assert_eq!(stringify(&[node]), "calc");
+  assert_eq!(stringify_node(&node), "calc");
+  assert_eq!(stringify(std::slice::from_ref(&node)), "calc");
 }
 
 /// A string node with no quote character — again, only reachable by hand —
@@ -556,5 +600,65 @@ fn a_function_with_no_child_list_serializes_as_its_name() {
 fn a_string_with_no_quote_serializes_as_its_contents() {
   let node = Node::new(NodeKind::String, String::from("abc"), 0, 3);
 
-  assert_eq!(stringify(&[node]), "abc");
+  assert_eq!(stringify_node(&node), "abc");
+}
+
+/// One node and a list of exactly that node spell out the same. The two entry
+/// points are the same walk; only the argument differs.
+#[test]
+fn one_node_and_a_list_of_it_spell_out_the_same() {
+  for input in [
+    "calc(1px + 2px)",
+    "\"abc\"",
+    "/*x*/",
+    "U+26",
+    " ",
+    "1px",
+    "url(a)",
+  ] {
+    let nodes = parse(input);
+
+    let joined: String = nodes.iter().map(stringify_node).collect();
+
+    assert_eq!(
+      joined,
+      stringify(&nodes),
+      "the two spellings differ for {input:?}"
+    );
+  }
+}
+
+/// An override that declines every node leaves the serialisation untouched, and
+/// one that replaces a node replaces it wherever it sits — including inside a
+/// function it is not itself.
+#[test]
+fn an_override_reaches_nested_nodes_and_may_decline() {
+  let nodes = parse("calc(1px + var(--bar))");
+
+  assert_eq!(
+    stringify_with(&nodes, &mut |_| None),
+    "calc(1px + var(--bar))"
+  );
+  assert_eq!(
+    stringify_with(&nodes, &mut |node: &Node| match node.value == "1px" {
+      true => Some(String::from("2px")),
+      false => None,
+    }),
+    "calc(2px + var(--bar))"
+  );
+
+  let function = match nodes.first() {
+    Some(node) => node,
+    None => panic!("the value parsed to nothing"),
+  };
+  assert_eq!(
+    stringify_node_with(
+      function,
+      &mut |node: &Node| match node.kind == NodeKind::Function {
+        true => Some(node.value.clone()),
+        false => None,
+      }
+    ),
+    "calc"
+  );
 }

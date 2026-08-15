@@ -410,8 +410,6 @@ pub fn parse(input: &str) -> Vec<Node> {
         });
         parent_seen = true;
       }
-
-      name.clear();
     } else if code == CLOSE_PARENTHESES
       && let Some(mut finished) = stack.pop()
     {

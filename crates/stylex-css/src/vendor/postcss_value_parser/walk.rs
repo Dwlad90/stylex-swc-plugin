@@ -13,6 +13,13 @@ use super::{Node, NodeKind};
 /// callback's answer is ignored entirely, because the JavaScript never reads
 /// it on that path. Descent is unconditional there.
 ///
+/// That is worth stating because the JavaScript's own type declaration says the
+/// opposite: that returning `false` prevents traversal *only* when `bubble` is
+/// set. Its implementation reads the answer only when `bubble` is unset, and
+/// its own test for refusing a function runs with `bubble` unset and does
+/// refuse. The code and the test agree with each other; the prose is wrong, and
+/// this follows the code.
+///
 /// # What a callback cannot do here
 ///
 /// The JavaScript hands its callback the sibling array too, so a callback can

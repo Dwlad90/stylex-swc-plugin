@@ -127,17 +127,9 @@ describe('shapes 3 and 4 — whole rules in one literal', () => {
     expect(declarationsOf('let x = "*{--myVar:blue}";')).toEqual([['--myVar', 'blue']]);
   });
 
-  test('assigns the neutral probe property to bare helper arguments', () => {
-    expect(declarationsOf('let x = normalize_spacing("1px#000");')).toEqual([
-      ['height', '1px#000'],
-    ]);
-    expect(declarationsOf('let x = extract_css_value("50% bottom");')).toEqual([
-      ['height', '50% bottom'],
-    ]);
-  });
-
-  test('ignores an unrelated string that is not a helper argument', () => {
+  test('ignores a literal that is not a whole rule', () => {
     expect(declarationsOf('let message = "some prose";')).toEqual([]);
+    expect(declarationsOf('let x = "1px#000";')).toEqual([]);
   });
 });
 

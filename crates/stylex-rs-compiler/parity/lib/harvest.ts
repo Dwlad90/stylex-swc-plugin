@@ -18,14 +18,6 @@ import { scanRustLiterals, type RustLiteral } from './rust-literals.js';
 import { SEPARATOR } from './separator.js';
 import type { CorpusEntry } from './types.js';
 
-/**
- * Property used for declarations harvested value-first, with no property in
- * sight — the arguments to the property-agnostic whitespace helpers. It is the
- * property those tests themselves use as their neutral probe, so the choice is
- * inherited rather than invented.
- */
-const PROPERTY_AGNOSTIC_PROPERTY = 'height';
-
 /** Crates whose test sources are scanned. */
 const SCANNED_CRATES = ['stylex-css', 'stylex-transform'] as const;
 
@@ -314,13 +306,9 @@ function maskLiterals(source: string, literals: RustLiteral[]): string {
 /**
  * Shapes 3 and 4 — a whole CSS rule in one literal.
  *
- * `"* {{ transitionProperty: opacity; }}"` is what the normalizing-visitor
- * tests feed the CSS parser; `"*{color:red}"` is the minified form the
- * whitespace-repair tests operate on. Both name their property inline.
- *
- * A literal that is a bare value with no rule around it — the argument to the
- * property-agnostic whitespace helpers — is taken as a declaration on the
- * neutral probe property.
+ * `"* {{ transitionProperty: opacity; }}"` and the minified `"*{color:red}"`
+ * both name their property inline, so the rule is read straight off the
+ * literal.
  */
 function extractRuleLiterals(file: ScannedFile): CorpusEntry[] {
   const entries: CorpusEntry[] = [];
@@ -333,26 +321,9 @@ function extractRuleLiterals(file: ScannedFile): CorpusEntry[] {
       entries.push(entry(rule[1]!, rule[2]!, `${file.relativePath}:${literal.line}`));
       continue;
     }
-
-    if (!isPropertyAgnosticHelperArgument(file.source, literal)) continue;
-    if (literal.value.trim() === '') continue;
-    entries.push(
-      entry(PROPERTY_AGNOSTIC_PROPERTY, literal.value, `${file.relativePath}:${literal.line}`)
-    );
   }
 
   return entries;
-}
-
-const PROPERTY_AGNOSTIC_HELPERS = ['normalize_spacing(', 'extract_css_value('] as const;
-
-function isPropertyAgnosticHelperArgument(source: string, literal: RustLiteral): boolean {
-  const before = source.slice(Math.max(0, literal.start - 80), literal.start);
-  return PROPERTY_AGNOSTIC_HELPERS.some(helper => {
-    const at = before.lastIndexOf(helper);
-    if (at === -1) return false;
-    return before.slice(at + helper.length).trim() === '';
-  });
 }
 
 /**

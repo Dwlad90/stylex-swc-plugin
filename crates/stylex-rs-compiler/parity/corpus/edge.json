@@ -1,6 +1,6 @@
 {
   "set": "edge",
-  "description": "Hand-written edge cases: non-ASCII content, escapes, URL bodies that look like CSS syntax, comments, importance annotations, empty values, and unclosed constructs.",
+  "description": "Hand-written edge cases: non-ASCII content, escapes, URL bodies that look like CSS syntax, comments, importance annotations, empty values, and unclosed constructs. Also the values whose only harvest source was a test file deleted when the ported value pipeline replaced its predecessor: they have no source to be re-harvested from, so they are held here by hand.",
   "entries": [
     {
       "id": "edge-content-non-ascii",
@@ -400,6 +400,139 @@
       "value": "red; margin: 10px",
       "origin": "hand-written: a semicolon followed by another declaration",
       "note": "The injection shape the rule-breaking guard exists for."
+    },
+    {
+      "id": "edge-transition-property-camel-list",
+      "property": "transitionProperty",
+      "value": "opacity,margin-top",
+      "origin": "rescued from the deleted CSS-AST normalizing visitor tests"
+    },
+    {
+      "id": "edge-box-shadow-var-length",
+      "property": "boxShadow",
+      "value": "0 2px 4px var(--shadow-1)",
+      "origin": "rescued from the deleted CSS-AST normalizing visitor tests"
+    },
+    {
+      "id": "edge-box-shadow-hex-after-length",
+      "property": "boxShadow",
+      "value": "1px 1px#000",
+      "origin": "rescued from the deleted CSS-AST normalizing visitor tests"
+    },
+    {
+      "id": "edge-opacity-bare-leading-dot",
+      "property": "opacity",
+      "value": ".5",
+      "origin": "rescued from the deleted CSS-AST normalizing visitor tests"
+    },
+    {
+      "id": "edge-transition-duration-leading-dot",
+      "property": "transitionDuration",
+      "value": ".5s",
+      "origin": "rescued from the deleted CSS-AST normalizing visitor tests"
+    },
+    {
+      "id": "edge-var-then-rem",
+      "property": "width",
+      "value": "var(--x)rem",
+      "origin": "rescued from the deleted whitespace-repair tests"
+    },
+    {
+      "id": "edge-var-then-vh",
+      "property": "width",
+      "value": "var(--x)vh",
+      "origin": "rescued from the deleted whitespace-repair tests"
+    },
+    {
+      "id": "edge-var-then-turn",
+      "property": "width",
+      "value": "var(--x)turn",
+      "origin": "rescued from the deleted whitespace-repair tests"
+    },
+    {
+      "id": "edge-var-then-deg",
+      "property": "width",
+      "value": "var(--a)deg",
+      "origin": "rescued from the deleted whitespace-repair tests"
+    },
+    {
+      "id": "edge-content-single-quoted-escaped-quote",
+      "property": "content",
+      "value": "'a\\'b'",
+      "origin": "rescued from the deleted whitespace-repair tests"
+    },
+    {
+      "id": "edge-content-single-quoted-plain",
+      "property": "content",
+      "value": "'hello'",
+      "origin": "rescued from the deleted whitespace-repair tests"
+    },
+    {
+      "id": "edge-value-is-a-whole-rule",
+      "property": "height",
+      "value": "*{{{color:green}}}",
+      "origin": "rescued from the deleted whitespace-repair tests",
+      "note": "A whole rule where a value should be. The guard rejects it; the reference compiler emits the braces into the stylesheet."
+    },
+    {
+      "id": "edge-value-holds-a-colon",
+      "property": "height",
+      "value": "color:red",
+      "origin": "rescued from the deleted whitespace-repair tests"
+    },
+    {
+      "id": "edge-value-is-a-bare-word",
+      "property": "height",
+      "value": "just-text",
+      "origin": "rescued from the deleted whitespace-repair tests"
+    },
+    {
+      "id": "edge-declaration-list-in-a-color",
+      "property": "color",
+      "value": "red; margin:0",
+      "origin": "rescued from the deleted whitespace-repair tests",
+      "note": "The injection shape the rule-breaking guard exists for, as the deleted tests spelled it."
+    },
+    {
+      "id": "edge-declaration-list-two-vars",
+      "property": "color",
+      "value": "var(--a); background: var(--b)",
+      "origin": "rescued from the deleted custom-property validator tests",
+      "note": "The injection shape the rule-breaking guard exists for, carried by custom properties."
+    },
+    {
+      "id": "edge-declaration-list-var-in-fn",
+      "property": "color",
+      "value": "rgb(var(--r), 0, 0); background: var(--bg)",
+      "origin": "rescued from the deleted custom-property validator tests",
+      "note": "A custom property inside a function, then a second declaration — rejected for the `;`, not the function."
+    },
+    {
+      "id": "edge-declaration-list-three-vars",
+      "property": "color",
+      "value": "var(--xColor); background: var(--xBg); border-color: var(--xBorder)",
+      "origin": "rescued from the deleted custom-property validator tests",
+      "note": "Three declarations in one value; rejected on the first `;`."
+    },
+    {
+      "id": "edge-declaration-list-in-a-display",
+      "property": "display",
+      "value": "block; color: blue",
+      "origin": "rescued from the deleted custom-property validator tests",
+      "note": "The injection shape on a keyword property."
+    },
+    {
+      "id": "edge-declaration-list-in-a-margin",
+      "property": "margin",
+      "value": "10px; padding: 0",
+      "origin": "rescued from the deleted custom-property validator tests",
+      "note": "The injection shape on a shorthand."
+    },
+    {
+      "id": "edge-calc-with-var-operand",
+      "property": "width",
+      "value": "calc(var(--x) + 10px)",
+      "origin": "rescued from the deleted custom-property validator tests"
     }
   ]
 }

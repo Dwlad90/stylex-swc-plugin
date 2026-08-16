@@ -38,7 +38,9 @@
 //! Rejections are asserted outside the case table, because a `Case` compares a
 //! spelling and a rejection has none.
 
-use super::support::{check, default_options, rejects, same, unchanged};
+use std::panic::{AssertUnwindSafe, catch_unwind};
+
+use super::support::{check, default_options, panic_message, rejects, same, unchanged};
 use crate::css::common::normalize_css_property_value;
 
 /// The diagnostic every rejection below is asserted on.
@@ -50,14 +52,15 @@ const UNCLOSED_FUNCTION: &str = "unclosed function";
 
 // ── A unit after a function result (issue #927) ──────────────────────
 
-/// The oldest defect in this pass: a dimension whose number came from a
+/// The oldest defect in this family: a dimension whose number came from a
 /// function reads as `)` immediately followed by a unit, and inserting a space
 /// there would turn `var(--x)px` into two tokens and lose the dimension.
 ///
 /// Every unit the compiler knows is listed rather than looped, so each one
-/// carries its own harness verdict. All of them agree with the reference
-/// compiler, which is the whole point: this is the case where the repair
-/// correctly does nothing.
+/// carries its own harness verdict, and all of them agree with the reference
+/// compiler. Nothing inserts a space here now — but the unit list is still
+/// consulted, by the ported whitespace normalizer, so the table still has
+/// something to say.
 #[test]
 fn keeps_a_unit_glued_to_a_function_result() {
   check(
@@ -185,21 +188,22 @@ fn keeps_a_non_unit_word_flush_against_a_function_result() {
   );
 }
 
-/// A non-ASCII word cannot be a unit, so it is separated without consulting the
-/// unit list at all — which is also what keeps the lookahead from slicing a
-/// multi-byte character in half.
+/// A non-ASCII word cannot be a unit, so the unit list is never consulted for
+/// it — which is what used to keep the lookahead from slicing a multi-byte
+/// character in half. It stays flush like every other word.
 #[test]
-fn separates_a_non_ascii_word_from_a_function_result() {
+fn keeps_a_non_ascii_word_flush_against_a_function_result() {
   check(&[unchanged("width", "var(--x)日本語")], &default_options());
 }
 
 // ── Adjacent function calls ──────────────────────────────────────────
 
-/// Two function calls written flush against each other are two value
-/// components. The minifier drops the space between them and the repair puts it
-/// back; the reference compiler still has the author's.
+/// Two function calls written flush against each other stay flush. The minifier
+/// used to drop a space here that was never there, and the repair pass put one
+/// back; neither happens now, which is what the reference compiler has always
+/// done.
 #[test]
-fn separates_adjacent_function_calls() {
+fn keeps_adjacent_function_calls_flush() {
   check(
     &[
       unchanged("transform", "rotate(10deg)translate3d(0,0,0)"),
@@ -218,14 +222,15 @@ fn separates_adjacent_function_calls() {
 // ── What follows a closing paren ─────────────────────────────────────
 
 /// Everything a `)` can be followed by, one character class at a time. These
-/// inputs are degenerate on purpose — the pass is a string scan, and a bare `)`
-/// is how each rule was originally pinned.
+/// inputs are degenerate on purpose — each rule of the old repair pass was
+/// pinned against a bare `)`, and this is that table, re-asked of the pipeline
+/// that replaced it.
 ///
-/// The `/` pair is the one place in the module where a space is still inserted,
-/// because the ported whitespace normalizer spaces that operator. Everything
-/// else here comes back as written.
+/// The `/` pair is the only one that still moves, because the ported whitespace
+/// normalizer spaces that operator and so does the reference compiler.
+/// Everything else comes back as written.
 #[test]
-fn separates_a_closing_paren_from_what_follows() {
+fn keeps_what_follows_a_closing_paren_flush() {
   check(
     &[
       // digit
@@ -251,10 +256,9 @@ fn separates_a_closing_paren_from_what_follows() {
   );
 }
 
-/// A `)` immediately followed by `(` is two adjacent groups, and the repair
-/// separates them — but only when the value gets that far. `)(` opens a
-/// function that is never closed, and the structural guard ahead of the parser
-/// rejects it before any spacing runs.
+/// A `)` immediately followed by `(` never gets as far as any spacing rule:
+/// `)(` opens a function that is never closed, and that is what the value is
+/// rejected for.
 ///
 /// The harness verdict is `both reject`: the reference compiler refuses these
 /// too, so the rejection is parity even though the messages are not compared.
@@ -271,15 +275,11 @@ fn rejects_an_unclosed_group_after_a_closing_paren() {
   );
 }
 
-/// Balanced degenerate parens do reach the repair, and every rule fires — but
-/// the pass only ever *inserts* spaces, so a space the minifier already
-/// swallowed before a `)` stays swallowed. `) / 1) * .5` is that: the space
-/// before the second `)` is gone and no rule puts it back. The reference
-/// compiler keeps it, and adds no space of its own after it.
-///
-/// Nothing swallows it any more, so there is nothing to put back: the value
-/// below keeps the spacing the author wrote, and the only space that moves is
-/// the one the `/` operator gets.
+/// Balanced degenerate parens are normalized like anything else. A space the
+/// author did not write before a `)` does not appear, and one they did write
+/// does not vanish — the old pass could only ever *insert*, so a space the
+/// minifier had already swallowed stayed swallowed. Nothing swallows one now.
+/// The only space that moves below is the one the `/` operator gets.
 #[test]
 fn does_not_restore_a_space_swallowed_before_a_closing_paren() {
   check(
@@ -290,12 +290,11 @@ fn does_not_restore_a_space_swallowed_before_a_closing_paren() {
 
 // ── A hex colour after a value token ─────────────────────────────────
 
-/// `#` starts a hex colour, and the minifier will happily park it against
-/// whatever came before. Every token class that can precede it is covered: a
-/// dimension, a keyword, a percentage, a bare digit, a capital, and a non-ASCII
-/// word.
+/// A `#` written against the token before it stays against it. Every token
+/// class that can precede one is covered: a dimension, a keyword, a percentage,
+/// a bare digit, a capital, and a non-ASCII word.
 #[test]
-fn separates_a_hex_colour_from_the_token_before_it() {
+fn keeps_a_hex_colour_flush_against_the_token_before_it() {
   check(
     &[
       unchanged("boxShadow", "1px#000"),
@@ -316,10 +315,10 @@ fn separates_a_hex_colour_from_the_token_before_it() {
 // ── A number after a percentage ──────────────────────────────────────
 
 /// `40%.1147` is two components, not a percentage followed by a fraction of
-/// one. The repair separates a percentage from a digit or a `.` that follows
-/// it.
+/// one — and it reaches the hash spelled the way it was written, which is what
+/// makes the distinction the author's rather than the compiler's.
 #[test]
-fn separates_a_number_from_a_percentage() {
+fn keeps_a_number_flush_against_a_percentage() {
   check(
     &[
       unchanged("color", "40%.1147"),
@@ -343,10 +342,9 @@ fn leaves_a_number_after_a_percentage_alone_inside_a_colour_function() {
 
 // ── The `/` and `*` operators ────────────────────────────────────────
 
-/// `/` is both a division operator and the CSS slash separator, and the
-/// minifier removes the spaces around it in either role. The repair puts a
-/// space on both sides — and so does the reference compiler, which is why these
-/// mostly agree.
+/// `/` is both a division operator and the CSS slash separator, and the ported
+/// whitespace normalizer puts a space on both sides in either role — as does
+/// the reference compiler, which is why these agree.
 ///
 /// They part company at the start of a value: the reference compiler emits a
 /// leading space before a `/` that opens one (` / 7`), and this compiler does
@@ -383,8 +381,9 @@ fn spaces_the_multiplication_operator() {
   );
 }
 
-/// A `*` followed by an unclosed `(` never reaches the repair: the structural
-/// guard rejects the unclosed function first. Harness verdict `both reject`.
+/// A `*` followed by an unclosed `(` never reaches any spacing rule: the
+/// unclosed function is what the value is rejected for. Harness verdict
+/// `both reject`.
 #[test]
 fn rejects_an_unclosed_operand_after_a_multiplication_operator() {
   rejects(
@@ -397,11 +396,11 @@ fn rejects_an_unclosed_operand_after_a_multiplication_operator() {
 
 // ── Adjacent quoted strings ──────────────────────────────────────────
 
-/// Two strings written flush against each other are two components, and `""`
-/// must not be split into `" "` on the way — which is why an empty string, the
-/// one input where the closing quote is also the opening one, is here.
+/// Two strings written flush against each other stay flush, and `""` is not
+/// split into `" "` on the way — which is why an empty string, the one input
+/// where the closing quote is also the opening one, is here.
 #[test]
-fn separates_adjacent_quoted_strings() {
+fn keeps_adjacent_quoted_strings_flush() {
   check(
     &[
       unchanged("gridTemplateAreas", r#""content""sidebar""#),
@@ -450,8 +449,8 @@ fn keeps_the_space_around_a_separated_string() {
 
 // ── Inside a quoted string ───────────────────────────────────────────
 
-/// String contents are value data, not CSS syntax. Every character the repair
-/// reacts to outside a string is inert inside one, and both compilers agree
+/// String contents are value data, not CSS syntax. Every character that means
+/// something outside a string is inert inside one, and both compilers agree
 /// byte for byte.
 #[test]
 fn applies_no_spacing_rule_inside_a_string() {
@@ -503,10 +502,13 @@ fn keeps_an_escaped_quote_inside_a_string() {
 // ── `url()` bodies ───────────────────────────────────────────────────
 
 /// A `url()` body is not CSS-tokenized. Slashes, colons, semicolons, `#`, `*`
-/// and query strings inside one are URL characters, and the repair copies the
-/// body through byte for byte rather than spacing it as if it were a value.
-/// Every one of these agrees with the reference compiler, which is what
-/// "verbatim" has to mean.
+/// and query strings inside one are URL characters, and the body is carried
+/// through byte for byte rather than spaced as if it were a value. Every one of
+/// these agrees with the reference compiler, which is what "verbatim" has to
+/// mean.
+///
+/// Which bodies get that treatment is pinned separately, by
+/// [`steps_over_only_the_bodies_the_parser_takes_whole`].
 #[test]
 fn copies_url_bodies_verbatim() {
   check(
@@ -671,15 +673,14 @@ fn does_not_treat_a_url_suffixed_identifier_as_a_url() {
 
 // ── Comments ─────────────────────────────────────────────────────────
 
-/// The repair copies a comment through untouched — it has to, since spacing a
-/// `/*` would turn it into `/ *` and destroy the declaration — but the comment
-/// never survives that far: SWC's codegen drops it, so what the seam returns is
-/// the value with its comments already gone.
+/// A comment is carried through untouched — it has to be, since spacing a `/*`
+/// would turn it into `/ *` and destroy the declaration.
 ///
-/// That difference is the point of migrating these cases. The repair pass's own
-/// contract was "a comment is copied verbatim" while the compiler's was "a
-/// comment is dropped", and only the second was observable. The compiler now
-/// keeps the comment, which is what the reference compiler has always done —
+/// This is the case that shows why these were migrated to the public seam. The
+/// old repair pass's own contract was "a comment is copied verbatim" while the
+/// compiler's was "a comment is dropped", because the codegen in between threw
+/// it away; only the second was observable, and only the seam could see it. The
+/// comment now survives, which is what the reference compiler has always done —
 /// including for `/*/ x */`, which the old path mangled into `/**/ x * /`.
 #[test]
 fn keeps_comments_in_the_value() {
@@ -709,12 +710,11 @@ fn keeps_a_value_that_is_only_a_comment() {
   );
 }
 
-// ── Values the repair must leave alone ───────────────────────────────
+// ── Values normalization must leave alone ───────────────────────────
 
-/// The pass only ever inserts a space where one is missing. A value already
-/// spelled the way the compiler would spell it comes back byte for byte, which
-/// is what makes running it a second time a no-op — and what makes every case
-/// here agree with the reference compiler.
+/// A value already spelled the way the compiler would spell it comes back byte
+/// for byte, which is what makes running it a second time a no-op — and what
+/// makes every case here agree with the reference compiler.
 #[test]
 fn leaves_an_already_spaced_value_alone() {
   check(
@@ -924,4 +924,72 @@ fn counts_nesting_inside_a_url_body_as_the_parser_does() {
     normalize_css_property_value("backgroundImage", &value, &default_options()),
     value
   );
+}
+
+// ── The scan's `url()` rule against the parser's ─────────────────────
+
+/// The structural guard steps over a `url()` body without parsing, so its idea
+/// of what a `url()` is has to be the value parser's idea. Where the two
+/// disagree, the guard waves through a body the parser will spell straight back
+/// out — and a `}` in that body closes the rule the compiler is generating.
+///
+/// The rule is narrower than CSS: the parser compares the name literally, so
+/// `URL(` is an ordinary function to it however case-insensitive CSS itself is.
+/// This is the test that says so, and the one that fails if either side is
+/// "corrected" on its own.
+///
+/// Asserted as an invariant over the output rather than as a spelling: whatever
+/// the compiler accepts must not carry a rule terminator into the declaration.
+#[test]
+fn steps_over_only_the_bodies_the_parser_takes_whole() {
+  let options = default_options();
+
+  // Each of these puts a rule terminator inside something url-shaped. The ones
+  // the parser protects come back verbatim; the ones it does not are rejected.
+  let protected = [
+    "url(a}b)",
+    "url(a{b)",
+    "url(a;b)",
+    "url(a/*b)",
+    // Where the body ends is decided by a parity-of-backslashes rule that both
+    // scans carry: the escaped `)` does not close the body, so the `}` after it
+    // is still body text.
+    r"url(a\)}b)",
+  ];
+  let unprotected = [
+    // Not `url` to the parser, which compares the name literally.
+    "URL(a}b)",
+    "Url(a}b)",
+    // Not `url` to anyone: longer identifiers that merely end in those
+    // letters, and one where the name is escaped.
+    "blurl(a}b)",
+    "noturl(a}b)",
+    r"\url(a}b)",
+    // The same parity rule read the other way: a doubled backslash is an
+    // escaped backslash, so this `)` *does* close the body and the `}` after it
+    // is outside it.
+    r"url(a\\)}b)",
+  ];
+
+  for value in protected {
+    assert_eq!(
+      normalize_css_property_value("backgroundImage", value, &options),
+      value,
+      "expected the parser's own `url()` body to survive whole"
+    );
+  }
+
+  for value in unprotected {
+    let result = catch_unwind(AssertUnwindSafe(|| {
+      normalize_css_property_value("backgroundImage", value, &options)
+    }));
+
+    let message = panic_message(result);
+
+    assert!(
+      message.contains("outside of a string or comment"),
+      "expected `{value}` to be rejected — the parser does not take that body \
+       whole, so its `}}` would reach the declaration; got: {message}"
+    );
+  }
 }

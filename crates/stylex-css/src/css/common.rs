@@ -414,16 +414,26 @@ fn is_ident_byte(byte: u8) -> bool {
   byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_') || byte >= 0x80
 }
 
-/// Whether the `(` at `open_paren_index` opens a `url()` call.
+/// Whether the `(` at `open_paren_index` opens a `url()` call whose body the
+/// value parser will take whole.
 ///
 /// The name has to be exactly `url`: a longer identifier merely ending in those
 /// three letters is an ordinary function whose arguments are ordinary CSS.
+///
+/// **Matched case-sensitively, which is not a typo.** CSS function names are
+/// case-insensitive and every other part of this compiler treats them that way,
+/// but the value parser compares this one name literally — so to the parser,
+/// `URL(a}b)` is an ordinary function and the `}` inside it is an ordinary
+/// token that reaches the declaration intact. If this scan disagreed and
+/// stepped over that body, the guard would wave through a value that closes the
+/// rule it is generating. The scan has to answer the question the parser will
+/// actually be asked, not the question CSS would ask.
 fn is_url_call(value: &[u8], open_paren_index: usize) -> bool {
   let Some(name_start) = open_paren_index.checked_sub(3) else {
     return false;
   };
 
-  if !value[name_start..open_paren_index].eq_ignore_ascii_case(b"url") {
+  if &value[name_start..open_paren_index] != b"url" {
     return false;
   }
 

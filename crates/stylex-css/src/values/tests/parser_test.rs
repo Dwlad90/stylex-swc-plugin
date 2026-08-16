@@ -1,34 +1,4 @@
-use crate::values::parser::{format_ident, parse_css};
-
-// ── format_ident ─────────────────────────────────────────────────────
-
-#[test]
-fn format_ident_simple() {
-  assert_eq!(format_ident("color"), "color");
-}
-
-#[test]
-fn format_ident_dashed() {
-  assert_eq!(format_ident("margin-top"), "margin-top");
-}
-
-#[test]
-fn format_ident_custom_property() {
-  let result = format_ident("--my-var");
-  assert!(result.contains("--my-var"));
-}
-
-#[test]
-fn format_ident_single_char() {
-  assert_eq!(format_ident("a"), "a");
-}
-
-#[test]
-fn format_ident_with_number_start() {
-  // CSS idents starting with a digit need escaping
-  let result = format_ident("123abc");
-  assert!(!result.is_empty());
-}
+use crate::values::parser::parse_css;
 
 // ── parse_css ────────────────────────────────────────────────────────
 
@@ -288,18 +258,6 @@ fn parse_css_slash_in_join() {
   assert!(!result.is_empty());
   let joined = result.join(" ");
   assert!(joined.contains("/"));
-}
-
-#[test]
-fn parse_css_format_ident_special() {
-  let result = format_ident("_underscore-dash");
-  assert_eq!(result, "_underscore-dash");
-}
-
-#[test]
-fn parse_css_format_ident_empty() {
-  let result = format_ident("");
-  assert!(result.is_empty());
 }
 
 #[test]

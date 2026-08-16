@@ -1,0 +1,13 @@
+import _inject from "@stylexjs/stylex/lib/stylex-inject";
+var _inject2 = _inject;
+import stylex from 'stylex';
+_inject2({
+    ltr: ".xvq1qyu{left:-10000px}",
+    priority: 4000
+});
+export const styles = {
+    x: {
+        kbCHJM: "xvq1qyu",
+        $$css: true
+    }
+};

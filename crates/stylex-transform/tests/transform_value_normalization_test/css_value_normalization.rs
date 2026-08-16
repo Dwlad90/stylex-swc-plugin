@@ -435,6 +435,135 @@ stylex_test!(
   "#
 );
 
+// Issue #1256 — the six reported normalization divergences, pinned at the seam
+// the report is actually about: the class name.
+//
+// A class name is a hash of the canonical declaration text, so the text is the
+// compatibility contract with `@stylexjs/babel-plugin`. Every other test in this
+// file asserts the declaration; these assert the hash of it too, which is the
+// part a defect in hashing itself would slip past. The styles are exported so
+// the compiled object is snapshotted alongside the injected rule — the class
+// name reaches markup through that object, and the rule text through the
+// injection.
+//
+// Every expectation below is measured, not written: each test names the class
+// name and rule `@stylexjs/babel-plugin@0.19.0` produces for the same source,
+// taken from the parity harness (`pnpm run --filter=@stylexswc/rs-compiler
+// parity -- --set reported`). A snapshot that stops matching the quoted
+// measurement is a regression against upstream, not a snapshot to re-record.
+
+// Symptom 1 — whitespace between value tokens is dropped. All six reported
+// sub-inputs, ending with the gradient whose percentage colour stops fuse onto
+// their colours when the space is lost.
+//
+// Upstream: .xk82a7y{transition:opacity .2s ease-in-out}
+//           .xaewobf{background-position:50% bottom}
+//           .x27d90h{translate:-50% -120%}
+//           .xahfty1{background-position:top .75rem left .625rem}
+//           .xrllzlg{outline:transparent dotted .125rem}
+//           .x10alfcw{background-image:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,.6) 100%)}
+stylex_test!(
+  issue_1256_whitespace_between_value_tokens,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      transition: { transition: 'opacity 0.2s ease-in-out' },
+      position: { backgroundPosition: '50% bottom' },
+      translate: { translate: '-50% -120%' },
+      fourValuePosition: { backgroundPosition: 'top 0.75rem left 0.625rem' },
+      outline: { outline: 'transparent dotted 0.125rem' },
+      gradientStops: {
+        backgroundImage:
+          'linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%)',
+      },
+    });
+  "#
+);
+
+// Symptom 2 — spacing around `*` in a math function is collapsed or displaced.
+// All three reported sub-inputs. The middle one is the proof that the space
+// moved rather than vanished: it was reported as `max(4.8125rem,100vw* .12)`.
+//
+// Upstream: .xng39q6{width:calc(-1 * var(--spacing))}
+//           .x1biwbla{width:max(4.8125rem,100vw * .12)}
+//           .xupdmjz{margin:calc(var(--b) * var(--c)) 0}
+stylex_test!(
+  issue_1256_math_function_operator_spacing,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      calcVar: { width: 'calc(-1 * var(--spacing))' },
+      displacedSpace: { width: 'max(4.8125rem, 100vw * 0.12)' },
+      nestedInShorthand: { margin: 'calc(var(--b) * var(--c)) 0' },
+    });
+  "#
+);
+
+// Symptom 3 — six-digit hex colours are shortened. Both reported sub-inputs:
+// standalone, and inside a function body, which is not a separate regime.
+//
+// Upstream: .x1f7m26b{color:#ffffff}
+//           .x1bhg008{background-image:linear-gradient(#000000,#ffffff)}
+stylex_test!(
+  issue_1256_six_digit_hex_is_not_shortened,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      standalone: { color: '#ffffff' },
+      insideFunction: { backgroundImage: 'linear-gradient(#000000, #ffffff)' },
+    });
+  "#
+);
+
+// Symptom 4 — single-quoted strings are rewritten to double quotes. The quote
+// character is an input to the hash, so the author's choice has to survive.
+//
+// Upstream: .xt72jh2{grid-template-areas:'sidebar content'}
+stylex_test!(
+  issue_1256_single_quotes_are_preserved,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      x: { gridTemplateAreas: "'sidebar content'" },
+    });
+  "#
+);
+
+// Symptom 5 — transform function names are lowercased. Reported and closed
+// before this pipeline existed, by a pass that has since been deleted; pinned
+// here so that deletion cannot regress it silently.
+//
+// Upstream: .x1i3z1r0{transform:translateX(-50%) translateY(-50%)}
+stylex_test!(
+  issue_1256_transform_function_capitalization_is_preserved,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      x: { transform: 'translateX(-50%) translateY(-50%)' },
+    });
+  "#
+);
+
+// Symptom 6 — large numbers are rewritten in scientific notation. Closed the
+// same way, and pinned here for the same reason.
+//
+// Upstream: .xvq1qyu{left:-10000px}
+stylex_test!(
+  issue_1256_large_numbers_keep_their_plain_decimal_spelling,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      x: { left: '-10000px' },
+    });
+  "#
+);
+
 // `defineVars` keeps an empty token value. A custom property definition is
 // valid with an empty value, and the token is still read back through `var()`,
 // so the drop belongs to declaration emission inside `create` and stops there.

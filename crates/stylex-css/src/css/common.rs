@@ -2,7 +2,6 @@ use std::borrow::Cow;
 
 use crate::css::{
   generate_ltr::generate_ltr, generate_rtl::generate_rtl, normalize_value::normalize_value,
-  validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
 };
 use crate::utils::pseudo::{is_pseudo_class, is_pseudo_element, is_pseudo_selector};
 use stylex_constants::constants::{
@@ -632,16 +631,14 @@ fn scan_value_structure(css_property_value: &str) -> ValueStructure {
   structure
 }
 
-/// Placeholder declaration name used to parse a value independently of the
-/// grammar SWC associates with the real CSS property. Deliberately not a real
-/// property so SWC always falls back to the generic component-value grammar.
-const GENERIC_PROPERTY_NAME: &str = "stylexValue";
-
 /// Byte overhead of the `* { ` / `: ` / ` }` wrapper added by [`build_css_rule`].
 const CSS_RULE_WRAPPER_LEN: usize = 8;
 
-/// Builds the throwaway CSS rule handed to SWC's parser, and embedded verbatim
-/// in parse-error messages.
+/// Builds the rule text a diagnostic quotes back at the author.
+///
+/// Nothing parses it. It exists so a rejection names the declaration it came
+/// from rather than a bare value, which is what this compiler's messages have
+/// always carried.
 ///
 /// Pseudo-selectors (`:hover`) are already rule-shaped and are emitted as
 /// `<selector> <value>`; every other property is wrapped in a `* { … }` block.
@@ -702,30 +699,6 @@ fn css_codegen_unreachable(e: std::fmt::Error) -> ! {
   stylex_panic!("CSS codegen emit failed: {}", e)
 }
 
-/// Rejects a `var()` reference whose custom property name lacks its `--`
-/// prefix.
-///
-/// The only remaining reason this compiler parses CSS at all. The parse is
-/// advisory: a value SWC cannot make sense of yields no declaration to walk and
-/// is simply not validated, because nothing downstream reads the stylesheet any
-/// more. It is parsed under a placeholder property name so that a gap in SWC's
-/// property-specific grammar cannot hide a `var()` from the walk.
-fn validate_custom_properties(css_property: &str, css_property_value: &str) {
-  let is_pseudo = is_pseudo_selector(css_property);
-  let parse_property = if is_pseudo {
-    css_property
-  } else {
-    GENERIC_PROPERTY_NAME
-  };
-  // Not `build_reported_css_rule`: this rule is fed to a parser rather than
-  // printed, so the placeholder property is the point of it.
-  let css_rule = build_css_rule(parse_property, css_property_value, is_pseudo);
-
-  if let Ok(parsed_css_property_value) = swc_parse_css(css_rule.as_str()).0 {
-    unprefixed_custom_properties_validator(&parsed_css_property_value);
-  }
-}
-
 /// Rewrites a declaration value into the canonical text the class name is
 /// hashed from.
 ///
@@ -733,10 +706,11 @@ fn validate_custom_properties(css_property: &str, css_property_value: &str) {
 /// the only things here that are not normalization. Both reject a value that
 /// could not be spelled into the generated stylesheet whatever it normalized
 /// to: one that would terminate its own rule, and one nested deeper than the
-/// compiler's recursion budget. The unclosed function and unclosed string are
-/// *not* among them — they are the first two normalizers, and reporting them
-/// from here as well would give the same input two different diagnostics
-/// depending on which check happened to be spelled first.
+/// compiler's recursion budget. The unclosed function, the unclosed string and
+/// the unprefixed custom property are *not* among them — they are the first
+/// three passes of [`normalize_value`], and reporting them from here as well
+/// would give the same input two different diagnostics depending on which check
+/// happened to be spelled first.
 ///
 /// Everything else is [`normalize_value`], for every value, with no second
 /// path. A value using syntax the compiler has never heard of takes exactly the
@@ -775,8 +749,6 @@ pub fn normalize_css_property_value(
       build_reported_css_rule(css_property, css_property_value)
     );
   }
-
-  validate_custom_properties(css_property, css_property_value);
 
   normalize_value(css_property_value, css_property, options)
 }

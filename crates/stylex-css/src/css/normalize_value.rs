@@ -19,6 +19,11 @@
 //! [`convert_font_size_to_rem`] runs last — appended only when its option is
 //! on — so that the number it produces keeps its leading zero.
 //!
+//! [`detect_unprefixed_custom_properties`] sits third: after the detectors, so
+//! that `var(foo` is reported as the unfinished function it is rather than as a
+//! missing prefix, and before every rewrite, so that the name it reads is the
+//! name the author typed.
+//!
 //! ## What is not here
 //!
 //! No normalizer understands hex colours, letter case, quote characters or
@@ -33,21 +38,23 @@ use crate::css::normalizers::{
   convert_camel_case_values::convert_camel_cased_values, detect_unclosed_fns::detect_unclosed_fns,
   detect_unclosed_strings::detect_unclosed_strings, font_size_px_to_rem::convert_font_size_to_rem,
   leading_zero::normalize_leading_zero, quotes::normalize_quotes, timings::normalize_timings,
+  unprefixed_custom_properties::detect_unprefixed_custom_properties,
   whitespace::normalize_whitespace, zero_dimensions::normalize_zero_dimensions,
 };
 
-/// One transformation over the token list, rewriting it in place for the
-/// property its second argument names.
+/// One pass over the token list, rewriting it in place — or rejecting it — for
+/// the property its second argument names.
 ///
-/// Four of the nine read it — three to decide whether they apply at all, one
-/// to name the declaration in a rejection. It is passed to all nine anyway,
-/// which is what lets the fold below be a list rather than nine call sites.
+/// Four of the ten read it — three to decide whether they apply at all, one
+/// to name the declaration in a rejection. It is passed to all ten anyway,
+/// which is what lets the fold below be a list rather than ten call sites.
 type Normalizer = fn(&mut ValueParser, &str);
 
-/// The eight normalizers that always run, in the order they run in.
-const NORMALIZERS: [Normalizer; 8] = [
+/// The nine passes that always run, in the order they run in.
+const NORMALIZERS: [Normalizer; 9] = [
   detect_unclosed_fns,
   detect_unclosed_strings,
+  detect_unprefixed_custom_properties,
   normalize_whitespace,
   normalize_timings,
   normalize_zero_dimensions,
@@ -59,7 +66,8 @@ const NORMALIZERS: [Normalizer; 8] = [
 /// Normalizes `value`, declared for property `key`.
 ///
 /// Fails — as a panic the compiler catches and reports — on an unclosed
-/// function, an unclosed string, and on a value that scans to no tokens at all.
+/// function, an unclosed string, an unprefixed custom-property reference, and
+/// on a value that scans to no tokens at all.
 pub fn normalize_value(value: &str, key: &str, options: &StyleXStateOptions) -> String {
   let mut ast = ValueParser::new(value);
 

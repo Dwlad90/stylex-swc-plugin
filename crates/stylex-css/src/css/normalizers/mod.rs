@@ -6,6 +6,7 @@ pub mod font_size_px_to_rem;
 pub mod leading_zero;
 pub mod quotes;
 pub mod timings;
+pub mod unprefixed_custom_properties;
 pub mod whitespace;
 pub mod whitespace_normalizer;
 pub mod zero_dimensions;

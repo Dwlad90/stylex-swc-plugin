@@ -852,9 +852,14 @@ fn normalizes_rather_than_rejects_a_malformed_token_sequence() {
 // Custom property references
 // ---------------------------------------------------------------------------
 
-/// A custom property reference normalizes like any other function, including
-/// one whose name lacks the leading double hyphen — which this fold has no
-/// opinion about.
+/// A custom property reference normalizes like any other function: the fold
+/// has no opinion about its name, only about the whitespace around its
+/// arguments.
+///
+/// A name missing its leading double hyphen is rejected outright, by a local
+/// pass with no reference-compiler equivalent — asserted in
+/// `unprefixed_custom_properties_test`, not here, because a rejection has no
+/// spelling for a case table to compare.
 #[test]
 fn normalizes_a_custom_property_reference_like_any_other_function() {
   check(&[
@@ -862,7 +867,6 @@ fn normalizes_a_custom_property_reference_like_any_other_function() {
     ("var(--a, red)", "color", "var(--a,red)"),
     ("var(--a,red)", "color", "var(--a,red)"),
     ("var(--A)", "color", "var(--A)"),
-    ("var(a)", "color", "var(a)"),
     (
       "var(--a, var(--b, var(--c, red)))",
       "color",

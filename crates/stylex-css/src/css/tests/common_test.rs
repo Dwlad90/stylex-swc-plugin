@@ -111,32 +111,6 @@ mod get_number_suffix_tests {
 }
 
 #[cfg(test)]
-mod get_value_from_ident_tests {
-  use crate::css::common::get_value_from_ident;
-  use swc_core::{common::DUMMY_SP, css::ast::Ident};
-
-  #[test]
-  fn extracts_ident_value() {
-    let ident = Ident {
-      span: DUMMY_SP,
-      value: "color".into(),
-      raw: None,
-    };
-    assert_eq!(get_value_from_ident(&ident), "color");
-  }
-
-  #[test]
-  fn handles_dashed_ident() {
-    let ident = Ident {
-      span: DUMMY_SP,
-      value: "--my-var".into(),
-      raw: None,
-    };
-    assert_eq!(get_value_from_ident(&ident), "--my-var");
-  }
-}
-
-#[cfg(test)]
 mod normalize_css_property_name_tests {
   use std::borrow::Cow;
 

@@ -25,7 +25,7 @@ use stylex_utils::string::dashify;
 use swc_core::{
   common::{BytePos, input::StringInput, source_map::SmallPos},
   css::{
-    ast::{Ident, Stylesheet},
+    ast::Stylesheet,
     codegen::{
       CodeGenerator, CodegenConfig, Emit,
       writer::basic::{BasicCssWriter, BasicCssWriterConfig},
@@ -375,6 +375,12 @@ pub fn get_priority(key: &str) -> f64 {
 }
 
 /// Parses a CSS source string into an SWC `Stylesheet` AST.
+///
+/// **Nothing in the compiler calls this.** Custom-property validation was its
+/// last caller and now reads the token list instead, so the only code left
+/// reaching for it is the tests of the superseded normalizer modules. It goes
+/// when they do, and the CSS half of the SWC dependency goes with it — a build
+/// with those features switched off is the proof that no call site was missed.
 pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
   let config = ParserConfig {
     allow_wrong_line_comments: false,
@@ -763,11 +769,6 @@ pub fn get_number_suffix(key: &str) -> &'static str {
     Some(suffix) => suffix,
     None => "px",
   }
-}
-
-/// Extracts the string value from a CSS `Ident` AST node.
-pub fn get_value_from_ident(ident: &Ident) -> String {
-  ident.value.to_string()
 }
 
 /// Serializes an SWC `Stylesheet` AST back to a minified CSS string.

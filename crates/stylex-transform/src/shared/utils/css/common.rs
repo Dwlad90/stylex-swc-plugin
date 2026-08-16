@@ -7,9 +7,8 @@ use stylex_utils::{math::round_f64, number::to_js_string, string::is_blank_css_t
 // Re-export moved functions from stylex_css so existing callers keep compiling.
 #[allow(unused_imports)]
 pub(crate) use stylex_css::css::common::{
-  build_nested_css_rule, generate_css_rule, get_number_suffix, get_priority, get_value_from_ident,
-  inline_style_to_css_string, normalize_css_property_name, normalize_css_property_value, stringify,
-  swc_parse_css,
+  build_nested_css_rule, generate_css_rule, get_number_suffix, get_priority,
+  inline_style_to_css_string, normalize_css_property_name, normalize_css_property_value,
 };
 
 #[allow(unused_imports)]

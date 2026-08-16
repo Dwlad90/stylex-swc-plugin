@@ -361,12 +361,13 @@ mod normalize_css_property_value_tests {
     assert_eq!(result, "red");
   }
 
+  /// A six-digit hex colour keeps all six digits. No normalizer understands
+  /// hex, so the author's spelling reaches the hash as written.
   #[test]
   fn normalizes_hex_color() {
     let opts = default_options();
     let result = normalize_css_property_value("color", "#ff0000", &opts);
-    // SWC minifies #ff0000 to #f00
-    assert_eq!(result, "#f00");
+    assert_eq!(result, "#ff0000");
   }
 
   #[test]
@@ -509,35 +510,37 @@ mod normalize_css_property_value_tests {
     }
   }
 
-  // --- Color functions (early return path) ---
+  // --- Color functions ---
 
+  /// A colour function takes the one path every value takes. Its arguments are
+  /// normalized like any others: the leading zero goes, and the space after a
+  /// comma goes with it.
   #[test]
-  fn color_function_oklch_returns_early() {
+  fn normalizes_a_space_separated_color_function() {
     let opts = default_options();
     let result = normalize_css_property_value("color", "oklch(0.7 0.15 180)", &opts);
-    // oklch triggers early return: normalizes spaces only
-    assert_eq!(result, "oklch(0.7 0.15 180)");
+    assert_eq!(result, "oklch(.7 .15 180)");
   }
 
   #[test]
-  fn color_function_hsl_returns_early() {
+  fn normalizes_a_comma_separated_color_function() {
     let opts = default_options();
     let result = normalize_css_property_value("color", "hsl(120, 100%, 50%)", &opts);
-    assert_eq!(result, "hsl(120, 100%, 50%)");
+    assert_eq!(result, "hsl(120,100%,50%)");
   }
 
   #[test]
-  fn color_function_hsla_returns_early() {
+  fn normalizes_an_alpha_argument() {
     let opts = default_options();
     let result = normalize_css_property_value("color", "hsla(120, 100%, 50%, 0.5)", &opts);
-    assert_eq!(result, "hsla(120, 100%, 50%, 0.5)");
+    assert_eq!(result, "hsla(120,100%,50%,.5)");
   }
 
   #[test]
   fn color_function_collapses_extra_whitespace() {
     let opts = default_options();
     let result = normalize_css_property_value("color", "oklch(0.7   0.15   180)", &opts);
-    assert_eq!(result, "oklch(0.7 0.15 180)");
+    assert_eq!(result, "oklch(.7 .15 180)");
   }
 
   // --- CSS variables ---
@@ -674,23 +677,27 @@ mod normalize_css_property_value_tests {
     assert!(result.contains("0") || result.contains("rgba"));
   }
 
-  // --- Relative color syntax (spacing-only path) ---
-  // SWC's CSS parser cannot parse relative color syntax, so these values are
-  // normalized via spacing only. See issue #1041.
+  // --- Relative color syntax ---
+  // Relative color syntax used to need a route of its own, because SWC's CSS
+  // parser cannot parse it. Nothing parses CSS to normalize a value now, so
+  // `from` is an ordinary word. See issue #1041.
 
   #[test]
-  fn relative_rgb_color_returns_early() {
+  fn normalizes_a_relative_rgb_color() {
     let opts = default_options();
     let result = normalize_css_property_value("backgroundColor", "rgb(from red r g b)", &opts);
     assert_eq!(result, "rgb(from red r g b)");
   }
 
+  /// Relative colour syntax needs no route of its own: the value parser has no
+  /// opinion about which function names exist, so `from` is an ordinary word
+  /// and the alpha argument loses its leading zero like any other number.
   #[test]
-  fn relative_rgba_color_returns_early() {
+  fn normalizes_a_relative_rgba_color() {
     let opts = default_options();
     let result =
       normalize_css_property_value("backgroundColor", "rgba(from red r g b / 0.5)", &opts);
-    assert_eq!(result, "rgba(from red r g b / 0.5)");
+    assert_eq!(result, "rgba(from red r g b / .5)");
   }
 
   #[test]
@@ -708,28 +715,25 @@ mod normalize_css_property_value_tests {
   }
 
   #[test]
-  fn relative_color_function_returns_early() {
+  fn normalizes_a_relative_color_function() {
     let opts = default_options();
     let result = normalize_css_property_value("color", "color(from green srgb r g b)", &opts);
     assert_eq!(result, "color(from green srgb r g b)");
   }
 
   #[test]
-  fn relative_rgb_inside_gradient_returns_early() {
+  fn normalizes_a_relative_rgb_inside_a_gradient() {
     let opts = default_options();
     let result = normalize_css_property_value(
       "backgroundImage",
       "linear-gradient(to right, rgb(from red r g b), blue)",
       &opts,
     );
-    assert_eq!(
-      result,
-      "linear-gradient(to right, rgb(from red r g b), blue)"
-    );
+    assert_eq!(result, "linear-gradient(to right,rgb(from red r g b),blue)");
   }
 
   #[test]
-  fn relative_rgb_inside_string_does_not_trigger_spacing_only_path() {
+  fn keeps_a_relative_rgb_inside_a_string_as_string_content() {
     let opts = default_options();
     let result = normalize_css_property_value("content", r#""rgb(from   red   r g b)""#, &opts);
     assert_eq!(result, r#""rgb(from   red   r g b)""#);
@@ -768,17 +772,17 @@ mod normalize_css_property_value_tests {
     assert_eq!(result, "grid");
   }
 
-  // --- Gradient (early-return path) ---
+  // --- Gradient ---
 
   #[test]
   fn normalizes_radial_gradient() {
     let opts = default_options();
     let result =
       normalize_css_property_value("background", "radial-gradient(circle, red, blue)", &opts);
-    assert_eq!(result, "radial-gradient(circle, red, blue)");
+    assert_eq!(result, "radial-gradient(circle,red,blue)");
   }
 
-  // --- Lab/LCH functions (early-return path) ---
+  // --- Lab/LCH functions ---
 
   #[test]
   fn normalizes_lab_color() {
@@ -794,7 +798,7 @@ mod normalize_css_property_value_tests {
     assert_eq!(result, "lch(52.2% 72.2 50)");
   }
 
-  // --- HWB color (early-return path) ---
+  // --- HWB color ---
 
   #[test]
   fn normalizes_hwb_color() {
@@ -803,13 +807,13 @@ mod normalize_css_property_value_tests {
     assert_eq!(result, "hwb(194 0% 0%)");
   }
 
-  // --- Clamp function (early-return path) ---
+  // --- Clamp function ---
 
   #[test]
   fn normalizes_clamp_function() {
     let opts = default_options();
     let result = normalize_css_property_value("fontSize", "clamp(1rem, 2vw, 3rem)", &opts);
-    assert_eq!(result, "clamp(1rem, 2vw, 3rem)");
+    assert_eq!(result, "clamp(1rem,2vw,3rem)");
   }
 
   #[test]
@@ -1354,7 +1358,7 @@ mod normalize_css_variable_property_tests {
   #[test]
   fn css_variable_with_hex() {
     let r = normalize_css_property_value("--xBg", "#ff0000", &default_options());
-    assert_eq!(r, "#f00");
+    assert_eq!(r, "#ff0000");
   }
 
   #[test]
@@ -1407,7 +1411,7 @@ mod normalize_css_property_value_error_tests {
 
   #[test]
   #[should_panic(expected = "Rule contains an unclosed function")]
-  fn panics_on_unclosed_spacing_only_function() {
+  fn panics_on_unclosed_colour_function() {
     normalize_css_property_value("color", "hsl(0 0% 0%", &default_options());
   }
 
@@ -1431,6 +1435,8 @@ mod normalize_css_property_value_error_tests {
     assert_eq!(r, r#""Helvetica Neue",sans-serif"#);
   }
 
+  /// The quote character the author chose is the quote character that reaches
+  /// the hash. Nothing rewrites a single quote into a double one.
   #[test]
   fn normalizes_closed_single_quoted_string() {
     let r = normalize_css_property_value(
@@ -1438,7 +1444,7 @@ mod normalize_css_property_value_error_tests {
       "'Helvetica Neue', sans-serif",
       &default_options(),
     );
-    assert_eq!(r, r#""Helvetica Neue",sans-serif"#);
+    assert_eq!(r, "'Helvetica Neue',sans-serif");
   }
 
   #[test]
@@ -1585,13 +1591,28 @@ mod build_nested_css_rule_extended_tests {
 #[cfg(test)]
 mod colon_prefixed_property_tests {
   use crate::css::common::normalize_css_property_value;
-  use stylex_structures::stylex_state_options::StyleXStateOptions;
+  use crate::css::tests::support::{default_options, panic_message};
+  use std::panic::{AssertUnwindSafe, catch_unwind};
 
+  /// A pseudo-selector key spells its rejection as a selector wrapping the
+  /// value rather than as a declaration inside `* { ... }`, which is the only
+  /// thing the key's shape still decides.
+  ///
+  /// The value carries braces, so it is rejected whatever the key: nothing
+  /// unwraps a nested rule here, and a value reaching the stylesheet with a
+  /// brace in it would close the rule the compiler is generating.
   #[test]
-  fn normalizes_colon_prefixed_pseudo_property() {
-    let opts = StyleXStateOptions::default();
-    let result = normalize_css_property_value(":hover", "{color:red}", &opts);
-    assert!(!result.is_empty());
+  fn rejects_a_braced_value_under_a_pseudo_key() {
+    let result = catch_unwind(AssertUnwindSafe(|| {
+      normalize_css_property_value(":hover", "{color:red}", &default_options())
+    }));
+
+    let message = panic_message(result);
+
+    assert!(
+      message.contains(":hover {color:red}"),
+      "expected the rejection to quote the generated rule, got: {message}"
+    );
   }
 }
 
@@ -1635,300 +1656,5 @@ mod stringify_css_var_numeric_tests {
     // triggers the css_variable path, using "color" as the parsing property.
     let result = normalize_css_property_value("--3abc", "red", &opts);
     assert_eq!(result, "red");
-  }
-}
-
-#[cfg(test)]
-mod restore_function_names_tests {
-  use crate::css::common::restore_function_names;
-  use swc_core::atoms::Atom;
-
-  fn authored(names: &[&str]) -> Vec<Atom> {
-    names.iter().map(|name| Atom::from(*name)).collect()
-  }
-
-  #[test]
-  fn restores_every_function_not_only_the_first() {
-    assert_eq!(
-      restore_function_names(
-        "translatex(0px) translatey(0) scale(1) rotate(30deg)",
-        &authored(&["translateX", "translateY", "scale", "rotate"])
-      ),
-      "translateX(0px) translateY(0) scale(1) rotate(30deg)"
-    );
-  }
-
-  /// The authored spelling wins whatever it is — there is no canonical list, so
-  /// an author-invented name survives exactly as written.
-  #[test]
-  fn preserves_author_case_for_any_name() {
-    assert_eq!(
-      restore_function_names(
-        "aaa(1px) translatex(2px)",
-        &authored(&["AAA", "translateX"])
-      ),
-      "AAA(1px) translateX(2px)"
-    );
-    assert_eq!(
-      restore_function_names("translatex(1px)", &authored(&["TRANSLATEX"])),
-      "TRANSLATEX(1px)"
-    );
-    assert_eq!(
-      restore_function_names("lineargradient(red,blue)", &authored(&["linearGradient"])),
-      "linearGradient(red,blue)"
-    );
-  }
-
-  #[test]
-  fn restores_nested_functions_in_visit_order() {
-    assert_eq!(
-      restore_function_names("minmax(0,calc(1px + 2px))", &authored(&["MinMax", "CalC"])),
-      "MinMax(0,CalC(1px + 2px))"
-    );
-  }
-
-  /// A name the AST does not account for must not shift every later name onto
-  /// the wrong function.
-  #[test]
-  fn skips_names_absent_from_the_ast() {
-    assert_eq!(
-      restore_function_names("unknown(1) translatey(2px)", &authored(&["translateY"])),
-      "unknown(1) translateY(2px)"
-    );
-  }
-
-  #[test]
-  fn leaves_values_without_functions_alone() {
-    assert_eq!(restore_function_names("red", &authored(&[])), "red");
-    assert_eq!(
-      restore_function_names("translatey", &authored(&["translateY"])),
-      "translatey"
-    );
-  }
-
-  /// A function name inside a quoted string or a `url()` body is content, not a
-  /// function call.
-  #[test]
-  fn does_not_rewrite_inside_quoted_strings_or_urls() {
-    assert_eq!(
-      restore_function_names("\"translatey(0)\"", &authored(&["translateY"])),
-      "\"translatey(0)\""
-    );
-    assert_eq!(
-      restore_function_names("'translatey(0)' translatey(0)", &authored(&["translateY"])),
-      "'translatey(0)' translateY(0)"
-    );
-    assert_eq!(
-      restore_function_names(
-        "url(http://x/translatey(0)) translatey(0)",
-        &authored(&["translateY"])
-      ),
-      "url(http://x/translatey(0)) translateY(0)"
-    );
-    assert_eq!(
-      restore_function_names("\"a\\\"translatey(0)\"", &authored(&["translateY"])),
-      "\"a\\\"translatey(0)\""
-    );
-  }
-}
-
-#[cfg(test)]
-mod restore_js_number_spelling_tests {
-  use crate::css::common::restore_js_number_spelling;
-
-  /// SWC folds trailing zeros into an exponent when minifying; a JS number is
-  /// never spelled that way.
-  #[test]
-  fn expands_the_minified_exponent_form() {
-    assert_eq!(restore_js_number_spelling("1e3px"), "1000px");
-    assert_eq!(restore_js_number_spelling("123e3px"), "123000px");
-    assert_eq!(
-      restore_js_number_spelling("10000000000000001e5px"),
-      "1.0000000000000001e+21px"
-    );
-    assert_eq!(restore_js_number_spelling("1e22"), "1e+22");
-  }
-
-  #[test]
-  fn leaves_ordinary_numbers_alone() {
-    assert_eq!(restore_js_number_spelling("10px"), "10px");
-    assert_eq!(restore_js_number_spelling(".5"), ".5");
-    assert_eq!(restore_js_number_spelling("1.25rem"), "1.25rem");
-    assert_eq!(restore_js_number_spelling("red"), "red");
-  }
-
-  /// The zero before a decimal point is dropped, except on a negative, which
-  /// this pipeline restores on purpose.
-  #[test]
-  fn drops_only_the_positive_leading_zero() {
-    assert_eq!(restore_js_number_spelling("0.5"), ".5");
-    assert_eq!(restore_js_number_spelling("-0.24px"), "-0.24px");
-  }
-
-  /// A number never starts partway through an identifier, a hex colour or a
-  /// dashed name.
-  #[test]
-  fn does_not_split_identifiers_hex_colours_or_dashed_names() {
-    assert_eq!(
-      restore_js_number_spelling("translate3d(0,0,0)"),
-      "translate3d(0,0,0)"
-    );
-    assert_eq!(restore_js_number_spelling("#1000ff"), "#1000ff");
-    assert_eq!(restore_js_number_spelling("var(--x1000)"), "var(--x1000)");
-  }
-
-  /// A CSS identifier may hold non-ASCII characters. Guarding on the preceding
-  /// *byte* reads a UTF-8 continuation byte there and misses the identifier, so
-  /// the digits that follow get re-spelled as a number of their own.
-  #[test]
-  fn does_not_split_a_non_ascii_identifier() {
-    assert_eq!(restore_js_number_spelling("名前007"), "名前007");
-    assert_eq!(restore_js_number_spelling("ü007"), "ü007");
-    assert_eq!(restore_js_number_spelling("var(--é1e3)"), "var(--é1e3)");
-    // The guard must not swallow a number that legitimately follows one.
-    assert_eq!(restore_js_number_spelling("名前 1e3"), "名前 1000");
-  }
-
-  /// The `e` of a unit belongs to the unit, not to an exponent.
-  #[test]
-  fn does_not_read_a_unit_as_an_exponent() {
-    assert_eq!(restore_js_number_spelling("1em"), "1em");
-    assert_eq!(restore_js_number_spelling("2ex"), "2ex");
-  }
-
-  #[test]
-  fn leaves_strings_and_urls_untouched() {
-    assert_eq!(restore_js_number_spelling("\"1e3\""), "\"1e3\"");
-    assert_eq!(
-      restore_js_number_spelling("url(http://x/1e3) 1e3px"),
-      "url(http://x/1e3) 1000px"
-    );
-  }
-
-  /// Multi-byte characters must survive the scan intact.
-  #[test]
-  fn preserves_non_ascii_content() {
-    assert_eq!(restore_js_number_spelling("\"•\""), "\"•\"");
-    assert_eq!(
-      restore_js_number_spelling("\"日本\" 1e3px"),
-      "\"日本\" 1000px"
-    );
-  }
-}
-
-#[cfg(test)]
-mod number_and_function_scanner_edge_cases {
-  use crate::css::common::{restore_function_names, restore_js_number_spelling};
-  use swc_core::atoms::Atom;
-
-  /// An escaped quote does not end the string, so its contents stay content.
-  #[test]
-  fn keeps_scanning_past_an_escaped_quote() {
-    assert_eq!(
-      restore_js_number_spelling("\"a\\\"1e3\" 1e3px"),
-      "\"a\\\"1e3\" 1000px"
-    );
-    assert_eq!(
-      restore_function_names(
-        "\"a\\\"translatey(0)\" translatey(0)",
-        &[Atom::from("translateY")]
-      ),
-      "\"a\\\"translatey(0)\" translateY(0)"
-    );
-  }
-
-  /// A `url()` body is not CSS-tokenized: nested parens and quotes inside it
-  /// are ordinary characters, and it ends only at its own closing paren.
-  #[test]
-  fn treats_a_url_body_as_opaque() {
-    assert_eq!(
-      restore_js_number_spelling("url(a(1e3)b) 1e3px"),
-      "url(a(1e3)b) 1000px"
-    );
-    assert_eq!(
-      restore_js_number_spelling("url(\"x)1e3\") 1e3px"),
-      "url(\"x)1e3\") 1000px"
-    );
-    assert_eq!(
-      restore_function_names(
-        "url(a(translatey(0))) translatey(0)",
-        &[Atom::from("translateY")]
-      ),
-      "url(a(translatey(0))) translateY(0)"
-    );
-    assert_eq!(
-      restore_function_names(
-        "url('x)translatey(0)') translatey(0)",
-        &[Atom::from("translateY")]
-      ),
-      "url('x)translatey(0)') translateY(0)"
-    );
-  }
-
-  /// Only a real `url` call is opaque — an identifier merely ending in `url`
-  /// is an ordinary function.
-  #[test]
-  fn does_not_treat_an_identifier_ending_in_url_as_a_url() {
-    assert_eq!(restore_js_number_spelling("blurl(1e3)"), "blurl(1000)");
-    assert_eq!(
-      restore_js_number_spelling("--my-url(1e3)"),
-      "--my-url(1000)"
-    );
-    assert_eq!(
-      restore_js_number_spelling("URL(1e3) 1e3px"),
-      "URL(1e3) 1000px"
-    );
-  }
-
-  /// A signed exponent is part of the number.
-  #[test]
-  fn reads_a_signed_exponent() {
-    assert_eq!(restore_js_number_spelling("1e+3px"), "1000px");
-    assert_eq!(restore_js_number_spelling("1e-3px"), ".001px");
-    assert_eq!(restore_js_number_spelling("+5px"), "5px");
-  }
-
-  /// A lone separator is not a number.
-  #[test]
-  fn does_not_read_a_bare_separator_as_a_number() {
-    assert_eq!(restore_js_number_spelling("."), ".");
-    assert_eq!(restore_js_number_spelling("a . b"), "a . b");
-    assert_eq!(restore_js_number_spelling("-"), "-");
-    assert_eq!(restore_js_number_spelling("1 / 2"), "1 / 2");
-  }
-
-  #[test]
-  fn accepts_a_trailing_decimal_point() {
-    assert_eq!(restore_js_number_spelling("5.px"), "5px");
-  }
-}
-
-#[cfg(test)]
-mod is_url_function_tests {
-  use crate::css::common::is_url_function;
-
-  #[test]
-  fn recognises_a_url_call() {
-    assert!(is_url_function("url(", 3));
-    assert!(is_url_function("URL(", 3));
-    assert!(is_url_function("a url(", 5));
-  }
-
-  /// The name must be exactly `url`: a longer identifier that merely ends in
-  /// those three letters is an ordinary function.
-  #[test]
-  fn rejects_an_identifier_merely_ending_in_url() {
-    assert!(!is_url_function("blurl(", 5));
-    assert!(!is_url_function("9url(", 4));
-    assert!(!is_url_function("--my-url(", 8));
-    assert!(!is_url_function("_url(", 4));
-    assert!(!is_url_function("\\url(", 4));
-  }
-
-  #[test]
-  fn rejects_anything_that_is_not_url() {
-    assert!(!is_url_function("rgb(", 3));
-    assert!(!is_url_function("(", 0));
-    assert!(!is_url_function("rl(", 2));
   }
 }

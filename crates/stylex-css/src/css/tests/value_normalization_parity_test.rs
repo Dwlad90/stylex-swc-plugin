@@ -1,20 +1,12 @@
-//! Value-normalization coverage asserted at the public entry point, together
-//! with the verdict `@stylexjs/babel-plugin` returns for each case.
+//! Value-normalization coverage asserted at the public entry point.
 //!
-//! Every expectation here is what this compiler produces **today**, so the
-//! suite is green before the normalization pipeline is replaced and stays a net
-//! under that change. Alongside each one sits a
-//! [`Reference`](super::support::Reference) verdict taken from the parity
-//! harness in `crates/stylex-rs-compiler/parity` — never from judgement —
-//! recording whether the reference compiler agrees. A case marked
-//! [`Reference::Diverges`](super::support::Reference::Diverges) is scheduled to
-//! change; a case marked [`Reference::Same`](super::support::Reference::Same)
-//! must survive untouched.
-//!
-//! Regenerate the verdicts with the two runs below — the second is what the
-//! cases under [`rem_enabled_options`](super::support::rem_enabled_options)
-//! come from, since the harness defaults the font-size option off and a default
-//! run cannot verdict them at all:
+//! Every expectation here is a spelling the parity harness in
+//! `crates/stylex-rs-compiler/parity` confirms `@stylexjs/babel-plugin`
+//! produces — never judgement. Regenerate with the two runs below; the second
+//! is what the cases under
+//! [`rem_enabled_options`](super::support::rem_enabled_options) come from,
+//! since the harness defaults the font-size option off and a default run cannot
+//! verdict them at all:
 //!
 //! ```sh
 //! pnpm run --filter=@stylexswc/rs-compiler build
@@ -23,20 +15,18 @@
 //!   --json parity/results/font-size-px-to-rem.json
 //! ```
 //!
-//! The `Case`/`Reference` machinery and the shared `check` runner live in
-//! `support`, alongside the same pieces used by `spacing_repair_parity_test`.
+//! The `Case` machinery and the shared `check` runner live in `support`,
+//! alongside the same pieces used by `spacing_repair_parity_test`.
 //!
 //! Read `entries[].babel.declarations` for the reference spelling and
 //! `entries[].rust.declarations` for this compiler's. Overlap with the older
 //! `normalize_css_property_value_tests` module in `common_test.rs` is
-//! deliberate: those assertions predate the harness and carry no verdict, so
-//! they cannot say which of them a pipeline change is allowed to move.
+//! deliberate: those assertions predate the harness, so they say what this
+//! compiler does without saying whether anything else agrees.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use super::support::{
-  check, default_options, diverges, panic_message, rem_enabled_options, same, unchanged,
-};
+use super::support::{check, default_options, panic_message, rem_enabled_options, same, unchanged};
 use crate::css::common::{MAX_VALUE_NESTING_DEPTH, normalize_css_property_value};
 
 // ── Timings ──────────────────────────────────────────────────────────
@@ -112,17 +102,13 @@ fn leaves_zeros_inside_functions_alone() {
   );
 }
 
-/// The one zero-angle case the reference compiler and this compiler disagree
-/// on: upstream rewrites the unit inside the function, this compiler does not.
+/// A zero angle inside a function does get its unit rewritten. The window the
+/// zero-dimension normalizer opens for function arguments is what decides this,
+/// and it is the reference compiler's window, quirks included.
 #[test]
-fn diverges_on_a_zero_angle_inside_a_transform_function() {
+fn rewrites_a_zero_angle_inside_a_transform_function() {
   check(
-    &[diverges(
-      "transform",
-      "rotate(0rad)",
-      "rotate(0rad)",
-      "rotate(0deg)",
-    )],
+    &[same("transform", "rotate(0rad)", "rotate(0deg)")],
     &default_options(),
   );
 }
@@ -158,15 +144,15 @@ fn strips_the_leading_zero_from_a_decimal() {
 
 // ── Quotes ───────────────────────────────────────────────────────────
 
-/// Single quotes are rewritten to double quotes; already-double-quoted values
-/// pass through. The rewrite is the divergence — upstream keeps the author's
-/// quote character.
+/// The quote character the author chose is the quote character that reaches the
+/// hash. No normalizer understands quote characters, so none of them can swap
+/// one for the other.
 #[test]
-fn rewrites_single_quotes_to_double_quotes() {
+fn keeps_the_authored_quote_character() {
   check(
     &[
-      diverges("quotes", r#"'""'"#, r#""""#, r#"'""'"#),
-      diverges("quotes", r#"'"123"'"#, r#""123""#, r#"'"123"'"#),
+      unchanged("quotes", r#"'""'"#),
+      unchanged("quotes", r#"'"123"'"#),
       unchanged("quotes", r#""""#),
       unchanged("quotes", r#""123""#),
     ],
@@ -174,22 +160,13 @@ fn rewrites_single_quotes_to_double_quotes() {
   );
 }
 
+/// The same holds where a value is *made* of quoted strings.
 #[test]
-fn rewrites_quotes_in_grid_template_areas() {
+fn keeps_the_authored_quote_character_in_grid_template_areas() {
   check(
     &[
-      diverges(
-        "gridTemplateAreas",
-        r#"'"content"'"#,
-        r#""content""#,
-        r#"'"content"'"#,
-      ),
-      diverges(
-        "gridTemplateAreas",
-        r#"'"content" "sidebar"'"#,
-        r#""content" "sidebar""#,
-        r#"'"content" "sidebar"'"#,
-      ),
+      unchanged("gridTemplateAreas", r#"'"content"'"#),
+      unchanged("gridTemplateAreas", r#"'"content" "sidebar"'"#),
       unchanged("gridTemplateAreas", r#""content""#),
       unchanged("gridTemplateAreas", r#""content" "sidebar""#),
     ],
@@ -252,56 +229,47 @@ fn normalizes_adjacent_custom_property_references() {
   );
 }
 
-/// Separating references that the author wrote flush against each other is a
-/// divergence: upstream leaves the value exactly as written.
+/// References the author wrote flush against each other stay flush. Nothing
+/// inserts a separator that the author did not write.
 #[test]
-fn diverges_on_inserting_spaces_between_flush_references() {
+fn keeps_flush_references_flush() {
   check(
-    &[diverges(
-      "color",
-      "var(--a)var(--b)var(--c)",
-      "var(--a) var(--b) var(--c)",
-      "var(--a)var(--b)var(--c)",
-    )],
+    &[unchanged("color", "var(--a)var(--b)var(--c)")],
     &default_options(),
   );
 }
 
 // ── Colour and math functions ────────────────────────────────────────
 
-/// Values routed around the CSS parser by the colour-function allowlist keep
-/// their leading zeros where upstream strips them.
+/// A colour function takes the same path every other value takes, so its
+/// arguments lose their leading zeros like any other number. There is no
+/// list of function names anywhere that routes them around anything.
 #[test]
-fn diverges_on_leading_zeros_inside_colour_functions() {
+fn strips_leading_zeros_inside_colour_functions() {
   check(
     &[
-      diverges(
+      same(
         "color",
-        "oklch(from var(--xs74gcj) l c h / 0.5)",
         "oklch(from var(--xs74gcj) l c h / 0.5)",
         "oklch(from var(--xs74gcj) l c h / .5)",
       ),
-      diverges(
+      same(
         "color",
-        "oklab(40.101% 0.1147 0.0453)",
         "oklab(40.101% 0.1147 0.0453)",
         "oklab(40.101% .1147 .0453)",
       ),
-      diverges(
+      same(
         "color",
-        "oklab(from #0000FF calc(l + 0.1) a b / calc(alpha * 0.9))",
         "oklab(from #0000FF calc(l + 0.1) a b / calc(alpha * 0.9))",
         "oklab(from #0000FF calc(l + .1) a b / calc(alpha * .9))",
       ),
-      diverges(
+      same(
         "color",
-        "oklab(from hsl(180 100% 50%) calc(l - 0.1) a b)",
         "oklab(from hsl(180 100% 50%) calc(l - 0.1) a b)",
         "oklab(from hsl(180 100% 50%) calc(l - .1) a b)",
       ),
-      diverges(
+      same(
         "color",
-        "oklab(from green l a b / 0.5)",
         "oklab(from green l a b / 0.5)",
         "oklab(from green l a b / .5)",
       ),
@@ -310,27 +278,25 @@ fn diverges_on_leading_zeros_inside_colour_functions() {
   );
 }
 
-/// The same allowlist leaves the spaces after commas that upstream removes.
+/// The same goes for spacing: a space after a comma is removed inside a colour
+/// or math function exactly as it is anywhere else.
 #[test]
-fn diverges_on_spacing_inside_allowlisted_functions() {
+fn removes_spacing_after_commas_inside_functions() {
   check(
     &[
-      diverges(
+      same(
         "color",
         "clamp(200px,  40%,     400px)",
-        "clamp(200px, 40%, 400px)",
         "clamp(200px,40%,400px)",
       ),
-      diverges(
+      same(
         "color",
         "clamp(min(10vw,      20rem),     300px,     max(90vw,     55rem))",
-        "clamp(min(10vw, 20rem), 300px, max(90vw, 55rem))",
         "clamp(min(10vw,20rem),300px,max(90vw,55rem))",
       ),
-      diverges(
+      same(
         "color",
         "clamp(0, (var(--l-threshold, 0.623)   /  l - 1)   *    infinity,    1)",
-        "clamp(0, (var(--l-threshold, 0.623) / l - 1) * infinity, 1)",
         "clamp(0,(var(--l-threshold,.623) / l - 1) * infinity,1)",
       ),
     ],
@@ -338,9 +304,10 @@ fn diverges_on_spacing_inside_allowlisted_functions() {
   );
 }
 
-/// An already-tight allowlisted value is left alone by both compilers.
+/// A value already spelled the way the normalizers would spell it is left
+/// alone, which is what makes a second pass over it a no-op.
 #[test]
-fn keeps_an_already_tight_allowlisted_value() {
+fn keeps_an_already_tight_function_value() {
   check(
     &[unchanged(
       "color",
@@ -377,14 +344,12 @@ fn converts_nothing_else_when_font_size_conversion_is_enabled() {
   );
 }
 
-/// A converted value below one rem loses its leading zero here and keeps it
-/// upstream, so the option's own output diverges.
+/// A converted value below one rem keeps its leading zero: the conversion runs
+/// last, after the leading-zero normalizer has already had its turn, so the
+/// number it produces is never revisited.
 #[test]
-fn diverges_on_a_sub_rem_font_size_conversion() {
-  check(
-    &[diverges("fontSize", "8px", ".5rem", "0.5rem")],
-    &rem_enabled_options(),
-  );
+fn keeps_the_leading_zero_on_a_sub_rem_font_size() {
+  check(&[same("fontSize", "8px", "0.5rem")], &rem_enabled_options());
 }
 
 #[test]
@@ -409,15 +374,14 @@ fn carries_vendor_prefixes_through_unchanged() {
   );
 }
 
-/// Hex shortening applies inside a vendor-prefixed function too, and upstream
-/// does not shorten at all.
+/// A hex colour inside a vendor-prefixed function keeps all six digits and its
+/// letter case, like any other hex colour.
 #[test]
-fn diverges_on_hex_shortening_inside_a_vendor_prefixed_function() {
+fn keeps_a_hex_colour_inside_a_vendor_prefixed_function() {
   check(
-    &[diverges(
+    &[same(
       "backgroundImage",
       "-webkit-linear-gradient(top, #FFFFFF, #000000)",
-      "-webkit-linear-gradient(top,#FFF,#000)",
       "-webkit-linear-gradient(top,#FFFFFF,#000000)",
     )],
     &default_options(),
@@ -439,23 +403,21 @@ fn preserves_an_escape_outside_a_string() {
   );
 }
 
-/// Inside a string, this compiler resolves an escape to the character it names
-/// while upstream keeps the author's spelling. Different bytes reach the hash,
-/// so the class name differs too.
+/// An escape inside a string keeps the author's spelling rather than being
+/// resolved to the character it names. It used to be resolved, which put
+/// different bytes into the hash than the reference compiler used.
 #[test]
-fn diverges_on_resolving_escapes_inside_a_string() {
+fn keeps_an_escape_inside_a_string_unresolved() {
   check(
     &[
-      diverges(
+      same(
         "fontFamily",
         r#""\2014 A", sans-serif"#,
-        "\"—A\",sans-serif",
         r#""\2014 A",sans-serif"#,
       ),
-      diverges(
+      same(
         "fontFamily",
         r#""\1F600", sans-serif"#,
-        "\"😀\",sans-serif",
         r#""\1F600",sans-serif"#,
       ),
     ],
@@ -500,6 +462,52 @@ fn passes_inert_unparsable_values_through() {
   );
 }
 
+/// A semicolon at the end of a value opens nothing, so it survives into the
+/// declaration exactly as written — however many of them there are, and
+/// whatever whitespace trails them. The reference compiler emits the same
+/// bytes, so the harness verdict for all three is `identical`.
+///
+/// Stray trailing semicolons are common in hand-written style objects — the
+/// project's own large fixture carries more than twenty — and none of them can
+/// splice a second declaration into the stylesheet.
+#[test]
+fn keeps_a_trailing_semicolon() {
+  check(
+    &[
+      unchanged("backgroundColor", "var(--web-wash);"),
+      same("color", "red ; ", "red ;"),
+      unchanged("color", "red;;"),
+    ],
+    &default_options(),
+  );
+}
+
+/// A semicolon with a declaration behind it is the shape the guard exists for:
+/// emitted verbatim, `color: 'red; margin: 10px'` would close its own
+/// declaration and add one the author never asked this rule for.
+///
+/// The harness verdict is `acceptance divergent` — the reference compiler emits
+/// both declarations. Before the pipeline swap this compiler emitted only the
+/// first and dropped the rest with no diagnostic, which is the behaviour this
+/// replaces.
+#[test]
+fn rejects_a_semicolon_that_starts_a_second_declaration() {
+  let options = default_options();
+
+  for value in ["red; margin: 10px", "red;background:blue", "red; /* x */"] {
+    let result = catch_unwind(AssertUnwindSafe(|| {
+      normalize_css_property_value("color", value, &options)
+    }));
+
+    let message = panic_message(result);
+
+    assert!(
+      message.contains("outside of a string or comment"),
+      "expected `color: {value}` to be rejected, got: {message}"
+    );
+  }
+}
+
 /// An opening brace could open a block inside the generated stylesheet, so it
 /// is rejected here. The harness verdict is `acceptance divergent`: the
 /// reference compiler emits `color:red {`. This is a local guard rather than a
@@ -517,7 +525,7 @@ fn rejects_a_value_carrying_an_opening_brace() {
   let message = panic_message(result);
 
   assert!(
-    message.contains("* { stylexValue: red { }"),
+    message.contains("* { color: red { }"),
     "expected the rejection to quote the generated rule, got: {message}"
   );
 }

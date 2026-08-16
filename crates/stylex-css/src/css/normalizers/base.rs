@@ -1,3 +1,14 @@
+//! The normalizing visitor the compiler used before value normalization moved
+//! onto the ported value parser. Nothing outside this module's own tests calls
+//! into it any more.
+//!
+//! Kept compiling for one more step on purpose, as is
+//! [`super::whitespace_normalizer`]: the coverage migrated to the public
+//! normalization entry point gets to prove itself against the new pipeline
+//! before its predecessor is removed, so the fallback is still there at the
+//! moment it might be wanted.
+#![allow(dead_code)]
+
 use swc_core::{
   common::DUMMY_SP,
   css::{

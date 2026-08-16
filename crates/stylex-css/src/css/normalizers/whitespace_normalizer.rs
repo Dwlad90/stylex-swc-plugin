@@ -1,3 +1,13 @@
+//! The whitespace repair pass the compiler used before value normalization
+//! moved onto the ported value parser. It existed to put back the spaces a
+//! minifying serializer had removed; nothing serializes a value that way any
+//! more, so nothing outside this module's own tests calls into it.
+//!
+//! Kept compiling for one more step on purpose, for the same reason as
+//! [`super::base`]: the coverage migrated to the public normalization entry
+//! point gets to prove itself against the new pipeline before its predecessor
+//! is removed.
+
 /// Returns true if `s` is a CSS dimension unit (e.g. `px`, `em`, `rem`).
 /// Used to avoid inserting a space between `)` and a unit — e.g.
 /// `var(--x)px` must stay as-is (fix for #927).

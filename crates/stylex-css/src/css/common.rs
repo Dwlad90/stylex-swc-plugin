@@ -1,23 +1,14 @@
 use std::borrow::Cow;
 
 use crate::css::{
-  generate_ltr::generate_ltr,
-  generate_rtl::generate_rtl,
-  normalizers::{
-    base::{base_normalizer, restore_negative_leading_zero},
-    extract_css_value, normalize_spacing,
-  },
+  generate_ltr::generate_ltr, generate_rtl::generate_rtl, normalize_value::normalize_value,
   validators::unprefixed_custom_properties::unprefixed_custom_properties_validator,
 };
 use crate::utils::pseudo::{is_pseudo_class, is_pseudo_element, is_pseudo_selector};
 use stylex_constants::constants::{
-  common::{COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES, COLOR_RELATIVE_VALUE_FUNCTIONS},
   long_hand_logical::LONG_HAND_LOGICAL,
   long_hand_physical::LONG_HAND_PHYSICAL,
-  messages::{
-    LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_UNCLOSED_FUNCTION, LINT_UNCLOSED_STRING,
-    LINT_VALUE_NESTED_TOO_DEEPLY,
-  },
+  messages::{LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_VALUE_NESTED_TOO_DEEPLY},
   number_properties::NUMBER_PROPERTY_SUFFIXIES,
   priorities::{AT_RULE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY},
   shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
@@ -31,18 +22,16 @@ use stylex_regex::regex::{
 };
 use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
 use stylex_types::structures::injectable_style::InjectableStyle;
-use stylex_utils::{number::to_js_string, string::dashify};
+use stylex_utils::string::dashify;
 use swc_core::{
-  atoms::Atom,
   common::{BytePos, input::StringInput, source_map::SmallPos},
   css::{
-    ast::{Function, FunctionName, Ident, Stylesheet},
+    ast::{Ident, Stylesheet},
     codegen::{
       CodeGenerator, CodegenConfig, Emit,
       writer::basic::{BasicCssWriter, BasicCssWriterConfig},
     },
     parser::{error::Error, parse_string_input, parser::ParserConfig},
-    visit::{Visit, VisitWith},
   },
 };
 
@@ -405,191 +394,6 @@ pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
   (parse_string_input(input, None, config, &mut errors), errors)
 }
 
-/// A byte that may appear in a CSS identifier (used to ensure a matched
-/// function name is not a suffix of a longer identifier).
-fn is_ident_byte(byte: u8) -> bool {
-  byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_'
-}
-
-fn contains_css_function_call(value: &str, function_name: &str) -> bool {
-  find_css_function_call(value, function_name, |_, _| true)
-}
-
-fn find_css_function_call(
-  value: &str,
-  function_name: &str,
-  mut matches_after_open_paren: impl FnMut(&[u8], usize) -> bool,
-) -> bool {
-  let value_bytes = value.as_bytes();
-  let function_bytes = function_name.as_bytes();
-
-  if function_bytes.is_empty() || value_bytes.len() <= function_bytes.len() {
-    return false;
-  }
-
-  let mut quote: Option<u8> = None;
-  let mut is_comment = false;
-  let mut index = 0;
-
-  while index < value_bytes.len() {
-    let byte = value_bytes[index];
-
-    if quote.is_none() {
-      if is_comment {
-        if byte == b'*' && value_bytes.get(index + 1) == Some(&b'/') {
-          is_comment = false;
-          index += 2;
-          continue;
-        }
-
-        index += 1;
-        continue;
-      }
-
-      if byte == b'/' && value_bytes.get(index + 1) == Some(&b'*') {
-        is_comment = true;
-        index += 2;
-        continue;
-      }
-    }
-
-    match quote {
-      Some(current_quote) if byte == current_quote && !is_escaped(value_bytes, index) => {
-        quote = None;
-      },
-      Some(_) => {},
-      None if (byte == b'\'' || byte == b'"') && !is_escaped(value_bytes, index) => {
-        quote = Some(byte);
-      },
-      None
-        if index + function_bytes.len() < value_bytes.len()
-          && value_bytes[index..index + function_bytes.len()]
-            .eq_ignore_ascii_case(function_bytes)
-          && value_bytes[index + function_bytes.len()] == b'('
-          && (index == 0 || !is_ident_byte(value_bytes[index - 1]))
-          && matches_after_open_paren(value_bytes, index + function_bytes.len() + 1) =>
-      {
-        return true;
-      },
-      _ => {},
-    }
-
-    index += 1;
-  }
-
-  false
-}
-
-/// Detects CSS relative color syntax, e.g. `rgb(from red r g b)`.
-///
-/// A relative color function is any color function (see
-/// `COLOR_RELATIVE_VALUE_FUNCTIONS`) whose first argument is the `from`
-/// keyword. SWC's CSS parser cannot parse this form, so such values are
-/// normalized via spacing only instead of being parsed and re-serialized.
-fn contains_relative_color_function(value: &str) -> bool {
-  COLOR_RELATIVE_VALUE_FUNCTIONS
-    .iter()
-    .any(|name| has_relative_color_call(value, name))
-}
-
-/// Returns `true` if `value` contains `function_name` immediately followed by
-/// `(` and, after any whitespace, the `from` keyword (the relative color
-/// marker).
-fn has_relative_color_call(value: &str, function_name: &str) -> bool {
-  const FROM: &[u8] = b"from";
-
-  find_css_function_call(value, function_name, |value_bytes, mut cursor| {
-    // Skip whitespace after `(`, then look for the `from` keyword followed by a
-    // whitespace boundary.
-    while cursor < value_bytes.len() && value_bytes[cursor].is_ascii_whitespace() {
-      cursor += 1;
-    }
-
-    cursor + FROM.len() < value_bytes.len()
-      && value_bytes[cursor..cursor + FROM.len()].eq_ignore_ascii_case(FROM)
-      && value_bytes[cursor + FROM.len()].is_ascii_whitespace()
-  })
-}
-
-fn normalize_spacing_only_value(value: &str, normalize_commas: bool) -> String {
-  let mut normalized = String::with_capacity(value.len());
-  let mut previous_char: Option<char> = None;
-  let mut quote: Option<char> = None;
-  let mut escaped = false;
-  let mut is_comment = false;
-  let mut chars = value.chars().peekable();
-
-  while let Some(ch) = chars.next() {
-    if is_comment {
-      normalized.push(ch);
-
-      if ch == '*' && chars.peek() == Some(&'/') {
-        normalized.push('/');
-        chars.next();
-        previous_char = Some('/');
-        is_comment = false;
-      } else {
-        previous_char = Some(ch);
-      }
-
-      continue;
-    }
-
-    if let Some(current_quote) = quote {
-      normalized.push(ch);
-
-      if escaped {
-        escaped = false;
-      } else if ch == '\\' {
-        escaped = true;
-      } else if ch == current_quote {
-        quote = None;
-      }
-
-      previous_char = Some(ch);
-      continue;
-    }
-
-    if ch == '/' && chars.peek() == Some(&'*') {
-      normalized.push('/');
-      normalized.push('*');
-      chars.next();
-      previous_char = Some('*');
-      is_comment = true;
-      continue;
-    }
-
-    if ch == '\'' || ch == '"' {
-      normalized.push(ch);
-      previous_char = Some(ch);
-      quote = Some(ch);
-      continue;
-    }
-
-    if ch.is_whitespace() {
-      while chars.next_if(|next| next.is_whitespace()).is_some() {}
-
-      match (previous_char, chars.peek()) {
-        // Leading and trailing whitespace, and whitespace hugging a paren. A
-        // stray leading/trailing space would change the hash the class name is
-        // derived from, so it must not survive here.
-        (None, _) | (_, None) | (Some('('), _) | (_, Some(')')) => continue,
-        (Some(','), _) | (_, Some(',')) if normalize_commas => continue,
-        _ => {},
-      }
-
-      normalized.push(' ');
-      previous_char = Some(' ');
-      continue;
-    }
-
-    normalized.push(ch);
-    previous_char = Some(ch);
-  }
-
-  normalized
-}
-
 fn is_escaped(value: &[u8], index: usize) -> bool {
   let mut backslash_count = 0;
   let mut cursor = index;
@@ -602,39 +406,114 @@ fn is_escaped(value: &[u8], index: usize) -> bool {
   backslash_count % 2 == 1
 }
 
+/// A byte that may appear in a CSS identifier.
+///
+/// Every byte of a multi-byte character counts, since an identifier may contain
+/// any non-ASCII character and this scan never splits one.
+fn is_ident_byte(byte: u8) -> bool {
+  byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_') || byte >= 0x80
+}
+
+/// Whether the `(` at `open_paren_index` opens a `url()` call.
+///
+/// The name has to be exactly `url`: a longer identifier merely ending in those
+/// three letters is an ordinary function whose arguments are ordinary CSS.
+fn is_url_call(value: &[u8], open_paren_index: usize) -> bool {
+  let Some(name_start) = open_paren_index.checked_sub(3) else {
+    return false;
+  };
+
+  if !value[name_start..open_paren_index].eq_ignore_ascii_case(b"url") {
+    return false;
+  }
+
+  match name_start.checked_sub(1) {
+    None => true,
+    Some(preceding) => !is_ident_byte(value[preceding]) && value[preceding] != b'\\',
+  }
+}
+
+/// Where [`scan_value_structure`] resumes after the unquoted `url()` body
+/// opened at `open_paren_index`, or `None` when the body is quoted.
+///
+/// An unquoted url body is taken whole — it runs to the first unescaped `)` and
+/// may contain a `;`, a brace or a `/*` without any of them meaning what they
+/// mean elsewhere. The value parser reads it that way and a browser reads it
+/// that way, so this scan has to as well: otherwise a data URL is rejected for
+/// a rule terminator no CSS parser will ever see.
+///
+/// A body with no closing paren swallows the rest of the value, which is what
+/// the value parser does with it too, so the resume point is the end. That
+/// matters for more than tidiness: a value like `url(a;b` has no rule-breaking
+/// `;` in it, only an unfinished url, and the unclosed function is a diagnostic
+/// the normalizers own. Stopping short here would report the same input as a
+/// rule terminator instead, which is the second diagnostic that moving those
+/// checks out of this scan was meant to prevent.
+///
+/// A quoted body is an ordinary string and is left to the string scanning that
+/// already handles one.
+fn url_body_end(value: &[u8], open_paren_index: usize) -> Option<usize> {
+  let mut cursor = open_paren_index + 1;
+
+  while matches!(value.get(cursor), Some(byte) if *byte <= b' ') {
+    cursor += 1;
+  }
+
+  if matches!(value.get(cursor), Some(b'\'' | b'"')) {
+    return None;
+  }
+
+  while cursor < value.len() {
+    if value[cursor] == b')' && !is_escaped(value, cursor) {
+      return Some(cursor + 1);
+    }
+
+    cursor += 1;
+  }
+
+  Some(value.len())
+}
+
 /// Structural facts about a raw CSS property value, all gathered in one pass.
 ///
-/// All four checks share the same string/comment tokenizer, so scanning once
-/// keeps them from drifting apart and does the work of several passes over every
+/// Both checks share the same string/comment tokenizer, so scanning once keeps
+/// them from drifting apart and does the work of several passes over every
 /// declaration the compiler sees.
+///
+/// Unfinished constructs are conspicuously absent: an unclosed function and an
+/// unclosed string are the first two normalizers, which read the token list
+/// rather than the raw bytes. Detecting either here as well would give the same
+/// input two different diagnostics depending on which check ran first.
 #[derive(Debug, Default, PartialEq, Eq)]
 struct ValueStructure {
-  /// A quoted string was opened and never closed.
-  has_unclosed_string: bool,
-  /// A `(` was never matched by a `)`.
-  has_unclosed_function: bool,
   /// A `/*` was never matched by a `*/`.
   has_unclosed_comment: bool,
-  /// A `{`, `}` or `;` occurs outside of strings and comments. Emitting such a
-  /// value verbatim would terminate the rule the compiler is generating and
-  /// splice arbitrary CSS into the stylesheet, so it must never take the
-  /// "preserve unknown syntax" fallback in [`normalize_css_property_value`].
+  /// A `{` or `}`, or a `;` with a declaration behind it, occurs outside of
+  /// strings and comments. Emitting such a value verbatim would terminate the
+  /// rule the compiler is generating and splice arbitrary CSS into the
+  /// stylesheet.
+  ///
+  /// A `;` at the end of the value does not count, however many of them there
+  /// are and whatever whitespace trails them: that closes this declaration and
+  /// opens nothing, which is what a browser makes of it too. Stray trailing
+  /// semicolons are common enough in hand-written style objects that rejecting
+  /// them would fail programs the reference compiler accepts, over a character
+  /// that cannot do any harm.
   has_rule_breaking_token: bool,
   /// The deepest the value nests functions, counted outside strings and
-  /// comments. Every stage of the SWC path — parse, normalize, emit — recurses
-  /// once per level, so this is what decides whether that path is safe to
-  /// enter. See [`MAX_VALUE_NESTING_DEPTH`].
+  /// comments. Parsing and normalizing recurse once per level, so this is what
+  /// decides whether a value is safe to normalize at all. See
+  /// [`MAX_VALUE_NESTING_DEPTH`].
   max_nesting_depth: usize,
 }
 
 impl ValueStructure {
-  /// Returns `true` when the value can be emitted into the generated stylesheet
-  /// verbatim without being able to escape its own declaration.
+  /// Returns `true` when the value can be spelled into the generated stylesheet
+  /// without being able to escape its own declaration.
   ///
-  /// Only the two paths that bypass SWC's codegen — the relative-colour/spacing
-  /// only path and the "preserve unknown syntax" fallback — need this check.
-  /// Values that round-trip through SWC are re-serialized from an AST and are
-  /// inert by construction.
+  /// Every accepted value now reaches the stylesheet as the author's own bytes,
+  /// rewritten only where a normalizer names them, so this is asked of all of
+  /// them rather than of a bypass.
   fn is_inert(&self) -> bool {
     !self.has_rule_breaking_token && !self.has_unclosed_comment
   }
@@ -642,11 +521,11 @@ impl ValueStructure {
 
 /// How deeply a value may nest functions before it is rejected.
 ///
-/// Parsing, normalizing and emitting a value each recurse once per nesting
-/// level, and none of them carries a depth limit of its own. Past the point
-/// where the stack runs out the process **aborts** rather than panicking — a
-/// stack overflow is not unwindable, so the `catch_unwind` around compilation
-/// never sees it and no diagnostic is ever produced.
+/// Parsing and normalizing a value each recurse once per nesting level, and
+/// neither carries a depth limit of its own. Past the point where the stack
+/// runs out the process **aborts** rather than panicking — a stack overflow is
+/// not unwindable, so the `catch_unwind` around compilation never sees it and
+/// no diagnostic is ever produced.
 ///
 /// The limit is stated here rather than left to whatever stack the host
 /// happens to provide, so that the same source compiles the same way
@@ -663,9 +542,19 @@ fn scan_value_structure(css_property_value: &str) -> ValueStructure {
   let mut is_comment = false;
   let mut paren_depth: usize = 0;
   let mut index = 0;
+  // A `;` has been seen and nothing has followed it yet that a second
+  // declaration could start with.
+  let mut open_semicolon = false;
 
   while index < value.len() {
     let byte = value[index];
+
+    // Read before the byte is classified, so that a comment opener or a quote
+    // after a `;` counts as content the same way a letter does.
+    if open_semicolon && !byte.is_ascii_whitespace() && byte != b';' {
+      structure.has_rule_breaking_token = true;
+      open_semicolon = false;
+    }
 
     if quote.is_none() {
       if is_comment {
@@ -682,6 +571,19 @@ fn scan_value_structure(css_property_value: &str) -> ValueStructure {
       if byte == b'/' && value.get(index + 1) == Some(&b'*') {
         is_comment = true;
         index += 2;
+        continue;
+      }
+
+      // Stepped over whole, so nothing inside it is read as a string, a comment
+      // or a rule terminator. The nesting it contributes is still counted — one
+      // level, matching the parser, which reads the body as text rather than
+      // descending into the parentheses it happens to contain.
+      if byte == b'('
+        && is_url_call(value, index)
+        && let Some(resume_at) = url_body_end(value, index)
+      {
+        structure.max_nesting_depth = structure.max_nesting_depth.max(paren_depth + 1);
+        index = resume_at;
         continue;
       }
     }
@@ -701,8 +603,11 @@ fn scan_value_structure(css_property_value: &str) -> ValueStructure {
       None if byte == b')' => {
         paren_depth = paren_depth.saturating_sub(1);
       },
-      None if matches!(byte, b'{' | b'}' | b';') => {
+      None if matches!(byte, b'{' | b'}') => {
         structure.has_rule_breaking_token = true;
+      },
+      None if byte == b';' => {
+        open_semicolon = true;
       },
       _ => {},
     }
@@ -710,8 +615,6 @@ fn scan_value_structure(css_property_value: &str) -> ValueStructure {
     index += 1;
   }
 
-  structure.has_unclosed_string = quote.is_some();
-  structure.has_unclosed_function = paren_depth > 0;
   // A comment left open swallows every rule emitted after this declaration, so
   // it is as rule-breaking as a stray `}`.
   structure.has_unclosed_comment = is_comment && quote.is_none();
@@ -751,6 +654,21 @@ fn build_css_rule(property: &str, css_property_value: &str, is_pseudo: bool) -> 
   }
 }
 
+/// Builds the rule text a rejection quotes back at the author, naming the
+/// property they actually wrote.
+///
+/// The single colon in [`is_pseudo_selector`] is deliberate: it only decides
+/// how the text is spelled — a selector wrapping its value, or a declaration
+/// inside `* { ... }`. Both kinds of pseudo are selectors, so narrowing this to
+/// `::` would print every pseudo class as a declaration.
+fn build_reported_css_rule(css_property: &str, css_property_value: &str) -> String {
+  build_css_rule(
+    css_property,
+    css_property_value,
+    is_pseudo_selector(css_property),
+  )
+}
+
 /// Builds the rule text an unclosed-function report quotes back at the author.
 ///
 /// Reported against the author's actual property name; `--x` has no grammar of
@@ -768,153 +686,89 @@ pub(crate) fn build_error_css_rule(css_property: &str, css_property_value: &str)
   )
 }
 
-/// Panics with a formatted CSS parse error.
-fn handle_css_parse_errors(errors: &[Error], css_rule: &str) -> ! {
-  let error_message = errors[0].message().to_string();
-  stylex_panic!("{}, css rule: {}", error_message, css_rule)
-}
-
-/// SWC's CSS parser reports errors via a separate `errors` list. The `Err`
-/// branch of the parse result is therefore practically unreachable.
-#[cfg_attr(coverage_nightly, coverage(off))]
-fn swc_css_parse_unreachable(msg: &str) -> ! {
-  stylex_panic!("{}", msg)
-}
-
 /// CSS codegen on a well-formed AST never produces an `Err` in practice.
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn css_codegen_unreachable(e: std::fmt::Error) -> ! {
   stylex_panic!("CSS codegen emit failed: {}", e)
 }
 
-/// Normalizes a CSS property value by parsing, normalizing, and re-serializing
-/// it.
-pub fn normalize_css_property_value(
-  css_property: &str,
-  css_property_value: &str,
-  options: &StyleXStateOptions,
-) -> String {
-  // A value that is nothing but a number has no CSS grammar to normalize, and
-  // round-tripping it through the parser is what loses it: SWC holds an integer
-  // as `i64`, so anything past 2^63 comes back saturated. Re-spell it directly.
-  //
-  // Checked before the function scans below, which cannot match a bare number
-  // and would only be discarded.
-  if let Some(number) = parse_bare_number(css_property_value) {
-    return strip_leading_zero(&to_js_string(number));
-  }
-
-  let should_normalize_spacing_only = COLOR_FUNCTION_LISTED_NORMALIZED_PROPERTY_VALUES
-    .iter()
-    .any(|css_fnc| contains_css_function_call(css_property_value, css_fnc))
-    || contains_relative_color_function(css_property_value);
-
-  // The single colon is deliberate: this only decides how `build_css_rule`
-  // spells the error text — a selector wrapping its value, or a declaration
-  // inside `* { ... }`. Both kinds of pseudo are selectors, so narrowing this
-  // to `::` would print every pseudo class as a declaration.
+/// Rejects a `var()` reference whose custom property name lacks its `--`
+/// prefix.
+///
+/// The only remaining reason this compiler parses CSS at all. The parse is
+/// advisory: a value SWC cannot make sense of yields no declaration to walk and
+/// is simply not validated, because nothing downstream reads the stylesheet any
+/// more. It is parsed under a placeholder property name so that a gap in SWC's
+/// property-specific grammar cannot hide a `var()` from the walk.
+fn validate_custom_properties(css_property: &str, css_property_value: &str) {
   let is_pseudo = is_pseudo_selector(css_property);
-  let structure = scan_value_structure(css_property_value);
-
-  if structure.has_unclosed_function {
-    let css_rule = build_error_css_rule(css_property, css_property_value);
-
-    stylex_panic!("{}, css rule: {}", LINT_UNCLOSED_FUNCTION, css_rule);
-  }
-
-  if structure.has_unclosed_string {
-    stylex_panic!("{}", LINT_UNCLOSED_STRING);
-  }
-
-  if structure.has_unclosed_comment {
-    stylex_panic!("{}", LINT_UNCLOSED_COMMENT);
-  }
-
-  // Checked before either path is entered, not just the recursive one, so that
-  // the depth a value may reach is a property of the compiler rather than of
-  // which branch a particular value happens to take.
-  if structure.max_nesting_depth > MAX_VALUE_NESTING_DEPTH {
-    let css_rule = build_css_rule(css_property, css_property_value, is_pseudo);
-
-    stylex_panic!(
-      "{} (limit {}, found {}), css rule: {}",
-      LINT_VALUE_NESTED_TOO_DEEPLY,
-      MAX_VALUE_NESTING_DEPTH,
-      structure.max_nesting_depth,
-      css_rule
-    );
-  }
-
-  if should_normalize_spacing_only {
-    // This path bypasses SWC's codegen and emits the author's value verbatim, so
-    // it needs the same structural guard as the unknown-syntax fallback below.
-    if !structure.is_inert() {
-      let css_rule = build_css_rule(css_property, css_property_value, is_pseudo);
-      stylex_panic!("{}, css rule: {}", LINT_RULE_BREAKING_TOKEN, css_rule);
-    }
-
-    return normalize_spacing_only_value(css_property_value, false);
-  }
-
-  // Values are parsed independently of the CSS property's own grammar, so that
-  // a property-specific gap in SWC's grammar cannot reject a valid value.
   let parse_property = if is_pseudo {
     css_property
   } else {
     GENERIC_PROPERTY_NAME
   };
+  // Not `build_reported_css_rule`: this rule is fed to a parser rather than
+  // printed, so the placeholder property is the point of it.
   let css_rule = build_css_rule(parse_property, css_property_value, is_pseudo);
 
-  let (parsed_css, errors) = swc_parse_css(css_rule.as_str());
+  if let Ok(parsed_css_property_value) = swc_parse_css(css_rule.as_str()).0 {
+    unprefixed_custom_properties_validator(&parsed_css_property_value);
+  }
+}
 
-  // A value SWC cannot parse is only preserved when it is *structurally* inert.
-  // Anything that could terminate the generated rule (`}`, `;`, `{`) is still
-  // rejected, otherwise `height: "1px solid } color: red"` would escape its own
-  // declaration and inject arbitrary CSS into the stylesheet.
-  if !errors.is_empty() && (is_pseudo || !structure.is_inert()) {
-    handle_css_parse_errors(&errors, &css_rule);
+/// Rewrites a declaration value into the canonical text the class name is
+/// hashed from.
+///
+/// Two structural guards stand in front of [`normalize_value`], and they are
+/// the only things here that are not normalization. Both reject a value that
+/// could not be spelled into the generated stylesheet whatever it normalized
+/// to: one that would terminate its own rule, and one nested deeper than the
+/// compiler's recursion budget. The unclosed function and unclosed string are
+/// *not* among them — they are the first two normalizers, and reporting them
+/// from here as well would give the same input two different diagnostics
+/// depending on which check happened to be spelled first.
+///
+/// Everything else is [`normalize_value`], for every value, with no second
+/// path. A value using syntax the compiler has never heard of takes exactly the
+/// same route as `color: red`, which is what makes the absence of an opinion
+/// about hex spelling, letter case, quote characters and whitespace positions
+/// observable in the output.
+pub fn normalize_css_property_value(
+  css_property: &str,
+  css_property_value: &str,
+  options: &StyleXStateOptions,
+) -> String {
+  let structure = scan_value_structure(css_property_value);
+
+  // A comment left open swallows every rule emitted after this declaration, and
+  // a stray `{`, `}` or `;` splices arbitrary CSS into the stylesheet: the value
+  // reaches the output verbatim, so `height: "1px solid } color: red"` would
+  // escape its own declaration.
+  if !structure.is_inert() {
+    if structure.has_unclosed_comment {
+      stylex_panic!("{}", LINT_UNCLOSED_COMMENT);
+    }
+
+    stylex_panic!(
+      "{}, css rule: {}",
+      LINT_RULE_BREAKING_TOKEN,
+      build_reported_css_rule(css_property, css_property_value)
+    );
   }
 
-  // SWC parser returns errors via the separate `errors` list above,
-  // so the `Err` branch is practically unreachable.
-  let parsed_css_property_value = parsed_css.unwrap_or_else(
-    #[cfg_attr(coverage_nightly, coverage(off))]
-    |err| swc_css_parse_unreachable(&err.message()),
-  );
-
-  unprefixed_custom_properties_validator(&parsed_css_property_value);
-
-  if !errors.is_empty() {
-    // Generic values may use syntax newer than SWC's CSS grammar (`calc-size()`,
-    // future functions). Normalize the original value's spacing rather than
-    // rejecting syntax the compiler simply does not know yet.
-    let normalized_spacing = normalize_spacing_only_value(css_property_value, true);
-    return normalize_spacing(&normalized_spacing);
+  if structure.max_nesting_depth > MAX_VALUE_NESTING_DEPTH {
+    stylex_panic!(
+      "{} (limit {}, found {}), css rule: {}",
+      LINT_VALUE_NESTED_TOO_DEEPLY,
+      MAX_VALUE_NESTING_DEPTH,
+      structure.max_nesting_depth,
+      build_reported_css_rule(css_property, css_property_value)
+    );
   }
 
-  let parsed_ast = base_normalizer(
-    parsed_css_property_value,
-    options.enable_font_size_px_to_rem,
-    Some(css_property),
-  );
+  validate_custom_properties(css_property, css_property_value);
 
-  // Collected before codegen, which lowercases the names it emits. A value with
-  // no `(` has no function to restore, so the extra traversal is skipped.
-  let authored_function_names = if css_property_value.contains('(') {
-    collect_function_names(&parsed_ast)
-  } else {
-    Vec::new()
-  };
-
-  let stringified = stringify(&parsed_ast);
-  let value = extract_css_value(&stringified);
-  let normalized_spacing = normalize_spacing(value);
-  let negative_leading_zero_restored = restore_negative_leading_zero(&normalized_spacing);
-
-  let names_restored =
-    restore_function_names(&negative_leading_zero_restored, &authored_function_names);
-
-  restore_js_number_spelling(&names_restored)
+  normalize_value(css_property_value, css_property, options)
 }
 
 /// Returns the numeric suffix for a CSS property (`"px"`, `"ms"`, `""`, etc.).
@@ -934,341 +788,13 @@ pub fn get_value_from_ident(ident: &Ident) -> String {
   ident.value.to_string()
 }
 
-/// Collects every function name in the value, in the order they appear.
-///
-/// The parser keeps the name the author wrote; codegen is what lowercases it,
-/// so the authored spelling has to be taken from the AST beforehand.
-fn collect_function_names(ast: &Stylesheet) -> Vec<Atom> {
-  struct FunctionNameCollector {
-    names: Vec<Atom>,
-  }
-
-  impl Visit for FunctionNameCollector {
-    fn visit_function(&mut self, func: &Function) {
-      if let FunctionName::Ident(name) = &func.name {
-        self.names.push(name.value.clone());
-      }
-
-      // A nested function is emitted after its parent, so visiting the parent
-      // first keeps `names` in the same order the string scan will find them.
-      func.visit_children_with(self);
-    }
-  }
-
-  let mut collector = FunctionNameCollector { names: Vec::new() };
-  ast.visit_with(&mut collector);
-
-  collector.names
-}
-
-/// Restores the function names the author wrote (e.g. `translatey(0)` back to
-/// `translateY(0)`).
-///
-/// SWC's codegen lowercases function names when minifying — CSS function names
-/// are case-insensitive — which would rewrite `translateY(0)` to
-/// `translatey(0)` and change every hash derived from it. `authored` supplies
-/// the original spellings in source order.
-///
-/// Matching is case-insensitive and searches forward, so a name the AST does
-/// not account for (a `url()` body, say) leaves the scan aligned rather than
-/// shifting every later name onto the wrong function.
-///
-/// Quoted strings and `url()` bodies are copied through untouched, so a name
-/// that only appears inside one is left alone.
-pub(crate) fn restore_function_names(value: &str, authored: &[Atom]) -> String {
-  if !value.contains('(') {
-    return value.to_string();
-  }
-
-  let mut result = String::with_capacity(value.len());
-  // Where the identifier currently being read starts *in `result`*, so a match
-  // can be rewritten in place once its `(` arrives.
-  let mut ident_start: Option<usize> = None;
-  let mut in_quote: Option<char> = None;
-  let mut escaped = false;
-  let mut url_depth: usize = 0;
-  let mut next_authored = 0;
-
-  for (idx, ch) in value.char_indices() {
-    if let Some(quote) = in_quote {
-      result.push(ch);
-
-      if escaped {
-        escaped = false;
-      } else if ch == '\\' {
-        escaped = true;
-      } else if ch == quote {
-        in_quote = None;
-      }
-
-      continue;
-    }
-
-    if url_depth > 0 {
-      result.push(ch);
-
-      match ch {
-        '(' => url_depth += 1,
-        ')' => url_depth -= 1,
-        '"' | '\'' => in_quote = Some(ch),
-        _ => {},
-      }
-
-      continue;
-    }
-
-    match ch {
-      '"' | '\'' => {
-        in_quote = Some(ch);
-        ident_start = None;
-        result.push(ch);
-      },
-      '(' => {
-        if is_url_function(value, idx) {
-          url_depth = 1;
-        } else if let Some(start) = ident_start
-          && let Some(offset) = authored[next_authored..]
-            .iter()
-            .position(|name| name.eq_ignore_ascii_case(&result[start..]))
-        {
-          let name = &authored[next_authored + offset];
-          result.truncate(start);
-          result.push_str(name);
-          next_authored += offset + 1;
-        }
-
-        ident_start = None;
-        result.push(ch);
-      },
-      _ if ch.is_alphanumeric() || ch == '-' || ch == '_' => {
-        if ident_start.is_none() {
-          ident_start = Some(result.len());
-        }
-
-        result.push(ch);
-      },
-      _ => {
-        ident_start = None;
-        result.push(ch);
-      },
-    }
-  }
-
-  result
-}
-
-/// The value as an `f64` when it is a bare number and nothing else.
-///
-/// Deliberately stricter than `f64::from_str`, which also accepts `inf`,
-/// `infinity` and `NaN` — none of which are CSS numbers.
-fn parse_bare_number(value: &str) -> Option<f64> {
-  if number_token_end(value.as_bytes(), 0, None)? != value.len() {
-    return None;
-  }
-
-  value.parse::<f64>().ok()
-}
-
-/// Re-spells every number in the value the way JS `String(Number)` does.
-///
-/// SWC's codegen rewrites numbers when minifying, folding trailing zeros into
-/// an exponent: `1000` becomes `1e3`, `123000` becomes `123e3`, and
-/// `1.0000000000000001e+21` becomes `10000000000000001e5`. None of those are
-/// spellings a style value ever has on the way in, and each one changes the
-/// hash built from it.
-///
-/// Every number reaching here has already been through that rewrite, so
-/// re-rendering each one from its value restores the single spelling a JS
-/// number has. The leading zero is then dropped again, which is a
-/// normalization the value is meant to carry.
-///
-/// Quoted strings and `url()` bodies are copied through untouched.
-pub(crate) fn restore_js_number_spelling(value: &str) -> String {
-  let bytes = value.as_bytes();
-  let mut result = String::with_capacity(value.len());
-  let mut index = 0;
-  let mut in_quote: Option<u8> = None;
-  let mut escaped = false;
-  let mut url_depth: usize = 0;
-
-  while index < bytes.len() {
-    let byte = bytes[index];
-
-    if let Some(quote) = in_quote {
-      index = copy_char(value, index, &mut result);
-
-      if escaped {
-        escaped = false;
-      } else if byte == b'\\' {
-        escaped = true;
-      } else if byte == quote {
-        in_quote = None;
-      }
-
-      continue;
-    }
-
-    if url_depth > 0 {
-      index = copy_char(value, index, &mut result);
-
-      match byte {
-        b'(' => url_depth += 1,
-        b')' => url_depth -= 1,
-        b'"' | b'\'' => in_quote = Some(byte),
-        _ => {},
-      }
-
-      continue;
-    }
-
-    if byte == b'"' || byte == b'\'' {
-      in_quote = Some(byte);
-      index = copy_char(value, index, &mut result);
-      continue;
-    }
-
-    if byte == b'(' && is_url_function(value, index) {
-      url_depth = 1;
-      index = copy_char(value, index, &mut result);
-      continue;
-    }
-
-    // The preceding *character*, not the preceding byte: a byte-wise `last()`
-    // reads a UTF-8 continuation byte after a non-ASCII ident char, which the
-    // guard would not recognise as an ident and would re-spell the digits that
-    // follow (`名前007` -> `名前7`).
-    match number_token_end(bytes, index, result.chars().next_back()) {
-      Some(end) => {
-        let number = parse_number_token(&value[index..end]);
-
-        result.push_str(&strip_leading_zero(&to_js_string(number)));
-        index = end;
-      },
-      None => {
-        index = copy_char(value, index, &mut result);
-      },
-    }
-  }
-
-  result
-}
-
-/// Copies the character starting at `index` and returns the next index.
-///
-/// Byte-wise copying would split a multi-byte character; every byte this
-/// scanner branches on is ASCII, so whole characters can be carried across
-/// untouched.
-fn copy_char(value: &str, index: usize, result: &mut String) -> usize {
-  let char_len = value[index..].chars().next().map_or(1, char::len_utf8);
-
-  result.push_str(&value[index..index + char_len]);
-
-  index + char_len
-}
-
-/// The end of the number token starting at `index`, or `None` when nothing
-/// there is one.
-///
-/// A number only starts where a value can: never partway through an identifier
-/// (`translate3d`, `名前007`), a hex colour (`#123`), or a dashed name (`--x1`).
-/// The exponent is only taken when digits follow it, so the `e` of `1em` stays
-/// with the unit.
-///
-/// `previous` is the preceding character, so `is_alphanumeric` covers the
-/// non-ASCII characters a CSS identifier is also allowed to contain.
-fn number_token_end(bytes: &[u8], index: usize, previous: Option<char>) -> Option<usize> {
-  if previous.is_some_and(|previous| {
-    previous.is_alphanumeric() || matches!(previous, '#' | '-' | '_' | '\\')
-  }) {
-    return None;
-  }
-
-  let mut end = index;
-
-  if matches!(bytes.get(end), Some(b'-' | b'+')) {
-    end += 1;
-  }
-
-  let digits_before_point = take_digits(bytes, &mut end);
-
-  if bytes.get(end) == Some(&b'.') {
-    end += 1;
-    let digits_after_point = take_digits(bytes, &mut end);
-
-    if !digits_before_point && !digits_after_point {
-      return None;
-    }
-  } else if !digits_before_point {
-    return None;
-  }
-
-  // `1e3` is one number; the `e` of `1em` belongs to the unit.
-  if matches!(bytes.get(end), Some(b'e' | b'E')) {
-    let mut exponent_end = end + 1;
-
-    if matches!(bytes.get(exponent_end), Some(b'-' | b'+')) {
-      exponent_end += 1;
-    }
-
-    if take_digits(bytes, &mut exponent_end) {
-      end = exponent_end;
-    }
-  }
-
-  Some(end)
-}
-
-/// The token as an `f64`.
-///
-/// [`number_token_end`] only ever yields a literal `f64` can parse, so the
-/// default is unreachable; taking it keeps this total rather than adding a
-/// branch no input can take.
-fn parse_number_token(token: &str) -> f64 {
-  token.parse::<f64>().unwrap_or_default()
-}
-
-fn take_digits(bytes: &[u8], end: &mut usize) -> bool {
-  let start = *end;
-
-  while matches!(bytes.get(*end), Some(byte) if byte.is_ascii_digit()) {
-    *end += 1;
-  }
-
-  *end > start
-}
-
-/// Drops the zero before the decimal point (`0.5` -> `.5`), the same
-/// normalization the minified spelling carried.
-///
-/// A negative decimal keeps its zero (`-0.24`), matching
-/// [`restore_negative_leading_zero`].
-fn strip_leading_zero(number: &str) -> String {
-  match number.strip_prefix("0.") {
-    Some(rest) => format!(".{}", rest),
-    None => number.to_string(),
-  }
-}
-
-/// Whether the `(` at `open_paren_index` opens a `url()` function, whose body
-/// is not CSS-tokenized and so carries no function names of its own.
-pub(crate) fn is_url_function(value: &str, open_paren_index: usize) -> bool {
-  let mut preceding = value[..open_paren_index].chars().rev();
-
-  for expected in ['l', 'r', 'u'] {
-    if !preceding
-      .next()
-      .is_some_and(|ch| ch.eq_ignore_ascii_case(&expected))
-    {
-      return false;
-    }
-  }
-
-  !preceding
-    .next()
-    .is_some_and(|ch| ch.is_alphanumeric() || matches!(ch, '-' | '_' | '\\'))
-}
-
 /// Serializes an SWC `Stylesheet` AST back to a minified CSS string.
+///
+/// The serializer value normalization used to round-trip through, and the
+/// source of most of the divergences that motivated replacing it: it shortens
+/// hex colours, lowercases function names, folds trailing zeros into an
+/// exponent, and strips single quotes outright. Nothing outside the tests of
+/// the superseded normalizer modules calls it, and it goes when they do.
 pub fn stringify(node: &Stylesheet) -> String {
   let mut buf = String::with_capacity(256);
   let wr = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());

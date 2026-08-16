@@ -147,7 +147,7 @@ mod css_tests {
         &TRawValue::from(r#""''""#),
         &mut StateManager::default()
       ),
-      r#""""#
+      r#""''""#
     );
     assert_eq!(
       transform_value_cached(
@@ -155,7 +155,7 @@ mod css_tests {
         &TRawValue::from(r#""'123'""#),
         &mut StateManager::default()
       ),
-      r#""123""#
+      r#""'123'""#
     );
   }
 
@@ -167,7 +167,7 @@ mod css_tests {
         &TRawValue::from(r#"'"content"'"#),
         &mut StateManager::default()
       ),
-      r#""content""#
+      r#"'"content"'"#
     );
     assert_eq!(
       transform_value_cached(
@@ -175,7 +175,7 @@ mod css_tests {
         &TRawValue::from(r#"'"content" "sidebar"'"#),
         &mut StateManager::default()
       ),
-      r#""content" "sidebar""#
+      r#"'"content" "sidebar"'"#
     );
     assert_eq!(
       transform_value_cached(
@@ -183,7 +183,7 @@ mod css_tests {
         &TRawValue::from(r#"'"content""sidebar"'"#),
         &mut StateManager::default()
       ),
-      r#""content" "sidebar""#
+      r#"'"content""sidebar"'"#
     );
     assert_eq!(
       transform_value_cached(
@@ -215,7 +215,7 @@ mod css_tests {
         &TRawValue::from(r#"oklch(42.1% 0.192 328.6 / 1)"#),
         &mut StateManager::default()
       ),
-      r#"oklch(42.1% 0.192 328.6 / 1)"#
+      r#"oklch(42.1% .192 328.6 / 1)"#
     );
     assert_eq!(
       transform_value_cached(
@@ -223,7 +223,7 @@ mod css_tests {
         &TRawValue::from(r#"oklch(from var(--xs74gcj) l c h / 0.5)"#),
         &mut StateManager::default()
       ),
-      r#"oklch(from var(--xs74gcj) l c h / 0.5)"#
+      r#"oklch(from var(--xs74gcj) l c h / .5)"#
     );
     assert_eq!(
       transform_value_cached(
@@ -231,7 +231,7 @@ mod css_tests {
         &TRawValue::from(r#"oklch(59.69% 0.156 49.77  /  .5)"#),
         &mut StateManager::default()
       ),
-      r#"oklch(59.69% 0.156 49.77 / .5)"#
+      r#"oklch(59.69% .156 49.77 / .5)"#
     );
   }
 
@@ -245,7 +245,7 @@ mod css_tests {
         ),
         &mut StateManager::default()
       ),
-      r#"radial-gradient(circle at 0% 0%, oklch(from var(--colors-tile-background) calc(l + 0.1) calc(c + 0.2) h) 0, transparent 15%), radial-gradient(circle at 80% 100%,oklch(from var(--colors-tile-background) calc(l - 0.25) calc(c + 0.01) h) 0, transparent 30%), linear-gradient(45deg,var(--colors-tile-background) 0%, oklch(from var(--colors-tile-background) calc(l - 0.1) calc(c + 0.3) h) 100%)"#
+      r#"radial-gradient(circle at 0% 0%,oklch(from var(--colors-tile-background) calc(l + .1) calc(c + .2) h) 0,transparent 15%),radial-gradient(circle at 80% 100%,oklch(from var(--colors-tile-background) calc(l - .25) calc(c + .01) h) 0,transparent 30%),linear-gradient(45deg,var(--colors-tile-background) 0%,oklch(from var(--colors-tile-background) calc(l - .1) calc(c + .3) h) 100%)"#
     );
     assert_eq!(
       transform_value_cached(
@@ -255,7 +255,7 @@ mod css_tests {
         ),
         &mut StateManager::default()
       ),
-      r#"linear-gradient(to right, oklch(from #000 calc(l + 0.1) c h / 0.1) 10%, oklch(from #000 calc(l + 0.2) c h) 18%, oklch(from #000 calc(l + 0.1) c h / 0.1) 33%)"#
+      r#"linear-gradient(to right,oklch(from #000 calc(l + .1) c h / .1) 10%,oklch(from #000 calc(l + .2) c h) 18%,oklch(from #000 calc(l + .1) c h / .1) 33%)"#
     );
   }
 
@@ -275,7 +275,7 @@ mod css_tests {
         &TRawValue::from(r#"rgba(from red r g b  /  0.5)"#),
         &mut StateManager::default()
       ),
-      r#"rgba(from red r g b / 0.5)"#
+      r#"rgba(from red r g b / .5)"#
     );
     assert_eq!(
       transform_value_cached(
@@ -295,7 +295,7 @@ mod css_tests {
         &TRawValue::from(r#"oklab(40.101%   0.1147   0.0453)"#),
         &mut StateManager::default()
       ),
-      r#"oklab(40.101% 0.1147 0.0453)"#
+      r#"oklab(40.101% .1147 .0453)"#
     );
 
     assert_eq!(
@@ -313,7 +313,7 @@ mod css_tests {
         &TRawValue::from(r#"oklab(from #0000FF calc(l  +  0.1)  a  b  /  calc(alpha  *  0.9))"#),
         &mut StateManager::default()
       ),
-      r#"oklab(from #0000FF calc(l + 0.1) a b / calc(alpha * 0.9))"#
+      r#"oklab(from #0000FF calc(l + .1) a b / calc(alpha * .9))"#
     );
     assert_eq!(
       transform_value_cached(
@@ -321,7 +321,7 @@ mod css_tests {
         &TRawValue::from(r#"oklab(from hsl(180 100% 50%) calc(l  -  0.1)  a  b)"#),
         &mut StateManager::default()
       ),
-      r#"oklab(from hsl(180 100% 50%) calc(l - 0.1) a b)"#
+      r#"oklab(from hsl(180 100% 50%) calc(l - .1) a b)"#
     );
     assert_eq!(
       transform_value_cached(
@@ -329,7 +329,7 @@ mod css_tests {
         &TRawValue::from(r#"oklab(from green l  a  b  /  0.5)"#),
         &mut StateManager::default()
       ),
-      r#"oklab(from green l a b / 0.5)"#
+      r#"oklab(from green l a b / .5)"#
     );
   }
 
@@ -341,7 +341,7 @@ mod css_tests {
         &TRawValue::from(r#"clamp(200px,  40%,     400px)"#),
         &mut StateManager::default()
       ),
-      r#"clamp(200px, 40%, 400px)"#
+      r#"clamp(200px,40%,400px)"#
     );
 
     assert_eq!(
@@ -350,7 +350,7 @@ mod css_tests {
         &TRawValue::from(r#"clamp(min(10vw,      20rem),     300px,     max(90vw,     55rem))"#),
         &mut StateManager::default()
       ),
-      r#"clamp(min(10vw, 20rem), 300px, max(90vw, 55rem))"#
+      r#"clamp(min(10vw,20rem),300px,max(90vw,55rem))"#
     );
 
     assert_eq!(
@@ -361,7 +361,7 @@ mod css_tests {
         ),
         &mut StateManager::default()
       ),
-      r#"clamp(0, (var(--l-threshold, 0.623) / l - 1) * infinity, 1)"#
+      r#"clamp(0,(var(--l-threshold,.623) / l - 1) * infinity,1)"#
     );
   }
 

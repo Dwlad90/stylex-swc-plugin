@@ -2,7 +2,7 @@ use crate::shared::structures::state_manager::StateManager;
 use stylex_constants::constants::common::{CSS_CONTENT_FUNCTIONS, CSS_CONTENT_KEYWORDS};
 use stylex_structures::raw_value::TRawValue;
 use stylex_types::traits::StyleOptions;
-use stylex_utils::{math::round_f64, number::to_js_string};
+use stylex_utils::{math::round_f64, number::to_js_string, string::is_blank_css_text};
 
 // Re-export moved functions from stylex_css so existing callers keep compiling.
 #[allow(unused_imports)]
@@ -50,6 +50,20 @@ pub(crate) fn transform_value(key: &str, raw_value: &TRawValue, state: &StateMan
     }
 
     return format!("\"{}\"", val);
+  }
+
+  // A value with no CSS text in it has nothing to normalize, and normalization
+  // says so rather than inventing an answer. Whether that leaves the property
+  // undeclared or fails the build is a decision above normalization, and this
+  // compiler leaves it undeclared: `convert_style_to_class_name` reads the
+  // blank back and emits no declaration for it.
+  //
+  // Checked here rather than on the authored text, since `content: ' '`
+  // acquires its text from the quoting above and so never reaches this line.
+  // Skipping normalization also skips its custom-property validation, which
+  // costs nothing: a blank carries no `var()` to validate.
+  if is_blank_css_text(&value) {
+    return value;
   }
 
   normalize_css_property_value(key, value.as_ref(), &state.options)

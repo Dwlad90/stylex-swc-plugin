@@ -1,5 +1,4 @@
-//! Spacing-repair coverage asserted at the public entry point, together with
-//! the verdict `@stylexjs/babel-plugin` returns for each case.
+//! Spacing coverage asserted at the public normalization entry point.
 //!
 //! The whitespace repair pass and the helpers around it are where years of
 //! individually reported defects accumulated: a function result immediately
@@ -7,30 +6,22 @@
 //! syntax, comments inside values, adjacent quoted strings, non-ASCII content,
 //! a percentage followed by a number, and the leading zero on a negative
 //! decimal. Each assertion below exists because somebody hit the bug. They were
-//! written against the repair pass itself, which is scheduled for deletion, so
-//! they are re-expressed here one level up — at the entry point that survives
-//! the rewrite.
+//! written against the repair pass itself, so they were re-expressed one level
+//! up — at the entry point that survived the pipeline replacement, and that the
+//! pass no longer sits behind.
 //!
-//! Every expectation is what this compiler produces **today**, so the suite is
-//! green before the normalization pipeline is replaced and stays a net under
-//! that change. That matters more here than elsewhere: the repair pass runs on
-//! the *output* of SWC's minifying codegen, so an input that once addressed the
-//! pass directly now has to survive a parse and a re-serialization first. Where
-//! the two disagree, the seam expectation is the one that describes the
-//! compiler, and the difference is called out in the case's doc comment.
+//! **What the cases say, read as a whole.** The repair pass existed to undo
+//! spacing damage done by a minifying serializer. Nothing damages the spacing
+//! any more: a value is parsed losslessly, a fixed list of normalizers rewrites
+//! the tokens they name, and everything else is spelled back out as the author
+//! wrote it. So most of what this module now asserts is that a space is
+//! *preserved* where the repair pass used to be reinserting it after the fact,
+//! and the class name that follows from it is the one the reference compiler
+//! produces.
 //!
-//! **What the verdicts say, read as a whole.** The reference compiler does not
-//! repair spacing, because it never damages it: it keeps the value the author
-//! wrote. So almost every space this pass inserts is a divergence, and the
-//! cases that agree are the ones where it inserts nothing. The exception is the
-//! `/` operator, which the reference compiler also spaces — and spaces
-//! differently at the start of a value, where it emits a leading space this
-//! compiler does not. Read that way, the module is a list of the spellings the
-//! pipeline replacement is expected to move.
-//!
-//! Alongside each expectation sits a [`Reference`](super::support::Reference)
-//! verdict taken from the parity harness in `crates/stylex-rs-compiler/parity`
-//! — never from judgement. Regenerate the verdicts with:
+//! Every expectation is a spelling the parity harness in
+//! `crates/stylex-rs-compiler/parity` confirms the reference compiler produces
+//! — never judgement. Regenerate with:
 //!
 //! ```sh
 //! pnpm run --filter=@stylexswc/rs-compiler build
@@ -38,17 +29,16 @@
 //! ```
 //!
 //! Read `entries[].babel.declarations` for the reference spelling and
-//! `entries[].rust.declarations` for this compiler's. The `Case`/`Reference`
-//! machinery and the shared `check` runner live in `support`. Most cases here
-//! use [`unchanged`](super::support::unchanged), which is the case whose
+//! `entries[].rust.declarations` for this compiler's. The `Case` machinery and
+//! the shared `check` runner live in `support`. Most cases here use
+//! [`unchanged`](super::support::unchanged), which is the case whose
 //! expectation is its own input — the majority shape, since most of what this
 //! module asserts is that a value is not rewritten.
 //!
-//! Two shapes of case are asserted outside the case table, because a `Case`
-//! compares two spellings and these have only one: a rejection, and a
-//! declaration the reference compiler does not emit at all.
+//! Rejections are asserted outside the case table, because a `Case` compares a
+//! spelling and a rejection has none.
 
-use super::support::{check, default_options, diverges, rejects, same, unchanged};
+use super::support::{check, default_options, rejects, same, unchanged};
 use crate::css::common::normalize_css_property_value;
 
 /// The diagnostic every rejection below is asserted on.
@@ -149,57 +139,47 @@ fn keeps_a_percent_glued_to_a_function_result() {
 /// lowercasing before the match would keep `PX` glued and fail here, while
 /// rejecting every capital would separate `Q` and fail there.
 ///
-/// Separating these is a divergence — the reference compiler leaves all three
-/// exactly as written — but the case-sensitivity is not.
+/// All three now come back exactly as written, which is what the reference
+/// compiler has always done. The case-sensitivity still has to be right: the
+/// unit list is what the ported whitespace normalizer consults, and it consults
+/// it case-sensitively.
 #[test]
 fn matches_units_case_sensitively() {
   check(
     &[
-      diverges("width", "var(--x)PX", "var(--x) PX", "var(--x)PX"),
-      diverges("width", "var(--x)Px", "var(--x) Px", "var(--x)Px"),
-      diverges("width", "var(--x)EM", "var(--x) EM", "var(--x)EM"),
+      unchanged("width", "var(--x)PX"),
+      unchanged("width", "var(--x)Px"),
+      unchanged("width", "var(--x)EM"),
     ],
     &default_options(),
   );
 }
 
-/// A word that is not a unit is read as a separate value component, so the
-/// space the minifier dropped is put back. Function names, keywords and
-/// ordinary identifiers all take this path.
-///
-/// Every one of them diverges: the reference compiler never lost the space in
-/// the first place, so it never has to guess whether one belongs here.
+/// A word written flush against a function result stays flush, whether or not
+/// it is a unit. The repair pass used to have to guess which it was, because
+/// the space had already been lost by the time it looked; no space is lost now,
+/// so there is nothing to guess.
 #[test]
-fn separates_a_non_unit_word_from_a_function_result() {
+fn keeps_a_non_unit_word_flush_against_a_function_result() {
   check(
     &[
-      diverges("width", "var(--x)auto", "var(--x) auto", "var(--x)auto"),
-      diverges("width", "var(--x)calc", "var(--x) calc", "var(--x)calc"),
-      diverges("width", "var(--x)rgb", "var(--x) rgb", "var(--x)rgb"),
-      diverges(
-        "width",
-        "var(--x)translate3d",
-        "var(--x) translate3d",
-        "var(--x)translate3d",
-      ),
-      diverges("width", "var(--x)solid", "var(--x) solid", "var(--x)solid"),
-      diverges("width", "var(--x)abc", "var(--x) abc", "var(--x)abc"),
-      diverges("width", "var(--x)hello", "var(--x) hello", "var(--x)hello"),
-      diverges("width", "var(--x)div", "var(--x) div", "var(--x)div"),
-      diverges("width", "var(--x)span", "var(--x) span", "var(--x)span"),
-      diverges("width", "var(--x)ABC", "var(--x) ABC", "var(--x)ABC"),
+      unchanged("width", "var(--x)auto"),
+      unchanged("width", "var(--x)calc"),
+      unchanged("width", "var(--x)rgb"),
+      unchanged("width", "var(--x)translate3d"),
+      unchanged("width", "var(--x)solid"),
+      unchanged("width", "var(--x)abc"),
+      unchanged("width", "var(--x)hello"),
+      unchanged("width", "var(--x)div"),
+      unchanged("width", "var(--x)span"),
+      unchanged("width", "var(--x)ABC"),
       // Two function names, which look most like units of anything here and
       // are the two the unit list was originally pinned against.
-      diverges("width", "var(--x)var", "var(--x) var", "var(--x)var"),
-      diverges(
-        "width",
-        "var(--x)rotate",
-        "var(--x) rotate",
-        "var(--x)rotate",
-      ),
+      unchanged("width", "var(--x)var"),
+      unchanged("width", "var(--x)rotate"),
       // A single letter is a word too, and neither `p` nor `a` is a unit.
-      diverges("width", "var(--x)p", "var(--x) p", "var(--x)p"),
-      diverges("width", "var(--x)a", "var(--x) a", "var(--x)a"),
+      unchanged("width", "var(--x)p"),
+      unchanged("width", "var(--x)a"),
     ],
     &default_options(),
   );
@@ -210,15 +190,7 @@ fn separates_a_non_unit_word_from_a_function_result() {
 /// multi-byte character in half.
 #[test]
 fn separates_a_non_ascii_word_from_a_function_result() {
-  check(
-    &[diverges(
-      "width",
-      "var(--x)日本語",
-      "var(--x) 日本語",
-      "var(--x)日本語",
-    )],
-    &default_options(),
-  );
+  check(&[unchanged("width", "var(--x)日本語")], &default_options());
 }
 
 // ── Adjacent function calls ──────────────────────────────────────────
@@ -230,34 +202,14 @@ fn separates_a_non_ascii_word_from_a_function_result() {
 fn separates_adjacent_function_calls() {
   check(
     &[
-      diverges(
-        "transform",
-        "rotate(10deg)translate3d(0,0,0)",
-        "rotate(10deg) translate3d(0,0,0)",
-        "rotate(10deg)translate3d(0,0,0)",
-      ),
-      diverges(
-        "width",
-        "calc(1px)calc(2px)calc(3px)",
-        "calc(1px) calc(2px) calc(3px)",
-        "calc(1px)calc(2px)calc(3px)",
-      ),
-      diverges(
-        "color",
-        "rgb(0,0,0)rgba(255,255,255,.5)",
-        "rgb(0,0,0) rgba(255,255,255,.5)",
-        "rgb(0,0,0)rgba(255,255,255,.5)",
-      ),
+      unchanged("transform", "rotate(10deg)translate3d(0,0,0)"),
+      unchanged("width", "calc(1px)calc(2px)calc(3px)"),
+      unchanged("color", "rgb(0,0,0)rgba(255,255,255,.5)"),
       // Flush `var()` references, the shape the unit rule above has to be
       // careful not to break. Also covered in the sibling module, from the
-      // other direction — there as one of the reported divergences, here as
-      // the spacing rule that produces it.
-      diverges(
-        "color",
-        "var(--a)var(--b)var(--c)",
-        "var(--a) var(--b) var(--c)",
-        "var(--a)var(--b)var(--c)",
-      ),
+      // other direction — there as one of the reported bugs, here as the
+      // spacing rule that used to produce it.
+      unchanged("color", "var(--a)var(--b)var(--c)"),
     ],
     &default_options(),
   );
@@ -269,21 +221,22 @@ fn separates_adjacent_function_calls() {
 /// inputs are degenerate on purpose — the pass is a string scan, and a bare `)`
 /// is how each rule was originally pinned.
 ///
-/// The `/` pair is the one place in the module where both compilers insert the
-/// same space, so it is the only inserted space here that is not a divergence.
+/// The `/` pair is the one place in the module where a space is still inserted,
+/// because the ported whitespace normalizer spaces that operator. Everything
+/// else here comes back as written.
 #[test]
 fn separates_a_closing_paren_from_what_follows() {
   check(
     &[
       // digit
-      diverges("width", ")3", ") 3", ")3"),
-      diverges("width", "calc(a)42", "calc(a) 42", "calc(a)42"),
+      unchanged("width", ")3"),
+      unchanged("width", "calc(a)42"),
       // hex colour
-      diverges("color", ")#fff", ") #fff", ")#fff"),
+      unchanged("color", ")#fff"),
       // multiplication operator
-      diverges("width", ")*3", ") * 3", ")*3"),
+      unchanged("width", ")*3"),
       // an uppercase word that is not a unit
-      diverges("color", ")A", ") A", ")A"),
+      unchanged("color", ")A"),
       // division operator: both compilers space it
       same("width", ")/7", ") / 7"),
       // an uppercase word that is a unit
@@ -324,12 +277,13 @@ fn rejects_an_unclosed_group_after_a_closing_paren() {
 /// before the second `)` is gone and no rule puts it back. The reference
 /// compiler keeps it, and adds no space of its own after it.
 ///
-/// Recorded rather than fixed. It is the same lost-whitespace family as the
-/// reported divergences, and the pipeline replacement is what closes it.
+/// Nothing swallows it any more, so there is nothing to put back: the value
+/// below keeps the spacing the author wrote, and the only space that moves is
+/// the one the `/` operator gets.
 #[test]
 fn does_not_restore_a_space_swallowed_before_a_closing_paren() {
   check(
-    &[diverges("width", ")/1 )*.5", ") / 1) * .5", ") / 1 )*.5")],
+    &[same("width", ")/1 )*.5", ") / 1 )*.5")],
     &default_options(),
   );
 }
@@ -344,19 +298,14 @@ fn does_not_restore_a_space_swallowed_before_a_closing_paren() {
 fn separates_a_hex_colour_from_the_token_before_it() {
   check(
     &[
-      diverges("boxShadow", "1px#000", "1px #000", "1px#000"),
-      diverges("color", "solid#abc", "solid #abc", "solid#abc"),
-      diverges("backgroundPosition", "50%#fff", "50% #fff", "50%#fff"),
-      diverges("color", "A#fff", "A #fff", "A#fff"),
-      diverges("color", "9#fff", "9 #fff", "9#fff"),
-      diverges("color", "%#fff", "% #fff", "%#fff"),
-      diverges("color", "日本語#fff", "日本語 #fff", "日本語#fff"),
-      diverges(
-        "color",
-        "a#fff Z#fff 1#fff %#fff",
-        "a #fff Z #fff 1 #fff % #fff",
-        "a#fff Z#fff 1#fff %#fff",
-      ),
+      unchanged("boxShadow", "1px#000"),
+      unchanged("color", "solid#abc"),
+      unchanged("backgroundPosition", "50%#fff"),
+      unchanged("color", "A#fff"),
+      unchanged("color", "9#fff"),
+      unchanged("color", "%#fff"),
+      unchanged("color", "日本語#fff"),
+      unchanged("color", "a#fff Z#fff 1#fff %#fff"),
       // A `#` with nothing before it has nothing to be separated from.
       unchanged("color", "#"),
     ],
@@ -373,24 +322,17 @@ fn separates_a_hex_colour_from_the_token_before_it() {
 fn separates_a_number_from_a_percentage() {
   check(
     &[
-      diverges("color", "40%.1147", "40% .1147", "40%.1147"),
-      diverges("backgroundPosition", "50%10", "50% 10", "50%10"),
-      diverges("backgroundPosition", "100%.5", "100% .5", "100%.5"),
-      diverges(
-        "backgroundPosition",
-        "50%10 40%.5",
-        "50% 10 40% .5",
-        "50%10 40%.5",
-      ),
+      unchanged("color", "40%.1147"),
+      unchanged("backgroundPosition", "50%10"),
+      unchanged("backgroundPosition", "100%.5"),
+      unchanged("backgroundPosition", "50%10 40%.5"),
     ],
     &default_options(),
   );
 }
 
-/// The same shape inside a colour function takes the allowlist path instead,
-/// which emits the author's value verbatim and so never inserts the space —
-/// which is what the reference compiler does everywhere. This is the one
-/// percentage case the two agree on, and it agrees by not being repaired.
+/// The same shape inside a colour function, which is the same answer: a number
+/// written flush against a percentage stays flush.
 #[test]
 fn leaves_a_number_after_a_percentage_alone_inside_a_colour_function() {
   check(
@@ -414,12 +356,12 @@ fn spaces_the_slash_operator() {
   check(
     &[
       same("width", "size/2", "size / 2"),
-      diverges("width", "/ 7", "/ 7", " / 7"),
-      diverges("width", "/.5", "/ .5", " / .5"),
-      diverges("width", "/-1", "/ -1", " / -1"),
-      diverges("width", "/-2", "/ -2", " / -2"),
-      // A function SWC's grammar does not know still gets its slash spaced,
-      // because the unknown-syntax fallback runs the same repair.
+      same("width", "/ 7", " / 7"),
+      same("width", "/.5", " / .5"),
+      same("width", "/-1", " / -1"),
+      same("width", "/-2", " / -2"),
+      // A function this compiler has never heard of is normalized like any
+      // other: there is no grammar to fall outside of.
       same(
         "width",
         "calc-size(fit-content,size/2)",
@@ -436,10 +378,7 @@ fn spaces_the_slash_operator() {
 #[test]
 fn spaces_the_multiplication_operator() {
   check(
-    &[
-      unchanged("width", "* 3"),
-      diverges("width", "*(100%)", "* (100%)", "*(100%)"),
-    ],
+    &[unchanged("width", "* 3"), unchanged("width", "*(100%)")],
     &default_options(),
   );
 }
@@ -465,17 +404,12 @@ fn rejects_an_unclosed_operand_after_a_multiplication_operator() {
 fn separates_adjacent_quoted_strings() {
   check(
     &[
-      diverges(
-        "gridTemplateAreas",
-        r#""content""sidebar""#,
-        r#""content" "sidebar""#,
-        r#""content""sidebar""#,
-      ),
-      diverges("quotes", r#""a""b""#, r#""a" "b""#, r#""a""b""#),
-      diverges("quotes", r#""""""#, r#""" """#, r#""""""#),
+      unchanged("gridTemplateAreas", r#""content""sidebar""#),
+      unchanged("quotes", r#""a""b""#),
+      unchanged("quotes", r#""""""#),
       // Three in a row, so a separator has to be inserted twice — the case
       // that catches a scan which only ever looks one quote back.
-      diverges("quotes", r#""""""""#, r#""" "" """#, r#""""""""#),
+      unchanged("quotes", r#""""""""#),
       // A lone empty string keeps its quotes and gains nothing.
       unchanged("quotes", r#""""#),
     ],
@@ -483,33 +417,32 @@ fn separates_adjacent_quoted_strings() {
   );
 }
 
-/// The same separation with single quotes, or with the two quote characters
-/// mixed. Two divergences compound here: the inserted space, and the quote
-/// character being rewritten to a double quote.
+/// The same neighbours in single quotes, or with the two quote characters
+/// mixed. Neither the separation nor the quote character moves: the quote the
+/// author chose is the quote that reaches the hash.
 #[test]
-fn diverges_twice_on_adjacent_single_quoted_strings() {
+fn keeps_adjacent_single_quoted_strings_as_written() {
   check(
     &[
-      diverges("quotes", r#"'a''b'"#, r#""a" "b""#, r#"'a''b'"#),
-      diverges("quotes", r#""a"'b'"#, r#""a" "b""#, r#""a"'b'"#),
+      unchanged("quotes", r#"'a''b'"#),
+      unchanged("quotes", r#""a"'b'"#),
     ],
     &default_options(),
   );
 }
 
-/// A string already separated from its neighbours by a space is a different
-/// path through the quote tracking — the flag that remembers a closing quote
-/// has to be cleared by the character in between — and the space itself is
-/// dropped, because only *missing* spaces are repaired, never surviving ones.
+/// A string already separated from its neighbours by a space keeps that space.
 ///
-/// This is the reported whitespace loss in its plainest form: the space is not
-/// displaced or collapsed, it is gone, and the class name changes with it.
+/// This is the reported whitespace loss in its plainest form: the space used to
+/// be dropped outright — not displaced, not collapsed, gone — and the class name
+/// changed with it. Nothing removes it now, because nothing rewrites a value
+/// except where a normalizer names it.
 #[test]
-fn diverges_on_dropping_the_space_around_a_separated_string() {
+fn keeps_the_space_around_a_separated_string() {
   check(
     &[
-      diverges("quotes", r#""a" x "b""#, r#""a"x"b""#, r#""a" x "b""#),
-      diverges("fontFamily", r#""a" 1px"#, r#""a"1px"#, r#""a" 1px"#),
+      unchanged("quotes", r#""a" x "b""#),
+      unchanged("fontFamily", r#""a" 1px"#),
     ],
     &default_options(),
   );
@@ -534,47 +467,34 @@ fn applies_no_spacing_rule_inside_a_string() {
   );
 }
 
-/// The same contents in single quotes, where the rewritten quote character is
-/// the only difference either compiler makes.
+/// The same contents in single quotes, which is the same answer: the quote
+/// character is content too.
 #[test]
-fn diverges_on_the_quote_character_around_inert_contents() {
+fn keeps_the_quote_character_around_inert_contents() {
   check(
-    &[diverges(
-      "fontFamily",
-      r##"'a)b#c%d.5/1*2('"##,
-      r##""a)b#c%d.5/1*2(""##,
-      r##"'a)b#c%d.5/1*2('"##,
-    )],
+    &[unchanged("fontFamily", r##"'a)b#c%d.5/1*2('"##)],
     &default_options(),
   );
 }
 
-/// **A defect, recorded rather than fixed.** An escaped quote inside a string
-/// does not survive the round trip through SWC's minifying codegen: a
-/// double-quoted string comes back with its quotes *removed*
-/// (`"a\"b#c"` → `a"b#c`), and a single-quoted one comes back with the escaped
-/// quote silently dropped (`'a\'b#c'` → `"ab#c"`).
+/// An escaped quote inside a string survives, escape and all.
 ///
-/// The unquoted form is not merely a different spelling — it is no longer a
-/// string, so the value extraction that follows never recognises the generated
-/// rule's closing brace as a terminator and the `}` ends up inside the
-/// declaration. That escapes the rule being generated, which is what the
-/// structural guard exists to prevent; the guard reads the author's value, and
-/// this `}` is manufactured downstream of it.
+/// This used to be the worst failure in the suite: the round trip through a
+/// minifying codegen returned a double-quoted string with its quotes *removed*
+/// (`"a\"b#c"` → `a"b#c`) and a single-quoted one with the escaped quote
+/// silently dropped. The unquoted result was no longer a string, so the value
+/// extraction that followed did not recognise the generated rule's closing
+/// brace as a terminator and the `}` landed inside the declaration — escaping
+/// the rule the structural guard exists to protect, by a `}` manufactured
+/// downstream of the guard.
 ///
-/// Filed as issue 15 in this effort's tracker. Asserted here as it behaves
-/// today, so the pipeline replacement has to move it deliberately.
+/// Nothing rewrites the string now, so nothing can un-quote it.
 #[test]
-fn diverges_on_an_escaped_quote_inside_a_string() {
+fn keeps_an_escaped_quote_inside_a_string() {
   check(
     &[
-      diverges(
-        "fontFamily",
-        r##""a\"b#c""##,
-        r##"a"b#c}"##,
-        r##""a\"b#c""##,
-      ),
-      diverges("fontFamily", r##"'a\'b#c'"##, r#""ab#c""#, r##"'a\'b#c'"##),
+      unchanged("fontFamily", r##""a\"b#c""##),
+      unchanged("fontFamily", r##"'a\'b#c'"##),
     ],
     &default_options(),
   );
@@ -637,30 +557,18 @@ fn balances_nested_parens_inside_a_url_body() {
   );
 }
 
-/// The body is copied verbatim, but the value *after* it is still a value. The
-/// fast path used to skip the rest of the declaration, leaving a later
-/// component with the minifier's spacing — so these repairs are real, and being
-/// repairs, they diverge.
+/// The body is copied verbatim, and so is the value *after* it. An earlier fast
+/// path used to skip the rest of the declaration and leave a later component
+/// with the minifier's spacing; there is no minifier and no fast path now, so
+/// what follows a `url()` is spelled the way it was written.
 #[test]
-fn still_repairs_the_value_after_a_url() {
+fn keeps_the_value_after_a_url_as_written() {
   check(
     &[
-      diverges(
+      unchanged("backgroundImage", "url(a(b).png)calc(1px)"),
+      unchanged("backgroundImage", "url(a.png)calc(1px)"),
+      unchanged(
         "backgroundImage",
-        "url(a(b).png)calc(1px)",
-        "url(a(b).png) calc(1px)",
-        "url(a(b).png)calc(1px)",
-      ),
-      diverges(
-        "backgroundImage",
-        "url(a.png)calc(1px)",
-        "url(a.png) calc(1px)",
-        "url(a.png)calc(1px)",
-      ),
-      diverges(
-        "backgroundImage",
-        r#"url("/icons/•#hash.svg")calc(1px)rgb(0,0,0)"#,
-        r#"url("/icons/•#hash.svg") calc(1px) rgb(0,0,0)"#,
         r#"url("/icons/•#hash.svg")calc(1px)rgb(0,0,0)"#,
       ),
     ],
@@ -700,54 +608,43 @@ fn spaces_a_slash_separator_after_a_url() {
   );
 }
 
-/// The same body in single quotes, where the rewritten quote character
-/// compounds with the repaired space.
+/// The same body in single quotes, which keeps both its quote character and
+/// the author's spacing around the call that follows it.
 #[test]
-fn diverges_on_the_quote_character_inside_a_url_body() {
+fn keeps_the_quote_character_inside_a_url_body() {
   check(
-    &[diverges(
-      "backgroundImage",
-      r#"url('a)b.png')calc(1px)"#,
-      r#"url("a)b.png") calc(1px)"#,
-      r#"url('a)b.png')calc(1px)"#,
-    )],
+    &[unchanged("backgroundImage", r#"url('a)b.png')calc(1px)"#)],
     &default_options(),
   );
 }
 
-/// The escaped-quote defect reaches `url()` bodies too: the codegen drops the
-/// quotes, the body stops being a string, and the generated rule's closing
-/// brace lands in the declaration. Same finding as
-/// [`diverges_on_an_escaped_quote_inside_a_string`], recorded at the URL shape
-/// because that is where it was originally pinned.
+/// A quoted `url()` body carrying an escaped quote survives the same way a
+/// bare string does. Same finding as
+/// [`keeps_an_escaped_quote_inside_a_string`], kept at the URL shape because
+/// that is where it was originally pinned.
 #[test]
-fn diverges_on_an_escaped_quote_inside_a_url_body() {
+fn keeps_an_escaped_quote_inside_a_url_body() {
   check(
-    &[diverges(
-      "backgroundImage",
-      r#"url("a\")b.png") 10px"#,
-      r#"url(a")b.png)10px}"#,
-      r#"url("a\")b.png") 10px"#,
-    )],
+    &[unchanged("backgroundImage", r#"url("a\")b.png") 10px"#)],
     &default_options(),
   );
 }
 
-/// An unquoted `'` or `/*` inside a body is an ordinary URL character to the
-/// repair, but the structural guard ahead of it reads the value as text and
-/// does not know `url()` from any other function: the `'` opens a string that
-/// never closes and the `/*` opens a comment that never closes, so both values
-/// are rejected before the repair is reached.
+/// An unquoted `'` or `/*` inside a body is an ordinary URL character, and it
+/// stays one all the way through: the structural guard steps over a `url()`
+/// body whole rather than reading it as CSS, so neither the quote nor the
+/// comment opener is taken as the start of a construct that never closes.
 ///
-/// The reference compiler accepts both, so the harness verdict is
-/// `acceptance divergent`. Asserted on the diagnostic rather than through the
-/// case table, since a rejection has no spelling to compare.
+/// A browser reads the body the same way — an unquoted url token runs to its
+/// closing paren — so emitting these verbatim is safe, and the harness verdict
+/// for both is `identical`.
 #[test]
-fn rejects_a_url_body_that_reads_as_an_unclosed_construct() {
-  rejects(
-    "backgroundImage",
-    &["url(it's-fine.png)", "url(a/*b.png)"],
-    UNCLOSED_FUNCTION,
+fn keeps_a_url_body_that_reads_as_an_unclosed_construct() {
+  check(
+    &[
+      unchanged("backgroundImage", "url(it's-fine.png)"),
+      unchanged("backgroundImage", "url(a/*b.png)"),
+    ],
     &default_options(),
   );
 }
@@ -779,40 +676,35 @@ fn does_not_treat_a_url_suffixed_identifier_as_a_url() {
 /// never survives that far: SWC's codegen drops it, so what the seam returns is
 /// the value with its comments already gone.
 ///
-/// That difference is the point of migrating these cases. The repair's own
-/// contract is "a comment is copied verbatim"; the compiler's is "a comment is
-/// dropped", and only the second is observable. The reference compiler keeps
-/// the comment in the declaration, so all of these diverge — and for
-/// `/*/ x */`, which it mangles into `/**/ x * /`, they diverge twice over.
+/// That difference is the point of migrating these cases. The repair pass's own
+/// contract was "a comment is copied verbatim" while the compiler's was "a
+/// comment is dropped", and only the second was observable. The compiler now
+/// keeps the comment, which is what the reference compiler has always done —
+/// including for `/*/ x */`, which the old path mangled into `/**/ x * /`.
 #[test]
-fn drops_comments_from_the_value() {
+fn keeps_comments_in_the_value() {
   check(
     &[
-      diverges("width", "/* a */1px", "1px", "/* a */1px"),
-      diverges("width", "/*/ x */ 1px", "1px", "/**/ x * / 1px"),
-      diverges("width", "1px /*/ y */", "1px", "1px /**/ y * / "),
+      unchanged("width", "/* a */1px"),
+      same("width", "/*/ x */ 1px", "/**/ x * / 1px"),
+      same("width", "1px /*/ y */", "1px /**/ y * / "),
       // A `}` inside a comment is comment text: the comment is dropped whole
       // rather than terminating the rule, which is why this is not rejected.
-      diverges("width", "/* a }b */ 1px", "1px", "/* a }b */ 1px"),
+      unchanged("width", "/* a }b */ 1px"),
     ],
     &default_options(),
   );
 }
 
-/// A value that is nothing but a comment normalizes to nothing at all.
+/// A value that is nothing but a comment keeps the comment.
 ///
-/// The harness calls this `structurally divergent` rather than `divergent`: an
-/// empty value makes this compiler drop the declaration outright, so the two
-/// emit a different number of them. The reference spelling below is still the
-/// declaration text the reference compiler produces, which is what a pipeline
-/// change would have to start producing to close the gap.
+/// It used to normalize to nothing at all, which dropped the declaration and
+/// left the two compilers emitting a different number of them. A comment is
+/// text no normalizer names, so it now survives like any other text.
 #[test]
-fn diverges_on_a_value_that_is_only_a_comment() {
+fn keeps_a_value_that_is_only_a_comment() {
   check(
-    &[
-      diverges("width", "/* a */", "", "/* a */"),
-      diverges("width", "/**/", "", "/**/"),
-    ],
+    &[unchanged("width", "/* a */"), unchanged("width", "/**/")],
     &default_options(),
   );
 }
@@ -843,18 +735,22 @@ fn leaves_an_already_spaced_value_alone() {
   );
 }
 
-/// An empty value, and one that is nothing but whitespace, both normalize to
-/// empty rather than to a space or a panic.
+/// An empty value, and one that is nothing but whitespace, are both rejected:
+/// there is no token to trim the edges of, and the whitespace normalizer reads
+/// the first and last elements of the list without guarding.
 ///
-/// The harness verdict is `acceptance divergent`: the reference compiler
-/// rejects both outright. There is no reference spelling to compare against, so
-/// this is asserted directly rather than through the case table.
+/// The reference compiler fails on the same values at the same point, so the
+/// harness verdict is `both reject`. The message is local rather than an
+/// imitation of a foreign runtime error, which is why this is asserted on the
+/// diagnostic: a bare "it panicked" would pass on any panic at all.
 #[test]
-fn normalizes_an_empty_value_to_nothing() {
-  let options = default_options();
-
-  assert_eq!(normalize_css_property_value("color", "", &options), "");
-  assert_eq!(normalize_css_property_value("color", "   ", &options), "");
+fn rejects_a_value_with_nothing_to_normalize() {
+  rejects(
+    "color",
+    &["", "   "],
+    "nothing to normalize",
+    &default_options(),
+  );
 }
 
 // ── Non-ASCII content ────────────────────────────────────────────────
@@ -882,59 +778,38 @@ fn preserves_non_ascii_content() {
   );
 }
 
-/// The same content in single quotes, where the rewritten quote character is
-/// the only divergence.
+/// The same content in single quotes, which keeps its quote character too.
 #[test]
-fn diverges_on_the_quote_character_around_non_ascii_content() {
+fn keeps_the_quote_character_around_non_ascii_content() {
   check(
-    &[diverges(
-      "fontFamily",
-      r#"'•✓日本語😀'"#,
-      r#""•✓日本語😀""#,
-      r#"'•✓日本語😀'"#,
-    )],
+    &[unchanged("fontFamily", r#"'•✓日本語😀'"#)],
     &default_options(),
   );
 }
 
 // ── The leading zero on a negative decimal ───────────────────────────
 
-/// The minifier strips the `0` from `-0.5px`, and CSS reads what is left as a
-/// subtraction rather than a negative number. The repair puts it back — but
-/// only where the `-` is a sign, never where it is an operator.
+/// The minifier used to strip the `0` from `-0.5px`, leaving something CSS
+/// reads as a subtraction rather than a negative number, and a repair pass put
+/// it back — but only where it could tell a sign from an operator.
 ///
-/// The reference compiler keeps the author's `-.5px`, so restoring the zero is
-/// a divergence in every one of these. It is also the only thing standing
-/// between this compiler and invalid CSS, which is why the repair exists.
+/// Nothing strips it now, so nothing has to restore it and nothing has to make
+/// that distinction. The author's `-.5px` stays `-.5px`, which is what the
+/// reference compiler produces.
 #[test]
-fn restores_the_leading_zero_on_a_negative_decimal() {
+fn keeps_the_leading_zero_as_the_author_wrote_it() {
   check(
     &[
-      diverges("marginTop", "-.24px", "-0.24px", "-.24px"),
-      diverges("transitionDuration", "-.9s", "-0.9s", "-.9s"),
-      diverges("opacity", "-.5", "-0.5", "-.5"),
-      diverges(
-        "width",
-        "calc(-.5px + 1px)",
-        "calc(-0.5px + 1px)",
-        "calc(-.5px + 1px)",
-      ),
+      unchanged("marginTop", "-.24px"),
+      unchanged("transitionDuration", "-.9s"),
+      unchanged("opacity", "-.5"),
+      unchanged("width", "calc(-.5px + 1px)"),
       // Inside a function argument list, and after a multi-byte character.
-      diverges(
-        "transform",
-        "translate(-.5px,-.25px)",
-        "translate(-0.5px,-0.25px)",
-        "translate(-.5px,-.25px)",
-      ),
-      diverges(
-        "transform",
-        "translate(🎉,-.5px)",
-        "translate(🎉,-0.5px)",
-        "translate(🎉,-.5px)",
-      ),
+      unchanged("transform", "translate(-.5px,-.25px)"),
+      unchanged("transform", "translate(🎉,-.5px)"),
       // A `-` in sign position that is not followed by `.<digit>` is left
       // alone, and a later one is still restored.
-      diverges("margin", "-5px -.5px", "-5px -0.5px", "-5px -.5px"),
+      unchanged("margin", "-5px -.5px"),
     ],
     &default_options(),
   );
@@ -957,20 +832,15 @@ fn leaves_subtraction_operators_alone() {
   );
 }
 
-/// A percentage followed by `-.5px` reads as subtraction to the repair, so the
-/// zero would not be restored there — except this value takes the
-/// unknown-syntax fallback, which runs the restoration over the author's text
-/// before the repair ever sees it, and the zero comes back anyway.
+/// A percentage followed by `-.5px` keeps the author's spelling.
 ///
-/// Recorded as it behaves. The disagreement between the two paths is a
-/// symptom of the same problem the pipeline replacement addresses: a spelling
-/// decided by which branch a value happens to take.
+/// It used to come back as `10%-0.5px` — a zero inserted by a restoration pass
+/// that ran only on the branch this particular value happened to take, while
+/// the other branch left it alone. There is one branch now, and it inserts
+/// nothing.
 #[test]
-fn diverges_on_a_negative_decimal_after_a_percentage() {
-  check(
-    &[diverges("width", "10%-.5px", "10%-0.5px", "10%-.5px")],
-    &default_options(),
-  );
+fn keeps_a_negative_decimal_after_a_percentage() {
+  check(&[unchanged("width", "10%-.5px")], &default_options());
 }
 
 /// The restoration never reaches inside a string, so a value that happens to
@@ -983,39 +853,75 @@ fn keeps_the_restoration_out_of_strings() {
     &[
       unchanged("fontFamily", r#""-.5""#),
       unchanged("fontFamily", r#""🎉 -.5""#),
-      diverges(
-        "transform",
-        r#"translate(-.5px,"-.25px")"#,
-        r#"translate(-0.5px,"-.25px")"#,
-        r#"translate(-.5px,"-.25px")"#,
-      ),
+      unchanged("transform", r#"translate(-.5px,"-.25px")"#),
     ],
     &default_options(),
   );
 }
 
-/// The same string in single quotes, where the rewritten quote character is the
-/// only divergence.
+/// The same string in single quotes, which keeps its quote character too.
 #[test]
-fn diverges_on_the_quote_character_around_a_protected_decimal() {
+fn keeps_the_quote_character_around_a_protected_decimal() {
+  check(&[unchanged("fontFamily", r#"'-.5'"#)], &default_options());
+}
+
+/// The escaped-quote shape again, on a string whose contents would otherwise
+/// look like something to rewrite.
+#[test]
+fn keeps_an_escaped_quote_around_a_protected_decimal() {
   check(
-    &[diverges("fontFamily", r#"'-.5'"#, r#""-.5""#, r#"'-.5'"#)],
+    &[unchanged("fontFamily", r#""a\"-.5""#)],
     &default_options(),
   );
 }
 
-/// The escaped-quote defect again, on a string whose contents are the
-/// restoration pattern: the quotes are dropped by the codegen and the generated
-/// rule's closing brace lands in the declaration.
+/// An unterminated `url()` is reported as an unclosed function, not as a rule
+/// terminator.
+///
+/// The body swallows everything after it — that is what "unterminated" means
+/// here — so a `;` or a `{` inside one is url text that never reaches the
+/// stylesheet as syntax. Letting the structural scan reject it first would give
+/// the same input two diagnostics depending on which check ran first, which is
+/// exactly what moving the unclosed checks into the normalizers was meant to
+/// stop.
 #[test]
-fn diverges_on_an_escaped_quote_around_a_protected_decimal() {
-  check(
-    &[diverges(
-      "fontFamily",
-      r#""a\"-.5""#,
-      r#"a"-.5}"#,
-      r#""a\"-.5""#,
-    )],
+fn reports_an_unterminated_url_body_as_an_unclosed_function() {
+  rejects(
+    "backgroundImage",
+    &[
+      "url(data:image/png;base64,AAA",
+      "url(a{b",
+      "url(a}b",
+      "url(",
+    ],
+    UNCLOSED_FUNCTION,
     &default_options(),
+  );
+}
+
+/// Nesting inside a `url()` body is body text, not structure. A value that
+/// looks deeply nested only because its url body is full of parentheses is
+/// neither rejected for depth nor recursed into: the parser reads that body as
+/// one word, so the depth this guard counts is the depth the parser will
+/// actually reach.
+///
+/// Generated, so the harness carries no verdict for it. What it is really
+/// asserting is that the process survives — the depth guard is the only thing
+/// standing between a deep value and a stack overflow, which aborts rather than
+/// panicking and so produces no diagnostic at all.
+#[test]
+fn counts_nesting_inside_a_url_body_as_the_parser_does() {
+  let mut body = String::from("a");
+  for _ in 0..500 {
+    body = format!("({body})");
+  }
+
+  let value = format!("url(x{body})");
+
+  // Asserted directly rather than through the case table: the value is built
+  // here, and a `Case` holds `&'static str`.
+  assert_eq!(
+    normalize_css_property_value("backgroundImage", &value, &default_options()),
+    value
   );
 }

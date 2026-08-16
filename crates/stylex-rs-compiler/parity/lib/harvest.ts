@@ -81,7 +81,21 @@ export function harvestCorpus(options: HarvestOptions): CorpusEntry[] {
     collected.push(...extractStyleObjects(file));
   }
 
-  return dedupe(collected);
+  return dedupe(collected.filter(candidate => isDeclarationKey(candidate.property)));
+}
+
+/**
+ * Whether a harvested key names a declaration rather than a selector or an
+ * at-rule.
+ *
+ * A `:hover` or `@media` key inside `stylex.create` opens a nested block; the
+ * object under it holds the declarations. Feeding one to the comparison as if
+ * it were a property asks both compilers what `:hover: <value>` means, and
+ * neither answer says anything about how a value is spelled — so a pair like
+ * that reports a divergence that no change to normalization could ever close.
+ */
+function isDeclarationKey(property: string): boolean {
+  return !property.startsWith(':') && !property.startsWith('@');
 }
 
 /**

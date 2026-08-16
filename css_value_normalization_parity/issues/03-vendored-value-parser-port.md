@@ -33,7 +33,7 @@ Nothing is wired up in this ticket. The parser stands alone.
 
 **Blocked by:** None — can start immediately.
 
-**Status:** done
+**Status:** resolved
 
 - [x] Parse and serialize round-trip to a byte-identical string across the full
       corpus from ticket 01 — this is the primary acceptance test and it asserts

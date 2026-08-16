@@ -26,7 +26,7 @@ not flip on their own, that is a gap in the port.
 **Blocked by:** 07 — Swap normalization onto the ported pipeline. Confirmed
 rather than assumed; see Investigation.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Investigation
 
@@ -52,11 +52,27 @@ pattern the parent spec names as the thing this effort exists to end.
 So the fix is to stop routing strings through that codegen, which is exactly
 what 07 does. Nothing to carry forward but this note.
 
-- [ ] An escape inside a string survives normalization with its source spelling
+- [x] An escape inside a string survives normalization with its source spelling
       intact, for both a BMP and an astral-plane codepoint
-- [ ] The parity harness reports `identical` for the three `fontFamily` escape
+      (`keeps_an_escape_inside_a_string_unresolved`)
+- [x] The parity harness reports `identical` for the three `fontFamily` escape
       entries in `edge.json`
-- [ ] The migrated cases in
-      `crates/stylex-css/src/css/tests/value_normalization_parity_test.rs` carry
-      `Reference::Same` and assert the source spelling
-- [ ] An escape outside a string is still preserved, as it is today
+- [x] The migrated cases in
+      `crates/stylex-css/src/css/tests/value_normalization_parity_test.rs`
+      assert the source spelling
+
+      Written against `Reference::Same`, which ticket 07 retired along with
+      `diverges`; the cases carry the same claim through `unchanged`.
+- [x] An escape outside a string is still preserved, as it is today
+      (`preserves_an_escape_outside_a_string`)
+
+## Resolution
+
+Closed by ticket 07 rather than by work of its own. The defect lived in the
+round trip through the CSS stylesheet serializer, and normalization no longer
+makes that round trip: a value is parsed losslessly and spelled back out, so a
+string the normalizers do not name reaches the declaration as the author wrote
+it.
+
+Confirmed against the harness, `@stylexjs/babel-plugin` v0.19.0 — verdict
+`identical` for every value this ticket names.

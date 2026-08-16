@@ -28,6 +28,10 @@ code it describes.
 
 **Blocked by:** 07 — Swap normalization onto the ported pipeline.
 
+**Deferred:** skipped for now by maintainer decision — to be picked up in a
+later pass. Unblocked and fully specified; nothing else in this effort waits on
+it. Do not pick this ticket up as "the next available one".
+
 **Status:** ready-for-agent
 
 - [ ] A criterion benchmark exercises the public value normalization entry point

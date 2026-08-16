@@ -44,10 +44,6 @@ swc_compiler_base = { workspace = true, features = ["node"] }
 swc_config.workspace = true
 swc_core = { workspace = true, features = [
   "common",
-  "css_ast",
-  "css_codegen",
-  "css_parser",
-  "css_visit",
   "ecma_codegen",
   "ecma_parser",
   "ecma_plugin_transform",

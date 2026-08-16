@@ -34,10 +34,21 @@ _Avoid_: bidi, flip, mirroring
 
 **Normalization**:
 Rewriting a value into its canonical text so two spellings of the same value
-hash to one class. Whitespace normalization is the general path; values SWC's
-CSS parser cannot handle — relative color syntax such as `rgb(from red r g b)` —
-are normalized by spacing alone rather than parsed and re-serialized.
+hash to one class. One path serves every value: it is scanned into a token
+list, a fixed sequence of value passes is folded over it, and the list is
+spelled back out. There is no second route and no allowlist — syntax the
+compiler has never heard of, relative color syntax included, goes the same way
+as `color: red`.
 _Avoid_: minification, formatting, cleanup
+
+**Value pass**:
+One member of that fixed sequence — a single walk of the token list that
+either rewrites it in place or rejects the value outright. Its position in the
+sequence is behaviour, not arrangement: a pass that reads a token another pass
+has already rewritten sees different input, and a rejecting pass placed after
+another decides which of two diagnostics an author gets.
+_Avoid_: normalizer (that is the narrower term for the ported ones), step,
+stage, visitor
 
 **Spacing repair**:
 The stage of whitespace normalization that puts back the spaces SWC's minifying

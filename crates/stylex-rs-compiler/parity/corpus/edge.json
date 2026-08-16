@@ -372,6 +372,34 @@
       "property": "boxShadow",
       "value": "0 0 1px #000, 0 0 2px #000, 0 0 3px #000, 0 0 4px #000, 0 0 5px #000, 0 0 6px #000, 0 0 7px #000, 0 0 8px #000, 0 0 9px #000, 0 0 10px #000",
       "origin": "hand-written: a long comma-separated list"
+    },
+    {
+      "id": "edge-trailing-semicolon",
+      "property": "backgroundColor",
+      "value": "var(--web-wash);",
+      "origin": "hand-written: a stray trailing semicolon",
+      "note": "A trailing `;` closes only its own declaration and injects nothing; 23 occurrences in the rollup fixture alone."
+    },
+    {
+      "id": "edge-trailing-semicolon-spaced",
+      "property": "color",
+      "value": "red ; ",
+      "origin": "hand-written: a trailing semicolon with whitespace after it",
+      "note": "Still nothing after the `;` but whitespace, so still no second declaration."
+    },
+    {
+      "id": "edge-trailing-semicolons-repeated",
+      "property": "color",
+      "value": "red;;",
+      "origin": "hand-written: repeated trailing semicolons",
+      "note": "Empty declarations after the first, which CSS ignores."
+    },
+    {
+      "id": "edge-semicolon-then-declaration",
+      "property": "color",
+      "value": "red; margin: 10px",
+      "origin": "hand-written: a semicolon followed by another declaration",
+      "note": "The injection shape the rule-breaking guard exists for."
     }
   ]
 }

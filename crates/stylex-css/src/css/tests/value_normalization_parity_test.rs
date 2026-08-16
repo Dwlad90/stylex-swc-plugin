@@ -530,6 +530,100 @@ fn rejects_a_value_carrying_an_opening_brace() {
   );
 }
 
+/// The four arrangements the totality sweep found that do not settle after a
+/// second normalization pass, pinned at the spelling of the *first* pass —
+/// which is the only one a declaration ever gets.
+///
+/// The sweep can say that these move; it cannot say whether where they move
+/// from is right. That is this table's job, and the harness answers it:
+/// `identical` for all four, so the reference compiler carries the same
+/// trailing characters and the same acquired space. Their non-settling is
+/// pinned separately in `totality_test`.
+#[test]
+fn spells_the_arrangements_that_do_not_settle_the_way_the_reference_does() {
+  check(
+    &[
+      same("width", "()/", "() / "),
+      same("width", "00)", "0)"),
+      same("width", "00\\", "0\\"),
+      same("width", "00*", "0*"),
+    ],
+    &default_options(),
+  );
+}
+
+// ── Numbers at the edges of a double ─────────────────────────────────
+
+/// Two passes re-spell a number through a float parse and a JavaScript-shaped
+/// printer, so the ends of a double's range are where the two compilers would
+/// part company silently — a wrong digit in a class name looks like nothing at
+/// all.
+///
+/// Every spelling below is the harness's, and the interesting ones are the
+/// four where the value is *not* returned as written: a magnitude too small
+/// for a double reads back as a zero and keeps its unit, a negative zero reads
+/// back as a positive one and keeps its unit too, a trailing decimal point
+/// reads as a zero and loses it, and a fraction longer than a double's
+/// precision comes back rounded to seventeen significant digits. A magnitude
+/// too *large* is left alone, because nothing in the passes has an opinion
+/// about it.
+///
+/// Note what separates the two zeros that keep their unit from the one that
+/// loses it: the rule reads the authored spelling, not the quantity, so only a
+/// value that *reads* as zero has its unit dropped.
+#[test]
+fn spells_numbers_at_the_edges_of_a_double_the_way_the_reference_does() {
+  check(
+    &[
+      unchanged("width", "1e309px"),
+      same("width", "1e-324px", "0px"),
+      unchanged("width", "1.7976931348623157e308px"),
+      unchanged("width", "5e-324px"),
+      unchanged("width", "9007199254740993px"),
+      unchanged("width", "123456789012345678901234567890px"),
+      unchanged("width", "1epx"),
+      unchanged("width", "."),
+      same("width", "0.px", "0"),
+      same("width", "-0px", "0px"),
+      same(
+        "opacity",
+        "0.12345678901234567890123456789",
+        ".12345678901234568",
+      ),
+    ],
+    &default_options(),
+  );
+}
+
+// ── Multi-byte characters at a slicing boundary ──────────────────────
+
+/// The passes index by byte, so a multi-byte character sitting where one of
+/// them cuts is where a boundary panic would live. `totality_test` sweeps those
+/// positions for crashes; this pins what comes out of the ones that matter.
+///
+/// A combining mark is a code point of its own and must not be separated from
+/// the character it modifies. A right-to-left mark and a byte-order mark are
+/// invisible, so a pass that dropped one would change the hash with nothing to
+/// show for it in the rendered CSS. A non-breaking space is a word character
+/// here rather than a separator, so it must not collapse the way a space does.
+/// An astral-plane code point is four bytes, straight after an escape and
+/// between a number and its unit.
+#[test]
+fn spells_multi_byte_characters_at_a_slicing_boundary_the_way_the_reference_does() {
+  check(
+    &[
+      unchanged("fontFamily", "\"e\u{301}\""),
+      unchanged("fontFamily", "e\u{301}"),
+      unchanged("fontFamily", "\"a\u{200F}b\""),
+      unchanged("fontFamily", "\"a\u{FEFF}b\""),
+      unchanged("fontFamily", "a\u{00A0}b"),
+      unchanged("fontFamily", "\\\u{1F600}"),
+      unchanged("width", "1\u{1F600}px"),
+    ],
+    &default_options(),
+  );
+}
+
 // ── Robustness ───────────────────────────────────────────────────────
 
 /// Builds a value nesting `calc()` `depth` levels deep.

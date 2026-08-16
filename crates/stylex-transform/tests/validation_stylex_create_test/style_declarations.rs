@@ -495,7 +495,7 @@ stylex_test!(
 );
 
 stylex_test_panic!(
-  invalid_css_variable_unprefixed_custom_property,
+  invalid_css_variable_unprefixed_and_unclosed_reports_the_unclosed_function,
   "Rule contains an unclosed function",
   |tr| {
     let mut defined_vars = FxHashMap::default();
@@ -510,6 +510,48 @@ stylex_test_panic!(
     const styles = stylex.create({
       root: {
         color: 'var(foo'
+      }
+    });
+  "#
+);
+
+stylex_test_panic!(
+  invalid_css_variable_unprefixed_custom_property,
+  "Unprefixed custom properties",
+  |tr| {
+    let mut defined_vars = FxHashMap::default();
+    defined_vars.insert("foo".to_string(), "1".to_string());
+    stylex_transform(tr.comments.clone(), |b| {
+      b.with_defined_stylex_css_variables(defined_vars)
+        .with_runtime_injection()
+    })
+  },
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        color: 'var(foo)'
+      }
+    });
+  "#
+);
+
+stylex_test_panic!(
+  invalid_css_variable_unprefixed_custom_property_in_a_nested_pseudo,
+  "Unprefixed custom properties",
+  |tr| {
+    let mut defined_vars = FxHashMap::default();
+    defined_vars.insert("foo".to_string(), "1".to_string());
+    stylex_transform(tr.comments.clone(), |b| {
+      b.with_defined_stylex_css_variables(defined_vars)
+        .with_runtime_injection()
+    })
+  },
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      root: {
+        color: { default: 'red', ':hover': 'var(foo)' }
       }
     });
   "#

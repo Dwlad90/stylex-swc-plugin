@@ -306,3 +306,100 @@ stylex_test!(
     });
   "#
 );
+
+// Numbers at the ends of a double's range, where a wrong digit inside a class
+// name looks like no defect at all. Four of them do not come back as written;
+// which four, and why, is set out at the normalization seam in
+// `spells_numbers_at_the_edges_of_a_double_the_way_the_reference_does`. What
+// this adds is the class name each one hashes to.
+//
+// Upstream: .x1g9kooq{width:1e309px}
+//           .x1lx9cm8{width:0px}
+//           .x1z0jktx{width:1.7976931348623157e308px}
+//           .x6pb8ui{width:5e-324px}
+//           .x113yxd9{width:9007199254740993px}
+//           .xg144zj{width:123456789012345678901234567890px}
+//           .xp7cifa{width:1epx}
+//           .xd9flah{width:.}
+//           .xnalus7{width:0}
+//           .x1lx9cm8{width:0px}
+//           .x1dwv5jz{opacity:.12345678901234568}
+stylex_test!(
+  numbers_at_the_edges_of_a_double_keep_the_reference_spelling,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      overflowsToInfinity: { width: "1e309px" },
+      underflowsToZero: { width: "1e-324px" },
+      largestFinite: { width: "1.7976931348623157e308px" },
+      smallestSubnormal: { width: "5e-324px" },
+      pastDoublePrecision: { width: "9007199254740993px" },
+      thirtyDigits: { width: "123456789012345678901234567890px" },
+      exponentWithNoDigits: { width: "1epx" },
+      bareDecimalPoint: { width: "." },
+      trailingDecimalPoint: { width: "0.px" },
+      negativeZero: { width: "-0px" },
+      highPrecisionFraction: { opacity: "0.12345678901234567890123456789" },
+    });
+  "#
+);
+
+// Multi-byte characters at the byte offsets the passes cut on; which
+// characters, and what each one risks, is set out at the normalization seam in
+// `spells_multi_byte_characters_at_a_slicing_boundary_the_way_the_reference_
+// does`. What this adds is the class name each one hashes to.
+//
+// Three of the seven are invisible, and the measurements below carry them as
+// the raw characters the harness handed both compilers rather than as escapes —
+// so `"a‏b"` holds a right-to-left mark, `"a﻿b"` a byte-order mark, and
+// `a b` a non-breaking space, each between the two letters.
+//
+// Upstream: .x8oru8l{font-family:"é"}
+//           .x5l3f0p{font-family:é}
+//           .xvgeugp{font-family:"a‏b"}
+//           .xz4egqn{font-family:"a﻿b"}
+//           .x19sifd9{font-family:a b}
+//           .x1iw8uwt{font-family:\😀}
+//           .xqrlfat{width:1😀px}
+stylex_test!(
+  multi_byte_characters_survive_a_slicing_boundary,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      combiningMarkInAString: { fontFamily: "\"é\"" },
+      combiningMarkAsAnIdentifier: { fontFamily: "é" },
+      rightToLeftMark: { fontFamily: "\"a‏b\"" },
+      byteOrderMark: { fontFamily: "\"a﻿b\"" },
+      nonBreakingSpace: { fontFamily: "a b" },
+      astralPlaneAfterAnEscape: { fontFamily: "\\😀" },
+      astralPlaneBetweenNumberAndUnit: { width: "1😀px" },
+    });
+  "#
+);
+
+// The arrangements a totality sweep of the normalization seam found not to
+// settle: normalize the output again and it moves, and in the first case it
+// grows a space on every run. Nothing normalizes twice today, so what a
+// declaration actually gets is the first run's spelling — and the reference
+// compiler produces the same one, trailing character and acquired space
+// included.
+//
+// Upstream: .x1nlq1fn{width:() / }
+//           .x1prxcy3{width:0)}
+//           .x940y1d{width:0\}
+//           .xli7qyh{width:0*}
+stylex_test!(
+  arrangements_that_do_not_settle_keep_the_reference_spelling,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      emptyFunctionThenSeparator: { width: "()/" },
+      trailingParen: { width: "00)" },
+      trailingBackslash: { width: "00\\" },
+      trailingAsterisk: { width: "00*" },
+    });
+  "#
+);

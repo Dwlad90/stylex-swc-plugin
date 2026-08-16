@@ -2,8 +2,8 @@
 //!
 //! The value is scanned into a loose token list, a fixed list of small
 //! transformations is folded over it in a fixed order, and the list is spelled
-//! back out. Nothing else happens to it — which is the point. A token no
-//! normalizer names survives byte for byte, so the author's hex spelling,
+//! back out. Nothing else happens to it — which is the point. A token no pass
+//! names survives byte for byte, so the author's hex spelling,
 //! letter case, quote character and whitespace positions all reach the hash
 //! exactly as written.
 //!
@@ -14,19 +14,17 @@
 //! leading zero: `100ms` becomes `0.1s` and then `.1s`. Reordering the two
 //! produces `0.1s`, a different class name, and no error anywhere.
 //!
-//! The two detectors run first so that a value carrying an unfinished
-//! construct is rejected before anything rewrites it, and
-//! [`convert_font_size_to_rem`] runs last — appended only when its option is
-//! on — so that the number it produces keeps its leading zero.
-//!
-//! [`detect_unprefixed_custom_properties`] sits third: after the detectors, so
-//! that `var(foo` is reported as the unfinished function it is rather than as a
-//! missing prefix, and before every rewrite, so that the name it reads is the
-//! name the author typed.
+//! The three detectors run first so that a value carrying an unfinished
+//! construct, or a reference to a property that cannot exist, is rejected
+//! before anything rewrites it — and among themselves in that order, so that
+//! `var(foo`, which is unfinished *and* unprefixed, is reported as the
+//! unfinished function it is. [`convert_font_size_to_rem`] runs last —
+//! appended only when its option is on — so that the number it produces keeps
+//! its leading zero.
 //!
 //! ## What is not here
 //!
-//! No normalizer understands hex colours, letter case, quote characters or
+//! No pass understands hex colours, letter case, quote characters or
 //! exponent notation, so none of them can alter those. Read the absence as
 //! deliberate: it is what makes two compilers agree on a value neither of them
 //! has an opinion about.
@@ -45,13 +43,20 @@ use crate::css::normalizers::{
 /// One pass over the token list, rewriting it in place — or rejecting it — for
 /// the property its second argument names.
 ///
-/// Four of the ten read it — three to decide whether they apply at all, one
-/// to name the declaration in a rejection. It is passed to all ten anyway,
-/// which is what lets the fold below be a list rather than ten call sites.
-type Normalizer = fn(&mut ValueParser, &str);
+/// Deliberately not `Normalizer`: three of these only reject and never rewrite,
+/// and the nine *ported normalizers* each name their own position in a
+/// different sequence — the one their module headers count against. Two
+/// sequences of nine meaning different things is one too many, so the list
+/// below is passes and the ports stay normalizers.
+///
+/// Four of the ten read the property — three to decide whether they apply at
+/// all, one to name the declaration in a rejection. It is passed to all ten
+/// anyway, which is what lets the fold below be a list rather than ten call
+/// sites.
+type Pass = fn(&mut ValueParser, &str);
 
-/// The nine passes that always run, in the order they run in.
-const NORMALIZERS: [Normalizer; 9] = [
+/// The passes that always run, in the order they run in.
+const PASSES: [Pass; 9] = [
   detect_unclosed_fns,
   detect_unclosed_strings,
   detect_unprefixed_custom_properties,
@@ -71,8 +76,8 @@ const NORMALIZERS: [Normalizer; 9] = [
 pub fn normalize_value(value: &str, key: &str, options: &StyleXStateOptions) -> String {
   let mut ast = ValueParser::new(value);
 
-  for normalizer in NORMALIZERS {
-    normalizer(&mut ast, key);
+  for pass in PASSES {
+    pass(&mut ast, key);
   }
 
   if options.enable_font_size_px_to_rem {

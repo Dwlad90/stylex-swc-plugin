@@ -1,4 +1,6 @@
-//! Ported normalizer 6 of 9. See `normalize_value.rs` for the ordered list.
+//! Ported normalizer 6 of 9 in upstream's sequence, which is what that count
+//! names. See `normalize_value.rs` for the order the passes run in here — a
+//! tenth pass that upstream has no equivalent for runs among them.
 
 use postcss_value_parser::{NodeKind, ValueParser, unit};
 use stylex_utils::number::{parse_js_float, to_js_string};
@@ -33,10 +35,14 @@ pub fn normalize_leading_zero(ast: &mut ValueParser, _key: &str) {
       // easy to reintroduce as a bug and hard to spot as a difference.
       #[allow(clippy::manual_range_contains)]
       if value < 1.0 && value >= 0.0 {
-        // A word whose leading number just parsed is a word `unit` splits, so
-        // the absent case is the reference implementation's ternary rather than
-        // a case this can reach. Written as one so it stays unreachable instead
-        // of becoming a branch nothing can cover.
+        // The absent case is reachable, and it costs the unit. `parse_js_float`
+        // skips leading JavaScript whitespace where `unit` does not, and the
+        // scanner does not treat U+00A0 as a space, so `\u{a0}0.5px` reads back
+        // as a number and splits into nothing: the re-spelling drops the
+        // character and the `px` with it. That is the reference
+        // implementation's ternary doing exactly what it does there, and it is
+        // why this normalizer keeps its own walk rather than joining
+        // `dimensions::walk_dimensions`, which would skip the word entirely.
         let unit = dimension
           .map(|dimension| dimension.unit)
           .unwrap_or_default();

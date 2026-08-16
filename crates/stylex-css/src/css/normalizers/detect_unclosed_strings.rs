@@ -1,4 +1,6 @@
-//! Ported normalizer 2 of 9. See `normalize_value.rs` for the ordered list.
+//! Ported normalizer 2 of 9 in upstream's sequence, which is what that count
+//! names. See `normalize_value.rs` for the order the passes run in here — a
+//! tenth pass that upstream has no equivalent for runs among them.
 
 use postcss_value_parser::{NodeKind, ValueParser};
 use stylex_constants::constants::messages::LINT_UNCLOSED_STRING;

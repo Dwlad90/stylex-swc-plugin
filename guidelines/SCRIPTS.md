@@ -44,14 +44,16 @@ halves run on every invocation, so a failing commit reports everything it got
 wrong at once.
 
 `catalog-integrity.mjs` has a second mode,
-`lockfile --baseline <file> [--current <file>]`, which asserts that every catalog
-entry a baseline `pnpm-lock.yaml` resolved is still resolved by the current one.
+`lockfile --baseline <file> [--current <file>]`, which asserts that every
+catalog entry a baseline `pnpm-lock.yaml` resolved is still resolved by the
+current one.
 Nothing local runs it: its caller is the `Sync Dependencies` workflow, which
 reads both lockfiles out of git -- the head commit's as dependabot wrote it
-against the base commit's from before the update -- and runs this before the sync
-reinstalls anything. It exists because a dependabot update can drop a catalog
-entry from the lockfile, and because the reinstall that would most likely repair
-that is not a guard; run after the reinstall it would only confirm the repair.
+against the base commit's from before the update -- and runs this before the
+sync reinstalls anything. It exists because a dependabot update can drop a
+catalog entry from the lockfile, and because the reinstall that would most
+likely repair that is not a guard; run after the reinstall it would only
+confirm the repair.
 
 See [Git Hooks](./git/HOOKS.md).
 
@@ -109,7 +111,8 @@ repeatable `--category` (`transform|perf|rollup`) and `--fixture` substring.
 ## Parity harness
 
 Also in `crates/stylex-rs-compiler`; run `build` first (it reads `dist/`).
-Not a test and not wired into CI. Full docs: `crates/stylex-rs-compiler/parity/README.md`.
+Not a test and not wired into CI. Full docs:
+`crates/stylex-rs-compiler/parity/README.md`.
 
 - `parity`: runs a corpus of CSS declarations through this compiler and through
   a pinned `@stylexjs/babel-plugin`, and reports which ones disagree on class

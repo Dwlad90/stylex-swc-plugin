@@ -77,11 +77,12 @@ an optional `note`, which the report prints next to a mismatch.
 
 ```sh
 pnpm run --filter=@stylexswc/rs-compiler parity:harvest
-pnpm run --filter=@stylexswc/rs-compiler parity:harvest -- --check   # report staleness, write nothing
+# --check reports staleness and writes nothing:
+pnpm run --filter=@stylexswc/rs-compiler parity:harvest -- --check
 ```
 
-`harvest-corpus.ts` scans the test sources of `stylex-css` and `stylex-transform`
-for five literal shapes that carry a CSS declaration — direct
+`harvest-corpus.ts` scans the test sources of `stylex-css` and
+`stylex-transform` for five literal shapes that carry a CSS declaration — direct
 `normalize_css_property_value` calls, case tables looped through one property,
 `* {{ prop: value; }}` rule literals, minified `*{prop:value}` literals, and
 `stylex.create` objects embedded in transform tests. Each entry records the
@@ -100,7 +101,8 @@ and `both reject` buckets, which is why those are counted apart from
 
 1. Bump `@stylexjs/babel-plugin` in this package's `devDependencies` and
    `pnpm install`.
-2. Rebuild the compiler, then run `pnpm parity --json parity/results/<version>.json`.
+2. Rebuild the compiler, then run
+   `pnpm parity --json parity/results/<version>.json`.
 3. The printed subject block states both versions, so a report is always
    attributable to a specific release.
 4. Diff the new report's `divergent` set against the previous one. Anything new

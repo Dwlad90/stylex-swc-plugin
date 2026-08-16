@@ -453,6 +453,26 @@ fn leaves_a_negative_decimal_and_anything_from_one_up_alone() {
   ]);
 }
 
+/// A word can read back as a number and still split into no dimension, and
+/// this normalizer's unit-less branch is that word.
+///
+/// It selects on `parse_js_float`, which skips leading JavaScript whitespace;
+/// `unit` does not, and the value scanner does not treat U+00A0 as a space, so
+/// the character reaches the word intact. Re-spelling then drops it — and
+/// with it the unit, since the split that would have recovered the unit is the
+/// one that just failed: `\u{a0}0.5px` comes back as `.5`, not `.5px`.
+///
+/// That is the reference compiler's behaviour, ternary and all, and it is the
+/// reason this normalizer cannot share the word-and-unit walk the others do:
+/// that walk skips the word this one rewrites.
+#[test]
+fn re_spells_a_number_the_unit_split_cannot_read() {
+  check(&[
+    ("\u{a0}0.5", "opacity", ".5"),
+    ("\u{a0}0.5px", "width", ".5"),
+  ]);
+}
+
 // ---------------------------------------------------------------------------
 // Numeric spelling: the silent-divergence surface
 // ---------------------------------------------------------------------------

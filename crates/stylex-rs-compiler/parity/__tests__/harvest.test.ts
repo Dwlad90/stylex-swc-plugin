@@ -4,7 +4,8 @@ import path from 'node:path';
 
 import { afterAll, describe, expect, test } from 'vitest';
 
-import { declarationKey, entryId, harvestCorpus } from '../lib/harvest.js';
+import { declarationKey, entryId } from '../lib/declaration.js';
+import { harvestCorpus } from '../lib/harvest.js';
 import type { CorpusEntry } from '../lib/types.js';
 
 /**

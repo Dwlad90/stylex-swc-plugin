@@ -1,6 +1,7 @@
 pub mod convert_camel_case_values;
 pub mod detect_unclosed_fns;
 pub mod detect_unclosed_strings;
+mod dimensions;
 pub mod font_size_px_to_rem;
 pub mod leading_zero;
 pub mod quotes;

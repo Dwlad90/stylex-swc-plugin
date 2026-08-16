@@ -1,8 +1,12 @@
-//! Ported normalizer 9 of 9. See `normalize_value.rs` for the ordered list.
+//! Ported normalizer 9 of 9 in upstream's sequence, which is what that count
+//! names. See `normalize_value.rs` for the order the passes run in here — a
+//! tenth pass that upstream has no equivalent for runs among them.
 
-use postcss_value_parser::{NodeKind, ValueParser, unit};
+use postcss_value_parser::ValueParser;
 use stylex_constants::constants::common::ROOT_FONT_SIZE;
 use stylex_utils::number::{parse_js_float, to_js_string};
+
+use super::dimensions::walk_dimensions;
 
 /// Restates a font size given in pixels as a multiple of the root font size.
 ///
@@ -15,32 +19,18 @@ pub fn convert_font_size_to_rem(ast: &mut ValueParser, key: &str) {
     return;
   }
 
-  ast.walk(
-    |node, _| {
-      if node.kind != NodeKind::Word {
-        return true;
-      }
+  walk_dimensions(ast, |node, dimension| {
+    if dimension.unit != "px" {
+      return;
+    }
 
-      let dimension = match unit(&node.value) {
-        Some(dimension) => dimension,
-        None => return true,
-      };
+    // `unit` splits on a leading number, so the number half always reads
+    // back. The reference implementation does not guard this at all -- a
+    // number that failed to read would be spelled into the value as `NaNrem`
+    // -- so the same spelling stands in for the case, rather than a branch
+    // that no input can take and no test can cover.
+    let number = parse_js_float(&dimension.number).unwrap_or(f64::NAN);
 
-      if dimension.unit != "px" {
-        return true;
-      }
-
-      // `unit` splits on a leading number, so the number half always reads
-      // back. The reference implementation does not guard this at all -- a
-      // number that failed to read would be spelled into the value as `NaNrem`
-      // -- so the same spelling stands in for the case, rather than a branch
-      // that no input can take and no test can cover.
-      let number = parse_js_float(&dimension.number).unwrap_or(f64::NAN);
-
-      node.value = format!("{}rem", to_js_string(number / f64::from(ROOT_FONT_SIZE)));
-
-      true
-    },
-    false,
-  );
+    node.value = format!("{}rem", to_js_string(number / f64::from(ROOT_FONT_SIZE)));
+  });
 }

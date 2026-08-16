@@ -38,6 +38,16 @@
 //! a trailing backslash, which makes the word scan overshoot. All three are
 //! deliberate: correcting any of them would change class names.
 //!
+//! ## Why exports with no caller stay
+//!
+//! [`stringify_with`], [`stringify_node_with`] and [`Custom`] have no caller
+//! outside this crate's own tests, and [`ValueParser::walk`] returns `&mut
+//! Self` that nobody chains. They are upstream's surface, kept whole and
+//! covered so this crate answers the same questions the library does. Read
+//! them as the port's boundary, not as generality added on spec: a missing one
+//! is a difference from the thing being ported, which is the one property this
+//! crate exists to hold.
+//!
 //! ## Two differences from the JavaScript
 //!
 //! The word scanner's second `code === slash` test, guarded by `parent.type`,

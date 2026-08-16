@@ -16,6 +16,7 @@ import * as babel from '@babel/core';
 import stylexBabelPluginModule from '@stylexjs/babel-plugin';
 
 import type { StyleXOptions } from '../../dist/index.js';
+import { arrayAt, isRecord, stringAt } from './guards.js';
 import { SEPARATOR } from './separator.js';
 import type { CompilerOutcome, LoadedCorpusEntry, ReportEntry, Verdict } from './types.js';
 
@@ -50,17 +51,20 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
   const { packageDir } = options;
 
   const distEntry = path.join(packageDir, 'dist/index.js');
-  const loaded = (await import(pathToFileURL(distEntry).href)) as { transform?: TransformFn };
-  const transform = loaded.transform;
-  if (typeof transform !== 'function') {
+  const loaded: unknown = await import(pathToFileURL(distEntry).href);
+  const transform = isRecord(loaded) ? loaded.transform : undefined;
+  if (!isTransform(transform)) {
     throw new Error(
       `${distEntry} does not export a transform function — run \`pnpm build\` in this package first.`
     );
   }
 
-  const pluginCandidate = (stylexBabelPluginModule as { default?: unknown }).default;
-  const stylexBabelPlugin = (pluginCandidate ?? stylexBabelPluginModule) as babel.PluginTarget;
-  if (typeof stylexBabelPlugin !== 'function') {
+  // The plugin is published both as a default export and as the module object
+  // itself, depending on how the consumer resolves it; either is accepted.
+  const pluginModule: unknown = stylexBabelPluginModule;
+  const stylexBabelPlugin =
+    (isRecord(pluginModule) ? pluginModule.default : undefined) ?? pluginModule;
+  if (!isPluginTarget(stylexBabelPlugin)) {
     throw new Error('@stylexjs/babel-plugin did not export a Babel plugin function');
   }
 
@@ -92,8 +96,7 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
         parserOpts: { sourceType: 'module', plugins: ['jsx'] },
         plugins: [[stylexBabelPlugin, stylexOptions]],
       });
-      const metadata = result?.metadata as { stylex?: unknown[] } | undefined;
-      return metadata?.stylex ?? [];
+      return arrayAt(result?.metadata, 'stylex') ?? [];
     });
 
   return {
@@ -152,7 +155,7 @@ function outcomeOf(run: () => unknown[]): CompilerOutcome {
 
   for (const rule of rules) {
     if (!Array.isArray(rule)) continue;
-    const [className, payload] = rule as [unknown, unknown];
+    const [className, payload] = rule;
     classNames.push(String(className));
     const ltr = ruleTextOf(payload, 'ltr');
     ruleTexts.push(ltr);
@@ -168,11 +171,9 @@ function outcomeOf(run: () => unknown[]): CompilerOutcome {
 
 /** One direction's rule text from a style-metadata payload, or `''` if absent. */
 function ruleTextOf(payload: unknown, direction: 'ltr' | 'rtl'): string {
-  if (typeof payload !== 'object' || payload === null || !(direction in payload)) return '';
-  const text = (payload as Record<string, unknown>)[direction];
   // `null` is how the metadata spells "this property has no rule in this
   // direction", and it is the common case for `rtl`.
-  return typeof text === 'string' ? text : '';
+  return stringAt(payload, direction) ?? '';
 }
 
 /**
@@ -220,9 +221,16 @@ function propertyNamesOf(outcome: CompilerOutcome): string {
 
 function readVersion(manifestPath: string): string {
   try {
-    const raw = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as { version?: string };
-    return raw.version ?? 'unknown';
+    return stringAt(JSON.parse(fs.readFileSync(manifestPath, 'utf8')), 'version') ?? 'unknown';
   } catch {
     return 'unknown';
   }
+}
+
+function isTransform(value: unknown): value is TransformFn {
+  return typeof value === 'function';
+}
+
+function isPluginTarget(value: unknown): value is babel.PluginTarget {
+  return typeof value === 'function';
 }

@@ -828,7 +828,7 @@
       "id": "9397addd",
       "property": "calc(\"a",
       "value": "width",
-      "origin": "crates/stylex-css/src/css/tests/normalize_value_test.rs:816"
+      "origin": "crates/stylex-css/src/css/tests/normalize_value_test.rs:836"
     },
     {
       "id": "c34b308e",
@@ -1032,7 +1032,7 @@
       "id": "1bf6158a",
       "property": "color",
       "value": "calc(1px",
-      "origin": "crates/stylex-css/src/css/tests/normalize_value_test.rs:789"
+      "origin": "crates/stylex-css/src/css/tests/normalize_value_test.rs:809"
     },
     {
       "id": "8fad0d26",
@@ -3912,7 +3912,7 @@
       "id": "afc63957",
       "property": "width",
       "value": "calc(1px",
-      "origin": "crates/stylex-css/src/css/tests/normalize_value_test.rs:781"
+      "origin": "crates/stylex-css/src/css/tests/normalize_value_test.rs:801"
     },
     {
       "id": "05990392",

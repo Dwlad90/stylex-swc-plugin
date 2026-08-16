@@ -9,17 +9,23 @@
  * Seven literal shapes carry a CSS declaration in this repo. Each is handled by
  * an extractor below and each records where it came from, so an unexpected
  * corpus entry can be traced back to the test that motivated it.
+ *
+ * This module knows only what a CSS declaration looks like in a Rust test.
+ * Reading the sources is `rust-source.ts` and identifying an entry is
+ * `declaration.ts`; adding a shape should touch only this file.
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-
-import { scanRustLiterals, type RustLiteral } from './rust-literals.js';
-import { SEPARATOR } from './separator.js';
+import { dedupe, entry } from './declaration.js';
+import type { RustLiteral } from './rust-literals.js';
+import {
+  enclosingOpener,
+  findCallSites,
+  literalsBetween,
+  scanRustTestFiles,
+  testBlocks,
+  type ScannedFile,
+} from './rust-source.js';
 import type { CorpusEntry } from './types.js';
-
-/** Crates whose test sources are scanned. */
-const SCANNED_CRATES = ['stylex-css', 'stylex-transform'] as const;
 
 /** Keys that appear in a `stylex.create` object but are not CSS properties. */
 const NON_PROPERTY_KEYS = new Set([
@@ -33,36 +39,13 @@ const NON_PROPERTY_KEYS = new Set([
   'type',
 ]);
 
-/** A Rust source file, scanned once and reused by every extractor. */
-interface ScannedFile {
-  /** Path relative to the workspace root, for the `origin` field. */
-  relativePath: string;
-  source: string;
-  /**
-   * `source` with every string literal blanked out, same length. Bracket
-   * matching runs over this: a value like `"calc(a"` carries brackets of its
-   * own, and counting those as code puts the scan permanently out of step.
-   */
-  masked: string;
-  literals: RustLiteral[];
-}
-
 export interface HarvestOptions {
   /** Absolute path to the workspace root. */
   workspaceRoot: string;
 }
 
 export function harvestCorpus(options: HarvestOptions): CorpusEntry[] {
-  const files = collectRustTestFiles(options.workspaceRoot).map(absolute => {
-    const source = fs.readFileSync(absolute, 'utf8');
-    const literals = scanRustLiterals(source);
-    return {
-      relativePath: path.relative(options.workspaceRoot, absolute),
-      source,
-      masked: maskLiterals(source, literals),
-      literals,
-    } satisfies ScannedFile;
-  });
+  const files = scanRustTestFiles(options.workspaceRoot);
 
   const collected: CorpusEntry[] = [];
   for (const file of files) {
@@ -88,39 +71,6 @@ export function harvestCorpus(options: HarvestOptions): CorpusEntry[] {
  */
 function isDeclarationKey(property: string): boolean {
   return !property.startsWith(':') && !property.startsWith('@');
-}
-
-/**
- * Every `.rs` file under a scanned crate that plausibly holds tests. Snapshot
- * directories are skipped: they hold generated output, not authored values.
- */
-function collectRustTestFiles(workspaceRoot: string): string[] {
-  const found: string[] = [];
-
-  const walk = (dir: string): void => {
-    let dirents: fs.Dirent[];
-    try {
-      dirents = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const dirent of dirents) {
-      const absolute = path.join(dir, dirent.name);
-      if (dirent.isDirectory()) {
-        if (dirent.name === 'target' || dirent.name === '__swc_snapshots__') continue;
-        walk(absolute);
-        continue;
-      }
-      if (!dirent.name.endsWith('.rs')) continue;
-      found.push(absolute);
-    }
-  };
-
-  for (const crate of SCANNED_CRATES) {
-    walk(path.join(workspaceRoot, 'crates', crate));
-  }
-
-  return found.toSorted();
 }
 
 /**
@@ -266,44 +216,6 @@ function isTableInput(file: ScannedFile, literal: RustLiteral): boolean {
 }
 
 /**
- * Offset of the innermost `(` or `[` still open at `index`, or `-1` if none.
- * Runs over masked source, so brackets inside a string value are not counted.
- */
-function enclosingOpener(masked: string, index: number): number {
-  let depth = 0;
-  for (let i = index - 1; i >= 0; i--) {
-    const char = masked[i];
-    if (char === ')' || char === ']') depth++;
-    else if (char === '(' || char === '[') {
-      if (depth === 0) return i;
-      depth--;
-    }
-  }
-  return -1;
-}
-
-/**
- * `source` with each literal blanked out, preserving every offset.
- *
- * Rebuilt by slicing rather than by indexing a character array: the offsets on
- * a `RustLiteral` are UTF-16 indices, and splitting a string into code points
- * would shift every offset past the first astral character — of which the
- * corpus has several, since non-ASCII `content` values are exactly what these
- * tests cover.
- */
-function maskLiterals(source: string, literals: RustLiteral[]): string {
-  const parts: string[] = [];
-  let cursor = 0;
-  // Literals arrive in source order and never overlap, so one pass suffices.
-  for (const literal of literals) {
-    parts.push(source.slice(cursor, literal.start), ' '.repeat(literal.end - literal.start));
-    cursor = literal.end;
-  }
-  parts.push(source.slice(cursor));
-  return parts.join('');
-}
-
-/**
  * Shapes 3 and 4 — a whole CSS rule in one literal.
  *
  * `"* {{ transitionProperty: opacity; }}"` and the minified `"*{color:red}"`
@@ -366,98 +278,4 @@ function isCssProperty(property: string): boolean {
   if (NON_PROPERTY_KEYS.has(property)) return false;
   if (property.startsWith('--')) return true;
   return /^[a-z][A-Za-z0-9]*$/.test(property);
-}
-
-/**
- * Byte offsets of every `name(` occurrence that is a call, not a definition.
- *
- * The character before the name must not be one an identifier can contain, or
- * a short name like `same` would match the tail of `is_same` and harvest a
- * declaration from a call that has nothing to do with normalization.
- */
-function findCallSites(source: string, name: string): number[] {
-  const sites: number[] = [];
-  let at = source.indexOf(name);
-  while (at !== -1) {
-    const before = source.slice(Math.max(0, at - 8), at);
-    const isDefinition = before.endsWith('fn ');
-    const continuesAnIdentifier = at > 0 && /[\w]/.test(source[at - 1] ?? '');
-    if (!isDefinition && !continuesAnIdentifier) sites.push(at);
-    at = source.indexOf(name, at + name.length);
-  }
-  return sites;
-}
-
-/** Literals whose opening delimiter falls inside `[start, end)`. */
-function literalsBetween(file: ScannedFile, start: number, end: number): RustLiteral[] {
-  return file.literals.filter(literal => literal.start >= start && literal.start < end);
-}
-
-/** Offset ranges of every `#[test] fn … { … }` body in a source file. */
-function testBlocks(source: string): { start: number; end: number }[] {
-  const blocks: { start: number; end: number }[] = [];
-  const marker = /#\[test\]/g;
-
-  for (const match of source.matchAll(marker)) {
-    const open = source.indexOf('{', match.index);
-    if (open === -1) continue;
-    let depth = 0;
-    let i = open;
-    for (; i < source.length; i++) {
-      if (source[i] === '{') depth++;
-      else if (source[i] === '}') {
-        depth--;
-        if (depth === 0) break;
-      }
-    }
-    blocks.push({ start: open, end: i });
-  }
-
-  return blocks;
-}
-
-/**
- * Collapse duplicates by declaration, keeping the first origin seen. Values
- * repeat heavily across suites and a corpus entry costs two compiler runs.
- */
-function dedupe(entries: CorpusEntry[]): CorpusEntry[] {
-  const byId = new Map<string, CorpusEntry>();
-  for (const candidate of entries) {
-    if (!byId.has(candidate.id)) byId.set(candidate.id, candidate);
-  }
-  return [...byId.values()].toSorted((a, b) =>
-    a.property === b.property
-      ? a.value.localeCompare(b.value)
-      : a.property.localeCompare(b.property)
-  );
-}
-
-export function entry(property: string, value: string, origin: string): CorpusEntry {
-  return { id: entryId(property, value), property, value, origin };
-}
-
-/**
- * The identity of a declaration, for deduplication and hashing.
- *
- * The separator is a NUL because it is the one character a CSS property name
- * and a CSS value cannot contain, so no pair of distinct declarations can
- * collide onto one key.
- */
-export function declarationKey(property: string, value: string): string {
-  return `${property}${SEPARATOR}${value}`;
-}
-
-/**
- * Identify an entry by its declaration rather than its position, so that
- * re-harvesting after a test file moves does not renumber the whole corpus and
- * bury the real diff.
- */
-export function entryId(property: string, value: string): string {
-  let hash = 0x811c9dc5;
-  const text = declarationKey(property, value);
-  for (let i = 0; i < text.length; i++) {
-    hash ^= text.codePointAt(i) ?? 0;
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash.toString(16).padStart(8, '0');
 }

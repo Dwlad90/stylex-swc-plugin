@@ -220,9 +220,3 @@ Parts of this repository are somebody else's work — StyleX itself
 (Copyright (c) Nicolas Gallagher) and `postcss-value-parser`
 (Copyright (c) Bogdan Chadkin), all MIT. [NOTICE.md](./NOTICE.md) says what came
 from where and points at each licence.
-
-Parts of this repository are somebody else's work -- StyleX itself
-(Copyright (c) Meta Platforms, Inc. and affiliates), `styleq`
-(Copyright (c) Nicolas Gallagher) and `postcss-value-parser`
-(Copyright (c) Bogdan Chadkin), all MIT. [NOTICE.md](./NOTICE.md) says what
-came from where and points at each licence.

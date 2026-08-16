@@ -16,23 +16,12 @@ use stylex_constants::constants::{
 };
 use stylex_macros::stylex_panic;
 use stylex_regex::regex::{
-  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, DESCENDANT_SELECTOR, PSEUDO_PART_REGEX,
+  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, DESCENDANT_SELECTOR, PSEUDO_PART_REGEX,
   SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR,
 };
 use stylex_structures::{pair::Pair, stylex_state_options::StyleXStateOptions};
 use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_utils::string::dashify;
-use swc_core::{
-  common::{BytePos, input::StringInput, source_map::SmallPos},
-  css::{
-    ast::Stylesheet,
-    codegen::{
-      CodeGenerator, CodegenConfig, Emit,
-      writer::basic::{BasicCssWriter, BasicCssWriterConfig},
-    },
-    parser::{error::Error, parse_string_input, parser::ParserConfig},
-  },
-};
 
 const THUMB_VARIANTS: [&str; 3] = [
   "::-webkit-slider-thumb",
@@ -374,31 +363,6 @@ pub fn get_priority(key: &str) -> f64 {
   3000.0
 }
 
-/// Parses a CSS source string into an SWC `Stylesheet` AST.
-///
-/// **Nothing in the compiler calls this.** Custom-property validation was its
-/// last caller and now reads the token list instead, so the only code left
-/// reaching for it is the tests of the superseded normalizer modules. It goes
-/// when they do, and the CSS half of the SWC dependency goes with it — a build
-/// with those features switched off is the proof that no call site was missed.
-pub fn swc_parse_css(source: &str) -> (Result<Stylesheet, Error>, Vec<Error>) {
-  let config = ParserConfig {
-    allow_wrong_line_comments: false,
-    css_modules: false,
-    legacy_nesting: false,
-    legacy_ie: false,
-  };
-
-  let input = StringInput::new(
-    source,
-    BytePos::from_usize(0),
-    BytePos::from_usize(source.len()),
-  );
-  let mut errors: Vec<Error> = vec![];
-
-  (parse_string_input(input, None, config, &mut errors), errors)
-}
-
 fn is_escaped(value: &[u8], index: usize) -> bool {
   let mut backslash_count = 0;
   let mut cursor = index;
@@ -699,12 +663,6 @@ pub(crate) fn build_error_css_rule(css_property: &str, css_property_value: &str)
   )
 }
 
-/// CSS codegen on a well-formed AST never produces an `Err` in practice.
-#[cfg_attr(coverage_nightly, coverage(off))]
-fn css_codegen_unreachable(e: std::fmt::Error) -> ! {
-  stylex_panic!("CSS codegen emit failed: {}", e)
-}
-
 /// Rewrites a declaration value into the canonical text the class name is
 /// hashed from.
 ///
@@ -769,55 +727,6 @@ pub fn get_number_suffix(key: &str) -> &'static str {
     Some(suffix) => suffix,
     None => "px",
   }
-}
-
-/// Serializes an SWC `Stylesheet` AST back to a minified CSS string.
-///
-/// The serializer value normalization used to round-trip through, and the
-/// source of most of the divergences that motivated replacing it: it shortens
-/// hex colours, lowercases function names, folds trailing zeros into an
-/// exponent, and strips single quotes outright. Nothing outside the tests of
-/// the superseded normalizer modules calls it, and it goes when they do.
-pub fn stringify(node: &Stylesheet) -> String {
-  let mut buf = String::with_capacity(256);
-  let wr = BasicCssWriter::new(&mut buf, None, BasicCssWriterConfig::default());
-  let mut codegen = CodeGenerator::new(wr, CodegenConfig { minify: true });
-
-  // CSS codegen on a valid AST never fails in practice.
-  Emit::emit(&mut codegen, node).unwrap_or_else(
-    #[cfg_attr(coverage_nightly, coverage(off))]
-    |e| css_codegen_unreachable(e),
-  );
-
-  drop(codegen);
-
-  let mut result = buf.replace('\'', "");
-
-  if result.contains("--\\") {
-    /*
-     * In CSS, identifiers (including element names, classes, and IDs in
-     * selectors) can contain only the characters [a-zA-Z0-9] and ISO 10646
-     * characters U+00A0 and higher, plus the hyphen (-) and the underscore
-     * (_); they cannot start with a digit, two hyphens, or a hyphen followed
-     * by a digit.
-     *
-     * https://stackoverflow.com/a/27882887/6717252
-     *
-     * HACK: Replace `--\3{number}` with `--{number}` to simulate original
-     * behavior of StyleX
-     */
-
-    let clean = CLEAN_CSS_VAR
-      .replace_all(result.as_str(), |caps: &fancy_regex::Captures<str>| {
-        caps
-          .get(1)
-          .map_or(String::default(), |m| m.as_str().to_string())
-      })
-      .to_string();
-    result = clean;
-  }
-
-  result
 }
 
 /// Converts a camelCase CSS property name to its hyphenated form.

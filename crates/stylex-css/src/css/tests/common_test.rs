@@ -1,72 +1,4 @@
 #[cfg(test)]
-mod swc_parse_css_tests {
-  use crate::css::common::swc_parse_css;
-
-  #[test]
-  fn parses_valid_css() {
-    let (result, errors) = swc_parse_css("* { color: red }");
-    assert!(result.is_ok());
-    // SWC reports InvalidSelector for `*` in newer versions
-    assert!(!errors.is_empty() || errors.is_empty());
-  }
-
-  #[test]
-  fn parses_valid_declaration() {
-    let (result, _errors) = swc_parse_css("* { padding: 10px }");
-    assert!(result.is_ok());
-  }
-
-  #[test]
-  fn parses_empty_string() {
-    let (result, errors) = swc_parse_css("");
-    assert!(result.is_ok());
-    assert!(errors.is_empty());
-  }
-
-  #[test]
-  fn parses_multiple_declarations() {
-    let (result, _) = swc_parse_css("* { color: red; margin: 10px }");
-    assert!(result.is_ok());
-  }
-
-  #[test]
-  fn reports_errors_for_malformed_css() {
-    // Missing closing brace
-    let (_, errors) = swc_parse_css("* { color: red");
-    assert!(!errors.is_empty());
-  }
-}
-
-#[cfg(test)]
-mod stringify_tests {
-  use crate::css::common::{stringify, swc_parse_css};
-
-  #[test]
-  fn stringifies_simple_rule() {
-    let (result, _) = swc_parse_css("* { color: red }");
-    let s = stringify(&result.unwrap());
-    assert!(s.contains("color"));
-    assert!(s.contains("red"));
-  }
-
-  #[test]
-  fn removes_single_quotes() {
-    // SWC codegen may produce single quotes; stringify should strip them
-    let (result, _) = swc_parse_css("* { content: 'hello' }");
-    let s = stringify(&result.unwrap());
-    assert!(!s.contains('\''));
-  }
-
-  #[test]
-  fn produces_minified_output() {
-    let (result, _) = swc_parse_css("* { color: red }");
-    let s = stringify(&result.unwrap());
-    // Minified output should not have extra whitespace
-    assert!(!s.contains("  "));
-  }
-}
-
-#[cfg(test)]
 mod get_number_suffix_tests {
   use crate::css::common::get_number_suffix;
 
@@ -902,6 +834,16 @@ mod normalize_css_property_value_tests {
       "rgb(from red r g b)"
     );
   }
+
+  /// A property name no CSS identifier grammar accepts does not change what
+  /// happens to its value: nothing escapes the name, so the value is spelled
+  /// back out as written.
+  #[test]
+  fn numeric_custom_property_name_leaves_the_value_alone() {
+    let opts = default_options();
+
+    assert_eq!(normalize_css_property_value("--3abc", "red", &opts), "red");
+  }
 }
 
 // ── generate_css_rule tests ──────────────────────────────────────────
@@ -1588,48 +1530,5 @@ mod colon_prefixed_property_tests {
       message.contains(":hover {color:red}"),
       "expected the rejection to quote the generated rule, got: {message}"
     );
-  }
-}
-
-// ── Coverage: CSS variable with numeric start (stringify regex path) ─
-
-#[cfg(test)]
-mod stringify_css_var_numeric_tests {
-  use crate::css::common::{stringify, swc_parse_css};
-
-  #[test]
-  fn stringify_unescapes_numeric_css_variable() {
-    // SWC escapes --3abc as --\33 abc (or similar) in output.
-    // stringify should clean that back to --3abc.
-    let (stylesheet, _) = swc_parse_css("* { --3abc: red; }");
-    let s = stringify(&stylesheet.unwrap_or_else(|_| {
-      // Fallback: parse with double-brace syntax
-      let (ss2, _) = swc_parse_css("* {{ --3abc: red; }}");
-      ss2.unwrap_or_else(|_| panic!("Could not parse CSS with numeric var"))
-    }));
-    // The regex should have cleaned --\3X sequences
-    assert!(!s.is_empty());
-  }
-
-  #[test]
-  fn stringify_unescapes_numeric_css_variable_double_brace() {
-    let (stylesheet, _) = swc_parse_css("* {{ --3foo: blue; }}");
-    let s = stringify(&stylesheet.unwrap_or_else(|_| panic!("Could not parse CSS")));
-    // Verify the regex cleaning path fires
-    assert!(!s.is_empty());
-  }
-
-  #[test]
-  fn stringify_numeric_var_via_normalize() {
-    // A more direct way to trigger the --\3 path: use normalize_css_property_value
-    // which internally calls stringify.
-    use crate::css::common::normalize_css_property_value;
-    use stylex_structures::stylex_state_options::StyleXStateOptions;
-
-    let opts = StyleXStateOptions::default();
-    // When normalizing a CSS variable value, the property name --3abc
-    // triggers the css_variable path, using "color" as the parsing property.
-    let result = normalize_css_property_value("--3abc", "red", &opts);
-    assert_eq!(result, "red");
   }
 }

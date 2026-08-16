@@ -3,7 +3,7 @@
 //! initialization.
 
 use crate::regex::{
-  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CLEAN_CSS_VAR, CSS_VALUE_SPLIT_REGEX, DASHIFY_REGEX,
+  ANCESTOR_SELECTOR, ANY_SIBLING_SELECTOR, CSS_VALUE_SPLIT_REGEX, DASHIFY_REGEX,
   DESCENDANT_SELECTOR, IS_CSS_VAR, JSON_REGEX, LENGTH_UNIT_TESTER_REGEX, PSEUDO_PART_REGEX,
   SIBLING_AFTER_SELECTOR, SIBLING_BEFORE_SELECTOR, STYLEX_CONSTS_IMPORT_REGEX, URL_REGEX,
   VAR_EXTRACTION_REGEX,
@@ -18,11 +18,9 @@ fn css_value_parsers_match_expected_tokens() {
   assert!(LENGTH_UNIT_TESTER_REGEX.is_match("-5").unwrap());
 }
 
-/// Core token cleanups should match escaped vars, css var calls, and spacing
-/// cases.
+/// Core token cleanups should match css var calls and spacing cases.
 #[test]
 fn core_cleanup_patterns_match() {
-  assert!(CLEAN_CSS_VAR.is_match(r"\31 ").unwrap());
   assert!(IS_CSS_VAR.is_match("var(--token_1)").unwrap());
   assert!(IS_CSS_VAR.is_match("var(--token-1)").unwrap());
   assert!(!IS_CSS_VAR.is_match("var(token)").unwrap());

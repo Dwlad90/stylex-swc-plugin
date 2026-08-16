@@ -50,13 +50,6 @@ another decides which of two diagnostics an author gets.
 _Avoid_: normalizer (that is the narrower term for the ported ones), step,
 stage, visitor
 
-**Spacing repair**:
-The stage of whitespace normalization that puts back the spaces SWC's minifying
-codegen removed — between a function result and the word after it, around a `/`,
-before a hex colour. It reads the codegen's output as text, not as an AST, and
-only ever inserts: a space the minifier swallowed is not recovered.
-_Avoid_: whitespace fix, respacing, pretty-printing
-
 **Reference verdict**:
 What the parity harness recorded when it ran a declaration through both this
 compiler and the reference compiler — `identical`, or a divergence, and in the

@@ -15,9 +15,6 @@ pub static LENGTH_UNIT_TESTER_REGEX: Lazy<Regex> = Lazy::new(|| {
     .expect("Length unit tester regex is valid")
 });
 
-pub static CLEAN_CSS_VAR: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"\\3(\d) "#).expect("Clean CSS var regex is valid"));
-
 // The character class is spelled out rather than written as `[\w-]`: `\w` is
 // Unicode-aware here but ASCII-only in the `/^var\(--[a-zA-Z0-9-_]+\)$/` this
 // mirrors, so `[\w-]` also accepted names like `var(--épaisseur)`.

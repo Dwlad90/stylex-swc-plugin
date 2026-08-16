@@ -150,11 +150,23 @@ mod convert_style_to_class_name {
 
   /// The test is on the transformed value, not the authored one: quoting is what
   /// gives a blank `content` its text.
+  ///
+  /// That ordering is load-bearing. `content` acquires its quotes before the
+  /// blank check that leaves other properties undeclared, so a blank `content`
+  /// never reaches it — whatever the blank is made of.
   #[test]
   fn declares_a_blank_content_value_as_empty_quotes() {
+    for blank in [" ", "   ", "\t", ""] {
+      assert_eq!(
+        try_convert(("content", &PreRuleValue::string(blank))),
+        Some("content:\"\"".to_string()),
+        "blank content value {blank:?}"
+      );
+    }
+
     assert_eq!(
-      try_convert(("content", &PreRuleValue::string(" "))),
-      Some("content:\"\"".to_string())
+      try_convert(("hyphenateCharacter", &PreRuleValue::string("   "))),
+      Some("hyphenate-character:\"\"".to_string())
     );
   }
 

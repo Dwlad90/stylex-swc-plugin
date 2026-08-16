@@ -8,6 +8,25 @@ fn stylex_transform(
   build_test_transform(comments, customize)
 }
 
+/// A transform that already knows about the custom properties `names`, so a
+/// case can be about the value rather than about an undefined variable.
+///
+/// Every custom-property case in this file wants the same configuration and
+/// differs only in which names are defined; spelling the map out per case
+/// invites the copies to drift, and the value each name maps to has never
+/// mattered to any of them.
+fn with_defined_variables(comments: TestComments, names: &[&str]) -> impl Pass {
+  let defined_vars: FxHashMap<String, String> = names
+    .iter()
+    .map(|name| ((*name).to_string(), "1".to_string()))
+    .collect();
+
+  stylex_transform(comments, |b| {
+    b.with_defined_stylex_css_variables(defined_vars)
+      .with_runtime_injection()
+  })
+}
+
 stylex_test_panic!(
   invalid_property_non_static_value,
   "Referenced constant is not defined.",
@@ -400,14 +419,7 @@ stylex_test!(
 stylex_test_panic!(
   invalid_css_variable_unclosed_function,
   "Rule contains an unclosed function, css rule: * { color: var(--foo }",
-  |tr| {
-    let mut defined_vars = FxHashMap::default();
-    defined_vars.insert("foo".to_string(), "1".to_string());
-    stylex_transform(tr.comments.clone(), |b| {
-      b.with_defined_stylex_css_variables(defined_vars)
-        .with_runtime_injection()
-    })
-  },
+  |tr| with_defined_variables(tr.comments.clone(), &["foo"]),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({
@@ -497,14 +509,7 @@ stylex_test!(
 stylex_test_panic!(
   invalid_css_variable_unprefixed_and_unclosed_reports_the_unclosed_function,
   "Rule contains an unclosed function",
-  |tr| {
-    let mut defined_vars = FxHashMap::default();
-    defined_vars.insert("foo".to_string(), "1".to_string());
-    stylex_transform(tr.comments.clone(), |b| {
-      b.with_defined_stylex_css_variables(defined_vars)
-        .with_runtime_injection()
-    })
-  },
+  |tr| with_defined_variables(tr.comments.clone(), &["foo"]),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({
@@ -518,14 +523,7 @@ stylex_test_panic!(
 stylex_test_panic!(
   invalid_css_variable_unprefixed_custom_property,
   "Unprefixed custom properties",
-  |tr| {
-    let mut defined_vars = FxHashMap::default();
-    defined_vars.insert("foo".to_string(), "1".to_string());
-    stylex_transform(tr.comments.clone(), |b| {
-      b.with_defined_stylex_css_variables(defined_vars)
-        .with_runtime_injection()
-    })
-  },
+  |tr| with_defined_variables(tr.comments.clone(), &["foo"]),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({
@@ -539,14 +537,7 @@ stylex_test_panic!(
 stylex_test_panic!(
   invalid_css_variable_unprefixed_custom_property_in_a_nested_pseudo,
   "Unprefixed custom properties",
-  |tr| {
-    let mut defined_vars = FxHashMap::default();
-    defined_vars.insert("foo".to_string(), "1".to_string());
-    stylex_transform(tr.comments.clone(), |b| {
-      b.with_defined_stylex_css_variables(defined_vars)
-        .with_runtime_injection()
-    })
-  },
+  |tr| with_defined_variables(tr.comments.clone(), &["foo"]),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({
@@ -559,15 +550,7 @@ stylex_test_panic!(
 
 stylex_test!(
   valid_css_variable_defined_custom_properties,
-  |tr| {
-    let mut defined_vars = FxHashMap::default();
-    defined_vars.insert("foo".to_string(), "1".to_string());
-    defined_vars.insert("bar".to_string(), "1".to_string());
-    stylex_transform(tr.comments.clone(), |b| {
-      b.with_defined_stylex_css_variables(defined_vars)
-        .with_runtime_injection()
-    })
-  },
+  |tr| with_defined_variables(tr.comments.clone(), &["foo", "bar"]),
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({

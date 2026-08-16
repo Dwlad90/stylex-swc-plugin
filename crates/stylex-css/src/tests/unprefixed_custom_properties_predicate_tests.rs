@@ -9,7 +9,8 @@
 //! written in CSS, so none of them can be tested through a value, and each is
 //! a branch that would otherwise be held up only by reading.
 //!
-//! Source: `crates/stylex-css/src/css/normalizers/unprefixed_custom_properties.rs`
+//! Source:
+//! `crates/stylex-css/src/css/normalizers/unprefixed_custom_properties.rs`
 
 use postcss_value_parser::{Node, NodeKind, ValueParser};
 

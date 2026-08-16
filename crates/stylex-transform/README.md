@@ -107,8 +107,8 @@ because they read or mutate compiler state while manipulating the AST.
 
 #### `shared::utils::css`
 
-CSS processing utilities, validators, and normalizers used during the transform
-phase. Builds on top of
+CSS processing utilities and normalizers used during the transform phase.
+Builds on top of
 [`stylex-css`](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/crates/stylex-css)
 with additional state-aware logic.
 

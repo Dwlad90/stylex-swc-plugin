@@ -64,5 +64,5 @@ pub fn detect_unprefixed_custom_properties(ast: &mut ValueParser, _key: &str) {
 }
 
 #[cfg(test)]
-#[path = "../../tests/unprefixed_custom_properties_tests.rs"]
+#[path = "../../tests/unprefixed_custom_properties_predicate_tests.rs"]
 mod tests;

@@ -16,7 +16,10 @@
 //! reach, a first argument that is not a word is not a name, and the function
 //! name is matched case-sensitively.
 
-use crate::css::tests::support::{Case, check, default_options, rejects, same, unchanged};
+use crate::css::{
+  common::normalize_css_property_value,
+  tests::support::{Case, check, default_options, rejects, same, unchanged},
+};
 
 use stylex_constants::constants::messages::{
   LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_UNCLOSED_FUNCTION, LINT_UNCLOSED_STRING,
@@ -325,8 +328,8 @@ fn the_declared_property_does_not_change_the_verdict() {
   ]);
 }
 
-/// A long run of references is walked in full: the check stops at the first
-/// bad one, and there is nothing about position that lets a later one through.
+/// A long run of references is walked in full, so a bad one at the far end is
+/// still found: there is nothing about position that lets a later one through.
 #[test]
 fn a_long_run_of_references_is_walked_in_full() {
   let mut value = "var(--a) ".repeat(256);
@@ -335,16 +338,18 @@ fn a_long_run_of_references_is_walked_in_full() {
   rejects_unprefixed("color", &[value.as_str()]);
 }
 
-/// The same run with nothing wrong in it comes back unrewritten but for the
-/// whitespace the pipeline collapses, which is the accepting half of the test
-/// above.
+/// The same run with nothing wrong in it is accepted, which is the half of the
+/// test above that says the rejection came from the one bad reference rather
+/// than from the length.
+///
+/// Built at run time, so it cannot go in a [`Case`] table — those hold
+/// `&'static str`. The assertion is the one [`check`] makes, spelled out.
 #[test]
 fn a_long_run_of_good_references_is_accepted() {
   let value = "var(--a) ".repeat(256);
   let expected = value.trim_end();
 
-  let actual =
-    crate::css::common::normalize_css_property_value("color", value.trim(), &default_options());
+  let actual = normalize_css_property_value("color", expected, &default_options());
 
-  assert_eq!(actual, expected.trim());
+  assert_eq!(actual, expected, "normalizing `color: {expected}`");
 }

@@ -439,18 +439,23 @@ stylex_test!(
 // the report is actually about: the class name.
 //
 // A class name is a hash of the canonical declaration text, so the text is the
-// compatibility contract with `@stylexjs/babel-plugin`. Every other test in this
-// file asserts the declaration; these assert the hash of it too, which is the
-// part a defect in hashing itself would slip past. The styles are exported so
-// the compiled object is snapshotted alongside the injected rule — the class
+// compatibility contract with `@stylexjs/babel-plugin`. Most of the tests in
+// this file assert the declaration; these assert the hash of it too, which is
+// the part a defect in hashing itself would slip past. The styles are exported
+// so the compiled object is snapshotted alongside the injected rule — the class
 // name reaches markup through that object, and the rule text through the
 // injection.
 //
 // Every expectation below is measured, not written: each test names the class
 // name and rule `@stylexjs/babel-plugin@0.19.0` produces for the same source,
-// taken from the parity harness (`pnpm run --filter=@stylexswc/rs-compiler
-// parity -- --set reported`). A snapshot that stops matching the quoted
-// measurement is a regression against upstream, not a snapshot to re-record.
+// taken from the parity harness, whose `reported` corpus set carries these
+// fourteen values:
+//
+//   pnpm run --filter=@stylexswc/rs-compiler build
+//   pnpm run --filter=@stylexswc/rs-compiler parity -- --set reported
+//
+// A snapshot that stops matching the quoted measurement is a regression against
+// upstream, not a snapshot to re-record.
 
 // Symptom 1 — whitespace between value tokens is dropped. All six reported
 // sub-inputs, ending with the gradient whose percentage colour stops fuse onto

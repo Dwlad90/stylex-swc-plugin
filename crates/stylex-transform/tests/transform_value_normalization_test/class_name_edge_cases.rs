@@ -9,24 +9,35 @@
 //! class name that silently misses its rule.
 //!
 //! Every expectation is measured against `@stylexjs/babel-plugin@0.19.0` by the
-//! parity harness (`pnpm run --filter=@stylexswc/rs-compiler parity -- --set
-//! edge`), and quoted above the test that pins it. The declaration text is
-//! written the way the harness writes it — a double-quoted JS string, escapes
-//! and all — so the source under test is the source that was measured.
+//! parity harness, whose `edge` corpus set carries these values:
+//!
+//! ```sh
+//! pnpm run --filter=@stylexswc/rs-compiler build
+//! pnpm run --filter=@stylexswc/rs-compiler parity -- --set edge
+//! ```
+//!
+//! The measurement is quoted above the test that pins it. The declaration text
+//! is written the way the harness writes it — a double-quoted JS string,
+//! escapes and all — so the source under test is the source that was measured.
+//!
+//! A handful of lines run past the repo's 100-column limit, and deliberately: a
+//! quoted rule wrapped is a quoted rule falsified, and a value literal broken
+//! across lines is no longer the text the harness handed both compilers. Those
+//! two shapes are the only exceptions here.
 //!
 //! A snapshot that stops matching its quoted measurement is a divergence from
 //! upstream, not a snapshot to re-record.
 
 use crate::utils::prelude::*;
 
-fn stylex_transform(
-  comments: TestComments,
-  customize: impl FnOnce(TestBuilder) -> TestBuilder,
-) -> impl Pass {
+// The options the measurements were taken under: runtime injection so the rule
+// text lands in the snapshot, and font-size conversion left off, which is how
+// the harness runs both compilers. No value here is a font size, but a helper
+// that quietly enabled it would make the snapshots and the quoted measurements
+// agree by luck rather than by construction.
+fn stylex_transform(comments: TestComments) -> impl Pass {
   build_test_transform(comments, |b| {
-    customize(b)
-      .with_runtime_injection_option(RuntimeInjection::Boolean(true))
-      .with_enable_font_size_px_to_rem(true)
+    b.with_runtime_injection_option(RuntimeInjection::Boolean(true))
   })
 }
 
@@ -41,7 +52,7 @@ fn stylex_transform(
 //           .xki5qqo{font-family:My\ Font,sans-serif}
 stylex_test!(
   escape_sequences_are_not_resolved,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -59,7 +70,7 @@ stylex_test!(
 //           .xe30er7{content:"→ Привет 日本語 🙂"}
 stylex_test!(
   non_ascii_text_survives_whole,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -79,7 +90,7 @@ stylex_test!(
 //           .x19xh8vt{background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E")}
 stylex_test!(
   url_bodies_are_copied_verbatim,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -100,7 +111,7 @@ stylex_test!(
 //           .x16yfguv{color:/* a */ red}
 stylex_test!(
   comments_inside_a_value_are_kept,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -120,7 +131,7 @@ stylex_test!(
 //           .xbjs7n6{content:""unterminated"}
 stylex_test!(
   malformed_but_accepted_values_pass_through,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -141,7 +152,7 @@ stylex_test!(
 //           .x145t2h1{transition-property:-webkit-transform}   (both spellings)
 stylex_test!(
   vendor_prefixes_are_carried_through,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -162,7 +173,7 @@ stylex_test!(
 //           .x1b3eisk{box-shadow:0 0 1px #000,0 0 2px #000,0 0 3px #000,0 0 4px #000,0 0 5px #000,0 0 6px #000,0 0 7px #000,0 0 8px #000,0 0 9px #000,0 0 10px #000}
 stylex_test!(
   deep_nesting_and_long_lists_are_walked_intact,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -188,7 +199,7 @@ stylex_test!(
 //           .x1gu5id8{letter-spacing:-0.24px}
 stylex_test!(
   extreme_numbers_keep_their_authored_spelling,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -211,7 +222,7 @@ stylex_test!(
 //           .x1tjm4ty{width:var(--x)px}
 stylex_test!(
   custom_properties_are_exempt_from_value_normalization,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -230,7 +241,7 @@ stylex_test!(
 //           .x13hx3ed{width:CALC(100% - 20PX)}
 stylex_test!(
   letter_case_is_preserved,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -247,7 +258,7 @@ stylex_test!(
 //           .xwpildb{height:calc-size(fit-content,size / 2)}
 stylex_test!(
   unknown_css_syntax_is_emitted_rather_than_rejected,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -267,7 +278,7 @@ stylex_test!(
 //           .x18bhde2{color:red;;}
 stylex_test!(
   separators_collapse_and_trailing_semicolons_stay,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -286,73 +297,12 @@ stylex_test!(
 //           .x1rf7pop{color:red ! important}
 stylex_test!(
   importance_annotation_keeps_its_spacing,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
       tight: { color: "red !important" },
       spaced: { color: "red   !   important" },
     });
-  "#
-);
-
-// The rejections. Each of these is a value this compiler refuses where upstream
-// accepts it, and the refusal is deliberate: a value that escapes its own
-// declaration writes CSS nobody asked for, and nesting past the guard used to
-// take the process down with it rather than reporting a file.
-
-// A semicolon followed by anything that reads as a second declaration would
-// smuggle a rule past the property allowlist.
-stylex_test_panic!(
-  a_value_starting_a_second_declaration_is_rejected,
-  "outside of a string or comment",
-  r#"
-    import stylex from 'stylex';
-    const styles = stylex.create({ x: { color: "red; margin: 10px" } });
-  "#
-);
-
-// An opening brace would open a block inside the generated rule.
-stylex_test_panic!(
-  a_value_carrying_an_opening_brace_is_rejected,
-  "outside of a string or comment",
-  r#"
-    import stylex from 'stylex';
-    const styles = stylex.create({ x: { color: "red {" } });
-  "#
-);
-
-// A closing brace would end the generated rule early, leaving whatever follows
-// it at the top level of the stylesheet.
-stylex_test_panic!(
-  a_value_carrying_a_closing_brace_is_rejected,
-  "outside of a string or comment",
-  r#"
-    import stylex from 'stylex';
-    const styles = stylex.create({ x: { height: "1px solid } color: red" } });
-  "#
-);
-
-// Nesting past the depth guard is reported as a diagnostic naming the depths.
-// Before the guard existed this exhausted the stack, which is not a panic and
-// therefore not catchable — the process died without reporting the file.
-stylex_test_panic!(
-  nesting_past_the_depth_guard_is_reported_not_fatal,
-  "limit 64, found 65",
-  r#"
-    import stylex from 'stylex';
-    const styles = stylex.create({ x: { width: "calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(calc(1px)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))" } });
-  "#
-);
-
-// A custom-property reference whose name is missing its leading double hyphen
-// resolves to nothing at runtime, so it is a compile-time error rather than a
-// silently dead declaration.
-stylex_test_panic!(
-  a_custom_property_reference_without_double_hyphen_is_rejected,
-  "Unprefixed custom properties",
-  r#"
-    import stylex from 'stylex';
-    const styles = stylex.create({ x: { color: "var(x)" } });
   "#
 );

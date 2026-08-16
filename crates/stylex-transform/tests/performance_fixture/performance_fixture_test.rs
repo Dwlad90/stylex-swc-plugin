@@ -36,7 +36,12 @@ fn measure_transform_time(input_path: &Path) -> (String, f64) {
   let input = fs::read_to_string(input_path).unwrap();
   let output = tranform(input_path, &input);
 
-  let duration = start.elapsed().as_millis() as f64;
+  // Milliseconds as a fraction, not as a truncated integer. `as_millis` floors,
+  // so a transform finishing in under a millisecond measures as exactly zero —
+  // and the ratio asserted below then reads "complex must take less than zero",
+  // which nothing can satisfy. The faster this compiler gets, the more often
+  // that fires.
+  let duration = start.elapsed().as_secs_f64() * 1_000.0;
 
   let output_fixture = fs::read_to_string(output_path).unwrap_or_default();
 

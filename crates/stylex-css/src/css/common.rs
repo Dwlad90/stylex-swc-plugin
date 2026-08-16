@@ -425,7 +425,7 @@ fn is_url_call(value: &[u8], open_paren_index: usize) -> bool {
 /// the value parser does with it too, so the resume point is the end. That
 /// matters for more than tidiness: a value like `url(a;b` has no rule-breaking
 /// `;` in it, only an unfinished url, and the unclosed function is a diagnostic
-/// the normalizers own. Stopping short here would report the same input as a
+/// the value passes own. Stopping short here would report the same input as a
 /// rule terminator instead, which is the second diagnostic that moving those
 /// checks out of this scan was meant to prevent.
 ///
@@ -460,7 +460,7 @@ fn url_body_end(value: &[u8], open_paren_index: usize) -> Option<usize> {
 /// declaration the compiler sees.
 ///
 /// Unfinished constructs are conspicuously absent: an unclosed function and an
-/// unclosed string are the first two normalizers, which read the token list
+/// unclosed string are the first two value passes, which read the token list
 /// rather than the raw bytes. Detecting either here as well would give the same
 /// input two different diagnostics depending on which check ran first.
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -491,7 +491,7 @@ impl ValueStructure {
   /// without being able to escape its own declaration.
   ///
   /// Every accepted value now reaches the stylesheet as the author's own bytes,
-  /// rewritten only where a normalizer names them, so this is asked of all of
+  /// rewritten only where a value pass names them, so this is asked of all of
   /// them rather than of a bypass.
   fn is_inert(&self) -> bool {
     !self.has_rule_breaking_token && !self.has_unclosed_comment

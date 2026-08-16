@@ -533,6 +533,146 @@
       "property": "width",
       "value": "calc(var(--x) + 10px)",
       "origin": "rescued from the deleted custom-property validator tests"
+    },
+    {
+      "id": "edge-unsettled-empty-fn-then-separator",
+      "property": "width",
+      "value": "()/",
+      "origin": "hand-written: hostile input reached by the totality sweep",
+      "note": "found by the totality sweep: normalizing again appends a space each run"
+    },
+    {
+      "id": "edge-unsettled-trailing-paren",
+      "property": "width",
+      "value": "00)",
+      "origin": "hand-written: hostile input reached by the totality sweep",
+      "note": "found by the totality sweep: a second run drops the trailing character"
+    },
+    {
+      "id": "edge-unsettled-trailing-backslash",
+      "property": "width",
+      "value": "00\\",
+      "origin": "hand-written: hostile input reached by the totality sweep",
+      "note": "found by the totality sweep: a second run drops the trailing character"
+    },
+    {
+      "id": "edge-unsettled-trailing-asterisk",
+      "property": "width",
+      "value": "00*",
+      "origin": "hand-written: hostile input reached by the totality sweep",
+      "note": "found by the totality sweep: a second run drops the trailing character"
+    },
+    {
+      "id": "edge-number-overflows-to-infinity",
+      "property": "width",
+      "value": "1e309px",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-number-underflows-to-zero",
+      "property": "width",
+      "value": "1e-324px",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-number-largest-finite-double",
+      "property": "width",
+      "value": "1.7976931348623157e308px",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-number-smallest-subnormal",
+      "property": "width",
+      "value": "5e-324px",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-number-past-double-precision",
+      "property": "width",
+      "value": "9007199254740993px",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-number-thirty-digits",
+      "property": "width",
+      "value": "123456789012345678901234567890px",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-number-exponent-with-no-digits",
+      "property": "width",
+      "value": "1epx",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-number-bare-decimal-point",
+      "property": "width",
+      "value": ".",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-number-trailing-decimal-point",
+      "property": "width",
+      "value": "0.px",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-number-negative-zero",
+      "property": "width",
+      "value": "-0px",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-number-high-precision-fraction",
+      "property": "opacity",
+      "value": "0.12345678901234567890123456789",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-combining-mark-in-a-string",
+      "property": "fontFamily",
+      "value": "\"é\"",
+      "origin": "hand-written: hostile input reached by the totality sweep",
+      "note": "a combining acute, which is a code point of its own"
+    },
+    {
+      "id": "edge-combining-mark-as-an-identifier",
+      "property": "fontFamily",
+      "value": "é",
+      "origin": "hand-written: hostile input reached by the totality sweep",
+      "note": "the same, unquoted, where it is a word character"
+    },
+    {
+      "id": "edge-right-to-left-mark-mid-value",
+      "property": "fontFamily",
+      "value": "\"a‏b\"",
+      "origin": "hand-written: hostile input reached by the totality sweep",
+      "note": "invisible and directional, and not whitespace"
+    },
+    {
+      "id": "edge-byte-order-mark-mid-value",
+      "property": "fontFamily",
+      "value": "\"a﻿b\"",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-non-breaking-space-between-tokens",
+      "property": "fontFamily",
+      "value": "a b",
+      "origin": "hand-written: hostile input reached by the totality sweep",
+      "note": "a word character here, not a separator"
+    },
+    {
+      "id": "edge-astral-plane-after-an-escape",
+      "property": "fontFamily",
+      "value": "\\😀",
+      "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-astral-plane-between-number-and-unit",
+      "property": "width",
+      "value": "1😀px",
+      "origin": "hand-written: hostile input reached by the totality sweep"
     }
   ]
 }

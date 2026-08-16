@@ -23,17 +23,6 @@ stylex_regex = { path = "../stylex-regex" }
 stylex_structures = { path = "../stylex-structures" }
 stylex_types = { path = "../stylex-types" }
 stylex_utils = { path = "../stylex-utils" }
-swc_core = { workspace = true, features = [
-  "common",
-  "css_ast",
-  "css_codegen",
-  "css_parser",
-  "css_visit",
-  "ecma_codegen",
-  "ecma_parser",
-  "ecma_plugin_transform",
-  "ecma_utils",
-] }
 
 [dev-dependencies]
 criterion.workspace = true

@@ -590,10 +590,12 @@ fn rejects_function_nesting_past_the_limit() {
   );
 }
 
-/// The limit is a property of the compiler, not of which branch a value takes:
-/// the colour-function path bypasses SWC's codegen, and is guarded the same.
+/// The limit is a property of the compiler, not of the value. There is one path
+/// left for a value to take, so a colour function is guarded exactly as a
+/// `calc()` is — which is what this pins now that the branch it was written
+/// against is gone.
 #[test]
-fn rejects_deep_nesting_on_the_colour_function_path() {
+fn rejects_deep_nesting_on_a_colour_function() {
   let options = default_options();
   let mut value = String::from("red");
   for _ in 0..=MAX_VALUE_NESTING_DEPTH {

@@ -903,9 +903,10 @@ mod normalize_css_property_value_tests {
     );
   }
 
-  /// The relative-colour path also emits the author's value verbatim, bypassing
-  /// SWC's codegen, so it needs the same structural guard as the unknown-syntax
-  /// fallback — otherwise a stray `}` splices an arbitrary rule into the sheet.
+  /// Relative colour syntax is guarded like everything else. Every accepted
+  /// value now reaches the stylesheet as the author's own bytes, so a stray `}`
+  /// in one would splice an arbitrary rule into the sheet whatever the value
+  /// happens to be made of.
   #[test]
   fn rule_breaking_relative_color_values_are_rejected() {
     let opts = default_options();

@@ -379,6 +379,40 @@ stylex_test!(
   "#
 );
 
+// Whitespace the *scanner* does not recognise. `is_blank_css_text` decides
+// whether a value spells anything at all, and deciding it with `str::trim`
+// answered for Unicode whitespace too — so a value of U+3000 or U+00A0 was
+// dropped and the property left undeclared, where the reference compiler emits
+// it. The scanner calls a character whitespace only when its code is at most
+// 32, which makes each of these a word token carrying a value.
+//
+// Written as JS escapes so the invisible characters survive review: `　` is
+// an ideographic space, ` ` a no-break space, ` ` a line separator.
+// The array forms reach the same predicate down the fallback path, where a
+// dropped value changes the composed `var()` rather than the declaration.
+//
+// Upstream: .xxdme56{color:　}
+//           .xmqzhnh{color: }
+//           .x1azjr7n{color: }
+//           .x1fi72xa{color:var(--a,　)}
+//           .x3qyvd1{color:var(--a);color: }
+//           .xbnvtnl{width:1px　2px}
+stylex_test!(
+  unicode_whitespace_spells_a_value_the_scanner_can_read,
+  |tr| stylex_transform(tr.comments.clone()),
+  r#"
+    import stylex from 'stylex';
+    export const styles = stylex.create({
+      ideographicSpace: { color: "\u3000" },
+      noBreakSpace: { color: "\u00a0" },
+      lineSeparator: { color: "\u2028" },
+      ideographicSpaceFallback: { color: ["\u3000", "var(--a)"] },
+      noBreakSpaceAfterVar: { color: ["var(--a)", "\u00a0"] },
+      ideographicSpaceAmongWords: { width: "1px\u30002px" },
+    });
+  "#
+);
+
 // The arrangements a totality sweep of the normalization seam found not to
 // settle: normalize the output again and it moves, and in the first case it
 // grows a space on every run. Nothing normalizes twice today, so what a

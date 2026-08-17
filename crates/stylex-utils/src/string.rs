@@ -23,14 +23,20 @@ pub fn dashify(s: &str) -> Cow<'_, str> {
 }
 
 /// Whether a value spells no CSS text at all — empty, or nothing but
-/// whitespace.
+/// characters the value scanner reads as whitespace.
 ///
 /// A declaration built from one of these is `color:`, which no browser accepts,
 /// so the property is left undeclared instead. Asked of both an authored value
 /// and the value it transforms to, which is why it lives here rather than on
 /// either type.
+///
+/// Deliberately narrower than `str::trim`. The scanner calls a character
+/// whitespace when its code is at most 32 and nothing else, so U+00A0 or
+/// U+3000 is a *word token* to it, not a gap — and the reference compiler
+/// emits such a value verbatim rather than dropping the property. Testing
+/// bytes is exact here: every byte of a multi-byte character is at least 0x80.
 pub fn is_blank_css_text(s: &str) -> bool {
-  s.trim().is_empty()
+  s.bytes().all(|byte| byte <= 32)
 }
 
 /// Strips surrounding double-quote characters from a string.

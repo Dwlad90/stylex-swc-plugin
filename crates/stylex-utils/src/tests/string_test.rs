@@ -216,4 +216,17 @@ mod is_blank_css_text_tests {
     // Empty *quotes* are CSS text, which is what a blank `content` becomes.
     assert!(!is_blank_css_text("\"\""));
   }
+
+  #[test]
+  fn unicode_whitespace_is_a_value() {
+    // The value scanner reads whitespace as "char code <= 32" and nothing
+    // else, so each of these is a *word token* to it, not a gap. The
+    // reference compiler emits them: `transformValue("color", "\u{3000}")`
+    // produces the declaration rather than dropping the property.
+    assert!(!is_blank_css_text("\u{3000}")); // ideographic space
+    assert!(!is_blank_css_text("\u{00a0}")); // no-break space
+    assert!(!is_blank_css_text("\u{2028}")); // line separator
+    // Mixed with scanner whitespace, the word token still carries the value.
+    assert!(!is_blank_css_text(" \u{00a0} "));
+  }
 }

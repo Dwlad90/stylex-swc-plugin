@@ -33,10 +33,16 @@ exponent notation are each one token — and nothing in the scanner understands
 what a hex colour is, so nothing in it can shorten one. What no caller
 deliberately rewrites comes back byte for byte.
 
-It never fails and never rejects. Unclosed functions, unclosed strings and
-unterminated comments are recorded as flags on the node they belong to, which
-is what lets a value written in syntax newer than the compiler's knowledge pass
-through unharmed.
+It never rejects. Unclosed functions, unclosed strings and unterminated
+comments are recorded as flags on the node they belong to, which is what lets a
+value written in syntax newer than the compiler's knowledge pass through
+unharmed. There is no error type and no input that produces one.
+
+Depth is the exception, and the one obligation on an embedder. The scan is
+iterative and survives any nesting, but spelling a tree out, walking it and
+dropping it all recurse once per level, so a deep enough value exhausts the
+stack — an abort in Rust, where the JavaScript throws a `RangeError`. Bound
+nesting depth before parsing; `stylex-css` rejects past 64.
 
 ## What it offers
 

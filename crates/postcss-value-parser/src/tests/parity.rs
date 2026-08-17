@@ -186,3 +186,45 @@ fn an_override_replaces_the_same_nodes() {
     assert_eq!(produced, case.output, "the {} scenario differs", case.label);
   }
 }
+
+/// The one thing about an override that is *not* parity: the order it is
+/// consulted in.
+///
+/// The JavaScript builds its result by prepending each node's text to what it
+/// has so far, so a stateful override sees the siblings right to left. This
+/// crate writes into a single sink and therefore sees them left to right. The
+/// text both produce is identical, which is why no in-repo caller — all of
+/// them stateless — can tell. Pinned so that a future rewrite has to decide to
+/// change it rather than change it by accident.
+#[test]
+fn an_override_is_consulted_left_to_right() {
+  let nodes = parse("a b c");
+  let mut seen = Vec::new();
+
+  let text = stringify_with(&nodes, &mut |node: &Node| {
+    seen.push(node.value.clone());
+    None
+  });
+
+  assert_eq!(seen, ["a", " ", "b", " ", "c"]);
+  assert_eq!(text, "a b c");
+}
+
+/// And a parent still precedes its children, which is the half that *does*
+/// match the JavaScript.
+#[test]
+fn an_override_sees_a_function_before_its_arguments() {
+  let nodes = parse("calc(1px + 2px)");
+  let mut seen = Vec::new();
+
+  stringify_with(&nodes, &mut |node: &Node| {
+    seen.push(node.value.clone());
+    None
+  });
+
+  match seen.first() {
+    Some(first) => assert_eq!(first, "calc"),
+    None => panic!("the override was never consulted"),
+  }
+  assert!(seen.contains(&String::from("1px")));
+}

@@ -20,8 +20,15 @@ type MaybeCustom<'outer, 'call> = &'outer mut Option<Custom<'call>>;
 /// A sink rather than a returned `String`, because the JavaScript's shape --
 /// build each node's text, then concatenate -- costs one allocation per node
 /// on a path every declaration value in a compiled file goes through. The text
-/// produced is the same byte for byte, and so is the order the override is
-/// consulted in: a node before its children.
+/// produced is the same byte for byte.
+///
+/// The order the override is consulted in diverges from the JavaScript
+/// deliberately. A parent is still visited before its children, but siblings
+/// are visited left to right, where the JavaScript builds its string by
+/// prepending from the tail and therefore visits them right to left. Only a
+/// stateful override can tell the difference, and reproducing an accident of
+/// string prepending would cost this design its single sink. Pinned by
+/// `an_override_is_consulted_left_to_right` in `tests/parity.rs`.
 fn write_node(node: &Node, custom: MaybeCustom<'_, '_>, out: &mut String) {
   if let Some(over) = custom.as_mut()
     && let Some(replacement) = over(node)

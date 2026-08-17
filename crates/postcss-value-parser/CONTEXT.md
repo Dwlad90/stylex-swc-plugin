@@ -77,3 +77,27 @@ Visiting every node, descending into functions. Outside-in by default;
 inside-out when bubbling. It lends out a node, never the list holding it, so a
 structural edit to a node list happens outside the walk.
 _Avoid_: traverse, visit, iterate
+
+## Deliberate divergences from the JavaScript
+
+Three, each chosen rather than inherited. Everything else is parity, and a
+difference found outside this list is a bug.
+
+**Byte offsets, not UTF-16 indices**. A node's start and end count bytes, where
+the JavaScript counts UTF-16 code units. Rust strings are indexed by byte, so
+carrying the JavaScript's numbers would make every offset unusable without a
+conversion at each use. The parity generator rebases the two against each other.
+
+**Override order among siblings**. A parent is consulted before its children in
+both, but siblings go left to right here and right to left in the JavaScript,
+which builds its result by prepending from the tail. The text produced is
+identical, so only a stateful override can tell. Reproducing the JavaScript's
+order would mean giving up the single output sink to recreate an accident of
+string concatenation. Pinned by `an_override_is_consulted_left_to_right`.
+
+**Deep nesting aborts rather than throwing**. The scan is iterative and survives
+any depth, but spelling a tree back out, walking it, and dropping it are all
+recursive — so a value nested tens of thousands deep exhausts the stack, which
+in Rust is an abort no caller can catch, where the JavaScript throws a
+`RangeError`. An embedder must bound depth before parsing; `stylex-css` rejects
+past 64 in `scan_value_structure`.

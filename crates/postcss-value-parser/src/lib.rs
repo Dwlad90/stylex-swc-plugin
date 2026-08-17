@@ -22,10 +22,25 @@
 //! one token, and every character not deliberately rewritten survives byte for
 //! byte — hex spelling, letter case, quote character, whitespace positions.
 //!
-//! It never fails and never rejects. Unclosed functions, unclosed strings and
-//! unterminated comments are recorded as flags on the node they belong to,
-//! which is what lets a value written in syntax newer than this compiler's
-//! knowledge pass through unharmed.
+//! It never rejects. Unclosed functions, unclosed strings and unterminated
+//! comments are recorded as flags on the node they belong to, which is what
+//! lets a value written in syntax newer than this compiler's knowledge pass
+//! through unharmed. There is no error type here and no input that produces
+//! one.
+//!
+//! ## The one way it can still fail
+//!
+//! Depth. The scan itself is iterative and parses `"(".repeat(200_000)`
+//! without complaint, but spelling the result back out, walking it, and
+//! dropping it all recurse once per level — so a tree nested deeply enough
+//! exhausts the stack. In Rust that is an abort, not something a caller can
+//! catch, where the JavaScript throws a `RangeError`.
+//!
+//! An embedder must therefore bound nesting depth *before* handing a value
+//! here. `stylex-css` does, rejecting past 64 in `scan_value_structure`, which
+//! is why nothing in this workspace can reach the abort. Lifting that bound, or
+//! exposing this crate outside the workspace, means rewriting the three
+//! recursive walks against an explicit stack first.
 //!
 //! ## Where a round trip does not hold
 //!

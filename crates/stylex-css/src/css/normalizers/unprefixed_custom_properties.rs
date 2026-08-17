@@ -9,7 +9,8 @@
 
 use postcss_value_parser::{Node, NodeKind, ValueParser};
 use stylex_constants::constants::messages::UNPREFIXED_CUSTOM_PROPERTIES;
-use stylex_macros::stylex_panic;
+
+use super::reject_value;
 
 /// The function name a custom-property reference is spelled with.
 ///
@@ -62,9 +63,17 @@ fn unprefixed_property_name(node: &Node) -> Option<&str> {
 /// checked: a `var()` nested inside `calc()` or a colour function is not
 /// reached. Widening the walk would reject programs that compile today, which
 /// is a decision about the rule rather than about where it reads from.
-pub fn detect_unprefixed_custom_properties(ast: &mut ValueParser, _key: &str) {
+///
+/// Rejects through [`super::reject_value`], like the two unclosed detectors, so
+/// the rule text is quoted the same way in all three. The name is carried in
+/// the message rather than instead of the rule: the name says which of several
+/// references is wrong, the rule says which declaration they were in, and an
+/// author looking at a large `create()` call needs both.
+pub fn detect_unprefixed_custom_properties(ast: &mut ValueParser, key: &str) {
   if let Some(name) = ast.nodes.iter().find_map(unprefixed_property_name) {
-    stylex_panic!("{}: var({})", UNPREFIXED_CUSTOM_PROPERTIES, name);
+    let message = format!("{UNPREFIXED_CUSTOM_PROPERTIES}: var({name})");
+
+    reject_value(ast, key, &message);
   }
 }
 

@@ -58,9 +58,10 @@
     },
     {
       "id": "edge-url-composite-shorthand",
-      "property": "background",
-      "value": "url(\"asset.png\") no-repeat center/cover",
-      "origin": "hand-written: URL inside a composite shorthand"
+      "property": "backgroundImage",
+      "value": "url(\"asset.png\"), linear-gradient(red, blue)",
+      "origin": "hand-written: a URL among comma-separated layers",
+      "note": "Was `background`, a shorthand StyleX bans, so both compilers emitted nothing and the row measured nothing. Kept on the longhand so the URL body is actually compared."
     },
     {
       "id": "edge-comment-between-tokens",
@@ -721,6 +722,13 @@
       "property": "width",
       "value": "1px　2px",
       "origin": "hand-written: U+3000 between two words is not a separator"
+    },
+    {
+      "id": "edge-c0-control-value",
+      "property": "color",
+      "value": "\u0001",
+      "origin": "hand-written: a C0 control is blank to the scanner, not a word",
+      "note": "Dropped locally; upstream throws, as it does for \"\" and \" \"."
     }
   ]
 }

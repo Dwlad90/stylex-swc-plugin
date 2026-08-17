@@ -180,10 +180,16 @@ fn shortest_digits_and_exponent(value: f64) -> (String, i32) {
       // and so panics in a debug build, for any non-digit that reaches this
       // arm. Nothing `LowerExp` emits today would, but the guarantee that it
       // never will is not this crate's to make.
-      _ if in_exponent => {
-        if let Some(digit) = ch.to_digit(10) {
-          exponent = exponent * 10 + digit as i32;
-        }
+      //
+      // Skipping the character is the release behaviour, because a class name
+      // spelled from a slightly wrong exponent beats aborting a compile. The
+      // `debug_assert` is what keeps that from being silent: this function
+      // exists to match `Number.prototype.toString` exactly, so a wrong
+      // exponent is a wrong class name, and the test suite should say so
+      // rather than the divergence being found in a stylesheet.
+      _ if in_exponent => match ch.to_digit(10) {
+        Some(digit) => exponent = exponent * 10 + digit as i32,
+        None => debug_assert!(false, "non-digit {ch:?} in the exponent of {formatted:?}"),
       },
       _ => digits.push(ch),
     }

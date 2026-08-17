@@ -107,13 +107,7 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
         resolvedFrom: distEntry,
       },
       babel: {
-        // Resolved as a package export rather than guessed at as
-        // `dirname(entry)/../package.json`: that guess is right only while the
-        // entry point sits exactly one directory below the manifest, and
-        // `readVersion` reports `unknown` rather than complaining when it is
-        // wrong — so a report would quietly stop naming which upstream it was
-        // measured against.
-        version: readVersion(require.resolve('@stylexjs/babel-plugin/package.json')),
+        version: readVersion(resolveManifest('@stylexjs/babel-plugin')),
         resolvedFrom: babelPluginEntry,
       },
       babelCore: babel.version,
@@ -231,6 +225,27 @@ function propertyNamesOf(outcome: CompilerOutcome): string {
     .map(declaration => declaration.slice(0, declaration.indexOf(':')).trim())
     .toSorted()
     .join(SEPARATOR);
+}
+
+/**
+ * Where a package's manifest is, resolved as a package export rather than
+ * guessed at as `dirname(entry)/../package.json` — that guess is right only
+ * while the entry point sits exactly one directory below the manifest, and
+ * `readVersion` answers `unknown` rather than complaining when it is wrong, so
+ * a report would quietly stop naming which upstream it was measured against.
+ *
+ * Falls back to that guess rather than propagating. A package whose `exports`
+ * map omits `./package.json` raises `ERR_PACKAGE_PATH_NOT_EXPORTED` here, and
+ * a version string the report prints for the reader is not worth failing a
+ * measurement run over — `readVersion` degrades a wrong path to `unknown`,
+ * which is the outcome this is trying to make rare, not one it must prevent.
+ */
+function resolveManifest(packageName: string): string {
+  try {
+    return require.resolve(`${packageName}/package.json`);
+  } catch {
+    return path.join(path.dirname(require.resolve(packageName)), '../package.json');
+  }
 }
 
 function readVersion(manifestPath: string): string {

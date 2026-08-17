@@ -17,17 +17,20 @@ pub mod zero_dimensions;
 
 /// Rejects the value under normalization, quoting the rule it would have built.
 ///
-/// Shared by the two unclosed detectors, which reject for different reasons but
-/// have nothing else to say about them: the author needs the rule text back, and
-/// the value has to be spelled out of the token list to produce it. Written once
-/// so the two cannot drift into reporting the same kind of problem two ways.
+/// Shared by every pass that rejects a value: the author needs the rule text
+/// back whatever the complaint was, and the value has to be spelled out of the
+/// token list to produce it. Written once so the passes cannot drift into
+/// quoting the same rule three ways.
 ///
-/// The unprefixed-property pass deliberately does not use this. It quotes the
-/// offending `var()` name instead of the whole rule, because the value is
-/// otherwise fine and the name is the entire complaint.
+/// `message` is the whole complaint and may carry detail of its own — the
+/// unprefixed-property pass names the offending reference in it, because a
+/// value can hold several and the rule text alone would leave the author to
+/// find which. What this adds is the rule, which is what says *where*.
 ///
 /// `#[track_caller]` so the location in the diagnostic is the pass that
-/// rejected, not this line.
+/// rejected, not this line. The attribute chains: `stylex_panic!` expands to a
+/// `#[track_caller]` call, so the location it reads is this function's caller
+/// rather than the macro's line here.
 #[track_caller]
 pub(super) fn reject_value(ast: &ValueParser, key: &str, message: &str) -> ! {
   let value = stringify(&ast.nodes);

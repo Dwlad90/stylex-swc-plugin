@@ -33,5 +33,9 @@ pretty_env_logger.workspace = true
 harness = false
 name = "css_generation_bench"
 
+[[bench]]
+harness = false
+name = "normalize_value_bench"
+
 [lints]
 workspace = true

@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 902 values: the differential harness's whole corpus, plus
+/// 904 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -148,9 +148,9 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"url\" 0..93 before=\"\" after=\"\" nodes=1\n  string \"data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E\" 4..92 quote=\"\\\"\"",
   },
   ParserCase {
-    input: "url(\"asset.png\") no-repeat center/cover",
-    output: "url(\"asset.png\") no-repeat center/cover",
-    ast: "function \"url\" 0..16 before=\"\" after=\"\" nodes=1\n  string \"asset.png\" 4..15 quote=\"\\\"\"\nspace \" \" 16..17\nword \"no-repeat\" 17..26\nspace \" \" 26..27\nword \"center\" 27..33\ndiv \"/\" 33..34 before=\"\" after=\"\"\nword \"cover\" 34..39",
+    input: "url(\"asset.png\"), linear-gradient(red, blue)",
+    output: "url(\"asset.png\"), linear-gradient(red, blue)",
+    ast: "function \"url\" 0..16 before=\"\" after=\"\" nodes=1\n  string \"asset.png\" 4..15 quote=\"\\\"\"\ndiv \",\" 16..18 before=\"\" after=\" \"\nfunction \"linear-gradient\" 18..44 before=\"\" after=\"\" nodes=3\n  word \"red\" 34..37\n  div \",\" 37..39 before=\"\" after=\" \"\n  word \"blue\" 39..43",
   },
   ParserCase {
     input: "calc(100% /* half */ - 20px)",
@@ -673,6 +673,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"1px　2px\" 0..9",
   },
   ParserCase {
+    input: "\u{1}",
+    output: "\u{1}",
+    ast: "space \"\\u0001\" 0..1",
+  },
+  ParserCase {
     input: "red",
     output: "red",
     ast: "word \"red\" 0..3",
@@ -841,6 +846,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "url(\"a\\\")b.png\") 10px",
     output: "url(\"a\\\")b.png\") 10px",
     ast: "function \"url\" 0..16 before=\"\" after=\"\" nodes=1\n  string \"a\\\\\\\")b.png\" 4..15 quote=\"\\\"\"\nspace \" \" 16..17\nword \"10px\" 17..21",
+  },
+  ParserCase {
+    input: "url(\"asset.png\") no-repeat center/cover",
+    output: "url(\"asset.png\") no-repeat center/cover",
+    ast: "function \"url\" 0..16 before=\"\" after=\"\" nodes=1\n  string \"asset.png\" 4..15 quote=\"\\\"\"\nspace \" \" 16..17\nword \"no-repeat\" 17..26\nspace \" \" 26..27\nword \"center\" 27..33\ndiv \"/\" 33..34 before=\"\" after=\"\"\nword \"cover\" 34..39",
   },
   ParserCase {
     input: "url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==\")",
@@ -4692,11 +4702,9 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("-10000px", Some(("-10000", "px"))),
   ("sans-serif", None),
   ("image.png?a=1&b=2", None),
-  ("no-repeat", None),
-  ("center", None),
-  ("cover", None),
-  ("20px", Some(("20", "px"))),
   ("red", None),
+  ("blue", None),
+  ("20px", Some(("20", "px"))),
   ("!important", None),
   ("!", None),
   ("important", None),
@@ -4783,7 +4791,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("border-color", None),
   ("--xBorder", None),
   ("block;", None),
-  ("blue", None),
   ("10px;", Some(("10", "px;"))),
   ("padding", None),
   ("00)", Some(("00", ")"))),
@@ -4842,6 +4849,9 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("{body}", None),
   ("http://example.com/a.png", None),
   ("right", None),
+  ("no-repeat", None),
+  ("center", None),
+  ("cover", None),
   ("a(b(c", None),
   (").png)", None),
   ("a(b", None),

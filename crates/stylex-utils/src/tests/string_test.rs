@@ -229,4 +229,25 @@ mod is_blank_css_text_tests {
     // Mixed with scanner whitespace, the word token still carries the value.
     assert!(!is_blank_css_text(" \u{00a0} "));
   }
+
+  /// The other side of the same divergence from `str::trim`, and the side that
+  /// changed an answer rather than fixing one.
+  ///
+  /// A C0 control is not Unicode whitespace, so `trim` used to leave it in
+  /// place and the value was rejected downstream by `trim_edges`. Reading the
+  /// scanner's rule instead makes it blank, so the property is dropped the way
+  /// it already was for `""` and `" "`. Pinned so that undoing it has to be a
+  /// decision.
+  #[test]
+  fn c0_controls_that_are_not_unicode_whitespace_are_blank() {
+    assert!(is_blank_css_text("\u{0}")); // NUL
+    assert!(is_blank_css_text("\u{1}")); // start of heading
+    assert!(is_blank_css_text("\u{1f}")); // unit separator
+    // And still true of the controls `trim` already agreed were whitespace.
+    assert!(is_blank_css_text("\u{b}")); // vertical tab
+    assert!(is_blank_css_text("\u{c}")); // form feed
+    // Code 32 is the boundary; 33 is the first character that spells a value.
+    assert!(is_blank_css_text("\u{20}"));
+    assert!(!is_blank_css_text("\u{21}"));
+  }
 }

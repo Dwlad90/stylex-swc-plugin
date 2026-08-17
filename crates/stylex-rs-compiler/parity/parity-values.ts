@@ -70,8 +70,28 @@ const VERDICT_LABELS: Record<Verdict, string> = {
   'acceptance-divergent': chalk.yellow('acceptance divergent'),
 };
 
+/**
+ * The verdicts where the two compilers agreed, whatever they agreed about.
+ *
+ * One set rather than two spellings of the same list: `--only-mismatches`
+ * filters on it and the per-entry printer skips its side-by-side detail on it,
+ * and a verdict added to one place but not the other is either hidden from the
+ * filter or printed as two empty lines.
+ *
+ * `identical-empty` belongs here. Both compilers accepted and emitted nothing,
+ * which is agreement — that it measures nothing is a fact about the corpus
+ * rather than about parity, and the summary reports it on its own line where a
+ * count is the useful form. Listing it as a mismatch would overload the word
+ * for the one verdict that is not a disagreement.
+ */
+const AGREED: ReadonlySet<Verdict> = new Set<Verdict>([
+  'identical',
+  'identical-empty',
+  'both-reject',
+]);
+
 function isMismatch(verdict: Verdict): boolean {
-  return verdict !== 'identical' && verdict !== 'both-reject';
+  return !AGREED.has(verdict);
 }
 
 function describe(entry: ReportEntry, side: 'rust' | 'babel'): string {
@@ -130,7 +150,7 @@ async function run(): Promise<void> {
     console.log(
       `${VERDICT_LABELS[entry.verdict]}  ${chalk.bold(entry.property)}: ${JSON.stringify(entry.value)}  ${chalk.gray(`[${entry.set}] ${entry.origin}`)}`
     );
-    if (entry.verdict === 'identical' || entry.verdict === 'both-reject') continue;
+    if (AGREED.has(entry.verdict)) continue;
     console.log(`    rust   ${describe(entry, 'rust')}`);
     console.log(`    babel  ${describe(entry, 'babel')}`);
     if (entry.note !== undefined) console.log(chalk.gray(`    note   ${entry.note}`));

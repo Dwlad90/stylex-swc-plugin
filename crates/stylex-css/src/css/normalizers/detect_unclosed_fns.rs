@@ -2,7 +2,7 @@
 //! names. See `normalize_value.rs` for the order the passes run in here — a
 //! tenth pass that upstream has no equivalent for runs among them.
 
-use postcss_value_parser::{NodeKind, ValueParser};
+use postcss_value_parser::{NodeKind, ValueParser, stringify};
 use stylex_constants::constants::messages::LINT_UNCLOSED_FUNCTION;
 use stylex_macros::stylex_panic;
 
@@ -37,7 +37,7 @@ pub fn detect_unclosed_fns(ast: &mut ValueParser, key: &str) {
   );
 
   if unclosed {
-    let value = ast.to_string();
+    let value = stringify(&ast.nodes);
 
     stylex_panic!(
       "{}, css rule: {}",

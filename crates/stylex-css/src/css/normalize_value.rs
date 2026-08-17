@@ -24,12 +24,16 @@
 //!
 //! ## What is not here
 //!
-//! No pass understands hex colours, letter case, quote characters or
-//! exponent notation, so none of them can alter those. Read the absence as
-//! deliberate: it is what makes two compilers agree on a value neither of them
-//! has an opinion about.
+//! No pass understands hex colours, letter case or quote characters, so none of
+//! them can alter those. Read the absence as deliberate: it is what makes two
+//! compilers agree on a value neither of them has an opinion about.
+//!
+//! Exponent notation is not in that list. Every pass that re-spells a number
+//! goes through `to_js_string`, which spells it the way JavaScript's
+//! `Number::toString` does — so `0.0000001px` comes back as `1e-7px`, which is
+//! what the reference compiler produces too.
 
-use postcss_value_parser::ValueParser;
+use postcss_value_parser::{ValueParser, stringify};
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 
 use crate::css::normalizers::{
@@ -84,5 +88,7 @@ pub fn normalize_value(value: &str, key: &str, options: &StyleXStateOptions) -> 
     convert_font_size_to_rem(&mut ast, key);
   }
 
-  ast.to_string()
+  // `stringify` rather than `to_string`: `Display` builds this very string and
+  // `ToString` then copies it into a second buffer.
+  stringify(&ast.nodes)
 }

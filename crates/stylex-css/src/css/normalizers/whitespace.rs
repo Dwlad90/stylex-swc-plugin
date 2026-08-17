@@ -22,23 +22,43 @@ pub fn normalize_whitespace(ast: &mut ValueParser, _key: &str) {
   // Planned against the untouched list before anything is rewritten, because
   // whether the reference implementation survives this normalizer at all is
   // decided by what its `!important` handler does to the list it is walking.
-  let removals = match plan_important_removals(&ast.nodes) {
-    ImportantPlan::Remove(removals) => removals,
-    ImportantPlan::Overrun => stylex_panic!("{}", LINT_IMPORTANT_NOT_LAST),
+  //
+  // Asked only of values that carry an annotation, which is very few of them.
+  // Without an annotation the plan walk can only answer `Remove(vec![])` --
+  // `Overrun` needs a removal and a removal needs an annotation -- and it pays
+  // a `Vec<NodeKind>` as long as the value to get there.
+  let removals = match carries_importance(&ast.nodes) {
+    true => match plan_important_removals(&ast.nodes) {
+      ImportantPlan::Remove(removals) => removals,
+      ImportantPlan::Overrun => stylex_panic!("{}", LINT_IMPORTANT_NOT_LAST),
+    },
+    false => Vec::new(),
   };
 
   ast.walk(
     |node, _| {
+      // Each arm checks before it writes. Most values arrive already spelled
+      // the way this pass would spell them, and an unconditional assignment
+      // allocates a replacement for text identical to what it replaces.
       match node.kind {
-        NodeKind::Space => node.value = " ".to_owned(),
+        NodeKind::Space => {
+          if node.value != " " {
+            node.value = " ".to_owned();
+          }
+        },
         NodeKind::Div => {
           let padding = match node.value.as_str() {
             "," => "",
             _ => " ",
           };
 
-          node.before = Some(padding.to_owned());
-          node.after = Some(padding.to_owned());
+          if node.before.as_deref() != Some(padding) {
+            node.before = Some(padding.to_owned());
+          }
+
+          if node.after.as_deref() != Some(padding) {
+            node.after = Some(padding.to_owned());
+          }
         },
         NodeKind::Function => {
           node.before = Some(String::new());
@@ -61,9 +81,16 @@ pub fn normalize_whitespace(ast: &mut ValueParser, _key: &str) {
 ///
 /// The reference implementation reads the first and last elements without
 /// guarding, so a value that scans to no tokens at all — an empty string, or
-/// one that is nothing but whitespace — fails here. That failure is reproduced;
-/// only the wording is local, since nothing depends on the text of a JavaScript
-/// runtime error.
+/// one that is nothing but characters the scanner reads as whitespace — throws
+/// a `TypeError` here.
+///
+/// [`LINT_VALUE_HAS_NO_TOKENS`] *replaces* that `TypeError` rather than
+/// reproducing a failure the production seam can reach: `transform_value`
+/// short-circuits a blank value before normalization is entered at all, so
+/// nothing outside this crate's own tests arrives here with an empty list. The
+/// rejection stays because the alternative is a panic from indexing, and a
+/// named message is the better thing to fail with if that ever stops being
+/// true.
 fn trim_edges(nodes: &mut Vec<Node>) {
   match nodes.first() {
     Some(first) if first.kind == NodeKind::Space => {
@@ -174,9 +201,35 @@ impl TopLevelList {
   }
 }
 
+/// Whether a node is the importance annotation the plan walk acts on.
+///
+/// Shared with [`carries_importance`] rather than spelled twice, because a
+/// pre-check looser than this predicate would plan for values the walk ignores,
+/// and one tighter would skip planning for values it does not.
+fn names_importance(node: &Node) -> bool {
+  node.kind == NodeKind::Word && node.value == IMPORTANT
+}
+
+/// Whether an annotation appears anywhere the plan walk would reach it.
+///
+/// Descends exactly where [`plan_node`] descends — into functions, and only
+/// into functions — so the two agree about which values have nothing to plan.
+fn carries_importance(nodes: &[Node]) -> bool {
+  nodes.iter().any(|node| {
+    if names_importance(node) {
+      return true;
+    }
+
+    match node.kind == NodeKind::Function {
+      true => node.nodes.as_deref().is_some_and(carries_importance),
+      false => false,
+    }
+  })
+}
+
 /// One node of the plan walk, and its children when it has any.
 fn plan_node(node: &Node, index: usize, top_level: &mut TopLevelList) {
-  if node.kind == NodeKind::Word && node.value == IMPORTANT {
+  if names_importance(node) {
     top_level.take_space_before(index);
   }
 

@@ -2,6 +2,8 @@
 //! names. See `normalize_value.rs` for the order the passes run in here — a
 //! tenth pass that upstream has no equivalent for runs among them.
 
+use std::borrow::Cow;
+
 use postcss_value_parser::{NodeKind, ValueParser};
 use stylex_utils::string::dashify;
 
@@ -24,7 +26,13 @@ pub fn convert_camel_cased_values(ast: &mut ValueParser, key: &str) {
 
   for node in &mut ast.nodes {
     if node.kind == NodeKind::Word && !node.value.starts_with("--") {
-      node.value = dashify(&node.value).into_owned();
+      // Only the owned answer is a rewrite. `dashify` borrows back whatever it
+      // would not have changed — ASCII with no upper case, which is almost
+      // every word these two properties carry — and `into_owned` would copy
+      // that word to replace it with itself.
+      if let Cow::Owned(dashed) = dashify(&node.value) {
+        node.value = dashed;
+      }
     }
   }
 }

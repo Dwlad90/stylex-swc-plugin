@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/webpack-unplugin-example",
   "description": "A simple webpack unplugin example to test @stylexswc/unplugin/webpack",
-  "version": "0.18.4-rc.1",
+  "version": "0.18.4-rc.2",
   "private": true,
   "license": "MIT",
   "scripts": {

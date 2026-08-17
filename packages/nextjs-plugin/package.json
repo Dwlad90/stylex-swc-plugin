@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/nextjs-plugin",
   "description": "StyleX plugin for Next.js powered by a Rust NAPI-RS/SWC compiler. Supports Webpack, Rspack, and Turbopack builds with CSS extraction.",
-  "version": "0.18.4-rc.1",
+  "version": "0.18.4-rc.2",
   "private": false,
   "license": "MIT",
   "sideEffects": false,

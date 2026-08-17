@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/stylexswc",
   "description": "Community Rust/NAPI-RS/SWC compiler and build-tool plugin ecosystem for StyleX CSS-in-JS, replacing the Babel transform for faster compile-time atomic CSS extraction.",
-  "version": "0.18.4-rc.1",
+  "version": "0.18.4-rc.2",
   "private": true,
   "scripts": {
     "audit:rust": "sh ./scripts/git/audit-rust.sh",

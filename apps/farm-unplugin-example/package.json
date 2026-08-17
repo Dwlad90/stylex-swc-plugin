@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/farm-unplugin-example",
   "description": "A simple farm unplugin example to test @stylexswc/unplugin/farm",
-  "version": "0.18.4-rc.1",
+  "version": "0.18.4-rc.2",
   "private": true,
   "license": "MIT",
   "scripts": {

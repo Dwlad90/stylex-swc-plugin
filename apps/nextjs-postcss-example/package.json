@@ -1,6 +1,6 @@
 {
   "name": "@stylexswc/next-postcss-example",
-  "version": "0.18.4-rc.1",
+  "version": "0.18.4-rc.2",
   "private": true,
   "scripts": {
     "build": "next build --webpack",

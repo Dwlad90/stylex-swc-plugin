@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/postcss-value-parser",
   "description": "Loose CSS declaration-value scanner that preserves the author's own characters",
-  "version": "0.18.4-rc.1",
+  "version": "0.18.4-rc.2",
   "private": true,
   "sideEffects": false,
   "files": [

@@ -41,6 +41,20 @@ export function entryId(property: string, value: string): string {
 }
 
 /**
+ * Order two strings by code point.
+ *
+ * Deliberately not `localeCompare`: called with no locale it reads whatever
+ * collation the running ICU offers, so a `small-icu` Node or a different `LANG`
+ * orders the corpus differently. That would make `parity:harvest --check` fail
+ * against an unchanged tree and rewrite all of `harvested.json`, which in turn
+ * rewrites `postcss-value-parser`'s generated `cases.rs`, whose row order is
+ * the corpus order. Code-point order is the same everywhere.
+ */
+function byCodePoint(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/**
  * Collapse duplicates by declaration, keeping the first origin seen. Values
  * repeat heavily across suites and a corpus entry costs two compiler runs.
  */
@@ -50,8 +64,6 @@ export function dedupe(entries: CorpusEntry[]): CorpusEntry[] {
     if (!byId.has(candidate.id)) byId.set(candidate.id, candidate);
   }
   return [...byId.values()].toSorted((a, b) =>
-    a.property === b.property
-      ? a.value.localeCompare(b.value)
-      : a.property.localeCompare(b.property)
+    a.property === b.property ? byCodePoint(a.value, b.value) : byCodePoint(a.property, b.property)
   );
 }

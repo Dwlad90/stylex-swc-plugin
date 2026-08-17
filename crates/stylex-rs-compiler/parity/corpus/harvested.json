@@ -21,12 +21,6 @@
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:464"
     },
     {
-      "id": "83fa2d39",
-      "property": "--épaisseur",
-      "value": "1px",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:50"
-    },
-    {
       "id": "59705c7e",
       "property": "--header-height",
       "value": "0px",
@@ -103,6 +97,12 @@
       "property": "--xVar",
       "value": "1px solid #000",
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:1405"
+    },
+    {
+      "id": "83fa2d39",
+      "property": "--épaisseur",
+      "value": "1px",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:50"
     },
     {
       "id": "2b1b3854",
@@ -225,28 +225,22 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/env.rs:727"
     },
     {
-      "id": "8177543e",
-      "property": "backgroundImage",
-      "value": "-webkit-linear-gradient(top, #FFFFFF, #000000)",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:383"
-    },
-    {
       "id": "6f9d60f1",
       "property": "backgroundImage",
       "value": "({body})",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:916"
     },
     {
+      "id": "8177543e",
+      "property": "backgroundImage",
+      "value": "-webkit-linear-gradient(top, #FFFFFF, #000000)",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:383"
+    },
+    {
       "id": "ddbb19a5",
       "property": "backgroundImage",
       "value": "a",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:914"
-    },
-    {
-      "id": "49659534",
-      "property": "backgroundImage",
-      "value": "expected the parser's own `url()` body to survive whole",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:976"
     },
     {
       "id": "8163b53f",
@@ -273,34 +267,16 @@
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:634"
     },
     {
-      "id": "29e50a16",
-      "property": "backgroundImage",
-      "value": "outside of a string or comment",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:984"
-    },
-    {
       "id": "fe3892cd",
       "property": "backgroundImage",
       "value": "url(",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:895"
     },
     {
-      "id": "8a76c828",
-      "property": "backgroundImage",
-      "value": "url('a)b.png')calc(1px)",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:618"
-    },
-    {
       "id": "fc9150b6",
       "property": "backgroundImage",
       "value": "url(\"/icons/•#hash.svg\")calc(1px)rgb(0,0,0)",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:573"
-    },
-    {
-      "id": "8811844c",
-      "property": "backgroundImage",
-      "value": "url(\"a;b{c}d: e /* f */\")",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:94"
     },
     {
       "id": "7cbf8324",
@@ -313,6 +289,12 @@
       "property": "backgroundImage",
       "value": "url(\"a/*b.png\")",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:523"
+    },
+    {
+      "id": "8811844c",
+      "property": "backgroundImage",
+      "value": "url(\"a;b{c}d: e /* f */\")",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:94"
     },
     {
       "id": "0b5d2abe",
@@ -351,16 +333,10 @@
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:206"
     },
     {
-      "id": "f1f14e72",
+      "id": "8a76c828",
       "property": "backgroundImage",
-      "value": "url(a.png) no-repeat center/cover",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:599"
-    },
-    {
-      "id": "f5999dd9",
-      "property": "backgroundImage",
-      "value": "url(a.png)calc(1px)",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:571"
+      "value": "url('a)b.png')calc(1px)",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:618"
     },
     {
       "id": "fa524894",
@@ -381,6 +357,24 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:570"
     },
     {
+      "id": "f1f14e72",
+      "property": "backgroundImage",
+      "value": "url(a.png) no-repeat center/cover",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:599"
+    },
+    {
+      "id": "f5999dd9",
+      "property": "backgroundImage",
+      "value": "url(a.png)calc(1px)",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:571"
+    },
+    {
+      "id": "df80ae5f",
+      "property": "backgroundImage",
+      "value": "url(a/*b.png)",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:648"
+    },
+    {
       "id": "db9d0ddd",
       "property": "backgroundImage",
       "value": "url(a{b",
@@ -391,12 +385,6 @@
       "property": "backgroundImage",
       "value": "url(a}b",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:894"
-    },
-    {
-      "id": "df80ae5f",
-      "property": "backgroundImage",
-      "value": "url(a/*b.png)",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:648"
     },
     {
       "id": "46c0214d",
@@ -423,16 +411,16 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:519"
     },
     {
-      "id": "c55bb6d1",
-      "property": "backgroundImage",
-      "value": "url(image.png?a=1&b=2)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:94"
-    },
-    {
       "id": "2560966e",
       "property": "backgroundImage",
       "value": "url(image.png)",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:516"
+    },
+    {
+      "id": "c55bb6d1",
+      "property": "backgroundImage",
+      "value": "url(image.png?a=1&b=2)",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:94"
     },
     {
       "id": "7fd08bf3",
@@ -717,22 +705,22 @@
       "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_rm_non_standard_shorthands.rs:88"
     },
     {
-      "id": "df61d49d",
-      "property": "boxShadow",
-      "value": "-1px -1px #000",
-      "origin": "crates/stylex-transform/tests/legacy/transform_logical_values_test/css_logical_values.rs:269"
-    },
-    {
       "id": "46e349a2",
       "property": "boxShadow",
       "value": ", ",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:717"
     },
     {
+      "id": "df61d49d",
+      "property": "boxShadow",
+      "value": "-1px -1px #000",
+      "origin": "crates/stylex-transform/tests/legacy/transform_logical_values_test/css_logical_values.rs:269"
+    },
+    {
       "id": "a0192d68",
       "property": "boxShadow",
       "value": "0 0 1px #000,",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:719"
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:722"
     },
     {
       "id": "66fddc80",
@@ -873,64 +861,10 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:750"
     },
     {
-      "id": "dd36ae0f",
-      "property": "color",
-      "value": "--custom-fn(foo)",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:182"
-    },
-    {
-      "id": "9f4c371e",
-      "property": "color",
-      "value": "--custom-fn(red)",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:181"
-    },
-    {
-      "id": "16765d78",
-      "property": "color",
-      "value": "--Foo(1px)",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1256"
-    },
-    {
       "id": "9f0f9456",
       "property": "color",
       "value": "\"abc var(foo)",
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:274"
-    },
-    {
-      "id": "ac182641",
-      "property": "color",
-      "value": ")(",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:272"
-    },
-    {
-      "id": "458bbfde",
-      "property": "color",
-      "value": ")#fff",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:240"
-    },
-    {
-      "id": "8317e5b6",
-      "property": "color",
-      "value": ")A",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:244"
-    },
-    {
-      "id": "9d3aefef",
-      "property": "color",
-      "value": ")a )Z )0 )# )(",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:272"
-    },
-    {
-      "id": "8864aad8",
-      "property": "color",
-      "value": "@",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:756"
-    },
-    {
-      "id": "7c2a5af2",
-      "property": "color",
-      "value": "/* a */ red",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:115"
     },
     {
       "id": "6b647d31",
@@ -957,10 +891,52 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:305"
     },
     {
-      "id": "6a96db9e",
+      "id": "458bbfde",
       "property": "color",
-      "value": "•",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:766"
+      "value": ")#fff",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:240"
+    },
+    {
+      "id": "ac182641",
+      "property": "color",
+      "value": ")(",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:272"
+    },
+    {
+      "id": "8317e5b6",
+      "property": "color",
+      "value": ")A",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:244"
+    },
+    {
+      "id": "9d3aefef",
+      "property": "color",
+      "value": ")a )Z )0 )# )(",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:272"
+    },
+    {
+      "id": "16765d78",
+      "property": "color",
+      "value": "--Foo(1px)",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1256"
+    },
+    {
+      "id": "dd36ae0f",
+      "property": "color",
+      "value": "--custom-fn(foo)",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:182"
+    },
+    {
+      "id": "9f4c371e",
+      "property": "color",
+      "value": "--custom-fn(red)",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:181"
+    },
+    {
+      "id": "7c2a5af2",
+      "property": "color",
+      "value": "/* a */ red",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:115"
     },
     {
       "id": "ec84f02e",
@@ -987,16 +963,58 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:304"
     },
     {
-      "id": "a964decb",
+      "id": "8864aad8",
       "property": "color",
-      "value": "a",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:732"
+      "value": "@",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:756"
     },
     {
       "id": "49f9fe96",
       "property": "color",
       "value": "A#fff",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:303"
+    },
+    {
+      "id": "da84a34a",
+      "property": "color",
+      "value": "VAR(--foo)",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:160"
+    },
+    {
+      "id": "192676dc",
+      "property": "color",
+      "value": "VAR(foo)",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:150"
+    },
+    {
+      "id": "a2ad249c",
+      "property": "color",
+      "value": "Var(foo)",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:151"
+    },
+    {
+      "id": "0f0b8122",
+      "property": "color",
+      "value": "\\u00a0",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:403"
+    },
+    {
+      "id": "fc5abd93",
+      "property": "color",
+      "value": "\\u2028",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:403"
+    },
+    {
+      "id": "654fe3e8",
+      "property": "color",
+      "value": "\\u3000",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:403"
+    },
+    {
+      "id": "a964decb",
+      "property": "color",
+      "value": "a",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:732"
     },
     {
       "id": "bd84f585",
@@ -1065,12 +1083,6 @@
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:626"
     },
     {
-      "id": "9da79d29",
-      "property": "color",
-      "value": "expected `{value}` to be rejected",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:825"
-    },
-    {
       "id": "7ca6e277",
       "property": "color",
       "value": "gray",
@@ -1134,13 +1146,13 @@
       "id": "f05f85c1",
       "property": "color",
       "value": "nested more deeply",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:700"
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:704"
     },
     {
       "id": "259ba307",
       "property": "color",
       "value": "normalizing `color: {expected}`",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:352"
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:354"
     },
     {
       "id": "f0bfcc60",
@@ -1185,12 +1197,6 @@
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:427"
     },
     {
-      "id": "329f062e",
-      "property": "color",
-      "value": "oklch(from {value} l c h)",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:696"
-    },
-    {
       "id": "2f99e89f",
       "property": "color",
       "value": "oklch(from var(--brand) l c h / 50%)",
@@ -1203,10 +1209,16 @@
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:252"
     },
     {
+      "id": "329f062e",
+      "property": "color",
+      "value": "oklch(from {value} l c h)",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:696"
+    },
+    {
       "id": "f852c5bc",
       "property": "color",
       "value": "outside of a string or comment",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:499"
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:505"
     },
     {
       "id": "44ce0602",
@@ -1227,28 +1239,28 @@
       "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:301"
     },
     {
-      "id": "08eecb56",
-      "property": "color",
-      "value": "red ; ",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:478"
-    },
-    {
       "id": "dcc7fcf2",
       "property": "color",
       "value": "red !important",
       "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:301"
     },
     {
-      "id": "4cff9072",
-      "property": "color",
-      "value": "red {",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:522"
-    },
-    {
       "id": "688f2f99",
       "property": "color",
       "value": "red /* \" */",
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:1392"
+    },
+    {
+      "id": "08eecb56",
+      "property": "color",
+      "value": "red ; ",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:478"
+    },
+    {
+      "id": "4cff9072",
+      "property": "color",
+      "value": "red {",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:522"
     },
     {
       "id": "c331a73c",
@@ -1341,10 +1353,34 @@
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:282"
     },
     {
-      "id": "37d9a564",
+      "id": "d984a81c",
       "property": "color",
-      "value": "var(----x)",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:121"
+      "value": "vAr(foo)",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:152"
+    },
+    {
+      "id": "b186261c",
+      "property": "color",
+      "value": "var(\"foo\")",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:215"
+    },
+    {
+      "id": "1b5aec60",
+      "property": "color",
+      "value": "var('foo')",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:216"
+    },
+    {
+      "id": "f01a7c8e",
+      "property": "color",
+      "value": "var()",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:129"
+    },
+    {
+      "id": "8d3c2c08",
+      "property": "color",
+      "value": "var(, foo)",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:218"
     },
     {
       "id": "9837aab4",
@@ -1353,22 +1389,10 @@
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:120"
     },
     {
-      "id": "59f5f9b6",
+      "id": "37d9a564",
       "property": "color",
-      "value": "var(--a, var(--b, var(--c, var(--d, var(--e, var(--f, red))))))",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:177"
-    },
-    {
-      "id": "b094348f",
-      "property": "color",
-      "value": "var(--a, var(--b))",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:106"
-    },
-    {
-      "id": "0bbee91d",
-      "property": "color",
-      "value": "var(--a, var(b))",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:141"
+      "value": "var(----x)",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:121"
     },
     {
       "id": "e9e686fe",
@@ -1381,6 +1405,24 @@
       "property": "color",
       "value": "var(--a)var(--b)var(--c)",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:216"
+    },
+    {
+      "id": "b094348f",
+      "property": "color",
+      "value": "var(--a, var(--b))",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:106"
+    },
+    {
+      "id": "59f5f9b6",
+      "property": "color",
+      "value": "var(--a, var(--b, var(--c, var(--d, var(--e, var(--f, red))))))",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:177"
+    },
+    {
+      "id": "0bbee91d",
+      "property": "color",
+      "value": "var(--a, var(b))",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:141"
     },
     {
       "id": "3bdd6039",
@@ -1407,22 +1449,16 @@
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:262"
     },
     {
-      "id": "ab9f3311",
-      "property": "color",
-      "value": "var(--foo, red)",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:105"
-    },
-    {
       "id": "0d06926a",
       "property": "color",
       "value": "var(--foo)",
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:95"
     },
     {
-      "id": "da84a34a",
+      "id": "ab9f3311",
       "property": "color",
-      "value": "VAR(--foo)",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:160"
+      "value": "var(--foo, red)",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:105"
     },
     {
       "id": "b377102e",
@@ -1461,46 +1497,22 @@
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:96"
     },
     {
-      "id": "19fa54f0",
-      "property": "color",
-      "value": "var(--xColor, red)",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:558"
-    },
-    {
       "id": "ee50973d",
       "property": "color",
       "value": "var(--xColor)",
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:551"
     },
     {
+      "id": "19fa54f0",
+      "property": "color",
+      "value": "var(--xColor, red)",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:558"
+    },
+    {
       "id": "e2dc14d5",
       "property": "color",
       "value": "var(--日本語)",
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:241"
-    },
-    {
-      "id": "8d3c2c08",
-      "property": "color",
-      "value": "var(, foo)",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:218"
-    },
-    {
-      "id": "1b5aec60",
-      "property": "color",
-      "value": "var('foo')",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:216"
-    },
-    {
-      "id": "b186261c",
-      "property": "color",
-      "value": "var(\"foo\")",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:215"
-    },
-    {
-      "id": "f01a7c8e",
-      "property": "color",
-      "value": "var()",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:129"
     },
     {
       "id": "75fe6243",
@@ -1515,34 +1527,10 @@
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:262"
     },
     {
-      "id": "908ff508",
-      "property": "color",
-      "value": "var(foo, red",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:262"
-    },
-    {
       "id": "988bdd7c",
       "property": "color",
       "value": "var(foo)",
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:46"
-    },
-    {
-      "id": "d984a81c",
-      "property": "color",
-      "value": "vAr(foo)",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:152"
-    },
-    {
-      "id": "a2ad249c",
-      "property": "color",
-      "value": "Var(foo)",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:151"
-    },
-    {
-      "id": "192676dc",
-      "property": "color",
-      "value": "VAR(foo)",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:150"
     },
     {
       "id": "41d5db66",
@@ -1551,22 +1539,28 @@
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:274"
     },
     {
-      "id": "7f54f815",
-      "property": "color",
-      "value": "var(foo) } color: red",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:289"
-    },
-    {
       "id": "0838234d",
       "property": "color",
       "value": "var(foo) /* unterminated",
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:296"
     },
     {
+      "id": "7f54f815",
+      "property": "color",
+      "value": "var(foo) } color: red",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:289"
+    },
+    {
       "id": "d0a1d752",
       "property": "color",
       "value": "var(foo); margin: 10px",
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:289"
+    },
+    {
+      "id": "908ff508",
+      "property": "color",
+      "value": "var(foo, red",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:262"
     },
     {
       "id": "7992bf93",
@@ -1593,34 +1587,22 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/env.rs:518"
     },
     {
+      "id": "6a96db9e",
+      "property": "color",
+      "value": "•",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:766"
+    },
+    {
       "id": "d1071620",
       "property": "color",
       "value": "日本語#fff",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:306"
     },
     {
-      "id": "616f1b8c",
-      "property": "content",
-      "value": "'•'",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:27"
-    },
-    {
-      "id": "54f0cedc",
-      "property": "content",
-      "value": "'var(foo)'",
-      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:191"
-    },
-    {
       "id": "bcbbf36a",
       "property": "content",
       "value": "\"\"",
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:231"
-    },
-    {
-      "id": "b9dd7c47",
-      "property": "content",
-      "value": "\"→ Привет 日本語 🙂\"",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:74"
     },
     {
       "id": "f5ebc481",
@@ -1647,16 +1629,22 @@
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:190"
     },
     {
-      "id": "78da290c",
+      "id": "b9dd7c47",
       "property": "content",
-      "value": "•",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:27"
+      "value": "\"→ Привет 日本語 🙂\"",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:74"
     },
     {
-      "id": "a29e3f5c",
+      "id": "54f0cedc",
       "property": "content",
-      "value": "🎉",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:61"
+      "value": "'var(foo)'",
+      "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:191"
+    },
+    {
+      "id": "616f1b8c",
+      "property": "content",
+      "value": "'•'",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:27"
     },
     {
       "id": "3c0c2905",
@@ -1687,6 +1675,18 @@
       "property": "content",
       "value": "x",
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/operator_interaction.rs:58"
+    },
+    {
+      "id": "78da290c",
+      "property": "content",
+      "value": "•",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:27"
+    },
+    {
+      "id": "a29e3f5c",
+      "property": "content",
+      "value": "🎉",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:61"
     },
     {
       "id": "337276bd",
@@ -1845,70 +1845,34 @@
       "origin": "crates/stylex-transform/tests/validation_stylex_create_test/invalid_properties.rs:158"
     },
     {
-      "id": "c6a18f41",
-      "property": "fontFamily",
-      "value": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1370"
-    },
-    {
-      "id": "bee14056",
-      "property": "fontFamily",
-      "value": "'-.5'",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:865"
-    },
-    {
-      "id": "0a4ae2e0",
-      "property": "fontFamily",
-      "value": "'•✓日本語😀'",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:785"
-    },
-    {
-      "id": "a59803fc",
-      "property": "fontFamily",
-      "value": "'a)b#c%d.5/1*2('",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:474"
-    },
-    {
-      "id": "2603adfc",
-      "property": "fontFamily",
-      "value": "'a\\'b#c'",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:496"
-    },
-    {
-      "id": "b3f8b39f",
-      "property": "fontFamily",
-      "value": "'Helvetica Neue",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1310"
-    },
-    {
-      "id": "19067393",
-      "property": "fontFamily",
-      "value": "'Helvetica Neue', sans-serif",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1360"
-    },
-    {
-      "id": "efa3053e",
-      "property": "fontFamily",
-      "value": "'SF Pro Text', 'SF Pro Icons', Helvetica Neue', 'Helvetica', sans-serif",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1339"
-    },
-    {
       "id": "63e53f5e",
       "property": "fontFamily",
       "value": "\"-.5\"",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:854"
     },
     {
-      "id": "7b2748ca",
+      "id": "08db551c",
       "property": "fontFamily",
-      "value": "\"\\\\1F600\", sans-serif",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:56"
+      "value": "\"Helvetica Neue",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1304"
     },
     {
-      "id": "1e4250df",
+      "id": "54e80d55",
       "property": "fontFamily",
-      "value": "\"\\\\2014 A\", sans-serif",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:56"
+      "value": "\"Helvetica Neue\", sans-serif",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1348"
+    },
+    {
+      "id": "93834ccf",
+      "property": "fontFamily",
+      "value": "\"Helvetica Neue, sans-serif",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1317"
+    },
+    {
+      "id": "b4bfbcc3",
+      "property": "fontFamily",
+      "value": "\"Helvetica \\\"Neue\", sans-serif",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1383"
     },
     {
       "id": "61dfa282",
@@ -1923,28 +1887,16 @@
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:414"
     },
     {
-      "id": "b62c846a",
+      "id": "7b2748ca",
       "property": "fontFamily",
-      "value": "\"•\"",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:774"
+      "value": "\"\\\\1F600\", sans-serif",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:56"
     },
     {
-      "id": "62adb4bc",
+      "id": "1e4250df",
       "property": "fontFamily",
-      "value": "\"•✓日本語😀\"",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:775"
-    },
-    {
-      "id": "59b9f24e",
-      "property": "fontFamily",
-      "value": "\"→ Привет 日本語 🙂\", sans-serif",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:440"
-    },
-    {
-      "id": "942bd124",
-      "property": "fontFamily",
-      "value": "\"🎉 -.5\"",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:855"
+      "value": "\"\\\\2014 A\", sans-serif",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:56"
     },
     {
       "id": "ff7bbea2",
@@ -2001,34 +1953,94 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:459"
     },
     {
-      "id": "b4bfbcc3",
-      "property": "fontFamily",
-      "value": "\"Helvetica \\\"Neue\", sans-serif",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1383"
-    },
-    {
-      "id": "08db551c",
-      "property": "fontFamily",
-      "value": "\"Helvetica Neue",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1304"
-    },
-    {
-      "id": "93834ccf",
-      "property": "fontFamily",
-      "value": "\"Helvetica Neue, sans-serif",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1317"
-    },
-    {
-      "id": "54e80d55",
-      "property": "fontFamily",
-      "value": "\"Helvetica Neue\", sans-serif",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1348"
-    },
-    {
       "id": "8a7e84f7",
       "property": "fontFamily",
       "value": "\"var(foo)\", sans-serif",
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:193"
+    },
+    {
+      "id": "b62c846a",
+      "property": "fontFamily",
+      "value": "\"•\"",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:774"
+    },
+    {
+      "id": "62adb4bc",
+      "property": "fontFamily",
+      "value": "\"•✓日本語😀\"",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:775"
+    },
+    {
+      "id": "59b9f24e",
+      "property": "fontFamily",
+      "value": "\"→ Привет 日本語 🙂\", sans-serif",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:440"
+    },
+    {
+      "id": "942bd124",
+      "property": "fontFamily",
+      "value": "\"🎉 -.5\"",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:855"
+    },
+    {
+      "id": "bee14056",
+      "property": "fontFamily",
+      "value": "'-.5'",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:865"
+    },
+    {
+      "id": "b3f8b39f",
+      "property": "fontFamily",
+      "value": "'Helvetica Neue",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1310"
+    },
+    {
+      "id": "19067393",
+      "property": "fontFamily",
+      "value": "'Helvetica Neue', sans-serif",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1360"
+    },
+    {
+      "id": "efa3053e",
+      "property": "fontFamily",
+      "value": "'SF Pro Text', 'SF Pro Icons', Helvetica Neue', 'Helvetica', sans-serif",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1339"
+    },
+    {
+      "id": "a59803fc",
+      "property": "fontFamily",
+      "value": "'a)b#c%d.5/1*2('",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:474"
+    },
+    {
+      "id": "2603adfc",
+      "property": "fontFamily",
+      "value": "'a\\'b#c'",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:496"
+    },
+    {
+      "id": "0a4ae2e0",
+      "property": "fontFamily",
+      "value": "'•✓日本語😀'",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:785"
+    },
+    {
+      "id": "c6a18f41",
+      "property": "fontFamily",
+      "value": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:1370"
+    },
+    {
+      "id": "af33d6b4",
+      "property": "fontFamily",
+      "value": "My\\ Font, sans-serif",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:398"
+    },
+    {
+      "id": "b1f97d3c",
+      "property": "fontFamily",
+      "value": "My\\\\ Font, sans-serif",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:56"
     },
     {
       "id": "dc576c38",
@@ -2043,24 +2055,6 @@
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:620"
     },
     {
-      "id": "c0044189",
-      "property": "fontFamily",
-      "value": "✓",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:767"
-    },
-    {
-      "id": "00ceb266",
-      "property": "fontFamily",
-      "value": "🎉",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:773"
-    },
-    {
-      "id": "296555e0",
-      "property": "fontFamily",
-      "value": "😀",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:772"
-    },
-    {
       "id": "9ac67d31",
       "property": "fontFamily",
       "value": "a b",
@@ -2071,18 +2065,6 @@
       "property": "fontFamily",
       "value": "é",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:616"
-    },
-    {
-      "id": "af33d6b4",
-      "property": "fontFamily",
-      "value": "My\\ Font, sans-serif",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:398"
-    },
-    {
-      "id": "b1f97d3c",
-      "property": "fontFamily",
-      "value": "My\\\\ Font, sans-serif",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:56"
     },
     {
       "id": "85dac7ee",
@@ -2103,6 +2085,12 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:771"
     },
     {
+      "id": "c0044189",
+      "property": "fontFamily",
+      "value": "✓",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:767"
+    },
+    {
       "id": "87e19f35",
       "property": "fontFamily",
       "value": "日本語",
@@ -2113,6 +2101,18 @@
       "property": "fontFamily",
       "value": "日本語フォント, sans-serif",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:435"
+    },
+    {
+      "id": "00ceb266",
+      "property": "fontFamily",
+      "value": "🎉",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:773"
+    },
+    {
+      "id": "296555e0",
+      "property": "fontFamily",
+      "value": "😀",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:772"
     },
     {
       "id": "8b2263c9",
@@ -2247,24 +2247,6 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_stylex_props_test/naming_conventions.rs:6"
     },
     {
-      "id": "29c9ce72",
-      "property": "gridTemplateAreas",
-      "value": "'\"content\" \"sidebar\"'",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:169"
-    },
-    {
-      "id": "2bf25156",
-      "property": "gridTemplateAreas",
-      "value": "'\"content\"'",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:168"
-    },
-    {
-      "id": "7c68fc4c",
-      "property": "gridTemplateAreas",
-      "value": "'sidebar content'",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:533"
-    },
-    {
       "id": "bcfe2df4",
       "property": "gridTemplateAreas",
       "value": "\"content\"",
@@ -2289,10 +2271,22 @@
       "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:23"
     },
     {
-      "id": "98cf7d27",
-      "property": "gridTemplateColumns",
-      "value": "[full-start 1fr [content-start",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:458"
+      "id": "29c9ce72",
+      "property": "gridTemplateAreas",
+      "value": "'\"content\" \"sidebar\"'",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:169"
+    },
+    {
+      "id": "2bf25156",
+      "property": "gridTemplateAreas",
+      "value": "'\"content\"'",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:168"
+    },
+    {
+      "id": "7c68fc4c",
+      "property": "gridTemplateAreas",
+      "value": "'sidebar content'",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:533"
     },
     {
       "id": "f584fd1a",
@@ -2311,6 +2305,12 @@
       "property": "gridTemplateColumns",
       "value": "100%",
       "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:23"
+    },
+    {
+      "id": "98cf7d27",
+      "property": "gridTemplateColumns",
+      "value": "[full-start 1fr [content-start",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:458"
     },
     {
       "id": "6a84aea7",
@@ -2341,24 +2341,6 @@
       "property": "gridTemplateRows",
       "value": "minmax(0, 1fr) auto",
       "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:23"
-    },
-    {
-      "id": "309a0774",
-      "property": "height",
-      "value": "[foo]",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:407"
-    },
-    {
-      "id": "1892dd52",
-      "property": "height",
-      "value": "@",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:408"
-    },
-    {
-      "id": "4b5a3aca",
-      "property": "height",
-      "value": "@ /* unclosed",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:788"
     },
     {
       "id": "bcababff",
@@ -2397,6 +2379,30 @@
       "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_rejections.rs:39"
     },
     {
+      "id": "1892dd52",
+      "property": "height",
+      "value": "@",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:408"
+    },
+    {
+      "id": "4b5a3aca",
+      "property": "height",
+      "value": "@ /* unclosed",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:788"
+    },
+    {
+      "id": "45b0648d",
+      "property": "height",
+      "value": "CALC-SIZE(auto, round(up, size, 50px))",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:373"
+    },
+    {
+      "id": "309a0774",
+      "property": "height",
+      "value": "[foo]",
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:407"
+    },
+    {
       "id": "f0c8ed9c",
       "property": "height",
       "value": "calc-size( auto , size   *   0 )",
@@ -2413,12 +2419,6 @@
       "property": "height",
       "value": "calc-size(any, 300px * 1.5)",
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:359"
-    },
-    {
-      "id": "45b0648d",
-      "property": "height",
-      "value": "CALC-SIZE(auto, round(up, size, 50px))",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:373"
     },
     {
       "id": "9afe9df4",
@@ -2454,7 +2454,7 @@
       "id": "0672ffab",
       "property": "height",
       "value": "expected `{value}` to be rejected",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:774"
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:793"
     },
     {
       "id": "d69e140d",
@@ -2484,7 +2484,7 @@
       "id": "3f14e317",
       "property": "height",
       "value": "future-fn(foo * 2)",
-      "origin": "crates/stylex-css/src/css/tests/common_test.rs:380"
+      "origin": "crates/stylex-css/src/css/tests/common_test.rs:390"
     },
     {
       "id": "39f4abde",
@@ -2607,15 +2607,15 @@
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:321"
     },
     {
-      "id": "70cabd96",
-      "property": "listStyle",
-      "value": "'=='",
-      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:329"
-    },
-    {
       "id": "9ce253c8",
       "property": "listStyle",
       "value": "\"--\"",
+      "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:329"
+    },
+    {
+      "id": "70cabd96",
+      "property": "listStyle",
+      "value": "'=='",
       "origin": "crates/stylex-transform/tests/legacy/transform_legacy_shorthands/while_using_standard_logical_properties.rs:329"
     },
     {
@@ -3045,30 +3045,6 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/env.rs:602"
     },
     {
-      "id": "b0fa9eda",
-      "property": "quotes",
-      "value": "''",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:120"
-    },
-    {
-      "id": "54346eba",
-      "property": "quotes",
-      "value": "'\"\"'",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:154"
-    },
-    {
-      "id": "df130cd0",
-      "property": "quotes",
-      "value": "'\"123\"'",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:155"
-    },
-    {
-      "id": "e7f2a8d9",
-      "property": "quotes",
-      "value": "'a''b'",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:426"
-    },
-    {
       "id": "1c020310",
       "property": "quotes",
       "value": "\"\"",
@@ -3099,16 +3075,40 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:443"
     },
     {
+      "id": "d3598c89",
+      "property": "quotes",
+      "value": "\"a\"\"b\"",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:407"
+    },
+    {
       "id": "fe40f925",
       "property": "quotes",
       "value": "\"a\"'b'",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:427"
     },
     {
-      "id": "d3598c89",
+      "id": "54346eba",
       "property": "quotes",
-      "value": "\"a\"\"b\"",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:407"
+      "value": "'\"\"'",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:154"
+    },
+    {
+      "id": "df130cd0",
+      "property": "quotes",
+      "value": "'\"123\"'",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:155"
+    },
+    {
+      "id": "b0fa9eda",
+      "property": "quotes",
+      "value": "''",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:120"
+    },
+    {
+      "id": "e7f2a8d9",
+      "property": "quotes",
+      "value": "'a''b'",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:426"
     },
     {
       "id": "3a9d3237",
@@ -3183,6 +3183,12 @@
       "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:245"
     },
     {
+      "id": "c054a0e4",
+      "property": "toString",
+      "value": "notfn",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/global_builtin_calls.rs:275"
+    },
+    {
       "id": "ff56a10c",
       "property": "top",
       "value": "0",
@@ -3193,12 +3199,6 @@
       "property": "top",
       "value": "10px",
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/static_styles.rs:919"
-    },
-    {
-      "id": "c054a0e4",
-      "property": "toString",
-      "value": "notfn",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/global_builtin_calls.rs:275"
     },
     {
       "id": "5ecb393c",
@@ -3297,16 +3297,16 @@
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:1235"
     },
     {
-      "id": "9138cd3a",
-      "property": "transform",
-      "value": "translate(-.5px,-.25px)",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:808"
-    },
-    {
       "id": "c773c982",
       "property": "transform",
       "value": "translate(-.5px,\"-.25px\")",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:856"
+    },
+    {
+      "id": "9138cd3a",
+      "property": "transform",
+      "value": "translate(-.5px,-.25px)",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:808"
     },
     {
       "id": "a124b746",
@@ -3447,6 +3447,12 @@
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:371"
     },
     {
+      "id": "4ae5de85",
+      "property": "transitionProperty",
+      "value": "WebkitTransform",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:370"
+    },
+    {
       "id": "39f61ff4",
       "property": "transitionProperty",
       "value": "all",
@@ -3513,12 +3519,6 @@
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:327"
     },
     {
-      "id": "4ae5de85",
-      "property": "transitionProperty",
-      "value": "WebkitTransform",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:370"
-    },
-    {
       "id": "764e460f",
       "property": "transitionProperty",
       "value": "width",
@@ -3549,18 +3549,6 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/static_styles.rs:233"
     },
     {
-      "id": "22f18e28",
-      "property": "width",
-      "value": "-0px",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:587"
-    },
-    {
-      "id": "6b451359",
-      "property": "width",
-      "value": ".",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:585"
-    },
-    {
       "id": "99a70437",
       "property": "width",
       "value": "()/",
@@ -3573,16 +3561,16 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:253"
     },
     {
-      "id": "32bb94c6",
-      "property": "width",
-      "value": ")-1",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:251"
-    },
-    {
       "id": "b0c79413",
       "property": "width",
       "value": ")*3",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:242"
+    },
+    {
+      "id": "32bb94c6",
+      "property": "width",
+      "value": ")-1",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:251"
     },
     {
       "id": "aa880a8e",
@@ -3627,10 +3615,52 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:379"
     },
     {
+      "id": "22f18e28",
+      "property": "width",
+      "value": "-0px",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:587"
+    },
+    {
+      "id": "6b451359",
+      "property": "width",
+      "value": ".",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:585"
+    },
+    {
       "id": "dba8113f",
       "property": "width",
       "value": "/ 7",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:357"
+    },
+    {
+      "id": "63656ec6",
+      "property": "width",
+      "value": "/* a */",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:708"
+    },
+    {
+      "id": "76c15045",
+      "property": "width",
+      "value": "/* a */1px",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:689"
+    },
+    {
+      "id": "83e88aea",
+      "property": "width",
+      "value": "/* a }b */ 1px",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:694"
+    },
+    {
+      "id": "c7341f1f",
+      "property": "width",
+      "value": "/**/",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:708"
+    },
+    {
+      "id": "3b59a93f",
+      "property": "width",
+      "value": "/*/ x */ 1px",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:690"
     },
     {
       "id": "55b40a40",
@@ -3657,34 +3687,10 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:391"
     },
     {
-      "id": "83e88aea",
+      "id": "2dfe0e46",
       "property": "width",
-      "value": "/* a }b */ 1px",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:694"
-    },
-    {
-      "id": "63656ec6",
-      "property": "width",
-      "value": "/* a */",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:708"
-    },
-    {
-      "id": "76c15045",
-      "property": "width",
-      "value": "/* a */1px",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:689"
-    },
-    {
-      "id": "c7341f1f",
-      "property": "width",
-      "value": "/**/",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:708"
-    },
-    {
-      "id": "3b59a93f",
-      "property": "width",
-      "value": "/*/ x */ 1px",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:690"
+      "value": "0%",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:67"
     },
     {
       "id": "031a979c",
@@ -3697,12 +3703,6 @@
       "property": "width",
       "value": "0.px",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:586"
-    },
-    {
-      "id": "2dfe0e46",
-      "property": "width",
-      "value": "0%",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:67"
     },
     {
       "id": "f224c034",
@@ -3726,19 +3726,13 @@
       "id": "9cbe0c55",
       "property": "width",
       "value": "00\\\\",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:396"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:430"
     },
     {
       "id": "aa8f4c5b",
       "property": "width",
       "value": "1.7976931348623157e308px",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:580"
-    },
-    {
-      "id": "2ae0a53c",
-      "property": "width",
-      "value": "1😀px",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:621"
     },
     {
       "id": "9ef396b3",
@@ -3807,6 +3801,18 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:691"
     },
     {
+      "id": "1927f6b2",
+      "property": "width",
+      "value": "1px\\u30002px",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:403"
+    },
+    {
+      "id": "2ae0a53c",
+      "property": "width",
+      "value": "1😀px",
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:621"
+    },
+    {
       "id": "3504a257",
       "property": "width",
       "value": "50%",
@@ -3825,16 +3831,22 @@
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:582"
     },
     {
-      "id": "bf35d592",
+      "id": "1e49d3b4",
       "property": "width",
-      "value": "calc-size(fit-content,size/2)",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:364"
+      "value": "CALC(100% - 20PX)",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:245"
     },
     {
       "id": "9e78248c",
       "property": "width",
       "value": "calc(",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:645"
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:647"
+    },
+    {
+      "id": "838a3fd7",
+      "property": "width",
+      "value": "calc((100% + 3% -   100px) / 7)",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:74"
     },
     {
       "id": "9f88298b",
@@ -3849,21 +3861,9 @@
       "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:499"
     },
     {
-      "id": "838a3fd7",
-      "property": "width",
-      "value": "calc((100% + 3% -   100px) / 7)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:74"
-    },
-    {
       "id": "5b8a0e8f",
       "property": "width",
       "value": "calc(0 - var(--someVar))",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:83"
-    },
-    {
-      "id": "35c53397",
-      "property": "width",
-      "value": "calc(0px - var(--someVar))",
       "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:83"
     },
     {
@@ -3871,6 +3871,12 @@
       "property": "width",
       "value": "calc(0px + 10px)",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:99"
+    },
+    {
+      "id": "35c53397",
+      "property": "width",
+      "value": "calc(0px - var(--someVar))",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:83"
     },
     {
       "id": "04ec5dc3",
@@ -3883,12 +3889,6 @@
       "property": "width",
       "value": "calc(100% - 20px)",
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:336"
-    },
-    {
-      "id": "1e49d3b4",
-      "property": "width",
-      "value": "CALC(100% - 20PX)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:245"
     },
     {
       "id": "abea19ca",
@@ -3915,16 +3915,16 @@
       "origin": "crates/stylex-css/src/css/tests/normalize_value_test.rs:801"
     },
     {
-      "id": "05990392",
-      "property": "width",
-      "value": "calc(1px-.5px)",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:828"
-    },
-    {
       "id": "9b5bf623",
       "property": "width",
       "value": "calc(1px)calc(2px)calc(3px)",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:210"
+    },
+    {
+      "id": "05990392",
+      "property": "width",
+      "value": "calc(1px-.5px)",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:828"
     },
     {
       "id": "fb238b08",
@@ -3951,28 +3951,16 @@
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:139"
     },
     {
-      "id": "7224802a",
+      "id": "bf35d592",
       "property": "width",
-      "value": "é(1)",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:668"
-    },
-    {
-      "id": "481c7dcf",
-      "property": "width",
-      "value": "éab(1)",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:667"
-    },
-    {
-      "id": "e31d3863",
-      "property": "width",
-      "value": "éurl(foo/2)",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:663"
+      "value": "calc-size(fit-content,size/2)",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:364"
     },
     {
       "id": "2de3a8f7",
       "property": "width",
       "value": "limit 64, found 5000",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:678"
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:682"
     },
     {
       "id": "871c456b",
@@ -4002,7 +3990,7 @@
       "id": "258dc8c0",
       "property": "width",
       "value": "nested more deeply",
-      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:664"
+      "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:670"
     },
     {
       "id": "0caf5839",
@@ -4017,6 +4005,42 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:133"
     },
     {
+      "id": "bddd7365",
+      "property": "width",
+      "value": "var(--x)ABC",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:178"
+    },
+    {
+      "id": "195263f5",
+      "property": "width",
+      "value": "var(--x)EM",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:155"
+    },
+    {
+      "id": "24369ec9",
+      "property": "width",
+      "value": "var(--x)Hz",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:118"
+    },
+    {
+      "id": "4223464b",
+      "property": "width",
+      "value": "var(--x)PX",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:153"
+    },
+    {
+      "id": "222313eb",
+      "property": "width",
+      "value": "var(--x)Px",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:154"
+    },
+    {
+      "id": "c5bb799e",
+      "property": "width",
+      "value": "var(--x)Q",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:75"
+    },
+    {
       "id": "b5bb606e",
       "property": "width",
       "value": "var(--x)a",
@@ -4027,12 +4051,6 @@
       "property": "width",
       "value": "var(--x)abc",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:174"
-    },
-    {
-      "id": "bddd7365",
-      "property": "width",
-      "value": "var(--x)ABC",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:178"
     },
     {
       "id": "6e799b40",
@@ -4143,12 +4161,6 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:77"
     },
     {
-      "id": "195263f5",
-      "property": "width",
-      "value": "var(--x)EM",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:155"
-    },
-    {
       "id": "2402c366",
       "property": "width",
       "value": "var(--x)ex",
@@ -4159,12 +4171,6 @@
       "property": "width",
       "value": "var(--x)hello",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:175"
-    },
-    {
-      "id": "24369ec9",
-      "property": "width",
-      "value": "var(--x)Hz",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:118"
     },
     {
       "id": "32e4c5ef",
@@ -4231,24 +4237,6 @@
       "property": "width",
       "value": "var(--x)px",
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:69"
-    },
-    {
-      "id": "222313eb",
-      "property": "width",
-      "value": "var(--x)Px",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:154"
-    },
-    {
-      "id": "4223464b",
-      "property": "width",
-      "value": "var(--x)PX",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:153"
-    },
-    {
-      "id": "c5bb799e",
-      "property": "width",
-      "value": "var(--x)Q",
-      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:75"
     },
     {
       "id": "c5ab0e32",
@@ -4345,6 +4333,24 @@
       "property": "width",
       "value": "width",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:678"
+    },
+    {
+      "id": "7224802a",
+      "property": "width",
+      "value": "é(1)",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:668"
+    },
+    {
+      "id": "481c7dcf",
+      "property": "width",
+      "value": "éab(1)",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:667"
+    },
+    {
+      "id": "e31d3863",
+      "property": "width",
+      "value": "éurl(foo/2)",
+      "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:663"
     },
     {
       "id": "8b6b9565",

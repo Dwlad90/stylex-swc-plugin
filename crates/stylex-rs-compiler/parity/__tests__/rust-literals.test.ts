@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { scanRustLiterals } from '../lib/rust-literals.js';
+import { maskLiterals } from '../lib/rust-source.js';
 
 /** The decoded values, which is what the harvester actually consumes. */
 function valuesOf(source: string): string[] {
@@ -79,5 +80,17 @@ describe('positions', () => {
 
   test('flags which literals were written raw', () => {
     expect(scanRustLiterals('f(r#"a"#, "b")').map(literal => literal.raw)).toEqual([true, false]);
+  });
+
+  test('an unterminated literal does not report an offset past the end', () => {
+    // A source that stops mid-literal is not valid Rust, but the harvester
+    // reads whatever is on disk — a half-saved file, a truncated fixture. If
+    // `end` ran past the source, the mask would come out longer than what it
+    // masks and every offset compared against it would be off by one.
+    for (const source of ['let a = "unterminated', 'let a = "trailing escape\\']) {
+      const literals = scanRustLiterals(source);
+      for (const literal of literals) expect(literal.end).toBeLessThanOrEqual(source.length);
+      expect(maskLiterals(source, literals)).toHaveLength(source.length);
+    }
   });
 });

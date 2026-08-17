@@ -31,13 +31,22 @@ export interface ScannedFile {
   literals: RustLiteral[];
 }
 
-/** Every scannable Rust test source under the workspace, read and masked. */
+/**
+ * Every scannable Rust test source under the workspace, read and masked.
+ *
+ * Two normalizations, both so that the committed corpus is a function of the
+ * repository rather than of the checkout. Line endings collapse to `\n`,
+ * because a CRLF checkout would otherwise put a `\r` inside every multi-line
+ * value and change both the value and the FNV id derived from it. Separators in
+ * `relativePath` collapse to `/`, because that path is committed as an entry's
+ * `origin`.
+ */
 export function scanRustTestFiles(workspaceRoot: string): ScannedFile[] {
   return collectRustTestFiles(workspaceRoot).map(absolute => {
-    const source = fs.readFileSync(absolute, 'utf8');
+    const source = fs.readFileSync(absolute, 'utf8').replaceAll('\r\n', '\n');
     const literals = scanRustLiterals(source);
     return {
-      relativePath: path.relative(workspaceRoot, absolute),
+      relativePath: path.relative(workspaceRoot, absolute).split(path.sep).join('/'),
       source,
       masked: maskLiterals(source, literals),
       literals,
@@ -86,8 +95,12 @@ function collectRustTestFiles(workspaceRoot: string): string[] {
  * would shift every offset past the first astral character — of which the
  * corpus has several, since non-ASCII `content` values are exactly what these
  * tests cover.
+ *
+ * The result is the same length as `source`, which is the whole contract:
+ * every offset the harvester compares against the mask is an offset into the
+ * source. Exported so that invariant can be asserted directly.
  */
-function maskLiterals(source: string, literals: RustLiteral[]): string {
+export function maskLiterals(source: string, literals: RustLiteral[]): string {
   const parts: string[] = [];
   let cursor = 0;
   // Literals arrive in source order and never overlap, so one pass suffices.

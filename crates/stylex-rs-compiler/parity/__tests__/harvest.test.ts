@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { afterAll, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vitest';
 
 import { declarationKey, entryId } from '../lib/declaration.js';
 import { harvestCorpus } from '../lib/harvest.js';
@@ -29,8 +29,14 @@ function declarationsOf(source: string, filename?: string): [string, string][] {
   return harvestOf(source, filename).map(entry => [entry.property, entry.value]);
 }
 
-afterAll(() => {
-  for (const root of roots) fs.rmSync(root, { recursive: true, force: true });
+// Per test rather than per file: a `harvestOf` call makes a directory, several
+// tests make more than one, and holding all of them until the suite ends leaves
+// every one of them behind if a single test takes the process down.
+afterEach(() => {
+  while (roots.length > 0) {
+    const root = roots.pop();
+    if (root !== undefined) fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 describe('shape 1 — direct normalize_css_property_value calls', () => {
@@ -288,6 +294,41 @@ describe('shape 7 — rejection tables', () => {
         fn rejects(property: &str, values: &[&str], expected: &str) {}
       `)
     ).toEqual([]);
+  });
+});
+
+describe('what the source cannot fabricate', () => {
+  test('a call spelled inside a value literal is not a call site', () => {
+    // The JS fixture text in the transform suites is Rust string data, and it
+    // can spell anything — including a call this harvester recognizes. Sites are
+    // found on the masked source, so only real code counts.
+    expect(
+      declarationsOf(`
+        #[test]
+        fn a_value_that_mentions_the_harness() {
+          let fixture = r#"
+            content: unchanged("color", "fabricated")
+          "#;
+          unchanged("width", "1px");
+        }
+      `)
+    ).toEqual([['width', '1px']]);
+  });
+
+  test('an identifier argument does not borrow a literal from further along', () => {
+    // Shape 1 takes the first two literals after the parenthesis. When the
+    // value argument is an identifier, the next literal is whatever follows —
+    // here the *expected output*, which is the one thing the harness must never
+    // harvest as an input, since deriving expectations from the reference
+    // compiler is its whole purpose.
+    const harvested = declarationsOf(`
+      #[test]
+      fn a_call_whose_value_is_a_variable() {
+        assert_eq!(normalize_css_property_value("height", value, &opts), "expected-output");
+      }
+    `);
+
+    expect(harvested).not.toContainEqual(['height', 'expected-output']);
   });
 });
 

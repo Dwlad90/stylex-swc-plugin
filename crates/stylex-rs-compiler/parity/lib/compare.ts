@@ -107,7 +107,13 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
         resolvedFrom: distEntry,
       },
       babel: {
-        version: readVersion(path.join(path.dirname(babelPluginEntry), '../package.json')),
+        // Resolved as a package export rather than guessed at as
+        // `dirname(entry)/../package.json`: that guess is right only while the
+        // entry point sits exactly one directory below the manifest, and
+        // `readVersion` reports `unknown` rather than complaining when it is
+        // wrong — so a report would quietly stop naming which upstream it was
+        // measured against.
+        version: readVersion(require.resolve('@stylexjs/babel-plugin/package.json')),
         resolvedFrom: babelPluginEntry,
       },
       babelCore: babel.version,
@@ -199,7 +205,15 @@ function verdictFor(rust: CompilerOutcome, babelOutcome: CompilerOutcome): Verdi
     rust.classNames.join(SEPARATOR) === babelOutcome.classNames.join(SEPARATOR) &&
     rust.rules.join(SEPARATOR) === babelOutcome.rules.join(SEPARATOR) &&
     rust.rtlRules.join(SEPARATOR) === babelOutcome.rtlRules.join(SEPARATOR);
-  if (same) return 'identical';
+  if (same) {
+    // Agreement about nothing is not evidence of parity — see `identical-empty`
+    // in `types.ts`. Reported separately so a corpus that stops carrying its
+    // values shows up as a count rather than as a clean run.
+    const emitted =
+      rust.classNames.length + rust.rules.length + rust.rtlRules.length > 0 ||
+      babelOutcome.classNames.length + babelOutcome.rules.length + babelOutcome.rtlRules.length > 0;
+    return emitted ? 'identical' : 'identical-empty';
+  }
 
   // A declaration that expanded into different properties, or into a different
   // number of them, diverged before value normalization ever saw it —

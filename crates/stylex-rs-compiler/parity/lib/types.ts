@@ -65,6 +65,18 @@ export type Verdict =
   /** Both compilers accepted the value and agreed byte for byte. */
   | 'identical'
   /**
+   * Both accepted and emitted *nothing* — agreement about no declaration at
+   * all.
+   *
+   * Counted apart from `identical` because it is the one verdict that can be
+   * reached without either compiler having an opinion about the value: a
+   * property both of them drop, or a fixture that failed to carry the value in,
+   * agrees just as loudly as a value they both spell the same way. A corpus
+   * that quietly slid into this verdict would report perfect parity while
+   * measuring nothing.
+   */
+  | 'identical-empty'
+  /**
    * Both accepted and emitted the same properties, but spelled a value — and
    * therefore hashed a class name — differently. This is the verdict the
    * harness exists to find.

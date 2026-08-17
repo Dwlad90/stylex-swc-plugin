@@ -39,6 +39,27 @@ const NON_PROPERTY_KEYS = new Set([
   'type',
 ]);
 
+/**
+ * How far past a call's opening parenthesis its arguments are looked for.
+ *
+ * A window rather than real argument parsing, because the alternative is a Rust
+ * expression parser. Each is sized to the widest call of its shape in the
+ * suites with room to spare, and a call that outgrows one is not harvested
+ * rather than mis-harvested — the adjacency guards below are what make that
+ * true.
+ */
+const ARGUMENT_WINDOW = {
+  /** `unchanged("color", "red")` and friends: two literals, close together. */
+  propertyValueCall: 400,
+  /** `rejects("width", &["*(", …], MESSAGE, …)`: a property then a slice. */
+  rejectionTable: 800,
+  /** The property literal of a `normalize_css_property_value` call. */
+  caseTableProperty: 200,
+} as const;
+
+/** How far past the property literal an adjacency guard reads. */
+const ADJACENCY_LOOKAHEAD = 40;
+
 export interface HarvestOptions {
   /** Absolute path to the workspace root. */
   workspaceRoot: string;
@@ -104,15 +125,45 @@ function extractPropertyValueCalls(file: ScannedFile): CorpusEntry[] {
 
   for (const name of PROPERTY_VALUE_CALLS) {
     const open = `${name}(`;
-    for (const callStart of findCallSites(file.source, open)) {
+    for (const callStart of findCallSites(file.masked, open)) {
       const argsStart = callStart + open.length;
-      const args = literalsBetween(file, argsStart, argsStart + 400).slice(0, 2);
+      const args = literalsBetween(
+        file,
+        argsStart,
+        argsStart + ARGUMENT_WINDOW.propertyValueCall
+      ).slice(0, 2);
       if (args.length !== 2) continue;
+      if (!argumentsAreAdjacent(file, argsStart, args[0]!, args[1]!)) continue;
       entries.push(entry(args[0]!.value, args[1]!.value, `${file.relativePath}:${args[0]!.line}`));
     }
   }
 
   return entries;
+}
+
+/**
+ * Whether two literals really are the first two arguments of the call at
+ * `argsStart`.
+ *
+ * Without this, a call whose second argument is an identifier —
+ * `normalize_css_property_value("height", value, &opts)`, the shape 2 form —
+ * pairs its property with a literal belonging to a *later statement* that
+ * happens to fall inside the window. The test is that nothing but whitespace
+ * separates the opening parenthesis from the first literal, and nothing but a
+ * comma and whitespace separates the two.
+ *
+ * Read from `source` rather than `masked`, because masking blanks a literal's
+ * delimiters along with its body: on `masked` the separators would be there but
+ * the literals would not.
+ */
+function argumentsAreAdjacent(
+  file: ScannedFile,
+  argsStart: number,
+  first: RustLiteral,
+  second: RustLiteral
+): boolean {
+  if (!/^\s*$/.test(file.source.slice(argsStart, first.start))) return false;
+  return /^\s*,\s*$/.test(file.source.slice(first.end, second.start));
 }
 
 /**
@@ -134,9 +185,13 @@ function extractRejectionTables(file: ScannedFile): CorpusEntry[] {
   const entries: CorpusEntry[] = [];
   const open = 'rejects(';
 
-  for (const callStart of findCallSites(file.source, open)) {
+  for (const callStart of findCallSites(file.masked, open)) {
     const argsStart = callStart + open.length;
-    const [property, ...rest] = literalsBetween(file, argsStart, argsStart + 800);
+    const [property, ...rest] = literalsBetween(
+      file,
+      argsStart,
+      argsStart + ARGUMENT_WINDOW.rejectionTable
+    );
     if (property === undefined) continue;
 
     // The slice ends at the first `]` after the property, so a literal
@@ -174,17 +229,23 @@ function extractCaseTables(file: ScannedFile): CorpusEntry[] {
   const entries: CorpusEntry[] = [];
 
   for (const block of testBlocks(file.source)) {
-    const call = file.source.indexOf('normalize_css_property_value(', block.start);
+    // Located on `masked`, so a call-shaped spelling inside a CSS value literal
+    // cannot be read as a call.
+    const call = file.masked.indexOf('normalize_css_property_value(', block.start);
     if (call === -1 || call >= block.end) continue;
 
     const argsStart = call + 'normalize_css_property_value('.length;
-    const property = literalsBetween(file, argsStart, argsStart + 200)[0];
+    const property = literalsBetween(
+      file,
+      argsStart,
+      argsStart + ARGUMENT_WINDOW.caseTableProperty
+    )[0];
     if (property === undefined) continue;
 
     // The call already supplied a literal value; shape 1 covered it.
     const between = file.source.slice(argsStart, property.end);
     if (!/^\s*"/.test(between) && !/^\s*r#*"/.test(between)) continue;
-    const afterProperty = file.source.slice(property.end, property.end + 40);
+    const afterProperty = file.source.slice(property.end, property.end + ADJACENCY_LOOKAHEAD);
     if (/^\s*,\s*(r#*)?"/.test(afterProperty)) continue;
 
     for (const literal of file.literals) {

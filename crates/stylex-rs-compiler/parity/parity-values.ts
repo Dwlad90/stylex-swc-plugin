@@ -63,6 +63,7 @@ Options:
 
 const VERDICT_LABELS: Record<Verdict, string> = {
   identical: chalk.green('identical'),
+  'identical-empty': chalk.yellow('identical (nothing emitted)'),
   divergent: chalk.red('divergent'),
   'structurally-divergent': chalk.magenta('structurally divergent'),
   'both-reject': chalk.gray('both reject'),
@@ -113,6 +114,7 @@ async function run(): Promise<void> {
   const summary = {
     total: entries.length,
     identical: 0,
+    'identical-empty': 0,
     divergent: 0,
     'structurally-divergent': 0,
     'both-reject': 0,
@@ -137,6 +139,7 @@ async function run(): Promise<void> {
   console.log(
     `\n${chalk.bold('Summary')} over ${summary.total} declarations\n` +
       `  identical              ${summary.identical}\n` +
+      `  identical (empty)      ${summary['identical-empty']}   ${chalk.gray('(both emitted nothing; measures nothing)')}\n` +
       `  divergent              ${summary.divergent}   ${chalk.gray('(value normalization)')}\n` +
       `  structurally divergent ${summary['structurally-divergent']}   ${chalk.gray('(different properties emitted; out of scope)')}\n` +
       `  acceptance divergent   ${summary['acceptance-divergent']}   ${chalk.gray('(one compiler rejected)')}\n` +
@@ -151,7 +154,12 @@ async function run(): Promise<void> {
       summary,
       entries,
     };
-    const outputPath = path.resolve(process.cwd(), cliOptions.json);
+    // Resolved against the package rather than the shell's working directory,
+    // which is what `pnpm run --filter` leaves it as: the same command run from
+    // the repo root and from this package would otherwise write to two
+    // different places, while the line below reports the path relative to the
+    // workspace either way.
+    const outputPath = path.resolve(packageDir, cliOptions.json);
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     fs.writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
     console.log(chalk.green(`\nReport written to ${path.relative(workspaceRoot, outputPath)}`));

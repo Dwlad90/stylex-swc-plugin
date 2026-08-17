@@ -161,7 +161,12 @@ export function scanRustLiterals(source: string): RustLiteral[] {
       literals.push({
         value: decodeEscapes(source.slice(i + 1, j)),
         start: i,
-        end: j + 1,
+        // Clamped, because an unterminated literal — or a trailing `\` — leaves
+        // `j` at or past the end. `maskLiterals` replaces `[start, end)` one
+        // character at a time, so an out-of-range `end` would make the mask
+        // longer than the source and silently invalidate every offset the
+        // harvester later compares against it.
+        end: Math.min(j + 1, source.length),
         line: lineOf(i),
         raw: false,
       });

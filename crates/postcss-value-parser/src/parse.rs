@@ -397,12 +397,12 @@ pub fn parse(input: &str) -> Vec<Node> {
         // `saturating_sub` re-reads index 0 forever — so a refactor that let
         // the scan reach the front would hang the compiler rather than return
         // a wrong offset.
+        //
+        // Spelled as the loop condition rather than as an `if … break` inside
+        // it, so that the unreachable exit is a branch no test has to take
+        // instead of a statement no test can cover.
         let mut whitespace_pos = next;
-        loop {
-          if whitespace_pos == 0 {
-            break;
-          }
-
+        while whitespace_pos > 0 {
           whitespace_pos -= 1;
           code = char_code_at(&value, whitespace_pos);
 

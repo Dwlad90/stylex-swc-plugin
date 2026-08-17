@@ -17,9 +17,19 @@ use super::dimensions::walk_dimensions;
 /// conversion would spell it `.009s`, which is longer than what it replaced.
 pub fn normalize_timings(ast: &mut ValueParser, _key: &str) {
   walk_dimensions(ast, |word, dimension| {
-    let value = parse_js_float(word)?;
+    if dimension.unit != "ms" {
+      return None;
+    }
 
-    if dimension.unit != "ms" || value < 10.0 {
+    // `unit` splits on a leading number, so the word always reads back as one.
+    // The reference implementation does not guard this either — a number that
+    // failed to read would compare false against `10` and be spelled into the
+    // value as `NaNs` — so the same spelling stands in for the case, rather
+    // than a branch that no input can take and no test can cover. The sibling
+    // pass [`super::font_size_px_to_rem`] answers it the same way.
+    let value = parse_js_float(word).unwrap_or(f64::NAN);
+
+    if value < 10.0 {
       return None;
     }
 

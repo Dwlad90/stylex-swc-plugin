@@ -154,13 +154,12 @@ fn variable_fallbacks(values: &[String]) -> Vec<String> {
 
   let values_after_last_var = &values[last_var.unwrap_or(values.len()) + 1..];
 
-  assert!(
-    !var_values
-      .iter()
-      .any(|val| !val.starts_with("var(") || !val.ends_with(')')),
-    "{}",
-    NON_CONTIGUOUS_VARS
-  );
+  if !var_values
+    .iter()
+    .all(|val| val.starts_with("var(") && val.ends_with(')'))
+  {
+    stylex_panic!("{}", NON_CONTIGUOUS_VARS);
+  }
 
   var_values = var_values
     .iter()
@@ -175,10 +174,18 @@ fn variable_fallbacks(values: &[String]) -> Vec<String> {
   let mut result = Vec::with_capacity(result_capacity);
 
   if !values_before_first_var.is_empty() {
-    for val in values_before_first_var {
-      let mut to_push = var_values.clone();
+    // The var prefix is the same for every iteration, so it is laid down once
+    // and only the trailing value is swapped — rather than cloning the whole
+    // prefix per value, which is what this cost before.
+    let mut to_push = Vec::with_capacity(var_values.len() + 1);
+    to_push.extend_from_slice(&var_values);
+    to_push.push(String::new());
 
-      to_push.push(val.to_string());
+    for val in values_before_first_var {
+      if let Some(last) = to_push.last_mut() {
+        last.clear();
+        last.push_str(val);
+      }
 
       result.push(compose_vars(&to_push));
     }

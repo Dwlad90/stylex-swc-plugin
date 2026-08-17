@@ -176,7 +176,15 @@ fn shortest_digits_and_exponent(value: f64) -> (String, i32) {
       'e' => in_exponent = true,
       '.' => {},
       '-' => exponent_is_negative = true,
-      _ if in_exponent => exponent = exponent * 10 + i32::from(ch as u8 - b'0'),
+      // `to_digit` rather than `ch as u8 - b'0'`: the subtraction underflows,
+      // and so panics in a debug build, for any non-digit that reaches this
+      // arm. Nothing `LowerExp` emits today would, but the guarantee that it
+      // never will is not this crate's to make.
+      _ if in_exponent => {
+        if let Some(digit) = ch.to_digit(10) {
+          exponent = exponent * 10 + digit as i32;
+        }
+      },
       _ => digits.push(ch),
     }
   }

@@ -16,16 +16,13 @@ use super::dimensions::walk_dimensions;
 /// Anything under ten milliseconds is left alone, so `9ms` stays `9ms` — the
 /// conversion would spell it `.009s`, which is longer than what it replaced.
 pub fn normalize_timings(ast: &mut ValueParser, _key: &str) {
-  walk_dimensions(ast, |node, dimension| {
-    let value = match parse_js_float(&node.value) {
-      Some(value) => value,
-      None => return,
-    };
+  walk_dimensions(ast, |word, dimension| {
+    let value = parse_js_float(word)?;
 
     if dimension.unit != "ms" || value < 10.0 {
-      return;
+      return None;
     }
 
-    node.value = format!("{}s", to_js_string(value / 1000.0));
+    Some(format!("{}s", to_js_string(value / 1000.0)))
   });
 }

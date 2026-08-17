@@ -19,9 +19,9 @@ pub fn convert_font_size_to_rem(ast: &mut ValueParser, key: &str) {
     return;
   }
 
-  walk_dimensions(ast, |node, dimension| {
+  walk_dimensions(ast, |_word, dimension| {
     if dimension.unit != "px" {
-      return;
+      return None;
     }
 
     // `unit` splits on a leading number, so the number half always reads
@@ -29,8 +29,11 @@ pub fn convert_font_size_to_rem(ast: &mut ValueParser, key: &str) {
     // number that failed to read would be spelled into the value as `NaNrem`
     // -- so the same spelling stands in for the case, rather than a branch
     // that no input can take and no test can cover.
-    let number = parse_js_float(&dimension.number).unwrap_or(f64::NAN);
+    let number = parse_js_float(dimension.number).unwrap_or(f64::NAN);
 
-    node.value = format!("{}rem", to_js_string(number / f64::from(ROOT_FONT_SIZE)));
+    Some(format!(
+      "{}rem",
+      to_js_string(number / f64::from(ROOT_FONT_SIZE))
+    ))
   });
 }

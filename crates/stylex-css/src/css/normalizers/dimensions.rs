@@ -20,18 +20,31 @@ use postcss_value_parser::{Dimension, Node, NodeKind, ValueParser, unit};
 ///   space: a word can begin with U+00A0, read back as a number, and split into
 ///   no dimension at all. Its unit-less branch is that word, and dropping it
 ///   would leave the character in place and change the class name.
+///
+/// The visitor is handed the word and its split and answers with the value to
+/// replace it with, or `None` to leave it alone — rather than being handed the
+/// node to mutate. A [`Dimension`] borrows the word it was split from, so a
+/// visitor holding one cannot also hold the node mutably; returning the
+/// rewrite hands the assignment back here, where the split is already done
+/// with. It also states the shape both callers already had: read, decide,
+/// build a string only when there is something to change.
 pub(super) fn walk_dimensions<F>(ast: &mut ValueParser, mut visit: F)
 where
-  F: FnMut(&mut Node, Dimension),
+  F: FnMut(&str, Dimension<'_>) -> Option<String>,
 {
   ast.walk(
-    |node, _| {
+    |node: &mut Node, _| {
       if node.kind != NodeKind::Word {
         return true;
       }
 
-      if let Some(dimension) = unit(&node.value) {
-        visit(node, dimension);
+      let replacement = match unit(&node.value) {
+        Some(dimension) => visit(&node.value, dimension),
+        None => None,
+      };
+
+      if let Some(replacement) = replacement {
+        node.value = replacement;
       }
 
       true

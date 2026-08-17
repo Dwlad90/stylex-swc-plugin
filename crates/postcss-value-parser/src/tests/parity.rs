@@ -89,10 +89,7 @@ fn survives_values_at_the_sizes_where_scanning_stops_being_about_css() {
 #[test]
 fn splits_every_word_into_the_same_number_and_unit() {
   for (input, expected) in UNIT_CASES {
-    let expected = expected.map(|(number, unit)| Dimension {
-      number: number.to_owned(),
-      unit: unit.to_owned(),
-    });
+    let expected = expected.map(|(number, unit)| Dimension { number, unit });
 
     assert_eq!(unit(input), expected, "unit split differs for {input:?}");
   }

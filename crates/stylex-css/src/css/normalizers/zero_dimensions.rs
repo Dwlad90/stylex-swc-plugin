@@ -54,9 +54,9 @@ pub fn normalize_zero_dimensions(ast: &mut ValueParser, key: &str) {
         return true;
       }
 
-      if ANGLES.contains(&dimension.unit.as_str()) {
+      if ANGLES.contains(&dimension.unit) {
         node.value = "0deg".to_owned();
-      } else if TIMINGS.contains(&dimension.unit.as_str()) {
+      } else if TIMINGS.contains(&dimension.unit) {
         node.value = "0s".to_owned();
       } else if dimension.unit == FRACTION {
         node.value = "0fr".to_owned();

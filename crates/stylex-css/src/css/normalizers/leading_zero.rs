@@ -43,11 +43,19 @@ pub fn normalize_leading_zero(ast: &mut ValueParser, _key: &str) {
         // implementation's ternary doing exactly what it does there, and it is
         // why this normalizer keeps its own walk rather than joining
         // `dimensions::walk_dimensions`, which would skip the word entirely.
-        let unit = dimension
+        // Named for what it is rather than `unit`, which is the imported
+        // splitting function this block would otherwise shadow.
+        let trailing_unit = dimension
           .map(|dimension| dimension.unit)
           .unwrap_or_default();
 
-        node.value = format!("{}{}", to_js_string(value).replacen("0.", ".", 1), unit);
+        let respelled = format!(
+          "{}{}",
+          to_js_string(value).replacen("0.", ".", 1),
+          trailing_unit
+        );
+
+        node.value = respelled;
       }
 
       true

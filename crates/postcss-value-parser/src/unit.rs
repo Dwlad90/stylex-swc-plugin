@@ -26,12 +26,17 @@ fn is_digit(code: u32) -> bool {
 ///
 /// The unit is whatever the number scan did not consume, whether or not it is a
 /// real CSS unit: `10px` splits as `("10", "px")` and `10zz` as `("10", "zz")`.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Dimension {
+///
+/// Both halves borrow the word rather than owning copies of it. Four
+/// normalizers ask this of every word in every value, and each only reads or
+/// compares what comes back — building a replacement string, when there is one
+/// to build, is a separate step that happens far less often.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Dimension<'value> {
   /// The leading number, spelled exactly as the author wrote it.
-  pub number: String,
+  pub number: &'value str,
   /// Everything after it, empty when the word is a bare number.
-  pub unit: String,
+  pub unit: &'value str,
 }
 
 /// Whether three code points would start a number, per
@@ -61,7 +66,7 @@ fn like_number(value: &[u8]) -> bool {
 ///
 /// Returns `None` when the word does not start with a number at all — which is
 /// how the normalizers tell `0px` apart from `auto`.
-pub fn unit(value: &str) -> Option<Dimension> {
+pub fn unit(value: &str) -> Option<Dimension<'_>> {
   let bytes = value.as_bytes();
   let length = bytes.len();
   let mut pos = 0;
@@ -109,9 +114,12 @@ pub fn unit(value: &str) -> Option<Dimension> {
   }
 
   // Every cut lands after an ASCII digit, sign, dot or exponent marker, so the
-  // split is always on a character boundary.
+  // split is always on a character boundary. The fallbacks are what JavaScript
+  // `slice` would do with an out-of-range index — the whole word, then nothing
+  // — rather than the empty split a `unwrap_or_default` on both halves would
+  // invent, which reads as a successful parse of a number that is not there.
   Some(Dimension {
-    number: value.get(..pos).unwrap_or_default().to_owned(),
-    unit: value.get(pos..).unwrap_or_default().to_owned(),
+    number: value.get(..pos).unwrap_or(value),
+    unit: value.get(pos..).unwrap_or(""),
   })
 }

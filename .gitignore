@@ -75,3 +75,6 @@ __pycache__/
 
 # Per-developer lefthook overrides
 lefthook-local.yml
+
+# Watchman probe files, dropped in the repo root by the daemon
+.watchman-cookie-*

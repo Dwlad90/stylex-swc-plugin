@@ -61,23 +61,26 @@ fn slice(value: &str, start: usize, end: usize) -> String {
   }
 }
 
-/// `String.prototype.indexOf` for a single ASCII byte, searching from `from`.
-fn index_of(value: &str, needle: u8, from: usize) -> Option<usize> {
+/// `String.prototype.indexOf` for a single character, searching from `from`.
+///
+/// Searching a subslice rather than skipping a byte iterator, so the search
+/// reaches core's vectorised `str::find` instead of comparing one byte at a
+/// time — the difference the long-comment, long-string and long-`url()` shapes
+/// in the bench corpus are there to measure. `from` is a character boundary at
+/// every call site, and `get` answers `None` rather than panicking if that ever
+/// stops being true.
+fn index_of(value: &str, needle: char, from: usize) -> Option<usize> {
   value
-    .as_bytes()
-    .iter()
-    .skip(from)
-    .position(|byte| *byte == needle)
+    .get(from..)
+    .and_then(|tail| tail.find(needle))
     .map(|at| at + from)
 }
 
 /// `String.prototype.indexOf("*/")`, searching from `from`.
 fn index_of_comment_end(value: &str, from: usize) -> Option<usize> {
   value
-    .as_bytes()
-    .windows(2)
-    .skip(from)
-    .position(|pair| pair == b"*/")
+    .get(from..)
+    .and_then(|tail| tail.find("*/"))
     .map(|at| at + from)
 }
 
@@ -252,7 +255,7 @@ pub fn parse(input: &str) -> Vec<Node> {
       loop {
         let mut escape = false;
 
-        match index_of(&value, quote, next + 1) {
+        match index_of(&value, char::from(quote), next + 1) {
           Some(found) => {
             next = found;
             let mut escape_pos = found;
@@ -362,7 +365,7 @@ pub fn parse(input: &str) -> Vec<Node> {
         loop {
           let mut escape = false;
 
-          match index_of(&value, b')', next + 1) {
+          match index_of(&value, ')', next + 1) {
             Some(found) => {
               next = found;
               let mut escape_pos = found;
@@ -383,16 +386,26 @@ pub fn parse(input: &str) -> Vec<Node> {
           }
         }
 
-        // Whitespace before the close, scanned backwards. It cannot run off the
-        // front: this branch is only reached inside a `url(` body, so there is
-        // always an opening parenthesis at a lower index to stop it, and that
-        // parenthesis is not whitespace. `saturating_sub` rather than a signed
-        // counter for the same reason -- there is nothing for a negative index
-        // to mean here.
+        // Whitespace before the close, scanned backwards. Index 0 is
+        // unreachable: this branch is only entered inside a `url(` body, so
+        // there is an opening parenthesis at a lower index and it is not
+        // whitespace.
+        //
+        // The guard is there anyway, because it is what decides how a broken
+        // precondition fails. Where the JavaScript reads `charCodeAt(-1)` as
+        // `NaN` and leaves the loop, an unsigned counter pinned at 0 by
+        // `saturating_sub` re-reads index 0 forever — so a refactor that let
+        // the scan reach the front would hang the compiler rather than return
+        // a wrong offset.
         let mut whitespace_pos = next;
         loop {
-          whitespace_pos = whitespace_pos.saturating_sub(1);
+          if whitespace_pos == 0 {
+            break;
+          }
+
+          whitespace_pos -= 1;
           code = char_code_at(&value, whitespace_pos);
+
           if code > 32 {
             break;
           }
@@ -400,10 +413,17 @@ pub fn parse(input: &str) -> Vec<Node> {
         let body_end = whitespace_pos + 1;
 
         if parentheses_open_pos < whitespace_pos {
-          // The body cannot be empty here: the condition above says there is a
-          // non-space character between the parenthesis and the close, and the
-          // scan that found it started from the same parenthesis. The
-          // JavaScript still guards for it.
+          // The body cannot be empty here, so the JavaScript's `pos <=
+          // whitespace_pos` guard is dead. Written out because an omitted guard
+          // is the kind of thing that gets re-added as a fix:
+          //
+          // `pos` is the first index after the parenthesis whose code exceeds
+          // 32 — the whitespace skip above left it there. The backward scan
+          // stops at the first such index at or before the close, and `pos` is
+          // one, so it stops no earlier: `whitespace_pos >= pos`. The one case
+          // where it lands before `pos` is a body of nothing but whitespace,
+          // and there it lands on the parenthesis itself, which is exactly what
+          // the enclosing `parentheses_open_pos < whitespace_pos` rejects.
           let mut nodes = vec![Node::new(
             NodeKind::Word,
             slice(&value, pos, body_end),

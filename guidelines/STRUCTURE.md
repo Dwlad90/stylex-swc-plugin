@@ -150,16 +150,19 @@ other means) or thin wrappers:
 
   ```text
   Rust test sources
-    -> pnpm --filter=@stylexswc/rs-compiler parity:harvest
-         -> crates/stylex-rs-compiler/parity/corpus/harvested.json
-              -> pnpm --filter=@stylexswc/postcss-value-parser generate:value-parser-cases
-                   -> crates/postcss-value-parser/src/tests/cases.rs
+    -> rs-compiler: parity:harvest
+         -> stylex-rs-compiler/parity/corpus/harvested.json
+              -> postcss-value-parser: generate:value-parser-cases
+                   -> postcss-value-parser/src/tests/cases.rs
   ```
 
   `cases.rs` row order is the corpus order, so anything reordering the corpus
-  rewrites the whole file. `parity:harvest:check` is the harvester's `:check`; it
-  is deliberately _not_ in a `test` script, since it needs a Node toolchain the
-  Rust suites otherwise do without.
+  rewrites the whole file. `parity:harvest:check` is the harvester's `:check`.
+  It is deliberately _not_ in a `test` script: unlike the per-crate generators,
+  which read one fixture's own inputs, the harvester walks every Rust test
+  source in two crates, so running it per package would rescan the same tree
+  and fail in whichever package ran first. Run it after adding tests that carry
+  CSS values.
 
 - `docs/agents/` -- machine-read configuration for the agent skills (issue
   tracker, triage labels, domain docs).

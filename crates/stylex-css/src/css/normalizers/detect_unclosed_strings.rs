@@ -2,11 +2,10 @@
 //! names. See `normalize_value.rs` for the order the passes run in here — a
 //! tenth pass that upstream has no equivalent for runs among them.
 
-use postcss_value_parser::{NodeKind, ValueParser, stringify};
+use postcss_value_parser::{NodeKind, ValueParser};
 use stylex_constants::constants::messages::LINT_UNCLOSED_STRING;
-use stylex_macros::stylex_panic;
 
-use crate::css::common::build_error_css_rule;
+use super::reject_value;
 
 /// Rejects a value carrying a string that was never closed.
 ///
@@ -14,9 +13,9 @@ use crate::css::common::build_error_css_rule;
 /// is the only thing standing between an unterminated string and a declaration
 /// that swallows whatever followed it.
 ///
-/// Rejects with the same payload the other two rejecting passes attach, so all
-/// three speak one diagnostic shape. The value is spelled back out for it,
-/// which is why the key is read here where the sibling passes read it too.
+/// Rejects through [`super::reject_value`], the same way [`super::detect_unclosed_fns`]
+/// does, so the two unfinished-construct reports quote the rule identically.
+/// That is why this reads the key, which it otherwise has no use for.
 pub fn detect_unclosed_strings(ast: &mut ValueParser, key: &str) {
   let mut unclosed = false;
 
@@ -32,12 +31,6 @@ pub fn detect_unclosed_strings(ast: &mut ValueParser, key: &str) {
   );
 
   if unclosed {
-    let value = stringify(&ast.nodes);
-
-    stylex_panic!(
-      "{}, css rule: {}",
-      LINT_UNCLOSED_STRING,
-      build_error_css_rule(key, &value)
-    );
+    reject_value(ast, key, LINT_UNCLOSED_STRING);
   }
 }

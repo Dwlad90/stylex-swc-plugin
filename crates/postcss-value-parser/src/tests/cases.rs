@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 897 values: the differential harness's whole corpus, plus
+/// 902 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -1848,6 +1848,21 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "string \"a\\\\\\\\b\" 0..6 quote=\"\\\"\"",
   },
   ParserCase {
+    input: "\"a\\u200fb\"",
+    output: "\"a\\u200fb\"",
+    ast: "string \"a\\\\u200fb\" 0..10 quote=\"\\\"\"",
+  },
+  ParserCase {
+    input: "\"a\\ufeffb\"",
+    output: "\"a\\ufeffb\"",
+    ast: "string \"a\\\\ufeffb\" 0..10 quote=\"\\\"\"",
+  },
+  ParserCase {
+    input: "\"e\\u0301\"",
+    output: "\"e\\u0301\"",
+    ast: "string \"e\\\\u0301\" 0..9 quote=\"\\\"\"",
+  },
+  ParserCase {
     input: "\"hello)world\"",
     output: "\"hello)world\"",
     ast: "string \"hello)world\" 0..13 quote=\"\\\"\"",
@@ -1921,6 +1936,16 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "\\\\😀",
     output: "\\\\😀",
     ast: "word \"\\\\\\\\😀\" 0..6",
+  },
+  ParserCase {
+    input: "a\\u00a0b",
+    output: "a\\u00a0b",
+    ast: "word \"a\\\\u00a0b\" 0..8",
+  },
+  ParserCase {
+    input: "e\\u0301",
+    output: "e\\u0301",
+    ast: "word \"e\\\\u0301\" 0..7",
   },
   ParserCase {
     input: "привет",
@@ -4619,7 +4644,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 654 words paired with their number/unit split, `None` standing for a
+/// 656 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -4973,6 +4998,8 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("My\\\\", None),
   ("Font", None),
   ("\\\\😀", None),
+  ("a\\u00a0b", None),
+  ("e\\u0301", None),
   ("привет", None),
   ("שלום", None),
   ("مرحبا", None),

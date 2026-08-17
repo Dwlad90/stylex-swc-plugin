@@ -996,19 +996,19 @@
       "id": "0f0b8122",
       "property": "color",
       "value": "\\u00a0",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:403"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:413"
     },
     {
       "id": "fc5abd93",
       "property": "color",
       "value": "\\u2028",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:403"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:413"
     },
     {
       "id": "654fe3e8",
       "property": "color",
       "value": "\\u3000",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:403"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:413"
     },
     {
       "id": "a964decb",
@@ -1929,6 +1929,18 @@
       "origin": "crates/stylex-css/src/css/tests/spacing_repair_parity_test.rs:463"
     },
     {
+      "id": "9fac1d8e",
+      "property": "fontFamily",
+      "value": "\"a\\u200fb\"",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:378"
+    },
+    {
+      "id": "dc756aeb",
+      "property": "fontFamily",
+      "value": "\"a\\ufeffb\"",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:378"
+    },
+    {
       "id": "6e198ac2",
       "property": "fontFamily",
       "value": "\"a‏b\"",
@@ -1939,6 +1951,12 @@
       "property": "fontFamily",
       "value": "\"a﻿b\"",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:618"
+    },
+    {
+      "id": "6c1cd526",
+      "property": "fontFamily",
+      "value": "\"e\\u0301\"",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:378"
     },
     {
       "id": "c20dca3e",
@@ -2046,7 +2064,7 @@
       "id": "dc576c38",
       "property": "fontFamily",
       "value": "\\\\😀",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:368"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:378"
     },
     {
       "id": "b379d514",
@@ -2055,10 +2073,22 @@
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:620"
     },
     {
+      "id": "471acf29",
+      "property": "fontFamily",
+      "value": "a\\u00a0b",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:378"
+    },
+    {
       "id": "9ac67d31",
       "property": "fontFamily",
       "value": "a b",
       "origin": "crates/stylex-css/src/css/tests/value_normalization_parity_test.rs:619"
+    },
+    {
+      "id": "44f9bf52",
+      "property": "fontFamily",
+      "value": "e\\u0301",
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:378"
     },
     {
       "id": "d54f03fa",
@@ -3726,7 +3756,7 @@
       "id": "9cbe0c55",
       "property": "width",
       "value": "00\\\\",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:430"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:440"
     },
     {
       "id": "aa8f4c5b",
@@ -3804,7 +3834,7 @@
       "id": "1927f6b2",
       "property": "width",
       "value": "1px\\u30002px",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:403"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:413"
     },
     {
       "id": "2ae0a53c",

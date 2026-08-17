@@ -2,11 +2,10 @@
 //! names. See `normalize_value.rs` for the order the passes run in here — a
 //! tenth pass that upstream has no equivalent for runs among them.
 
-use postcss_value_parser::{NodeKind, ValueParser, stringify};
+use postcss_value_parser::{NodeKind, ValueParser};
 use stylex_constants::constants::messages::LINT_UNCLOSED_FUNCTION;
-use stylex_macros::stylex_panic;
 
-use crate::css::common::build_error_css_rule;
+use super::reject_value;
 
 /// Rejects a value carrying a function that was never closed.
 ///
@@ -37,12 +36,6 @@ pub fn detect_unclosed_fns(ast: &mut ValueParser, key: &str) {
   );
 
   if unclosed {
-    let value = stringify(&ast.nodes);
-
-    stylex_panic!(
-      "{}, css rule: {}",
-      LINT_UNCLOSED_FUNCTION,
-      build_error_css_rule(key, &value)
-    );
+    reject_value(ast, key, LINT_UNCLOSED_FUNCTION);
   }
 }

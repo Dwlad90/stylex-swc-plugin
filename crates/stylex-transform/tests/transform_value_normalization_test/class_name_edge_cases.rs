@@ -350,10 +350,20 @@ stylex_test!(
 // `spells_multi_byte_characters_at_a_slicing_boundary_the_way_the_reference_
 // does`. What this adds is the class name each one hashes to.
 //
-// Three of the seven are invisible, and the measurements below carry them as
-// the raw characters the harness handed both compilers rather than as escapes —
-// so `"a‏b"` holds a right-to-left mark, `"a﻿b"` a byte-order mark, and
-// `a b` a non-breaking space, each between the two letters.
+// Four of the seven are invisible or combine with the letter before them, so
+// the source spells those as JS escapes: `́` is a combining acute accent,
+// `‏` a right-to-left mark, `﻿` a byte-order mark, ` ` a
+// non-breaking space. The escapes are decoded by the JS parser, so the bytes
+// reaching the compiler are the ones the harness measured — the measurements
+// quoted below carry the characters themselves, which is why they render as
+// they do.
+//
+// Written this way because the alternative is a source line whose content
+// cannot be seen, reviewed, or kept safe from an editor's normalization. The
+// harvester consequently reads the escape text rather than the character, so
+// the characters are carried in the parity corpus by hand: `edge.json` holds
+// each of these three `fontFamily` values, and the harness reports them
+// `identical`.
 //
 // Upstream: .x8oru8l{font-family:"é"}
 //           .x5l3f0p{font-family:é}
@@ -368,11 +378,11 @@ stylex_test!(
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
-      combiningMarkInAString: { fontFamily: "\"é\"" },
-      combiningMarkAsAnIdentifier: { fontFamily: "é" },
-      rightToLeftMark: { fontFamily: "\"a‏b\"" },
-      byteOrderMark: { fontFamily: "\"a﻿b\"" },
-      nonBreakingSpace: { fontFamily: "a b" },
+      combiningMarkInAString: { fontFamily: "\"e\u0301\"" },
+      combiningMarkAsAnIdentifier: { fontFamily: "e\u0301" },
+      rightToLeftMark: { fontFamily: "\"a\u200fb\"" },
+      byteOrderMark: { fontFamily: "\"a\ufeffb\"" },
+      nonBreakingSpace: { fontFamily: "a\u00a0b" },
       astralPlaneAfterAnEscape: { fontFamily: "\\😀" },
       astralPlaneBetweenNumberAndUnit: { width: "1😀px" },
     });

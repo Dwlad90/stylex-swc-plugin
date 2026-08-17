@@ -74,8 +74,18 @@ pub(crate) fn transform_value_cached(
   state: &mut StateManager,
 ) -> String {
   // Keyed by JS identity, not CSS text: `width: 1` and `width: '1'` read the
-  // same but compile to different declarations. Built in one allocation — this
-  // runs once per declaration.
+  // same but compile to different declarations.
+  //
+  // Two allocations, not one: this reserves the property and its colon exactly,
+  // and `write_identity_key` reserves what it appends. Growing exactly once
+  // beats guessing a headroom constant, and this runs once per declaration.
+  //
+  // The result is returned owned rather than borrowed from the cache because
+  // every caller needs an owned value immediately — a `Pair`, or an entry in
+  // the `Vec<String>` the class name is hashed from. Handing back an `Rc<str>`
+  // would move that allocation to the call sites rather than remove it; making
+  // it disappear means carrying `Rc<str>` through `Pair` and the hash pipeline,
+  // which is a change to the class-name path and not a caching concern.
   let mut cache_key = String::with_capacity(key.len() + 1);
   cache_key.push_str(key);
   cache_key.push(':');

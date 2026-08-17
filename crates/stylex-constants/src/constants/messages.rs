@@ -92,8 +92,16 @@ pub static LINT_VALUE_NESTED_TOO_DEEPLY: &str =
 
 pub static LINT_VALUE_HAS_NO_TOKENS: &str = "Rule contains a value with nothing to normalize";
 
+/// Said of a value whose importance annotation the reference implementation's
+/// handler cannot remove cleanly.
+///
+/// Deliberately not "not the last token": the annotation that fires this is
+/// sometimes nested rather than misplaced — `a calc(x !important) b` fires it
+/// while `a calc(x !important)` does not — because what decides the outcome is
+/// whether the handler's walk reads past the list it has already shortened, not
+/// where the annotation sits.
 pub static LINT_IMPORTANT_NOT_LAST: &str =
-  "Rule contains an importance annotation that is not the last token in the value";
+  "Rule contains an importance annotation the compiler cannot remove from the value";
 
 pub static LOCAL_ONLY: &str = "The return value of create() should not be exported.";
 

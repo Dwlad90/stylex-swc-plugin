@@ -8,8 +8,10 @@ rust-version.workspace = true
 version.workspace = true
 
 
+# No `cdylib`: there is no `extern "C"` surface here and nothing links this as a
+# dynamic library, so building one cost every workspace build for nothing.
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 doctest = false
 
 # No dependencies, and that is the point: the scanner is a self-contained port

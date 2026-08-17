@@ -21,6 +21,10 @@
 //! divergent is a defect to fix, not a spelling to enshrine. Values the
 //! compiler rejects have no spelling to compare and go through [`rejects`]
 //! instead.
+//!
+//! Run this crate with `cargo nextest`. Under plain `cargo test` the sweeps
+//! here route on the order of 140k caught panics through libtest's output
+//! buffering, which takes minutes rather than seconds.
 
 use std::{
   any::Any,

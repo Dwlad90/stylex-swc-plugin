@@ -42,6 +42,10 @@
 //! genuine failure elsewhere would lose its message — a worse trade than the
 //! output volume. It is the real ceiling on how far the sweep lengths can grow,
 //! and the reason they are set where they are.
+//!
+//! Run this crate with `cargo nextest`. Under plain `cargo test` the sweeps
+//! here route on the order of 140k caught panics through libtest's output
+//! buffering, which takes minutes rather than seconds.
 
 use std::{
   collections::BTreeSet,

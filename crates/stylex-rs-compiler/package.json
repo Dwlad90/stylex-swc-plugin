@@ -35,6 +35,7 @@
     "format:toml:check": "taplo format --check",
     "parity": "node --import tsx/esm parity/parity-values.ts",
     "parity:harvest": "node --import tsx/esm parity/harvest-corpus.ts",
+    "parity:harvest:check": "node --import tsx/esm parity/harvest-corpus.ts --check",
     "postbuild": "pnpm run build:ts && pnpm run check:artifacts",
     "prepublishOnly": "napi prepublish --no-gh-release",
     "test": "vitest run",

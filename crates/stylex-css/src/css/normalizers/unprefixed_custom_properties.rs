@@ -23,24 +23,28 @@ const CUSTOM_PROPERTY_FN: &str = "var";
 /// The prefix every custom property name carries.
 const CUSTOM_PROPERTY_PREFIX: &str = "--";
 
-/// Answers whether `node` is a custom-property reference naming an unprefixed
-/// property.
+/// The unprefixed property name `node` references, if it is such a reference.
+///
+/// Answers with the name rather than with a yes, so the rejection can quote it:
+/// a value may carry several references and "Unprefixed custom properties" on
+/// its own leaves the author to find which one.
 ///
 /// Reads one level: the reference's own first argument. A word there is the
 /// property name — `var(--foo, red)` names `--foo`, `var(foo)` names `foo`.
 /// Anything that is not a word is not a name at all (a nested `var()`, a
 /// string, a comment) and is left alone, so a reference whose first argument
 /// the author wrote as something else is never reported as a missing prefix.
-fn names_unprefixed_property(node: &Node) -> bool {
+fn unprefixed_property_name(node: &Node) -> Option<&str> {
   if node.kind != NodeKind::Function || node.value != CUSTOM_PROPERTY_FN {
-    return false;
+    return None;
   }
 
-  let Some(first) = node.nodes.as_ref().and_then(|nodes| nodes.first()) else {
-    return false;
-  };
+  let first = node.nodes.as_ref().and_then(|nodes| nodes.first())?;
 
-  first.kind == NodeKind::Word && !first.value.starts_with(CUSTOM_PROPERTY_PREFIX)
+  match first.kind == NodeKind::Word && !first.value.starts_with(CUSTOM_PROPERTY_PREFIX) {
+    true => Some(first.value.as_str()),
+    false => None,
+  }
 }
 
 /// Rejects a custom-property reference whose property name lacks its `--`
@@ -51,15 +55,16 @@ fn names_unprefixed_property(node: &Node) -> bool {
 /// them means `var(foo` — unprefixed *and* unfinished — is reported as the
 /// unfinished function it is, which is the more useful of the two things to say
 /// and what this compiler has always said about it. Running before the
-/// rewrites means the name reported is the name the author typed.
+/// rewrites means the name quoted in the rejection is the name the author
+/// typed, rather than one a later pass has already re-spelled.
 ///
 /// Only top-level references are inspected, matching what this rule has always
 /// checked: a `var()` nested inside `calc()` or a colour function is not
 /// reached. Widening the walk would reject programs that compile today, which
 /// is a decision about the rule rather than about where it reads from.
 pub fn detect_unprefixed_custom_properties(ast: &mut ValueParser, _key: &str) {
-  if ast.nodes.iter().any(names_unprefixed_property) {
-    stylex_panic!("{}", UNPREFIXED_CUSTOM_PROPERTIES);
+  if let Some(name) = ast.nodes.iter().find_map(unprefixed_property_name) {
+    stylex_panic!("{}: var({})", UNPREFIXED_CUSTOM_PROPERTIES, name);
   }
 }
 

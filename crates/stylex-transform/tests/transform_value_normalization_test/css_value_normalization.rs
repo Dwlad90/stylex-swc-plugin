@@ -12,6 +12,23 @@ fn stylex_transform(
   })
 }
 
+/// The options the issue #1256 measurements were taken under.
+///
+/// `enable_font_size_px_to_rem` is deliberately absent. The parity harness
+/// measured those fourteen values with the conversion off, which is its
+/// default, and the tests below quote what it measured — so a helper that
+/// quietly turned the conversion on would have the snapshots and the quoted
+/// measurements agreeing by configuration rather than by construction.
+///
+/// No value among the six is a font size, so both configurations produce the
+/// same bytes today. That is what makes this change safe, not what makes it
+/// unnecessary: the next value added here has no reason to be a non-font-size.
+fn stylex_transform_as_measured(comments: TestComments) -> impl Pass {
+  build_test_transform(comments, |b| {
+    b.with_runtime_injection_option(RuntimeInjection::Boolean(true))
+  })
+}
+
 stylex_test!(
   normalize_whitespace_in_css_values_transform,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
@@ -469,7 +486,7 @@ stylex_test!(
 //           .x10alfcw{background-image:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,.6) 100%)}
 stylex_test!(
   issue_1256_whitespace_between_value_tokens,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform_as_measured(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -495,7 +512,7 @@ stylex_test!(
 //           .xupdmjz{margin:calc(var(--b) * var(--c)) 0}
 stylex_test!(
   issue_1256_math_function_operator_spacing,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform_as_measured(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -513,7 +530,7 @@ stylex_test!(
 //           .x1bhg008{background-image:linear-gradient(#000000,#ffffff)}
 stylex_test!(
   issue_1256_six_digit_hex_is_not_shortened,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform_as_measured(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -529,7 +546,7 @@ stylex_test!(
 // Upstream: .xt72jh2{grid-template-areas:'sidebar content'}
 stylex_test!(
   issue_1256_single_quotes_are_preserved,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform_as_measured(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -545,7 +562,7 @@ stylex_test!(
 // Upstream: .x1i3z1r0{transform:translateX(-50%) translateY(-50%)}
 stylex_test!(
   issue_1256_transform_function_capitalization_is_preserved,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform_as_measured(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({
@@ -560,7 +577,7 @@ stylex_test!(
 // Upstream: .xvq1qyu{left:-10000px}
 stylex_test!(
   issue_1256_large_numbers_keep_their_plain_decimal_spelling,
-  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  |tr| stylex_transform_as_measured(tr.comments.clone()),
   r#"
     import stylex from 'stylex';
     export const styles = stylex.create({

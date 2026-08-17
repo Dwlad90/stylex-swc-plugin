@@ -246,7 +246,7 @@
       "id": "8163b53f",
       "property": "backgroundImage",
       "value": "linear-gradient(#000000, #ffffff)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:517"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:534"
     },
     {
       "id": "cfbc1c90",
@@ -258,7 +258,7 @@
       "id": "5453e242",
       "property": "backgroundImage",
       "value": "linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:473"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:490"
     },
     {
       "id": "adda9c84",
@@ -450,7 +450,7 @@
       "id": "0912fd45",
       "property": "backgroundPosition",
       "value": "50% bottom",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:473"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:490"
     },
     {
       "id": "9c56c85f",
@@ -480,7 +480,7 @@
       "id": "439f6d8b",
       "property": "backgroundPosition",
       "value": "top 0.75rem left 0.625rem",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:473"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:490"
     },
     {
       "id": "103e9700",
@@ -882,7 +882,7 @@
       "id": "0b0c0199",
       "property": "color",
       "value": "#ffffff",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:517"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:534"
     },
     {
       "id": "eece2dfa",
@@ -1332,7 +1332,7 @@
       "id": "d31768cb",
       "property": "color",
       "value": "rgba( 1, 222,  33 , 0.5)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:31"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:48"
     },
     {
       "id": "79628322",
@@ -1608,7 +1608,7 @@
       "id": "f5ebc481",
       "property": "content",
       "value": "\"prev\"",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:172"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:189"
     },
     {
       "id": "f2efc7d0",
@@ -1668,7 +1668,7 @@
       "id": "45d9f11b",
       "property": "content",
       "value": "next",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:172"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:189"
     },
     {
       "id": "530c4d3a",
@@ -2286,7 +2286,7 @@
       "id": "7c68fc4c",
       "property": "gridTemplateAreas",
       "value": "'sidebar content'",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:533"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:550"
     },
     {
       "id": "f584fd1a",
@@ -2358,7 +2358,7 @@
       "id": "49932a75",
       "property": "height",
       "value": "1",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:221"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:238"
     },
     {
       "id": "d35dcc9d",
@@ -2586,7 +2586,7 @@
       "id": "163db9aa",
       "property": "left",
       "value": "-10000px",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:564"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:581"
     },
     {
       "id": "be487320",
@@ -2790,7 +2790,7 @@
       "id": "c02472d6",
       "property": "margin",
       "value": "calc(var(--b) * var(--c)) 0",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:499"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:516"
     },
     {
       "id": "00f2d028",
@@ -2844,7 +2844,7 @@
       "id": "0b9726e5",
       "property": "marginLeft",
       "value": "1px",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:40"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:57"
     },
     {
       "id": "44c351bb",
@@ -2904,7 +2904,7 @@
       "id": "c316207f",
       "property": "outline",
       "value": "transparent dotted 0.125rem",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:473"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:490"
     },
     {
       "id": "900f4383",
@@ -2934,7 +2934,7 @@
       "id": "811c9710",
       "property": "padding",
       "value": "2",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:221"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:238"
     },
     {
       "id": "d554b38a",
@@ -3102,7 +3102,7 @@
       "id": "b0fa9eda",
       "property": "quotes",
       "value": "''",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:120"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:137"
     },
     {
       "id": "e7f2a8d9",
@@ -3210,19 +3210,19 @@
       "id": "083a2bdf",
       "property": "transform",
       "value": "0grad",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:61"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:78"
     },
     {
       "id": "b04bc986",
       "property": "transform",
       "value": "0rad",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:61"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:78"
     },
     {
       "id": "bebe63c8",
       "property": "transform",
       "value": "0turn",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:61"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:78"
     },
     {
       "id": "1fcb0668",
@@ -3318,19 +3318,19 @@
       "id": "9830d610",
       "property": "transform",
       "value": "translateX(-50%) translateY(-50%)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:549"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:566"
     },
     {
       "id": "ebcd1cd7",
       "property": "transform",
       "value": "translateX(0px) translateY(0) scale(1) rotate(30deg)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:272"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:289"
     },
     {
       "id": "24cf3d35",
       "property": "transform",
       "value": "translateX(100px) translateY(-300px) scale(0.7)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:283"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:300"
     },
     {
       "id": "44df9ddb",
@@ -3348,7 +3348,7 @@
       "id": "deb4e2fb",
       "property": "transition",
       "value": "opacity 0.2s ease-in-out",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:473"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:490"
     },
     {
       "id": "dc778c35",
@@ -3366,7 +3366,7 @@
       "id": "32f5cf10",
       "property": "transitionDuration",
       "value": "0.01s",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:93"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:110"
     },
     {
       "id": "7564904e",
@@ -3384,19 +3384,19 @@
       "id": "9beb874b",
       "property": "transitionDuration",
       "value": "10ms",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:129"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:146"
     },
     {
       "id": "6962fdee",
       "property": "transitionDuration",
       "value": "1234ms",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:129"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:146"
     },
     {
       "id": "d9e3c8a5",
       "property": "transitionDuration",
       "value": "1ms",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:129"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:146"
     },
     {
       "id": "d1bb8411",
@@ -3528,13 +3528,13 @@
       "id": "f736d776",
       "property": "transitionTimingFunction",
       "value": "cubic-bezier(.08,.52,.52,1)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:93"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:110"
     },
     {
       "id": "bb7fad1d",
       "property": "translate",
       "value": "-50% -120%",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:473"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:490"
     },
     {
       "id": "78e02fb6",
@@ -3846,7 +3846,7 @@
       "id": "838a3fd7",
       "property": "width",
       "value": "calc((100% + 3% -   100px) / 7)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:74"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:91"
     },
     {
       "id": "9f88298b",
@@ -3858,13 +3858,13 @@
       "id": "5539aed4",
       "property": "width",
       "value": "calc(-1 * var(--spacing))",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:499"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:516"
     },
     {
       "id": "5b8a0e8f",
       "property": "width",
       "value": "calc(0 - var(--someVar))",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:83"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:100"
     },
     {
       "id": "5219cee5",
@@ -3876,7 +3876,7 @@
       "id": "35c53397",
       "property": "width",
       "value": "calc(0px - var(--someVar))",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:83"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:100"
     },
     {
       "id": "04ec5dc3",
@@ -3978,7 +3978,7 @@
       "id": "99630835",
       "property": "width",
       "value": "max(4.8125rem, 100vw * 0.12)",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:499"
+      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:516"
     },
     {
       "id": "a406f63d",

@@ -673,6 +673,54 @@
       "property": "width",
       "value": "1😀px",
       "origin": "hand-written: hostile input reached by the totality sweep"
+    },
+    {
+      "id": "edge-parent-seen-unknown-fn-then-div",
+      "property": "width",
+      "value": "a() 1px /2",
+      "origin": "hand-written: parent_seen after a non-calc function closes"
+    },
+    {
+      "id": "edge-parent-seen-url-then-div",
+      "property": "width",
+      "value": "url(x) 1px /2",
+      "origin": "hand-written: parent_seen after url() closes"
+    },
+    {
+      "id": "edge-parent-seen-calc-then-div",
+      "property": "width",
+      "value": "calc(1) / 2",
+      "origin": "hand-written: parent_seen after calc() closes"
+    },
+    {
+      "id": "edge-url-uppercase-name",
+      "property": "backgroundImage",
+      "value": "URL(a b)",
+      "origin": "hand-written: url special case is name-exact and case-sensitive"
+    },
+    {
+      "id": "edge-url-space-before-parenthesis",
+      "property": "backgroundImage",
+      "value": "url ( a )",
+      "origin": "hand-written: a space before the parenthesis is not a url() call"
+    },
+    {
+      "id": "edge-ideographic-space-value",
+      "property": "color",
+      "value": "　",
+      "origin": "hand-written: U+3000 is a word token to the value scanner"
+    },
+    {
+      "id": "edge-no-break-space-value",
+      "property": "color",
+      "value": " ",
+      "origin": "hand-written: U+00A0 is a word token to the value scanner"
+    },
+    {
+      "id": "edge-ideographic-space-between-words",
+      "property": "width",
+      "value": "1px　2px",
+      "origin": "hand-written: U+3000 between two words is not a separator"
     }
   ]
 }

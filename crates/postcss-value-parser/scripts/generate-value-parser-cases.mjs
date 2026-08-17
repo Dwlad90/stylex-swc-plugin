@@ -11,6 +11,19 @@
 // Regenerate with:
 //
 //   pnpm run --filter=@stylexswc/postcss-value-parser generate:value-parser-cases
+//
+// The inputs come from the parity corpus in `@stylexswc/rs-compiler`, which is
+// itself generated from the Rust test sources -- so adding a test that carries a
+// CSS value invalidates this fixture, in a different crate. The full chain:
+//
+//   Rust test sources
+//     -> pnpm --filter=@stylexswc/rs-compiler parity:harvest
+//          -> crates/stylex-rs-compiler/parity/corpus/harvested.json
+//               -> this generator -> src/tests/cases.rs
+//
+// Row order here is corpus order, so anything that reorders the corpus rewrites
+// this file wholesale. `generate:value-parser-cases:check` reports staleness
+// without writing, and runs as part of this package's `test` script.
 
 import fs from 'node:fs';
 import path from 'node:path';

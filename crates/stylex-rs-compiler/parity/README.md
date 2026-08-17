@@ -11,7 +11,10 @@ snapshot tests written against either) breaks silently when they disagree: the
 markup names a class the stylesheet does not define, and nothing errors.
 
 This is a developer tool, not a test. It lives outside the Rust test suite so
-`cargo test` never needs a Node toolchain, and it is not wired into CI.
+`cargo test` never needs a Node toolchain. The runner is not wired into CI — it
+needs a built `dist/` and a Node toolchain — but the harvester's own unit tests
+are, under this package's `vitest` suite, and `parity:harvest:check` reports a
+stale corpus without writing one.
 
 ## Running it
 
@@ -34,13 +37,14 @@ verdicts are stale.
 
 ## Reading a verdict
 
-| Verdict                  | Meaning                                                                                                                                                                     |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `identical`              | Both accepted and agreed byte for byte.                                                                                                                                     |
-| `divergent`              | Both emitted the same properties but spelled a value differently — and therefore hashed a different class name. This is what the harness is for.                            |
-| `structurally divergent` | Both accepted but emitted different properties, or a different number of them. The divergence is in shorthand expansion or property validation, not in value normalization. |
-| `acceptance divergent`   | One accepted and the other rejected.                                                                                                                                        |
-| `both reject`            | Both rejected. Messages may differ; only the outcome is compared.                                                                                                           |
+| Verdict                  | Meaning                                                                                                                                                                                                                                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `identical`              | Both accepted and agreed byte for byte.                                                                                                                                                                                                                                                              |
+| `identical (empty)`      | Both accepted and emitted **nothing**. Agreement about no declaration at all, which is not evidence of parity — a property both compilers drop, or a fixture that failed to carry the value in, agrees just as loudly. Counted apart so a corpus that stops measuring anything shows up as a number. |
+| `divergent`              | Both emitted the same properties but spelled a value differently — and therefore hashed a different class name. This is what the harness is for.                                                                                                                                                     |
+| `structurally divergent` | Both accepted but emitted different properties, or a different number of them. The divergence is in shorthand expansion or property validation, not in value normalization.                                                                                                                          |
+| `acceptance divergent`   | One accepted and the other rejected.                                                                                                                                                                                                                                                                 |
+| `both reject`            | Both rejected. Messages may differ; only the outcome is compared.                                                                                                                                                                                                                                    |
 
 Both compilers receive the same module text and the same option object,
 constructed once in `lib/compare.ts`. Option drift would surface as a
@@ -82,12 +86,56 @@ pnpm run --filter=@stylexswc/rs-compiler parity:harvest -- --check
 ```
 
 `harvest-corpus.ts` scans the test sources of `stylex-css` and
-`stylex-transform` for five literal shapes that carry a CSS declaration — direct
-`normalize_css_property_value` calls, case tables looped through one property,
-`* {{ prop: value; }}` rule literals, minified `*{prop:value}` literals, and
-`stylex.create` objects embedded in transform tests. Each entry records the
-`<path>:<line>` it came from, so an unexpected one can be traced back to the
-test that motivated it. Run this after adding tests that carry CSS values.
+`stylex-transform` for seven literal shapes that carry a CSS declaration. Each
+entry records the `<path>:<line>` it came from, so an unexpected one can be
+traced back to the test that motivated it. Run this after adding tests that
+carry CSS values.
+
+| Shape | Written as                                                      | What is taken                                                  |
+| ----- | --------------------------------------------------------------- | -------------------------------------------------------------- |
+| 1     | `normalize_css_property_value("color", "red", &opts)`           | both literals                                                  |
+| 2     | a case table looped through one property                        | the first element of each row, or each element of a flat array |
+| 3     | `"* {{ transitionProperty: opacity; }}"`                        | the declaration inside the rule                                |
+| 4     | `"*{color:red}"`                                                | the same, minified                                             |
+| 5     | a `stylex.create` object in a transform fixture                 | every declaration in it                                        |
+| 6     | `unchanged("color", "red")`, `same("color", "#ff0000", "#f00")` | the property and the **input** only                            |
+| 7     | `rejects("width", &["*(", "/.5 *("], MESSAGE, &opts)`           | the property and every value in the slice                      |
+
+Shapes 6 and 7 are the two worth knowing about, because what they _omit_ is
+deliberate. A verdict case row carries the expected output and the reference
+compiler's spelling after the input; a rejection table carries the diagnostic
+the value is expected to fail with. Neither is harvested. Deriving an
+expectation from the reference compiler is the whole point of the harness, so an
+expectation already written down must never become an input to it — that would
+have the corpus confirming what the tests already assert.
+
+Two guards keep the scan honest, and both matter because a CSS value is
+arbitrary text that can spell anything:
+
+- Call sites are found on the **masked** source, in which every string literal
+  is blanked to spaces. A fixture value that spells `unchanged("color", "x")` is
+  data, not a call.
+- The first two arguments of a shape 1 or 6 call must be **adjacent** — nothing
+  but whitespace before the first literal, nothing but a comma between them. A
+  call whose value argument is an identifier would otherwise pair its property
+  with whatever literal came next, which is usually the expected output.
+
+### The generation chain
+
+Adding a Rust test that carries a CSS value invalidates a checked-in fixture in
+a _different_ crate. The order is:
+
+```text
+Rust test sources
+  -> pnpm --filter=@stylexswc/rs-compiler parity:harvest
+       -> parity/corpus/harvested.json
+            -> pnpm --filter=@stylexswc/postcss-value-parser generate:value-parser-cases
+                 -> crates/postcss-value-parser/src/tests/cases.rs
+```
+
+`cases.rs` row order _is_ the corpus order, so anything that reorders the corpus
+rewrites it wholesale. Both steps have a `:check` form that reports staleness
+without writing, and the second runs as part of its package's `test` script.
 
 The scan is a heuristic over Rust sources, so the corpus contains some values
 that are not valid CSS — degenerate inputs to the whitespace-repair unit tests,

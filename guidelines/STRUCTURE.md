@@ -139,6 +139,27 @@ other means) or thin wrappers:
   `rustfmt --edition 2024` in both scripts when its rows are long enough for
   `cargo fmt` to rewrap them -- otherwise the next `pnpm format` reformats the
   committed fixture and the `:check` fails against a generator that changed
-  nothing.
+  nothing. The `:check` runs as part of its own package's `test` script, so a
+  stale fixture fails locally rather than only in review.
+
+  One chain crosses crates and is easy to trip over: `postcss-value-parser`'s
+  `src/tests/cases.rs` is generated from the parity corpus in
+  `stylex-rs-compiler`, which is itself harvested from the Rust test sources of
+  `stylex-css` and `stylex-transform`. Adding a test that carries a CSS value
+  therefore invalidates a fixture in a crate you did not touch:
+
+  ```text
+  Rust test sources
+    -> pnpm --filter=@stylexswc/rs-compiler parity:harvest
+         -> crates/stylex-rs-compiler/parity/corpus/harvested.json
+              -> pnpm --filter=@stylexswc/postcss-value-parser generate:value-parser-cases
+                   -> crates/postcss-value-parser/src/tests/cases.rs
+  ```
+
+  `cases.rs` row order is the corpus order, so anything reordering the corpus
+  rewrites the whole file. `parity:harvest:check` is the harvester's `:check`; it
+  is deliberately _not_ in a `test` script, since it needs a Node toolchain the
+  Rust suites otherwise do without.
+
 - `docs/agents/` -- machine-read configuration for the agent skills (issue
   tracker, triage labels, domain docs).

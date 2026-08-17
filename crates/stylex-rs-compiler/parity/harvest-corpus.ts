@@ -5,6 +5,16 @@
  * corpus keeps covering what the suites cover. The output is checked in: the
  * harness itself must not depend on scanning Rust sources at run time.
  *
+ * This is the first link in a chain that ends in another crate: the corpus
+ * generated here is the input to `postcss-value-parser`'s `cases.rs`, whose row
+ * order is the corpus order. Adding one Rust test therefore invalidates two
+ * checked-in fixtures.
+ *
+ *   Rust test sources
+ *     -> this script -> parity/corpus/harvested.json
+ *          -> pnpm --filter=@stylexswc/postcss-value-parser generate:value-parser-cases
+ *               -> crates/postcss-value-parser/src/tests/cases.rs
+ *
  * Usage:
  *   pnpm parity:harvest            # rewrite the corpus file
  *   pnpm parity:harvest --check    # fail if it is out of date

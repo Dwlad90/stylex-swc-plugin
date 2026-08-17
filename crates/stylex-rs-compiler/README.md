@@ -507,6 +507,26 @@ Errors are color-coded for readability:
 | Unimplemented feature      | `[UNIMPLEMENTED]` | Magenta label |
 | Internal unreachable state | `[UNREACHABLE]`   | Blue label    |
 
+## Deliberate divergences from `@stylexjs/babel-plugin`
+
+Four values that upstream accepts are rejected here. Each rejection changes only
+_which programs compile_, never the bytes of an accepted one — so none of them
+can move a class name, which is the compatibility contract that matters. They
+are listed here because until now they lived only in module docstrings, and a
+build that fails on a value the reference compiler accepts is the kind of
+surprise worth being able to look up.
+
+| Rejected                                                                 | Upstream              | Why                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `var(foo)` — a custom-property reference with no `--` prefix             | emits it verbatim     | It resolves to nothing in a browser, with no diagnostic from anywhere. The rejection names the reference. Only top-level references are checked.                                                    |
+| A value carrying an unterminated `/*` comment                            | emits it              | The scanner invents the missing terminator, so the declaration would silently swallow whatever followed.                                                                                            |
+| A `{`, `}` or `;` outside a string or comment in a custom-property value | emits it              | The same swallowing problem, one level up: the declaration would absorb the rest of the rule.                                                                                                       |
+| A value nested more than 64 levels deep                                  | throws a `RangeError` | Spelling and dropping a token tree recurse, so past some depth the process aborts with no diagnostic at all. 64 is far above any real value and the failure is a named message rather than a crash. |
+
+Everything else is parity, and the parity harness under
+[`parity/`](./parity/README.md) is what keeps that claim honest — it runs a
+corpus of declarations through both compilers and reports any that disagree.
+
 ## FAQ
 
 ### Is this a drop-in replacement for `@stylexjs/babel-plugin`?
@@ -515,6 +535,10 @@ Yes, by design. It implements the same transform, is validated against the
 official StyleX test suite, and produces compatible output. It also adds
 compiler-only capabilities: `include`/`exclude` filtering, SWC WASM plugin
 chaining, `inputSourceMap` chaining, and structured metadata output.
+
+Four values are deliberately rejected where upstream accepts them; see
+[Deliberate divergences](#deliberate-divergences-from-stylexjsbabel-plugin).
+None of them changes the output of a value that compiles.
 
 ### Do I need Rust installed to use it?
 
@@ -536,6 +560,8 @@ reproduction link.
 
 ## Documentation
 
+- [CSS value parity harness](./parity/README.md) — how output compatibility with
+  `@stylexjs/babel-plugin` is measured
 - [StyleX documentation](https://stylexjs.com)
 - [NAPI-RS documentation](https://napi.rs)
 - [SWC documentation](https://swc.rs)

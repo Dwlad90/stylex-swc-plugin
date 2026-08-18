@@ -1,21 +1,4 @@
-use swc_core::{
-  common::SyntaxContext,
-  ecma::{
-    ast::{BinaryOp, Expr, Lit, OptChainBase},
-    utils::ExprCtx,
-  },
-};
-
-pub fn get_default_expr_ctx() -> ExprCtx {
-  // NOTE: ExprCtx does not have a default constructor, so we have to manually set
-  // the fields
-  ExprCtx {
-    unresolved_ctxt: SyntaxContext::empty(),
-    is_unresolved_ref_safe: false,
-    in_strict: false,
-    remaining_depth: 4,
-  }
-}
+use swc_core::ecma::ast::{BinaryOp, Expr, Lit, OptChainBase};
 
 /// The ESTree node kind of an expression, as a diagnostic names it —
 /// `"CallExpression"`, `"ArrowFunctionExpression"`, `"BigIntLiteral"`.

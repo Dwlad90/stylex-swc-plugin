@@ -130,9 +130,9 @@ pub(in super::super) fn evaluate(
                 path,
                 state,
                 format!(
-                  "Value of key '{}' has no compile-time value, but got {:?}",
+                  "Value of key '{}' has no compile-time value, but got {}",
                   key.clone().unwrap_or_else(|| "Unknown".to_string()),
-                  path_key_value.value.get_type(get_default_expr_ctx())
+                  get_expr_node_kind(&path_key_value.value)
                 )
                 .as_ref()
               );

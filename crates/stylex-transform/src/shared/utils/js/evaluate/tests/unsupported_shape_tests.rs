@@ -479,3 +479,195 @@ fn a_readable_object_method_receiver_still_folds() {
   assert_folds("Object.keys(5)");
   assert_folds("Object.keys(\"ab\")");
 }
+
+// ── The refusal names what it could not fold ────────────────────────
+//
+// A deopt reason is not a formality: inside `stylex.create()` it *is* the
+// build error, so the label has to point at the source. Before this, every
+// site below asked `Expr::get_type` — the value an expression would produce,
+// which is `Unknown` for everything a static evaluation cannot fold — and
+// answered `Unsupported expression: Unknown`, i.e. the one thing the author
+// already knew.
+//
+// Six sites reach for the label, and each is pinned below by an input that
+// arrives there, because they answer about *different nodes*: three name the
+// expression at the deopt path, three name a value that was folded on the way
+// to it.
+
+/// Asserts the source refuses and gives exactly this reason. Exact rather than
+/// a substring: a label that gains a stray prefix or loses the node kind is
+/// the regression this guards, and a `contains` check passes through both.
+#[track_caller]
+fn assert_deopt_reason(source: &str, expected: &str) {
+  let result = evaluate_source(source);
+
+  assert!(
+    !result.confident,
+    "expected `{}` to refuse to fold, got {:?}",
+    source, result.value
+  );
+
+  assert_eq!(
+    result.reason.as_deref(),
+    Some(expected),
+    "wrong deopt reason for `{}`",
+    source
+  );
+}
+
+/// The label for an expression kind the evaluator has no arm for at all. These
+/// are the cases where the deopt path and the named node are the same, so the
+/// label reads as a plain statement about what the author wrote.
+#[test]
+fn names_an_expression_kind_the_evaluator_does_not_dispatch_on() {
+  let cases = [
+    ("this", "ThisExpression"),
+    ("x++", "UpdateExpression"),
+    ("--x", "UpdateExpression"),
+    ("x = 1", "AssignmentExpression"),
+    ("x += 1", "AssignmentExpression"),
+    ("new Date()", "NewExpression"),
+    ("import.meta", "MetaProperty"),
+    ("function () {}", "FunctionExpression"),
+    ("class {}", "ClassExpression"),
+    ("1n", "BigIntLiteral"),
+    ("String.raw`a`", "TaggedTemplateExpression"),
+  ];
+
+  for (source, kind) in cases {
+    assert_deopt_reason(source, &format!("Unsupported expression: {}\n\n", kind));
+  }
+}
+
+/// A callee that is not callable is named for the call, not for the callee, so
+/// the label describes the expression the author has to change. Every one of
+/// these reaches the terminal refusal in `nodes/call_expression.rs`, which is
+/// the last thing that runs after every dispatch has declined.
+#[test]
+fn names_a_call_whose_callee_is_not_callable() {
+  for source in [
+    "(1)()",
+    "'a'()",
+    "true()",
+    "null()",
+    "[1, 2]()",
+    "({})()",
+    "(function () {})()",
+    "(class {})()",
+    "(1 + 1)()",
+    "(1, 2)()",
+    "[1, 2].filter(1)",
+  ] {
+    assert_deopt_reason(source, "Unsupported expression: CallExpression\n\n");
+  }
+}
+
+/// A refusal that happens *after* an evaluation succeeded names the value it
+/// got, not the expression it was asked about. Naming the node at the deopt
+/// path here would restate the code frame — `Unsupported expression:
+/// MemberExpression` under a member expression says nothing — while the
+/// receiver's kind says which half of `a.b` the evaluator could not use.
+#[test]
+fn names_the_value_a_refusal_arrived_with() {
+  // The receiver of a method call carries no methods this evaluator folds.
+  assert_deopt_reason(
+    "(5).toFixed(2)",
+    "Unsupported expression: NumericLiteral\n\n",
+  );
+
+  // The receiver of a property read is a value with no properties to read.
+  assert_deopt_reason(
+    "({ a: () => 1 }).a.b",
+    "Unsupported expression: ArrowFunctionExpression\n\n",
+  );
+
+  // `typeof` folded its operand and has no `typeof` answer for the result.
+  assert_deopt_reason("typeof /a/", "Unsupported expression: RegExpLiteral\n\n");
+}
+
+/// A numeric coercion reports through the `Result` it already had, so the
+/// label reaches the author from outside `evaluate/` too — the one site that
+/// had to move with the panic/deopt split.
+#[test]
+fn names_an_expression_with_no_numeric_reading() {
+  for source in ["-({})", "Math.abs({})", "+({})", "~({})"] {
+    assert_deopt_reason(
+      source,
+      "[StyleX] Expression is not a number: ObjectExpression",
+    );
+  }
+}
+
+/// A logical operator names the operand that refused, not the operator. The
+/// right operand is evaluated under a forked confidence, so the refusal
+/// travels up from inside it — and this is the position
+/// [#1265](https://github.com/Dwlad90/stylex-swc-plugin/issues/1265) reported,
+/// where a vague label would be at its least useful.
+#[test]
+fn a_logical_operand_keeps_the_label_of_the_operand_that_refused() {
+  let cases = [
+    ("this", "ThisExpression"),
+    ("new Date()", "NewExpression"),
+    ("import.meta", "MetaProperty"),
+    ("class {}", "ClassExpression"),
+    ("1n", "BigIntLiteral"),
+    ("(1)()", "CallExpression"),
+  ];
+
+  for (operand, kind) in cases {
+    let expected = format!("Unsupported expression: {}\n\n", kind);
+
+    assert_deopt_reason(&format!("1 > 0 && {}", operand), &expected);
+    assert_deopt_reason(&format!("1 < 0 || {}", operand), &expected);
+    assert_deopt_reason(&format!("null ?? {}", operand), &expected);
+  }
+}
+
+/// A logical operator is named `LogicalExpression` where SWC would call it a
+/// binary one. It reaches the label through a nested position rather than
+/// directly — `&&` has its own arm — so this asks for it where a value is
+/// coerced to a number, which is a reason an author reads all the same.
+#[test]
+fn names_a_logical_operator_as_one() {
+  assert_deopt_reason(
+    "Math.abs(({}) && ({}))",
+    "[StyleX] Expression is not a number: ObjectExpression",
+  );
+}
+
+/// The label never carries the author's text, so nothing in the source can
+/// malform it: an unterminated string, an unbalanced bracket or a lone
+/// surrogate escape reaches the same fixed name as the shape it is written in.
+/// Depth is bounded by the parser, not by the label.
+#[test]
+fn the_label_is_unaffected_by_hostile_source_text() {
+  assert_deopt_reason(
+    "({ '\\u{1F600}}{': () => 1 })['\\u{1F600}}{'].b",
+    "Unsupported expression: ArrowFunctionExpression\n\n",
+  );
+
+  assert_deopt_reason(
+    "({ 'a\"b\\'c;}': () => 1 })['a\"b\\'c;}'].b",
+    "Unsupported expression: ArrowFunctionExpression\n\n",
+  );
+
+  let nested = format!("{}new Date(){}", "(".repeat(200), ")".repeat(200));
+
+  assert_deopt_reason(&nested, "Unsupported expression: NewExpression\n\n");
+}
+
+/// The folds these labels sit next to. A label is only worth anything if the
+/// evaluator still answers where it can, so the shapes closest to each refusal
+/// above are pinned as folding — the same two-sidedness as the rest of this
+/// file.
+#[test]
+fn the_shapes_beside_each_label_still_fold() {
+  assert_folds_to_string("'ab'.concat('c')", "abc");
+  assert_folds_to_string("typeof 5", "number");
+  assert_folds_to_string("typeof ({})", "object");
+  assert_folds_to_number("Math.abs(-1)", 1.0);
+  assert_folds_to_number("Math.abs(({ a: -1 }).a)", 1.0);
+  assert_folds_to_number("1 > 0 && 2 ? 3 : 4", 3.0);
+  assert_folds_to_string("({ a: 'b' }).a", "b");
+  assert_folds_to_string("[1, 2].join('-')", "1-2");
+}

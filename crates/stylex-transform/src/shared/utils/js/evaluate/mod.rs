@@ -27,7 +27,7 @@ use swc_core::{
       ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit,
       OptChainBase, Pat, Prop, PropName, PropOrSpread, TplElement, VarDeclarator,
     },
-    utils::{ExprExt, ident::IdentLike},
+    utils::ident::IdentLike,
   },
 };
 
@@ -88,7 +88,7 @@ use stylex_js::helpers::{
 use stylex_structures::{named_import_source::ImportSources, stylex_env::EnvEntry};
 use stylex_utils::{
   collection::sort_numbers_factory, hash::stable_hash_unspanned, string::char_code_at_f64,
-  swc::get_default_expr_ctx,
+  swc::get_expr_node_kind,
 };
 
 use super::check_declaration::{DeclarationType, check_ident_declaration};
@@ -361,8 +361,8 @@ fn _evaluate(
     },
     _ => {
       warn!(
-        "Unsupported type of expression: {:?}. If its not enough, please run in debug mode to see more details",
-        normalized_path.get_type(get_default_expr_ctx())
+        "Unsupported type of expression: {}. If its not enough, please run in debug mode to see more details",
+        get_expr_node_kind(normalized_path)
       );
 
       debug!("Unsupported type of expression: {:?}", normalized_path);
@@ -370,10 +370,7 @@ fn _evaluate(
       return deopt(
         normalized_path,
         state,
-        &unsupported_expression(&format!(
-          "{:?}",
-          normalized_path.get_type(get_default_expr_ctx())
-        )),
+        &unsupported_expression(get_expr_node_kind(normalized_path)),
       );
     },
   };
@@ -511,10 +508,7 @@ fn _evaluate(
     return deopt(
       normalized_path,
       state,
-      &unsupported_expression(&format!(
-        "{:?}",
-        normalized_path.get_type(get_default_expr_ctx())
-      )),
+      &unsupported_expression(get_expr_node_kind(normalized_path)),
     );
   }
 

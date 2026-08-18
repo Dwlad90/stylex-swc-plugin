@@ -14,10 +14,7 @@ use stylex_evaluator::common::evaluate_bin_expr;
 use stylex_macros::{
   as_expr_or_panic, stylex_bail, stylex_panic, stylex_unimplemented, unwrap_or_panic,
 };
-use swc_core::ecma::{
-  ast::{BinExpr, Expr, Ident, Lit, Tpl, UnaryExpr, UnaryOp},
-  utils::ExprExt,
-};
+use swc_core::ecma::ast::{BinExpr, Expr, Ident, Lit, Tpl, UnaryExpr, UnaryOp};
 
 use crate::shared::{
   structures::{functions::FunctionMap, state::EvaluationState, state_manager::StateManager},
@@ -33,7 +30,7 @@ use stylex_constants::constants::messages::{
 use stylex_enums::misc::BinaryExprType;
 use stylex_js::coercions;
 use stylex_structures::raw_value::TRawValue;
-use stylex_utils::swc::get_default_expr_ctx;
+use stylex_utils::swc::get_expr_node_kind;
 
 pub fn expr_to_num(
   expr_num: &Expr,
@@ -61,8 +58,8 @@ pub fn expr_to_num(
       match binary_expr_to_num_or_str(lit, &mut state, traversal_state, fns)? {
         BinaryExprType::Number(number) => number,
         _ => stylex_bail!(
-          "Binary expression is not a number: {:?}",
-          expr_num.get_type(get_default_expr_ctx())
+          "Binary expression is not a number: {}",
+          get_expr_node_kind(expr_num)
         ),
       }
     },
@@ -71,8 +68,8 @@ pub fn expr_to_num(
     // `Result` precisely so the evaluator can refuse to fold them instead of
     // aborting the build from inside an evaluation allowed to fail.
     _ => stylex_bail!(
-      "Expression is not a number: {:?}",
-      expr_num.get_type(get_default_expr_ctx())
+      "Expression is not a number: {}",
+      get_expr_node_kind(expr_num)
     ),
   };
 
@@ -155,8 +152,8 @@ pub fn convert_unary_to_num(
       Err(error) => stylex_panic!("{}", error),
     },
     _ => stylex_panic!(
-      "Union operation '{:?}' is invalid",
-      Expr::from(unary_expr.clone()).get_type(get_default_expr_ctx())
+      "Union operation '{}' is invalid",
+      get_expr_node_kind(&Expr::from(unary_expr.clone()))
     ),
   }
 }
@@ -180,8 +177,8 @@ pub fn ident_to_number(
           {
             BinaryExprType::Number(number) => number,
             _ => stylex_panic!(
-              "Binary expression is not a number: {:?}",
-              var_decl_expr.get_type(get_default_expr_ctx())
+              "Binary expression is not a number: {}",
+              get_expr_node_kind(var_decl_expr)
             ),
           }
         },
@@ -190,8 +187,8 @@ pub fn ident_to_number(
           convert_lit_to_number(lit).unwrap_or_else(|error| stylex_panic!("{}", error))
         },
         _ => stylex_panic!(
-          "Varable {:?} is not a number",
-          var_decl_expr.get_type(get_default_expr_ctx())
+          "Varable {} is not a number",
+          get_expr_node_kind(var_decl_expr)
         ),
       }
     },
@@ -273,10 +270,7 @@ pub fn expr_tpl_to_string(
           Some(s) => s,
           None => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
         }),
-        _ => stylex_unimplemented!(
-          "TPL expression: {:?}",
-          tpl.exprs[i].get_type(get_default_expr_ctx())
-        ),
+        _ => stylex_unimplemented!("TPL expression: {}", get_expr_node_kind(&tpl.exprs[i])),
       }
     }
   }
@@ -294,8 +288,8 @@ pub fn transform_bin_expr_to_number(
   let Some(left) = evaluate_cached(&bin.left, state, traversal_state, fns) else {
     {
       stylex_panic!(
-        "Left expression is not a number: {:?}",
-        bin.left.get_type(get_default_expr_ctx())
+        "Left expression is not a number: {}",
+        get_expr_node_kind(&bin.left)
       )
     }
   };
@@ -303,8 +297,8 @@ pub fn transform_bin_expr_to_number(
   let Some(right) = evaluate_cached(&bin.right, state, traversal_state, fns) else {
     {
       stylex_panic!(
-        "Left expression is not a number: {:?}",
-        bin.right.get_type(get_default_expr_ctx())
+        "Left expression is not a number: {}",
+        get_expr_node_kind(&bin.right)
       )
     }
   };
@@ -331,8 +325,8 @@ pub fn convert_expr_to_bool(
       Lit::Str(s) => !s.value.is_empty(),
       Lit::Null(_) => false,
       _ => stylex_unimplemented!(
-        "Conversion {:?} expression to boolean",
-        expr.get_type(get_default_expr_ctx())
+        "Conversion {} expression to boolean",
+        get_expr_node_kind(expr)
       ),
     },
     Expr::Ident(ident) => convert_expr_to_bool(
@@ -351,14 +345,14 @@ pub fn convert_expr_to_bool(
       UnaryOp::Plus => !convert_expr_to_bool(&unary.arg, state, functions),
       UnaryOp::Tilde => !convert_expr_to_bool(&unary.arg, state, functions),
       _ => stylex_unimplemented!(
-        "Conversion {:?} expression to boolean",
-        expr.get_type(get_default_expr_ctx())
+        "Conversion {} expression to boolean",
+        get_expr_node_kind(expr)
       ),
     },
     _ => {
       stylex_unimplemented!(
-        "Conversion {:?} expression to boolean",
-        expr.get_type(get_default_expr_ctx())
+        "Conversion {} expression to boolean",
+        get_expr_node_kind(expr)
       )
     },
   }

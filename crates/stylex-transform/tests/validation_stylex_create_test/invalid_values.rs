@@ -385,6 +385,157 @@ stylex_test_panic!(
   "#
 );
 
+// ── A refusal names the node kind it could not fold ─────────────────
+//
+// Inside `stylex.create()` a deopt is the build error, so the reason recorded
+// by the evaluator is what the author reads. Each message below is byte
+// identical to the one the reference implementation gives for the same input,
+// measured rather than written by hand — which is what makes them worth
+// pinning: a label is only useful if it is the label the ecosystem uses.
+
+stylex_test_panic!(
+  this_expression_value_names_its_node_kind,
+  "Unsupported expression: ThisExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { content: this } });
+  "#
+);
+
+stylex_test_panic!(
+  new_expression_value_names_its_node_kind,
+  "Unsupported expression: NewExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { content: new Date() } });
+  "#
+);
+
+stylex_test_panic!(
+  meta_property_value_names_its_node_kind,
+  "Unsupported expression: MetaProperty",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { content: import.meta } });
+  "#
+);
+
+stylex_test_panic!(
+  function_expression_value_names_its_node_kind,
+  "Unsupported expression: FunctionExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { content: function () {} } });
+  "#
+);
+
+stylex_test_panic!(
+  class_expression_value_names_its_node_kind,
+  "Unsupported expression: ClassExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { content: class {} } });
+  "#
+);
+
+stylex_test_panic!(
+  tagged_template_value_names_its_node_kind,
+  "Unsupported expression: TaggedTemplateExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { content: String.raw`a` } });
+  "#
+);
+
+stylex_test_panic!(
+  update_expression_value_names_its_node_kind,
+  "Unsupported expression: UpdateExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    let counter = 0;
+    const styles = stylex.create({ x: { content: counter++ } });
+  "#
+);
+
+stylex_test_panic!(
+  assignment_expression_value_names_its_node_kind,
+  "Unsupported expression: AssignmentExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    let counter = 0;
+    const styles = stylex.create({ x: { content: (counter = 1) } });
+  "#
+);
+
+// A property read on a value with no properties. The label names the receiver
+// rather than the member expression at the deopt path: the code frame already
+// shows a member expression, and which half of `a.b` refused is the part the
+// author cannot see.
+stylex_test_panic!(
+  a_property_read_on_a_function_names_the_receiver,
+  "Unsupported expression: ArrowFunctionExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { content: ({ a: () => 1 }).a.b } });
+  "#
+);
+
+// A call whose callee is not callable is named for the call, because that is
+// the expression the author has to change.
+stylex_test_panic!(
+  a_call_on_a_number_names_the_call,
+  "Unsupported expression: CallExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { content: (1)() } });
+  "#
+);
+
+// `typeof` folded its operand and has no answer for what it got.
+stylex_test_panic!(
+  typeof_a_regex_names_the_operand,
+  "Unsupported expression: RegExpLiteral",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { content: typeof /a/ } });
+  "#
+);
+
+// The label reaches the author from the numeric coercion too, which reports
+// through a `Result` rather than through the evaluation state.
+stylex_test_panic!(
+  a_negated_object_names_the_operand,
+  "Expression is not a number: ObjectExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { width: -({}) } });
+  "#
+);
+
+// The reported position: a refusal inside the right operand of a logical
+// operator keeps the operand's label rather than the operator's.
+stylex_test_panic!(
+  a_refusing_logical_operand_keeps_its_own_label,
+  "Unsupported expression: NewExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { content: 1 > 0 && new Date() } });
+  "#
+);
+
 // An unparseable `@media` key is reported, not emitted verbatim into the
 // stylesheet as a broken at-rule.
 stylex_test_panic!(

@@ -67,7 +67,7 @@ pub(in super::super) fn evaluate(
         _ => deopt_unsupported!(
           &path,
           state,
-          &unsupported_expression(&format!("{:?}", arg.get_type(get_default_expr_ctx())))
+          &unsupported_expression(get_expr_node_kind(&arg))
         ),
       };
 

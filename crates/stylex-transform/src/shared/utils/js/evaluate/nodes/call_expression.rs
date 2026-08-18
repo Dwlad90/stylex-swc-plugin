@@ -853,7 +853,7 @@ pub(in super::super) fn evaluate(
                 _ => deopt_unsupported!(
                   path,
                   state,
-                  &unsupported_expression(&format!("{:?}", expr.get_type(get_default_expr_ctx())))
+                  &unsupported_expression(get_expr_node_kind(&expr))
                 ),
               },
               EvaluateResultValue::FunctionConfig(fc) => match fc.fn_ptr {
@@ -1383,6 +1383,6 @@ pub(in super::super) fn evaluate(
   deopt(
     path,
     state,
-    &unsupported_expression(&format!("{:?}", path.get_type(get_default_expr_ctx()))),
+    &unsupported_expression(get_expr_node_kind(path)),
   )
 }

@@ -182,6 +182,20 @@ mod node_kind {
     assert_kind("a?.b().c", es(), "OptionalMemberExpression");
   }
 
+  /// `TsConstAssertion` is the one SWC variant with two ESTree spellings —
+  /// `x as const` is a `TSAsExpression` and `<const>x` a `TSTypeAssertion` —
+  /// so one of the two forms is named for the other. Pinned so the compromise
+  /// is a recorded choice rather than something a reader has to rediscover,
+  /// and so a future SWC split of the variant fails here.
+  #[test]
+  fn names_both_const_assertion_spellings_after_the_as_form() {
+    assert_kind("a as const", ts(), "TSAsExpression");
+    assert_kind("<const>a", ts(), "TSAsExpression");
+
+    // The neighbouring form SWC does keep separate is unaffected.
+    assert_kind("<number>a", ts(), "TSTypeAssertion");
+  }
+
   #[test]
   fn names_every_typescript_kind() {
     let cases = [

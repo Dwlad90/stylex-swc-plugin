@@ -527,6 +527,40 @@ fn assert_unsupported_expression(source: &str, kind: &str) {
   assert_deopt_reason(source, &unsupported_expression(kind));
 }
 
+/// The two inputs issue 03 was written around do **not** reach a node-kind
+/// label, and this pins why so the record is in code rather than only in the
+/// ticket.
+///
+/// The ticket claimed `["a", "b"].filter(Boolean)` answered `Unsupported
+/// expression: Unknown`. It does not, and never did: `Boolean` is not a folded
+/// global, so the refusal is about the *identifier* long before the call is
+/// dispatched — and the reference implementation answers the same thing for the
+/// same reason. The reported `startsWith` call likewise refuses by name, which
+/// is a better message than any node kind would be.
+///
+/// Both are pinned because they are the inputs a reader will reach for when
+/// checking this work, and finding them absent invites the label being
+/// "restored" onto arms that never produced it.
+#[test]
+fn the_reported_inputs_refuse_by_name_rather_than_by_node_kind() {
+  assert_deopt_reason(
+    "[\"a\", \"b\"].filter(Boolean)",
+    "Referenced constant is not defined.",
+  );
+
+  assert_deopt_reason(
+    "\"documentation\".startsWith(lowerQuery)",
+    "The method 'startsWith' is not yet supported in static evaluation.",
+  );
+
+  // Naming the method survives the logical-operand position that made the
+  // original panic reachable, which is the whole point of issue 02.
+  assert_deopt_reason(
+    "1 > 0 && \"documentation\".startsWith(lowerQuery)",
+    "The method 'startsWith' is not yet supported in static evaluation.",
+  );
+}
+
 /// The label for an expression kind the evaluator has no arm for at all. These
 /// are the cases where the deopt path and the named node are the same, so the
 /// label reads as a plain statement about what the author wrote.

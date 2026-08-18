@@ -1,4 +1,5 @@
 use super::super::*;
+use crate::deopt_unsupported;
 use swc_core::ecma::ast::CondExpr;
 
 pub(in super::super) fn evaluate(
@@ -13,22 +14,16 @@ pub(in super::super) fn evaluate(
     return None;
   }
 
-  let test_result = match match test_result {
-    Some(v) => v,
-    None => {
-      stylex_panic!("The test condition of a conditional expression must be a static expression.")
-    },
-  } {
-    EvaluateResultValue::Expr(ref expr) => convert_expr_to_bool(expr, traversal_state, fns),
-    _ => {
-      let path = Expr::Cond(cond.clone());
-      stylex_panic_with_context!(
-        &path,
-        traversal_state,
-        "The test condition of a conditional expression must be a static expression."
-      )
-    },
+  // A test with no expression form has no compile-time truthiness, so neither
+  // branch can be chosen. `fn() ? a : b` is ordinary JavaScript and belongs in
+  // the output unfolded.
+  let Some(EvaluateResultValue::Expr(ref expr)) = test_result else {
+    let path = Expr::Cond(cond.clone());
+
+    deopt_unsupported!(&path, state, ILLEGAL_PROP_VALUE);
   };
+
+  let test_result = convert_expr_to_bool(expr, traversal_state, fns);
 
   if !state.confident {
     return None;

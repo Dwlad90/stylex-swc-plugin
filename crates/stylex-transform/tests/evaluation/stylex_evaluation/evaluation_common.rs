@@ -102,12 +102,21 @@ stylex_test_transform!(
   "#
 );
 
-stylex_test_panic!(
+// A built-in this evaluator does not fold refuses rather than aborting, so the
+// call survives into the output unchanged — which is what the reference
+// implementation does for a global outside its whitelist. Refusing had to stop
+// being an abort because the operand of a `&&` is evaluated speculatively; see
+// `deopt_unsupported!`.
+stylex_test_transform!(
   evaluates_built_in_functions,
-  "Evaluation built-in functions not supported",
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
     const x = Object.getOwnPropertyNames({a: 2});
+  "#,
+  r#"
+    Object.getOwnPropertyNames({
+        a: 2
+    });
   "#
 );
 
@@ -362,13 +371,18 @@ stylex_test_transform!(
   "#
 );
 
-stylex_test_panic!(
+// `delete` has no compile-time value — it is a mutation, and its result
+// depends on the object it runs against — so the evaluator refuses and the
+// expression survives verbatim. The refusal itself is unchanged; what changed
+// is that it is a deopt rather than an abort.
+stylex_test_transform!(
   evaluates_delete_unary_value_expressions,
-  "Failed to evaluate expression",
   |_tr| EvaluationStyleXFirstStatementTransform::default_with_pass(),
   r#"
     delete a.b;
-
+  "#,
+  r#"
+    delete a.b;
   "#
 );
 

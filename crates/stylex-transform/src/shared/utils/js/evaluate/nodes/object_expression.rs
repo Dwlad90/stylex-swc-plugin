@@ -1,4 +1,5 @@
 use super::super::*;
+use crate::deopt_unsupported;
 use swc_core::ecma::ast::ObjectLit;
 
 pub(in super::super) fn evaluate(
@@ -20,8 +21,10 @@ pub(in super::super) fn evaluate(
           return deopt(path, state, OBJECT_METHOD);
         }
 
+        // `{ ...1 }` and `{ ...fn }` are legal JavaScript that spread nothing;
+        // a value with no object form is an input this evaluator does not fold.
         let Some(new_props) = spread_expression.and_then(|s| s.into_object()) else {
-          stylex_panic_with_context!(path, traversal_state, SPREAD_MUST_BE_OBJECT);
+          deopt_unsupported!(path, state, SPREAD_MUST_BE_OBJECT);
         };
 
         let merged_object = deep_merge_props(props, new_props.props);
@@ -90,11 +93,7 @@ pub(in super::super) fn evaluate(
                     EXPRESSION_IS_NOT_A_STRING
                   ))
                 } else {
-                  stylex_panic_with_context!(
-                    path,
-                    traversal_state,
-                    "The property value must be a static expression."
-                  );
+                  deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE);
                 }
               },
               PropName::BigInt(big_int) => Some(big_int.value.to_string()),
@@ -127,11 +126,11 @@ pub(in super::super) fn evaluate(
             }
 
             let Some(value) = eval_value.value else {
-              stylex_panic_with_context!(
+              deopt_unsupported!(
                 path,
-                traversal_state,
+                state,
                 format!(
-                  "Value of key '{}' must be present, but got {:?}",
+                  "Value of key '{}' has no compile-time value, but got {:?}",
                   key.clone().unwrap_or_else(|| "Unknown".to_string()),
                   path_key_value.value.get_type(get_default_expr_ctx())
                 )
@@ -141,7 +140,10 @@ pub(in super::super) fn evaluate(
 
             let value = match value {
               EvaluateResultValue::Expr(expr) => Some(expr),
-              EvaluateResultValue::Vec(items) => Some(evaluate_result_vec_to_array_expr(&items)),
+              EvaluateResultValue::Vec(items) => match evaluate_result_vec_to_array_expr(&items) {
+                Some(expr) => Some(expr),
+                None => deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE),
+              },
               EvaluateResultValue::Callback(cb) => match path_key_value.value.as_ref() {
                 Expr::Call(call_expr) => {
                   let cb_args: Vec<EvaluateResultValue> = call_expr
@@ -161,18 +163,10 @@ pub(in super::super) fn evaluate(
                   Some(cb(cb_args, traversal_state))
                 },
                 Expr::Arrow(arrow_func_expr) => Some(Expr::Arrow(arrow_func_expr.clone())),
-                _ => stylex_panic_with_context!(
-                  path,
-                  traversal_state,
-                  "This callback type is not supported in static evaluation."
-                ),
+                _ => deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE),
               },
               EvaluateResultValue::ThemeRef(_) => None,
-              _ => stylex_panic_with_context!(
-                path,
-                traversal_state,
-                "The property value must be a static expression."
-              ),
+              _ => deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE),
             };
 
             if let Some(value) = value {
@@ -185,11 +179,9 @@ pub(in super::super) fn evaluate(
               ));
             }
           },
-          _ => stylex_panic_with_context!(
-            path,
-            traversal_state,
-            "This evaluation result type is not yet supported in static evaluation."
-          ),
+          // A getter, a setter or an assignment pattern: object properties
+          // with no compile-time value of their own.
+          _ => deopt_unsupported!(path, state, OBJECT_METHOD),
         }
       },
     }

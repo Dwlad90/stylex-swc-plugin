@@ -768,66 +768,71 @@ fn make_array_expr(elems: Vec<Expr>) -> Expr {
   })
 }
 
-// Helper: evaluate with SWC GLOBALS set (needed for stylex_panic_with_context!
-// code paths)
+// Helper: evaluate with SWC GLOBALS set (needed for the code-frame paths)
 fn evaluate_expr_with_globals(expr: &Expr) -> (bool, bool) {
   let globals = Globals::default();
   GLOBALS.set(&globals, || evaluate_expr(expr))
 }
 
+// Helper: evaluate with SWC GLOBALS set, keeping the deopt reason
+fn evaluate_expr_reason_with_globals(expr: &Expr) -> (bool, Option<String>) {
+  let globals = Globals::default();
+
+  GLOBALS.set(&globals, || {
+    let mut state_manager = StateManager::new(StyleXOptions::default());
+    let fns = FunctionMap::default();
+    let result = evaluate(expr, &mut state_manager, &fns);
+
+    (result.confident, result.reason)
+  })
+}
+
+/// An unsupported method on an array literal refuses to fold and names the
+/// method, rather than aborting the build. The name matters because a deopt
+/// that lands inside `stylex.create()` is what the author reads.
 #[test]
-fn test_unsupported_array_method_panic_includes_method_name() {
-  // Calling an unsupported method on an array literal (e.g., [1].unsupported())
-  // should panic with a message that includes the method name.
-  // This validates that stylex_panic_with_context! is used in the member call
-  // evaluation path.
+fn test_unsupported_array_method_deopts_with_the_method_name() {
   let array = make_array_expr(vec![create_number_expr(1.0)]);
   let member = make_member_expr(array, "unsupported");
   let call = make_call_expr(member, vec![]);
 
-  let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-    evaluate_expr_with_globals(&call);
-  }));
+  let (confident, reason) = evaluate_expr_reason_with_globals(&call);
 
-  assert!(result.is_err(), "Should panic for unsupported array method");
-  let panic_msg = result
-    .unwrap_err()
-    .downcast_ref::<String>()
-    .cloned()
-    .unwrap_or_default();
   assert!(
-    panic_msg.contains("unsupported"),
-    "Panic message should contain the method name 'unsupported', got: {}",
-    panic_msg
+    !confident,
+    "Should refuse to fold an unsupported array method"
+  );
+
+  let reason = reason.unwrap_or_default();
+
+  assert!(
+    reason.contains("unsupported"),
+    "Deopt reason should contain the method name 'unsupported', got: {}",
+    reason
   );
 }
 
+/// The same for a string literal receiver — the exact shape reported in
+/// [#1265](https://github.com/Dwlad90/stylex-swc-plugin/issues/1265).
 #[test]
-fn test_unsupported_string_method_panic_includes_method_name() {
-  // Calling an unsupported method on a string literal (e.g.,
-  // "hello".unsupported()) should panic with a message that includes the
-  // method name.
+fn test_unsupported_string_method_deopts_with_the_method_name() {
   let string = create_string_expr("hello");
   let member = make_member_expr(string, "unsupported");
   let call = make_call_expr(member, vec![]);
 
-  let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-    evaluate_expr_with_globals(&call);
-  }));
+  let (confident, reason) = evaluate_expr_reason_with_globals(&call);
 
   assert!(
-    result.is_err(),
-    "Should panic for unsupported string method"
+    !confident,
+    "Should refuse to fold an unsupported string method"
   );
-  let panic_msg = result
-    .unwrap_err()
-    .downcast_ref::<String>()
-    .cloned()
-    .unwrap_or_default();
+
+  let reason = reason.unwrap_or_default();
+
   assert!(
-    panic_msg.contains("unsupported"),
-    "Panic message should contain the method name 'unsupported', got: {}",
-    panic_msg
+    reason.contains("unsupported"),
+    "Deopt reason should contain the method name 'unsupported', got: {}",
+    reason
   );
 }
 

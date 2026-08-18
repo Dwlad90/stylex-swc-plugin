@@ -12,13 +12,13 @@ use helpers::*;
 pub(crate) use nodes::binary_expression::binary_expr_to_num_or_str;
 
 // Import error handling macros from shared utilities
-use crate::{expr_to_str_or_deopt, stylex_panic_with_context};
+use crate::{deopt_unsupported, expr_to_str_or_deopt, stylex_panic_with_context};
 use stylex_constants::constants::api_names::STYLEX_ENV;
 
 use indexmap::IndexMap;
 use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
-use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable, unwrap_or_panic};
+use stylex_macros::{stylex_panic, stylex_unreachable, unwrap_or_panic};
 use swc_core::{
   atoms::Atom,
   ecma::{
@@ -112,32 +112,34 @@ fn resolve_env_entry_to_result(
 /// Converts `EvaluateResultValue::Vec` items into an `Expr::Array`.
 ///
 /// Each item may itself be a nested `Vec` (converted to a sub-array) or a plain
-/// `Expr`. Only `Array`, `Object`, `Lit`, and `Ident` expressions are allowed
-/// as element values; any other variant panics with
-/// [`ILLEGAL_PROP_ARRAY_VALUE`].
-fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -> Expr {
-  let elems = items
-    .iter()
-    .map(|entry| {
-      let expr = entry
-        .as_vec()
-        .map(|vec| evaluate_result_vec_to_array_expr(vec))
-        .or_else(|| entry.as_expr().cloned())
-        .unwrap_or_else(|| stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE));
+/// `Expr`. Only `Array`, `Object`, `Lit` and `Ident` expressions can stand as
+/// element values.
+///
+/// `None` means an item has no array-element form at all — a callback, a theme
+/// reference, an evaluator-internal map. That is an array the evaluator does
+/// not fold rather than a broken invariant, so every caller refuses the value
+/// instead of aborting: an author can write one, and one written in an operand
+/// of `&&` must not fail the build.
+fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -> Option<Expr> {
+  let mut elems = Vec::with_capacity(items.len());
 
-      let expr = match expr {
-        Expr::Array(array) => Expr::Array(array),
-        Expr::Object(obj) => Expr::Object(obj),
-        Expr::Lit(lit) => Expr::Lit(lit),
-        Expr::Ident(ident) => Expr::Ident(ident),
-        _ => stylex_panic!("{}", ILLEGAL_PROP_ARRAY_VALUE),
-      };
+  for entry in items {
+    let expr = match entry.as_vec() {
+      Some(vec) => evaluate_result_vec_to_array_expr(vec)?,
+      None => entry.as_expr().cloned()?,
+    };
 
-      Some(create_expr_or_spread(expr))
-    })
-    .collect();
+    if !matches!(
+      expr,
+      Expr::Array(_) | Expr::Object(_) | Expr::Lit(_) | Expr::Ident(_)
+    ) {
+      return None;
+    }
 
-  create_array_expression(elems)
+    elems.push(Some(create_expr_or_spread(expr)));
+  }
+
+  Some(create_array_expression(elems))
 }
 
 /// Helper function to evaluate unary numeric operations (Plus, Minus, Tilde).
@@ -164,7 +166,13 @@ fn evaluate_unary_numeric(
   fns: &FunctionMap,
   transform: impl FnOnce(f64) -> f64,
 ) -> Option<EvaluateResultValue> {
-  let value = unwrap_or_panic!(expr_to_num(arg, state, traversal_state, fns));
+  // An operand with no numeric reading is an expression this evaluator does not
+  // fold, not a broken invariant: `-{}` and `~[1, 2]` are ordinary JavaScript.
+  let value = match expr_to_num(arg, state, traversal_state, fns) {
+    Ok(value) => value,
+    Err(error) => deopt_unsupported!(arg, state, error.to_string().as_str()),
+  };
+
   Some(EvaluateResultValue::Expr(create_number_expr(transform(
     value,
   ))))
@@ -184,7 +192,19 @@ pub(crate) fn evaluate_obj_key(
       if computed_result.confident {
         match computed_result.value {
           Some(EvaluateResultValue::Expr(value)) => value,
-          _ => stylex_panic!("Expected an expression value from the evaluation result."),
+          // A key that folded to a value with no expression form — an
+          // evaluator-internal map, a callback — is a key this does not read,
+          // which is an ordinary refusal rather than a broken invariant.
+          _ => {
+            return EvaluateResult {
+              confident: false,
+              deopt: Some(*computed.expr.clone()),
+              reason: Some(ILLEGAL_PROP_VALUE.to_string()),
+              value: None,
+              inline_styles: None,
+              fns: None,
+            };
+          },
         }
       } else {
         return EvaluateResult {
@@ -321,10 +341,10 @@ fn _evaluate(
       fns,
     ),
     Expr::TaggedTpl(_tagged_tpl) => {
-      stylex_panic_with_context!(
-        path,
-        traversal_state,
-        "Tagged template literals are not supported in static evaluation."
+      deopt_unsupported!(
+        normalized_path,
+        state,
+        &unsupported_expression("TaggedTemplateExpression")
       )
       // TODO: Uncomment this for implementation of TaggedTpl
       // nodes::template_literal::evaluate_quasis(
@@ -515,3 +535,7 @@ fn _evaluate(
 
   result
 }
+
+#[cfg(test)]
+#[path = "tests/unsupported_shape_tests.rs"]
+mod unsupported_shape_tests;

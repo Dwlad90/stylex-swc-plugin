@@ -66,7 +66,15 @@ impl Fold for EvaluationStyleXFirstStatementTransform {
   }
 
   fn fold_expr(&mut self, expr: Expr) -> Expr {
-    let evaluate_result = evaluate(&Box::new(expr), &mut self.state, &self.functions);
+    let evaluate_result = evaluate(&Box::new(expr.clone()), &mut self.state, &self.functions);
+
+    // A refusal is an ordinary answer from the evaluator — the expression has
+    // no compile-time value and belongs in the output as written. Rendering it
+    // unchanged is what the compiler itself does, so this harness mirrors it
+    // rather than aborting; a deopt is not a failed test.
+    if !evaluate_result.confident {
+      return expr;
+    }
 
     match evaluate_result.value {
       Some(value) => match value {

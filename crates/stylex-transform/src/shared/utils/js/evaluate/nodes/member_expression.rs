@@ -34,12 +34,11 @@ pub(in super::super) fn evaluate(
       if let Some(EvaluateResultValue::ThemeRef(mut theme_ref)) = base_object {
         let value = theme_ref.get(&parts.join("."), traversal_state);
 
-        return Some(EvaluateResultValue::Expr(create_string_expr(
-          match value.as_css_var() {
-            Some(css_var) => css_var,
-            None => stylex_panic!("{}", EXPECTED_CSS_VAR),
-          },
-        )));
+        let Some(css_var) = value.as_css_var() else {
+          deopt_unsupported!(path, state, EXPECTED_CSS_VAR);
+        };
+
+        return Some(EvaluateResultValue::Expr(create_string_expr(css_var)));
       }
     }
 
@@ -72,20 +71,22 @@ pub(in super::super) fn evaluate(
       match object {
         EvaluateResultValue::Expr(expr) => match &expr {
           Expr::Array(ArrayLit { elems, .. }) => {
-            let eval_res = match property {
-              Some(p) => p,
-              None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
+            let Some(eval_res) = property else {
+              deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
             };
 
-            let expr = match eval_res {
-              EvaluateResultValue::Expr(expr) => expr,
-              _ => stylex_panic_with_context!(path, traversal_state, PROPERTY_NOT_FOUND),
+            let EvaluateResultValue::Expr(expr) = eval_res else {
+              deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
             };
 
-            let value = match expr {
-              Expr::Lit(Lit::Num(Number { value, .. })) => value as usize,
-              _ => stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED),
+            // Only a numeric index reads an array element at compile time.
+            // `list['length']` and `list[key]` are ordinary JavaScript this
+            // evaluator does not fold.
+            let Expr::Lit(Lit::Num(Number { value, .. })) = expr else {
+              deopt_unsupported!(path, state, MEMBER_NOT_RESOLVED);
             };
+
+            let value = value as usize;
 
             // An index past the end is `undefined` in the language, and the
             // object arm below now folds the matching case — a key the object
@@ -97,8 +98,11 @@ pub(in super::super) fn evaluate(
             // matter of teaching `Vec` to be indexed, which is its own scope.
             let property = elems.get(value)?;
 
+            // An array hole reads as `undefined`, which this arm does not
+            // represent — see the note above on why it refuses rather than
+            // answering one.
             let Some(expr) = property.as_ref() else {
-              stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED)
+              deopt_unsupported!(path, state, MEMBER_NOT_RESOLVED);
             };
 
             let expr = expr.expr.clone();
@@ -106,9 +110,8 @@ pub(in super::super) fn evaluate(
             Some(EvaluateResultValue::Expr(*expr))
           },
           Expr::Object(ObjectLit { props, .. }) => {
-            let eval_res = match property {
-              Some(p) => p,
-              None => stylex_panic!("{}", PROPERTY_NOT_FOUND),
+            let Some(eval_res) = property else {
+              deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
             };
 
             let ident = match eval_res {
@@ -136,11 +139,7 @@ pub(in super::super) fn evaluate(
                 debug!("Evaluation result: {:?}", eval_res);
                 debug!("Original property: {:?}", prop_path);
 
-                stylex_panic_with_context!(
-                  path,
-                  traversal_state,
-                  "Property not found. For additional details, please recompile using debug mode."
-                );
+                deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
               },
             };
 
@@ -148,72 +147,53 @@ pub(in super::super) fn evaluate(
 
             let ident_string_name = match normalized_ident {
               Expr::Ident(ident) => ident.sym.to_string(),
-              Expr::Lit(lit) => convert_lit_to_string(lit).unwrap_or_else(|| {
-                stylex_panic_with_context!(
-                  path,
-                  traversal_state,
-                  "The property key must be convertible to a string."
-                )
-              }),
-              _ => {
-                stylex_panic_with_context!(
-                  path,
-                  traversal_state,
-                  "Computed member properties are not supported in static evaluation."
-                )
+              // A regex or a BigInt key has no string form the evaluator
+              // reads, and a key that is still an expression never resolved.
+              Expr::Lit(lit) => match convert_lit_to_string(lit) {
+                Some(key) => key,
+                None => deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP),
               },
+              _ => deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP),
             };
 
-            let property = props.iter().find(|prop| match prop {
-                  PropOrSpread::Spread(_) => stylex_panic_with_context!(
-                    path,
-                    traversal_state,
-                    "The spread operator (...) is not supported in this context. Declare each property explicitly."
-                  ),
-                  PropOrSpread::Prop(prop) => {
-                    let mut prop = prop.clone();
+            // Written as a loop rather than a `find`, because a property the
+            // evaluator cannot read has to refuse the whole lookup and a
+            // predicate has no way to say so — the closure would have to
+            // abort, which is the failure this split exists to remove.
+            let mut found = None;
 
-                    expand_shorthand_prop(&mut prop);
+            for prop in props {
+              let PropOrSpread::Prop(prop) = prop else {
+                // A spread leaves the object's own keys unknown, so a key that
+                // is not among the literal ones cannot be called absent.
+                deopt_unsupported!(path, state, SPREAD_MUST_BE_OBJECT);
+              };
 
-                    match prop.as_ref() {
-                      Prop::KeyValue(key_value) => {
-                        let key = convert_key_value_to_str(key_value);
+              let mut prop = prop.clone();
 
-                        ident_string_name == key
-                      }
-                      _ => {
-                        stylex_panic_with_context!(
-                          path,
-                          traversal_state,
-                          "Computed property keys are not supported in static evaluation."
-                        );
-                      }
-                    }
+              expand_shorthand_prop(&mut prop);
 
-                  }
-                });
+              // A getter, a setter or a method carries no value to read.
+              let Prop::KeyValue(key_value) = prop.as_ref() else {
+                deopt_unsupported!(path, state, OBJECT_METHOD);
+              };
+
+              if ident_string_name == convert_key_value_to_str(key_value) {
+                found = Some(key_value.value.clone());
+                break;
+              }
+            }
 
             // A key the object does not carry reads as `undefined`, which is a
             // value the evaluator is confident about rather than one it failed
             // to resolve. Returning it is what lets `token.missing ?? fallback`
             // fold, where a deopt here would send the whole declaration to the
             // runtime.
-            let Some(property) = property else {
+            let Some(value) = found else {
               return Some(js_undefined());
             };
 
-            if let PropOrSpread::Prop(prop) = property {
-              Some(EvaluateResultValue::Expr(
-                *match prop.as_key_value() {
-                  Some(kv) => kv,
-                  None => stylex_panic!("{}", KEY_VALUE_EXPECTED),
-                }
-                .value
-                .clone(),
-              ))
-            } else {
-              stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED);
-            }
+            Some(EvaluateResultValue::Expr(*value))
           },
           Expr::Member(member_expr) => evaluate_cached(
             &Expr::Member(member_expr.clone()),
@@ -230,28 +210,18 @@ pub(in super::super) fn evaluate(
             traversal_state,
             fns,
           ),
-          _ => {
-            stylex_panic_with_context!(
-              path,
-              traversal_state,
-              "This type of object member access is not yet supported in static evaluation."
-            );
-          },
+          // A member access on a call, an arrow, a class — expression kinds
+          // this evaluator reads no properties from.
+          _ => deopt_unsupported!(
+            path,
+            state,
+            &unsupported_expression(&format!("{:?}", expr.get_type(get_default_expr_ctx())))
+          ),
         },
         EvaluateResultValue::FunctionConfigMap(fc_map) => {
           let key = match property {
-            Some(property) => match property {
-              EvaluateResultValue::Expr(expr) => match expr {
-                Expr::Ident(ident) => Box::new(ident),
-                _ => stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED),
-              },
-              _ => stylex_panic_with_context!(
-                path,
-                traversal_state,
-                "This function configuration property is not yet supported."
-              ),
-            },
-            None => stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED),
+            Some(EvaluateResultValue::Expr(Expr::Ident(ident))) => ident,
+            _ => deopt_unsupported!(path, state, MEMBER_NOT_RESOLVED),
           };
 
           if let Some(fc) = fc_map.get(&key.sym) {
@@ -261,9 +231,9 @@ pub(in super::super) fn evaluate(
           // Check if this is an env property access on a stylex import.
           if key.sym.as_ref() == STYLEX_ENV {
             if traversal_state.options.env.is_empty() {
-              stylex_panic_with_context!(
+              deopt_unsupported!(
                 path,
-                traversal_state,
+                state,
                 "The stylex.env object is not configured. Check that the 'env' option is set in your StyleX configuration."
               );
             }
@@ -273,9 +243,9 @@ pub(in super::super) fn evaluate(
             ));
           }
 
-          stylex_panic_with_context!(
+          deopt_unsupported!(
             path,
-            traversal_state,
+            state,
             format!(
               "The property '{}' was not found in the function configuration.",
               key.sym
@@ -285,78 +255,47 @@ pub(in super::super) fn evaluate(
         },
         EvaluateResultValue::ThemeRef(mut theme_ref) => {
           let key = match property {
-            Some(property) => match property {
-              EvaluateResultValue::Expr(expr) => match expr {
-                Expr::Ident(Ident { sym, .. }) => sym.to_string(),
-                Expr::Lit(lit) => match convert_lit_to_string(&lit) {
-                  Some(s) => s,
-                  None => stylex_panic!("Property key must be a string value."),
-                },
-                _ => stylex_panic_with_context!(path, traversal_state, MEMBER_NOT_RESOLVED),
-              },
-              _ => stylex_panic_with_context!(
-                path,
-                traversal_state,
-                "This theme reference property type is not yet supported."
-              ),
+            Some(EvaluateResultValue::Expr(Expr::Ident(Ident { sym, .. }))) => sym.to_string(),
+            Some(EvaluateResultValue::Expr(Expr::Lit(lit))) => match convert_lit_to_string(&lit) {
+              Some(key) => key,
+              None => deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP),
             },
-            None => {
-              stylex_panic_with_context!(
-                path,
-                traversal_state,
-                "The referenced property was not found on the theme object. Ensure it was declared in defineVars()."
-              )
-            },
+            _ => deopt_unsupported!(path, state, MEMBER_NOT_RESOLVED),
           };
 
           let value = theme_ref.get(&key, traversal_state);
 
-          Some(EvaluateResultValue::Expr(create_string_expr(
-            match value.as_css_var() {
-              Some(css_var) => css_var,
-              None => stylex_panic!("{}", EXPECTED_CSS_VAR),
-            },
-          )))
+          let Some(css_var) = value.as_css_var() else {
+            deopt_unsupported!(path, state, EXPECTED_CSS_VAR);
+          };
+
+          Some(EvaluateResultValue::Expr(create_string_expr(css_var)))
         },
         EvaluateResultValue::EnvObject(env_map) => {
-          let key = property
-            .as_ref()
-            .and_then(|prop| prop.as_string_key())
-            .unwrap_or_else(|| {
-              stylex_panic_with_context!(
-                path,
-                traversal_state,
-                "The referenced property was not found in the stylex.env configuration."
-              )
-            });
+          let Some(key) = property.as_ref().and_then(|prop| prop.as_string_key()) else {
+            deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+          };
 
-          match env_map.get(&key) {
-            Some(entry) => match resolve_env_entry_to_result(entry, &env_map) {
-              Some(result) => Some(result),
-              None => stylex_panic_with_context!(
-                path,
-                traversal_state,
-                "The stylex.env value could not be converted to a static expression."
-              ),
-            },
-            None => {
-              stylex_panic_with_context!(
-                path,
-                traversal_state,
-                format!(
-                  "The property '{}' was not found in the stylex.env configuration.",
-                  key
-                )
-                .as_str()
-              );
-            },
+          let Some(entry) = env_map.get(&key) else {
+            deopt_unsupported!(
+              path,
+              state,
+              format!(
+                "The property '{}' was not found in the stylex.env configuration.",
+                key
+              )
+              .as_str()
+            );
+          };
+
+          match resolve_env_entry_to_result(entry, &env_map) {
+            Some(result) => Some(result),
+            None => deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE),
           }
         },
-        _ => stylex_panic_with_context!(
-          path,
-          traversal_state,
-          "This evaluation result type is not yet supported in static evaluation."
-        ),
+        // An evaluated value the member path reads no properties from: a
+        // callback, an entries map, a raw function configuration.
+        _ => deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP),
       }
     },
     _ => None,

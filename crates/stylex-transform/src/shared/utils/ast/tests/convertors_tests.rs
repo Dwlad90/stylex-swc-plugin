@@ -1959,17 +1959,19 @@ mod convert_expr_to_str_non_string_tests {
 }
 
 // ──────────────────────────────────────────────
-// expr_to_num - should_panic for unsupported expr
+// expr_to_num - reports an unsupported expr
 // ──────────────────────────────────────────────
 
-mod expr_to_num_panic_tests {
+mod expr_to_num_unsupported_tests {
   use super::*;
   use crate::shared::utils::ast::convertors::expr_to_num;
   use swc_core::ecma::ast::ArrayLit;
 
+  /// An expression with no numeric reading is reported through the `Result`
+  /// this returns, not by aborting: `-[]` is ordinary JavaScript, and the
+  /// evaluator has to be able to refuse to fold it.
   #[test]
-  #[should_panic]
-  fn panics_for_array_expr() {
+  fn reports_an_array_expr_as_an_error() {
     let mut state = EvaluationState::new();
     let mut traversal_state = StateManager::default();
     let fns = FunctionMap::default();
@@ -1977,7 +1979,35 @@ mod expr_to_num_panic_tests {
       span: Default::default(),
       elems: vec![],
     });
-    let _ = expr_to_num(&expr, &mut state, &mut traversal_state, &fns);
+
+    let error = expr_to_num(&expr, &mut state, &mut traversal_state, &fns)
+      .expect_err("an array has no numeric reading");
+
+    assert!(
+      error.to_string().contains("not a number"),
+      "the error should say what it could not read, got: {}",
+      error
+    );
+  }
+
+  /// The same for a binary expression that folds to a string rather than a
+  /// number — the arm one level in, which used to abort separately.
+  #[test]
+  fn reports_a_string_valued_binary_expr_as_an_error() {
+    let mut state = EvaluationState::new();
+    let mut traversal_state = StateManager::default();
+    let fns = FunctionMap::default();
+    let expr = Expr::Bin(BinExpr {
+      span: Default::default(),
+      op: BinaryOp::Add,
+      left: Box::new(create_string_expr("a")),
+      right: Box::new(create_string_expr("b")),
+    });
+
+    assert!(
+      expr_to_num(&expr, &mut state, &mut traversal_state, &fns).is_err(),
+      "a concatenation has no numeric reading"
+    );
   }
 }
 

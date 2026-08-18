@@ -1,4 +1,5 @@
 use super::super::*;
+use crate::deopt_unsupported;
 use swc_core::ecma::ast::{Lit, UnaryExpr, UnaryOp};
 
 pub(in super::super) fn evaluate(
@@ -29,19 +30,13 @@ pub(in super::super) fn evaluate(
     return None;
   }
 
-  let arg = match match arg {
-    Some(v) => v,
-    None => stylex_panic!("The operand of a unary expression must be a static expression."),
-  } {
-    EvaluateResultValue::Expr(expr) => expr,
-    _ => {
-      let path = Expr::Unary(unary.clone());
-      stylex_panic_with_context!(
-        &path,
-        traversal_state,
-        "The operand of a unary expression must be a static expression."
-      )
-    },
+  // An operand with no expression form has no compile-time value to apply the
+  // operator to. `typeof someObject.method` is ordinary JavaScript, so this
+  // refuses the fold rather than aborting the build.
+  let path = Expr::Unary(unary.clone());
+
+  let Some(EvaluateResultValue::Expr(arg)) = arg else {
+    deopt_unsupported!(&path, state, ILLEGAL_PROP_VALUE);
   };
 
   match unary.op {
@@ -66,22 +61,18 @@ pub(in super::super) fn evaluate(
         Expr::Ident(ident) if ident.sym == *"undefined" => "undefined",
         Expr::Object(_) => "object",
         Expr::Array(_) => "object",
-        _ => {
-          let path = Expr::Unary(unary.clone());
-          stylex_panic_with_context!(
-            &path,
-            traversal_state,
-            "This unary operator is not supported in static evaluation."
-          )
-        },
+        // Every other expression kind is one `typeof` would answer for at
+        // runtime and this evaluator has no reading of, so it refuses rather
+        // than guessing a type name.
+        _ => deopt_unsupported!(
+          &path,
+          state,
+          &unsupported_expression(&format!("{:?}", arg.get_type(get_default_expr_ctx())))
+        ),
       };
 
       Some(EvaluateResultValue::Expr(create_string_expr(arg_type)))
     },
-    _ => deopt(
-      &Expr::from(unary.clone()),
-      state,
-      &unsupported_operator(unary.op.as_str()),
-    ),
+    _ => deopt(&path, state, &unsupported_operator(unary.op.as_str())),
   }
 }

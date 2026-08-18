@@ -11,7 +11,9 @@ pub use stylex_ast::ast::convertors::{
 
 use stylex_evaluator::common::evaluate_bin_expr;
 // Import error handling macros from shared utilities
-use stylex_macros::{as_expr_or_panic, stylex_panic, stylex_unimplemented, unwrap_or_panic};
+use stylex_macros::{
+  as_expr_or_panic, stylex_bail, stylex_panic, stylex_unimplemented, unwrap_or_panic,
+};
 use swc_core::ecma::{
   ast::{BinExpr, Expr, Ident, Lit, Tpl, UnaryExpr, UnaryOp},
   utils::ExprExt,
@@ -56,18 +58,20 @@ pub fn expr_to_num(
     Expr::Bin(lit) => {
       let mut state = Box::new(EvaluationState::new());
 
-      match binary_expr_to_num_or_str(lit, &mut state, traversal_state, fns)
-        .unwrap_or_else(|error| stylex_panic!("{}", error))
-      {
+      match binary_expr_to_num_or_str(lit, &mut state, traversal_state, fns)? {
         BinaryExprType::Number(number) => number,
-        _ => stylex_panic!(
+        _ => stylex_bail!(
           "Binary expression is not a number: {:?}",
           expr_num.get_type(get_default_expr_ctx())
         ),
       }
     },
-    _ => stylex_panic!(
-      "Expression in not a number: {:?}",
+    // An expression with no numeric reading is reported rather than fatal:
+    // `-{}` and `Math.abs([])` are ordinary JavaScript, and this returns a
+    // `Result` precisely so the evaluator can refuse to fold them instead of
+    // aborting the build from inside an evaluation allowed to fail.
+    _ => stylex_bail!(
+      "Expression is not a number: {:?}",
       expr_num.get_type(get_default_expr_ctx())
     ),
   };

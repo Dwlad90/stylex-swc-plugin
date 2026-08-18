@@ -30,8 +30,13 @@ pub(in super::super) fn evaluate(
       FunctionConfigType::Map(func_map) => {
         return Some(EvaluateResultValue::FunctionConfigMap(func_map.clone()));
       },
+      // An index map carries no value the evaluator reads through an
+      // identifier, which is a shape it does not fold rather than a broken
+      // invariant.
       FunctionConfigType::IndexMap(_func_map) => {
-        stylex_unimplemented!("IndexMap values are not supported in this context.");
+        let path = Expr::Ident(ident.clone());
+
+        return deopt(&path, state, NON_CONSTANT);
       },
       FunctionConfigType::EnvObject(env_map) => {
         return Some(EvaluateResultValue::EnvObject(env_map.clone()));

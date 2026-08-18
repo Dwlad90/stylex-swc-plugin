@@ -146,13 +146,14 @@ stylex_test!(
 );
 
 // `+` is the only operator that has to look at its right side before its left
-// has coerced, and doing that for the others would change what they refuse: an
-// object under `*` refuses on the left, and would instead deopt on the right
-// and send the whole declaration to the runtime. Nothing about `*` changed
-// here, which is the claim.
-stylex_test_panic!(
+// has coerced. An object under `*` still refuses on the left, which is the
+// claim; what changed is the shape of the refusal. It is a deopt rather than
+// an abort, so the declaration falls to the runtime — where the expression is
+// `NaN`, exactly as it is upstream — instead of failing the build. See
+// `deopt_unsupported!`.
+stylex_test!(
   a_left_side_with_no_numeric_form_still_refuses_under_other_operators,
-  "not a number",
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({

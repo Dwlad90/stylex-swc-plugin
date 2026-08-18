@@ -30,11 +30,11 @@ pub(in super::super) fn evaluate(
               let mut member_expressions: FunctionMapMemberExpression = FxHashMap::default();
 
               ident_params.iter().enumerate().for_each(|(index, ident)| {
-                if let Some(arg) = cb_args.get(index) {
-                  let expr = arg
-                    .as_expr()
-                    .unwrap_or_else(|| stylex_panic!("{}", ARGUMENT_NOT_EXPRESSION));
-
+                // An argument with no expression form binds nothing, leaving
+                // the parameter unresolved so the body deopts on its own
+                // terms. The callback has no deopt to record and must not
+                // abort — see the fallback at the end of this closure.
+                if let Some(expr) = cb_args.get(index).and_then(|arg| arg.as_expr()) {
                   let cl = |arg: Expr| move || arg.clone();
 
                   let result = (cl)(expr.clone());
@@ -68,15 +68,18 @@ pub(in super::super) fn evaluate(
 
               let value = result.value;
 
+              // A body that did not fold to an expression hands back the body
+              // itself, which is what an unevaluated arrow already does when it
+              // produces no value at all. A callback cannot record a deopt —
+              // it answers an `Expr` — so falling back is how it refuses, and
+              // aborting here would fail a build over a callback that was only
+              // ever going to run at runtime.
               match value {
-                Some(res) => match res {
-                  EvaluateResultValue::Expr(expr) => expr,
-                  EvaluateResultValue::Vec(items) => evaluate_result_vec_to_array_expr(&items),
-                  _ => stylex_unimplemented!(
-                    "The evaluation result must resolve to a static expression."
-                  ),
+                Some(EvaluateResultValue::Expr(expr)) => expr,
+                Some(EvaluateResultValue::Vec(items)) => {
+                  evaluate_result_vec_to_array_expr(&items).unwrap_or_else(|| *body_expr.clone())
                 },
-                None => *body_expr.clone(),
+                _ => *body_expr.clone(),
               }
             }
           };

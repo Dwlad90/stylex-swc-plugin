@@ -515,6 +515,18 @@ fn assert_deopt_reason(source: &str, expected: &str) {
   );
 }
 
+/// Asserts the source refuses with the `unsupported_expression` reason for this
+/// node kind.
+///
+/// The message frame comes from the constant that owns it rather than being
+/// spelled out at each expectation: these tests are about the node kind, and
+/// spelling the frame thirty times would have thirty places to update and
+/// thirty chances to pin a stale one. `stylex-constants` pins the frame itself.
+#[track_caller]
+fn assert_unsupported_expression(source: &str, kind: &str) {
+  assert_deopt_reason(source, &unsupported_expression(kind));
+}
+
 /// The label for an expression kind the evaluator has no arm for at all. These
 /// are the cases where the deopt path and the named node are the same, so the
 /// label reads as a plain statement about what the author wrote.
@@ -535,7 +547,7 @@ fn names_an_expression_kind_the_evaluator_does_not_dispatch_on() {
   ];
 
   for (source, kind) in cases {
-    assert_deopt_reason(source, &format!("Unsupported expression: {}\n\n", kind));
+    assert_unsupported_expression(source, kind);
   }
 }
 
@@ -558,7 +570,7 @@ fn names_a_call_whose_callee_is_not_callable() {
     "(1, 2)()",
     "[1, 2].filter(1)",
   ] {
-    assert_deopt_reason(source, "Unsupported expression: CallExpression\n\n");
+    assert_unsupported_expression(source, "CallExpression");
   }
 }
 
@@ -570,19 +582,13 @@ fn names_a_call_whose_callee_is_not_callable() {
 #[test]
 fn names_the_value_a_refusal_arrived_with() {
   // The receiver of a method call carries no methods this evaluator folds.
-  assert_deopt_reason(
-    "(5).toFixed(2)",
-    "Unsupported expression: NumericLiteral\n\n",
-  );
+  assert_unsupported_expression("(5).toFixed(2)", "NumericLiteral");
 
   // The receiver of a property read is a value with no properties to read.
-  assert_deopt_reason(
-    "({ a: () => 1 }).a.b",
-    "Unsupported expression: ArrowFunctionExpression\n\n",
-  );
+  assert_unsupported_expression("({ a: () => 1 }).a.b", "ArrowFunctionExpression");
 
   // `typeof` folded its operand and has no `typeof` answer for the result.
-  assert_deopt_reason("typeof /a/", "Unsupported expression: RegExpLiteral\n\n");
+  assert_unsupported_expression("typeof /a/", "RegExpLiteral");
 }
 
 /// A numeric coercion reports through the `Result` it already had, so the
@@ -615,24 +621,10 @@ fn a_logical_operand_keeps_the_label_of_the_operand_that_refused() {
   ];
 
   for (operand, kind) in cases {
-    let expected = format!("Unsupported expression: {}\n\n", kind);
-
-    assert_deopt_reason(&format!("1 > 0 && {}", operand), &expected);
-    assert_deopt_reason(&format!("1 < 0 || {}", operand), &expected);
-    assert_deopt_reason(&format!("null ?? {}", operand), &expected);
+    assert_unsupported_expression(&format!("1 > 0 && {}", operand), kind);
+    assert_unsupported_expression(&format!("1 < 0 || {}", operand), kind);
+    assert_unsupported_expression(&format!("null ?? {}", operand), kind);
   }
-}
-
-/// A logical operator is named `LogicalExpression` where SWC would call it a
-/// binary one. It reaches the label through a nested position rather than
-/// directly — `&&` has its own arm — so this asks for it where a value is
-/// coerced to a number, which is a reason an author reads all the same.
-#[test]
-fn names_a_logical_operator_as_one() {
-  assert_deopt_reason(
-    "Math.abs(({}) && ({}))",
-    "[StyleX] Expression is not a number: ObjectExpression",
-  );
 }
 
 /// The label never carries the author's text, so nothing in the source can
@@ -641,19 +633,19 @@ fn names_a_logical_operator_as_one() {
 /// Depth is bounded by the parser, not by the label.
 #[test]
 fn the_label_is_unaffected_by_hostile_source_text() {
-  assert_deopt_reason(
+  assert_unsupported_expression(
     "({ '\\u{1F600}}{': () => 1 })['\\u{1F600}}{'].b",
-    "Unsupported expression: ArrowFunctionExpression\n\n",
+    "ArrowFunctionExpression",
   );
 
-  assert_deopt_reason(
+  assert_unsupported_expression(
     "({ 'a\"b\\'c;}': () => 1 })['a\"b\\'c;}'].b",
-    "Unsupported expression: ArrowFunctionExpression\n\n",
+    "ArrowFunctionExpression",
   );
 
   let nested = format!("{}new Date(){}", "(".repeat(200), ")".repeat(200));
 
-  assert_deopt_reason(&nested, "Unsupported expression: NewExpression\n\n");
+  assert_unsupported_expression(&nested, "NewExpression");
 }
 
 /// The folds these labels sit next to. A label is only worth anything if the

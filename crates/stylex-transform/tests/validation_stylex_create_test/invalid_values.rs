@@ -388,10 +388,16 @@ stylex_test_panic!(
 // ── A refusal names the node kind it could not fold ─────────────────
 //
 // Inside `stylex.create()` a deopt is the build error, so the reason recorded
-// by the evaluator is what the author reads. Each message below is byte
-// identical to the one the reference implementation gives for the same input,
-// measured rather than written by hand — which is what makes them worth
-// pinning: a label is only useful if it is the label the ecosystem uses.
+// by the evaluator is what the author reads.
+//
+// Eleven of the thirteen messages below are byte identical to the one the
+// reference implementation gives for the same input, measured by running it
+// rather than written by hand — which is what makes them worth pinning: a
+// label is only useful if it is the label the ecosystem uses.
+//
+// The two that are not are marked at the test. Neither divergence is in the
+// label: one input is rejected there with a different diagnostic entirely, and
+// the other is not rejected there at all.
 
 stylex_test_panic!(
   this_expression_value_names_its_node_kind,
@@ -479,6 +485,11 @@ stylex_test_panic!(
 // rather than the member expression at the deopt path: the code frame already
 // shows a member expression, and which half of `a.b` refused is the part the
 // author cannot see.
+//
+// One of the two that diverge: the reference implementation rejects this input
+// with `A style value can only contain an array, string or number.` — a
+// different diagnostic, not a different label. Both compilers reject it, and
+// the spec's non-goals establish that no build can depend on the wording.
 stylex_test_panic!(
   a_property_read_on_a_function_names_the_receiver,
   "Unsupported expression: ArrowFunctionExpression",
@@ -491,6 +502,11 @@ stylex_test_panic!(
 
 // A call whose callee is not callable is named for the call, because that is
 // the expression the author has to change.
+//
+// Byte identical upstream. Note this holds for a callee that is not callable
+// at all; a callee that is the wrong *kind* of value diverges —
+// `[1, 2].filter(1)` is `number 1 is not a function` there — so the input here
+// is deliberately the former.
 stylex_test_panic!(
   a_call_on_a_number_names_the_call,
   "Unsupported expression: CallExpression",
@@ -514,6 +530,12 @@ stylex_test_panic!(
 
 // The label reaches the author from the numeric coercion too, which reports
 // through a `Result` rather than through the evaluation state.
+//
+// The other of the two that diverge, and the wider one: the reference
+// implementation does not reject this at all — it folds `-({})` to `NaN` and
+// emits `width:NaNpx`. Refusing rather than writing `NaN` into a stylesheet is
+// the judgement recorded in issue 02, not something this change introduced;
+// what is pinned here is only that the refusal names the operand.
 stylex_test_panic!(
   a_negated_object_names_the_operand,
   "Expression is not a number: ObjectExpression",

@@ -45,6 +45,48 @@ fn convert_lit_to_number_null_returns_err() {
   assert!(convert_lit_to_number(&lit).is_err());
 }
 
+/// The error names the literal kind it could not read. It used to report
+/// `Expr::get_type`, which answers the value an expression would produce and is
+/// `Unknown` for every literal that reaches this arm — so the label said
+/// nothing. Which literal was passed is the only thing a caller can act on.
+#[test]
+fn convert_lit_to_number_names_the_literal_kind_it_refused() {
+  let cases = [
+    (
+      Lit::Null(swc_core::ecma::ast::Null { span: DUMMY_SP }),
+      "NullLiteral",
+    ),
+    (
+      Lit::Regex(Regex {
+        span: DUMMY_SP,
+        exp: "a".into(),
+        flags: "".into(),
+      }),
+      "RegExpLiteral",
+    ),
+    (
+      Lit::JSXText(JSXText {
+        span: DUMMY_SP,
+        value: "t".into(),
+        raw: "t".into(),
+      }),
+      "JSXText",
+    ),
+  ];
+
+  for (lit, kind) in cases {
+    match convert_lit_to_number(&lit) {
+      Ok(number) => panic!("expected {:?} to refuse, got {}", lit, number),
+      Err(error) => assert_eq!(
+        error.to_string(),
+        format!("Value in not a number: {}", kind),
+        "wrong label for {:?}",
+        lit
+      ),
+    }
+  }
+}
+
 #[test]
 fn convert_tpl_to_string_lit_simple() {
   let tpl = Tpl {

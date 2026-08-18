@@ -296,11 +296,42 @@ fn from_object_lit_panics_when_mid_level_value_is_null_lit() {
   let _: BaseCSSType = outer.into();
 }
 
+// The three catch-alls below name the node kind of the value they could not
+// read. They used to print `Expr::get_type`, which answers the *value* an
+// expression would produce and is `Unknown` for every expression that reaches
+// one of these arms — so the label was `Unknown` in every case it was printed.
+// Each expectation names the kind, not just the message prefix: a prefix-only
+// expectation is what let the vague label live here unnoticed.
+
 #[test]
-#[should_panic(expected = "Value must be a string or object")]
+#[should_panic(expected = "Value must be a string or object, but got: Identifier")]
 fn from_object_lit_panics_when_mid_level_value_is_non_lit_non_object() {
   // value: { default: <ident> } → catch-all panic in middle loop.
   let value_obj = obj_with(vec![("default", ident_expr())]);
+  let outer = obj_with(vec![
+    ("syntax", Expr::Lit(create_string_lit("<color>"))),
+    ("value", Expr::Object(value_obj)),
+  ]);
+  let _: BaseCSSType = outer.into();
+}
+
+#[test]
+#[should_panic(expected = "Value must be an object or string, but got: Identifier")]
+fn from_object_lit_panics_when_value_is_neither_object_nor_literal() {
+  // value: <ident> → the outer catch-all, before any nesting is walked.
+  let outer = obj_with(vec![
+    ("syntax", Expr::Lit(create_string_lit("<color>"))),
+    ("value", ident_expr()),
+  ]);
+  let _: BaseCSSType = outer.into();
+}
+
+#[test]
+#[should_panic(expected = "Value must be a string, but got: Identifier")]
+fn from_object_lit_panics_when_deep_level_value_is_non_lit() {
+  // value: { default: { '@media x': <ident> } } → the innermost catch-all.
+  let inner = obj_with(vec![("@media x", ident_expr())]);
+  let value_obj = obj_with(vec![("default", Expr::Object(inner))]);
   let outer = obj_with(vec![
     ("syntax", Expr::Lit(create_string_lit("<color>"))),
     ("value", Expr::Object(value_obj)),

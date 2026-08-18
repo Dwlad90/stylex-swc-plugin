@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
-use stylex_utils::{number::to_js_string, string::wrap_key_in_quotes, swc::get_default_expr_ctx};
+use stylex_utils::{number::to_js_string, string::wrap_key_in_quotes, swc::get_expr_node_kind};
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
   ecma::{
@@ -9,7 +9,7 @@ use swc_core::{
       PropName, PropOrSpread, Str, Tpl, TplElement, VarDeclarator,
     },
     parser::Context,
-    utils::{ExprExt, quote_ident, quote_str},
+    utils::{quote_ident, quote_str},
   },
 };
 
@@ -84,8 +84,8 @@ pub fn convert_lit_to_number(lit_num: &Lit) -> Result<f64, anyhow::Error> {
       }
     },
     _ => Err(anyhow!(
-      "Value in not a number: {:?}",
-      Expr::from(lit_num.clone()).get_type(get_default_expr_ctx())
+      "Value in not a number: {}",
+      get_expr_node_kind(&Expr::from(lit_num.clone()))
     )),
   }
 }

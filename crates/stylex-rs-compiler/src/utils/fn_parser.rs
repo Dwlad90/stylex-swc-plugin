@@ -9,11 +9,8 @@ use stylex_ast::ast::{
 };
 use stylex_macros::stylex_panic;
 use stylex_structures::stylex_env::{EnvEntry, JSFunction};
-use stylex_utils::swc::get_default_expr_ctx;
-use swc_core::ecma::{
-  ast::{Expr, ExprOrSpread, Lit, PropName, PropOrSpread},
-  utils::ExprExt,
-};
+use stylex_utils::swc::get_expr_node_kind;
+use swc_core::ecma::ast::{Expr, ExprOrSpread, Lit, PropName, PropOrSpread};
 
 thread_local! {
   static NAPI_ENV_RAW: std::cell::Cell<Option<napi::sys::napi_env>> =
@@ -250,8 +247,8 @@ fn expr_to_napi_value(raw_env: napi::sys::napi_env, expr: &Expr) -> napi::sys::n
       debug!("Unsupported napi value type: {:#?}.", expr);
 
       panic!(
-        "Unsupported napi value type: {:?}. If its not enough, please run in debug mode to see more details",
-        expr.get_type(get_default_expr_ctx())
+        "Unsupported napi value type: {}. If its not enough, please run in debug mode to see more details",
+        get_expr_node_kind(expr)
       );
     },
   }

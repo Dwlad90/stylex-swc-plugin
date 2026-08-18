@@ -8,11 +8,8 @@ use stylex_ast::ast::factories::{
 use stylex_constants::constants::messages::VALUE_MUST_BE_STRING;
 use stylex_enums::{css_syntax::CSSSyntax, value_with_default::ValueWithDefault};
 use stylex_macros::stylex_panic;
-use stylex_utils::swc::get_default_expr_ctx;
-use swc_core::ecma::{
-  ast::{Expr, ObjectLit, PropOrSpread},
-  utils::ExprExt,
-};
+use stylex_utils::swc::get_expr_node_kind;
+use swc_core::ecma::ast::{Expr, ObjectLit, PropOrSpread};
 
 impl From<BaseCSSType> for Expr {
   fn from(instance: BaseCSSType) -> Self {
@@ -104,8 +101,8 @@ impl From<ObjectLit> for BaseCSSType {
               &create_object_lit(vec![prop])
             },
             _ => stylex_panic!(
-              "Value must be an object or string, but got: {:?}",
-              key_value.value.get_type(get_default_expr_ctx())
+              "Value must be an object or string, but got: {}",
+              get_expr_node_kind(&key_value.value)
             ),
           };
 
@@ -131,8 +128,8 @@ impl From<ObjectLit> for BaseCSSType {
                       obj_map.insert(key, ValueWithDefault::String(value));
                     },
                     _ => stylex_panic!(
-                      "Value must be a string, but got: {:?}",
-                      key_value.value.get_type(get_default_expr_ctx())
+                      "Value must be a string, but got: {}",
+                      get_expr_node_kind(&key_value.value)
                     ),
                   }
                 }
@@ -150,8 +147,8 @@ impl From<ObjectLit> for BaseCSSType {
                 values.insert(key, ValueWithDefault::String(value));
               },
               _ => stylex_panic!(
-                "Value must be a string or object, but got: {:?}",
-                key_value.value.get_type(get_default_expr_ctx())
+                "Value must be a string or object, but got: {}",
+                get_expr_node_kind(&key_value.value)
               ),
             }
           }

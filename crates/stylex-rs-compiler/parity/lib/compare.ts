@@ -1,5 +1,5 @@
 /**
- * Runs one CSS declaration through both compilers and decides a verdict.
+ * Runs one corpus subject through both compilers and decides a verdict.
  *
  * Both compilers see the same module text and the same option object — option
  * drift would show up as a normalization divergence and send the reader
@@ -18,6 +18,7 @@ import stylexBabelPluginModule from '@stylexjs/babel-plugin';
 import type { StyleXOptions } from '../../dist/index.js';
 import { arrayAt, isRecord, stringAt } from './guards.js';
 import { SEPARATOR } from './separator.js';
+import { moduleFor } from './subject.js';
 import type { CompilerOutcome, LoadedCorpusEntry, ReportEntry, Verdict } from './types.js';
 
 const require = createRequire(import.meta.url);
@@ -116,28 +117,9 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
       const code = moduleFor(entry);
       const rust = runRust(code);
       const babelOutcome = runBabel(code);
-      return {
-        id: entry.id,
-        set: entry.set,
-        property: entry.property,
-        value: entry.value,
-        origin: entry.origin,
-        ...(entry.note === undefined ? {} : { note: entry.note }),
-        verdict: verdictFor(rust, babelOutcome),
-        rust,
-        babel: babelOutcome,
-      };
+      return { ...entry, verdict: verdictFor(rust, babelOutcome), rust, babel: babelOutcome };
     },
   };
-}
-
-/** The module both compilers are handed for one declaration. */
-export function moduleFor(entry: Pick<LoadedCorpusEntry, 'property' | 'value'>): string {
-  return [
-    "import * as stylex from '@stylexjs/stylex';",
-    `export const styles = stylex.create({ x: { ${JSON.stringify(entry.property)}: ${JSON.stringify(entry.value)} } });`,
-    '',
-  ].join('\n');
 }
 
 function outcomeOf(run: () => unknown[]): CompilerOutcome {

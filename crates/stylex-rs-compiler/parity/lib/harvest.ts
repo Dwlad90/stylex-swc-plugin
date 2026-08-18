@@ -25,7 +25,7 @@ import {
   testBlocks,
   type ScannedFile,
 } from './rust-source.js';
-import type { CorpusEntry } from './types.js';
+import type { DeclarationEntry } from './types.js';
 
 /** Keys that appear in a `stylex.create` object but are not CSS properties. */
 const NON_PROPERTY_KEYS = new Set([
@@ -65,10 +65,10 @@ export interface HarvestOptions {
   workspaceRoot: string;
 }
 
-export function harvestCorpus(options: HarvestOptions): CorpusEntry[] {
+export function harvestCorpus(options: HarvestOptions): DeclarationEntry[] {
   const files = scanRustTestFiles(options.workspaceRoot);
 
-  const collected: CorpusEntry[] = [];
+  const collected: DeclarationEntry[] = [];
   for (const file of files) {
     collected.push(...extractPropertyValueCalls(file));
     collected.push(...extractRejectionTables(file));
@@ -120,8 +120,8 @@ const PROPERTY_VALUE_CALLS = [
  * each other. Between them these are the bulk of the value-normalization unit
  * tests.
  */
-function extractPropertyValueCalls(file: ScannedFile): CorpusEntry[] {
-  const entries: CorpusEntry[] = [];
+function extractPropertyValueCalls(file: ScannedFile): DeclarationEntry[] {
+  const entries: DeclarationEntry[] = [];
 
   for (const name of PROPERTY_VALUE_CALLS) {
     const open = `${name}(`;
@@ -181,8 +181,8 @@ function argumentsAreAdjacent(
  * a message, not a value, which is why it is bound to a constant at the call
  * sites rather than written inline.
  */
-function extractRejectionTables(file: ScannedFile): CorpusEntry[] {
-  const entries: CorpusEntry[] = [];
+function extractRejectionTables(file: ScannedFile): DeclarationEntry[] {
+  const entries: DeclarationEntry[] = [];
   const open = 'rejects(';
 
   for (const callStart of findCallSites(file.masked, open)) {
@@ -225,8 +225,8 @@ function extractRejectionTables(file: ScannedFile): CorpusEntry[] {
  * array of values; expected outputs are deliberately not harvested, since the
  * point of the harness is to derive them from the reference compiler.
  */
-function extractCaseTables(file: ScannedFile): CorpusEntry[] {
-  const entries: CorpusEntry[] = [];
+function extractCaseTables(file: ScannedFile): DeclarationEntry[] {
+  const entries: DeclarationEntry[] = [];
 
   for (const block of testBlocks(file.source)) {
     // Located on `masked`, so a call-shaped spelling inside a CSS value literal
@@ -283,8 +283,8 @@ function isTableInput(file: ScannedFile, literal: RustLiteral): boolean {
  * both name their property inline, so the rule is read straight off the
  * literal.
  */
-function extractRuleLiterals(file: ScannedFile): CorpusEntry[] {
-  const entries: CorpusEntry[] = [];
+function extractRuleLiterals(file: ScannedFile): DeclarationEntry[] {
+  const entries: DeclarationEntry[] = [];
 
   for (const literal of file.literals) {
     const rule = /^\*\s*\{\{?\s*(--[\w-]+|[\w-]+)\s*:\s*([\s\S]*?)\s*;?\s*\}\}?$/.exec(
@@ -308,8 +308,8 @@ function extractRuleLiterals(file: ScannedFile): CorpusEntry[] {
  * queries, or JavaScript rather than CSS properties are filtered out, and
  * interpolated values are skipped because they are not literal CSS.
  */
-function extractStyleObjects(file: ScannedFile): CorpusEntry[] {
-  const entries: CorpusEntry[] = [];
+function extractStyleObjects(file: ScannedFile): DeclarationEntry[] {
+  const entries: DeclarationEntry[] = [];
 
   for (const literal of file.literals) {
     if (!literal.value.includes('stylex.create(')) continue;

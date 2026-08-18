@@ -6,6 +6,9 @@
  * runs a corpus of CSS declarations through both and reports, per declaration,
  * whether they agree byte for byte.
  *
+ * A few entries carry a whole module rather than a declaration, for questions
+ * a declaration cannot ask — see `ModuleEntry` in `lib/types.ts`.
+ *
  * It is a developer tool, not a test: it lives outside the Rust test suite so
  * `cargo test` never needs a Node toolchain, and it is not wired into CI.
  *
@@ -13,7 +16,7 @@
  *   pnpm parity                              # full corpus, human report
  *   pnpm parity --only-mismatches            # just the divergences
  *   pnpm parity --set reported               # one corpus set; repeatable
- *   pnpm parity --filter calc                # entries whose value contains it
+ *   pnpm parity --filter calc                # entries whose subject contains it
  *   pnpm parity --json parity/results/x.json # machine-readable report
  *   pnpm parity --font-size-px-to-rem        # both compilers with the option on
  */
@@ -27,6 +30,7 @@ import chalk from 'chalk';
 
 import { createComparer } from './lib/compare.js';
 import { loadCorpus } from './lib/corpus.js';
+import { subjectLabel, subjectText } from './lib/subject.js';
 import type { Report, ReportEntry, Verdict } from './lib/types.js';
 
 const parityDir = path.dirname(fileURLToPath(import.meta.url));
@@ -51,9 +55,9 @@ ${chalk.bold('StyleX CSS value parity harness')}
 
 Options:
       --only-mismatches         report only divergent declarations
-      --set <name>              limit to a corpus set (reported|edge|harvested);
-                                repeatable
-      --filter <substring>      limit to declarations whose value contains it
+      --set <name>              limit to a corpus set
+                                (reported|modules|edge|harvested); repeatable
+      --filter <substring>      limit to entries whose subject text contains it
       --json <path>             also write the full machine-readable report
       --font-size-px-to-rem     enable the font-size conversion in both compilers
   -h, --help                    show this help
@@ -109,7 +113,7 @@ async function run(): Promise<void> {
   }
   if (cliOptions.filter !== undefined) {
     const needle = cliOptions.filter;
-    corpus = corpus.filter(entry => entry.value.includes(needle));
+    corpus = corpus.filter(entry => subjectText(entry).includes(needle));
   }
   if (corpus.length === 0) {
     console.error(chalk.red('No corpus entries match the given filters.'));
@@ -148,7 +152,7 @@ async function run(): Promise<void> {
 
   for (const entry of shown) {
     console.log(
-      `${VERDICT_LABELS[entry.verdict]}  ${chalk.bold(entry.property)}: ${JSON.stringify(entry.value)}  ${chalk.gray(`[${entry.set}] ${entry.origin}`)}`
+      `${VERDICT_LABELS[entry.verdict]}  ${chalk.bold(subjectLabel(entry))}  ${chalk.gray(`[${entry.set}] ${entry.origin}`)}`
     );
     if (AGREED.has(entry.verdict)) continue;
     console.log(`    rust   ${describe(entry, 'rust')}`);
@@ -157,7 +161,7 @@ async function run(): Promise<void> {
   }
 
   console.log(
-    `\n${chalk.bold('Summary')} over ${summary.total} declarations\n` +
+    `\n${chalk.bold('Summary')} over ${summary.total} subjects\n` +
       `  identical              ${summary.identical}\n` +
       `  identical (empty)      ${summary['identical-empty']}   ${chalk.gray('(both emitted nothing; measures nothing)')}\n` +
       `  divergent              ${summary.divergent}   ${chalk.gray('(value normalization)')}\n` +

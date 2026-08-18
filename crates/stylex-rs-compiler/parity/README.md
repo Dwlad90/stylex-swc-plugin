@@ -27,13 +27,13 @@ The harness loads the compiler from `dist/`, not from the Rust sources. **A
 report is only about the last build.** Rebuild after touching a crate or the
 verdicts are stale.
 
-| Flag                    | Effect                                                  |
-| ----------------------- | ------------------------------------------------------- |
-| `--only-mismatches`     | print only the declarations that disagree               |
-| `--set <name>`          | limit to `reported`, `edge`, or `harvested`; repeatable |
-| `--filter <substring>`  | limit to declarations whose value contains it           |
-| `--json <path>`         | also write the full machine-readable report             |
-| `--font-size-px-to-rem` | enable the font-size conversion in both compilers       |
+| Flag                    | Effect                                            |
+| ----------------------- | ------------------------------------------------- |
+| `--only-mismatches`     | print only the entries that disagree              |
+| `--set <name>`          | limit to one corpus set; repeatable               |
+| `--filter <substring>`  | limit to entries whose subject text contains it   |
+| `--json <path>`         | also write the full machine-readable report       |
+| `--font-size-px-to-rem` | enable the font-size conversion in both compilers |
 
 ## Reading a verdict
 
@@ -63,19 +63,48 @@ comparing against an older report.
 
 ## The corpus
 
-Three checked-in JSON files under `corpus/`, loaded in this order, with
-duplicate declarations collapsed onto the first entry seen:
+Four checked-in JSON files under `corpus/`, loaded in this order, with
+duplicate subjects collapsed onto the first entry seen:
 
 - **`reported.json`** — the six divergences reported in issue #1256, one entry
   per illustrating value. Hand-written.
+- **`modules.json`** — whole modules rather than declarations, for the
+  questions a declaration cannot ask. Hand-written; see below.
 - **`edge.json`** — non-ASCII content, escape sequences, URL bodies containing
   CSS-looking syntax, comments, importance annotations, empty values, and
   unclosed constructs. Hand-written.
 - **`harvested.json`** — the CSS declarations the Rust test suites carry, as
   far as the scan below recognizes them. **Generated — do not edit.**
 
-Adding a case means editing `reported.json` or `edge.json`. Entries there take
+Adding a case means editing one of the three hand-written files. Entries take
 an optional `note`, which the report prints next to a mismatch.
+
+### Module subjects
+
+A declaration entry is `{ id, property, value, origin }` and is wrapped in the
+smallest module that carries it. A module entry is `{ id, label, source,
+origin }` and is handed to both compilers verbatim. Which one an entry is comes
+from whether it carries a `source`, so nothing has to be written down twice and
+the generated `harvested.json` stays free of a field whose value never varies.
+
+Most questions about this compiler are declaration questions, because a class
+name is a hash of declaration text. A few are not: whether an expression the
+evaluator cannot fold is _refused_ or _aborts the build_ is a fact about a
+module, and it is what `corpus/modules.json` measures — the inputs reported in
+[#1265](https://github.com/Dwlad90/stylex-swc-plugin/issues/1265), where a
+method call inside a runtime `sx` condition failed the build.
+
+The comparison is the same one: class names and rule text, never the emitted
+JavaScript. The two compilers print code differently — parameter lists, JSX
+spacing, how a `const` array is wrapped — so comparing their output would
+report a divergence on every entry and say nothing about StyleX. What a module
+subject adds is the ability to ask whether a compiler _reached_ the rules at
+all, which is the `acceptance divergent` verdict.
+
+Two entries in that set are expected to disagree, and both say why in their
+`note`: one is the `borderTop` shorthand divergence, which is about property
+expansion rather than evaluation and is tracked on its own; the other is a case
+where upstream aborts and this compiler does not.
 
 ### Regenerating the harvest
 

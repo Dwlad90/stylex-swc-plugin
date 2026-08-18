@@ -1,0 +1,38 @@
+{
+  "set": "modules",
+  "description": "Whole modules, for questions a single declaration cannot ask: whether an expression the evaluator cannot fold is refused or aborts the build.",
+  "entries": [
+    {
+      "id": "modules-1265-starts-with",
+      "label": "a string method inside a runtime condition",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst styles = stylex.create({\n  base: { color: 'black' },\n  alternate: { color: 'red' },\n});\n\nexport function Section({ query, lowerQuery }) {\n  const showAlternate = query.length > 0 && \"documentation\".startsWith(lowerQuery);\n\n  return <section sx={[styles.base, showAlternate && styles.alternate]} />;\n}\n",
+      "origin": "issue #1265, the reported input"
+    },
+    {
+      "id": "modules-1265-array-includes",
+      "label": "an array method inside a runtime condition",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst VIEWS = ['grid', 'list'];\n\nconst styles = stylex.create({\n  base: { color: 'black' },\n  hview: { color: 'red' },\n});\n\nexport function View({ hView }) {\n  const isHView = VIEWS.includes(hView);\n\n  return <div sx={[styles.base, isHView && styles.hview]} />;\n}\n",
+      "origin": "issue #1265, the second reported input"
+    },
+    {
+      "id": "modules-1265-through-a-binding",
+      "label": "an unfoldable operand reached through a binding",
+      "source": "import * as stylex from \"@stylexjs/stylex\";\n\nconst styles = stylex.create({\n  base: { display: \"block\" },\n  alternate: { borderTop: \"none\" },\n});\n\nexport function Component({ query }) {\n  const lowerQuery = query.toLowerCase();\n  const showAlternate =\n    query.length > 0 && \"documentation\".startsWith(lowerQuery);\n\n  return (\n    <section sx={[styles.base, showAlternate && styles.alternate]} />\n  );\n}\n",
+      "origin": "issue #1265, the reporter's fuller module",
+      "note": "Structurally divergent, and not about evaluation: `borderTop: none` is emitted here and dropped upstream. Tracked on its own. The `display` rule and the surviving condition are what this entry is about."
+    },
+    {
+      "id": "modules-1265-call-shapes",
+      "label": "every shape of unfoldable call in a runtime condition",
+      "source": "import * as stylex from \"@stylexjs/stylex\";\n\nconst VIEWS = ['grid', 'list'];\nconst SIZES = { small: 1 };\n\nconst styles = stylex.create({\n  base: { color: 'black' },\n  on: { color: 'red' },\n});\n\nexport const Lower = ({ q }) => <i sx={[styles.base, q.toLowerCase() && styles.on]} />;\nexport const Index = ({ q }) => <i sx={[styles.base, VIEWS.indexOf(q) >= 0 && styles.on]} />;\nexport const Keys = ({ q }) => <i sx={[styles.base, Object.keys(SIZES).includes(q) && styles.on]} />;\nexport const Chain = ({ q }) => <i sx={[styles.base, \"documentation\".slice(0, 3).startsWith(q) && styles.on]} />;\nexport const Optional = ({ q }) => <i sx={[styles.base, q?.startsWith(\"a\") && styles.on]} />;\nexport const Unknown = ({ q }) => <i sx={[styles.base, q.somethingUnknown() && styles.on]} />;\nexport const Constructed = ({ q }) => <i sx={[styles.base, new Set(VIEWS).has(q) && styles.on]} />;\n",
+      "origin": "issue #1265, the shapes behind the reported one"
+    },
+    {
+      "id": "modules-1265-callback-through-a-binding",
+      "label": "an unfoldable callback argument reached through a binding",
+      "source": "import * as stylex from \"@stylexjs/stylex\";\n\nconst VIEWS = ['grid', 'list'];\n\nconst styles = stylex.create({\n  base: { color: 'black' },\n  on: { color: 'red' },\n});\n\nexport function Some({ q }) {\n  const matches = VIEWS.some(v => v === q);\n\n  return <i sx={[styles.base, matches && styles.on]} />;\n}\n",
+      "origin": "issue #1265, found while pinning the shapes",
+      "note": "Acceptance divergent in this compiler's favour: upstream aborts with `Unsupported expression: ObjectPattern`, reaching the destructured parameter through the callback body and throwing from an evaluation allowed to fail. The same defect #1265 reports here. Written inline in the `sx` array instead of through `matches`, it compiles upstream too."
+    }
+  ]
+}

@@ -8,9 +8,9 @@
  */
 
 import { SEPARATOR } from './separator.js';
-import type { CorpusEntry } from './types.js';
+import type { DeclarationEntry } from './types.js';
 
-export function entry(property: string, value: string, origin: string): CorpusEntry {
+export function entry(property: string, value: string, origin: string): DeclarationEntry {
   return { id: entryId(property, value), property, value, origin };
 }
 
@@ -58,8 +58,8 @@ function byCodePoint(a: string, b: string): number {
  * Collapse duplicates by declaration, keeping the first origin seen. Values
  * repeat heavily across suites and a corpus entry costs two compiler runs.
  */
-export function dedupe(entries: CorpusEntry[]): CorpusEntry[] {
-  const byId = new Map<string, CorpusEntry>();
+export function dedupe(entries: DeclarationEntry[]): DeclarationEntry[] {
+  const byId = new Map<string, DeclarationEntry>();
   for (const candidate of entries) {
     if (!byId.has(candidate.id)) byId.set(candidate.id, candidate);
   }

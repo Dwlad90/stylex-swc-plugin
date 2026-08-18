@@ -6,7 +6,7 @@ import { afterEach, describe, expect, test } from 'vitest';
 
 import { declarationKey, entryId } from '../lib/declaration.js';
 import { harvestCorpus } from '../lib/harvest.js';
-import type { CorpusEntry } from '../lib/types.js';
+import type { DeclarationEntry } from '../lib/types.js';
 
 /**
  * The harvester walks `<root>/crates/<crate>` for `.rs` files, so a case is a
@@ -15,7 +15,7 @@ import type { CorpusEntry } from '../lib/types.js';
  */
 const roots: string[] = [];
 
-function harvestOf(source: string, filename = 'tests/case.rs'): CorpusEntry[] {
+function harvestOf(source: string, filename = 'tests/case.rs'): DeclarationEntry[] {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'parity-harvest-'));
   roots.push(root);
   const file = path.join(root, 'crates/stylex-css', filename);

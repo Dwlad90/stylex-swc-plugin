@@ -79,8 +79,10 @@ function corpusFileFrom(raw: unknown, filePath: string): LoadedCorpusFile {
 function corpusEntryFrom(raw: unknown, filePath: string, index: number): CorpusEntry {
   const id = stringAt(raw, 'id');
   const origin = stringAt(raw, 'origin');
+  // An absent note is left out rather than set to `undefined`, so that an
+  // entry without one does not carry the key into the report's JSON.
   const note = stringAt(raw, 'note');
-  const common = { id, origin, ...(note === undefined ? {} : { note }) };
+  const noteField = note === undefined ? {} : { note };
 
   const source = stringAt(raw, 'source');
   if (source !== undefined) {
@@ -90,7 +92,7 @@ function corpusEntryFrom(raw: unknown, filePath: string, index: number): CorpusE
         `Corpus entry ${index} malformed in ${filePath} — a module entry expects { id, label, source, origin }.`
       );
     }
-    return { ...common, id, origin, kind: 'module', label, source };
+    return { kind: 'module', id, label, source, origin, ...noteField };
   }
 
   const property = stringAt(raw, 'property');
@@ -101,5 +103,5 @@ function corpusEntryFrom(raw: unknown, filePath: string, index: number): CorpusE
     );
   }
 
-  return { ...common, id, origin, kind: 'declaration', property, value };
+  return { kind: 'declaration', id, property, value, origin, ...noteField };
 }

@@ -8,20 +8,22 @@
  * and forgotten in the third.
  */
 
+import { declarationKey } from './declaration.js';
 import { SEPARATOR } from './separator.js';
 import type { CorpusEntry } from './types.js';
 
 /**
  * The identity of a subject, for deduplication.
  *
- * The kind is part of the key so the two spaces cannot collide, and the
- * separator is a NUL because it is the one character none of the parts can
- * contain.
+ * A declaration's half of it is `declarationKey`, not a second spelling of it:
+ * the same answer also decides a harvested entry's id, and two spellings that
+ * drifted apart would renumber the corpus without either looking wrong. The
+ * kind prefixes both so the two identity spaces cannot collide.
  */
 export function subjectKey(entry: CorpusEntry): string {
   return entry.kind === 'module'
     ? `module${SEPARATOR}${entry.source}`
-    : `declaration${SEPARATOR}${entry.property}${SEPARATOR}${entry.value}`;
+    : `declaration${SEPARATOR}${declarationKey(entry.property, entry.value)}`;
 }
 
 /** The text `--filter` searches: the authored value, or the module source. */

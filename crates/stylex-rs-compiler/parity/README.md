@@ -95,11 +95,10 @@ module, and it is what `corpus/modules.json` measures — the inputs reported in
 method call inside a runtime `sx` condition failed the build.
 
 The comparison is the same one: class names and rule text, never the emitted
-JavaScript. The two compilers print code differently — parameter lists, JSX
-spacing, how a `const` array is wrapped — so comparing their output would
-report a divergence on every entry and say nothing about StyleX. What a module
-subject adds is the ability to ask whether a compiler _reached_ the rules at
-all, which is the `acceptance divergent` verdict.
+JavaScript — `ModuleEntry` in `lib/types.ts` says why, next to the type that
+would have to change to do otherwise. What a module subject adds is the ability
+to ask whether a compiler _reached_ the rules at all, which is the
+`acceptance divergent` verdict.
 
 Two entries in that set are expected to disagree, and both say why in their
 `note`: one is the `borderTop` shorthand divergence, which is about property

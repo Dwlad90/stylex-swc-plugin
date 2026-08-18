@@ -3,8 +3,9 @@
  *
  * A declaration is identified by what it says, not by where it was found, so
  * that re-harvesting after a test file moves does not renumber the corpus.
- * Both the harvest and the loader depend on that answer being the same one,
- * which is why it is stated here rather than in either of them.
+ * Both the harvest, which spends it on an id, and `subjectKey`, which spends
+ * it on deduplication, depend on that answer being the same one — which is why
+ * it is stated here rather than in either of them.
  */
 
 import { SEPARATOR } from './separator.js';

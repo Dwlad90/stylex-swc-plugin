@@ -1048,6 +1048,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"solid\" 0..5\nspace \" \" 5..6\nword \"dashed\" 6..12",
   },
   ParserCase {
+    input: "none",
+    output: "none",
+    ast: "word \"none\" 0..4",
+  },
+  ParserCase {
     input: "0 0 2px 0",
     output: "0 0 2px 0",
     ast: "word \"0\" 0..1\nspace \" \" 1..2\nword \"0\" 2..3\nspace \" \" 3..4\nword \"2px\" 4..7\nspace \" \" 7..8\nword \"0\" 8..9",
@@ -1121,11 +1126,6 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "inset 1px 1px 1px 1px #000",
     output: "inset 1px 1px 1px 1px #000",
     ast: "word \"inset\" 0..5\nspace \" \" 5..6\nword \"1px\" 6..9\nspace \" \" 9..10\nword \"1px\" 10..13\nspace \" \" 13..14\nword \"1px\" 14..17\nspace \" \" 17..18\nword \"1px\" 18..21\nspace \" \" 21..22\nword \"#000\" 22..26",
-  },
-  ParserCase {
-    input: "none",
-    output: "none",
-    ast: "word \"none\" 0..4",
   },
   ParserCase {
     input: "border-box",
@@ -4882,12 +4882,12 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("30", Some(("30", ""))),
   ("space", None),
   ("dashed", None),
+  ("none", None),
   ("-1px", Some(("-1", "px"))),
   ("{n}px", None),
   ("30px", Some(("30", "px"))),
   ("40px", Some(("40", "px"))),
   ("inset", None),
-  ("none", None),
   ("border-box", None),
   ("width", None),
   ("Hello", None),

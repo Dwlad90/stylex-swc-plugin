@@ -281,3 +281,149 @@ stylex_test!(
     });
   "#
 );
+
+// The second input reported on the same issue. It refused with `The array
+// method 'includes' is not yet supported in static evaluation.` — a different
+// arm of the evaluator, reached the same way and failing the same way, which is
+// why the fix had to be a split rather than one more supported method.
+//
+// `VIEWS` is a compile-time array, so the receiver folds and only the argument
+// is unknown; the call still cannot be folded and belongs in the output as
+// written. Same expected output as above, and the one
+// `@stylexjs/babel-plugin@0.19.0` produces: two rules emitted, `isHView`
+// preserved as a runtime condition.
+stylex_test!(
+  an_unfoldable_array_method_inside_a_runtime_condition_survives,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const VIEWS = ['grid', 'list'];
+
+    const styles = stylex.create({
+      base: { color: 'black' },
+      hview: { color: 'red' },
+    });
+
+    export function View({ hView }) {
+      const isHView = VIEWS.includes(hView);
+
+      return <div sx={[styles.base, isHView && styles.hview]} />;
+    }
+  "#
+);
+
+// The reporter's fuller module, with the condition split across two statements:
+// `lowerQuery` is itself a method call on a runtime receiver, so the operand
+// that cannot be folded is reached through a binding rather than written in
+// place. Nothing about the seam changes, which is the point of pinning it —
+// the fold is refused wherever the unfoldable node is found.
+//
+// `borderTop: none` is emitted here and dropped by
+// `@stylexjs/babel-plugin@0.19.0`. That divergence predates this issue, is
+// about shorthand handling rather than about evaluation, and is tracked on its
+// own; the condition and the `display` rule are what this test is about.
+stylex_test!(
+  a_runtime_condition_reached_through_a_binding_survives,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    const styles = stylex.create({
+      base: { display: "block" },
+      alternate: { borderTop: "none" },
+    });
+
+    export function Component({ query }) {
+      const lowerQuery = query.toLowerCase();
+      const showAlternate =
+        query.length > 0 && "documentation".startsWith(lowerQuery);
+
+      return (
+        <section sx={[styles.base, showAlternate && styles.alternate]} />
+      );
+    }
+  "#
+);
+
+// The same seam across the shapes an unfoldable call can take, because the
+// evaluator refuses each of them from a different arm and a split that missed
+// one would abort exactly as `startsWith` did. One component per shape keeps
+// the emitted lookup table linear — a single `sx` array with N conditions
+// builds 2^N entries.
+//
+// Every one of these is `identical` against `@stylexjs/babel-plugin@0.19.0`,
+// except `Some` — see the test below it.
+stylex_test!(
+  every_shape_of_unfoldable_call_survives_a_runtime_condition,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    const VIEWS = ['grid', 'list'];
+    const SIZES = { small: 1 };
+
+    const styles = stylex.create({
+      base: { color: 'black' },
+      on: { color: 'red' },
+    });
+
+    // A method on a runtime receiver.
+    export const Lower = ({ q }) => <i sx={[styles.base, q.toLowerCase() && styles.on]} />;
+
+    // An array method whose receiver folds and whose argument does not.
+    export const Index = ({ q }) => <i sx={[styles.base, VIEWS.indexOf(q) >= 0 && styles.on]} />;
+
+    // A call on the result of a call that does fold.
+    export const Keys = ({ q }) => <i sx={[styles.base, Object.keys(SIZES).includes(q) && styles.on]} />;
+
+    // The inner call folds, the outer one cannot.
+    export const Chain = ({ q }) => <i sx={[styles.base, "documentation".slice(0, 3).startsWith(q) && styles.on]} />;
+
+    // The call is optional, so the node the evaluator meets is not a plain one.
+    export const Optional = ({ q }) => <i sx={[styles.base, q?.startsWith("a") && styles.on]} />;
+
+    // A method no fold exists for under any receiver.
+    export const Unknown = ({ q }) => <i sx={[styles.base, q.somethingUnknown() && styles.on]} />;
+
+    // A receiver the evaluator has no fold for at all, rather than a method it
+    // does not know on a receiver it does.
+    export const Constructed = ({ q }) => <i sx={[styles.base, new Set(VIEWS).has(q) && styles.on]} />;
+  "#
+);
+
+// `Array.prototype.some` with an arrow callback, kept apart from the table
+// above because it is the one shape where the two compilers disagree — and it
+// disagrees in this compiler's favour.
+//
+// `@stylexjs/babel-plugin@0.19.0` aborts the build with `Unsupported
+// expression: ObjectPattern`: it evaluates the callback body, resolves `v ===
+// q` down to `q`'s binding, reaches the destructured parameter and throws from
+// inside an evaluation that is allowed to fail — the same defect #1265 reports
+// here, still present upstream. It aborts only through the binding: the same
+// call written inline in the `sx` array, as the table above writes its cases,
+// compiles there.
+//
+// Reported upstream rather than reproduced: a build that survives is the
+// correct answer, and matching an abort would mean re-introducing the bug this
+// issue is about.
+stylex_test!(
+  an_unfoldable_callback_argument_survives_where_upstream_aborts,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from "@stylexjs/stylex";
+
+    const VIEWS = ['grid', 'list'];
+
+    const styles = stylex.create({
+      base: { color: 'black' },
+      on: { color: 'red' },
+    });
+
+    export function Some({ q }) {
+      const matches = VIEWS.some(v => v === q);
+
+      return <i sx={[styles.base, matches && styles.on]} />;
+    }
+  "#
+);

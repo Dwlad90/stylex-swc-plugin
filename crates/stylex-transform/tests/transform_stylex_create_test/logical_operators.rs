@@ -352,6 +352,11 @@ stylex_test!(
 // the emitted lookup table linear — a single `sx` array with N conditions
 // builds 2^N entries.
 //
+// `join`, `Object.keys` and `concat` are the three methods here the evaluator
+// does fold, so those cases reach the refusal *after* a fold rather than
+// instead of one: the argument is unknown, the receiver came from a call, and
+// the chain refuses only at its outer link.
+//
 // Every one of these is `identical` against `@stylexjs/babel-plugin@0.19.0`,
 // except `Some` — see the test below it.
 stylex_test!(
@@ -371,14 +376,14 @@ stylex_test!(
     // A method on a runtime receiver.
     export const Lower = ({ q }) => <i sx={[styles.base, q.toLowerCase() && styles.on]} />;
 
-    // An array method whose receiver folds and whose argument does not.
-    export const Index = ({ q }) => <i sx={[styles.base, VIEWS.indexOf(q) >= 0 && styles.on]} />;
+    // A method the evaluator does fold, refused for its argument alone.
+    export const Join = ({ q }) => <i sx={[styles.base, VIEWS.join(q) && styles.on]} />;
 
     // A call on the result of a call that does fold.
     export const Keys = ({ q }) => <i sx={[styles.base, Object.keys(SIZES).includes(q) && styles.on]} />;
 
     // The inner call folds, the outer one cannot.
-    export const Chain = ({ q }) => <i sx={[styles.base, "documentation".slice(0, 3).startsWith(q) && styles.on]} />;
+    export const Chain = ({ q }) => <i sx={[styles.base, "documentation".concat("s").startsWith(q) && styles.on]} />;
 
     // The call is optional, so the node the evaluator meets is not a plain one.
     export const Optional = ({ q }) => <i sx={[styles.base, q?.startsWith("a") && styles.on]} />;

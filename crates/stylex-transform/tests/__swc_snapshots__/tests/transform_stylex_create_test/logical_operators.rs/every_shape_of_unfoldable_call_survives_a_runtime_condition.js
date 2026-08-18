@@ -25,15 +25,15 @@ export const Lower = ({ q })=><i {...{
             className: "x1e2nbdu"
         }
     }[!!q.toLowerCase() << 0]}/>;
-// An array method whose receiver folds and whose argument does not.
-export const Index = ({ q })=><i {...{
+// A method the evaluator does fold, refused for its argument alone.
+export const Join = ({ q })=><i {...{
         0: {
             className: "x1mqxbix"
         },
         1: {
             className: "x1e2nbdu"
         }
-    }[!!(VIEWS.indexOf(q) >= 0) << 0]}/>;
+    }[!!VIEWS.join(q) << 0]}/>;
 // A call on the result of a call that does fold.
 export const Keys = ({ q })=><i {...{
         0: {
@@ -51,7 +51,7 @@ export const Chain = ({ q })=><i {...{
         1: {
             className: "x1e2nbdu"
         }
-    }[!!"documentation".slice(0, 3).startsWith(q) << 0]}/>;
+    }[!!"documentation".concat("s").startsWith(q) << 0]}/>;
 // The call is optional, so the node the evaluator meets is not a plain one.
 export const Optional = ({ q })=><i {...{
         0: {

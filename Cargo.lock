@@ -2789,6 +2789,7 @@ name = "stylex_transform"
 version = "0.18.4-rc.2"
 dependencies = [
  "anyhow",
+ "colored",
  "criterion",
  "ctor",
  "indexmap",

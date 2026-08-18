@@ -227,3 +227,57 @@ stylex_test_panic!(
     export const styles = stylex.create({ a: { color: color.missing } });
   "#
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Issue #1265 — a right operand the evaluator cannot fold must not abort
+// ─────────────────────────────────────────────────────────────────────────────
+
+// The reduced reproduction from
+// https://github.com/Dwlad90/stylex-swc-plugin/issues/1265, verbatim.
+//
+// `"documentation".startsWith(lowerQuery)` has a runtime argument, so nothing
+// here is foldable and nothing should be folded — the condition belongs in the
+// output as written. It aborted the build instead, because the evaluator
+// reaches the right operand of `&&` under a forked confidence and the arm that
+// refused the method aborted rather than deopting.
+//
+// This is the output `0.18.3` and `0.18.4-rc.1` produce, and the one
+// `@stylexjs/babel-plugin@0.19.0` produces: two rules emitted, `showAlternate`
+// preserved as a runtime condition.
+stylex_test!(
+  an_unfoldable_method_call_inside_a_runtime_condition_survives,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      base: { color: 'black' },
+      alternate: { color: 'red' },
+    });
+
+    export function Section({ query, lowerQuery }) {
+      const showAlternate = query.length > 0 && "documentation".startsWith(lowerQuery);
+
+      return <section sx={[styles.base, showAlternate && styles.alternate]} />;
+    }
+  "#
+);
+
+// The property behind the symptom, at the seam that broke: for each of the
+// three operators, a right operand the evaluator cannot fold sends the
+// declaration to the runtime and the build survives. The symptom test above
+// would have passed at rc.1 and said nothing about why; this is the one that
+// would have caught `1322be8c1`.
+stylex_test!(
+  an_unfoldable_right_operand_falls_to_the_runtime_for_every_logical_operator,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({
+      a: (props) => ({ color: props.flag && "documentation".startsWith(props.q) }),
+      b: (props) => ({ color: props.flag || "documentation".startsWith(props.q) }),
+      c: (props) => ({ color: props.flag ?? "documentation".startsWith(props.q) }),
+    });
+  "#
+);

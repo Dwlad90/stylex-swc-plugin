@@ -117,9 +117,14 @@ fn resolve_env_entry_to_result(
 ///
 /// `None` means an item has no array-element form at all — a callback, a theme
 /// reference, an evaluator-internal map. That is an array the evaluator does
-/// not fold rather than a broken invariant, so every caller refuses the value
-/// instead of aborting: an author can write one, and one written in an operand
-/// of `&&` must not fail the build.
+/// not fold rather than a broken invariant, so no caller aborts on it: an
+/// author can write one, and one written in an operand of `&&` must not fail
+/// the build.
+///
+/// No caller answers a shorter array either. A refusal has to travel all the
+/// way to a deopt, because a silently dropped element writes a value the
+/// source does not describe — which is worse than a declaration that falls to
+/// the runtime.
 fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -> Option<Expr> {
   let mut elems = Vec::with_capacity(items.len());
 
@@ -196,25 +201,14 @@ pub(crate) fn evaluate_obj_key(
           // evaluator-internal map, a callback — is a key this does not read,
           // which is an ordinary refusal rather than a broken invariant.
           _ => {
-            return EvaluateResult {
-              confident: false,
-              deopt: Some(*computed.expr.clone()),
-              reason: Some(ILLEGAL_PROP_VALUE.to_string()),
-              value: None,
-              inline_styles: None,
-              fns: None,
-            };
+            return EvaluateResult::refused(
+              Some(*computed.expr.clone()),
+              Some(ILLEGAL_PROP_VALUE.to_string()),
+            );
           },
         }
       } else {
-        return EvaluateResult {
-          confident: false,
-          deopt: computed_result.deopt,
-          reason: computed_result.reason,
-          value: None,
-          inline_styles: None,
-          fns: None,
-        };
+        return EvaluateResult::refused(computed_result.deopt, computed_result.reason);
       }
     },
     PropName::Str(strng) => create_string_expr(&convert_atom_to_string(&strng.value)),
@@ -224,16 +218,7 @@ pub(crate) fn evaluate_obj_key(
 
   let key_expr = match convert_expr_to_str(&key, state, functions) {
     Some(ref s) => create_string_expr(s),
-    None => {
-      return EvaluateResult {
-        confident: false,
-        deopt: Some(key),
-        reason: Some("Key is not a string".to_string()),
-        value: None,
-        inline_styles: None,
-        fns: None,
-      };
-    },
+    None => return EvaluateResult::refused(Some(key), Some("Key is not a string".to_string())),
   };
 
   EvaluateResult {

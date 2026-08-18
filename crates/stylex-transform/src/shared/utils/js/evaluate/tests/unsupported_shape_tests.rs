@@ -446,3 +446,36 @@ fn an_operand_with_no_value_refuses_rather_than_aborting() {
   assert_deopts("(() => { return 1 }) * 2");
   assert_deopts("1 > 0 && (() => { return 1 }) + 1");
 }
+
+/// A receiver element the evaluator holds but cannot write down leaves the
+/// whole receiver unreadable, so `Object.keys`/`values`/`entries` refuse.
+///
+/// Answering the short list instead is the failure this suite exists to
+/// prevent, and it is the one a refusal can slide into unnoticed: the fold
+/// still succeeds, the build still passes, and the stylesheet gets a value the
+/// source never described. `Object.keys([x => x])` has one own key in
+/// JavaScript, so `[]` would be wrong rather than merely incomplete.
+#[test]
+fn an_unreadable_receiver_element_refuses_rather_than_shortening_the_list() {
+  for receiver in ["[x => x]", "[[x => x]]", "[1, x => x]"] {
+    assert_deopts(&format!("Object.keys({})", receiver));
+    assert_deopts(&format!("Object.values({})", receiver));
+    assert_deopts(&format!("Object.entries({})", receiver));
+    assert_deopts(&format!("1 > 0 && Object.keys({})", receiver));
+  }
+}
+
+/// The receivers around it still fold, including the two that are absent for
+/// opposite reasons: a hole has no own key, and a non-object has none either —
+/// `Object.keys(5)` is `[]` in JavaScript and must not be mistaken for the
+/// refusal above.
+#[test]
+fn a_readable_object_method_receiver_still_folds() {
+  assert_folds("Object.keys([1, 2])");
+  assert_folds("Object.values([1, 2])");
+  assert_folds("Object.entries([1, 2])");
+  assert_folds("Object.keys([, 1])");
+  assert_folds("Object.keys([[1, 2]])");
+  assert_folds("Object.keys(5)");
+  assert_folds("Object.keys(\"ab\")");
+}

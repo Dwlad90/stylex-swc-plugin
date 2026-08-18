@@ -23,6 +23,25 @@ pub struct EvaluateResult {
   pub(crate) fns: Option<DynamicFns>,
 }
 
+impl EvaluateResult {
+  /// An evaluation that refused to fold, carrying the path and reason a caller
+  /// turns into a diagnostic where a static value was required.
+  ///
+  /// Named because a refusal is six fields of which four are always the same,
+  /// and a site that spelled one of them differently would be a deopt nothing
+  /// reported.
+  pub(crate) fn refused(deopt: Option<Expr>, reason: Option<String>) -> Self {
+    Self {
+      confident: false,
+      value: None,
+      deopt,
+      reason,
+      inline_styles: None,
+      fns: None,
+    }
+  }
+}
+
 impl EvaluateResultValue {
   pub fn as_expr(&self) -> Option<&Expr> {
     match self {

@@ -75,14 +75,58 @@ pub(super) fn normalize_js_object_method_args(
   })
 }
 
-pub(super) fn normalize_js_object_method_array_arg(
+/// What an `Object.keys`/`values`/`entries` receiver reads as.
+///
+/// Three answers rather than two, because "no own keys" and "cannot be read"
+/// are both spelled by an absent object and mean opposite things:
+/// `Object.keys(5)` is `[]` in JavaScript and folds, while a receiver holding
+/// an element with no expression form has to refuse — answering `[]` there
+/// would write a shorter list into the stylesheet than the source describes.
+pub(super) enum ObjectMethodReceiver {
+  /// Read as an object carrying these properties.
+  Object(ObjectLit),
+  /// Not an object, so it contributes no own keys. `Object.keys(5)` is `[]`.
+  NoOwnKeys,
+  /// An element has no expression form, so the receiver cannot be read at all
+  /// and the caller refuses rather than answering a short list.
+  Unreadable,
+}
+
+/// Reads the receiver of `Object.keys`, `Object.values` or `Object.entries`,
+/// from the evaluated argument where there is one and from the array literal
+/// otherwise.
+///
+/// One function rather than the same `or_else` chain at all three call sites:
+/// they have to agree on what an unreadable element means, and three copies
+/// edited separately is the shape of the bug this split exists to remove.
+pub(super) fn normalize_object_method_receiver(
+  cached_arg: Option<EvaluateResultValue>,
+  arg: &Expr,
+  traversal_state: &mut StateManager,
+  functions: Rc<FunctionMap>,
+) -> ObjectMethodReceiver {
+  if let Some(object) = normalize_js_object_method_args(cached_arg) {
+    return ObjectMethodReceiver::Object(object);
+  }
+
+  match arg.as_array() {
+    Some(array) => normalize_js_object_method_array_arg(array, traversal_state, functions),
+    None => ObjectMethodReceiver::NoOwnKeys,
+  }
+}
+
+fn normalize_js_object_method_array_arg(
   arr: &ArrayLit,
   traversal_state: &mut StateManager,
   functions: Rc<FunctionMap>,
-) -> ObjectLit {
+) -> ObjectMethodReceiver {
   let mut props = Vec::with_capacity(arr.elems.len());
 
   for (index, elem) in arr.elems.iter().enumerate() {
+    // A hole, an element that refused to fold, and one that folded to nothing
+    // are all absent rather than unreadable: an absent element has no key of
+    // its own, exactly as `Object.keys([, 1])` omits index zero. Only the last
+    // arm below is a value the evaluator holds and cannot write down.
     let Some(elem) = elem else {
       continue;
     };
@@ -101,16 +145,16 @@ pub(super) fn normalize_js_object_method_array_arg(
       EvaluateResultValue::Expr(expr) => expr,
       EvaluateResultValue::Vec(items) => match evaluate_result_vec_to_array_expr(&items) {
         Some(expr) => expr,
-        None => continue,
+        None => return ObjectMethodReceiver::Unreadable,
       },
       EvaluateResultValue::Null => continue,
-      _ => continue,
+      _ => return ObjectMethodReceiver::Unreadable,
     };
 
     props.push(create_ident_key_value_prop(&index.to_string(), expr));
   }
 
-  create_object_lit(props)
+  ObjectMethodReceiver::Object(create_object_lit(props))
 }
 
 /// Converts a nested vector of `EvaluateResultValue`s to an array expression.
@@ -359,6 +403,10 @@ fn push_args_to_numbers(
 ) -> Option<()> {
   for arg in args {
     match arg {
+      // Deopted on the operand rather than on `path`, because the operand is
+      // the thing an author has to change and the code frame points at it. The
+      // catch-all below has no expression of its own to name and falls back to
+      // the call.
       EvaluateResultValue::Expr(expr) => match expr_to_num(expr, state, traversal_state, fns) {
         Ok(number) => numbers.push(number),
         Err(error) => {

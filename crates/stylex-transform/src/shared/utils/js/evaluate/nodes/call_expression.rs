@@ -470,15 +470,18 @@ pub(in super::super) fn evaluate(
                       takes_path: false,
                     }));
 
-                    let object = normalize_js_object_method_args(cached_arg).or_else(|| {
-                      arg.expr.as_array().map(|array| {
-                        normalize_js_object_method_array_arg(
-                          array,
-                          traversal_state,
-                          Rc::clone(&state.functions),
-                        )
-                      })
-                    });
+                    let object = match normalize_object_method_receiver(
+                      cached_arg,
+                      &arg.expr,
+                      traversal_state,
+                      Rc::clone(&state.functions),
+                    ) {
+                      ObjectMethodReceiver::Object(object) => Some(object),
+                      ObjectMethodReceiver::NoOwnKeys => None,
+                      ObjectMethodReceiver::Unreadable => {
+                        deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE)
+                      },
+                    };
 
                     if let Some(object) = object {
                       let mut keys = Vec::with_capacity(object.props.len());
@@ -516,15 +519,18 @@ pub(in super::super) fn evaluate(
                       takes_path: false,
                     }));
 
-                    let object = normalize_js_object_method_args(cached_arg).or_else(|| {
-                      arg.expr.as_array().map(|array| {
-                        normalize_js_object_method_array_arg(
-                          array,
-                          traversal_state,
-                          Rc::clone(&state.functions),
-                        )
-                      })
-                    });
+                    let object = match normalize_object_method_receiver(
+                      cached_arg,
+                      &arg.expr,
+                      traversal_state,
+                      Rc::clone(&state.functions),
+                    ) {
+                      ObjectMethodReceiver::Object(object) => Some(object),
+                      ObjectMethodReceiver::NoOwnKeys => None,
+                      ObjectMethodReceiver::Unreadable => {
+                        deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE)
+                      },
+                    };
 
                     if let Some(object) = object {
                       let mut values = Vec::with_capacity(object.props.len());
@@ -558,15 +564,18 @@ pub(in super::super) fn evaluate(
                       takes_path: false,
                     }));
 
-                    let object = normalize_js_object_method_args(cached_arg).or_else(|| {
-                      arg.expr.as_array().map(|array| {
-                        normalize_js_object_method_array_arg(
-                          array,
-                          traversal_state,
-                          Rc::clone(&state.functions),
-                        )
-                      })
-                    });
+                    let object = match normalize_object_method_receiver(
+                      cached_arg,
+                      &arg.expr,
+                      traversal_state,
+                      Rc::clone(&state.functions),
+                    ) {
+                      ObjectMethodReceiver::Object(object) => Some(object),
+                      ObjectMethodReceiver::NoOwnKeys => None,
+                      ObjectMethodReceiver::Unreadable => {
+                        deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE)
+                      },
+                    };
 
                     let mut entries: IndexMap<Lit, Box<Expr>> = IndexMap::new();
 

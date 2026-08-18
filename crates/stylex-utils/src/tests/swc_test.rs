@@ -44,3 +44,274 @@ fn two_calls_produce_identical_contexts() {
   assert_eq!(ctx1.in_strict, ctx2.in_strict);
   assert_eq!(ctx1.remaining_depth, ctx2.remaining_depth);
 }
+
+// ── get_expr_node_kind ─────────────────────────────────────────────
+//
+// The kind reaches an author inside a compiler diagnostic, so every name here
+// is checked against the syntax that produces it rather than against the SWC
+// variant it came from — a mapping written from the variant names would agree
+// with itself and still be wrong.
+
+mod node_kind {
+  use crate::swc::get_expr_node_kind;
+  use swc_core::{
+    common::{DUMMY_SP, FileName, SourceMap, sync::Lrc},
+    ecma::ast::{
+      Expr, Ident, IdentName, Invalid, JSXEmptyExpr, JSXMemberExpr, JSXNamespacedName, JSXObject,
+      JSXText, Lit, PrivateName, Super, SuperProp, SuperPropExpr, YieldExpr,
+    },
+  };
+  use swc_ecma_parser::{EsSyntax, Parser, StringInput, Syntax, TsSyntax, lexer::Lexer};
+
+  /// Parses one expression under `syntax`, or reports why it could not be
+  /// parsed. A test that names syntax the parser rejects is a broken test, not
+  /// a failing assertion, so the two are told apart.
+  fn parse_expr(source: &str, syntax: Syntax) -> Expr {
+    let source_map: Lrc<SourceMap> = Default::default();
+    let source_file = source_map.new_source_file(FileName::Anon.into(), source.to_string());
+
+    let lexer = Lexer::new(
+      syntax,
+      Default::default(),
+      StringInput::from(&*source_file),
+      None,
+    );
+
+    match Parser::new_from(lexer).parse_expr() {
+      Ok(expr) => *expr,
+      Err(error) => panic!("failed to parse `{}`: {:?}", source, error),
+    }
+  }
+
+  fn es() -> Syntax {
+    Syntax::Es(EsSyntax {
+      jsx: true,
+      ..Default::default()
+    })
+  }
+
+  fn ts() -> Syntax {
+    Syntax::Typescript(TsSyntax::default())
+  }
+
+  #[track_caller]
+  fn assert_kind(source: &str, syntax: Syntax, expected: &str) {
+    assert_eq!(
+      get_expr_node_kind(&parse_expr(source, syntax)),
+      expected,
+      "wrong node kind for `{}`",
+      source
+    );
+  }
+
+  #[test]
+  fn names_every_kind_reachable_from_source() {
+    let cases = [
+      ("this", "ThisExpression"),
+      ("[1, 2]", "ArrayExpression"),
+      ("{ a: 1 }", "ObjectExpression"),
+      ("function () {}", "FunctionExpression"),
+      ("-1", "UnaryExpression"),
+      ("typeof a", "UnaryExpression"),
+      ("void 0", "UnaryExpression"),
+      ("a++", "UpdateExpression"),
+      ("--a", "UpdateExpression"),
+      ("a + b", "BinaryExpression"),
+      ("a instanceof b", "BinaryExpression"),
+      ("a = 1", "AssignmentExpression"),
+      ("a += 1", "AssignmentExpression"),
+      ("a.b", "MemberExpression"),
+      ("a[b]", "MemberExpression"),
+      ("a ? b : c", "ConditionalExpression"),
+      ("a()", "CallExpression"),
+      ("new Date()", "NewExpression"),
+      ("new Date", "NewExpression"),
+      ("a, b", "SequenceExpression"),
+      ("a", "Identifier"),
+      ("undefined", "Identifier"),
+      ("'a'", "StringLiteral"),
+      ("true", "BooleanLiteral"),
+      ("null", "NullLiteral"),
+      ("1", "NumericLiteral"),
+      ("1n", "BigIntLiteral"),
+      ("/a/g", "RegExpLiteral"),
+      ("`a${b}c`", "TemplateLiteral"),
+      ("tag`a`", "TaggedTemplateExpression"),
+      ("() => 1", "ArrowFunctionExpression"),
+      ("async () => 1", "ArrowFunctionExpression"),
+      ("class {}", "ClassExpression"),
+      ("import.meta", "MetaProperty"),
+      ("await p", "AwaitExpression"),
+      ("(a)", "ParenthesizedExpression"),
+      ("<div />", "JSXElement"),
+      ("<></>", "JSXFragment"),
+      ("a?.b", "OptionalMemberExpression"),
+      ("a?.[b]", "OptionalMemberExpression"),
+      ("a?.b()", "OptionalCallExpression"),
+      ("a?.()", "OptionalCallExpression"),
+    ];
+
+    for (source, expected) in cases {
+      assert_kind(source, es(), expected);
+    }
+  }
+
+  /// A logical operator gets its own node kind. SWC keeps `&&`, `||` and `??`
+  /// in the same variant as `+`, and a diagnostic about `a && b` that says
+  /// `BinaryExpression` names a node the language does not have — which
+  /// matters because these three are exactly the operators that evaluate an
+  /// operand speculatively, so they are the ones a refusal is reported from.
+  #[test]
+  fn separates_a_logical_operator_from_an_arithmetic_one() {
+    for source in ["a && b", "a || b", "a ?? b"] {
+      assert_kind(source, es(), "LogicalExpression");
+    }
+
+    for source in ["a + b", "a & b", "a | b", "a === b", "a >> b"] {
+      assert_kind(source, es(), "BinaryExpression");
+    }
+  }
+
+  /// An optional chain is named by what it chains onto, because that is the
+  /// distinction an author can act on: `a?.b` reads a property and `a?.b()`
+  /// calls one. SWC wraps both in one variant.
+  #[test]
+  fn names_an_optional_chain_by_its_base() {
+    assert_kind("a?.b.c", es(), "OptionalMemberExpression");
+    assert_kind("a?.b.c()", es(), "OptionalCallExpression");
+    assert_kind("a?.b().c", es(), "OptionalMemberExpression");
+  }
+
+  #[test]
+  fn names_every_typescript_kind() {
+    let cases = [
+      ("<number>a", "TSTypeAssertion"),
+      ("a as const", "TSAsExpression"),
+      ("a as number", "TSAsExpression"),
+      ("a!", "TSNonNullExpression"),
+      ("a satisfies number", "TSSatisfiesExpression"),
+      ("f<string>", "TSInstantiationExpression"),
+    ];
+
+    for (source, expected) in cases {
+      assert_kind(source, ts(), expected);
+    }
+  }
+
+  /// The kinds that only ever appear nested inside another node, so no source
+  /// text parses to one on its own. They are still reachable by an evaluator
+  /// walking into a subtree, and the function is total, so each is named.
+  #[test]
+  fn names_the_kinds_that_only_appear_nested() {
+    let super_prop = Expr::SuperProp(SuperPropExpr {
+      span: DUMMY_SP,
+      obj: Super { span: DUMMY_SP },
+      prop: SuperProp::Ident(IdentName::new("x".into(), DUMMY_SP)),
+    });
+    assert_eq!(get_expr_node_kind(&super_prop), "MemberExpression");
+
+    let yield_expr = Expr::Yield(YieldExpr {
+      span: DUMMY_SP,
+      arg: None,
+      delegate: false,
+    });
+    assert_eq!(get_expr_node_kind(&yield_expr), "YieldExpression");
+
+    let private_name = Expr::PrivateName(PrivateName {
+      span: DUMMY_SP,
+      name: "x".into(),
+    });
+    assert_eq!(get_expr_node_kind(&private_name), "PrivateName");
+
+    let jsx_text = Expr::Lit(Lit::JSXText(JSXText {
+      span: DUMMY_SP,
+      value: "text".into(),
+      raw: "text".into(),
+    }));
+    assert_eq!(get_expr_node_kind(&jsx_text), "JSXText");
+
+    let jsx_member = Expr::JSXMember(JSXMemberExpr {
+      span: DUMMY_SP,
+      obj: JSXObject::Ident(Ident::new_no_ctxt("a".into(), DUMMY_SP)),
+      prop: IdentName::new("b".into(), DUMMY_SP),
+    });
+    assert_eq!(get_expr_node_kind(&jsx_member), "JSXMemberExpression");
+
+    let jsx_namespaced = Expr::JSXNamespacedName(JSXNamespacedName {
+      span: DUMMY_SP,
+      ns: IdentName::new("a".into(), DUMMY_SP),
+      name: IdentName::new("b".into(), DUMMY_SP),
+    });
+    assert_eq!(get_expr_node_kind(&jsx_namespaced), "JSXNamespacedName");
+
+    let jsx_empty = Expr::JSXEmpty(JSXEmptyExpr { span: DUMMY_SP });
+    assert_eq!(get_expr_node_kind(&jsx_empty), "JSXEmptyExpression");
+  }
+
+  /// A parse failure has no node at all, so there is no ESTree name to give
+  /// it. Naming it after the SWC variant beats an empty label or a panic: the
+  /// function is asked about whatever the parser produced, and a parser that
+  /// failed still produces something.
+  #[test]
+  fn names_a_node_that_failed_to_parse() {
+    let invalid = Expr::Invalid(Invalid { span: DUMMY_SP });
+
+    assert_eq!(get_expr_node_kind(&invalid), "Invalid");
+  }
+
+  /// The kind describes the node, never the value it would produce. A member
+  /// access is a `MemberExpression` whether or not the receiver is foldable,
+  /// which is the whole point: the vague label this replaced came from asking
+  /// about the value.
+  #[test]
+  fn describes_the_node_and_not_its_value() {
+    assert_kind("'abc'.length", es(), "MemberExpression");
+    assert_kind("unknowable.length", es(), "MemberExpression");
+    assert_kind("[1, 2].filter(f)", es(), "CallExpression");
+    assert_kind("(() => 1)()", es(), "CallExpression");
+  }
+
+  /// Two calls agree, and the answer borrows nothing from the expression, so a
+  /// label can be held past the node it describes.
+  #[test]
+  fn is_a_static_label() {
+    let expr = parse_expr("a.b", es());
+    let first: &'static str = get_expr_node_kind(&expr);
+    let second: &'static str = get_expr_node_kind(&expr);
+
+    assert_eq!(first, second);
+    drop(expr);
+    assert_eq!(first, "MemberExpression");
+  }
+
+  /// Deeply nested syntax is named by its outermost node and nothing else, so
+  /// the label costs one match arm regardless of depth — no recursion, and no
+  /// walk into the subtree. The depth is held well under the parser's own
+  /// recursion limit on purpose: past it the parser overflows before the label
+  /// is ever asked for, which would test the parser rather than this.
+  #[test]
+  fn names_only_the_outermost_node_of_deep_syntax() {
+    let parens = format!("{}a{}", "(".repeat(500), ")".repeat(500));
+
+    assert_kind(&parens, es(), "ParenthesizedExpression");
+
+    let calls = format!("a{}", "()".repeat(500));
+
+    assert_kind(&calls, es(), "CallExpression");
+
+    let members = format!("a{}", ".b".repeat(500));
+
+    assert_kind(&members, es(), "MemberExpression");
+  }
+
+  /// Non-ASCII and escaped identifiers are ordinary identifiers. The label is
+  /// a fixed string either way, so nothing in it can be malformed by the
+  /// source text it describes.
+  #[test]
+  fn names_unicode_and_escaped_syntax() {
+    assert_kind("\u{4f60}\u{597d}", es(), "Identifier");
+    assert_kind("\\u0061bc", es(), "Identifier");
+    assert_kind("'\\u{1F600}'", es(), "StringLiteral");
+    assert_kind("`\\u{1F600}${a}`", es(), "TemplateLiteral");
+  }
+}

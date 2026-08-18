@@ -64,3 +64,16 @@ syntactically identical expressions in different source positions collide on
 purpose. Callers use it to narrow a candidate set and then confirm with
 `eq_ignore_span` — the hash never decides equality by itself.
 _Avoid_: ast hash, expression id
+
+**Node kind**:
+`get_expr_node_kind`, the ESTree name of an expression node —
+`"CallExpression"`, `"ArrowFunctionExpression"`, `"BigIntLiteral"`. It is what
+a diagnostic calls the thing the author wrote, so it is **observable**: the
+names are the ecosystem's rather than SWC's variant names, and three of them
+resolve a disagreement about node boundaries (a logical operator is a
+`LogicalExpression`, an optional chain is named by its base, `super.x` is a
+`MemberExpression`). Not to be confused with `Expr::get_type`, which answers
+the _value_ an expression would produce and is `Unknown` for everything a
+static evaluation cannot fold — precisely the cases a diagnostic is written
+for.
+_Avoid_: expression type, node type, ast kind

@@ -1,7 +1,7 @@
 {
   "name": "@stylexswc/solid-unplugin-example",
   "description": "A simple solid unplugin example to test @stylexswc/unplugin/solid",
-  "version": "0.18.4-rc.1",
+  "version": "0.18.4",
   "private": true,
   "license": "MIT",
   "scripts": {

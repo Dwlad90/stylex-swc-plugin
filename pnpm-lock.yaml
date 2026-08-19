@@ -183,92 +183,92 @@ catalogs:
       version: 3.5.41
   internal:
     '@stylexswc/ast':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/atoms':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/constants':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/css':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/css-parser':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/design-system':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/enums':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/evaluator':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/jest':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/logs':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/macros':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/nextjs-plugin':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/path-resolver':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/playwright':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/plugin-shared':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/postcss-plugin':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/regex':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/rollup-plugin':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/rs-compiler':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/rspack-plugin':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/structures':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/stylex-js':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/transform':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/turbopack-plugin':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/types':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/typescript-config':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/unplugin':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/utils':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
     '@stylexswc/webpack-plugin':
-      specifier: 0.18.4-rc.1
-      version: 0.18.4-rc.1
+      specifier: 0.18.4
+      version: 0.18.4
   peers:
     '@farmfe/core':
       specifier: '>=1.7.11 <2.0.0'

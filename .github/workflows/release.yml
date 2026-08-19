@@ -86,37 +86,37 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔄 Check if can be fast-forwarded to develop
-        run: |
-          # Skip check if on develop
-          if [ "${{ github.ref_name }}" = "develop" ]; then
-            echo "✅ On develop branch, skipping rebase check"
-            exit 0
-          fi
+      # - name: 🔄 Check if can be fast-forwarded to develop
+      #   run: |
+      #     # Skip check if on develop
+      #     if [ "${{ github.ref_name }}" = "develop" ]; then
+      #       echo "✅ On develop branch, skipping rebase check"
+      #       exit 0
+      #     fi
 
-          # Fetch both branches
-          git fetch origin develop
+      #     # Fetch both branches
+      #     git fetch origin develop
 
-          # Get latest commits
-          current_commit=$(git rev-parse HEAD)
-          develop_commit=$(git rev-parse origin/develop)
+      #     # Get latest commits
+      #     current_commit=$(git rev-parse HEAD)
+      #     develop_commit=$(git rev-parse origin/develop)
 
-          # Get merge base
-          merge_base=$(git merge-base $current_commit $develop_commit)
+      #     # Get merge base
+      #     merge_base=$(git merge-base $current_commit $develop_commit)
 
-          # Check if current branch is behind develop
-          if [ "$merge_base" != "$develop_commit" ]; then
-            echo "::error::Branch is behind develop. Please rebase first."
-            exit 1
-          fi
+      #     # Check if current branch is behind develop
+      #     if [ "$merge_base" != "$develop_commit" ]; then
+      #       echo "::error::Branch is behind develop. Please rebase first."
+      #       exit 1
+      #     fi
 
-          # Check if fast-forward is possible
-          if ! git merge-tree $merge_base $develop_commit $current_commit | grep -q "^changed in both"; then
-            echo "✅ Branch can be fast-forwarded to develop"
-          else
-            echo "::error::Branch has conflicts with develop. Please resolve conflicts first."
-            exit 1
-          fi
+      #     # Check if fast-forward is possible
+      #     if ! git merge-tree $merge_base $develop_commit $current_commit | grep -q "^changed in both"; then
+      #       echo "✅ Branch can be fast-forwarded to develop"
+      #     else
+      #       echo "::error::Branch has conflicts with develop. Please resolve conflicts first."
+      #       exit 1
+      #     fi
 
       - name: 🔍 Find previous version tag
         id: previoustag
@@ -199,28 +199,28 @@ jobs:
           git commit --no-verify -m "Bump version to ${{ needs.calculate-version.outputs.new_version }}"
           git log --oneline | head -n 3
 
-      - name: ✅ Check if tag can be fast-forwarded
-        id: ff_check
-        run: |
-          git fetch --all --tags
+      # - name: ✅ Check if tag can be fast-forwarded
+      #   id: ff_check
+      #   run: |
+      #     git fetch --all --tags
 
-          # Get the merge base between current HEAD and master
-          merge_base=$(git merge-base HEAD origin/master)
-          master_commit=$(git rev-parse origin/master)
+      #     # Get the merge base between current HEAD and master
+      #     merge_base=$(git merge-base HEAD origin/master)
+      #     master_commit=$(git rev-parse origin/master)
 
-          # Check if HEAD is ahead of or equal to master
-          if [ "$merge_base" = "$master_commit" ]; then
-            echo "Tag can be fast-forwarded to master"
-            echo "can_ff=true" >> $GITHUB_OUTPUT
-          else
-            echo "Error: Current HEAD cannot be fast-forwarded to master"
-            echo "can_ff=false" >> $GITHUB_OUTPUT
-            exit 1
-          fi
+      #     # Check if HEAD is ahead of or equal to master
+      #     if [ "$merge_base" = "$master_commit" ]; then
+      #       echo "Tag can be fast-forwarded to master"
+      #       echo "can_ff=true" >> $GITHUB_OUTPUT
+      #     else
+      #       echo "Error: Current HEAD cannot be fast-forwarded to master"
+      #       echo "can_ff=false" >> $GITHUB_OUTPUT
+      #       exit 1
+      #     fi
 
       - name: 🏷️ Create new version tag
         id: newtag
-        if: steps.ff_check.outputs.can_ff == 'true'
+        # if: steps.ff_check.outputs.can_ff == 'true'
         run: |
           newVersion=${{ needs.calculate-version.outputs.new_version }}
 
@@ -353,7 +353,7 @@ jobs:
         run: |
           git checkout master
           git pull origin master
-          git merge --ff-only ${{ needs.calculate-version.outputs.new_version }}
+          git merge ${{ needs.calculate-version.outputs.new_version }}
           git push origin master
   deploy-docs:
     name: Deploy docs to GitHub Pages

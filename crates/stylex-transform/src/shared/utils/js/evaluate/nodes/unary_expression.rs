@@ -1,5 +1,6 @@
 use super::super::*;
 use crate::deopt_unsupported;
+use stylex_ast::ast::factories::create_unary_expr;
 use swc_core::ecma::ast::{Lit, UnaryExpr, UnaryOp};
 
 pub(in super::super) fn evaluate(
@@ -33,10 +34,8 @@ pub(in super::super) fn evaluate(
   // An operand with no expression form has no compile-time value to apply the
   // operator to. `typeof someObject.method` is ordinary JavaScript, so this
   // refuses the fold rather than aborting the build.
-  let path = Expr::Unary(unary.clone());
-
   let Some(EvaluateResultValue::Expr(arg)) = arg else {
-    deopt_unsupported!(&path, state, ILLEGAL_PROP_VALUE);
+    deopt_unsupported!(&create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
   };
 
   match unary.op {
@@ -65,7 +64,7 @@ pub(in super::super) fn evaluate(
         // runtime and this evaluator has no reading of, so it refuses rather
         // than guessing a type name.
         _ => deopt_unsupported!(
-          &path,
+          &create_unary_expr(unary),
           state,
           &unsupported_expression(get_expr_node_kind(&arg))
         ),
@@ -73,6 +72,10 @@ pub(in super::super) fn evaluate(
 
       Some(EvaluateResultValue::Expr(create_string_expr(arg_type)))
     },
-    _ => deopt(&path, state, &unsupported_operator(unary.op.as_str())),
+    _ => deopt(
+      &create_unary_expr(unary),
+      state,
+      &unsupported_operator(unary.op.as_str()),
+    ),
   }
 }

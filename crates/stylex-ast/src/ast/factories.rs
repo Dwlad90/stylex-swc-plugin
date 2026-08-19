@@ -6,7 +6,8 @@ use swc_core::{
     Callee, ComputedPropName, CondExpr, Expr, ExprOrSpread, Ident, IdentName, ImportDecl,
     ImportPhase, ImportSpecifier, ImportStarAsSpecifier, JSXAttr, JSXAttrName, JSXAttrOrSpread,
     JSXAttrValue, KeyValueProp, Lit, MemberExpr, MemberProp, ModuleDecl, ModuleItem, Null,
-    ObjectLit, ParenExpr, Pat, Prop, PropName, PropOrSpread, SpreadElement, Str, VarDeclarator,
+    ObjectLit, ParenExpr, Pat, Prop, PropName, PropOrSpread, SpreadElement, Str, UnaryExpr,
+    VarDeclarator,
   },
 };
 
@@ -763,4 +764,27 @@ pub fn create_import_namespace_decl(local: &str, source: &str) -> ModuleItem {
     with: None,
     phase: ImportPhase::Evaluation,
   }))
+}
+
+/// Rebuilds a unary expression as an owned `Expr`, for a caller that holds only
+/// the borrowed node.
+///
+/// # Why a factory rather than an inline `Expr::Unary(unary.clone())`
+///
+/// A `UnaryExpr` owns its operand, so cloning one deep-copies the whole operand
+/// subtree. Naming the clone keeps that cost visible at the call site and keeps
+/// it where it belongs: an evaluator builds this only to report the expression a
+/// refusal happened on, so it is built at the refusal and never on the path
+/// where the fold succeeds.
+///
+/// # Arguments
+/// * `unary` - The unary expression to rebuild
+///
+/// # Example
+/// ```ignore
+/// let path = create_unary_expr(unary);
+/// ```
+#[inline]
+pub fn create_unary_expr(unary: &UnaryExpr) -> Expr {
+  Expr::Unary(unary.clone())
 }

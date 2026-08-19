@@ -338,3 +338,51 @@ fn create_import_namespace_decl_works() {
     _ => panic!("Expected a namespace import specifier"),
   }
 }
+
+#[test]
+fn create_unary_expr_rebuilds_the_operator_and_its_operand() {
+  let unary = UnaryExpr {
+    span: DUMMY_SP,
+    op: UnaryOp::Bang,
+    arg: Box::new(create_string_expr("hello")),
+  };
+
+  let Expr::Unary(rebuilt) = create_unary_expr(&unary) else {
+    panic!("Expected a unary expression");
+  };
+
+  assert_eq!(rebuilt.op, UnaryOp::Bang);
+  assert!(matches!(rebuilt.arg.as_ref(), Expr::Lit(Lit::Str(_))));
+}
+
+/// The clone is a deep one, which is the cost the factory exists to name: the
+/// rebuilt operand is an independent subtree, so a caller holding it outlives
+/// the borrow it was built from.
+#[test]
+fn create_unary_expr_deep_clones_a_nested_operand() {
+  let inner = UnaryExpr {
+    span: DUMMY_SP,
+    op: UnaryOp::Minus,
+    arg: Box::new(create_number_expr(1.0)),
+  };
+  let outer = UnaryExpr {
+    span: DUMMY_SP,
+    op: UnaryOp::TypeOf,
+    arg: Box::new(Expr::Unary(inner)),
+  };
+
+  let rebuilt = create_unary_expr(&outer);
+  drop(outer);
+
+  let Expr::Unary(rebuilt) = rebuilt else {
+    panic!("Expected a unary expression");
+  };
+
+  assert_eq!(rebuilt.op, UnaryOp::TypeOf);
+
+  let Expr::Unary(nested) = rebuilt.arg.as_ref() else {
+    panic!("Expected a nested unary expression");
+  };
+
+  assert_eq!(nested.op, UnaryOp::Minus);
+}

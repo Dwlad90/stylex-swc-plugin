@@ -1,19 +1,10 @@
 use crate::utils::prelude::*;
 
-// Upstream runs this whole `describe` through a `transform()` that pins
-// `styleResolution: 'application-order'`. Without it the port measures the
-// default resolution instead, and a border shorthand answers a different
-// question than the one upstream asked.
 fn stylex_transform(
   comments: TestComments,
   customize: impl FnOnce(TestBuilder) -> TestBuilder,
 ) -> impl Pass {
-  build_test_transform(comments, |b| {
-    customize(
-      b.with_style_resolution(StyleResolution::ApplicationOrder)
-        .with_runtime_injection(),
-    )
-  })
+  crate::legacy::transform_call::legacy_call_transform(comments, customize)
 }
 
 stylex_test!(

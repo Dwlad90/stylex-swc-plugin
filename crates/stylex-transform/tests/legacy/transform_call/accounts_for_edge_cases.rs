@@ -4,9 +4,7 @@ fn stylex_transform(
   comments: TestComments,
   customize: impl FnOnce(TestBuilder) -> TestBuilder,
 ) -> impl Pass {
-  build_test_transform(comments, |b| {
-    customize(b.with_dev(true).with_runtime_injection())
-  })
+  crate::legacy::transform_call::legacy_call_transform(comments, |b| customize(b.with_dev(true)))
 }
 
 stylex_test!(

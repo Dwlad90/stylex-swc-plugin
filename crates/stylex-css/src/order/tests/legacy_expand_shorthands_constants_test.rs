@@ -800,7 +800,11 @@ fn rejection_with_doubled_quotes(json_of_raw_value: &str) -> String {
 /// to instead. Every case below is a refusal, so a success is the surprise worth
 /// printing rather than an `unwrap_err` panic that names neither.
 fn list_style_err(raw_value: &str) -> String {
-  let func = Shorthands::get("listStyle").unwrap();
+  let func = match Shorthands::get("listStyle") {
+    Some(func) => func,
+    None => panic!("expected \"listStyle\" to be a known shorthand"),
+  };
+
   match func(Some(raw_value.into())) {
     Ok(pairs) => panic!(
       "expected listStyle {:?} to be rejected, got {:?}",

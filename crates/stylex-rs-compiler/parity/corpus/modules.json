@@ -261,6 +261,30 @@
       "origin": "found while mirroring the spread refusal to upstream",
       "note": "Upstream folds no `RegExpLiteral` in any position. This compiler folded one to itself and left the refusal to whichever downstream reader tripped over the value, which had no name for it -- the diagnostic came out as `1`. `String(/re/)` did not refuse at all: it wrote `color: / re /` into the stylesheet.",
       "expected": "both-reject"
+    },
+    {
+      "id": "modules-object-index-key-order",
+      "label": "an index key enumerated before a named one",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  x: { color: 'red', ...['a', 'b'] },\n});\n",
+      "origin": "found in review of the object-spread work",
+      "note": "An object enumerates every array-index key first in ascending numeric order, then every other key in insertion order -- and that is the order the declarations reach the stylesheet. This compiler used pure insertion order, so `color` came out before `0`.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-object-non-canonical-index-key",
+      "label": "a non-canonical numeric key keeps its place",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  x: { color: 'red', '00': 'z' },\n});\n",
+      "origin": "found in review of the object-spread work",
+      "note": "A key is an array index only in its canonical decimal spelling, so `'00'` is an ordinary string key and stays where it was written. Guards the ordering rule against over-reaching.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-large-numeric-key-spelling",
+      "label": "a numeric key large enough to need exponent notation",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  x: { 1e21: 'a' },\n});\n",
+      "origin": "found in review of the object-spread work",
+      "note": "A numeric key is spelled the way JavaScript spells the number: `1e+21`. This compiler formatted it with Rust's `f64` rendering and named the property `1000000000000000000000`, which changed both the declaration and its class name.",
+      "expected": "identical"
     }
   ]
 }

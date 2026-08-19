@@ -516,5 +516,9 @@ fn _evaluate(
 }
 
 #[cfg(test)]
+#[path = "tests/member_length_tests.rs"]
+mod member_length_tests;
+
+#[cfg(test)]
 #[path = "tests/unsupported_shape_tests.rs"]
 mod unsupported_shape_tests;

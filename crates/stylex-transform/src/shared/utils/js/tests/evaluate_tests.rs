@@ -537,61 +537,57 @@ fn test_null_coalescing_like_pattern() {
 
 #[test]
 fn test_null_literal_member_access() {
-  // When accessing a member on a literal, the literal itself is evaluated
+  // A property read off a literal receiver used to answer the receiver itself,
+  // so `"abc".length` folded to `"abc"` and shipped `content: "abc"`. The
+  // evaluator refuses instead; only `length` on a string or an array is read,
+  // and those are pinned in `evaluate/tests/member_length_tests.rs`.
   let member_expr = make_member_expr(create_null_expr(), "prop");
-  let (_confident, has_value) = evaluate_expr(&member_expr);
-  // The literal is evaluable, so has_value should be true (the literal value)
+  let (confident, has_value) = evaluate_expr(&member_expr);
   assert!(
-    has_value,
-    "Member access on null literal should return the literal value"
+    !confident && !has_value,
+    "Member access on null literal should refuse rather than answer the literal"
   );
 }
 
 #[test]
 fn test_number_literal_member_access() {
-  // When accessing a member on a number literal, the number itself is returned
   let member_expr = make_member_expr(create_number_expr(42.0), "prop");
-  let (_confident, has_value) = evaluate_expr(&member_expr);
-  // The literal is evaluable
+  let (confident, has_value) = evaluate_expr(&member_expr);
   assert!(
-    has_value,
-    "Member access on number literal should return the literal value"
+    !confident && !has_value,
+    "Member access on number literal should refuse rather than answer the literal"
   );
 }
 
 #[test]
 fn test_boolean_literal_member_access() {
-  // When accessing a member on a boolean literal, the boolean itself is returned
   let member_expr = make_member_expr(create_bool_expr(true), "prop");
-  let (_confident, has_value) = evaluate_expr(&member_expr);
-  // The literal is evaluable
+  let (confident, has_value) = evaluate_expr(&member_expr);
   assert!(
-    has_value,
-    "Member access on boolean literal should return the literal value"
+    !confident && !has_value,
+    "Member access on boolean literal should refuse rather than answer the literal"
   );
 }
 
 #[test]
 fn test_string_literal_member_access() {
-  // When accessing a member on a string literal, the string itself is returned
   let member_expr = make_member_expr(create_string_expr("test"), "prop");
-  let (_confident, has_value) = evaluate_expr(&member_expr);
-  // The literal is evaluable
+  let (confident, has_value) = evaluate_expr(&member_expr);
   assert!(
-    has_value,
-    "Member access on string literal should return the literal value"
+    !confident && !has_value,
+    "Member access on string literal should refuse rather than answer the literal"
   );
 }
 
 #[test]
 fn test_literal_with_optional_chaining() {
-  // Optional chaining on a literal number: the number literal is returned
+  // `?.` decides whether the property is read at all, not what reading it
+  // answers, so a property a literal does not carry refuses here too.
   let opt_chain = make_optional_member_expr(create_number_expr(5.0), "prop");
-  let (_confident, has_value) = evaluate_expr(&opt_chain);
-  // The number is a literal so it can be evaluated
+  let (confident, has_value) = evaluate_expr(&opt_chain);
   assert!(
-    has_value,
-    "Optional member access on number literal should return the literal value"
+    !confident && !has_value,
+    "Optional member access on number literal should refuse rather than answer the literal"
   );
 }
 

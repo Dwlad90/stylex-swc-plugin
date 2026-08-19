@@ -82,6 +82,21 @@ pub fn not_a_function(callee: &str) -> String {
   )
 }
 
+/// A property was read off a string or an array, and it is not the one such a
+/// receiver answers at compile time.
+///
+/// Names the property rather than the node kind the rest of these reasons name.
+/// The kind is the half an author can already see — `"abc".toUpperCase` and
+/// `"abc".length` are both a member access on a StringLiteral — and which
+/// property was asked for is the half that decides whether the declaration
+/// folds.
+pub fn unsupported_property_access(property: &str) -> String {
+  format!(
+    "Unsupported property access: {}\nOnly 'length' is read from a string or an array at compile time.\n\n",
+    property
+  )
+}
+
 pub fn unsupported_operator(op: &str) -> String {
   format!("Unsupported operator: {}\n\n", op)
 }

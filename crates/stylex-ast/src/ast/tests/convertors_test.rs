@@ -1,7 +1,11 @@
 //! Tests for AST convertor functions that transform between node types.
 
 use crate::ast::{convertors::*, factories::*};
-use swc_core::{atoms::Wtf8Atom, common::DUMMY_SP, ecma::ast::*};
+use swc_core::{
+  atoms::{Wtf8Atom, wtf8::Wtf8Buf},
+  common::DUMMY_SP,
+  ecma::ast::*,
+};
 
 #[test]
 fn convert_lit_to_number_bool_true() {
@@ -175,6 +179,45 @@ fn convert_string_to_prop_name_needs_quoting() {
 fn convert_atom_to_string_valid() {
   let atom: Wtf8Atom = "hello".into();
   assert_eq!(convert_atom_to_string(&atom), "hello");
+}
+
+#[test]
+fn atom_utf16_length_counts_code_units() {
+  assert_eq!(atom_utf16_length(&Wtf8Atom::from("abc")), 3);
+  assert_eq!(atom_utf16_length(&Wtf8Atom::from("")), 0);
+  assert_eq!(atom_utf16_length(&Wtf8Atom::from("é")), 1);
+  assert_eq!(atom_utf16_length(&Wtf8Atom::from("日本語")), 3);
+  assert_eq!(atom_utf16_length(&Wtf8Atom::from("\u{1F600}a")), 3);
+}
+
+/// The case that rules out reading the atom as a `String` first. An unpaired
+/// surrogate is a legal JavaScript string literal and has no UTF-8 form, so
+/// `convert_atom_to_string` aborts on it — from inside an evaluation that is
+/// allowed to fail. Its length needs no valid scalar to answer.
+#[test]
+fn atom_utf16_length_counts_an_unpaired_surrogate() {
+  let lone = Wtf8Atom::from(Wtf8Buf::from_ill_formed_utf16(&[0xD83D]));
+
+  assert!(
+    lone.as_str().is_none(),
+    "expected an atom with no UTF-8 form to test against"
+  );
+  assert_eq!(atom_utf16_length(&lone), 1);
+
+  let around = Wtf8Atom::from(Wtf8Buf::from_ill_formed_utf16(&[0x0061, 0xD83D, 0x0062]));
+
+  assert_eq!(atom_utf16_length(&around), 3);
+}
+
+/// A paired surrogate is the same two code units whether it arrives as a scalar
+/// or as its halves, so the two readings inside `atom_utf16_length` agree where
+/// they overlap.
+#[test]
+fn atom_utf16_length_agrees_across_both_readings() {
+  let paired = Wtf8Atom::from(Wtf8Buf::from_ill_formed_utf16(&[0xD83D, 0xDE00]));
+
+  assert_eq!(atom_utf16_length(&paired), 2);
+  assert_eq!(atom_utf16_length(&Wtf8Atom::from("\u{1F600}")), 2);
 }
 
 #[test]

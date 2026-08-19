@@ -1,6 +1,10 @@
 use anyhow::anyhow;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
-use stylex_utils::{number::to_js_string, string::wrap_key_in_quotes, swc::get_expr_node_kind};
+use stylex_utils::{
+  number::to_js_string,
+  string::{utf16_length, wrap_key_in_quotes},
+  swc::get_expr_node_kind,
+};
 use swc_core::{
   atoms::{Atom, Wtf8Atom},
   ecma::{
@@ -217,6 +221,25 @@ pub fn expand_shorthand_prop(prop: &mut Box<Prop>) {
       key: convert_string_to_prop_name(ident.sym.as_ref()),
       value: Box::new(Expr::Ident(ident.clone())),
     });
+  }
+}
+
+/// The length of a string literal's value as JavaScript reports it: its count
+/// of UTF-16 code units.
+///
+/// Reads the atom rather than a `String`, because a JavaScript string literal
+/// can hold an unpaired surrogate and no `String` can. `"\uD83D"` is a legal
+/// string of length 1, so `convert_atom_to_string` would abort the build on an
+/// input whose length is the one thing that needs no valid scalar to answer —
+/// and it would abort from inside an evaluation that is allowed to fail.
+///
+/// The valid-UTF-8 path goes through `utf16_length` rather than counting again
+/// here, so a string and its literal cannot end up measured by two conventions
+/// that drifted apart.
+pub fn atom_utf16_length(atom: &Wtf8Atom) -> usize {
+  match atom.as_str() {
+    Some(value) => utf16_length(value),
+    None => atom.to_ill_formed_utf16().count(),
   }
 }
 

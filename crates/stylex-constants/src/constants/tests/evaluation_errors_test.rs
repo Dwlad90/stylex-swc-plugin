@@ -17,6 +17,15 @@ fn test_unsupported_expression() {
 }
 
 #[test]
+fn test_unsupported_property_access() {
+  assert_eq!(
+    unsupported_property_access("toUpperCase"),
+    "Unsupported property access: toUpperCase\nOnly 'length' is read from a string or an array at compile time.\n\n"
+  );
+  assert!(unsupported_property_access("0").contains("access: 0"));
+}
+
+#[test]
 fn test_uncoercible_value() {
   assert_eq!(
     uncoercible_value("String"),

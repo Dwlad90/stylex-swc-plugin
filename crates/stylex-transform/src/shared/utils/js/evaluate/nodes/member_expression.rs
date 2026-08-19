@@ -1,6 +1,17 @@
 use super::super::*;
-use stylex_ast::ast::convertors::{convert_member_prop_to_string, normalize_expr};
+use stylex_ast::ast::convertors::{
+  atom_utf16_length, convert_member_prop_to_string, normalize_expr,
+};
+use stylex_constants::constants::evaluation_errors::unsupported_property_access;
 use swc_core::ecma::ast::MemberExpr;
+
+/// The one property a string or an array answers at compile time.
+///
+/// Named rather than spelled at each of the three sites that test for it —
+/// a string receiver, an array literal, an evaluated array — because the three
+/// have to agree, and a fourth receiver kind added later has one place to read
+/// the answer from.
+const LENGTH: &str = "length";
 
 pub(in super::super) fn evaluate(
   member: &MemberExpr,
@@ -75,6 +86,15 @@ pub(in super::super) fn evaluate(
               deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
             };
 
+            // `length` is the one property of an array that is not an index.
+            // Counted off the literal, so it is the slot count the language
+            // reports — a hole occupies one, and `[, 1].length` is two.
+            if eval_res.as_string_key().as_deref() == Some(LENGTH) {
+              return Some(EvaluateResultValue::Expr(create_number_expr(
+                elems.len() as f64
+              )));
+            }
+
             let EvaluateResultValue::Expr(expr) = eval_res else {
               deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
             };
@@ -92,10 +112,10 @@ pub(in super::super) fn evaluate(
             // object arm below now folds the matching case — a key the object
             // does not carry. This arm is deliberately left answering no value
             // instead, because no StyleX source reaches it: an array binding
-            // evaluates to the `Vec` variant, which `match object` has no arm
-            // for at all, so indexing one refuses at the catch-all below
-            // whether the index is in range or not. Making the two agree is a
-            // matter of teaching `Vec` to be indexed, which is its own scope.
+            // evaluates to the `Vec` variant, whose arm below reads `length`
+            // and nothing else, so indexing one refuses whether the index is
+            // in range or not. Making the two agree is a matter of teaching
+            // `Vec` to be indexed, which is its own scope.
             let property = elems.get(value)?;
 
             // An array hole reads as `undefined`, which this arm does not
@@ -201,8 +221,30 @@ pub(in super::super) fn evaluate(
             traversal_state,
             fns,
           ),
-          Expr::Lit(nested_lit) => {
-            evaluate_cached(&Expr::Lit(nested_lit.clone()), state, traversal_state, fns)
+          // A string answers its length, in the UTF-16 code units the
+          // language counts — `"\u{1F600}a".length` is 3, not 2.
+          //
+          // This arm used to read every literal receiver by re-evaluating it
+          // and dropping the property, so `"abc".length` folded to `"abc"` and
+          // shipped `content: "abc"`. A wrong value is worse than a refusal:
+          // nothing errors, and the stylesheet is simply not what the source
+          // says. Every other property refuses instead, including a numeric
+          // index — the reference implementation folds `"\u{1F600}"[0]` to a
+          // lone surrogate, which no Rust string can hold, so answering it
+          // would be the same class of quietly-wrong value this arm just
+          // stopped producing.
+          Expr::Lit(Lit::Str(strng)) => {
+            let Some(key) = property.as_ref().and_then(|prop| prop.as_string_key()) else {
+              deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+            };
+
+            if key != LENGTH {
+              deopt_unsupported!(path, state, &unsupported_property_access(&key));
+            }
+
+            Some(EvaluateResultValue::Expr(create_number_expr(
+              atom_utf16_length(&strng.value) as f64,
+            )))
           },
           Expr::Ident(nested_ident) => evaluate_cached(
             &Expr::Ident(nested_ident.clone()),
@@ -252,6 +294,34 @@ pub(in super::super) fn evaluate(
             )
             .as_str()
           );
+        },
+        // An array literal evaluates to this variant rather than to an
+        // `ArrayLit`, so it is where `["a", "b"].length` is answered. Only
+        // `length`: an index refuses, which is what it did before this arm
+        // existed, and folding one is the separate scope the array-literal arm
+        // above notes.
+        //
+        // The count comes from the written slots where the receiver is a
+        // literal, and from the evaluated elements otherwise. The two disagree
+        // only for an array carrying a hole, which `array_expression` drops
+        // rather than carrying as a value — so a literal is read from the AST,
+        // and a binding to `[, 1]` still answers one where the language says
+        // two. That gap belongs to how a hole is represented, not to `length`.
+        EvaluateResultValue::Vec(items) => {
+          let Some(key) = property.as_ref().and_then(|prop| prop.as_string_key()) else {
+            deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+          };
+
+          if key != LENGTH {
+            deopt_unsupported!(path, state, &unsupported_property_access(&key));
+          }
+
+          let count = match member.obj.as_array() {
+            Some(ArrayLit { elems, .. }) => elems.len(),
+            None => items.len(),
+          };
+
+          Some(EvaluateResultValue::Expr(create_number_expr(count as f64)))
         },
         EvaluateResultValue::ThemeRef(mut theme_ref) => {
           let key = match property {

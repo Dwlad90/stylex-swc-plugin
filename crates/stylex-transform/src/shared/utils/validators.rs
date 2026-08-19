@@ -633,18 +633,18 @@ pub(crate) fn validate_define_call(
 ///
 /// A string and a number declare something, and `null` declares nothing --
 /// which is an answer, not a failure, so it is accepted here and dropped later.
-/// Every other literal is refused: a boolean and a regular expression are not
-/// absent values, they are unusable ones, and accepting them would silently
-/// drop a declaration the author wrote.
+/// Every other literal is refused: a boolean, a big integer and a regular
+/// expression are not absent values, they are unusable ones, and accepting them
+/// would silently drop a declaration the author wrote.
 ///
-/// A big integer is on the accepted side only because it never reaches this
-/// point -- evaluation deopts on `BigIntLiteral` first -- so listing it keeps
-/// this function from being read as the place that decides about it.
+/// The set is exactly the reference implementation's `val === null ||
+/// typeof val === 'string' || typeof val === 'number'`. A big integer is on the
+/// refused side for that reason rather than because anything reaches here with
+/// one -- evaluation deopts on `BigIntLiteral` first, in every position. Listing
+/// it as allowed would leave this function, which is now the single answer to
+/// what a style value may be, naming a set upstream does not.
 fn is_style_value_literal(lit: &Lit) -> bool {
-  matches!(
-    lit,
-    Lit::Str(_) | Lit::Null(_) | Lit::Num(_) | Lit::BigInt(_)
-  )
+  matches!(lit, Lit::Str(_) | Lit::Null(_) | Lit::Num(_))
 }
 
 /// Refuse a literal that is not a style value, reported at the literal itself.

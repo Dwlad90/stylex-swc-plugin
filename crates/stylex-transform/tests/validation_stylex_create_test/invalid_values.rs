@@ -783,3 +783,88 @@ stylex_test_panic!(
     const styles = stylex.create({ x: { color: { default: /a/, ':hover': 'red' } } });
   "#
 );
+
+// A fallback array holding more than one problem earns the refusal its first
+// problematic entry earns, because the entries are checked in one pass in order.
+// Pinned in both positions, since the two report different messages and share
+// the rule that decides them.
+stylex_test_panic!(
+  a_spread_before_a_boolean_earns_the_array_message,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({ x: { color: [...fallbacks, false] } });
+  "#
+);
+
+stylex_test_panic!(
+  a_boolean_before_a_spread_earns_the_array_message,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({ x: { color: [false, ...fallbacks] } });
+  "#
+);
+
+// A spread is refused as an entry that is not a style value, not as a spread:
+// the entry carries the argument being spread, which is no literal at all. The
+// dedicated spread message in `validate_namespace` is unreachable for that
+// reason, and this is what pins the message an author actually reads.
+stylex_test_panic!(
+  a_lone_spread_is_refused_as_a_non_literal_entry,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({ x: { color: [...fallbacks] } });
+  "#
+);
+
+// A spread of something the evaluator cannot resolve never reaches validation,
+// so it keeps the evaluator's refusal instead.
+stylex_test_panic!(
+  a_spread_of_an_unresolvable_value_refuses_before_validation,
+  "Unsupported expression: ArrayExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: [...unknownThing] } });
+  "#
+);
+
+// The same orderings under a condition, where the shared rule reports the other
+// message.
+stylex_test_panic!(
+  a_spread_under_a_condition_earns_the_plain_message,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({
+      x: { color: { default: [...fallbacks, false], ':hover': 'blue' } },
+    });
+  "#
+);
+
+stylex_test_panic!(
+  a_boolean_before_a_spread_under_a_condition_earns_the_plain_message,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({
+      x: { color: { default: [false, ...fallbacks], ':hover': 'blue' } },
+    });
+  "#
+);

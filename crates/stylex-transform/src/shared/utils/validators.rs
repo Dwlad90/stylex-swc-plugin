@@ -629,6 +629,24 @@ pub(crate) fn validate_define_call(
   top_level_expr
 }
 
+/// Whether a literal is one a style value is allowed to be.
+///
+/// A string and a number declare something, and `null` declares nothing --
+/// which is an answer, not a failure, so it is accepted here and dropped later.
+/// Every other literal is refused: a boolean and a regular expression are not
+/// absent values, they are unusable ones, and accepting them would silently
+/// drop a declaration the author wrote.
+///
+/// A big integer is on the accepted side only because it never reaches this
+/// point -- evaluation deopts on `BigIntLiteral` first -- so listing it keeps
+/// this function from being read as the place that decides about it.
+fn is_style_value_literal(lit: &Lit) -> bool {
+  matches!(
+    lit,
+    Lit::Str(_) | Lit::Null(_) | Lit::Num(_) | Lit::BigInt(_)
+  )
+}
+
 pub(crate) fn validate_namespace(
   namespaces: &[KeyValueProp],
   conditions: &[String],
@@ -636,12 +654,7 @@ pub(crate) fn validate_namespace(
 ) {
   for namespace in namespaces {
     match namespace.value.as_ref() {
-      Expr::Lit(lit)
-        if !matches!(
-          lit,
-          Lit::Str(_) | Lit::Null(_) | Lit::Num(_) | Lit::BigInt(_)
-        ) =>
-      {
+      Expr::Lit(lit) if !is_style_value_literal(lit) => {
         let lit_expr = Expr::Lit(lit.clone());
         build_code_frame_error_and_panic_at(&lit_expr, ILLEGAL_PROP_VALUE, state);
       },
@@ -656,7 +669,7 @@ pub(crate) fn validate_namespace(
             );
           }
 
-          if !matches!(elem.expr.as_ref(), Expr::Lit(_)) {
+          if !matches!(elem.expr.as_ref(), Expr::Lit(lit) if is_style_value_literal(lit)) {
             let array_expr = Expr::Array(array.clone());
             build_code_frame_error_and_panic_at(&array_expr, ILLEGAL_PROP_ARRAY_VALUE, state);
           }
@@ -730,12 +743,22 @@ pub(crate) fn validate_conditional_styles(
     }
   }
 
+  // A value under a condition is the same kind of value as one written
+  // directly, so it is held to the same literal set -- reached through
+  // `is_style_value_literal` rather than restated, because two spellings of
+  // "what a style value may be" are what let a boolean compile in one position
+  // and fail in the other.
   match inner_value.as_ref() {
-    Expr::Lit(_) => {},
+    Expr::Lit(lit) => {
+      if !is_style_value_literal(lit) {
+        let lit_expr = Expr::Lit(lit.clone());
+        build_code_frame_error_and_panic_at(&lit_expr, ILLEGAL_PROP_VALUE, state);
+      }
+    },
     Expr::Array(array) => {
       for elem in array.elems.iter().flatten() {
         match elem.expr.as_ref() {
-          Expr::Lit(_) => {},
+          Expr::Lit(lit) if is_style_value_literal(lit) => {},
           _ => {
             let array_expr = Expr::Array(array.clone());
             build_code_frame_error_and_panic_at(&array_expr, ILLEGAL_PROP_VALUE, state);

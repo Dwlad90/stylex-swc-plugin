@@ -1440,17 +1440,17 @@ impl Aliases {
   pub fn get(name: &str) -> Option<fn(Option<TRawValue>) -> Result<Vec<OrderPair>, String>> {
     match name {
       // @Deprecated
-      "borderHorizontal" => Shorthands::get("borderInline"),
+      "borderHorizontal" => Some(Shorthands::border_inline),
       // @Deprecated
-      "borderVertical" => Shorthands::get("borderBlock"),
+      "borderVertical" => Some(Shorthands::border_block),
       // @Deprecated
-      "borderBlockStart" => Shorthands::get("borderTop"),
+      "borderBlockStart" => Some(Shorthands::border_top),
       // @Deprecated
-      "borderEnd" => Shorthands::get("borderInlineEnd"),
+      "borderEnd" => Some(Shorthands::border_inline_end),
       // @Deprecated
-      "borderBlockEnd" => Shorthands::get("borderBottom"),
+      "borderBlockEnd" => Some(Shorthands::border_bottom),
       // @Deprecated
-      "borderStart" => Shorthands::get("borderInlineStart"),
+      "borderStart" => Some(Shorthands::border_inline_start),
 
       "blockSize" => Some(Aliases::height),
       "inlineSize" => Some(Aliases::width),
@@ -1459,12 +1459,12 @@ impl Aliases {
       "maxBlockSize" => Some(Aliases::max_height),
       "maxInlineSize" => Some(Aliases::max_width),
 
-      "borderHorizontalWidth" => Shorthands::get("borderInlineWidth"),
-      "borderHorizontalStyle" => Shorthands::get("borderInlineStyle"),
-      "borderHorizontalColor" => Shorthands::get("borderInlineColor"),
-      "borderVerticalWidth" => Shorthands::get("borderBlockWidth"),
-      "borderVerticalStyle" => Shorthands::get("borderBlockStyle"),
-      "borderVerticalColor" => Shorthands::get("borderBlockColor"),
+      "borderHorizontalWidth" => Some(Shorthands::border_inline_width),
+      "borderHorizontalStyle" => Some(Shorthands::border_inline_style),
+      "borderHorizontalColor" => Some(Shorthands::border_inline_color),
+      "borderVerticalWidth" => Some(Shorthands::border_block_width),
+      "borderVerticalStyle" => Some(Shorthands::border_block_style),
+      "borderVerticalColor" => Some(Shorthands::border_block_color),
 
       "borderBlockStartColor" => Some(Aliases::border_top_color),
       "borderBlockEndColor" => Some(Aliases::border_bottom_color),
@@ -1472,12 +1472,12 @@ impl Aliases {
       "borderBlockEndStyle" => Some(Aliases::border_bottom_style),
       "borderBlockStartWidth" => Some(Aliases::border_top_width),
       "borderBlockEndWidth" => Some(Aliases::border_bottom_width),
-      "borderStartColor" => Shorthands::get("borderInlineStartColor"),
-      "borderEndColor" => Shorthands::get("borderInlineEndColor"),
-      "borderStartStyle" => Shorthands::get("borderInlineStartStyle"),
-      "borderEndStyle" => Shorthands::get("borderInlineEndStyle"),
-      "borderStartWidth" => Shorthands::get("borderInlineStartWidth"),
-      "borderEndWidth" => Shorthands::get("borderInlineEndWidth"),
+      "borderStartColor" => Some(Shorthands::border_inline_start_color),
+      "borderEndColor" => Some(Shorthands::border_inline_end_color),
+      "borderStartStyle" => Some(Shorthands::border_inline_start_style),
+      "borderEndStyle" => Some(Shorthands::border_inline_end_style),
+      "borderStartWidth" => Some(Shorthands::border_inline_start_width),
+      "borderEndWidth" => Some(Shorthands::border_inline_end_width),
 
       "borderTopStartRadius" => Some(Aliases::border_start_start_radius),
       "borderTopEndRadius" => Some(Aliases::border_start_end_radius),
@@ -1487,34 +1487,34 @@ impl Aliases {
       "containIntrinsicBlockSize" => Some(Aliases::contain_intrinsic_height),
       "containIntrinsicInlineSize" => Some(Aliases::contain_intrinsic_width),
 
-      "gridGap" => Shorthands::get("gap"),
+      "gridGap" => Some(Shorthands::gap),
       "gridRowGap" => Some(Aliases::row_gap),
       "gridColumnGap" => Some(Aliases::column_gap),
 
       "marginBlockStart" => Some(Aliases::margin_top),
       "marginBlockEnd" => Some(Aliases::margin_bottom),
-      "marginStart" => Shorthands::get("marginInlineStart"),
-      "marginEnd" => Shorthands::get("marginInlineEnd"),
-      "marginHorizontal" => Shorthands::get("marginInline"),
-      "marginVertical" => Shorthands::get("marginBlock"),
+      "marginStart" => Some(Shorthands::margin_inline_start),
+      "marginEnd" => Some(Shorthands::margin_inline_end),
+      "marginHorizontal" => Some(Shorthands::margin_inline),
+      "marginVertical" => Some(Shorthands::margin_block),
 
       "overflowBlock" => Some(Aliases::overflow_y),
       "overflowInline" => Some(Aliases::overflow_x),
 
       "paddingBlockStart" => Some(Aliases::padding_top),
       "paddingBlockEnd" => Some(Aliases::padding_bottom),
-      "paddingStart" => Shorthands::get("paddingInlineStart"),
-      "paddingEnd" => Shorthands::get("paddingInlineEnd"),
-      "paddingHorizontal" => Shorthands::get("paddingInline"),
-      "paddingVertical" => Shorthands::get("paddingBlock"),
+      "paddingStart" => Some(Shorthands::padding_inline_start),
+      "paddingEnd" => Some(Shorthands::padding_inline_end),
+      "paddingHorizontal" => Some(Shorthands::padding_inline),
+      "paddingVertical" => Some(Shorthands::padding_block),
 
       "scrollMarginBlockStart" => Some(Aliases::scroll_margin_top),
       "scrollMarginBlockEnd" => Some(Aliases::scroll_margin_bottom),
 
       "insetBlockStart" => Some(Aliases::top),
       "insetBlockEnd" => Some(Aliases::bottom),
-      "start" => Shorthands::get("insetInlineStart"),
-      "end" => Shorthands::get("insetInlineEnd"),
+      "start" => Some(Shorthands::inset_inline_start),
+      "end" => Some(Shorthands::inset_inline_end),
       _ => None,
     }
   }

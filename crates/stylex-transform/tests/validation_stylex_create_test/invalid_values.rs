@@ -489,7 +489,9 @@ stylex_test_panic!(
 // One of the two that diverge: the reference implementation rejects this input
 // with `A style value can only contain an array, string or number.` — a
 // different diagnostic, not a different label. Both compilers reject it, and
-// the spec's non-goals establish that no build can depend on the wording.
+// which of the two diagnostics an author reads is not something a build can
+// depend on. (The spec's non-goals reach the same conclusion, but only for the
+// numeric receiver, so they are not what settles this one.)
 stylex_test_panic!(
   a_property_read_on_a_function_names_the_receiver,
   "Unsupported expression: ArrowFunctionExpression",

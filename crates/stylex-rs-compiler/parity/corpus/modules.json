@@ -86,6 +86,32 @@
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  rejected: {\n    // Every property the property-specificity table refuses. None may\n    // reach the stylesheet; `color` is here so the entry has a verdict to\n    // read rather than agreement about nothing.\n    all: '1px solid red',\n    animation: '1px solid red',\n    background: '1px solid red',\n    border: '1px solid red',\n    borderInline: '1px solid red',\n    borderBlock: '1px solid red',\n    borderTop: '1px solid red',\n    borderInlineEnd: '1px solid red',\n    borderRight: '1px solid red',\n    borderBottom: '1px solid red',\n    borderInlineStart: '1px solid red',\n    borderLeft: '1px solid red',\n    // The deprecated aliases, each an alias *of* one of the above.\n    borderHorizontal: '1px solid red',\n    borderVertical: '1px solid red',\n    borderBlockStart: '1px solid red',\n    borderBlockEnd: '1px solid red',\n    borderStart: '1px solid red',\n    borderEnd: '1px solid red',\n    color: 'red',\n  },\n});\n",
       "origin": "issue #1265, the shorthand rejection table",
       "note": "All eighteen rejected names must declare nothing while `color` survives, so the verdict reads a real pair of declarations rather than an empty one. A regression that lets any shorthand through turns this structurally divergent."
+    },
+    {
+      "id": "modules-null-absent-value",
+      "label": "a `null` style value, in every position that can carry one",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  // A `null` declares nothing, and the property stays in the style object\n  // carrying no class name -- which is what unsets an earlier declaration of\n  // the same property on merge. `backgroundColor: 'red'` is here so the verdict\n  // reads a real declaration beside the absent ones.\n  longhand: { color: null, backgroundColor: 'red' },\n  array: { color: [null] },\n  arrayOfNulls: { color: [null, null, null] },\n  emptyArray: { color: [] },\n  leading: { color: [null, 'red'] },\n  trailing: { color: ['red', null] },\n  betweenVars: { color: ['var(--a)', null, 'var(--b)'] },\n  conditionDefault: { color: { default: null, ':hover': 'red' } },\n  conditionBranch: { color: { default: 'red', ':hover': null } },\n  everyBranch: { color: { default: null, ':hover': null, '@media print': null } },\n  insidePseudo: { ':hover': { color: null } },\n  customProperty: { '--x': null, '--y': 'red' },\n  vendorPrefixed: { WebkitLineClamp: null },\n  numeric: { zIndex: null },\n  content: { content: null },\n  neighbours: { backgroundColor: 'blue', color: [null], borderColor: 'green' },\n});\n",
+      "origin": "issue 10, the positions a `null` reaches",
+      "note": "Every entry must keep its property present and carrying `null`, which only the style-object half of the comparison can see -- an absent value emits no CSS either way. An array carrying only `null` is the one this compiler used to drop the key for, and `emptyArray` is the neighbouring case that legitimately has no key at all; the two must not collapse into one answer."
+    },
+    {
+      "id": "modules-null-absent-shorthand",
+      "label": "a `null` on a shorthand, under the default resolution",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\n// Under the default `property-specificity` resolution `borderTop` is refused as\n// a property, so a `null` on it leaves no key at all. `margin` is not refused\n// and has no expansion there, so it keeps its own. Both answers are about the\n// property table rather than about the value, and the expansion is what decides\n// how many keys an absence lands on.\nexport const styles = stylex.create({\n  refusedShorthand: { borderTop: null },\n  refusedShorthandArray: { borderTop: [null] },\n  unexpandedShorthand: { margin: null },\n  unexpandedShorthandArray: { margin: [null] },\n  survivor: { color: 'red' },\n});\n",
+      "origin": "issue 10, the shorthand positions a `null` reaches"
+    },
+    {
+      "id": "modules-boolean-not-a-style-value",
+      "label": "a boolean style value, where nothing validates it",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\n// `keyframes` and `positionTry` validate no values, so a boolean is dropped\n// there rather than refused -- unlike inside `create`, where it is refused. The\n// refusal cannot be asked here: an entry both compilers throw on carries no\n// verdict beyond `both reject`, and the messages are pinned in the Rust suite\n// instead.\nexport const fade = stylex.keyframes({\n  from: { opacity: false, color: null },\n  to: { opacity: 1 },\n});\n\nexport const fallback = stylex.positionTry({\n  positionAnchor: '--anchor',\n  top: false,\n  left: null,\n});\n",
+      "origin": "issue 10, the calls with no value validator in front of them"
+    },
+    {
+      "id": "modules-null-as-a-whole-condition-value",
+      "label": "a `null` as the whole value of a condition key, which still diverges",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  pseudo: { ':hover': null },\n  atRule: { '@media print': null },\n  survivor: { color: 'red' },\n});\n",
+      "origin": "issue 10, measured while settling what a `null` means",
+      "note": "Structurally divergent, deliberately. Upstream treats the condition key itself as a property name and emits a key hashed from `:hover` carrying `null`; this compiler emits nothing. Neither key can carry CSS, and neither can collide with a real declaration made under the same condition, so reproducing a property named after a pseudo-class would bake a defect in rather than fix one. Filed upstream instead."
     }
   ]
 }

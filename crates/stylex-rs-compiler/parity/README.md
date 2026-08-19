@@ -120,14 +120,16 @@ declaration cannot spell: a `DeclarationEntry` value is a string that goes
 through `JSON.stringify`, so a bare `null` or `false` can only be asked as a
 module.
 
-Nine entries in that set carry a `note`. Five say why they are expected not to
+Ten entries in that set carry a `note`. Five say why they are expected not to
 read `identical`: two where upstream aborts and this compiler does not, one
 where both reject, one where upstream folds an indexed read this compiler
 refuses, and one where upstream reads a condition key as a property name and
 emits a key named after a pseudo-class, which is a defect this compiler is not
-going to reproduce. The other four say why a subject that _is_ identical earns
-its own entry -- one of them because agreement there was the whole point, the
-shorthand rejection table having once diverged.
+going to reproduce. The other five say why a subject that does not read
+`identical` on its own terms still earns an entry -- one because agreement there
+was the whole point, the shorthand rejection table having once diverged, and one
+because a `both reject` records that neither compiler will build an input whose
+answer used to depend on where it was written.
 
 ### Regenerating the harvest
 

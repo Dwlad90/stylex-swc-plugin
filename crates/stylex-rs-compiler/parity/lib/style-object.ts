@@ -74,6 +74,12 @@ function renderStyleObject(node: babel.types.ObjectExpression): string | null {
   for (const property of node.properties) {
     if (property.type !== 'ObjectProperty') return null;
 
+    // A computed key is spelled by an `Identifier` node just as a plain one is,
+    // and the two mean opposite things: `{ [k]: 1 }` names whatever `k` holds,
+    // not a property called `k`. Reading it as the latter would report a shape
+    // the module does not have.
+    if (property.computed) return null;
+
     const key = keyOf(property.key);
     if (key === null) return null;
 

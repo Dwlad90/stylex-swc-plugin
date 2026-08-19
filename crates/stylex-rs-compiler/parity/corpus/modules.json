@@ -103,7 +103,7 @@
     {
       "id": "modules-boolean-not-a-style-value",
       "label": "a boolean style value, where nothing validates it",
-      "source": "import * as stylex from '@stylexjs/stylex';\n\n// `keyframes` and `positionTry` validate no values, so a boolean is dropped\n// there rather than refused -- unlike inside `create`, where it is refused. The\n// refusal cannot be asked here: an entry both compilers throw on carries no\n// verdict beyond `both reject`, and the messages are pinned in the Rust suite\n// instead.\nexport const fade = stylex.keyframes({\n  from: { opacity: false, color: null },\n  to: { opacity: 1 },\n});\n\nexport const fallback = stylex.positionTry({\n  positionAnchor: '--anchor',\n  top: false,\n  left: null,\n});\n",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\n// `keyframes`, `positionTry` and `viewTransitionClass` validate no values, so a\n// boolean is dropped there rather than refused -- unlike inside `create`, which\n// the entry beside this one asks about.\nexport const fade = stylex.keyframes({\n  from: { opacity: false, color: null },\n  to: { opacity: 1 },\n});\n\nexport const fallback = stylex.positionTry({\n  positionAnchor: '--anchor',\n  top: false,\n  left: null,\n});\n\nexport const transition = stylex.viewTransitionClass({\n  group: { color: null, opacity: false },\n  old: { animationName: 'fade' },\n});\n",
       "origin": "issue 10, the calls with no value validator in front of them"
     },
     {
@@ -112,6 +112,13 @@
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  pseudo: { ':hover': null },\n  atRule: { '@media print': null },\n  survivor: { color: 'red' },\n});\n",
       "origin": "issue 10, measured while settling what a `null` means",
       "note": "Structurally divergent, deliberately. Upstream treats the condition key itself as a property name and emits a key hashed from `:hover` carrying `null`; this compiler emits nothing. Neither key can carry CSS, and neither can collide with a real declaration made under the same condition, so reproducing a property named after a pseudo-class would bake a defect in rather than fix one. Filed upstream instead."
+    },
+    {
+      "id": "modules-boolean-refused-inside-create",
+      "label": "a boolean style value inside create, which both compilers refuse",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\n// Both compilers refuse this, so the verdict is `both reject` -- which records\n// that neither will compile it, and is the only verdict a refusal can earn here.\n// Which position the refusal comes from, and what it says, is pinned in the Rust\n// suite: the harness compares outcomes rather than messages, and a boolean is\n// refused from four positions with two different messages between them.\nexport const styles = stylex.create({\n  x: { color: false },\n});\n",
+      "origin": "issue 10, the other half of what a boolean means",
+      "note": "Expected `both reject`. It earns an entry because the answer used to depend on where the boolean was written -- refused directly, compiled and silently dropped under a condition -- and a corpus that only asks the position that already worked would not have caught that."
     }
   ]
 }

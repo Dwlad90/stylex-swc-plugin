@@ -28,7 +28,7 @@ import { parseArgs } from 'node:util';
 
 import chalk from 'chalk';
 
-import { createComparer } from './lib/compare.js';
+import { createComparer, styleObjectsAgree } from './lib/compare.js';
 import { loadCorpus } from './lib/corpus.js';
 import { subjectLabel, subjectText } from './lib/subject.js';
 import type { Report, ReportEntry, Verdict } from './lib/types.js';
@@ -105,10 +105,7 @@ function describe(entry: ReportEntry, side: 'rust' | 'babel'): string {
   // The style objects are printed only when they are what differ. On a value
   // divergence they are noise, and on a divergence that shows in the CSS the
   // declarations above already say it.
-  const other = entry[side === 'rust' ? 'babel' : 'rust'];
-  const styleObjectsDiffer =
-    other.status === 'ok' && other.styleObjects.join(' ') !== outcome.styleObjects.join(' ');
-  if (!styleObjectsDiffer) return declarations;
+  if (styleObjectsAgree(entry.rust, entry.babel)) return declarations;
   const objects = chalk.gray(`style objects: ${outcome.styleObjects.join(' ')}`);
   return declarations === '' ? objects : `${declarations}   ${objects}`;
 }

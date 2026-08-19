@@ -42,6 +42,17 @@ export interface Comparer {
   compare: (entry: LoadedCorpusEntry) => ReportEntry;
 }
 
+/**
+ * What one compiler run produced: the style metadata it collected, and the
+ * module it printed. Both halves are needed because they answer different
+ * questions -- the metadata carries the CSS, and only the printed module carries
+ * the style objects, where an absent value shows.
+ */
+interface CompilerRun {
+  rules: unknown[];
+  emitted: string;
+}
+
 export interface CreateComparerOptions {
   /** Absolute path to the `@stylexswc/rs-compiler` package directory. */
   packageDir: string;
@@ -87,13 +98,13 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
   const filename = path.join(packageDir, 'parity/__fixture__/value.js');
 
   const runRust = (code: string): CompilerOutcome =>
-    outcomeOf(() => {
+    outcomeOf((): CompilerRun => {
       const result = transform(filename, code, stylexOptions);
       return { rules: result.metadata.stylex, emitted: result.code };
     });
 
   const runBabel = (code: string): CompilerOutcome =>
-    outcomeOf(() => {
+    outcomeOf((): CompilerRun => {
       const result = babel.transformSync(code, {
         filename,
         babelrc: false,
@@ -126,7 +137,7 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
   };
 }
 
-function outcomeOf(run: () => { rules: unknown[]; emitted: string }): CompilerOutcome {
+function outcomeOf(run: () => CompilerRun): CompilerOutcome {
   let rules: unknown[];
   let emitted: string;
   try {
@@ -197,8 +208,7 @@ function verdictFor(rust: CompilerOutcome, babelOutcome: CompilerOutcome): Verdi
   // `null` emits no CSS, so without this two compilers that disagree about
   // whether the property exists at all read as identical. See
   // `lib/style-object.ts`.
-  const sameStyleObjects =
-    rust.styleObjects.join(SEPARATOR) === babelOutcome.styleObjects.join(SEPARATOR);
+  const sameStyleObjects = styleObjectsAgree(rust, babelOutcome);
 
   if (sameCss && sameStyleObjects) {
     // Agreement about nothing is not evidence of parity — see `identical-empty`
@@ -224,6 +234,19 @@ function verdictFor(rust: CompilerOutcome, babelOutcome: CompilerOutcome): Verdi
   return propertyNamesOf(rust) === propertyNamesOf(babelOutcome) && sameStyleObjects
     ? 'divergent'
     : 'structurally-divergent';
+}
+
+/**
+ * Whether two outcomes emitted the same style objects.
+ *
+ * Exported because the report needs the same answer the verdict does: it prints
+ * the shapes only when they are what differ, and asking that question a second
+ * way in the printer is how the two would come to disagree. An outcome that
+ * rejected has no shape, so it cannot agree with one that does.
+ */
+export function styleObjectsAgree(left: CompilerOutcome, right: CompilerOutcome): boolean {
+  if (left.status === 'error' || right.status === 'error') return false;
+  return left.styleObjects.join(SEPARATOR) === right.styleObjects.join(SEPARATOR);
 }
 
 /** The emitted property names, sorted, as a comparable key. */

@@ -134,11 +134,18 @@ declaration cannot spell: a `DeclarationEntry` value is a string that goes
 through `JSON.stringify`, so a bare `null` or `false` can only be asked as a
 module.
 
-Six entries in that set carry an `expected` verdict, each with the `note` that
-says why: two where upstream aborts and this compiler does not, two where both
-reject, one where upstream folds an indexed read this compiler refuses, and one
-where upstream reads a condition key as a property name and emits a key named
-after a pseudo-class, which is a defect this compiler is not going to reproduce.
+Most entries in that set carry an `expected` verdict, each with the `note` that
+says why: some where upstream aborts and this compiler does not, some where
+both reject, one where upstream folds an indexed read this compiler refuses,
+one where upstream reads a condition key as a property name and emits a key
+named after a pseudo-class (a defect this compiler is not going to
+reproduce), and the
+shadowing shapes from
+[#1266](https://github.com/Dwlad90/stylex-swc-plugin/issues/1266), which record
+`identical` so a regression in binding-aware import resolution reports as a
+changed verdict rather than as silence. The count is deliberately not written
+here -- it went stale twice.
+
 Other entries carry a `note` without an expectation, saying why a subject that
 reads `identical` still earns one -- the shorthand rejection table having once
 diverged, for instance.

@@ -623,7 +623,7 @@ stylex_test!(
 );
 
 stylex_test!(
-  a_theme_import_read_as_a_computed_key_beside_a_shadowing_param,
+  a_theme_import_read_as_a_computed_key_beside_a_dynamic_param,
   |tr| shadowing_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';

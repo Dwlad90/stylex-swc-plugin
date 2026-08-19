@@ -997,21 +997,34 @@ mod assign_props_tests {
 
 mod get_import_from_tests {
   use super::*;
-  use swc_core::atoms::Wtf8Atom;
   use swc_core::ecma::ast::{
     Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportSpecifier,
     ImportStarAsSpecifier, ModuleExportName,
   };
 
-  fn make_named_import(local: &str, source: &str) -> ImportDecl {
+  /// An identifier at a given syntax context. Zero is the context every ident
+  /// the parser produces carries before the resolver runs, so it doubles as
+  /// "context does not matter to this test"; anything else is a distinct scope.
+  ///
+  /// `SyntaxContext::from_u32` rather than `apply_mark`, which would need
+  /// `GLOBALS` installed for what is only "some other context than that one".
+  fn ident_at(name: &str, ctxt: u32) -> Ident {
+    Ident {
+      span: DUMMY_SP,
+      ctxt: SyntaxContext::from_u32(ctxt),
+      sym: name.into(),
+      optional: false,
+    }
+  }
+
+  /// One import declaration over the specifiers handed in. Every case here is
+  /// some choice of source and specifier list, so they share one builder --
+  /// otherwise a case that needs a shape no helper covers grows a fifteen-line
+  /// literal of its own and the shapes stop being comparable at a glance.
+  fn import_from(source: &str, specifiers: Vec<ImportSpecifier>) -> ImportDecl {
     ImportDecl {
       span: DUMMY_SP,
-      specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
-        span: DUMMY_SP,
-        local: create_ident(local),
-        imported: None,
-        is_type_only: false,
-      })],
+      specifiers,
       src: Box::new(Str {
         span: DUMMY_SP,
         value: source.into(),
@@ -1023,60 +1036,61 @@ mod get_import_from_tests {
     }
   }
 
-  fn make_default_import(local: &str, source: &str) -> ImportDecl {
-    ImportDecl {
+  /// `import { local }` -- the specifier whose comparison #1266 was about.
+  fn named(local: &str, ctxt: u32) -> ImportSpecifier {
+    ImportSpecifier::Named(ImportNamedSpecifier {
       span: DUMMY_SP,
-      specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
-        span: DUMMY_SP,
-        local: create_ident(local),
-      })],
-      src: Box::new(Str {
-        span: DUMMY_SP,
-        value: source.into(),
-        raw: None,
-      }),
-      type_only: false,
-      with: None,
-      phase: Default::default(),
-    }
+      local: ident_at(local, ctxt),
+      imported: None,
+      is_type_only: false,
+    })
   }
 
-  fn make_namespace_import(local: &str, source: &str) -> ImportDecl {
-    ImportDecl {
+  /// `import { imported as local }`.
+  fn aliased(local: &str, imported: &str, ctxt: u32) -> ImportSpecifier {
+    ImportSpecifier::Named(ImportNamedSpecifier {
       span: DUMMY_SP,
-      specifiers: vec![ImportSpecifier::Namespace(ImportStarAsSpecifier {
-        span: DUMMY_SP,
-        local: create_ident(local),
-      })],
-      src: Box::new(Str {
-        span: DUMMY_SP,
-        value: source.into(),
-        raw: None,
-      }),
-      type_only: false,
-      with: None,
-      phase: Default::default(),
-    }
+      local: ident_at(local, ctxt),
+      imported: Some(ModuleExportName::Ident(ident_at(imported, ctxt))),
+      is_type_only: false,
+    })
   }
 
-  fn make_renamed_import(local: &str, imported: &str, source: &str) -> ImportDecl {
-    ImportDecl {
+  /// `import { "imported" as local }`, whose imported name need not be a legal
+  /// identifier.
+  fn str_named(local: &str, imported: &str, ctxt: u32) -> ImportSpecifier {
+    ImportSpecifier::Named(ImportNamedSpecifier {
       span: DUMMY_SP,
-      specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
+      local: ident_at(local, ctxt),
+      imported: Some(ModuleExportName::Str(Str {
         span: DUMMY_SP,
-        local: create_ident(local),
-        imported: Some(ModuleExportName::Ident(create_ident(imported))),
-        is_type_only: false,
-      })],
-      src: Box::new(Str {
-        span: DUMMY_SP,
-        value: source.into(),
+        value: imported.into(),
         raw: None,
-      }),
-      type_only: false,
-      with: None,
-      phase: Default::default(),
-    }
+      })),
+      is_type_only: false,
+    })
+  }
+
+  /// `import local from` and `import * as local from`.
+  fn default_of(local: &str, ctxt: u32) -> ImportSpecifier {
+    ImportSpecifier::Default(ImportDefaultSpecifier {
+      span: DUMMY_SP,
+      local: ident_at(local, ctxt),
+    })
+  }
+
+  fn namespace_of(local: &str, ctxt: u32) -> ImportSpecifier {
+    ImportSpecifier::Namespace(ImportStarAsSpecifier {
+      span: DUMMY_SP,
+      local: ident_at(local, ctxt),
+    })
+  }
+
+  /// The source a lookup answered with, as authored text. Reads the atom
+  /// directly rather than comparing `Debug` renderings, which would pass for the
+  /// wrong reason the moment the atom's formatting changes.
+  fn source_of(import: Option<&ImportDecl>) -> Option<&str> {
+    import.and_then(|import| import.src.value.as_str())
   }
 
   #[test]
@@ -1084,7 +1098,7 @@ mod get_import_from_tests {
     let mut state = StateManager::default();
     state
       .top_imports
-      .push(make_named_import("stylex", "@stylexjs/stylex"));
+      .push(import_from("@stylexjs/stylex", vec![named("stylex", 0)]));
     let ident = create_ident("stylex");
     let result = get_import_from(&state, &ident);
     assert!(result.is_some());
@@ -1101,9 +1115,10 @@ mod get_import_from_tests {
   #[test]
   fn finds_default_import() {
     let mut state = StateManager::default();
-    state
-      .top_imports
-      .push(make_default_import("stylex", "@stylexjs/stylex"));
+    state.top_imports.push(import_from(
+      "@stylexjs/stylex",
+      vec![default_of("stylex", 0)],
+    ));
     let ident = create_ident("stylex");
     let result = get_import_from(&state, &ident);
     assert!(result.is_some());
@@ -1114,7 +1129,7 @@ mod get_import_from_tests {
     let mut state = StateManager::default();
     state
       .top_imports
-      .push(make_namespace_import("ns", "module"));
+      .push(import_from("module", vec![namespace_of("ns", 0)]));
     let ident = create_ident("ns");
     let result = get_import_from(&state, &ident);
     assert!(result.is_some());
@@ -1123,10 +1138,9 @@ mod get_import_from_tests {
   #[test]
   fn finds_renamed_import_by_original_name() {
     let mut state = StateManager::default();
-    state.top_imports.push(make_renamed_import(
-      "localName",
-      "create",
+    state.top_imports.push(import_from(
       "@stylexjs/stylex",
+      vec![aliased("localName", "create", 0)],
     ));
     let ident = create_ident("create");
     let result = get_import_from(&state, &ident);
@@ -1136,10 +1150,9 @@ mod get_import_from_tests {
   #[test]
   fn finds_renamed_import_by_local_name() {
     let mut state = StateManager::default();
-    state.top_imports.push(make_renamed_import(
-      "localName",
-      "create",
+    state.top_imports.push(import_from(
       "@stylexjs/stylex",
+      vec![aliased("localName", "create", 0)],
     ));
     let ident = create_ident("localName");
     let result = get_import_from(&state, &ident);
@@ -1151,7 +1164,7 @@ mod get_import_from_tests {
     let mut state = StateManager::default();
     state
       .top_imports
-      .push(make_named_import("stylex", "@stylexjs/stylex"));
+      .push(import_from("@stylexjs/stylex", vec![named("stylex", 0)]));
     let ident = create_ident("wrongName");
     let result = get_import_from(&state, &ident);
     assert!(result.is_none());
@@ -1159,29 +1172,11 @@ mod get_import_from_tests {
 
   #[test]
   fn finds_str_imported_name() {
-    let import = ImportDecl {
-      span: DUMMY_SP,
-      specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
-        span: DUMMY_SP,
-        local: create_ident("localName"),
-        imported: Some(ModuleExportName::Str(Str {
-          span: DUMMY_SP,
-          value: "strExport".into(),
-          raw: None,
-        })),
-        is_type_only: false,
-      })],
-      src: Box::new(Str {
-        span: DUMMY_SP,
-        value: "module".into(),
-        raw: None,
-      }),
-      type_only: false,
-      with: None,
-      phase: Default::default(),
-    };
     let mut state = StateManager::default();
-    state.top_imports.push(import);
+    state.top_imports.push(import_from(
+      "module",
+      vec![str_named("localName", "strExport", 0)],
+    ));
     let ident = create_ident("strExport");
     let result = get_import_from(&state, &ident);
     assert!(result.is_some());
@@ -1197,44 +1192,12 @@ mod get_import_from_tests {
   // whole module to ask it.
   // ──────────────────────────────────────────────
 
-  /// A distinct, non-root context. `SyntaxContext::from_u32` rather than
-  /// `apply_mark`, which would need `GLOBALS` installed for what is only "some
-  /// other context than that one".
-  fn ident_at(name: &str, ctxt: u32) -> Ident {
-    Ident {
-      span: DUMMY_SP,
-      ctxt: SyntaxContext::from_u32(ctxt),
-      sym: name.into(),
-      optional: false,
-    }
-  }
-
-  fn make_named_import_at(local: &str, ctxt: u32, source: &str) -> ImportDecl {
-    ImportDecl {
-      span: DUMMY_SP,
-      specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
-        span: DUMMY_SP,
-        local: ident_at(local, ctxt),
-        imported: None,
-        is_type_only: false,
-      })],
-      src: Box::new(Str {
-        span: DUMMY_SP,
-        value: source.into(),
-        raw: None,
-      }),
-      type_only: false,
-      with: None,
-      phase: Default::default(),
-    }
-  }
-
   #[test]
   fn does_not_match_a_named_import_shadowed_by_another_binding() {
     let mut state = StateManager::default();
     state
       .top_imports
-      .push(make_named_import_at("zIndex", 1, "zIndex.stylex.js"));
+      .push(import_from("zIndex.stylex.js", vec![named("zIndex", 1)]));
 
     // The arrow parameter in `(zIndex) => ({ zIndex })`: same symbol, its own
     // context. Resolving it to the import is #1266.
@@ -1248,7 +1211,7 @@ mod get_import_from_tests {
     let mut state = StateManager::default();
     state
       .top_imports
-      .push(make_named_import_at("zIndex", 1, "zIndex.stylex.js"));
+      .push(import_from("zIndex.stylex.js", vec![named("zIndex", 1)]));
 
     // The other half of the same question: a genuine reference to the import
     // still resolves. A fix that answered `None` for everything would pass the
@@ -1259,23 +1222,10 @@ mod get_import_from_tests {
   #[test]
   fn does_not_match_an_aliased_import_shadowed_by_another_binding() {
     let mut state = StateManager::default();
-    state.top_imports.push(ImportDecl {
-      span: DUMMY_SP,
-      specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
-        span: DUMMY_SP,
-        local: ident_at("zi", 1),
-        imported: Some(ModuleExportName::Ident(ident_at("zIndex", 1))),
-        is_type_only: false,
-      })],
-      src: Box::new(Str {
-        span: DUMMY_SP,
-        value: "zIndex.stylex.js".into(),
-        raw: None,
-      }),
-      type_only: false,
-      with: None,
-      phase: Default::default(),
-    });
+    state.top_imports.push(import_from(
+      "zIndex.stylex.js",
+      vec![aliased("zi", "zIndex", 1)],
+    ));
 
     // `import { zIndex as zi }` shadowed by a parameter `zi`, which failed
     // identically to the unaliased shape.
@@ -1287,50 +1237,28 @@ mod get_import_from_tests {
     let mut state = StateManager::default();
     state
       .top_imports
-      .push(make_named_import_at("shadowed", 1, "first.stylex.js"));
+      .push(import_from("first.stylex.js", vec![named("shadowed", 1)]));
     state
       .top_imports
-      .push(make_named_import_at("shadowed", 2, "second.stylex.js"));
+      .push(import_from("second.stylex.js", vec![named("shadowed", 2)]));
 
     // Two declarations cannot bind one name in valid source, but the lookup
     // scans a flat list and must not answer by position.
     let reference = ident_at("shadowed", 2);
-    let found = get_import_from(&state, &reference);
 
     assert_eq!(
-      found.map(|import| format!("{:?}", import.src.value)),
-      Some(format!("{:?}", Wtf8Atom::from("second.stylex.js")))
+      source_of(get_import_from(&state, &reference)),
+      Some("second.stylex.js")
     );
   }
 
   #[test]
   fn matches_one_specifier_of_a_declaration_without_matching_its_siblings() {
     let mut state = StateManager::default();
-    state.top_imports.push(ImportDecl {
-      span: DUMMY_SP,
-      specifiers: vec![
-        ImportSpecifier::Named(ImportNamedSpecifier {
-          span: DUMMY_SP,
-          local: ident_at("spacing", 1),
-          imported: None,
-          is_type_only: false,
-        }),
-        ImportSpecifier::Named(ImportNamedSpecifier {
-          span: DUMMY_SP,
-          local: ident_at("zIndex", 1),
-          imported: None,
-          is_type_only: false,
-        }),
-      ],
-      src: Box::new(Str {
-        span: DUMMY_SP,
-        value: "tokens.stylex.js".into(),
-        raw: None,
-      }),
-      type_only: false,
-      with: None,
-      phase: Default::default(),
-    });
+    state.top_imports.push(import_from(
+      "tokens.stylex.js",
+      vec![named("spacing", 1), named("zIndex", 1)],
+    ));
 
     // The answer is per declaration, but the match is per specifier: a
     // declaration that binds a live `spacing` does not thereby answer for a
@@ -1346,36 +1274,13 @@ mod get_import_from_tests {
   #[test]
   fn a_shadowed_default_or_namespace_import_was_already_context_aware() {
     let mut state = StateManager::default();
-    state.top_imports.push(ImportDecl {
-      span: DUMMY_SP,
-      specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
-        span: DUMMY_SP,
-        local: ident_at("theme", 1),
-      })],
-      src: Box::new(Str {
-        span: DUMMY_SP,
-        value: "theme.stylex.js".into(),
-        raw: None,
-      }),
-      type_only: false,
-      with: None,
-      phase: Default::default(),
-    });
-    state.top_imports.push(ImportDecl {
-      span: DUMMY_SP,
-      specifiers: vec![ImportSpecifier::Namespace(ImportStarAsSpecifier {
-        span: DUMMY_SP,
-        local: ident_at("tokens", 1),
-      })],
-      src: Box::new(Str {
-        span: DUMMY_SP,
-        value: "tokens.stylex.js".into(),
-        raw: None,
-      }),
-      type_only: false,
-      with: None,
-      phase: Default::default(),
-    });
+    state
+      .top_imports
+      .push(import_from("theme.stylex.js", vec![default_of("theme", 1)]));
+    state.top_imports.push(import_from(
+      "tokens.stylex.js",
+      vec![namespace_of("tokens", 1)],
+    ));
 
     // The two arms the named one now matches. Pinned so a later edit cannot
     // regress all three to a name match at once.
@@ -1388,48 +1293,34 @@ mod get_import_from_tests {
   #[test]
   fn a_string_named_specifier_still_matches_across_contexts() {
     let mut state = StateManager::default();
-    state.top_imports.push(ImportDecl {
-      span: DUMMY_SP,
-      specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
-        span: DUMMY_SP,
-        local: ident_at("spacing", 1),
-        imported: Some(ModuleExportName::Str(Str {
-          span: DUMMY_SP,
-          value: "spacing-lg".into(),
-          raw: None,
-        })),
-        is_type_only: false,
-      })],
-      src: Box::new(Str {
-        span: DUMMY_SP,
-        value: "tokens.stylex.js".into(),
-        raw: None,
-      }),
-      type_only: false,
-      with: None,
-      phase: Default::default(),
-    });
+    state.top_imports.push(import_from(
+      "tokens.stylex.js",
+      vec![str_named("spacing", "spacing-lg", 1)],
+    ));
 
     // The imported-*name* fallback beside the local match compares symbols
     // only, so it still answers for a name no scope binds. Recorded as the
-    // baseline for the ticket that deletes it, not as behaviour worth keeping:
-    // `spacing-lg` is not a legal identifier, so no reference can reach this
-    // except through a string-named specifier.
+    // baseline for ticket 07 of this effort, which deletes that fallback -- not
+    // as behaviour worth keeping: `spacing-lg` is not a legal identifier, so no
+    // reference can reach this except through a string-named specifier.
     assert!(get_import_from(&state, &ident_at("spacing-lg", 9)).is_some());
   }
 
   #[test]
-  fn an_escaped_or_non_ascii_local_name_matches_by_binding_too() {
+  fn a_non_ascii_local_name_matches_by_binding_too() {
     let mut state = StateManager::default();
-    // `\u007A\u0049ndex` is `zIndex`, and `zÍndex` is a different identifier
-    // that happens to look like it. The lookup compares atoms, so the escape is
-    // already folded by the lexer and the look-alike must not match.
+    // `zÍndex` is a different identifier that merely looks like `zIndex`, and
+    // the lookup compares interned atoms, so it must not match one for the
+    // other. A unicode-escaped spelling needs no case of its own here: the
+    // lexer folds `\u007AIndex` to the atom `zIndex` long before this, so at
+    // this seam the two spellings are one value. The escape is exercised where
+    // it can still differ -- as authored source, in the parity corpus.
     state
       .top_imports
-      .push(make_named_import_at("zIndex", 1, "zIndex.stylex.js"));
+      .push(import_from("zIndex.stylex.js", vec![named("zIndex", 1)]));
     state
       .top_imports
-      .push(make_named_import_at("zÍndex", 1, "accented.stylex.js"));
+      .push(import_from("accented.stylex.js", vec![named("zÍndex", 1)]));
 
     assert!(get_import_from(&state, &ident_at("zIndex", 1)).is_some());
     assert!(get_import_from(&state, &ident_at("zÍndex", 1)).is_some());
@@ -1439,18 +1330,9 @@ mod get_import_from_tests {
   #[test]
   fn an_empty_import_declaration_answers_for_nothing() {
     let mut state = StateManager::default();
-    state.top_imports.push(ImportDecl {
-      span: DUMMY_SP,
-      specifiers: vec![],
-      src: Box::new(Str {
-        span: DUMMY_SP,
-        value: "side-effect.css".into(),
-        raw: None,
-      }),
-      type_only: false,
-      with: None,
-      phase: Default::default(),
-    });
+    state
+      .top_imports
+      .push(import_from("side-effect.css", vec![]));
 
     // `import './side-effect.css'` binds no name at all. `Iterator::any` over
     // no specifiers is `false`, which is the answer -- pinned because a

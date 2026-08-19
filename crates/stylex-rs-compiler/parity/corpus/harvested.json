@@ -105,6 +105,12 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/non_ascii_hash_parity.rs:50"
     },
     {
+      "id": "61902655",
+      "property": "all",
+      "value": "unset",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:144"
+    },
+    {
       "id": "2b1b3854",
       "property": "alternate",
       "value": "16px",
@@ -162,7 +168,7 @@
       "id": "fdd753cc",
       "property": "backgroundColor",
       "value": "blue",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:5"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:22"
     },
     {
       "id": "e0fcb723",
@@ -552,7 +558,7 @@
       "id": "83c0cb70",
       "property": "borderBottom",
       "value": "5px solid blue",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:173"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:197"
     },
     {
       "id": "14e72494",
@@ -597,6 +603,18 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/static_styles.rs:168"
     },
     {
+      "id": "2695fccb",
+      "property": "borderEnd",
+      "value": "1px solid red",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:171"
+    },
+    {
+      "id": "ae3042c8",
+      "property": "borderHorizontal",
+      "value": "1px solid red",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:171"
+    },
+    {
       "id": "54e521ca",
       "property": "borderImage",
       "value": "url(./img.jpg) 30 space",
@@ -607,6 +625,12 @@
       "property": "borderInline",
       "value": "1px solid red",
       "origin": "crates/stylex-transform/tests/validation_stylex_create_test/invalid_properties.rs:88"
+    },
+    {
+      "id": "41dee243",
+      "property": "borderInline",
+      "value": "2px dashed blue",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:308"
     },
     {
       "id": "392ec812",
@@ -636,7 +660,7 @@
       "id": "a034618e",
       "property": "borderLeft",
       "value": "5px solid blue",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:173"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:197"
     },
     {
       "id": "136631b4",
@@ -654,7 +678,13 @@
       "id": "a842aee1",
       "property": "borderRight",
       "value": "5px solid blue",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:173"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:197"
+    },
+    {
+      "id": "27c1a6b2",
+      "property": "borderStart",
+      "value": "1px solid red",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:171"
     },
     {
       "id": "3fd7ccea",
@@ -681,16 +711,64 @@
       "origin": "crates/stylex-transform/tests/validation_stylex_create_test/invalid_properties.rs:138"
     },
     {
+      "id": "f80e5b0c",
+      "property": "borderTop",
+      "value": "1px solid red !important",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:288"
+    },
+    {
+      "id": "07c9e146",
+      "property": "borderTop",
+      "value": "1px solid red /* ✓ */",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:288"
+    },
+    {
       "id": "c4c56146",
       "property": "borderTop",
       "value": "5px solid blue",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:173"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:197"
+    },
+    {
+      "id": "156eb614",
+      "property": "borderTop",
+      "value": "calc((1px + 2px)",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:288"
     },
     {
       "id": "fddca2b8",
       "property": "borderTop",
       "value": "none",
-      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/logical_operators.rs:329"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/logical_operators.rs:330"
+    },
+    {
+      "id": "fba22abf",
+      "property": "borderTop",
+      "value": "url(\"unterminated",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:288"
+    },
+    {
+      "id": "a0dd262a",
+      "property": "borderTopColor",
+      "value": "red",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:268"
+    },
+    {
+      "id": "a85dd2f0",
+      "property": "borderTopStyle",
+      "value": "solid",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:268"
+    },
+    {
+      "id": "eac31f05",
+      "property": "borderTopWidth",
+      "value": "1px",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:268"
+    },
+    {
+      "id": "64f8bfd6",
+      "property": "borderVertical",
+      "value": "1px solid red",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/property_validation_mode_test.rs:171"
     },
     {
       "id": "9eca5213",
@@ -1038,7 +1116,7 @@
       "id": "8e5c4994",
       "property": "color",
       "value": "blue",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:189"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:214"
     },
     {
       "id": "02f8a8ee",
@@ -2832,7 +2910,7 @@
       "id": "00f2d028",
       "property": "margin",
       "value": "max(0px, (48px - var(--x16dnrjz)) / 2)",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/keep_stylex_create_when_needed.rs:21"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/keep_stylex_create_when_needed.rs:39"
     },
     {
       "id": "4c562365",

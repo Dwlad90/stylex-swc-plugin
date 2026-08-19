@@ -319,10 +319,11 @@ stylex_test!(
 // place. Nothing about the seam changes, which is the point of pinning it —
 // the fold is refused wherever the unfoldable node is found.
 //
-// `borderTop: none` is emitted here and dropped by
-// `@stylexjs/babel-plugin@0.19.0`. That divergence predates this issue, is
-// about shorthand handling rather than about evaluation, and is tracked on its
-// own; the condition and the `display` rule are what this test is about.
+// `borderTop: none` declares nothing: under the default
+// `property-specificity` resolution the shorthand is rejected, and the default
+// `propertyValidationMode: silent` drops it without a word. Only the `display`
+// rule reaches the stylesheet, which is what `@stylexjs/babel-plugin@0.19.0`
+// emits for this module too.
 stylex_test!(
   a_runtime_condition_reached_through_a_binding_survives,
   |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),

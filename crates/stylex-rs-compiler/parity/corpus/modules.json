@@ -19,7 +19,7 @@
       "label": "an unfoldable operand reached through a binding",
       "source": "import * as stylex from \"@stylexjs/stylex\";\n\nconst styles = stylex.create({\n  base: { display: \"block\" },\n  alternate: { borderTop: \"none\" },\n});\n\nexport function Component({ query }) {\n  const lowerQuery = query.toLowerCase();\n  const showAlternate =\n    query.length > 0 && \"documentation\".startsWith(lowerQuery);\n\n  return (\n    <section sx={[styles.base, showAlternate && styles.alternate]} />\n  );\n}\n",
       "origin": "issue #1265, the reporter's fuller module",
-      "note": "Structurally divergent, and not about evaluation: `borderTop: none` is emitted here and dropped upstream. Tracked on its own. The `display` rule and the surviving condition are what this entry is about."
+      "note": "`borderTop: none` declares nothing in either compiler: `property-specificity` rejects the shorthand and `propertyValidationMode: silent` drops it. The `display` rule and the surviving condition are what this entry is about."
     },
     {
       "id": "modules-1265-call-shapes",

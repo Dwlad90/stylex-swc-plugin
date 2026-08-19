@@ -99,6 +99,105 @@
       "value": "-10000px",
       "origin": "issue #1256, symptom 6",
       "note": "Already fixed on this branch by a restoration pass; must stay fixed."
+    },
+    {
+      "id": "reported-shorthand-border",
+      "property": "border",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table",
+      "note": "The only rejecting border shorthand spelled as one lowercase word, so it was the only one the property-specificity table matched."
+    },
+    {
+      "id": "reported-shorthand-border-top",
+      "property": "borderTop",
+      "value": "none",
+      "origin": "issue #1265, the shorthand rejection table",
+      "note": "issue #1265's module: emitted as `border-top:none` here, declared nothing upstream. The rejection table was keyed by snake_case."
+    },
+    {
+      "id": "reported-shorthand-border-inline",
+      "property": "borderInline",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table"
+    },
+    {
+      "id": "reported-shorthand-border-block",
+      "property": "borderBlock",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table"
+    },
+    {
+      "id": "reported-shorthand-border-right",
+      "property": "borderRight",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table"
+    },
+    {
+      "id": "reported-shorthand-border-bottom",
+      "property": "borderBottom",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table"
+    },
+    {
+      "id": "reported-shorthand-border-left",
+      "property": "borderLeft",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table"
+    },
+    {
+      "id": "reported-shorthand-border-inline-start",
+      "property": "borderInlineStart",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table"
+    },
+    {
+      "id": "reported-shorthand-border-inline-end",
+      "property": "borderInlineEnd",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table"
+    },
+    {
+      "id": "reported-shorthand-all",
+      "property": "all",
+      "value": "unset",
+      "origin": "issue #1265, the shorthand rejection table"
+    },
+    {
+      "id": "reported-alias-border-horizontal",
+      "property": "borderHorizontal",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table",
+      "note": "A deprecated alias of `borderInline`, so it must answer that shorthand's rejection."
+    },
+    {
+      "id": "reported-alias-border-vertical",
+      "property": "borderVertical",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table"
+    },
+    {
+      "id": "reported-alias-border-block-start",
+      "property": "borderBlockStart",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table"
+    },
+    {
+      "id": "reported-alias-border-block-end",
+      "property": "borderBlockEnd",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table"
+    },
+    {
+      "id": "reported-alias-border-start",
+      "property": "borderStart",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table"
+    },
+    {
+      "id": "reported-alias-border-end",
+      "property": "borderEnd",
+      "value": "1px solid red",
+      "origin": "issue #1265, the shorthand rejection table"
     }
   ]
 }

@@ -118,17 +118,24 @@ pub(crate) fn flatten_raw_style_object_logic(
           if let Some(property) = each_val {
             match property.expr.as_ref() {
               // `null` is the one element that contributes nothing without
-              // making the array itself wrong: it drops, and the entries
-              // around it keep their order and their place in the chain.
-              Expr::Lit(Lit::Null(_)) => {},
+              // making the array itself wrong: it carries no value, and the
+              // entries around it keep their order and their place in the
+              // chain.
+              //
+              // It still expands, and the properties it expands to are still
+              // registered -- with nothing pushed onto them. That is what makes
+              // an array holding only `null` declare an absent value for each
+              // of those properties instead of vanishing: the entry exists with
+              // an empty value list, and the loop below turns exactly that into
+              // a `NullPreRule`. Skipping the expansion here would leave no
+              // entry at all, and the property would be missing from the style
+              // object rather than present and unset.
+              //
               // A string and a number are the only values a declaration in a
-              // fallback chain can carry. A boolean, a big integer and a
-              // regular expression are literals all the same, so they reach
-              // here and are refused by what they are rather than passed on to
-              // spell nothing -- which would drop a fallback the author wrote
-              // and leave the remaining chain hashed as though it were the
-              // whole of it.
-              Expr::Lit(property_lit @ (Lit::Str(_) | Lit::Num(_))) => {
+              // fallback chain can carry. Every other literal is refused by the
+              // value validator before reaching here; the arm below is what
+              // holds if a caller ever reaches this function without it.
+              Expr::Lit(property_lit @ (Lit::Str(_) | Lit::Num(_) | Lit::Null(_))) => {
                 let pairs = flat_map_expanded_shorthands(
                   (
                     css_property_key.clone(),
@@ -143,11 +150,10 @@ pub(crate) fn flatten_raw_style_object_logic(
                 for OrderPair(property, val) in pairs.iter() {
                   let property = property.to_string();
 
+                  let values = equivalent_pairs.entry(property).or_default();
+
                   if let Some(val) = val {
-                    equivalent_pairs
-                      .entry(property)
-                      .or_default()
-                      .push(val.clone());
+                    values.push(val.clone());
                   }
                 }
               },

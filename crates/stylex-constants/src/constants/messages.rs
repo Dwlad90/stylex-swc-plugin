@@ -137,7 +137,29 @@ pub static INVALID_MEDIA_QUERY_SYNTAX: &str = "Invalid media query syntax.";
 pub static SPREAD_NOT_SUPPORTED: &str =
   "The spread operator (...) is not supported in this context. Declare each property explicitly.";
 
-pub static SPREAD_MUST_BE_OBJECT: &str = "The spread argument must be a static object expression.";
+/// A spread whose operand the evaluator cannot read the own properties of.
+///
+/// Not "must be an object": spreading a non-object is ordinary JavaScript and
+/// folds, contributing the own enumerable properties the value has -- none for a
+/// number, its indices for a string or an array. What is refused is narrower and
+/// is what this says: an operand whose properties cannot be read at compile
+/// time, which is an astral string (its code units are lone surrogates no Rust
+/// string holds), an array carrying a hole (dropped before it becomes a value,
+/// so the keys after it would shift), and a value the evaluator holds in a
+/// representation of its own.
+pub static SPREAD_PROPERTIES_UNREADABLE: &str =
+  "The spread argument's properties could not be read at compile time.";
+
+/// A property was looked up on an object literal carrying a spread.
+///
+/// A separate complaint from [`SPREAD_PROPERTIES_UNREADABLE`], and the reason
+/// the two are not one constant: nothing here failed to read a value. The
+/// spread's own keys are simply unknown, so a key that is not among the
+/// literal ones cannot be called absent -- and answering `undefined` for it,
+/// which is what this lookup does for a key an object genuinely lacks, would be
+/// answering a question the object has not settled.
+pub static SPREAD_HIDES_OBJECT_KEYS: &str =
+  "A spread in this object leaves its keys unknown at compile time.";
 
 pub static EXPRESSION_IS_NOT_A_STRING: &str =
   "Expected a string value but received a non-string expression.";

@@ -4,8 +4,6 @@ use stylex_structures::{order_pair::OrderPair, raw_value::TRawValue};
 pub struct Shorthands;
 
 impl Shorthands {
-  #[allow(dead_code)]
-  #[cfg_attr(coverage_nightly, coverage(off))]
   fn all(_: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Err("all is not supported".into())
   }
@@ -71,19 +69,23 @@ impl Shorthands {
     ))
   }
 
+  // Keyed by the property name an author writes, which is camelCase. A
+  // snake_case key here matches nothing and lets the shorthand through to the
+  // stylesheet, which is the specificity hole this table exists to close.
   pub fn get(name: &str) -> Option<fn(Option<TRawValue>) -> Result<Vec<OrderPair>, String>> {
     match name {
+      "all" => Some(Shorthands::all),
       "animation" => Some(Shorthands::animation),
       "background" => Some(Shorthands::background),
       "border" => Some(Shorthands::border),
-      "border_inline" => Some(Shorthands::border_inline),
-      "border_block" => Some(Shorthands::border_block),
-      "border_top" => Some(Shorthands::border_top),
-      "border_inline_end" => Some(Shorthands::border_inline_end),
-      "border_right" => Some(Shorthands::border_right),
-      "border_bottom" => Some(Shorthands::border_bottom),
-      "border_inline_start" => Some(Shorthands::border_inline_start),
-      "border_left" => Some(Shorthands::border_left),
+      "borderInline" => Some(Shorthands::border_inline),
+      "borderBlock" => Some(Shorthands::border_block),
+      "borderTop" => Some(Shorthands::border_top),
+      "borderInlineEnd" => Some(Shorthands::border_inline_end),
+      "borderRight" => Some(Shorthands::border_right),
+      "borderBottom" => Some(Shorthands::border_bottom),
+      "borderInlineStart" => Some(Shorthands::border_inline_start),
+      "borderLeft" => Some(Shorthands::border_left),
       _ => None,
     }
   }
@@ -257,17 +259,17 @@ impl Aliases {
   pub fn get(name: &str) -> Option<fn(Option<TRawValue>) -> Result<Vec<OrderPair>, String>> {
     match name {
       // @Deprecated
-      "borderHorizontal" => Shorthands::get("borderHorizontal"),
+      "borderHorizontal" => Shorthands::get("borderInline"),
       // @Deprecated
-      "borderVertical" => Shorthands::get("borderVertical"),
+      "borderVertical" => Shorthands::get("borderBlock"),
       // @Deprecated
-      "borderBlockStart" => Shorthands::get("borderBlockStart"),
+      "borderBlockStart" => Shorthands::get("borderTop"),
       // @Deprecated
-      "borderEnd" => Shorthands::get("borderEnd"),
+      "borderEnd" => Shorthands::get("borderInlineEnd"),
       // @Deprecated
-      "borderBlockEnd" => Shorthands::get("borderBlockEnd"),
+      "borderBlockEnd" => Shorthands::get("borderBottom"),
       // @Deprecated
-      "borderStart" => Shorthands::get("borderStart"),
+      "borderStart" => Shorthands::get("borderInlineStart"),
 
       "blockSize" => Some(Aliases::block_size),
       "inlineSize" => Some(Aliases::inline_size),

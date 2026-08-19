@@ -159,18 +159,8 @@ pub(in super::super) fn evaluate(
       let callee_name = get_callee_name(callee_expr);
 
       if let Ok(global) = CallableGlobalJS::try_from(callee_name) {
-        // Spread arguments are not evaluated: the argument list is unknowable
-        // without the spread operand's length. Rejected here rather than by
-        // the shared argument evaluation, which reads through a spread to its
-        // operand and would fold `String(...['a','b'])` to `"a,b"`. The
-        // wording is the spread element's own, which is what an author sees
-        // for this input elsewhere, rather than the member built-ins'
-        // `SPREAD_NOT_SUPPORTED` — those reject a spread they could otherwise
-        // have used, which is a different complaint.
-        if call.args.iter().any(|arg| arg.spread.is_some()) {
-          return deopt(path, state, &unsupported_expression("SpreadElement"));
-        }
-
+        // A spread argument is refused by `evaluate_func_call_args`, which every
+        // callee's arguments now go through, so there is no case for one here.
         func = Some(Box::new(FunctionConfig {
           fn_ptr: FunctionType::Callback(Box::new(CallbackType::Global(global))),
           takes_path: false,
@@ -252,7 +242,7 @@ pub(in super::super) fn evaluate(
                 };
 
                 if first_arg.spread.is_some() {
-                  deopt_unsupported!(path, state, SPREAD_NOT_SUPPORTED);
+                  deopt_unsupported!(path, state, &unsupported_expression("SpreadElement"));
                 }
 
                 match method_name {
@@ -271,7 +261,7 @@ pub(in super::super) fn evaluate(
                     };
 
                     if second_arg.spread.is_some() {
-                      deopt_unsupported!(path, state, SPREAD_NOT_SUPPORTED);
+                      deopt_unsupported!(path, state, &unsupported_expression("SpreadElement"));
                     }
 
                     let cached_first_arg =
@@ -374,7 +364,7 @@ pub(in super::super) fn evaluate(
                 };
 
                 if arg.spread.is_some() {
-                  deopt_unsupported!(path, state, SPREAD_NOT_SUPPORTED);
+                  deopt_unsupported!(path, state, &unsupported_expression("SpreadElement"));
                 }
 
                 let object_method = ObjectJS::try_from(method_name);
@@ -414,7 +404,11 @@ pub(in super::super) fn evaluate(
 
                         for entry in array.elems.into_iter().flatten() {
                           if entry.spread.is_some() {
-                            deopt_unsupported!(path, state, SPREAD_NOT_SUPPORTED);
+                            deopt_unsupported!(
+                              path,
+                              state,
+                              &unsupported_expression("SpreadElement")
+                            );
                           }
 
                           let Some(array) = entry.expr.as_array() else {

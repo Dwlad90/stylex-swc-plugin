@@ -138,12 +138,83 @@ fn an_unfolded_object_method_refuses_and_the_folded_ones_still_fold() {
   assert_folds("Object.fromEntries([[\"a\", 1]])");
 }
 
-/// A spread argument to a callable global was already a refusal; it stays one.
+/// A spread argument refuses, with the one answer upstream gives, whatever the
+/// callee is.
+///
+/// The reference implementation maps its evaluation over the argument *paths*,
+/// so a spread argument is a `SpreadElement` node reaching the terminal
+/// unsupported arm — the same answer a spread earns as an array element, and
+/// for the same reason. This evaluator reads `arg.expr`, so the refusal is made
+/// in `evaluate_func_call_args`, which every callee's arguments go through.
+///
+/// Made there rather than per callee because ours used to vary by callee where
+/// upstream's does not: the member built-ins said the spread was unsupported in
+/// this context, `concat` said all arguments must be a string, `join` named the
+/// call, and `firstThatWorks` said the argument must be static. One mistake,
+/// five sentences, none of them the one an author reads from upstream.
 #[test]
-fn a_spread_argument_refuses() {
-  assert_deopts("String(...[\"a\", \"b\"])");
-  assert_deopts("Math.max(...[1, 2])");
-  assert_deopts("Object.keys(...[{}])");
+fn a_spread_argument_refuses_as_a_spread_whatever_the_callee() {
+  for source in [
+    "String(...[\"a\", \"b\"])",
+    "Number(...[1])",
+    "Math.max(...[1, 2])",
+    "Math.pow(2, ...[3])",
+    "Object.keys(...[{}])",
+    "[\"a\", \"b\"].join(...[\"-\"])",
+    "\"a\".concat(...[\"b\"])",
+  ] {
+    assert_deopt_reason(source, &unsupported_expression("SpreadElement"));
+  }
+}
+
+/// The folded forms of the same calls, so the refusal above cannot be satisfied
+/// by a helper that stopped evaluating arguments at all.
+#[test]
+fn the_same_calls_still_fold_without_a_spread() {
+  assert_folds("String(\"a\")");
+  assert_folds("Math.max(1, 2)");
+  assert_folds("Math.pow(2, 3)");
+  assert_folds("Object.keys({ a: 1 })");
+  assert_folds("[\"a\", \"b\"].join(\"-\")");
+  assert_folds("\"a\".concat(\"b\")");
+}
+
+/// Every spread inside an array refuses, with the one answer upstream gives.
+///
+/// The reference implementation evaluates each element *path*, so a spread
+/// arrives as a `SpreadElement` node and hits its terminal unsupported-
+/// expression arm — whatever the operand, and before the operand is looked at.
+/// This evaluator reads `elem.expr`, unwrapping the spread, so the refusal is
+/// made explicitly for the two to agree.
+///
+/// A literal operand is the case that used to fold rather than refuse:
+/// `[..."ab"]` answered `["ab"]` where the language spreads two characters, and
+/// `[...1]` answered `[1]` where the language throws.
+#[test]
+fn every_spread_in_an_array_refuses_as_a_spread() {
+  for source in [
+    "[...\"ab\"]",
+    "[...1]",
+    "[...null]",
+    "[...{ a: 1 }]",
+    "[...[1, 2]]",
+    "[...[1, 2], 3]",
+    "[\"red\", ...\"ab\"]",
+    "[[...[1, 2]]]",
+  ] {
+    assert_deopt_reason(source, &unsupported_expression("SpreadElement"));
+  }
+}
+
+/// An operand the evaluator cannot resolve is still a spread refusal, not the
+/// operand's own — which is why the spread is refused before the operand is
+/// evaluated at all.
+#[test]
+fn a_spread_of_an_unresolvable_operand_still_refuses_as_a_spread() {
+  assert_deopt_reason(
+    "[...unknownThing]",
+    &unsupported_expression("SpreadElement"),
+  );
 }
 
 // ==================== object and member shapes ====================

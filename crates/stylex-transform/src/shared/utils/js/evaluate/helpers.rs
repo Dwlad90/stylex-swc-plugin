@@ -193,17 +193,46 @@ fn normalize_js_object_method_nested_vector_arg(vec: &[EvaluateResultValue]) -> 
   Some(create_array_expression(elems))
 }
 
+/// Evaluates a call's arguments, refusing a spread among them.
+///
+/// The reference implementation maps `evaluateCached` over the argument
+/// *paths*, so a spread argument arrives as a `SpreadElement` node and falls to
+/// its terminal `UNSUPPORTED_EXPRESSION(path.node.type)` arm — one answer for
+/// every callee, and given before the operand is looked at. This reads
+/// `arg.expr`, which unwraps the spread, so the refusal is made here for the
+/// two to agree.
+///
+/// Refused in the shared helper rather than at each callee, because upstream's
+/// answer does not vary by callee and ours used to: `Math.max(...ns)` and
+/// `Object.keys(...o)` said the spread was unsupported in this context,
+/// `'a'.concat(...xs)` said all arguments must be a string, `xs.join(...s)`
+/// named the call, and `stylex.firstThatWorks(...xs)` said the argument must be
+/// static — five sentences for one mistake, none of them upstream's.
 pub(super) fn evaluate_func_call_args(
   call: &CallExpr,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Vec<EvaluateResultValue> {
-  call
-    .args
-    .iter()
-    .filter_map(|arg| evaluate_cached(&arg.expr, state, traversal_state, fns))
-    .collect()
+  let mut args = Vec::with_capacity(call.args.len());
+
+  for arg in &call.args {
+    if arg.spread.is_some() {
+      deopt(
+        &Expr::Call(call.clone()),
+        state,
+        &unsupported_expression("SpreadElement"),
+      );
+
+      return args;
+    }
+
+    if let Some(value) = evaluate_cached(&arg.expr, state, traversal_state, fns) {
+      args.push(value);
+    }
+  }
+
+  args
 }
 
 /// `ToString` over an evaluated value, bridging the evaluator's own value

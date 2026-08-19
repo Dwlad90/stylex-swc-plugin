@@ -786,42 +786,32 @@ stylex_test_panic!(
   "#
 );
 
-// A fallback array holding more than one problem earns the refusal its first
-// problematic entry earns, because the entries are checked in one pass in order.
-// Pinned in both positions, since the two report different messages and share
-// the rule that decides them.
+// ==================== a spread inside a style value ====================
+//
+// Every spread earns one answer: `Unsupported expression: SpreadElement`.
+//
+// That is the reference implementation's, and it is uniform. Upstream
+// evaluates each *element path* of an array, so a spread arrives as a
+// `SpreadElement` node and falls to the terminal
+// `UNSUPPORTED_EXPRESSION(path.node.type)` arm -- before any value validation,
+// whatever the operand is, and whether or not the operand can be resolved.
+// Measured against the installed 0.19.0 plugin across every shape below.
+//
+// This suite used to pin two other messages here, both from the value rule
+// (`A style array value can only contain strings or numbers.` on a property,
+// `A style value can only contain an array, string or number.` under a
+// condition). Those were the messages our evaluator's unwrapping of
+// `elem.expr` left the validator to produce, and an author comparing the two
+// compilers on one input read a different sentence from each. The refusal now
+// happens where upstream makes it, in `array_expression`, so the sentence
+// agrees -- and so does the one shape that earned no sentence at all, a spread
+// of a literal, which used to compile: `[..."ab"]` shipped `color:ab` where
+// the language spreads two characters, and `[...1]` shipped `color:1` where
+// the language throws.
+
 stylex_test_panic!(
-  a_spread_before_a_boolean_earns_the_array_message,
-  "A style array value can only contain strings or numbers.",
-  r#"
-    import * as stylex from '@stylexjs/stylex';
-
-    const fallbacks = ['red'];
-
-    const styles = stylex.create({ x: { color: [...fallbacks, false] } });
-  "#
-);
-
-stylex_test_panic!(
-  a_boolean_before_a_spread_earns_the_array_message,
-  "A style array value can only contain strings or numbers.",
-  r#"
-    import * as stylex from '@stylexjs/stylex';
-
-    const fallbacks = ['red'];
-
-    const styles = stylex.create({ x: { color: [false, ...fallbacks] } });
-  "#
-);
-
-// A spread is refused as an entry that is not a style value, not as a spread.
-// The validator runs on an evaluated namespace, where a spread the evaluator
-// could resolve has already become the value spread -- an array, not a literal --
-// so no spread case is needed and none exists. These two pin the message an
-// author actually reads, from either side of that fork.
-stylex_test_panic!(
-  a_lone_spread_is_refused_as_a_non_literal_entry,
-  "A style array value can only contain strings or numbers.",
+  a_lone_spread_refuses_as_a_spread,
+  "Unsupported expression: SpreadElement",
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -831,80 +821,30 @@ stylex_test_panic!(
   "#
 );
 
-// A spread of something the evaluator cannot resolve never reaches validation,
-// so it keeps the evaluator's refusal instead.
+// The operand kinds. A literal is the one that used to fold to a value the
+// source does not describe; the rest were already refused, but by the value
+// rule and with the wrong sentence.
 stylex_test_panic!(
-  a_spread_of_an_unresolvable_value_refuses_before_validation,
-  "Unsupported expression: ArrayExpression",
+  a_spread_of_a_string_refuses_rather_than_declaring_the_unspread_string,
+  "Unsupported expression: SpreadElement",
   r#"
     import * as stylex from '@stylexjs/stylex';
-    const styles = stylex.create({ x: { color: [...unknownThing] } });
-  "#
-);
-
-// The same orderings under a condition, where the shared rule reports the other
-// message.
-stylex_test_panic!(
-  a_spread_under_a_condition_earns_the_plain_message,
-  "A style value can only contain an array, string or number.",
-  r#"
-    import * as stylex from '@stylexjs/stylex';
-
-    const fallbacks = ['red'];
-
-    const styles = stylex.create({
-      x: { color: { default: [...fallbacks, false], ':hover': 'blue' } },
-    });
+    const styles = stylex.create({ x: { color: [..."ab"] } });
   "#
 );
 
 stylex_test_panic!(
-  a_boolean_before_a_spread_under_a_condition_earns_the_plain_message,
-  "A style value can only contain an array, string or number.",
+  a_spread_of_a_number_refuses_rather_than_declaring_the_number,
+  "Unsupported expression: SpreadElement",
   r#"
     import * as stylex from '@stylexjs/stylex';
-
-    const fallbacks = ['red'];
-
-    const styles = stylex.create({
-      x: { color: { default: [false, ...fallbacks], ':hover': 'blue' } },
-    });
-  "#
-);
-
-// The shapes a spread can take, all refused by the entry rule rather than by a
-// case of their own. Together with the two above these are the sweep that
-// established the validator needs no spread case: a nested spread, a spread of
-// an object, of a call result, of an empty array, and one inside a pseudo object
-// or on a custom property. A regression that made any of them reach a dedicated
-// spread refusal would change the message an author reads.
-stylex_test_panic!(
-  a_spread_on_a_custom_property_is_refused_as_an_entry,
-  "A style array value can only contain strings or numbers.",
-  r#"
-    import * as stylex from '@stylexjs/stylex';
-
-    const fallbacks = ['red'];
-
-    const styles = stylex.create({ x: { '--x': [...fallbacks] } });
+    const styles = stylex.create({ x: { color: [...1] } });
   "#
 );
 
 stylex_test_panic!(
-  a_spread_inside_a_pseudo_object_is_refused_as_an_entry,
-  "A style array value can only contain strings or numbers.",
-  r#"
-    import * as stylex from '@stylexjs/stylex';
-
-    const fallbacks = ['red'];
-
-    const styles = stylex.create({ x: { ':hover': { color: [...fallbacks] } } });
-  "#
-);
-
-stylex_test_panic!(
-  a_spread_of_an_object_is_refused_as_an_entry,
-  "A style array value can only contain strings or numbers.",
+  a_spread_of_an_object_refuses_as_a_spread,
+  "Unsupported expression: SpreadElement",
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({ x: { color: [...{ a: 1 }] } });
@@ -912,8 +852,8 @@ stylex_test_panic!(
 );
 
 stylex_test_panic!(
-  a_spread_of_a_call_result_is_refused_as_an_entry,
-  "A style array value can only contain strings or numbers.",
+  a_spread_of_a_call_result_refuses_as_a_spread,
+  "Unsupported expression: SpreadElement",
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -924,17 +864,55 @@ stylex_test_panic!(
 );
 
 stylex_test_panic!(
-  a_spread_of_an_empty_array_is_refused_as_an_entry,
-  "A style array value can only contain strings or numbers.",
+  a_spread_of_an_empty_array_refuses_as_a_spread,
+  "Unsupported expression: SpreadElement",
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({ x: { color: [...[], 'red'] } });
   "#
 );
 
+// An operand the evaluator cannot resolve is still a `SpreadElement` refusal,
+// not the operand's own. That is why the refusal is made before the operand is
+// evaluated: this case used to read `Unsupported expression: ArrayExpression`.
 stylex_test_panic!(
-  a_nested_spread_is_refused_as_an_entry,
-  "A style array value can only contain strings or numbers.",
+  a_spread_of_an_unresolvable_value_refuses_as_a_spread,
+  "Unsupported expression: SpreadElement",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: [...unknownThing] } });
+  "#
+);
+
+// The positions. A spread refuses the same way wherever a fallback chain is
+// allowed to appear.
+stylex_test_panic!(
+  a_spread_on_a_custom_property_refuses_as_a_spread,
+  "Unsupported expression: SpreadElement",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({ x: { '--x': [...fallbacks] } });
+  "#
+);
+
+stylex_test_panic!(
+  a_spread_inside_a_pseudo_object_refuses_as_a_spread,
+  "Unsupported expression: SpreadElement",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({ x: { ':hover': { color: [...fallbacks] } } });
+  "#
+);
+
+stylex_test_panic!(
+  a_nested_spread_refuses_as_a_spread,
+  "Unsupported expression: SpreadElement",
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -944,11 +922,25 @@ stylex_test_panic!(
   "#
 );
 
-// A spread on a shorthand, under a resolution that expands it -- the expansion
-// runs after validation, so the entry rule still answers first.
 stylex_test_panic!(
-  a_spread_on_an_expanding_shorthand_is_refused_as_an_entry,
-  "A style array value can only contain strings or numbers.",
+  a_spread_under_a_condition_refuses_as_a_spread,
+  "Unsupported expression: SpreadElement",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({
+      x: { color: { default: [...fallbacks], ':hover': 'blue' } },
+    });
+  "#
+);
+
+// A spread on a shorthand, under a resolution that expands it -- the expansion
+// runs after evaluation, so the spread still answers first.
+stylex_test_panic!(
+  a_spread_on_an_expanding_shorthand_refuses_as_a_spread,
+  "Unsupported expression: SpreadElement",
   |tr| build_test_transform(tr.comments.clone(), |b| b
     .with_runtime_injection()
     .with_style_resolution(StyleResolution::ApplicationOrder)),
@@ -958,5 +950,41 @@ stylex_test_panic!(
     const fallbacks = ['1px solid red'];
 
     const styles = stylex.create({ x: { borderTop: [...fallbacks] } });
+  "#
+);
+
+// A spread beside a value the value rule would also refuse. The spread answers
+// first in both positions, because evaluation runs before validation -- which
+// is upstream's order too, measured on both orderings.
+stylex_test_panic!(
+  a_spread_before_a_boolean_refuses_as_a_spread,
+  "Unsupported expression: SpreadElement",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({ x: { color: [...fallbacks, false] } });
+  "#
+);
+
+stylex_test_panic!(
+  a_boolean_before_a_spread_refuses_as_a_spread,
+  "Unsupported expression: SpreadElement",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({ x: { color: [false, ...fallbacks] } });
+  "#
+);
+
+stylex_test_panic!(
+  a_spread_beside_a_real_fallback_refuses_the_whole_chain,
+  "Unsupported expression: SpreadElement",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: ['red', ..."ab"] } });
   "#
 );

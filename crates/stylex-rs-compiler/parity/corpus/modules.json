@@ -197,6 +197,70 @@
       "origin": "found while mirroring the spread refusal to upstream",
       "note": "Refused by both. Upstream answers `Unsupported expression: SpreadElement` for every spread, whatever the callee. This compiler reported `Unsupported expression: CallExpression`, naming the call rather than the spread.",
       "expected": "both-reject"
+    },
+    {
+      "id": "modules-object-spread-of-a-primitive",
+      "label": "an object spread of a value with no own properties",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  x: { ...1, ...null, ...true, ...(() => 1), color: 'red' },\n});\n",
+      "origin": "found while mirroring the spread refusal to upstream",
+      "note": "`Object.assign({}, 1)` is `{}`, so spreading a primitive adds nothing and the object is built from the rest. This compiler refused the whole call instead, failing a build over an expression that means \"add nothing\".",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-object-spread-of-a-string",
+      "label": "an object spread of a string",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  x: { ...'ab' },\n});\n",
+      "origin": "found while mirroring the spread refusal to upstream",
+      "note": "A string's own properties are its indices, so this declares `0` and `1`. This compiler refused it.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-object-spread-of-an-array",
+      "label": "an object spread of an array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  x: { ...[1, 2] },\n});\n",
+      "origin": "found while mirroring the spread refusal to upstream",
+      "note": "An array's own properties are its indices, and each value keeps its type -- which is why these declare `1px` and `2px` rather than strings.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-object-spread-key-order",
+      "label": "an object spread of more than one key",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  x: { ...{ color: 'red', opacity: 1, margin: '1px' } },\n});\n",
+      "origin": "found while mirroring the spread refusal to upstream",
+      "note": "Pins the order the properties come out in. The merge assembled its result by pushing the old properties onto the new and reversing the whole thing, so every spread of more than one key emitted its rules back to front. One key is the common case and hid it.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-object-spread-overrides-in-place",
+      "label": "an object spread overriding an earlier key",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  x: { color: 'red', opacity: 1, ...{ color: 'blue' } },\n});\n",
+      "origin": "found while mirroring the spread refusal to upstream",
+      "note": "A repeated key takes the later value and keeps the position the key first took, as `Object.assign` does.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-object-spread-is-shallow",
+      "label": "an object spread replacing a nested object",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  x: { ':hover': { color: 'red' }, ...{ ':hover': { opacity: 1 } } },\n});\n",
+      "origin": "found while mirroring the spread refusal to upstream",
+      "note": "`Object.assign` is shallow, so the nested `color` is replaced rather than merged in. Nesting is most of what a style object is made of, so a deep merge here would quietly keep declarations the source had replaced.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-object-spread-of-a-holey-array",
+      "label": "an object spread of an array carrying a hole",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  x: { ...[, 1] },\n});\n",
+      "origin": "found while mirroring the spread refusal to upstream",
+      "note": "Both refuse. This evaluator drops a hole before it becomes a value, so the keys after it would come out shifted -- `{ 0: 1 }` where the language says `{ 1: 1 }`. Upstream crashes outright on this input, so refusing it costs nothing.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-regex-literal-is-never-folded",
+      "label": "a regular expression in a style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  x: { color: /a/ },\n});\n",
+      "origin": "found while mirroring the spread refusal to upstream",
+      "note": "Upstream folds no `RegExpLiteral` in any position. This compiler folded one to itself and left the refusal to whichever downstream reader tripped over the value, which had no name for it -- the diagnostic came out as `1`. `String(/re/)` did not refuse at all: it wrote `color: / re /` into the stylesheet.",
+      "expected": "both-reject"
     }
   ]
 }

@@ -11,67 +11,72 @@ impl Shorthands {
     Err("animation is not supported".into())
   }
   fn background(_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
-    Err("background is not supported. Use background-color, border-image etc. instead".into())
+    Err("background is not supported. Use background-color, border-image etc. instead.".into())
   }
   fn border(_raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
-    Err("border is not supported. Use border-width, border-style and border-color instead".into())
+    Err("border is not supported. Use border-width, border-style and border-color instead.".into())
   }
   fn border_inline(_raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Err(
-      "borderInline is not supported. Use borderInlineWidth, borderInlineStyle and borderInlineColor instead".into(),
+      "borderInline is not supported. Use borderInlineWidth, borderInlineStyle and borderInlineColor instead.".into(),
     )
   }
   // @Deprecated
   fn border_block(_raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Err(
-      "borderBlock is not supported. Use borderBlockWidth, borderBlockStyle and borderBlockColor instead".into(),
+      "borderBlock is not supported. Use borderBlockWidth, borderBlockStyle and borderBlockColor instead.".into(),
     )
   }
 
   // @Deprecated
   fn border_top(_raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Err(
-      "borderTop is not supported. Use borderTopWidth, borderTopStyle and borderTopColor instead"
+      "borderTop is not supported. Use borderTopWidth, borderTopStyle and borderTopColor instead."
         .into(),
     )
   }
   // @Deprecated
   fn border_inline_end(_raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Err(
-      "borderInlineEnd is not supported. Use borderInlineEndWidth, borderInlineEndStyle and borderInlineEndColor instead".into(),
+      "borderInlineEnd is not supported. Use borderInlineEndWidth, borderInlineEndStyle and borderInlineEndColor instead.".into(),
     )
   }
   // @Deprecated
   fn border_right(_raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Err(
-      "borderRight is not supported. Use borderRightWidth, borderRightStyle and borderRightColor instead".into(),
+      "borderRight is not supported. Use borderRightWidth, borderRightStyle and borderRightColor instead.".into(),
     )
   }
   // @Deprecated
   fn border_bottom(_raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Err(
-      "borderBottom is not supported. Use borderBottomWidth, borderBottomStyle and borderBottomColor instead".into(),
+      "borderBottom is not supported. Use borderBottomWidth, borderBottomStyle and borderBottomColor instead.".into(),
     )
   }
   // @Deprecated
   fn border_inline_start(_raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     Err(
-      "borderInlineStart is not supported. Use borderInlineStartWidth, borderInlineStartStyle and borderInlineStartColor instead".into(),
+      "borderInlineStart is not supported. Use borderInlineStartWidth, borderInlineStartStyle and borderInlineStartColor instead.".into(),
     )
   }
   // @Deprecated
   fn border_left(_raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
-    Err(format!(
-      "{}{}{}",
-      "`borderLeft` is not supported.",
-      "You could use `borderLeftWidth`, `borderLeftStyle` and `borderLeftColor`,",
-      "but it is preferable to use `borderInlineStartWidth`, `borderInlineStartStyle` and `borderInlineStartColor`."
-    ))
+    // Upstream joins these three with a space (`.join(' ')`); concatenating
+    // them bare runs the sentences together.
+    Err(
+      [
+        "`borderLeft` is not supported.",
+        "You could use `borderLeftWidth`, `borderLeftStyle` and `borderLeftColor`,",
+        "but it is preferable to use `borderInlineStartWidth`, `borderInlineStartStyle` and `borderInlineStartColor`.",
+      ]
+      .join(" "),
+    )
   }
 
-  // Keyed by the property name an author writes, which is camelCase. A
-  // snake_case key here matches nothing and lets the shorthand through to the
-  // stylesheet, which is the specificity hole this table exists to close.
+  // Keyed by the property name an author writes, never by the Rust identifier
+  // that implements it. A key that spells the identifier instead matches
+  // nothing, and the shorthand then reaches the stylesheet -- the specificity
+  // hole this table exists to close.
   pub fn get(name: &str) -> Option<fn(Option<TRawValue>) -> Result<Vec<OrderPair>, String>> {
     match name {
       "all" => Some(Shorthands::all),
@@ -259,17 +264,17 @@ impl Aliases {
   pub fn get(name: &str) -> Option<fn(Option<TRawValue>) -> Result<Vec<OrderPair>, String>> {
     match name {
       // @Deprecated
-      "borderHorizontal" => Shorthands::get("borderInline"),
+      "borderHorizontal" => Some(Shorthands::border_inline),
       // @Deprecated
-      "borderVertical" => Shorthands::get("borderBlock"),
+      "borderVertical" => Some(Shorthands::border_block),
       // @Deprecated
-      "borderBlockStart" => Shorthands::get("borderTop"),
+      "borderBlockStart" => Some(Shorthands::border_top),
       // @Deprecated
-      "borderEnd" => Shorthands::get("borderInlineEnd"),
+      "borderEnd" => Some(Shorthands::border_inline_end),
       // @Deprecated
-      "borderBlockEnd" => Shorthands::get("borderBottom"),
+      "borderBlockEnd" => Some(Shorthands::border_bottom),
       // @Deprecated
-      "borderStart" => Shorthands::get("borderInlineStart"),
+      "borderStart" => Some(Shorthands::border_inline_start),
 
       "blockSize" => Some(Aliases::block_size),
       "inlineSize" => Some(Aliases::inline_size),

@@ -121,6 +121,36 @@ pub fn char_code_at_f64(s: &str, index: f64) -> Option<u32> {
   char_code_at(s, index as usize)
 }
 
+/// A string rendered as `JSON.stringify` renders it: double-quoted, with the
+/// escapes JSON demands and nothing more.
+///
+/// Exists so that a diagnostic quoting an authored value reads the same here as
+/// it does upstream, where these messages are built by interpolating
+/// `JSON.stringify(rawValue)`. Formatting the value with `{:?}` would be close
+/// but not equal — Rust spells a C0 control `\u{1}` and escapes `'`, where JSON
+/// spells `\u0001` and leaves the apostrophe alone — and the difference lands in
+/// text a test compares.
+///
+/// `serde_json` is the renderer rather than a hand-rolled escape table, and the
+/// escape sets do agree exactly: `"` and `\`, the five single-letter shortcuts
+/// `\b \f \n \r \t`, every remaining code point below U+0020 as a lowercase
+/// four-digit `\uXXXX`, and everything from U+0020 up written through unchanged
+/// — U+007F and U+2028 included, which `JSON.stringify` also leaves raw even
+/// though a JS *source* literal could not carry them. The `json_stringify_tests`
+/// module holds that agreement, so a change in either renderer surfaces as a
+/// test failure rather than as silent drift in an author-facing message.
+///
+/// Rendered through `Value`, not `to_string`, so there is no serializer error to
+/// answer for: quoting a string cannot fail, and `Display` says so in its
+/// signature where `to_string` would hand back a `Result` whose `Err` arm no
+/// input reaches.
+///
+/// One rule of well-formed `JSON.stringify` is unreachable rather than omitted:
+/// a lone surrogate escapes to `\ud83c` in JS, and a Rust `str` cannot hold one.
+pub fn json_stringify(s: &str) -> String {
+  serde_json::Value::String(s.to_owned()).to_string()
+}
+
 #[cfg(test)]
 #[path = "tests/string_test.rs"]
 mod tests;

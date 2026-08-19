@@ -319,3 +319,98 @@ mod is_blank_css_text_tests {
     assert!(!is_blank_css_text("\u{21}"));
   }
 }
+
+#[cfg(test)]
+mod json_stringify_tests {
+  use crate::string::json_stringify;
+
+  /// The plain case: quotes added, nothing else touched. Every rejection
+  /// message that names a value spends most of its life here.
+  #[test]
+  fn wraps_a_plain_string_in_double_quotes() {
+    assert_eq!(json_stringify("none inherit"), "\"none inherit\"");
+  }
+
+  #[test]
+  fn quotes_the_empty_string() {
+    assert_eq!(json_stringify(""), "\"\"");
+  }
+
+  /// A quote inside the value is what would otherwise end the quoted run, so
+  /// this is the escape that keeps the message parseable at all.
+  #[test]
+  fn escapes_an_embedded_double_quote() {
+    assert_eq!(json_stringify("a\"b"), "\"a\\\"b\"");
+  }
+
+  #[test]
+  fn escapes_a_backslash() {
+    assert_eq!(json_stringify("a\\b"), "\"a\\\\b\"");
+  }
+
+  /// A backslash immediately before a quote must escape as two independent
+  /// escapes and not collapse into one — `\\` then `\"`, never `\\"`.
+  #[test]
+  fn escapes_a_backslash_followed_by_a_quote_separately() {
+    assert_eq!(json_stringify("\\\""), "\"\\\\\\\"\"");
+  }
+
+  /// The five controls JSON gives a single-letter escape. Anything else below
+  /// U+0020 takes the `\uXXXX` form instead, which the next test pins.
+  #[test]
+  fn uses_the_single_letter_escapes() {
+    assert_eq!(json_stringify("\u{8}"), "\"\\b\"");
+    assert_eq!(json_stringify("\u{c}"), "\"\\f\"");
+    assert_eq!(json_stringify("\n"), "\"\\n\"");
+    assert_eq!(json_stringify("\r"), "\"\\r\"");
+    assert_eq!(json_stringify("\t"), "\"\\t\"");
+  }
+
+  /// Lowercase hex, four digits, zero-padded. `{:04X}` would read as valid JSON
+  /// and still not be the text upstream emits.
+  #[test]
+  fn escapes_remaining_c0_controls_as_lowercase_four_digit_hex() {
+    assert_eq!(json_stringify("\u{0}"), "\"\\u0000\"");
+    assert_eq!(json_stringify("\u{1}"), "\"\\u0001\"");
+    assert_eq!(json_stringify("\u{b}"), "\"\\u000b\"");
+    assert_eq!(json_stringify("\u{e}"), "\"\\u000e\"");
+    assert_eq!(json_stringify("\u{1a}"), "\"\\u001a\"");
+    assert_eq!(json_stringify("\u{1f}"), "\"\\u001f\"");
+  }
+
+  /// U+0020 is the boundary: the space is the first code point written through
+  /// rather than escaped.
+  #[test]
+  fn writes_the_space_through_unescaped() {
+    assert_eq!(json_stringify(" "), "\" \"");
+  }
+
+  /// DEL and the two line separators are the tempting exceptions. A JS source
+  /// literal could not carry them, but `JSON.stringify` is not building source
+  /// and leaves all three raw.
+  #[test]
+  fn writes_del_and_the_line_separators_through_raw() {
+    assert_eq!(json_stringify("\u{7f}"), "\"\u{7f}\"");
+    assert_eq!(json_stringify("\u{2028}"), "\"\u{2028}\"");
+    assert_eq!(json_stringify("\u{2029}"), "\"\u{2029}\"");
+  }
+
+  /// Non-ASCII is not escaped, whether it fits one UTF-16 code unit or two.
+  /// Escaping it would be valid JSON and the wrong text.
+  #[test]
+  fn writes_non_ascii_through_unescaped() {
+    assert_eq!(json_stringify("éé"), "\"éé\"");
+    assert_eq!(json_stringify("日本"), "\"日本\"");
+    assert_eq!(json_stringify("🎉"), "\"🎉\"");
+    assert_eq!(json_stringify("\u{feff}"), "\"\u{feff}\"");
+  }
+
+  /// A value can be long without being special. Nothing here scales with
+  /// nesting or with the number of escapes, and this says so.
+  #[test]
+  fn handles_a_long_value_of_only_escapes() {
+    let input = "\"".repeat(10_000);
+    let expected = format!("\"{}\"", "\\\"".repeat(10_000));
+    assert_eq!(json_stringify(&input), expected);
+  }
+}

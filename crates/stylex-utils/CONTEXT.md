@@ -58,6 +58,20 @@ above, so a float read or written one digit differently silently produces a
 different class name. Their expectations are generated from a JavaScript
 runtime by `scripts/generate-parse-float-cases.mjs` and never written by hand.
 
+**JS string quoting**:
+`json_stringify`, which renders a `&str` exactly as JavaScript's
+`JSON.stringify` renders a string. `serde_json` does the escaping and the two
+agree byte for byte, which is the whole claim the tests exist to hold. Rust's
+`{:?}` is not a substitute: it spells a C0 control `\u{1}` where JSON spells
+`\u0001`, and escapes an apostrophe JSON leaves alone.
+_Avoid_: string escaping, quoting, debug format
+
+Observable for a different reason than the two above: this spelling never
+reaches a stylesheet, only a **rejection message** an author reads under
+`propertyValidationMode`. Diagnostics that quote a value are built upstream by
+interpolating `JSON.stringify`, so a value quoted differently here is a
+divergence an author sees even when both compilers refuse the same input.
+
 **Structural hash**:
 `stable_hash_unspanned`, a hash of an AST expression that ignores spans, so two
 syntactically identical expressions in different source positions collide on

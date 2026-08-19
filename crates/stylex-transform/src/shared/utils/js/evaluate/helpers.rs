@@ -208,23 +208,26 @@ fn normalize_js_object_method_nested_vector_arg(vec: &[EvaluateResultValue]) -> 
 /// `'a'.concat(...xs)` said all arguments must be a string, `xs.join(...s)`
 /// named the call, and `stylex.firstThatWorks(...xs)` said the argument must be
 /// static — five sentences for one mistake, none of them upstream's.
+///
+/// `None` is the refusal, and it is an `Option` rather than a short list so that
+/// no caller can miss it. Handing back the arguments read so far would be
+/// indistinguishable from a call written with fewer, and a callee applied to
+/// that list runs at the wrong arity — folding a value, and reaching
+/// `StateManager` to queue an import or inject a rule on the way. Upstream stops
+/// at the same point, on the same reasoning: `if (!state.confident) return;`.
 pub(super) fn evaluate_func_call_args(
   call: &CallExpr,
   state: &mut EvaluationState,
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
-) -> Vec<EvaluateResultValue> {
+) -> Option<Vec<EvaluateResultValue>> {
   let mut args = Vec::with_capacity(call.args.len());
 
   for arg in &call.args {
     if arg.spread.is_some() {
-      deopt(
-        &Expr::Call(call.clone()),
-        state,
-        &unsupported_expression("SpreadElement"),
-      );
+      deopt(&Expr::Call(call.clone()), state, SPREAD_ELEMENT);
 
-      return args;
+      return None;
     }
 
     if let Some(value) = evaluate_cached(&arg.expr, state, traversal_state, fns) {
@@ -232,7 +235,7 @@ pub(super) fn evaluate_func_call_args(
     }
   }
 
-  args
+  Some(args)
 }
 
 /// `ToString` over an evaluated value, bridging the evaluator's own value

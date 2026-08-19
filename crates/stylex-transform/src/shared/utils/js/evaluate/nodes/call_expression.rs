@@ -16,7 +16,7 @@ fn evaluate_callable_global(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
-  let args = evaluate_func_call_args(call, state, traversal_state, fns);
+  let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
 
   if !state.confident {
     return None;
@@ -242,7 +242,7 @@ pub(in super::super) fn evaluate(
                 };
 
                 if first_arg.spread.is_some() {
-                  deopt_unsupported!(path, state, &unsupported_expression("SpreadElement"));
+                  deopt_unsupported!(path, state, SPREAD_ELEMENT);
                 }
 
                 match method_name {
@@ -261,7 +261,7 @@ pub(in super::super) fn evaluate(
                     };
 
                     if second_arg.spread.is_some() {
-                      deopt_unsupported!(path, state, &unsupported_expression("SpreadElement"));
+                      deopt_unsupported!(path, state, SPREAD_ELEMENT);
                     }
 
                     let cached_first_arg =
@@ -364,7 +364,7 @@ pub(in super::super) fn evaluate(
                 };
 
                 if arg.spread.is_some() {
-                  deopt_unsupported!(path, state, &unsupported_expression("SpreadElement"));
+                  deopt_unsupported!(path, state, SPREAD_ELEMENT);
                 }
 
                 let object_method = ObjectJS::try_from(method_name);
@@ -404,11 +404,7 @@ pub(in super::super) fn evaluate(
 
                         for entry in array.elems.into_iter().flatten() {
                           if entry.spread.is_some() {
-                            deopt_unsupported!(
-                              path,
-                              state,
-                              &unsupported_expression("SpreadElement")
-                            );
+                            deopt_unsupported!(path, state, SPREAD_ELEMENT);
                           }
 
                           let Some(array) = entry.expr.as_array() else {
@@ -977,7 +973,7 @@ pub(in super::super) fn evaluate(
 
       match func.fn_ptr {
         FunctionType::ArrayArgs(func) => {
-          let args = evaluate_func_call_args(call, state, traversal_state, fns);
+          let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
           let mut fn_args = Vec::with_capacity(args.len());
 
           for arg in args {
@@ -992,7 +988,7 @@ pub(in super::super) fn evaluate(
           return Some(EvaluateResultValue::Expr(func_result));
         },
         FunctionType::StylexExprFn(func) => {
-          let args = evaluate_func_call_args(call, state, traversal_state, fns);
+          let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
           let Some(first_arg) = args.first().and_then(|arg| arg.as_expr().cloned()) else {
             deopt_unsupported!(
               path,
@@ -1006,7 +1002,7 @@ pub(in super::super) fn evaluate(
           return Some(EvaluateResultValue::Expr(func_result));
         },
         FunctionType::StylexWhenFn(func) => {
-          let mut args = evaluate_func_call_args(call, state, traversal_state, fns).into_iter();
+          let mut args = evaluate_func_call_args(call, state, traversal_state, fns)?.into_iter();
           let Some(pseudo) = args.next() else {
             deopt_unsupported!(
               path,
@@ -1018,7 +1014,7 @@ pub(in super::super) fn evaluate(
           return Some(EvaluateResultValue::Expr(func_result));
         },
         FunctionType::StylexTypeFn(func) => {
-          let args = evaluate_func_call_args(call, state, traversal_state, fns);
+          let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
           let mut fn_args = IndexMap::default();
           let Some(expr) = args.first().and_then(|expr| expr.as_expr()) else {
             deopt_unsupported!(path, state, ARGUMENT_NOT_EXPRESSION);
@@ -1075,17 +1071,17 @@ pub(in super::super) fn evaluate(
 
           match func.as_ref() {
             CallbackType::Array(ArrayJS::Map) => {
-              let args = evaluate_func_call_args(call, state, traversal_state, fns);
+              let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
 
               return evaluate_map(&args, &context, traversal_state);
             },
             CallbackType::Array(ArrayJS::Filter) => {
-              let args = evaluate_func_call_args(call, state, traversal_state, fns);
+              let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
 
               return evaluate_filter(&args, &context, traversal_state);
             },
             CallbackType::Array(ArrayJS::Join) => {
-              let args = evaluate_func_call_args(call, state, traversal_state, fns);
+              let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
 
               return evaluate_join(&args, &context, traversal_state, &state.functions);
             },
@@ -1255,7 +1251,7 @@ pub(in super::super) fn evaluate(
 
               let base_str = base_str.clone();
 
-              let args = evaluate_func_call_args(call, state, traversal_state, fns);
+              let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
 
               let mut str_args_vec = Vec::with_capacity(args.len());
               for arg in &args {
@@ -1306,7 +1302,7 @@ pub(in super::super) fn evaluate(
                 EXPRESSION_IS_NOT_A_STRING
               );
 
-              let args = evaluate_func_call_args(call, state, traversal_state, fns);
+              let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
 
               let num_args = args_to_numbers(&args, path, state, traversal_state, fns)?;
 
@@ -1336,7 +1332,7 @@ pub(in super::super) fn evaluate(
               stylex_unreachable!("Callable globals are applied before the receiver is read.")
             },
             CallbackType::Custom(arrow_fn) => {
-              let args = evaluate_func_call_args(call, state, traversal_state, fns);
+              let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
 
               let evaluation_result = evaluate_cached(arrow_fn, state, traversal_state, fns);
 
@@ -1357,7 +1353,7 @@ pub(in super::super) fn evaluate(
           }));
         },
         FunctionType::EnvFunction(env_fn) => {
-          let args = evaluate_func_call_args(call, state, traversal_state, fns);
+          let args = evaluate_func_call_args(call, state, traversal_state, fns)?;
           let mut env_args = Vec::with_capacity(args.len());
 
           for arg in &args {

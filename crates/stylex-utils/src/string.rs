@@ -75,6 +75,20 @@ pub fn wrap_key_in_quotes(key: &str, should_wrap_in_quotes: bool) -> Cow<'_, str
   }
 }
 
+/// The length of a string as JavaScript reports it: its count of UTF-16 code
+/// units.
+///
+/// Three conventions disagree about what a string's length is, and only this
+/// one is the language's. `str::len` counts bytes, so `"é".length` would read
+/// as `2`; `chars().count()` counts Unicode scalars, so an astral character
+/// would read as `1` where JavaScript says `2`. `String.prototype.length`
+/// counts code units, which is the same view `char_code_at` indexes by — an
+/// astral scalar occupies two of them — so the two agree that
+/// `"\u{1F600}a".length` is `3` and that index `2` is where the `a` lives.
+pub fn utf16_length(s: &str) -> usize {
+  s.encode_utf16().count()
+}
+
 /// Returns the UTF-16 code unit at the given index, or `None` if the index is
 /// out of bounds.
 ///

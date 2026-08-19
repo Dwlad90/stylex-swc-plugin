@@ -132,6 +132,74 @@ mod wrap_key_in_quotes_tests {
 }
 
 #[cfg(test)]
+mod utf16_length_tests {
+  use crate::string::{char_code_at, utf16_length};
+
+  #[test]
+  fn counts_ascii_characters() {
+    assert_eq!(utf16_length("abc"), 3);
+    assert_eq!(utf16_length(""), 0);
+  }
+
+  /// A scalar outside the basic plane is two code units, so a byte count or a
+  /// scalar count would both answer something JavaScript does not.
+  #[test]
+  fn counts_an_astral_scalar_as_two_code_units() {
+    assert_eq!(utf16_length("\u{1F600}a"), 3);
+    assert_eq!(utf16_length("\u{1F389}"), 2);
+  }
+
+  /// Neither a byte count nor a scalar count agrees with the language here:
+  /// `"é"` is two bytes and one code unit, and `"日本語"` is nine bytes and
+  /// three.
+  #[test]
+  fn counts_code_units_rather_than_bytes_or_scalars() {
+    assert_eq!(utf16_length("é"), 1);
+    assert_eq!(utf16_length("日本語"), 3);
+  }
+
+  /// A combining sequence is as many code units as it has scalars — the
+  /// language does not normalize before counting, so `"e\u{301}"` is `2` even
+  /// though it renders as one character.
+  #[test]
+  fn does_not_normalize_a_combining_sequence() {
+    assert_eq!(utf16_length("e\u{301}"), 2);
+  }
+
+  /// A NUL and the other C0 controls are ordinary characters to `length`.
+  #[test]
+  fn counts_control_characters() {
+    assert_eq!(utf16_length("a\u{0}b"), 3);
+    assert_eq!(utf16_length("\u{1}\u{2}"), 2);
+  }
+
+  /// The property that makes this the right view to share with `char_code_at`:
+  /// the last index that reads a code unit is one below the length, and the
+  /// length itself reads nothing.
+  #[test]
+  fn agrees_with_char_code_at_on_where_a_string_ends() {
+    for source in ["abc", "", "\u{1F600}a", "é", "e\u{301}", "a\u{0}b"] {
+      let length = utf16_length(source);
+
+      assert_eq!(
+        char_code_at(source, length),
+        None,
+        "past the end of {:?}",
+        source
+      );
+
+      if length > 0 {
+        assert!(
+          char_code_at(source, length - 1).is_some(),
+          "at the last index of {:?}",
+          source
+        );
+      }
+    }
+  }
+}
+
+#[cfg(test)]
 mod char_code_at_tests {
   use crate::string::char_code_at;
 

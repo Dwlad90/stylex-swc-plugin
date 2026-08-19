@@ -814,10 +814,11 @@ stylex_test_panic!(
   "#
 );
 
-// A spread is refused as an entry that is not a style value, not as a spread:
-// the entry carries the argument being spread, which is no literal at all. The
-// dedicated spread message in `validate_namespace` is unreachable for that
-// reason, and this is what pins the message an author actually reads.
+// A spread is refused as an entry that is not a style value, not as a spread.
+// The validator runs on an evaluated namespace, where a spread the evaluator
+// could resolve has already become the value spread -- an array, not a literal --
+// so no spread case is needed and none exists. These two pin the message an
+// author actually reads, from either side of that fork.
 stylex_test_panic!(
   a_lone_spread_is_refused_as_a_non_literal_entry,
   "A style array value can only contain strings or numbers.",
@@ -868,5 +869,94 @@ stylex_test_panic!(
     const styles = stylex.create({
       x: { color: { default: [false, ...fallbacks], ':hover': 'blue' } },
     });
+  "#
+);
+
+// The shapes a spread can take, all refused by the entry rule rather than by a
+// case of their own. Together with the two above these are the sweep that
+// established the validator needs no spread case: a nested spread, a spread of
+// an object, of a call result, of an empty array, and one inside a pseudo object
+// or on a custom property. A regression that made any of them reach a dedicated
+// spread refusal would change the message an author reads.
+stylex_test_panic!(
+  a_spread_on_a_custom_property_is_refused_as_an_entry,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({ x: { '--x': [...fallbacks] } });
+  "#
+);
+
+stylex_test_panic!(
+  a_spread_inside_a_pseudo_object_is_refused_as_an_entry,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({ x: { ':hover': { color: [...fallbacks] } } });
+  "#
+);
+
+stylex_test_panic!(
+  a_spread_of_an_object_is_refused_as_an_entry,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: [...{ a: 1 }] } });
+  "#
+);
+
+stylex_test_panic!(
+  a_spread_of_a_call_result_is_refused_as_an_entry,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const tokens = { a: 1 };
+
+    const styles = stylex.create({ x: { color: [...Object.keys(tokens)] } });
+  "#
+);
+
+stylex_test_panic!(
+  a_spread_of_an_empty_array_is_refused_as_an_entry,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: [...[], 'red'] } });
+  "#
+);
+
+stylex_test_panic!(
+  a_nested_spread_is_refused_as_an_entry,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['red'];
+
+    const styles = stylex.create({ x: { color: [[...fallbacks]] } });
+  "#
+);
+
+// A spread on a shorthand, under a resolution that expands it -- the expansion
+// runs after validation, so the entry rule still answers first.
+stylex_test_panic!(
+  a_spread_on_an_expanding_shorthand_is_refused_as_an_entry,
+  "A style array value can only contain strings or numbers.",
+  |tr| build_test_transform(tr.comments.clone(), |b| b
+    .with_runtime_injection()
+    .with_style_resolution(StyleResolution::ApplicationOrder)),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const fallbacks = ['1px solid red'];
+
+    const styles = stylex.create({ x: { borderTop: [...fallbacks] } });
   "#
 );

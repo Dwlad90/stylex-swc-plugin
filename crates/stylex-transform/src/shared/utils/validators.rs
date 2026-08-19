@@ -4,8 +4,8 @@ use stylex_structures::top_level_expression::TopLevelExpression;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{
-    ArrayLit, ArrowExpr, CallExpr, Expr, ExprOrSpread, KeyValueProp, Lit, OptChainBase, Pat,
-    PropOrSpread, VarDeclarator,
+    ArrayLit, ArrowExpr, CallExpr, Expr, KeyValueProp, Lit, OptChainBase, Pat, PropOrSpread,
+    VarDeclarator,
   },
 };
 
@@ -661,9 +661,9 @@ fn reject_unless_style_value_literal(lit: &Lit, state: &mut StateManager) {
   }
 }
 
-/// Refuse one entry of a fallback array that is not a style value, reported at
-/// the array that holds it rather than at the entry -- a fallback chain is one
-/// value, and the code frame the author needs is the whole of it.
+/// Refuse a fallback array holding an entry that is not a style value, reported
+/// at the array rather than at the entry -- a fallback chain is one value, and
+/// the code frame the author needs is the whole of it.
 ///
 /// The two positions that can carry a chain hold its entries to the same rule
 /// and differ only in which message they report: upstream gives the
@@ -672,18 +672,17 @@ fn reject_unless_style_value_literal(lit: &Lit, state: &mut StateManager) {
 /// upstream's choice of wording, not a second rule, so the message is the
 /// parameter and the rule is written once.
 ///
-/// Takes the entry rather than the whole array so that each caller keeps its own
-/// per-entry work in the same pass over the entries, which is what decides which
-/// refusal an array carrying more than one problem earns.
-fn reject_unless_style_value_element(
-  array: &ArrayLit,
-  elem: &ExprOrSpread,
-  message: &str,
-  state: &mut StateManager,
-) {
-  if !matches!(elem.expr.as_ref(), Expr::Lit(lit) if is_style_value_literal(lit)) {
-    let array_expr = Expr::Array(array.clone());
-    build_code_frame_error_and_panic_at(&array_expr, message, state);
+/// A spread entry needs no case of its own. This runs on an evaluated namespace,
+/// where the evaluator has already resolved every spread it can into the value
+/// spread -- which is an array, not a literal, and so is refused here -- and
+/// deopted on every spread it cannot. Both outcomes are pinned in
+/// `validation_stylex_create_test::invalid_values`.
+fn reject_unless_style_value_array(array: &ArrayLit, message: &str, state: &mut StateManager) {
+  for elem in array.elems.iter().flatten() {
+    if !matches!(elem.expr.as_ref(), Expr::Lit(lit) if is_style_value_literal(lit)) {
+      let array_expr = Expr::Array(array.clone());
+      build_code_frame_error_and_panic_at(&array_expr, message, state);
+    }
   }
 }
 
@@ -696,25 +695,7 @@ pub(crate) fn validate_namespace(
     match namespace.value.as_ref() {
       Expr::Lit(lit) => reject_unless_style_value_literal(lit, state),
       Expr::Array(array) => {
-        for elem in array.elems.iter().flatten() {
-          // No input is known to reach this: a spread entry's `expr` is the
-          // argument being spread, so it is not a literal and the entry check
-          // below refuses it first, and a spread of anything unfoldable deopts
-          // before validation runs at all. Measured for `[...xs]` with a
-          // foldable `xs` and with an unresolvable one -- both refuse elsewhere.
-          // Kept because it is the honest answer if the order it depends on ever
-          // changes, and because deleting it would silently move a message.
-          if elem.spread.is_some() {
-            let array_expr = Expr::Array(array.clone());
-            build_code_frame_error_and_panic_at(
-              &array_expr,
-              "Spread operator not implemented",
-              state,
-            );
-          }
-
-          reject_unless_style_value_element(array, elem, ILLEGAL_PROP_ARRAY_VALUE, state);
-        }
+        reject_unless_style_value_array(array, ILLEGAL_PROP_ARRAY_VALUE, state);
       },
       Expr::Object(object) => {
         let key = convert_key_value_to_str(namespace);
@@ -792,9 +773,7 @@ pub(crate) fn validate_conditional_styles(
   match inner_value.as_ref() {
     Expr::Lit(lit) => reject_unless_style_value_literal(lit, state),
     Expr::Array(array) => {
-      for elem in array.elems.iter().flatten() {
-        reject_unless_style_value_element(array, elem, ILLEGAL_PROP_VALUE, state);
-      }
+      reject_unless_style_value_array(array, ILLEGAL_PROP_VALUE, state);
     },
     Expr::Object(object) => {
       let nested_key_values = get_key_values_from_object(object);

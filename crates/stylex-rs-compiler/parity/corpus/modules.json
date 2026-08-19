@@ -60,11 +60,25 @@
       "note": "Acceptance divergent in this compiler's favour. A hole is a slot, so the language says two; upstream refuses the whole array with `Could not resolve the code being evaluated` rather than counting it."
     },
     {
+      "id": "modules-length-on-an-array-with-a-spread",
+      "label": "a length read off an array carrying a spread",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  spread: { content: [...[1, 2]].length },\n});\n",
+      "origin": "issue #1265, found in code review of the length fold",
+      "note": "Both reject. A spread is one written element standing for however many the spread value holds, so neither the written count nor the evaluated one is the language's answer and both compilers refuse rather than fold a wrong number."
+    },
+    {
       "id": "modules-length-neighbouring-property-reads",
-      "label": "property reads next to a length that neither compiler folds the same way",
-      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  unknown: { content: \"abc\".foo ?? \"red\" },\n  indexed: { content: \"abc\"[0] },\n});\n",
+      "label": "property reads next to a length, including the one that still diverges",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  unknown: { content: \"abc\".foo ?? \"red\" },\n  unknownOnArray: { content: [\"a\"].foo ?? \"blue\" },\n});\n",
       "origin": "issue #1265, the reads that surround the one being fixed",
-      "note": "Acceptance divergent. Upstream reads any other property of a string through the language — `\"abc\".foo` is `undefined` and folds the `??`, `\"abc\"[0]` is `\"a\"` — and this compiler refuses both. Refusing beats the alternative for the index: upstream folds `\"\\u{1F600}\"[0]` to a lone surrogate, which no Rust string can carry."
+      "note": "A property neither a string nor an array carries answers `undefined` in both compilers, so the `??` fallback folds identically. Kept as its own subject because it is the half of the member path that is parity and the indexed read below is the half that is not."
+    },
+    {
+      "id": "modules-length-an-indexed-string-read",
+      "label": "an indexed read, the one member lookup that still diverges",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  indexed: { content: \"abc\"[0] },\n});\n",
+      "origin": "issue #1265, the read that surrounds the one being fixed",
+      "note": "Acceptance divergent. Upstream folds `\"abc\"[0]` to `\"a\"` through the language; this compiler refuses. Refusing is deliberate: upstream folds `\"\\u{1F600}\"[0]` to a lone surrogate, which no Rust `String` can carry, so folding an index needs a value type that carries WTF-8 through the whole pipeline."
     }
   ]
 }

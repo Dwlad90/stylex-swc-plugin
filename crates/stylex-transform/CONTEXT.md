@@ -63,6 +63,33 @@ array cannot contain one, which is where a counted array is refused — the fold
 itself succeeds.
 _Avoid_: empty slot, gap, undefined element
 
+**Member lookup**:
+What a property read asks of a string or an array, decided once for all three
+receiver kinds: `length`, an index, a property the receiver does not carry, or a
+computed key with no name the evaluator could read. The classification carries
+the key it read, so the refusal a receiver gives names the same key the
+classification saw — three private copies of the property test is how one author
+mistake came to earn three different diagnostics.
+_Avoid_: property access, index check, member kind
+
+**Written slot**:
+The element count the language reports for an array, read from the literal as
+written rather than from what evaluating it produced. The two differ for a
+hole, which evaluation drops before it becomes a value, and for a spread,
+which is one written element standing for however many the spread value holds —
+so a spread is not counted at all and the fold refuses instead of answering a
+number that is confidently wrong.
+_Avoid_: array length, element count, size
+
+**Object method receiver**:
+What the argument of `Object.keys`/`values`/`entries` reads as. Three answers
+rather than two, because an absent object spells two opposite things: a receiver
+that is not an object contributes no own keys and folds to `[]`, as
+`Object.keys(5)` does, while a receiver holding an element with no expression
+form cannot be read at all and refuses. Answering `[]` for the second would write
+a shorter list into the stylesheet than the source describes.
+_Avoid_: object argument, keys source
+
 **Winning operand**:
 The side of `||`, `&&` or `??` the fold keeps, returned as the value it already
 was rather than re-created as a literal — so a winning object stays an object

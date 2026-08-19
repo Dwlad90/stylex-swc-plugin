@@ -569,3 +569,217 @@ stylex_test_panic!(
     const styles = stylex.create({ x: { color: { '@media (((': 'red', default: 'blue' } } });
   "#
 );
+
+// ── A literal that is neither a value nor an absence ────────────────
+//
+// `null` declares nothing, which is an answer; a boolean declares nothing
+// *because it is not a style value at all*, which is a refusal. The two used to
+// be told apart only where the value was written directly — under a condition a
+// boolean compiled and the declaration silently vanished, which is a wrong
+// build rather than a wrong message.
+//
+// Every message below is byte identical to the one the reference implementation
+// gives for the same input, measured by running it. The one exception is marked
+// at the test.
+
+stylex_test_panic!(
+  a_boolean_longhand_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: false } });
+  "#
+);
+
+stylex_test_panic!(
+  a_true_longhand_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: true } });
+  "#
+);
+
+// A shorthand the specificity table refuses is still refused for its value
+// first: the value validator runs before the property table, so the message is
+// about the boolean, not about `borderTop`.
+stylex_test_panic!(
+  a_boolean_shorthand_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { borderTop: false } });
+  "#
+);
+
+stylex_test_panic!(
+  a_boolean_custom_property_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { '--x': false } });
+  "#
+);
+
+stylex_test_panic!(
+  a_boolean_vendor_prefixed_property_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { WebkitLineClamp: false } });
+  "#
+);
+
+stylex_test_panic!(
+  a_boolean_reached_through_a_binding_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const flag = false;
+
+    const styles = stylex.create({ x: { color: flag } });
+  "#
+);
+
+// The four condition kinds. A value under a condition is the same kind of
+// value as one written directly, so each of these is refused the same way.
+
+stylex_test_panic!(
+  a_boolean_default_branch_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: { default: false, ':hover': 'red' } } });
+  "#
+);
+
+stylex_test_panic!(
+  a_true_default_branch_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: { default: true, ':hover': 'red' } } });
+  "#
+);
+
+stylex_test_panic!(
+  a_boolean_pseudo_branch_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: { default: 'red', ':hover': false } } });
+  "#
+);
+
+stylex_test_panic!(
+  a_boolean_media_branch_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: { default: 'red', '@media print': false } } });
+  "#
+);
+
+stylex_test_panic!(
+  a_boolean_attribute_branch_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: { default: 'red', '[data-x]': false } } });
+  "#
+);
+
+// Nested a level down, where the refusal has to survive the recursion rather
+// than only being reached at the top of a condition object.
+stylex_test_panic!(
+  a_boolean_nested_two_conditions_deep_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      x: { color: { default: 'red', ':hover': { default: false, '@media print': 'blue' } } },
+    });
+  "#
+);
+
+// A property inside a pseudo object reaches the refusal through the other
+// recursion — the namespace walk rather than the conditional-styles walk.
+stylex_test_panic!(
+  a_boolean_inside_a_pseudo_object_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { ':hover': { color: false } } });
+  "#
+);
+
+// The whole value of a condition key, rather than a property under it.
+stylex_test_panic!(
+  a_boolean_as_a_whole_condition_value_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { ':hover': false } });
+  "#
+);
+
+// A fallback array holds values, so its message is the array one.
+stylex_test_panic!(
+  a_boolean_array_entry_is_not_a_style_value,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: [false] } });
+  "#
+);
+
+stylex_test_panic!(
+  a_boolean_beside_a_real_array_entry_is_not_a_style_value,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: ['red', false] } });
+  "#
+);
+
+// A boolean beside a `null` in the same array: the `null` is an absence and
+// refusing the boolean is still the answer, so the presence of a droppable
+// entry must not make the array look empty and slip past.
+stylex_test_panic!(
+  a_boolean_beside_a_null_array_entry_is_not_a_style_value,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: [null, false] } });
+  "#
+);
+
+// An array under a condition is refused with the non-array message, which is
+// what the reference implementation reports there.
+stylex_test_panic!(
+  a_boolean_array_entry_under_a_condition_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({
+      x: { color: { default: ['red', false], ':hover': 'blue' } },
+    });
+  "#
+);
+
+// A regular expression under a condition. Refused, and the diagnostic is the
+// one divergence in this group: the reference implementation refuses it during
+// evaluation as `Unsupported expression: RegExpLiteral` rather than as an
+// illegal value. Both compilers refuse the build, and the spec's non-goals
+// establish that no build can depend on the wording — what is pinned here is
+// that it is refused at all, where before this change it compiled and the
+// declaration silently vanished.
+stylex_test_panic!(
+  a_regular_expression_under_a_condition_is_not_a_style_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    const styles = stylex.create({ x: { color: { default: /a/, ':hover': 'red' } } });
+  "#
+);

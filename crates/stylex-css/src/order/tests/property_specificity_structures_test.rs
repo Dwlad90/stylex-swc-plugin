@@ -1,6 +1,7 @@
 use stylex_structures::{order::Order, order_pair::OrderPair};
 
 use crate::order::structures::property_specificity_order::PropertySpecificityOrder;
+use crate::order::tests::REJECTING_SHORTHANDS;
 
 // ── Aliases found via get_expansion_fn ──────────────────────────────
 
@@ -38,29 +39,6 @@ fn get_expansion_fn_for_alias_overflow_block() {
   assert_eq!(result, vec![OrderPair("overflowY".into(), None)]);
 }
 
-// ── Shorthands found via get_expansion_fn ───────────────────────────
-
-#[test]
-fn get_expansion_fn_for_shorthand_animation() {
-  let func = PropertySpecificityOrder::get_expansion_fn("animation").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-}
-
-#[test]
-fn get_expansion_fn_for_shorthand_border() {
-  let func = PropertySpecificityOrder::get_expansion_fn("border").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-}
-
-#[test]
-fn get_expansion_fn_for_shorthand_background() {
-  let func = PropertySpecificityOrder::get_expansion_fn("background").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-}
-
 // ── Unknown returns None ────────────────────────────────────────────
 
 #[test]
@@ -91,56 +69,55 @@ fn alias_has_priority_for_inset_block_start() {
 
 #[test]
 fn every_rejecting_shorthand_is_reachable_by_its_authored_name() {
-  // `border` agreed with the table by accident — it is spelled the same in
-  // both cases. The rest were unreachable, so a `borderTop: "none"` reached
-  // the stylesheet as `border-top:none` and defeated the specificity model
-  // this table exists to enforce.
-  let names = [
-    "all",
-    "animation",
-    "background",
-    "border",
-    "borderInline",
-    "borderBlock",
-    "borderTop",
-    "borderInlineEnd",
-    "borderRight",
-    "borderBottom",
-    "borderInlineStart",
-    "borderLeft",
-  ];
-
-  for name in names {
+  // `border` agreed with the table by accident — it is spelled the same either
+  // way. The rest were unreachable, so a `borderTop: "none"` reached the
+  // stylesheet as `border-top:none` and defeated the specificity model this
+  // table exists to enforce.
+  for name in REJECTING_SHORTHANDS {
     let func = PropertySpecificityOrder::get_expansion_fn(name)
       .unwrap_or_else(|| panic!("'{name}' should have an expansion fn"));
 
-    match func(Some("1px solid red".into())) {
-      Ok(pairs) => panic!("'{name}' should reject, expanded to {pairs:?}"),
-      Err(error) => assert!(
-        error.contains("is not supported"),
-        "'{name}' reported {error:?}"
-      ),
+    for value in [None, Some("1px solid red".into())] {
+      match func(value) {
+        Ok(pairs) => panic!("'{name}' should reject, expanded to {pairs:?}"),
+        Err(error) => assert!(
+          error.contains("is not supported"),
+          "'{name}' reported {error:?}"
+        ),
+      }
     }
   }
 }
 
 #[test]
 fn a_snake_case_spelling_is_not_a_property_name() {
-  // The keys are authored property names, never Rust identifiers. Pinning
-  // this stops the two from being conflated again.
-  for name in [
-    "border_top",
-    "border_inline",
-    "border_block",
-    "border_left",
-    "border_right",
-    "border_bottom",
-    "border_inline_start",
-    "border_inline_end",
-  ] {
+  // The keys are authored property names, never the Rust identifiers that
+  // implement them. Derived from the same list the table is checked against,
+  // so the two cannot drift: a single-word name snake_cases to itself and is
+  // skipped, since it is a real property either way.
+  for name in REJECTING_SHORTHANDS {
+    let snake = snake_case(name);
+
+    if snake == name {
+      continue;
+    }
+
     assert!(
-      PropertySpecificityOrder::get_expansion_fn(name).is_none(),
-      "'{name}' is not a property an author can write"
+      PropertySpecificityOrder::get_expansion_fn(&snake).is_none(),
+      "'{snake}' is not a property an author can write"
     );
   }
+}
+
+fn snake_case(name: &str) -> String {
+  name.chars().fold(String::new(), |mut acc, ch| {
+    if ch.is_ascii_uppercase() {
+      acc.push('_');
+      acc.push(ch.to_ascii_lowercase());
+    } else {
+      acc.push(ch);
+    }
+
+    acc
+  })
 }

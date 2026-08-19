@@ -1,84 +1,26 @@
 use crate::order::constants::property_specificity_order::{Aliases, Shorthands};
+use crate::order::tests::{DEPRECATED_BORDER_ALIASES, REJECTING_SHORTHANDS};
 use stylex_structures::order_pair::OrderPair;
 
 // ── Shorthands::get ─────────────────────────────────────────────────
 
 #[test]
-fn shorthands_get_animation_returns_err() {
-  let func = Shorthands::get("animation").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-  assert!(result.unwrap_err().contains("not supported"));
-}
+fn shorthands_get_rejects_every_name_it_registers() {
+  // Both value arms: the rejection is about the property name, so a registered
+  // name must refuse whether or not a value came with it.
+  for name in REJECTING_SHORTHANDS {
+    let func = Shorthands::get(name).unwrap_or_else(|| panic!("'{name}' should be registered"));
 
-#[test]
-fn shorthands_get_background_returns_err() {
-  let func = Shorthands::get("background").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-}
-
-#[test]
-fn shorthands_get_border_returns_err() {
-  let func = Shorthands::get("border").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-}
-
-#[test]
-fn shorthands_get_border_inline_returns_err() {
-  let func = Shorthands::get("borderInline").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-}
-
-#[test]
-fn shorthands_get_border_block_returns_err() {
-  let func = Shorthands::get("borderBlock").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-}
-
-#[test]
-fn shorthands_get_border_top_returns_err() {
-  let func = Shorthands::get("borderTop").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-}
-
-#[test]
-fn shorthands_get_border_inline_end_returns_err() {
-  let func = Shorthands::get("borderInlineEnd").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-}
-
-#[test]
-fn shorthands_get_border_right_returns_err() {
-  let func = Shorthands::get("borderRight").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-}
-
-#[test]
-fn shorthands_get_border_bottom_returns_err() {
-  let func = Shorthands::get("borderBottom").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-}
-
-#[test]
-fn shorthands_get_border_inline_start_returns_err() {
-  let func = Shorthands::get("borderInlineStart").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
-}
-
-#[test]
-fn shorthands_get_border_left_returns_err() {
-  let func = Shorthands::get("borderLeft").unwrap();
-  let result = func(None);
-  assert!(result.is_err());
+    for value in [None, Some("1px solid red".into())] {
+      match func(value) {
+        Ok(pairs) => panic!("'{name}' should reject, expanded to {pairs:?}"),
+        Err(error) => assert!(
+          error.contains("is not supported"),
+          "'{name}' reported {error:?}"
+        ),
+      }
+    }
+  }
 }
 
 #[test]
@@ -390,23 +332,6 @@ fn aliases_get_end() {
 
 // ── Deprecated aliases ──────────────────────────────────────────────
 
-#[test]
-fn aliases_get_border_horizontal_delegates_to_border_inline() {
-  let func = Aliases::get("borderHorizontal").expect("borderHorizontal is registered");
-  let error = func(Some("1px solid red".into())).expect_err("borderInline rejects");
-  assert!(
-    error.starts_with("borderInline is not supported"),
-    "{error}"
-  );
-}
-
-#[test]
-fn aliases_get_border_vertical_delegates_to_border_block() {
-  let func = Aliases::get("borderVertical").expect("borderVertical is registered");
-  let error = func(None).expect_err("borderBlock rejects");
-  assert!(error.starts_with("borderBlock is not supported"), "{error}");
-}
-
 // ── Unknown ─────────────────────────────────────────────────────────
 
 #[test]
@@ -417,29 +342,6 @@ fn aliases_get_unknown_returns_none() {
 #[test]
 fn aliases_get_empty_returns_none() {
   assert!(Aliases::get("").is_none());
-}
-
-// ── Call shorthands with Some values ────────────────────────────────
-
-#[test]
-fn shorthands_animation_with_value_returns_err() {
-  let func = Shorthands::get("animation").unwrap();
-  let result = func(Some("fadeIn".into()));
-  assert!(result.is_err());
-}
-
-#[test]
-fn shorthands_background_with_value_returns_err() {
-  let func = Shorthands::get("background").unwrap();
-  let result = func(Some("red".into()));
-  assert!(result.is_err());
-}
-
-#[test]
-fn shorthands_border_with_value_returns_err() {
-  let func = Shorthands::get("border").unwrap();
-  let result = func(Some("1px solid".into()));
-  assert!(result.is_err());
 }
 
 // ── Call all aliases with Some values ───────────────────────────────
@@ -532,16 +434,7 @@ fn aliases_all_called_with_some_value() {
 fn aliases_deprecated_delegate_to_the_shorthand_they_alias() {
   // Each of these is an alias *of* another shorthand, so it must answer with
   // that shorthand's rejection rather than with its own name.
-  let entries = [
-    ("borderHorizontal", "borderInline is not supported"),
-    ("borderVertical", "borderBlock is not supported"),
-    ("borderBlockStart", "borderTop is not supported"),
-    ("borderEnd", "borderInlineEnd is not supported"),
-    ("borderBlockEnd", "borderBottom is not supported"),
-    ("borderStart", "borderInlineStart is not supported"),
-  ];
-
-  for (alias_name, expected_prefix) in entries {
+  for (alias_name, expected_prefix) in DEPRECATED_BORDER_ALIASES {
     let func = Aliases::get(alias_name)
       .unwrap_or_else(|| panic!("alias '{alias_name}' should be registered"));
 
@@ -551,6 +444,79 @@ fn aliases_deprecated_delegate_to_the_shorthand_they_alias() {
         error.starts_with(expected_prefix),
         "alias '{alias_name}' reported {error:?}"
       ),
+    }
+  }
+}
+
+// ── Message text, byte for byte against upstream ─────────────────────
+
+#[test]
+fn every_rejection_message_matches_upstream_exactly() {
+  // Nine of these had never been reachable before the table was re-keyed, so
+  // nothing had ever read them: all nine were missing upstream's trailing
+  // period, and `borderLeft` ran its three sentences together because it
+  // concatenated where upstream joins with a space. The harness compares
+  // outcomes and not messages, so only this test holds the text.
+  //
+  // Source: `@stylexjs/babel-plugin@0.19.0`,
+  // `src/shared/preprocess-rules/property-specificity.js`.
+  let expected = [
+    ("all", "all is not supported"),
+    ("animation", "animation is not supported"),
+    (
+      "background",
+      "background is not supported. Use background-color, border-image etc. instead.",
+    ),
+    (
+      "border",
+      "border is not supported. Use border-width, border-style and border-color instead.",
+    ),
+    (
+      "borderInline",
+      "borderInline is not supported. Use borderInlineWidth, borderInlineStyle and borderInlineColor instead.",
+    ),
+    (
+      "borderBlock",
+      "borderBlock is not supported. Use borderBlockWidth, borderBlockStyle and borderBlockColor instead.",
+    ),
+    (
+      "borderTop",
+      "borderTop is not supported. Use borderTopWidth, borderTopStyle and borderTopColor instead.",
+    ),
+    (
+      "borderInlineEnd",
+      "borderInlineEnd is not supported. Use borderInlineEndWidth, borderInlineEndStyle and borderInlineEndColor instead.",
+    ),
+    (
+      "borderRight",
+      "borderRight is not supported. Use borderRightWidth, borderRightStyle and borderRightColor instead.",
+    ),
+    (
+      "borderBottom",
+      "borderBottom is not supported. Use borderBottomWidth, borderBottomStyle and borderBottomColor instead.",
+    ),
+    (
+      "borderInlineStart",
+      "borderInlineStart is not supported. Use borderInlineStartWidth, borderInlineStartStyle and borderInlineStartColor instead.",
+    ),
+    (
+      "borderLeft",
+      "`borderLeft` is not supported. You could use `borderLeftWidth`, `borderLeftStyle` and `borderLeftColor`, but it is preferable to use `borderInlineStartWidth`, `borderInlineStartStyle` and `borderInlineStartColor`.",
+    ),
+  ];
+
+  assert_eq!(
+    expected.len(),
+    REJECTING_SHORTHANDS.len(),
+    "a shorthand was added or removed without its message being pinned"
+  );
+
+  for (name, message) in expected {
+    let func = Shorthands::get(name).unwrap_or_else(|| panic!("'{name}' should be registered"));
+
+    match func(Some("1px solid red".into())) {
+      Ok(pairs) => panic!("'{name}' should reject, expanded to {pairs:?}"),
+      Err(error) => assert_eq!(error, message, "'{name}' message drifted"),
     }
   }
 }

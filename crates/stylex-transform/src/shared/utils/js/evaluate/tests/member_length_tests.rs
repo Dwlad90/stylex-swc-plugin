@@ -170,6 +170,17 @@ fn a_hole_is_a_slot_and_counts() {
   assert_folds_to_number("[, , ,].length", 3.0);
 }
 
+/// The receiver kinds that reach the array-literal arm rather than the evaluated
+/// one: a fold that answers an `ArrayLit` value instead of a `Vec`. Also the
+/// shapes an author is most likely to actually write a `length` on.
+#[test]
+fn an_array_a_fold_produced_answers_its_length() {
+  assert_folds_to_number("Object.keys({ a: 1, b: 2 }).length", 2.0);
+  assert_folds_to_number("Object.values({ a: 1 }).length", 1.0);
+  assert_folds_to_number("Object.entries({ a: 1, b: 2 }).length", 2.0);
+  assert_folds_to_number("[\"a\", \"b\"].join(\"-\").length", 3.0);
+}
+
 /// A template literal folds to a string before the property is read, so its
 /// length is the length of what it folded to and not of what was written.
 #[test]

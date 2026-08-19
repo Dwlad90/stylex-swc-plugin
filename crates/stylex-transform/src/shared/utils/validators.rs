@@ -647,6 +647,19 @@ fn is_style_value_literal(lit: &Lit) -> bool {
   )
 }
 
+/// Refuse a literal that is not a style value, reported at the literal itself.
+///
+/// Both positions that carry a value directly -- written on a property, and
+/// written under a condition -- refuse the same set for the same reason, so they
+/// refuse through the same function. Restating the rejection beside each copy of
+/// the set is how the two came to disagree in the first place.
+fn reject_unless_style_value_literal(lit: &Lit, state: &mut StateManager) {
+  if !is_style_value_literal(lit) {
+    let lit_expr = Expr::Lit(lit.clone());
+    build_code_frame_error_and_panic_at(&lit_expr, ILLEGAL_PROP_VALUE, state);
+  }
+}
+
 pub(crate) fn validate_namespace(
   namespaces: &[KeyValueProp],
   conditions: &[String],
@@ -654,10 +667,7 @@ pub(crate) fn validate_namespace(
 ) {
   for namespace in namespaces {
     match namespace.value.as_ref() {
-      Expr::Lit(lit) if !is_style_value_literal(lit) => {
-        let lit_expr = Expr::Lit(lit.clone());
-        build_code_frame_error_and_panic_at(&lit_expr, ILLEGAL_PROP_VALUE, state);
-      },
+      Expr::Lit(lit) => reject_unless_style_value_literal(lit, state),
       Expr::Array(array) => {
         for elem in array.elems.iter().flatten() {
           if elem.spread.is_some() {
@@ -749,12 +759,7 @@ pub(crate) fn validate_conditional_styles(
   // "what a style value may be" are what let a boolean compile in one position
   // and fail in the other.
   match inner_value.as_ref() {
-    Expr::Lit(lit) => {
-      if !is_style_value_literal(lit) {
-        let lit_expr = Expr::Lit(lit.clone());
-        build_code_frame_error_and_panic_at(&lit_expr, ILLEGAL_PROP_VALUE, state);
-      }
-    },
+    Expr::Lit(lit) => reject_unless_style_value_literal(lit, state),
     Expr::Array(array) => {
       for elem in array.elems.iter().flatten() {
         match elem.expr.as_ref() {

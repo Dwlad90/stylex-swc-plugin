@@ -987,8 +987,8 @@ stylex_test_panic!(
 // evaluator will not read at all; that difference predates this fold and shows
 // on a bare `color: /re/` with no coercion anywhere.
 stylex_test_panic!(
-  object_of_a_regular_expression_reaches_the_style_value_check,
-  "A style value can only contain an array, string or number.",
+  object_of_a_regular_expression_refuses_at_the_literal,
+  "Unsupported expression: RegExpLiteral",
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({

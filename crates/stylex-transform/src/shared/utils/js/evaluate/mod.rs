@@ -50,7 +50,7 @@ use crate::shared::{
       extract_tpl_cooked_value,
     },
     common::{
-      deep_merge_props, get_import_by_ident, get_var_decl_by_ident, get_var_decl_from,
+      assign_props, get_import_by_ident, get_var_decl_by_ident, get_var_decl_from,
       remove_duplicates,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
@@ -314,6 +314,19 @@ fn _evaluate(
         normalized_path,
         state,
         &unsupported_expression("BigIntLiteral"),
+      );
+    },
+    // Nor is a regular expression, and the reference implementation refuses one
+    // here rather than anywhere later: it folds no `RegExpLiteral` in any
+    // position, so `{ color: /a/ }`, `[/a/]`, a binding holding one and
+    // `{ .../a/ }` all read the same sentence. Folding it to itself instead left
+    // the refusal to whichever downstream reader tripped over the value, and
+    // that reader had no name for it — the diagnostic came out as `1`.
+    Expr::Lit(Lit::Regex(_)) => {
+      return deopt(
+        normalized_path,
+        state,
+        &unsupported_expression("RegExpLiteral"),
       );
     },
     Expr::Lit(lit_path) => nodes::literal::evaluate(lit_path),

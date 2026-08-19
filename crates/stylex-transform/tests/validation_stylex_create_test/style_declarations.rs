@@ -200,7 +200,7 @@ stylex_test_panic!(
 // A regular expression does reach the array, and is refused by the rule.
 stylex_test_panic!(
   invalid_value_array_holding_a_regular_expression,
-  "A style array value can only contain strings or numbers.",
+  "Unsupported expression: RegExpLiteral",
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({

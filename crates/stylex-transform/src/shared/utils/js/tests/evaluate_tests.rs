@@ -624,42 +624,31 @@ fn make_call_expr(callee: Expr, args: Vec<Expr>) -> Expr {
   })
 }
 
+// A regular expression is never folded, in any position and whatever it spells.
+// The reference implementation refuses every `RegExpLiteral`, and folding one to
+// itself left the refusal to whichever downstream reader tripped over the value:
+// `{ color: /a/ }` reported a diagnostic that read `1`, and `String(/re/)` did
+// not refuse at all — it wrote `color: / re /` into the stylesheet.
 #[test]
-fn test_regex_literal_evaluation() {
-  let regex_expr = make_regex_expr("test", "g");
-  let (confident, has_value) = evaluate_expr(&regex_expr);
-  assert!(confident, "Regex literal should be confident");
-  assert!(has_value, "Regex literal should have a value");
-}
+fn test_regex_literal_refuses_to_fold() {
+  for (pattern, flags) in [
+    ("test", "g"),
+    ("\\/regex", ""),
+    ("test", "gi"),
+    ("^hello.*world$", ""),
+    ("[a-z]+\\d{2,3}", "gimsuy"),
+    ("^[a-zA-Z0-9]+@[a-zA-Z0-9]+\\.[a-zA-Z]{2,}$", ""),
+    ("\\p{Emoji}", "u"),
+  ] {
+    let regex_expr = make_regex_expr(pattern, flags);
+    let (confident, _has_value) = evaluate_expr(&regex_expr);
 
-#[test]
-fn test_regex_with_escaped_chars() {
-  let regex_expr = make_regex_expr("\\/regex", "");
-  let (confident, has_value) = evaluate_expr(&regex_expr);
-  assert!(
-    confident,
-    "Regex with escaped characters should be confident"
-  );
-  assert!(
-    has_value,
-    "Regex with escaped characters should have a value"
-  );
-}
-
-#[test]
-fn test_regex_with_flags() {
-  let regex_expr = make_regex_expr("test", "gi");
-  let (confident, has_value) = evaluate_expr(&regex_expr);
-  assert!(confident, "Regex with flags should be confident");
-  assert!(has_value, "Regex with flags should have a value");
-}
-
-#[test]
-fn test_regex_without_flags() {
-  let regex_expr = make_regex_expr("^hello.*world$", "");
-  let (confident, has_value) = evaluate_expr(&regex_expr);
-  assert!(confident, "Regex without flags should be confident");
-  assert!(has_value, "Regex without flags should have a value");
+    assert!(
+      !confident,
+      "regex /{}/{} should refuse to fold",
+      pattern, flags
+    );
+  }
 }
 
 #[test]
@@ -712,22 +701,6 @@ fn test_regex_match_method() {
     !confident,
     "Regex.match() should not be confident (cannot be statically evaluated)"
   );
-}
-
-#[test]
-fn test_complex_regex_pattern() {
-  let regex_expr = make_regex_expr("^[a-zA-Z0-9]+@[a-zA-Z0-9]+\\.[a-zA-Z]{2,}$", "");
-  let (confident, has_value) = evaluate_expr(&regex_expr);
-  assert!(confident, "Complex regex pattern should be confident");
-  assert!(has_value, "Complex regex pattern should have a value");
-}
-
-#[test]
-fn test_regex_with_unicode_flag() {
-  let regex_expr = make_regex_expr("\\p{Emoji}", "u");
-  let (confident, has_value) = evaluate_expr(&regex_expr);
-  assert!(confident, "Regex with unicode flag should be confident");
-  assert!(has_value, "Regex with unicode flag should have a value");
 }
 
 #[test]

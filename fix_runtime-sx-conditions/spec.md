@@ -115,10 +115,22 @@ independently shippable as `0.18.4-rc.3`. Restores full parity with `0.18.3`
 and with the reference implementation for every runtime position; leaves the
 static-position fold gap exactly where `0.18.3` left it.
 
-**Phase 2 — wrong output found on the way.** Issues 01, 07 and 08. Each changes
-emitted CSS and generated class names, so each needs a release note and none
-should ride along with a fix that has to go out quickly. 01 is done; 08 was
-filed from it, and is the array-hole representation its fix works around.
+**Phase 2 — wrong output found on the way.** Issues 01, 07, 08 and 10. Each
+changes emitted CSS and generated class names, so each needs a release note and
+none should ride along with a fix that has to go out quickly. 01, 07 and 10 are
+done; 08 was filed from 01, and is the array-hole representation its fix works
+around. 07 needed no decision in the end: rejecting the property and dropping it
+silently are one behaviour selected by `propertyValidationMode`, and the table
+was simply keyed by Rust function names instead of property names.
+
+Issue 10 was filed from 07's value coverage as "`null` is dropped upstream and
+rejected here, on any property, not just a shorthand". That did not reproduce —
+`null` had been accepted here since `b945607c1`. Re-measuring the neighbourhood
+found the two divergences that were real, in the opposite direction: an array
+carrying only `null` lost its property here, and a boolean or a regular
+expression written under a condition compiled here and silently declared nothing.
+Both are settled; see the ticket for the measurement and the one divergence
+deliberately left in place.
 
 Issue 09 was filed from 01 as well but belongs to **Phase 1**: an unpaired
 surrogate still aborts two string folds, which is the panic family 02 closed for

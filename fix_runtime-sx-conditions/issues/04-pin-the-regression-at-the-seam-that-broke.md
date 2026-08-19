@@ -75,16 +75,15 @@ The comparison is still class names and rule text, never emitted JavaScript. The
 two compilers print code differently, so comparing output would report a
 divergence on every entry and say nothing about StyleX.
 
-### The five module entries, and the two that disagree
+### The five module entries, and the one that disagrees
 
-Three read `identical` against `@stylexjs/babel-plugin@0.19.0`: both reported
-inputs and the shape table.
+Four read `identical` against `@stylexjs/babel-plugin@0.19.0`: both reported
+inputs, the shape table, and the reporter's fuller module below.
 
-`modules-1265-through-a-binding` — the reporter's fuller module, verbatim — is
-permanently `structurally divergent`, because `borderTop: none` is emitted here
-and dropped upstream. That is issue 07, not evaluation. The exact input
-therefore has no clean parity verdict and is pinned by its snapshot instead;
-the entry carries the reason in its `note`.
+`modules-1265-through-a-binding` — the reporter's fuller module, verbatim — was
+`structurally divergent` while `borderTop: none` was emitted here and dropped
+upstream. Issue 07 fixed that, and the entry now reads `identical`: the exact
+reported input is checked against the reference implementation after all.
 
 `modules-1265-callback-through-a-binding` is `acceptance divergent` in this
 compiler's favour. `VIEWS.some(v => v === q)`, reached through a binding, makes
@@ -96,12 +95,20 @@ array it compiles there. File upstream rather than reproduce: a build that
 survives is the correct answer, and matching the abort would re-introduce the bug
 this effort is about.
 
-### Two limits worth knowing
+### The expected-verdict field, and the limit that remains
 
-The harness has no expected-verdict field, so those two entries are
-distinguishable from a new regression only by their `note` and the README. That
-is consistent with it being a developer tool rather than a test, but it means
-the corpus leg holds only as long as someone runs `pnpm parity` and reads them.
+A corpus entry now takes an optional `expected` naming the verdict it is known
+to read. While it holds the report marks the entry `(expected)` and
+`--only-mismatches` leaves it out; when it stops holding — in either direction —
+the entry is listed under **Verdicts that changed**. A divergence that quietly
+goes away is as loud as a new one, which is what caught the `borderTop` entry
+above: it was still recorded as divergent after issue 07 had fixed it.
+
+Six module entries carry one, and a changed verdict exits non-zero — the one
+thing the harness fails on. A divergence with no expectation recorded against it
+still prints as information for a person to read. The limit that remains is that
+nothing runs `pnpm parity` for you: it is not wired into CI, and it reads
+`dist/`, so a run means nothing without a rebuild first.
 
 The module sources are written twice — once as a Rust test fixture, once in
 `modules.json`. `harvest-corpus.ts` solves that for declarations; doing it for

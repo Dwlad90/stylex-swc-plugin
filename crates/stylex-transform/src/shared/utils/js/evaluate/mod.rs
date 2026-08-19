@@ -516,6 +516,10 @@ fn _evaluate(
 }
 
 #[cfg(test)]
+#[path = "tests/source_evaluation.rs"]
+pub(crate) mod source_evaluation;
+
+#[cfg(test)]
 #[path = "tests/member_length_tests.rs"]
 mod member_length_tests;
 

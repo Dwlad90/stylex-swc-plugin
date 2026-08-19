@@ -2,122 +2,19 @@
 //! ordinary answer, and answering it must never abort the build.
 //!
 //! Every case here reached `stylex_panic_with_context!` before the split, and
-//! every one of them is an expression an author can write. The three logical
-//! operators evaluate their right operand under a forked confidence — see
-//! `nodes/logical_expression.rs` — so any of these in that position used to
-//! take the whole compilation with it, which is what
-//! [#1265](https://github.com/Dwlad90/stylex-swc-plugin/issues/1265) reported.
+//! every one of them is an expression an author can write. What each shape does
+//! in a logical operand — the property that actually broke — is pinned beside
+//! the operators themselves, in
+//! `nodes/tests/unfoldable_operand_tests.rs`; this file is the catalogue of
+//! shapes that must refuse, wherever they sit.
 //!
 //! The suite is deliberately two-sided: refusing everything would pass a
 //! "nothing panics" test while quietly stopping the compiler from folding
 //! anything, so each refusal group is paired with the folds it must not have
 //! broken.
 
-use super::*;
-use stylex_structures::stylex_options::StyleXOptions;
-use swc_core::{
-  common::{FileName, GLOBALS, Globals, SourceMap, sync::Lrc},
-  ecma::parser::{EsSyntax, Parser, StringInput, Syntax, lexer::Lexer},
-};
-
-/// Parses one expression, evaluates it, and reports what the evaluator made of
-/// it. Panics propagate, which is the point: a test that reaches one fails.
-fn evaluate_source(source: &str) -> Box<EvaluateResult> {
-  let expr = parse_expr(source);
-  let globals = Globals::new();
-
-  GLOBALS.set(&globals, || {
-    let mut traversal_state = StateManager::new(StyleXOptions::default());
-    let fns = FunctionMap::default();
-
-    evaluate(&expr, &mut traversal_state, &fns)
-  })
-}
-
-/// Asserts the source refuses to fold, and does so as a deopt rather than by
-/// aborting. The reason has to be there: `stylex.create()` turns it into the
-/// author-facing diagnostic, so a refusal with no reason is a regression in
-/// what a build error says.
-#[track_caller]
-fn assert_deopts(source: &str) {
-  let result = evaluate_source(source);
-
-  assert!(
-    !result.confident,
-    "expected `{}` to refuse to fold, got {:?}",
-    source, result.value
-  );
-
-  assert!(
-    result.reason.is_some(),
-    "expected `{}` to record a deopt reason",
-    source
-  );
-}
-
-/// Asserts the source folds to a value. Guards the refusals above from being
-/// satisfied by an evaluator that folds nothing at all.
-#[track_caller]
-fn assert_folds(source: &str) -> Expr {
-  let result = evaluate_source(source);
-
-  assert!(
-    result.confident,
-    "expected `{}` to fold, got a deopt: {:?}",
-    source, result.reason
-  );
-
-  match result.value {
-    Some(EvaluateResultValue::Expr(expr)) => expr,
-    other => panic!(
-      "expected `{}` to fold to an expression, got {:?}",
-      source, other
-    ),
-  }
-}
-
-#[track_caller]
-fn assert_folds_to_string(source: &str, expected: &str) {
-  match assert_folds(source) {
-    Expr::Lit(Lit::Str(strng)) => assert_eq!(
-      convert_atom_to_string(&strng.value),
-      expected,
-      "wrong folded string for `{}`",
-      source
-    ),
-    other => panic!("expected `{}` to fold to a string, got {:?}", source, other),
-  }
-}
-
-#[track_caller]
-fn assert_folds_to_number(source: &str, expected: f64) {
-  match assert_folds(source) {
-    Expr::Lit(Lit::Num(num)) => {
-      assert_eq!(num.value, expected, "wrong folded number for `{}`", source)
-    },
-    other => panic!("expected `{}` to fold to a number, got {:?}", source, other),
-  }
-}
-
-fn parse_expr(source: &str) -> Expr {
-  let source_map: Lrc<SourceMap> = Default::default();
-  let source_file = source_map.new_source_file(FileName::Anon.into(), source.to_string());
-
-  let lexer = Lexer::new(
-    Syntax::Es(EsSyntax {
-      jsx: true,
-      ..Default::default()
-    }),
-    Default::default(),
-    StringInput::from(&*source_file),
-    None,
-  );
-
-  match Parser::new_from(lexer).parse_expr() {
-    Ok(expr) => *expr,
-    Err(error) => panic!("failed to parse `{}`: {:?}", source, error),
-  }
-}
+use super::source_evaluation::*;
+use stylex_constants::constants::evaluation_errors::unsupported_expression;
 
 // ==================== the reported input ====================
 
@@ -125,68 +22,6 @@ fn parse_expr(source: &str) -> Expr {
 #[test]
 fn a_string_method_the_evaluator_does_not_fold_refuses_rather_than_aborting() {
   assert_deopts("\"documentation\".startsWith(lowerQuery)");
-}
-
-/// The same call in the position that made it reachable. `1 > 0` is a
-/// confident, truthy left side, so `&&` consults the right operand — which is
-/// exactly the fork the panic escaped from.
-#[test]
-fn an_unfoldable_right_operand_of_and_refuses_rather_than_aborting() {
-  assert_deopts("1 > 0 && \"documentation\".startsWith(lowerQuery)");
-}
-
-/// `||` consults its right operand only when the left is falsy.
-#[test]
-fn an_unfoldable_right_operand_of_or_refuses_rather_than_aborting() {
-  assert_deopts("\"\" || \"documentation\".startsWith(lowerQuery)");
-}
-
-/// `??` consults its right operand when the left is nullish.
-#[test]
-fn an_unfoldable_right_operand_of_nullish_refuses_rather_than_aborting() {
-  assert_deopts("null ?? \"documentation\".startsWith(lowerQuery)");
-}
-
-/// The property this suite is really about: whatever the evaluator cannot fold,
-/// putting it on the right of one of the three logical operators must not
-/// change the answer from "refused" to "aborted". Written as a sweep so a
-/// newly added unfoldable shape is covered by construction rather than by
-/// someone remembering to add three more tests.
-#[test]
-fn every_unfoldable_shape_survives_every_logical_operand_position() {
-  const UNFOLDABLE: &[&str] = &[
-    "\"documentation\".startsWith(q)",
-    "\"abc\".normalize()",
-    "[\"a\", \"b\"].reduce(f)",
-    "[\"a\", \"b\"].at(0)",
-    "(5).toFixed(2)",
-    "true.toString()",
-    "/re/.test(\"a\")",
-    "Math.sin(1)",
-    "Math.pow(\"a\", 2)",
-    "Object.assign({}, {})",
-    "Object.fromEntries(1)",
-    "({}).hasOwnProperty(\"a\")",
-    "tag`x`",
-    "-({})",
-    "({ ...1 })",
-  ];
-
-  for shape in UNFOLDABLE {
-    assert_deopts(shape);
-    assert_deopts(&format!("1 > 0 && {}", shape));
-    assert_deopts(&format!("\"\" || {}", shape));
-    assert_deopts(&format!("null ?? {}", shape));
-  }
-}
-
-/// A left operand that decides the fold on its own is not made unconfident by
-/// an unfoldable right one — the short-circuit still holds after the split.
-#[test]
-fn an_unconsulted_unfoldable_operand_does_not_refuse_the_fold() {
-  assert_folds_to_string("\"blue\" || \"documentation\".startsWith(q)", "blue");
-  assert_folds_to_string("\"\" && \"documentation\".startsWith(q)", "");
-  assert_folds_to_string("\"blue\" ?? \"documentation\".startsWith(q)", "blue");
 }
 
 // ==================== receivers with no folded methods ====================

@@ -212,3 +212,7 @@ fn operand_value(value: Option<EvaluateResultValue>) -> EvaluateResultValue {
 #[cfg(test)]
 #[path = "tests/logical_expression_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/unfoldable_operand_tests.rs"]
+mod unfoldable_operand_tests;

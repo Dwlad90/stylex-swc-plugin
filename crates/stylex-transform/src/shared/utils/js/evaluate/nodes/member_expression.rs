@@ -17,19 +17,20 @@ const LENGTH: &str = "length";
 enum ArrayLikeLookup {
   /// `length`, which is counted rather than looked up.
   Length,
-  /// An index. Whether one can be read depends on the receiver, so the arms
-  /// decide: the array literal a fold produced reads one, and neither a string
-  /// nor an evaluated array does. A string index is a single UTF-16 code unit,
-  /// which can be an unpaired surrogate no Rust string holds; an evaluated array
-  /// is the scope `array_expression` owns.
+  /// An index, carrying the key as written. Whether one can be read depends on
+  /// the receiver, so the arms decide: the array literal a fold produced reads
+  /// one, and neither a string nor an evaluated array does. A string index is a
+  /// single UTF-16 code unit, which can be an unpaired surrogate no Rust string
+  /// holds; an evaluated array is the scope `array_expression` owns.
   ///
   /// An index past the end is `undefined` upstream and a refusal here, because
   /// knowing it is past the end is the same work as reading one.
-  Index,
-  /// A property the receiver does not carry. `undefined` in the language, which
-  /// is the answer the object arm below already gives for a key an object does
-  /// not hold, and what lets `token.missing ?? fallback` fold.
-  Missing,
+  Index(String),
+  /// A property the receiver does not carry, carrying its key. `undefined` in
+  /// the language, which is the answer the object arm below already gives for a
+  /// key an object does not hold, and what lets `token.missing ?? fallback`
+  /// fold.
+  Missing(String),
   /// A computed key with no name the evaluator could read.
   Unreadable,
 }
@@ -46,8 +47,8 @@ fn classify_lookup(property: Option<&EvaluateResultValue>) -> ArrayLikeLookup {
   match property.and_then(|prop| prop.as_string_key()) {
     None => ArrayLikeLookup::Unreadable,
     Some(key) if key == LENGTH => ArrayLikeLookup::Length,
-    Some(key) if is_array_index(&key) => ArrayLikeLookup::Index,
-    Some(_) => ArrayLikeLookup::Missing,
+    Some(key) if is_array_index(&key) => ArrayLikeLookup::Index(key),
+    Some(key) => ArrayLikeLookup::Missing(key),
   }
 }
 
@@ -64,14 +65,21 @@ fn is_array_index(key: &str) -> bool {
 /// property test had drifted into three diagnostics for one mistake. The
 /// unnameable case is the refusal the reference implementation gives at this
 /// point, `errMsgs.UNEXPECTED_MEMBER_LOOKUP`.
+///
+/// Reads the key off the classification rather than re-deriving it from the
+/// property: deciding what a lookup asks for is `classify_lookup`'s job, and
+/// asking twice is how the two could come to disagree.
 fn refuse_lookup(
   path: &Expr,
   state: &mut EvaluationState,
-  property: Option<&EvaluateResultValue>,
+  lookup: &ArrayLikeLookup,
 ) -> Option<EvaluateResultValue> {
-  match property.and_then(|prop| prop.as_string_key()) {
-    Some(key) => deopt(path, state, &unreadable_index(&key)),
-    None => deopt(path, state, UNEXPECTED_MEMBER_LOOKUP),
+  match lookup {
+    ArrayLikeLookup::Length => deopt(path, state, &unreadable_index(LENGTH)),
+    ArrayLikeLookup::Index(key) | ArrayLikeLookup::Missing(key) => {
+      deopt(path, state, &unreadable_index(key))
+    },
+    ArrayLikeLookup::Unreadable => deopt(path, state, UNEXPECTED_MEMBER_LOOKUP),
   }
 }
 
@@ -181,7 +189,9 @@ pub(in super::super) fn evaluate(
               deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
             };
 
-            match classify_lookup(Some(&eval_res)) {
+            let lookup = classify_lookup(Some(&eval_res));
+
+            match &lookup {
               // The count of slots the language reports — a hole occupies one.
               // Read off the array this value holds, which is the same reading
               // the `Vec` arm below takes from the receiver's AST and for the
@@ -195,15 +205,13 @@ pub(in super::super) fn evaluate(
               // A property an array does not carry is `undefined`, the answer
               // the language gives and the one the object arm below gives for
               // the matching case.
-              ArrayLikeLookup::Missing => return Some(js_undefined()),
+              ArrayLikeLookup::Missing(_) => return Some(js_undefined()),
               ArrayLikeLookup::Unreadable => {
                 deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
               },
               // Read below, which is the arm that folds one.
-              ArrayLikeLookup::Index => {},
+              ArrayLikeLookup::Index(_) => {},
             }
-
-            let eval_res_for_refusal = eval_res.clone();
 
             let EvaluateResultValue::Expr(expr) = eval_res else {
               deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
@@ -215,7 +223,7 @@ pub(in super::super) fn evaluate(
             // function as the other receivers so the diagnostic names the index
             // rather than describing the member expression.
             let Expr::Lit(Lit::Num(Number { value, .. })) = expr else {
-              return refuse_lookup(path, state, Some(&eval_res_for_refusal));
+              return refuse_lookup(path, state, &lookup);
             };
 
             let value = value as usize;
@@ -350,9 +358,9 @@ pub(in super::super) fn evaluate(
             ArrayLikeLookup::Length => Some(EvaluateResultValue::Expr(create_number_expr(
               atom_utf16_length(&strng.value) as f64,
             ))),
-            ArrayLikeLookup::Missing => Some(js_undefined()),
-            ArrayLikeLookup::Index | ArrayLikeLookup::Unreadable => {
-              refuse_lookup(path, state, property.as_ref())
+            ArrayLikeLookup::Missing(_) => Some(js_undefined()),
+            lookup @ (ArrayLikeLookup::Index(_) | ArrayLikeLookup::Unreadable) => {
+              refuse_lookup(path, state, &lookup)
             },
           },
           // Reading a property off `undefined` throws in the language, and
@@ -429,9 +437,9 @@ pub(in super::super) fn evaluate(
             Some(count) => Some(EvaluateResultValue::Expr(create_number_expr(count as f64))),
             None => deopt(path, state, &unsupported_expression("SpreadElement")),
           },
-          ArrayLikeLookup::Missing => Some(js_undefined()),
-          ArrayLikeLookup::Index | ArrayLikeLookup::Unreadable => {
-            refuse_lookup(path, state, property.as_ref())
+          ArrayLikeLookup::Missing(_) => Some(js_undefined()),
+          lookup @ (ArrayLikeLookup::Index(_) | ArrayLikeLookup::Unreadable) => {
+            refuse_lookup(path, state, &lookup)
           },
         },
         EvaluateResultValue::ThemeRef(mut theme_ref) => {

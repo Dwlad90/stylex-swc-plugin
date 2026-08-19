@@ -19,7 +19,7 @@
       "label": "an unfoldable operand reached through a binding",
       "source": "import * as stylex from \"@stylexjs/stylex\";\n\nconst styles = stylex.create({\n  base: { display: \"block\" },\n  alternate: { borderTop: \"none\" },\n});\n\nexport function Component({ query }) {\n  const lowerQuery = query.toLowerCase();\n  const showAlternate =\n    query.length > 0 && \"documentation\".startsWith(lowerQuery);\n\n  return (\n    <section sx={[styles.base, showAlternate && styles.alternate]} />\n  );\n}\n",
       "origin": "issue #1265, the reporter's fuller module",
-      "note": "`borderTop: none` declares nothing in either compiler: `property-specificity` rejects the shorthand and `propertyValidationMode: silent` drops it. The `display` rule and the surviving condition are what this entry is about."
+      "note": "The reporter's fuller module, verbatim. `borderTop: none` declares nothing in either compiler: `property-specificity` rejects the shorthand and `propertyValidationMode: silent` drops it. The `display` rule and the surviving condition are what this entry is about."
     },
     {
       "id": "modules-1265-call-shapes",
@@ -32,7 +32,8 @@
       "label": "an unfoldable callback argument reached through a binding",
       "source": "import * as stylex from \"@stylexjs/stylex\";\n\nconst VIEWS = ['grid', 'list'];\n\nconst styles = stylex.create({\n  base: { color: 'black' },\n  on: { color: 'red' },\n});\n\nexport function Some({ q }) {\n  const matches = VIEWS.some(v => v === q);\n\n  return <i sx={[styles.base, matches && styles.on]} />;\n}\n",
       "origin": "issue #1265, found while pinning the shapes",
-      "note": "Acceptance divergent in this compiler's favour: upstream aborts with `Unsupported expression: ObjectPattern`, reaching the destructured parameter through the callback body and throwing from an evaluation allowed to fail. The same defect #1265 reports here. Written inline in the `sx` array instead of through `matches`, it compiles upstream too."
+      "note": "Acceptance divergent in this compiler's favour: upstream aborts with `Unsupported expression: ObjectPattern`, reaching the destructured parameter through the callback body and throwing from an evaluation allowed to fail. The same defect #1265 reports here. Written inline in the `sx` array instead of through `matches`, it compiles upstream too.",
+      "expected": "acceptance-divergent"
     },
     {
       "id": "modules-length-on-a-string",
@@ -57,14 +58,16 @@
       "label": "a length read off an array carrying a hole",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  hole: { content: [, 1].length },\n});\n",
       "origin": "issue #1265, found while deciding where the count is read from",
-      "note": "Acceptance divergent in this compiler's favour. A hole is a slot, so the language says two; upstream refuses the whole array with `Could not resolve the code being evaluated` rather than counting it."
+      "note": "Acceptance divergent in this compiler's favour. A hole is a slot, so the language says two; upstream refuses the whole array with `Could not resolve the code being evaluated` rather than counting it.",
+      "expected": "acceptance-divergent"
     },
     {
       "id": "modules-length-on-an-array-with-a-spread",
       "label": "a length read off an array carrying a spread",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  spread: { content: [...[1, 2]].length },\n});\n",
       "origin": "issue #1265, found in code review of the length fold",
-      "note": "Both reject. A spread is one written element standing for however many the spread value holds, so neither the written count nor the evaluated one is the language's answer and both compilers refuse rather than fold a wrong number."
+      "note": "Both reject. A spread is one written element standing for however many the spread value holds, so neither the written count nor the evaluated one is the language's answer and both compilers refuse rather than fold a wrong number.",
+      "expected": "both-reject"
     },
     {
       "id": "modules-length-neighbouring-property-reads",
@@ -78,7 +81,8 @@
       "label": "an indexed read, the one member lookup that still diverges",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  indexed: { content: \"abc\"[0] },\n});\n",
       "origin": "issue #1265, the read that surrounds the one being fixed",
-      "note": "Acceptance divergent. Upstream folds `\"abc\"[0]` to `\"a\"` through the language; this compiler refuses. Refusing is deliberate: upstream folds `\"\\u{1F600}\"[0]` to a lone surrogate, which no Rust `String` can carry, so folding an index needs a value type that carries WTF-8 through the whole pipeline."
+      "note": "Acceptance divergent. Upstream folds `\"abc\"[0]` to `\"a\"` through the language; this compiler refuses. Refusing is deliberate: upstream folds `\"\\u{1F600}\"[0]` to a lone surrogate, which no Rust `String` can carry, so folding an index needs a value type that carries WTF-8 through the whole pipeline.",
+      "expected": "acceptance-divergent"
     },
     {
       "id": "modules-1265-rejecting-shorthands",
@@ -111,14 +115,16 @@
       "label": "a `null` as the whole value of a condition key, which still diverges",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  pseudo: { ':hover': null },\n  atRule: { '@media print': null },\n  survivor: { color: 'red' },\n});\n",
       "origin": "issue 10, measured while settling what a `null` means",
-      "note": "Structurally divergent, deliberately. Upstream treats the condition key itself as a property name and emits a key hashed from `:hover` carrying `null`; this compiler emits nothing. Neither key can carry CSS, and neither can collide with a real declaration made under the same condition, so reproducing a property named after a pseudo-class would bake a defect in rather than fix one. Filed upstream instead."
+      "note": "Structurally divergent, deliberately. Upstream treats the condition key itself as a property name and emits a key hashed from `:hover` carrying `null`; this compiler emits nothing. Neither key can carry CSS, and neither can collide with a real declaration made under the same condition, so reproducing a property named after a pseudo-class would bake a defect in rather than fix one. Filed upstream instead.",
+      "expected": "structurally-divergent"
     },
     {
       "id": "modules-boolean-refused-inside-create",
       "label": "a boolean style value inside create, which both compilers refuse",
       "source": "import * as stylex from '@stylexjs/stylex';\n\n// Both compilers refuse this, so the verdict is `both reject` -- which records\n// that neither will compile it, and is the only verdict a refusal can earn here.\n// Which position the refusal comes from, and what it says, is pinned in the Rust\n// suite: the harness compares outcomes rather than messages, and a boolean is\n// refused from four positions with two different messages between them.\nexport const styles = stylex.create({\n  x: { color: false },\n});\n",
       "origin": "issue 10, the other half of what a boolean means",
-      "note": "Expected `both reject`. It earns an entry because the answer used to depend on where the boolean was written -- refused directly, compiled and silently dropped under a condition -- and a corpus that only asks the position that already worked would not have caught that."
+      "note": "Expected `both reject`. It earns an entry because the answer used to depend on where the boolean was written -- refused directly, compiled and silently dropped under a condition -- and a corpus that only asks the position that already worked would not have caught that.",
+      "expected": "both-reject"
     }
   ]
 }

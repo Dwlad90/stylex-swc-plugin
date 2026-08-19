@@ -98,6 +98,21 @@ function isMismatch(verdict: Verdict): boolean {
   return !AGREED.has(verdict);
 }
 
+/**
+ * How an entry's verdict stands against the one it recorded as expected.
+ *
+ * `expected` where it still holds, `changed` where it does not, and `unset` for
+ * the overwhelming majority carrying no expectation at all. A changed verdict
+ * is the loud case in both directions: a divergence that has gone away is a
+ * corpus row that has stopped measuring what it was written for, exactly as a
+ * new one is a regression.
+ */
+function expectation(entry: ReportEntry): 'expected' | 'changed' | 'unset' {
+  if (entry.expected === undefined) return 'unset';
+
+  return entry.verdict === entry.expected ? 'expected' : 'changed';
+}
+
 function describe(entry: ReportEntry, side: 'rust' | 'babel'): string {
   const outcome = entry[side];
   if (outcome.status === 'error') return chalk.gray(`rejected: ${outcome.message}`);
@@ -143,6 +158,8 @@ async function run(): Promise<void> {
 
   const summary = {
     total: entries.length,
+    expected: 0,
+    changed: 0,
     identical: 0,
     'identical-empty': 0,
     divergent: 0,
@@ -150,15 +167,35 @@ async function run(): Promise<void> {
     'both-reject': 0,
     'acceptance-divergent': 0,
   } satisfies Report['summary'];
-  for (const entry of entries) summary[entry.verdict]++;
+  for (const entry of entries) {
+    summary[entry.verdict]++;
+    const stance = expectation(entry);
+    if (stance !== 'unset') summary[stance]++;
+  }
 
+  const changed = entries.filter(entry => expectation(entry) === 'changed');
+
+  // A mismatch an entry recorded as expected is not one to chase, so
+  // `--only-mismatches` leaves it out — a changed verdict is shown whatever it
+  // reads, because that is the entry someone has to look at.
   const shown = cliOptions['only-mismatches']
-    ? entries.filter(entry => isMismatch(entry.verdict))
+    ? entries.filter(
+        entry =>
+          expectation(entry) === 'changed' ||
+          (isMismatch(entry.verdict) && expectation(entry) === 'unset')
+      )
     : entries;
 
   for (const entry of shown) {
+    const stance = expectation(entry);
+    const stanceLabel =
+      stance === 'expected'
+        ? chalk.gray(' (expected)')
+        : stance === 'changed'
+          ? chalk.red(` (expected ${entry.expected})`)
+          : '';
     console.log(
-      `${VERDICT_LABELS[entry.verdict]}  ${chalk.bold(subjectLabel(entry))}  ${chalk.gray(`[${entry.set}] ${entry.origin}`)}`
+      `${VERDICT_LABELS[entry.verdict]}${stanceLabel}  ${chalk.bold(subjectLabel(entry))}  ${chalk.gray(`[${entry.set}] ${entry.origin}`)}`
     );
     if (AGREED.has(entry.verdict)) continue;
     console.log(`    rust   ${describe(entry, 'rust')}`);
@@ -173,8 +210,21 @@ async function run(): Promise<void> {
       `  divergent              ${summary.divergent}   ${chalk.gray('(value normalization)')}\n` +
       `  structurally divergent ${summary['structurally-divergent']}   ${chalk.gray('(different properties emitted; out of scope)')}\n` +
       `  acceptance divergent   ${summary['acceptance-divergent']}   ${chalk.gray('(one compiler rejected)')}\n` +
-      `  both reject            ${summary['both-reject']}`
+      `  both reject            ${summary['both-reject']}\n` +
+      `  expected               ${summary.expected}   ${chalk.gray('(divergences already looked at)')}\n` +
+      `  changed                ${summary.changed}   ${chalk.gray('(no longer the recorded verdict)')}`
   );
+
+  if (changed.length > 0) {
+    console.log(
+      `\n${chalk.red.bold('Verdicts that changed')}  ${chalk.gray('— each entry recorded a different one')}`
+    );
+    for (const entry of changed) {
+      console.log(
+        `  ${chalk.bold(subjectLabel(entry))}  expected ${entry.expected}, read ${entry.verdict}`
+      );
+    }
+  }
 
   if (cliOptions.json !== undefined) {
     const report: Report = {

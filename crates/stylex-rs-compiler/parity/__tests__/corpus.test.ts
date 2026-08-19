@@ -106,6 +106,37 @@ describe('loading', () => {
   });
 });
 
+describe('the expected verdict', () => {
+  test('a recorded verdict is carried onto the entry', () => {
+    const [entry] = loadOf(
+      moduleFile([
+        {
+          id: 'm',
+          label: 'l',
+          source: MODULE_SOURCE,
+          origin: 'o',
+          expected: 'acceptance-divergent',
+        },
+      ])
+    );
+
+    expect(entry).toMatchObject({ kind: 'module', expected: 'acceptance-divergent' });
+  });
+
+  /**
+   * The key is left off rather than set to `undefined`, so that the report's
+   * JSON does not grow an `expected: null` on every one of the 800-odd entries
+   * that has no expectation.
+   */
+  test('an entry with no expectation does not carry the key at all', () => {
+    const [entry] = loadOf(
+      moduleFile([{ id: 'm', label: 'l', source: MODULE_SOURCE, origin: 'o' }])
+    );
+
+    expect(entry).not.toHaveProperty('expected');
+  });
+});
+
 describe('deduplication', () => {
   test('a repeated declaration keeps the first entry seen', () => {
     const entries = loadOf({
@@ -189,6 +220,16 @@ describe('malformed input', () => {
     ['entries not an array', { set: 's', description: 'd', entries: {} }],
   ])('a corpus file %s is rejected by name', (_label, contents) => {
     expect(() => loadOf({ 'modules.json': contents })).toThrow(/Corpus file malformed/);
+  });
+
+  test('an entry naming a verdict that does not exist is rejected by name', () => {
+    expect(() =>
+      loadOf(
+        moduleFile([
+          { id: 'm', label: 'l', source: MODULE_SOURCE, origin: 'o', expected: 'nearly-identical' },
+        ])
+      )
+    ).toThrow(/unknown expected verdict: nearly-identical/);
   });
 
   test('a missing corpus file is named, and the generated one says how to make it', () => {

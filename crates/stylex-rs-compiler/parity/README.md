@@ -94,7 +94,16 @@ duplicate subjects collapsed onto the first entry seen:
   far as the scan below recognizes them. **Generated — do not edit.**
 
 Adding a case means editing one of the three hand-written files. Entries take
-an optional `note`, which the report prints next to a mismatch.
+an optional `note`, which the report prints next to a mismatch, and an optional
+`expected` naming the verdict the entry is known to read.
+
+An `expected` verdict is how a divergence someone has already looked at is told
+apart from a new one. While it holds, the report marks the entry `(expected)`
+and `--only-mismatches` leaves it out. When it stops holding — in either
+direction — the entry is listed under **Verdicts that changed** and counted, so
+a divergence that quietly goes away is as loud as a new one: an entry recording
+a divergence that no longer happens has stopped measuring what it was written
+for. `note` says _why_; `expected` is what the harness checks.
 
 ### Module subjects
 
@@ -120,16 +129,14 @@ declaration cannot spell: a `DeclarationEntry` value is a string that goes
 through `JSON.stringify`, so a bare `null` or `false` can only be asked as a
 module.
 
-Ten entries in that set carry a `note`. Five say why they are expected not to
-read `identical`: two where upstream aborts and this compiler does not, one
-where both reject, one where upstream folds an indexed read this compiler
-refuses, and one where upstream reads a condition key as a property name and
-emits a key named after a pseudo-class, which is a defect this compiler is not
-going to reproduce. The other five say why a subject that does not read
-`identical` on its own terms still earns an entry -- one because agreement there
-was the whole point, the shorthand rejection table having once diverged, and one
-because a `both reject` records that neither compiler will build an input whose
-answer used to depend on where it was written.
+Six entries in that set carry an `expected` verdict, each with the `note` that
+says why: two where upstream aborts and this compiler does not, two where both
+reject, one where upstream folds an indexed read this compiler refuses, and one
+where upstream reads a condition key as a property name and emits a key named
+after a pseudo-class, which is a defect this compiler is not going to reproduce.
+Other entries carry a `note` without an expectation, saying why a subject that
+reads `identical` still earns one -- the shorthand rejection table having once
+diverged, for instance.
 
 ### Regenerating the harvest
 

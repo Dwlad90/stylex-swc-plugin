@@ -11,7 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { arrayAt, stringAt } from './guards.js';
+import { arrayAt, stringAt, verdictAt } from './guards.js';
 import { subjectKey } from './subject.js';
 import type { CorpusEntry, LoadedCorpusEntry, LoadedCorpusFile } from './types.js';
 
@@ -83,6 +83,8 @@ function corpusEntryFrom(raw: unknown, filePath: string, index: number): CorpusE
   // entry without one does not carry the key into the report's JSON.
   const note = stringAt(raw, 'note');
   const noteField = note === undefined ? {} : { note };
+  const expected = verdictAt(raw, 'expected', filePath);
+  const expectedField = expected === undefined ? {} : { expected };
 
   const source = stringAt(raw, 'source');
   if (source !== undefined) {
@@ -92,7 +94,7 @@ function corpusEntryFrom(raw: unknown, filePath: string, index: number): CorpusE
         `Corpus entry ${index} malformed in ${filePath} — a module entry expects { id, label, source, origin }.`
       );
     }
-    return { kind: 'module', id, label, source, origin, ...noteField };
+    return { kind: 'module', id, label, source, origin, ...noteField, ...expectedField };
   }
 
   const property = stringAt(raw, 'property');
@@ -103,5 +105,5 @@ function corpusEntryFrom(raw: unknown, filePath: string, index: number): CorpusE
     );
   }
 
-  return { kind: 'declaration', id, property, value, origin, ...noteField };
+  return { kind: 'declaration', id, property, value, origin, ...noteField, ...expectedField };
 }

@@ -29,6 +29,19 @@ interface CorpusEntryBase {
   origin: string;
   /** Optional note carried into the report, for hand-written entries. */
   note?: string;
+  /**
+   * The verdict this entry is known to read, for a divergence that has been
+   * looked at and is not a regression.
+   *
+   * Without it a permanent divergence and a new one print the same, so the
+   * corpus can only be read by someone who already knows which is which. An
+   * entry that carries one is reported as expected while it holds, and reported
+   * loudly — as a changed verdict — the moment it stops: an expectation that
+   * silently starts passing is a corpus row measuring nothing.
+   *
+   * Absent on the overwhelming majority, where the expectation is agreement.
+   */
+  expected?: Verdict;
 }
 
 /** One CSS declaration, as written in a corpus file. */
@@ -154,6 +167,22 @@ export type Verdict =
   /** One accepted and the other rejected. */
   | 'acceptance-divergent';
 
+/**
+ * Every verdict, as a table the type checker keeps exhaustive.
+ *
+ * The union above carries the documentation and this carries the values, which
+ * is what lets `expected` on a corpus entry be validated at load: a verdict
+ * added to the union and not here does not compile.
+ */
+export const VERDICTS: Record<Verdict, true> = {
+  identical: true,
+  'identical-empty': true,
+  divergent: true,
+  'structurally-divergent': true,
+  'both-reject': true,
+  'acceptance-divergent': true,
+};
+
 /** One corpus entry, plus what each compiler did with it. */
 export type ReportEntry = LoadedCorpusEntry & {
   verdict: Verdict;
@@ -172,6 +201,12 @@ export interface Report {
   };
   /** The exact option object handed to both compilers. */
   options: StyleXOptions;
-  summary: Record<Verdict, number> & { total: number };
+  summary: Record<Verdict, number> & {
+    total: number;
+    /** Entries whose verdict is the one they recorded as expected. */
+    expected: number;
+    /** Entries whose verdict is no longer the one they recorded. */
+    changed: number;
+  };
   entries: ReportEntry[];
 }

@@ -1,6 +1,129 @@
 use super::super::*;
 use crate::deopt_unsupported;
+use stylex_ast::ast::convertors::normalize_expr;
 use swc_core::ecma::ast::ObjectLit;
+
+/// The own enumerable properties a spread operand contributes, mirroring
+/// `Object.assign({}, value)` — which is literally what the reference
+/// implementation calls, on a real JavaScript value, at this point.
+///
+/// Spreading a non-object is not an error in the language and is not one here:
+/// a number, a boolean, `null`, `undefined` and a function have no own
+/// enumerable properties, so they contribute nothing and the object is built
+/// from whatever else it holds. A string and an array do have them — their
+/// indices — so `{ ...'ab' }` is `{ 0: 'a', 1: 'b' }` and `{ ...[1, 2] }` is
+/// `{ 0: 1, 1: 2 }`, with each value keeping the type it had, which is why the
+/// second declares `1px` and not `'1'`.
+///
+/// `None` is a refusal, kept for the two readings this evaluator cannot write
+/// down rather than used as a general "not an object" answer — that answer is
+/// `Some(vec![])`.
+fn spread_own_properties(value: EvaluateResultValue, operand: &Expr) -> Option<Vec<PropOrSpread>> {
+  // An array hole has no key of its own, and this evaluator drops one before it
+  // becomes a value — so an evaluated `[, 1]` is indistinguishable from `[1]`
+  // and would answer `{ 0: 1 }` where the language says `{ 1: 1 }`. Read off the
+  // operand's own literal, where it has one, so the wrong key is refused rather
+  // than written. Upstream crashes outright on this input, so nothing is lost
+  // by refusing it. A trailing comma is not a hole: `[1, ]` has one element.
+  if let Expr::Array(array) = normalize_expr(operand)
+    && array.elems.iter().any(|elem| elem.is_none())
+  {
+    return None;
+  }
+
+  match value {
+    EvaluateResultValue::Expr(Expr::Object(object)) => Some(object.props),
+
+    // A string's own properties are its indices, one per UTF-16 code unit.
+    //
+    // An astral character occupies two of them and each is a lone surrogate,
+    // which no Rust string can hold — upstream duly emits two replacement
+    // characters into the stylesheet. Refused rather than approximated: the
+    // alternative is writing a value the source does not describe, and this is
+    // the same rule `char_code_at` and `json_stringify` already leave
+    // unreachable for the same reason.
+    EvaluateResultValue::Expr(Expr::Lit(Lit::Str(strng))) => {
+      let value = strng.value.as_str()?;
+
+      let mut props = Vec::with_capacity(value.len());
+
+      for (index, character) in value.chars().enumerate() {
+        if character.len_utf16() != 1 {
+          return None;
+        }
+
+        props.push(create_ident_key_value_prop(
+          &index.to_string(),
+          create_string_expr(&character.to_string()),
+        ));
+      }
+
+      Some(props)
+    },
+
+    // An array's own properties are its indices. Both readings an array can
+    // arrive as are handled: the `Vec` an array literal evaluates to, and the
+    // `ArrayLit` a fold such as `Object.keys` answers.
+    EvaluateResultValue::Vec(items) => {
+      let mut props = Vec::with_capacity(items.len());
+
+      for (index, item) in items.iter().enumerate() {
+        let expr = match item {
+          EvaluateResultValue::Vec(nested) => evaluate_result_vec_to_array_expr(nested)?,
+          _ => item.as_expr()?.clone(),
+        };
+
+        props.push(create_ident_key_value_prop(&index.to_string(), expr));
+      }
+
+      Some(props)
+    },
+    EvaluateResultValue::Expr(Expr::Array(array)) => {
+      let mut props = Vec::with_capacity(array.elems.len());
+
+      for (index, elem) in array.elems.iter().enumerate() {
+        // A hole here was written as one in a fold's own output, and means what
+        // it means above.
+        let elem = elem.as_ref()?;
+
+        if elem.spread.is_some() {
+          return None;
+        }
+
+        props.push(create_ident_key_value_prop(
+          &index.to_string(),
+          *elem.expr.clone(),
+        ));
+      }
+
+      Some(props)
+    },
+
+    // Everything with no own enumerable properties. A number, a boolean and
+    // `null` have none, and neither does a function: `Object.assign({}, () =>
+    // 1)` is `{}`. A function reaches here as the callback the evaluator folded
+    // it to rather than as an `Expr`, which is why both readings are named.
+    EvaluateResultValue::Expr(
+      Expr::Lit(Lit::Num(_) | Lit::Bool(_) | Lit::Null(_)) | Expr::Arrow(_) | Expr::Fn(_),
+    )
+    | EvaluateResultValue::Callback(_)
+    | EvaluateResultValue::FunctionConfig(_) => Some(vec![]),
+    // The global primitives that are spelled as identifiers rather than as
+    // literals. Only these three: any other bare identifier either resolved to
+    // a value handled above or never resolved at all, and the latter has
+    // already refused before reaching here.
+    EvaluateResultValue::Expr(Expr::Ident(ident))
+      if matches!(ident.sym.as_ref(), "undefined" | "NaN" | "Infinity") =>
+    {
+      Some(vec![])
+    },
+
+    // A value carried in a representation of the evaluator's own — a theme
+    // reference, an entries map, a callback. Refused rather than answered
+    // empty, because answering empty would silently drop whatever it holds.
+    _ => None,
+  }
+}
 
 pub(in super::super) fn evaluate(
   obj_path: &ObjectLit,
@@ -21,13 +144,13 @@ pub(in super::super) fn evaluate(
           return deopt(path, state, OBJECT_METHOD);
         }
 
-        // `{ ...1 }` and `{ ...fn }` are legal JavaScript that spread nothing;
-        // a value with no object form is an input this evaluator does not fold.
-        let Some(new_props) = spread_expression.and_then(|s| s.into_object()) else {
+        let Some(new_props) =
+          spread_expression.and_then(|value| spread_own_properties(value, &prop.expr))
+        else {
           deopt_unsupported!(path, state, SPREAD_MUST_BE_OBJECT);
         };
 
-        let merged_object = deep_merge_props(props, new_props.props);
+        let merged_object = assign_props(props, new_props);
 
         props = merged_object;
 

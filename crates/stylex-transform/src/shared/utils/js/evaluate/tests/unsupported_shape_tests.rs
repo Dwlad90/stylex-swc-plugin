@@ -222,14 +222,55 @@ fn a_spread_of_an_unresolvable_operand_still_refuses_as_a_spread() {
 #[test]
 fn an_object_shape_with_no_compile_time_value_refuses() {
   for source in [
-    "({ ...1 })",
-    "({ ...(() => 1) })",
+    "({ ...unknownThing })",
     "({ get a() { return 1 } }).a",
     "({ a: 1 })[/re/]",
     "({ a: 1 })[{}]",
   ] {
     assert_deopts(source);
   }
+}
+
+/// A spread of a value with no own enumerable properties contributes nothing
+/// and folds, rather than refusing.
+///
+/// `{ ...1 }` is `{}` in the language and `Object.assign({}, 1)` is what the
+/// reference implementation calls, so refusing here failed a build over an
+/// expression that means "add nothing". A hole is the one array reading that
+/// still refuses: this evaluator drops it before it becomes a value, so the
+/// keys after it would come out shifted.
+#[test]
+fn a_spread_of_a_value_with_no_own_properties_folds_to_nothing() {
+  for source in [
+    "({ ...1 })",
+    "({ ...(() => 1) })",
+    "({ ...null })",
+    "({ ...undefined })",
+    "({ ...true })",
+    "({ ...\"\" })",
+    "({ ...[] })",
+  ] {
+    let result = evaluate_source(source);
+
+    assert!(result.confident, "expected `{}` to fold", source);
+  }
+
+  assert_deopts("({ ...[, 1] })");
+}
+
+/// A string and an array do have own properties -- their indices -- so they
+/// spread to the object the language builds from them.
+#[test]
+fn a_spread_of_a_string_or_an_array_contributes_its_indices() {
+  for source in ["({ ...\"ab\" })", "({ ...[1, 2] })", "({ ...[\"a\"] })"] {
+    let result = evaluate_source(source);
+
+    assert!(result.confident, "expected `{}` to fold", source);
+  }
+
+  // An astral character is two code units and each is a lone surrogate, which
+  // no Rust string holds. Refused rather than approximated.
+  assert_deopts("({ ...\"\\u{1F600}\" })");
 }
 
 /// The two object lookups that answer rather than refuse keep answering: a key

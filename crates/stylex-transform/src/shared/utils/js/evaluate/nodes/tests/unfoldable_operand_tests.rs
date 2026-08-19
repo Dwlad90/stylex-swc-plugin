@@ -56,7 +56,7 @@ fn every_unfoldable_shape_survives_every_logical_operand_position() {
     "({}).hasOwnProperty(\"a\")",
     "tag`x`",
     "-({})",
-    "({ ...1 })",
+    "({ ...unknownThing })",
   ];
 
   for shape in UNFOLDABLE {

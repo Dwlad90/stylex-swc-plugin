@@ -779,7 +779,7 @@ stylex_test_panic!(
 // and the declaration silently vanished.
 stylex_test_panic!(
   a_regular_expression_under_a_condition_is_not_a_style_value,
-  "A style value can only contain an array, string or number.",
+  "Unsupported expression: RegExpLiteral",
   r#"
     import * as stylex from '@stylexjs/stylex';
     const styles = stylex.create({ x: { color: { default: /a/, ':hover': 'red' } } });

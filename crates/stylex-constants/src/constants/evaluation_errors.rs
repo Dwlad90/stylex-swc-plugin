@@ -29,8 +29,11 @@ https://stylexjs.com/docs/learn/theming/defining-variables/#rules-when-defining-
 
 pub static NON_CONSTANT: &str = "Referenced value is not a constant.\n\n";
 
-// pub static USED_BEFORE_DECLARATION: &str =
-//   "Referenced value is used before declaration.\n\n";
+/// A reference whose binding is declared later in the module. Declarations are
+/// collected module-wide, so the initializer is reachable from a use site that
+/// precedes it — and inlining it there emits CSS for a value the program does
+/// not hold yet.
+pub static USED_BEFORE_DECLARATION: &str = "Referenced value is used before declaration.\n\n";
 
 // pub static UNINITIALIZED_CONST: &str = "Referenced constant is not
 // initialized.\n\n";

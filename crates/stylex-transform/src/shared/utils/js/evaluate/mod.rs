@@ -65,8 +65,8 @@ use stylex_constants::constants::{
   evaluation_errors::{
     ARGUMENT_WITHOUT_VALUE, IMPORT_PATH_RESOLUTION_ERROR, INVALID_ARRAY_LENGTH, NON_CONSTANT,
     OBJECT_METHOD, PATH_WITHOUT_NODE, SPREAD_ELEMENT, UNEXPECTED_MEMBER_LOOKUP,
-    array_length_too_large, not_a_function, uncoercible_value, unsupported_expression,
-    unsupported_operator,
+    USED_BEFORE_DECLARATION, array_length_too_large, not_a_function, uncoercible_value,
+    unsupported_expression, unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, BUILT_IN_FUNCTION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
@@ -147,6 +147,33 @@ fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -> Option<Ex
   }
 
   Some(create_array_expression(elems))
+}
+
+/// Whether a reference reads a binding the program does not hold yet, because
+/// the declarator naming it ends after the reference begins.
+///
+/// Mirrors the position comparison in `evaluate-path.js`'s
+/// `isReferencedIdentifier` branch (`path.node.start < binding.path.node.end`,
+/// 0.19.0 line 664), which is the reference implementation's whole answer to the
+/// question. Declarations here are collected module-wide with no notion of
+/// position, so without this the initializer is reachable from above its own
+/// declaration and folds into CSS for a value that has not been assigned.
+///
+/// A dummy span on either side answers `false` rather than being compared. A
+/// synthesized node — `expand_shorthand_prop` produces them, and so does every
+/// injected function mapper `get_var_decl_by_ident` folds in — carries no
+/// authored position, so it sits at byte zero, before every authored
+/// declarator's end, and would be refused for having no position rather than for
+/// being early.
+///
+/// Only a `VarDeclarator` is ever asked. A hoisted `function` or `class`
+/// declaration holds its value from the top of the scope, so a reference above
+/// one is not early; those reach `check_ident_declaration` instead and are
+/// refused there, as they are upstream.
+fn reads_before_its_declaration(reference: &Ident, declarator: &VarDeclarator) -> bool {
+  !reference.span.is_dummy()
+    && !declarator.span.is_dummy()
+    && reference.span.lo < declarator.span.hi
 }
 
 /// Helper function to evaluate unary numeric operations (Plus, Minus, Tilde).
@@ -419,6 +446,14 @@ fn _evaluate(
 
     let binding = get_var_decl_by_ident(ident, traversal_state, &state.functions);
 
+    // Asked of the declarator already looked up, so the answer costs a
+    // comparison rather than a second scan of the declaration list.
+    if let Some(declarator) = binding.as_ref()
+      && reads_before_its_declaration(ident, declarator)
+    {
+      return deopt(path, state, USED_BEFORE_DECLARATION);
+    }
+
     if let Some(init) = binding.and_then(|mut var_decl| var_decl.init.take()) {
       return evaluate_cached(&init, state, traversal_state, fns);
     }
@@ -537,6 +572,10 @@ pub(crate) mod source_evaluation;
 #[cfg(test)]
 #[path = "tests/member_length_tests.rs"]
 mod member_length_tests;
+
+#[cfg(test)]
+#[path = "tests/used_before_declaration.rs"]
+mod used_before_declaration;
 
 #[cfg(test)]
 #[path = "tests/unsupported_shape_tests.rs"]

@@ -1027,3 +1027,50 @@ stylex_test_panic!(
     const styles = stylex.create({ x: { color: ['red', ..."ab"] } });
   "#
 );
+
+// A style value that reads a binding declared *later* in the module has no
+// value to read at that point in the program, so inlining the initializer
+// emits CSS for a value the runtime would never see. Declarations are
+// collected module-wide, which is why the position has to be compared
+// explicitly rather than falling out of the lookup.
+stylex_test_panic!(
+  binding_read_before_its_declaration_is_refused,
+  "Referenced value is used before declaration",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { color: c } });
+
+    const c = 'red';
+  "#
+);
+
+// The refusal is about position, not about the reference: the same pair in
+// program order still folds. Guards the check above from being satisfied by an
+// evaluator that refuses every declared binding.
+stylex_test!(
+  binding_read_after_its_declaration_still_inlines,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const c = 'red';
+
+    const styles = stylex.create({ x: { color: c } });
+  "#
+);
+
+// A shorthand is expanded into synthesized longhand properties, and the value
+// they carry is the reference as authored — so the position is still there to
+// compare and the refusal still lands. The reference implementation refuses
+// this input too.
+stylex_test_panic!(
+  a_shorthand_value_read_before_its_declaration_is_refused,
+  "Referenced value is used before declaration",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { margin: m } });
+
+    const m = '4px';
+  "#
+);

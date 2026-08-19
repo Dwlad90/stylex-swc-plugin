@@ -154,6 +154,24 @@ the use site, so both deopt identically and share one set keyed by full SWC `Id`
 — a write to a shadowing binding never deopts the one it shadows.
 _Avoid_: mutation, reassignment, dirty binding
 
+**Early reference**:
+A reference that begins before the declarator naming it ends, so the program
+does not hold the value where it is read. The sibling of a binding write: both
+make the declaration initializer an unsound stand-in at the use site, and both
+deopt. Declarations are collected module-wide with no notion of position, so
+this is decided by comparing the parser's byte positions rather than by the
+lookup — and a [synthesized node](#synthesized-node) is never one, having no
+position to compare.
+_Avoid_: forward reference, hoisted read, out-of-order declaration
+
+**Synthesized node**:
+An AST node this compiler built rather than read, carrying `DUMMY_SP` because no
+source text spells it. Shorthand expansion and injected function mappers both
+produce them. Every question answered from a position has to exempt them: byte
+zero sorts before every authored node, so comparing one answers a fact about its
+having been built.
+_Avoid_: generated node, dummy node, fake node
+
 **Seen value**:
 A memoized evaluation, keyed by the
 [structural hash](../stylex-utils/CONTEXT.md) of the expression. `resolved`

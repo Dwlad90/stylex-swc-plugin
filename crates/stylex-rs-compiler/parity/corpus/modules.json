@@ -373,6 +373,54 @@
       "origin": "issue #1266, written to reach an escaped binding name",
       "note": "`\\u007AIndex` is `zIndex`: the lexer folds the escape, so the parameter shadows the import exactly as the plain spelling does, and the body's `zIndex` is the parameter. Pinned because the escape is the one spelling where the source text and the binding name differ.",
       "expected": "identical"
+    },
+    {
+      "id": "modules-used-before-declaration",
+      "label": "a style value reading a const declared later in the module",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({ a: { color: c } });\n\nconst c = 'red';\n",
+      "origin": "the identifier audit for issue #1266, the one divergence that was wrong output",
+      "note": "Declarations are collected module-wide with no notion of position, so the initializer was reachable from above its own declaration and this compiled to `.x…{color:red}` -- CSS for a value the program does not hold yet. The reference implementation refuses it. Recorded as both rejecting so the refusal cannot quietly go away.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-used-after-declaration",
+      "label": "a style value reading a const declared before it",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst c = 'red';\n\nexport const styles = stylex.create({ a: { color: c } });\n",
+      "origin": "the identifier audit for issue #1266, the guard on the position comparison",
+      "note": "The same pair in program order. Without it a comparison that refused every declared binding would read as a fix.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-used-before-declaration-shorthand",
+      "label": "a shorthand style value reading a const declared later",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({ a: { margin: m } });\n\nconst m = '4px';\n",
+      "origin": "the identifier audit for issue #1266, written to reach shorthand expansion",
+      "note": "A shorthand is expanded into synthesized longhands, and a synthesized node carries no authored position. The value they carry is the reference as authored, so the position survives the expansion and the refusal still lands -- as it does upstream.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-self-referential-declarator",
+      "label": "a style value reading a const initialized from itself",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst c = c;\n\nexport const styles = stylex.create({ a: { color: c } });\n",
+      "origin": "the identifier audit for issue #1266, the boundary case of the position comparison",
+      "note": "`const c = c` puts a reference inside the declarator it names, so it starts before that declarator ends and is early by the same comparison. Both compilers refuse it, and for that reason rather than for the cycle.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-props-reads-a-later-theme",
+      "label": "a props call reading a theme binding declared after the component",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { buttonTokens } from 'buttonTokens.stylex.js';\n\nexport default function Button() {\n  return <div {...stylex.props(redTheme)} />;\n}\n\nconst redTheme = stylex.createTheme(buttonTokens, { bgColor: 'red' });\n",
+      "origin": "the identifier audit for issue #1266, found by a fixture that changed",
+      "note": "Styles written below the component that uses them is the ordinary shape, and a bare theme reference in a `props` call is early by the position comparison, so both compilers leave the call to the runtime. This compiler used to fold it to a class list instead, which is a divergence nothing was measuring.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-props-reads-a-later-styles-member",
+      "label": "a props call reading a styles member declared after the component",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport default function Button() {\n  return <div {...stylex.props(styles.a)} />;\n}\n\nconst styles = stylex.create({ a: { color: 'red' } });\n",
+      "origin": "the identifier audit for issue #1266, the asymmetry beside the entry above",
+      "note": "A member read of a later `create()` result still folds, in both compilers: the position comparison is reached by a bare reference, and a member access resolves through the namespace it names. The asymmetry is upstream's, and this records that it is matched rather than reasoned about.",
+      "expected": "identical"
     }
   ]
 }

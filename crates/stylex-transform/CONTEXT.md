@@ -75,11 +75,43 @@ _Avoid_: property access, index check, member kind
 **Written slot**:
 The element count the language reports for an array, read from the literal as
 written rather than from what evaluating it produced. The two differ for a
-hole, which evaluation drops before it becomes a value, and for a spread,
-which is one written element standing for however many the spread value holds —
-so a spread is not counted at all and the fold refuses instead of answering a
-number that is confidently wrong.
+hole, which evaluation drops before it becomes a value, so a hole is why the
+count comes from the AST at all. A spread never reaches the count: evaluating
+the array refuses it first, as a [spread refusal](#spread-refusal). The
+receiver is unwrapped before it is read, because a parenthesis is not a
+different receiver.
 _Avoid_: array length, element count, size
+
+**Spread refusal**:
+The single answer every spread in a value position earns —
+`Unsupported expression: SpreadElement` — given before the spread's operand is
+evaluated, and the same whatever the operand is and wherever the spread sits: an
+array element, a call argument, at any nesting. Upstream gets this for free by
+evaluating elements and arguments as _paths_, where a spread is a node kind with
+no fold; this evaluator reads through to the operand, so it refuses explicitly
+instead. One constant, `SPREAD_ELEMENT`, because a site that spelled the node
+kind itself is a divergence no test names.
+_Avoid_: spread not supported, unsupported spread, illegal spread
+
+**Own enumerable properties**:
+What a spread operand contributes to the object it is spread into —
+`Object.assign` semantics, which is what the reference implementation calls.
+A number, a boolean, `null`, `undefined` and a function have none, so spreading
+one is not an error and adds nothing; a string and an array have their indices.
+Two readings are refused rather than answered, both because this evaluator
+cannot write them down: an astral string, whose code units are lone surrogates
+no Rust string holds, and an array carrying a [hole](#hole), which is dropped
+before it becomes a value so the keys after it would shift.
+_Avoid_: spread properties, object keys, assigned properties
+
+**Own key order**:
+The order an object's properties are enumerated in, and so the order their
+declarations reach the stylesheet: every array-index key first in ascending
+numeric order, then every other key in insertion order. A key is an array index
+only in its canonical decimal spelling, so `"0"` is one and `"00"` is not.
+Decided once, on the finished property set, because an index key can arrive
+from a literal, a spread or a computed key.
+_Avoid_: property order, insertion order, key sorting
 
 **Object method receiver**:
 What the argument of `Object.keys`/`values`/`entries` reads as. Three answers

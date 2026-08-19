@@ -196,6 +196,24 @@ pub fn format_panic_message(error: &Box<dyn std::any::Any + Send>) -> String {
 }
 
 // ---------------------------------------------------------------------------
+// Colour output
+// ---------------------------------------------------------------------------
+
+/// Renders every diagnostic this module colours as plain text, process-wide.
+///
+/// `StyleXError`'s `Display` colours the `[StyleX]` prefix and the message, and
+/// whether it does is decided at runtime by whether stderr is a terminal and by
+/// `NO_COLOR` / `CLICOLOR_FORCE`. A caller that asserts on a rendered
+/// diagnostic therefore reads a different string piped to a file than it does
+/// in a terminal, unless it has called this first.
+///
+/// Lives beside the `Display` that does the colouring rather than at each
+/// caller: the override belongs to whoever owns the colours.
+pub fn disable_colour_output() {
+  colored::control::set_override(false);
+}
+
+// ---------------------------------------------------------------------------
 // Panic-output suppression (used around `catch_unwind` at the NAPI boundary)
 // ---------------------------------------------------------------------------
 

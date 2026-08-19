@@ -15,7 +15,6 @@ doctest = false
 
 [dependencies]
 anyhow.workspace = true
-colored.workspace = true
 ctor.workspace = true
 indexmap.workspace = true
 log.workspace = true

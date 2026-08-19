@@ -1,8 +1,14 @@
 use ctor::ctor;
 
+/// Prepares the whole test binary before any test runs.
+///
+/// One constructor rather than one per concern: each `#[ctor]` is a second
+/// `unsafe` entry point running before `main`, and everything here is the same
+/// job — putting the process into the state every test in this crate assumes.
 #[ctor(unsafe)]
-fn init_logger() {
+fn prepare_test_binary() {
   pretty_env_logger::formatted_builder().try_init().ok();
+  disable_diagnostic_colours();
 }
 
 /// Renders every `StyleXError` without styling for the whole test binary.
@@ -16,7 +22,6 @@ fn init_logger() {
 /// Fixed once here rather than by stripping escape codes at each assertion: a
 /// helper only protects the tests that remember to call it, and the next
 /// diagnostic assertion written is the one that will not.
-#[ctor(unsafe)]
 fn disable_diagnostic_colours() {
-  colored::control::set_override(false);
+  stylex_macros::stylex_error::disable_colour_output();
 }

@@ -101,7 +101,16 @@ function isMismatch(verdict: Verdict): boolean {
 function describe(entry: ReportEntry, side: 'rust' | 'babel'): string {
   const outcome = entry[side];
   if (outcome.status === 'error') return chalk.gray(`rejected: ${outcome.message}`);
-  return outcome.declarations.map(declaration => `{${declaration}}`).join(' ');
+  const declarations = outcome.declarations.map(declaration => `{${declaration}}`).join(' ');
+  // The style objects are printed only when they are what differ. On a value
+  // divergence they are noise, and on a divergence that shows in the CSS the
+  // declarations above already say it.
+  const other = entry[side === 'rust' ? 'babel' : 'rust'];
+  const styleObjectsDiffer =
+    other.status === 'ok' && other.styleObjects.join(' ') !== outcome.styleObjects.join(' ');
+  if (!styleObjectsDiffer) return declarations;
+  const objects = chalk.gray(`style objects: ${outcome.styleObjects.join(' ')}`);
+  return declarations === '' ? objects : `${declarations}   ${objects}`;
 }
 
 async function run(): Promise<void> {

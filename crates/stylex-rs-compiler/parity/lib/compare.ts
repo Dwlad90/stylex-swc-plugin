@@ -18,6 +18,7 @@ import stylexBabelPluginModule from '@stylexjs/babel-plugin';
 import type { StyleXOptions } from '../../dist/index.js';
 import { arrayAt, isRecord, stringAt } from './guards.js';
 import { SEPARATOR } from './separator.js';
+import { styleObjectsOf } from './style-object.js';
 import { moduleFor } from './subject.js';
 import type { CompilerOutcome, LoadedCorpusEntry, ReportEntry, Verdict } from './types.js';
 
@@ -86,7 +87,10 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
   const filename = path.join(packageDir, 'parity/__fixture__/value.js');
 
   const runRust = (code: string): CompilerOutcome =>
-    outcomeOf(() => transform(filename, code, stylexOptions).metadata.stylex);
+    outcomeOf(() => {
+      const result = transform(filename, code, stylexOptions);
+      return { rules: result.metadata.stylex, emitted: result.code };
+    });
 
   const runBabel = (code: string): CompilerOutcome =>
     outcomeOf(() => {
@@ -97,7 +101,7 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
         parserOpts: { sourceType: 'module', plugins: ['jsx'] },
         plugins: [[stylexBabelPlugin, stylexOptions]],
       });
-      return arrayAt(result?.metadata, 'stylex') ?? [];
+      return { rules: arrayAt(result?.metadata, 'stylex') ?? [], emitted: result?.code ?? '' };
     });
 
   return {
@@ -122,10 +126,11 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
   };
 }
 
-function outcomeOf(run: () => unknown[]): CompilerOutcome {
+function outcomeOf(run: () => { rules: unknown[]; emitted: string }): CompilerOutcome {
   let rules: unknown[];
+  let emitted: string;
   try {
-    rules = run();
+    ({ rules, emitted } = run());
   } catch (error: unknown) {
     return { status: 'error', message: messageOf(error) };
   }
@@ -148,7 +153,14 @@ function outcomeOf(run: () => unknown[]): CompilerOutcome {
     declarations.push(declarationOf(ltr));
   }
 
-  return { status: 'ok', classNames, rules: ruleTexts, rtlRules: rtlRuleTexts, declarations };
+  return {
+    status: 'ok',
+    classNames,
+    rules: ruleTexts,
+    rtlRules: rtlRuleTexts,
+    declarations,
+    styleObjects: styleObjectsOf(emitted),
+  };
 }
 
 /** One direction's rule text from a style-metadata payload, or `''` if absent. */
@@ -177,25 +189,39 @@ function messageOf(error: unknown): string {
 function verdictFor(rust: CompilerOutcome, babelOutcome: CompilerOutcome): Verdict {
   if (rust.status === 'error' && babelOutcome.status === 'error') return 'both-reject';
   if (rust.status === 'error' || babelOutcome.status === 'error') return 'acceptance-divergent';
-  const same =
+  const sameCss =
     rust.classNames.join(SEPARATOR) === babelOutcome.classNames.join(SEPARATOR) &&
     rust.rules.join(SEPARATOR) === babelOutcome.rules.join(SEPARATOR) &&
     rust.rtlRules.join(SEPARATOR) === babelOutcome.rtlRules.join(SEPARATOR);
-  if (same) {
+  // The style objects are the other half of the answer: a property carrying
+  // `null` emits no CSS, so without this two compilers that disagree about
+  // whether the property exists at all read as identical. See
+  // `lib/style-object.ts`.
+  const sameStyleObjects =
+    rust.styleObjects.join(SEPARATOR) === babelOutcome.styleObjects.join(SEPARATOR);
+
+  if (sameCss && sameStyleObjects) {
     // Agreement about nothing is not evidence of parity — see `identical-empty`
     // in `types.ts`. Reported separately so a corpus that stops carrying its
     // values shows up as a count rather than as a clean run.
     const emitted =
       rust.classNames.length + rust.rules.length + rust.rtlRules.length > 0 ||
-      babelOutcome.classNames.length + babelOutcome.rules.length + babelOutcome.rtlRules.length > 0;
+      babelOutcome.classNames.length + babelOutcome.rules.length + babelOutcome.rtlRules.length >
+        0 ||
+      rust.styleObjects.some(object => object !== '{}') ||
+      babelOutcome.styleObjects.some(object => object !== '{}');
     return emitted ? 'identical' : 'identical-empty';
   }
+
+  // The same CSS out of a different set of properties is a disagreement about
+  // which declarations exist, not about how a value is spelled.
+  if (sameCss) return 'structurally-divergent';
 
   // A declaration that expanded into different properties, or into a different
   // number of them, diverged before value normalization ever saw it —
   // shorthand expansion and property validation both do that. Separating those
   // keeps the divergence count an answer about values.
-  return propertyNamesOf(rust) === propertyNamesOf(babelOutcome)
+  return propertyNamesOf(rust) === propertyNamesOf(babelOutcome) && sameStyleObjects
     ? 'divergent'
     : 'structurally-divergent';
 }

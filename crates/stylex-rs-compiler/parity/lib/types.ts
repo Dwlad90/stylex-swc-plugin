@@ -42,10 +42,11 @@ export interface DeclarationEntry extends CorpusEntryBase {
 /**
  * One whole module, for a question a declaration cannot express.
  *
- * The comparison is unchanged — class names and rule text, never the emitted
- * JavaScript. The two compilers print code differently (parameter lists, JSX
- * spacing, how a `const` array is wrapped), so comparing their output would
- * report a divergence on every entry and say nothing about StyleX. What a
+ * The comparison is class names, rule text, and the shape of the style objects
+ * — never the emitted JavaScript as text. The two compilers print code
+ * differently (parameter lists, JSX spacing, how a `const` array is wrapped,
+ * which consumed declarations they leave standing), so comparing their output
+ * would report a divergence on every entry and say nothing about StyleX. What a
  * module subject adds is the ability to ask whether a compiler *reached* the
  * rules at all.
  */
@@ -107,6 +108,16 @@ export type CompilerOutcome =
        * is the expectation a later ticket asserts against.
        */
       declarations: string[];
+      /**
+       * The style objects the compiled module carries, as canonical text — one
+       * per `$$css`-marked object literal, in source order.
+       *
+       * This is the half of the answer the rule text cannot carry: a property
+       * whose value is `null` emits no CSS, so two compilers that disagree
+       * about whether the property exists at all agree on every rule. See
+       * `lib/style-object.ts`.
+       */
+      styleObjects: string[];
     }
   | { status: 'error'; message: string };
 

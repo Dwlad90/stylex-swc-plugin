@@ -2,7 +2,8 @@
 
 Runs a corpus of CSS declarations through `@stylexswc/rs-compiler` and through
 a pinned `@stylexjs/babel-plugin`, and reports — per declaration — whether the
-two produce the same class name and the same rule text.
+two produce the same class name, the same rule text, and the same style-object
+shape.
 
 A StyleX class name is a hash of the canonical declaration text, so that text
 is a compatibility contract. Any setup that mixes the two compilers (SSR built
@@ -56,6 +57,22 @@ is a value difference all the same, and without comparing it a verdict would
 call such a pair identical; the left-to-right spelling shows what changed more
 plainly, so that is what the report displays.
 
+The **style-object shape** is the other half of an answer the rule text cannot
+carry. A property whose value is `null` emits no CSS, so two compilers that
+disagree about whether the property exists at all agree on every rule — and a
+`null` is how an absent value is spelled, which is what unsets an earlier
+declaration of the same property when two styles merge. `lib/style-object.ts`
+reads each `$$css`-marked object literal out of the emitted module and records
+which keys exist and, per key, whether it carries a class name or an absence.
+Class names are replaced by a placeholder there, so a hash divergence is
+reported once, by the half that already reports it. The shape is printed only
+when it is what differs.
+
+This is deliberately not a comparison of emitted JavaScript. The two compilers
+print code differently — which consumed declarations they leave standing, how an
+injection is wrapped, JSX spacing — so comparing the text would report a
+divergence on every entry and say nothing about StyleX.
+
 The upstream version is held by the lockfile, not by an exact range in the
 catalog. The subject block prints the version actually resolved, so a report is
 attributable either way — but after a `pnpm update`, read that block before
@@ -94,18 +111,23 @@ module, and it is what `corpus/modules.json` measures — the inputs reported in
 [#1265](https://github.com/Dwlad90/stylex-swc-plugin/issues/1265), where a
 method call inside a runtime `sx` condition failed the build.
 
-The comparison is the same one: class names and rule text, never the emitted
-JavaScript — `ModuleEntry` in `lib/types.ts` says why, next to the type that
-would have to change to do otherwise. What a module subject adds is the ability
-to ask whether a compiler _reached_ the rules at all, which is the
-`acceptance divergent` verdict.
+The comparison is the same one: class names, rule text and style-object shape,
+never the emitted JavaScript as text — `ModuleEntry` in `lib/types.ts` says why,
+next to the type that would have to change to do otherwise. What a module
+subject adds is the ability to ask whether a compiler _reached_ the rules at
+all, which is the `acceptance divergent` verdict, and to ask a question a
+declaration cannot spell: a `DeclarationEntry` value is a string that goes
+through `JSON.stringify`, so a bare `null` or `false` can only be asked as a
+module.
 
-Seven entries in that set carry a `note`. Four say why they are expected not to
+Nine entries in that set carry a `note`. Five say why they are expected not to
 read `identical`: two where upstream aborts and this compiler does not, one
-where both reject, and one where upstream folds an indexed read this compiler
-refuses. The other three say why a subject that _is_ identical earns its own
-entry -- one of them because agreement there was the whole point, the shorthand
-rejection table having once diverged.
+where both reject, one where upstream folds an indexed read this compiler
+refuses, and one where upstream reads a condition key as a property name and
+emits a key named after a pseudo-class, which is a defect this compiler is not
+going to reproduce. The other four say why a subject that _is_ identical earns
+its own entry -- one of them because agreement there was the whole point, the
+shorthand rejection table having once diverged.
 
 ### Regenerating the harvest
 
@@ -197,6 +219,8 @@ report entry carries, for both compilers:
 - `declarations` — the `property:value` text inside the braces, which is what
   value normalization produces and therefore what the value-normalization tests
   assert against
+- `styleObjects` — the shape of each `$$css`-marked style object, which is where
+  an absent value shows and the rule text does not
 
 `entries[].babel.declarations` is the expectation; `entries[].rust` is what this
 compiler produces today.
@@ -207,7 +231,9 @@ produces an empty `declarations` array on both sides and the entry is reported
 `identical` — agreement about nothing. Check that `entries[].rust.declarations`
 and `entries[].babel.declarations` are non-empty before reading an `identical`
 as evidence, and pick a longhand (`backgroundImage`, `boxShadow`) when writing
-the subject.
+the subject. The exception is a subject whose whole point is a `null` value:
+there `declarations` is empty on both sides by design, and `styleObjects` is
+what the verdict rests on.
 
 **One caveat when the expectation is for a value-normalization test.** The
 harness runs the whole transform, and a few properties never reach value

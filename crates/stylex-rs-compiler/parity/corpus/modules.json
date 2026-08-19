@@ -125,6 +125,78 @@
       "origin": "issue 10, the other half of what a boolean means",
       "note": "Expected `both reject`. It earns an entry because the answer used to depend on where the boolean was written -- refused directly, compiled and silently dropped under a condition -- and a corpus that only asks the position that already worked would not have caught that.",
       "expected": "both-reject"
+    },
+    {
+      "id": "modules-spread-of-a-literal-in-a-fallback-array",
+      "label": "a spread of a string literal in a fallback array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst fallbacks = ['red'];\n\nexport const styles = stylex.create({\n  x: { color: [...\"ab\"] },\n});\n",
+      "origin": "found while reviewing the panic/deopt split",
+      "note": "The shape that made the spread refusal necessary. This compiler folded it to `[\"ab\"]` and shipped `color:ab`, where the language spreads two characters and upstream refuses. A wrong stylesheet, not a missing refusal, which is why it is held here rather than only in the Rust suite.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-spread-of-a-number-in-a-fallback-array",
+      "label": "a spread of a number in a fallback array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst fallbacks = ['red'];\n\nexport const styles = stylex.create({\n  x: { color: [...1] },\n});\n",
+      "origin": "found while reviewing the panic/deopt split",
+      "note": "`[...1]` throws in the language. This compiler shipped `color:1`.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-spread-of-a-binding-in-a-fallback-array",
+      "label": "a spread of a binding in a fallback array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst fallbacks = ['red'];\n\nexport const styles = stylex.create({\n  x: { color: [...fallbacks] },\n});\n",
+      "origin": "found while reviewing the panic/deopt split",
+      "note": "Refused by both, but this compiler used to refuse it by the value rule and so reported a different sentence than upstream's `Unsupported expression: SpreadElement`.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-spread-of-an-unresolvable-operand",
+      "label": "a spread of an operand the evaluator cannot resolve",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst fallbacks = ['red'];\n\nexport const styles = stylex.create({\n  x: { color: [...unknownThing] },\n});\n",
+      "origin": "found while reviewing the panic/deopt split",
+      "note": "Pins the order: upstream never evaluates a spread's operand, so the refusal names the spread and not the operand. This compiler reported `Unsupported expression: ArrayExpression` until the check moved ahead of the operand.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-nested-spread-in-a-fallback-array",
+      "label": "a spread nested one array deep",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst fallbacks = ['red'];\n\nexport const styles = stylex.create({\n  x: { color: [[...fallbacks]] },\n});\n",
+      "origin": "found while reviewing the panic/deopt split",
+      "note": "Pins that an element's refusal is carried up rather than renamed after its container: this reported `Unsupported expression: ArrayExpression`, naming a node the author did not write.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-spread-argument-to-first-that-works",
+      "label": "a spread argument to stylex.firstThatWorks",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst fallbacks = ['red'];\nconst nums = [1, 2];\n\nexport const styles = stylex.create({\n  x: { color: stylex.firstThatWorks(...fallbacks) },\n});\n",
+      "origin": "found while mirroring the spread refusal to upstream",
+      "note": "Refused by both. Upstream answers `Unsupported expression: SpreadElement` for every spread, whatever the callee. This compiler reported `Function argument must be a static expression.`",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-spread-argument-to-a-math-method",
+      "label": "a spread argument to a Math method",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst fallbacks = ['red'];\nconst nums = [1, 2];\n\nexport const styles = stylex.create({\n  x: { width: Math.max(...nums) },\n});\n",
+      "origin": "found while mirroring the spread refusal to upstream",
+      "note": "Refused by both. Upstream answers `Unsupported expression: SpreadElement` for every spread, whatever the callee. This compiler reported that the spread operator is not supported in this context.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-spread-argument-to-a-string-method",
+      "label": "a spread argument to a string method",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst fallbacks = ['red'];\nconst nums = [1, 2];\n\nexport const styles = stylex.create({\n  x: { content: 'a'.concat(...fallbacks) },\n});\n",
+      "origin": "found while mirroring the spread refusal to upstream",
+      "note": "Refused by both. Upstream answers `Unsupported expression: SpreadElement` for every spread, whatever the callee. This compiler reported `All arguments must be a string`.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-spread-argument-to-an-array-method",
+      "label": "a spread argument to an array method",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst fallbacks = ['red'];\nconst nums = [1, 2];\n\nexport const styles = stylex.create({\n  x: { content: ['a', 'b'].join(...['-']) },\n});\n",
+      "origin": "found while mirroring the spread refusal to upstream",
+      "note": "Refused by both. Upstream answers `Unsupported expression: SpreadElement` for every spread, whatever the callee. This compiler reported `Unsupported expression: CallExpression`, naming the call rather than the spread.",
+      "expected": "both-reject"
     }
   ]
 }

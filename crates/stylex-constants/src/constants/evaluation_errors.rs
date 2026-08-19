@@ -82,18 +82,20 @@ pub fn not_a_function(callee: &str) -> String {
   )
 }
 
-/// A property was read off a string or an array, and it is not the one such a
-/// receiver answers at compile time.
+/// An index was read off a string or an array and could not be folded.
 ///
-/// Names the property rather than the node kind the rest of these reasons name.
-/// The kind is the half an author can already see — `"abc".toUpperCase` and
-/// `"abc".length` are both a member access on a StringLiteral — and which
-/// property was asked for is the half that decides whether the declaration
-/// folds.
-pub fn unsupported_property_access(property: &str) -> String {
+/// Names the index rather than the node kind the rest of these reasons name. The
+/// kind is the half an author can already see — `"abc"[0]` and `"abc".length`
+/// are both a member access on a StringLiteral — and which index was asked for
+/// is the half that says where to look.
+///
+/// Deliberately says only that this index could not be read, because which
+/// indices can is a property of the receiver rather than of the language: an
+/// array a fold produced is indexed, and a string is not.
+pub fn unreadable_index(index: &str) -> String {
   format!(
-    "Unsupported property access: {}\nOnly 'length' is read from a string or an array at compile time.\n\n",
-    property
+    "Unsupported index: {}\nThis index could not be read at compile time.\n\n",
+    index
   )
 }
 

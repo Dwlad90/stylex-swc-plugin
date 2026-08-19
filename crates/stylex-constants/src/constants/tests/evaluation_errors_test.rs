@@ -17,12 +17,12 @@ fn test_unsupported_expression() {
 }
 
 #[test]
-fn test_unsupported_property_access() {
+fn test_unreadable_index() {
   assert_eq!(
-    unsupported_property_access("toUpperCase"),
-    "Unsupported property access: toUpperCase\nOnly 'length' is read from a string or an array at compile time.\n\n"
+    unreadable_index("0"),
+    "Unsupported index: 0\nThis index could not be read at compile time.\n\n"
   );
-  assert!(unsupported_property_access("0").contains("access: 0"));
+  assert!(unreadable_index("12").contains("index: 12"));
 }
 
 #[test]

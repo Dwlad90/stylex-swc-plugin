@@ -78,6 +78,57 @@ fn assert_folds_to_number(source: &str, expected: f64) {
   }
 }
 
+/// Asserts the source folds to a string. Used for the fallback a missing
+/// property lets through, where the interesting half is that the fold happened
+/// at all.
+#[track_caller]
+fn assert_folds_to_string(source: &str, expected: &str) {
+  let result = evaluate_source(source);
+
+  assert!(
+    result.confident,
+    "expected `{}` to fold, got a deopt: {:?}",
+    source, result.reason
+  );
+
+  match result.value {
+    Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Str(strng)))) => assert_eq!(
+      convert_atom_to_string(&strng.value),
+      expected,
+      "wrong folded string for `{}`",
+      source
+    ),
+    other => panic!("expected `{}` to fold to a string, got {:?}", source, other),
+  }
+}
+
+/// Asserts the source folds to `undefined` — a value the evaluator is confident
+/// about, not a refusal. That answer exists so a declaration folds its fallback
+/// instead of reaching the runtime.
+#[track_caller]
+fn assert_folds_to_undefined(source: &str) {
+  let result = evaluate_source(source);
+
+  assert!(
+    result.confident,
+    "expected `{}` to fold to undefined, got a deopt: {:?}",
+    source, result.reason
+  );
+
+  match result.value {
+    Some(EvaluateResultValue::Expr(Expr::Ident(ident))) => assert_eq!(
+      ident.sym.as_ref(),
+      "undefined",
+      "wrong folded identifier for `{}`",
+      source
+    ),
+    other => panic!(
+      "expected `{}` to fold to undefined, got {:?}",
+      source, other
+    ),
+  }
+}
+
 /// Asserts the source refuses, as a deopt carrying a reason rather than as an
 /// abort. The reason has to be there: `stylex.create()` turns it into the
 /// author-facing diagnostic.
@@ -179,6 +230,22 @@ fn an_array_a_fold_produced_answers_its_length() {
   assert_folds_to_number("Object.values({ a: 1 }).length", 1.0);
   assert_folds_to_number("Object.entries({ a: 1, b: 2 }).length", 2.0);
   assert_folds_to_number("[\"a\", \"b\"].join(\"-\").length", 3.0);
+}
+
+/// A spread is one written element standing for however many the spread value
+/// holds, so neither the written count nor the evaluated one is the language's
+/// answer. Refusing is the point: counting `[...[1, 2]]` as one slot would be a
+/// confidently wrong number, which is the defect this whole file removes.
+#[test]
+fn an_array_carrying_a_spread_refuses_rather_than_being_miscounted() {
+  for source in [
+    "[...[1, 2]].length",
+    "[...[1, 2], 3].length",
+    "[1, ...[2, 3]].length",
+    "[...\"ab\"].length",
+  ] {
+    assert_deopts(source);
+  }
 }
 
 /// A template literal folds to a string before the property is read, so its
@@ -289,10 +356,14 @@ fn a_string_spelling_css_syntax_is_counted_as_text() {
 // ==================== the refusals ====================
 
 /// The defect this file exists for, stated as the thing that must not happen: a
-/// property a string does not carry at compile time is not answered with the
-/// string.
+/// property a string does not carry is not answered with the string.
+///
+/// It answers `undefined`, which is what the reference implementation's
+/// `object[property]` gives and what the object arm already gives for a key an
+/// object does not hold. `Length` and `LENGTH` are here because the property is
+/// case-sensitive and a case-insensitive test would fold them to a count.
 #[test]
-fn a_property_a_string_does_not_carry_refuses_rather_than_answering_the_string() {
+fn a_property_a_string_does_not_carry_answers_undefined() {
   for source in [
     "\"abc\".foo",
     "\"abc\".size",
@@ -303,35 +374,61 @@ fn a_property_a_string_does_not_carry_refuses_rather_than_answering_the_string()
     "\"abc\".__proto__",
     "\"abc\"[\"foo\"]",
   ] {
-    assert_deopts(source);
+    assert_folds_to_undefined(source);
   }
+
+  // The answer exists so a fallback folds rather than reaching the runtime.
+  assert_folds_to_string("\"abc\".foo ?? \"red\"", "red");
 }
 
-/// An index into a string refuses too, and deliberately. The reference
+/// An index into a string refuses, and deliberately. The reference
 /// implementation folds `"\u{1F600}"[0]` to a lone surrogate, which no Rust
-/// string can hold — answering it would be the same class of quietly-wrong
-/// value the `length` fix removed.
+/// string can hold — answering it would be the same class of quietly-wrong value
+/// the `length` fix removed. Past the end refuses too: knowing an index is out of
+/// range is the same work as reading one.
 #[test]
 fn an_index_into_a_string_refuses() {
   for source in [
     "\"abc\"[0]",
     "\"abc\"[2]",
     "\"abc\"[9]",
-    "\"abc\"[-1]",
-    "\"abc\"[1.5]",
     "\"\\u{1F600}\"[0]",
+    "\"abc\"[\"0\"]",
   ] {
     assert_deopts(source);
   }
 }
 
-/// A refusal names the property, so a build error says which read could not be
-/// folded rather than only which node kind it was.
+/// A key that looks numeric but is not an index is an ordinary property name,
+/// and no string or array carries one — so it answers `undefined`, as upstream
+/// does. Testing the key with `parse::<f64>()` would call all of these indices
+/// and refuse a fold the reference implementation makes; `"NaN"` is the one that
+/// makes that unmistakable.
 #[test]
-fn a_refusal_names_the_property_it_could_not_read() {
-  assert_deopt_names_property("\"abc\".toUpperCase", "toUpperCase");
-  assert_deopt_names_property("[1, 2].reverse", "reverse");
+fn a_numeric_looking_key_that_is_not_an_index_answers_undefined() {
+  for source in [
+    "\"abc\"[-1]",
+    "\"abc\"[1.5]",
+    "\"abc\"[\"NaN\"]",
+    "\"abc\"[\"1.5\"]",
+    "[1, 2][-1]",
+    "[1, 2][1.5]",
+  ] {
+    assert_folds_to_undefined(source);
+  }
+}
+
+/// A refusal names the index, so a build error says which read could not be
+/// folded rather than only which node kind it was.
+///
+/// Swept across the three receiver kinds, because one property test per receiver
+/// is how they drifted into three diagnostics for one author mistake. All three
+/// now say the same thing about the same index.
+#[test]
+fn a_refusal_names_the_index_it_could_not_read() {
   assert_deopt_names_property("\"abc\"[7]", "7");
+  assert_deopt_names_property("[1, 2][\"7\"]", "7");
+  assert_deopt_names_property("Object.keys({ a: 1 })[\"7\"]", "7");
 }
 
 /// `length` is a string and array property only. A number, a boolean, a
@@ -370,18 +467,23 @@ fn an_object_with_a_length_key_answers_the_key() {
   assert_folds_to_number("({ length: 7 })[\"length\"]", 7.0);
 }
 
-/// A property read off an array that is neither `length` nor an index refuses.
+/// A property read off an array that is neither `length` nor an index answers
+/// `undefined`, for the same reason and by the same rule as a string.
 #[test]
-fn a_property_an_array_does_not_carry_refuses() {
+fn a_property_an_array_does_not_carry_answers_undefined() {
   for source in [
     "[1, 2].foo",
     "[1, 2].size",
     "[1, 2].reverse",
     "[1, 2].constructor",
     "[1, 2][\"foo\"]",
+    "Object.keys({ a: 1 }).foo",
   ] {
-    assert_deopts(source);
+    assert_folds_to_undefined(source);
   }
+
+  assert_folds_to_string("[1, 2].foo ?? \"red\"", "red");
+  assert_folds_to_string("Object.keys({ a: 1 }).foo ?? \"red\"", "red");
 }
 
 /// A computed key the evaluator cannot read at all refuses before the receiver
@@ -427,7 +529,6 @@ fn a_length_read_survives_every_logical_operand_position() {
     "\"abc\".length",
     "[1, 2].length",
     "\"\\u{1F600}a\".length",
-    "\"abc\".foo",
     "\"abc\"[0]",
     "(5).length",
     "null.length",
@@ -446,7 +547,7 @@ fn a_length_read_survives_every_logical_operand_position() {
 
   // A confident left operand that decides on its own is not disturbed by an
   // unreadable right one.
-  assert_folds_to_number("2 || \"abc\".foo", 2.0);
+  assert_folds_to_number("2 || \"abc\"[0]", 2.0);
   assert_folds_to_number("0 && \"abc\"[0]", 0.0);
 }
 
@@ -489,10 +590,13 @@ fn a_deeply_nested_length_read_neither_overflows_nor_changes_answer() {
   let deep = std::iter::repeat_n("1 > 0 && ", 100).collect::<String>();
 
   assert_folds_to_number(&format!("{}\"abc\".length", deep), 3.0);
-  assert_deopts(&format!("{}\"abc\".foo", deep));
+  assert_deopts(&format!("{}\"abc\"[0]", deep));
 }
 
-/// A member chain deeper than the receiver is not a length read at any depth.
+/// A member chain deeper than the receiver is not a length read at any depth. A
+/// number has no `length`, and neither does the `undefined` a missing property
+/// answers — reading one off either refuses rather than folding, because reading
+/// a property of `undefined` throws in the language.
 #[test]
 fn a_chain_past_the_length_refuses() {
   for source in [
@@ -500,6 +604,7 @@ fn a_chain_past_the_length_refuses() {
     "\"abc\".length.foo",
     "[1, 2].length.length",
     "\"abc\".foo.length",
+    "[1, 2].foo.length",
   ] {
     assert_deopts(source);
   }

@@ -2,16 +2,111 @@ use super::super::*;
 use stylex_ast::ast::convertors::{
   atom_utf16_length, convert_member_prop_to_string, normalize_expr,
 };
-use stylex_constants::constants::evaluation_errors::unsupported_property_access;
+use stylex_constants::constants::evaluation_errors::unreadable_index;
 use swc_core::ecma::ast::MemberExpr;
 
-/// The one property a string or an array answers at compile time.
-///
-/// Named rather than spelled at each of the three sites that test for it —
-/// a string receiver, an array literal, an evaluated array — because the three
-/// have to agree, and a fourth receiver kind added later has one place to read
-/// the answer from.
+/// The one property a string or an array answers by counting.
 const LENGTH: &str = "length";
+
+/// What a member lookup asks of a string or an array.
+///
+/// One classification for all three receiver kinds — a string, an array literal
+/// a fold produced, and an evaluated array — because they have to agree. Three
+/// copies of the same property test drifted into three diagnostics for one
+/// author mistake, which is what this replaces.
+enum ArrayLikeLookup {
+  /// `length`, which is counted rather than looked up.
+  Length,
+  /// An index. Whether one can be read depends on the receiver, so the arms
+  /// decide: the array literal a fold produced reads one, and neither a string
+  /// nor an evaluated array does. A string index is a single UTF-16 code unit,
+  /// which can be an unpaired surrogate no Rust string holds; an evaluated array
+  /// is the scope `array_expression` owns.
+  ///
+  /// An index past the end is `undefined` upstream and a refusal here, because
+  /// knowing it is past the end is the same work as reading one.
+  Index,
+  /// A property the receiver does not carry. `undefined` in the language, which
+  /// is the answer the object arm below already gives for a key an object does
+  /// not hold, and what lets `token.missing ?? fallback` fold.
+  Missing,
+  /// A computed key with no name the evaluator could read.
+  Unreadable,
+}
+
+/// Reads what a member lookup is asking for, from the evaluated property.
+///
+/// A key of nothing but digits is an index however it was written, because
+/// `list[0]` and `list["0"]` name the same element in the language. Nothing
+/// else is: `"1.5"`, `"-1"` and `"NaN"` are property names that no array
+/// carries, so they answer `undefined` exactly as they do upstream. Testing
+/// with `parse::<f64>()` instead would call all three indices — it accepts
+/// `"NaN"` and `"inf"` — and refuse a fold the reference implementation makes.
+fn classify_lookup(property: Option<&EvaluateResultValue>) -> ArrayLikeLookup {
+  match property.and_then(|prop| prop.as_string_key()) {
+    None => ArrayLikeLookup::Unreadable,
+    Some(key) if key == LENGTH => ArrayLikeLookup::Length,
+    Some(key) if is_array_index(&key) => ArrayLikeLookup::Index,
+    Some(_) => ArrayLikeLookup::Missing,
+  }
+}
+
+/// Whether a key names an array index: a non-empty run of ASCII digits.
+fn is_array_index(key: &str) -> bool {
+  !key.is_empty() && key.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+/// Refuses a lookup a string or an array cannot answer, naming the index where
+/// the evaluator could read one.
+///
+/// One function so the receiver kinds cannot disagree about what an author who
+/// wrote `[1, 2][0]` and one who wrote `"ab"[0]` are told — three copies of the
+/// property test had drifted into three diagnostics for one mistake. The
+/// unnameable case is the refusal the reference implementation gives at this
+/// point, `errMsgs.UNEXPECTED_MEMBER_LOOKUP`.
+fn refuse_lookup(
+  path: &Expr,
+  state: &mut EvaluationState,
+  property: Option<&EvaluateResultValue>,
+) -> Option<EvaluateResultValue> {
+  match property.and_then(|prop| prop.as_string_key()) {
+    Some(key) => deopt(path, state, &unreadable_index(&key)),
+    None => deopt(path, state, UNEXPECTED_MEMBER_LOOKUP),
+  }
+}
+
+/// The number of slots an array literal writes, or `None` where the literal
+/// cannot be counted from its own elements.
+///
+/// A spread is one element standing for however many the spread value holds, so
+/// `[...[1, 2]]` has one element and two slots. Neither this count nor the
+/// evaluated one is the language's answer there, so the caller refuses rather
+/// than folding a number that is confidently wrong — which is the defect the
+/// `length` fold exists to remove, and would be a poor thing to reintroduce
+/// while removing it.
+fn written_slot_count(elems: &[Option<ExprOrSpread>]) -> Option<usize> {
+  match elems.iter().flatten().any(|elem| elem.spread.is_some()) {
+    true => None,
+    false => Some(elems.len()),
+  }
+}
+
+/// The slot count of an evaluated array, read from the receiver's own literal
+/// where it has one.
+///
+/// Two sources, because the evaluated elements are not the slots: a hole is
+/// dropped before it becomes a value, so an evaluated `[, 1]` holds one element
+/// where the language counts two. A literal receiver is therefore counted as
+/// written, and a receiver reached any other way — a binding, a fold — can only
+/// be counted by its elements. The two agree wherever there is no hole; where
+/// there is one and the receiver is a binding, the answer is still short, which
+/// is the representation gap `array_expression` owns rather than this fold.
+fn written_slot_count_of(obj: &Expr, items: &[EvaluateResultValue]) -> Option<usize> {
+  match obj.as_array() {
+    Some(ArrayLit { elems, .. }) => written_slot_count(elems),
+    None => Some(items.len()),
+  }
+}
 
 pub(in super::super) fn evaluate(
   member: &MemberExpr,
@@ -86,27 +181,41 @@ pub(in super::super) fn evaluate(
               deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
             };
 
-            // `length` is the one property of an array that is not an index,
-            // and it is the count of slots the language reports — a hole
-            // occupies one. Read off the array this value holds, which is the
-            // same reading the `Vec` arm below takes from the receiver's AST
-            // and for the same reason: an evaluated array has already dropped
-            // its holes.
-            if eval_res.as_string_key().as_deref() == Some(LENGTH) {
-              return Some(EvaluateResultValue::Expr(create_number_expr(
-                elems.len() as f64
-              )));
+            match classify_lookup(Some(&eval_res)) {
+              // The count of slots the language reports — a hole occupies one.
+              // Read off the array this value holds, which is the same reading
+              // the `Vec` arm below takes from the receiver's AST and for the
+              // same reason: an evaluated array has already dropped its holes.
+              ArrayLikeLookup::Length => {
+                return match written_slot_count(elems) {
+                  Some(count) => Some(EvaluateResultValue::Expr(create_number_expr(count as f64))),
+                  None => deopt(path, state, &unsupported_expression("SpreadElement")),
+                };
+              },
+              // A property an array does not carry is `undefined`, the answer
+              // the language gives and the one the object arm below gives for
+              // the matching case.
+              ArrayLikeLookup::Missing => return Some(js_undefined()),
+              ArrayLikeLookup::Unreadable => {
+                deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+              },
+              // Read below, which is the arm that folds one.
+              ArrayLikeLookup::Index => {},
             }
+
+            let eval_res_for_refusal = eval_res.clone();
 
             let EvaluateResultValue::Expr(expr) = eval_res else {
               deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
             };
 
-            // Past `length`, only a numeric index reads an array element at
-            // compile time. `list[key]` is ordinary JavaScript this evaluator
-            // does not fold.
+            // An index that reads as a number but was not written as one —
+            // `list["0"]` — is the same element in the language, and reading it
+            // is the scope the note below leaves open. Refused through the same
+            // function as the other receivers so the diagnostic names the index
+            // rather than describing the member expression.
             let Expr::Lit(Lit::Num(Number { value, .. })) = expr else {
-              deopt_unsupported!(path, state, MEMBER_NOT_RESOLVED);
+              return refuse_lookup(path, state, Some(&eval_res_for_refusal));
             };
 
             let value = value as usize;
@@ -231,23 +340,28 @@ pub(in super::super) fn evaluate(
           // and dropping the property, so `"abc".length` folded to `"abc"` and
           // shipped `content: "abc"`. A wrong value is worse than a refusal:
           // nothing errors, and the stylesheet is simply not what the source
-          // says. Every other property refuses instead, including a numeric
-          // index — the reference implementation folds `"\u{1F600}"[0]` to a
-          // lone surrogate, which no Rust string can hold, so answering it
-          // would be the same class of quietly-wrong value this arm just
-          // stopped producing.
-          Expr::Lit(Lit::Str(strng)) => {
-            let Some(key) = property.as_ref().and_then(|prop| prop.as_string_key()) else {
-              deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
-            };
-
-            if key != LENGTH {
-              deopt_unsupported!(path, state, &unsupported_property_access(&key));
-            }
-
-            Some(EvaluateResultValue::Expr(create_number_expr(
+          // says.
+          //
+          // An index is the one lookup here that refuses rather than answering.
+          // The reference implementation folds `"\u{1F600}"[0]` to a lone
+          // surrogate, which no Rust string can hold, so answering it would be
+          // the same class of quietly-wrong value this arm stopped producing.
+          Expr::Lit(Lit::Str(strng)) => match classify_lookup(property.as_ref()) {
+            ArrayLikeLookup::Length => Some(EvaluateResultValue::Expr(create_number_expr(
               atom_utf16_length(&strng.value) as f64,
-            )))
+            ))),
+            ArrayLikeLookup::Missing => Some(js_undefined()),
+            ArrayLikeLookup::Index | ArrayLikeLookup::Unreadable => {
+              refuse_lookup(path, state, property.as_ref())
+            },
+          },
+          // Reading a property off `undefined` throws in the language, and
+          // `undefined` is what a property the receiver does not carry now
+          // answers — so `"abc".foo.length` has to refuse rather than answer
+          // `undefined` a second time. Checked here rather than in the arms
+          // that produce it, because this is the arm that would swallow it.
+          Expr::Ident(nested_ident) if nested_ident.sym.as_ref() == "undefined" => {
+            deopt(path, state, UNEXPECTED_MEMBER_LOOKUP)
           },
           Expr::Ident(nested_ident) => evaluate_cached(
             &Expr::Ident(nested_ident.clone()),
@@ -310,21 +424,15 @@ pub(in super::super) fn evaluate(
         // rather than carrying as a value — so a literal is read from the AST,
         // and a binding to `[, 1]` still answers one where the language says
         // two. That gap belongs to how a hole is represented, not to `length`.
-        EvaluateResultValue::Vec(items) => {
-          let Some(key) = property.as_ref().and_then(|prop| prop.as_string_key()) else {
-            deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
-          };
-
-          if key != LENGTH {
-            deopt_unsupported!(path, state, &unsupported_property_access(&key));
-          }
-
-          let count = match member.obj.as_array() {
-            Some(ArrayLit { elems, .. }) => elems.len(),
-            None => items.len(),
-          };
-
-          Some(EvaluateResultValue::Expr(create_number_expr(count as f64)))
+        EvaluateResultValue::Vec(items) => match classify_lookup(property.as_ref()) {
+          ArrayLikeLookup::Length => match written_slot_count_of(&member.obj, &items) {
+            Some(count) => Some(EvaluateResultValue::Expr(create_number_expr(count as f64))),
+            None => deopt(path, state, &unsupported_expression("SpreadElement")),
+          },
+          ArrayLikeLookup::Missing => Some(js_undefined()),
+          ArrayLikeLookup::Index | ArrayLikeLookup::Unreadable => {
+            refuse_lookup(path, state, property.as_ref())
+          },
         },
         EvaluateResultValue::ThemeRef(mut theme_ref) => {
           let key = match property {

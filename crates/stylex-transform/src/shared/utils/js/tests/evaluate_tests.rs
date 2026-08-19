@@ -571,11 +571,16 @@ fn test_boolean_literal_member_access() {
 
 #[test]
 fn test_string_literal_member_access() {
+  // A string is the one literal that carries a readable property, so a name it
+  // does not carry answers `undefined` here rather than refusing — the same
+  // answer the reference implementation's `object[property]` gives, and the one
+  // that lets a `??` fallback fold. `length` is covered in
+  // `evaluate/tests/member_length_tests.rs`.
   let member_expr = make_member_expr(create_string_expr("test"), "prop");
   let (confident, has_value) = evaluate_expr(&member_expr);
   assert!(
-    !confident && !has_value,
-    "Member access on string literal should refuse rather than answer the literal"
+    confident && has_value,
+    "Member access on a string literal should answer undefined, not the literal"
   );
 }
 

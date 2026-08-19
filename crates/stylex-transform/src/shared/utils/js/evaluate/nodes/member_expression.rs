@@ -109,8 +109,14 @@ fn written_slot_count(elems: &[Option<ExprOrSpread>]) -> Option<usize> {
 /// be counted by its elements. The two agree wherever there is no hole; where
 /// there is one and the receiver is a binding, the answer is still short, which
 /// is the representation gap `array_expression` owns rather than this fold.
+///
+/// The receiver is unwrapped before it is asked, because a parenthesis is not a
+/// different receiver: `([, 1]).length` and `([...xs]).length` reach the
+/// evaluated count otherwise, and that count is one short of the first and
+/// confidently wrong about the second — the spread reading `written_slot_count`
+/// exists to refuse.
 fn written_slot_count_of(obj: &Expr, items: &[EvaluateResultValue]) -> Option<usize> {
-  match obj.as_array() {
+  match normalize_expr(obj).as_array() {
     Some(ArrayLit { elems, .. }) => written_slot_count(elems),
     None => Some(items.len()),
   }

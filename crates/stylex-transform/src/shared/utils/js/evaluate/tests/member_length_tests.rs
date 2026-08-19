@@ -90,6 +90,22 @@ fn an_array_carrying_a_spread_refuses_rather_than_being_miscounted() {
   }
 }
 
+/// A parenthesis is not a different receiver, so it may not change the count.
+///
+/// The literal is read off the receiver's own AST, and an unnormalized read
+/// finds a `ParenExpression` instead of an array — falling through to the
+/// evaluated element count, which is short by every hole and blind to every
+/// spread. `([, 1]).length` answered `1`, and `([...[1, 2]]).length` answered
+/// `1` confidently where the bare form refuses.
+#[test]
+fn a_parenthesised_receiver_is_counted_as_the_bare_one_is() {
+  assert_folds_to_number("([1, 2]).length", 2.0);
+  assert_folds_to_number("([, 1]).length", 2.0);
+  assert_folds_to_number("(([, 1])).length", 2.0);
+  assert_deopts("([...[1, 2]]).length");
+  assert_deopts("(([...[1, 2]])).length");
+}
+
 /// A template literal folds to a string before the property is read, so its
 /// length is the length of what it folded to and not of what was written.
 #[test]

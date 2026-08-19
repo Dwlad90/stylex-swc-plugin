@@ -73,26 +73,11 @@ macro_rules! expr_to_str_or_deopt {
 /// runtime. It is the counterpart of the reference implementation's terminal
 /// `deopt(path, state, errMsgs.UNSUPPORTED_EXPRESSION(path.node.type))`.
 ///
-/// # Why this is not `stylex_panic_with_context!`
-///
-/// The two failures a static evaluator can have are unrelated, and only one of
-/// them is a bug:
-///
-/// - **An unsupported input shape** — this macro. Every evaluation may be asked
-///   about an expression it cannot fold, and answering "I cannot" is part of
-///   the contract. An operand of `&&`, `||` or `??` is evaluated speculatively
-///   under a forked confidence precisely so that it may fail; aborting from
-///   there fails a build over an expression that was never going to be folded.
-/// - **A broken invariant** — [`stylex_panic_with_context!`]. The evaluator
-///   contradicted something it had itself just established. Aborting is right,
-///   because continuing would emit CSS derived from reasoning known to be
-///   wrong.
-///
-/// The two read differently at every call site on purpose: this one takes the
-/// [`EvaluationState`] it records the refusal on, the panicking one takes the
-/// [`StateManager`] it builds a code frame from. A reviewer can tell them apart
-/// without following the message text, which is what a shared construct and a
-/// documented convention failed to give.
+/// A broken invariant is [`stylex_panic_with_context!`] instead, and the two are
+/// told apart by their argument: this one takes the [`EvaluationState`] it
+/// records the refusal on, the panicking one takes the [`StateManager`] it
+/// builds a code frame from. Why they are separate constructs at all is
+/// `docs/adr/0002-a-refusal-and-a-broken-invariant-are-separate-constructs.md`.
 ///
 /// A refusal is not a silent one: the reason lands on the evaluation state, and
 /// a deopt that reaches a position requiring a static value — inside

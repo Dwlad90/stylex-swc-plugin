@@ -6,18 +6,18 @@ _inject2({
     priority: 3000
 });
 _inject2({
-    ltr: ".xwib8y2{padding-bottom:8px}",
+    ltr: ".x1y1aw1k{padding-top:8px}",
     priority: 4000
 });
 _inject2({
-    ltr: ".x1y1aw1k{padding-top:8px}",
+    ltr: ".xwib8y2{padding-bottom:8px}",
     priority: 4000
 });
 export const styles = {
     root: {
         kMwMTN: "x1xhyvuf",
-        kGO01o: "xwib8y2",
         kLKAdn: "x1y1aw1k",
+        kGO01o: "xwib8y2",
         $$css: true
     }
 };

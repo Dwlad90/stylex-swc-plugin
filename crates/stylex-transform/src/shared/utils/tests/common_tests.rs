@@ -11,7 +11,7 @@ use swc_core::{
 use crate::shared::{
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::common::{
-    deep_merge_props, downcast_style_options_to_state_manager, extract_filename_from_path,
+    assign_props, downcast_style_options_to_state_manager, extract_filename_from_path,
     extract_filename_with_ext_from_path, extract_path, fill_state_declarations,
     fill_top_level_expressions, gen_file_based_identifier, get_css_value, get_import_from,
     get_var_decl_by_ident, js_object_to_json, remove_duplicates, serialize_value_to_json_string,
@@ -870,7 +870,7 @@ mod remove_duplicates_extra_tests {
   }
 
   #[test]
-  fn skips_numeric_key_props() {
+  fn keeps_numeric_key_props() {
     let num_key_prop = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
       key: PropName::Num(Number {
         span: DUMMY_SP,
@@ -881,16 +881,18 @@ mod remove_duplicates_extra_tests {
     })));
     let props = vec![num_key_prop];
     let result = remove_duplicates(props);
-    // Numeric key falls into `_ => continue`
-    assert_eq!(result.len(), 0);
+    // A numeric key names a property like any other, so it is kept. It used to
+    // be dropped: the key reader had no arm for it, and a declaration written
+    // `{ 42: 1 }` vanished from the object it was written in.
+    assert_eq!(result.len(), 1);
   }
 }
 
 // ──────────────────────────────────────────────
-// deep_merge_props
+// assign_props
 // ──────────────────────────────────────────────
 
-mod deep_merge_props_tests {
+mod assign_props_tests {
   use super::*;
   use swc_core::ecma::ast::{
     IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, SpreadElement,
@@ -930,7 +932,7 @@ mod deep_merge_props_tests {
   fn merges_non_overlapping_props() {
     let old = vec![make_kv_prop("a", 1.0)];
     let new = vec![make_kv_prop("b", 2.0)];
-    let result = deep_merge_props(old, new);
+    let result = assign_props(old, new);
     assert_eq!(result.len(), 2);
   }
 
@@ -940,7 +942,7 @@ mod deep_merge_props_tests {
     let inner_new = vec![make_kv_prop("y", 2.0)];
     let old = vec![make_kv_obj_prop("shared", inner_old)];
     let new = vec![make_kv_obj_prop("shared", inner_new)];
-    let result = deep_merge_props(old, new);
+    let result = assign_props(old, new);
     // After dedup, "shared" appears once but both old and new versions are merged
     assert!(!result.is_empty());
   }
@@ -959,7 +961,7 @@ mod deep_merge_props_tests {
     })));
     let old = vec![getter];
     let new = vec![make_kv_prop("a", 1.0)];
-    let result = deep_merge_props(old, new);
+    let result = assign_props(old, new);
     assert!(!result.is_empty());
   }
 
@@ -967,14 +969,14 @@ mod deep_merge_props_tests {
   fn spread_old_props_appended() {
     let old = vec![make_spread()];
     let new = vec![make_kv_prop("a", 1.0)];
-    let result = deep_merge_props(old, new);
+    let result = assign_props(old, new);
     assert!(!result.is_empty());
   }
 
   #[test]
   fn empty_old_returns_new() {
     let new = vec![make_kv_prop("a", 1.0)];
-    let result = deep_merge_props(vec![], new);
+    let result = assign_props(vec![], new);
     assert_eq!(result.len(), 1);
   }
 
@@ -983,7 +985,7 @@ mod deep_merge_props_tests {
     // When old and new share a key but old value is not an object
     let old = vec![make_kv_prop("x", 1.0)];
     let new = vec![make_kv_prop("x", 2.0)];
-    let result = deep_merge_props(old, new);
+    let result = assign_props(old, new);
     // Last wins via remove_duplicates
     assert_eq!(result.len(), 1);
   }
@@ -1459,10 +1461,10 @@ mod get_css_value_tests {
 }
 
 // ──────────────────────────────────────────────
-// deep_merge_props - Str/Num key branches via prop_name_eq
+// assign_props - Str/Num key branches
 // ──────────────────────────────────────────────
 
-mod deep_merge_props_str_num_key_tests {
+mod assign_props_str_num_key_tests {
   use super::*;
   use swc_core::ecma::ast::{IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread};
 
@@ -1510,7 +1512,7 @@ mod deep_merge_props_str_num_key_tests {
     let inner_new = vec![make_kv_prop_ident("y", 2.0)];
     let old = vec![make_kv_str_key_obj_prop("shared", inner_old)];
     let new = vec![make_kv_str_key_obj_prop("shared", inner_new)];
-    let result = deep_merge_props(old, new);
+    let result = assign_props(old, new);
     assert!(!result.is_empty());
   }
 
@@ -1520,21 +1522,22 @@ mod deep_merge_props_str_num_key_tests {
     let inner_new = vec![make_kv_prop_ident("y", 2.0)];
     let old = vec![make_kv_num_key_obj_prop(42.0, inner_old)];
     let new = vec![make_kv_num_key_obj_prop(42.0, inner_new)];
-    let result = deep_merge_props(old, new);
-    // Num keys trigger prop_name_eq(Num,Num) path but are then
-    // skipped by remove_duplicates (_ => continue), so result is empty
-    assert!(result.is_empty());
+    let result = assign_props(old, new);
+    // A numeric key is a key like any other: the two collide and the later one
+    // wins. This used to answer an empty object -- the key was matched by the
+    // merge and then dropped by the deduplication, which read no name for it.
+    assert_eq!(result.len(), 1);
   }
 
   #[test]
-  fn non_matching_key_types_no_merge() {
+  fn a_string_key_and_the_numeric_spelling_of_it_are_one_key() {
     let inner_old = vec![make_kv_prop_ident("x", 1.0)];
     let inner_new = vec![make_kv_prop_ident("y", 2.0)];
-    // One Str key, one Num key - they should not match
     let old = vec![make_kv_str_key_obj_prop("42", inner_old)];
     let new = vec![make_kv_num_key_obj_prop(42.0, inner_new)];
-    let result = deep_merge_props(old, new);
-    // Str key survives remove_duplicates but Num key is skipped
+    let result = assign_props(old, new);
+    // `{ '42': x }` and `{ 42: y }` name one property in the language, so they
+    // collide and the later one wins.
     assert_eq!(result.len(), 1);
   }
 }
@@ -1723,10 +1726,10 @@ mod get_var_decl_by_ident_function_map_tests {
 }
 
 // ──────────────────────────────────────────────
-// deep_merge_props - additional edge cases
+// assign_props - additional edge cases
 // ──────────────────────────────────────────────
 
-mod deep_merge_props_extra_edge_tests {
+mod assign_props_extra_edge_tests {
   use super::*;
   use swc_core::ecma::ast::{
     GetterProp, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread, SpreadElement,
@@ -1758,7 +1761,7 @@ mod deep_merge_props_extra_edge_tests {
   #[test]
   fn new_props_non_kv_triggers_false_branch() {
     // Old has a KV obj prop, new has a getter with matching key
-    // This triggers the `_ => false` at line 320 in deep_merge_props
+    // This triggers the `_ => false` at line 320 in assign_props
     let getter = PropOrSpread::Prop(Box::new(Prop::Getter(GetterProp {
       span: DUMMY_SP,
       key: PropName::Ident(IdentName {
@@ -1771,7 +1774,7 @@ mod deep_merge_props_extra_edge_tests {
     let inner_old = vec![make_kv_prop("x", 1.0)];
     let old = vec![make_kv_obj_prop("shared", inner_old)];
     let new = vec![getter];
-    let result = deep_merge_props(old, new);
+    let result = assign_props(old, new);
     // Old KV appended since no match found
     assert!(!result.is_empty());
   }
@@ -1779,7 +1782,7 @@ mod deep_merge_props_extra_edge_tests {
   #[test]
   fn new_props_spread_triggers_false_branch() {
     // Old has a KV obj prop, new has a spread
-    // This triggers the `_ => false` at line 322 in deep_merge_props
+    // This triggers the `_ => false` at line 322 in assign_props
     let spread = PropOrSpread::Spread(SpreadElement {
       dot3_token: DUMMY_SP,
       expr: Box::new(create_number_expr(0.0)),
@@ -1787,7 +1790,7 @@ mod deep_merge_props_extra_edge_tests {
     let inner_old = vec![make_kv_prop("x", 1.0)];
     let old = vec![make_kv_obj_prop("shared", inner_old)];
     let new = vec![spread];
-    let result = deep_merge_props(old, new);
+    let result = assign_props(old, new);
     assert!(!result.is_empty());
   }
 }
@@ -2265,10 +2268,10 @@ mod get_css_value_panic_tests {
 }
 
 // ──────────────────────────────────────────────
-// deep_merge_props - BigInt prop_name_eq branch
+// assign_props - BigInt keys
 // ──────────────────────────────────────────────
 
-mod deep_merge_props_bigint_key_tests {
+mod assign_props_bigint_key_tests {
   use super::*;
   use swc_core::ecma::ast::{
     BigInt, IdentName, KeyValueProp, ObjectLit, Prop, PropName, PropOrSpread,
@@ -2299,15 +2302,15 @@ mod deep_merge_props_bigint_key_tests {
   }
 
   #[test]
-  fn overlapping_bigint_keys_triggers_prop_name_eq() {
+  fn overlapping_bigint_keys_are_one_key() {
     let inner_old = vec![make_kv_prop_ident("x", 1.0)];
     let inner_new = vec![make_kv_prop_ident("y", 2.0)];
     let old = vec![make_bigint_obj_prop(42, inner_old)];
     let new = vec![make_bigint_obj_prop(42, inner_new)];
-    let result = deep_merge_props(old, new);
-    // BigInt keys match via prop_name_eq, merge happens, then
-    // remove_duplicates skips BigInt keys
-    assert!(result.is_empty() || !result.is_empty());
+    let result = assign_props(old, new);
+    // `{ 42n: x }` names the property `"42"`, so the two collide and the later
+    // one wins.
+    assert_eq!(result.len(), 1);
   }
 }
 

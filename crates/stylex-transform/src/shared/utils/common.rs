@@ -2,13 +2,14 @@ use rustc_hash::FxHashSet;
 use std::{any::type_name, ops::Deref, path::PathBuf};
 use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 use stylex_types::traits::StyleOptions;
-use stylex_utils::string::remove_quotes;
+use stylex_utils::{number::to_js_string, string::remove_quotes};
+use swc_core::atoms::Atom;
 use swc_core::{
-  common::{DUMMY_SP, EqIgnoreSpan, FileName},
+  common::{EqIgnoreSpan, FileName},
   ecma::ast::{
     Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Module, ModuleDecl,
-    ModuleExportName, ModuleItem, ObjectLit, ObjectPatProp, Pat, Prop, PropName, PropOrSpread,
-    Stmt, VarDeclarator,
+    ModuleExportName, ModuleItem, ObjectPatProp, Pat, Prop, PropName, PropOrSpread, Stmt,
+    VarDeclarator,
   },
 };
 
@@ -156,15 +157,33 @@ pub(crate) fn type_of<T>(_: T) -> &'static str {
   type_name::<T>()
 }
 
-fn prop_name_eq(a: &PropName, b: &PropName) -> bool {
-  match (a, b) {
-    (PropName::Ident(a), PropName::Ident(b)) => a.sym == b.sym,
-    (PropName::Str(a), PropName::Str(b)) => a.value == b.value,
-    (PropName::Num(a), PropName::Num(b)) => (a.value - b.value).abs() < f64::EPSILON,
-
-    (PropName::BigInt(a), PropName::BigInt(b)) => a.value == b.value,
-    // Add more cases as needed
-    _ => false,
+/// The name a property declares, or `None` where it declares no nameable one.
+///
+/// `None` is a spread, a getter, a setter, a method, or a computed key -- each
+/// of which either has no key at all or has one this cannot read without
+/// evaluating it. Stated once because two readers depend on the answer, and two
+/// spellings of "which key is this" would let them disagree about whether two
+/// properties collide.
+fn prop_key(prop: &PropOrSpread) -> Option<Atom> {
+  match prop {
+    PropOrSpread::Prop(prop) => match prop.as_ref() {
+      Prop::Shorthand(ident) => Some(ident.sym.clone()),
+      Prop::KeyValue(key_val) => match &key_val.key {
+        PropName::Ident(ident) => Some(ident.sym.clone()),
+        PropName::Str(strng) => Some(convert_wtf8_to_atom(&strng.value)),
+        // A numeric key is a string key spelled as a number: `{ 42: x }` and
+        // `{ '42': x }` name one property in the language, so they have to read
+        // as one name here. Rendered through `to_js_string` so the spelling is
+        // the language's -- `1e21`, not `1000000000000000000000`.
+        PropName::Num(number) => Some(Atom::from(to_js_string(number.value))),
+        // `{ 1n: x }` names the property `"1"`, as every non-computed key that
+        // is not already a string does.
+        PropName::BigInt(big_int) => Some(Atom::from(big_int.value.to_string())),
+        _ => None,
+      },
+      _ => None,
+    },
+    _ => None,
   }
 }
 
@@ -173,17 +192,8 @@ pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
   let mut result = Vec::with_capacity(props.len());
 
   for prop in props.into_iter().rev() {
-    let key = match &prop {
-      PropOrSpread::Prop(prop) => match prop.as_ref() {
-        Prop::Shorthand(ident) => ident.sym.clone(),
-        Prop::KeyValue(key_val) => match &key_val.key {
-          PropName::Ident(ident) => ident.sym.clone(),
-          PropName::Str(strng) => convert_wtf8_to_atom(&strng.value),
-          _ => continue,
-        },
-        _ => continue,
-      },
-      _ => continue,
+    let Some(key) = prop_key(&prop) else {
+      continue;
     };
 
     if set.insert(key) {
@@ -196,41 +206,49 @@ pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
   result
 }
 
-pub(crate) fn deep_merge_props(
+/// The properties of `{ ...old_props, ...new_props }`.
+///
+/// This is `Object.assign`, which is what the reference implementation calls at
+/// the spread and so is what "merge" has to mean here: shallow. A repeated key
+/// takes the later value and keeps the position the key first took, so
+/// `{ ...{ a: 1, b: 2 }, ...{ a: 3 } }` is `{ a: 3, b: 2 }` -- `a` is third in
+/// no ordering.
+///
+/// Not a deep merge, despite what this used to be called: `{ ...{ a: { x: 1 } },
+/// ...{ a: { y: 2 } } }` is `{ a: { y: 2 } }` in the language, and the nested
+/// `x` is gone rather than merged in. Nesting is what a style object is mostly
+/// made of -- a pseudo, an at-rule -- so a deep merge here quietly kept
+/// declarations the source had replaced.
+///
+/// It also used to reverse. The result was assembled by pushing the old
+/// properties onto the new and reversing the whole thing, which put the groups
+/// in the right order and every property inside them in the wrong one, so
+/// `{ ...{ color: 'red', opacity: 1 } }` emitted its two rules back to front.
+/// One property is the common case and hid it.
+pub(crate) fn assign_props(
   old_props: Vec<PropOrSpread>,
-  mut new_props: Vec<PropOrSpread>,
+  new_props: Vec<PropOrSpread>,
 ) -> Vec<PropOrSpread> {
-  for prop in old_props {
-    match prop {
-      PropOrSpread::Prop(prop) => match *prop {
-        Prop::KeyValue(mut kv) => {
-          if new_props.iter().any(|p| match p {
-            PropOrSpread::Prop(p) => match p.as_ref() {
-              Prop::KeyValue(existing_kv) => prop_name_eq(&kv.key, &existing_kv.key),
-              _ => false,
-            },
-            _ => false,
-          }) {
-            if let Expr::Object(ref mut obj) = *kv.value {
-              new_props.push(PropOrSpread::Prop(Box::new(Prop::from(KeyValueProp {
-                key: kv.key.clone(),
-                value: Box::new(Expr::Object(ObjectLit {
-                  span: DUMMY_SP,
-                  props: obj.props.clone(),
-                })),
-              }))));
-            }
-          } else {
-            new_props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(kv))));
-          }
-        },
-        _ => new_props.push(PropOrSpread::Prop(Box::new(*prop))),
-      },
-      _ => new_props.push(prop),
+  let mut merged: Vec<PropOrSpread> = Vec::with_capacity(old_props.len() + new_props.len());
+
+  for prop in old_props.into_iter().chain(new_props) {
+    let Some(key) = prop_key(&prop) else {
+      // A spread, a getter, a computed key: nothing here can say which key it
+      // would land on, so it keeps its place and collides with nothing.
+      merged.push(prop);
+      continue;
+    };
+
+    match merged
+      .iter_mut()
+      .find(|existing| prop_key(existing).as_ref() == Some(&key))
+    {
+      Some(existing) => *existing = prop,
+      None => merged.push(prop),
     }
   }
 
-  remove_duplicates(new_props.into_iter().rev().collect())
+  merged
 }
 
 pub(crate) fn get_css_value(key_value: KeyValueProp) -> (Box<Expr>, Option<BaseCSSType>) {

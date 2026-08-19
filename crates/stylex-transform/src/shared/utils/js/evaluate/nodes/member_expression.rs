@@ -86,9 +86,12 @@ pub(in super::super) fn evaluate(
               deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
             };
 
-            // `length` is the one property of an array that is not an index.
-            // Counted off the literal, so it is the slot count the language
-            // reports — a hole occupies one, and `[, 1].length` is two.
+            // `length` is the one property of an array that is not an index,
+            // and it is the count of slots the language reports — a hole
+            // occupies one. Read off the array this value holds, which is the
+            // same reading the `Vec` arm below takes from the receiver's AST
+            // and for the same reason: an evaluated array has already dropped
+            // its holes.
             if eval_res.as_string_key().as_deref() == Some(LENGTH) {
               return Some(EvaluateResultValue::Expr(create_number_expr(
                 elems.len() as f64
@@ -99,9 +102,9 @@ pub(in super::super) fn evaluate(
               deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
             };
 
-            // Only a numeric index reads an array element at compile time.
-            // `list['length']` and `list[key]` are ordinary JavaScript this
-            // evaluator does not fold.
+            // Past `length`, only a numeric index reads an array element at
+            // compile time. `list[key]` is ordinary JavaScript this evaluator
+            // does not fold.
             let Expr::Lit(Lit::Num(Number { value, .. })) = expr else {
               deopt_unsupported!(path, state, MEMBER_NOT_RESOLVED);
             };

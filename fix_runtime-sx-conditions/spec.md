@@ -120,6 +120,11 @@ emitted CSS and generated class names, so each needs a release note and none
 should ride along with a fix that has to go out quickly. 01 is done; 08 was
 filed from it, and is the array-hole representation its fix works around.
 
+Issue 09 was filed from 01 as well but belongs to **Phase 1**: an unpaired
+surrogate still aborts two string folds, which is the panic family 02 closed for
+`evaluate/` reached one layer down in a convertor. It ships no wrong value and
+can ride along with a fix that has to go out quickly.
+
 **Deferred.** Issues 05 and 06, in that order. Not scheduled; 06 does not start
 until 05 answers how.
 

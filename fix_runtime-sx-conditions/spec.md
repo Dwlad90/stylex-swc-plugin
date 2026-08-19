@@ -14,7 +14,8 @@ An author writes a boolean `sx` condition whose right operand is a method call
 on a string literal, and `0.18.4-rc.2` fails the build:
 
 ```jsx
-const showAlternate = query.length > 0 && "documentation".startsWith(lowerQuery);
+const showAlternate =
+  query.length > 0 && 'documentation'.startsWith(lowerQuery);
 
 return <section sx={[styles.base, showAlternate && styles.alternate]} />;
 ```
@@ -31,11 +32,11 @@ be folded. The condition belongs in the output verbatim.
 Measured by installing each published package and running the reporter's
 script:
 
-| version           | result                                    |
-| ----------------- | ----------------------------------------- |
-| `0.18.3`          | compiles, condition preserved             |
-| `0.18.4-rc.1`     | compiles, condition preserved             |
-| `0.18.4-rc.2`     | `The method 'startsWith' is not supported` |
+| version       | result                                     |
+| ------------- | ------------------------------------------ |
+| `0.18.3`      | compiles, condition preserved              |
+| `0.18.4-rc.1` | compiles, condition preserved              |
+| `0.18.4-rc.2` | `The method 'startsWith' is not supported` |
 
 `StringJS` is byte-identical across all three -- `concat` and `charCodeAt`, and
 nothing else. The panic branch that fires here has been in the tree the whole
@@ -114,9 +115,10 @@ independently shippable as `0.18.4-rc.3`. Restores full parity with `0.18.3`
 and with the reference implementation for every runtime position; leaves the
 static-position fold gap exactly where `0.18.3` left it.
 
-**Phase 2 — wrong output found on the way.** Issues 01 and 07. Both change
-emitted CSS and generated class names, so each needs a release note and neither
-should ride along with a fix that has to go out quickly.
+**Phase 2 — wrong output found on the way.** Issues 01, 07 and 08. Each changes
+emitted CSS and generated class names, so each needs a release note and none
+should ride along with a fix that has to go out quickly. 01 is done; 08 was
+filed from it, and is the array-hole representation its fix works around.
 
 **Deferred.** Issues 05 and 06, in that order. Not scheduled; 06 does not start
 until 05 answers how.

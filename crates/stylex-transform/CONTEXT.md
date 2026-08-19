@@ -147,12 +147,26 @@ numbers happened to succeed: `'1'` coerces perfectly well, and answering on the
 coercion is how `'1' + 2` came to fold to `3`.
 _Avoid_: stringable operand, non-numeric operand
 
+**Reference resolution chain**:
+The one ordered question the evaluator asks of an identifier it could not fold
+from the injected function map: which binding does this name, and what does that
+binding fold to. Eight steps in the reference implementation's order, each citing
+the line range it mirrors, because both compilers agree on every step's verdict
+and the sequence is the only thing left for them to disagree by. Two steps are
+deliberately absent and say so at their position rather than being missing.
+_Avoid_: identifier lookup, binding resolver, evaluate fallback
+
 **Binding write**:
 A binding whose value can differ from its declaration initializer, either
 rebound or mutated in place. Both make the initializer an unsound stand-in at
-the use site, so both deopt identically and share one set keyed by full SWC `Id`
-— a write to a shadowing binding never deopts the one it shadows.
-_Avoid_: mutation, reassignment, dirty binding
+the use site and both refuse with the same text, but they are recorded apart —
+**reassignment** for a name given a new value, **mutation** for a value changed
+under a name that still points at it — because the
+[chain](#reference-resolution-chain) probes them as the two sequential steps the
+reference implementation probes. One walk fills both, and crossing a member hop
+is what makes a write the second kind. Keyed by full SWC `Id`, so a write to a
+shadowing binding never deopts the one it shadows.
+_Avoid_: dirty binding, stale binding
 
 **Early reference**:
 A reference that begins before the declarator naming it ends, so the program

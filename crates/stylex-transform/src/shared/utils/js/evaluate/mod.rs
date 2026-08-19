@@ -1,5 +1,6 @@
 use std::{borrow::Borrow, rc::Rc, sync::Arc};
 
+mod binding;
 mod cache;
 mod deopt;
 mod helpers;
@@ -147,33 +148,6 @@ fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -> Option<Ex
   }
 
   Some(create_array_expression(elems))
-}
-
-/// Whether a reference reads a binding the program does not hold yet, because
-/// the declarator naming it ends after the reference begins.
-///
-/// Mirrors the position comparison in `evaluate-path.js`'s
-/// `isReferencedIdentifier` branch (`path.node.start < binding.path.node.end`,
-/// 0.19.0 line 664), which is the reference implementation's whole answer to the
-/// question. Declarations here are collected module-wide with no notion of
-/// position, so without this the initializer is reachable from above its own
-/// declaration and folds into CSS for a value that has not been assigned.
-///
-/// A dummy span on either side answers `false` rather than being compared. A
-/// synthesized node — `expand_shorthand_prop` produces them, and so does every
-/// injected function mapper `get_var_decl_by_ident` folds in — carries no
-/// authored position, so it sits at byte zero, before every authored
-/// declarator's end, and would be refused for having no position rather than for
-/// being early.
-///
-/// Only a `VarDeclarator` is ever asked. A hoisted `function` or `class`
-/// declaration holds its value from the top of the scope, so a reference above
-/// one is not early; those reach `check_ident_declaration` instead and are
-/// refused there, as they are upstream.
-fn reads_before_its_declaration(reference: &Ident, declarator: &VarDeclarator) -> bool {
-  !reference.span.is_dummy()
-    && !declarator.span.is_dummy()
-    && reference.span.lo < declarator.span.hi
 }
 
 /// Helper function to evaluate unary numeric operations (Plus, Minus, Tilde).
@@ -426,132 +400,7 @@ fn _evaluate(
       )
     };
 
-    // A binding that is rebound or mutated somewhere in the module no longer
-    // matches its declaration initializer at this use site, so inlining the
-    // initializer would bake in a stale value. Bail out to the runtime path
-    // instead; idents with no declaration (imports, globals, injected
-    // functions) are resolved below and unaffected.
-    //
-    // `has_binding_write` is a single hash probe and is tested first on
-    // purpose: the declaration lookup below deep-clones the `VarDeclarator` it
-    // finds, and on the deopt path that clone is thrown away. Existence is
-    // confirmed with the borrowing `get_var_decl_from`, which — unlike
-    // `get_var_decl_by_ident` — does not also match injected function mappers;
-    // those are regenerated per evaluation and can never hold a stale value.
-    if traversal_state.has_binding_write(ident)
-      && get_var_decl_from(traversal_state, ident).is_some()
-    {
-      return deopt(path, state, NON_CONSTANT);
-    }
-
-    let binding = get_var_decl_by_ident(ident, traversal_state, &state.functions);
-
-    // Asked of the declarator already looked up, so the answer costs a
-    // comparison rather than a second scan of the declaration list.
-    if let Some(declarator) = binding.as_ref()
-      && reads_before_its_declaration(ident, declarator)
-    {
-      return deopt(path, state, USED_BEFORE_DECLARATION);
-    }
-
-    if let Some(init) = binding.and_then(|mut var_decl| var_decl.init.take()) {
-      return evaluate_cached(&init, state, traversal_state, fns);
-    }
-
-    let name = ident.sym.to_string();
-
-    if name == "undefined" || name == "Infinity" || name == "NaN" {
-      return Some(EvaluateResultValue::Expr(Expr::from(ident.clone())));
-    }
-
-    if let Some(import_path) = get_import_by_ident(ident, traversal_state)
-      && !state.functions.disable_imports
-    {
-      let (local_name, imported) = import_path
-        .specifiers
-        .iter()
-        .find_map(|import| {
-          let (local_name, imported) = match import {
-            ImportSpecifier::Default(default) => (
-              default.local.clone(),
-              Some(ModuleExportName::Ident(default.local.clone())),
-            ),
-            ImportSpecifier::Named(named) => (named.local.clone(), named.imported.clone()),
-            ImportSpecifier::Namespace(namespace) => (
-              namespace.local.clone(),
-              Some(ModuleExportName::Ident(namespace.local.clone())),
-            ),
-          };
-
-          if ident.sym == local_name.sym {
-            Some((local_name, imported))
-          } else {
-            None
-          }
-        })
-        .unwrap_or_else(|| {
-          stylex_panic!("Could not resolve the import specifier. Ensure the import is correct.")
-        });
-
-      let imported = imported.unwrap_or_else(|| ModuleExportName::Ident(local_name.clone()));
-
-      let abs_path = traversal_state.import_path_resolver(
-        convert_atom_to_str_ref(&import_path.src.value),
-        &mut FxHashMap::default(),
-      );
-
-      let imported_name = match imported {
-        ModuleExportName::Ident(ident) => ident.sym.to_string(),
-        ModuleExportName::Str(strng) => convert_atom_to_string(&strng.value),
-      };
-
-      let return_value = match abs_path {
-        ImportPathResolution::Resolved { path: value } => {
-          evaluate_theme_ref(&value, imported_name, traversal_state)
-        },
-        ImportPathResolution::Unresolved => {
-          return deopt(path, state, IMPORT_PATH_RESOLUTION_ERROR);
-        },
-      };
-
-      if state.confident {
-        let import_path_src = convert_atom_to_string(&import_path.src.value);
-
-        if !state.added_imports.contains(&import_path_src)
-          && traversal_state.get_treeshake_compensation()
-        {
-          let prepend_import_module_item = add_import_expression(&import_path_src);
-          // Theme side-effect imports go under ThemeImports — the slot
-          // whose flush position matches the legacy
-          // `prepend_import_module_items` placement (between the
-          // runtime helpers and the existing import block,
-          // regardless of producer queue order). Dedup is by stable
-          // hash on the StateManager so it survives across
-          // evaluations.
-          traversal_state.queue_theme_import_if_absent(prepend_import_module_item);
-
-          state.added_imports.insert(import_path_src);
-        }
-
-        return Some(EvaluateResultValue::ThemeRef(return_value));
-      }
-    }
-
-    return check_ident_declaration(
-      ident,
-      &[
-        (
-          DeclarationType::Class,
-          traversal_state.class_name_declarations(),
-        ),
-        (
-          DeclarationType::Function,
-          traversal_state.function_name_declarations(),
-        ),
-      ],
-      state,
-      normalized_path,
-    );
+    return binding::resolve_reference(ident, path, normalized_path, state, traversal_state, fns);
   }
 
   if result.is_none() {
@@ -572,10 +421,6 @@ pub(crate) mod source_evaluation;
 #[cfg(test)]
 #[path = "tests/member_length_tests.rs"]
 mod member_length_tests;
-
-#[cfg(test)]
-#[path = "tests/used_before_declaration.rs"]
-mod used_before_declaration;
 
 #[cfg(test)]
 #[path = "tests/unsupported_shape_tests.rs"]

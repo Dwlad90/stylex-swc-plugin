@@ -45,6 +45,20 @@ enum ScopeKind {
   Block,
 }
 
+/// Which of the two write sets a recorded write belongs in. Both refuse a fold
+/// with the same text; they are kept apart so the evaluator's resolution chain
+/// can probe them as the two sequential steps the reference implementation
+/// probes — `constantViolations` and `isMutated`.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum WriteKind {
+  /// The binding itself is given a new value: an assignment, update,
+  /// destructuring or loop target spelled as a bare name.
+  Reassignment,
+  /// The binding keeps pointing at the same value and that value changes:
+  /// `obj.x = 1`, `arr.push(…)`, `delete obj.x`, `Object.assign(obj, …)`.
+  Mutation,
+}
+
 /// A lexical scope on the collector's stack, identified by the source span it
 /// covers. Shadowing is decided by span containment: a binding shadows an
 /// `sx` site when the binding's scope span encloses that site's span.
@@ -70,9 +84,12 @@ struct ModuleBindingsCollector {
   /// in which it is bound. A name shadows an `sx` site iff one of its scope
   /// spans encloses that site (see [`StateManager::is_locally_rebound_at`]).
   local_rebinding_scopes: FxHashMap<String, Vec<Span>>,
-  /// Bindings rebound or mutated anywhere in the module. See
-  /// [`StateManager::binding_writes`].
-  binding_writes: FxHashSet<Id>,
+  /// Bindings rebound anywhere in the module. See
+  /// [`StateManager::binding_reassignments`].
+  binding_reassignments: FxHashSet<Id>,
+  /// Bindings whose referenced value is mutated in place anywhere in the
+  /// module. See [`StateManager::binding_mutations`].
+  binding_mutations: FxHashSet<Id>,
   /// Stack of enclosing lexical scopes, outermost (module) first.
   scope_stack: Vec<ScopeFrame>,
   /// `VarDeclKind` of the `VarDecl` currently being visited, if any — needed
@@ -100,7 +117,8 @@ impl ModuleBindingsCollector {
       import_sources: Vec::new(),
       bound_names: FxHashSet::default(),
       local_rebinding_scopes: FxHashMap::default(),
-      binding_writes: FxHashSet::default(),
+      binding_reassignments: FxHashSet::default(),
+      binding_mutations: FxHashSet::default(),
       // Seed a module-level function scope spanning the whole source so
       // top-level bindings enclose every `sx` site.
       scope_stack: vec![ScopeFrame {
@@ -156,9 +174,12 @@ impl ModuleBindingsCollector {
       .push(scope);
   }
 
-  /// Record a write to `ident`'s binding — a rebinding or an in-place
-  /// mutation of the value it references. Both make the declaration
-  /// initializer unsafe to inline at a use site.
+  /// Record a write to `ident`'s binding under the kind it is: a rebinding or
+  /// an in-place mutation of the value it references. Both make the
+  /// declaration initializer unsafe to inline at a use site and both refuse
+  /// with the same text; they are kept apart because the evaluator's
+  /// resolution chain probes them as two sequential steps, mirroring the
+  /// reference implementation's `constantViolations` and `isMutated`.
   ///
   /// Note the deliberate limit on what counts as a write: only mutations
   /// spelled out syntactically in this module are recorded. A binding that
@@ -166,8 +187,13 @@ impl ModuleBindingsCollector {
   /// deopting on every identifier passed as an argument would disable
   /// evaluation for nearly every StyleX module. The escape case is therefore a
   /// known unsoundness, accepted deliberately rather than overlooked.
-  fn add_binding_write(&mut self, ident: &Ident) {
-    self.binding_writes.insert(ident.to_id());
+  fn add_binding_write(&mut self, ident: &Ident, kind: WriteKind) {
+    let target = match kind {
+      WriteKind::Reassignment => &mut self.binding_reassignments,
+      WriteKind::Mutation => &mut self.binding_mutations,
+    };
+
+    target.insert(ident.to_id());
   }
 
   /// Record the write performed by an expression used as a write target: a
@@ -178,25 +204,38 @@ impl ModuleBindingsCollector {
   /// chain, stopping at anything that owns no binding to invalidate — a call
   /// result, `this`, `super`, or a literal.
   ///
+  /// `kind` is what the caller's shape writes when it writes a bare name;
+  /// crossing a member hop overrides it to a mutation, because the root object
+  /// keeps its binding and only the value it references changes. So `n = 1`
+  /// and `n++` reassign while `o.x = 1` and `o.x++` mutate `o`, out of one
+  /// walk.
+  ///
   /// This is the single entry point for every write shape the collector
   /// recognises (assignment targets, update and `delete` operands, mutating
   /// method receivers, `Object.assign` targets). Keeping one walk means a
   /// wrapper handled for one shape is handled for all of them; the earlier
   /// split between a member-only walk and a shallow expression match silently
   /// missed `(n)++`, `((a)) = 2` and `Object.assign((o), …)`.
-  fn add_target_root_write(&mut self, expression: &Expr) {
+  fn add_target_root_write(&mut self, expression: &Expr, kind: WriteKind) {
     let mut current = expression;
+    let mut kind = kind;
 
     loop {
       match current {
         Expr::Ident(ident) => {
-          self.add_binding_write(ident);
+          self.add_binding_write(ident, kind);
           return;
         },
-        Expr::Member(inner) => current = inner.obj.as_ref(),
+        Expr::Member(inner) => {
+          kind = WriteKind::Mutation;
+          current = inner.obj.as_ref();
+        },
         Expr::Paren(paren) => current = paren.expr.as_ref(),
         Expr::OptChain(opt_chain) => match opt_chain.base.as_ref() {
-          OptChainBase::Member(inner) => current = inner.obj.as_ref(),
+          OptChainBase::Member(inner) => {
+            kind = WriteKind::Mutation;
+            current = inner.obj.as_ref();
+          },
           // `f()?.x = 1` writes into a call result, which owns no binding.
           OptChainBase::Call(_) => return,
         },
@@ -214,7 +253,7 @@ impl ModuleBindingsCollector {
   /// `obj.a.b.push(…)`, `delete obj.x`) by invalidating the binding at the
   /// root of the chain.
   fn add_member_root_write(&mut self, member_expression: &MemberExpr) {
-    self.add_target_root_write(member_expression.obj.as_ref());
+    self.add_target_root_write(member_expression.obj.as_ref(), WriteKind::Mutation);
   }
 
   /// Record every binding written by an assignment or `for-in`/`for-of`
@@ -223,7 +262,9 @@ impl ModuleBindingsCollector {
   /// root object instead.
   fn add_pattern_writes(&mut self, pattern: &Pat) {
     match pattern {
-      Pat::Ident(binding_ident) => self.add_binding_write(&binding_ident.id),
+      Pat::Ident(binding_ident) => {
+        self.add_binding_write(&binding_ident.id, WriteKind::Reassignment)
+      },
       Pat::Array(array_pattern) => self.add_array_pattern_writes(array_pattern),
       Pat::Object(object_pattern) => self.add_object_pattern_writes(object_pattern),
       Pat::Rest(rest_pattern) => self.add_pattern_writes(&rest_pattern.arg),
@@ -250,7 +291,9 @@ impl ModuleBindingsCollector {
     for property in &object_pattern.props {
       match property {
         ObjectPatProp::KeyValue(key_value) => self.add_pattern_writes(&key_value.value),
-        ObjectPatProp::Assign(assign) => self.add_binding_write(&assign.key.id),
+        ObjectPatProp::Assign(assign) => {
+          self.add_binding_write(&assign.key.id, WriteKind::Reassignment)
+        },
         ObjectPatProp::Rest(rest) => self.add_pattern_writes(&rest.arg),
       }
     }
@@ -262,22 +305,34 @@ impl ModuleBindingsCollector {
   /// the target and the identifier or member it resolves to.
   fn add_simple_target_write(&mut self, target: &SimpleAssignTarget) {
     match target {
-      SimpleAssignTarget::Ident(ident) => self.add_binding_write(&ident.id),
+      SimpleAssignTarget::Ident(ident) => {
+        self.add_binding_write(&ident.id, WriteKind::Reassignment)
+      },
       SimpleAssignTarget::Member(member_expression) => {
         self.add_member_root_write(member_expression)
       },
-      SimpleAssignTarget::Paren(paren) => self.add_target_root_write(&paren.expr),
+      SimpleAssignTarget::Paren(paren) => {
+        self.add_target_root_write(&paren.expr, WriteKind::Reassignment)
+      },
       SimpleAssignTarget::OptChain(opt_chain) => {
         if let OptChainBase::Member(member_expression) = opt_chain.base.as_ref() {
           self.add_member_root_write(member_expression);
         }
       },
-      SimpleAssignTarget::TsAs(ts_as) => self.add_target_root_write(&ts_as.expr),
-      SimpleAssignTarget::TsSatisfies(satisfies) => self.add_target_root_write(&satisfies.expr),
-      SimpleAssignTarget::TsNonNull(non_null) => self.add_target_root_write(&non_null.expr),
-      SimpleAssignTarget::TsTypeAssertion(assertion) => self.add_target_root_write(&assertion.expr),
+      SimpleAssignTarget::TsAs(ts_as) => {
+        self.add_target_root_write(&ts_as.expr, WriteKind::Reassignment)
+      },
+      SimpleAssignTarget::TsSatisfies(satisfies) => {
+        self.add_target_root_write(&satisfies.expr, WriteKind::Reassignment)
+      },
+      SimpleAssignTarget::TsNonNull(non_null) => {
+        self.add_target_root_write(&non_null.expr, WriteKind::Reassignment)
+      },
+      SimpleAssignTarget::TsTypeAssertion(assertion) => {
+        self.add_target_root_write(&assertion.expr, WriteKind::Reassignment)
+      },
       SimpleAssignTarget::TsInstantiation(instantiation) => {
-        self.add_target_root_write(&instantiation.expr)
+        self.add_target_root_write(&instantiation.expr, WriteKind::Reassignment)
       },
       // `super.x = 1` and invalid targets bind no module-level name.
       SimpleAssignTarget::SuperProp(_) | SimpleAssignTarget::Invalid(_) => {},
@@ -316,7 +371,7 @@ impl ModuleBindingsCollector {
       && let Some(first_argument) = args.first()
       && first_argument.spread.is_none()
     {
-      self.add_target_root_write(first_argument.expr.as_ref());
+      self.add_target_root_write(first_argument.expr.as_ref(), WriteKind::Mutation);
     }
   }
 }
@@ -488,7 +543,7 @@ impl Visit for ModuleBindingsCollector {
   }
 
   fn visit_update_expr(&mut self, update_expression: &UpdateExpr) {
-    self.add_target_root_write(update_expression.arg.as_ref());
+    self.add_target_root_write(update_expression.arg.as_ref(), WriteKind::Reassignment);
 
     update_expression.visit_children_with(self);
   }
@@ -632,7 +687,8 @@ where
       let mut collector = ModuleBindingsCollector::for_sx();
       module.visit_with(&mut collector);
 
-      self.state.binding_writes = collector.binding_writes;
+      self.state.binding_reassignments = collector.binding_reassignments;
+      self.state.binding_mutations = collector.binding_mutations;
       self.state.existing_import_sources = collector.import_sources;
       self.state.bound_names = collector.bound_names;
       self.state.local_rebinding_scopes = collector.local_rebinding_scopes;
@@ -656,7 +712,8 @@ where
     let mut collector = ModuleBindingsCollector::writes_only();
     module.visit_with(&mut collector);
 
-    self.state.binding_writes = collector.binding_writes;
+    self.state.binding_reassignments = collector.binding_reassignments;
+    self.state.binding_mutations = collector.binding_mutations;
   }
 
   /// Run the producer transformation pass.

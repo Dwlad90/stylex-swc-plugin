@@ -47,8 +47,10 @@ fn resolved_module(code: &str) -> Module {
   }
 }
 
-/// Names of the bindings the collector recorded as written, ignoring syntax
-/// contexts (asserted separately where shadowing is what's under test).
+/// Names of the bindings the collector recorded as written under either kind,
+/// ignoring syntax contexts (asserted separately where shadowing is what's
+/// under test). Most shapes here are about *whether* a write is seen at all,
+/// which the union answers; `splits_…` below pins which set each lands in.
 fn written_names(code: &str) -> FxHashSet<String> {
   written_ids(code)
     .iter()
@@ -57,20 +59,63 @@ fn written_names(code: &str) -> FxHashSet<String> {
 }
 
 fn written_ids(code: &str) -> FxHashSet<Id> {
+  collect(code, |collector| {
+    collector
+      .binding_reassignments
+      .union(&collector.binding_mutations)
+      .cloned()
+      .collect()
+  })
+}
+
+fn reassigned_names(code: &str) -> FxHashSet<String> {
+  names(collect(code, |collector| {
+    collector.binding_reassignments.clone()
+  }))
+}
+
+fn mutated_names(code: &str) -> FxHashSet<String> {
+  names(collect(code, |collector| {
+    collector.binding_mutations.clone()
+  }))
+}
+
+fn names(ids: FxHashSet<Id>) -> FxHashSet<String> {
+  ids.iter().map(|(sym, _)| sym.to_string()).collect()
+}
+
+/// Runs the collector over `code` and reads whichever set the caller asks for,
+/// so the three readers above differ only in that choice.
+fn collect(code: &str, read: impl Fn(&ModuleBindingsCollector) -> FxHashSet<Id>) -> FxHashSet<Id> {
   GLOBALS.set(&Globals::default(), || {
     let module = resolved_module(code);
     let mut collector = ModuleBindingsCollector::writes_only();
     module.visit_with(&mut collector);
 
-    collector.binding_writes
+    read(&collector)
   })
 }
 
+#[track_caller]
 fn assert_written(code: &str, expected: &[&str]) {
-  let written = written_names(code);
+  assert_names(written_names(code), expected, code);
+}
+
+#[track_caller]
+fn assert_reassigned(code: &str, expected: &[&str]) {
+  assert_names(reassigned_names(code), expected, code);
+}
+
+#[track_caller]
+fn assert_mutated(code: &str, expected: &[&str]) {
+  assert_names(mutated_names(code), expected, code);
+}
+
+#[track_caller]
+fn assert_names(actual: FxHashSet<String>, expected: &[&str], code: &str) {
   let expected: FxHashSet<String> = expected.iter().map(|name| name.to_string()).collect();
 
-  assert_eq!(written, expected, "for source: {}", code);
+  assert_eq!(actual, expected, "for source: {}", code);
 }
 
 #[test]
@@ -179,41 +224,137 @@ fn records_mutating_methods_named_by_a_string_literal() {
   assert_written("const items = []; const m = 'push'; items[m](1);", &[]);
 }
 
+// ==================== which set a write lands in ====================
+
+/// A bare name given a new value is a reassignment — the reference
+/// implementation's constant violation — and nothing about the value it used to
+/// reference has changed, so it is not also a mutation. Every shape that writes
+/// a name directly answers this way.
+#[test]
+fn splits_a_rebound_name_into_the_reassignment_set() {
+  assert_reassigned("let a = 1; a = 2;", &["a"]);
+  assert_reassigned("let a = 1; a += 2;", &["a"]);
+  assert_reassigned("let a = 1; a++;", &["a"]);
+  assert_reassigned("let a = 1; ((a)) = 2;", &["a"]);
+  assert_reassigned("let a, b; [a, b] = [1, 2];", &["a", "b"]);
+  assert_reassigned("let a, rest; ({ a, ...rest } = {});", &["a", "rest"]);
+  assert_reassigned("let key; const o = {}; for (key in o) {}", &["key"]);
+
+  assert_mutated("let a = 1; a = 2;", &[]);
+  assert_mutated("let a = 1; a++;", &[]);
+  assert_mutated("let a, b; [a, b] = [1, 2];", &[]);
+}
+
+/// Reaching the binding through a member keeps the binding and changes what it
+/// points at, which is the reference implementation's `isMutated`. So `o.n++`
+/// mutates where `n++` reassigns, out of the one walk that serves both.
+#[test]
+fn splits_a_write_through_a_member_into_the_mutation_set() {
+  assert_mutated("const o = { a: { b: 1 } }; o.a.b = 2;", &["o"]);
+  assert_mutated("const o = { n: 1 }; o.n++;", &["o"]);
+  assert_mutated("const o = { n: 1 }; (o.n)++;", &["o"]);
+  assert_mutated("const o = { a: {} }; delete o.a.b;", &["o"]);
+  assert_mutated("const o = {}; ({ x: o.x } = { x: 1 });", &["o"]);
+  assert_mutated("const o = { a: [] }; o.a[0] = 1;", &["o"]);
+
+  assert_reassigned("const o = { a: { b: 1 } }; o.a.b = 2;", &[]);
+  assert_reassigned("const o = { n: 1 }; o.n++;", &[]);
+  assert_reassigned("const o = {}; ({ x: o.x } = { x: 1 });", &[]);
+}
+
+/// A mutating method mutates its receiver, and `Object.assign` mutates its
+/// first argument even when that argument is spelled as a bare name — the one
+/// shape where a write reaching an identifier directly is still a mutation
+/// rather than a reassignment.
+#[test]
+fn splits_a_mutated_receiver_and_an_assign_target_into_the_mutation_set() {
+  assert_mutated("const items = []; items.push(1);", &["items"]);
+  assert_mutated("const items = []; items?.push(1);", &["items"]);
+  assert_mutated(
+    "const state = { items: [] }; state.items.push(1);",
+    &["state"],
+  );
+  assert_mutated("const o = {}; Object.assign(o, { a: 1 });", &["o"]);
+  assert_mutated("const o = {}; Object.assign((o), { a: 1 });", &["o"]);
+  assert_mutated("const o = { a: {} }; Object.assign(o.a, {});", &["o"]);
+
+  assert_reassigned("const items = []; items.push(1);", &[]);
+  assert_reassigned("const o = {}; Object.assign(o, { a: 1 });", &[]);
+}
+
+/// One name can reach both sets, and each records it independently: the
+/// evaluator refuses on the first probe either way, so the value of keeping
+/// them apart is that each step answers for itself.
+#[test]
+fn records_a_name_both_rebound_and_mutated_in_both_sets() {
+  let code = "let o = { n: 1 }; o.n = 2; o = { n: 3 };";
+
+  assert_reassigned(code, &["o"]);
+  assert_mutated(code, &["o"]);
+}
+
 #[test]
 fn keeps_shadowed_bindings_distinct() {
+  assert_only_the_shadowing_binding_is_written(
+    r#"
+      const tokens = { color: "red" };
+
+      export function Component() {
+        let tokens = { color: "blue" };
+        tokens = { color: "green" };
+        return tokens;
+      }
+    "#,
+    |collector| &collector.binding_reassignments,
+  );
+}
+
+/// The same invariant for the other set. Splitting the writes in two doubled the
+/// places a shadowed binding could be confused with the one it shadows, so both
+/// sets have to answer, not just the one that happened to be asserted.
+#[test]
+fn keeps_shadowed_bindings_distinct_for_mutations_too() {
+  assert_only_the_shadowing_binding_is_written(
+    r#"
+      const tokens = { color: "red" };
+
+      export function Component() {
+        const tokens = { color: "blue" };
+        tokens.color = "green";
+        return tokens;
+      }
+    "#,
+    |collector| &collector.binding_mutations,
+  );
+}
+
+/// Collects `code`, reads the set `pick` names, and asserts the only `tokens`
+/// recorded there is the inner one — under an `Id` distinct from the module-level
+/// binding's.
+#[track_caller]
+fn assert_only_the_shadowing_binding_is_written(
+  code: &str,
+  pick: impl Fn(&ModuleBindingsCollector) -> &FxHashSet<Id>,
+) {
   GLOBALS.set(&Globals::default(), || {
-    let module = resolved_module(
-      r#"
-        const tokens = { color: "red" };
-
-        export function Component() {
-          let tokens = { color: "blue" };
-          tokens = { color: "green" };
-          return tokens;
-        }
-      "#,
-    );
-
+    let module = resolved_module(code);
     let outer_id = first_top_level_binding(&module);
 
     let mut collector = ModuleBindingsCollector::writes_only();
     module.visit_with(&mut collector);
 
-    let written: Vec<&Id> = collector
-      .binding_writes
-      .iter()
-      .filter(|(sym, _)| sym == "tokens")
-      .collect();
+    let recorded = pick(&collector);
+    let written: Vec<&Id> = recorded.iter().filter(|(sym, _)| sym == "tokens").collect();
 
     assert_eq!(
       written.len(),
       1,
       "only the inner `tokens` is written: {:?}",
-      collector.binding_writes
+      recorded
     );
     assert_ne!(
       *written[0], outer_id,
-      "the write to the shadowing `tokens` must not invalidate the outer one"
+      "the write to the shadowing `tokens` must not answer for the outer one"
     );
   });
 }

@@ -406,17 +406,22 @@ pub struct StateManager {
 
   pub(crate) declarations_state: DeclarationState,
   pub(crate) declarations: Vec<VarDeclarator>,
-  /// Bindings whose value can differ from their declaration initializer:
-  /// either rebound (assignment, update, destructuring or loop target — a
-  /// constant violation) or mutated in place (`obj.x = 1`, `arr.push(…)`,
-  /// `delete obj.x`, `Object.assign(obj, …)`). Both cases make the
-  /// initializer an unsound stand-in for the value at the use site, so the
-  /// evaluator deopts identically for them; they share one set to keep the
-  /// lookup on the evaluation hot path to a single hash probe. Keyed by full
-  /// `Id` (`(Atom, SyntaxContext)`), so a write to a shadowing binding never
-  /// deopts the outer one. Populated by the `Discover` pre-scan
-  /// ([`ModuleBindingsCollector`]).
-  pub(crate) binding_writes: FxHashSet<Id>,
+  /// Bindings rebound after their declaration — an assignment, update,
+  /// destructuring or loop target. The reference implementation's constant
+  /// violations, probed as its own step of the reference-resolution chain.
+  /// Keyed by full `Id` (`(Atom, SyntaxContext)`), so a write to a shadowing
+  /// binding never deopts the outer one. Populated by the `Discover` pre-scan
+  /// ([`ModuleBindingsCollector`]), in the same walk that fills
+  /// [`Self::binding_mutations`].
+  pub(crate) binding_reassignments: FxHashSet<Id>,
+  /// Bindings whose referenced value is mutated in place — `obj.x = 1`,
+  /// `arr.push(…)`, `delete obj.x`, `Object.assign(obj, …)`. The reference
+  /// implementation's `isMutated`, probed as the step after
+  /// [`Self::binding_reassignments`]. Same keying, same walk. Both kinds make
+  /// the declaration initializer an unsound stand-in at the use site and both
+  /// refuse with the same text, so the split buys a step-for-step mapping to
+  /// the reference implementation rather than a difference in outcome.
+  pub(crate) binding_mutations: FxHashSet<Id>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   /// Spans of the calls that initialise a top-level declarator bound to a
   /// pattern rather than a name — `export const { foo } = stylex.create(…);`.
@@ -537,7 +542,8 @@ impl StateManager {
 
       declarations: vec![],
       declarations_state: DeclarationState::default(),
-      binding_writes: FxHashSet::default(),
+      binding_reassignments: FxHashSet::default(),
+      binding_mutations: FxHashSet::default(),
       top_level_expressions: vec![],
       pattern_bound_top_level_calls: FxHashSet::default(),
       call_expressions: CallExpressionState::default(),
@@ -619,11 +625,16 @@ impl StateManager {
     })
   }
 
-  /// Whether `ident`'s binding is rebound or mutated anywhere in the module,
-  /// which makes its declaration initializer unsafe to inline. See
-  /// [`StateManager::binding_writes`].
-  pub(crate) fn has_binding_write(&self, ident: &Ident) -> bool {
-    self.binding_writes.contains(&ident.to_id())
+  /// Whether `ident`'s binding is rebound anywhere in the module. See
+  /// [`StateManager::binding_reassignments`].
+  pub(crate) fn has_binding_reassignment(&self, ident: &Ident) -> bool {
+    self.binding_reassignments.contains(&ident.to_id())
+  }
+
+  /// Whether the value `ident`'s binding references is mutated in place
+  /// anywhere in the module. See [`StateManager::binding_mutations`].
+  pub(crate) fn has_binding_mutation(&self, ident: &Ident) -> bool {
+    self.binding_mutations.contains(&ident.to_id())
   }
 
   /// Seeds an empty replacement entry for a JSX spread expression seen during

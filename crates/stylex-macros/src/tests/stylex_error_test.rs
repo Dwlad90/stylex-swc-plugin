@@ -3,7 +3,9 @@
 
 use crate::{
   panic_macros::stylex_err,
-  stylex_error::{SuppressPanicStderr, format_panic_message, is_panic_stderr_suppressed},
+  stylex_error::{
+    SuppressPanicStderr, disable_colour_output, format_panic_message, is_panic_stderr_suppressed,
+  },
 };
 
 #[test]
@@ -95,4 +97,35 @@ fn format_panic_message_strips_ansi_codes() {
   let payload: Box<dyn std::any::Any + Send> = Box::new(msg);
   let result = format_panic_message(&payload);
   assert_eq!(result, "[StyleX] red error");
+}
+
+/// `disable_colour_output` has to actually silence the `Display` colouring, not
+/// merely be callable.
+///
+/// Asserted against a forced-on override rather than against ambient state, so
+/// the test measures the override and not whether the runner happens to have a
+/// terminal attached — which is the very ambiguity the function exists to
+/// remove. Each nextest test is its own process, so the process-wide override
+/// this sets cannot reach another test.
+#[test]
+fn disable_colour_output_renders_a_diagnostic_without_ansi_codes() {
+  let err = stylex_err("something went wrong");
+
+  colored::control::set_override(true);
+  let coloured = err.to_string();
+  assert!(
+    coloured.contains('\u{1b}'),
+    "expected the forced-on rendering to carry ANSI codes, got {:?}",
+    coloured
+  );
+
+  disable_colour_output();
+
+  let plain = err.to_string();
+  assert!(
+    !plain.contains('\u{1b}'),
+    "expected no ANSI codes after disabling colour, got {:?}",
+    plain
+  );
+  assert!(plain.contains("something went wrong"));
 }

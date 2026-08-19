@@ -421,6 +421,14 @@
       "origin": "the identifier audit for issue #1266, the asymmetry beside the entry above",
       "note": "A member read of a later `create()` result still folds, in both compilers: the position comparison is reached by a bare reference, and a member access resolves through the namespace it names. The asymmetry is upstream's, and this records that it is matched rather than reasoned about.",
       "expected": "identical"
+    },
+    {
+      "id": "modules-1266-import-aliased-to-a-global-name",
+      "label": "a theme import aliased to the name of a global the evaluator folds",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex as NaN } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { zIndex: NaN._10 },\n});\n",
+      "origin": "the identifier audit for issue #1266, the one pair the step reorder is not inert on",
+      "note": "`NaN` is a legal binding name, so this is the only shape where an import specifier and one of the three folded globals name the same binding -- and the resolution chain asks about the import first, as the reference implementation does. Before the chain was ordered, the globals were asked about first and this folded to a literal `NaN`. Recorded because it is the single outcome the reorder changed, and it changed toward the reference implementation. Measured both ways: `acceptance divergent` at 0f9d2bcd2, `identical` once the chain is ordered.",
+      "expected": "identical"
     }
   ]
 }

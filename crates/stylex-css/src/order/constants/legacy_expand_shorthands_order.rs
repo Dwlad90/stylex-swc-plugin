@@ -1,6 +1,7 @@
 use crate::values::{common::split_value_required, parser::parse_css};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
 use stylex_structures::{order_pair::OrderPair, raw_value::TRawValue};
+use stylex_utils::string::json_stringify;
 
 /// Helper function to check if a string is a valid list-style-type value
 /// Matches: [a-z-]+ or quoted strings like "..." or '...'
@@ -14,6 +15,41 @@ fn is_list_style_type(s: &str) -> bool {
 
   // Check if it matches [a-z-]+ pattern (lowercase letters and hyphens only)
   !s.is_empty() && s.chars().all(|c| c.is_ascii_lowercase() || c == '-')
+}
+
+/// The text upstream emits when a `listStyle` value cannot be disambiguated.
+///
+/// Upstream builds this by interpolating `JSON.stringify(rawValue)`, so the
+/// value arrives quoted and JSON-escaped rather than printed raw. Three of the
+/// four rejection sites spell it exactly this way.
+fn list_style_rejection(raw_value_str: &str) -> String {
+  format!(
+    "invalid \"listStyle\" value of {}",
+    json_stringify(raw_value_str)
+  )
+}
+
+/// [`list_style_rejection`] with the value wrapped in a second pair of quotes.
+///
+/// Upstream is not self-consistent here: the first of its four throws wraps the
+/// already-quoted `JSON.stringify` result in another pair of literal quotes
+/// (`legacy-expand-shorthands.js:301`) and the other three do not, so a
+/// `var(--x)` rejection reads `value of ""none var(--x)""` where a duplicate
+/// `listStylePosition` reads `value of "inside outside"`.
+///
+/// Reproduced rather than normalised, deliberately. These messages reach an
+/// author through `propertyValidationMode`, and an author comparing the two
+/// compilers on the same input should read the same sentence from both — the
+/// asymmetry is upstream's to fix, and matching it keeps the divergence list
+/// free of an entry nobody asked for. Pinned by
+/// `shorthands_list_style_var_mixed_with_other` and
+/// `shorthands_list_style_global_mixed`, against text measured from the
+/// installed 0.19.0 plugin rather than read off the source.
+fn list_style_rejection_with_doubled_quotes(raw_value_str: &str) -> String {
+  format!(
+    "invalid \"listStyle\" value of \"{}\"",
+    json_stringify(raw_value_str)
+  )
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -338,12 +374,12 @@ impl Shorthands {
       // Check for global keywords mixed with other values (invalid)
       // and use of `var()` which can't be disambiguated
       if list_style_global_values.contains(&part.as_str()) || part.contains("var(--") {
-        return Err(format!("Invalid listStyle value: '{}'", raw_value_str));
+        return Err(list_style_rejection_with_doubled_quotes(&raw_value_str));
       }
       // Check if it's a position value (unambiguous)
       else if list_style_position_values.contains(&part.as_str()) {
         if position.is_some() {
-          return Err(format!("Invalid listStyle value: '{}'", raw_value_str));
+          return Err(list_style_rejection(&raw_value_str));
         }
         position = Some(TRawValue::String(part.clone()));
       }
@@ -351,7 +387,7 @@ impl Shorthands {
       // Type values are: keywords (letters and hyphens) or quoted strings
       else if part != "none" && is_list_style_type(part) {
         if list_type.is_some() {
-          return Err(format!("Invalid listStyle value: '{}'", raw_value_str));
+          return Err(list_style_rejection(&raw_value_str));
         }
         list_type = Some(TRawValue::String(part.clone()));
       }
@@ -370,7 +406,7 @@ impl Shorthands {
       // Otherwise assign to image
       else {
         if image.is_some() {
-          return Err(format!("Invalid listStyle value: '{}'", raw_value_str));
+          return Err(list_style_rejection(&raw_value_str));
         }
         image = Some(TRawValue::String(part));
       }

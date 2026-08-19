@@ -408,7 +408,7 @@ stylex_test!(
 
 stylex_test_panic!(
   list_style_invalid_values_none_inherit,
-  "Invalid listStyle value: 'none inherit'",
+  "invalid \"listStyle\" value of \"\"none inherit\"\"",
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_property_validation_mode(PropertyValidationMode::Throw)
   }),
@@ -424,7 +424,7 @@ stylex_test_panic!(
 
 stylex_test_panic!(
   list_style_invalid_values_none_var,
-  "Invalid listStyle value: 'none var(--image)'",
+  "invalid \"listStyle\" value of \"\"none var(--image)\"\"",
   |tr| stylex_transform(tr.comments.clone(), |b| {
     b.with_property_validation_mode(PropertyValidationMode::Throw)
   }),

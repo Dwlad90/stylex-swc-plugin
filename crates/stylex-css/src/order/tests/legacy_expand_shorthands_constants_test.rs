@@ -774,48 +774,171 @@ fn shorthands_list_style_uppercase_ident_falls_through() {
 
 // ── Coverage: listStyle error paths ─────────────────────────────────
 
+/// The rejection text every `list_style` error path below is measured against.
+///
+/// Both spellings are upstream's, and the difference between them is upstream's
+/// too: the `var()`/global site wraps the `JSON.stringify` result in a second
+/// pair of quotes and the other three sites do not. Naming the two shapes here
+/// lets each test say *which* of the two it expects instead of restating a
+/// format string sixteen times.
+///
+/// These deliberately restate the format rather than calling the production
+/// helpers. What is under test is the text itself, measured against upstream's
+/// own output; sharing the formatter with the code that builds the message would
+/// leave a test that passes for any wording at all. The cost is that changing
+/// upstream's wording means editing both, which is the trade a text-parity
+/// assertion is.
+fn rejection(json_of_raw_value: &str) -> String {
+  format!("invalid \"listStyle\" value of {}", json_of_raw_value)
+}
+
+fn rejection_with_doubled_quotes(json_of_raw_value: &str) -> String {
+  format!("invalid \"listStyle\" value of \"{}\"", json_of_raw_value)
+}
+
+/// The rejection a `listStyle` value earns, or a failure naming what it expanded
+/// to instead. Every case below is a refusal, so a success is the surprise worth
+/// printing rather than an `unwrap_err` panic that names neither.
+fn list_style_err(raw_value: &str) -> String {
+  let func = Shorthands::get("listStyle").unwrap();
+  match func(Some(raw_value.into())) {
+    Ok(pairs) => panic!(
+      "expected listStyle {:?} to be rejected, got {:?}",
+      raw_value, pairs
+    ),
+    Err(err) => err,
+  }
+}
+
+/// `var(--x)` cannot be assigned to a sub-property without knowing its value, so
+/// the whole shorthand is refused. This is the site with the extra quotes.
 #[test]
 fn shorthands_list_style_var_mixed_with_other() {
-  let func = Shorthands::get("listStyle").unwrap();
-  let result = func(Some("disc var(--foo)".into()));
-  assert!(result.is_err());
-  let err = result.unwrap_err();
-  assert!(err.contains("Invalid listStyle"));
+  assert_eq!(
+    list_style_err("disc var(--foo)"),
+    rejection_with_doubled_quotes("\"disc var(--foo)\"")
+  );
+}
+
+/// A global keyword is only legal alone, and reaching it as a second token hits
+/// the same site as `var()` — including its doubled quotes.
+#[test]
+fn shorthands_list_style_global_mixed() {
+  assert_eq!(
+    list_style_err("disc inherit"),
+    rejection_with_doubled_quotes("\"disc inherit\"")
+  );
+  assert_eq!(
+    list_style_err("none inherit"),
+    rejection_with_doubled_quotes("\"none inherit\"")
+  );
+}
+
+/// Order does not matter to the first site: a leading global keyword is refused
+/// on the same pass, with the same text.
+#[test]
+fn shorthands_list_style_global_first_reads_the_same() {
+  assert_eq!(
+    list_style_err("inherit disc"),
+    rejection_with_doubled_quotes("\"inherit disc\"")
+  );
+}
+
+/// Every global keyword reaches the first site, not just `inherit`.
+#[test]
+fn shorthands_list_style_every_global_keyword_is_refused_when_mixed() {
+  for keyword in ["inherit", "initial", "revert", "unset"] {
+    let raw_value = format!("disc {}", keyword);
+    assert_eq!(
+      list_style_err(&raw_value),
+      rejection_with_doubled_quotes(&format!("\"{}\"", raw_value))
+    );
+  }
 }
 
 #[test]
 fn shorthands_list_style_duplicate_position() {
-  let func = Shorthands::get("listStyle").unwrap();
-  let result = func(Some("inside outside".into()));
-  assert!(result.is_err());
-  let err = result.unwrap_err();
-  assert!(err.contains("Invalid listStyle"));
+  assert_eq!(
+    list_style_err("inside outside"),
+    rejection("\"inside outside\"")
+  );
+}
+
+/// A third token after a duplicate position never gets read: the position site
+/// throws first, which is why this reports *without* the doubled quotes even
+/// though a global keyword is present.
+#[test]
+fn shorthands_list_style_duplicate_position_wins_over_a_later_global() {
+  assert_eq!(
+    list_style_err("inside outside inherit"),
+    rejection("\"inside outside inherit\"")
+  );
 }
 
 #[test]
 fn shorthands_list_style_duplicate_type() {
-  let func = Shorthands::get("listStyle").unwrap();
-  let result = func(Some("disc square".into()));
-  assert!(result.is_err());
-  let err = result.unwrap_err();
-  assert!(err.contains("Invalid listStyle"));
+  assert_eq!(list_style_err("disc square"), rejection("\"disc square\""));
+}
+
+/// A quoted string is a valid `list-style-type`, so two of them collide at the
+/// type site the same way two keywords do — and the quotes inside the value are
+/// what the JSON escaping is for.
+#[test]
+fn shorthands_list_style_duplicate_quoted_type() {
+  assert_eq!(
+    list_style_err("\"disc\" \"square\""),
+    rejection("\"\\\"disc\\\" \\\"square\\\"\"")
+  );
 }
 
 #[test]
 fn shorthands_list_style_too_many_nones() {
-  let func = Shorthands::get("listStyle").unwrap();
-  // "none none none" → first none → type, second none → image, third none → error
-  // (duplicate image)
-  let result = func(Some("none none none".into()));
-  assert!(result.is_err());
-  let err = result.unwrap_err();
-  assert!(err.contains("Invalid listStyle"));
+  // "none none none" → first none → type, second none → image, third none →
+  // error (duplicate image)
+  assert_eq!(
+    list_style_err("none none none"),
+    rejection("\"none none none\"")
+  );
+}
+
+/// The value is quoted through `JSON.stringify`, so a value carrying characters
+/// JSON escapes reports them escaped rather than raw. A tab is the case a `{:?}`
+/// format would also get right; the C0 control below is the case it would not.
+#[test]
+fn shorthands_list_style_rejection_escapes_the_value_as_json_does() {
+  assert_eq!(
+    list_style_err("inherit \tx"),
+    rejection_with_doubled_quotes("\"inherit \\tx\"")
+  );
 }
 
 #[test]
-fn shorthands_list_style_global_mixed() {
-  let func = Shorthands::get("listStyle").unwrap();
-  // A global keyword mixed with other values should error
-  let result = func(Some("disc inherit".into()));
-  assert!(result.is_err());
+fn shorthands_list_style_rejection_escapes_a_c0_control_in_the_value() {
+  assert_eq!(
+    list_style_err("inherit \u{1}x"),
+    rejection_with_doubled_quotes("\"inherit \\u0001x\"")
+  );
+}
+
+/// Non-ASCII passes through unescaped, astral scalars included. Two bare
+/// non-keywords collide at the image site, which is one of the three that
+/// reports without doubled quotes.
+#[test]
+fn shorthands_list_style_rejection_writes_non_ascii_through_raw() {
+  assert_eq!(list_style_err("é é"), rejection("\"é é\""));
+  assert_eq!(
+    list_style_err("inherit 🎉"),
+    rejection_with_doubled_quotes("\"inherit 🎉\"")
+  );
+}
+
+/// A long value is quoted whole rather than truncated, and the token count does
+/// not change which site fires.
+#[test]
+fn shorthands_list_style_rejection_quotes_a_long_value_whole() {
+  let raw_value = format!("inherit {}", "x ".repeat(500).trim_end());
+  assert_eq!(
+    list_style_err(&raw_value),
+    rejection_with_doubled_quotes(&format!("\"{}\"", raw_value))
+  );
 }

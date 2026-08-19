@@ -100,10 +100,11 @@ would have to change to do otherwise. What a module subject adds is the ability
 to ask whether a compiler _reached_ the rules at all, which is the
 `acceptance divergent` verdict.
 
-Two entries in that set are expected to disagree, and both say why in their
-`note`: one is the `borderTop` shorthand divergence, which is about property
-expansion rather than evaluation and is tracked on its own; the other is a case
-where upstream aborts and this compiler does not.
+Four entries in that set are expected to disagree, and each says why in its
+`note`: the `borderTop` shorthand divergence, which is about property expansion
+rather than evaluation and is tracked on its own; two cases where upstream
+aborts and this compiler does not; and one where upstream folds a property read
+this compiler refuses.
 
 ### Regenerating the harvest
 

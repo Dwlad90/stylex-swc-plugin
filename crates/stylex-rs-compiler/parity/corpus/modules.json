@@ -33,6 +33,38 @@
       "source": "import * as stylex from \"@stylexjs/stylex\";\n\nconst VIEWS = ['grid', 'list'];\n\nconst styles = stylex.create({\n  base: { color: 'black' },\n  on: { color: 'red' },\n});\n\nexport function Some({ q }) {\n  const matches = VIEWS.some(v => v === q);\n\n  return <i sx={[styles.base, matches && styles.on]} />;\n}\n",
       "origin": "issue #1265, found while pinning the shapes",
       "note": "Acceptance divergent in this compiler's favour: upstream aborts with `Unsupported expression: ObjectPattern`, reaching the destructured parameter through the callback body and throwing from an evaluation allowed to fail. The same defect #1265 reports here. Written inline in the `sx` array instead of through `matches`, it compiles upstream too."
+    },
+    {
+      "id": "modules-length-on-a-string",
+      "label": "a length read off a string, in every static position",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  plain: { content: \"abc\".length },\n  empty: { content: \"\".length },\n  arithmetic: { width: \"abcd\".length * 2 },\n  computed: { content: \"abc\"[\"length\"] },\n  folded: { content: `ab${\"c\"}`.length },\n  concatenated: { content: \"abc\".concat(\"de\").length },\n});\n",
+      "origin": "issue #1265, found while comparing the reporter's output"
+    },
+    {
+      "id": "modules-length-counts-utf16-code-units",
+      "label": "a length read off a string that is not ASCII",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  astral: { content: \"\\u{1F600}a\".length },\n  pair: { content: \"\\uD83D\\uDE00\".length },\n  lone: { content: \"\\uD83D\".length },\n  combining: { content: \"e\\u0301\".length },\n  precomposed: { content: \"\\u00E9\".length },\n  cjk: { content: \"\\u65E5\\u672C\\u8A9E\".length },\n  nul: { content: \"a\\u0000b\".length },\n});\n",
+      "origin": "issue #1265, the convention a length has to be counted in"
+    },
+    {
+      "id": "modules-length-on-an-array",
+      "label": "a length read off an array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst VIEWS = ['grid', 'list'];\n\nexport const styles = stylex.create({\n  literal: { content: [\"a\", \"b\"].length },\n  empty: { content: [].length },\n  nested: { content: [[1, 2], [3]].length },\n  trailing: { content: [1, 2,].length },\n  binding: { content: VIEWS.length },\n  arithmetic: { width: [1, 2, 3].length - 1 },\n});\n",
+      "origin": "issue #1265, the same rule on the other receiver"
+    },
+    {
+      "id": "modules-length-on-an-array-with-a-hole",
+      "label": "a length read off an array carrying a hole",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  hole: { content: [, 1].length },\n});\n",
+      "origin": "issue #1265, found while deciding where the count is read from",
+      "note": "Acceptance divergent in this compiler's favour. A hole is a slot, so the language says two; upstream refuses the whole array with `Could not resolve the code being evaluated` rather than counting it."
+    },
+    {
+      "id": "modules-length-neighbouring-property-reads",
+      "label": "property reads next to a length that neither compiler folds the same way",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  unknown: { content: \"abc\".foo ?? \"red\" },\n  indexed: { content: \"abc\"[0] },\n});\n",
+      "origin": "issue #1265, the reads that surround the one being fixed",
+      "note": "Acceptance divergent. Upstream reads any other property of a string through the language — `\"abc\".foo` is `undefined` and folds the `??`, `\"abc\"[0]` is `\"a\"` — and this compiler refuses both. Refusing beats the alternative for the index: upstream folds `\"\\u{1F600}\"[0]` to a lone surrogate, which no Rust string can carry."
     }
   ]
 }

@@ -168,7 +168,7 @@
       "id": "fdd753cc",
       "property": "backgroundColor",
       "value": "blue",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:22"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:13"
     },
     {
       "id": "e0fcb723",
@@ -180,13 +180,13 @@
       "id": "39d9bd5a",
       "property": "backgroundColor",
       "value": "purple",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/stylex_transform_call_common_test.rs:303"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/stylex_transform_call_common_test.rs:298"
     },
     {
       "id": "6f1386a7",
       "property": "backgroundColor",
       "value": "red",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/stylex_transform_call_common_test.rs:303"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/stylex_transform_call_common_test.rs:298"
     },
     {
       "id": "835e815e",
@@ -558,7 +558,7 @@
       "id": "83c0cb70",
       "property": "borderBottom",
       "value": "5px solid blue",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:197"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:188"
     },
     {
       "id": "14e72494",
@@ -660,7 +660,7 @@
       "id": "a034618e",
       "property": "borderLeft",
       "value": "5px solid blue",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:197"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:188"
     },
     {
       "id": "136631b4",
@@ -678,7 +678,7 @@
       "id": "a842aee1",
       "property": "borderRight",
       "value": "5px solid blue",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:197"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:188"
     },
     {
       "id": "27c1a6b2",
@@ -726,7 +726,7 @@
       "id": "c4c56146",
       "property": "borderTop",
       "value": "5px solid blue",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:197"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:188"
     },
     {
       "id": "156eb614",
@@ -894,7 +894,7 @@
       "id": "307d2702",
       "property": "boxSizing",
       "value": "border-box",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:23"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
     },
     {
       "id": "9397addd",
@@ -1116,7 +1116,7 @@
       "id": "8e5c4994",
       "property": "color",
       "value": "blue",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:214"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/even_when_stylex_calls_come_first.rs:205"
     },
     {
       "id": "02f8a8ee",
@@ -2346,13 +2346,13 @@
       "id": "e13f3cdd",
       "property": "gridArea",
       "value": "content",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:23"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
     },
     {
       "id": "7895775c",
       "property": "gridArea",
       "value": "sidebar",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:23"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
     },
     {
       "id": "cf2805d0",
@@ -2382,7 +2382,7 @@
       "id": "ac0fe6d4",
       "property": "gridTemplateAreas",
       "value": "\"sidebar content\"",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:23"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
     },
     {
       "id": "29c9ce72",
@@ -2418,7 +2418,7 @@
       "id": "87450488",
       "property": "gridTemplateColumns",
       "value": "100%",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:23"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
     },
     {
       "id": "98cf7d27",
@@ -2430,13 +2430,13 @@
       "id": "6a84aea7",
       "property": "gridTemplateColumns",
       "value": "auto minmax(0, 1fr)",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:23"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
     },
     {
       "id": "b269c27a",
       "property": "gridTemplateColumns",
       "value": "minmax(0, 1fr)",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:23"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
     },
     {
       "id": "2ad6a850",
@@ -2448,13 +2448,13 @@
       "id": "951cdf08",
       "property": "gridTemplateRows",
       "value": "100%",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:23"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
     },
     {
       "id": "4d75fe51",
       "property": "gridTemplateRows",
       "value": "minmax(0, 1fr) auto",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:23"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/specific_edge_case_bugs.rs:19"
     },
     {
       "id": "bcababff",
@@ -2910,7 +2910,7 @@
       "id": "00f2d028",
       "property": "margin",
       "value": "max(0px, (48px - var(--x16dnrjz)) / 2)",
-      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/keep_stylex_create_when_needed.rs:39"
+      "origin": "crates/stylex-transform/tests/legacy/transform_call/keep_stylex_create_when_needed_test/keep_stylex_create_when_needed.rs:30"
     },
     {
       "id": "4c562365",

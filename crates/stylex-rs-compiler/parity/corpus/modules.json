@@ -79,6 +79,13 @@
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  indexed: { content: \"abc\"[0] },\n});\n",
       "origin": "issue #1265, the read that surrounds the one being fixed",
       "note": "Acceptance divergent. Upstream folds `\"abc\"[0]` to `\"a\"` through the language; this compiler refuses. Refusing is deliberate: upstream folds `\"\\u{1F600}\"[0]` to a lone surrogate, which no Rust `String` can carry, so folding an index needs a value type that carries WTF-8 through the whole pipeline."
+    },
+    {
+      "id": "modules-1265-rejecting-shorthands",
+      "label": "every property the specificity table refuses, beside one it does not",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  rejected: {\n    // Every property the property-specificity table refuses. None may\n    // reach the stylesheet; `color` is here so the entry has a verdict to\n    // read rather than agreement about nothing.\n    all: '1px solid red',\n    animation: '1px solid red',\n    background: '1px solid red',\n    border: '1px solid red',\n    borderInline: '1px solid red',\n    borderBlock: '1px solid red',\n    borderTop: '1px solid red',\n    borderInlineEnd: '1px solid red',\n    borderRight: '1px solid red',\n    borderBottom: '1px solid red',\n    borderInlineStart: '1px solid red',\n    borderLeft: '1px solid red',\n    // The deprecated aliases, each an alias *of* one of the above.\n    borderHorizontal: '1px solid red',\n    borderVertical: '1px solid red',\n    borderBlockStart: '1px solid red',\n    borderBlockEnd: '1px solid red',\n    borderStart: '1px solid red',\n    borderEnd: '1px solid red',\n    color: 'red',\n  },\n});\n",
+      "origin": "issue #1265, the shorthand rejection table",
+      "note": "All eighteen rejected names must declare nothing while `color` survives, so the verdict reads a real pair of declarations rather than an empty one. A regression that lets any shorthand through turns this structurally divergent."
     }
   ]
 }

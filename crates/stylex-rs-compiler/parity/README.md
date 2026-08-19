@@ -100,12 +100,12 @@ would have to change to do otherwise. What a module subject adds is the ability
 to ask whether a compiler _reached_ the rules at all, which is the
 `acceptance divergent` verdict.
 
-Six entries in that set carry a `note`, and five of the six say why they are
-expected not to read `identical`: the `borderTop` shorthand divergence, which is
-about property expansion rather than evaluation and is tracked on its own; two
-cases where upstream aborts and this compiler does not; one where both reject;
-and one where upstream folds an indexed read this compiler refuses. The sixth
-notes why a subject that _is_ identical is worth keeping as its own entry.
+Seven entries in that set carry a `note`. Four say why they are expected not to
+read `identical`: two where upstream aborts and this compiler does not, one
+where both reject, and one where upstream folds an indexed read this compiler
+refuses. The other three say why a subject that _is_ identical earns its own
+entry -- one of them because agreement there was the whole point, the shorthand
+rejection table having once diverged.
 
 ### Regenerating the harvest
 

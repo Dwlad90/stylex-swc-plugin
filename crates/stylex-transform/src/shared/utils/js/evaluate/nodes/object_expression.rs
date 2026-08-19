@@ -1,6 +1,7 @@
 use super::super::*;
 use crate::deopt_unsupported;
 use stylex_ast::ast::convertors::normalize_expr;
+use stylex_utils::number::to_js_string;
 use swc_core::ecma::ast::ObjectLit;
 
 /// The own enumerable properties a spread operand contributes, mirroring
@@ -18,6 +19,26 @@ use swc_core::ecma::ast::ObjectLit;
 /// `None` is a refusal, kept for the two readings this evaluator cannot write
 /// down rather than used as a general "not an object" answer — that answer is
 /// `Some(vec![])`.
+/// The properties an indexable value contributes: one per element, keyed by its
+/// position.
+///
+/// The three indexable readings -- a string's code units, an evaluated array's
+/// elements, and the elements of an array a fold produced -- differ only in how
+/// each element becomes an expression, so they differ only in the iterator they
+/// hand over. `None` from that iterator is an element with no expression form,
+/// and refuses the whole receiver.
+fn indexed_props(
+  elements: impl ExactSizeIterator<Item = Option<Expr>>,
+) -> Option<Vec<PropOrSpread>> {
+  let mut props = Vec::with_capacity(elements.len());
+
+  for (index, element) in elements.enumerate() {
+    props.push(create_ident_key_value_prop(&index.to_string(), element?));
+  }
+
+  Some(props)
+}
+
 fn spread_own_properties(value: EvaluateResultValue, operand: &Expr) -> Option<Vec<PropOrSpread>> {
   // An array hole has no key of its own, and this evaluator drops one before it
   // becomes a value — so an evaluated `[, 1]` is indistinguishable from `[1]`
@@ -44,59 +65,32 @@ fn spread_own_properties(value: EvaluateResultValue, operand: &Expr) -> Option<V
     // unreachable for the same reason.
     EvaluateResultValue::Expr(Expr::Lit(Lit::Str(strng))) => {
       let value = strng.value.as_str()?;
+      let characters = value.chars().collect::<Vec<_>>();
 
-      let mut props = Vec::with_capacity(value.len());
-
-      for (index, character) in value.chars().enumerate() {
-        if character.len_utf16() != 1 {
-          return None;
-        }
-
-        props.push(create_ident_key_value_prop(
-          &index.to_string(),
-          create_string_expr(&character.to_string()),
-        ));
-      }
-
-      Some(props)
+      indexed_props(
+        characters
+          .iter()
+          .map(|character| match character.len_utf16() {
+            1 => Some(create_string_expr(&character.to_string())),
+            _ => None,
+          }),
+      )
     },
 
     // An array's own properties are its indices. Both readings an array can
     // arrive as are handled: the `Vec` an array literal evaluates to, and the
     // `ArrayLit` a fold such as `Object.keys` answers.
-    EvaluateResultValue::Vec(items) => {
-      let mut props = Vec::with_capacity(items.len());
-
-      for (index, item) in items.iter().enumerate() {
-        let expr = match item {
-          EvaluateResultValue::Vec(nested) => evaluate_result_vec_to_array_expr(nested)?,
-          _ => item.as_expr()?.clone(),
-        };
-
-        props.push(create_ident_key_value_prop(&index.to_string(), expr));
-      }
-
-      Some(props)
-    },
+    EvaluateResultValue::Vec(items) => indexed_props(items.iter().map(|item| match item {
+      EvaluateResultValue::Vec(nested) => evaluate_result_vec_to_array_expr(nested),
+      _ => item.as_expr().cloned(),
+    })),
     EvaluateResultValue::Expr(Expr::Array(array)) => {
-      let mut props = Vec::with_capacity(array.elems.len());
-
-      for (index, elem) in array.elems.iter().enumerate() {
-        // A hole here was written as one in a fold's own output, and means what
-        // it means above.
-        let elem = elem.as_ref()?;
-
-        if elem.spread.is_some() {
-          return None;
-        }
-
-        props.push(create_ident_key_value_prop(
-          &index.to_string(),
-          *elem.expr.clone(),
-        ));
-      }
-
-      Some(props)
+      indexed_props(array.elems.iter().map(|elem| match elem {
+        // A hole written as one in a fold's own output means what it means
+        // above, and a spread there is no more countable than anywhere else.
+        Some(elem) if elem.spread.is_none() => Some(*elem.expr.clone()),
+        _ => None,
+      }))
     },
 
     // Everything with no own enumerable properties. A number, a boolean and
@@ -147,7 +141,7 @@ pub(in super::super) fn evaluate(
         let Some(new_props) =
           spread_expression.and_then(|value| spread_own_properties(value, &prop.expr))
         else {
-          deopt_unsupported!(path, state, SPREAD_MUST_BE_OBJECT);
+          deopt_unsupported!(path, state, SPREAD_PROPERTIES_UNREADABLE);
         };
 
         let merged_object = assign_props(props, new_props);
@@ -176,7 +170,12 @@ pub(in super::super) fn evaluate(
             let key = match &path_key_value.key {
               PropName::Ident(ident) => Some(ident.sym.to_string()),
               PropName::Str(strng) => Some(convert_atom_to_string(&strng.value)),
-              PropName::Num(num) => Some(num.value.to_string()),
+              // Rendered as JavaScript spells a number, not as Rust does:
+              // `{ 1e21: x }` names the property `"1e+21"`, where
+              // `f64::to_string` would name it `"1000000000000000000000"`. The
+              // same reader decides whether two keys collide, so two spellings
+              // here is how one key comes to be two.
+              PropName::Num(num) => Some(to_js_string(num.value)),
               PropName::Computed(computed) => {
                 let evaluated_result = evaluate_with_functions(
                   &computed.expr,
@@ -310,7 +309,11 @@ pub(in super::super) fn evaluate(
     }
   }
 
+  // Ordered last, once, rather than maintained as properties are added: an
+  // array-index key can arrive from a literal, from a spread, or from a
+  // computed key, and the language's answer depends only on the set that ends
+  // up here.
   Some(EvaluateResultValue::Expr(Expr::Object(create_object_lit(
-    remove_duplicates(props),
+    order_own_keys(remove_duplicates(props)),
   ))))
 }

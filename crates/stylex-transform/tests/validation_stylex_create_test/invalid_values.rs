@@ -786,6 +786,45 @@ stylex_test_panic!(
   "#
 );
 
+// An object's properties are enumerated with every array-index key first, in
+// ascending numeric order, and every other key after them in insertion order.
+// That order is the order the declarations reach the stylesheet, so it decides
+// which of two rules at equal specificity wins.
+//
+// This compiler emitted them in pure insertion order, so `{ color, ...['a'] }`
+// put `color` before `0` where the language, and upstream, put `0` first.
+stylex_test!(
+  an_index_key_is_enumerated_before_a_named_one,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ x: { color: 'red', ...['a', 'b'] } });
+  "#
+);
+
+// A key is an array index only in its canonical decimal spelling, so `'00'`
+// stays where it was written.
+stylex_test!(
+  a_non_canonical_numeric_key_keeps_its_place,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ x: { color: 'red', '00': 'z' } });
+  "#
+);
+
+// A numeric key is spelled the way JavaScript spells the number, not the way
+// Rust does: `1e21` names the property `1e+21`, and naming it
+// `1000000000000000000000` changed both the declaration and its class name.
+stylex_test!(
+  a_large_numeric_key_is_spelled_as_javascript_spells_it,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ x: { 1e21: 'a' } });
+  "#
+);
+
 // ==================== a spread inside a style value ====================
 //
 // Every spread earns one answer: `Unsupported expression: SpreadElement`.

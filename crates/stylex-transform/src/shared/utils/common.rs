@@ -1,4 +1,4 @@
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::{any::type_name, ops::Deref, path::PathBuf};
 use stylex_macros::{stylex_panic, stylex_unimplemented, stylex_unreachable};
 use stylex_types::traits::StyleOptions;
@@ -187,6 +187,62 @@ fn prop_key(prop: &PropOrSpread) -> Option<Atom> {
   }
 }
 
+/// Whether a key is an array index, in the sense JavaScript uses to decide
+/// enumeration order: the canonical decimal spelling of an integer below
+/// 2^32 - 1.
+///
+/// Canonical is what makes `"0"` one and `"00"`, `"+0"` and `"01"` not — those
+/// round-trip to a different string, so the language treats them as ordinary
+/// string keys and enumerates them in insertion order.
+fn array_index_of(key: &str) -> Option<u32> {
+  if key.len() > 1 && key.starts_with('0') {
+    return None;
+  }
+
+  let index = key.parse::<u32>().ok()?;
+
+  match index == u32::MAX {
+    true => None,
+    false => Some(index),
+  }
+}
+
+/// Reorders an object's own properties the way JavaScript enumerates them:
+/// every array-index key first in ascending numeric order, then every other key
+/// in insertion order.
+///
+/// Not a detail of the object literal's spelling. The order properties come out
+/// in is the order their declarations reach the stylesheet, so it decides which
+/// of two rules at equal specificity wins -- and `{ color: 'red', ...['a'] }`
+/// was emitting `color` before `0` where the language, and so upstream, puts
+/// `0` first.
+///
+/// Stable within each group, so the insertion order of the string keys is
+/// preserved exactly.
+pub(crate) fn order_own_keys(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
+  let mut indexed: Vec<(u32, PropOrSpread)> = Vec::new();
+  let mut named: Vec<PropOrSpread> = Vec::with_capacity(props.len());
+
+  for prop in props {
+    match prop_key(&prop).as_deref().and_then(array_index_of) {
+      Some(index) => indexed.push((index, prop)),
+      None => named.push(prop),
+    }
+  }
+
+  if indexed.is_empty() {
+    return named;
+  }
+
+  indexed.sort_by_key(|(index, _)| *index);
+
+  let mut ordered = Vec::with_capacity(indexed.len() + named.len());
+  ordered.extend(indexed.into_iter().map(|(_, prop)| prop));
+  ordered.extend(named);
+
+  ordered
+}
+
 pub(crate) fn remove_duplicates(props: Vec<PropOrSpread>) -> Vec<PropOrSpread> {
   let mut set = FxHashSet::default();
   let mut result = Vec::with_capacity(props.len());
@@ -230,6 +286,11 @@ pub(crate) fn assign_props(
   new_props: Vec<PropOrSpread>,
 ) -> Vec<PropOrSpread> {
   let mut merged: Vec<PropOrSpread> = Vec::with_capacity(old_props.len() + new_props.len());
+  // The position each key already took, so a repeated one is found by lookup
+  // rather than by re-reading every property placed so far -- which was
+  // quadratic, and cloned an `Atom` per comparison, on the path every object
+  // spread goes through.
+  let mut positions: FxHashMap<Atom, usize> = FxHashMap::default();
 
   for prop in old_props.into_iter().chain(new_props) {
     let Some(key) = prop_key(&prop) else {
@@ -239,12 +300,12 @@ pub(crate) fn assign_props(
       continue;
     };
 
-    match merged
-      .iter_mut()
-      .find(|existing| prop_key(existing).as_ref() == Some(&key))
-    {
-      Some(existing) => *existing = prop,
-      None => merged.push(prop),
+    match positions.get(&key) {
+      Some(&position) => merged[position] = prop,
+      None => {
+        positions.insert(key, merged.len());
+        merged.push(prop);
+      },
     }
   }
 

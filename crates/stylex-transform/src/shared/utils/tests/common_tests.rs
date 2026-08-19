@@ -997,8 +997,9 @@ mod assign_props_tests {
 
 mod get_import_from_tests {
   use super::*;
+  use swc_core::atoms::Wtf8Atom;
   use swc_core::ecma::ast::{
-    ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportSpecifier,
+    Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportSpecifier,
     ImportStarAsSpecifier, ModuleExportName,
   };
 
@@ -1184,6 +1185,278 @@ mod get_import_from_tests {
     let ident = create_ident("strExport");
     let result = get_import_from(&state, &ident);
     assert!(result.is_some());
+  }
+
+  // ──────────────────────────────────────────────
+  // Shadowing: the lookup answers about a binding, not a name (#1266)
+  //
+  // Every case here fixes two references with the same symbol at *different*
+  // syntax contexts, which is what a shadowing binding looks like once the
+  // resolver has run. Written against the lookup rather than the transform
+  // because a context is the whole question and the transform has to build a
+  // whole module to ask it.
+  // ──────────────────────────────────────────────
+
+  /// A distinct, non-root context. `SyntaxContext::from_u32` rather than
+  /// `apply_mark`, which would need `GLOBALS` installed for what is only "some
+  /// other context than that one".
+  fn ident_at(name: &str, ctxt: u32) -> Ident {
+    Ident {
+      span: DUMMY_SP,
+      ctxt: SyntaxContext::from_u32(ctxt),
+      sym: name.into(),
+      optional: false,
+    }
+  }
+
+  fn make_named_import_at(local: &str, ctxt: u32, source: &str) -> ImportDecl {
+    ImportDecl {
+      span: DUMMY_SP,
+      specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
+        span: DUMMY_SP,
+        local: ident_at(local, ctxt),
+        imported: None,
+        is_type_only: false,
+      })],
+      src: Box::new(Str {
+        span: DUMMY_SP,
+        value: source.into(),
+        raw: None,
+      }),
+      type_only: false,
+      with: None,
+      phase: Default::default(),
+    }
+  }
+
+  #[test]
+  fn does_not_match_a_named_import_shadowed_by_another_binding() {
+    let mut state = StateManager::default();
+    state
+      .top_imports
+      .push(make_named_import_at("zIndex", 1, "zIndex.stylex.js"));
+
+    // The arrow parameter in `(zIndex) => ({ zIndex })`: same symbol, its own
+    // context. Resolving it to the import is #1266.
+    let shadowing_param = ident_at("zIndex", 2);
+
+    assert!(get_import_from(&state, &shadowing_param).is_none());
+  }
+
+  #[test]
+  fn finds_a_named_import_from_its_own_context() {
+    let mut state = StateManager::default();
+    state
+      .top_imports
+      .push(make_named_import_at("zIndex", 1, "zIndex.stylex.js"));
+
+    // The other half of the same question: a genuine reference to the import
+    // still resolves. A fix that answered `None` for everything would pass the
+    // test above on its own.
+    assert!(get_import_from(&state, &ident_at("zIndex", 1)).is_some());
+  }
+
+  #[test]
+  fn does_not_match_an_aliased_import_shadowed_by_another_binding() {
+    let mut state = StateManager::default();
+    state.top_imports.push(ImportDecl {
+      span: DUMMY_SP,
+      specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
+        span: DUMMY_SP,
+        local: ident_at("zi", 1),
+        imported: Some(ModuleExportName::Ident(ident_at("zIndex", 1))),
+        is_type_only: false,
+      })],
+      src: Box::new(Str {
+        span: DUMMY_SP,
+        value: "zIndex.stylex.js".into(),
+        raw: None,
+      }),
+      type_only: false,
+      with: None,
+      phase: Default::default(),
+    });
+
+    // `import { zIndex as zi }` shadowed by a parameter `zi`, which failed
+    // identically to the unaliased shape.
+    assert!(get_import_from(&state, &ident_at("zi", 2)).is_none());
+  }
+
+  #[test]
+  fn matches_only_the_specifier_whose_context_agrees() {
+    let mut state = StateManager::default();
+    state
+      .top_imports
+      .push(make_named_import_at("shadowed", 1, "first.stylex.js"));
+    state
+      .top_imports
+      .push(make_named_import_at("shadowed", 2, "second.stylex.js"));
+
+    // Two declarations cannot bind one name in valid source, but the lookup
+    // scans a flat list and must not answer by position.
+    let reference = ident_at("shadowed", 2);
+    let found = get_import_from(&state, &reference);
+
+    assert_eq!(
+      found.map(|import| format!("{:?}", import.src.value)),
+      Some(format!("{:?}", Wtf8Atom::from("second.stylex.js")))
+    );
+  }
+
+  #[test]
+  fn matches_one_specifier_of_a_declaration_without_matching_its_siblings() {
+    let mut state = StateManager::default();
+    state.top_imports.push(ImportDecl {
+      span: DUMMY_SP,
+      specifiers: vec![
+        ImportSpecifier::Named(ImportNamedSpecifier {
+          span: DUMMY_SP,
+          local: ident_at("spacing", 1),
+          imported: None,
+          is_type_only: false,
+        }),
+        ImportSpecifier::Named(ImportNamedSpecifier {
+          span: DUMMY_SP,
+          local: ident_at("zIndex", 1),
+          imported: None,
+          is_type_only: false,
+        }),
+      ],
+      src: Box::new(Str {
+        span: DUMMY_SP,
+        value: "tokens.stylex.js".into(),
+        raw: None,
+      }),
+      type_only: false,
+      with: None,
+      phase: Default::default(),
+    });
+
+    // The answer is per declaration, but the match is per specifier: a
+    // declaration that binds a live `spacing` does not thereby answer for a
+    // shadowed `zIndex`. Both are the same declaration, so a lookup that
+    // stopped at "does this declaration mention the name" would say yes to
+    // both.
+    assert!(get_import_from(&state, &ident_at("spacing", 1)).is_some());
+    assert!(get_import_from(&state, &ident_at("zIndex", 1)).is_some());
+    assert!(get_import_from(&state, &ident_at("zIndex", 2)).is_none());
+    assert!(get_import_from(&state, &ident_at("nothing", 1)).is_none());
+  }
+
+  #[test]
+  fn a_shadowed_default_or_namespace_import_was_already_context_aware() {
+    let mut state = StateManager::default();
+    state.top_imports.push(ImportDecl {
+      span: DUMMY_SP,
+      specifiers: vec![ImportSpecifier::Default(ImportDefaultSpecifier {
+        span: DUMMY_SP,
+        local: ident_at("theme", 1),
+      })],
+      src: Box::new(Str {
+        span: DUMMY_SP,
+        value: "theme.stylex.js".into(),
+        raw: None,
+      }),
+      type_only: false,
+      with: None,
+      phase: Default::default(),
+    });
+    state.top_imports.push(ImportDecl {
+      span: DUMMY_SP,
+      specifiers: vec![ImportSpecifier::Namespace(ImportStarAsSpecifier {
+        span: DUMMY_SP,
+        local: ident_at("tokens", 1),
+      })],
+      src: Box::new(Str {
+        span: DUMMY_SP,
+        value: "tokens.stylex.js".into(),
+        raw: None,
+      }),
+      type_only: false,
+      with: None,
+      phase: Default::default(),
+    });
+
+    // The two arms the named one now matches. Pinned so a later edit cannot
+    // regress all three to a name match at once.
+    assert!(get_import_from(&state, &ident_at("theme", 2)).is_none());
+    assert!(get_import_from(&state, &ident_at("tokens", 2)).is_none());
+    assert!(get_import_from(&state, &ident_at("theme", 1)).is_some());
+    assert!(get_import_from(&state, &ident_at("tokens", 1)).is_some());
+  }
+
+  #[test]
+  fn a_string_named_specifier_still_matches_across_contexts() {
+    let mut state = StateManager::default();
+    state.top_imports.push(ImportDecl {
+      span: DUMMY_SP,
+      specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
+        span: DUMMY_SP,
+        local: ident_at("spacing", 1),
+        imported: Some(ModuleExportName::Str(Str {
+          span: DUMMY_SP,
+          value: "spacing-lg".into(),
+          raw: None,
+        })),
+        is_type_only: false,
+      })],
+      src: Box::new(Str {
+        span: DUMMY_SP,
+        value: "tokens.stylex.js".into(),
+        raw: None,
+      }),
+      type_only: false,
+      with: None,
+      phase: Default::default(),
+    });
+
+    // The imported-*name* fallback beside the local match compares symbols
+    // only, so it still answers for a name no scope binds. Recorded as the
+    // baseline for the ticket that deletes it, not as behaviour worth keeping:
+    // `spacing-lg` is not a legal identifier, so no reference can reach this
+    // except through a string-named specifier.
+    assert!(get_import_from(&state, &ident_at("spacing-lg", 9)).is_some());
+  }
+
+  #[test]
+  fn an_escaped_or_non_ascii_local_name_matches_by_binding_too() {
+    let mut state = StateManager::default();
+    // `\u007A\u0049ndex` is `zIndex`, and `zÍndex` is a different identifier
+    // that happens to look like it. The lookup compares atoms, so the escape is
+    // already folded by the lexer and the look-alike must not match.
+    state
+      .top_imports
+      .push(make_named_import_at("zIndex", 1, "zIndex.stylex.js"));
+    state
+      .top_imports
+      .push(make_named_import_at("zÍndex", 1, "accented.stylex.js"));
+
+    assert!(get_import_from(&state, &ident_at("zIndex", 1)).is_some());
+    assert!(get_import_from(&state, &ident_at("zÍndex", 1)).is_some());
+    assert!(get_import_from(&state, &ident_at("zÍndex", 2)).is_none());
+  }
+
+  #[test]
+  fn an_empty_import_declaration_answers_for_nothing() {
+    let mut state = StateManager::default();
+    state.top_imports.push(ImportDecl {
+      span: DUMMY_SP,
+      specifiers: vec![],
+      src: Box::new(Str {
+        span: DUMMY_SP,
+        value: "side-effect.css".into(),
+        raw: None,
+      }),
+      type_only: false,
+      with: None,
+      phase: Default::default(),
+    });
+
+    // `import './side-effect.css'` binds no name at all. `Iterator::any` over
+    // no specifiers is `false`, which is the answer -- pinned because a
+    // refactor to `all` would make it `true` and resolve every reference to it.
+    assert!(get_import_from(&state, &ident_at("anything", 0)).is_none());
+    assert!(get_import_from(&state, &create_ident("anything")).is_none());
   }
 }
 

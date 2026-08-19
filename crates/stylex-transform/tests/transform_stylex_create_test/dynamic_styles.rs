@@ -502,3 +502,204 @@ stylex_test!(
       });
   "#
 );
+
+// ──────────────────────────────────────────────
+// A dynamic parameter that shadows an imported binding (#1266)
+//
+// Every case below aborted the build before the import lookup compared the
+// binding rather than the name: the parameter resolved to the theme it shadows,
+// evaluation answered a confident theme reference, and a theme reference has no
+// expression form for the style-value consumer to emit.
+//
+// These run under `haste` resolution and a real filename because a theme import
+// has to resolve for the case to be about the shadowing rather than about the
+// path.
+// ──────────────────────────────────────────────
+
+fn shadowing_transform(comments: TestComments) -> impl Pass {
+  stylex_transform(comments, |b| {
+    b.with_filename(swc_core::common::FileName::Real("MyComponent.js".into()))
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_runtime_injection()
+  })
+}
+
+stylex_test!(
+  dynamic_param_shadows_a_named_theme_import,
+  |tr| shadowing_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: { zIndex: zIndex._10 },
+      zIndex: (zIndex) => ({ zIndex }),
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_an_aliased_theme_import,
+  |tr| shadowing_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex as zi } from 'zIndex.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: { zIndex: zi._10 },
+      dyn: (zi) => ({ zIndex: zi }),
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_a_theme_import_referenced_nowhere_else,
+  |tr| shadowing_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const styles = stylex.create({
+      dyn: (zIndex) => ({ zIndex }),
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_a_theme_import_used_only_outside_create,
+  |tr| shadowing_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const raised = zIndex._10;
+
+    export const styles = stylex.create({
+      dyn: (zIndex) => ({ zIndex }),
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_a_theme_import_read_by_a_sibling_key,
+  |tr| shadowing_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const styles = stylex.create({
+      dyn: (zIndex) => ({
+        zIndex,
+        ':hover': { zIndex: 1 },
+      }),
+      raised: { zIndex: zIndex._10 },
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_a_theme_import_inside_nested_conditions,
+  |tr| shadowing_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: { zIndex: zIndex._10 },
+      dyn: (zIndex) => ({
+        zIndex: {
+          default: zIndex,
+          ':hover': {
+            default: zIndex,
+            '@media (min-width: 600px)': {
+              default: zIndex,
+              ':focus': zIndex,
+            },
+          },
+        },
+      }),
+    });
+  "#
+);
+
+stylex_test!(
+  a_theme_import_read_as_a_computed_key_beside_a_shadowing_param,
+  |tr| shadowing_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { vars } from 'vars.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: { [vars.color]: 'red' },
+      dyn: (color) => ({ [vars.color]: color }),
+    });
+  "#
+);
+
+// The next two shadow a namespace and a default import rather than a named one.
+// Their `get_import_from` arms already compared the binding, so the shadowing
+// half of each was never broken -- they are here so a later edit cannot regress
+// all three arms to a name match at once.
+//
+// Neither snapshot is a parity claim. Measured against `@stylexjs/babel-plugin`
+// 0.19.0, both import kinds diverge *without any shadowing*: it refuses a
+// namespace theme import with `Referenced constant is not defined.` and a default
+// theme import with the imported-file evaluation error, where we accept both and
+// answer a theme reference. The divergence is about the import kind, not about
+// the parameter, and it is tracked separately.
+stylex_test!(
+  dynamic_param_shadows_a_namespace_theme_import,
+  |tr| shadowing_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as tokens from 'tokens.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: { color: tokens.color },
+      dyn: (tokens) => ({ color: tokens }),
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_a_default_theme_import,
+  |tr| shadowing_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import tokens from 'tokens.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: { color: tokens.color },
+      dyn: (tokens) => ({ color: tokens }),
+    });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_shadows_a_module_level_const,
+  |tr| shadowing_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const gap = '10px';
+
+    export const styles = stylex.create({
+      wrapper: { rowGap: gap },
+      dyn: (gap) => ({ rowGap: gap }),
+    });
+  "#
+);
+
+stylex_test!(
+  a_theme_import_read_beside_an_unshadowed_dynamic_param,
+  |tr| shadowing_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: { zIndex: zIndex._10 },
+      dyn: (level) => ({ zIndex: level }),
+    });
+  "#
+);

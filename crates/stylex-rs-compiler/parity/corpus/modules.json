@@ -285,6 +285,94 @@
       "origin": "found in review of the object-spread work",
       "note": "A numeric key is spelled the way JavaScript spells the number: `1e+21`. This compiler formatted it with Rust's `f64` rendering and named the property `1000000000000000000000`, which changed both the declaration and its class name.",
       "expected": "identical"
+    },
+    {
+      "id": "modules-1266-reported",
+      "label": "a dynamic parameter shadowing a named theme import",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { zIndex: zIndex._10 },\n  zIndex: (zIndex) => ({ zIndex }),\n});\n",
+      "origin": "issue #1266, the reported input",
+      "note": "The parameter and the import share a symbol and nothing else. Resolving an import by its name rather than its binding answered a confident theme reference for the parameter and aborted the build; the static prop beside it has to keep its theme reference at the same time, which is why this is a module and not a declaration.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-aliased",
+      "label": "a dynamic parameter shadowing an aliased theme import",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex as zi } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { zIndex: zi._10 },\n  dyn: (zi) => ({ zIndex: zi }),\n});\n",
+      "origin": "issue #1266, the aliased variant found while auditing the lookup",
+      "note": "Failed identically to the unaliased shape, and for the same reason: the local binding is what a reference resolves through, and `zi` is the local binding here.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-dynamic-key-first",
+      "label": "a shadowed dynamic parameter written before the static read",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  dyn: (zIndex) => ({\n    zIndex,\n    ':hover': { zIndex: 1 },\n  }),\n  raised: { zIndex: zIndex._10 },\n});\n",
+      "origin": "issue #1266, the prop-order variant",
+      "note": "Property order is irrelevant to the defect -- a dynamic style's body is evaluated whichever side of the static read it is written on. Recorded so a future evaluation-order change cannot make the fix order-dependent without saying so.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-import-unreferenced-elsewhere",
+      "label": "a shadowed dynamic parameter whose import is read nowhere else",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  dyn: (zIndex) => ({ zIndex }),\n});\n",
+      "origin": "issue #1266, the shape that compiled before the fix",
+      "note": "This shape already agreed, but only by accident: `typescript_strip` elides an import with no value reference before the StyleX pass, so the name match had nothing to match. It is a guard, not a demonstration -- the accident is gone and the agreement has to survive on the binding comparison alone.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-import-read-outside-create",
+      "label": "a shadowed dynamic parameter whose import is read outside any create call",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const raised = zIndex._10;\n\nexport const styles = stylex.create({\n  dyn: (zIndex) => ({ zIndex }),\n});\n",
+      "origin": "issue #1266, the isolation that pinned the mechanism",
+      "note": "Any value reference to the binding, anywhere in the module, kept the import declaration alive and made the name match fire. Reading it outside every `create()` call is the shape that rules out the evaluation cache as the cause.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-nested-conditions",
+      "label": "a shadowed dynamic parameter read at every depth of a condition tree",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { zIndex: zIndex._10 },\n  dyn: (zIndex) => ({\n    zIndex: {\n      default: zIndex,\n      ':hover': {\n        default: zIndex,\n        '@media (min-width: 600px)': {\n          default: zIndex,\n          ':focus': zIndex,\n        },\n      },\n    },\n  }),\n});\n",
+      "origin": "issue #1266, written to reach the recursive value walk",
+      "note": "The value walk recurses per condition key, so the shadowed reference is resolved once per leaf. A fix that only held at the top level of a style value would show here.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-two-shadowed-params",
+      "label": "two dynamic parameters shadowing two theme imports",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { a } from 'a.stylex.js';\nimport { b } from 'b.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: a.c, zIndex: b.z },\n  dyn: (a, b) => ({ color: a, zIndex: b }),\n});\n",
+      "origin": "issue #1266, written to reach more than one import declaration",
+      "note": "The lookup scans a flat list of declarations, so one shadowed binding must not decide the answer for another. Both parameters shadow, both static reads keep their theme reference.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-param-shadows-a-const",
+      "label": "a dynamic parameter shadowing a module-level const",
+      "source": "import * as stylex from '@stylexjs/stylex';\nconst gap = '10px';\n\nexport const styles = stylex.create({\n  wrapper: { rowGap: gap },\n  dyn: (gap) => ({ rowGap: gap }),\n});\n",
+      "origin": "issue #1266, the shape that already worked and says why",
+      "note": "A guard. The declaration lookup was already binding-aware, which is what made a shadowed `const` resolve correctly while a shadowed import did not -- the asymmetry that located the defect. It has to keep resolving that way.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-unshadowed-param",
+      "label": "an unshadowed dynamic parameter beside a theme read",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { zIndex: zIndex._10 },\n  dyn: (level) => ({ zIndex: level }),\n});\n",
+      "origin": "issue #1266, the control",
+      "note": "A guard: the same module with the parameter renamed. A fix that stopped resolving imports altogether would pass every shadowing case above and fail here.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-non-ascii-shadowing-param",
+      "label": "a shadowed dynamic parameter whose name is not ASCII",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zÍndex } from 'accented.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { zIndex: zÍndex._10 },\n  dyn: (zÍndex) => ({ zIndex: zÍndex }),\n});\n",
+      "origin": "issue #1266, written to reach a non-ASCII binding name",
+      "note": "Bindings are compared as interned atoms, so a name outside ASCII is no different -- pinned because a comparison written over bytes or lowercased text would be.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-escaped-shadowing-param",
+      "label": "a shadowed dynamic parameter spelled with a unicode escape",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { zIndex: zIndex._10 },\n  dyn: (\\u007AIndex) => ({ zIndex: zIndex }),\n});\n",
+      "origin": "issue #1266, written to reach an escaped binding name",
+      "note": "`\\u007AIndex` is `zIndex`: the lexer folds the escape, so the parameter shadows the import exactly as the plain spelling does, and the body's `zIndex` is the parameter. Pinned because the escape is the one spelling where the source text and the binding name differ.",
+      "expected": "identical"
     }
   ]
 }

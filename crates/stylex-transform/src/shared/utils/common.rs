@@ -136,7 +136,14 @@ pub(crate) fn get_import_from<'a>(
   state.top_imports.iter().find(|import| {
     import.specifiers.iter().any(|specifier| match specifier {
       ImportSpecifier::Named(named_import) => {
-        named_import.local.sym == ident.sym || {
+        // The binding, not the name: a reference and an import specifier are the
+        // same thing only when their `SyntaxContext` agrees too, which is what
+        // its `Default` and `Namespace` siblings below already compare. Matching
+        // on the symbol alone resolved a *shadowing* binding -- an arrow
+        // parameter carries a context of its own -- to the import it shadows, so
+        // a dynamic style whose parameter is named after an imported theme
+        // answered a confident `ThemeRef` and aborted the build (#1266).
+        named_import.local.eq_ignore_span(ident) || {
           match &named_import.imported {
             Some(imported) => match imported {
               ModuleExportName::Ident(export_ident) => export_ident.eq_ignore_span(ident),

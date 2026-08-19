@@ -28,6 +28,10 @@ The harness loads the compiler from `dist/`, not from the Rust sources. **A
 report is only about the last build.** Rebuild after touching a crate or the
 verdicts are stale.
 
+It exits non-zero for exactly one reason: an entry whose recorded `expected`
+verdict no longer holds. A divergence with no expectation recorded against it is
+information for a person to read, not a failure.
+
 | Flag                    | Effect                                            |
 | ----------------------- | ------------------------------------------------- |
 | `--only-mismatches`     | print only the entries that disagree              |
@@ -100,10 +104,11 @@ an optional `note`, which the report prints next to a mismatch, and an optional
 An `expected` verdict is how a divergence someone has already looked at is told
 apart from a new one. While it holds, the report marks the entry `(expected)`
 and `--only-mismatches` leaves it out. When it stops holding — in either
-direction — the entry is listed under **Verdicts that changed** and counted, so
-a divergence that quietly goes away is as loud as a new one: an entry recording
-a divergence that no longer happens has stopped measuring what it was written
-for. `note` says _why_; `expected` is what the harness checks.
+direction — the entry is listed under **Verdicts that changed**, counted, and the
+run exits non-zero, so a divergence that quietly goes away is as loud as a new
+one: an entry recording a divergence that no longer happens has stopped measuring
+what it was written for. `note` says _why_; `expected` is what the harness
+checks, and the only thing it fails on.
 
 ### Module subjects
 

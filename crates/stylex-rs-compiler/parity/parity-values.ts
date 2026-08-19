@@ -9,8 +9,11 @@
  * A few entries carry a whole module rather than a declaration, for questions
  * a declaration cannot ask — see `ModuleEntry` in `lib/types.ts`.
  *
- * It is a developer tool, not a test: it lives outside the Rust test suite so
- * `cargo test` never needs a Node toolchain, and it is not wired into CI.
+ * It lives outside the Rust test suite so `cargo test` never needs a Node
+ * toolchain, and it is not wired into CI. Reading a verdict is still a person's
+ * job — a divergence is information, not a failure — with one exception: an
+ * entry whose recorded `expected` verdict no longer holds exits non-zero, so a
+ * pinned divergence cannot change unnoticed by whoever runs this.
  *
  * Usage:
  *   pnpm parity                              # full corpus, human report
@@ -224,6 +227,11 @@ async function run(): Promise<void> {
         `  ${chalk.bold(subjectLabel(entry))}  expected ${entry.expected}, read ${entry.verdict}`
       );
     }
+    console.log(
+      chalk.gray(
+        '\nUpdate the entry — or its `expected` — in the corpus once you know which of the two moved.'
+      )
+    );
   }
 
   if (cliOptions.json !== undefined) {
@@ -244,6 +252,12 @@ async function run(): Promise<void> {
     fs.writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
     console.log(chalk.green(`\nReport written to ${path.relative(workspaceRoot, outputPath)}`));
   }
+
+  // Set after the report is written rather than by returning early: a changed
+  // verdict is exactly when someone wants the machine-readable output, and an
+  // exit code that skipped writing it would hide the evidence for the failure it
+  // is reporting.
+  if (changed.length > 0) process.exitCode = 1;
 }
 
 run().catch((error: unknown) => {

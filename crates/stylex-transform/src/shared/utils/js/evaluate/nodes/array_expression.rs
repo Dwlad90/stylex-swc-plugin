@@ -32,11 +32,7 @@ pub(in super::super) fn evaluate(
     // expression node for the spread itself and the array is the nearest node
     // that contains the `...`.
     if elem.spread.is_some() {
-      return deopt(
-        &Expr::Array(arr_path.clone()),
-        state,
-        &unsupported_expression("SpreadElement"),
-      );
+      return deopt(&Expr::Array(arr_path.clone()), state, SPREAD_ELEMENT);
     }
 
     let elem_value =

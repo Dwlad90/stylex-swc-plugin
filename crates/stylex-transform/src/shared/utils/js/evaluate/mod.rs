@@ -50,7 +50,7 @@ use crate::shared::{
       extract_tpl_cooked_value,
     },
     common::{
-      assign_props, get_import_by_ident, get_var_decl_by_ident, get_var_decl_from,
+      assign_props, get_import_by_ident, get_var_decl_by_ident, get_var_decl_from, order_own_keys,
       remove_duplicates,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
@@ -64,14 +64,16 @@ use stylex_ast::ast::factories::{
 use stylex_constants::constants::{
   evaluation_errors::{
     ARGUMENT_WITHOUT_VALUE, IMPORT_PATH_RESOLUTION_ERROR, INVALID_ARRAY_LENGTH, NON_CONSTANT,
-    OBJECT_METHOD, PATH_WITHOUT_NODE, UNEXPECTED_MEMBER_LOOKUP, array_length_too_large,
-    not_a_function, uncoercible_value, unsupported_expression, unsupported_operator,
+    OBJECT_METHOD, PATH_WITHOUT_NODE, SPREAD_ELEMENT, UNEXPECTED_MEMBER_LOOKUP,
+    array_length_too_large, not_a_function, uncoercible_value, unsupported_expression,
+    unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, BUILT_IN_FUNCTION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
     ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, KEY_VALUE_EXPECTED, MEMBER_NOT_RESOLVED,
-    MEMBER_OBJ_NOT_IDENT, OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND, SPREAD_MUST_BE_OBJECT,
-    SPREAD_NOT_SUPPORTED, THEME_IMPORT_KEY_AS_OBJECT_KEY, VALUE_MUST_BE_LITERAL,
+    MEMBER_OBJ_NOT_IDENT, OBJECT_KEY_MUST_BE_IDENT, PROPERTY_NOT_FOUND, SPREAD_HIDES_OBJECT_KEYS,
+    SPREAD_NOT_SUPPORTED, SPREAD_PROPERTIES_UNREADABLE, THEME_IMPORT_KEY_AS_OBJECT_KEY,
+    VALUE_MUST_BE_LITERAL,
   },
 };
 use stylex_enums::{

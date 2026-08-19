@@ -99,6 +99,20 @@ pub fn unreadable_index(index: &str) -> String {
   )
 }
 
+/// The one answer every spread in a value position earns.
+///
+/// A spread is refused wherever it appears — an array element, a call argument,
+/// at any nesting — because the reference implementation evaluates elements and
+/// arguments as *paths*, so a spread reaches its terminal
+/// `UNSUPPORTED_EXPRESSION(path.node.type)` arm whatever it spreads and before
+/// the operand is looked at.
+///
+/// A constant rather than an `unsupported_expression("SpreadElement")` at each
+/// of the eleven sites that need it: the node kind is the same string every
+/// time, and a site that spelled it differently would be a divergence no test
+/// names.
+pub const SPREAD_ELEMENT: &str = "Unsupported expression: SpreadElement\n\n";
+
 pub fn unsupported_operator(op: &str) -> String {
   format!("Unsupported operator: {}\n\n", op)
 }

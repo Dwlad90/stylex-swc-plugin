@@ -14,7 +14,7 @@
 //! broken.
 
 use super::source_evaluation::*;
-use stylex_constants::constants::evaluation_errors::unsupported_expression;
+use stylex_constants::constants::evaluation_errors::{SPREAD_ELEMENT, unsupported_expression};
 
 // ==================== the reported input ====================
 
@@ -163,7 +163,7 @@ fn a_spread_argument_refuses_as_a_spread_whatever_the_callee() {
     "[\"a\", \"b\"].join(...[\"-\"])",
     "\"a\".concat(...[\"b\"])",
   ] {
-    assert_deopt_reason(source, &unsupported_expression("SpreadElement"));
+    assert_deopt_reason(source, SPREAD_ELEMENT);
   }
 }
 
@@ -202,7 +202,7 @@ fn every_spread_in_an_array_refuses_as_a_spread() {
     "[\"red\", ...\"ab\"]",
     "[[...[1, 2]]]",
   ] {
-    assert_deopt_reason(source, &unsupported_expression("SpreadElement"));
+    assert_deopt_reason(source, SPREAD_ELEMENT);
   }
 }
 
@@ -211,10 +211,7 @@ fn every_spread_in_an_array_refuses_as_a_spread() {
 /// evaluated at all.
 #[test]
 fn a_spread_of_an_unresolvable_operand_still_refuses_as_a_spread() {
-  assert_deopt_reason(
-    "[...unknownThing]",
-    &unsupported_expression("SpreadElement"),
-  );
+  assert_deopt_reason("[...unknownThing]", SPREAD_ELEMENT);
 }
 
 // ==================== object and member shapes ====================

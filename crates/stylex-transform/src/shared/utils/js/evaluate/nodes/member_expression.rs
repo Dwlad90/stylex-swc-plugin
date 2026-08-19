@@ -86,12 +86,16 @@ fn refuse_lookup(
 /// The number of slots an array literal writes, or `None` where the literal
 /// cannot be counted from its own elements.
 ///
-/// A spread is one element standing for however many the spread value holds, so
-/// `[...[1, 2]]` has one element and two slots. Neither this count nor the
-/// evaluated one is the language's answer there, so the caller refuses rather
-/// than folding a number that is confidently wrong — which is the defect the
-/// `length` fold exists to remove, and would be a poor thing to reintroduce
-/// while removing it.
+/// A hole is what makes the count come from the AST rather than from the
+/// evaluated elements: it occupies a slot and is dropped before it becomes a
+/// value, so `[, 1]` writes two slots and evaluates to one element.
+///
+/// The spread arm is a guard rather than a live path. A spread is one element
+/// standing for however many the spread value holds, so neither count is the
+/// language's answer — but evaluating the array refuses every spread first, so
+/// no receiver carrying one reaches here. Kept because the cost is a bounds
+/// check and the alternative, if that order ever changes, is a number that is
+/// confidently wrong.
 fn written_slot_count(elems: &[Option<ExprOrSpread>]) -> Option<usize> {
   match elems.iter().flatten().any(|elem| elem.spread.is_some()) {
     true => None,
@@ -111,10 +115,8 @@ fn written_slot_count(elems: &[Option<ExprOrSpread>]) -> Option<usize> {
 /// is the representation gap `array_expression` owns rather than this fold.
 ///
 /// The receiver is unwrapped before it is asked, because a parenthesis is not a
-/// different receiver: `([, 1]).length` and `([...xs]).length` reach the
-/// evaluated count otherwise, and that count is one short of the first and
-/// confidently wrong about the second — the spread reading `written_slot_count`
-/// exists to refuse.
+/// different receiver: `([, 1]).length` reaches the evaluated count otherwise,
+/// and that count is one short.
 fn written_slot_count_of(obj: &Expr, items: &[EvaluateResultValue]) -> Option<usize> {
   match normalize_expr(obj).as_array() {
     Some(ArrayLit { elems, .. }) => written_slot_count(elems),
@@ -205,7 +207,7 @@ pub(in super::super) fn evaluate(
               ArrayLikeLookup::Length => {
                 return match written_slot_count(elems) {
                   Some(count) => Some(EvaluateResultValue::Expr(create_number_expr(count as f64))),
-                  None => deopt(path, state, &unsupported_expression("SpreadElement")),
+                  None => deopt(path, state, SPREAD_ELEMENT),
                 };
               },
               // A property an array does not carry is `undefined`, the answer
@@ -312,7 +314,7 @@ pub(in super::super) fn evaluate(
               let PropOrSpread::Prop(prop) = prop else {
                 // A spread leaves the object's own keys unknown, so a key that
                 // is not among the literal ones cannot be called absent.
-                deopt_unsupported!(path, state, SPREAD_MUST_BE_OBJECT);
+                deopt_unsupported!(path, state, SPREAD_HIDES_OBJECT_KEYS);
               };
 
               let mut prop = prop.clone();
@@ -441,7 +443,7 @@ pub(in super::super) fn evaluate(
         EvaluateResultValue::Vec(items) => match classify_lookup(property.as_ref()) {
           ArrayLikeLookup::Length => match written_slot_count_of(&member.obj, &items) {
             Some(count) => Some(EvaluateResultValue::Expr(create_number_expr(count as f64))),
-            None => deopt(path, state, &unsupported_expression("SpreadElement")),
+            None => deopt(path, state, SPREAD_ELEMENT),
           },
           ArrayLikeLookup::Missing(_) => Some(js_undefined()),
           lookup @ (ArrayLikeLookup::Index(_) | ArrayLikeLookup::Unreadable) => {

@@ -86,3 +86,61 @@ fn alias_has_priority_for_inset_block_start() {
   let result = func(Some("20px".into())).unwrap();
   assert_eq!(result, vec![OrderPair("top".into(), Some("20px".into()))]);
 }
+
+// ── Every rejecting shorthand is reachable by its authored name ─────
+
+#[test]
+fn every_rejecting_shorthand_is_reachable_by_its_authored_name() {
+  // `border` agreed with the table by accident — it is spelled the same in
+  // both cases. The rest were unreachable, so a `borderTop: "none"` reached
+  // the stylesheet as `border-top:none` and defeated the specificity model
+  // this table exists to enforce.
+  let names = [
+    "all",
+    "animation",
+    "background",
+    "border",
+    "borderInline",
+    "borderBlock",
+    "borderTop",
+    "borderInlineEnd",
+    "borderRight",
+    "borderBottom",
+    "borderInlineStart",
+    "borderLeft",
+  ];
+
+  for name in names {
+    let func = PropertySpecificityOrder::get_expansion_fn(name)
+      .unwrap_or_else(|| panic!("'{name}' should have an expansion fn"));
+
+    match func(Some("1px solid red".into())) {
+      Ok(pairs) => panic!("'{name}' should reject, expanded to {pairs:?}"),
+      Err(error) => assert!(
+        error.contains("is not supported"),
+        "'{name}' reported {error:?}"
+      ),
+    }
+  }
+}
+
+#[test]
+fn a_snake_case_spelling_is_not_a_property_name() {
+  // The keys are authored property names, never Rust identifiers. Pinning
+  // this stops the two from being conflated again.
+  for name in [
+    "border_top",
+    "border_inline",
+    "border_block",
+    "border_left",
+    "border_right",
+    "border_bottom",
+    "border_inline_start",
+    "border_inline_end",
+  ] {
+    assert!(
+      PropertySpecificityOrder::get_expansion_fn(name).is_none(),
+      "'{name}' is not a property an author can write"
+    );
+  }
+}

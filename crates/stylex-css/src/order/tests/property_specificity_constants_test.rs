@@ -27,56 +27,56 @@ fn shorthands_get_border_returns_err() {
 
 #[test]
 fn shorthands_get_border_inline_returns_err() {
-  let func = Shorthands::get("border_inline").unwrap();
+  let func = Shorthands::get("borderInline").unwrap();
   let result = func(None);
   assert!(result.is_err());
 }
 
 #[test]
 fn shorthands_get_border_block_returns_err() {
-  let func = Shorthands::get("border_block").unwrap();
+  let func = Shorthands::get("borderBlock").unwrap();
   let result = func(None);
   assert!(result.is_err());
 }
 
 #[test]
 fn shorthands_get_border_top_returns_err() {
-  let func = Shorthands::get("border_top").unwrap();
+  let func = Shorthands::get("borderTop").unwrap();
   let result = func(None);
   assert!(result.is_err());
 }
 
 #[test]
 fn shorthands_get_border_inline_end_returns_err() {
-  let func = Shorthands::get("border_inline_end").unwrap();
+  let func = Shorthands::get("borderInlineEnd").unwrap();
   let result = func(None);
   assert!(result.is_err());
 }
 
 #[test]
 fn shorthands_get_border_right_returns_err() {
-  let func = Shorthands::get("border_right").unwrap();
+  let func = Shorthands::get("borderRight").unwrap();
   let result = func(None);
   assert!(result.is_err());
 }
 
 #[test]
 fn shorthands_get_border_bottom_returns_err() {
-  let func = Shorthands::get("border_bottom").unwrap();
+  let func = Shorthands::get("borderBottom").unwrap();
   let result = func(None);
   assert!(result.is_err());
 }
 
 #[test]
 fn shorthands_get_border_inline_start_returns_err() {
-  let func = Shorthands::get("border_inline_start").unwrap();
+  let func = Shorthands::get("borderInlineStart").unwrap();
   let result = func(None);
   assert!(result.is_err());
 }
 
 #[test]
 fn shorthands_get_border_left_returns_err() {
-  let func = Shorthands::get("border_left").unwrap();
+  let func = Shorthands::get("borderLeft").unwrap();
   let result = func(None);
   assert!(result.is_err());
 }
@@ -391,17 +391,20 @@ fn aliases_get_end() {
 // ── Deprecated aliases ──────────────────────────────────────────────
 
 #[test]
-fn aliases_get_border_horizontal_delegates_to_shorthands() {
-  // "borderHorizontal" delegates to Shorthands::get("borderHorizontal")
-  // which returns None for property_specificity_order (not in match)
-  let func = Aliases::get("borderHorizontal");
-  assert!(func.is_none());
+fn aliases_get_border_horizontal_delegates_to_border_inline() {
+  let func = Aliases::get("borderHorizontal").expect("borderHorizontal is registered");
+  let error = func(Some("1px solid red".into())).expect_err("borderInline rejects");
+  assert!(
+    error.starts_with("borderInline is not supported"),
+    "{error}"
+  );
 }
 
 #[test]
-fn aliases_get_border_vertical_delegates_to_shorthands() {
-  let func = Aliases::get("borderVertical");
-  assert!(func.is_none());
+fn aliases_get_border_vertical_delegates_to_border_block() {
+  let func = Aliases::get("borderVertical").expect("borderVertical is registered");
+  let error = func(None).expect_err("borderBlock rejects");
+  assert!(error.starts_with("borderBlock is not supported"), "{error}");
 }
 
 // ── Unknown ─────────────────────────────────────────────────────────
@@ -526,25 +529,28 @@ fn aliases_all_called_with_some_value() {
 // ── Deprecated aliases that delegate ────────────────────────────────
 
 #[test]
-fn aliases_deprecated_border_block_start_returns_none() {
-  let func = Aliases::get("borderBlockStart");
-  assert!(func.is_none());
-}
+fn aliases_deprecated_delegate_to_the_shorthand_they_alias() {
+  // Each of these is an alias *of* another shorthand, so it must answer with
+  // that shorthand's rejection rather than with its own name.
+  let entries = [
+    ("borderHorizontal", "borderInline is not supported"),
+    ("borderVertical", "borderBlock is not supported"),
+    ("borderBlockStart", "borderTop is not supported"),
+    ("borderEnd", "borderInlineEnd is not supported"),
+    ("borderBlockEnd", "borderBottom is not supported"),
+    ("borderStart", "borderInlineStart is not supported"),
+  ];
 
-#[test]
-fn aliases_deprecated_border_end_returns_none() {
-  let func = Aliases::get("borderEnd");
-  assert!(func.is_none());
-}
+  for (alias_name, expected_prefix) in entries {
+    let func = Aliases::get(alias_name)
+      .unwrap_or_else(|| panic!("alias '{alias_name}' should be registered"));
 
-#[test]
-fn aliases_deprecated_border_block_end_returns_none() {
-  let func = Aliases::get("borderBlockEnd");
-  assert!(func.is_none());
-}
-
-#[test]
-fn aliases_deprecated_border_start_returns_none() {
-  let func = Aliases::get("borderStart");
-  assert!(func.is_none());
+    match func(Some("1px solid red".into())) {
+      Ok(pairs) => panic!("alias '{alias_name}' should reject, expanded to {pairs:?}"),
+      Err(error) => assert!(
+        error.starts_with(expected_prefix),
+        "alias '{alias_name}' reported {error:?}"
+      ),
+    }
+  }
 }

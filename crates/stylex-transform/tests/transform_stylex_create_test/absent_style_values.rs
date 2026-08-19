@@ -565,9 +565,12 @@ stylex_test!(
 
 // ── The calls with no value validator in front of them ──────────────
 //
-// `keyframes` and `positionTry` validate no values, so an absence there is
-// dropped where `create` would keep the key. Both compilers agree, and this
-// is what the boolean arm in `flat_map_expanded_shorthands` exists for.
+// `keyframes`, `positionTry` and `viewTransitionClass` validate no values, so an
+// absence there is dropped where `create` would keep the key -- and so is a
+// boolean, which `create` refuses. Both compilers agree on all three, and this
+// is what the boolean arm in `flat_map_expanded_shorthands` exists for. All
+// three are covered because the arm's comment names all three: a caller listed
+// there and tested nowhere is a claim, not a fact.
 
 stylex_test!(
   a_null_keyframe_value_is_dropped,
@@ -602,6 +605,18 @@ stylex_test!(
       positionAnchor: '--anchor',
       top: null,
       left: false,
+    });
+  "#
+);
+
+stylex_test!(
+  an_absent_view_transition_class_value_is_dropped,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const transition = stylex.viewTransitionClass({
+      group: { color: null, opacity: false },
+      old: { animationName: 'fade' },
     });
   "#
 );

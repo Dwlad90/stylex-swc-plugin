@@ -771,10 +771,10 @@ stylex_test_panic!(
 // A regular expression under a condition. Refused, and the diagnostic is the
 // one divergence in this group: the reference implementation refuses it during
 // evaluation as `Unsupported expression: RegExpLiteral` rather than as an
-// illegal value. Both compilers refuse the build, and the spec's non-goals
-// establish that no build can depend on the wording — what is pinned here is
-// that it is refused at all, where before this change it compiled and the
-// declaration silently vanished.
+// illegal value. Both compilers refuse the build, and which of the two
+// diagnostics an author reads is not something a build can depend on. What is
+// pinned here is that it is refused at all, where before this change it compiled
+// and the declaration silently vanished.
 stylex_test_panic!(
   a_regular_expression_under_a_condition_is_not_a_style_value,
   "A style value can only contain an array, string or number.",

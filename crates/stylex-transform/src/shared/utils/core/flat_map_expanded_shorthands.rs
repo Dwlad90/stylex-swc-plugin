@@ -53,10 +53,10 @@ pub(crate) fn flat_map_expanded_shorthands(
       // shadowed.
       //
       // A boolean only reaches here from the calls that have no value
-      // validator in front of them -- `keyframes` and `positionTry` -- where it
-      // is dropped. Inside `create` the validator refuses it first, so this arm
-      // is not the decision about a boolean; `is_style_value_literal` in
-      // `validators.rs` is.
+      // validator in front of them -- `keyframes`, `positionTry` and
+      // `viewTransitionClass` -- where it is dropped. Inside `create` the
+      // validator refuses it first, so this arm is not the decision about a
+      // boolean; `is_style_value_literal` in `validators.rs` is.
       //
       // Every other literal that spells no string is a different thing again: a
       // regular expression is not an absent value, it is an unusable one, and

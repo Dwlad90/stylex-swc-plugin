@@ -52,7 +52,12 @@ fn a_hole_in_an_operand_refuses_rather_than_aborting() {
 }
 
 /// Depth is not a special case, and a hole a hundred arrays down still refuses
-/// the one at the top rather than exhausting anything on the way.
+/// for being a hole rather than exhausting anything on the way.
+///
+/// Runs under a raised ceiling because a hundred arrays is past the shipped
+/// default: at the default this input refuses for its depth instead, which is a
+/// correct answer to a different question. Which refusal wins at which depth is
+/// `tests/transform_stylex_create_test/evaluation_depth_budget.rs`.
 #[test]
 fn a_hole_a_hundred_arrays_deep_refuses() {
   let mut source = String::from("[, 1]");
@@ -61,7 +66,7 @@ fn a_hole_a_hundred_arrays_deep_refuses() {
     source = format!("[{}]", source);
   }
 
-  assert_hole_refusal(&source);
+  assert_hole_refusal_under_ceiling(&source, 512);
 }
 
 /// Ten thousand holes is the same answer as one, reached without walking any
@@ -178,6 +183,25 @@ fn two_counts_off_holey_literals_add() {
 #[track_caller]
 fn assert_hole_refusal(source: &str) {
   assert_deopt_reason_is(source, PATH_WITHOUT_NODE);
+}
+
+/// The same, for a source deep enough to need the ceiling raised first.
+#[track_caller]
+fn assert_hole_refusal_under_ceiling(source: &str, max_evaluation_depth: usize) {
+  let result = evaluate_source_with_ceiling(source, max_evaluation_depth);
+
+  assert!(
+    !result.confident,
+    "expected `{}` to refuse to fold, got {:?}",
+    source, result.value
+  );
+
+  assert_eq!(
+    result.reason.as_deref(),
+    Some(PATH_WITHOUT_NODE),
+    "wrong deopt reason for `{}`",
+    source
+  );
 }
 
 #[track_caller]

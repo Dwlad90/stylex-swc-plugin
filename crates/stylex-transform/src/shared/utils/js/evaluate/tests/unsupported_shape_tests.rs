@@ -328,19 +328,22 @@ fn a_conditional_whose_test_has_no_compile_time_truthiness_refuses() {
 
 /// Deep nesting is the shape most likely to turn a refusal into a stack
 /// overflow, because each operand recurses. A hundred levels is far past
-/// anything a stylesheet contains and well inside the default stack.
+/// anything a stylesheet contains, and past the shipped depth ceiling too --
+/// so both of these raise it, and keep asking about the shape rather than about
+/// the depth. Where the ceiling itself sits is
+/// `tests/transform_stylex_create_test/evaluation_depth_budget.rs`.
 #[test]
 fn a_deeply_nested_refusal_stays_a_refusal() {
   let deep = std::iter::repeat_n("1 > 0 && ", 100).collect::<String>();
 
-  assert_deopts(&format!("{}\"abc\".normalize()", deep));
+  assert_deopts_with_ceiling(&format!("{}\"abc\".normalize()", deep), 512);
 }
 
 #[test]
 fn a_deeply_nested_fold_still_folds() {
   let deep = std::iter::repeat_n("1 > 0 && ", 100).collect::<String>();
 
-  assert_folds_to_string(&format!("{}\"red\"", deep), "red");
+  assert_folds_to_string_with_ceiling(&format!("{}\"red\"", deep), "red", 512);
 }
 
 /// A chain long enough to matter for the argument-collecting loops the split

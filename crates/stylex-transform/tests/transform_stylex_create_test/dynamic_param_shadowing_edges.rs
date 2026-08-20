@@ -13,7 +13,7 @@
 //! 0.19.0 under the same options and agrees with it on class names and rule
 //! text. Where the two disagree the divergence is named at the test.
 
-use crate::utils::{prelude::*, transform::stringify_js};
+use crate::utils::{prelude::*, source::nest_expression, transform::stringify_js};
 
 // ──────────────────────────────────────────────
 // The value is malformed or unrecognized CSS
@@ -458,25 +458,19 @@ fn a_five_thousand_character_value_beside_a_shadowing_param() {
   assert!(output.contains(".xr3buco{z-index:var(--x-zIndex)}"));
 }
 
-// The evaluator walks a nested expression recursively, so its real limit is
-// stack depth rather than any checked bound. 256 levels of arithmetic around the
-// shadowing parameter fold to a single custom property in both compilers.
+// 256 levels of arithmetic around the shadowing parameter fold to a single
+// custom property in both compilers.
 //
-// The limit past that is measured, not asserted, because crossing it is not
-// something a test can survive: at 512 levels the evaluator exhausts the stack
-// and the process aborts, where Babel 0.19.0 still accepts 768 and raises a
-// catchable `RangeError: Maximum call stack size exceeded` beyond it. Our
-// ceiling is lower and our failure is louder -- an abort gives a bundler nothing
-// to report. Filed as its own issue; asserting it here would take the test
-// binary down with it.
+// This depth is the shadowing question; the depth *limit* is not, and it is not
+// asked here. The evaluator's ceiling and what happens on either side of it --
+// including this same shape at 576 levels, which upstream refuses and this
+// compiler folds -- are pinned in `evaluation_depth_budget.rs`, because nothing
+// in the limit turned out to depend on the shadowing.
 #[test]
 fn two_hundred_and_fifty_six_levels_of_arithmetic_around_a_shadowing_param() {
   const DEPTH: usize = 256;
 
-  let mut expr = String::from("zIndex");
-  for _ in 0..DEPTH {
-    expr = format!("({} + 1)", expr);
-  }
+  let expr = nest_expression("(", " + 1)", "zIndex", DEPTH);
 
   let input = format!(
     r#"

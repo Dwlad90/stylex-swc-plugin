@@ -18,11 +18,37 @@ use swc_core::{
 /// [#1265](https://github.com/Dwlad90/stylex-swc-plugin/issues/1265) reported,
 /// so a test that reaches one fails rather than reporting a refusal.
 pub(crate) fn evaluate_source(source: &str) -> Box<EvaluateResult> {
+  evaluate_source_under_ceiling(source, None)
+}
+
+/// The same, with the evaluator's depth ceiling raised.
+///
+/// The shipped default is sized for hand-written styles, so a case whose subject
+/// is depth has to name the ceiling it wants rather than inherit one: without
+/// this a test asserting that a hundred levels still fold would be asserting
+/// that the default refuses them, which is a different claim and a true one.
+pub(crate) fn evaluate_source_with_ceiling(
+  source: &str,
+  max_evaluation_depth: usize,
+) -> Box<EvaluateResult> {
+  evaluate_source_under_ceiling(source, Some(max_evaluation_depth))
+}
+
+fn evaluate_source_under_ceiling(
+  source: &str,
+  max_evaluation_depth: Option<usize>,
+) -> Box<EvaluateResult> {
   let expr = parse_expr(source);
   let globals = Globals::new();
 
   GLOBALS.set(&globals, || {
-    let mut traversal_state = StateManager::new(StyleXOptions::default());
+    let mut options = StyleXOptions::default();
+
+    if let Some(depth) = max_evaluation_depth {
+      options.core.max_evaluation_depth = depth;
+    }
+
+    let mut traversal_state = StateManager::new(options);
     let fns = FunctionMap::default();
 
     evaluate(&expr, &mut traversal_state, &fns)
@@ -55,8 +81,20 @@ pub(crate) fn parse_expr(source: &str) -> Expr {
 /// what a build error says.
 #[track_caller]
 pub(crate) fn assert_deopts(source: &str) {
-  let result = evaluate_source(source);
+  assert_deopt_result(&evaluate_source(source), source);
+}
 
+/// The same, with the depth ceiling raised for a source whose subject is depth.
+#[track_caller]
+pub(crate) fn assert_deopts_with_ceiling(source: &str, max_evaluation_depth: usize) {
+  assert_deopt_result(
+    &evaluate_source_with_ceiling(source, max_evaluation_depth),
+    source,
+  );
+}
+
+#[track_caller]
+fn assert_deopt_result(result: &EvaluateResult, source: &str) {
   assert!(
     !result.confident,
     "expected `{}` to refuse to fold, got {:?}",
@@ -99,8 +137,20 @@ pub(crate) fn assert_deopt_names_property(source: &str, property: &str) {
 /// satisfied by an evaluator that folds nothing at all.
 #[track_caller]
 pub(crate) fn assert_folds(source: &str) -> Expr {
-  let result = evaluate_source(source);
+  assert_folds_result(*evaluate_source(source), source)
+}
 
+/// The same, with the depth ceiling raised for a source whose subject is depth.
+#[track_caller]
+pub(crate) fn assert_folds_with_ceiling(source: &str, max_evaluation_depth: usize) -> Expr {
+  assert_folds_result(
+    *evaluate_source_with_ceiling(source, max_evaluation_depth),
+    source,
+  )
+}
+
+#[track_caller]
+fn assert_folds_result(result: EvaluateResult, source: &str) -> Expr {
   assert!(
     result.confident,
     "expected `{}` to fold, got a deopt: {:?}",
@@ -129,12 +179,45 @@ pub(crate) fn assert_folds_to_string(source: &str, expected: &str) {
   }
 }
 
+/// The same, with the depth ceiling raised for a source whose subject is depth.
+#[track_caller]
+pub(crate) fn assert_folds_to_string_with_ceiling(
+  source: &str,
+  expected: &str,
+  max_evaluation_depth: usize,
+) {
+  match assert_folds_with_ceiling(source, max_evaluation_depth) {
+    Expr::Lit(Lit::Str(strng)) => assert_eq!(
+      convert_atom_to_string(&strng.value),
+      expected,
+      "wrong folded string for `{}`",
+      source
+    ),
+    other => panic!("expected `{}` to fold to a string, got {:?}", source, other),
+  }
+}
+
 /// Asserts the source folds to a number. Spelled as an exact value rather than
 /// "some number", because a confident answer that is not the right one is the
 /// failure mode the `length` fold exists to remove.
 #[track_caller]
 pub(crate) fn assert_folds_to_number(source: &str, expected: f64) {
   match assert_folds(source) {
+    Expr::Lit(Lit::Num(num)) => {
+      assert_eq!(num.value, expected, "wrong folded number for `{}`", source)
+    },
+    other => panic!("expected `{}` to fold to a number, got {:?}", source, other),
+  }
+}
+
+/// The same, with the depth ceiling raised for a source whose subject is depth.
+#[track_caller]
+pub(crate) fn assert_folds_to_number_with_ceiling(
+  source: &str,
+  expected: f64,
+  max_evaluation_depth: usize,
+) {
+  match assert_folds_with_ceiling(source, max_evaluation_depth) {
     Expr::Lit(Lit::Num(num)) => {
       assert_eq!(num.value, expected, "wrong folded number for `{}`", source)
     },

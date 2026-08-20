@@ -209,6 +209,21 @@ pub(crate) fn theme_import_transform(comments: TestComments) -> impl Pass {
   })
 }
 
+/// The theme-import transform with the evaluator's ceiling raised.
+///
+/// For the cases that measure how deep a fold can go: the shipped default is
+/// sized for hand-written styles, and a test that walks hundreds of levels has
+/// to say so rather than quietly depend on the default being generous.
+#[allow(dead_code)]
+pub(crate) fn deep_theme_import_transform(comments: TestComments, depth: usize) -> impl Pass {
+  build_test_transform(comments, move |b| {
+    b.with_filename(FileName::Real("MyComponent.js".into()))
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_max_evaluation_depth(depth)
+      .with_runtime_injection()
+  })
+}
+
 /// The same, for a module that *declares* a theme rather than importing one.
 ///
 /// A `defineVars` call hashes its own filename, so a file not named

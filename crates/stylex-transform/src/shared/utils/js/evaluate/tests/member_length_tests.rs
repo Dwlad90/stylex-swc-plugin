@@ -454,12 +454,16 @@ fn a_long_astral_string_is_counted_in_code_units() {
 /// Deep nesting is the shape most likely to turn either answer into a stack
 /// overflow, because each level recurses. Asserted on both sides so a
 /// crash-free refusal cannot be mistaken for a working fold.
+///
+/// Under a raised ceiling: a hundred operands is past the shipped default, which
+/// is sized for hand-written styles, and the question here is whether the depth
+/// changes the *answer* rather than where the ceiling sits.
 #[test]
 fn a_deeply_nested_length_read_neither_overflows_nor_changes_answer() {
   let deep = std::iter::repeat_n("1 > 0 && ", 100).collect::<String>();
 
-  assert_folds_to_number(&format!("{}\"abc\".length", deep), 3.0);
-  assert_deopts(&format!("{}\"abc\"[0]", deep));
+  assert_folds_to_number_with_ceiling(&format!("{}\"abc\".length", deep), 3.0, 512);
+  assert_deopts_with_ceiling(&format!("{}\"abc\"[0]", deep), 512);
 }
 
 /// A member chain deeper than the receiver is not a length read at any depth. A

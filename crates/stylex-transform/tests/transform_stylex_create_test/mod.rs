@@ -4,6 +4,7 @@ mod debug_options;
 mod dynamic_param_shadowing_edges;
 mod dynamic_styles;
 mod env;
+mod evaluation_depth_budget;
 mod global_builtin_calls;
 mod legacy_deprecated;
 mod logical_operators;

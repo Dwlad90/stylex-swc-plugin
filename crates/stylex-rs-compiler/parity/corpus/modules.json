@@ -429,6 +429,54 @@
       "origin": "the identifier audit for issue #1266, the one pair the step reorder is not inert on",
       "note": "`NaN` is a legal binding name, so this is the only shape where an import specifier and one of the three folded globals name the same binding -- and the resolution chain asks about the import first, as the reference implementation does. Before the chain was ordered, the globals were asked about first and this folded to a literal `NaN`. Recorded because it is the single outcome the reorder changed, and it changed toward the reference implementation. Measured both ways: `acceptance divergent` at 0f9d2bcd2, `identical` once the chain is ordered.",
       "expected": "identical"
+    },
+    {
+      "id": "modules-1266-dynamic-param-named-nan",
+      "label": "a dynamic style's parameter named `NaN`",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  a: (NaN) => ({ width: NaN }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the globals step of the resolution chain",
+      "note": "`NaN` is an ordinary binding name, so a parameter can take it over -- and the resolution chain has to ask which of the two the reference in the body is. It asks about the binding, so the parameter refuses and the value falls through to the inline-style path a dynamic parameter is emitted through. Before the step asked, the global folded in and CSS generation rejected the static `NaN` with `Only static values are allowed inside of a create() call.`, which is `acceptance divergent`.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-dynamic-param-named-infinity-and-undefined",
+      "label": "a dynamic style's parameter named `Infinity`, and one named `undefined`",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const wide = stylex.create({\n  a: (Infinity) => ({ width: Infinity }),\n});\n\nexport const faded = stylex.create({\n  b: (undefined) => ({ opacity: undefined }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the two names beside `NaN`",
+      "note": "The step answers for all three names alike. Kept beside the `NaN` entry rather than folded into it so a regression that reaches only one of the three still reports.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-dynamic-param-named-nan-through-an-operator",
+      "label": "a parameter named `NaN` read through arithmetic",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  a: (NaN) => ({ width: NaN + 1 }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the refusal travelling out of an operand",
+      "note": "The refusal has to travel out of the arithmetic rather than being the value the property receives, which is a different path out of the evaluator than the bare reference above. Before the step asked, this folded to the literal `NaN` and emitted `width:NaNpx`, which upstream does not: `divergent`.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-const-takes-a-global-name-over",
+      "label": "a module-level `const` named `NaN`, read from a style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst NaN = '5px';\n\nexport const styles = stylex.create({\n  a: { width: NaN },\n});\n",
+      "origin": "the identifier audit for issue #1266, the globals step outside a dynamic style",
+      "note": "The step refuses for any binding, not only a parameter, and it refuses *instead of* reading the declarator's initializer -- a reference that names a binding never reaches the initializer step. Both compilers refuse, with the same text: `Referenced constant is not initialized.` Before the step asked, this compiler folded the initializer and emitted `width:5px` where upstream refused: `acceptance divergent`.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-global-beside-an-unrelated-binding-of-its-name",
+      "label": "the global `NaN` in a module where an unrelated scope binds the name",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  a: { width: NaN },\n});\n\nexport function scale(NaN) {\n  return NaN;\n}\n",
+      "origin": "the identifier audit for issue #1266, the guard on the globals step",
+      "note": "The binding question is asked of the reference's full `Id`, so a binding of the same name in a scope that does not enclose the reference is not the binding it names, and the global stands. Both compilers agree on that much and then diverge downstream on the global itself: upstream emits `width:NaNpx`, where this compiler refuses the non-numeric identifier as a style value. That downstream divergence is what this entry is expected to read, and it is the same one `modules-1266-the-unshadowed-globals-in-a-style-value` records without any binding in the module -- so a regression in the binding question would change this entry's verdict while leaving that one's alone.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-the-unshadowed-globals-in-a-style-value",
+      "label": "the globals `NaN` and `Infinity` in a style value, bound nowhere",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  a: { width: NaN },\n  b: { height: Infinity },\n});\n",
+      "origin": "the identifier audit for issue #1266, the other half of the globals step",
+      "note": "With nothing bound, the step answers the global, which is what keeps this a divergence about the value rather than about the binding: upstream emits `width:NaNpx` and `height:Infinitypx`, where this compiler refuses a non-numeric identifier as a style value. Unchanged by the globals step and recorded so that it stays unchanged -- a regression that made the step refuse an unbound global would show up here as a message change rather than silently.",
+      "expected": "acceptance-divergent"
     }
   ]
 }

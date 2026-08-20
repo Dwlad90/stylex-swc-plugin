@@ -106,9 +106,7 @@ fn spread_own_properties(value: EvaluateResultValue, operand: &Expr) -> Option<V
     // literals. Only these three: any other bare identifier either resolved to
     // a value handled above or never resolved at all, and the latter has
     // already refused before reaching here.
-    EvaluateResultValue::Expr(Expr::Ident(ident))
-      if matches!(ident.sym.as_ref(), "undefined" | "NaN" | "Infinity") =>
-    {
+    EvaluateResultValue::Expr(Expr::Ident(ident)) if is_global_spelled_as_an_identifier(&ident) => {
       Some(vec![])
     },
 

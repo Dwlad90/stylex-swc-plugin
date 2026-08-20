@@ -207,8 +207,6 @@ pub(super) fn resolve_reference(
   // there either, and every input falls through to the two below exactly as it
   // does here.
 
-  let initializer = declarator.and_then(|mut declarator| declarator.init.take());
-
   // ── 7. `undefined` / `Infinity` / `NaN` (670-683) ─────────────────────────
   //
   // This step used to be asked before the import step, and moving it behind one
@@ -220,24 +218,38 @@ pub(super) fn resolve_reference(
   // `modules-1266-import-aliased-to-a-global-name`, which the reorder turns from
   // a divergence into agreement.
   //
-  // Upstream reaches these names only when the binding carries no value, and
-  // refuses with `UNINITIALIZED_CONST` when a binding exists at all — so a
-  // dynamic style's parameter named `NaN` deopts there and becomes an inline
-  // style, where here the global folds in. Closing that gap changes output and
-  // belongs to `issues/05-…`; the guard below is what today's behaviour
-  // already was, spelled at the position upstream asks the question from: the
-  // global stands in only where no initializer was found for the name.
-  if initializer.is_none() {
-    let name = ident.sym.as_str();
-
-    if name == "undefined" || name == "Infinity" || name == "NaN" {
-      return Some(EvaluateResultValue::Expr(Expr::from(ident.clone())));
-    }
+  // The three names are ordinary bindings to the language, so the question is
+  // which of the two this reference is — the global, or something in scope that
+  // took the name over. The binding decides, and nothing below it does: the
+  // step answers for all three names either way, and a reference that names a
+  // binding never reaches the initializer read below.
+  //
+  // A binding that took one of these names over carries no value the evaluator
+  // holds — the reference implementation reads `binding.hasValue`, which is step
+  // 6, deliberately absent above and always false there — so there is nothing
+  // to fold and the step refuses. That refusal is what turns a dynamic style's
+  // parameter named `NaN` into an inline style: the value falls through to the
+  // inline-style path, which is where the parameter comes from.
+  //
+  // The binding question is asked of the module being compiled, where upstream
+  // asks the scope chain of whatever file the reference sits in. The two part
+  // company on a reference read out of an *imported* file, whose bindings carry
+  // a syntax context this module's pre-scan never saw: the name misses and the
+  // global stands. It fails in the safe direction — a fold that should have
+  // been refused, never a refusal of something that should fold — and closing
+  // it means evaluating an imported file in its own right, which this compiler
+  // does not do at all yet.
+  if is_global_spelled_as_an_identifier(ident) {
+    return if traversal_state.declares_binding(ident) {
+      deopt(path, state, UNINITIALIZED_CONST)
+    } else {
+      Some(EvaluateResultValue::Expr(Expr::from(ident.clone())))
+    };
   }
 
   // ── 8. the declarator's initializer, else the class / function refusals ───
   //      (685-690)
-  if let Some(init) = initializer {
+  if let Some(init) = declarator.and_then(|mut declarator| declarator.init.take()) {
     return evaluate_cached(&init, state, traversal_state, fns);
   }
 

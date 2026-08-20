@@ -35,8 +35,16 @@ pub static NON_CONSTANT: &str = "Referenced value is not a constant.\n\n";
 /// not hold yet.
 pub static USED_BEFORE_DECLARATION: &str = "Referenced value is used before declaration.\n\n";
 
-// pub static UNINITIALIZED_CONST: &str = "Referenced constant is not
-// initialized.\n\n";
+/// A reference to one of `undefined` / `Infinity` / `NaN` that names a binding
+/// rather than the global. The three are ordinary binding names to the
+/// language, so anything in scope can take one over -- a `const`, a function
+/// parameter, a catch binding -- and the global is then not what the reference
+/// reads. There is no folded value to answer with either, so the fold refuses.
+///
+/// Says "not initialized" rather than "shadowed" because that is the reference
+/// implementation's text, and it is the text for the same reason: the step is
+/// reached only where the binding carries no value the evaluator holds.
+pub static UNINITIALIZED_CONST: &str = "Referenced constant is not initialized.\n\n";
 
 pub static UNDEFINED_CONST: &str = "Referenced constant is not defined.";
 

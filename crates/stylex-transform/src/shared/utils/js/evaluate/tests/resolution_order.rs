@@ -15,16 +15,23 @@
 
 use super::*;
 
+use swc_core::atoms::Atom;
 use swc_core::common::{BytePos, DUMMY_SP, GLOBALS, Globals, Span, SyntaxContext};
 use swc_core::ecma::ast::{
   BindingIdent, ImportDecl, ImportNamedSpecifier, ImportPhase, ImportSpecifier, Str,
 };
 
 use stylex_constants::constants::evaluation_errors::{
-  IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, UNDEFINED_CONST, USED_BEFORE_DECLARATION,
-  unsupported_expression,
+  IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, UNDEFINED_CONST, UNINITIALIZED_CONST,
+  USED_BEFORE_DECLARATION, unsupported_expression,
 };
 use stylex_structures::stylex_options::StyleXOptions;
+
+/// The three names the globals step asks about. Every case that is about the
+/// step runs over all three rather than picking one, because the step answers
+/// for them together and a regression that reached only one of them would
+/// otherwise pass.
+const FOLDED_GLOBALS: [&str; 3] = ["undefined", "Infinity", "NaN"];
 
 /// The context every binding here is declared in. `SyntaxContext::empty()` is
 /// what makes an import specifier and a declarator of the same name resolve to
@@ -128,6 +135,22 @@ struct ModuleState {
   padding: usize,
   disable_imports: bool,
   reference_context: Option<SyntaxContext>,
+  /// Where a binding that leaves no declarator behind sits, when the case has
+  /// one — a function parameter or a catch binding.
+  parameter: Option<ParameterScope>,
+}
+
+/// Which scope a parameter-shaped binding occupies, relative to the reference
+/// reading it. The two are what the globals step has to tell apart, and a
+/// single field rather than two flags because no case is both.
+#[derive(PartialEq, Eq)]
+enum ParameterScope {
+  /// The context the reference itself reads from — a reference to a parameter
+  /// from inside its own function, which is what a dynamic style's body is.
+  Own,
+  /// A context the reference never reads from — the same name bound in some
+  /// sibling scope, which must leave the reference resolving to the global.
+  Unrelated,
 }
 
 impl ModuleState {
@@ -176,6 +199,22 @@ impl ModuleState {
     self
   }
 
+  /// Binds the name with nothing to read, in the reference's own scope: a
+  /// function parameter or a catch binding. The chain's only question about one
+  /// is whether it exists, which is the question a dynamic style's parameter
+  /// named `NaN` turns on.
+  fn bound_as_a_parameter(mut self) -> Self {
+    self.parameter = Some(ParameterScope::Own);
+    self
+  }
+
+  /// Binds the name in a scope the reference does not read from, which is not
+  /// the binding the reference names however alike the two are spelled.
+  fn bound_in_an_unrelated_scope(mut self) -> Self {
+    self.parameter = Some(ParameterScope::Unrelated);
+    self
+  }
+
   /// Reads the reference from a context of its own, the way the resolver marks
   /// a binding that shadows the module-level one.
   fn read_from_a_shadowing_scope(mut self) -> Self {
@@ -202,14 +241,37 @@ impl ModuleState {
         ));
       }
 
+      // Every binding site below also registers the binding itself, because the
+      // module pre-scan records both: a declarator is a declaration *and* a
+      // binding, and the chain's globals step asks only the second question.
+      let module_binding = (Atom::from(name), MODULE_CONTEXT);
+
       if self.imported {
         traversal_state.top_imports.push(theme_import_of(name));
+        traversal_state
+          .declared_bindings
+          .insert(module_binding.clone());
       }
 
       if let Some(init) = self.declarator {
         traversal_state
           .declarations
           .push(declarator_at(name, DECLARATOR_SPAN, init));
+        traversal_state
+          .declared_bindings
+          .insert(module_binding.clone());
+      }
+
+      match self.parameter {
+        Some(ParameterScope::Own) => {
+          traversal_state.declared_bindings.insert(reference.to_id());
+        },
+        Some(ParameterScope::Unrelated) => {
+          traversal_state
+            .declared_bindings
+            .insert((Atom::from(name), shadowing_context()));
+        },
+        None => {},
       }
 
       if self.reassigned {
@@ -224,10 +286,14 @@ impl ModuleState {
 
       if self.class_declaration {
         traversal_state.add_class_name_declaration(reference.clone());
+        traversal_state
+          .declared_bindings
+          .insert(module_binding.clone());
       }
 
       if self.function_declaration {
         traversal_state.add_function_name_declaration(reference.clone());
+        traversal_state.declared_bindings.insert(module_binding);
       }
 
       let functions = FunctionMap {
@@ -254,6 +320,21 @@ fn assert_refused_with(result: &EvaluateResult, reason: &str) {
   );
 
   assert_eq!(result.reason.as_deref(), Some(reason));
+}
+
+/// The global stood as itself — the answer step 7 gives a name nothing bound.
+#[track_caller]
+fn assert_folded_to_the_global(result: &EvaluateResult, name: &str) {
+  assert!(
+    result.confident,
+    "expected `{}` to fold, got the refusal {:?}",
+    name, result.reason
+  );
+
+  match &result.value {
+    Some(EvaluateResultValue::Expr(Expr::Ident(ident))) => assert_eq!(ident.sym, *name),
+    other => panic!("expected the global `{}`, got {:?}", name, other),
+  }
 }
 
 #[track_caller]
@@ -388,48 +469,142 @@ fn an_early_reference_answers_before_the_initializer_read() {
 /// names, and it stands as itself.
 #[test]
 fn an_undeclared_global_folds_to_itself() {
-  for name in ["undefined", "Infinity", "NaN"] {
+  for name in FOLDED_GLOBALS {
     let result = ModuleState::default().evaluate(name, LATER_REFERENCE_SPAN);
 
-    assert!(
-      result.confident,
-      "expected `{}` to fold, got the refusal {:?}",
-      name, result.reason
-    );
-
-    match &result.value {
-      Some(EvaluateResultValue::Expr(Expr::Ident(ident))) => assert_eq!(ident.sym, *name),
-      other => panic!("expected the global `{}`, got {:?}", name, other),
-    }
+    assert_folded_to_the_global(&result, name);
   }
 }
 
-/// A declaration of one of those names shadows the global, and the declaration
-/// wins. Recorded as the outcome to change rather than the outcome to keep: the
-/// reference implementation refuses here, because a binding exists at all, and
-/// that refusal is what turns a dynamic style's `NaN` parameter into an inline
-/// style instead of a static `NaN`. Whoever revives it should expect this test
-/// to be the first thing that fails.
+/// A binding of one of those names takes the global over, and the step refuses
+/// rather than folding — there is no value to fold, because the step upstream
+/// reads one from is the absent step 6. The declaration's initializer is *not*
+/// read: a reference that names a binding never reaches step 8.
 #[test]
-fn a_declared_global_reads_its_declaration_for_now() {
-  let result = ModuleState::default()
-    .declared_with(create_string_expr("red"))
-    .evaluate("NaN", LATER_REFERENCE_SPAN);
-
-  assert_folded_to_the_string(&result, "red");
+fn a_declared_global_is_refused_rather_than_read() {
+  for name in FOLDED_GLOBALS {
+    assert_refused_with(
+      &ModuleState::default()
+        .declared_with(create_string_expr("red"))
+        .evaluate(name, LATER_REFERENCE_SPAN),
+      UNINITIALIZED_CONST,
+    );
+  }
 }
 
-/// The global step is guarded on there being no initializer to read, not on
-/// there being no binding — so a declaration without one still leaves the
-/// global standing. Also recorded as an outcome that changes when step 7 starts
-/// asking about the binding instead.
+/// And with nothing to read either way, which is the shape the message names.
 #[test]
-fn a_global_declared_without_an_initializer_still_folds_to_itself() {
+fn a_global_declared_without_an_initializer_is_refused() {
   let result = ModuleState::default()
     .declared_without_initializer()
     .evaluate("NaN", LATER_REFERENCE_SPAN);
 
-  assert!(result.confident, "got the refusal {:?}", result.reason);
+  assert_refused_with(&result, UNINITIALIZED_CONST);
+}
+
+/// The case the step exists for: a binding that leaves no declarator behind —
+/// a dynamic style's parameter. Nothing else in the chain can see one, so the
+/// binding is the whole of what makes this a refusal, and the refusal is what
+/// sends the value down the inline-style path the parameter comes from.
+#[test]
+fn a_global_taken_over_by_a_parameter_is_refused() {
+  for name in FOLDED_GLOBALS {
+    assert_refused_with(
+      &ModuleState::default()
+        .bound_as_a_parameter()
+        .evaluate(name, LATER_REFERENCE_SPAN),
+      UNINITIALIZED_CONST,
+    );
+  }
+}
+
+/// A parameter read from its own scope, which is what the resolver hands a
+/// dynamic style's body — the reference and the binding share a context that is
+/// nobody else's.
+#[test]
+fn a_parameter_in_a_scope_of_its_own_still_takes_the_global_over() {
+  let result = ModuleState::default()
+    .bound_as_a_parameter()
+    .read_from_a_shadowing_scope()
+    .evaluate("NaN", LATER_REFERENCE_SPAN);
+
+  assert_refused_with(&result, UNINITIALIZED_CONST);
+}
+
+/// And the half that keeps the step honest: a binding of the same *name* in
+/// some unrelated scope is not the binding this reference names. The question is
+/// asked of the `Id`, so the module-level global stands, exactly as it does
+/// upstream where the scope chain is walked from the reference.
+#[test]
+fn a_global_beside_an_unrelated_binding_of_its_name_still_folds_to_itself() {
+  for name in FOLDED_GLOBALS {
+    let result = ModuleState::default()
+      .bound_in_an_unrelated_scope()
+      .evaluate(name, LATER_REFERENCE_SPAN);
+
+    assert_folded_to_the_global(&result, name);
+  }
+}
+
+/// The step is about these three names and no others. A binding of any other
+/// name is an ordinary binding and falls through to the steps below.
+#[test]
+fn a_binding_of_any_other_name_is_untouched_by_the_globals_step() {
+  assert_folded_to_the_string(
+    &ModuleState::default()
+      .declared_with(create_string_expr("red"))
+      .evaluate_a_later_reference(),
+    "red",
+  );
+
+  // Near-misses, so the comparison is against the whole name rather than a
+  // prefix, a case fold, or a trimmed edge.
+  for name in [
+    "nan",
+    "NaNs",
+    "NAN",
+    "Infinit",
+    "Infinity2",
+    "undefined_",
+    " NaN",
+  ] {
+    assert_refused_with(
+      &ModuleState::default()
+        .bound_as_a_parameter()
+        .evaluate(name, LATER_REFERENCE_SPAN),
+      UNDEFINED_CONST,
+    );
+  }
+}
+
+/// The steps above the globals step still answer first for these names, so the
+/// refusal a reader sees is the narrowest true one rather than always this
+/// step's. The import step is covered separately by
+/// `an_import_aliased_to_a_global_name_resolves_as_the_import`.
+#[test]
+fn the_steps_above_the_globals_step_answer_for_these_names_too() {
+  assert_refused_with(
+    &ModuleState::default()
+      .declared_with(create_string_expr("red"))
+      .reassigned()
+      .evaluate("NaN", LATER_REFERENCE_SPAN),
+    NON_CONSTANT,
+  );
+
+  assert_refused_with(
+    &ModuleState::default()
+      .declared_with(create_string_expr("red"))
+      .mutated()
+      .evaluate("Infinity", LATER_REFERENCE_SPAN),
+    NON_CONSTANT,
+  );
+
+  assert_refused_with(
+    &ModuleState::default()
+      .declared_with(create_string_expr("red"))
+      .evaluate("undefined", span_at(1, 2)),
+    USED_BEFORE_DECLARATION,
+  );
 }
 
 // ==================== step 8 — the declaration, then the refusals ====================
@@ -618,7 +793,7 @@ fn a_disabled_import_step_leaves_the_steps_behind_it_answering() {
 /// the same shape against the reference implementation, which agrees.
 #[test]
 fn an_import_aliased_to_a_global_name_resolves_as_the_import() {
-  for name in ["undefined", "Infinity", "NaN"] {
+  for name in FOLDED_GLOBALS {
     let result = ModuleState::default()
       .imported()
       .evaluate(name, LATER_REFERENCE_SPAN);

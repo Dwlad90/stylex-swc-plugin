@@ -105,6 +105,19 @@ fn surviving_global(ident: &Ident) -> Option<SurvivingGlobal> {
   }
 }
 
+/// Whether `ident` names one of the three globals above — the only values the
+/// language spells as an identifier rather than as a literal.
+///
+/// Exported for the callers that need the *set* rather than a coercion of it:
+/// the evaluator's reference-resolution chain, which decides whether such a
+/// name is the global or a binding that took it over, and its object coercion,
+/// which answers that all three carry no own properties. They ask here for the
+/// same reason the coercions do — so the set is written down once and a fourth
+/// name would be added in one place.
+pub fn is_global_spelled_as_an_identifier(ident: &Ident) -> bool {
+  surviving_global(ident).is_some()
+}
+
 /// ECMA-262 `ToString`, over an already-evaluated expression.
 ///
 /// Returns `None` for values with no compile-time string form — a function,

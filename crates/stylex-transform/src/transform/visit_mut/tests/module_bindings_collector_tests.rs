@@ -17,6 +17,22 @@ use super::ModuleBindingsCollector;
 /// does before the StyleX pass, so `Id`s carry real syntax contexts and
 /// shadowed bindings stay distinguishable.
 fn resolved_module(code: &str) -> Module {
+  resolved_module_in(
+    code,
+    Syntax::Es(EsSyntax {
+      jsx: true,
+      ..Default::default()
+    }),
+  )
+}
+
+/// The same, over TypeScript syntax — for the binding forms only TypeScript
+/// spells, which the ES parser cannot read at all.
+fn resolved_ts_module(code: &str) -> Module {
+  resolved_module_in(code, Syntax::Typescript(Default::default()))
+}
+
+fn resolved_module_in(code: &str, syntax: Syntax) -> Module {
   let source_map = SourceMap::default();
   let source_file = source_map.new_source_file(
     Arc::new(FileName::Custom("module_bindings_fixture.tsx".to_string())),
@@ -24,10 +40,7 @@ fn resolved_module(code: &str) -> Module {
   );
 
   let lexer = Lexer::new(
-    Syntax::Es(EsSyntax {
-      jsx: true,
-      ..Default::default()
-    }),
+    syntax,
     Default::default(),
     StringInput::from(&*source_file),
     None,
@@ -87,8 +100,24 @@ fn names(ids: FxHashSet<Id>) -> FxHashSet<String> {
 /// Runs the collector over `code` and reads whichever set the caller asks for,
 /// so the three readers above differ only in that choice.
 fn collect(code: &str, read: impl Fn(&ModuleBindingsCollector) -> FxHashSet<Id>) -> FxHashSet<Id> {
+  collect_parsed_by(resolved_module, code, read)
+}
+
+/// The same over TypeScript syntax, for the forms the ES parser cannot read.
+fn collect_ts(
+  code: &str,
+  read: impl Fn(&ModuleBindingsCollector) -> FxHashSet<Id>,
+) -> FxHashSet<Id> {
+  collect_parsed_by(resolved_ts_module, code, read)
+}
+
+fn collect_parsed_by(
+  parse: fn(&str) -> Module,
+  code: &str,
+  read: impl Fn(&ModuleBindingsCollector) -> FxHashSet<Id>,
+) -> FxHashSet<Id> {
   GLOBALS.set(&Globals::default(), || {
-    let module = resolved_module(code);
+    let module = parse(code);
     let mut collector = ModuleBindingsCollector::writes_only();
     module.visit_with(&mut collector);
 
@@ -374,4 +403,155 @@ fn first_top_level_binding(module: &Module) -> Id {
       _ => None,
     })
     .expect("fixture declares a top-level binding")
+}
+
+// ==================== the bindings the module declares ====================
+//
+// The `Id`-keyed set the evaluator's globals step reads. Unlike the two write
+// sets, it is filled in both of the collector's modes, so every case here runs
+// under `writes_only` — the mode that collects *less* — to pin that.
+
+fn bound_names(code: &str) -> FxHashSet<String> {
+  names(collect(code, |collector| {
+    collector.declared_bindings.clone()
+  }))
+}
+
+#[track_caller]
+fn assert_binds(code: &str, expected: &[&str]) {
+  assert_names(bound_names(code), expected, code);
+}
+
+/// The same over TypeScript syntax.
+#[track_caller]
+fn assert_ts_binds(code: &str, expected: &[&str]) {
+  let recorded = names(collect_ts(code, |collector| {
+    collector.declared_bindings.clone()
+  }));
+
+  assert_names(recorded, expected, code);
+}
+
+/// Every binding form JavaScript spells, in the one place a reader would look
+/// for the list. A name missing here is a global the evaluator would fold where
+/// the module had taken the name over.
+///
+/// TypeScript's own three -- `enum`, `namespace` and `import x = require()` --
+/// are deliberately not among them, and are pinned as absent by
+/// `records_nothing_for_typescript_only_binding_forms` below.
+#[test]
+fn records_every_javascript_binding_form() {
+  assert_binds("const a = 1; let b = 2; var c = 3;", &["a", "b", "c"]);
+  assert_binds("function f(p, q) {}", &["f", "p", "q"]);
+  assert_binds("class K {}", &["K"]);
+  assert_binds("const f = function named() {};", &["f", "named"]);
+  assert_binds("const K = class Named {};", &["K", "Named"]);
+  assert_binds("const g = (p) => p;", &["g", "p"]);
+  assert_binds("try {} catch (e) {}", &["e"]);
+  assert_binds("const [a, [b], ...rest] = xs;", &["a", "b", "rest"]);
+  assert_binds(
+    "const { a, b: c, d = 1, ...rest } = o;",
+    &["a", "c", "d", "rest"],
+  );
+  assert_binds("for (const k in o) {}", &["k"]);
+  assert_binds("for (const v of xs) {}", &["v"]);
+  assert_binds(
+    "function f({ a }, [b], c = 1, ...d) {}",
+    &["f", "a", "b", "c", "d"],
+  );
+  assert_binds("import x, { y, z as w } from 'm';", &["x", "y", "w"]);
+  assert_binds("import * as ns from 'm';", &["ns"]);
+}
+
+/// A reference is not a binding. Nothing here declares anything, so nothing is
+/// recorded — the set would otherwise answer `true` for every name the module
+/// mentions and the globals step would refuse every global.
+#[test]
+fn records_nothing_for_a_module_that_declares_nothing() {
+  assert_binds("f(NaN, Infinity, undefined);", &[]);
+  assert_binds("o.NaN = 1;", &[]);
+  assert_binds("export default 1;", &[]);
+  assert_binds("", &[]);
+}
+
+/// TypeScript's three binding forms are not collected, because they do not
+/// reach this walk: `typescript_strip` runs ahead of the StyleX pass and lowers
+/// each one to a `var` or a `const`, which `visit_binding_ident` then records
+/// like any other. Pinned as absent rather than left unstated, so the day the
+/// strip moves the gap reads as a failing test instead of a global folding
+/// where the module had bound the name.
+///
+/// The one place the gap is real is this crate's own test transform, which runs
+/// the resolver but not the strip (`transform::mod`'s `_typescript_factory` is
+/// unused). Every input in that suite is JavaScript, so nothing there reaches
+/// it.
+#[test]
+fn records_nothing_for_typescript_only_binding_forms() {
+  assert_ts_binds("enum NaN { a }", &[]);
+  assert_ts_binds("import NaN = require('m');", &[]);
+  // The `namespace` name itself is not recorded; the `const` inside it is, by
+  // the same `visit_binding_ident` that records every other declarator.
+  assert_ts_binds("namespace NaN { export const a = 1; }", &["a"]);
+}
+
+/// The three names the globals step asks about are ordinary bindings to the
+/// collector, in every position one can be written.
+#[test]
+fn records_a_binding_that_takes_a_global_name_over() {
+  assert_binds("const NaN = 1;", &["NaN"]);
+  assert_binds("let Infinity;", &["Infinity"]);
+  assert_binds("const f = (undefined) => undefined;", &["f", "undefined"]);
+  assert_binds("try {} catch (NaN) {}", &["NaN"]);
+  assert_binds("import { x as NaN } from 'm';", &["NaN"]);
+}
+
+/// Two bindings of one name are two entries, because the set is keyed by `Id`.
+/// This is what keeps a reference to the global apart from a reference to the
+/// parameter that took its name: the resolver gives them different contexts and
+/// the reference carries the one it resolved to.
+#[test]
+fn keeps_two_bindings_of_one_name_apart() {
+  GLOBALS.set(&Globals::default(), || {
+    let code = "const NaN = 1; function f(NaN) { return NaN; }";
+    let module = resolved_module(code);
+    let outer_id = first_top_level_binding(&module);
+
+    let mut collector = ModuleBindingsCollector::writes_only();
+    module.visit_with(&mut collector);
+
+    let recorded: Vec<&Id> = collector
+      .declared_bindings
+      .iter()
+      .filter(|(sym, _)| sym == "NaN")
+      .collect();
+
+    assert_eq!(recorded.len(), 2, "two bindings named NaN: {:?}", recorded);
+    assert!(
+      recorded.contains(&&outer_id),
+      "the module-level binding is one of them"
+    );
+  });
+}
+
+/// The set survives the collector's cheaper mode, which is the mode most
+/// modules are scanned in — the `sx` prop is off by default, and the evaluator
+/// runs either way.
+#[test]
+fn collects_bindings_in_both_modes() {
+  GLOBALS.set(&Globals::default(), || {
+    let module = resolved_module("import { x as NaN } from 'm'; const f = (Infinity) => 1;");
+
+    for mut collector in [
+      ModuleBindingsCollector::for_sx(),
+      ModuleBindingsCollector::writes_only(),
+    ] {
+      module.visit_with(&mut collector);
+
+      assert_names(
+        names(collector.declared_bindings.clone()),
+        &["NaN", "f", "Infinity"],
+        "both modes record the module's bindings",
+      );
+    }
+  });
 }

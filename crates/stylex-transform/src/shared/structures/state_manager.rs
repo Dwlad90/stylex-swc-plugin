@@ -422,6 +422,13 @@ pub struct StateManager {
   /// refuse with the same text, so the split buys a step-for-step mapping to
   /// the reference implementation rather than a difference in outcome.
   pub(crate) binding_mutations: FxHashSet<Id>,
+  /// Every **declared binding** in the module, keyed by full `Id` — the crate
+  /// glossary defines the term and why the `Id` is what makes it scope-aware.
+  /// Read through [`Self::declares_binding`].
+  ///
+  /// Populated by the `Discover` pre-scan ([`ModuleBindingsCollector`]) in
+  /// either of its modes, in the same walk that fills the two write sets above.
+  pub(crate) declared_bindings: FxHashSet<Id>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   /// Spans of the calls that initialise a top-level declarator bound to a
   /// pattern rather than a name — `export const { foo } = stylex.create(…);`.
@@ -544,6 +551,7 @@ impl StateManager {
       declarations_state: DeclarationState::default(),
       binding_reassignments: FxHashSet::default(),
       binding_mutations: FxHashSet::default(),
+      declared_bindings: FxHashSet::default(),
       top_level_expressions: vec![],
       pattern_bound_top_level_calls: FxHashSet::default(),
       call_expressions: CallExpressionState::default(),
@@ -635,6 +643,14 @@ impl StateManager {
   /// anywhere in the module. See [`StateManager::binding_mutations`].
   pub(crate) fn has_binding_mutation(&self, ident: &Ident) -> bool {
     self.binding_mutations.contains(&ident.to_id())
+  }
+
+  /// Whether this module declares a binding `ident` refers to. Asked of a
+  /// reference, not of a name: the `Id` carries the syntax context, so this
+  /// answers `false` for a global that some unrelated scope happens to bind the
+  /// name of. See [`StateManager::declared_bindings`].
+  pub(crate) fn declares_binding(&self, ident: &Ident) -> bool {
+    self.declared_bindings.contains(&ident.to_id())
   }
 
   /// Seeds an empty replacement entry for a JSX spread expression seen during

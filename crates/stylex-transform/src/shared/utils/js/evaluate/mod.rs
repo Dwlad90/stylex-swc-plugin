@@ -66,8 +66,8 @@ use stylex_constants::constants::{
   evaluation_errors::{
     ARGUMENT_WITHOUT_VALUE, IMPORT_PATH_RESOLUTION_ERROR, INVALID_ARRAY_LENGTH, NON_CONSTANT,
     OBJECT_METHOD, PATH_WITHOUT_NODE, SPREAD_ELEMENT, UNEXPECTED_MEMBER_LOOKUP,
-    USED_BEFORE_DECLARATION, array_length_too_large, not_a_function, uncoercible_value,
-    unsupported_expression, unsupported_operator,
+    UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, array_length_too_large, not_a_function,
+    uncoercible_value, unsupported_expression, unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, BUILT_IN_FUNCTION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,
@@ -84,6 +84,7 @@ use stylex_enums::{
   value_with_default::ValueWithDefault,
 };
 use stylex_js::coercions;
+use stylex_js::coercions::is_global_spelled_as_an_identifier;
 use stylex_js::helpers::{
   get_callee_name, get_method_name, is_id_prop, is_invalid_method, is_mutating_array_method,
   is_mutating_object_method, is_mutation_expr, is_valid_callee,

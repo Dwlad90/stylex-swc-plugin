@@ -16,9 +16,26 @@ _Avoid_: context, session, environment, state
 **Pre-scan**:
 The walk at the start of the `Discover` cycle that records module-wide facts a
 visitor cannot ask for later — every import source, every bound name, the scope
-spans of local bindings, and every binding that is written to. SWC visitors have
-no parent pointers and no scope chain, so the pre-scan stands in for both.
+spans of local bindings, every [binding the module declares](#declared-binding),
+and every binding that is written to. SWC visitors have no parent pointers and
+no scope chain, so the pre-scan stands in for both.
 _Avoid_: first pass, collection phase, analysis
+
+**Declared binding**:
+A name this module binds, held under its full SWC `Id`. The one question the
+[chain](#reference-resolution-chain) asks of the reference implementation's
+scope chain — does a binding exist for this exact reference — and the whole of
+what it needs, because the resolver has already given every binding a
+`SyntaxContext` of its own. Asked of a reference and never of a name: the global
+`NaN` beside a `function f(NaN)` matches nothing, while a reference inside that
+function matches the parameter. Recorded for every binding form JavaScript
+spells, a function parameter included, because a parameter is the one form no
+declaration list or import table can answer for; TypeScript's three reach the
+[pre-scan](#pre-scan) already lowered to `var` or `const`. Held for the module
+being compiled, so a name bound inside an _imported_ file carries a context this
+set never saw and falls to the global — which fails safe, refusing nothing that
+should fold.
+_Avoid_: scope, bound name, symbol table
 
 **Confident**:
 Whether an evaluation produced a value the compiler may rely on.
@@ -153,7 +170,9 @@ from the injected function map: which binding does this name, and what does that
 binding fold to. Eight steps in the reference implementation's order, each citing
 the line range it mirrors, because both compilers agree on every step's verdict
 and the sequence is the only thing left for them to disagree by. Two steps are
-deliberately absent and say so at their position rather than being missing.
+deliberately absent and say so at their position rather than being missing. The
+questions the rest ask are a [declared binding](#declared-binding), a
+[binding write](#binding-write) and an [early reference](#early-reference).
 _Avoid_: identifier lookup, binding resolver, evaluate fallback
 
 **Binding write**:

@@ -80,6 +80,11 @@ struct ModuleBindingsCollector {
   collect_sx_bindings: bool,
   import_sources: Vec<String>,
   bound_names: FxHashSet<String>,
+  /// Every **declared binding** in the module, keyed by full SWC `Id`; the
+  /// crate glossary defines the term. Collected in every mode, unlike
+  /// [`Self::bound_names`], because the evaluator consumes it whether or not
+  /// the `sx` prop is enabled.
+  declared_bindings: FxHashSet<Id>,
   /// For each name bound by a non-import declaration, the spans of the scopes
   /// in which it is bound. A name shadows an `sx` site iff one of its scope
   /// spans encloses that site (see [`StateManager::is_locally_rebound_at`]).
@@ -100,13 +105,16 @@ struct ModuleBindingsCollector {
 
 impl ModuleBindingsCollector {
   /// Collects everything: the `sx` runtime-binding inputs (import sources,
-  /// bound names, rebinding scopes) *and* binding writes, in one pass.
+  /// bound names, rebinding scopes) *and* the evaluator's inputs (the module's
+  /// bindings and the writes against them), in one pass.
   fn for_sx() -> Self {
     Self::new(true)
   }
 
-  /// Collects binding writes only — used when the `sx` prop is disabled and
-  /// nothing consumes the import-source or scope information.
+  /// Collects what the evaluator needs and nothing else — the bindings the
+  /// module declares and the writes against them. Used when the `sx` prop is
+  /// disabled and nothing consumes the import-source or name-keyed scope
+  /// information.
   fn writes_only() -> Self {
     Self::new(false)
   }
@@ -116,6 +124,7 @@ impl ModuleBindingsCollector {
       collect_sx_bindings,
       import_sources: Vec::new(),
       bound_names: FxHashSet::default(),
+      declared_bindings: FxHashSet::default(),
       local_rebinding_scopes: FxHashMap::default(),
       binding_reassignments: FxHashSet::default(),
       binding_mutations: FxHashSet::default(),
@@ -151,16 +160,22 @@ impl ModuleBindingsCollector {
       .unwrap_or(MODULE_SCOPE_SPAN)
   }
 
-  /// Record a binding produced by a non-import declaration in both
-  /// `bound_names` (every binding) and `local_rebinding_scopes` (non-import
-  /// only), scoping it to the function scope when `hoisted` (`var`
-  /// declarations) or the innermost scope otherwise.
-  fn add_local_binding(&mut self, name: &str, hoisted: bool) {
+  /// Record a binding produced by a non-import declaration in `bindings`
+  /// (always), `bound_names` (every binding) and `local_rebinding_scopes`
+  /// (non-import only), scoping the latter to the function scope when `hoisted`
+  /// (`var` declarations) or the innermost scope otherwise.
+  ///
+  /// `bindings` is filled ahead of the mode gate: the two name-keyed maps below
+  /// serve the `sx` prop and are collected only where it is enabled, where the
+  /// `Id`-keyed set serves the evaluator, which runs either way.
+  fn add_local_binding(&mut self, ident: &Ident, hoisted: bool) {
+    self.declared_bindings.insert(ident.to_id());
+
     if !self.collect_sx_bindings {
       return;
     }
 
-    let name = name.to_string();
+    let name = ident.sym.to_string();
     let scope = if hoisted {
       self.nearest_function_scope()
     } else {
@@ -416,8 +431,26 @@ fn member_property_name(property: &MemberProp) -> Option<&str> {
 
 impl Visit for ModuleBindingsCollector {
   fn visit_import_decl(&mut self, import_decl: &ImportDecl) {
-    // An import declaration contains no write targets, so in writes-only mode
-    // there is nothing to collect and nothing to descend into.
+    // An import local is a binding like any other, and the evaluator asks about
+    // it in every mode -- so `bindings` is filled before the mode gate. An
+    // import declaration contains no write targets, so nothing below the
+    // specifiers is worth descending into either way.
+    for specifier in &import_decl.specifiers {
+      let local = match specifier {
+        swc_core::ecma::ast::ImportSpecifier::Named(named) => &named.local,
+        swc_core::ecma::ast::ImportSpecifier::Default(default) => &default.local,
+        swc_core::ecma::ast::ImportSpecifier::Namespace(namespace) => &namespace.local,
+      };
+
+      self.declared_bindings.insert(local.to_id());
+
+      if self.collect_sx_bindings {
+        // Import locals are bindings, but never count as a re-binding that
+        // would shadow another import.
+        self.bound_names.insert(local.sym.to_string());
+      }
+    }
+
     if !self.collect_sx_bindings {
       return;
     }
@@ -425,16 +458,6 @@ impl Visit for ModuleBindingsCollector {
     self
       .import_sources
       .push(convert_atom_to_string(&import_decl.src.value));
-    for specifier in &import_decl.specifiers {
-      let local = match specifier {
-        swc_core::ecma::ast::ImportSpecifier::Named(named) => &named.local,
-        swc_core::ecma::ast::ImportSpecifier::Default(default) => &default.local,
-        swc_core::ecma::ast::ImportSpecifier::Namespace(namespace) => &namespace.local,
-      };
-      // Import locals are bindings, but never count as a re-binding that
-      // would shadow another import.
-      self.bound_names.insert(local.sym.to_string());
-    }
   }
 
   fn visit_function(&mut self, function: &Function) {
@@ -464,7 +487,7 @@ impl Visit for ModuleBindingsCollector {
     if let Some(ident) = &fn_expr.ident {
       // A named function expression's name is bound only inside the function
       // body, where it can shadow an imported `stylex` namespace.
-      self.add_local_binding(ident.sym.as_ref(), false);
+      self.add_local_binding(ident, false);
     }
 
     fn_expr.function.visit_children_with(self);
@@ -479,7 +502,7 @@ impl Visit for ModuleBindingsCollector {
 
     if let Some(ident) = &class_expr.ident {
       // A named class expression's name is visible inside the class body.
-      self.add_local_binding(ident.sym.as_ref(), false);
+      self.add_local_binding(ident, false);
     }
 
     class_expr.class.visit_children_with(self);
@@ -512,20 +535,20 @@ impl Visit for ModuleBindingsCollector {
 
   fn visit_binding_ident(&mut self, binding_ident: &BindingIdent) {
     let hoisted = self.current_var_kind == Some(VarDeclKind::Var);
-    self.add_local_binding(binding_ident.id.sym.as_ref(), hoisted);
+    self.add_local_binding(&binding_ident.id, hoisted);
     binding_ident.visit_children_with(self);
   }
 
   fn visit_fn_decl(&mut self, fn_decl: &FnDecl) {
     // Function declarations in modules are block-scoped; top-level ones still
     // land in the module scope because it is the innermost frame there.
-    self.add_local_binding(fn_decl.ident.sym.as_ref(), false);
+    self.add_local_binding(&fn_decl.ident, false);
     fn_decl.visit_children_with(self);
   }
 
   fn visit_class_decl(&mut self, class_decl: &ClassDecl) {
     // Class declarations are block-scoped, not hoisted.
-    self.add_local_binding(class_decl.ident.sym.as_ref(), false);
+    self.add_local_binding(&class_decl.ident, false);
     class_decl.visit_children_with(self);
   }
 
@@ -689,6 +712,7 @@ where
 
       self.state.binding_reassignments = collector.binding_reassignments;
       self.state.binding_mutations = collector.binding_mutations;
+      self.state.declared_bindings = collector.declared_bindings;
       self.state.existing_import_sources = collector.import_sources;
       self.state.bound_names = collector.bound_names;
       self.state.local_rebinding_scopes = collector.local_rebinding_scopes;
@@ -701,7 +725,8 @@ where
     }
   }
 
-  /// Record every binding the module rebinds or mutates, so the evaluator
+  /// Record every binding the module declares, and every one it rebinds or
+  /// mutates, so the evaluator can ask which binding a reference names and
   /// never inlines a declaration initializer that no longer holds at the use
   /// site. No-op when `discover_module` already collected them for `sx`.
   pub(crate) fn collect_binding_writes(&mut self, module: &Module) {
@@ -714,6 +739,7 @@ where
 
     self.state.binding_reassignments = collector.binding_reassignments;
     self.state.binding_mutations = collector.binding_mutations;
+    self.state.declared_bindings = collector.declared_bindings;
   }
 
   /// Run the producer transformation pass.

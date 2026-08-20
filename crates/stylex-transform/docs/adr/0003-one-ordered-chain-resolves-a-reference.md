@@ -39,12 +39,23 @@ the commit before this one and as agreement at this one. It is the whole extent
 of the reorder's observable effect.
 
 **The steps that would change output were left changing nothing.** Two of the
-reference implementation's steps have no counterpart here — a default-import
-refusal and the `undefined` / `Infinity` / `NaN` refusal. Both are reachable
-divergences and both are somebody else's commit. They sit at their upstream
-positions carrying a comment and, for the globals, a guard that reproduces what
-the old order already did, so this change is a move and the next one is a
-decision.
+reference implementation's steps had no counterpart here when the chain was
+assembled — a default-import refusal and the `undefined` / `Infinity` / `NaN`
+refusal. Both were reachable divergences and both were somebody else's commit.
+They sat at their upstream positions carrying a comment and, for the globals, a
+guard that reproduced what the old order already did, so that change was a move
+and the next one a decision.
+
+The globals step has since been decided, and asks what the reference
+implementation asks: whether a binding exists for the reference, refusing when
+one does. That is what a
+[declared binding](../../CONTEXT.md) is for, and the
+question is answered from the pre-scan's `Id`-keyed set rather than from the
+declaration list — because the binding the step is really about is a dynamic
+style's parameter, which leaves no declarator behind for a list to hold. Keying
+by `Id` is what keeps the answer scope-aware without a scope chain: the resolver
+gives the parameter a context of its own, so a reference to the global `NaN`
+elsewhere in the same module matches nothing.
 
 ## Considered options
 
@@ -72,9 +83,9 @@ The cost is one extra `FxHashSet`, filled by the walk that already ran.
 position, so a new one goes where its counterpart sits rather than where it is
 convenient — and a step with no upstream counterpart has to say so.
 
-**A missing step is visible as a missing step.** The two absent ones read as
-gaps in a numbered sequence with a comment explaining the gap, not as steps
-nobody thought of. Their tickets are named at the gap.
+**A missing step is visible as a missing step.** The absent ones read as gaps in
+a numbered sequence with a comment explaining the gap, not as steps nobody
+thought of. Their tickets are named at the gap.
 
 **A write is now classified at collection.** `ModuleBindingsCollector` records
 which kind of write it saw — a reassignment or an in-place mutation — rather than

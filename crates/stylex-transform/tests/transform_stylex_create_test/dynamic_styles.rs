@@ -703,3 +703,69 @@ stylex_test!(
     });
   "#
 );
+
+// ──────────────────────────────────────────────
+// A dynamic parameter named `undefined`, `NaN` or `Infinity`
+//
+// The three are ordinary binding names to the language, and the evaluator asks
+// which of the two a reference is -- the global, or the parameter that took the
+// name over. A parameter refuses, and the refusal is what sends the value down
+// the inline-style path a dynamic parameter is emitted through; before it, the
+// global folded in and CSS generation rejected the static `NaN` downstream.
+//
+// Measured against `@stylexjs/babel-plugin` 0.19.0: all four compile to the
+// same rules there. Recorded in the parity corpus as
+// `modules-1266-dynamic-param-named-*`.
+// ──────────────────────────────────────────────
+
+stylex_test!(
+  dynamic_param_named_nan,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ a: (NaN) => ({ width: NaN }) });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_named_infinity,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ a: (Infinity) => ({ width: Infinity }) });
+  "#
+);
+
+stylex_test!(
+  dynamic_param_named_undefined,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ a: (undefined) => ({ width: undefined }) });
+  "#
+);
+
+// The parameter is read through an operator rather than emitted straight, so the
+// refusal has to travel out of the arithmetic rather than being the value the
+// property receives.
+stylex_test!(
+  dynamic_param_named_nan_inside_arithmetic,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({ a: (NaN) => ({ width: NaN + 1 }) });
+  "#
+);
+
+// And nested under conditions, where the inline style's custom property is named
+// from the key path rather than from the property.
+stylex_test!(
+  dynamic_param_named_undefined_inside_nested_conditions,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      a: (undefined) => ({
+        color: {
+          default: undefined,
+          ':hover': 'red',
+        },
+      }),
+    });
+  "#
+);

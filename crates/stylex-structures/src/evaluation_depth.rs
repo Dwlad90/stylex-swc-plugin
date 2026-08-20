@@ -7,7 +7,7 @@
 //! turns a crash into a message. It is configurable because the right number
 //! depends on what a project generates, not on anything the compiler can know.
 
-use std::{env, sync::OnceLock};
+use std::env;
 
 /// The ceiling when nothing configures one.
 ///
@@ -29,32 +29,42 @@ pub const MAX_EVALUATION_DEPTH_ENV: &str = "STYLEX_MAX_EVALUATION_DEPTH";
 
 /// The ceiling to use, given whatever the caller configured.
 ///
-/// `configured` wins; then [`MAX_EVALUATION_DEPTH_ENV`]; then the default. A
-/// value of zero from either source would refuse every expression including the
-/// ones the compiler folds to do its own work, so it is read as unset rather
-/// than honoured -- as is anything that is not a number.
+/// Reads the environment on every call rather than caching it. Called once per
+/// options value rather than once per folded node, so the lookup does not show
+/// up -- and a cached answer would seal the environment's contribution behind
+/// whichever call happened first, which is exactly the reading that cannot then
+/// be tested.
 pub fn resolve_max_evaluation_depth(configured: Option<usize>) -> usize {
+  resolve_from(
+    configured,
+    env::var(MAX_EVALUATION_DEPTH_ENV).ok().as_deref(),
+  )
+}
+
+/// The precedence, with the environment passed in rather than read.
+///
+/// Split out so the rule is testable without a process-global write: setting an
+/// environment variable from a test leaks into every other test in the binary,
+/// and a rule this small does not need to be verified through a side channel to
+/// be verified at all.
+fn resolve_from(configured: Option<usize>, from_env: Option<&str>) -> usize {
   match configured {
     Some(depth) if depth > 0 => depth,
-    _ => max_evaluation_depth_from_env().unwrap_or(DEFAULT_MAX_EVALUATION_DEPTH),
+    _ => from_env
+      .and_then(parse_depth)
+      .unwrap_or(DEFAULT_MAX_EVALUATION_DEPTH),
   }
 }
 
-/// The environment's value, parsed once.
+/// One environment value, read as a ceiling or not at all.
 ///
-/// Cached because the environment is process-global and the answer is consulted
-/// per compiled file. A malformed value is `None`, which falls through to the
-/// default rather than failing the build: the variable is an escape hatch, and
-/// one that broke the build when mistyped would be a worse one.
-fn max_evaluation_depth_from_env() -> Option<usize> {
-  static FROM_ENV: OnceLock<Option<usize>> = OnceLock::new();
-
-  *FROM_ENV.get_or_init(|| {
-    env::var(MAX_EVALUATION_DEPTH_ENV)
-      .ok()
-      .and_then(|raw| raw.trim().parse::<usize>().ok())
-      .filter(|depth| *depth > 0)
-  })
+/// Zero is refused along with everything unparseable: a ceiling of zero would
+/// refuse every expression, including the folds the compiler runs to do its own
+/// work. Both fall through to the caller's default rather than failing the
+/// build -- the variable is an escape hatch, and one that broke the build when
+/// mistyped would be a worse one.
+fn parse_depth(raw: &str) -> Option<usize> {
+  raw.trim().parse::<usize>().ok().filter(|depth| *depth > 0)
 }
 
 #[cfg(test)]
@@ -72,26 +82,99 @@ mod tests {
   // do its own work, so it is read as unset rather than honoured.
   #[test]
   fn a_configured_zero_falls_back_rather_than_refusing_everything() {
-    assert_eq!(
-      resolve_max_evaluation_depth(Some(0)),
-      resolve_max_evaluation_depth(None)
-    );
+    assert_eq!(resolve_from(Some(0), None), DEFAULT_MAX_EVALUATION_DEPTH);
   }
 
-  // The environment is process-global and this test process sets nothing, so the
-  // unconfigured answer is the default. Asserted rather than assumed, because it
-  // is the value every fixture in the workspace is measured against.
   #[test]
   fn nothing_configured_and_nothing_in_the_environment_is_the_default() {
-    assert_eq!(
-      resolve_max_evaluation_depth(None),
-      DEFAULT_MAX_EVALUATION_DEPTH
-    );
+    assert_eq!(resolve_from(None, None), DEFAULT_MAX_EVALUATION_DEPTH);
     assert_eq!(DEFAULT_MAX_EVALUATION_DEPTH, 32);
+  }
+
+  // The reading the environment variable exists for.
+  #[test]
+  fn the_environment_supplies_the_ceiling_when_nothing_is_configured() {
+    assert_eq!(resolve_from(None, Some("256")), 256);
+    assert_eq!(resolve_from(None, Some("1")), 1);
+  }
+
+  // Surrounding whitespace is what a shell export or a CI variable pane leaves
+  // behind, and it is not a reason to ignore an otherwise good number.
+  #[test]
+  fn the_environment_value_is_trimmed_before_it_is_read() {
+    assert_eq!(resolve_from(None, Some("  64  ")), 64);
+    assert_eq!(resolve_from(None, Some("\t8\n")), 8);
+  }
+
+  // Config wins, which is the whole point of the precedence: a stray value in a
+  // CI environment cannot change what a configured project compiles to.
+  #[test]
+  fn a_configured_depth_beats_the_environment() {
+    assert_eq!(resolve_from(Some(16), Some("256")), 16);
+  }
+
+  // And a configured zero does not beat it, because zero is not a ceiling. The
+  // environment is consulted next, exactly as if nothing were configured.
+  #[test]
+  fn a_configured_zero_falls_through_to_the_environment() {
+    assert_eq!(resolve_from(Some(0), Some("256")), 256);
+  }
+
+  // Every way an environment value can fail to be a ceiling, each falling back
+  // rather than failing the build.
+  #[test]
+  fn an_unusable_environment_value_is_ignored() {
+    for raw in [
+      "",
+      "   ",
+      "0",
+      "  0  ",
+      "-1",
+      "1.5",
+      "32px",
+      "abc",
+      "1e3",
+      "0x20",
+      "99999999999999999999999999999999999999",
+    ] {
+      assert_eq!(
+        resolve_from(None, Some(raw)),
+        DEFAULT_MAX_EVALUATION_DEPTH,
+        "`{}` should not be read as a ceiling",
+        raw
+      );
+    }
+  }
+
+  // An explicit sign is accepted, because Rust's integer parser accepts it and
+  // `+8` is unambiguously eight. Pinned rather than left to be discovered: it is
+  // the one spelling in the neighbourhood of the rejected ones that works.
+  #[test]
+  fn a_leading_plus_is_still_a_number() {
+    assert_eq!(resolve_from(None, Some("+8")), 8);
+  }
+
+  #[test]
+  fn parse_depth_answers_for_itself() {
+    assert_eq!(parse_depth("32"), Some(32));
+    assert_eq!(parse_depth(" 32 "), Some(32));
+    assert_eq!(parse_depth("0"), None);
+    assert_eq!(parse_depth("nope"), None);
   }
 
   #[test]
   fn the_environment_variable_is_the_documented_name() {
     assert_eq!(MAX_EVALUATION_DEPTH_ENV, "STYLEX_MAX_EVALUATION_DEPTH");
+  }
+
+  // The public entry point reads the real environment, which this process does
+  // not set, so it agrees with the same question asked without one. Present so
+  // the `env::var` line is executed rather than only reasoned about.
+  #[test]
+  fn the_public_resolver_reads_the_process_environment() {
+    assert_eq!(
+      resolve_max_evaluation_depth(None),
+      resolve_from(None, env::var(MAX_EVALUATION_DEPTH_ENV).ok().as_deref())
+    );
   }
 }

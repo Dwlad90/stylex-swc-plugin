@@ -627,7 +627,7 @@
       "label": "a dynamic parameter shadowing a named import that is a function-map entry",
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({\n  dyn: (keyframes) => ({ height: keyframes }),\n});\n",
       "origin": "the identifier audit for issue #1266, the function-map entries that are not maps",
-      "note": "Upstream folds `{ fn: keyframes }` and refuses it as a namespace. This compiler registers `keyframes` as a `Regular` config, which the identifier step deopts on -- and a deopt inside a dynamic style is the inline-style path, so this emits `height:var(--x-height)` for a module upstream refuses. The wrong-output half of `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`; the same holds for `firstThatWorks` and for a bare `when` import.",
+      "note": "Upstream folds `{ fn: keyframes }` and refuses it as a namespace. This compiler registers `keyframes` as a `Regular` config, which the identifier step deopts on -- and a deopt inside a dynamic style is the inline-style path, so this emits `height:var(--x-height)` for a module upstream refuses. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/16-a-shadowed-function-import-emits-css-upstream-refuses.md`, which is where the wrong-output half of this family sits; the same holds for `firstThatWorks` and for a bare `when` import.",
       "expected": "acceptance-divergent"
     },
     {

@@ -283,6 +283,26 @@ distinguishes a completed evaluation from one
 currently in progress, which is how cyclic references terminate.
 _Avoid_: cache entry, memo
 
+**Evaluation depth**:
+How many levels of the fold are currently standing, counted on the
+[state manager](#state-manager) rather than on the evaluation, because the
+evaluation's confidence forks -- a logical operand and a computed key each get
+their own -- while the stack it is accounting for does not. Crossing the ceiling
+is a [refused fold](#refused-fold), not an abort. The fold also grows its own
+stack, so the ceiling is a policy rather than whatever a 2 MiB thread survived.
+
+Always in **fold levels**, never in levels of source nesting -- a member read
+spends two, a spread spends two, an array element spends one for the array, and a
+parenthesis spends none. A number quoted in source terms is wrong for some other
+shape, which is why every boundary is measured rather than derived.
+
+The ceiling itself is `maxEvaluationDepth`, resolved in
+[stylex-structures](../stylex-structures/CONTEXT.md) from the option, then the
+environment, then the default. Why both halves are needed, and what the ceiling
+costs against the reference implementation, is
+[docs/adr/0004](./docs/adr/0004-the-fold-owns-its-own-ceiling-and-its-own-stack.md).
+_Avoid_: recursion limit, nesting level, stack depth
+
 **Pre-rule**:
 A style entry that has been recognised but not yet turned into CSS —
 `PreRuleValue` plus the pseudos and at-rules it sits under. `PreRuleSet`

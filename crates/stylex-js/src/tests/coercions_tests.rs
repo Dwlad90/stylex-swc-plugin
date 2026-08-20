@@ -46,6 +46,10 @@ fn ident_expr(name: &str) -> Expr {
   Expr::Ident(Ident::new(name.into(), DUMMY_SP, Default::default()))
 }
 
+fn ident(name: &str) -> Ident {
+  Ident::new(name.into(), DUMMY_SP, Default::default())
+}
+
 fn big_int_expr(value: i64) -> Expr {
   Expr::Lit(Lit::BigInt(BigInt {
     span: DUMMY_SP,
@@ -1034,4 +1038,87 @@ fn a_value_this_crate_cannot_read_is_not_nullish() {
   assert!(!is_nullish(&this_expr()));
   assert!(!is_nullish(&empty_object_expr()));
   assert!(!is_nullish(&arrow_expr()));
+}
+
+// ==================== the global set, read as a set ====================
+
+/// The three names the language spells as an identifier rather than as a
+/// literal, and the only three.
+///
+/// Asked as a set rather than through a coercion because that is how the
+/// evaluator asks: its reference-resolution chain has to know whether a name
+/// *could* be one of these before it can decide whether something in scope took
+/// the name over, and its object coercion answers that all three carry no own
+/// properties. Neither wants a string back.
+#[test]
+fn the_three_globals_are_spelled_as_identifiers() {
+  assert!(is_global_spelled_as_an_identifier(&ident("undefined")));
+  assert!(is_global_spelled_as_an_identifier(&ident("NaN")));
+  assert!(is_global_spelled_as_an_identifier(&ident("Infinity")));
+}
+
+/// Nothing else is, including every neighbouring spelling. The comparison is on
+/// the whole symbol, so a difference of case or of one character is an ordinary
+/// binding name -- and a binding is exactly what the caller must not mistake for
+/// the global.
+#[test]
+fn no_other_name_is_a_global_spelled_as_an_identifier() {
+  for name in [
+    "nan",
+    "NAN",
+    "NaNa",
+    "aNaN",
+    "infinity",
+    "INFINITY",
+    "Undefined",
+    "undefined_",
+    "_undefined",
+    "undefined2",
+    // Other globals, which are spelled as identifiers but are not values a
+    // coercion can read.
+    "Math",
+    "String",
+    "Number",
+    "globalThis",
+    // Spellings no source can produce, which the predicate still must not
+    // accept: a name carrying whitespace, one carrying a zero-width space, and
+    // the empty symbol.
+    "NaN ",
+    " NaN",
+    "NaN\u{200b}",
+    "",
+  ] {
+    assert!(
+      !is_global_spelled_as_an_identifier(&ident(name)),
+      "expected `{}` not to be a global spelled as an identifier",
+      name
+    );
+  }
+}
+
+/// The predicate and the coercions read one set, which is the whole reason the
+/// set is written down once. A name the predicate accepts has a string form; one
+/// it rejects is a binding this crate cannot read, and answers no string at all.
+///
+/// Asserted as a pair, per name, so a fourth global added to one reader and not
+/// the other fails here rather than at whichever call site notices first.
+#[test]
+fn the_predicate_and_the_string_coercion_read_the_same_set() {
+  for (name, expected) in [
+    ("undefined", "undefined"),
+    ("NaN", "NaN"),
+    ("Infinity", "Infinity"),
+  ] {
+    assert!(is_global_spelled_as_an_identifier(&ident(name)), "{}", name);
+    assert_eq!(to_js_string(&ident_expr(name)).as_deref(), Some(expected));
+  }
+
+  for name in ["someBinding", "nan", "Math"] {
+    assert!(
+      !is_global_spelled_as_an_identifier(&ident(name)),
+      "{}",
+      name
+    );
+    assert_eq!(to_js_string(&ident_expr(name)), None, "{}", name);
+  }
 }

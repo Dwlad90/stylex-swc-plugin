@@ -61,6 +61,14 @@ alphabetically so it measures resolution, and this ticket owns the ordering.
 Nothing to do with reference resolution, and nothing this effort's commits
 introduced: the ordering is the same before and after the chain reorder.
 
+Reproduced a second time by [12](./12-a-string-named-specifier-in-a-style-value.md),
+whose own depth boundary -- a theme member read eight condition levels deep --
+hashed a different selector until its pseudo-classes were nested alphabetically
+too. Four of them there rather than three, and `@media` / `@supports` above them
+change nothing, so the shape is the pseudo-class list alone at any length above
+two. Two depth guards written for unrelated questions have now had to route
+around this; the third should fix it instead.
+
 - [ ] The producing call site is named — where the pseudo-class list is
       assembled and where it is sorted
 - [ ] The order matches the reference implementation for three or more nested

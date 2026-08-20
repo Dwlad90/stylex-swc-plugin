@@ -97,3 +97,41 @@ one. The only divergence is the spread / computed-key **message**: both compiler
 refuse, the outcome agrees, the text does not. Left as-is and pinned, because
 changing it is a constant-text decision like the ones issues 03 and 06 made, not
 a test's to take.
+
+## Review
+
+Both axes ran. Spec confirmed the counts and that both expected outputs are what
+the runner writes; Standards found no hard breach of a documented standard.
+Findings acted on, in `a92dbbe65`:
+
+- **A vacuous assertion.** `a_five_thousand_character_value_beside_a_shadowing_param`
+  asserted `contains(rule) || contains(long)`, and both reviewers found it passing
+  only through the right branch — the escaping in the left one never matched, so
+  the rule text was never compared, and the right branch would hold if the 5000
+  characters appeared anywhere at all, untransformed included. Now asserts
+  `.x1ahcjaz{content:"…"}` whole. The class name is the hash of all five thousand
+  characters, which is what the comment claimed all along.
+- **A duplicated fixture helper.** `shadowing_transform` was a verbatim copy of
+  the one in `dynamic_styles.rs`, filename and resolution and all, so the two
+  files that ask this question could drift apart. Lifted to `tests/utils`.
+- **A middle man.** A one-caller `stylex_transform` wrapper around
+  `build_test_transform`; deleted.
+- **Two comments claiming more than their test checked** — one about not scaling
+  with parameter count, one promising a named divergence that was not named.
+  Reworded to what is asserted, and the bare-colon case now records that Babel
+  0.19.0 emits the same unparseable text under the same class names.
+- **An unexplained `6`.** `assert_eq!(output.matches("--x-").count(), 6)` now says
+  where six comes from: three mentions per property name, two properties.
+
+One Spec finding was a real gap rather than a wording problem: nothing exercised
+an evaluator-recursion boundary, so "no stack exhaustion" was only ever asserted
+well inside the safe range. Measured, and it found a divergence —
+`two_hundred_and_fifty_six_levels_of_arithmetic_around_a_shadowing_param` pins
+the depth both compilers agree on, and issue 20 carries the rest: at 512 levels
+we abort the process where Babel accepts 768 and raises a catchable `RangeError`
+past that. Not assertable here, because a test that crosses the boundary takes
+the test binary with it.
+
+The remaining Standards note — most test names state the input rather than the
+expected behaviour — is left as-is, matching `dynamic_styles.rs` rather than
+diverging in one file.

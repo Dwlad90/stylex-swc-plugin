@@ -116,3 +116,34 @@ unchanged by this ticket: the local binding matched before and matches now, and
 the emit path still answers with nothing. What did change is the aliased-away
 half: it aborted on the specifier re-search before and refuses like upstream now,
 so a re-measurement of 12 will not be reading this ticket's panic by mistake.
+
+### Review, and the consumer it found
+
+Reviewed on both axes after landing; two findings, both fixed in `2ac6ff0a8`.
+
+The one that mattered: the evaluator chain is not the only reader of the import
+lookup. `createTheme`'s second-argument check in `shared/utils/validators.rs`
+asks it whether an identifier is an import, so the fallback answered there too --
+`createTheme(bt, buttonTokens)` beside `import { "buttonTokens" as bt }` was
+refused as a non-object second argument through it. It is refused as a non-static
+value now: `buttonTokens` names nothing, which is not the same fault as naming an
+import.
+
+The verdict is unchanged and only the message moved, which is precisely what the
+parity harness cannot see -- it compares outcomes, not text. So the claim
+"nothing depended on the fallback" was true of the *suite* and not of the
+codebase, and the gap was a second consumer no test covered.
+`modules-1266-create-theme-second-arg-named-after-an-aliased-away-import` records
+the measurement (`both reject`), with two tests beside it: the aliased-away name,
+and the local binding still refusing as the import it is.
+
+Also out of the review: `get_import_from` was deleted, having become pure
+delegation to the lookup answering the same question, with one caller and the two
+spellings taking the same arguments in opposite orders; its tests moved to the
+surviving name, less two that duplicated cases already there. And one corpus
+citation named an id no entry carries -- written before the entries were renamed,
+and the kind of thing only a reader checks.
+
+Re-verified after: `cargo test --workspace --all-features` 6260 passed / 0 failed,
+clippy and fmt clean, `pnpm typecheck && lint:check && format:check && test`
+green, `parity --set modules` 0 changed verdicts over 71 subjects.

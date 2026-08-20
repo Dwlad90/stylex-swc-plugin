@@ -715,8 +715,144 @@
       "label": "three pseudo-classes nested in an order that is not alphabetical",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  w: {\n    zIndex: {\n      default: '1',\n      ':hover': {\n        default: '1',\n        ':focus': {\n          default: '1',\n          ':active': '1',\n        },\n      },\n    },\n  },\n});\n",
       "origin": "the depth boundary written for issue #1266, which surfaced it",
-      "note": "The leaf selector is `:focus:hover:active` here and `:active:focus:hover` upstream, so the two hash different class names for one authored style. Upstream sorts the whole accumulated pseudo-class list; this compiler sorts each pair as it nests and appends the third, which is why two of them agree in either nesting order and three agree only when the nesting order is already alphabetical. Nothing to do with reference resolution -- it was found by a condition-depth guard for the reference chain, which nests its pseudo-classes alphabetically so this divergence is measured once, here. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/19-three-nested-pseudo-classes-hash-differently.md`.",
+      "note": "The leaf selector is `:focus:hover:active` here and `:active:focus:hover` upstream, so the two hash different class names for one authored style. Upstream sorts the whole accumulated pseudo-class list; this compiler sorts each pair as it nests and appends the third, which is why two of them agree in either nesting order and three agree only when the nesting order is already alphabetical. Nothing to do with reference resolution -- it was found by the guard written for it, `modules-1266-a-shadowed-param-at-extreme-condition-depth`, which nests its pseudo-classes alphabetically so this divergence is measured once, here. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/19-three-nested-pseudo-classes-hash-differently.md`.",
       "expected": "divergent"
+    },
+    {
+      "id": "modules-1266-shadowed-param-beside-an-unrelated-static-prop",
+      "label": "a shadowed dynamic parameter beside a static prop that reads nothing",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  dyn: (zIndex) => ({ zIndex }),\n  wrapper: { color: 'red' },\n});\n",
+      "origin": "issue #1266, the second shape that compiled before the fix",
+      "note": "The other half of the pair recorded as `modules-1266-import-unreferenced-elsewhere`: a static prop stands beside the dynamic style but reads no imported name, so the import was elided here too and the name match again had nothing to match. A guard on the same accident, held now by the binding comparison rather than by an absent declaration.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-param-named-first-that-works",
+      "label": "a dynamic parameter named `firstThatWorks`, which nothing imports under that name",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (firstThatWorks) => ({ color: firstThatWorks }),\n});\n",
+      "origin": "issue #1266, the guard on the name-keyed function map",
+      "note": "`functions.identifiers` is name-keyed and consulted before the chain, but it holds a name only where that name was imported: this module imports the namespace, so nothing is registered under `firstThatWorks` and the parameter has to stay an ordinary parameter. The shape where the name *is* imported is `modules-1266-param-shadows-a-named-function-map-import`, which diverges; keying the map on a fixed list of API names rather than on what the module imports would collapse the two and show here.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-reference-bound-to-a-function-declaration",
+      "label": "a style value reading a name bound to a function declaration",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nfunction gap() {\n  return '10px';\n}\n\nexport const styles = stylex.create({\n  wrapper: { rowGap: gap },\n});\n",
+      "origin": "issue #1266, the guard on the last step of the chain",
+      "note": "A hoisted binding with no declarator: it reaches the end of the chain and is refused for its declaration kind. It is also the case the early-declaration step must not answer for -- a function holds its value from the top of its scope, so a reference above one is not early -- and the step before it must not answer for either, since the declaration lookup asks for a `VarDeclarator` and finds none. Both compilers refuse with the sentence `Unsupported expression: FunctionDeclaration`.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-reference-bound-to-a-class-declaration",
+      "label": "a style value reading a name bound to a class declaration",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nclass Gap {}\n\nexport const styles = stylex.create({\n  wrapper: { rowGap: Gap },\n});\n",
+      "origin": "issue #1266, the guard on the last step of the chain",
+      "note": "The sibling of the function-declaration refusal, and recorded apart from it because the two are separate declaration lists consulted in one call: a fix that dropped either list would leave the other passing. Both compilers refuse with the sentence `Unsupported expression: ClassDeclaration`.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-member-mutation-of-a-const-in-a-style-value",
+      "label": "a member of a `const` mutated in place, then read as a style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst shadow = { blur: '2px' };\nshadow.blur = '4px';\n\nexport const styles = stylex.create({\n  wrapper: { boxShadow: `0 0 ${shadow.blur} red` },\n});\n",
+      "origin": "issue #1266, the guard on the mutated-binding step",
+      "note": "The binding is never rebound, so only the mutation set can refuse it. Splitting one write set into a reassignment set and a mutation set was meant to change no outcome; this is the row that says the mutation half is still filled. Both compilers refuse with the sentence `Referenced value is not a constant.`",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-mutating-method-receiver-in-a-style-value",
+      "label": "a `const` array mutated through a method call, then read as a style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst parts = ['1px'];\nparts.push('2px');\n\nexport const styles = stylex.create({\n  wrapper: { flexGrow: parts.length },\n});\n",
+      "origin": "issue #1266, the guard on the mutated-binding step",
+      "note": "Mutation through a method receiver rather than through an assignment, which the same walk records. A length read is the value because it folds on both compilers when the binding is left alone, so what the verdict measures is the refusal and not the read.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-object-assign-target-in-a-style-value",
+      "label": "a `const` passed as an `Object.assign` target, then read as a style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst box = { pad: '4px' };\nObject.assign(box, { pad: '8px' });\n\nexport const styles = stylex.create({\n  wrapper: { paddingTop: box.pad },\n});\n",
+      "origin": "issue #1266, the guard on the mutated-binding step",
+      "note": "The third producer the mutation walk records, and the one that reaches the binding through an argument position rather than through a member expression.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-reassigned-binding-in-a-style-value",
+      "label": "a `let` reassigned after its declaration, then read as a style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nlet gap = '10px';\ngap = '20px';\n\nexport const styles = stylex.create({\n  wrapper: { rowGap: gap },\n});\n",
+      "origin": "issue #1266, the guard on the reassigned-binding step",
+      "note": "The other half of the split write set. Both halves refuse with the same text, so the split is only observable as this row and the mutation rows above continuing to refuse independently.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-an-unwritten-const-object-in-a-style-value",
+      "label": "a `const` object neither rebound nor mutated, read as a style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst shadow = { blur: '2px' };\n\nexport const styles = stylex.create({\n  wrapper: { boxShadow: `0 0 ${shadow.blur} red` },\n});\n",
+      "origin": "issue #1266, the control on the two write steps",
+      "note": "The control the refusal rows need: the same module with the write removed has to fold. A step that probed the declaration list rather than the write set would refuse every `const` and pass every row above.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-an-unclosed-function-read-through-a-binding",
+      "label": "a value with an unclosed function, read through a binding",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst width = 'calc(1px';\n\nexport const styles = stylex.create({\n  wrapper: { width },\n});\n",
+      "origin": "issue #1266, a malformed value reached through the chain rather than written inline",
+      "note": "What the chain answers is where a value came from, not whether it is CSS. Both compilers refuse with the sentence `Rule contains an unclosed function`, this one naming the repaired rule after it. One construct per row, because the first refusal ends the compile and a row carrying three would measure only the first.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-an-unclosed-string-read-through-a-binding",
+      "label": "a value with an unclosed string, read through a binding",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst fontFamily = '\"solid';\n\nexport const styles = stylex.create({\n  wrapper: { fontFamily },\n});\n",
+      "origin": "issue #1266, a malformed value reached through the chain rather than written inline",
+      "note": "The sibling refusal, and a different sentence: `Rule contains an unclosed string`. Kept apart from the unclosed function so each is measured rather than shadowed by whichever the compile reaches first.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-an-unclosed-bracket-read-through-a-binding",
+      "label": "a value with an unclosed bracket, read through a binding",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst gridTemplateColumns = '[full-start 1fr';\n\nexport const styles = stylex.create({\n  wrapper: { gridTemplateColumns },\n});\n",
+      "origin": "issue #1266, the malformed value neither compiler refuses",
+      "note": "The third construct, and the one that is not refused at all: both compilers emit `grid-template-columns:[full-start 1fr` verbatim and hash the same class from it. Worth a row of its own precisely because it agrees -- an unclosed bracket is not repaired the way an unclosed function and string are, so a chain change that started refusing it would show here as an acceptance divergence rather than nowhere.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-custom-property-through-a-shadowed-param",
+      "label": "a custom property written from a shadowed parameter and from a binding",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nconst fallback = '10';\n\nexport const styles = stylex.create({\n  wrapper: { '--depth': zIndex._10, '--fallback': fallback },\n  dyn: (zIndex) => ({ '--depth': zIndex }),\n});\n",
+      "origin": "issue #1266, the custom-property path through the chain",
+      "note": "A custom property is not expanded or validated the way a known property is, so it reaches the value walk by a different path: the static read has to keep its theme reference and the shadowed parameter has to become an inline variable, in the one module where both are spelled on the same key.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-prefixed-property-through-a-shadowed-param",
+      "label": "a vendor-prefixed property written from a shadowed parameter",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { clamp } from 'clamp.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { WebkitLineClamp: clamp.two, display: '-webkit-box' },\n  dyn: (clamp) => ({ WebkitLineClamp: clamp }),\n});\n",
+      "origin": "issue #1266, the prefixed-property path through the chain",
+      "note": "Neither compiler adds a vendor prefix, so the prefix has to be authored to be measured: `WebkitLineClamp` is normalized to `-webkit-line-clamp` and takes two different folded values for one property, a theme reference on the static prop and an inline variable on the dynamic one. Both declarations are emitted prefixed on both sides, which is what makes this a measurement rather than agreement about nothing.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-shadowed-param-at-extreme-condition-depth",
+      "label": "a shadowed dynamic parameter read eight condition levels deep",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { zIndex: zIndex._10 },\n  dyn: (zIndex) => ({\n    zIndex: {\n      default: zIndex,\n      ':active': {\n        default: zIndex,\n        '@media (min-width: 100px)': {\n          default: zIndex,\n          ':first-child': {\n            default: zIndex,\n            '@media (min-width: 200px)': {\n              default: zIndex,\n              ':focus': {\n                default: zIndex,\n                '@supports (display: grid)': {\n                  default: zIndex,\n                  ':hover': zIndex,\n                },\n              },\n            },\n          },\n        },\n      },\n    },\n  }),\n});\n",
+      "origin": "issue #1266, the depth boundary on the recursive value walk",
+      "note": "`modules-1266-nested-conditions` asks the same question three levels down; this asks it at eight, interleaving at-rules with pseudo-classes, where the condition key list is longer than any authored style is likely to be. The walk is recursive on both compilers, so what a depth this size measures is that neither runs out of anything before the leaf. The pseudo-classes are nested in alphabetical order deliberately: any other nesting order makes the selector-order divergence recorded as `modules-three-nested-pseudo-classes-hash-differently` decide this row's verdict instead of the resolution this row is a guard on, and restoring one here is a step of the ticket that owns it.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-many-shadowed-params-in-one-create",
+      "label": "twelve dynamic styles in one create, each shadowing a different import",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { a, b, c, d, e, f, g, h, i, j, k, l } from 'tokens.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: {\n    marginTop: a.x,\n    marginBottom: b.x,\n    marginInlineStart: c.x,\n    marginInlineEnd: d.x,\n    paddingTop: e.x,\n    paddingBottom: f.x,\n    paddingInlineStart: g.x,\n    paddingInlineEnd: h.x,\n    borderTopWidth: i.x,\n    borderBottomWidth: j.x,\n    rowGap: k.x,\n    columnGap: l.x,\n  },\n  dynA: (a) => ({ marginTop: a }),\n  dynB: (b) => ({ marginBottom: b }),\n  dynC: (c) => ({ marginInlineStart: c }),\n  dynD: (d) => ({ marginInlineEnd: d }),\n  dynE: (e) => ({ paddingTop: e }),\n  dynF: (f) => ({ paddingBottom: f }),\n  dynG: (g) => ({ paddingInlineStart: g }),\n  dynH: (h) => ({ paddingInlineEnd: h }),\n  dynI: (i) => ({ borderTopWidth: i }),\n  dynJ: (j) => ({ borderBottomWidth: j }),\n  dynK: (k) => ({ rowGap: k }),\n  dynL: (l) => ({ columnGap: l }),\n});\n",
+      "origin": "issue #1266, the breadth boundary on one create call",
+      "note": "Every name in the module is both an import and a parameter, so each of the twenty-four reads is decided only by which binding it carries. One evaluation cache is shared across the call, and a cache keyed on the symbol alone rather than on the symbol and its syntax context would answer the second read of a name with the first one's value -- which is the failure this breadth, and not depth, is written to catch.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-shadowed-param-spread-into-a-style-object",
+      "label": "a shadowed dynamic parameter spread into the style object",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { zIndex: zIndex._10 },\n  dyn: (zIndex) => ({ ...zIndex }),\n});\n",
+      "origin": "issue #1266, the parameter in the one position that is not a value",
+      "note": "A spread asks the evaluator to enumerate the parameter's keys rather than to fold it to a value, which is the position with no inline-style fall-through to deopt into. Recorded because the abort this effort fixed came from a resolved value having no expression form, and a spread is where that same value is asked for a shape instead. The two refusals are not the same sentence -- `Referenced constant is not defined.` here against `Only static values are allowed inside of a create() call.` upstream -- so this row holds the outcome and not the text.",
+      "expected": "both-reject"
     }
   ]
 }

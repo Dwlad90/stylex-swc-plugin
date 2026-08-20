@@ -460,6 +460,50 @@ depend on this option.
 > provide an [`inputSourceMap`](#inputsourcemap) when the incoming code was
 > already transformed by earlier tooling.
 
+### `maxEvaluationDepth`
+
+How many levels the compiler descends into a nested expression before it refuses
+to evaluate it. Defaults to `32`.
+
+The ceiling exists because the evaluator walks a nested expression recursively:
+without it, a file nested deeply enough exhausts the stack and aborts the
+process, which gives a bundler no message and no file to report. Past the
+ceiling you get an ordinary StyleX error instead, naming the file and the key
+path:
+
+```bash
+[StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+At most 32 levels of nested evaluation are supported.
+```
+
+Nesting this deep is not something a person writes, so the default is sized for
+hand-written styles. If generated code needs more, raise it:
+
+```js
+{
+  maxEvaluationDepth: 256;
+}
+```
+
+> [!IMPORTANT]
+> The number counts **evaluation steps**, not levels of nesting in your source.
+> Reading a member spends two (the object, then the value under the key), an
+> array element spends one for the array as well, and a parenthesis spends none
+> because it is unwrapped before evaluation. So raise it by measuring the input
+> that was refused, not by counting brackets in it.
+
+The same value can be set process-wide with the
+`STYLEX_MAX_EVALUATION_DEPTH` environment variable:
+
+```bash
+STYLEX_MAX_EVALUATION_DEPTH=256 npm run build
+```
+
+An explicit `maxEvaluationDepth` always wins over the environment, which in turn
+overrides the built-in default -- so a stray value in a CI environment cannot
+change what a project that configured the option compiles to. A value of zero,
+or one that is not a number, is ignored rather than honoured.
+
 ## Debug Logging
 
 Enable debug logging with the `STYLEX_DEBUG` environment variable. Available

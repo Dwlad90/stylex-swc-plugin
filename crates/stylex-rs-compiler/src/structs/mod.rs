@@ -66,6 +66,14 @@ pub struct StyleXOptions {
   pub input_source_map: Option<String>,
   #[napi(ts_type = "'throw' | 'warn' | 'silent'")]
   pub property_validation_mode: Option<PropertyValidationMode>,
+  /// How many levels the compiler will descend into a nested expression before
+  /// refusing to evaluate it, guarding against a generated file deep enough to
+  /// exhaust the stack. Counted in evaluation steps rather than in levels of
+  /// source nesting -- a member read costs two, a parenthesis costs none -- so
+  /// raise it by measuring rather than by counting brackets. Absent means the
+  /// `STYLEX_MAX_EVALUATION_DEPTH` environment variable decides, and failing
+  /// that the built-in default.
+  pub max_evaluation_depth: Option<u32>,
   /// Compile-time constants and functions accessible via `stylex.env`.
   #[napi(ts_type = "Record<string, any>")]
   pub env: Option<JsObject>,
@@ -174,6 +182,7 @@ impl TryFrom<StyleXOptions> for StyleXOptionsParams {
       unstable_module_resolution,
       sx_prop_name,
       property_validation_mode,
+      max_evaluation_depth: val.max_evaluation_depth.map(|depth| depth as usize),
       env: None, // Parsed separately via parse_env_object since it needs napi::Env
       debug_file_path: None, // Parsed separately via parse_debug_file_path since it needs napi::Env
     })

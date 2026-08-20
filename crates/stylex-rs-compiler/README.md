@@ -480,9 +480,7 @@ Nesting this deep is not something a person writes, so the default is sized for
 hand-written styles. If generated code needs more, raise it:
 
 ```js
-{
-  maxEvaluationDepth: 256;
-}
+const options = { maxEvaluationDepth: 256 };
 ```
 
 > [!IMPORTANT]

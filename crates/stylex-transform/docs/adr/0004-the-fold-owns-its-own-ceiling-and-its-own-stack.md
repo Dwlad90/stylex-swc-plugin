@@ -101,7 +101,10 @@ folds here to the single custom property a shallow one folds to.
 
 **A pathological input allocates.** A segment is allocated only when an
 expression reaches the red zone, which nothing under the default ceiling comes
-close to. Measured no change on the complex-theme fixture.
+close to. Ad-hoc timing on the complex-theme fixture showed no change --
+overlapping ranges over six runs each way, which is a sanity check rather than a
+verdict; the gate that decides a regression is `bench:revisions` plus
+`bench:verdict`, and it has not been run on this change.
 
 **Depth is quadratic, and the ceiling is what bounds it.** The memo key is a
 structural hash of the whole subtree, recomputed per level, so fold cost grows

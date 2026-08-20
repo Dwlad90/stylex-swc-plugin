@@ -48,3 +48,14 @@ _Avoid_: constants, enum export
 `shouldTransformFile` — the include/exclude check applied in TypeScript before
 the native call, so a file outside the pattern never crosses the boundary.
 _Avoid_: matcher, glob check, guard
+
+**Import elision**:
+The type-stripping pass dropping an import specifier nothing in the module
+references as a _value_. TypeScript's own rule — such a binding may name a type,
+and a type has no module to import at runtime — and wrong for a JavaScript
+input, which has no type-only imports to remove. The pass runs between the
+resolver and the StyleX transform, so what it elides the transform never sees:
+a dynamic style's parameter shadowing an imported name is not a reference, and
+until the extension began deciding this the name was gone before anything could
+register it. `is_javascript_input` is where the extension decides.
+_Avoid_: tree shaking, dead import removal, pruning

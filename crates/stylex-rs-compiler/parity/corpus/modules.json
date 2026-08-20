@@ -315,7 +315,7 @@
       "label": "a shadowed dynamic parameter whose import is read nowhere else",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  dyn: (zIndex) => ({ zIndex }),\n});\n",
       "origin": "issue #1266, the shape that compiled before the fix",
-      "note": "This shape already agreed, but only by accident: `typescript_strip` elides an import with no value reference before the StyleX pass, so the name match had nothing to match. It is a guard, not a demonstration -- the accident is gone and the agreement has to survive on the binding comparison alone.",
+      "note": "This shape agreed twice over, and the first reason is gone. The type-stripping pass used to elide an import with no value reference before the StyleX pass, so the name match had nothing to match; a `.js` subject now keeps the specifier, so the declaration is there and the match runs. It still agrees, on the binding comparison alone -- which is what this row was kept for. The elision half is `modules-1266-param-shadows-a-named-import-referenced-nowhere-else`.",
       "expected": "identical"
     },
     {
@@ -627,7 +627,7 @@
       "label": "a dynamic parameter shadowing a named import that is a function-map entry",
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const fade = keyframes({ from: { opacity: 0 } });\n\nexport const styles = create({\n  dyn: (keyframes) => ({ height: keyframes }),\n});\n",
       "origin": "the identifier audit for issue #1266, the function-map entries that are not maps",
-      "note": "Upstream folds `{ fn: keyframes }` and refuses it as a namespace, and this compiler now folds the same object and refuses on the same key `fn`. It used to register `keyframes` as a config the identifier step had no value form for and deopted -- and a deopt inside a dynamic style is the inline-style path, so this emitted `height:var(--x-height)` for a module upstream refuses. The keyframes call is here so the specifier survives: with the shadowing parameter as its only occurrence the specifier is elided before the transform runs and nothing is registered to fold, which is what `modules-1266-param-shadows-a-named-import-referenced-nowhere-else` holds. `both-reject` cannot report the wording, which is pinned in `validation_stylex_create_test::invalid_values`. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/16-a-shadowed-function-import-emits-css-upstream-refuses.md`.",
+      "note": "Upstream folds `{ fn: keyframes }` and refuses it as a namespace, and this compiler now folds the same object and refuses on the same key `fn`. It used to register `keyframes` as a config the identifier step had no value form for and deopted -- and a deopt inside a dynamic style is the inline-style path, so this emitted `height:var(--x-height)` for a module upstream refuses. The keyframes call is here because this row was written while a shadowing parameter as the specifier's only occurrence still lost the specifier to type stripping; that is fixed for a JavaScript input and `modules-1266-param-shadows-a-named-import-referenced-nowhere-else` now measures the bare shape. The call stays: it is the shape where the entry is also read as a callee, which is why the fold is built at the style-value consumer rather than where the identifier resolves. `both-reject` cannot report the wording, which is pinned in `validation_stylex_create_test::invalid_values`. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/16-a-shadowed-function-import-emits-css-upstream-refuses.md`.",
       "expected": "both-reject"
     },
     {
@@ -659,8 +659,8 @@
       "label": "a dynamic parameter shadowing a named import that nothing else reads",
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({\n  dyn: (keyframes) => ({ height: keyframes }),\n});\n",
       "origin": "the identifier audit for issue #1266, the shape the fold cannot reach",
-      "note": "The reported shape, and still divergent -- for a reason that is not the fold. `typescript_strip` runs ahead of the transform and elides a specifier with no value reference; the shadowing parameter is not a reference, so `keyframes` is gone before anything could register it and the parameter becomes a runtime value. Upstream never strips, so it folds and refuses. Under `cargo test`, which runs the resolver but not `typescript_strip`, this same source refuses. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/22-the-stripped-specifier-the-fold-never-sees.md`.",
-      "expected": "acceptance-divergent"
+      "note": "The reported shape. It used to be divergent for a reason that was not the fold: the type-stripping pass ran ahead of the transform and elided a specifier with no value reference, and a shadowing parameter is not a reference, so `keyframes` was gone before anything could register it. Eliding it is TypeScript's rule and this subject is a `.js` file, so the pass now keeps every specifier of a JavaScript input and the fold sees the name. A TypeScript input keeps the elision and still compiles -- a decided divergence this corpus cannot ask, because every subject is handed the same filename; it is pinned in `__test__/importElision.spec.ts` instead. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/22-the-stripped-specifier-the-fold-never-sees.md`.",
+      "expected": "both-reject"
     },
     {
       "id": "modules-1266-param-shadows-a-named-default-marker-import",
@@ -771,7 +771,7 @@
       "label": "a shadowed dynamic parameter beside a static prop that reads nothing",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  dyn: (zIndex) => ({ zIndex }),\n  wrapper: { color: 'red' },\n});\n",
       "origin": "issue #1266, the second shape that compiled before the fix",
-      "note": "The other half of the pair recorded as `modules-1266-import-unreferenced-elsewhere`: a static prop stands beside the dynamic style but reads no imported name, so the import was elided here too and the name match again had nothing to match. A guard on the same accident, held now by the binding comparison rather than by an absent declaration.",
+      "note": "The other half of the pair recorded as `modules-1266-import-unreferenced-elsewhere`: a static prop stands beside the dynamic style but reads no imported name. The import used to be elided here too, so the name match had nothing to match; a `.js` subject now keeps it and the match runs against a declaration that is present. Held by the binding comparison, which is the only thing left holding it.",
       "expected": "identical"
     },
     {

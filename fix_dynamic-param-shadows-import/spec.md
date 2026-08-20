@@ -47,7 +47,7 @@ import, returns a **confident** `EvaluateResultValue::ThemeRef`, and
 Upstream never faces the choice: `evaluate-path.js:596` resolves through
 `path.scope.getBinding(name)`.
 
-Auditing that against `evaluate-path.js:595-693` surfaced two further live
+Auditing that against `evaluate-path.js:595-692` surfaced two further live
 divergences, one of which emits CSS the reference compiler refuses:
 
 | input | Babel 0.19.0 | rs-compiler HEAD |
@@ -106,24 +106,24 @@ binding", replacing the ad-hoc ordering in `js/evaluate/mod.rs:405-517`. One
 function, steps in upstream's order, each carrying the `evaluate-path.js` line
 range it mirrors:
 
-1. import specifier → `ThemeRef` (`:598-649`)
-2. default-import specifier → `IMPORT_FILE_EVAL_ERROR` (`:651-653`) — **measure
+1. import specifier → `ThemeRef` (`:599-650`)
+2. default-import specifier → `IMPORT_FILE_EVAL_ERROR` (`:652-654`) — **measure
    first.** Its constant is also commented out (`evaluation_errors.rs:5`); we
    currently treat a default theme import as a theme ref. Mirror only if a
    measured divergence exists; otherwise leave a comment saying so.
-3. `constantViolations` → `NON_CONSTANT` (`:655-657`)
-4. `isMutated` → `NON_CONSTANT` (`:659-661`)
-5. used-before-declaration → `USED_BEFORE_DECLARATION` (`:663-665`), from
+3. `constantViolations` → `NON_CONSTANT` (`:656-658`)
+4. `isMutated` → `NON_CONSTANT` (`:660-662`)
+5. used-before-declaration → `USED_BEFORE_DECLARATION` (`:664-666`), from
    commit 2
-6. `binding.hasValue` (`:667-669`) — deliberately absent; Babel sets `hasValue`
+6. `binding.hasValue` (`:668-669`) — deliberately absent; Babel sets `hasValue`
    only via `setValue`/`clearValue`, which this plugin never calls. Comment, no
    code.
 7. `undefined` / `Infinity` / `NaN`: **deopt `UNINITIALIZED_CONST` when a
-   binding exists**, else return the global (`:670-685`). This is what makes the
+   binding exists**, else return the global (`:670-683`). This is what makes the
    `NaN`-parameter case match Babel: the value deopts and becomes an inline
    style instead of being emitted as a static `NaN`.
 8. `path.resolve()` → the var-declarator initializer read, else
-   `check_ident_declaration` (`:687-692`)
+   `check_ident_declaration` (`:685-690`)
 
 Steps 3 and 4 are spelled as two sequential probes even though
 `StateManager::has_binding_write` answers both today

@@ -1,6 +1,6 @@
 # 04 — Give the identifier chain one ordered home
 
-Status: `ready-for-agent`
+Status: `resolved`
 Blocked by: 02, 03
 
 **What to build:** Nothing, from the outside. Every input that compiles today
@@ -44,9 +44,72 @@ crate — they are decisions about how this same evaluator refuses things, and t
 chain's order is exactly what a future reader would otherwise re-litigate — and
 the seam's name in the crate glossary.
 
-- [ ] The chain lives in one module, one ordered function, steps in upstream
+- [x] The chain lives in one module, one ordered function, steps in upstream
       order with their upstream line ranges cited
-- [ ] The binding-write set is split in two, filled by the same walk
-- [ ] No snapshot changes, no corpus verdict changes, no message text changes
-- [ ] ADR recorded beside the existing ones in this crate
-- [ ] Glossary entry naming the seam
+- [x] The binding-write set is split in two, filled by the same walk
+- [x] No snapshot changes, no corpus verdict changes, no message text changes
+- [x] ADR recorded beside the existing ones in this crate
+- [x] Glossary entry naming the seam
+
+## Comments
+
+Landed as `26bc51018`, with the one measurement it turned up as `34859c8af`.
+
+`resolve_reference` in `shared/utils/js/evaluate/binding.rs`. The upstream line
+ranges cited there are `599-650 / 652-654 / 656-658 / 660-662 / 664-666 /
+668-669 / 670-683 / 685-690`; the spec's were each one line low, and the spec
+has been corrected so tickets 05 and 06 do not inherit stale numbers.
+
+`ModuleBindingsCollector` now classifies each write as it records it -- a
+`WriteKind` that flips to `Mutation` on the first member hop, so `n++`
+reassigns and `o.n++` mutates, out of the walk that already ran. Two sets on
+`StateManager`, two sequential probes in the chain, each spelled probe-first so
+the guard's scan of the declaration list runs only for a name some write was
+recorded against and step 4 costs nothing once step 3 has refused.
+
+Verification: `cargo test --workspace --all-features` 6206 passed / 0 failed,
+`cargo clippy --workspace --all-features --all-targets` clean, `cargo fmt` clean,
+`pnpm typecheck && pnpm lint:check && pnpm format:check` green, `parity --set
+modules` 0 changed verdicts over 56 subjects. No snapshot, fixture or message
+text changed.
+
+### The reorder is not inert -- one pair, measured both ways
+
+The checkbox above claims no corpus verdict changes, and that holds for every
+recorded entry. But the audit for it turned up one input the reorder *does*
+change, which the ticket's "every input that compiles today compiles the same
+way afterwards" did not cover:
+
+```js
+import { zIndex as NaN } from 'zIndex.stylex.js';
+```
+
+`NaN` is a legal binding name, so this is the only shape where an import
+specifier and one of the three folded globals name the same binding -- and a
+`SyntaxContext` cannot separate them, because they *are* one binding. Moving the
+globals step behind the import step changes which one answers.
+
+Measured on both compilers rather than argued: the shape reads `acceptance
+divergent` at `0f9d2bcd2` and `identical` at `26bc51018`. So the reorder closed
+a divergence rather than opening one, which is the outcome upstream's order was
+adopted for. Recorded as `modules-1266-import-aliased-to-a-global-name` with the
+verdict pinned, plus a unit test over all three global names, and stated in ADR
+0003 rather than left as a footnote here.
+
+### A narrowing carried over, not introduced -- worth its own ticket
+
+Steps 3 and 4 guard on there being a `VarDeclarator`, where upstream asks
+whether a *binding* exists at all. So a hoisted `function` or `class` that is
+reassigned falls past both probes and is refused for its declaration kind
+instead of for the write. Both compilers refuse, only the text differs, and the
+behaviour is exactly what it was before this commit -- but the step now claims a
+line-for-line mapping, so the narrowing is written down at the step and pinned by
+a test rather than left for a reader to notice. Closing it is a message change
+and belongs to a ticket of its own.
+
+### Left undone, deliberately
+
+`parity/corpus/harvested.json` is still stale, and `pnpm test` still fails on
+`@stylexswc/postcss-value-parser` for that reason -- reproduced identically at
+`0f9d2bcd2` with this work stashed. Ticket 03 recorded the same thing; it is
+still worth its own commit and still is not this one's.

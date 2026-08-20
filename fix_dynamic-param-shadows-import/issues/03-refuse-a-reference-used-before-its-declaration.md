@@ -82,6 +82,8 @@ which the harvest scan does not take. Regenerating here would fold six rows of
 someone else's drift into this commit and rewrite
 `crates/postcss-value-parser/src/tests/cases.rs` wholesale. Worth its own commit.
 
+Done separately in `32554e1a2`.
+
 ### Noted for ticket 04
 
 Upstream's comparison fires for *any* binding, hoisted `function` and `class`

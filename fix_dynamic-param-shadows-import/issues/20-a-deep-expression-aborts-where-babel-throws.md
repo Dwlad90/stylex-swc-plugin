@@ -47,7 +47,7 @@ this feature's tracker or the evaluator's.
       `crates/stylex-transform/docs/adr/0004-the-fold-owns-its-own-ceiling-and-its-own-stack.md`
 - [x] Pin the boundary as a test that can survive being wrong —
       `crates/stylex-transform/tests/transform_stylex_create_test/evaluation_depth_budget.rs`,
-      39 cases
+      62 cases
 
 ## Answer
 
@@ -112,24 +112,38 @@ past it:
 Measured under a raised ceiling of 320, because the subject is how deep a fold
 *can* go rather than where the shipped default sits:
 
+Each shape adds `+ 1` or a character per level, so the folded value encodes the
+depth and the class name is a hash over something only the full descent produces.
+That matters: the first version of five of these used shapes that fold to the
+same value at any height — a tower of `(true ? x : 0)` is `x` however tall — and
+would have passed had the fold stopped after one level.
+
 | shape | last folded | upstream at that depth |
 | --- | --- | --- |
 | `(x + 1)` arithmetic | 317 | folds, same hash |
 | `(x + 'b')` concatenation | 317 | folds, same hash |
-| `-(x)` unary | 317 | folds, same hash |
-| `(true ? x : 0)` conditional | 317 | folds, same hash |
-| `(x || 0)` logical | 317 | folds, same hash |
-| `` `${x}` `` template | 317 | folds, same hash |
-| `Math.max(x, 0)` call | 317 | folds, same hash |
+| `` `${x}b` `` template | 317 | folds, same hash |
+| shorthand expansion into four longhands | 317 | folds, same four hashes |
 | `o.a.a…` member chain | 316 | folds, same hash |
-| `{ ...{ … } }` spread chain | 315 | folds, same hash |
 | `:hover` / `@media` value | 316 | folds, same hash |
+| style array element | 316 | folds, same hash |
+| `{ ...{ … } }` spread chain | 315 | folds, same hash |
+| `Array(n).length` | 315 | folds, same hash |
+| `(true ? x + 1 : 0)` conditional | 158 | folds, same hash |
+| `(x + 1 || 0)` logical | 158 | folds, same hash |
+| `Math.max(x + 1, 0)` call | 158 | folds, same hash |
+| `-(- x - 1)` unary | 105 | folds, same hash |
 | `(x)` parentheses | unbounded | folds, same hash |
 
 The ceiling is in fold levels, and a source level is not always one: a member
-read descends twice, a spread descends twice, a parenthesis is unwrapped before
-the fold is asked. That is why the numbers differ by shape, why each is pinned
-rather than derived, and why the message says *nested evaluation*.
+read descends twice, a spread descends twice, an array element costs the array as
+well, a conditional that also adds costs both, the unary shape spends three nodes
+a level, and a parenthesis is unwrapped before the fold is asked. That is why the
+numbers differ by shape, why each is pinned rather than derived, and why the
+message says *nested evaluation* rather than naming source levels.
+
+At the shipped default of 32 the same measurement gives 29 levels of arithmetic
+and a 28-link member chain, both pinned as well.
 
 **Where the two disagree.** Between our ceiling and upstream's, upstream folds
 and we refuse with a message. Upstream's own ceiling is higher than this ticket
@@ -149,6 +163,14 @@ debug build on a 2 MiB thread: 768 levels with no `stylex` call involved is fine
 and 1024 aborts; inside a `create()` call 576 refuses cleanly and 608 aborts. So
 the fold's ceiling sits well under theirs by design, and the residue is filed as
 28.
+
+**One class of edge case has nothing to measure.** Vendor prefixing was asked
+for and is not implemented in this compiler — all three cases in
+`transform_polyfills_test/css_property_polyfills.rs` are `#[ignore]`d and
+`css_value_polyfills.rs` has none — so no prefixed output exists for a depth to
+interact with. Covered instead by the nearest path that does exist: a shorthand
+under `legacy-expand-shorthands`, where one folded value at the boundary becomes
+four longhand declarations, all four hashes upstream's.
 
 **No measurable cost.** The complex-theme performance fixture over six runs:
 10.35-11.22 ms with the change, 10.76-12.15 ms without. A stack segment is

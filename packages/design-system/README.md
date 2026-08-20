@@ -27,7 +27,7 @@ import { Text } from '@stylexswc/design-system';
 ### Using Design Tokens
 
 ```tsx
-import tokens from '@stylexswc/design-system/tokens.stylex';
+import { tokens } from '@stylexswc/design-system/tokens.stylex';
 
 // Use tokens in your StyleX styles
 const styles = stylex.create({

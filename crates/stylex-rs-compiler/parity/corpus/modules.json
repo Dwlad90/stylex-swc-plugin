@@ -435,7 +435,7 @@
       "label": "a member read off a default import of a theme file",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport tokens from 'tokens.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: tokens.color },\n});\n",
       "origin": "the identifier audit for issue #1266, the default-import step of the resolution chain",
-      "note": "A theme file is read through its named exports, so a default binding names nothing either compiler can fold. Upstream refuses with `There was an error when attempting to evaluate the imported file.`; this compiler resolved the default specifier as a theme reference like any other and emitted `.x\u2026{color:var(--xe7srj8)}` -- a variable the theme file does not define, which is `acceptance divergent`. Measured with no shadowing anywhere in the module, so the divergence is about the import specifier kind and nothing else. Both refuse once the step lands.",
+      "note": "A theme file is read through its named exports, so a default binding names nothing either compiler can fold. Upstream refuses with `There was an error when attempting to evaluate the imported file.`; this compiler resolved the default specifier as a theme reference like any other and emitted `.x…{color:var(--xe7srj8)}` -- a variable the theme file does not define, which is `acceptance divergent`. Measured with no shadowing anywhere in the module, so the divergence is about the import specifier kind and nothing else. Both refuse once the step lands.",
       "expected": "both-reject"
     },
     {
@@ -625,17 +625,65 @@
     {
       "id": "modules-1266-param-shadows-a-named-function-map-import",
       "label": "a dynamic parameter shadowing a named import that is a function-map entry",
-      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({\n  dyn: (keyframes) => ({ height: keyframes }),\n});\n",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const fade = keyframes({ from: { opacity: 0 } });\n\nexport const styles = create({\n  dyn: (keyframes) => ({ height: keyframes }),\n});\n",
       "origin": "the identifier audit for issue #1266, the function-map entries that are not maps",
-      "note": "Upstream folds `{ fn: keyframes }` and refuses it as a namespace. This compiler registers `keyframes` as a `Regular` config, which the identifier step deopts on -- and a deopt inside a dynamic style is the inline-style path, so this emits `height:var(--x-height)` for a module upstream refuses. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/16-a-shadowed-function-import-emits-css-upstream-refuses.md`, which is where the wrong-output half of this family sits; the same holds for `firstThatWorks` and for a bare `when` import.",
+      "note": "Upstream folds `{ fn: keyframes }` and refuses it as a namespace, and this compiler now folds the same object and refuses on the same key `fn`. It used to register `keyframes` as a config the identifier step had no value form for and deopted -- and a deopt inside a dynamic style is the inline-style path, so this emitted `height:var(--x-height)` for a module upstream refuses. The keyframes call is here so the specifier survives: with the shadowing parameter as its only occurrence the specifier is elided before the transform runs and nothing is registered to fold, which is what `modules-1266-param-shadows-a-named-import-referenced-nowhere-else` holds. `both-reject` cannot report the wording, which is pinned in `validation_stylex_create_test::invalid_values`. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/16-a-shadowed-function-import-emits-css-upstream-refuses.md`.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-param-shadows-a-named-first-that-works-import",
+      "label": "a dynamic parameter shadowing a named `firstThatWorks` import",
+      "source": "import { create, firstThatWorks } from '@stylexjs/stylex';\n\nexport const other = create({\n  a: { position: firstThatWorks('sticky', 'fixed') },\n});\n\nexport const styles = create({\n  dyn: (firstThatWorks) => ({ height: firstThatWorks }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the second entry of the `{ fn }` family",
+      "note": "The same fold as `modules-1266-param-shadows-a-named-function-map-import` through a different entry shape -- an array-args config rather than an expression one -- so it is the guard that the fold is a property of a function config and not of one registration. The other create call keeps the specifier alive.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-param-shadows-a-bare-when-import",
+      "label": "a dynamic parameter shadowing a bare `when` import",
+      "source": "import { create, when } from '@stylexjs/stylex';\n\nexport const other = create({\n  a: { color: { [when.ancestor(':hover')]: 'red', default: 'blue' } },\n});\n\nexport const styles = create({\n  dyn: (when) => ({ height: when }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the entry whose keys are not `fn`",
+      "note": "The one entry of the family upstream registers as the marker object itself rather than as `{ fn }`, so the object the parameter folds to carries the marker names and `ancestor` is the key the refusal lands on. Same sentence either way. The other create call both keeps the specifier alive and guards `when` as a callee, which is why the fold is built at the style-value consumer and not where the identifier resolves.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-param-shadows-a-named-position-try-import",
+      "label": "a dynamic parameter shadowing a named `positionTry` import",
+      "source": "import { create, positionTry } from '@stylexjs/stylex';\n\nexport const fallback = positionTry({ top: '0' });\n\nexport const styles = create({\n  dyn: (positionTry) => ({ height: positionTry }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the third entry of the `{ fn }` family",
+      "note": "Found by reading the registration rather than by report: `positionTry` is registered exactly as `keyframes` is, so it diverged exactly as `keyframes` did and is fixed by the same fold.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-param-shadows-a-named-import-referenced-nowhere-else",
+      "label": "a dynamic parameter shadowing a named import that nothing else reads",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({\n  dyn: (keyframes) => ({ height: keyframes }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the shape the fold cannot reach",
+      "note": "The reported shape, and still divergent -- for a reason that is not the fold. `typescript_strip` runs ahead of the transform and elides a specifier with no value reference; the shadowing parameter is not a reference, so `keyframes` is gone before anything could register it and the parameter becomes a runtime value. Upstream never strips, so it folds and refuses. Under `cargo test`, which runs the resolver but not `typescript_strip`, this same source refuses. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/22-the-stripped-specifier-the-fold-never-sees.md`.",
       "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-param-shadows-a-named-default-marker-import",
+      "label": "a dynamic parameter shadowing a named `defaultMarker` import",
+      "source": "import { create, when, defaultMarker } from '@stylexjs/stylex';\n\nexport const other = create({\n  a: { color: { [when.ancestor(':hover')]: 'red', default: defaultMarker() } },\n});\n\nexport const styles = create({\n  dyn: (defaultMarker) => ({ height: defaultMarker }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the entry that is a function and not an object",
+      "note": "The one entry of the family upstream registers as a function, so it refuses with `A style value can only contain an array, string or number.` rather than as a namespace. Here the entry is an index map with no value form and the build stops on a sentence about that shape instead. Reaching upstream's sentence needs the namespace validator to refuse a value it currently passes over, which is wider than this seam. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/21-a-shadowed-default-marker-param-reports-an-internal-shape.md`.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-named-function-map-import-read-as-a-static-value",
+      "label": "a named `keyframes` import read as a static style value",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: keyframes } });\n",
+      "origin": "the identifier audit for issue #1266, the same fold at the static consumer",
+      "note": "No shadowing: the import itself, read where a value belongs. The static object evaluator deopts rather than materializing, so this reads `A style value can only contain an array, string or number.` where upstream reads `Invalid pseudo or at-rule.` -- the same divergence `modules-1266-the-namespace-import-read-as-a-static-value` holds, now reached through a function config too. It used to read `Function not found`, which named nothing a caller could act on. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.",
+      "expected": "both-reject"
     },
     {
       "id": "modules-1266-param-shadows-the-types-import",
       "label": "a dynamic parameter shadowing a named `types` import",
       "source": "import { create, types } from '@stylexjs/stylex';\n\nexport const styles = create({\n  dyn: (types) => ({ height: types }),\n});\n",
       "origin": "the identifier audit for issue #1266, the one function-map name that agrees",
-      "note": "A guard, and an accident worth recording: upstream never registers `types` in `identifiers`, so nothing folds and the parameter stands. This compiler does register it, and agrees only because the entry deopts into the same inline-style path. If the entries beside it are made to refuse, this one must not follow them.",
+      "note": "A guard, and the one name of the family that agrees on purpose: upstream never registers `types` for a create call, so nothing folds and the parameter stands. This compiler does not register it for a create call either -- only for `defineVars` and `createTheme` -- so now that the entries beside it fold and refuse, this one agrees for the reason upstream does rather than because a deopt happened to land in the same place.",
       "expected": "identical"
     },
     {

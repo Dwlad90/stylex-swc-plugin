@@ -1401,6 +1401,12 @@
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:619"
     },
     {
+      "id": "0d4994d9",
+      "property": "color",
+      "value": "rgb(0,0,",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/dynamic_param_shadowing_edges.rs:34"
+    },
+    {
       "id": "f71184f4",
       "property": "color",
       "value": "rgb(0,0,0)rgba(255,255,255,.5)",
@@ -1728,13 +1734,19 @@
       "id": "635710ca",
       "property": "content",
       "value": "\"unterminated",
-      "origin": "crates/stylex-transform/tests/transform_value_normalization_test/class_name_edge_cases.rs:135"
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/dynamic_param_shadowing_edges.rs:71"
     },
     {
       "id": "cebd3b36",
       "property": "content",
       "value": "\"var(foo)\"",
       "origin": "crates/stylex-css/src/css/tests/unprefixed_custom_properties_test.rs:190"
+    },
+    {
+      "id": "c144c72e",
+      "property": "content",
+      "value": "\"{}\"",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/dynamic_param_shadowing_edges.rs:442"
     },
     {
       "id": "b9dd7c47",
@@ -1987,6 +1999,12 @@
       "property": "fontFamily",
       "value": "\"Helvetica \\\"Neue\", sans-serif",
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:1383"
+    },
+    {
+      "id": "9a0ad6ed",
+      "property": "fontFamily",
+      "value": "\"My\\\\ Font\"",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/dynamic_param_shadowing_edges.rs:166"
     },
     {
       "id": "61dfa282",

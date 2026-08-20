@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 910 values: the differential harness's whole corpus, plus
+/// 913 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -1468,6 +1468,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"rgb\" 0..25 before=\"   \" after=\"   \" nodes=9\n  word \"from\" 7..11\n  space \" \" 11..12\n  word \"red\" 12..15\n  space \" \" 15..16\n  word \"r\" 16..17\n  space \" \" 17..18\n  word \"g\" 18..19\n  space \" \" 19..20\n  word \"b\" 20..21",
   },
   ParserCase {
+    input: "rgb(0,0,",
+    output: "rgb(0,0,",
+    ast: "function \"rgb\" 0..8 before=\"\" after=\"\" unclosed nodes=4\n  word \"0\" 4..5\n  div \",\" 5..6 before=\"\" after=\"\"\n  word \"0\" 6..7\n  div \",\" 7..8 before=\"\" after=\"\"",
+  },
+  ParserCase {
     input: "rgb(0,0,0)rgba(255,255,255,.5)",
     output: "rgb(0,0,0)rgba(255,255,255,.5)",
     ast: "function \"rgb\" 0..10 before=\"\" after=\"\" nodes=5\n  word \"0\" 4..5\n  div \",\" 5..6 before=\"\" after=\"\"\n  word \"0\" 6..7\n  div \",\" 7..8 before=\"\" after=\"\"\n  word \"0\" 8..9\nfunction \"rgba\" 10..30 before=\"\" after=\"\" nodes=7\n  word \"255\" 15..18\n  div \",\" 18..19 before=\"\" after=\"\"\n  word \"255\" 19..22\n  div \",\" 22..23 before=\"\" after=\"\"\n  word \"255\" 23..26\n  div \",\" 26..27 before=\"\" after=\"\"\n  word \".5\" 27..29",
@@ -1703,6 +1708,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "string \"var(foo)\" 0..10 quote=\"\\\"\"",
   },
   ParserCase {
+    input: "\"{}\"",
+    output: "\"{}\"",
+    ast: "string \"{}\" 0..4 quote=\"\\\"\"",
+  },
+  ParserCase {
     input: "'var(foo)'",
     output: "'var(foo)'",
     ast: "string \"var(foo)\" 0..10 quote=\"'\"",
@@ -1851,6 +1861,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "\"Helvetica \\\"Neue\", sans-serif",
     output: "\"Helvetica \\\"Neue\", sans-serif",
     ast: "string \"Helvetica \\\\\\\"Neue\" 0..18 quote=\"\\\"\"\ndiv \",\" 18..20 before=\"\" after=\" \"\nword \"sans-serif\" 20..30",
+  },
+  ParserCase {
+    input: "\"My\\\\ Font\"",
+    output: "\"My\\\\ Font\"",
+    ast: "string \"My\\\\\\\\ Font\" 0..11 quote=\"\\\"\"",
   },
   ParserCase {
     input: "\"\\\\1F600\", sans-serif",

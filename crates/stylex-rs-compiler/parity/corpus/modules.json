@@ -527,6 +527,94 @@
       "expected": "both-reject"
     },
     {
+      "id": "modules-1266-a-string-named-specifier-read-through-a-member",
+      "label": "a member read off a theme import whose export name is a string",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"colors\" as c } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: c.lg },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "The lookup half of the question. A string-named specifier binds only `c`, and the string is the export name the variable is hashed from -- so the class name and the `var()` it names have to be the ones the export name produces, not the ones the local alias would. Both compilers write `--x38wx3q`.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-string-named-specifier-read-as-a-style-value",
+      "label": "a theme import whose export name is a string, read with no member access",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"color-lg\" as colorLg } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: colorLg },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "The emit half. The group itself carries no value form, and this row is where it is read by the one name the import actually binds -- the sibling row reading the aliased-away name asks about the lookup instead. It compiled to nothing here until the object evaluator stopped answering a theme reference with \"no value\"; both refuse now, with the reference implementation's sentence.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-string-named-specifier-with-an-empty-export-name",
+      "label": "a theme import whose export name is the empty string",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"\" as blank } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: blank.x },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "The shortest export name the grammar allows, and the one a name-keyed lookup is likeliest to read as absent. Hashed as a name of zero length on both sides.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-string-named-specifier-naming-the-default-export",
+      "label": "a theme import whose export name is the string `default`",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"default\" as d } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: d.x },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "`import { \"default\" as d }` names the default export through a named specifier, so the step that refuses a default import never sees it -- on either side. Both resolve it as the export named `default` and hash that name. Recorded because the refusal a reader would expect from the default-import step is the one neither compiler gives.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-string-named-specifier-with-a-lone-surrogate",
+      "label": "a theme import whose export name carries a lone surrogate",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"\\ud83d\" as ls } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: ls.x },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "An export name that is well-formed UTF-16 and not well-formed Unicode -- the one string an export name can hold that has no encoding a hash can read. Both refuse; upstream refuses it in the parser and this compiler where the name is decoded, so the sentences differ and the outcome does not.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-string-named-specifier-with-an-astral-export-name",
+      "label": "a theme import whose export name is a single astral character",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"😀\" as e } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: e.x },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "One code point, two UTF-16 code units, four UTF-8 bytes -- the boundary where a hash fed code units and a hash fed code points part company. Both write `--xardzau`, so neither does.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-string-named-specifier-with-a-thousand-character-export-name",
+      "label": "a theme import whose export name is a thousand characters long",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\" as big } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: big.x },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "The length boundary. The export name is hashed whole, so a truncating or fixed-buffer read would show here and nowhere else; both write `--xy7n7vi`.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-string-named-specifier-aliased-twice",
+      "label": "one string export name bound twice under two local names",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"color\" as a, \"color\" as b } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: a.x, backgroundColor: b.x },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "Two bindings of one export name. The variable is the export name's, so both reads have to write the same `var()` through different locals -- which is the check that the alias contributes nothing to the hash.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-string-named-specifier-shadowed-by-a-dynamic-param",
+      "label": "a dynamic parameter shadowing a theme import whose export name is a string",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"color-lg\" as colorLg } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: colorLg.x },\n  dyn: (colorLg) => ({ color: colorLg }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "Issue #1266's shape spelled through a string-named specifier: the parameter takes the local name over while the static read beside it still resolves the import. The parameter wins on both sides, so one rule reads the theme variable and the other the inline custom property.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-string-named-theme-member-eight-conditions-deep",
+      "label": "a member off a string-named theme import read eight condition levels deep",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"color-lg\" as c } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: {\n    color: {\n      default: 'red',\n      '@media (min-width: 1px)': {\n        default: 'red',\n        '@supports (color: red)': {\n          default: 'red',\n          ':active': {\n            default: 'red',\n            ':first-child': {\n              default: 'red',\n              ':focus': {\n                default: 'red',\n                ':hover': { default: 'red', ':last-child': c.x },\n              },\n            },\n          },\n        },\n      },\n    },\n  },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "Depth does not change what the name resolves to, and this row is the measurement rather than the claim. Its pseudo-classes nest alphabetically on purpose: nested out of that order they hash a different selector on the two sides for a reason that has nothing to do with resolution, which `modules-three-nested-pseudo-classes-hash-differently` owns.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-string-named-function-map-specifier-as-a-callee",
+      "label": "a function-map entry imported under a string export name and called",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"keyframes\" as kf } from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  wrapper: { animationName: kf({ from: { opacity: 0 }, to: { opacity: 1 } }) },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "The injected function map is keyed by the name a reference spells, and a string-named specifier is how that name comes to differ from the export it binds. Called through its local alias the specifier still folds to `keyframes` on both sides.",
+      "expected": "identical"
+    },
+    {
       "id": "modules-1266-read-by-an-aliased-imports-imported-name",
       "label": "a style value reading the name an identifier-aliased import specifier was aliased away from",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { spacing as sp } from 'tokens.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { padding: spacing },\n});\n",

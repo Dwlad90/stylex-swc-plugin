@@ -3,6 +3,7 @@
 pub mod base_css_type;
 pub mod core_stylex_options;
 pub mod dynamic_style;
+pub mod evaluation_depth;
 pub mod inline_style;
 pub mod named_import_source;
 pub mod nested;

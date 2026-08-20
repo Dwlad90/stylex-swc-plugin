@@ -7,6 +7,7 @@ use stylex_enums::{
 };
 
 use crate::{
+  evaluation_depth::resolve_max_evaluation_depth,
   named_import_source::ImportSources,
   stylex_env::{EnvEntry, JSFunction},
   stylex_options::CheckModuleResolution,
@@ -47,6 +48,13 @@ pub struct CoreStyleXOptions {
   pub aliases: Option<FxHashMap<String, Vec<String>>>,
   pub unstable_module_resolution: CheckModuleResolution,
   pub sx_prop_name: Option<String>,
+  /// How many levels the evaluator will descend before refusing to fold.
+  ///
+  /// Resolved once, from the configured value, then the environment, then the
+  /// built-in default -- see
+  /// [`crate::evaluation_depth`]. Held as a plain number here because by the
+  /// time options exist the question of where it came from is settled.
+  pub max_evaluation_depth: usize,
   #[serde(skip)]
   pub env: IndexMap<String, EnvEntry>,
   #[serde(skip)]
@@ -79,6 +87,7 @@ impl Default for CoreStyleXOptions {
       aliases: None,
       unstable_module_resolution: CheckModuleResolution::default(),
       sx_prop_name: Some("sx".to_string()),
+      max_evaluation_depth: resolve_max_evaluation_depth(None),
       env: IndexMap::new(),
       debug_file_path: None,
     }
@@ -149,6 +158,13 @@ impl CoreStyleXOptions {
 
   pub fn with_enable_ltr_rtl_comments(mut self, enabled: bool) -> Self {
     self.enable_ltr_rtl_comments = enabled;
+    self
+  }
+
+  /// Set the evaluator's ceiling, resolving an absent value the same way the
+  /// default does: environment, then the built-in default.
+  pub fn maybe_max_evaluation_depth(mut self, depth: Option<usize>) -> Self {
+    self.max_evaluation_depth = resolve_max_evaluation_depth(depth);
     self
   }
 

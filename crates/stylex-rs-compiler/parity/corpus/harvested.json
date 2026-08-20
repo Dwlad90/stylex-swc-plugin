@@ -99,6 +99,12 @@
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:1405"
     },
     {
+      "id": "66883a2d",
+      "property": "--y",
+      "value": "red",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:352"
+    },
+    {
       "id": "83fa2d39",
       "property": "--épaisseur",
       "value": "1px",
@@ -187,6 +193,12 @@
       "property": "backgroundColor",
       "value": "red",
       "origin": "crates/stylex-transform/tests/legacy/transform_call/stylex_transform_call_common_test.rs:298"
+    },
+    {
+      "id": "0df9a4fa",
+      "property": "backgroundColor",
+      "value": "red !important",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:466"
     },
     {
       "id": "835e815e",
@@ -331,6 +343,12 @@
       "property": "backgroundImage",
       "value": "url(\"foo)",
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:1326"
+    },
+    {
+      "id": "0a403503",
+      "property": "backgroundImage",
+      "value": "url(\"unterminated",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:441"
     },
     {
       "id": "548a8808",
@@ -583,6 +601,12 @@
       "property": "borderBottomWidth",
       "value": "5px",
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/static_styles.rs:168"
+    },
+    {
+      "id": "481ce635",
+      "property": "borderColor",
+      "value": "green",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:206"
     },
     {
       "id": "ab39d667",
@@ -1867,6 +1891,12 @@
       "property": "display",
       "value": "none",
       "origin": "crates/stylex-css/src/css/tests/common_test.rs:535"
+    },
+    {
+      "id": "45c94d3a",
+      "property": "e21",
+      "value": "a",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/invalid_values.rs:821"
     },
     {
       "id": "c55f2e94",
@@ -3961,6 +3991,12 @@
       "property": "width",
       "value": "calc((100% + 3% -   100px) / 7)",
       "origin": "crates/stylex-transform/tests/transform_value_normalization_test/css_value_normalization.rs:91"
+    },
+    {
+      "id": "5d73a34f",
+      "property": "width",
+      "value": "calc((1px + 2px)",
+      "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:453"
     },
     {
       "id": "9f88298b",

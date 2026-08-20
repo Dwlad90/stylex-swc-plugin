@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 904 values: the differential harness's whole corpus, plus
+/// 910 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -738,6 +738,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"1px\" 0..3",
   },
   ParserCase {
+    input: "unset",
+    output: "unset",
+    ast: "word \"unset\" 0..5",
+  },
+  ParserCase {
     input: "16px",
     output: "16px",
     ast: "word \"16px\" 0..4",
@@ -861,6 +866,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "url(\"foo)",
     output: "url(\"foo)",
     ast: "function \"url\" 0..10 before=\"\" after=\"\" unclosed nodes=1\n  string \"foo)\" 4..9 quote=\"\\\"\" unclosed",
+  },
+  ParserCase {
+    input: "url(\"unterminated",
+    output: "url(\"unterminated",
+    ast: "function \"url\" 0..18 before=\"\" after=\"\" unclosed nodes=1\n  string \"unterminated\" 4..17 quote=\"\\\"\" unclosed",
   },
   ParserCase {
     input: "url(\"var(foo)\")",
@@ -1033,6 +1043,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"url\" 0..14 before=\"\" after=\"\" nodes=1\n  word \"./img.jpg\" 4..13\nspace \" \" 14..15\nword \"30\" 15..17\nspace \" \" 17..18\nword \"space\" 18..23",
   },
   ParserCase {
+    input: "2px dashed blue",
+    output: "2px dashed blue",
+    ast: "word \"2px\" 0..3\nspace \" \" 3..4\nword \"dashed\" 4..10\nspace \" \" 10..11\nword \"blue\" 11..15",
+  },
+  ParserCase {
     input: "1px 2px",
     output: "1px 2px",
     ast: "word \"1px\" 0..3\nspace \" \" 3..4\nword \"2px\" 4..7",
@@ -1046,6 +1061,21 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "solid dashed",
     output: "solid dashed",
     ast: "word \"solid\" 0..5\nspace \" \" 5..6\nword \"dashed\" 6..12",
+  },
+  ParserCase {
+    input: "1px solid red !important",
+    output: "1px solid red !important",
+    ast: "word \"1px\" 0..3\nspace \" \" 3..4\nword \"solid\" 4..9\nspace \" \" 9..10\nword \"red\" 10..13\nspace \" \" 13..14\nword \"!important\" 14..24",
+  },
+  ParserCase {
+    input: "1px solid red /* ✓ */",
+    output: "1px solid red /* ✓ */",
+    ast: "word \"1px\" 0..3\nspace \" \" 3..4\nword \"solid\" 4..9\nspace \" \" 9..10\nword \"red\" 10..13\nspace \" \" 13..14\ncomment \" ✓ \" 14..23",
+  },
+  ParserCase {
+    input: "calc((1px + 2px)",
+    output: "calc((1px + 2px)",
+    ast: "function \"calc\" 0..16 before=\"\" after=\"\" unclosed nodes=1\n  function \"\" 5..16 before=\"\" after=\"\" nodes=5\n    word \"1px\" 6..9\n    space \" \" 9..10\n    word \"+\" 10..11\n    space \" \" 11..12\n    word \"2px\" 12..15",
   },
   ParserCase {
     input: "none",
@@ -4654,7 +4684,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 656 words paired with their number/unit split, `None` standing for a
+/// 657 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -4832,6 +4862,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("--token", None),
   ("green", None),
   ("#ff0000", None),
+  ("unset", None),
   ("16px", Some(("16", "px"))),
   ("anim", None),
   ("1s", Some(("1", "s"))),

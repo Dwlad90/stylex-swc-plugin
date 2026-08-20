@@ -653,6 +653,62 @@
       "origin": "the identifier audit for issue #1266, the same coercion in the key position",
       "note": "Upstream coerces the fold and emits a rule for a property named `[object object]`; this compiler refuses the value. The key position of the entry above, kept apart because one accepts and one refuses and a single module could only report the refusal.",
       "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-theme-object-read-as-a-style-value",
+      "label": "a theme import read as a style value with no member access",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  w: { zIndex: zIndex },\n});\n",
+      "origin": "code review of the folded-map consumer, the shape the fall-through inventory missed",
+      "note": "The reference implementation refuses with `A style value can only contain an array, string or number.` This compiler compiles the module and emits no rule at all: `nodes/object_expression.rs` answers a `ThemeRef` with `None`, and the caller reads `None` as `no property` rather than as a refusal, so the declaration is dropped silently. A member read off the same import never reaches that arm, which is the shape every fixture writes -- which is why this went unnoticed. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/18-a-theme-object-read-as-a-style-value-is-dropped.md`.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-theme-object-dropped-beside-a-good-property",
+      "label": "a dropped theme object beside a property that does emit",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  w: { color: 'red', zIndex: zIndex },\n});\n",
+      "origin": "code review of the folded-map consumer, the drop made visible",
+      "note": "The same drop with a sibling that survives, so the module compiles to exactly the rule the author did not ask a question about. This is the row that shows the failure mode is a missing declaration rather than a missing module -- the `color` rule is emitted and the `zIndex` one is not.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-theme-object-dropped-at-depth",
+      "label": "a dropped theme object under a condition and in a shorthand",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const under = stylex.create({\n  w: { zIndex: { default: zIndex } },\n});\n\nexport const shorthand = stylex.create({\n  w: { margin: zIndex },\n});\n",
+      "origin": "code review of the folded-map consumer, the drop through the value walk",
+      "note": "The arm is reached per condition key and through synthesized longhands alike, so neither depth nor shorthand expansion changes the answer. Recorded together because they share the one arm.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-theme-object-coerced-in-a-template",
+      "label": "a theme import coerced to a string in a style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  w: { zIndex: `${zIndex}` },\n});\n",
+      "origin": "code review of the folded-map consumer, the one row upstream emits on",
+      "note": "The only shape in this family where the reference implementation emits rather than refuses: it coerces the theme object to its hash and ships `z-index:x1q8i56t`. This compiler drops the declaration and emits nothing, so both compilers accept and the verdict is about which properties survive rather than about acceptance -- which is what makes this the one row of the family that is not `acceptance-divergent`. Recorded rather than mirrored: whether upstream intends that string is a question ticket 18 asks before copying it.",
+      "expected": "structurally-divergent"
+    },
+    {
+      "id": "modules-1266-a-theme-namespace-import-read-as-a-style-value",
+      "label": "a namespace theme import read as a style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport * as tokens from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  w: { zIndex: tokens },\n});\n",
+      "origin": "code review of the folded-map consumer, the namespace spelling of the drop",
+      "note": "The namespace spelling reaches a different resolution answer -- upstream reads `Referenced constant is not defined.` rather than the value-shape message -- and is dropped here just the same. Kept apart from the named spelling because the two refusals upstream are not the same sentence.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-theme-object-in-a-dynamic-style",
+      "label": "a theme import read as a style value inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  dyn: (a) => ({ zIndex: zIndex, color: a }),\n});\n",
+      "origin": "code review of the folded-map consumer, the same shape at the dynamic consumer",
+      "note": "The dynamic consumer refuses rather than dropping, so this row is a wording divergence where the static ones are acceptance divergences -- upstream reads `A style value can only contain an array, string or number.` and this compiler reads `Style value must evaluate to a static expression.` The `ThemeRef` that reaches the style-value fall-through, and the third shape there beside an array and a bare `FunctionConfig`.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-theme-member-read-in-a-dynamic-style",
+      "label": "a theme member read beside a dynamic parameter",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  dyn: (a) => ({ zIndex: zIndex._10, color: a }),\n});\n",
+      "origin": "code review of the folded-map consumer, the control on the drop",
+      "note": "A guard, and the reason the family went unnoticed: with the member access the reference resolves to a theme reference, folds to a `var()` and agrees exactly. A fix that started refusing theme references outright would pass every row above and fail here.",
+      "expected": "identical"
     }
   ]
 }

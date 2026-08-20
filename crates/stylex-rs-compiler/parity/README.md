@@ -146,6 +146,12 @@ shadowing shapes from
 changed verdict rather than as silence. The count is deliberately not written
 here -- it went stale twice.
 
+Not every entry in the set is a question about the evaluator. A row records that
+the two compilers order three nested pseudo-classes differently and therefore
+hash different class names, which a module is the smallest way to ask: a
+condition tree is a style value, not a declaration. It was found by a guard
+written for something else, which is the usual way a row like that arrives.
+
 Other entries carry a `note` without an expectation, saying why a subject that
 reads `identical` still earns one -- the shorthand rejection table having once
 diverged, for instance.

@@ -26,6 +26,7 @@ use crate::shared::{
     },
     css::common::get_number_suffix,
     js::evaluate::{evaluate, evaluate_obj_key},
+    log::build_code_frame_error::build_code_frame_error_and_panic_at,
     validators::validate_dynamic_style_params,
   },
 };
@@ -38,8 +39,8 @@ use stylex_constants::constants::{
   api_names::FUNCTION_CONFIG_FN_KEY,
   length_units::LENGTH_UNITS,
   messages::{
-    EVAL_RESULT_EXPECTED, ILLEGAL_NAMESPACE_VALUE, KEY_MUST_EVAL_TO_STRING, SPREAD_NOT_SUPPORTED,
-    VALUE_NOT_EXPRESSION,
+    EVAL_RESULT_EXPECTED, ILLEGAL_NAMESPACE_VALUE, ILLEGAL_PROP_VALUE, KEY_MUST_EVAL_TO_STRING,
+    SPREAD_NOT_SUPPORTED, VALUE_NOT_EXPRESSION,
   },
   time_units::get_time_units,
 };
@@ -88,13 +89,31 @@ fn object_from_keys<'a>(keys: impl Iterator<Item = &'a str>) -> Expr {
 /// reference implementation registers the marker object itself, so the keys are
 /// the marker names rather than `fn`.
 ///
+/// A theme reference has no expression form either, and is not a fold this can
+/// materialize: it stands for a `defineVars` group, whose keys live in another
+/// file. The reference implementation folds it to an object its namespace
+/// validation refuses because it is not a plain object, so it is refused here
+/// with that same message rather than materialized -- the static position
+/// refuses it the same way, in `nodes/object_expression.rs`.
+///
 /// Every other evaluated shape with no expression form still falls through to
 /// the old message. Each is a refusal of its own rather than a fold this
-/// understands -- an array and a theme reference among them -- and the set is
-/// not audited here.
-fn materialize_style_value(value: Option<EvaluateResultValue>) -> Expr {
+/// understands -- an array among them -- and the set is not audited here.
+///
+/// Both refusals report at the value the author wrote, with a code frame:
+/// everything reaching them is author input, and
+/// `docs/adr/0002-a-refusal-and-a-broken-invariant-are-separate-constructs.md`
+/// reserves a bare abort for an invariant this code established itself.
+fn materialize_style_value(
+  value: Option<EvaluateResultValue>,
+  value_path: &Expr,
+  traversal_state: &mut StateManager,
+) -> Expr {
   match value {
     Some(EvaluateResultValue::Expr(expr)) => expr,
+    Some(EvaluateResultValue::ThemeRef(_)) => {
+      build_code_frame_error_and_panic_at(value_path, ILLEGAL_PROP_VALUE, traversal_state)
+    },
     Some(EvaluateResultValue::FunctionConfigMap(func_map)) => {
       object_from_keys(func_map.keys().map(|key| key.as_str()))
     },
@@ -104,7 +123,7 @@ fn materialize_style_value(value: Option<EvaluateResultValue>) -> Expr {
       },
       _ => object_from_keys(std::iter::once(FUNCTION_CONFIG_FN_KEY)),
     },
-    _ => stylex_panic!("{}", VALUE_NOT_EXPRESSION),
+    _ => build_code_frame_error_and_panic_at(value_path, VALUE_NOT_EXPRESSION, traversal_state),
   }
 }
 
@@ -376,8 +395,10 @@ fn evaluate_partial_object_recursively(
                   });
                 }
 
-                let new_prop =
-                  create_key_value_prop(&key_str, materialize_style_value(result.value));
+                let new_prop = create_key_value_prop(
+                  &key_str,
+                  materialize_style_value(result.value, value_path, traversal_state),
+                );
                 obj.push(new_prop);
 
                 if let Some(result_inline_styles) = result.inline_styles {
@@ -474,8 +495,10 @@ fn evaluate_partial_object_recursively(
                     }),
                   );
                 } else {
-                  let new_prop =
-                    create_key_value_prop(&key_str, materialize_style_value(result.value));
+                  let new_prop = create_key_value_prop(
+                    &key_str,
+                    materialize_style_value(result.value, value_path, traversal_state),
+                  );
                   obj.push(new_prop);
                 }
               },

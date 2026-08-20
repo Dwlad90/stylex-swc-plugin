@@ -258,10 +258,16 @@ pub(in super::super) fn evaluate(
               );
             };
 
+            // Every arm answers an expression or refuses. An arm that answered
+            // "no value" would drop the property and compile the object as if
+            // the author had not written it -- which is what a theme reference
+            // read without a member access used to do, silently, where upstream
+            // refuses it. A value this evaluator cannot write down is a refusal,
+            // never an omission.
             let value = match value {
-              EvaluateResultValue::Expr(expr) => Some(expr),
+              EvaluateResultValue::Expr(expr) => expr,
               EvaluateResultValue::Vec(items) => match evaluate_result_vec_to_array_expr(&items) {
-                Some(expr) => Some(expr),
+                Some(expr) => expr,
                 None => deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE),
               },
               EvaluateResultValue::Callback(cb) => match path_key_value.value.as_ref() {
@@ -280,24 +286,21 @@ pub(in super::super) fn evaluate(
                     })
                     .collect();
 
-                  Some(cb(cb_args, traversal_state))
+                  cb(cb_args, traversal_state)
                 },
-                Expr::Arrow(arrow_func_expr) => Some(Expr::Arrow(arrow_func_expr.clone())),
+                Expr::Arrow(arrow_func_expr) => Expr::Arrow(arrow_func_expr.clone()),
                 _ => deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE),
               },
-              EvaluateResultValue::ThemeRef(_) => None,
               _ => deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE),
             };
 
-            if let Some(value) = value {
-              props.push(create_ident_key_value_prop(
-                &match key {
-                  Some(k) => k,
-                  None => stylex_panic!("Property key must be present in the style object."),
-                },
-                value,
-              ));
-            }
+            props.push(create_ident_key_value_prop(
+              &match key {
+                Some(k) => k,
+                None => stylex_panic!("Property key must be present in the style object."),
+              },
+              value,
+            ));
           },
           // A getter, a setter or an assignment pattern: object properties
           // with no compile-time value of their own.

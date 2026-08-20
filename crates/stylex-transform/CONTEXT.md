@@ -197,10 +197,21 @@ the reference implementation's registration rather than this compiler's types. A
 map entry stands for its own keys. A single **function config** -- `keyframes`,
 `firstThatWorks`, `positionTry` -- stands for `{ fn }`, the one key a callable
 carries upstream. A config holding a marker map, which is a bare `when` import,
-stands for the marker names. Only a `defineVars` or `createTheme` value position
-still refuses a fold for having no expression form, because materialization has
-not been extended there.
+stands for the marker names. Every other evaluated shape with no expression form
+is refused at the value position rather than materialized, a
+[theme reference](#theme-reference) among them.
 _Avoid_: shadowed namespace, identifier map hit, function config fold
+
+**Theme reference**:
+What an import of a `defineVars` group resolves to: the group as a whole, named
+by the hash of the file that declares it. It carries no expression form and
+cannot be materialized the way a [folded function map](#folded-function-map) is,
+because the keys it would need live in the other file -- so the CSS a style value
+needs comes from a _member_ read off it (`zIndex.ten` is `var(--x1ew7r74)`), and
+the group read without one is refused wherever a value belongs. Refused, not
+dropped: answering "no value" there compiled the object as if the declaration had
+not been written.
+_Avoid_: theme object, vars object, defineVars value
 
 **Import specifier kind**:
 Which of `{ c }`, `c` or `* as c` bound the name a reference reads, answered by

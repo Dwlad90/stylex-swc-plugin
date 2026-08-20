@@ -19,7 +19,7 @@ use swc_core::atoms::Atom;
 use swc_core::common::{BytePos, DUMMY_SP, GLOBALS, Globals, Span, SyntaxContext};
 use swc_core::ecma::ast::{
   BindingIdent, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
-  ImportSpecifier, ModuleExportName, Str,
+  ImportSpecifier, ImportStarAsSpecifier, ModuleExportName, Str,
 };
 
 use stylex_constants::constants::evaluation_errors::{
@@ -108,6 +108,13 @@ fn default_specifier(name: &str) -> ImportSpecifier {
   })
 }
 
+fn namespace_specifier(name: &str) -> ImportSpecifier {
+  ImportSpecifier::Namespace(ImportStarAsSpecifier {
+    span: DUMMY_SP,
+    local: ident_at(name, DUMMY_SP),
+  })
+}
+
 /// `import { imported as local }`, with the imported name spelled as an
 /// identifier or as a string. Both spellings name an export of the *other*
 /// module and bind nothing here, which is the question the aliased cases ask.
@@ -181,6 +188,16 @@ enum ImportedAs {
   /// `import { other as c } from './tokens.stylex.js'` — the subject is the
   /// local binding of an aliased specifier, which is a binding like any other.
   AliasedTo,
+  /// `import * as c from './tokens.stylex.js'` — the subject binds the whole
+  /// export object, which names no single export for a theme reference.
+  Namespace,
+  /// `import other, * as c from './tokens.stylex.js'` — the subject is the
+  /// namespace specifier. The only mixed shape the grammar allows a namespace
+  /// in, and the one that shows the two refusals are told apart by specifier.
+  NamespaceBesideDefault,
+  /// `import c, * as other from './tokens.stylex.js'` — the subject is the
+  /// default specifier of that same shape.
+  DefaultBesideNamespace,
 }
 
 /// The name of the sibling specifier in the two mixed shapes. Any name other
@@ -217,6 +234,19 @@ impl ImportedAs {
         subject,
         imported_as_an_identifier(SIBLING_IMPORT),
       )],
+      ImportedAs::Namespace => vec![namespace_specifier(subject)],
+      ImportedAs::NamespaceBesideDefault => {
+        vec![
+          default_specifier(SIBLING_IMPORT),
+          namespace_specifier(subject),
+        ]
+      },
+      ImportedAs::DefaultBesideNamespace => {
+        vec![
+          default_specifier(subject),
+          namespace_specifier(SIBLING_IMPORT),
+        ]
+      },
     })
   }
 
@@ -716,6 +746,129 @@ fn a_global_named_after_an_aliased_away_import_folds_to_itself() {
 
     assert_folded_to_the_global(&result, name);
   }
+}
+
+// ============ step 1's namespace arm — the specifier that names no export ============
+//
+// A namespace specifier binds the whole export object, so there is no export
+// name a theme reference could be built from, and the reference implementation
+// excludes it from step 1 for exactly that reason: the step reads
+// `importSpecifierNode.imported`, a field the node does not carry. It is given
+// no refusal of its own, so it falls through every step behind it and lands on
+// the terminal `UNDEFINED_CONST` — which is what these cases assert, and what
+// makes them ordering claims as much as specifier ones.
+
+/// The arm exists. A namespace specifier resolves nothing at step 1, so the
+/// import-path refusal that marks "step 1 answered" everywhere above is
+/// precisely what must *not* appear.
+#[test]
+fn a_namespace_import_specifier_resolves_nothing() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::Namespace)
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, UNDEFINED_CONST);
+}
+
+/// Falling through is not the same as being unbound: a declarator of the same
+/// name is still behind the import arm, and it is what answers. The one case
+/// where the namespace arm's fall-through is visible as a fold rather than as a
+/// refusal.
+///
+/// No source text reaches it, and for two reasons rather than one. The
+/// declarator and the specifier share a syntax context only because this module
+/// state was assembled that way — the resolver never hands out that collision,
+/// which is what makes every ordering case here inert. And a module-scope
+/// redeclaration of an import's local binding is a syntax error besides. The
+/// reference implementation cannot reach it either: `getBinding` answers with
+/// the module binding, so a declarator never wins there. The case is asserted
+/// because "falls through" is a claim about the arm, and a fold is the only
+/// shape that distinguishes falling through from answering.
+#[test]
+fn a_namespace_import_falls_through_to_the_declarator_read() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::Namespace)
+    .declared_with(create_string_expr("red"))
+    .evaluate_a_later_reference();
+
+  assert_folded_to_the_string(&result, "red");
+}
+
+/// And through the write probes, which sit ahead of that read. A namespace
+/// specifier reaches whatever the rest of the chain says about the name; it
+/// does not swallow it.
+#[test]
+fn a_namespace_import_falls_through_to_the_write_probes() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::Namespace)
+    .declared_with(create_string_expr("red"))
+    .reassigned()
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, NON_CONSTANT);
+}
+
+/// The mixed shape the grammar allows — `import other, * as c` — read from its
+/// namespace half. The two specifier kinds are told apart by *specifier*, not by
+/// declaration, so the default one beside it must not lend its own refusal.
+#[test]
+fn a_namespace_specifier_beside_a_default_one_is_not_defined() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::NamespaceBesideDefault)
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, UNDEFINED_CONST);
+}
+
+/// And the other half of that same declaration, so neither answer is reached by
+/// being the only specifier present.
+#[test]
+fn a_default_specifier_beside_a_namespace_one_is_still_refused() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::DefaultBesideNamespace)
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, IMPORT_FILE_EVAL_ERROR);
+}
+
+/// `disable_imports` gates the resolution the namespace arm never performs, so
+/// it changes nothing here — where it does change the default step's answer, and
+/// that asymmetry is the reference implementation's.
+#[test]
+fn a_namespace_import_is_not_defined_with_the_import_step_disabled() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::Namespace)
+    .with_imports_disabled()
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, UNDEFINED_CONST);
+}
+
+/// `import * as NaN from './tokens.stylex.js'` binds a name the globals step
+/// answers for. Unlike a default specifier, the namespace arm answers nothing,
+/// so the globals step is reached — and refuses, because a binding exists for
+/// the name. Both sides refuse; the sentence is the globals step's.
+#[test]
+fn a_namespace_import_aliased_to_a_global_name_is_refused_as_the_binding() {
+  for name in FOLDED_GLOBALS {
+    let result = ModuleState::default()
+      .imported_as(ImportedAs::Namespace)
+      .evaluate(name, LATER_REFERENCE_SPAN);
+
+    assert_refused_with(&result, UNINITIALIZED_CONST);
+  }
+}
+
+/// A reference sitting *above* the import declaration. An import binding is
+/// hoisted and the early-reference comparison is only asked of a declarator, so
+/// position changes nothing — the same refusal at any position.
+#[test]
+fn a_namespace_import_read_above_its_declaration_is_not_defined() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::Namespace)
+    .evaluate("c", span_at(1, 2));
+
+  assert_refused_with(&result, UNDEFINED_CONST);
 }
 
 // ==================== steps 3 and 4 — the write probes ====================

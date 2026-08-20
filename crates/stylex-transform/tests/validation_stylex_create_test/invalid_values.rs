@@ -1156,6 +1156,270 @@ stylex_test_panic!(
   "#
 );
 
+// The namespace specifier on its own, with no default beside it and no shadowing
+// anywhere: the import kind is the whole reason for the refusal. Resolving one
+// here used to fold `tokens.color` to a variable hashed from the *local alias*,
+// which the theme file defines only when the alias happens to be spelled like
+// the exported group -- so the same token read through a namespace import and
+// through a named one produced two different variables, one of which nothing
+// defines.
+stylex_test_panic!(
+  a_namespace_theme_import_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as tokens from 'colors.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { color: tokens.primary } });
+  "#
+);
+
+// The spelling an author reaching for a namespace import would write: the group
+// named, then the variable. It was refused before this change too, and by a
+// different sentence -- the alias-hashed theme reference answered a string for
+// `.colors`, and a second member read into a string is not a fold. Same refusal
+// now as every other namespace read, from the specifier rather than from the
+// shape of what the first hop returned.
+stylex_test_panic!(
+  a_namespace_theme_import_read_through_its_group_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as tokens from 'colors.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { color: tokens.colors.primary } });
+  "#
+);
+
+// A namespace import of a file that is not a theme file at all. It read as a
+// path-resolution failure before -- the wrong reason for the right refusal, and
+// the same wrong reason the default-import case read before its own step landed.
+// The specifier is answered before any path is resolved, so the module's
+// extension no longer decides the sentence.
+stylex_test_panic!(
+  a_namespace_import_of_a_non_theme_file_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as colors from './colors.js';
+
+    export const styles = stylex.create({ wrapper: { color: colors.primary } });
+  "#
+);
+
+// ──────────────────────────────────────────────
+// The namespace refusal under hostile input
+// ──────────────────────────────────────────────
+//
+// The refusal belongs to the specifier, so nothing downstream of the value
+// position should be able to change it -- not the spelling of the alias, not
+// the shape of the member read, not the property it lands in, not how deep the
+// conditions around it go. Every case below was measured against
+// `@stylexjs/babel-plugin` 0.19.0 and refused there too; the sentence is
+// asserted here because a corpus row compares acceptance and not wording.
+
+// A non-ASCII alias. The lookup compares bindings rather than bytes, so a name
+// no ASCII-only match could reach still resolves to its specifier and still
+// refuses.
+stylex_test_panic!(
+  a_non_ascii_namespace_alias_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as ток from 'colors.stylex.js';
+
+    export const styles = stylex.create({ w: { color: ток.primary } });
+  "#
+);
+
+// One name written two ways: the specifier spells it with a unicode escape and
+// the reference spells it plainly. They are one binding to the language, and
+// the escape is gone before the lookup sees either -- so this is the shape a
+// comparison of source bytes would have missed.
+stylex_test_panic!(
+  an_escaped_namespace_alias_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as \u0074okens from 'colors.stylex.js';
+
+    export const styles = stylex.create({ w: { color: tokens.primary } });
+  "#
+);
+
+// A member chain far longer than any theme file could answer. The chain is
+// evaluated from its base and the base is what refuses, so the depth costs
+// nothing and changes nothing.
+stylex_test_panic!(
+  a_deep_member_chain_off_a_namespace_import_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as t from 'colors.stylex.js';
+
+    export const styles = stylex.create({ w: { color: t.a.b.c.d.e.f.g.h.i.j } });
+  "#
+);
+
+// The member spelled as a computed string rather than as a property name. It
+// is the same read, and the property spelling is decided after the base has
+// already refused.
+stylex_test_panic!(
+  a_computed_member_off_a_namespace_import_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as t from 'colors.stylex.js';
+
+    export const styles = stylex.create({ w: { color: t['primary'] } });
+  "#
+);
+
+// Five conditions deep, mixing pseudo-classes with at-rules. The value is
+// reached by the same evaluation at any depth, and the diagnostic names the
+// path it took to get there.
+stylex_test_panic!(
+  a_namespace_import_read_at_condition_depth_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as t from 'colors.stylex.js';
+
+    export const styles = stylex.create({
+      w: {
+        ':hover': {
+          ':focus': {
+            ':active': {
+              '@media (min-width: 1px)': {
+                '@supports (color: red)': { color: t.primary },
+              },
+            },
+          },
+        },
+      },
+    });
+  "#
+);
+
+// A custom property, which takes a value the property validator never
+// normalizes -- so this is the position where a refusal that came from
+// validation rather than from the specifier would show as an acceptance.
+stylex_test_panic!(
+  a_namespace_import_read_as_a_custom_property_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as t from 'colors.stylex.js';
+
+    export const styles = stylex.create({ w: { '--my-var': t.primary } });
+  "#
+);
+
+// A vendor-prefixed property, and a shorthand that expands into several
+// longhands. Both are positions where the value is handled by a path of its
+// own after evaluation, and neither is reached.
+stylex_test_panic!(
+  a_namespace_import_read_in_a_prefixed_property_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as t from 'colors.stylex.js';
+
+    export const styles = stylex.create({ w: { WebkitLineClamp: t.lines } });
+  "#
+);
+
+stylex_test_panic!(
+  a_namespace_import_read_in_an_expanding_shorthand_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as t from 'colors.stylex.js';
+
+    export const styles = stylex.create({ w: { margin: t.space } });
+  "#
+);
+
+// A property CSS does not define, holding the namespace read. The property is
+// refused elsewhere for being unknown; the value is refused here first, which
+// is what says the two refusals are ordered rather than racing.
+stylex_test_panic!(
+  a_namespace_import_read_in_an_unknown_property_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as t from 'colors.stylex.js';
+
+    export const styles = stylex.create({ w: { 'not-a-real-prop': t.primary } });
+  "#
+);
+
+// Inside a fallback chain, where the value is one candidate among several. A
+// refusal of one candidate refuses the declaration; it does not silently fall
+// back to the next.
+stylex_test_panic!(
+  a_namespace_import_read_in_a_fallback_chain_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as t from 'colors.stylex.js';
+
+    export const styles = stylex.create({
+      w: { color: stylex.firstThatWorks(t.primary, 'red') },
+    });
+  "#
+);
+
+// The same file imported twice under two aliases. Neither resolves, and the
+// first read is what stops the build -- recorded because the old resolution
+// gave these two aliases two different variables for one token.
+stylex_test_panic!(
+  two_namespace_aliases_of_one_theme_file_are_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as a from 'colors.stylex.js';
+    import * as b from 'colors.stylex.js';
+
+    export const styles = stylex.create({
+      w: { color: a.primary, backgroundColor: b.primary },
+    });
+  "#
+);
+
+// A dynamic parameter shadowing the namespace, with the import also read
+// outside the dynamic style. The parameter still compiles to an inline style;
+// the unshadowed read is what refuses, so the two halves are answered
+// independently and the shadowing one is not dragged down with it.
+stylex_test_panic!(
+  a_namespace_import_read_beside_a_parameter_that_shadows_it_is_not_defined,
+  "Referenced constant is not defined.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as t from 'colors.stylex.js';
+
+    export const styles = stylex.create({
+      s: { color: t.primary },
+      d: (t) => ({ color: t }),
+    });
+  "#
+);
+
 // Nothing about the refusal is specific to a theme file. A default import of any
 // module is a value this compiler cannot fold, and it read as a path-resolution
 // failure before -- the wrong reason for the right refusal.

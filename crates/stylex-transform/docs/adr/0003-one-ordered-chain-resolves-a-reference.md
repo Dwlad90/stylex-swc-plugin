@@ -38,6 +38,11 @@ on both compilers before and after, and recorded in the parity corpus as
 the commit before this one and as agreement at this one. It is the whole extent
 of the reorder's observable effect.
 
+The default-import step landed later and shares that exception rather than
+adding one: `import NaN from 'tokens.stylex.js'` puts a default specifier and a
+global on one binding, and the step ahead answers, as it does upstream. Both
+answers are refusals there, so only the text differs.
+
 **The steps that would change output were left changing nothing.** Two of the
 reference implementation's steps had no counterpart here when the chain was
 assembled — a default-import refusal and the `undefined` / `Infinity` / `NaN`
@@ -46,7 +51,17 @@ They sat at their upstream positions carrying a comment and, for the globals, a
 guard that reproduced what the old order already did, so that change was a move
 and the next one a decision.
 
-The globals step has since been decided, and asks what the reference
+Both have since been decided. The default-import step refuses, because the
+divergence behind it was measured before the step was written rather than
+assumed from the reference implementation's shape: a default import of a theme
+file resolved to a theme reference here and emitted `var()` for a variable the
+theme file does not define, where upstream refused. That is
+`modules-1266-default-theme-import` in the parity corpus, `acceptance divergent`
+before the step and `both reject` after it. The step asks about the _specifier_
+rather than about the declaration, because one declaration carries a default and
+a named specifier at once and the two steps give them opposite answers.
+
+The globals step asks what the reference
 implementation asks: whether a binding exists for the reference, refusing when
 one does. That is what a
 [declared binding](../../CONTEXT.md) is for, and the
@@ -83,9 +98,16 @@ The cost is one extra `FxHashSet`, filled by the walk that already ran.
 position, so a new one goes where its counterpart sits rather than where it is
 convenient — and a step with no upstream counterpart has to say so.
 
-**A missing step is visible as a missing step.** The absent ones read as gaps in
-a numbered sequence with a comment explaining the gap, not as steps nobody
-thought of. Their tickets are named at the gap.
+**A missing step is visible as a missing step.** The absent one reads as a gap
+in a numbered sequence with a comment explaining the gap, not as a step nobody
+thought of. Where the gap is still open, its ticket is named at it.
+
+**An absent step is measured before it is ruled out, not reasoned about.** The
+default-import step was written after putting the input through both compilers,
+and the one remaining gap — a binding carrying a folded value — is a gap because
+the field it reads is provably always false upstream, not because nobody looked.
+A step left out on the strength of how the two implementations _look_ is the
+shape this chain exists to avoid.
 
 **A write is now classified at collection.** `ModuleBindingsCollector` records
 which kind of write it saw — a reassignment or an in-place mutation — rather than

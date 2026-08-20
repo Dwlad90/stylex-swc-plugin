@@ -228,7 +228,7 @@
       "id": "1fd1dd72",
       "property": "backgroundColor",
       "value": "var(--foo)",
-      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/style_declarations.rs:554"
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/style_declarations.rs:558"
     },
     {
       "id": "ec346a6f",
@@ -1536,7 +1536,7 @@
       "id": "3bdd6039",
       "property": "color",
       "value": "var(--bar)",
-      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/style_declarations.rs:554"
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/style_declarations.rs:558"
     },
     {
       "id": "f2cbca7a",

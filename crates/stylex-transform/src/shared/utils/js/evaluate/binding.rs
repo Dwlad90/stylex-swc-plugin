@@ -48,7 +48,7 @@ fn reads_before_its_declaration(reference: &Ident, declarator: &VarDeclarator) -
 /// The steps, in `evaluate-path.js` 0.19.0 order:
 ///
 /// 1. an import specifier resolves to a theme reference (599-650)
-/// 2. a default-import specifier (652-654) — absent, see below
+/// 2. a default-import specifier (652-654)
 /// 3. a reassigned binding is not a constant (656-658)
 /// 4. a binding mutated in place is not a constant (660-662)
 /// 5. a reference above its own declarator is early (664-666)
@@ -65,88 +65,104 @@ pub(super) fn resolve_reference(
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
   // ── 1. an import specifier resolves to a theme reference (599-650) ────────
-  if let Some(import_path) = get_import_by_ident(ident, traversal_state)
-    && !state.functions.disable_imports
-  {
-    let (local_name, imported) = import_path
+  //
+  // Steps 1 and 2 read one lookup, so they are nested rather than sequential:
+  // both ask what kind of specifier binds this reference, and upstream's step 1
+  // guard (`!bindingPath.isImportDefaultSpecifier()`, 0.19.0 line 640) is the
+  // same question step 2 answers with a refusal. The order is upstream's either
+  // way — a default specifier never resolves a theme reference here.
+  if let Some(import_path) = get_import_by_ident(ident, traversal_state) {
+    let specifier = import_path
       .specifiers
       .iter()
-      .find_map(|import| {
-        let (local_name, imported) = match import {
-          ImportSpecifier::Default(default) => (
-            default.local.clone(),
-            Some(ModuleExportName::Ident(default.local.clone())),
-          ),
-          ImportSpecifier::Named(named) => (named.local.clone(), named.imported.clone()),
-          ImportSpecifier::Namespace(namespace) => (
-            namespace.local.clone(),
-            Some(ModuleExportName::Ident(namespace.local.clone())),
-          ),
-        };
-
-        if ident.sym == local_name.sym {
-          Some((local_name, imported))
-        } else {
-          None
-        }
-      })
+      .find(|specifier| local_binding_of(specifier).sym == ident.sym)
       .unwrap_or_else(|| {
         stylex_panic!("Could not resolve the import specifier. Ensure the import is correct.")
       });
 
+    let (local_name, imported) = match specifier {
+      // ── 2. a default-import specifier (652-654) ─────────────────────────
+      //
+      // A theme file is read through its named exports, so there is no theme
+      // reference a default binding could answer with. Measured on both
+      // compilers as `modules-1266-default-theme-import`: upstream refuses, and
+      // resolving one here emitted a variable the theme file does not define.
+      //
+      // Deliberately outside the `disable_imports` guard below, as upstream is:
+      // it gates only the resolution on `state.functions.disableImports` and
+      // refuses a default import either way.
+      //
+      // Upstream does not return from its refusal — the reference falls through
+      // the rest of the chain and lands on `UNDEFINED_CONST`, which deopts a
+      // second time. The first refusal wins on both sides, so the fall-through
+      // is unobservable; returning here says so.
+      ImportSpecifier::Default(_) => return deopt(path, state, IMPORT_FILE_EVAL_ERROR),
+      ImportSpecifier::Named(named) => (named.local.clone(), named.imported.clone()),
+      // Upstream excludes a namespace specifier from step 1 too, and resolving
+      // one to a theme reference is a measured divergence this chain still
+      // carries: `.scratch/fix_dynamic-param-shadows-import/issues/11-…` owns
+      // the verdict on it.
+      ImportSpecifier::Namespace(namespace) => (
+        namespace.local.clone(),
+        Some(ModuleExportName::Ident(namespace.local.clone())),
+      ),
+    };
+
     let imported = imported.unwrap_or_else(|| ModuleExportName::Ident(local_name.clone()));
 
-    let abs_path = traversal_state.import_path_resolver(
-      convert_atom_to_str_ref(&import_path.src.value),
-      &mut FxHashMap::default(),
-    );
+    if !state.functions.disable_imports {
+      let abs_path = traversal_state.import_path_resolver(
+        convert_atom_to_str_ref(&import_path.src.value),
+        &mut FxHashMap::default(),
+      );
 
-    let imported_name = match imported {
-      ModuleExportName::Ident(ident) => ident.sym.to_string(),
-      ModuleExportName::Str(strng) => convert_atom_to_string(&strng.value),
-    };
+      let imported_name = match imported {
+        ModuleExportName::Ident(ident) => ident.sym.to_string(),
+        ModuleExportName::Str(strng) => convert_atom_to_string(&strng.value),
+      };
 
-    let return_value = match abs_path {
-      ImportPathResolution::Resolved { path: value } => {
-        evaluate_theme_ref(&value, imported_name, traversal_state)
-      },
-      ImportPathResolution::Unresolved => {
-        return deopt(path, state, IMPORT_PATH_RESOLUTION_ERROR);
-      },
-    };
+      let return_value = match abs_path {
+        ImportPathResolution::Resolved { path: value } => {
+          evaluate_theme_ref(&value, imported_name, traversal_state)
+        },
+        ImportPathResolution::Unresolved => {
+          return deopt(path, state, IMPORT_PATH_RESOLUTION_ERROR);
+        },
+      };
 
-    if state.confident {
-      let import_path_src = convert_atom_to_string(&import_path.src.value);
+      if state.confident {
+        let import_path_src = convert_atom_to_string(&import_path.src.value);
 
-      if !state.added_imports.contains(&import_path_src)
-        && traversal_state.get_treeshake_compensation()
-      {
-        let prepend_import_module_item = add_import_expression(&import_path_src);
-        // Theme side-effect imports go under ThemeImports — the slot
-        // whose flush position matches the legacy
-        // `prepend_import_module_items` placement (between the
-        // runtime helpers and the existing import block,
-        // regardless of producer queue order). Dedup is by stable
-        // hash on the StateManager so it survives across
-        // evaluations.
-        traversal_state.queue_theme_import_if_absent(prepend_import_module_item);
+        if !state.added_imports.contains(&import_path_src)
+          && traversal_state.get_treeshake_compensation()
+        {
+          let prepend_import_module_item = add_import_expression(&import_path_src);
+          // Theme side-effect imports go under ThemeImports — the slot
+          // whose flush position matches the legacy
+          // `prepend_import_module_items` placement (between the
+          // runtime helpers and the existing import block,
+          // regardless of producer queue order). Dedup is by stable
+          // hash on the StateManager so it survives across
+          // evaluations.
+          traversal_state.queue_theme_import_if_absent(prepend_import_module_item);
 
-        state.added_imports.insert(import_path_src);
+          state.added_imports.insert(import_path_src);
+        }
+
+        return Some(EvaluateResultValue::ThemeRef(return_value));
       }
 
-      return Some(EvaluateResultValue::ThemeRef(return_value));
+      // Upstream refuses here as well, with the same `IMPORT_FILE_EVAL_ERROR`
+      // step 2 above gives: a resolution that came back *unconfident* is an
+      // imported file it could not fold (0.19.0 line 6360). This falls through
+      // silently instead, keeping whichever refusal the resolution already
+      // recorded. Left alone rather than mirrored because no divergence has been
+      // measured behind it, and this chain does not add a step on the strength
+      // of how the two implementations look:
+      // `.scratch/fix_dynamic-param-shadows-import/issues/13-…` owns the
+      // measurement.
     }
   }
-
-  // ── 2. a default-import specifier (652-654) ───────────────────────────────
-  //
-  // Deliberately absent. Upstream refuses a default import outright with
-  // `IMPORT_FILE_EVAL_ERROR`, where step 1 above resolves one to a theme
-  // reference like any other specifier. Whether that is a divergence anything
-  // can observe is an open measurement, not an assumption to encode:
-  // `.scratch/fix_dynamic-param-shadows-import/issues/06-…` owns it, and the
-  // constant is still commented out beside its siblings in
-  // `stylex-constants::constants::evaluation_errors` until it answers.
 
   // A binding whose value can differ from its declaration initializer at this
   // use site — rebound or mutated — makes inlining that initializer bake in a

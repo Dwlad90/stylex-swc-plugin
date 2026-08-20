@@ -51,8 +51,8 @@ use crate::shared::{
       extract_tpl_cooked_value,
     },
     common::{
-      assign_props, get_import_by_ident, get_var_decl_by_ident, get_var_decl_from, order_own_keys,
-      remove_duplicates,
+      assign_props, get_import_by_ident, get_var_decl_by_ident, get_var_decl_from,
+      local_binding_of, order_own_keys, remove_duplicates,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
   },
@@ -64,10 +64,10 @@ use stylex_ast::ast::factories::{
 };
 use stylex_constants::constants::{
   evaluation_errors::{
-    ARGUMENT_WITHOUT_VALUE, IMPORT_PATH_RESOLUTION_ERROR, INVALID_ARRAY_LENGTH, NON_CONSTANT,
-    OBJECT_METHOD, PATH_WITHOUT_NODE, SPREAD_ELEMENT, UNEXPECTED_MEMBER_LOOKUP,
-    UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, array_length_too_large, not_a_function,
-    uncoercible_value, unsupported_expression, unsupported_operator,
+    ARGUMENT_WITHOUT_VALUE, IMPORT_FILE_EVAL_ERROR, IMPORT_PATH_RESOLUTION_ERROR,
+    INVALID_ARRAY_LENGTH, NON_CONSTANT, OBJECT_METHOD, PATH_WITHOUT_NODE, SPREAD_ELEMENT,
+    UNEXPECTED_MEMBER_LOOKUP, UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, array_length_too_large,
+    not_a_function, uncoercible_value, unsupported_expression, unsupported_operator,
   },
   messages::{
     ARGUMENT_NOT_EXPRESSION, BUILT_IN_FUNCTION, EXPECTED_CSS_VAR, EXPRESSION_IS_NOT_A_STRING,

@@ -129,6 +129,23 @@ fn matches_ident_with_var_decl_name(ident: &Ident, var_declarator: &&VarDeclarat
   )
 }
 
+/// The binding an import specifier introduces, whichever of the three kinds it
+/// is.
+///
+/// One question with one home, because two readers need it and they need it for
+/// opposite reasons: the pre-scan records every import local as a declared
+/// binding, and the reference resolution chain in `js/evaluate/binding.rs` asks
+/// *which* specifier bound a name it already matched -- a named specifier
+/// resolves to a theme reference where a default one is refused, and one
+/// declaration can carry both.
+pub(crate) fn local_binding_of(specifier: &ImportSpecifier) -> &Ident {
+  match specifier {
+    ImportSpecifier::Named(named) => &named.local,
+    ImportSpecifier::Default(default) => &default.local,
+    ImportSpecifier::Namespace(namespace) => &namespace.local,
+  }
+}
+
 pub(crate) fn get_import_from<'a>(
   state: &'a StateManager,
   ident: &'a Ident,

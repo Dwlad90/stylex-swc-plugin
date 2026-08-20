@@ -2,9 +2,21 @@
 // attempting to parse the imported file. Please ensure that the 'babelrc' file
 // is configured to be able to parse this file."#;
 
-// pub static IMPORT_FILE_EVAL_ERROR: &str = r#"There was an error when
-// attempting to evaluate the imported file. Please ensure that the imported
-// file is self-contained and does not rely on dynamic behavior."#;
+/// A reference that resolves to a *default* import specifier. A theme file is
+/// read through its named exports, so a default binding names a value from a
+/// file this compiler never evaluates -- there is nothing to fold, and folding
+/// the theme reference a named specifier would have answered with would invent
+/// a variable the theme file does not define.
+///
+/// Says "error evaluating the imported file" rather than "cannot use default
+/// imports" because that is the reference implementation's text for this input.
+/// It has a message of its own for a default import -- `DEFAULT_IMPORT`, still
+/// commented out below -- and does not reach it from here; the reference chain
+/// refuses a default specifier with this one instead, and the two compilers
+/// agreeing on the text is what makes a diagnostic portable between them.
+pub static IMPORT_FILE_EVAL_ERROR: &str = r#"There was an error when attempting to evaluate the imported file.
+Please ensure that the imported file is self-contained and does not rely on dynamic behavior.
+"#;
 
 // pub static DEFAULT_IMPORT: &str = r#"Error: Cannot use default imports.
 

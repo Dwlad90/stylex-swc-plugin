@@ -18,12 +18,13 @@ use super::*;
 use swc_core::atoms::Atom;
 use swc_core::common::{BytePos, DUMMY_SP, GLOBALS, Globals, Span, SyntaxContext};
 use swc_core::ecma::ast::{
-  BindingIdent, ImportDecl, ImportNamedSpecifier, ImportPhase, ImportSpecifier, Str,
+  BindingIdent, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
+  ImportSpecifier, Str,
 };
 
 use stylex_constants::constants::evaluation_errors::{
-  IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, UNDEFINED_CONST, UNINITIALIZED_CONST,
-  USED_BEFORE_DECLARATION, unsupported_expression,
+  IMPORT_FILE_EVAL_ERROR, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, UNDEFINED_CONST,
+  UNINITIALIZED_CONST, USED_BEFORE_DECLARATION, unsupported_expression,
 };
 use stylex_structures::stylex_options::StyleXOptions;
 
@@ -91,17 +92,30 @@ fn declarator_at(name: &str, span: Span, init: Option<Expr>) -> VarDeclarator {
   }
 }
 
-/// `import { <name> } from './tokens.stylex.js'`, the shape the chain's first
-/// step matches.
-fn theme_import_of(name: &str) -> ImportDecl {
+fn named_specifier(name: &str) -> ImportSpecifier {
+  ImportSpecifier::Named(ImportNamedSpecifier {
+    span: DUMMY_SP,
+    local: ident_at(name, DUMMY_SP),
+    imported: None,
+    is_type_only: false,
+  })
+}
+
+fn default_specifier(name: &str) -> ImportSpecifier {
+  ImportSpecifier::Default(ImportDefaultSpecifier {
+    span: DUMMY_SP,
+    local: ident_at(name, DUMMY_SP),
+  })
+}
+
+/// An import of `./tokens.stylex.js` carrying `specifiers`, which is the shape
+/// the chain's first two steps read. Which specifier binds the name under test
+/// is the whole question those two steps ask, so the specifier list is the
+/// parameter rather than the name.
+fn theme_import_with(specifiers: Vec<ImportSpecifier>) -> ImportDecl {
   ImportDecl {
     span: DUMMY_SP,
-    specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
-      span: DUMMY_SP,
-      local: ident_at(name, DUMMY_SP),
-      imported: None,
-      is_type_only: false,
-    })],
+    specifiers,
     src: Box::new(Str {
       span: DUMMY_SP,
       value: "./tokens.stylex.js".into(),
@@ -113,6 +127,45 @@ fn theme_import_of(name: &str) -> ImportDecl {
   }
 }
 
+/// Which specifier of an import declaration binds the name under test, and what
+/// else that declaration carries.
+///
+/// One declaration can carry a default and a named specifier at once, and the
+/// chain gives the two opposite answers — so a case has to be able to say "the
+/// subject is the default one, and there is a named one beside it" rather than
+/// only which declarations exist.
+enum ImportedAs {
+  /// `import { c } from './tokens.stylex.js'`
+  Named,
+  /// `import c from './tokens.stylex.js'`
+  Default,
+  /// `import c, { other } from './tokens.stylex.js'` — the subject is the
+  /// default specifier.
+  DefaultBesideNamed,
+  /// `import other, { c } from './tokens.stylex.js'` — the subject is the named
+  /// specifier.
+  NamedBesideDefault,
+}
+
+/// The name of the sibling specifier in the two mixed shapes. Any name other
+/// than the subject's; nothing reads it.
+const SIBLING_IMPORT: &str = "other";
+
+impl ImportedAs {
+  fn declaration_of(&self, subject: &str) -> ImportDecl {
+    theme_import_with(match self {
+      ImportedAs::Named => vec![named_specifier(subject)],
+      ImportedAs::Default => vec![default_specifier(subject)],
+      ImportedAs::DefaultBesideNamed => {
+        vec![default_specifier(subject), named_specifier(SIBLING_IMPORT)]
+      },
+      ImportedAs::NamedBesideDefault => {
+        vec![default_specifier(SIBLING_IMPORT), named_specifier(subject)]
+      },
+    })
+  }
+}
+
 /// What the module holds about the one name under test — which of the chain's
 /// inputs are true of it. Written as a builder so each case names only the steps
 /// it is about, and the ones it leaves out read as deliberately absent.
@@ -121,7 +174,7 @@ fn theme_import_of(name: &str) -> ImportDecl {
 /// crate has a `resolved_module()` elsewhere that returns the real thing.
 #[derive(Default)]
 struct ModuleState {
-  imported: bool,
+  imported: Option<ImportedAs>,
   /// `Some(init)` where the module declares the name under test, `init` being
   /// the declarator's initializer if it has one. The name is filled in at
   /// evaluation, so a case can declare `NaN` as readily as `c`.
@@ -155,7 +208,22 @@ enum ParameterScope {
 
 impl ModuleState {
   fn imported(mut self) -> Self {
-    self.imported = true;
+    self.imported = Some(ImportedAs::Named);
+    self
+  }
+
+  fn imported_as_a_default(mut self) -> Self {
+    self.imported = Some(ImportedAs::Default);
+    self
+  }
+
+  fn imported_as_a_default_beside_a_named(mut self) -> Self {
+    self.imported = Some(ImportedAs::DefaultBesideNamed);
+    self
+  }
+
+  fn imported_as_a_named_beside_a_default(mut self) -> Self {
+    self.imported = Some(ImportedAs::NamedBesideDefault);
     self
   }
 
@@ -246,8 +314,10 @@ impl ModuleState {
       // binding, and the chain's globals step asks only the second question.
       let module_binding = (Atom::from(name), MODULE_CONTEXT);
 
-      if self.imported {
-        traversal_state.top_imports.push(theme_import_of(name));
+      if let Some(imported_as) = &self.imported {
+        traversal_state
+          .top_imports
+          .push(imported_as.declaration_of(name));
         traversal_state
           .declared_bindings
           .insert(module_binding.clone());
@@ -393,6 +463,118 @@ fn the_import_step_is_asked_before_the_write_probes() {
     .evaluate_a_later_reference();
 
   assert_refused_with(&result, IMPORT_PATH_RESOLUTION_ERROR);
+}
+
+// ==================== step 2 — the default-import specifier ====================
+
+/// The step exists. A theme file is read through its named exports, so a
+/// default binding names nothing this compiler can fold, and resolving it as a
+/// theme reference emitted a variable the theme file does not define.
+#[test]
+fn a_default_import_specifier_is_refused() {
+  let result = ModuleState::default()
+    .imported_as_a_default()
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, IMPORT_FILE_EVAL_ERROR);
+}
+
+/// The question is about the *specifier*, not about the declaration: one
+/// declaration carries both kinds, and the two steps give them opposite
+/// answers. Matching the declaration alone would refuse the named half of
+/// `import tokens, { colors } from './tokens.stylex.js'` along with the default
+/// one.
+#[test]
+fn a_named_specifier_beside_a_default_one_still_resolves() {
+  let result = ModuleState::default()
+    .imported_as_a_named_beside_a_default()
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, IMPORT_PATH_RESOLUTION_ERROR);
+}
+
+/// And the other half of that declaration, so neither answer is reached by
+/// being the only specifier present.
+#[test]
+fn a_default_specifier_beside_a_named_one_is_still_refused() {
+  let result = ModuleState::default()
+    .imported_as_a_default_beside_a_named()
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, IMPORT_FILE_EVAL_ERROR);
+}
+
+/// `disable_imports` gates the *resolution* in step 1, not this refusal — which
+/// is where the two steps part company, and the reference implementation draws
+/// the line in the same place. A default import is refused whether or not the
+/// fold was allowed to reach outside the module, because there is nothing
+/// outside the module it could have reached for.
+#[test]
+fn a_default_import_is_refused_with_the_import_step_disabled() {
+  let result = ModuleState::default()
+    .imported_as_a_default()
+    .with_imports_disabled()
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, IMPORT_FILE_EVAL_ERROR);
+}
+
+/// Asked before the write probes, the declarator read, and the terminal
+/// refusal — the same ordering claims step 1 carries, and inert for the same
+/// reason: the resolver keeps a shadowing binding and an import specifier
+/// apart, so no real module reaches this state.
+#[test]
+fn the_default_import_step_is_asked_before_every_step_behind_it() {
+  let result = ModuleState::default()
+    .imported_as_a_default()
+    .declared_with(create_string_expr("red"))
+    .reassigned()
+    .mutated()
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, IMPORT_FILE_EVAL_ERROR);
+}
+
+/// And before the globals step, which is the one place the order is observable
+/// on source text anyone would write: `import NaN from './tokens.stylex.js'`
+/// binds a name the globals step also answers for, and no syntax context keeps
+/// the two apart. The import answers, as it does upstream.
+#[test]
+fn a_default_import_aliased_to_a_global_name_is_refused_as_the_import() {
+  for name in FOLDED_GLOBALS {
+    let result = ModuleState::default()
+      .imported_as_a_default()
+      .evaluate(name, LATER_REFERENCE_SPAN);
+
+    assert_refused_with(&result, IMPORT_FILE_EVAL_ERROR);
+  }
+}
+
+/// A reference sitting *above* the import declaration is still refused by this
+/// step. The early-reference comparison is step 5, behind both import steps,
+/// and an import binding is hoisted anyway — so there is no position at which a
+/// default import folds.
+#[test]
+fn a_default_import_read_above_its_declaration_is_refused() {
+  let result = ModuleState::default()
+    .imported_as_a_default()
+    .evaluate("c", span_at(1, 2));
+
+  assert_refused_with(&result, IMPORT_FILE_EVAL_ERROR);
+}
+
+/// A reference the resolver marked as its own binding is not the import,
+/// however alike the two are spelled — which is what lets a dynamic style's
+/// parameter be named after a default import. The refusal is keyed to the
+/// binding, so a shadowing reference falls past both import steps.
+#[test]
+fn a_reference_shadowing_a_default_import_is_not_the_import() {
+  let result = ModuleState::default()
+    .imported_as_a_default()
+    .read_from_a_shadowing_scope()
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, UNDEFINED_CONST);
 }
 
 // ==================== steps 3 and 4 — the write probes ====================

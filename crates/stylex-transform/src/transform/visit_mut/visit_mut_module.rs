@@ -18,7 +18,10 @@ use crate::{
     structures::state_manager::{
       build_decl_use_graph, compute_live_set, flush_pending_insertions, mark_style_vars_to_keep,
     },
-    utils::{ast::convertors::convert_atom_to_string, common::fill_top_level_expressions},
+    utils::{
+      ast::convertors::convert_atom_to_string,
+      common::{fill_top_level_expressions, local_binding_of},
+    },
   },
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -436,11 +439,7 @@ impl Visit for ModuleBindingsCollector {
     // import declaration contains no write targets, so nothing below the
     // specifiers is worth descending into either way.
     for specifier in &import_decl.specifiers {
-      let local = match specifier {
-        swc_core::ecma::ast::ImportSpecifier::Named(named) => &named.local,
-        swc_core::ecma::ast::ImportSpecifier::Default(default) => &default.local,
-        swc_core::ecma::ast::ImportSpecifier::Namespace(namespace) => &namespace.local,
-      };
+      let local = local_binding_of(specifier);
 
       self.declared_bindings.insert(local.to_id());
 

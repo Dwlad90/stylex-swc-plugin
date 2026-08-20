@@ -93,9 +93,13 @@ stylex_test_panic!(
   "#
 );
 
+// The named case above refuses for the path, this one for the specifier: a
+// default import is refused before the path is ever resolved, so its message no
+// longer depends on where the file sits. The reference implementation answers
+// the same way for the same reason.
 stylex_test_panic!(
   invalid_value_non_static_import_default,
-  "Could not resolve the path to the imported file.\nPlease ensure that the theme file has a .stylex.js or .stylex.ts extension and follows the\nrules for defining variables",
+  "There was an error when attempting to evaluate the imported file.\nPlease ensure that the imported file is self-contained and does not rely on dynamic behavior",
   r#"
     import * as stylex from '@stylexjs/stylex';
     import generateBg from './other-file';

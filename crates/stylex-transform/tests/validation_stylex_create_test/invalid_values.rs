@@ -1074,3 +1074,208 @@ stylex_test_panic!(
     const m = '4px';
   "#
 );
+
+// ──────────────────────────────────────────────
+// A style value that reads a *default* import.
+//
+// A theme file is read through its named exports, so a default binding names a
+// value from a file this compiler never evaluates. Resolving one as a theme
+// reference emitted `var(--…)` for a variable the theme file does not define;
+// `@stylexjs/babel-plugin` 0.19.0 refuses the same input, with the text these
+// cases assert. Measured as `modules-1266-default-theme-import` in the parity
+// corpus.
+//
+// The refusal is reached before the import path is resolved, so most of these
+// need no module resolution configured. The one control that has to *succeed*
+// does -- it gets the transform below.
+// ──────────────────────────────────────────────
+
+fn theme_import_transform(comments: TestComments) -> impl Pass {
+  build_test_transform(comments, |b| {
+    b.with_filename(swc_core::common::FileName::Real("MyComponent.js".into()))
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_runtime_injection()
+  })
+}
+
+// The reported shape: a member read off a default theme import.
+stylex_test_panic!(
+  a_default_theme_import_read_in_a_style_value_is_refused,
+  "There was an error when attempting to evaluate the imported file",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import tokens from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { color: tokens.color } });
+  "#
+);
+
+// And the binding read bare, with no member access to fail on -- so the refusal
+// is about the specifier and not about the property lookup.
+stylex_test_panic!(
+  a_default_theme_import_read_as_a_bare_value_is_refused,
+  "There was an error when attempting to evaluate the imported file",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import tokens from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { color: tokens } });
+  "#
+);
+
+// The control, and the reason the refusal is keyed to the specifier rather than
+// to the declaration: one declaration carries both kinds, and the named half
+// still resolves to a theme reference.
+stylex_test!(
+  a_named_theme_import_beside_a_default_one_still_resolves,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import tokens, { colors } from 'colors.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { color: colors.primary } });
+  "#
+);
+
+// A namespace specifier beside a default one, which is the other mixed shape the
+// grammar allows. The namespace half still resolves; the default half is what
+// the case above this one refuses.
+//
+// The namespace half is not a parity claim. Upstream excludes a namespace
+// specifier from the resolution step as it excludes a default one, and refuses
+// this with `Referenced constant is not defined.`; whether to mirror that is
+// `.scratch/fix_dynamic-param-shadows-import/issues/11-…`, which owns the
+// verdict. What this case guards is narrower and is the reason it is here at
+// all: refusing the default specifier must not start refusing whatever specifier
+// sits beside it.
+stylex_test!(
+  a_namespace_theme_import_beside_a_default_one_still_resolves,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import tokens, * as colors from 'colors.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { color: colors.primary } });
+  "#
+);
+
+// Nothing about the refusal is specific to a theme file. A default import of any
+// module is a value this compiler cannot fold, and it read as a path-resolution
+// failure before -- the wrong reason for the right refusal.
+stylex_test_panic!(
+  a_default_import_of_a_non_theme_file_is_refused_the_same_way,
+  "There was an error when attempting to evaluate the imported file",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import classnames from 'classnames';
+
+    export const styles = stylex.create({ wrapper: { color: classnames } });
+  "#
+);
+
+// A shorthand value is carried into synthesized longhand properties, so the
+// refusal has to survive the expansion -- the same guard the used-before-
+// declaration cases above keep.
+stylex_test_panic!(
+  a_default_theme_import_read_in_a_shorthand_is_refused,
+  "There was an error when attempting to evaluate the imported file",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import tokens from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { margin: tokens.space } });
+  "#
+);
+
+// The recursive value walk reaches the same reference through four levels of
+// conditions, so a refusal that only fired at the top level would let this one
+// through.
+stylex_test_panic!(
+  a_default_theme_import_read_in_deeply_nested_conditions_is_refused,
+  "There was an error when attempting to evaluate the imported file",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import tokens from 'tokens.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: {
+        color: {
+          default: 'red',
+          ':hover': {
+            default: 'blue',
+            '@media (min-width: 600px)': {
+              default: 'green',
+              ':focus': tokens.color,
+            },
+          },
+        },
+      },
+    });
+  "#
+);
+
+// A computed key is evaluated too, so the same reference refuses from the key
+// position rather than from the value position.
+stylex_test_panic!(
+  a_default_theme_import_read_as_a_computed_key_is_refused,
+  "There was an error when attempting to evaluate the imported file",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import tokens from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { [tokens.color]: 'red' } });
+  "#
+);
+
+// The refusal travels out of an operand rather than being swallowed by the
+// operator, which is how a concatenated value reports the reference that caused
+// it instead of a coercion failure.
+stylex_test_panic!(
+  a_default_theme_import_read_through_an_operator_is_refused,
+  "There was an error when attempting to evaluate the imported file",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import tokens from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { width: tokens.width + 'px' } });
+  "#
+);
+
+// A default import aliased to one of the folded globals is the one shape where
+// the import step and the globals step name the same binding, and no syntax
+// context keeps them apart. The import answers, as it does upstream.
+stylex_test_panic!(
+  a_default_import_bound_to_a_global_name_is_refused_as_the_import,
+  "There was an error when attempting to evaluate the imported file",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import NaN from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { width: NaN } });
+  "#
+);
+
+// A non-ASCII binding name, and an escaped one that spells an ASCII name. Both
+// are the same binding to the language as their unescaped spelling, so the
+// refusal has to key off the binding rather than off the bytes.
+stylex_test_panic!(
+  a_default_theme_import_with_a_non_ascii_binding_name_is_refused,
+  "There was an error when attempting to evaluate the imported file",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import цвета from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { color: цвета.основной } });
+  "#
+);
+
+stylex_test_panic!(
+  a_default_theme_import_with_an_escaped_binding_name_is_refused,
+  "There was an error when attempting to evaluate the imported file",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import \u0074okens from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { color: tokens.color } });
+  "#
+);

@@ -431,6 +431,46 @@
       "expected": "identical"
     },
     {
+      "id": "modules-1266-default-theme-import",
+      "label": "a member read off a default import of a theme file",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport tokens from 'tokens.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: tokens.color },\n});\n",
+      "origin": "the identifier audit for issue #1266, the default-import step of the resolution chain",
+      "note": "A theme file is read through its named exports, so a default binding names nothing either compiler can fold. Upstream refuses with `There was an error when attempting to evaluate the imported file.`; this compiler resolved the default specifier as a theme reference like any other and emitted `.x\u2026{color:var(--xe7srj8)}` -- a variable the theme file does not define, which is `acceptance divergent`. Measured with no shadowing anywhere in the module, so the divergence is about the import specifier kind and nothing else. Both refuse once the step lands.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-default-theme-import-shadowed-by-a-dynamic-param",
+      "label": "a dynamic parameter shadowing a default theme import, with the import read nowhere else",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport tokens from 'tokens.stylex.js';\n\nexport const styles = stylex.create({\n  dyn: (tokens) => ({ color: tokens }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the default-import step asked of a shadowing binding",
+      "note": "The refusal above is keyed to the binding, so a parameter that merely spells the import's name is not the import and still compiles to an inline style. This is the entry a regression from a binding match back to a name match would break -- it would resolve the parameter to the default specifier and refuse, where the entry above would keep reading `both reject` and say nothing.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-named-theme-import-beside-a-default-one",
+      "label": "one import declaration carrying both a default and a named theme specifier",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport tokens, { colors } from 'colors.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: colors.primary },\n});\n",
+      "origin": "the identifier audit for issue #1266, the guard on the default-import step",
+      "note": "The chain asks which *specifier* binds the reference, not which declaration does, and one declaration can carry both kinds with opposite answers. Recorded so that refusing a default import cannot quietly start refusing the named specifier beside it.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-default-import-of-a-non-theme-file",
+      "label": "a default import of a module that is not a theme file, read as a style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport classnames from 'classnames';\n\nexport const styles = stylex.create({\n  wrapper: { color: classnames },\n});\n",
+      "origin": "the identifier audit for issue #1266, the default-import step reached without a theme file",
+      "note": "Nothing about the refusal is specific to a theme file -- the step is reached before the import path is resolved at all, so the message no longer depends on where the file sits. Recorded because this compiler refused for the *path* before the step landed and refuses for the *specifier* now, and only measurement says whether that is the reason upstream gives.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-call-through-a-default-import",
+      "label": "a call through a default import, as a style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport generateBg from './other-file';\n\nexport const styles = stylex.create({\n  root: { backgroundColor: generateBg() },\n});\n",
+      "origin": "the identifier audit for issue #1266, the callee position of the default-import step",
+      "note": "The reference is the callee rather than the value, which reaches the chain by a different route. This is the shape `invalid_value_non_static_import_default` asserts, and its message changed with the step -- measured rather than reasoned about, because a message the reference implementation does not give is a divergence however right the refusal is.",
+      "expected": "both-reject"
+    },
+    {
       "id": "modules-1266-dynamic-param-named-nan",
       "label": "a dynamic style's parameter named `NaN`",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  a: (NaN) => ({ width: NaN }),\n});\n",

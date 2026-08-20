@@ -158,3 +158,45 @@ the refusals, non-ASCII and escaped elements, a custom property, a vendor-prefix
 property, an unclosed CSS function, a thousand elements, and eight condition
 levels. Workspace green, `cargo clippy --workspace --all-features --all-targets`
 clean, node suite 64 of 64.
+
+## Comments
+
+### Review, both axes
+
+Standards and spec review over `01c16e3a8...HEAD`. Three findings acted on, two
+recorded as answered.
+
+**The corpus row for ticket 08's overlap input had gone stale, and no harness
+could say so.** `modules-1266-shadowed-namespace-inside-an-array` still read
+"this compiler still reads `Style value must evaluate to a static expression.`"
+and still named this ticket as what would close it. Both halves were false after
+the fold, and its verdict — `both-reject` — is exactly the one that compares
+acceptance rather than wording, so nothing failed. Corrected, pointing at the
+test that pins the text.
+
+**The AST-level `length` test was a fourth private copy of it**, in the file
+whose `classify_lookup` exists because three copies had drifted into three
+diagnostics for one mistake. Routed through `convert_member_prop_to_string`,
+which also settles a spelling the copy refused: a template folding to `length` is
+the same property in the language.
+
+**`Option<Option<_>>`** — outer "this arm applies", inner the evaluator's answer,
+with nothing saying so. Now `holey_receiver_elems`, answering what it found, with
+the count and the spread refusal spelled where the neighbouring arms spell
+theirs. Two test gaps came out of the split: a non-literal receiver counted by
+its evaluated elements, and a key that only looks like `length`.
+
+**The coverage gate does not reach these files.** `scripts/packages/test/coverage.sh`
+exits early for `stylex-transform` and the workspace script excludes it, so the
+three uncovered lines review flagged are not the standards breach they would be
+elsewhere. Two are gone with the refactor above; the third is the holey-spread
+guard in `object_expression.rs`, kept deliberately — `written_slot_count`'s
+spread arm sets the precedent for a bounds guard behind a refusal, and both now
+say at the site that they are guards rather than live paths.
+
+**Scope, recorded rather than trimmed.** The hole refusal is row seven of the
+ticket's own table, and `holey_receiver_length` exists to stop that row taking
+`[, 1].length` down with it — a divergence in this compiler's favour that
+`member_length_tests.rs` was written to pin. Three shapes outside the table moved
+with it, each toward upstream and each now under test: `{ ...[, 1] }`,
+`A.length` through a holey binding, and `[, 1][0]`.

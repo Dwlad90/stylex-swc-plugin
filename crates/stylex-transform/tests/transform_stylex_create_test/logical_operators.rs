@@ -433,3 +433,95 @@ stylex_test!(
     }
   "#
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The same seam, from the shapes a downstream build reported
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Three more spellings of the refused `includes` above, reduced from a
+// downstream report that hit them on a compiler predating the split. Each one
+// reaches the refusal by a route the cases above do not, and each is
+// `identical` against `@stylexjs/babel-plugin@0.19.0`.
+
+// The guard is `!!hView`, not `hView`: the left operand is a unary expression
+// the evaluator cannot fold either, so the fold is refused before the operator
+// ever asks about the right side. The right side is still evaluated — that is
+// what decides which side the deopt names — and the declaration falls to the
+// runtime whole.
+stylex_test!(
+  an_unfoldable_array_method_behind_a_double_negated_guard_survives,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const VIEWS = ['grid', 'list'];
+
+    const styles = stylex.create({
+      base: { color: 'black' },
+      hview: { color: 'red' },
+    });
+
+    export function View({ hView }) {
+      const isHView = !!hView && VIEWS.includes(hView);
+
+      return <div sx={[styles.base, isHView && styles.hview]} />;
+    }
+  "#
+);
+
+// The receiver is an array literal written in place rather than a binding, so
+// the evaluator meets it as `EvaluateResultValue::Expr(Expr::Array)` — a
+// different arm from the folded `Vec` the named `VIEWS` produces, refusing with
+// `The method 'includes' is not yet supported in static evaluation.` The
+// refusal has to deopt from there too.
+stylex_test!(
+  an_unfoldable_array_method_on_an_array_literal_survives,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({
+      base: { color: 'black' },
+      hview: { color: 'red' },
+    });
+
+    export function View({ hView }) {
+      const isHView = hView && ['grid', 'list'].includes(hView);
+
+      return <div sx={[styles.base, isHView && styles.hview]} />;
+    }
+  "#
+);
+
+// The unfoldable call decides a *namespace key* rather than a condition: it
+// picks `gridType` through an `if`, a template literal builds the key from it,
+// and the namespace is read by that key. Nothing about the style object is
+// unknown — both namespaces compile — and the lookup itself is what stays in
+// the output.
+stylex_test!(
+  a_namespace_read_by_a_key_an_unfoldable_array_method_decides,
+  |tr| stylex_transform(tr.comments.clone(), |b| b.with_runtime_injection()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const WIDE_VIEWS = ['grid', 'list'];
+
+    const styles = stylex.create({
+      base: { color: 'black' },
+      regularGrid: { display: 'grid' },
+      wideGrid: { display: 'flex' },
+    });
+
+    export function View({ hView }) {
+      let gridType = 'regular';
+
+      if (hView && WIDE_VIEWS.includes(hView)) {
+        gridType = 'wide';
+      }
+
+      const grid = `${gridType}Grid`;
+
+      return <div sx={[styles.base, styles[grid]]} />;
+    }
+  "#
+);

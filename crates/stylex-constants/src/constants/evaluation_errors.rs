@@ -143,3 +143,25 @@ pub fn unsupported_operator(op: &str) -> String {
 pub fn unsupported_expression(type_: &str) -> String {
   format!("Unsupported expression: {}\n\n", type_)
 }
+
+/// An expression nested past the fold's recursion budget.
+///
+/// Without a bound of its own the evaluator's real limit is the thread's stack,
+/// and its failure a process abort rather than a diagnostic. The budget makes
+/// the limit a number the compiler owns, and the refusal an ordinary one.
+///
+/// Says *nested evaluation* rather than nested expressions, because the budget
+/// counts the fold's own steps and a source level is not always one of them: a
+/// member read descends to its object and to the value it lands on, a spread
+/// descends to the object it copies, and a parenthesis is unwrapped before the
+/// fold is asked at all. Naming source levels would put a number in the message
+/// that the input beside it contradicts.
+///
+/// Shaped after [`array_length_too_large`]: a fold that gives up on size says
+/// so, and says how much it was willing to do.
+pub fn expression_too_deep(limit: usize) -> String {
+  format!(
+    "Expression is too deeply nested to evaluate at compile time.\nAt most {} levels of nested evaluation are supported.\n\n",
+    limit
+  )
+}

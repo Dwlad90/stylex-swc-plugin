@@ -541,6 +541,14 @@
       "origin": "the identifier audit for issue #1266, what the imported-name fallback cost",
       "note": "The name is free for the module to declare, and the declaration is what the reference resolves to on both compilers. The import lookup used to answer for the aliased-away name first, so the declaration was never read and the module aborted. Both references are in one style object so the alias's own binding is measured beside it: `sp.small` still resolves to the theme it names.",
       "expected": "identical"
+    },
+    {
+      "id": "modules-1266-create-theme-second-arg-named-after-an-aliased-away-import",
+      "label": "a createTheme second argument named after an import's aliased-away name",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"buttonTokens\" as bt } from 'buttonTokens.stylex.js';\n\nexport const variables = stylex.createTheme(bt, buttonTokens);\n",
+      "origin": "code review of the imported-name fallback deletion, the second consumer of the import lookup",
+      "note": "The evaluator is not the only reader of the import lookup: `createTheme`'s second-argument check asks it whether an identifier is an import. Deleting the imported-name fallback changes which arm answers here -- the reference was refused as an import before and is refused as an unbound, non-static value now -- so the message changes while the verdict does not. Recorded because a message change is invisible to the harness, and the entry is what says the verdict was measured rather than assumed.",
+      "expected": "both-reject"
     }
   ]
 }

@@ -1288,8 +1288,9 @@ stylex_test_panic!(
 // holds. `@stylexjs/babel-plugin` 0.19.0 asks the scope for the binding a
 // reference resolves to and never sees the aliased-away name at all, so it
 // refuses the same inputs. Measured as
-// `modules-1266-read-by-the-name-an-import-was-aliased-away-from` in the parity
-// corpus.
+// `modules-1266-read-by-a-string-named-imports-imported-name` and
+// `modules-1266-read-by-an-aliased-imports-imported-name` in the parity corpus,
+// one entry per spelling.
 //
 // The string-named spelling is the half that was reachable: an identifier
 // spelling carries the parser's syntax context and a reference carries the

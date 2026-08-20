@@ -170,13 +170,6 @@ pub(crate) fn local_binding_of(specifier: &ImportSpecifier) -> &Ident {
   }
 }
 
-pub(crate) fn get_import_from<'a>(
-  state: &'a StateManager,
-  ident: &Ident,
-) -> Option<&'a ImportDecl> {
-  get_import_by_ident(ident, state).map(|(import, _)| import)
-}
-
 #[allow(dead_code)]
 pub(crate) fn type_of<T>(_: T) -> &'static str {
   type_name::<T>()

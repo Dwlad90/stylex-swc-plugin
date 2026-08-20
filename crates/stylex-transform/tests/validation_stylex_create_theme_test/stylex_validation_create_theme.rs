@@ -176,3 +176,40 @@ stylex_test!(
     export const variables = stylex.createTheme(buttonTokens, simpleTheme);
   "#
 );
+// The second-argument check asks whether the identifier is an import, and an
+// import is no longer answered for by the name it was aliased away from. So this
+// input reaches the check as an ordinary unbound reference: it refused as a
+// non-object second argument before, and refuses as a non-static value now.
+// Refused either way, and by the arm that describes it -- `buttonTokens` names
+// nothing here, which is not the same fault as naming an import.
+//
+// Measured against `@stylexjs/babel-plugin` 0.19.0 as
+// `modules-1266-create-theme-second-arg-named-after-an-aliased-away-import`:
+// both compilers refuse.
+stylex_test_panic!(
+  second_arg_named_after_an_aliased_away_import_is_refused,
+  "Only static values are allowed inside of a createTheme() call.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import { "buttonTokens" as bt } from "./ButtonTokens";
+
+    export const variables = stylex.createTheme(bt, buttonTokens);
+  "#
+);
+
+// The control the entry above needs: the *local* binding of that same import is
+// still an import, so the second-argument check still refuses it with the
+// message it was written for. A lookup that stopped answering for imports
+// altogether would pass the case above on its own.
+stylex_test_panic!(
+  second_arg_bound_by_a_string_named_import_is_refused_as_an_import,
+  "createTheme() can only accept an object as the second argument",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import stylex from 'stylex';
+    import { "buttonTokens" as bt } from "./ButtonTokens";
+
+    export const variables = stylex.createTheme(bt, bt);
+  "#
+);

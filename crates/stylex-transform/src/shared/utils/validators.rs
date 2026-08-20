@@ -14,7 +14,7 @@ use crate::shared::{
   structures::state_manager::{ImportKind, StateManager},
   utils::{
     ast::{convertors::create_string_expr, helpers::is_variable_named_exported},
-    common::get_import_from,
+    common::get_import_by_ident,
     log::build_code_frame_error::{
       build_code_frame_error_and_panic, build_code_frame_error_and_panic_at,
     },
@@ -352,7 +352,7 @@ pub(crate) fn validate_stylex_create_theme_indent(
   let second_arg = &init.args[1];
 
   let is_valid_second_arg = match second_arg.expr.as_ref() {
-    Expr::Ident(ident) => get_import_from(state, ident).is_none(),
+    Expr::Ident(ident) => get_import_by_ident(ident, state).is_none(),
     Expr::Object(_) => true,
     _ => false,
   };

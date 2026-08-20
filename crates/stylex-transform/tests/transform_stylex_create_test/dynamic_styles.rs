@@ -637,7 +637,7 @@ stylex_test!(
 );
 
 // The next two shadow a namespace and a default import rather than a named one.
-// Their `get_import_from` arms already compared the binding, so the shadowing
+// Their arms of the import lookup already compared the binding, so the shadowing
 // half of each was never broken -- they are here so a later edit cannot regress
 // all three arms to a name match at once.
 //

@@ -58,7 +58,7 @@
       "label": "a length read off an array carrying a hole",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  hole: { content: [, 1].length },\n});\n",
       "origin": "issue #1265, found while deciding where the count is read from",
-      "note": "Acceptance divergent in this compiler's favour. A hole is a slot, so the language says two; upstream refuses the whole array with `Could not resolve the code being evaluated` rather than counting it.",
+      "note": "Acceptance divergent in this compiler's favour, and deliberately kept so. A hole is a slot, so the language says two; upstream refuses the whole array with `Could not resolve the code being evaluated`. The array itself is now refused here too -- a hole has no value -- but a `length` written on a literal receiver is counted from the source before the receiver is evaluated, which is the one reading that answers the language. Reached through a binding it refuses, which the entry below the fold records.",
       "expected": "acceptance-divergent"
     },
     {
@@ -251,7 +251,7 @@
       "label": "an object spread of an array carrying a hole",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  x: { ...[, 1] },\n});\n",
       "origin": "found while mirroring the spread refusal to upstream",
-      "note": "Both refuse. This evaluator drops a hole before it becomes a value, so the keys after it would come out shifted -- `{ 0: 1 }` where the language says `{ 1: 1 }`. Upstream crashes outright on this input, so refusing it costs nothing.",
+      "note": "Both refuse, with the same sentence. The array carrying the hole is refused before the spread reads it, so what an author sees is upstream's own words for a hole. The spread's own guard against a shifted key -- `{ 0: 1 }` where the language says `{ 1: 1 }` -- is now behind that refusal rather than in front of it.",
       "expected": "both-reject"
     },
     {
@@ -1141,6 +1141,198 @@
       "origin": "issue #1266, a theme reference read where a style value belongs",
       "note": "The other declaring call that reads the same evaluator. Both refuse with the same sentence, and here for a reason of the position rather than of the value: a constant is inlined at its use sites, so nothing it holds may be a reference resolved later.",
       "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-an-array-in-a-dynamic-style",
+      "label": "an array style value inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: ['1px', '2px'] }),\n});\n",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "The reported shape. Every array written in a dynamic style's body aborted with `Style value must evaluate to a static expression.` until the position folded an evaluated array the way a static namespace already did.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-an-array-of-numbers-in-a-dynamic-style",
+      "label": "an array of numbers inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ margin: [1, 2] }),\n});\n",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "A number takes its unit from the property, in the fallback array as anywhere else.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-an-array-read-through-a-binding-in-a-dynamic-style",
+      "label": "an array style value reached through a binding inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst F = ['1px', '2px'];\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: F }),\n});\n",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "The array need not be written at the value position to reach it.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-an-array-under-a-condition-in-a-dynamic-style",
+      "label": "an array style value under a condition inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: { default: ['1px', '2px'] }, ':hover': { width: ['3px', '4px'] } }),\n});\n",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "Both of the two style-value positions a dynamic style's body has: the one a property carries directly, and the one under a condition key.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-an-empty-array-in-a-dynamic-style",
+      "label": "an empty array style value inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [] }),\n});\n",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "Agreement about nothing, deliberately: no fallback declares nothing, and neither compiler emits a rule. Kept because the empty array is the boundary of the fold, and it aborted before.",
+      "expected": "identical-empty"
+    },
+    {
+      "id": "modules-1266-an-array-with-a-null-element-in-a-dynamic-style",
+      "label": "an array style value carrying a null element inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [null, '2px'] }),\n});\n",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "A `null` is a style value, so it survives the array check and drops out of the rule -- one declaration, not two.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-an-array-with-a-hole-in-a-dynamic-style",
+      "label": "an array style value carrying a hole inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [, '2px'] }),\n});\n",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "A hole refuses the array, and in a dynamic style's body a refusal is not an error: the value falls to the runtime as `var(--x-height)`. Dropping the hole instead emitted `height: 2px`, a value the source does not describe.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-an-array-with-a-hole-in-a-static-namespace",
+      "label": "an array style value carrying a hole in a static namespace",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s: { height: [, '2px'] },\n});\n",
+      "expected": "both-reject",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "Both refuse, with the same sentence: upstream evaluates element paths and a hole's path carries no node, which is the reading this compiler took over. It emitted `height: 2px` before."
+    },
+    {
+      "id": "modules-1266-an-array-with-a-hole-read-through-a-binding",
+      "label": "an array carrying a hole, reached through a binding",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst F = [, '2px'];\n\nexport const styles = stylex.create({\n  s: { height: F },\n});\n",
+      "expected": "both-reject",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "The refusal travels with the value rather than with the syntax, so a hole is refused wherever the array is read from."
+    },
+    {
+      "id": "modules-1266-an-array-with-a-nested-array-in-a-dynamic-style",
+      "label": "an array style value carrying a nested array inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [['1px'], '2px'] }),\n});\n",
+      "expected": "both-reject",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "Both refuse with `A style array value can only contain strings or numbers.` -- the message upstream gives, which this position could not reach while the array aborted before validation saw it."
+    },
+    {
+      "id": "modules-1266-an-array-with-an-object-element-in-a-dynamic-style",
+      "label": "an array style value carrying an object inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [{ a: 1 }, '2px'] }),\n});\n",
+      "expected": "both-reject",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "Refused by the array check, not by the value position: what an array may hold is namespace validation's question in both compilers."
+    },
+    {
+      "id": "modules-1266-an-array-with-an-undefined-element-in-a-dynamic-style",
+      "label": "an array style value carrying `undefined` inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [undefined, '2px'] }),\n});\n",
+      "expected": "both-reject",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "`undefined` is not a style value where `null` is, which is the pair worth measuring together."
+    },
+    {
+      "id": "modules-1266-an-array-with-a-boolean-element-in-a-dynamic-style",
+      "label": "an array style value carrying a boolean inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [true, '2px'] }),\n});\n",
+      "expected": "both-reject",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "A boolean is refused in an array as it is refused on a property."
+    },
+    {
+      "id": "modules-1266-an-array-with-an-unclosed-function-in-a-dynamic-style",
+      "label": "an array style value carrying an unclosed CSS function inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: ['rgb(0,0,', '2px'] }),\n});\n",
+      "expected": "both-reject",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "The element is a string to both compilers, so what refuses it is the CSS lint the joined rule fails -- reached only because the array now folds."
+    },
+    {
+      "id": "modules-1266-an-array-holding-the-dynamic-param",
+      "label": "an array style value holding the dynamic parameter",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [h, '2px'] }),\n});\n",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "Already agreed before the fold and must keep agreeing: the parameter refuses to fold, so the array is not confident and the whole value falls to the runtime rather than being folded short.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-an-array-holding-a-spread-in-a-dynamic-style",
+      "label": "an array style value carrying a spread inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst xs = ['1px'];\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [...xs, '2px'] }),\n});\n",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "A spread refuses the array before the fold is reached, so this shape agreed already -- and the agreement is a different one from the rows above: the value falls to the runtime.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-an-array-in-a-dynamic-style-at-non-ascii-and-escaped-values",
+      "label": "an array style value whose elements are non-ASCII and escaped",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ content: ['\"日本語\"', '\"\\\\2014 A\"'], fontFamily: ['\"Foo\\\\\"Bar\"', 'serif'] }),\n});\n",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "An element is normalized as a value in its own right, escapes and all, which is what a joined fallback has to keep doing.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-an-array-on-a-custom-property-and-a-prefixed-property-in-a-dynamic-style",
+      "label": "an array style value on a custom property and on a vendor-prefixed property",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ '--foo': ['1px', '2px'], WebkitLineClamp: [1, 2], height: h }),\n});\n",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "Neither expansion is skipped for a fallback array: the custom property keeps its name unhashed and the prefixed one is still spelled `-webkit-line-clamp`.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-thousand-element-array-in-a-dynamic-style",
+      "label": "a thousand-element array style value inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: ['0px', '1px', '2px', '3px', '4px', '5px', '6px', '7px', '8px', '9px', '10px', '11px', '12px', '13px', '14px', '15px', '16px', '17px', '18px', '19px', '20px', '21px', '22px', '23px', '24px', '25px', '26px', '27px', '28px', '29px', '30px', '31px', '32px', '33px', '34px', '35px', '36px', '37px', '38px', '39px', '40px', '41px', '42px', '43px', '44px', '45px', '46px', '47px', '48px', '49px', '50px', '51px', '52px', '53px', '54px', '55px', '56px', '57px', '58px', '59px', '60px', '61px', '62px', '63px', '64px', '65px', '66px', '67px', '68px', '69px', '70px', '71px', '72px', '73px', '74px', '75px', '76px', '77px', '78px', '79px', '80px', '81px', '82px', '83px', '84px', '85px', '86px', '87px', '88px', '89px', '90px', '91px', '92px', '93px', '94px', '95px', '96px', '97px', '98px', '99px', '100px', '101px', '102px', '103px', '104px', '105px', '106px', '107px', '108px', '109px', '110px', '111px', '112px', '113px', '114px', '115px', '116px', '117px', '118px', '119px', '120px', '121px', '122px', '123px', '124px', '125px', '126px', '127px', '128px', '129px', '130px', '131px', '132px', '133px', '134px', '135px', '136px', '137px', '138px', '139px', '140px', '141px', '142px', '143px', '144px', '145px', '146px', '147px', '148px', '149px', '150px', '151px', '152px', '153px', '154px', '155px', '156px', '157px', '158px', '159px', '160px', '161px', '162px', '163px', '164px', '165px', '166px', '167px', '168px', '169px', '170px', '171px', '172px', '173px', '174px', '175px', '176px', '177px', '178px', '179px', '180px', '181px', '182px', '183px', '184px', '185px', '186px', '187px', '188px', '189px', '190px', '191px', '192px', '193px', '194px', '195px', '196px', '197px', '198px', '199px', '200px', '201px', '202px', '203px', '204px', '205px', '206px', '207px', '208px', '209px', '210px', '211px', '212px', '213px', '214px', '215px', '216px', '217px', '218px', '219px', '220px', '221px', '222px', '223px', '224px', '225px', '226px', '227px', '228px', '229px', '230px', '231px', '232px', '233px', '234px', '235px', '236px', '237px', '238px', '239px', '240px', '241px', '242px', '243px', '244px', '245px', '246px', '247px', '248px', '249px', '250px', '251px', '252px', '253px', '254px', '255px', '256px', '257px', '258px', '259px', '260px', '261px', '262px', '263px', '264px', '265px', '266px', '267px', '268px', '269px', '270px', '271px', '272px', '273px', '274px', '275px', '276px', '277px', '278px', '279px', '280px', '281px', '282px', '283px', '284px', '285px', '286px', '287px', '288px', '289px', '290px', '291px', '292px', '293px', '294px', '295px', '296px', '297px', '298px', '299px', '300px', '301px', '302px', '303px', '304px', '305px', '306px', '307px', '308px', '309px', '310px', '311px', '312px', '313px', '314px', '315px', '316px', '317px', '318px', '319px', '320px', '321px', '322px', '323px', '324px', '325px', '326px', '327px', '328px', '329px', '330px', '331px', '332px', '333px', '334px', '335px', '336px', '337px', '338px', '339px', '340px', '341px', '342px', '343px', '344px', '345px', '346px', '347px', '348px', '349px', '350px', '351px', '352px', '353px', '354px', '355px', '356px', '357px', '358px', '359px', '360px', '361px', '362px', '363px', '364px', '365px', '366px', '367px', '368px', '369px', '370px', '371px', '372px', '373px', '374px', '375px', '376px', '377px', '378px', '379px', '380px', '381px', '382px', '383px', '384px', '385px', '386px', '387px', '388px', '389px', '390px', '391px', '392px', '393px', '394px', '395px', '396px', '397px', '398px', '399px', '400px', '401px', '402px', '403px', '404px', '405px', '406px', '407px', '408px', '409px', '410px', '411px', '412px', '413px', '414px', '415px', '416px', '417px', '418px', '419px', '420px', '421px', '422px', '423px', '424px', '425px', '426px', '427px', '428px', '429px', '430px', '431px', '432px', '433px', '434px', '435px', '436px', '437px', '438px', '439px', '440px', '441px', '442px', '443px', '444px', '445px', '446px', '447px', '448px', '449px', '450px', '451px', '452px', '453px', '454px', '455px', '456px', '457px', '458px', '459px', '460px', '461px', '462px', '463px', '464px', '465px', '466px', '467px', '468px', '469px', '470px', '471px', '472px', '473px', '474px', '475px', '476px', '477px', '478px', '479px', '480px', '481px', '482px', '483px', '484px', '485px', '486px', '487px', '488px', '489px', '490px', '491px', '492px', '493px', '494px', '495px', '496px', '497px', '498px', '499px', '500px', '501px', '502px', '503px', '504px', '505px', '506px', '507px', '508px', '509px', '510px', '511px', '512px', '513px', '514px', '515px', '516px', '517px', '518px', '519px', '520px', '521px', '522px', '523px', '524px', '525px', '526px', '527px', '528px', '529px', '530px', '531px', '532px', '533px', '534px', '535px', '536px', '537px', '538px', '539px', '540px', '541px', '542px', '543px', '544px', '545px', '546px', '547px', '548px', '549px', '550px', '551px', '552px', '553px', '554px', '555px', '556px', '557px', '558px', '559px', '560px', '561px', '562px', '563px', '564px', '565px', '566px', '567px', '568px', '569px', '570px', '571px', '572px', '573px', '574px', '575px', '576px', '577px', '578px', '579px', '580px', '581px', '582px', '583px', '584px', '585px', '586px', '587px', '588px', '589px', '590px', '591px', '592px', '593px', '594px', '595px', '596px', '597px', '598px', '599px', '600px', '601px', '602px', '603px', '604px', '605px', '606px', '607px', '608px', '609px', '610px', '611px', '612px', '613px', '614px', '615px', '616px', '617px', '618px', '619px', '620px', '621px', '622px', '623px', '624px', '625px', '626px', '627px', '628px', '629px', '630px', '631px', '632px', '633px', '634px', '635px', '636px', '637px', '638px', '639px', '640px', '641px', '642px', '643px', '644px', '645px', '646px', '647px', '648px', '649px', '650px', '651px', '652px', '653px', '654px', '655px', '656px', '657px', '658px', '659px', '660px', '661px', '662px', '663px', '664px', '665px', '666px', '667px', '668px', '669px', '670px', '671px', '672px', '673px', '674px', '675px', '676px', '677px', '678px', '679px', '680px', '681px', '682px', '683px', '684px', '685px', '686px', '687px', '688px', '689px', '690px', '691px', '692px', '693px', '694px', '695px', '696px', '697px', '698px', '699px', '700px', '701px', '702px', '703px', '704px', '705px', '706px', '707px', '708px', '709px', '710px', '711px', '712px', '713px', '714px', '715px', '716px', '717px', '718px', '719px', '720px', '721px', '722px', '723px', '724px', '725px', '726px', '727px', '728px', '729px', '730px', '731px', '732px', '733px', '734px', '735px', '736px', '737px', '738px', '739px', '740px', '741px', '742px', '743px', '744px', '745px', '746px', '747px', '748px', '749px', '750px', '751px', '752px', '753px', '754px', '755px', '756px', '757px', '758px', '759px', '760px', '761px', '762px', '763px', '764px', '765px', '766px', '767px', '768px', '769px', '770px', '771px', '772px', '773px', '774px', '775px', '776px', '777px', '778px', '779px', '780px', '781px', '782px', '783px', '784px', '785px', '786px', '787px', '788px', '789px', '790px', '791px', '792px', '793px', '794px', '795px', '796px', '797px', '798px', '799px', '800px', '801px', '802px', '803px', '804px', '805px', '806px', '807px', '808px', '809px', '810px', '811px', '812px', '813px', '814px', '815px', '816px', '817px', '818px', '819px', '820px', '821px', '822px', '823px', '824px', '825px', '826px', '827px', '828px', '829px', '830px', '831px', '832px', '833px', '834px', '835px', '836px', '837px', '838px', '839px', '840px', '841px', '842px', '843px', '844px', '845px', '846px', '847px', '848px', '849px', '850px', '851px', '852px', '853px', '854px', '855px', '856px', '857px', '858px', '859px', '860px', '861px', '862px', '863px', '864px', '865px', '866px', '867px', '868px', '869px', '870px', '871px', '872px', '873px', '874px', '875px', '876px', '877px', '878px', '879px', '880px', '881px', '882px', '883px', '884px', '885px', '886px', '887px', '888px', '889px', '890px', '891px', '892px', '893px', '894px', '895px', '896px', '897px', '898px', '899px', '900px', '901px', '902px', '903px', '904px', '905px', '906px', '907px', '908px', '909px', '910px', '911px', '912px', '913px', '914px', '915px', '916px', '917px', '918px', '919px', '920px', '921px', '922px', '923px', '924px', '925px', '926px', '927px', '928px', '929px', '930px', '931px', '932px', '933px', '934px', '935px', '936px', '937px', '938px', '939px', '940px', '941px', '942px', '943px', '944px', '945px', '946px', '947px', '948px', '949px', '950px', '951px', '952px', '953px', '954px', '955px', '956px', '957px', '958px', '959px', '960px', '961px', '962px', '963px', '964px', '965px', '966px', '967px', '968px', '969px', '970px', '971px', '972px', '973px', '974px', '975px', '976px', '977px', '978px', '979px', '980px', '981px', '982px', '983px', '984px', '985px', '986px', '987px', '988px', '989px', '990px', '991px', '992px', '993px', '994px', '995px', '996px', '997px', '998px', '999px'] }),\n});\n",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "The fold is recursive over elements and the joined declaration is a thousand long. Measured because the boundary a fold like this fails at is depth or width, and width is the one an author can reach.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-an-array-of-nulls-in-a-dynamic-style",
+      "label": "an array style value whose every element is absent, inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [null, null] }),\n});\n",
+      "expected": "structurally-divergent",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "Structurally divergent, and not about arrays: upstream keeps the property as an absence marker (`kZKoxP: \"\"`) where this compiler omits the key, which `height: null` alone shows in a dynamic style's body just as loudly. Recorded here because the fold is what made the shape reachable. Filed as its own ticket."
+    },
+    {
+      "id": "modules-1266-an-array-with-a-nan-element-in-a-dynamic-style",
+      "label": "an array style value carrying `NaN` inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [NaN, '2px'] }),\n});\n",
+      "expected": "acceptance-divergent",
+      "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
+      "note": "Acceptance divergent, and not about the dynamic position: the static namespace refuses the same array for the same reason. `NaN` reaches the array check as an identifier rather than as a number, and upstream drops the element instead. Filed as its own ticket."
+    },
+    {
+      "id": "modules-an-absent-value-in-a-dynamic-style",
+      "label": "an absent style value inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: null }),\n});\n",
+      "expected": "structurally-divergent",
+      "origin": "ticket 25, found while measuring the array fold",
+      "note": "Structurally divergent. Upstream keeps the property as an absence marker (`kZKoxP: \"\"`), which is what unsets an earlier declaration when two styles merge; this compiler omits the key. The static position agrees with upstream, so the divergence is the dynamic body's alone. The array shape that collapses to this is recorded beside the array rows."
+    },
+    {
+      "id": "modules-an-index-read-off-an-array-in-a-static-namespace",
+      "label": "an index read off an array in a static namespace",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst A = ['1px'];\n\nexport const styles = stylex.create({\n  s: { height: A[0] },\n});\n",
+      "expected": "acceptance-divergent",
+      "origin": "ticket 27, found while measuring the array fold",
+      "note": "Acceptance divergent. An array literal a fold produced is indexed here; an array the evaluator holds as its own value is not, and refuses with `Unsupported index: 0`. Named at the site as its own scope."
+    },
+    {
+      "id": "modules-an-index-read-off-an-array-in-a-dynamic-style",
+      "label": "an index read off an array inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst A = ['1px'];\nconst B = [A[0], '2px'];\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: B }),\n});\n",
+      "expected": "structurally-divergent",
+      "origin": "ticket 27, found while measuring the array fold",
+      "note": "The same missing fold as the row above, wearing a second verdict: inside a dynamic style's body a refusal is not an error, so the value falls to the runtime as `var(--x-height)` where upstream folds two static fallbacks."
     }
   ]
 }

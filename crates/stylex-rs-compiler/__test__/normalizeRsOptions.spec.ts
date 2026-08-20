@@ -510,3 +510,28 @@ test('normalizeRsOptions: boolean input treated as empty object', () => {
   const result = normalizeRsOptions(true);
   expect(result).toStrictEqual(defaultResult);
 });
+
+// ── maxEvaluationDepth ─────────────────────────────────────────────
+
+// The one option deliberately absent from `defaultOptions`: its default lives in
+// the compiler, which consults `STYLEX_MAX_EVALUATION_DEPTH` before reaching for
+// it. A value injected here would be sent on every call and make that variable
+// unreachable, so "stays undefined" is the behaviour to pin rather than an
+// omission to fix.
+test('normalizeRsOptions: maxEvaluationDepth is not defaulted', () => {
+  const result = normalizeRsOptions({});
+  expect(result.maxEvaluationDepth).toBeUndefined();
+});
+
+test('normalizeRsOptions: maxEvaluationDepth is preserved', () => {
+  const result = normalizeRsOptions({ maxEvaluationDepth: 256 });
+  expect(result.maxEvaluationDepth).toBe(256);
+});
+
+// An explicit `undefined` must not survive as a key either, or it would reach
+// the compiler as a present-but-empty option.
+test('normalizeRsOptions: an explicit undefined maxEvaluationDepth is stripped', () => {
+  const result = normalizeRsOptions({ maxEvaluationDepth: undefined });
+  expect(result.maxEvaluationDepth).toBeUndefined();
+  expect('maxEvaluationDepth' in result).toBe(false);
+});

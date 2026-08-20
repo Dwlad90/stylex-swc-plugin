@@ -335,3 +335,55 @@ test('transform: at-rule priority reaches metadata unrounded', () => {
     0.1, 0.5, 0.6000000000000001,
   ]);
 });
+
+// ── maxEvaluationDepth across the boundary ─────────────────────────
+
+// What only a spec on this side can prove: the number survives serialization and
+// reaches the evaluator. The same source compiles under a ceiling that allows it
+// and is refused under one that does not, so a value that stopped crossing the
+// boundary would show up as the refusal disappearing.
+const deepFixture = (depth: number) => {
+  let expr = 'MY_CONST';
+
+  for (let i = 0; i < depth; i += 1) {
+    expr = `(${expr} + 1)`;
+  }
+
+  return `
+    import stylex from "@stylexjs/stylex";
+    const MY_CONST = 5;
+    export const styles = stylex.create({ base: { zIndex: ${expr} } });
+  `;
+};
+
+const compileAtDepth = (source: string, maxEvaluationDepth?: number) =>
+  transform('page.tsx', source, {
+    dev: false,
+    maxEvaluationDepth,
+    unstable_moduleResolution: { type: 'commonJS' },
+  });
+
+test('maxEvaluationDepth: a raised ceiling folds what the default refuses', () => {
+  const source = deepFixture(100);
+
+  expect(() => compileAtDepth(source)).toThrow(/too deeply nested/);
+  expect(compileAtDepth(source, 320).code).toContain('$$css');
+});
+
+test('maxEvaluationDepth: a lowered ceiling refuses what the default folds', () => {
+  const source = deepFixture(10);
+
+  expect(compileAtDepth(source).code).toContain('$$css');
+  expect(() => compileAtDepth(source, 4)).toThrow(
+    /At most 4 levels of nested evaluation are supported/
+  );
+});
+
+// The default the compiler owns, observed through the boundary rather than read
+// from the Rust constant: 29 levels fold and 30 do not.
+test("maxEvaluationDepth: the default ceiling is the compiler's own", () => {
+  expect(compileAtDepth(deepFixture(29)).code).toContain('$$css');
+  expect(() => compileAtDepth(deepFixture(30))).toThrow(
+    /At most 32 levels of nested evaluation are supported/
+  );
+});

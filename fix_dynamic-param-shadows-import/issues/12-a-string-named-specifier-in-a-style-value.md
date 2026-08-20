@@ -31,3 +31,15 @@ silence for the local name.
 - [ ] A verdict: mirror the refusal, emit the rule, or state why silence is right
 - [ ] Corpus entry with the verdict it reads
 - [ ] Re-measured after 07, so the two changes are not confused for each other
+
+## Comments
+
+07 landed, and the re-measurement it was blocking on is half done: reading the
+specifier by the name it was aliased *away* from no longer aborts, and refuses
+the way the reference implementation refuses. That was a separate fault sharing
+one lookup with this one.
+
+This ticket's shape is untouched. `color: colorLg`, read by the *local* binding
+`colorLg`, resolved through the local match before 07 and resolves through it
+now -- 07 deleted only the imported-name arms. The empty result still stands, and
+tracing it to the code that produces it is what remains.

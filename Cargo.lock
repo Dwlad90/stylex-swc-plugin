@@ -2801,6 +2801,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "stacker",
  "stylex_ast",
  "stylex_atoms",
  "stylex_constants",

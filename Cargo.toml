@@ -81,6 +81,10 @@ serde = "1.0.228"
 serde_json = "1.0.150"
 serde_plain = "1.0.2"
 serial_test = { version = "4.0.1" }
+# Already in the graph through swc_ecma_parser, which grows the stack for the same
+# reason: a recursive walk over a nested expression must not be bounded by the
+# thread's stack. Named here so the evaluator can depend on it directly.
+stacker = "0.1.24"
 swc_compiler_base = { version = "62.0.0" }
 swc_config = { version = "6.0.0" }
 swc_core = { version = "75.0.0" }

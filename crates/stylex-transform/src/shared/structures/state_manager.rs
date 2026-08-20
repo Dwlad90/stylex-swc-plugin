@@ -438,6 +438,15 @@ pub struct StateManager {
   pub(crate) pattern_bound_top_level_calls: FxHashSet<Span>,
   pub(crate) call_expressions: CallExpressionState,
   pub(crate) seen: FxHashMap<u64, Rc<SeenValue>>,
+  /// How many expression levels the evaluator is currently inside.
+  ///
+  /// Lives here rather than on `EvaluationState` because the evaluator's
+  /// confidence is forked -- a `&&` operand gets its own `EvaluationState`, and
+  /// an object key is folded through a fresh one -- while the native stack is
+  /// not. A counter that forked with the confidence would reset while the
+  /// frames it is counting are still live, which is precisely the accounting
+  /// the budget exists to keep honest.
+  pub(crate) evaluation_depth: usize,
   pub(crate) cache: CacheState,
   /// Maps a JSX spread expression to the JSX attributes that replace it.
   ///
@@ -541,6 +550,7 @@ impl StateManager {
       export_id: None,
 
       seen: FxHashMap::default(),
+      evaluation_depth: 0,
       cache: CacheState::default(),
       module_source: ModuleSourceState::default(),
 

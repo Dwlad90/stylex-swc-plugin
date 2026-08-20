@@ -134,6 +134,16 @@ where
     self
   }
 
+  /// How many levels the evaluator may descend before refusing to fold.
+  ///
+  /// Counted in evaluation steps rather than in levels of source nesting, so
+  /// a value is worth arriving at by measuring an input rather than by counting
+  /// brackets in it.
+  pub fn with_max_evaluation_depth(mut self, val: usize) -> Self {
+    self.ensure_config().max_evaluation_depth = Some(val);
+    self
+  }
+
   pub fn with_treeshake_compensation(mut self, val: bool) -> Self {
     self.ensure_config().treeshake_compensation = Some(val);
     self

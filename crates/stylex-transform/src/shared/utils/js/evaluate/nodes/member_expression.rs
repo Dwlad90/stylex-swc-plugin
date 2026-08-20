@@ -133,49 +133,34 @@ fn written_slot_count_of(obj: &Expr, items: &[EvaluateResultValue]) -> Option<us
 ///
 /// The name is read off the AST rather than off an evaluated property, because
 /// the one caller runs before the receiver is evaluated and evaluating the key
-/// there would report the key's refusal in place of the receiver's. Both
-/// spellings the language has for the same property are accepted; a computed key
-/// that is not a string literal is not one of them and falls through to the
-/// ordinary path.
+/// there would report the key's refusal in place of the receiver's. Read through
+/// the same function every other AST-level key read uses, so the spellings the
+/// language has for one property -- `.length`, `["length"]`, and a template that
+/// folds to it -- cannot come to be a shorter set here than there. Four private
+/// copies of a property test is how `classify_lookup` above came to exist.
 fn is_written_length(prop: &MemberProp) -> bool {
-  match prop {
-    MemberProp::Ident(ident) => ident.sym == LENGTH,
-    MemberProp::Computed(ComputedPropName { expr, .. }) => {
-      matches!(normalize_expr(expr), Expr::Lit(Lit::Str(strng)) if strng.value == LENGTH)
-    },
-    MemberProp::PrivateName(_) => false,
-  }
+  convert_member_prop_to_string(prop).as_deref() == Some(LENGTH)
 }
 
-/// The slot count of an array literal receiver carrying a hole, counted from the
-/// source.
+/// The elements of a receiver written as an array literal carrying a hole, or
+/// `None` for every other receiver.
 ///
 /// A hole makes the array itself unfoldable -- it is a slot with no value, so
 /// `array_expression` refuses the array rather than answering one short of what
-/// was written -- and the count survives that refusal because it never needed
-/// the values. `[, 1].length` is two in the language, and answering it is what
-/// this reads off the AST.
+/// was written. What survives the refusal is the slot count, because counting
+/// never needed the values: `[, 1].length` is two in the language, and the
+/// source is the only place left that says so.
 ///
 /// Narrow on purpose: an array with no hole folds, so its count is answered by
 /// the arms below from its evaluated form, and only a receiver those arms can no
-/// longer reach is answered here. A spread still refuses, through the same
-/// `written_slot_count` the arms below use -- one written element standing for
-/// however many the spread holds is not a count either reading can give.
-fn holey_receiver_length(
-  member: &MemberExpr,
-  path: &Expr,
-  state: &mut EvaluationState,
-) -> Option<Option<EvaluateResultValue>> {
-  let ArrayLit { elems, .. } = normalize_expr(&member.obj).as_array()?;
+/// longer reach is read here.
+fn holey_receiver_elems(obj: &Expr) -> Option<&[Option<ExprOrSpread>]> {
+  let ArrayLit { elems, .. } = normalize_expr(obj).as_array()?;
 
-  if !elems.iter().any(Option::is_none) || !is_written_length(&member.prop) {
-    return None;
-  }
-
-  Some(match written_slot_count(elems) {
-    Some(count) => Some(EvaluateResultValue::Expr(create_number_expr(count as f64))),
-    None => deopt(path, state, SPREAD_ELEMENT),
-  })
+  elems
+    .iter()
+    .any(Option::is_none)
+    .then_some(elems.as_slice())
 }
 
 pub(in super::super) fn evaluate(
@@ -191,8 +176,17 @@ pub(in super::super) fn evaluate(
   let evaluated_value = if parent_is_call_expr {
     None
   } else {
-    if let Some(answer) = holey_receiver_length(member, path, state) {
-      return answer;
+    // A hole is answered from the source, ahead of a receiver that will refuse
+    // for it. A spread still refuses, through the same `written_slot_count` the
+    // arms below use -- one written element standing for however many the spread
+    // holds is not a count either reading can give.
+    if let Some(elems) = holey_receiver_elems(&member.obj)
+      && is_written_length(&member.prop)
+    {
+      return match written_slot_count(elems) {
+        Some(count) => Some(EvaluateResultValue::Expr(create_number_expr(count as f64))),
+        None => deopt(path, state, SPREAD_ELEMENT),
+      };
     }
 
     // ThemeRef fast-path. Only run for member chains whose base is a plain

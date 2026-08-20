@@ -118,6 +118,22 @@ fn a_holey_literals_length_is_counted_however_it_is_spelled() {
   assert_folds_to_number("([, 1]).length", 2.0);
   assert_folds_to_number("(([, 1])).length", 2.0);
   assert_folds_to_number("([, 1])[\"length\"]", 2.0);
+  assert_folds_to_number("[, 1][`length`]", 2.0);
+}
+
+/// A key that is not the property, however close it reads. Each of these is a
+/// property no array carries, so the receiver is read -- and the receiver
+/// refuses for its hole.
+#[test]
+fn a_key_that_only_looks_like_the_property_reports_the_hole() {
+  for source in [
+    "[, 1][\"Length\"]",
+    "[, 1][\"length \"]",
+    "[, 1].lengthx",
+    "[, 1][`len${\"x\"}gth`]",
+  ] {
+    assert_hole_refusal(source);
+  }
 }
 
 /// A count is a number, so it composes with the arithmetic the evaluator folds.

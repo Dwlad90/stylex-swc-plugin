@@ -64,6 +64,16 @@ fn a_hole_is_a_slot_and_counts() {
   assert_folds_to_number("[, , ,].length", 3.0);
 }
 
+/// A receiver that is not written as a literal is counted by its evaluated
+/// elements, which is the other half of `written_slot_count_of`. A conditional
+/// is the shortest receiver of that kind: the array it answers is a value, not a
+/// node the count can be read off.
+#[test]
+fn a_receiver_that_is_not_a_literal_is_counted_by_its_elements() {
+  assert_folds_to_number("(1 ? [1, 2] : [3]).length", 2.0);
+  assert_folds_to_number("(0 ? [1, 2] : [3]).length", 1.0);
+}
+
 /// The receiver kinds that reach the array-literal arm rather than the evaluated
 /// one: a fold that answers an `ArrayLit` value instead of a `Vec`. Also the
 /// shapes an author is most likely to actually write a `length` on.

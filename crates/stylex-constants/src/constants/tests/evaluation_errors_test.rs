@@ -43,6 +43,17 @@ fn test_array_length_too_large() {
 }
 
 #[test]
+fn test_expression_too_deep() {
+  assert_eq!(
+    expression_too_deep(32),
+    "Expression is too deeply nested to evaluate at compile time.\nAt most 32 levels of nested evaluation are supported.\n\n"
+  );
+  // The depth is the caller's, not a constant baked into the message: a
+  // configured ceiling has to be the number an author reads.
+  assert!(expression_too_deep(320).contains("At most 320 levels"));
+}
+
+#[test]
 fn test_not_a_function() {
   assert_eq!(
     not_a_function("Math"),

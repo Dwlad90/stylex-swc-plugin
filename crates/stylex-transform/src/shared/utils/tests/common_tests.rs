@@ -1136,15 +1136,19 @@ mod get_import_from_tests {
   }
 
   #[test]
-  fn finds_renamed_import_by_original_name() {
+  fn does_not_match_a_renamed_import_by_the_name_it_was_aliased_away_from() {
     let mut state = StateManager::default();
     state.top_imports.push(import_from(
       "@stylexjs/stylex",
       vec![aliased("localName", "create", 0)],
     ));
+
+    // `import { create as localName }` leaves `create` unbound in this module,
+    // so a reference spelled that way names something else or nothing at all.
+    // Answering the import for it resolved a binding no scope holds.
     let ident = create_ident("create");
     let result = get_import_from(&state, &ident);
-    assert!(result.is_some());
+    assert!(result.is_none());
   }
 
   #[test]
@@ -1171,15 +1175,23 @@ mod get_import_from_tests {
   }
 
   #[test]
-  fn finds_str_imported_name() {
+  fn does_not_match_a_string_named_specifier_by_its_imported_name() {
     let mut state = StateManager::default();
     state.top_imports.push(import_from(
       "module",
       vec![str_named("localName", "strExport", 0)],
     ));
+
+    // The same answer for the string-named spelling, and the one that was
+    // reachable in practice: an imported name that *is* a legal identifier
+    // matched a reference to it by symbol alone, across every scope.
     let ident = create_ident("strExport");
-    let result = get_import_from(&state, &ident);
-    assert!(result.is_some());
+    assert!(get_import_from(&state, &ident).is_none());
+
+    // The local binding is what the declaration introduces, and it still
+    // answers -- a lookup that said `None` to everything would pass the
+    // assertion above on its own.
+    assert!(get_import_from(&state, &create_ident("localName")).is_some());
   }
 
   // ──────────────────────────────────────────────
@@ -1291,19 +1303,23 @@ mod get_import_from_tests {
   }
 
   #[test]
-  fn a_string_named_specifier_still_matches_across_contexts() {
+  fn a_string_named_specifier_answers_only_for_its_local_binding() {
     let mut state = StateManager::default();
     state.top_imports.push(import_from(
       "tokens.stylex.js",
       vec![str_named("spacing", "spacing-lg", 1)],
     ));
 
-    // The imported-*name* fallback beside the local match compares symbols
-    // only, so it still answers for a name no scope binds. Recorded as the
-    // baseline for ticket 07 of this effort, which deletes that fallback -- not
-    // as behaviour worth keeping: `spacing-lg` is not a legal identifier, so no
-    // reference can reach this except through a string-named specifier.
-    assert!(get_import_from(&state, &ident_at("spacing-lg", 9)).is_some());
+    // The imported name is compared against nothing now, at any context.
+    // `spacing-lg` is not a legal identifier, so the only way a reference could
+    // ever have carried that symbol was through the specifier itself.
+    assert!(get_import_from(&state, &ident_at("spacing-lg", 9)).is_none());
+    assert!(get_import_from(&state, &ident_at("spacing-lg", 1)).is_none());
+
+    // Its local binding still resolves, and a parameter shadowing that local
+    // binding still does not.
+    assert!(get_import_from(&state, &ident_at("spacing", 1)).is_some());
+    assert!(get_import_from(&state, &ident_at("spacing", 2)).is_none());
   }
 
   #[test]
@@ -1979,7 +1995,9 @@ mod get_key_values_from_object_spread_tests {
 mod get_import_by_ident_tests {
   use super::*;
   use crate::shared::utils::common::get_import_by_ident;
-  use swc_core::ecma::ast::{ImportDecl, ImportNamedSpecifier, ImportSpecifier};
+  use swc_core::ecma::ast::{
+    ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportSpecifier,
+  };
 
   #[test]
   fn finds_import_by_ident() {
@@ -2010,6 +2028,63 @@ mod get_import_by_ident_tests {
     let state = StateManager::default();
     let ident = create_ident("missing");
     assert!(get_import_by_ident(&ident, &state).is_none());
+  }
+
+  /// One specifier of the kind named, bound to `local`.
+  fn specifier_of(kind: SpecifierKind, local: &str) -> ImportSpecifier {
+    match kind {
+      SpecifierKind::Named => ImportSpecifier::Named(ImportNamedSpecifier {
+        span: DUMMY_SP,
+        local: create_ident(local),
+        imported: None,
+        is_type_only: false,
+      }),
+      SpecifierKind::Default => ImportSpecifier::Default(ImportDefaultSpecifier {
+        span: DUMMY_SP,
+        local: create_ident(local),
+      }),
+    }
+  }
+
+  enum SpecifierKind {
+    Named,
+    Default,
+  }
+
+  #[test]
+  fn answers_with_the_specifier_that_bound_the_name() {
+    let mut state = StateManager::default();
+    state.top_imports.push(ImportDecl {
+      span: DUMMY_SP,
+      specifiers: vec![
+        specifier_of(SpecifierKind::Default, "theme"),
+        specifier_of(SpecifierKind::Named, "spacing"),
+      ],
+      src: Box::new(Str {
+        span: DUMMY_SP,
+        value: "tokens.stylex.js".into(),
+        raw: None,
+      }),
+      type_only: false,
+      with: None,
+      phase: Default::default(),
+    });
+
+    // One declaration can bind both kinds, and the caller refuses a default
+    // where it resolves a named one. Which specifier answered is therefore
+    // part of the answer, not something the caller can re-derive from the
+    // declaration -- searching it again by name is what could come back empty.
+    let (_, default_specifier) = match get_import_by_ident(&create_ident("theme"), &state) {
+      Some(found) => found,
+      None => panic!("the default specifier binds `theme`"),
+    };
+    assert!(matches!(default_specifier, ImportSpecifier::Default(_)));
+
+    let (_, named_specifier) = match get_import_by_ident(&create_ident("spacing"), &state) {
+      Some(found) => found,
+      None => panic!("the named specifier binds `spacing`"),
+    };
+    assert!(matches!(named_specifier, ImportSpecifier::Named(_)));
   }
 }
 

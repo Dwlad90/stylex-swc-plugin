@@ -177,15 +177,19 @@ questions the rest ask are an [import specifier kind](#import-specifier-kind), a
 _Avoid_: identifier lookup, binding resolver, evaluate fallback
 
 **Import specifier kind**:
-Which of `{ c }`, `c` or `* as c` bound the name a reference reads, asked of the
-declaration the reference was matched against. The first two steps of the
-[chain](#reference-resolution-chain) give the kinds opposite answers -- a named
-specifier resolves to a theme reference, a default one is refused outright,
-because a theme file is read through its named exports and a default binding
-names a value from a file this compiler never evaluates. The question is about
-the specifier and not about the declaration, because one declaration carries
-both kinds: `import tokens, { colors } from 'colors.stylex.js'` must refuse
-`tokens` and still resolve `colors`.
+Which of `{ c }`, `c` or `* as c` bound the name a reference reads, answered by
+the same lookup that matched the reference and travelling with the declaration
+it belongs to. The first two steps of the [chain](#reference-resolution-chain)
+give the kinds opposite answers -- a named specifier resolves to a theme
+reference, a default one is refused outright, because a theme file is read
+through its named exports and a default binding names a value from a file this
+compiler never evaluates. The question is about the specifier and not about the
+declaration, because one declaration carries both kinds:
+`import tokens, { colors } from 'colors.stylex.js'` must refuse `tokens` and
+still resolve `colors`. What a specifier is matched by is its **local binding**
+and nothing else: an `import { spacing as sp }` binds `sp`, and the name it was
+aliased away from binds nothing in this module, so no reference resolves through
+it.
 _Avoid_: import kind, import shape
 
 **Binding write**:

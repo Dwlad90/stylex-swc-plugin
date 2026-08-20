@@ -19,7 +19,7 @@ use swc_core::atoms::Atom;
 use swc_core::common::{BytePos, DUMMY_SP, GLOBALS, Globals, Span, SyntaxContext};
 use swc_core::ecma::ast::{
   BindingIdent, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
-  ImportSpecifier, Str,
+  ImportSpecifier, ModuleExportName, Str,
 };
 
 use stylex_constants::constants::evaluation_errors::{
@@ -108,6 +108,30 @@ fn default_specifier(name: &str) -> ImportSpecifier {
   })
 }
 
+/// `import { imported as local }`, with the imported name spelled as an
+/// identifier or as a string. Both spellings name an export of the *other*
+/// module and bind nothing here, which is the question the aliased cases ask.
+fn aliased_specifier(local: &str, imported: ModuleExportName) -> ImportSpecifier {
+  ImportSpecifier::Named(ImportNamedSpecifier {
+    span: DUMMY_SP,
+    local: ident_at(local, DUMMY_SP),
+    imported: Some(imported),
+    is_type_only: false,
+  })
+}
+
+fn imported_as_an_identifier(name: &str) -> ModuleExportName {
+  ModuleExportName::Ident(ident_at(name, DUMMY_SP))
+}
+
+fn imported_as_a_string(name: &str) -> ModuleExportName {
+  ModuleExportName::Str(Str {
+    span: DUMMY_SP,
+    value: name.into(),
+    raw: None,
+  })
+}
+
 /// An import of `./tokens.stylex.js` carrying `specifiers`, which is the shape
 /// the chain's first two steps read. Which specifier binds the name under test
 /// is the whole question those two steps ask, so the specifier list is the
@@ -145,11 +169,28 @@ enum ImportedAs {
   /// `import other, { c } from './tokens.stylex.js'` — the subject is the named
   /// specifier.
   NamedBesideDefault,
+  /// `import { c as local } from './tokens.stylex.js'` — the subject is the
+  /// name the specifier was aliased *away from*, which this module does not
+  /// bind at all.
+  AliasedAwayFrom,
+  /// `import { "c" as local } from './tokens.stylex.js'` — the same, with the
+  /// imported name spelled as a string. Its own variant because the string
+  /// spelling carries no syntax context to compare, so it was the half of the
+  /// deleted fallback that a reference could actually reach.
+  StringNamedAwayFrom,
+  /// `import { other as c } from './tokens.stylex.js'` — the subject is the
+  /// local binding of an aliased specifier, which is a binding like any other.
+  AliasedTo,
 }
 
 /// The name of the sibling specifier in the two mixed shapes. Any name other
 /// than the subject's; nothing reads it.
 const SIBLING_IMPORT: &str = "other";
+
+/// The local binding an aliased specifier introduces. The one name in those
+/// shapes that a reference *can* resolve through, so cases about the alias name
+/// it explicitly.
+const ALIAS_LOCAL: &str = "local";
 
 impl ImportedAs {
   fn declaration_of(&self, subject: &str) -> ImportDecl {
@@ -162,7 +203,32 @@ impl ImportedAs {
       ImportedAs::NamedBesideDefault => {
         vec![default_specifier(SIBLING_IMPORT), named_specifier(subject)]
       },
+      ImportedAs::AliasedAwayFrom => vec![aliased_specifier(
+        ALIAS_LOCAL,
+        imported_as_an_identifier(subject),
+      )],
+      ImportedAs::StringNamedAwayFrom => {
+        vec![aliased_specifier(
+          ALIAS_LOCAL,
+          imported_as_a_string(subject),
+        )]
+      },
+      ImportedAs::AliasedTo => vec![aliased_specifier(
+        subject,
+        imported_as_an_identifier(SIBLING_IMPORT),
+      )],
     })
+  }
+
+  /// Whether the declaration binds the name under test. The two aliased-away
+  /// shapes do not: `import { c as local }` introduces `local` and leaves `c`
+  /// naming whatever it named before, which is what the module pre-scan
+  /// records and what the globals step later asks about.
+  fn binds_the_subject(&self) -> bool {
+    !matches!(
+      self,
+      ImportedAs::AliasedAwayFrom | ImportedAs::StringNamedAwayFrom
+    )
   }
 }
 
@@ -312,9 +378,12 @@ impl ModuleState {
         traversal_state
           .top_imports
           .push(imported_as.declaration_of(name));
-        traversal_state
-          .declared_bindings
-          .insert(module_binding.clone());
+
+        if imported_as.binds_the_subject() {
+          traversal_state
+            .declared_bindings
+            .insert(module_binding.clone());
+        }
       }
 
       if let Some(init) = self.declarator {
@@ -569,6 +638,84 @@ fn a_reference_shadowing_a_default_import_is_not_the_import() {
     .evaluate_a_later_reference();
 
   assert_refused_with(&result, UNDEFINED_CONST);
+}
+
+// ── the name a specifier was aliased away from ──
+//
+// The lookup behind steps 1 and 2 used to try a specifier's *imported* name
+// after failing on its local one, so `import { c as local }` answered for a
+// reference to `c` — a binding no scope holds. The reference implementation
+// asks the scope for the binding a reference resolves to and never sees the
+// aliased-away name at all, so these cases pin the absence of that fallback
+// from both directions: the aliased-away name is not the import, and the local
+// binding still is.
+
+/// The identifier spelling. Unreachable from source even before the fallback
+/// was deleted — the imported identifier carries the context the parser gave
+/// it and a real reference carries the resolver's — and asserted here because
+/// this file assembles module state directly, where the two contexts *do*
+/// agree and nothing else would notice a fallback coming back.
+#[test]
+fn a_reference_to_an_aliased_away_import_name_is_not_the_import() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::AliasedAwayFrom)
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, UNDEFINED_CONST);
+}
+
+/// The string spelling, which was the reachable half: a string-named specifier
+/// has no context to compare, so the fallback matched on the symbol alone and
+/// answered for the name across every scope in the module.
+#[test]
+fn a_reference_to_a_string_named_specifiers_imported_name_is_not_the_import() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::StringNamedAwayFrom)
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, UNDEFINED_CONST);
+}
+
+/// The other half of the same question. An alias binds its local name, and
+/// that binding resolves through step 1 like any other named specifier — a
+/// lookup that answered `None` for everything would pass the two cases above
+/// on its own.
+#[test]
+fn the_local_binding_of_an_aliased_import_still_resolves() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::AliasedTo)
+    .evaluate(ALIAS_LOCAL, LATER_REFERENCE_SPAN);
+
+  assert_refused_with(&result, IMPORT_PATH_RESOLUTION_ERROR);
+}
+
+/// What the fallback cost, and the one case where deleting it is visible
+/// rather than merely correct: a module that declares a constant under the
+/// name an import was aliased away from. Step 1 answered the import and the
+/// declaration was never read; now the declaration is what the reference
+/// names, because it is the only thing that binds the name.
+#[test]
+fn a_declaration_named_after_an_aliased_away_import_is_what_the_reference_reads() {
+  let result = ModuleState::default()
+    .imported_as(ImportedAs::StringNamedAwayFrom)
+    .declared_with(create_string_expr("red"))
+    .evaluate_a_later_reference();
+
+  assert_folded_to_the_string(&result, "red");
+}
+
+/// And the same for a name a *global* would otherwise answer for. The
+/// aliased-away name binds nothing, so the globals step is reached and the
+/// global stands — where the fallback made the import answer first.
+#[test]
+fn a_global_named_after_an_aliased_away_import_folds_to_itself() {
+  for name in FOLDED_GLOBALS {
+    let result = ModuleState::default()
+      .imported_as(ImportedAs::StringNamedAwayFrom)
+      .evaluate(name, LATER_REFERENCE_SPAN);
+
+    assert_folded_to_the_global(&result, name);
+  }
 }
 
 // ==================== steps 3 and 4 — the write probes ====================

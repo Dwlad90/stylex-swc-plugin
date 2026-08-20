@@ -51,8 +51,8 @@ use crate::shared::{
       extract_tpl_cooked_value,
     },
     common::{
-      assign_props, get_import_by_ident, get_var_decl_by_ident, get_var_decl_from,
-      local_binding_of, order_own_keys, remove_duplicates,
+      assign_props, get_import_by_ident, get_var_decl_by_ident, get_var_decl_from, order_own_keys,
+      remove_duplicates,
     },
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
   },

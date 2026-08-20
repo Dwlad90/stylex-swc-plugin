@@ -1009,3 +1009,76 @@ stylex_test!(
     console.log(foo);
   "#
 );
+
+// ──────────────────────────────────────────────
+// A constant named after the name an import was aliased away from.
+//
+// `import { "spacing" as sp }` binds `sp`; `spacing` is free for the module to
+// declare, and a reference to it names that declaration. The import lookup used
+// to answer for the aliased-away name and the declaration was never read, so
+// these two cases are what deleting that fallback buys: the declaration folds,
+// and the alias's own binding still resolves to the theme it names.
+//
+// Measured against `@stylexjs/babel-plugin` 0.19.0 as
+// `modules-1266-a-constant-named-after-an-aliased-away-import` in the parity
+// corpus.
+// ──────────────────────────────────────────────
+
+fn aliased_import_transform(comments: TestComments) -> impl Pass {
+  stylex_transform(comments, |b| {
+    b.with_filename(swc_core::common::FileName::Real("MyComponent.js".into()))
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_runtime_injection()
+  })
+}
+
+stylex_test!(
+  a_constant_named_after_an_aliased_away_import_is_what_folds,
+  |tr| aliased_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { "spacing" as sp } from 'tokens.stylex.js';
+
+    const spacing = '4px';
+
+    export const styles = stylex.create({
+      wrapper: { padding: spacing, margin: sp.small },
+    });
+  "#
+);
+
+// The identifier spelling of the alias, so both spellings of an imported name
+// are pinned to the same answer.
+stylex_test!(
+  a_constant_named_after_an_identifier_aliased_import_is_what_folds,
+  |tr| aliased_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { spacing as sp } from 'tokens.stylex.js';
+
+    const spacing = '4px';
+
+    export const styles = stylex.create({
+      wrapper: { padding: spacing, margin: sp.small },
+    });
+  "#
+);
+
+// Two specifiers of one declaration aliased away from names the module declares
+// itself, read in one style object -- so the answer is per specifier and per
+// reference, not "this declaration was mentioned".
+stylex_test!(
+  two_aliased_away_names_declared_beside_their_import,
+  |tr| aliased_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { "spacing" as sp, colors as c } from 'tokens.stylex.js';
+
+    const spacing = '4px';
+    const colors = 'red';
+
+    export const styles = stylex.create({
+      wrapper: { padding: spacing, color: colors, margin: sp.small, backgroundColor: c.bg },
+    });
+  "#
+);

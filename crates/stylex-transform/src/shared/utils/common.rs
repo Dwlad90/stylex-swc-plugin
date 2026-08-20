@@ -7,9 +7,8 @@ use swc_core::atoms::Atom;
 use swc_core::{
   common::{EqIgnoreSpan, FileName},
   ecma::ast::{
-    Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Module, ModuleDecl,
-    ModuleExportName, ModuleItem, ObjectPatProp, Pat, Prop, PropName, PropOrSpread, Stmt,
-    VarDeclarator,
+    Decl, Expr, Ident, ImportDecl, ImportSpecifier, KeyValueProp, Module, ModuleDecl, ModuleItem,
+    ObjectPatProp, Pat, Prop, PropName, PropOrSpread, Stmt, VarDeclarator,
   },
 };
 
@@ -21,7 +20,7 @@ use crate::shared::{
     functions::{FunctionConfigType, FunctionMap, FunctionType},
     state_manager::StateManager,
   },
-  utils::ast::convertors::{convert_str_lit_to_atom, convert_wtf8_to_atom},
+  utils::ast::convertors::convert_wtf8_to_atom,
 };
 use stylex_constants::constants::messages::{INVALID_UTF8, SPREAD_NOT_SUPPORTED};
 use stylex_regex::regex::JSON_REGEX;
@@ -105,11 +104,37 @@ pub fn get_var_decl_by_ident<'a>(
   None
 }
 
+/// The import declaration and the specifier that bind `ident`, or `None` where
+/// no import binds it.
+///
+/// The two travel together because the caller that asks *whether* an import
+/// binds a reference immediately asks *which specifier* did -- a named
+/// specifier resolves to a theme reference where a default one is refused. A
+/// second search for the specifier could come back empty and left the caller
+/// holding an unanswerable case; answering both from one scan removes it.
 pub fn get_import_by_ident<'a>(
-  ident: &'a Ident,
+  ident: &Ident,
   state: &'a StateManager,
-) -> Option<&'a ImportDecl> {
-  get_import_from(state, ident)
+) -> Option<(&'a ImportDecl, &'a ImportSpecifier)> {
+  state.top_imports.iter().find_map(|import| {
+    import
+      .specifiers
+      .iter()
+      // The binding, not the name: a reference and an import specifier are the
+      // same thing only when their `SyntaxContext` agrees too. Matching on the
+      // symbol alone resolved a *shadowing* binding -- an arrow parameter
+      // carries a context of its own -- to the import it shadows, so a dynamic
+      // style whose parameter is named after an imported theme answered a
+      // confident `ThemeRef` and aborted the build (#1266).
+      //
+      // The local binding is the only name asked about. A specifier's
+      // *imported* name binds nothing in this module -- `import { spacing as
+      // sp }` leaves `spacing` unbound here -- so a reference spelled that way
+      // names something else, or nothing at all, and resolving it to the import
+      // it was aliased away from is not a resolution the language allows.
+      .find(|specifier| local_binding_of(specifier).eq_ignore_span(ident))
+      .map(|specifier| (import, specifier))
+  })
 }
 
 pub(crate) fn get_var_decl_from<'a>(
@@ -134,10 +159,9 @@ fn matches_ident_with_var_decl_name(ident: &Ident, var_declarator: &&VarDeclarat
 ///
 /// One question with one home, because two readers need it and they need it for
 /// opposite reasons: the pre-scan records every import local as a declared
-/// binding, and the reference resolution chain in `js/evaluate/binding.rs` asks
-/// *which* specifier bound a name it already matched -- a named specifier
-/// resolves to a theme reference where a default one is refused, and one
-/// declaration can carry both.
+/// binding, and `get_import_by_ident` matches a reference against it -- the one
+/// name a specifier introduces, and so the only one a reference can resolve
+/// through.
 pub(crate) fn local_binding_of(specifier: &ImportSpecifier) -> &Ident {
   match specifier {
     ImportSpecifier::Named(named) => &named.local,
@@ -148,32 +172,9 @@ pub(crate) fn local_binding_of(specifier: &ImportSpecifier) -> &Ident {
 
 pub(crate) fn get_import_from<'a>(
   state: &'a StateManager,
-  ident: &'a Ident,
+  ident: &Ident,
 ) -> Option<&'a ImportDecl> {
-  state.top_imports.iter().find(|import| {
-    import.specifiers.iter().any(|specifier| match specifier {
-      ImportSpecifier::Named(named_import) => {
-        // The binding, not the name: a reference and an import specifier are the
-        // same thing only when their `SyntaxContext` agrees too, which is what
-        // its `Default` and `Namespace` siblings below already compare. Matching
-        // on the symbol alone resolved a *shadowing* binding -- an arrow
-        // parameter carries a context of its own -- to the import it shadows, so
-        // a dynamic style whose parameter is named after an imported theme
-        // answered a confident `ThemeRef` and aborted the build (#1266).
-        named_import.local.eq_ignore_span(ident) || {
-          match &named_import.imported {
-            Some(imported) => match imported {
-              ModuleExportName::Ident(export_ident) => export_ident.eq_ignore_span(ident),
-              ModuleExportName::Str(strng) => convert_str_lit_to_atom(strng) == ident.sym,
-            },
-            _ => false,
-          }
-        }
-      },
-      ImportSpecifier::Default(default_import) => default_import.local.eq_ignore_span(ident),
-      ImportSpecifier::Namespace(namespace_import) => namespace_import.local.eq_ignore_span(ident),
-    })
-  })
+  get_import_by_ident(ident, state).map(|(import, _)| import)
 }
 
 #[allow(dead_code)]

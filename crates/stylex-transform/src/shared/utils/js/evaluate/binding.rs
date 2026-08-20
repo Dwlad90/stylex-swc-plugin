@@ -71,15 +71,7 @@ pub(super) fn resolve_reference(
   // guard (`!bindingPath.isImportDefaultSpecifier()`, 0.19.0 line 640) is the
   // same question step 2 answers with a refusal. The order is upstream's either
   // way — a default specifier never resolves a theme reference here.
-  if let Some(import_path) = get_import_by_ident(ident, traversal_state) {
-    let specifier = import_path
-      .specifiers
-      .iter()
-      .find(|specifier| local_binding_of(specifier).sym == ident.sym)
-      .unwrap_or_else(|| {
-        stylex_panic!("Could not resolve the import specifier. Ensure the import is correct.")
-      });
-
+  if let Some((import_path, specifier)) = get_import_by_ident(ident, traversal_state) {
     let (local_name, imported) = match specifier {
       // ── 2. a default-import specifier (652-654) ─────────────────────────
       //

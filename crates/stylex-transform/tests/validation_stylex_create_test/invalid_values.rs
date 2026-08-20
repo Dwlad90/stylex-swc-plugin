@@ -1278,3 +1278,148 @@ stylex_test_panic!(
     export const styles = stylex.create({ wrapper: { color: tokens.color } });
   "#
 );
+
+// ──────────────────────────────────────────────
+// A style value that reads the name an import was aliased *away* from.
+//
+// `import { spacing as sp }` binds `sp` and leaves `spacing` naming whatever it
+// named before -- nothing, in these modules. The import lookup used to answer
+// for that name anyway, so a reference to it resolved to a binding no scope
+// holds. `@stylexjs/babel-plugin` 0.19.0 asks the scope for the binding a
+// reference resolves to and never sees the aliased-away name at all, so it
+// refuses the same inputs. Measured as
+// `modules-1266-read-by-the-name-an-import-was-aliased-away-from` in the parity
+// corpus.
+//
+// The string-named spelling is the half that was reachable: an identifier
+// spelling carries the parser's syntax context and a reference carries the
+// resolver's, so the two never compared equal, where a string carries no
+// context to compare at all.
+// ──────────────────────────────────────────────
+
+stylex_test_panic!(
+  a_string_named_imports_imported_name_is_not_a_binding,
+  "Referenced constant is not defined.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { "spacing" as sp } from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { padding: spacing } });
+  "#
+);
+
+// The identifier spelling of the same shape. It refused before this change too,
+// for the reason above -- pinned so a lookup that went back to comparing symbols
+// cannot make it resolve.
+stylex_test_panic!(
+  an_aliased_imports_imported_name_is_not_a_binding,
+  "Referenced constant is not defined.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { spacing as sp } from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { padding: spacing } });
+  "#
+);
+
+// A member read off the aliased-away name, which is the shape a theme import is
+// actually used in -- so the refusal is not an artifact of reading the binding
+// bare.
+stylex_test_panic!(
+  a_member_read_off_an_aliased_away_import_name_is_refused,
+  "Referenced constant is not defined.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { "colors" as c } from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { color: colors.primary } });
+  "#
+);
+
+// A shorthand carries the value into synthesized longhands, so the refusal has
+// to survive the expansion.
+stylex_test_panic!(
+  an_aliased_away_import_name_read_in_a_shorthand_is_refused,
+  "Referenced constant is not defined.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { "spacing" as sp } from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { margin: spacing } });
+  "#
+);
+
+// Four levels down the condition walk, where a refusal that only fired at the
+// top level would let this one through.
+stylex_test_panic!(
+  an_aliased_away_import_name_read_in_deeply_nested_conditions_is_refused,
+  "Referenced constant is not defined.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { "spacing" as sp } from 'tokens.stylex.js';
+
+    export const styles = stylex.create({
+      wrapper: {
+        padding: {
+          default: '1px',
+          ':hover': {
+            default: '2px',
+            '@media (min-width: 600px)': {
+              default: '3px',
+              ':focus': spacing,
+            },
+          },
+        },
+      },
+    });
+  "#
+);
+
+// From the key position rather than the value position.
+stylex_test_panic!(
+  an_aliased_away_import_name_read_as_a_computed_key_is_refused,
+  "Referenced constant is not defined.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { "spacing" as sp } from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { [spacing]: '1px' } });
+  "#
+);
+
+// And out of an operand, so a concatenated value reports the reference rather
+// than a coercion failure.
+stylex_test_panic!(
+  an_aliased_away_import_name_read_through_an_operator_is_refused,
+  "Referenced constant is not defined.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { "width" as w } from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { width: width + 'px' } });
+  "#
+);
+
+// A non-ASCII imported name, and an escaped spelling of an ASCII one. Both name
+// the same export as their unescaped spelling, and neither binds anything here.
+stylex_test_panic!(
+  a_non_ascii_aliased_away_import_name_is_refused,
+  "Referenced constant is not defined.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { "цвета" as c } from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { color: цвета } });
+  "#
+);
+
+stylex_test_panic!(
+  an_escaped_aliased_away_import_name_is_refused,
+  "Referenced constant is not defined.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { "spacing" as sp } from 'tokens.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { padding: \u0073pacing } });
+  "#
+);

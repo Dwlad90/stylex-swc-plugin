@@ -517,6 +517,30 @@
       "origin": "the identifier audit for issue #1266, the other half of the globals step",
       "note": "With nothing bound, the step answers the global, which is what keeps this a divergence about the value rather than about the binding: upstream emits `width:NaNpx` and `height:Infinitypx`, where this compiler refuses a non-numeric identifier as a style value. Unchanged by the globals step and recorded so that it stays unchanged -- a regression that made the step refuse an unbound global would show up here as a message change rather than silently.",
       "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-read-by-a-string-named-imports-imported-name",
+      "label": "a style value reading the name a string-named import specifier was aliased away from",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"spacing\" as sp } from 'tokens.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { padding: spacing },\n});\n",
+      "origin": "the identifier audit for issue #1266, the imported-name fallback in the import lookup",
+      "note": "`import { \"spacing\" as sp }` binds `sp` and leaves `spacing` naming nothing, so upstream refuses -- it asks the scope for the binding a reference resolves to and never sees an aliased-away name. This compiler matched the specifier by its imported name, then re-searched the declaration by the local one and aborted with `Could not resolve the import specifier.` Both refuse once the fallback is deleted.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-read-by-an-aliased-imports-imported-name",
+      "label": "a style value reading the name an identifier-aliased import specifier was aliased away from",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { spacing as sp } from 'tokens.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { padding: spacing },\n});\n",
+      "origin": "the identifier audit for issue #1266, the imported-name fallback in the import lookup",
+      "note": "The identifier spelling of the entry above. It refused on both compilers before the fallback was deleted too -- an imported identifier carries the syntax context the parser gave it and a reference carries the resolver's, so the two never compared equal. Recorded beside the string spelling because only the pair shows that the answer is the same for both.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-constant-named-after-an-aliased-away-import",
+      "label": "a constant declared under the name an import was aliased away from",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"spacing\" as sp } from 'tokens.stylex.js';\n\nconst spacing = '4px';\n\nexport const styles = stylex.create({\n  wrapper: { padding: spacing, margin: sp.small },\n});\n",
+      "origin": "the identifier audit for issue #1266, what the imported-name fallback cost",
+      "note": "The name is free for the module to declare, and the declaration is what the reference resolves to on both compilers. The import lookup used to answer for the aliased-away name first, so the declaration was never read and the module aborted. Both references are in one style object so the alias's own binding is measured beside it: `sp.small` still resolves to the theme it names.",
+      "expected": "identical"
     }
   ]
 }

@@ -1,6 +1,6 @@
 # 20 — A deep expression aborts the process where Babel throws
 
-Status: `needs-triage`
+Status: `resolved`
 Blocked by: None
 
 **What was measured:** The evaluator walks a nested expression recursively, so
@@ -39,7 +39,126 @@ equally deep expression over a module-level `const` should abort the same way.
 Worth confirming as the first step, since it decides whether this belongs to
 this feature's tracker or the evaluator's.
 
-- [ ] Confirm the abort reproduces without any shadowing
-- [ ] Decide whether a depth budget refuses with a message, or the recursion
-      becomes an explicit stack
-- [ ] Pin the boundary as a test that can survive being wrong
+- [x] Confirm the abort reproduces without any shadowing — it does, at the same
+      depth, over a module-level `const` in a plain static value
+- [x] Decide whether a depth budget refuses with a message, or the recursion
+      becomes an explicit stack — a budget, *plus* a grown stack, because
+      neither works alone;
+      `crates/stylex-transform/docs/adr/0004-the-fold-owns-its-own-ceiling-and-its-own-stack.md`
+- [x] Pin the boundary as a test that can survive being wrong —
+      `crates/stylex-transform/tests/transform_stylex_create_test/evaluation_depth_budget.rs`,
+      39 cases
+
+## Answer
+
+**A counted ceiling on the fold, and a stack the fold grows for itself.** The
+first half was the ticket's proposal; the second turned out to be what makes a
+single ceiling possible at all, and the decision including its rejected
+alternatives is ADR 0004.
+
+`maxEvaluationDepth` bounds the levels `evaluate_cached` will descend, and it is
+configuration rather than a constant: the option, then the
+`STYLEX_MAX_EVALUATION_DEPTH` environment variable, then a default of **32**,
+precedence in that order so a stray environment value cannot change what a
+configured project compiles to. Zero and anything non-numeric read as unset,
+because a ceiling of zero refuses the folds the compiler runs to do its own work.
+
+The counter lives on the state manager, not on the evaluation state, because the
+evaluation's confidence forks — a logical operand and a computed key each get
+their own — while the stack it accounts for does not. Crossing it is a refusal,
+not a panic: per ADR 0002 a panic in the evaluator claims a broken invariant no
+author input can reach, and a deep expression is author input. It reaches an
+author as a diagnostic anyway wherever a static value is required:
+
+```
+[StyleX] base > zIndex > Expression is too deeply nested to evaluate at compile time.
+At most 32 levels of nested evaluation are supported.
+```
+
+**Why the default is 32 and not the highest safe number.** The value that keeps a
+build reporting rather than aborting is a property of what a project generates,
+which the compiler cannot know — so the shipped number covers styles somebody
+wrote and anything past it says so out loud, with a documented knob for the
+projects that generate more. Measured before choosing it: at 32 the fold takes
+29 levels of arithmetic and a 28-link member chain, and across the whole
+workspace exactly three tests change — `a_hole_a_hundred_arrays_deep_refuses`,
+`a_deeply_nested_length_read_neither_overflows_nor_changes_answer` and
+`a_deeply_nested_fold_still_folds`, all deliberate ~100-level probes, now run
+under an explicitly raised ceiling. Nothing resembling authored CSS moved: a
+`theme.colors.primary` / `theme.space.md` / `4 * 2 + 'px'` module folds to
+byte-identical output against upstream.
+
+**Why the budget alone was not enough.** Measured with the counter in and the
+stack left as the thread's: the arms do not cost the same per level. A debug
+build ran out between 32 and 64 levels of nested `Math.max`, where plain
+arithmetic reached 384 — so a ceiling low enough to be safe for the worst arm
+would have refused inputs upstream folds by an order of magnitude. Running the
+descent inside `stacker::maybe_grow` (already in the graph via
+`swc_ecma_parser`, which grows the stack for the same reason) removes the
+per-arm variance, and the ceiling becomes a policy rather than a stack
+measurement. `stacker` catches a panic on the grown stack and resumes the unwind
+on the original one, so the StyleX diagnostic transport is unaffected.
+
+**Confirmed without any shadowing.** 512 levels of `(MY_CONST + 1)` in a plain
+static value aborted before the change and refuses after it. Nothing in the
+mechanism depended on the shadowing, so this belonged to the evaluator; it is
+recorded here because that is where it was found.
+
+**Measured against `@stylexjs/babel-plugin` 0.19.0**, same options, on eleven
+nesting shapes. Every depth both compilers accept produces identical class names
+and rule text. The last accepted depth per shape, and what happens one level
+past it:
+
+Measured under a raised ceiling of 320, because the subject is how deep a fold
+*can* go rather than where the shipped default sits:
+
+| shape | last folded | upstream at that depth |
+| --- | --- | --- |
+| `(x + 1)` arithmetic | 317 | folds, same hash |
+| `(x + 'b')` concatenation | 317 | folds, same hash |
+| `-(x)` unary | 317 | folds, same hash |
+| `(true ? x : 0)` conditional | 317 | folds, same hash |
+| `(x || 0)` logical | 317 | folds, same hash |
+| `` `${x}` `` template | 317 | folds, same hash |
+| `Math.max(x, 0)` call | 317 | folds, same hash |
+| `o.a.a…` member chain | 316 | folds, same hash |
+| `{ ...{ … } }` spread chain | 315 | folds, same hash |
+| `:hover` / `@media` value | 316 | folds, same hash |
+| `(x)` parentheses | unbounded | folds, same hash |
+
+The ceiling is in fold levels, and a source level is not always one: a member
+read descends twice, a spread descends twice, a parenthesis is unwrapped before
+the fold is asked. That is why the numbers differ by shape, why each is pinned
+rather than derived, and why the message says *nested evaluation*.
+
+**Where the two disagree.** Between our ceiling and upstream's, upstream folds
+and we refuse with a message. Upstream's own ceiling is higher than this ticket
+recorded: it folds 1024 levels of arithmetic and throws
+`RangeError: Maximum call stack size exceeded` at 4096. Difference 1 in the
+report stands, and is the accepted cost of difference 2 being fixed.
+
+**One shape reverses.** The reported input — a dynamic parameter shadowing an
+imported binding, 576 levels deep — now *folds* here, to the single custom
+property a shallow one folds to, and upstream throws a `RangeError` on it from
+576 up. Ours is the higher ceiling in the shape the ticket was filed against.
+
+**What is left, and it is not the fold's.** A deep enough expression still
+aborts, in the stages that recurse over it with no ceiling of their own —
+parsing, visiting, printing, and the deep clone a refusal records. Measured in a
+debug build on a 2 MiB thread: 768 levels with no `stylex` call involved is fine
+and 1024 aborts; inside a `create()` call 576 refuses cleanly and 608 aborts. So
+the fold's ceiling sits well under theirs by design, and the residue is filed as
+28.
+
+**No measurable cost.** The complex-theme performance fixture over six runs:
+10.35-11.22 ms with the change, 10.76-12.15 ms without. A stack segment is
+allocated only for an expression that reaches the red zone, which nothing under
+the default ceiling comes close to.
+
+**One thing found on the way, filed as 29.** Asked whether the recursion should
+become an explicit stack for speed; measured, and it should not. Fold cost is
+about quadratic in depth with the output held constant — 1.7 ms at 60 levels,
+54 ms at 480 — and what grows is not the call frames but the structural hash that
+keys the memo, recomputed over the whole remaining subtree at every level. At the
+default ceiling it is a small constant, which is why it is filed rather than
+fixed.

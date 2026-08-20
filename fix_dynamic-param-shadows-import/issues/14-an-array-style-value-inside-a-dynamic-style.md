@@ -1,6 +1,6 @@
 # 14 — An array style value inside a dynamic style
 
-Status: `needs-triage`
+Status: `resolved`
 Blocked by: None
 
 **What was found:** Every array written as a style value *inside a dynamic
@@ -53,6 +53,108 @@ The shapes above are the work: an empty array, a `null` element, a hole, a
 nested array, and an `undefined` element each have their own answer upstream,
 and none of them is the array's element list read straight through.
 
-- [ ] Every row above agrees with the reference implementation
-- [ ] The two positions no longer abort for an array
-- [ ] Corpus entries for each shape, with the verdict each is known to read
+- [x] Every row above agrees with the reference implementation
+- [x] The two positions no longer abort for an array
+- [x] Corpus entries for each shape, with the verdict each is known to read
+
+## Answer
+
+Two changes, at two seams, because the table had two causes in it.
+
+### The fold: one arm, at the seam ticket 08 built
+
+`materialize_style_value` in `core/evaluate_stylex_create_arg.rs` already stood
+between an evaluated value and a style value, folding a function map into the
+object it stands for. An evaluated array wanted exactly the same treatment, so
+it is one arm: `EvaluateResultValue::Vec` goes through
+`evaluate_result_vec_to_array_expr` — the *same* function
+`nodes/object_expression.rs` uses for a static namespace, made `pub(crate)`
+rather than copied — and refuses with `ILLEGAL_PROP_ARRAY_VALUE` when an element
+has no array-element form.
+
+What an array may hold is then nobody's decision at the value position. It is
+namespace validation's, from the folded `Expr::Array`, in both compilers: a
+nested array, an object, `undefined`, a boolean, an arrow, a shadowed namespace
+parameter and a theme object all read `A style array value can only contain
+strings or numbers.` — the sentence upstream gives, which this position could
+not reach while the array aborted ahead of validation.
+
+That covers ten of the eleven rows. The eleventh was not about the position.
+
+### The hole: the array itself was answering one element short
+
+`height: [, '2px']` was not aborting for want of an expression form. The
+evaluator skipped the hole, so `[, '2px']` folded to a one-element array, and
+folding it would have emitted `height: 2px` — a value the source does not
+describe, which is worse than the abort it replaced. The row says upstream makes
+it dynamic, and the reason is the interesting part: upstream evaluates element
+*paths*, and a hole's path carries no node, so it falls to the guard that reports
+`PATH_WITHOUT_NODE`. We already had that constant, with upstream's exact words,
+used by the evaluator's cache. So `nodes/array_expression.rs` now refuses a hole
+with it, and the two compilers say the same sentence for the same input.
+
+The refusal travels with the value, which is what makes it the right seam:
+
+- inside a dynamic style's body a refusal is not an error — the value falls to
+  the runtime as `var(--x-height)`, which is what upstream emits there, so the
+  row reads `identical`
+- in a static namespace both compilers refuse, where this one used to emit
+  `height: 2px`
+- read through a binding, likewise — `const F = [, '2px']` refuses wherever `F`
+  is read, where the count used to come out short
+
+Three shapes outside the ticket moved with it, all in the same direction:
+`{ ...[, 1] }` now refuses for the hole rather than for a shifted key,
+`A.length` through a binding to a holey array refuses instead of answering one,
+and `[, 1][0]` reports the hole rather than the index.
+
+### `[, 1].length` still answers two, and deliberately
+
+A hole is a slot the language counts, so `[, 1].length` is two — upstream
+crashes on it, and answering two is the divergence in this compiler's favour that
+`member_length_tests.rs` was written to pin. Refusing the array would have taken
+it away, so the count is read off the source *before* the receiver is evaluated:
+`holey_receiver_length` in `nodes/member_expression.rs`, gated on a receiver
+literal that actually carries a hole, so no shape that folds today takes a new
+path. A spread still refuses through the same `written_slot_count`, because one
+written element standing for however many a spread holds is not a count either
+reading can give.
+
+The corpus entry for it keeps `acceptance-divergent`, with the note rewritten:
+the array refuses, the count does not.
+
+### Measured
+
+Every row of the table, plus twenty-odd shapes beyond it, against
+`@stylexjs/babel-plugin` 0.19.0 under the harness's own options. Every ticket row
+now agrees. Twenty-four corpus entries carry the verdicts, each with `expected`
+recorded so a regression reports as a changed verdict rather than as silence, and
+the whole corpus reports `changed 0` over 976 subjects.
+
+Three divergences the measurement turned up are *not* array questions and are
+filed rather than fixed, each with its corpus row:
+
+- [25](./25-an-absent-value-in-a-dynamic-style-loses-its-marker.md) — an absent
+  value in a dynamic style's body loses the marker that unsets a merged
+  declaration. `height: null` shows it without an array anywhere.
+- [26](./26-nan-and-infinity-as-a-style-array-element.md) — `NaN` and `Infinity`
+  as array elements. The static namespace refuses them identically, so it is the
+  array check and not the position; upstream's two answers differ from each
+  other and one of them is `height: Infinitypx`.
+- [27](./27-an-index-read-off-an-array-refuses.md) — an index read off an
+  evaluated array, already named at its site as its own scope, which the fold
+  made visible in a second position.
+
+One divergence is an existing ticket's: an array eight conditions deep hashes a
+different class name because the two compilers order nested pseudo-classes
+differently ([19](./19-three-nested-pseudo-classes-hash-differently.md)). The
+declaration text agrees, and the test asserts that half.
+
+Tests: `tests/array_hole_tests.rs` for the hole and everything beside it that
+must not move — a trailing comma, the ordering of a spread against a hole, a
+hundred arrays deep, ten thousand holes, and each `length` spelling — and
+`tests/transform_stylex_create_test/array_style_values.rs` for the two positions,
+the refusals, non-ASCII and escaped elements, a custom property, a vendor-prefixed
+property, an unclosed CSS function, a thousand elements, and eight condition
+levels. Workspace green, `cargo clippy --workspace --all-features --all-targets`
+clean, node suite 64 of 64.

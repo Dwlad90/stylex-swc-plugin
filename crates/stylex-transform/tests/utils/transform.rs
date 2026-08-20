@@ -1,5 +1,6 @@
 use std::{rc::Rc, sync::Arc};
 
+use stylex_structures::stylex_options::ModuleResolution;
 use stylex_transform::StyleXTransform;
 
 use swc_core::{
@@ -189,4 +190,20 @@ where
   F: FnOnce(TestBuilder) -> TestBuilder,
 {
   customize(StyleXTransform::test(comments)).into_pass()
+}
+
+/// A transform for the cases where a name is shadowed.
+///
+/// A theme import has to *resolve* for such a case to be about the shadowing
+/// rather than about the path, which takes both a real filename and `haste`
+/// resolution. Shared so the two files that ask the shadowing question --
+/// `dynamic_styles.rs` and `dynamic_param_shadowing_edges.rs` -- cannot drift
+/// into asking it under different options.
+#[allow(dead_code)]
+pub(crate) fn shadowing_transform(comments: TestComments) -> impl Pass {
+  build_test_transform(comments, |b| {
+    b.with_filename(FileName::Real("MyComponent.js".into()))
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_runtime_injection()
+  })
 }

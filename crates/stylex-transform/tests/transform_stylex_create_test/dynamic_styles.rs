@@ -516,14 +516,6 @@ stylex_test!(
 // path.
 // ──────────────────────────────────────────────
 
-fn shadowing_transform(comments: TestComments) -> impl Pass {
-  stylex_transform(comments, |b| {
-    b.with_filename(swc_core::common::FileName::Real("MyComponent.js".into()))
-      .with_unstable_module_resolution(ModuleResolution::haste(None))
-      .with_runtime_injection()
-  })
-}
-
 stylex_test!(
   dynamic_param_shadows_a_named_theme_import,
   |tr| shadowing_transform(tr.comments.clone()),

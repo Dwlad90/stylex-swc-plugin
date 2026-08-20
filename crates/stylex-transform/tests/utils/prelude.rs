@@ -26,7 +26,7 @@ pub(crate) use stylex_transform::StyleXTransformBuilder;
 
 #[allow(unused_imports)]
 pub(crate) use crate::utils::transform::{
-  TestBuilder, TestComments, build_test_transform, ts_syntax,
+  TestBuilder, TestComments, build_test_transform, shadowing_transform, ts_syntax,
 };
 
 // Re-export Pass trait for file-level transform return types

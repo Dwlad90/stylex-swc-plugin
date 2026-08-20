@@ -15,21 +15,6 @@
 
 use crate::utils::{prelude::*, transform::stringify_js};
 
-fn shadowing_transform(comments: TestComments) -> impl Pass {
-  stylex_transform(comments, |b| {
-    b.with_filename(swc_core::common::FileName::Real("MyComponent.js".into()))
-      .with_unstable_module_resolution(ModuleResolution::haste(None))
-      .with_runtime_injection()
-  })
-}
-
-fn stylex_transform(
-  comments: TestComments,
-  customize: impl FnOnce(TestBuilder) -> TestBuilder,
-) -> impl Pass {
-  build_test_transform(comments, customize)
-}
-
 // ──────────────────────────────────────────────
 // The value is malformed or unrecognized CSS
 //
@@ -116,8 +101,11 @@ stylex_test!(
   "#
 );
 
-// A colon with no pseudo-class after it, and an at-rule with no condition. Both
-// reach the stylesheet as written.
+// A colon with no pseudo-class after it, and an at-rule with no condition.
+// Neither is validated: both reach the stylesheet as written, as `.x1xt2tkc:{…}`
+// and a conditionless `@media{…}` -- text no CSS parser accepts. Babel 0.19.0
+// emits exactly the same two rules under the same class names, so this pins an
+// agreed-upon shortcoming rather than a divergence.
 stylex_test!(
   a_bare_colon_and_a_conditionless_at_rule_around_a_shadowing_param,
   |tr| shadowing_transform(tr.comments.clone()),
@@ -255,8 +243,8 @@ stylex_test!(
   "#
 );
 
-// Sixty-four parameters, two of them read. The unread ones still take their
-// names, and nothing in the chain scales with how many there are.
+// Sixty-four parameters, two of them read. The unread ones take their names and
+// contribute nothing: only the two that are read reach the stylesheet.
 #[test]
 fn sixty_four_params_beside_two_reads() {
   let params = (0..64)
@@ -279,7 +267,9 @@ fn sixty_four_params_beside_two_reads() {
   });
 
   // The two read parameters each get their own custom property; the other 62
-  // contribute nothing.
+  // contribute nothing. Each of the two names is spelled three times -- in the
+  // rule, in its `@property` declaration, and in the object the function
+  // returns -- so six mentions means two properties and not a third.
   assert!(output.contains(".xr3buco{z-index:var(--x-zIndex)}"));
   assert!(output.contains(".xuwbzjh{order:var(--x-order)}"));
   assert_eq!(output.matches("--x-").count(), 6);
@@ -442,7 +432,8 @@ fn a_hundred_and_twenty_eight_nested_conditions_read_a_shadowing_param() {
 }
 
 // A five-thousand-character value beside a shadowing parameter. The value is
-// hashed whole, so nothing about its length is special -- which is the claim.
+// hashed whole -- `x1ahcjaz` is the hash of all five thousand characters, and
+// asserting the class name is what makes that a claim rather than a hope.
 #[test]
 fn a_five_thousand_character_value_beside_a_shadowing_param() {
   let long = "x".repeat(5000);
@@ -463,6 +454,47 @@ fn a_five_thousand_character_value_beside_a_shadowing_param() {
     shadowing_transform(tr.comments.clone())
   });
 
-  assert!(output.contains(&format!("content:\\\"{}\\\"", long)) || output.contains(&long));
+  assert!(output.contains(&format!(".x1ahcjaz{{content:\"{}\"}}", long)));
   assert!(output.contains(".xr3buco{z-index:var(--x-zIndex)}"));
+}
+
+// The evaluator walks a nested expression recursively, so its real limit is
+// stack depth rather than any checked bound. 256 levels of arithmetic around the
+// shadowing parameter fold to a single custom property in both compilers.
+//
+// The limit past that is measured, not asserted, because crossing it is not
+// something a test can survive: at 512 levels the evaluator exhausts the stack
+// and the process aborts, where Babel 0.19.0 still accepts 768 and raises a
+// catchable `RangeError: Maximum call stack size exceeded` beyond it. Our
+// ceiling is lower and our failure is louder -- an abort gives a bundler nothing
+// to report. Filed as its own issue; asserting it here would take the test
+// binary down with it.
+#[test]
+fn two_hundred_and_fifty_six_levels_of_arithmetic_around_a_shadowing_param() {
+  const DEPTH: usize = 256;
+
+  let mut expr = String::from("zIndex");
+  for _ in 0..DEPTH {
+    expr = format!("({} + 1)", expr);
+  }
+
+  let input = format!(
+    r#"
+      import * as stylex from '@stylexjs/stylex';
+      import {{ zIndex }} from 'zIndex.stylex.js';
+      export const styles = stylex.create({{
+        dyn: (zIndex) => ({{ zIndex: {} }}),
+      }});
+    "#,
+    expr
+  );
+
+  let output = stringify_js(&input, ts_syntax(), |tr| {
+    shadowing_transform(tr.comments.clone())
+  });
+
+  // The whole tower collapses into one inline custom property, exactly as a
+  // single `zIndex + 1` does -- the depth buys no extra declarations.
+  assert!(output.contains(".xr3buco{z-index:var(--x-zIndex)}"));
+  assert_eq!(output.matches("@property --x-").count(), 1);
 }

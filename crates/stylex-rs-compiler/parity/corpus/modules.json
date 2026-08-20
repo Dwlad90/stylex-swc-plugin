@@ -731,7 +731,7 @@
       "label": "a shadowed namespace parameter inside an array style value",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({ height: [stylex, '1px'] }),\n});\n",
       "origin": "the identifier audit for issue #1266, the fold reached through an array",
-      "note": "Upstream reads `A style array value can only contain strings or numbers.`; this compiler still reads `Style value must evaluate to a static expression.` -- not because of the fold but because every array written inside a dynamic style's body aborts at the same consumer, folded map or not. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/14-an-array-style-value-inside-a-dynamic-style.md`. `both-reject` cannot report the wording, so this row holds the input rather than measuring the message.",
+      "note": "Both refuse with `A style array value can only contain strings or numbers.` -- the array-specific sentence, because the fold happens inside an array. The parameter folds to the namespace import's function map, which has no array-element form, and it took two changes to reach this message: materializing the map at the style-value position, and folding an evaluated array there at all. Until the second, this compiler read `Style value must evaluate to a static expression.` for the array rather than anything about the map. `both-reject` compares acceptance and not wording, so the text is asserted in `transform_stylex_create_test::array_style_values::an_array_holding_a_shadowed_namespace_parameter_is_refused`.",
       "expected": "both-reject"
     },
     {

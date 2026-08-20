@@ -1,4 +1,9 @@
-use std::{fs, hint::black_box, path::PathBuf, sync::Arc};
+use std::{
+  fs,
+  hint::black_box,
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use stylex_structures::stylex_options::StyleXOptions;
@@ -74,8 +79,12 @@ fn perf_fixtures_dir() -> PathBuf {
   PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../stylex-rs-compiler/benchmark/perf_fixtures")
 }
 
+fn transform_fixtures_dir() -> PathBuf {
+  PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixture")
+}
+
 fn perf_fixture_paths() -> Vec<PathBuf> {
-  [
+  let perf = [
     "colors.stylex.js",
     "sizes.stylex.js",
     "create-basic.js",
@@ -84,8 +93,24 @@ fn perf_fixture_paths() -> Vec<PathBuf> {
     "createTheme-complex.js",
   ]
   .into_iter()
-  .map(|file| perf_fixtures_dir().join(file))
-  .collect()
+  .map(|file| perf_fixtures_dir().join(file));
+
+  // Two transform fixtures where a dynamic parameter shadows an imported
+  // binding. They are here rather than beside the others because the chain that
+  // decides which of the two a name means runs per reference, inside `evaluate`,
+  // and nothing else in this benchmark exercises it: the perf fixtures above
+  // resolve every name to exactly one binding. The `-edges` case is the
+  // expensive half -- shadowed names read through arithmetic, a template
+  // literal, `calc()`, eight levels of nested conditions, and a shorthand that
+  // expands into longhands.
+  let shadowing = [
+    "dynamic-param-shadows-import",
+    "dynamic-param-shadows-import-edges",
+  ]
+  .into_iter()
+  .map(|case| transform_fixtures_dir().join(case).join("input.stylex.js"));
+
+  perf.chain(shadowing).collect()
 }
 
 fn parse_module(path: &PathBuf) -> Module {
@@ -144,16 +169,29 @@ fn fill_var_declarations(declarations: &[VarDeclarator], state: &mut StateManage
   }
 }
 
+/// Names a fixture after its file, except where the file name carries nothing --
+/// a transform fixture is always `input.stylex.js`, so two of them would collide
+/// into one benchmark. Those are named after the directory that identifies them.
+fn fixture_name(path: &Path) -> String {
+  let file_name = path.file_name().and_then(|name| name.to_str());
+
+  match file_name {
+    Some("input.stylex.js") => match path.parent().and_then(|dir| dir.file_name()) {
+      Some(dir) => dir.to_string_lossy().into_owned(),
+      None => path.display().to_string(),
+    },
+    Some(name) => name.to_string(),
+    None => path.display().to_string(),
+  }
+}
+
 fn load_fixtures() -> Vec<EvaluateFixture> {
   perf_fixture_paths()
     .into_iter()
     .map(|path| {
       let module = parse_module(&path);
       let expressions = collect_expressions(&module);
-      let name = match path.file_name().and_then(|file_name| file_name.to_str()) {
-        Some(file_name) => file_name.to_string(),
-        None => path.display().to_string(),
-      };
+      let name = fixture_name(&path);
 
       EvaluateFixture {
         name,

@@ -15,8 +15,8 @@ describe('loadAllFixtures', () => {
   const fixtures = loadAllFixtures({ packageDir, workspaceRoot });
 
   test('loads the complete versioned registry', () => {
-    expect(fixtures).toHaveLength(22);
-    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(22);
+    expect(fixtures).toHaveLength(24);
+    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(24);
   });
 
   // The runner refuses to time a subject that produces no rules, so a

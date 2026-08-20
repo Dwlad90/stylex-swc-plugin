@@ -37,6 +37,20 @@
       "batchSize": 1
     },
     {
+      "name": "dynamic-param-shadows-import",
+      "file": "crates/stylex-transform/tests/fixture/dynamic-param-shadows-import/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "dynamic-param-shadows-import-edges",
+      "file": "crates/stylex-transform/tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js",
+      "category": "transform",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
       "name": "global-tokens",
       "file": "crates/stylex-transform/tests/fixture/global-tokens/input.stylex.js",
       "category": "transform",

@@ -1561,3 +1561,365 @@ stylex_test!(
     export const styles = stylex.create({ dyn: (stylex) => ({ color: 'red' }) });
   "#
 );
+
+// A named import of a function-map entry, shadowed by a dynamic style's
+// parameter. The reference implementation registers each of these names as the
+// object `{ fn }`, so the parameter folds to that object and `fn` is the key
+// namespace validation refuses on. This compiler registered them as function
+// configs the identifier step had no value form for, so it deopted -- and a
+// deopt inside a dynamic style is the inline-style path, which shipped
+// `height:var(--x-height)` and an `@property` rule for a module the reference
+// implementation refuses.
+stylex_test_panic!(
+  dynamic_param_shadowing_a_named_keyframes_import_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (keyframes) => ({ height: keyframes }) });
+  "#
+);
+
+stylex_test_panic!(
+  dynamic_param_shadowing_a_named_first_that_works_import_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, firstThatWorks } from '@stylexjs/stylex';
+
+    export const styles = create({
+      dyn: (firstThatWorks) => ({ height: firstThatWorks }),
+    });
+  "#
+);
+
+stylex_test_panic!(
+  dynamic_param_shadowing_a_named_position_try_import_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, positionTry } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (positionTry) => ({ height: positionTry }) });
+  "#
+);
+
+// A bare `when` import is the one entry of the family whose keys are not `fn`:
+// the reference implementation registers the marker object itself, so the object
+// the parameter folds to carries the marker names and `ancestor` is the key the
+// refusal lands on. Same sentence either way, which is why the key set is worth
+// pinning here rather than assuming.
+stylex_test_panic!(
+  dynamic_param_shadowing_a_bare_when_import_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, when } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (when) => ({ height: when }) });
+  "#
+);
+
+// The alias, which is the only other spelling that can be shadowed: the map is
+// keyed by what the specifier binds locally, not by the exported name.
+stylex_test_panic!(
+  dynamic_param_shadowing_an_aliased_keyframes_import_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes as kf } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (kf) => ({ height: kf }) });
+  "#
+);
+
+// An escaped spelling of the alias, which names the same local binding. The fold
+// is keyed on the name the parser resolved, so the escape must not smuggle the
+// reference past it -- `\u{6b}f` is `kf`, and it is how both the parameter
+// and the reference are spelled here.
+stylex_test_panic!(
+  an_escaped_spelling_of_a_shadowed_keyframes_alias_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes as kf } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (\u{6b}f) => ({ height: \u{6b}f }) });
+  "#
+);
+
+// A non-ASCII alias, shadowed. Nothing in the fold is ASCII-only, and a name
+// that only differs outside the ASCII range must still match itself.
+stylex_test_panic!(
+  a_non_ascii_shadowed_keyframes_alias_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes as кадры } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (кадры) => ({ height: кадры }) });
+  "#
+);
+
+// A static property beside the dynamic one, so the consumer is reached with
+// something already collected.
+stylex_test_panic!(
+  a_shadowed_keyframes_import_beside_a_static_prop_is_still_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({
+      wrapper: { color: 'red' },
+      dyn: (keyframes) => ({ height: keyframes }),
+    });
+  "#
+);
+
+// Under a condition, and under three nested pseudo-classes. The value walk
+// recurses per condition key, so a fold that only happened at the top level
+// would let these fall back to the inline-style path.
+stylex_test_panic!(
+  a_shadowed_keyframes_import_read_under_a_condition_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({
+      dyn: (keyframes) => ({ height: { default: keyframes } }),
+    });
+  "#
+);
+
+stylex_test_panic!(
+  a_shadowed_keyframes_import_read_under_three_nested_pseudo_classes_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({
+      dyn: (keyframes) => ({
+        ':hover': { ':focus': { ':active': { height: keyframes } } },
+      }),
+    });
+  "#
+);
+
+// A shorthand, so the refusal survives being carried into synthesized longhands
+// that have no authored position of their own.
+stylex_test_panic!(
+  a_shadowed_keyframes_import_read_in_a_shorthand_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (keyframes) => ({ margin: keyframes }) });
+  "#
+);
+
+// One of several parameters, read after the others, so the fold cannot depend on
+// being the first thing the body reads.
+stylex_test_panic!(
+  a_shadowed_keyframes_import_among_several_params_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({
+      dyn: (a, keyframes, b) => ({ width: a, height: keyframes, top: b }),
+    });
+  "#
+);
+
+// The same fold read twice. Evaluation is cached per expression, so a second
+// read must answer the object rather than whatever the cache happened to keep.
+stylex_test_panic!(
+  a_shadowed_keyframes_import_read_twice_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({
+      dyn: (keyframes) => ({ height: keyframes, width: keyframes }),
+    });
+  "#
+);
+
+// Hostile CSS around the fold, all of which the reference implementation refuses
+// with the same sentence: validation reaches the key it cannot read before
+// anything parses the query text, the unclosed function or the unterminated
+// quote, so the fold decides the refusal and the malformed CSS never gets a say.
+stylex_test_panic!(
+  an_unclosed_media_query_holding_the_fold_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({
+      dyn: (keyframes) => ({ '@media (min-width: 100px': { height: keyframes } }),
+    });
+  "#
+);
+
+stylex_test_panic!(
+  an_unclosed_css_function_beside_the_fold_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({
+      dyn: (keyframes) => ({ height: keyframes, width: 'calc(1px' }),
+    });
+  "#
+);
+
+stylex_test_panic!(
+  an_unterminated_quote_beside_the_fold_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({
+      dyn: (keyframes) => ({ height: keyframes, content: '"abc' }),
+    });
+  "#
+);
+
+// An unknown pseudo-class and a bracket condition, both of which are conditional
+// keys the walk recurses through rather than keys it refuses -- so the fold
+// underneath is what the refusal names.
+stylex_test_panic!(
+  an_unknown_pseudo_class_holding_the_fold_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (keyframes) => ({ ':nope': { height: keyframes } }) });
+  "#
+);
+
+stylex_test_panic!(
+  a_bracket_condition_holding_the_fold_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({
+      dyn: (keyframes) => ({ '[data-x]': { height: keyframes } }),
+    });
+  "#
+);
+
+// A custom property, which skips the property-name validation an authored
+// longhand goes through and reaches the value walk with nothing else refused
+// first.
+stylex_test_panic!(
+  a_custom_property_driven_by_the_fold_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (keyframes) => ({ '--my-var': keyframes }) });
+  "#
+);
+
+// The fold read where a static value belongs -- no shadowing, the import itself.
+// The reference implementation refuses this as a namespace; this compiler
+// refuses it as an illegal value, which is the static object evaluator's own
+// divergence and not this seam's. Pinned so a change to it is visible: it used
+// to read `Function not found`, which named nothing a caller could act on.
+stylex_test_panic!(
+  a_named_keyframes_import_read_as_a_static_value_is_an_illegal_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: keyframes } });
+  "#
+);
+
+// The guards the fold must not break. `types` is the one name of the family the
+// reference implementation never registers for a create call, so the parameter
+// stands and the module compiles to an inline style. This compiler does not
+// register it for a create call either -- and now that the entries beside it
+// refuse, that has to be the reason rather than a deopt that happened to agree.
+stylex_test!(
+  a_dynamic_param_shadowing_a_named_types_import_still_compiles,
+  r#"
+    import { create, types } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (types) => ({ height: types }) });
+  "#
+);
+
+// `keyframes` called, not read: the call path resolves an identifier callee
+// against the function map itself and never asks the identifier step for a
+// value, so folding a config to an object cannot reach it.
+stylex_test!(
+  keyframes_called_through_a_named_import_still_resolves,
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    const fade = keyframes({ from: { opacity: 0 }, to: { opacity: 1 } });
+
+    export const styles = create({ a: { animationName: fade } });
+  "#
+);
+
+stylex_test!(
+  first_that_works_called_through_a_named_import_still_resolves,
+  r#"
+    import { create, firstThatWorks } from '@stylexjs/stylex';
+
+    export const styles = create({
+      a: { position: firstThatWorks('sticky', 'fixed') },
+    });
+  "#
+);
+
+// A parameter that shadows one of these names but never reads it. The fold
+// happens where the name is read, so this compiles -- and the reference
+// implementation compiles it too.
+stylex_test!(
+  a_shadowing_keyframes_param_that_is_never_read_still_compiles,
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (keyframes) => ({ color: 'red' }) });
+  "#
+);
+
+// `defaultMarker`, measured and left as it is. It is the one entry of the family
+// the reference implementation registers as a function rather than an object, so
+// it refuses with `A style value can only contain an array, string or number.`
+// Here the entry is an index map with no value form, and the sentence the build
+// stops on names an internal shape rather than the input. Reaching upstream's
+// sentence needs the namespace validator to refuse a value it currently passes
+// over, which is a wider change than this seam -- recorded in
+// `.scratch/fix_dynamic-param-shadows-import/issues/21-a-shadowed-default-marker-param-reports-an-internal-shape.md`.
+// Pinned as it stands so the day it changes is visible.
+stylex_test_panic!(
+  a_dynamic_param_shadowing_a_named_default_marker_import_reports_an_internal_shape,
+  "IndexMap values are not supported in this context.",
+  r#"
+    import { create, defaultMarker } from '@stylexjs/stylex';
+
+    export const styles = create({
+      dyn: (defaultMarker) => ({ height: defaultMarker }),
+    });
+  "#
+);
+
+// `when` read off a shadowed namespace parameter. The parameter folds to the
+// namespace's map, and `when` read off that fold answers the marker config --
+// which now materializes as the marker names, so the refusal is namespace
+// validation's and reads the reference implementation's sentence.
+//
+// This was recorded in
+// `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`
+// as needing the when surface to carry its names rather than a change at the
+// consumer. Measuring it disproved that: the consumer was enough, because the
+// marker map behind the config already carries the names.
+stylex_test_panic!(
+  when_read_off_a_shadowed_namespace_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ dyn: (stylex) => ({ height: stylex.when }) });
+  "#
+);

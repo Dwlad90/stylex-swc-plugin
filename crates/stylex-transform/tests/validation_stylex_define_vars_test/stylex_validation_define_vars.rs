@@ -326,3 +326,27 @@ stylex_test_panic!(
     });
   "#
 );
+
+// A folded function map read where a variable's value belongs. `keyframes` is
+// registered for a `defineVars` call too, so the identifier step folds a
+// reference to it -- but the fold is materialized only at the create call's
+// style-value consumer, so this position still aborts on a value with no
+// expression form.
+//
+// The reference implementation reads `Default value is not defined for "a"
+// variable.` here, because it folds the plain object `{ fn }` and an object with
+// no `default` key is a variable with no default. Measured, and pinned as it
+// stands: materializing at this consumer too is a decision about every
+// `defineVars` value, not about this fold.
+stylex_test_panic!(
+  a_folded_function_map_read_as_a_variable_value_is_refused,
+  "Only static values are allowed inside of a defineVars() call.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b
+    .with_filename(swc_core::common::FileName::Real("vars.stylex.js".into()))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))),
+  r#"
+    import { defineVars, keyframes } from '@stylexjs/stylex';
+
+    export const vars = defineVars({ a: keyframes });
+  "#
+);

@@ -33,7 +33,7 @@ use crate::{
       state::EvaluationState,
       state_manager::{ImportKind, StateManager},
       types::{
-        FlatCompiledStyles, FunctionMapIdentifiers, FunctionMapMemberExpression,
+        FlatCompiledStyles, FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression,
         InjectableStylesMap,
       },
     },

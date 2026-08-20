@@ -1425,11 +1425,11 @@ stylex_test_panic!(
   "#
 );
 
-// A folded function map (`CONTEXT.md`), read where a style value belongs:
-// `stylex` here is the map registered for the namespace import, `{ when }`, and
-// not the parameter. Both compilers refuse it, and `when` is the key they refuse
-// on. This compiler used to refuse at the style-value consumer instead, with a
-// sentence about a static expression.
+// A folded function map read where a style value belongs: `stylex` here is the
+// map registered for the namespace import, `{ when }`, and not the parameter.
+// Both compilers refuse it and `when` is the key they refuse on; this one used
+// to refuse at the style-value consumer instead, with a sentence about a static
+// expression.
 stylex_test_panic!(
   dynamic_param_shadowing_the_stylex_namespace_is_refused_as_a_namespace,
   "Invalid pseudo or at-rule.",

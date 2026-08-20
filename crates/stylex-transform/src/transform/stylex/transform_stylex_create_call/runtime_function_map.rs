@@ -1,5 +1,4 @@
 use super::*;
-use crate::shared::structures::types::FunctionConfigMap;
 
 pub(crate) fn build_runtime_function_map<C>(transform: &mut StyleXTransform<C>) -> Box<FunctionMap>
 where

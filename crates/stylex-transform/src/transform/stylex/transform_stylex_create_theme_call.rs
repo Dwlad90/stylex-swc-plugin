@@ -1,4 +1,3 @@
-use crate::shared::structures::types::FunctionConfigMap;
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use stylex_constants::constants::messages::{ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED};
@@ -14,7 +13,7 @@ use crate::{
     structures::{
       functions::{FunctionConfigType, FunctionMap},
       state_manager::ImportKind,
-      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+      types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression},
     },
     transformers::{
       stylex_create_theme::stylex_create_theme, stylex_keyframes::get_keyframes_fn,

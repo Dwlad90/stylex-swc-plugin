@@ -1,4 +1,3 @@
-use crate::shared::structures::types::FunctionConfigMap;
 mod helpers;
 
 use std::rc::Rc;
@@ -24,7 +23,7 @@ use crate::{
       functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
       state_manager::ImportKind,
       theme_ref::ThemeRef,
-      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+      types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression},
     },
     transformers::{
       stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,

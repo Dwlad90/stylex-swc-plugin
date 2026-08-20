@@ -1,4 +1,3 @@
-use crate::shared::structures::types::FunctionConfigMap;
 use rustc_hash::FxHashMap;
 use swc_core::ecma::ast::{CallExpr, Expr};
 
@@ -6,7 +5,7 @@ use crate::shared::{
   structures::{
     functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
     state_manager::{ImportKind, StateManager},
-    types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
+    types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression},
   },
   transformers::{
     stylex_keyframes::get_keyframes_fn, stylex_position_try::get_position_try_fn,

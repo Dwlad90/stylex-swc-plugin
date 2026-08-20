@@ -38,6 +38,11 @@ pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>
 /// its keys are read in insertion order -- and the object a style-value position
 /// materializes from it decides which key `Invalid pseudo or at-rule.` names.
 /// `FxIndexMap` keeps the workspace hasher while preserving that order.
+///
+/// The index vector `IndexMap` carries on top of the table costs nothing worth
+/// measuring here: one of these holds one or two entries and is built once per
+/// `create()` call, which is orders below the ~16-34% cross-run noise the
+/// performance policy is written around.
 pub(crate) type FunctionConfigMap = FxIndexMap<Atom, FunctionConfig>;
 
 pub(crate) type StylesObjectMap = IndexMap<String, Rc<FlatCompiledStyles>>;

@@ -80,6 +80,13 @@ Object]` is what JS gives for an object in a template, and this compiler
 coerces the fold to the empty string instead. Lowest value of the four, and the
 only one where agreeing means reproducing a coercion neither compiler intends.
 
+The template half of it is not about the fold: the template evaluator drops
+*any* interpolation with no literal form, so a theme reference goes the same way
+-- found while measuring
+[18](./18-a-theme-object-read-as-a-style-value-is-dropped.md) and filed whole as
+[23](./23-an-interpolation-with-no-string-form-contributes-nothing.md), which
+closes this row when it lands. The computed-key half stays here.
+
 - [x] Case 3 fixed, by 16, and the reasoning recorded here corrected
 - [ ] Cases 1 and 4 are either fixed or recorded as a decided divergence
 - [ ] Corpus entries carry the verdict each is known to read

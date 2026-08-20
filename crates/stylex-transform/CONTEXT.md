@@ -191,6 +191,15 @@ never reads -- and namespace validation refuses the keys as neither pseudo nor
 at-rule nor `default`. Materialized at the value position and never where the
 identifier resolves, because `when` is read off the same map as a callee and
 needs its own form there.
+
+Which keys depends on what the name was registered as, and the answer mirrors
+the reference implementation's registration rather than this compiler's types. A
+map entry stands for its own keys. A single **function config** -- `keyframes`,
+`firstThatWorks`, `positionTry` -- stands for `{ fn }`, the one key a callable
+carries upstream. A config holding a marker map, which is a bare `when` import,
+stands for the marker names. Only a `defineVars` or `createTheme` value position
+still refuses a fold for having no expression form, because materialization has
+not been extended there.
 _Avoid_: shadowed namespace, identifier map hit, function config fold
 
 **Import specifier kind**:

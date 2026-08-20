@@ -1424,3 +1424,148 @@ stylex_test_panic!(
     export const styles = stylex.create({ wrapper: { padding: \u0073pacing } });
   "#
 );
+
+// A dynamic style's parameter that spells the name of an entry in the
+// evaluator's function map folds to that entry, because the map is keyed by
+// name and consulted ahead of any binding -- which the reference implementation
+// does too, and deliberately: an arrow parameter is injected into that same map
+// so a nested `create()` can see it.
+//
+// So `stylex` here is the map registered for the namespace import, `{ when }`,
+// and not the parameter. Both compilers refuse the result and for the same
+// reason; this compiler used to refuse it at the style-value consumer, with a
+// sentence about a static expression, because the map carries no expression
+// form. Materializing it as the object it stands for asks namespace validation
+// the same question the reference implementation asks, and `when` is neither a
+// pseudo nor an at-rule nor `default`.
+stylex_test_panic!(
+  dynamic_param_shadowing_the_stylex_namespace_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ dyn: (stylex) => ({ height: stylex }) });
+  "#
+);
+
+// The namespace import under a local name, which is the only other spelling
+// that can be shadowed -- the map is keyed by whatever the import binds, not by
+// `stylex`.
+stylex_test_panic!(
+  dynamic_param_shadowing_an_aliased_stylex_namespace_is_refused_the_same_way,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import * as sx from '@stylexjs/stylex';
+
+    export const styles = sx.create({ dyn: (sx) => ({ height: sx }) });
+  "#
+);
+
+// A static property beside the dynamic one, which is the shape that reaches the
+// consumer with something already collected. The refusal is the value's, not the
+// namespace's, so it lands either way.
+stylex_test_panic!(
+  a_shadowed_namespace_beside_a_static_prop_is_still_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({
+      wrapper: { color: 'red' },
+      dyn: (stylex) => ({ height: stylex }),
+    });
+  "#
+);
+
+// Under a condition, and under a nested one. The value walk recurses per
+// condition key, so a materialization that only happened at the top level would
+// let these fall back to the old message.
+stylex_test_panic!(
+  a_shadowed_namespace_read_under_a_condition_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({
+      dyn: (stylex) => ({ height: { default: stylex } }),
+    });
+  "#
+);
+
+stylex_test_panic!(
+  a_shadowed_namespace_read_inside_a_pseudo_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({
+      dyn: (stylex) => ({ ':hover': { height: stylex } }),
+    });
+  "#
+);
+
+// A shorthand, so the refusal survives being carried into synthesized longhands
+// that have no authored position of their own.
+stylex_test_panic!(
+  a_shadowed_namespace_read_in_a_shorthand_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ dyn: (stylex) => ({ margin: stylex }) });
+  "#
+);
+
+// The guard the materialization is written to keep: the map has to keep its own
+// form where the identifier resolves, because `when` is read off it as a callee.
+// Materializing at the identifier seam instead would compile this to nothing.
+stylex_test!(
+  when_read_as_a_callee_off_a_shadowed_namespace_still_resolves,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({
+      dyn: (stylex) => ({
+        color: { [stylex.when.ancestor(':hover')]: 'red', default: 'blue' },
+      }),
+    });
+  "#
+);
+
+// The same callee off the unshadowed namespace, and off a bare `when` import.
+// Neither goes through a parameter, and both read the map through the form the
+// consumer no longer sees.
+stylex_test!(
+  when_read_as_a_callee_off_the_namespace_still_resolves,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({
+      a: { color: { [stylex.when.ancestor(':hover')]: 'red', default: 'blue' } },
+    });
+  "#
+);
+
+stylex_test!(
+  when_read_as_a_callee_off_a_bare_import_still_resolves,
+  r#"
+    import { create, when } from '@stylexjs/stylex';
+
+    export const styles = create({
+      a: { color: { [when.ancestor(':hover')]: 'red', default: 'blue' } },
+    });
+  "#
+);
+
+// A parameter that shadows the namespace but never reads it. The fold only
+// happens where the name is read, so this one compiles -- upstream compiles it
+// too, and a materialization that fired on the parameter list rather than on the
+// value would break it.
+stylex_test!(
+  a_shadowing_param_that_is_never_read_still_compiles,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ dyn: (stylex) => ({ color: 'red' }) });
+  "#
+);

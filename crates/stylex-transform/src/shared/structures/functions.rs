@@ -1,7 +1,6 @@
 use std::{fmt::Debug, rc::Rc, sync::Arc};
 
 use indexmap::IndexMap;
-use rustc_hash::FxHashMap;
 use swc_core::{atoms::Atom, ecma::ast::Expr};
 
 use crate::shared::{
@@ -120,7 +119,7 @@ pub struct FunctionConfig {
 
 pub enum FunctionConfigType {
   Regular(FunctionConfig),
-  Map(FxHashMap<Atom, FunctionConfig>),
+  Map(IndexMap<Atom, FunctionConfig>),
   IndexMap(FlatCompiledStyles),
   /// An env object from the `env` config option. Contains both values and
   /// functions.
@@ -165,7 +164,7 @@ impl PartialEq for FunctionConfigType {
 }
 
 impl FunctionConfigType {
-  pub(crate) fn as_map_mut(&mut self) -> Option<&mut FxHashMap<Atom, FunctionConfig>> {
+  pub(crate) fn as_map_mut(&mut self) -> Option<&mut IndexMap<Atom, FunctionConfig>> {
     match self {
       Self::Map(map) => Some(map),
       Self::Regular(_) | Self::IndexMap(_) | Self::EnvObject(_) => None,

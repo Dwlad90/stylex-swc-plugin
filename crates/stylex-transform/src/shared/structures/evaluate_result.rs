@@ -1,5 +1,4 @@
 use indexmap::IndexMap;
-use rustc_hash::FxHashMap;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{Expr, KeyValueProp, Lit},
@@ -78,7 +77,7 @@ impl EvaluateResultValue {
     }
   }
 
-  pub fn as_function_map(&self) -> Option<&FxHashMap<Atom, FunctionConfig>> {
+  pub fn as_function_map(&self) -> Option<&IndexMap<Atom, FunctionConfig>> {
     match self {
       EvaluateResultValue::FunctionConfigMap(value) => Some(value),
       _ => None,

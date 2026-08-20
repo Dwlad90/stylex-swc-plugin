@@ -59,6 +59,6 @@ fn the_nullish_bridge_answers_no_for_the_evaluator_s_own_variants() {
     &EvaluateResultValue::EnvObject(IndexMap::default())
   ));
   assert!(!evaluate_result_is_nullish(
-    &EvaluateResultValue::FunctionConfigMap(FxHashMap::default())
+    &EvaluateResultValue::FunctionConfigMap(IndexMap::default())
   ));
 }

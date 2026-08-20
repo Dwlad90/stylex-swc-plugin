@@ -176,6 +176,23 @@ questions the rest ask are an [import specifier kind](#import-specifier-kind), a
 [early reference](#early-reference).
 _Avoid_: identifier lookup, binding resolver, evaluate fallback
 
+**Folded function map**:
+What a reference resolves to when its name is a key of the injected function
+map, which is consulted ahead of the
+[chain](#reference-resolution-chain) and keyed by name rather than by binding --
+so a dynamic style's parameter spelling `stylex` folds to the namespace import's
+map and not to the parameter. Deliberate on both compilers: an arrow parameter is
+injected into that same map so a nested `create()` can see it, which is why the
+map cannot be keyed by binding.
+
+The fold carries no expression form, so a style-value position **materializes**
+it as the object it stands for -- its keys, with placeholder values validation
+never reads -- and namespace validation refuses the keys as neither pseudo nor
+at-rule nor `default`. Materialized at the value position and never where the
+identifier resolves, because `when` is read off the same map as a callee and
+needs its own form there.
+_Avoid_: shadowed namespace, identifier map hit, function config fold
+
 **Import specifier kind**:
 Which of `{ c }`, `c` or `* as c` bound the name a reference reads, answered by
 the same lookup that matched the reference and travelling with the declaration

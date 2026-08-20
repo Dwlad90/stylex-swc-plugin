@@ -124,7 +124,7 @@ where
         }
       })
       .or_insert_with(|| {
-        let mut map = FxHashMap::default();
+        let mut map = IndexMap::default();
         map.insert(
           STYLEX_WHEN.into(),
           FunctionConfig {

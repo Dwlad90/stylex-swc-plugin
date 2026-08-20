@@ -1,7 +1,6 @@
 use std::{fmt, rc::Rc};
 
 use indexmap::IndexMap;
-use rustc_hash::FxHashMap;
 use serde::{
   Deserialize, Deserializer, Serialize,
   de::{Error, Visitor},
@@ -32,7 +31,7 @@ pub enum EvaluateResultValue {
   Entries(IndexMap<Lit, Box<Expr>>),
   Callback(EvaluationCallback),
   FunctionConfig(FunctionConfig),
-  FunctionConfigMap(FxHashMap<Atom, FunctionConfig>),
+  FunctionConfigMap(IndexMap<Atom, FunctionConfig>),
   ThemeRef(ThemeRef),
   /// An env object from the `env` config option.
   EnvObject(IndexMap<String, EnvEntry>),

@@ -107,7 +107,7 @@ where
 
         let identifier = identifiers
           .entry(name.get_import_str().into())
-          .or_insert_with(|| Box::new(FunctionConfigType::Map(FxHashMap::default())));
+          .or_insert_with(|| Box::new(FunctionConfigType::Map(IndexMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
           identifier_map.insert(STYLEX_TYPES.into(), types_fn.clone());

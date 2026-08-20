@@ -52,6 +52,42 @@ fn prepend_key_to_reason(key: &str, reason: Option<String>) -> Option<String> {
   reason.map(|r| format!("{} > {}", key, r))
 }
 
+/// The expression a style value carries, materializing an evaluated function
+/// map as the object it stands for.
+///
+/// `functions.identifiers` is keyed by name and consulted ahead of any binding,
+/// so a dynamic style's parameter spelling the name of an entry in it folds to
+/// that entry rather than to the parameter. The reference implementation
+/// answers the entry's plain object there and lets namespace validation refuse
+/// it: `identifiers[stylex]` is `{ when: ... }`, and a key that is neither a
+/// pseudo nor an at-rule nor `default` reads `Invalid pseudo or at-rule.`
+///
+/// This evaluator answers a `FunctionConfigMap`, which carries no expression
+/// form, so the value used to abort here with a message about a static
+/// expression instead. Materializing the map as an object of its keys asks
+/// validation the same question. The values are placeholders and are never
+/// emitted -- validation refuses on the key before it reads one.
+///
+/// Materialized here rather than where the identifier resolves, because
+/// `stylex.when` as a callee reads the map through its own form and has to keep
+/// finding it there.
+fn materialize_style_value(value: Option<EvaluateResultValue>) -> Expr {
+  match value {
+    Some(EvaluateResultValue::Expr(expr)) => expr,
+    Some(EvaluateResultValue::FunctionConfigMap(func_map)) => {
+      // The map is ordered, so the object it stands for carries the same keys
+      // in the same order -- which is what decides the key a message names.
+      create_object_expression(
+        func_map
+          .keys()
+          .map(|key| create_key_value_prop(key.as_str(), create_null_expr()))
+          .collect(),
+      )
+    },
+    _ => stylex_panic!("{}", VALUE_NOT_EXPRESSION),
+  }
+}
+
 pub fn evaluate_stylex_create_arg(
   path: &mut Expr,
   traversal_state: &mut StateManager,
@@ -320,13 +356,8 @@ fn evaluate_partial_object_recursively(
                   });
                 }
 
-                let new_prop = create_key_value_prop(
-                  &key_str,
-                  match result.value.and_then(|v| v.as_expr().cloned()) {
-                    Some(expr) => expr,
-                    None => stylex_panic!("{}", VALUE_NOT_EXPRESSION),
-                  },
-                );
+                let new_prop =
+                  create_key_value_prop(&key_str, materialize_style_value(result.value));
                 obj.push(new_prop);
 
                 if let Some(result_inline_styles) = result.inline_styles {
@@ -423,13 +454,8 @@ fn evaluate_partial_object_recursively(
                     }),
                   );
                 } else {
-                  let new_prop = create_key_value_prop(
-                    &key_str,
-                    match result.value.and_then(|v| v.as_expr().cloned()) {
-                      Some(expr) => expr,
-                      None => stylex_panic!("{}", VALUE_NOT_EXPRESSION),
-                    },
-                  );
+                  let new_prop =
+                    create_key_value_prop(&key_str, materialize_style_value(result.value));
                   obj.push(new_prop);
                 }
               },

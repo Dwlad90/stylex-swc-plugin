@@ -1333,6 +1333,24 @@
       "expected": "structurally-divergent",
       "origin": "ticket 27, found while measuring the array fold",
       "note": "The same missing fold as the row above, wearing a second verdict: inside a dynamic style's body a refusal is not an error, so the value falls to the runtime as `var(--x-height)` where upstream folds two static fallbacks."
+    },
+    {
+      "id": "modules-1265-double-negation-left-operand",
+      "label": "an unfoldable array method behind a double-negated guard",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst VIEWS = ['grid', 'list'];\n\nconst styles = stylex.create({\n  base: { color: 'black' },\n  hview: { color: 'red' },\n});\n\nexport function View({ hView }) {\n  const isHView = !!hView && VIEWS.includes(hView);\n\n  return <div sx={[styles.base, isHView && styles.hview]} />;\n}\n",
+      "origin": "issue #1265, a reported shape whose guard is double-negated"
+    },
+    {
+      "id": "modules-1265-array-literal-receiver",
+      "label": "an unfoldable array method on an array literal written in place",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst styles = stylex.create({\n  base: { color: 'black' },\n  hview: { color: 'red' },\n});\n\nexport function View({ hView }) {\n  const isHView = hView && ['grid', 'list'].includes(hView);\n\n  return <div sx={[styles.base, isHView && styles.hview]} />;\n}\n",
+      "origin": "issue #1265, a reported shape whose receiver is an array literal"
+    },
+    {
+      "id": "modules-1265-computed-namespace-from-an-unfoldable-branch",
+      "label": "a namespace read by a key an unfoldable array method decides",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst WIDE_VIEWS = ['grid', 'list'];\n\nconst styles = stylex.create({\n  base: { color: 'black' },\n  regularGrid: { display: 'grid' },\n  wideGrid: { display: 'flex' },\n});\n\nexport function View({ hView }) {\n  let gridType = 'regular';\n\n  if (hView && WIDE_VIEWS.includes(hView)) {\n    gridType = 'wide';\n  }\n\n  const grid = `${gridType}Grid`;\n\n  return <div sx={[styles.base, styles[grid]]} />;\n}\n",
+      "origin": "issue #1265, a reported shape reading a namespace by a computed key"
     }
   ]
 }

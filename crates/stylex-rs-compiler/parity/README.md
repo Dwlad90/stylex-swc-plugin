@@ -134,6 +134,15 @@ declaration cannot spell: a `DeclarationEntry` value is a string that goes
 through `JSON.stringify`, so a bare `null` or `false` can only be asked as a
 module.
 
+What a module subject **cannot** ask is anything about its own filename. Every
+subject is handed the same one, deliberately — `haste` resolution and class
+hashing both read it, so varying it per entry would vary the output for reasons
+unrelated to the subject — and that filename is not a `*.stylex.js` one. A
+`defineVars` call hashes the file that declares it, so such a subject refuses for
+the filename in both compilers before the value under test is ever read: the
+entry reports `both reject` and measures nothing. Ask that one where the filename
+is a parameter, which is the Rust suites.
+
 Most entries in that set carry an `expected` verdict, each with the `note` that
 says why: some where upstream aborts and this compiler does not, some where
 both reject, one where upstream folds an indexed read this compiler refuses,

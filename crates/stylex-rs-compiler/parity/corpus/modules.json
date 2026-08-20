@@ -707,31 +707,31 @@
       "label": "a theme import read as a style value with no member access",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  w: { zIndex: zIndex },\n});\n",
       "origin": "code review of the folded-map consumer, the shape the fall-through inventory missed",
-      "note": "The reference implementation refuses with `A style value can only contain an array, string or number.` This compiler compiles the module and emits no rule at all: `nodes/object_expression.rs` answers a `ThemeRef` with `None`, and the caller reads `None` as `no property` rather than as a refusal, so the declaration is dropped silently. A member read off the same import never reaches that arm, which is the shape every fixture writes -- which is why this went unnoticed. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/18-a-theme-object-read-as-a-style-value-is-dropped.md`.",
-      "expected": "acceptance-divergent"
+      "note": "The shape the row was filed for: it compiled to nothing here -- no rule, no error, no warning -- because the object evaluator answered a theme reference with `no value` and the caller read that as `no property`. Both compilers refuse it now, with the reference implementation's sentence. `both-reject` compares the outcome and not the text, so the wording is pinned in `validation_stylex_create_test::theme_reference_style_values`.",
+      "expected": "both-reject"
     },
     {
       "id": "modules-1266-a-theme-object-dropped-beside-a-good-property",
       "label": "a dropped theme object beside a property that does emit",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  w: { color: 'red', zIndex: zIndex },\n});\n",
       "origin": "code review of the folded-map consumer, the drop made visible",
-      "note": "The same drop with a sibling that survives, so the module compiles to exactly the rule the author did not ask a question about. This is the row that shows the failure mode is a missing declaration rather than a missing module -- the `color` rule is emitted and the `zIndex` one is not.",
-      "expected": "acceptance-divergent"
+      "note": "The same value with a sibling that survives, which is why the drop read as a compiling module rather than as a bug: the `color` rule was emitted alone and the missing declaration looked like a style nobody had written. Both refuse now, and the sibling is refused with it.",
+      "expected": "both-reject"
     },
     {
       "id": "modules-1266-a-theme-object-dropped-at-depth",
       "label": "a dropped theme object under a condition and in a shorthand",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const under = stylex.create({\n  w: { zIndex: { default: zIndex } },\n});\n\nexport const shorthand = stylex.create({\n  w: { margin: zIndex },\n});\n",
       "origin": "code review of the folded-map consumer, the drop through the value walk",
-      "note": "The arm is reached per condition key and through synthesized longhands alike, so neither depth nor shorthand expansion changes the answer. Recorded together because they share the one arm.",
-      "expected": "acceptance-divergent"
+      "note": "The value is read per condition key and through synthesized longhands alike, so neither depth nor shorthand expansion changes the answer -- it was the same drop in both, and it is the same refusal in both. Recorded together because they share the one arm.",
+      "expected": "both-reject"
     },
     {
       "id": "modules-1266-a-theme-object-coerced-in-a-template",
       "label": "a theme import coerced to a string in a style value",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  w: { zIndex: `${zIndex}` },\n});\n",
       "origin": "code review of the folded-map consumer, the one row upstream emits on",
-      "note": "The only shape in this family where the reference implementation emits rather than refuses: it coerces the theme object to its hash and ships `z-index:x1q8i56t`. This compiler drops the declaration and emits nothing, so both compilers accept and the verdict is about which properties survive rather than about acceptance -- which is what makes this the one row of the family that is not `acceptance-divergent`. Recorded rather than mirrored: whether upstream intends that string is a question ticket 18 asks before copying it.",
+      "note": "The one shape in this family where the reference implementation emits rather than refuses: it coerces the group through its own `toString` and ships `z-index:x1q8i56t` -- the var-group hash as a z-index, meaningless CSS that hashes a class name all the same. Measured and deliberately not mirrored: an interpolation with no string form contributes nothing here, and the seam is the template evaluator rather than the style-value arm -- it drops every such interpolation, not only a theme reference. Filed as issue 23 of this effort.",
       "expected": "structurally-divergent"
     },
     {
@@ -739,15 +739,15 @@
       "label": "a namespace theme import read as a style value",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport * as tokens from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  w: { zIndex: tokens },\n});\n",
       "origin": "code review of the folded-map consumer, the namespace spelling of the drop",
-      "note": "The namespace spelling reaches a different resolution answer -- upstream reads `Referenced constant is not defined.` rather than the value-shape message -- and is dropped here just the same. Kept apart from the named spelling because the two refusals upstream are not the same sentence.",
-      "expected": "acceptance-divergent"
+      "note": "The namespace spelling, kept apart from the named one because the two refusals are not the same sentence: upstream cannot resolve a namespace import of a theme file at all (`Referenced constant is not defined.`) where this compiler resolves it and then refuses the group as a value. Reaching upstream's sentence would mean giving up a resolution member reads rely on -- what such an import should mean is filed as issue 11 of this effort.",
+      "expected": "both-reject"
     },
     {
       "id": "modules-1266-a-theme-object-in-a-dynamic-style",
       "label": "a theme import read as a style value inside a dynamic style",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  dyn: (a) => ({ zIndex: zIndex, color: a }),\n});\n",
       "origin": "code review of the folded-map consumer, the same shape at the dynamic consumer",
-      "note": "The dynamic consumer refuses rather than dropping, so this row is a wording divergence where the static ones are acceptance divergences -- upstream reads `A style value can only contain an array, string or number.` and this compiler reads `Style value must evaluate to a static expression.` The `ThemeRef` that reaches the style-value fall-through, and the third shape there beside an array and a bare `FunctionConfig`.",
+      "note": "The other consumer of a style value: it refused where the static one dropped, but with a sentence about a static expression rather than about the value. Both consumers read the reference implementation's sentence now, so this row holds the outcome and the wording is pinned in `validation_stylex_create_test::theme_reference_style_values`.",
       "expected": "both-reject"
     },
     {
@@ -900,6 +900,78 @@
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { zIndex: zIndex._10 },\n  dyn: (zIndex) => ({ ...zIndex }),\n});\n",
       "origin": "issue #1266, the parameter in the one position that is not a value",
       "note": "A spread asks the evaluator to enumerate the parameter's keys rather than to fold it to a value, which is the position with no inline-style fall-through to deopt into. Recorded because the abort this effort fixed came from a resolved value having no expression form, and a spread is where that same value is asked for a shape instead. The two refusals are not the same sentence -- `Referenced constant is not defined.` here against `Only static values are allowed inside of a create() call.` upstream -- so this row holds the outcome and not the text.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-theme-object-in-a-fallback-array",
+      "label": "a theme import read inside a fallback array",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({ w: { zIndex: [zIndex, 1] } });\n",
+      "origin": "issue #1266, a theme reference read where a style value belongs",
+      "note": "Refused as an array rather than as a value, by both compilers, with the array-specific sentence. The neighbour that was already right, kept so the two cannot drift apart.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-theme-object-read-through-a-member",
+      "label": "a member read off a theme import as a style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({ w: { zIndex: zIndex.ten, color: zIndex.blue } });\n",
+      "origin": "issue #1266, a theme reference read where a style value belongs",
+      "note": "The guard the refusal needs: a member read is what a theme import is for, and it must keep resolving to the group's custom property. Records `identical` so a refusal that grew too wide reports as a changed verdict rather than as silence.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-theme-object-in-a-keyframes-step",
+      "label": "a theme import read as a keyframes step value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const name = stylex.keyframes({ from: { zIndex: zIndex }, to: { zIndex: 1 } });\n",
+      "origin": "issue #1266, a theme reference read where a style value belongs",
+      "note": "A decided divergence. Upstream emits the step with the declaration missing and says nothing; here the value is refused, as every other shape with no value form in this position already is. The silent drop is what this effort removed, and keeping it for one call and not the others is what made it hard to see.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-theme-object-in-a-create-theme-override",
+      "label": "a theme import read as a createTheme override value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const variables = stylex.createTheme(zIndex, { ten: zIndex });\n",
+      "origin": "issue #1266, a theme reference read where a style value belongs",
+      "note": "A decided divergence, for the reason the keyframes step is. The group handed to `createTheme` as its first argument still resolves -- that is the position it belongs in.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-theme-object-in-a-position-try",
+      "label": "a theme import read as a positionTry fallback value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const name = stylex.positionTry({ top: zIndex });\n",
+      "origin": "issue #1266, a theme reference read where a style value belongs",
+      "note": "A decided divergence, for the reason the keyframes step is. Upstream emits `@position-try --x {}` -- the at-rule with nothing in it.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-theme-object-in-a-view-transition-class",
+      "label": "a theme import read as a viewTransitionClass declaration value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const cls = stylex.viewTransitionClass({ group: { zIndex: zIndex } });\n",
+      "origin": "issue #1266, a theme reference read where a style value belongs",
+      "note": "A decided divergence, for the reason the keyframes step is. Upstream emits the part's selector with an empty body.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-theme-object-in-a-computed-key",
+      "label": "a theme import read as a computed property key",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({ w: { [zIndex]: 1 } });\n",
+      "origin": "issue #1266, a theme reference read where a style value belongs",
+      "note": "A decided divergence. Upstream coerces the group to its hash and declares a property named after it -- `.x12l9qay{x1q8i56t:1px}`, which is not a property -- where this compiler refuses the key. Not a defect to reproduce.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-theme-object-spread-into-a-style-object",
+      "label": "a theme import spread into a style object",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({ w: { ...zIndex } });\n",
+      "origin": "issue #1266, a theme reference read where a style value belongs",
+      "note": "A decided divergence. The object upstream folds the group to has no own enumerable properties, so the spread contributes nothing and the namespace compiles empty; here the spread refuses because the group's properties cannot be enumerated at compile time. The two answers agree about the CSS and disagree about whether saying so is worth stopping for.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-theme-object-as-a-define-consts-value",
+      "label": "a theme import read as a defineConsts value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const constants = stylex.defineConsts({ a: zIndex });\n",
+      "origin": "issue #1266, a theme reference read where a style value belongs",
+      "note": "The other declaring call that reads the same evaluator. Both refuse with the same sentence, and here for a reason of the position rather than of the value: a constant is inlined at its use sites, so nothing it holds may be a reference resolved later.",
       "expected": "both-reject"
     }
   ]

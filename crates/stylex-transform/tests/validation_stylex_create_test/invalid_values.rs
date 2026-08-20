@@ -1425,19 +1425,11 @@ stylex_test_panic!(
   "#
 );
 
-// A dynamic style's parameter that spells the name of an entry in the
-// evaluator's function map folds to that entry, because the map is keyed by
-// name and consulted ahead of any binding -- which the reference implementation
-// does too, and deliberately: an arrow parameter is injected into that same map
-// so a nested `create()` can see it.
-//
-// So `stylex` here is the map registered for the namespace import, `{ when }`,
-// and not the parameter. Both compilers refuse the result and for the same
-// reason; this compiler used to refuse it at the style-value consumer, with a
-// sentence about a static expression, because the map carries no expression
-// form. Materializing it as the object it stands for asks namespace validation
-// the same question the reference implementation asks, and `when` is neither a
-// pseudo nor an at-rule nor `default`.
+// A folded function map (`CONTEXT.md`), read where a style value belongs:
+// `stylex` here is the map registered for the namespace import, `{ when }`, and
+// not the parameter. Both compilers refuse it, and `when` is the key they refuse
+// on. This compiler used to refuse at the style-value consumer instead, with a
+// sentence about a static expression.
 stylex_test_panic!(
   dynamic_param_shadowing_the_stylex_namespace_is_refused_as_a_namespace,
   "Invalid pseudo or at-rule.",

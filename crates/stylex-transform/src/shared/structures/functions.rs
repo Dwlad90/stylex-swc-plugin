@@ -1,7 +1,7 @@
 use std::{fmt::Debug, rc::Rc, sync::Arc};
 
 use indexmap::IndexMap;
-use swc_core::{atoms::Atom, ecma::ast::Expr};
+use swc_core::ecma::ast::Expr;
 
 use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
@@ -12,7 +12,7 @@ use stylex_enums::{
   value_with_default::ValueWithDefault,
 };
 
-use super::types::{FunctionMapIdentifiers, FunctionMapMemberExpression};
+use super::types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression};
 use stylex_structures::stylex_env::JSFunction;
 
 use stylex_types::traits::StyleOptions;
@@ -119,7 +119,7 @@ pub struct FunctionConfig {
 
 pub enum FunctionConfigType {
   Regular(FunctionConfig),
-  Map(IndexMap<Atom, FunctionConfig>),
+  Map(FunctionConfigMap),
   IndexMap(FlatCompiledStyles),
   /// An env object from the `env` config option. Contains both values and
   /// functions.
@@ -164,7 +164,7 @@ impl PartialEq for FunctionConfigType {
 }
 
 impl FunctionConfigType {
-  pub(crate) fn as_map_mut(&mut self) -> Option<&mut IndexMap<Atom, FunctionConfig>> {
+  pub(crate) fn as_map_mut(&mut self) -> Option<&mut FunctionConfigMap> {
     match self {
       Self::Map(map) => Some(map),
       Self::Regular(_) | Self::IndexMap(_) | Self::EnvObject(_) => None,

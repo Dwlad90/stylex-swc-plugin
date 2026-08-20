@@ -7,16 +7,17 @@ use serde::{
   ser::Serializer,
 };
 use stylex_macros::stylex_unimplemented;
-use swc_core::{
-  atoms::Atom,
-  ecma::{
-    ast::{Expr, KeyValueProp, Lit, ObjectLit, Prop, PropName, PropOrSpread},
-    codegen::Config,
-  },
+use swc_core::ecma::{
+  ast::{Expr, KeyValueProp, Lit, ObjectLit, Prop, PropName, PropOrSpread},
+  codegen::Config,
 };
 
 use crate::shared::{
-  structures::{functions::FunctionConfig, theme_ref::ThemeRef, types::EvaluationCallback},
+  structures::{
+    functions::FunctionConfig,
+    theme_ref::ThemeRef,
+    types::{EvaluationCallback, FunctionConfigMap},
+  },
   utils::log::build_code_frame_error::{CodeFrame, create_module, print_module},
 };
 use stylex_constants::constants::common::COMPILED_KEY;
@@ -31,7 +32,7 @@ pub enum EvaluateResultValue {
   Entries(IndexMap<Lit, Box<Expr>>),
   Callback(EvaluationCallback),
   FunctionConfig(FunctionConfig),
-  FunctionConfigMap(IndexMap<Atom, FunctionConfig>),
+  FunctionConfigMap(FunctionConfigMap),
   ThemeRef(ThemeRef),
   /// An env object from the `env` config option.
   EnvObject(IndexMap<String, EnvEntry>),

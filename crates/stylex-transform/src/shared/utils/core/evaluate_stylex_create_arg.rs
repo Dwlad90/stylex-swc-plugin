@@ -55,18 +55,22 @@ fn prepend_key_to_reason(key: &str, reason: Option<String>) -> Option<String> {
 /// The expression a style value carries, materializing an evaluated function
 /// map as the object it stands for.
 ///
-/// `functions.identifiers` is keyed by name and consulted ahead of any binding,
-/// so a dynamic style's parameter spelling the name of an entry in it folds to
-/// that entry rather than to the parameter. The reference implementation
-/// answers the entry's plain object there and lets namespace validation refuse
-/// it: `identifiers[stylex]` is `{ when: ... }`, and a key that is neither a
-/// pseudo nor an at-rule nor `default` reads `Invalid pseudo or at-rule.`
+/// A **folded function map** (`CONTEXT.md`) is what a reference resolves to when
+/// its name is a key of the injected map, which a dynamic style's parameter can
+/// be. The reference implementation answers the entry's plain object there and
+/// lets namespace validation refuse it: `identifiers[stylex]` is
+/// `{ when: ... }`, and a key that is neither a pseudo nor an at-rule nor
+/// `default` reads `Invalid pseudo or at-rule.`
 ///
 /// This evaluator answers a `FunctionConfigMap`, which carries no expression
 /// form, so the value used to abort here with a message about a static
 /// expression instead. Materializing the map as an object of its keys asks
-/// validation the same question. The values are placeholders and are never
-/// emitted -- validation refuses on the key before it reads one.
+/// validation the same question.
+///
+/// The values are placeholders, and `null` is what they are: validation refuses
+/// on the key before it reads one for every key the map holds today, and a key
+/// that did read as a condition would carry a `null` value, which declares
+/// nothing. Neither reading emits a value the source does not describe.
 ///
 /// Materialized here rather than where the identifier resolves, because
 /// `stylex.when` as a callee reads the map through its own form and has to keep

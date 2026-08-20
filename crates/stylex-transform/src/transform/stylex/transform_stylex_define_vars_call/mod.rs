@@ -1,4 +1,4 @@
-use indexmap::IndexMap;
+use crate::shared::structures::types::FunctionConfigMap;
 mod helpers;
 
 use std::rc::Rc;
@@ -116,7 +116,7 @@ where
 
         let identifier = identifiers
           .entry(name.get_import_str().into())
-          .or_insert_with(|| Box::new(FunctionConfigType::Map(IndexMap::default())));
+          .or_insert_with(|| Box::new(FunctionConfigType::Map(FunctionConfigMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
           identifier_map.insert(STYLEX_TYPES.into(), types_fn.clone());

@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
+use stylex_utils::collections::FxIndexMap;
 use swc_core::{
   atoms::Atom,
   ecma::ast::{BindingIdent, Expr, Ident, Program},
@@ -13,7 +14,10 @@ use crate::shared::enums::data_structures::{
 use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 pub(crate) use stylex_types::structures::style_key::{ClassName, RuleKey};
 
-use super::{functions::FunctionConfigType, state_manager::StateManager};
+use super::{
+  functions::{FunctionConfig, FunctionConfigType},
+  state_manager::StateManager,
+};
 use stylex_structures::{inline_style::InlineStyle, named_import_source::ImportSources};
 
 pub(crate) type FlatCompiledStyles = IndexMap<String, Rc<FlatCompiledStylesValue>>;
@@ -24,6 +28,18 @@ pub(crate) type EvaluationCallback =
 pub(crate) type FunctionMapMemberExpression =
   FxHashMap<ImportSources, Box<FxHashMap<Atom, Box<FunctionConfigType>>>>;
 pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>>;
+
+/// The entries a single function-map name carries, standing for a plain JS
+/// object on the reference implementation's side.
+///
+/// Ordered rather than hashed, and the one place that decision lives.
+/// `stylex-create.js:206` builds it as
+/// `identifiers[name] = { ...(identifiers[name] ?? {}), when: stylexWhen }`, so
+/// its keys are read in insertion order -- and the object a style-value position
+/// materializes from it decides which key `Invalid pseudo or at-rule.` names.
+/// `FxIndexMap` keeps the workspace hasher while preserving that order.
+pub(crate) type FunctionConfigMap = FxIndexMap<Atom, FunctionConfig>;
+
 pub(crate) type StylesObjectMap = IndexMap<String, Rc<FlatCompiledStyles>>;
 pub(crate) type InjectableStylesMap = IndexMap<RuleKey, Rc<InjectableStyleKind>>;
 pub(crate) type ClassPathsMap = IndexMap<String, Rc<ClassPathsInNamespace>>;

@@ -1,3 +1,4 @@
+use crate::shared::structures::types::FunctionConfigMap;
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use stylex_constants::constants::messages::{ONLY_OVERRIDE_DEFINE_VARS, SPREAD_NOT_SUPPORTED};
@@ -107,7 +108,7 @@ where
 
         let identifier = identifiers
           .entry(name.get_import_str().into())
-          .or_insert_with(|| Box::new(FunctionConfigType::Map(IndexMap::default())));
+          .or_insert_with(|| Box::new(FunctionConfigType::Map(FunctionConfigMap::default())));
 
         if let Some(identifier_map) = identifier.as_map_mut() {
           identifier_map.insert(STYLEX_TYPES.into(), types_fn.clone());

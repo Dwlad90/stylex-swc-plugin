@@ -1,15 +1,12 @@
 use indexmap::IndexMap;
-use swc_core::{
-  atoms::Atom,
-  ecma::ast::{Expr, KeyValueProp, Lit},
-};
+use swc_core::ecma::ast::{Expr, KeyValueProp, Lit};
 
 use crate::shared::enums::data_structures::evaluate_result_value::EvaluateResultValue;
 
 use super::{
   functions::FunctionConfig,
   theme_ref::ThemeRef,
-  types::{DynamicFns, EvaluationCallback, TInlineStyles},
+  types::{DynamicFns, EvaluationCallback, FunctionConfigMap, TInlineStyles},
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -77,7 +74,7 @@ impl EvaluateResultValue {
     }
   }
 
-  pub fn as_function_map(&self) -> Option<&IndexMap<Atom, FunctionConfig>> {
+  pub fn as_function_map(&self) -> Option<&FunctionConfigMap> {
     match self {
       EvaluateResultValue::FunctionConfigMap(value) => Some(value),
       _ => None,

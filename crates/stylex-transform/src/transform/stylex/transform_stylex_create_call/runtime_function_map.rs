@@ -1,4 +1,5 @@
 use super::*;
+use crate::shared::structures::types::FunctionConfigMap;
 
 pub(crate) fn build_runtime_function_map<C>(transform: &mut StyleXTransform<C>) -> Box<FunctionMap>
 where
@@ -124,7 +125,7 @@ where
         }
       })
       .or_insert_with(|| {
-        let mut map = IndexMap::default();
+        let mut map = FunctionConfigMap::default();
         map.insert(
           STYLEX_WHEN.into(),
           FunctionConfig {

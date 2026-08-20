@@ -33,16 +33,19 @@ pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>
 /// object on the reference implementation's side.
 ///
 /// Ordered rather than hashed, and the one place that decision lives.
-/// `stylex-create.js:206` builds it as
-/// `identifiers[name] = { ...(identifiers[name] ?? {}), when: stylexWhen }`, so
-/// its keys are read in insertion order -- and the object a style-value position
-/// materializes from it decides which key `Invalid pseudo or at-rule.` names.
-/// `FxIndexMap` keeps the workspace hasher while preserving that order.
 ///
-/// The index vector `IndexMap` carries on top of the table costs nothing worth
-/// measuring here: one of these holds one or two entries and is built once per
-/// `create()` call, which is orders below the ~16-34% cross-run noise the
-/// performance policy is written around.
+/// JS-parity: `visitors/stylex-create.js:206` --
+/// `identifiers[name] = { ...(identifiers[name] ?? {}), when: stylexWhen }`. It
+/// is a plain object, so its keys are read in insertion order, and the object a
+/// style-value position materializes from it decides which key
+/// `Invalid pseudo or at-rule.` names. `FxIndexMap` keeps the workspace hasher
+/// while preserving that order.
+///
+/// The index vector `IndexMap` carries on top of the table is not worth trading
+/// that order for. One of these is built while a `create`, `defineVars` or
+/// `createTheme` call sets its evaluation up, holds a handful of entries keyed by
+/// API name, and is dropped with it -- nothing builds one per declaration or
+/// walks one in a loop.
 pub(crate) type FunctionConfigMap = FxIndexMap<Atom, FunctionConfig>;
 
 pub(crate) type StylesObjectMap = IndexMap<String, Rc<FlatCompiledStyles>>;

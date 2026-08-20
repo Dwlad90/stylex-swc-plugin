@@ -55,30 +55,23 @@ fn prepend_key_to_reason(key: &str, reason: Option<String>) -> Option<String> {
 /// The expression a style value carries, materializing a folded function map as
 /// the object it stands for.
 ///
-/// The fold arrives here as a `FunctionConfigMap`, which has no expression form
-/// -- so the value used to abort with a message about a static expression. An
-/// object built from the map's keys hands namespace validation the question the
-/// reference implementation asks of the plain object it folds to, and every key
-/// the map holds answers `Invalid pseudo or at-rule.`
+/// The map has no expression form, so this position used to abort with a message
+/// about a static expression instead. An object built from its keys asks
+/// namespace validation the question the reference implementation asks of the
+/// plain object it folds to. The `null` values are never read -- validation
+/// refuses on the key, and a key that did read as a condition would declare
+/// nothing.
 ///
-/// The values are placeholders, and `null` is what they are: validation refuses
-/// on the key before it reads one, and a key that did read as a condition would
-/// carry a `null`, which declares nothing. Neither reading emits a value the
-/// source does not describe.
+/// Built here and not where the identifier resolves, because `stylex.when` as a
+/// callee reads the map through its own form and has to keep finding it there.
+/// `FunctionConfigType::Map`, the config-table spelling, needs no arm of its own:
+/// `nodes/identifier.rs` is the only reader that answers it as an
+/// `EvaluateResultValue`, and it answers the result spelling.
 ///
-/// Built here rather than where the identifier resolves, because `stylex.when`
-/// as a callee reads the map through its own form and has to keep finding it
-/// there. `FunctionConfigType::Map` -- the config-table spelling of the same
-/// map -- needs no arm of its own for the same reason: `nodes/identifier.rs` is
-/// the only route from a reference to a value, and it answers the result
-/// spelling. The two callee positions that read the config table deopt instead
-/// of returning a value.
-///
-/// The fall-through is still reachable, by two shapes that are refusals of their
-/// own rather than folds this understands: an array, which answers a `Vec` and
-/// aborts here for every dynamic style (issue 14), and a single `FunctionConfig`
-/// read off the map, as `stylex.when` in a value position is (issue 15). Both
-/// keep today's message until those are settled.
+/// Every other evaluated shape with no expression form still falls through to
+/// the old message. Each is a refusal of its own rather than a fold this
+/// understands -- an array, a theme reference and a bare `FunctionConfig` among
+/// them -- and the set is not audited here.
 fn materialize_style_value(value: Option<EvaluateResultValue>) -> Expr {
   match value {
     Some(EvaluateResultValue::Expr(expr)) => expr,

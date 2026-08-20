@@ -23,7 +23,7 @@ use crate::{
       functions::{FunctionConfig, FunctionConfigType, FunctionMap, FunctionType},
       state_manager::ImportKind,
       theme_ref::ThemeRef,
-      types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression},
+      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
     },
     transformers::{
       stylex_define_vars::stylex_define_vars, stylex_keyframes::get_keyframes_fn,
@@ -37,7 +37,7 @@ use crate::{
       validators::{find_and_validate_stylex_define_vars, is_define_vars_call},
     },
   },
-  transform::stylex::visitor_utils::apply_unstable_conditional,
+  transform::stylex::visitor_utils::{apply_unstable_conditional, insert_stylex_identifier_entry},
 };
 use stylex_structures::top_level_expression::TopLevelExpression;
 
@@ -113,13 +113,12 @@ where
           Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
         );
 
-        let identifier = identifiers
-          .entry(name.get_import_str().into())
-          .or_insert_with(|| Box::new(FunctionConfigType::Map(FunctionConfigMap::default())));
-
-        if let Some(identifier_map) = identifier.as_map_mut() {
-          identifier_map.insert(STYLEX_TYPES.into(), types_fn.clone());
-        }
+        insert_stylex_identifier_entry(
+          &mut identifiers,
+          name,
+          STYLEX_TYPES.into(),
+          types_fn.clone(),
+        );
       }
 
       apply_unstable_conditional(&self.state, &mut identifiers, &mut member_expressions);

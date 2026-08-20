@@ -1,4 +1,5 @@
 use super::*;
+use crate::shared::structures::types::FunctionConfigMap;
 use stylex_ast::ast::convertors::{create_ident_expr, create_null_expr};
 use swc_core::{
   common::DUMMY_SP,
@@ -59,6 +60,6 @@ fn the_nullish_bridge_answers_no_for_the_evaluator_s_own_variants() {
     &EvaluateResultValue::EnvObject(IndexMap::default())
   ));
   assert!(!evaluate_result_is_nullish(
-    &EvaluateResultValue::FunctionConfigMap(Default::default())
+    &EvaluateResultValue::FunctionConfigMap(FunctionConfigMap::default())
   ));
 }

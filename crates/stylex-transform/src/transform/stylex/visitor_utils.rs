@@ -1,5 +1,8 @@
 use rustc_hash::FxHashMap;
-use swc_core::ecma::ast::{CallExpr, Expr};
+use swc_core::{
+  atoms::Atom,
+  ecma::ast::{CallExpr, Expr},
+};
 
 use crate::shared::{
   structures::{
@@ -16,6 +19,7 @@ use crate::shared::{
 use stylex_constants::constants::api_names::{
   STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_TYPES, STYLEX_UNSTABLE_CONDITIONAL,
 };
+use stylex_structures::named_import_source::ImportSources;
 
 pub(crate) fn is_call_to(
   call: &CallExpr,
@@ -24,6 +28,31 @@ pub(crate) fn is_call_to(
   name: &str,
 ) -> bool {
   is_target_call((name, state.get_stylex_api_import(kind)), call, state)
+}
+
+/// Register `entry` under `key` on the identifier map a stylex import's name
+/// carries, creating the map when that name has none yet.
+///
+/// Every registration on a namespace import needs the same create-then-insert,
+/// and each of the four wrote it by hand -- one of them as an
+/// `and_modify`/`or_insert_with` pair that spelled the insert twice.
+///
+/// A name already bound to something that is not a map keeps it, and the entry
+/// is dropped. That is what all four did, and it is what an import spelling an
+/// API name over the namespace has always meant here.
+pub(crate) fn insert_stylex_identifier_entry(
+  identifiers: &mut FunctionMapIdentifiers,
+  name: &ImportSources,
+  key: Atom,
+  entry: FunctionConfig,
+) {
+  let identifier = identifiers
+    .entry(name.get_import_str().into())
+    .or_insert_with(|| Box::new(FunctionConfigType::Map(FunctionConfigMap::default())));
+
+  if let Some(identifier_map) = identifier.as_map_mut() {
+    identifier_map.insert(key, entry);
+  }
 }
 
 pub(crate) fn build_eval_config(state: &mut StateManager) -> FunctionMap {
@@ -73,13 +102,12 @@ pub(crate) fn build_eval_config(state: &mut StateManager) -> FunctionMap {
       Box::new(FunctionConfigType::Regular(position_try_fn.clone())),
     );
 
-    let identifier = identifiers
-      .entry(name.get_import_str().into())
-      .or_insert_with(|| Box::new(FunctionConfigType::Map(FunctionConfigMap::default())));
-
-    if let Some(identifier_map) = identifier.as_map_mut() {
-      identifier_map.insert(STYLEX_TYPES.into(), types_fn.clone());
-    }
+    insert_stylex_identifier_entry(
+      &mut identifiers,
+      name,
+      STYLEX_TYPES.into(),
+      types_fn.clone(),
+    );
   }
 
   apply_unstable_conditional(state, &mut identifiers, &mut member_expressions);

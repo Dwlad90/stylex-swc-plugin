@@ -13,7 +13,7 @@ use crate::{
     structures::{
       functions::{FunctionConfigType, FunctionMap},
       state_manager::ImportKind,
-      types::{FunctionConfigMap, FunctionMapIdentifiers, FunctionMapMemberExpression},
+      types::{FunctionMapIdentifiers, FunctionMapMemberExpression},
     },
     transformers::{
       stylex_create_theme::stylex_create_theme, stylex_keyframes::get_keyframes_fn,
@@ -31,7 +31,7 @@ use crate::{
       },
     },
   },
-  transform::stylex::visitor_utils::apply_unstable_conditional,
+  transform::stylex::visitor_utils::{apply_unstable_conditional, insert_stylex_identifier_entry},
 };
 use stylex_constants::constants::{
   api_names::{STYLEX_CREATE_THEME, STYLEX_KEYFRAMES, STYLEX_TYPES},
@@ -105,13 +105,12 @@ where
           Box::new(FunctionConfigType::Regular(keyframes_fn.clone())),
         );
 
-        let identifier = identifiers
-          .entry(name.get_import_str().into())
-          .or_insert_with(|| Box::new(FunctionConfigType::Map(FunctionConfigMap::default())));
-
-        if let Some(identifier_map) = identifier.as_map_mut() {
-          identifier_map.insert(STYLEX_TYPES.into(), types_fn.clone());
-        }
+        insert_stylex_identifier_entry(
+          &mut identifiers,
+          name,
+          STYLEX_TYPES.into(),
+          types_fn.clone(),
+        );
       }
 
       apply_unstable_conditional(&self.state, &mut identifiers, &mut member_expressions);

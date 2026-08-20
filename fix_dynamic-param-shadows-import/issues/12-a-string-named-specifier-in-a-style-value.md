@@ -80,7 +80,7 @@ string export name admits and every position a member read can sit in, against
 | `"0"` | `--xon846n` | same |
 | `"default"` | `--x1t9dovf` | same |
 | `"NaN"` | `--x6d9ph1` | same |
-| `"a\"b"`, `"a\\b"`, `"a\nb"` | three distinct | same |
+| `"a\"b"`, `"a\\b"`, `"a\nb"` | three distinct | the same three |
 | `"😀"` (astral) | `--xardzau` | same |
 | 1000 characters | `--xy7n7vi` | same |
 | `"\ud83d"` (lone surrogate) | refuses in the parser | refuses at the decode |
@@ -118,7 +118,10 @@ Read bare, a string-named specifier diverges in exactly the five positions an
 identifier-named one already does -- a spread, a computed key, a `firstThatWorks`
 argument, a keyframes step, a `createTheme` override. Every one is the theme
 reference's divergence, decided and recorded by 18, reached here through the
-other spelling. Nothing about the string spelling adds or removes one.
+other spelling. Nothing about the string spelling adds or removes one, and all
+five carry a test; the `createTheme` override has the member read beside it as
+the control, because the group handed to that call as its *first* argument is in
+the position it belongs in and still resolves.
 
 One divergence found while measuring is **not** this seam's:
 `modules-1266-a-string-named-theme-member-eight-conditions-deep` first hashed a
@@ -169,6 +172,15 @@ fix would have been a second spelling of one refusal.
   a template, a dynamic style's body), malformed CSS beside a resolved read
   (unclosed function, unterminated quote, unclosed attribute selector), and the
   specifier nothing reads.
-- Eleven corpus rows, `modules-1266-a-string-named-specifier-*`, each carrying
-  the verdict it reads so a regression reports as a changed verdict. The whole
-  `modules` set reports `changed 0` over 141 subjects.
+- Fifteen corpus rows, `modules-1266-a-string-named-specifier-*` and one for the
+  three escape spellings measured against each other, each carrying the verdict
+  it reads so a regression reports as a changed verdict. Every row of the table
+  above has one, so no claim about upstream in this ticket rests on a
+  measurement that is not checked in and re-runnable. The whole `modules` set
+  reports `changed 0` over 145 subjects.
+- The harvest chain the new tests invalidated, regenerated per
+  `crates/stylex-rs-compiler/parity/README.md`: the malformed-CSS neighbour test
+  carries `backgroundColor: 'rgb(0,0,'`, which the harvester picks up, so
+  `parity/corpus/harvested.json` gained a row and
+  `crates/postcss-value-parser/src/tests/cases.rs` was regenerated behind it.
+  Caught by review, not by the first pass.

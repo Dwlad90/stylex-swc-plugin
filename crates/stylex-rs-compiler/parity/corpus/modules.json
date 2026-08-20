@@ -739,8 +739,56 @@
       "label": "a namespace theme import read as a style value",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport * as tokens from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  w: { zIndex: tokens },\n});\n",
       "origin": "code review of the folded-map consumer, the namespace spelling of the drop",
-      "note": "The namespace spelling, kept apart from the named one because the two refusals are not the same sentence: upstream cannot resolve a namespace import of a theme file at all (`Referenced constant is not defined.`) where this compiler resolves it and then refuses the group as a value. Reaching upstream's sentence would mean giving up a resolution member reads rely on -- what such an import should mean is filed as issue 11 of this effort.",
+      "note": "The namespace spelling, kept apart from the named one because the two refusals were not the same sentence: upstream cannot resolve a namespace import of a theme file at all (`Referenced constant is not defined.`) where this compiler resolved it and then refused the group as a value. The resolution member reads relied on turned out to hash the local alias rather than an export, so it went -- see `modules-1266-a-namespace-theme-import` -- and this now reads upstream's sentence for upstream's reason.",
       "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-namespace-theme-import",
+      "label": "a member read off a namespace import of a theme file",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport * as tokens from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: tokens.color },\n});\n",
+      "origin": "the identifier audit for issue #1266, the namespace arm of the resolution chain",
+      "note": "A namespace specifier binds the whole export object, so it names no export a theme reference could be built from -- which is why upstream excludes it from the import step and lets it fall through to `Referenced constant is not defined.` This compiler synthesized the *local alias* as the export name instead, so `tokens.color` folded to a variable hashed from `vars.stylex.js//tokens.color` while the file's `defineVars` group exports `vars` and defines `vars.stylex.js//vars.color`. Both hashes were measured against the reference implementation's own output for the theme file; only an alias spelled the same as the exported group ever agreed. `acceptance divergent` before the arm lands, and a `var()` nothing defines after it, which renders as nothing and reports as nothing.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-namespace-theme-import-read-through-its-group",
+      "label": "a namespace theme import read through the group it exports",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport * as tokens from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: tokens.vars.color },\n});\n",
+      "origin": "the identifier audit for issue #1266, the spelling the namespace form actually calls for",
+      "note": "The spelling an author reaching for a namespace import would write: the exported group, then the variable. It diverged before the arm landed too, and in the same direction -- the alias-hashed theme reference answered a string for `.vars`, and the second member hop read into that string -- so the correct spelling was refused while the incorrect one silently emitted a dangling variable. Kept apart from the entry above because it is the shape that shows the old resolution was not what the author meant either.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-namespace-theme-import-beside-a-named-one",
+      "label": "one token read through a namespace import and through a named one at once",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport * as tokens from 'vars.stylex.js';\nimport { vars } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: vars.color, backgroundColor: tokens.color },\n});\n",
+      "origin": "the identifier audit for issue #1266, the shape that shows the two resolutions disagreeing",
+      "note": "The same variable of the same theme file, named twice in one module. Before the namespace arm landed this emitted two different custom properties -- the named half the one the theme file defines, the namespace half a hash of the local alias -- so the divergence was visible without leaving the module or reading the theme file. Both compilers refuse the module now, on the namespace half.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-namespace-theme-import-aliased-to-the-export-name",
+      "label": "a namespace theme import whose alias is spelled like the exported group",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport * as vars from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: vars.color },\n});\n",
+      "origin": "the identifier audit for issue #1266, the one namespace spelling that used to agree with the theme file",
+      "note": "The coincidence the old resolution rested on: hashing the local alias is right exactly when the alias is spelled like the exported group, and this is that case. It was the only namespace shape whose `var()` the theme file actually defines, and upstream refused it all the same. Recorded so the decision to refuse is read as giving up a coincidence rather than a capability -- the same variable is reachable by the named import the reference implementation and this compiler both resolve.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-namespace-import-of-a-non-theme-file",
+      "label": "a member read off a namespace import of a file that is not a theme file",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport * as colors from './colors.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: colors.primary },\n});\n",
+      "origin": "the identifier audit for issue #1266, the namespace arm reached without a theme file behind it",
+      "note": "Nothing about the refusal is specific to a theme file, and the specifier is answered before any path is resolved. This read as `Could not resolve the path to the imported file.` before -- the wrong reason for the right refusal, and the same wrong reason the default-import case read before its own step landed. Both refuse either way, so the entry guards the reason rather than the verdict; the sentence is pinned in `validation_stylex_create_test::invalid_values`.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-namespace-theme-import-shadowed-by-a-dynamic-param",
+      "label": "a dynamic parameter shadowing a namespace theme import",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport * as tokens from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  dyn: (tokens) => ({ color: tokens }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the shadowing half of the namespace arm",
+      "note": "The namespace arm of the import lookup already compared the binding rather than the name, so this half was never broken -- and with the import no longer resolving anything, the parameter is the only reference to the name and compiles to an inline style on both compilers. Recorded so that a regression to a name match reports here: it would resolve the parameter to the import and refuse the module instead.",
+      "expected": "identical"
     },
     {
       "id": "modules-1266-a-theme-object-in-a-dynamic-style",

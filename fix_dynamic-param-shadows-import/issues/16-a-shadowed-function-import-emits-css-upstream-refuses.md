@@ -1,7 +1,7 @@
 # 16 — A shadowed function import emits CSS upstream refuses
 
-Status: `ready-for-agent`
-Blocked by: 22
+Status: `resolved`
+Blocked by: None — 22 landed
 
 **What to build:** A dynamic style whose parameter shadows a named import of a
 function-map entry must refuse, as the reference implementation does, instead of
@@ -46,12 +46,13 @@ compiler agrees today only because the entry deopts into that same inline-style
 path. Making the entries beside it refuse must leave `types` compiling.
 Recorded as `modules-1266-param-shadows-the-types-import`.
 
-- [ ] The example refuses with the reference implementation's exact text —
-      **under `cargo test` only.** Through the rs-compiler pipeline the reported
-      module still compiles, because the specifier is elided before the fold can
-      see it. That is [22](./22-the-stripped-specifier-the-fold-never-sees.md),
-      a different seam, and this box stays open until it lands: the ticket exists
-      to stop wrong output, and wrong output still ships.
+- [x] The example refuses with the reference implementation's exact text.
+      It did so under `cargo test` when this ticket landed; through the
+      rs-compiler pipeline it took
+      [22](./22-the-stripped-specifier-the-fold-never-sees.md), which stopped
+      the type-stripping pass from eliding the specifier in a JavaScript module.
+      A TypeScript input still compiles it, which is
+      [24](./24-the-typescript-half-of-the-stripped-specifier.md).
 - [x] `firstThatWorks` and a bare `when` import refuse the same way
 - [x] `types` still compiles to an inline style
 - [x] `defaultMarker` is measured and either fixed here or recorded
@@ -165,12 +166,15 @@ wrong and is corrected.
   decision -- filed as
   [22](./22-the-stripped-specifier-the-fold-never-sees.md).
 
-  The corpus row therefore split. `modules-1266-param-shadows-a-named-function-map-import`
+  **Closed by 22.** The pipeline keeps every import specifier of a JavaScript
+  module now, so the reported source refuses there too. The corpus row therefore
+  split. `modules-1266-param-shadows-a-named-function-map-import`
   keeps the entry alive with a `keyframes` call beside the dynamic style, which is
   the shape that reaches the seam this ticket owns, and reads `both-reject`. The
   reported bare shape moved to
-  `modules-1266-param-shadows-a-named-import-referenced-nowhere-else`, still
-  `acceptance-divergent`, pointing at 22. Both rows now measure what they claim.
+  `modules-1266-param-shadows-a-named-import-referenced-nowhere-else`, which
+  read `acceptance-divergent` until 22 landed and reads `both-reject` now. Both
+  rows measure what they claim.
 
 Six corpus rows added -- `firstThatWorks`, a bare `when`, `positionTry`,
 `defaultMarker`, the elided specifier, the static read -- and the whole `modules`

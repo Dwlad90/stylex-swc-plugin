@@ -86,12 +86,19 @@ a sentence about a static expression. It refuses with the same sentence now.
 Materializing a theme reference is not an option there the way a folded function
 map was: the group's keys live in another file.
 
+Both refusals report at the value the author wrote, with a code frame. The
+dynamic consumer aborted without one, which
+`docs/adr/0002-a-refusal-and-a-broken-invariant-are-separate-constructs.md`
+reserves for an invariant the code established itself -- so the arm beside it,
+which every array in that position already reached, is reported the same way now.
+
 Measured on every row of the tables above plus the positions around them, against
 `@stylexjs/babel-plugin` 0.19.0 under the parity harness's configuration. All six
-create-position rows read `both-reject` now; the four rows that recorded the drop
-as `acceptance-divergent` -- the bare read, the read beside a sibling, the read
-at depth and in a shorthand, the namespace spelling -- were updated in place
-rather than duplicated. Pinned by message in
+create-position rows read `both-reject` now; the five rows that recorded the drop
+as `acceptance-divergent` or as a wording divergence -- the bare read, the read
+beside a sibling, the read at depth and in a shorthand, the namespace spelling,
+the dynamic style -- were updated in place rather than duplicated. Pinned by
+message in
 `validation_stylex_create_test::theme_reference_style_values`, which the corpus
 cannot do (`both-reject` compares acceptance, not wording -- issue
 [17](./17-the-corpus-cannot-report-a-changed-refusal.md)).
@@ -106,6 +113,14 @@ resolution, which is [11](./11-refuse-a-namespace-theme-import.md)'s question,
 not this one. Both compilers refuse; only the wording differs, and the corpus row
 holds the outcome.
 
+*Superseded by [11](./11-refuse-a-namespace-theme-import.md).* The resolution
+went: it hashed the reference's own local alias as if it were an export name, so
+the member reads that "work" produced a variable the theme file defines only
+when the alias happens to be spelled like the exported group. This row now reads
+upstream's sentence for upstream's reason. Nothing about the decision made here
+was wrong at the time — the question really was 11's — and the arm this refusal
+guards is still the one it was written to guard.
+
 **The template row.** Measured and deliberately not mirrored. Upstream coerces
 the group through its own `toString` and declares `z-index:x1q8i56t` -- the
 var-group hash as a z-index, meaningless CSS that hashes a class name all the
@@ -119,8 +134,9 @@ also closes [15](./15-the-function-map-read-where-it-is-not-a-map.md) case 4.
 ### The divergence this created, deliberately
 
 `nodes/object_expression.rs` is the general object evaluator, so the refusal
-reaches four calls beside `create` -- and upstream validates a namespace only in
-`create`. In those four a theme reference read as a value is *dropped* upstream:
+reaches every call that reads an object through it -- and upstream validates a
+namespace only in `create`. Six calls beside it were measured. In four, a theme
+reference read as a value is *dropped* upstream:
 
 | input | Babel 0.19.0 | here |
 | --- | --- | --- |
@@ -135,6 +151,20 @@ reference was the single exception; and the silent drop is the defect this ticke
 exists to remove, not a behaviour to keep for four callers out of five. Each is
 pinned by a test beside its call and recorded as `acceptance-divergent` with the
 reason, so a decision to narrow it later starts from a measurement.
+
+The other two calls that read the same evaluator -- `defineVars` and
+`defineConsts` -- refuse in *both* compilers, so nothing changed there. They were
+the two positions the first pass of this work neither measured nor tested, found
+by review; upstream refuses a `defineVars` value with `Default value is not
+defined for a variable.` because the group it folds to has no `default` key. Both
+now carry a test, with the member read beside them as the guard. Measuring a
+`defineVars` value needs a `*.stylex.js` filename -- otherwise the call refuses
+for the filename it cannot hash, and a value question is answered as a path
+question. The corpus cannot ask it for that reason: every module subject is
+handed the same filename on purpose, so the two rows written for it reported
+`both-reject` about the filename and measured nothing. They were dropped and the
+limit is written down in the harness README; `defineConsts`, which hashes
+nothing, keeps its row.
 
 ### Found while measuring, not fixed here
 

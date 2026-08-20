@@ -609,6 +609,56 @@ fn a_logical_property_value_refuses_one_level_past_the_ceiling() {
   ));
 }
 
+// A shorthand under `legacy-expand-shorthands` turns one folded value into four
+// declarations, so this is the case where the value crossing the ceiling is read
+// by property expansion rather than emitted as-is. All four class names are
+// upstream's, which is what says the expansion saw the whole tower and not a
+// truncation of it.
+//
+// This is as close as the boundary gets to a vendor-prefixing case: this
+// compiler emits no prefixes at all -- every test in
+// `transform_polyfills_test/css_property_polyfills.rs` is `#[ignore]`d and
+// `css_value_polyfills.rs` has none -- so there is no prefixed output for a
+// depth to interact with. Expansion is the one-value-to-many-declarations path
+// that does exist.
+#[test]
+fn a_shorthand_expansion_folds_at_the_deepest_accepted_nesting() {
+  let input = create(
+    "const V = '1px 2px';",
+    &format!("base: {{ padding: {} }},", nest("(", " + '')", "V", 317)),
+  );
+
+  let output = stringify_js(&input, ts_syntax(), |tr| {
+    build_test_transform(tr.comments.clone(), |b| {
+      b.with_runtime_injection()
+        .with_max_evaluation_depth(RAISED)
+        .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+    })
+  });
+
+  assert!(output.contains(".x4p5aij{padding-top:1px}"));
+  assert!(output.contains(".x14vy60q{padding-inline-end:2px}"));
+  assert!(output.contains(".x1j85h84{padding-bottom:1px}"));
+  assert!(output.contains(".xyiysdx{padding-inline-start:2px}"));
+}
+
+#[test]
+#[should_panic(expected = "base > padding > Expression is too deeply nested")]
+fn a_shorthand_expansion_refuses_one_level_past_the_ceiling() {
+  let input = create(
+    "const V = '1px 2px';",
+    &format!("base: {{ padding: {} }},", nest("(", " + '')", "V", 318)),
+  );
+
+  stringify_js(&input, ts_syntax(), |tr| {
+    build_test_transform(tr.comments.clone(), |b| {
+      b.with_runtime_injection()
+        .with_max_evaluation_depth(RAISED)
+        .with_style_resolution(StyleResolution::LegacyExpandShorthands)
+    })
+  });
+}
+
 // A style array spends a level on the array itself, so its ceiling is one under
 // the same expression written bare. Both elements reach the same declaration,
 // which is what makes the folded depth visible in the rule.

@@ -188,26 +188,24 @@ fn assert_hole_refusal(source: &str) {
 /// The same, for a source deep enough to need the ceiling raised first.
 #[track_caller]
 fn assert_hole_refusal_under_ceiling(source: &str, max_evaluation_depth: usize) {
-  let result = evaluate_source_with_ceiling(source, max_evaluation_depth);
-
-  assert!(
-    !result.confident,
-    "expected `{}` to refuse to fold, got {:?}",
-    source, result.value
-  );
-
-  assert_eq!(
-    result.reason.as_deref(),
-    Some(PATH_WITHOUT_NODE),
-    "wrong deopt reason for `{}`",
-    source
+  assert_deopt_reason_is_in(
+    &evaluate_source_with_ceiling(source, max_evaluation_depth),
+    source,
+    PATH_WITHOUT_NODE,
   );
 }
 
 #[track_caller]
 fn assert_deopt_reason_is(source: &str, expected: &str) {
-  let result = evaluate_source(source);
+  assert_deopt_reason_is_in(&evaluate_source(source), source, expected);
+}
 
+#[track_caller]
+fn assert_deopt_reason_is_in(
+  result: &crate::shared::structures::evaluate_result::EvaluateResult,
+  source: &str,
+  expected: &str,
+) {
   assert!(
     !result.confident,
     "expected `{}` to refuse to fold, got {:?}",

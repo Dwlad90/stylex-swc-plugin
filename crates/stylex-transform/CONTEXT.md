@@ -207,9 +207,13 @@ the reference implementation's registration rather than this compiler's types. A
 map entry stands for its own keys. A single **function config** -- `keyframes`,
 `firstThatWorks`, `positionTry` -- stands for `{ fn }`, the one key a callable
 carries upstream. A config holding a marker map, which is a bare `when` import,
-stands for the marker names. Every other evaluated shape with no expression form
-is refused at the value position rather than materialized, a
-[theme reference](#theme-reference) among them.
+stands for the marker names. An evaluated array is materialized too, through the
+same fold a static namespace uses, and what it holds is then decided by namespace
+validation rather than at the value position -- an element that is not a string or
+a number is refused there, with the message the reference implementation gives.
+Every other evaluated shape with no expression form is refused at the value
+position rather than materialized, a [theme reference](#theme-reference) among
+them.
 _Avoid_: shadowed namespace, identifier map hit, function config fold
 
 **Theme reference**:

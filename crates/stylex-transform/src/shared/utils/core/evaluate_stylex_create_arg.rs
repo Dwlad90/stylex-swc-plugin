@@ -25,7 +25,7 @@ use crate::shared::{
       expand_shorthand_prop,
     },
     css::common::get_number_suffix,
-    js::evaluate::{evaluate, evaluate_obj_key},
+    js::evaluate::{evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr},
     log::build_code_frame_error::build_code_frame_error_and_panic_at,
     validators::validate_dynamic_style_params,
   },
@@ -39,8 +39,8 @@ use stylex_constants::constants::{
   api_names::FUNCTION_CONFIG_FN_KEY,
   length_units::LENGTH_UNITS,
   messages::{
-    EVAL_RESULT_EXPECTED, ILLEGAL_NAMESPACE_VALUE, ILLEGAL_PROP_VALUE, KEY_MUST_EVAL_TO_STRING,
-    SPREAD_NOT_SUPPORTED, VALUE_NOT_EXPRESSION,
+    EVAL_RESULT_EXPECTED, ILLEGAL_NAMESPACE_VALUE, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
+    KEY_MUST_EVAL_TO_STRING, SPREAD_NOT_SUPPORTED, VALUE_NOT_EXPRESSION,
   },
   time_units::get_time_units,
 };
@@ -96,9 +96,18 @@ fn object_from_keys<'a>(keys: impl Iterator<Item = &'a str>) -> Expr {
 /// with that same message rather than materialized -- the static position
 /// refuses it the same way, in `nodes/object_expression.rs`.
 ///
+/// An array is folded the way the static position folds one, through the same
+/// function, and refused with the array-specific message when an element has no
+/// array-element form. `EvaluateResultValue::Vec` is what an array literal
+/// evaluates to and it has no expression form either, so every array written
+/// inside a dynamic style's body used to abort here -- including the ones the
+/// reference implementation compiles. What decides an array is not this
+/// position: an element that is not a string or a number is refused by namespace
+/// validation, from the folded `Expr::Array`, with the message upstream gives.
+///
 /// Every other evaluated shape with no expression form still falls through to
 /// the old message. Each is a refusal of its own rather than a fold this
-/// understands -- an array among them -- and the set is not audited here.
+/// understands, and the set is not audited here.
 ///
 /// Both refusals report at the value the author wrote, with a code frame:
 /// everything reaching them is author input, and
@@ -113,6 +122,12 @@ fn materialize_style_value(
     Some(EvaluateResultValue::Expr(expr)) => expr,
     Some(EvaluateResultValue::ThemeRef(_)) => {
       build_code_frame_error_and_panic_at(value_path, ILLEGAL_PROP_VALUE, traversal_state)
+    },
+    Some(EvaluateResultValue::Vec(items)) => match evaluate_result_vec_to_array_expr(&items) {
+      Some(expr) => expr,
+      None => {
+        build_code_frame_error_and_panic_at(value_path, ILLEGAL_PROP_ARRAY_VALUE, traversal_state)
+      },
     },
     Some(EvaluateResultValue::FunctionConfigMap(func_map)) => {
       object_from_keys(func_map.keys().map(|key| key.as_str()))

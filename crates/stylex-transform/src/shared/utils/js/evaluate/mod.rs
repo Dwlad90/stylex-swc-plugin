@@ -129,7 +129,7 @@ fn resolve_env_entry_to_result(
 /// way to a deopt, because a silently dropped element writes a value the
 /// source does not describe — which is worse than a declaration that falls to
 /// the runtime.
-fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -> Option<Expr> {
+pub(crate) fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -> Option<Expr> {
   let mut elems = Vec::with_capacity(items.len());
 
   for entry in items {

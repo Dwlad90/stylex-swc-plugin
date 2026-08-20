@@ -4,3 +4,4 @@ mod property_validation_mode_test;
 mod style_declarations;
 mod style_rules;
 mod stylex_validation_create;
+mod theme_reference_style_values;

@@ -192,17 +192,33 @@ where
   customize(StyleXTransform::test(comments)).into_pass()
 }
 
-/// A transform for the cases where a name is shadowed.
+/// A transform for the cases where a theme import must *resolve*.
 ///
-/// A theme import has to *resolve* for such a case to be about the shadowing
-/// rather than about the path, which takes both a real filename and `haste`
-/// resolution. Shared so the two files that ask the shadowing question --
-/// `dynamic_styles.rs` and `dynamic_param_shadowing_edges.rs` -- cannot drift
-/// into asking it under different options.
+/// Resolving one takes both a real filename and `haste` resolution, and every
+/// case that reads a theme -- a name shadowed by a dynamic parameter, a theme
+/// reference read where a style value belongs -- needs it for the same reason:
+/// otherwise the case is about the path rather than about what it asks. One
+/// function rather than a name per caller, so the files asking cannot drift into
+/// asking under different options.
 #[allow(dead_code)]
-pub(crate) fn shadowing_transform(comments: TestComments) -> impl Pass {
+pub(crate) fn theme_import_transform(comments: TestComments) -> impl Pass {
   build_test_transform(comments, |b| {
     b.with_filename(FileName::Real("MyComponent.js".into()))
+      .with_unstable_module_resolution(ModuleResolution::haste(None))
+      .with_runtime_injection()
+  })
+}
+
+/// The same, for a module that *declares* a theme rather than importing one.
+///
+/// A `defineVars` call hashes its own filename, so a file not named
+/// `*.stylex.js` refuses for the filename before the value under test is ever
+/// read -- which is how a value question comes to be measured as a path
+/// question.
+#[allow(dead_code)]
+pub(crate) fn theme_module_transform(comments: TestComments) -> impl Pass {
+  build_test_transform(comments, |b| {
+    b.with_filename(FileName::Real("vars.stylex.js".into()))
       .with_unstable_module_resolution(ModuleResolution::haste(None))
       .with_runtime_injection()
   })

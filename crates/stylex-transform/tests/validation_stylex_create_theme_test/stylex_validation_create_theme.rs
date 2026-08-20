@@ -213,3 +213,20 @@ stylex_test_panic!(
     export const variables = stylex.createTheme(bt, bt);
   "#
 );
+
+// A theme reference read as an override value. The reference implementation
+// keeps the call and emits no rule for the key; refused here for the reason the
+// keyframes step is -- a `defineVars` group is not a value. A decided
+// divergence, recorded as
+// `modules-1266-theme-reference-in-a-create-theme-override`.
+stylex_test_panic!(
+  a_theme_reference_read_as_an_override_value_is_refused,
+  "Only static values are allowed inside of a createTheme() call.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const variables = stylex.createTheme(zIndex, { ten: zIndex });
+  "#
+);

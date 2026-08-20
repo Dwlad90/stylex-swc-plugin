@@ -160,3 +160,20 @@ stylex_test!(
     });
   "#
 );
+
+// A theme reference read as a declaration value in one of the four parts. The
+// reference implementation emits the selector with an empty body; refused here,
+// for the reason the keyframes step and the `positionTry` fallback are. A
+// decided divergence, recorded as
+// `modules-1266-theme-reference-in-a-view-transition-class`.
+stylex_test_panic!(
+  a_theme_reference_read_as_a_part_declaration_value_is_refused,
+  "Only static values are allowed inside of a viewTransitionClass() call.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const cls = stylex.viewTransitionClass({ group: { zIndex: zIndex } });
+  "#
+);

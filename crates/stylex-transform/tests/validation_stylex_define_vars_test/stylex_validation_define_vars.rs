@@ -350,3 +350,34 @@ stylex_test_panic!(
     export const vars = defineVars({ a: keyframes });
   "#
 );
+
+// A theme reference read as a variable's value. `defineVars` evaluates its
+// object through the same evaluator a `create` namespace goes through, so the
+// refusal that stopped the silent drop reaches here too -- and both compilers
+// refuse, with their own words: upstream reads `Default value is not defined for
+// a variable.` because the group folds to an object with no `default` key.
+// Recorded as `modules-1266-a-theme-object-as-a-define-vars-value`.
+stylex_test_panic!(
+  a_theme_reference_read_as_a_variable_value_is_refused,
+  "Only static values are allowed inside of a defineVars() call.",
+  |tr| theme_module_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const vars = stylex.defineVars({ a: zIndex });
+  "#
+);
+
+// The member read beside it, which is how one theme is meant to build on
+// another, and agrees with the reference implementation on the rule text.
+stylex_test!(
+  a_member_read_off_a_theme_import_is_a_valid_variable_value,
+  |tr| theme_module_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const vars = stylex.defineVars({ a: zIndex.ten });
+  "#
+);

@@ -518,7 +518,7 @@ stylex_test!(
 
 stylex_test!(
   dynamic_param_shadows_a_named_theme_import,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -532,7 +532,7 @@ stylex_test!(
 
 stylex_test!(
   dynamic_param_shadows_an_aliased_theme_import,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex as zi } from 'zIndex.stylex.js';
@@ -546,7 +546,7 @@ stylex_test!(
 
 stylex_test!(
   dynamic_param_shadows_a_theme_import_referenced_nowhere_else,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -559,7 +559,7 @@ stylex_test!(
 
 stylex_test!(
   dynamic_param_shadows_a_theme_import_used_only_outside_create,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -574,7 +574,7 @@ stylex_test!(
 
 stylex_test!(
   dynamic_param_shadows_a_theme_import_read_by_a_sibling_key,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -591,7 +591,7 @@ stylex_test!(
 
 stylex_test!(
   dynamic_param_shadows_a_theme_import_inside_nested_conditions,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -616,7 +616,7 @@ stylex_test!(
 
 stylex_test!(
   a_theme_import_read_as_a_computed_key_beside_a_dynamic_param,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { vars } from 'vars.stylex.js';
@@ -640,7 +640,7 @@ stylex_test!(
 // import specifier kind, not about the parameter, and it is tracked separately.
 stylex_test!(
   dynamic_param_shadows_a_namespace_theme_import,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import * as tokens from 'tokens.stylex.js';
@@ -663,7 +663,7 @@ stylex_test!(
 // reads belongs.
 stylex_test!(
   dynamic_param_shadows_a_default_theme_import,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import tokens from 'tokens.stylex.js';
@@ -676,7 +676,7 @@ stylex_test!(
 
 stylex_test!(
   dynamic_param_shadows_a_module_level_const,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -691,7 +691,7 @@ stylex_test!(
 
 stylex_test!(
   a_theme_import_read_beside_an_unshadowed_dynamic_param,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';

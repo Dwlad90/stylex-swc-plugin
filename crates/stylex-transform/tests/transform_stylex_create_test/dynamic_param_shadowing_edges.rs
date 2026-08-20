@@ -30,7 +30,7 @@ use crate::utils::{prelude::*, transform::stringify_js};
 stylex_test_panic!(
   an_unclosed_css_function_beside_a_shadowing_param,
   "Rule contains an unclosed function",
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -46,7 +46,7 @@ stylex_test_panic!(
 stylex_test_panic!(
   a_malformed_media_query_around_a_shadowing_param,
   "Invalid media query syntax",
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -67,7 +67,7 @@ stylex_test_panic!(
 // same rule, doubled quote and all.
 stylex_test!(
   an_unterminated_quote_in_a_value_beside_a_shadowing_param,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -84,7 +84,7 @@ stylex_test!(
 // custom property named from the key path.
 stylex_test!(
   an_unknown_pseudo_class_under_a_shadowing_param,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -108,7 +108,7 @@ stylex_test!(
 // agreed-upon shortcoming rather than a divergence.
 stylex_test!(
   a_bare_colon_and_a_conditionless_at_rule_around_a_shadowing_param,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -129,7 +129,7 @@ stylex_test!(
 // the chain compares bindings.
 stylex_test!(
   a_unicode_escaped_param_name_shadows_the_same_import,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { spacing as ünïcödé } from 'spacing.stylex.js';
@@ -146,7 +146,7 @@ stylex_test!(
 // property that feeds it.
 stylex_test!(
   a_non_ascii_custom_property_driven_by_a_shadowing_param,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -162,7 +162,7 @@ stylex_test!(
 // it is part of the declaration text the class name hashes.
 stylex_test!(
   a_css_escape_in_a_value_beside_a_shadowing_param,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -183,7 +183,7 @@ stylex_test!(
 stylex_test_panic!(
   a_rest_param_shadowing_an_import,
   "Only named parameters are allowed in Dynamic Style functions",
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -198,7 +198,7 @@ stylex_test_panic!(
 stylex_test_panic!(
   a_destructured_param_shadowing_an_import,
   "Only named parameters are allowed in Dynamic Style functions",
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -215,7 +215,7 @@ stylex_test_panic!(
 stylex_test_panic!(
   a_defaulted_param_reading_an_import,
   "Only named parameters are allowed in Dynamic Style functions",
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -231,7 +231,7 @@ stylex_test_panic!(
 // the style is static in everything but its emitted shape.
 stylex_test!(
   a_dynamic_style_with_no_param_reads_the_import,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -263,7 +263,7 @@ fn sixty_four_params_beside_two_reads() {
   );
 
   let output = stringify_js(&input, ts_syntax(), |tr| {
-    shadowing_transform(tr.comments.clone())
+    theme_import_transform(tr.comments.clone())
   });
 
   // The two read parameters each get their own custom property; the other 62
@@ -284,7 +284,7 @@ fn sixty_four_params_beside_two_reads() {
 // than the base name resolving to the import it shadows.
 stylex_test!(
   a_member_read_and_a_call_on_a_shadowing_param,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -303,7 +303,7 @@ stylex_test!(
 // does with the same input.
 stylex_test!(
   a_shadowed_helper_called_resolves_to_the_helper,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { firstThatWorks } from '@stylexjs/stylex';
@@ -318,7 +318,7 @@ stylex_test!(
 // and the parameter reaches the folded value as a custom property.
 stylex_test!(
   a_shadowing_param_passed_to_a_helper,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { firstThatWorks } from '@stylexjs/stylex';
@@ -337,7 +337,7 @@ stylex_test!(
 stylex_test_panic!(
   a_shadowing_param_spread_into_the_style,
   "Referenced constant is not defined",
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -352,7 +352,7 @@ stylex_test_panic!(
 stylex_test_panic!(
   a_shadowing_param_as_a_computed_key,
   "Referenced constant is not defined",
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -372,7 +372,7 @@ stylex_test_panic!(
 // style with no declaration to carry, and the import beside it is still read.
 stylex_test!(
   a_shadowing_param_with_nothing_to_emit,
-  |tr| shadowing_transform(tr.comments.clone()),
+  |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
     import { zIndex } from 'zIndex.stylex.js';
@@ -420,7 +420,7 @@ fn a_hundred_and_twenty_eight_nested_conditions_read_a_shadowing_param() {
   );
 
   let output = stringify_js(&input, ts_syntax(), |tr| {
-    shadowing_transform(tr.comments.clone())
+    theme_import_transform(tr.comments.clone())
   });
 
   // One `@property` per level, plus one for the innermost leaf.
@@ -451,7 +451,7 @@ fn a_five_thousand_character_value_beside_a_shadowing_param() {
   );
 
   let output = stringify_js(&input, ts_syntax(), |tr| {
-    shadowing_transform(tr.comments.clone())
+    theme_import_transform(tr.comments.clone())
   });
 
   assert!(output.contains(&format!(".x1ahcjaz{{content:\"{}\"}}", long)));
@@ -490,7 +490,7 @@ fn two_hundred_and_fifty_six_levels_of_arithmetic_around_a_shadowing_param() {
   );
 
   let output = stringify_js(&input, ts_syntax(), |tr| {
-    shadowing_transform(tr.comments.clone())
+    theme_import_transform(tr.comments.clone())
   });
 
   // The whole tower collapses into one inline custom property, exactly as a

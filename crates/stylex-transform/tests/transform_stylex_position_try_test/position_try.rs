@@ -171,3 +171,20 @@ stylex_test!(
     });
   "#
 );
+
+// A theme reference read as a fallback value. The reference implementation emits
+// the at-rule with the declaration missing -- `@position-try --x {}` -- and
+// says nothing; refused here, as every other shape with no value form in this
+// position already is. A decided divergence, recorded as
+// `modules-1266-theme-reference-in-a-position-try`.
+stylex_test_panic!(
+  a_theme_reference_read_as_a_position_try_value_is_refused,
+  "Only static values are allowed inside of a positionTry() call.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { zIndex } from 'zIndex.stylex.js';
+
+    export const name = stylex.positionTry({ top: zIndex });
+  "#
+);

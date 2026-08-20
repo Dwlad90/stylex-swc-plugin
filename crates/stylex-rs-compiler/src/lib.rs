@@ -25,7 +25,7 @@ use swc_core::{
     ast::EsVersion,
     transforms::{
       base::{fixer::fixer, hygiene::hygiene, resolver},
-      typescript::strip as typescript_strip,
+      typescript::{Config as TypescriptConfig, typescript},
     },
     visit::visit_mut_pass,
   },
@@ -43,6 +43,54 @@ fn source_maps_config(source_map: Option<&SourceMaps>) -> SourceMapsConfig {
     Some(SourceMaps::Inline) => SourceMapsConfig::Str("inline".into()),
     None => SourceMapsConfig::Bool(true),
   }
+}
+
+/// The extensions whose modules are JavaScript rather than TypeScript.
+///
+/// Not [`stylex_path_resolver::resolvers::EXTENSIONS`], which is the list of
+/// suffixes to *try* when resolving an import path and includes `.md`. This one
+/// answers which language a file was authored in, and only its own caller wants
+/// it.
+const JAVASCRIPT_EXTENSIONS: [&str; 4] = ["js", "jsx", "mjs", "cjs"];
+
+/// Whether `path` names a JavaScript module rather than a TypeScript one.
+///
+/// The extension is the only thing that can say. Every input is parsed as
+/// TypeScript regardless — the parser cannot be chosen per file without already
+/// knowing the answer, and TypeScript is the superset — so nothing later in the
+/// pipeline can tell the two apart.
+///
+/// It decides one thing: whether the type-stripping pass may elide an import
+/// specifier nothing in the module references as a value. That elision is
+/// TypeScript's rule and only TypeScript's — a binding with no value reference
+/// may name a type, and a type has no module to import at runtime. JavaScript
+/// has no type-only imports, so in a `.js` module the same specifier is a value
+/// import the author wrote, and removing it changes what the module means.
+///
+/// It cost a refusal, which is how it was found. A dynamic style's parameter
+/// shadowing an imported name is not a *reference* to it, so when the parameter
+/// is the specifier's only occurrence the specifier was elided before the
+/// StyleX transform ran, nothing registered the name, and a module the
+/// reference implementation refuses compiled to a runtime value instead.
+///
+/// A TypeScript input keeps the elision, because there the hazard runs the
+/// other way: preserving a specifier that names a type makes the emitted module
+/// import a file that may hold nothing at runtime. So the two answer
+/// differently on purpose, and only for a TypeScript input does this compiler
+/// still read a shadowed StyleX import as an ordinary parameter.
+///
+/// An extension this does not recognise — none at all, or one no toolchain
+/// agrees on — is answered as TypeScript, which is the conservative half: it
+/// keeps the elision, and an elision only ever removes something.
+fn is_javascript_input(path: &Path) -> bool {
+  path
+    .extension()
+    .and_then(|extension| extension.to_str())
+    .is_some_and(|extension| {
+      JAVASCRIPT_EXTENSIONS
+        .iter()
+        .any(|javascript| javascript.eq_ignore_ascii_case(extension))
+    })
 }
 
 /// Whether to embed the original source text in the emitted map's
@@ -303,7 +351,18 @@ pub fn transform(
 
         let program = program
           .apply(resolver(unresolved_mark, top_level_mark, true))
-          .apply(typescript_strip(unresolved_mark, top_level_mark))
+          .apply(typescript(
+            // `verbatim_module_syntax` turns off exactly one thing:
+            // inferring that an unreferenced import specifier must have been a
+            // type. Every explicitly type-only form is still stripped, so this
+            // is safe for the JavaScript input it is turned on for.
+            TypescriptConfig {
+              verbatim_module_syntax: is_javascript_input(&file_path),
+              ..Default::default()
+            },
+            unresolved_mark,
+            top_level_mark,
+          ))
           .apply(&mut visit_mut_pass(&mut stylex))
           .apply(hygiene())
           .apply(&mut fixer(None));

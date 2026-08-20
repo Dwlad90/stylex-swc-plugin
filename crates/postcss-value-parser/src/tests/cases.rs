@@ -783,6 +783,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"purple\" 0..6",
   },
   ParserCase {
+    input: "rgb(0,0,",
+    output: "rgb(0,0,",
+    ast: "function \"rgb\" 0..8 before=\"\" after=\"\" unclosed nodes=4\n  word \"0\" 4..5\n  div \",\" 5..6 before=\"\" after=\"\"\n  word \"0\" 6..7\n  div \",\" 7..8 before=\"\" after=\"\"",
+  },
+  ParserCase {
     input: "rgb(from red r g b)",
     output: "rgb(from red r g b)",
     ast: "function \"rgb\" 0..19 before=\"\" after=\"\" nodes=9\n  word \"from\" 4..8\n  space \" \" 8..9\n  word \"red\" 9..12\n  space \" \" 12..13\n  word \"r\" 13..14\n  space \" \" 14..15\n  word \"g\" 15..16\n  space \" \" 16..17\n  word \"b\" 17..18",
@@ -1466,11 +1471,6 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "rgb(   from red r g b   )",
     output: "rgb(   from red r g b   )",
     ast: "function \"rgb\" 0..25 before=\"   \" after=\"   \" nodes=9\n  word \"from\" 7..11\n  space \" \" 11..12\n  word \"red\" 12..15\n  space \" \" 15..16\n  word \"r\" 16..17\n  space \" \" 17..18\n  word \"g\" 18..19\n  space \" \" 19..20\n  word \"b\" 20..21",
-  },
-  ParserCase {
-    input: "rgb(0,0,",
-    output: "rgb(0,0,",
-    ast: "function \"rgb\" 0..8 before=\"\" after=\"\" unclosed nodes=4\n  word \"0\" 4..5\n  div \",\" 5..6 before=\"\" after=\"\"\n  word \"0\" 6..7\n  div \",\" 7..8 before=\"\" after=\"\"",
   },
   ParserCase {
     input: "rgb(0,0,0)rgba(255,255,255,.5)",

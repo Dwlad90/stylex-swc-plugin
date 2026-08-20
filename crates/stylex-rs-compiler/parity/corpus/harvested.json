@@ -201,6 +201,12 @@
       "origin": "crates/stylex-transform/tests/transform_stylex_create_test/absent_style_values.rs:466"
     },
     {
+      "id": "077eb7f1",
+      "property": "backgroundColor",
+      "value": "rgb(0,0,",
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/string_named_import_specifiers.rs:422"
+    },
+    {
       "id": "835e815e",
       "property": "backgroundColor",
       "value": "rgb(from red r g b)",

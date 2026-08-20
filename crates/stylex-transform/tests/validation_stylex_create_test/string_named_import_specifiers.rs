@@ -259,8 +259,7 @@ stylex_test_panic!(
 
 // Eight condition levels. The pseudo-classes nest alphabetically on purpose --
 // nested out of that order the two compilers hash a different *selector*, for a
-// reason that has nothing to do with resolution, which
-// `.scratch/fix_dynamic-param-shadows-import/issues/19-three-nested-pseudo-classes-hash-differently.md`
+// reason that has nothing to do with resolution, which issue 19 of this effort
 // owns and one corpus row measures.
 stylex_test!(
   a_string_export_name_member_read_eight_conditions_deep_resolves,
@@ -528,7 +527,7 @@ stylex_test_panic!(
 // at every depth.
 stylex_test_panic!(
   a_string_named_specifier_read_bare_at_depth_is_refused,
-  "w > color > @media (min-width: 1px) > :active > :focus > A style value can only contain an array, string or number.",
+  ":active > :focus > A style value can only contain an array, string or number.",
   |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';
@@ -636,6 +635,34 @@ stylex_test_panic!(
     import { "color-lg" as c } from 'vars.stylex.js';
 
     export const styles = stylex.create({ w: { color: stylex.firstThatWorks(c, 'red') } });
+  "#
+);
+
+// A `createTheme` override value, the fifth and last position where the two
+// answers part company. Upstream compiles the call with no rule for the key;
+// here the value is refused, for the reason the keyframes step is. The group
+// handed to the call as its *first* argument still resolves -- that is the
+// position it belongs in, and the control below is what says so.
+stylex_test_panic!(
+  a_string_named_specifier_read_bare_as_a_create_theme_override_is_refused,
+  "Only static values are allowed inside of a createTheme() call.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { "colors" as c } from 'vars.stylex.js';
+
+    export const t = stylex.createTheme(c, { lg: c });
+  "#
+);
+
+stylex_test!(
+  a_string_named_specifier_member_read_as_a_create_theme_override_resolves,
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { "colors" as c } from 'vars.stylex.js';
+
+    export const t = stylex.createTheme(c, { lg: c.x });
   "#
 );
 

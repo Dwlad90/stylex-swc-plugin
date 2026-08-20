@@ -551,6 +551,38 @@
       "expected": "identical"
     },
     {
+      "id": "modules-1266-a-string-named-specifier-with-a-whitespace-only-export-name",
+      "label": "a theme import whose export name is a single space",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \" \" as sp } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: sp.x },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "An export name that is neither empty nor nameable. Both write `--x19ch1gl`, so neither trims it and neither treats it as absent.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-string-named-specifier-with-a-numeric-export-name",
+      "label": "a theme import whose export name is the string `0`",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"0\" as zero } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: zero.x },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "An export name a reader could mistake for an index. It is hashed as the two-character name it is on both sides -- `--xon846n`.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-a-string-named-specifier-with-a-global-export-name",
+      "label": "a theme import whose export name is spelled like a global",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"NaN\" as n } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: n.x },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "The export name is the global's and the reference is the alias's, so neither the globals step nor the import step can confuse the two. The row that can is the reverse spelling, `modules-1266-import-aliased-to-a-global-name`, where the *alias* takes the name over.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-three-escaped-string-export-names-in-one-module",
+      "label": "three theme imports whose export names differ only by an escape",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"a\\\"b\" as q, \"a\\\\b\" as bs, \"a\\nb\" as nl } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: q.x, backgroundColor: bs.x, borderColor: nl.x },\n});\n",
+      "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
+      "note": "An escaped quote, an escaped backslash and a newline escape, in one module so the three are measured against each other as well as against upstream: the export name is hashed as the characters it denotes and not as the source spelled it, so the three have to write three distinct variables -- and the same three on both sides.",
+      "expected": "identical"
+    },
+    {
       "id": "modules-1266-a-string-named-specifier-naming-the-default-export",
       "label": "a theme import whose export name is the string `default`",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"default\" as d } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: d.x },\n});\n",

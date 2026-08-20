@@ -31,7 +31,7 @@ finding.
 
 ## Answer
 
-**Sixteen rows in `corpus/modules.json`, every listed case guarded, and one
+**Eighteen rows in `corpus/modules.json`, every listed case guarded, and one
 divergence found that has nothing to do with this chain.**
 
 Two of the listed cases were already carrying their verdict from earlier tickets
@@ -53,9 +53,11 @@ new.
 | `…-object-assign-target-in-a-style-value` | both reject | step 4, mutation through an argument position |
 | `…-a-reassigned-binding-in-a-style-value` | both reject | step 3, the other half of the split write set |
 | `…-an-unwritten-const-object-in-a-style-value` | identical | the control steps 3 and 4 need: the same module with the write removed has to fold |
-| `…-an-unclosed-value-read-through-a-binding` | both reject | a malformed value reached through a binding is refused where the same text written inline is |
+| `…-an-unclosed-function-read-through-a-binding` | both reject | a malformed value reached through a binding is refused where the same text written inline is |
+| `…-an-unclosed-string-read-through-a-binding` | both reject | the same, for the refusal that names a string rather than a function |
+| `…-an-unclosed-bracket-read-through-a-binding` | identical | the malformed value neither compiler refuses, emitted verbatim by both |
 | `…-a-custom-property-through-a-shadowed-param` | identical | the custom-property path, where a key is neither expanded nor validated |
-| `…-a-prefixed-property-through-a-shadowed-param` | identical | prefix generation reading two different folded values for one property |
+| `…-a-prefixed-property-through-a-shadowed-param` | identical | an authored `-webkit-` property taking two different folded values, since neither compiler adds a prefix of its own |
 | `…-a-shadowed-param-at-extreme-condition-depth` | identical | the recursive value walk at eight levels, at-rules interleaved |
 | `…-many-shadowed-params-in-one-create` | identical | twenty-four reads of twelve names that are each both an import and a parameter, sharing one evaluation cache |
 | `…-a-shadowed-param-spread-into-a-style-object` | both reject | the one position that asks the resolved value for a shape rather than for a value |
@@ -64,12 +66,28 @@ The split write set is the reason steps 3 and 4 get four rows between them. It
 was meant to change no outcome, and the only way to see that it still fills both
 halves is a row per producer refusing on its own.
 
-Two rows hold an outcome rather than a text, and say so in their notes: the
-spread refuses with `Referenced constant is not defined.` here against
-`Only static values are allowed inside of a create() call.` upstream, and the
-unclosed value names the repaired rule after the shared sentence. That is the gap
-[17](./17-the-corpus-cannot-report-a-changed-refusal.md) owns; the other twelve
-refusals in this set are byte-identical sentences.
+Nine rows are refusals. One holds the outcome only and says so: the spread
+refuses with `Referenced constant is not defined.` here against
+`Only static values are allowed inside of a create() call.` upstream. The other
+eight refuse with the same *sentence* on both sides -- never the same message,
+since this compiler prefixes the evaluator's key path and upstream prefixes an
+absolute file path, which is exactly why the harness compares acceptance and not
+text. That is the gap [17](./17-the-corpus-cannot-report-a-changed-refusal.md)
+owns; each note names the sentence so a wording change is at least readable
+against the row.
+
+Four rows go beyond the bullet list above, which asked only for member mutation
+of a `const`: the two other producers the same walk records, the reassignment
+half of the split write set, and the control both halves need. They are here
+because the split was the part of the reorder most likely to change an outcome
+silently, and one row per producer is the only way a half that stopped being
+filled would report.
+
+Three rows replace what began as one. A row naming an unclosed paren, bracket
+and quote together measured only the first: the compile ends at the first
+refusal. Split apart, they also disagree -- the paren and the quote are refused
+with two different sentences, and the unclosed bracket is not refused at all but
+emitted verbatim by both compilers.
 
 ### The case that did not agree
 
@@ -81,18 +99,19 @@ in either order, three agree only when the nesting order is already alphabetical
 Upstream sorts the whole accumulated list; this compiler sorts each pair as it
 nests and appends the next.
 
-Filed as [19](./19-nested-pseudo-classes-are-ordered-by-nesting-depth.md), with
+Filed as [19](./19-three-nested-pseudo-classes-hash-differently.md), with
 its own corpus row
-(`modules-nested-pseudo-classes-are-ordered-by-nesting-depth`, `expected:
-divergent`) holding the three-pseudo-class shape it is smallest in. It predates
+(`modules-three-nested-pseudo-classes-hash-differently`, `expected: divergent`)
+holding the three-pseudo-class shape it is smallest in. It predates
 this effort — the ordering is the same before and after the chain reorder — so it
 is not a regression of the reorder, and it is not given an expected-divergence
 verdict on a row that is supposed to be measuring resolution: the depth guard now
 nests alphabetically and reads identical, and the divergence is measured once, in
-the row written for it.
+the row written for it. That has a cost worth naming: non-alphabetical nesting
+*at depth* is now covered by nothing, and putting it back is a checkbox on 19.
 
 ### The run
 
 `pnpm run --filter=@stylexswc/rs-compiler parity`, on a build of this branch:
-910 subjects, **0 changed verdicts**, exit 0. The `modules` set alone is 107
-subjects, 95 of them carrying an expectation.
+912 subjects, **0 changed verdicts**, exit 0. The `modules` set alone is 109
+subjects, 97 of them carrying an expectation.

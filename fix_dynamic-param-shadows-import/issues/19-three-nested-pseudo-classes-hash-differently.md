@@ -24,8 +24,8 @@ Both emit the same declaration (`z-index:1`) and the same number of rules, so
 the verdict is `divergent`: same properties, different class names.
 
 Measured on both compilers as
-`modules-nested-pseudo-classes-are-ordered-by-nesting-depth`, which records
-`divergent` so the divergence reports as a changed verdict the day it moves.
+`modules-three-nested-pseudo-classes-hash-differently`, which records `divergent`
+so the divergence reports as a changed verdict the day it moves.
 
 ## The mechanism, as far as it is measured
 

@@ -549,6 +549,110 @@
       "origin": "code review of the imported-name fallback deletion, the second consumer of the import lookup",
       "note": "The evaluator is not the only reader of the import lookup: `createTheme`'s second-argument check asks it whether an identifier is an import. Deleting the imported-name fallback changes which arm answers here -- the reference was refused as an import before and is refused as an unbound, non-static value now -- so the message changes while the verdict does not. Recorded because a message change is invisible to the harness, and the entry is what says the verdict was measured rather than assumed.",
       "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-dynamic-param-shadows-the-stylex-namespace",
+      "label": "a dynamic parameter shadowing the stylex namespace import",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({ height: stylex }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the reference implementation's own scope-blindness",
+      "note": "`functions.identifiers` is keyed by name and consulted ahead of any binding, on both compilers and deliberately -- an arrow parameter is injected into that same map. So `stylex` in the body is the map registered for the namespace import, `{ when }`, and not the parameter, and namespace validation refuses `when` as a key that is neither a pseudo nor an at-rule nor `default`. Both refuse; this compiler used to refuse at the style-value consumer with a sentence about a static expression, because the map carried no expression form. The exact text is asserted in `validation_stylex_create_test::invalid_values`, which is where a message can be pinned -- `both-reject` compares acceptance, not wording.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-shadowed-namespace-beside-a-static-prop",
+      "label": "a shadowed namespace parameter beside a static property",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  wrapper: { color: 'red' },\n  dyn: (stylex) => ({ height: stylex }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the shape that reaches the consumer with something already collected",
+      "note": "The refusal belongs to the value, not to the namespace, so a property already folded beside it does not spare it. Kept apart from the entry above because the consumer is reached with a non-empty accumulator here.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-shadowed-namespace-at-every-depth",
+      "label": "a shadowed namespace parameter read under a condition, inside a pseudo, and in a shorthand",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const under = stylex.create({\n  dyn: (stylex) => ({ height: { default: stylex } }),\n});\n\nexport const inside = stylex.create({\n  dyn: (stylex) => ({ ':hover': { height: stylex } }),\n});\n\nexport const shorthand = stylex.create({\n  dyn: (stylex) => ({ margin: stylex }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the value walk and the shorthand expansion",
+      "note": "The value walk recurses per condition key and a shorthand is carried into synthesized longhands, so a materialization that only happened at the top level would leave these three on the old message. Three shapes in one module because none can pass while another fails -- they share the one consumer.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-when-read-as-a-callee-off-a-shadowed-namespace",
+      "label": "`when` read as a callee off a shadowed namespace parameter",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({\n    color: { [stylex.when.ancestor(':hover')]: 'red', default: 'blue' },\n  }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the guard the materialization is written to keep",
+      "note": "A guard, and the reason the map is materialized at the style-value consumer rather than where the identifier resolves: `when` is read off the map as a callee, which needs the map's own form. Materializing at the identifier seam would compile this to nothing.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-when-read-as-a-callee-unshadowed",
+      "label": "`when` read as a callee off the namespace import",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  a: { color: { [stylex.when.ancestor(':hover')]: 'red', default: 'blue' } },\n});\n",
+      "origin": "the identifier audit for issue #1266, the same callee without a parameter in the way",
+      "note": "The other half of the guard above. The reference does not go through a parameter, so a regression that broke the map's own form would report here even with no shadowing case in the corpus.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-when-read-as-a-callee-off-a-bare-import",
+      "label": "`when` read as a callee off a bare named import",
+      "source": "import { create, when } from '@stylexjs/stylex';\n\nexport const styles = create({\n  a: { color: { [when.ancestor(':hover')]: 'red', default: 'blue' } },\n});\n",
+      "origin": "the identifier audit for issue #1266, the bare spelling of the callee guard",
+      "note": "`when` imported on its own is a separate registration from the key on the namespace map, so it is a separate guard.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-shadowing-namespace-param-never-read",
+      "label": "a parameter shadowing the namespace import and never read",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({ color: 'red' }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the control on the fold",
+      "note": "A guard. The fold happens where the name is read, not where it is bound, so this compiles on both compilers. A materialization that fired on the parameter list would refuse it.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-shadowed-namespace-inside-an-array",
+      "label": "a shadowed namespace parameter inside an array style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({ height: [stylex, '1px'] }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the fold reached through an array",
+      "note": "Upstream reads `A style array value can only contain strings or numbers.`; this compiler still reads `Style value must evaluate to a static expression.` -- not because of the fold but because every array written inside a dynamic style's body aborts at the same consumer, folded map or not. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/14-an-array-style-value-inside-a-dynamic-style.md`. `both-reject` cannot report the wording, so this row holds the input rather than measuring the message.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-the-namespace-import-read-as-a-static-value",
+      "label": "the stylex namespace import read as a static style value",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({ a: { height: stylex } });\n",
+      "origin": "the identifier audit for issue #1266, the same fold at the static consumer",
+      "note": "No shadowing: the namespace import itself, read where a value belongs. A static namespace is evaluated by `nodes/object_expression.rs`, which deopts rather than materializing, so this reads `A style value can only contain an array, string or number.` where upstream reads `Invalid pseudo or at-rule.` Owned by `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-param-shadows-a-named-function-map-import",
+      "label": "a dynamic parameter shadowing a named import that is a function-map entry",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({\n  dyn: (keyframes) => ({ height: keyframes }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the function-map entries that are not maps",
+      "note": "Upstream folds `{ fn: keyframes }` and refuses it as a namespace. This compiler registers `keyframes` as a `Regular` config, which the identifier step deopts on -- and a deopt inside a dynamic style is the inline-style path, so this emits `height:var(--x-height)` for a module upstream refuses. The wrong-output half of `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`; the same holds for `firstThatWorks` and for a bare `when` import.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-param-shadows-the-types-import",
+      "label": "a dynamic parameter shadowing a named `types` import",
+      "source": "import { create, types } from '@stylexjs/stylex';\n\nexport const styles = create({\n  dyn: (types) => ({ height: types }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the one function-map name that agrees",
+      "note": "A guard, and an accident worth recording: upstream never registers `types` in `identifiers`, so nothing folds and the parameter stands. This compiler does register it, and agrees only because the entry deopts into the same inline-style path. If the entries beside it are made to refuse, this one must not follow them.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-shadowed-namespace-coerced-in-a-template",
+      "label": "a shadowed namespace parameter coerced to a string in a template",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({ height: `${stylex}px` }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the fold read where a string is expected",
+      "note": "Both compilers emit nonsense and disagree about which: upstream gives `height:[object Object]px`, which is what JS gives for an object in a template, and this compiler coerces the fold to the empty string and gives `height:px`. Recorded rather than fixed -- agreeing here means reproducing a coercion neither compiler intends. In `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.",
+      "expected": "divergent"
+    },
+    {
+      "id": "modules-1266-shadowed-namespace-in-a-computed-key",
+      "label": "a shadowed namespace parameter read as a computed key",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({ [stylex]: '1px' }),\n});\n",
+      "origin": "the identifier audit for issue #1266, the same coercion in the key position",
+      "note": "Upstream coerces the fold and emits a rule for a property named `[object object]`; this compiler refuses the value. The key position of the entry above, kept apart because one accepts and one refuses and a single module could only report the refusal.",
+      "expected": "acceptance-divergent"
     }
   ]
 }

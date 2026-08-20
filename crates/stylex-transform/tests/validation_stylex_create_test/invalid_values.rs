@@ -1817,6 +1817,100 @@ stylex_test_panic!(
   "#
 );
 
+// A vendor-prefixed property, which is renamed on the way to the declaration.
+// The fold has to be refused before that rename, or the refusal would name a
+// property the author never wrote.
+stylex_test_panic!(
+  a_vendor_prefixed_property_driven_by_the_fold_is_refused,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (keyframes) => ({ WebkitLineClamp: keyframes }) });
+  "#
+);
+
+// Degenerate condition keys: an at-rule with nothing after it, an empty string,
+// and a query carrying the brace that would open a block in authored CSS. None
+// of them is a key the walk can read, and none of them gets to answer before the
+// fold does.
+stylex_test_panic!(
+  an_at_rule_with_no_condition_holding_the_fold_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (keyframes) => ({ '@media': { height: keyframes } }) });
+  "#
+);
+
+stylex_test_panic!(
+  an_empty_condition_key_holding_the_fold_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (keyframes) => ({ '': { height: keyframes } }) });
+  "#
+);
+
+stylex_test_panic!(
+  a_media_query_holding_a_stray_brace_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({
+      dyn: (keyframes) => ({ '@media (min-width: 1px) {': { height: keyframes } }),
+    });
+  "#
+);
+
+// Characters a condition key is not expected to carry: a NUL, a zero-width
+// space, a right-to-left override and an astral scalar. Each is a valid Rust
+// `str` and a valid JavaScript string, so nothing rejects them as encoding
+// before the walk reaches the fold -- which is the point, since a key that
+// refused on its own bytes would hide whether the fold was reached at all.
+stylex_test_panic!(
+  a_nul_in_a_condition_key_holding_the_fold_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (keyframes) => ({ '\u{0}': { height: keyframes } }) });
+  "#
+);
+
+stylex_test_panic!(
+  a_zero_width_space_in_a_condition_key_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (keyframes) => ({ '\u{200b}': { height: keyframes } }) });
+  "#
+);
+
+stylex_test_panic!(
+  a_right_to_left_override_in_a_condition_key_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (keyframes) => ({ '\u{202e}': { height: keyframes } }) });
+  "#
+);
+
+stylex_test_panic!(
+  an_astral_character_in_a_condition_key_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ dyn: (keyframes) => ({ '\u{1F3A8}': { height: keyframes } }) });
+  "#
+);
+
 // The fold read where a static value belongs -- no shadowing, the import itself.
 // The reference implementation refuses this as a namespace; this compiler
 // refuses it as an illegal value, which is the static object evaluator's own
@@ -1843,6 +1937,23 @@ stylex_test!(
     import { create, types } from '@stylexjs/stylex';
 
     export const styles = create({ dyn: (types) => ({ height: types }) });
+  "#
+);
+
+// `unstable_conditional` is the second such guard, and it was found by reading
+// the reference implementation's registration rather than by report: it is a
+// `{ fn }` entry like `keyframes`, but registered from `stylexConditionalImport`
+// rather than for every create call, so nothing folds and the parameter stands.
+// Both compilers compile this; a fold that fired on the whole family would
+// break it.
+stylex_test!(
+  a_dynamic_param_shadowing_a_named_unstable_conditional_import_still_compiles,
+  r#"
+    import { create, unstable_conditional } from '@stylexjs/stylex';
+
+    export const styles = create({
+      dyn: (unstable_conditional) => ({ height: unstable_conditional }),
+    });
   "#
 );
 

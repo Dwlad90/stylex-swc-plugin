@@ -216,12 +216,15 @@ _Avoid_: theme object, vars object, defineVars value
 **Import specifier kind**:
 Which of `{ c }`, `c` or `* as c` bound the name a reference reads, answered by
 the same lookup that matched the reference and travelling with the declaration
-it belongs to. The first two steps of the [chain](#reference-resolution-chain)
-give the kinds opposite answers -- a named specifier resolves to a theme
-reference, a default one is refused outright, because a theme file is read
+it belongs to. The three kinds get three answers from the first two steps of the
+[chain](#reference-resolution-chain). A named specifier resolves to a theme
+reference. A default one is refused outright, because a theme file is read
 through its named exports and a default binding names a value from a file this
-compiler never evaluates. The question is about the specifier and not about the
-declaration, because one declaration carries both kinds:
+compiler never evaluates. A namespace specifier binds the whole export object
+and so names no export at all, which leaves nothing for a theme reference to be
+built from: it resolves nothing and falls through to the chain's terminal
+refusal. The question is about the specifier and not about the declaration,
+because one declaration carries two kinds at once:
 `import tokens, { colors } from 'colors.stylex.js'` must refuse `tokens` and
 still resolve `colors`. What a specifier is matched by is its **local binding**
 and nothing else: an `import { spacing as sp }` binds `sp`, and the name it was

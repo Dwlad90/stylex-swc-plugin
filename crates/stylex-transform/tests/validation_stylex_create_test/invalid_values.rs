@@ -1138,17 +1138,15 @@ stylex_test!(
 );
 
 // A namespace specifier beside a default one, which is the other mixed shape the
-// grammar allows. The namespace half still resolves; the default half is what
-// the case above this one refuses.
-//
-// The namespace half is not a parity claim — that divergence is recorded beside
-// `dynamic_param_shadows_a_namespace_theme_import` and owned by
-// `.scratch/fix_dynamic-param-shadows-import/issues/11-…`. What this case guards
-// is narrower, and is why it earns a place next to the one above: refusing the
-// default specifier must not start refusing whatever specifier sits beside it,
-// and a namespace sibling reaches a different arm than a named one.
-stylex_test!(
-  a_namespace_theme_import_beside_a_default_one_still_resolves,
+// grammar allows. Both halves refuse now, and the sentence is what this case is
+// for: a namespace specifier is refused as an undefined constant at the tail of
+// the chain, so reading that sentence rather than the default specifier's proves
+// the sibling reached its own arm. Refusing the default specifier must not start
+// refusing whatever sits beside it *for the default specifier's reason*, and
+// that is a sharper guard than the accepting snapshot this replaces.
+stylex_test_panic!(
+  a_namespace_theme_import_beside_a_default_one_is_not_defined,
+  "Referenced constant is not defined.",
   |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';

@@ -633,11 +633,15 @@ stylex_test!(
 // half of each was never broken -- they are here so a later edit cannot regress
 // all three arms to a name match at once.
 //
-// The namespace snapshot is not a parity claim. Measured against
-// `@stylexjs/babel-plugin` 0.19.0, a namespace theme import diverges *without
-// any shadowing*: it refuses one with `Referenced constant is not defined.`
-// where we accept it and answer a theme reference. The divergence is about the
-// import specifier kind, not about the parameter, and it is tracked separately.
+// Neither import kind resolves anything now, so each has to be asked without the
+// import being read: the parameter is the only reference to the name, and it
+// compiles to an inline style. A regression to a name match would resolve the
+// parameter to the import instead and refuse, which is a louder guard than the
+// accepting snapshots these replace -- those refused nothing either way.
+//
+// The unshadowed halves both moved to
+// `validation_stylex_create_test::invalid_values`, where the refusals they now
+// read belong.
 stylex_test!(
   dynamic_param_shadows_a_namespace_theme_import,
   |tr| theme_import_transform(tr.comments.clone()),
@@ -646,21 +650,11 @@ stylex_test!(
     import * as tokens from 'tokens.stylex.js';
 
     export const styles = stylex.create({
-      wrapper: { color: tokens.color },
       dyn: (tokens) => ({ color: tokens }),
     });
   "#
 );
 
-// A default import is refused now, so the shadowing arm has to be asked without
-// one being read: the parameter is the only reference to the name here, and it
-// compiles to an inline style. A regression to a name match would resolve it to
-// the import instead and refuse -- a louder guard than the accepting snapshot
-// this replaces, which refused nothing either way.
-//
-// The unshadowed half of the old snapshot moved to
-// `validation_stylex_create_test::invalid_values`, where the refusal it now
-// reads belongs.
 stylex_test!(
   dynamic_param_shadows_a_default_theme_import,
   |tr| theme_import_transform(tr.comments.clone()),

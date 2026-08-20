@@ -47,7 +47,8 @@ fn reads_before_its_declaration(reference: &Ident, declarator: &VarDeclarator) -
 ///
 /// The steps, in `evaluate-path.js` 0.19.0 order:
 ///
-/// 1. an import specifier resolves to a theme reference (599-650)
+/// 1. an import specifier resolves to a theme reference (599-650) — a *named*
+///    one; the other two specifier kinds are answered inside this step
 /// 2. a default-import specifier (652-654)
 /// 3. a reassigned binding is not a constant (656-658)
 /// 4. a binding mutated in place is not a constant (660-662)
@@ -68,11 +69,16 @@ pub(super) fn resolve_reference(
   //
   // Steps 1 and 2 read one lookup, so they are nested rather than sequential:
   // both ask what kind of specifier binds this reference, and upstream's step 1
-  // guard (`!bindingPath.isImportDefaultSpecifier()`, 0.19.0 line 640) is the
-  // same question step 2 answers with a refusal. The order is upstream's either
-  // way — a default specifier never resolves a theme reference here.
+  // guard (`!bindingPath.isImportDefaultSpecifier() &&
+  // !bindingPath.isImportNamespaceSpecifier() && bindingPath.isImportSpecifier()`,
+  // 0.19.0 lines 600-605) is the same question steps 2 and this one's own
+  // namespace arm answer. The order is upstream's either way — neither of the
+  // other two specifier kinds resolves a theme reference here.
   if let Some((import_path, specifier)) = get_import_by_ident(ident, traversal_state) {
-    let (local_name, imported) = match specifier {
+    // Which single export of the imported file this reference names, or `None`
+    // where the specifier names no single export and the step therefore does
+    // not apply.
+    let imported: Option<ModuleExportName> = match specifier {
       // ── 2. a default-import specifier (652-654) ─────────────────────────
       //
       // A theme file is read through its named exports, so there is no theme
@@ -89,20 +95,33 @@ pub(super) fn resolve_reference(
       // second time. The first refusal wins on both sides, so the fall-through
       // is unobservable; returning here says so.
       ImportSpecifier::Default(_) => return deopt(path, state, IMPORT_FILE_EVAL_ERROR),
-      ImportSpecifier::Named(named) => (named.local.clone(), named.imported.clone()),
-      // Upstream excludes a namespace specifier from step 1 too, and resolving
-      // one to a theme reference is a measured divergence this chain still
-      // carries: `.scratch/fix_dynamic-param-shadows-import/issues/11-…` owns
-      // the verdict on it.
-      ImportSpecifier::Namespace(namespace) => (
-        namespace.local.clone(),
-        Some(ModuleExportName::Ident(namespace.local.clone())),
+
+      ImportSpecifier::Named(named) => Some(
+        named
+          .imported
+          .clone()
+          .unwrap_or_else(|| ModuleExportName::Ident(named.local.clone())),
       ),
+
+      // A namespace specifier binds the module's whole export object, so it
+      // names no export for a theme reference to be built from — which is why
+      // upstream's step 1 excludes it: the step reads `importSpecifierNode.
+      // imported`, a field an `ImportNamespaceSpecifier` does not carry. It is
+      // a guard on the step's input rather than a verdict on the import kind,
+      // and unlike a default specifier it is given no refusal of its own; the
+      // reference falls through to `UNDEFINED_CONST` at the tail of the chain.
+      //
+      // Resolving one here instead — by synthesizing the reference's own local
+      // alias as the export name — is what this arm gives up, and giving it up
+      // is a decision rather than a mirror. ADR 0003 argues it from the
+      // measurement, and `modules-1266-a-namespace-theme-import` is where that
+      // measurement is executed rather than described.
+      ImportSpecifier::Namespace(_) => None,
     };
 
-    let imported = imported.unwrap_or_else(|| ModuleExportName::Ident(local_name.clone()));
-
-    if !state.functions.disable_imports {
+    if let Some(imported) = imported
+      && !state.functions.disable_imports
+    {
       let abs_path = traversal_state.import_path_resolver(
         convert_atom_to_str_ref(&import_path.src.value),
         &mut FxHashMap::default(),

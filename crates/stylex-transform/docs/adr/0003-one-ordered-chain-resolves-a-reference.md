@@ -43,6 +43,12 @@ adding one: `import NaN from 'tokens.stylex.js'` puts a default specifier and a
 global on one binding, and the step ahead answers, as it does upstream. Both
 answers are refusals there, so only the text differs.
 
+The namespace arm of step 1 landed later still, and it is the one specifier kind
+that does _not_ take the exception: `import * as NaN from 'tokens.stylex.js'`
+resolves nothing at step 1, so the globals step behind it is reached and refuses
+for the binding. Both answers are refusals again, and again only the text
+differs.
+
 **The steps that would change output were left changing nothing.** Two of the
 reference implementation's steps had no counterpart here when the chain was
 assembled — a default-import refusal and the `undefined` / `Infinity` / `NaN`
@@ -60,6 +66,43 @@ theme file does not define, where upstream refused. That is
 before the step and `both reject` after it. The step asks about the _specifier_
 rather than about the declaration, because one declaration carries a default and
 a named specifier at once and the two steps give them opposite answers.
+
+**A namespace specifier resolves nothing, and that was a decision, not a third
+step.** Upstream's step 1 excludes an `ImportNamespaceSpecifier` alongside the
+default one, but for a different reason and with a different consequence: the
+step reads `importSpecifierNode.imported`, a field a namespace node does not
+carry, so the exclusion is a guard on the step's input rather than a verdict on
+the import kind — and unlike a default specifier, a namespace one is given no
+refusal of its own. It falls through every step behind it and lands on the
+terminal `UNDEFINED_CONST`.
+
+Mirroring that was not obviously right, because this compiler accepted such an
+import and refusing it breaks modules that compile today. What decided it was
+measuring what those modules compile _to_. The namespace arm synthesized the
+reference's own **local alias** as the export name, so `import * as tokens from
+'vars.stylex.js'` folded `tokens.color` to a variable hashed from
+`vars.stylex.js//tokens.color`, while the file's exported group is `vars` and
+the variable it defines is hashed from `vars.stylex.js//vars.color`. The two
+were compared against the reference implementation's own output for the theme
+file. The consequences, all measured and all in the parity corpus:
+
+- a module reading one token through a named import and through a namespace
+  import at once emitted **two different custom properties** for it
+  (`modules-1266-a-namespace-theme-import-beside-a-named-one`);
+- the spelling the namespace form actually calls for, `tokens.vars.color`,
+  folded to a third variable nothing defines
+  (`modules-1266-a-namespace-theme-import-read-through-its-group`);
+- the only spelling that agreed with the theme file was an alias spelled like
+  the exported group, which is a coincidence rather than a resolution
+  (`modules-1266-a-namespace-theme-import-aliased-to-the-export-name`).
+
+A `var()` nothing defines renders as nothing and reports as nothing, so what the
+arm was preserving was a silent wrong render, not a capability: the same
+variable is reachable through the named import both compilers resolve. So the
+arm gives up the resolution and takes upstream's fall-through, which also
+replaces two refusals given for the wrong reason — a namespace import of a
+non-theme file read as a path-resolution failure, and a namespace group read
+where a value belongs read as a shape the value position rejects.
 
 The globals step asks what the reference
 implementation asks: whether a binding exists for the reference, refusing when
@@ -84,6 +127,16 @@ honest mirror of the reference implementation, and rejected: the SWC resolver
 already runs ahead of this pass and already makes `SyntaxContext` authoritative
 for shadowing. A hand-rolled scope tree would be a second answer to the one
 question the resolver exists to answer, and the two would drift.
+
+**Keep resolving a namespace theme import, and record why.** The option the
+namespace arm's ticket opened with, and the one that reads as the conservative
+choice: it accepts modules upstream refuses, and refusing them is a breaking
+change. Rejected on the measurement rather than on the parity argument — the
+resolution being given up hashes the local alias, so the module it "accepts"
+gets a custom property nothing defines unless the alias happens to be spelled
+like the exported group. Keeping it would mean recording that a wrong render is
+preferred to a build error, which is not a trade this compiler makes anywhere
+else.
 
 **One write probe instead of two.** The two probes — a rebound binding and a
 value mutated in place — refuse with the same text, so a single set answers both

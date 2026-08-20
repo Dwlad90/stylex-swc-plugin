@@ -306,15 +306,15 @@ stylex_test_panic!(
   "#
 );
 
-// A namespace import of the same file resolves to a theme reference here and to
-// nothing at all upstream, which refuses it with `Referenced constant is not
-// defined.` Both refuse; only the wording differs, and reaching upstream's would
-// mean giving up a resolution that member reads rely on. What a namespace import
-// of a theme file means is
-// `.scratch/fix_dynamic-param-shadows-import/issues/11-refuse-a-namespace-theme-import.md`.
+// A namespace import of the same file names no export, so it resolves to no
+// theme reference at all and is refused as an undefined constant -- the same
+// sentence the reference implementation reads for the same input, which it
+// reaches the same way. This used to be refused one seam later, as a group that
+// is not a style value, because the namespace resolved to a theme reference
+// built from its local alias.
 stylex_test_panic!(
-  a_namespace_theme_import_read_as_a_style_value_is_refused_as_a_value,
-  "A style value can only contain an array, string or number.",
+  a_namespace_theme_import_read_as_a_style_value_is_not_defined,
+  "Referenced constant is not defined.",
   |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';

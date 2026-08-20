@@ -356,11 +356,11 @@ fn a_long_argument_list_folds_and_a_long_one_with_a_bad_argument_refuses() {
   assert_deopts(&format!("Math.max({}, {{}})", numbers));
 }
 
-/// Array holes are absent values rather than a broken invariant; reading one
-/// must not abort. Indexing an array literal refuses whether the slot is a
-/// hole or not — see the note in `nodes/member_expression.rs` on why the `Vec`
-/// representation is not indexed — so what is asserted here is that both
-/// answers are refusals rather than aborts.
+/// An array hole is a refusal rather than a broken invariant; reading one must
+/// not abort. The refusal belongs to the hole itself — see
+/// `tests/array_hole_tests.rs` for what it says and why — and an index into an
+/// array literal refuses whether the slot is a hole or not, so what is asserted
+/// here is that both answers are refusals rather than aborts.
 #[test]
 fn array_holes_do_not_abort() {
   assert_deopts("[, 1][0]");

@@ -73,11 +73,20 @@ the reasons in
 _Avoid_: fold error, hard error, invalid call
 
 **Hole**:
-An array element `Array(n)` created by counting rather than by listing. Held as
-the same absent value a confidently evaluated element with no value already is,
-so it joins as nothing and reaches the style-array check unchanged. A style
-array cannot contain one, which is where a counted array is refused — the fold
-itself succeeds.
+An array slot with no element in it. Two arrive by different routes and are
+answered differently. One `Array(n)` created by counting rather than by listing
+is held as the same absent value a confidently evaluated element with no value
+already is, so it joins as nothing and reaches the style-array check unchanged —
+a style array cannot contain one, which is where a counted array is refused, the
+fold itself succeeding. One an author _wrote_, as in `[, 1]`, refuses the whole
+array instead: the reference implementation evaluates element paths and a hole's
+path carries no node, so both compilers answer
+`Could not resolve the code being evaluated`. Dropping it is what refusing
+replaced — a dropped hole shortens the array, and `[, 1].length` answering `1`
+and `height: [, '2px']` emitting `height: 2px` were each a value the source does
+not describe. Inside a dynamic style's body the refusal is not an error at all:
+the value falls to the runtime, which is what the reference implementation emits
+there.
 _Avoid_: empty slot, gap, undefined element
 
 **Member lookup**:
@@ -91,12 +100,12 @@ _Avoid_: property access, index check, member kind
 
 **Written slot**:
 The element count the language reports for an array, read from the literal as
-written rather than from what evaluating it produced. The two differ for a
-hole, which evaluation drops before it becomes a value, so a hole is why the
-count comes from the AST at all. A spread never reaches the count: evaluating
-the array refuses it first, as a [spread refusal](#spread-refusal). The
-receiver is unwrapped before it is read, because a parenthesis is not a
-different receiver.
+written rather than from what evaluating it produced. A written [hole](#hole) is
+why the count comes from the AST at all: it occupies a slot the language counts
+and refuses the array it is in, so the count is answered from the source ahead of
+the receiver being evaluated. A spread never reaches the count: evaluating the
+array refuses it first, as a [spread refusal](#spread-refusal). The receiver is
+unwrapped before it is read, because a parenthesis is not a different receiver.
 _Avoid_: array length, element count, size
 
 **Spread refusal**:
@@ -117,8 +126,9 @@ A number, a boolean, `null`, `undefined` and a function have none, so spreading
 one is not an error and adds nothing; a string and an array have their indices.
 Two readings are refused rather than answered, both because this evaluator
 cannot write them down: an astral string, whose code units are lone surrogates
-no Rust string holds, and an array carrying a [hole](#hole), which is dropped
-before it becomes a value so the keys after it would shift.
+no Rust string holds, and a value held in a representation of the evaluator's
+own. An array carrying a written [hole](#hole) never reaches the question — it is
+refused for the hole, before the spread reads it.
 _Avoid_: spread properties, object keys, assigned properties
 
 **Own key order**:

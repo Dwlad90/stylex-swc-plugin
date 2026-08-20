@@ -40,12 +40,17 @@ fn indexed_props(
 }
 
 fn spread_own_properties(value: EvaluateResultValue, operand: &Expr) -> Option<Vec<PropOrSpread>> {
-  // An array hole has no key of its own, and this evaluator drops one before it
-  // becomes a value — so an evaluated `[, 1]` is indistinguishable from `[1]`
-  // and would answer `{ 0: 1 }` where the language says `{ 1: 1 }`. Read off the
-  // operand's own literal, where it has one, so the wrong key is refused rather
-  // than written. Upstream crashes outright on this input, so nothing is lost
-  // by refusing it. A trailing comma is not a hole: `[1, ]` has one element.
+  // An array hole has no key of its own, so an operand carrying one would answer
+  // `{ 0: 1 }` where the language says `{ 1: 1 }` if the hole were dropped
+  // rather than kept. Read off the operand's own literal, where it has one, so
+  // the wrong key is refused rather than written. A trailing comma is not a
+  // hole: `[1, ]` has one element.
+  //
+  // A guard rather than a live path, since `array_expression` refuses a holey
+  // array outright and the spread operand is evaluated before it reaches here.
+  // Both refusals read the same sentence upstream gives, so which one fires is
+  // invisible to an author — and the check is a bounds test against a wrong key,
+  // which is worth keeping if that order ever changes.
   if let Expr::Array(array) = normalize_expr(operand)
     && array.elems.iter().any(|elem| elem.is_none())
   {

@@ -52,9 +52,10 @@ fn a_trailing_comma_is_not_an_element() {
 }
 
 /// A hole is a slot, so it counts. This is the case that decides where the
-/// count is read from: an array's evaluated elements have holes dropped, so a
-/// literal receiver is counted off the AST instead. `[,]` is a single hole with
-/// a trailing comma after it, which the language reads as one slot.
+/// count is read from: a hole has no value, so the array itself refuses and only
+/// the source can say how many slots were written. `[,]` is a single hole with a
+/// trailing comma after it, which the language reads as one slot. What the
+/// refusal says, and every shape around it, is in `tests/array_hole_tests.rs`.
 #[test]
 fn a_hole_is_a_slot_and_counts() {
   assert_folds_to_number("[, 1].length", 2.0);
@@ -94,8 +95,8 @@ fn an_array_carrying_a_spread_refuses_rather_than_being_miscounted() {
 ///
 /// The literal is read off the receiver's own AST, and an unnormalized read
 /// finds a `ParenExpression` instead of an array — falling through to the
-/// evaluated element count, which is short by every hole and blind to every
-/// spread. `([, 1]).length` answered `1`, and `([...[1, 2]]).length` answered
+/// evaluated element count, which is blind to every spread, or to the hole's own
+/// refusal. `([, 1]).length` answered `1`, and `([...[1, 2]]).length` answered
 /// `1` confidently where the bare form refuses.
 #[test]
 fn a_parenthesised_receiver_is_counted_as_the_bare_one_is() {

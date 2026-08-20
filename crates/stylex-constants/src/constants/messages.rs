@@ -144,9 +144,9 @@ pub static SPREAD_NOT_SUPPORTED: &str =
 /// number, its indices for a string or an array. What is refused is narrower and
 /// is what this says: an operand whose properties cannot be read at compile
 /// time, which is an astral string (its code units are lone surrogates no Rust
-/// string holds), an array carrying a hole (dropped before it becomes a value,
-/// so the keys after it would shift), and a value the evaluator holds in a
-/// representation of its own.
+/// string holds) and a value the evaluator holds in a representation of its own.
+/// An array carrying a hole is refused for the hole, before the spread reads it,
+/// and reads the reference implementation's own words for one.
 pub static SPREAD_PROPERTIES_UNREADABLE: &str =
   "The spread argument's properties could not be read at compile time.";
 

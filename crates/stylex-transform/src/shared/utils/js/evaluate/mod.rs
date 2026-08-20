@@ -420,6 +420,10 @@ fn _evaluate(
 pub(crate) mod source_evaluation;
 
 #[cfg(test)]
+#[path = "tests/array_hole_tests.rs"]
+mod array_hole_tests;
+
+#[cfg(test)]
 #[path = "tests/member_length_tests.rs"]
 mod member_length_tests;
 

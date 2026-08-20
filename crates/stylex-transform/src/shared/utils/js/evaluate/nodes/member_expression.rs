@@ -87,8 +87,9 @@ fn refuse_lookup(
 /// cannot be counted from its own elements.
 ///
 /// A hole is what makes the count come from the AST rather than from the
-/// evaluated elements: it occupies a slot and is dropped before it becomes a
-/// value, so `[, 1]` writes two slots and evaluates to one element.
+/// evaluated elements: it occupies a slot and has no value, so `[, 1]` writes
+/// two slots and does not evaluate at all — `array_expression` refuses it rather
+/// than answering one element short of what was written.
 ///
 /// The spread arm is a guard rather than a live path. A spread is one element
 /// standing for however many the spread value holds, so neither count is the
@@ -106,22 +107,75 @@ fn written_slot_count(elems: &[Option<ExprOrSpread>]) -> Option<usize> {
 /// The slot count of an evaluated array, read from the receiver's own literal
 /// where it has one.
 ///
-/// Two sources, because the evaluated elements are not the slots: a hole is
-/// dropped before it becomes a value, so an evaluated `[, 1]` holds one element
-/// where the language counts two. A literal receiver is therefore counted as
-/// written, and a receiver reached any other way — a binding, a fold — can only
-/// be counted by its elements. The two agree wherever there is no hole; where
-/// there is one and the receiver is a binding, the answer is still short, which
-/// is the representation gap `array_expression` owns rather than this fold.
+/// Two sources, because the evaluated elements need not be the slots: a fold's
+/// own array output can carry a hole where the source wrote none. A literal
+/// receiver is therefore counted as written, and a receiver reached any other
+/// way — a binding, a fold — is counted by its elements.
+///
+/// A receiver written with a hole never arrives here: the array refuses to fold,
+/// so `holey_receiver_length` answers it from the source ahead of the receiver
+/// being evaluated at all. That is the only reading of a hole, and both this
+/// function and that one take it — a slot the source wrote counts, whether or
+/// not anything filled it.
 ///
 /// The receiver is unwrapped before it is asked, because a parenthesis is not a
-/// different receiver: `([, 1]).length` reaches the evaluated count otherwise,
-/// and that count is one short.
+/// different receiver: `([1, 2]).length` reaches the evaluated count otherwise,
+/// which is the same number here and need not stay so.
 fn written_slot_count_of(obj: &Expr, items: &[EvaluateResultValue]) -> Option<usize> {
   match normalize_expr(obj).as_array() {
     Some(ArrayLit { elems, .. }) => written_slot_count(elems),
     None => Some(items.len()),
   }
+}
+
+/// Whether a member lookup names `length` in the source, without evaluating
+/// anything.
+///
+/// The name is read off the AST rather than off an evaluated property, because
+/// the one caller runs before the receiver is evaluated and evaluating the key
+/// there would report the key's refusal in place of the receiver's. Both
+/// spellings the language has for the same property are accepted; a computed key
+/// that is not a string literal is not one of them and falls through to the
+/// ordinary path.
+fn is_written_length(prop: &MemberProp) -> bool {
+  match prop {
+    MemberProp::Ident(ident) => ident.sym == LENGTH,
+    MemberProp::Computed(ComputedPropName { expr, .. }) => {
+      matches!(normalize_expr(expr), Expr::Lit(Lit::Str(strng)) if strng.value == LENGTH)
+    },
+    MemberProp::PrivateName(_) => false,
+  }
+}
+
+/// The slot count of an array literal receiver carrying a hole, counted from the
+/// source.
+///
+/// A hole makes the array itself unfoldable -- it is a slot with no value, so
+/// `array_expression` refuses the array rather than answering one short of what
+/// was written -- and the count survives that refusal because it never needed
+/// the values. `[, 1].length` is two in the language, and answering it is what
+/// this reads off the AST.
+///
+/// Narrow on purpose: an array with no hole folds, so its count is answered by
+/// the arms below from its evaluated form, and only a receiver those arms can no
+/// longer reach is answered here. A spread still refuses, through the same
+/// `written_slot_count` the arms below use -- one written element standing for
+/// however many the spread holds is not a count either reading can give.
+fn holey_receiver_length(
+  member: &MemberExpr,
+  path: &Expr,
+  state: &mut EvaluationState,
+) -> Option<Option<EvaluateResultValue>> {
+  let ArrayLit { elems, .. } = normalize_expr(&member.obj).as_array()?;
+
+  if !elems.iter().any(Option::is_none) || !is_written_length(&member.prop) {
+    return None;
+  }
+
+  Some(match written_slot_count(elems) {
+    Some(count) => Some(EvaluateResultValue::Expr(create_number_expr(count as f64))),
+    None => deopt(path, state, SPREAD_ELEMENT),
+  })
 }
 
 pub(in super::super) fn evaluate(
@@ -137,6 +191,10 @@ pub(in super::super) fn evaluate(
   let evaluated_value = if parent_is_call_expr {
     None
   } else {
+    if let Some(answer) = holey_receiver_length(member, path, state) {
+      return answer;
+    }
+
     // ThemeRef fast-path. Only run for member chains whose base is a plain
     // identifier — the only shape that can resolve to a `ThemeRef` (either a
     // local `ThemeRefMapper` registered in `fns.identifiers` or a cross-file
@@ -435,11 +493,11 @@ pub(in super::super) fn evaluate(
         // above notes.
         //
         // The count comes from the written slots where the receiver is a
-        // literal, and from the evaluated elements otherwise. The two disagree
-        // only for an array carrying a hole, which `array_expression` drops
-        // rather than carrying as a value — so a literal is read from the AST,
-        // and a binding to `[, 1]` still answers one where the language says
-        // two. That gap belongs to how a hole is represented, not to `length`.
+        // literal, and from the evaluated elements otherwise. A receiver written
+        // with a hole reaches neither reading: the array refuses to fold, and
+        // `holey_receiver_length` has already answered its count from the
+        // source — including through a binding, where the refusal travels with
+        // the value and no short count is answered.
         EvaluateResultValue::Vec(items) => match classify_lookup(property.as_ref()) {
           ArrayLikeLookup::Length => match written_slot_count_of(&member.obj, &items) {
             Some(count) => Some(EvaluateResultValue::Expr(create_number_expr(count as f64))),

@@ -8,7 +8,29 @@ pub(in super::super) fn evaluate(
 ) -> Option<EvaluateResultValue> {
   let mut arr: Vec<EvaluateResultValue> = Vec::with_capacity(arr_path.elems.len());
 
-  for elem in arr_path.elems.iter().flatten() {
+  for elem in &arr_path.elems {
+    // A hole is refused, and with the reference implementation's own words for
+    // it.
+    //
+    // The reference implementation evaluates each *element path*, and the path
+    // of a hole carries no node at all -- so it falls to the guard that reports
+    // `PATH_WITHOUT_NODE`, the same one this evaluator's cache reports when
+    // handed a path it cannot read. Both compilers therefore refuse a hole with
+    // the same sentence, which is what makes the diagnostic portable.
+    //
+    // Refusing is the whole point rather than a formality: `elems` holds a
+    // `None` for a hole, so skipping it shortens the array. `[1, , 3].length`
+    // folded to `2` and `height: [, '2px']` folded to `height: 2px`, each a
+    // value the source does not describe. In a dynamic style's body the refusal
+    // is not even an error -- the value falls to the runtime, `height:
+    // var(--x-height)`, which is what the reference implementation emits there.
+    //
+    // Reported at the array, like the spread below and for the same reason:
+    // there is no node for a hole to report at.
+    let Some(elem) = elem else {
+      return deopt(&Expr::Array(arr_path.clone()), state, PATH_WITHOUT_NODE);
+    };
+
     // A spread is refused, whatever it spreads, and before the operand is
     // evaluated at all.
     //

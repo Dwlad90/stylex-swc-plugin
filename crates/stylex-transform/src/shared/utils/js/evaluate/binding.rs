@@ -152,15 +152,19 @@ pub(super) fn resolve_reference(
         return Some(EvaluateResultValue::ThemeRef(return_value));
       }
 
-      // Upstream refuses here as well, with the same `IMPORT_FILE_EVAL_ERROR`
-      // step 2 above gives: a resolution that came back *unconfident* is an
-      // imported file it could not fold (0.19.0 line 6360). This falls through
-      // silently instead, keeping whichever refusal the resolution already
-      // recorded. Left alone rather than mirrored because no divergence has been
-      // measured behind it, and this chain does not add a step on the strength
-      // of how the two implementations look:
-      // `.scratch/fix_dynamic-param-shadows-import/issues/13-…` owns the
-      // measurement.
+      // Upstream gives `IMPORT_FILE_EVAL_ERROR` a second time here, where a
+      // resolution came back *unconfident* (0.19.0 line 6360). Deliberately
+      // absent, and unreachable rather than skipped: upstream reaches that
+      // branch only out of `evaluateImportedFile`, which parses the imported
+      // module and folds the named export out of it. This compiler has no such
+      // arm — `ImportPathResolution` resolves to a path or to nothing — and
+      // `evaluate_theme_ref` is a constructor over `&StateManager` that cannot
+      // clear confidence. So no resolution reached from here can leave the
+      // evaluation unconfident, and there is no input for the branch to answer.
+      //
+      // It becomes reachable the day this compiler evaluates an imported file in
+      // its own right, which is the same capability the globals step's
+      // cross-file gap waits on.
     }
   }
 

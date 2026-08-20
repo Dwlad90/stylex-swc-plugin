@@ -1101,7 +1101,7 @@ fn theme_import_transform(comments: TestComments) -> impl Pass {
 // The reported shape: a member read off a default theme import.
 stylex_test_panic!(
   a_default_theme_import_read_in_a_style_value_is_refused,
-  "There was an error when attempting to evaluate the imported file",
+  "There was an error when attempting to evaluate the imported file.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     import tokens from 'tokens.stylex.js';
@@ -1114,7 +1114,7 @@ stylex_test_panic!(
 // is about the specifier and not about the property lookup.
 stylex_test_panic!(
   a_default_theme_import_read_as_a_bare_value_is_refused,
-  "There was an error when attempting to evaluate the imported file",
+  "There was an error when attempting to evaluate the imported file.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     import tokens from 'tokens.stylex.js';
@@ -1141,13 +1141,12 @@ stylex_test!(
 // grammar allows. The namespace half still resolves; the default half is what
 // the case above this one refuses.
 //
-// The namespace half is not a parity claim. Upstream excludes a namespace
-// specifier from the resolution step as it excludes a default one, and refuses
-// this with `Referenced constant is not defined.`; whether to mirror that is
-// `.scratch/fix_dynamic-param-shadows-import/issues/11-…`, which owns the
-// verdict. What this case guards is narrower and is the reason it is here at
-// all: refusing the default specifier must not start refusing whatever specifier
-// sits beside it.
+// The namespace half is not a parity claim — that divergence is recorded beside
+// `dynamic_param_shadows_a_namespace_theme_import` and owned by
+// `.scratch/fix_dynamic-param-shadows-import/issues/11-…`. What this case guards
+// is narrower, and is why it earns a place next to the one above: refusing the
+// default specifier must not start refusing whatever specifier sits beside it,
+// and a namespace sibling reaches a different arm than a named one.
 stylex_test!(
   a_namespace_theme_import_beside_a_default_one_still_resolves,
   |tr| theme_import_transform(tr.comments.clone()),
@@ -1164,7 +1163,7 @@ stylex_test!(
 // failure before -- the wrong reason for the right refusal.
 stylex_test_panic!(
   a_default_import_of_a_non_theme_file_is_refused_the_same_way,
-  "There was an error when attempting to evaluate the imported file",
+  "There was an error when attempting to evaluate the imported file.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     import classnames from 'classnames';
@@ -1178,7 +1177,7 @@ stylex_test_panic!(
 // declaration cases above keep.
 stylex_test_panic!(
   a_default_theme_import_read_in_a_shorthand_is_refused,
-  "There was an error when attempting to evaluate the imported file",
+  "There was an error when attempting to evaluate the imported file.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     import tokens from 'tokens.stylex.js';
@@ -1192,7 +1191,7 @@ stylex_test_panic!(
 // through.
 stylex_test_panic!(
   a_default_theme_import_read_in_deeply_nested_conditions_is_refused,
-  "There was an error when attempting to evaluate the imported file",
+  "There was an error when attempting to evaluate the imported file.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     import tokens from 'tokens.stylex.js';
@@ -1218,7 +1217,7 @@ stylex_test_panic!(
 // position rather than from the value position.
 stylex_test_panic!(
   a_default_theme_import_read_as_a_computed_key_is_refused,
-  "There was an error when attempting to evaluate the imported file",
+  "There was an error when attempting to evaluate the imported file.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     import tokens from 'tokens.stylex.js';
@@ -1232,7 +1231,7 @@ stylex_test_panic!(
 // it instead of a coercion failure.
 stylex_test_panic!(
   a_default_theme_import_read_through_an_operator_is_refused,
-  "There was an error when attempting to evaluate the imported file",
+  "There was an error when attempting to evaluate the imported file.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     import tokens from 'tokens.stylex.js';
@@ -1246,7 +1245,7 @@ stylex_test_panic!(
 // context keeps them apart. The import answers, as it does upstream.
 stylex_test_panic!(
   a_default_import_bound_to_a_global_name_is_refused_as_the_import,
-  "There was an error when attempting to evaluate the imported file",
+  "There was an error when attempting to evaluate the imported file.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     import NaN from 'tokens.stylex.js';
@@ -1260,7 +1259,7 @@ stylex_test_panic!(
 // refusal has to key off the binding rather than off the bytes.
 stylex_test_panic!(
   a_default_theme_import_with_a_non_ascii_binding_name_is_refused,
-  "There was an error when attempting to evaluate the imported file",
+  "There was an error when attempting to evaluate the imported file.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     import цвета from 'tokens.stylex.js';
@@ -1271,7 +1270,7 @@ stylex_test_panic!(
 
 stylex_test_panic!(
   a_default_theme_import_with_an_escaped_binding_name_is_refused,
-  "There was an error when attempting to evaluate the imported file",
+  "There was an error when attempting to evaluate the imported file.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     import \u0074okens from 'tokens.stylex.js';

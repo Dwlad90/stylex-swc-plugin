@@ -207,24 +207,18 @@ enum ParameterScope {
 }
 
 impl ModuleState {
-  fn imported(mut self) -> Self {
-    self.imported = Some(ImportedAs::Named);
+  /// Which specifier kind binds the name under test — the question the chain's
+  /// first two steps ask, so the kind is the parameter rather than four setters
+  /// that differ only by which variant they assign.
+  fn imported_as(mut self, kind: ImportedAs) -> Self {
+    self.imported = Some(kind);
     self
   }
 
-  fn imported_as_a_default(mut self) -> Self {
-    self.imported = Some(ImportedAs::Default);
-    self
-  }
-
-  fn imported_as_a_default_beside_a_named(mut self) -> Self {
-    self.imported = Some(ImportedAs::DefaultBesideNamed);
-    self
-  }
-
-  fn imported_as_a_named_beside_a_default(mut self) -> Self {
-    self.imported = Some(ImportedAs::NamedBesideDefault);
-    self
+  /// The plain import: `imported_as(Named)`, spelled short because most cases
+  /// here are not about the specifier kind at all and read better without it.
+  fn imported(self) -> Self {
+    self.imported_as(ImportedAs::Named)
   }
 
   fn declared_with(mut self, init: Expr) -> Self {
@@ -473,7 +467,7 @@ fn the_import_step_is_asked_before_the_write_probes() {
 #[test]
 fn a_default_import_specifier_is_refused() {
   let result = ModuleState::default()
-    .imported_as_a_default()
+    .imported_as(ImportedAs::Default)
     .evaluate_a_later_reference();
 
   assert_refused_with(&result, IMPORT_FILE_EVAL_ERROR);
@@ -487,7 +481,7 @@ fn a_default_import_specifier_is_refused() {
 #[test]
 fn a_named_specifier_beside_a_default_one_still_resolves() {
   let result = ModuleState::default()
-    .imported_as_a_named_beside_a_default()
+    .imported_as(ImportedAs::NamedBesideDefault)
     .evaluate_a_later_reference();
 
   assert_refused_with(&result, IMPORT_PATH_RESOLUTION_ERROR);
@@ -498,7 +492,7 @@ fn a_named_specifier_beside_a_default_one_still_resolves() {
 #[test]
 fn a_default_specifier_beside_a_named_one_is_still_refused() {
   let result = ModuleState::default()
-    .imported_as_a_default_beside_a_named()
+    .imported_as(ImportedAs::DefaultBesideNamed)
     .evaluate_a_later_reference();
 
   assert_refused_with(&result, IMPORT_FILE_EVAL_ERROR);
@@ -512,7 +506,7 @@ fn a_default_specifier_beside_a_named_one_is_still_refused() {
 #[test]
 fn a_default_import_is_refused_with_the_import_step_disabled() {
   let result = ModuleState::default()
-    .imported_as_a_default()
+    .imported_as(ImportedAs::Default)
     .with_imports_disabled()
     .evaluate_a_later_reference();
 
@@ -526,7 +520,7 @@ fn a_default_import_is_refused_with_the_import_step_disabled() {
 #[test]
 fn the_default_import_step_is_asked_before_every_step_behind_it() {
   let result = ModuleState::default()
-    .imported_as_a_default()
+    .imported_as(ImportedAs::Default)
     .declared_with(create_string_expr("red"))
     .reassigned()
     .mutated()
@@ -543,7 +537,7 @@ fn the_default_import_step_is_asked_before_every_step_behind_it() {
 fn a_default_import_aliased_to_a_global_name_is_refused_as_the_import() {
   for name in FOLDED_GLOBALS {
     let result = ModuleState::default()
-      .imported_as_a_default()
+      .imported_as(ImportedAs::Default)
       .evaluate(name, LATER_REFERENCE_SPAN);
 
     assert_refused_with(&result, IMPORT_FILE_EVAL_ERROR);
@@ -557,7 +551,7 @@ fn a_default_import_aliased_to_a_global_name_is_refused_as_the_import() {
 #[test]
 fn a_default_import_read_above_its_declaration_is_refused() {
   let result = ModuleState::default()
-    .imported_as_a_default()
+    .imported_as(ImportedAs::Default)
     .evaluate("c", span_at(1, 2));
 
   assert_refused_with(&result, IMPORT_FILE_EVAL_ERROR);
@@ -570,7 +564,7 @@ fn a_default_import_read_above_its_declaration_is_refused() {
 #[test]
 fn a_reference_shadowing_a_default_import_is_not_the_import() {
   let result = ModuleState::default()
-    .imported_as_a_default()
+    .imported_as(ImportedAs::Default)
     .read_from_a_shadowing_scope()
     .evaluate_a_later_reference();
 

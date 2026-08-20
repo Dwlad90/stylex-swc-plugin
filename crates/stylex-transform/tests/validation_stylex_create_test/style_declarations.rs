@@ -99,7 +99,7 @@ stylex_test_panic!(
 // the same way for the same reason.
 stylex_test_panic!(
   invalid_value_non_static_import_default,
-  "There was an error when attempting to evaluate the imported file.\nPlease ensure that the imported file is self-contained and does not rely on dynamic behavior",
+  "There was an error when attempting to evaluate the imported file.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     import generateBg from './other-file';

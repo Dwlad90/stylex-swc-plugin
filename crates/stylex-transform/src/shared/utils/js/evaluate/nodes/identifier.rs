@@ -49,13 +49,20 @@ pub(in super::super) fn evaluate(
       FunctionConfigType::Map(func_map) => {
         return Some(EvaluateResultValue::FunctionConfigMap(func_map.clone()));
       },
-      // An index map carries no value the evaluator reads through an
-      // identifier, which is a shape it does not fold rather than a broken
-      // invariant.
+      // `defaultMarker`, the one entry of the family the reference
+      // implementation registers as a bare function rather than as the
+      // wrapper `{ fn }`. So a reference to it folds to a function and not to
+      // an object -- which is why a style value refuses it for not being a
+      // style value where a wrapped entry is read as a map of conditions, and
+      // why a spread of it contributes nothing where a wrapped entry
+      // contributes `fn`.
+      //
+      // Deopting here instead reported the index map this compiler holds it
+      // as: `Referenced value is not a constant.` where a static value
+      // belongs, and an aborted build naming an internal shape where a dynamic
+      // style's parameter shadowed the name.
       FunctionConfigType::IndexMap(_func_map) => {
-        let path = Expr::Ident(ident.clone());
-
-        return deopt(&path, state, NON_CONSTANT);
+        return Some(EvaluateResultValue::Expr(fold_placeholder_function()));
       },
       FunctionConfigType::EnvObject(env_map) => {
         return Some(EvaluateResultValue::EnvObject(env_map.clone()));

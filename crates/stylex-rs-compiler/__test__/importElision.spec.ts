@@ -74,13 +74,12 @@ describe('a shadowed StyleX import in a JavaScript module', () => {
   });
 
   // `defaultMarker` is the one entry the reference implementation registers as
-  // a function rather than as an object, so it refuses as an illegal value
-  // rather than as a namespace. Pinned as it stands: reaching upstream's
-  // sentence is a different seam, and what matters here is that the name
-  // reaches the transform at all.
-  test('a parameter shadowing defaultMarker refuses, on its own sentence', () => {
+  // a bare function rather than as the wrapper `{ fn }`, so it refuses as an
+  // illegal value rather than as a namespace. Both sentences are upstream's,
+  // and which one an entry earns is decided by how it is registered.
+  test('a parameter shadowing defaultMarker refuses as an illegal value', () => {
     expect(() => compile(shadowing('defaultMarker'))).toThrow(
-      '[StyleX] [UNIMPLEMENTED] IndexMap values are not supported in this context.'
+      '[StyleX] A style value can only contain an array, string or number.'
     );
   });
 

@@ -2270,24 +2270,82 @@ stylex_test!(
   "#
 );
 
-// `defaultMarker`, measured and left as it is. It is the one entry of the family
-// the reference implementation registers as a function rather than an object, so
-// it refuses with `A style value can only contain an array, string or number.`
-// Here the entry is an index map with no value form, and the sentence the build
-// stops on names an internal shape rather than the input. Reaching upstream's
-// sentence needs the namespace validator to refuse a value it currently passes
-// over, which is a wider change than this seam -- recorded in
-// `.scratch/fix_dynamic-param-shadows-import/issues/21-a-shadowed-default-marker-param-reports-an-internal-shape.md`.
-// Pinned as it stands so the day it changes is visible.
+// `defaultMarker` is the one entry of the family the reference implementation
+// registers as a bare function rather than as the wrapper `{ fn }`, so a
+// reference to it folds to a function and not to an object -- and a style value
+// refuses a function for not being a style value, where a wrapped entry is read
+// as a map of conditions and refuses for an invalid pseudo. Both sentences are
+// upstream's, and which one an entry earns is decided by how it is registered.
+//
+// It used to be held as an index map with no value form: the build stopped on
+// `IndexMap values are not supported in this context.` here, naming a shape
+// this compiler holds rather than what was written.
 stylex_test_panic!(
-  a_dynamic_param_shadowing_a_named_default_marker_import_reports_an_internal_shape,
-  "IndexMap values are not supported in this context.",
+  a_dynamic_param_shadowing_a_named_default_marker_import_is_refused_as_a_value,
+  "A style value can only contain an array, string or number.",
   r#"
     import { create, defaultMarker } from '@stylexjs/stylex';
 
     export const styles = create({
       dyn: (defaultMarker) => ({ height: defaultMarker }),
     });
+  "#
+);
+
+// The static position of the same entry, with no shadowing involved. It read
+// `Referenced value is not a constant.` -- which says the opposite of what is
+// true of an import of a compiler API -- because the identifier deopted rather
+// than folding to anything.
+stylex_test_panic!(
+  a_named_default_marker_import_read_as_a_static_value_is_refused_as_a_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import { create, defaultMarker } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: defaultMarker } });
+  "#
+);
+
+// Off the namespace rather than through a named import. The namespace folds to
+// the map of what it carries, `defaultMarker` is not one of its entries -- the
+// reference implementation registers that name for a *call* and not as
+// something the namespace object holds -- so the read is `undefined` in both
+// compilers, and refused as a value.
+stylex_test_panic!(
+  a_namespace_default_marker_read_as_a_static_value_is_refused_as_a_value,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: { height: stylex.defaultMarker } });
+  "#
+);
+
+// A spread of the bare function contributes nothing, where a spread of a
+// wrapped entry contributes its `fn` key. The placeholder is the same function
+// in both, so this is the registration speaking and not two different
+// placeholders.
+stylex_test_transform!(
+  a_spread_of_a_named_default_marker_import_contributes_nothing,
+  r#"
+    import { create, defaultMarker } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { ...defaultMarker, color: 'red' } });
+  "#,
+  r#"
+    import _inject from "@stylexjs/stylex/lib/stylex-inject";
+    var _inject2 = _inject;
+    import { create, defaultMarker } from '@stylexjs/stylex';
+    _inject2({
+        ltr: ".x1e2nbdu{color:red}",
+        priority: 3000
+    });
+    export const styles = {
+        a: {
+            kMwMTN: "x1e2nbdu",
+            $$css: true
+        }
+    };
   "#
 );
 

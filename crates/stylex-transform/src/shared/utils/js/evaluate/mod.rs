@@ -164,9 +164,25 @@ pub(crate) fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -
 fn object_of_functions<'a>(keys: impl Iterator<Item = &'a str>) -> ObjectLit {
   create_object_lit(
     keys
-      .map(|key| create_key_value_prop(key, create_arrow_expression(create_null_expr())))
+      .map(|key| create_key_value_prop(key, fold_placeholder_function()))
       .collect(),
   )
+}
+
+/// The function a folded entry stands for.
+///
+/// The reference implementation's `identifiers` maps every one of these names
+/// to a function, or to an object of them, and what a reader needs to know is
+/// that a function is there -- never which one, because no position that reads
+/// one calls it. The body is `null` so the arrow carries no reference of its
+/// own to anything the evaluator would then have to resolve.
+///
+/// One function, because the entry `defaultMarker` stands for *is* this and the
+/// wrapped entries stand for an object of it: a placeholder that differed
+/// between the two would make one of them refuse for a shape the other does not
+/// have.
+pub(crate) fn fold_placeholder_function() -> Expr {
+  create_arrow_expression(create_null_expr())
 }
 
 /// The object one entry of a folded function map stands for.

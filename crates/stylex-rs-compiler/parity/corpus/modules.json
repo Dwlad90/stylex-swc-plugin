@@ -787,8 +787,8 @@
       "label": "a dynamic parameter shadowing a named `defaultMarker` import",
       "source": "import { create, defaultMarker } from '@stylexjs/stylex';\n\nexport const styles = create({\n  dyn: (defaultMarker) => ({ height: defaultMarker }),\n});\n",
       "origin": "the identifier audit for issue #1266, the entry that is a function and not an object",
-      "note": "The one entry of the family upstream registers as a function, so it refuses with `A style value can only contain an array, string or number.` rather than as a namespace. Here the entry is an index map with no value form and the build stops on a sentence about that shape instead: `[UNIMPLEMENTED] IndexMap values are not supported in this context.` Reaching upstream's sentence needs the namespace validator to refuse a value it currently passes over, which is wider than this seam. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/21-a-shadowed-default-marker-param-reports-an-internal-shape.md`. The shadowing parameter is the specifier's only occurrence, as in `modules-1266-param-shadows-a-named-import-referenced-nowhere-else`: this row used to carry a second create call to keep the specifier alive, and `default: defaultMarker()` in it is refused by both compilers -- so the module refused before the subject was read, and the row measured that call instead. Comparing the wording is what found it.",
-      "expected": "both-reject-divergent"
+      "note": "Both reject, with the same sentence since ticket 21. `defaultMarker` is the one entry of the family the reference implementation registers as a bare function rather than as the wrapper `{ fn }`, so a reference to it folds to a function and a style value refuses it for not being one. It was held here as an index map with no value form, and the build stopped on a sentence naming that shape.",
+      "expected": "both-reject"
     },
     {
       "id": "modules-1266-a-named-function-map-import-read-as-a-static-value",
@@ -1511,6 +1511,30 @@
       "origin": "ticket 27, the answer an index past the end has to give",
       "expected": "identical",
       "note": "An index past the end is `undefined` rather than a refusal, so a fallback beside it wins and the declaration folds. Answering nothing at all is what sent the whole declaration to the runtime instead."
+    },
+    {
+      "id": "modules-1266-a-named-default-marker-import-as-a-static-value",
+      "label": "a named defaultMarker import read where a static value belongs",
+      "source": "import { create, defaultMarker } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: defaultMarker } });\n",
+      "origin": "issue #1266, ticket 21",
+      "expected": "both-reject",
+      "note": "The static position of the same entry. It read `Referenced value is not a constant.` -- which says the opposite of what is true of an import of a compiler API -- because the identifier deopted rather than folding to anything."
+    },
+    {
+      "id": "modules-1266-a-namespace-default-marker-as-a-static-value",
+      "label": "a namespace defaultMarker read where a static value belongs",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({ a: { height: stylex.defaultMarker } });\n",
+      "origin": "issue #1266, ticket 21",
+      "expected": "both-reject",
+      "note": "Off the namespace rather than through a named import. `defaultMarker` is registered for a *call* and not as something the namespace object holds, so the read is `undefined` in both compilers and refused as a value."
+    },
+    {
+      "id": "modules-1266-a-spread-of-a-named-default-marker-import",
+      "label": "a spread of a named defaultMarker import",
+      "source": "import { create, defaultMarker } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { ...defaultMarker, color: 'red' } });\n",
+      "origin": "issue #1266, ticket 21",
+      "expected": "identical",
+      "note": "A spread of the bare function contributes nothing, where a spread of a wrapped entry contributes its `fn` key. The placeholder is the same function in both, so this is the registration speaking and not two different placeholders."
     }
   ]
 }

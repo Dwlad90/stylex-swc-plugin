@@ -16,20 +16,20 @@ _inject2({
     priority: 3230
 });
 _inject2({
-    ltr: "@supports (color: red){@media (min-width: 1px){.xzvh5rz.xzvh5rz.xzvh5rz:active{color:red}}}",
-    priority: 3400
+    ltr: "@supports (color: red){@media (min-width: 1px){.x1ox3gpo.x1ox3gpo.x1ox3gpo:last-child{color:red}}}",
+    priority: 3284
 });
 _inject2({
-    ltr: "@supports (color: red){@media (min-width: 1px){.x1gk5tym.x1gk5tym.x1gk5tym:active:first-child{color:red}}}",
-    priority: 3452
+    ltr: "@supports (color: red){@media (min-width: 1px){.xkukfqr.xkukfqr.xkukfqr:hover:last-child{color:red}}}",
+    priority: 3414
 });
 _inject2({
-    ltr: "@supports (color: red){@media (min-width: 1px){.x5jovev.x5jovev.x5jovev:active:first-child:focus{color:red}}}",
-    priority: 3602
+    ltr: "@supports (color: red){@media (min-width: 1px){.xsvhdkj.xsvhdkj.xsvhdkj:focus:hover:last-child{color:red}}}",
+    priority: 3564
 });
 _inject2({
-    ltr: "@supports (color: red){@media (min-width: 1px){.x9vls38.x9vls38.x9vls38:active:first-child:focus:hover{color:red}}}",
-    priority: 3732
+    ltr: "@supports (color: red){@media (min-width: 1px){.x1fxk361.x1fxk361.x1fxk361:first-child:focus:hover:last-child{color:red}}}",
+    priority: 3616
 });
 _inject2({
     ltr: "@supports (color: red){@media (min-width: 1px){.x4f6iwg.x4f6iwg.x4f6iwg:active:first-child:focus:hover:last-child{color:var(--x1vktwfk)}}}",
@@ -37,7 +37,7 @@ _inject2({
 });
 export const styles = {
     w: {
-        kMwMTN: "x1e2nbdu x1wzld38 x1cnc4yx xzvh5rz x1gk5tym x5jovev x9vls38 x4f6iwg",
+        kMwMTN: "x1e2nbdu x1wzld38 x1cnc4yx x1ox3gpo xkukfqr xsvhdkj x1fxk361 x4f6iwg",
         $$css: true
     }
 };

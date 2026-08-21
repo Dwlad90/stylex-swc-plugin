@@ -257,10 +257,12 @@ stylex_test_panic!(
 // value and not what the name resolves to.
 // ──────────────────────────────────────────────
 
-// Eight condition levels. The pseudo-classes nest alphabetically on purpose --
-// nested out of that order the two compilers hash a different *selector*, for a
-// reason that has nothing to do with resolution, which issue 19 of this effort
-// owns and one corpus row measures.
+// Eight condition levels. The five pseudo-classes nest in reverse alphabetical
+// order on purpose: they were nested *in* order while the run-ordering
+// divergence issue 19 of this effort owns would otherwise have decided this
+// case's selector, and restoring the nesting was a step of the ticket that
+// fixed it. `nested_pseudo_ordering.rs` owns the ordering; this owns what the
+// name eight levels down resolves to, and now measures both.
 stylex_test!(
   a_string_export_name_member_read_eight_conditions_deep_resolves,
   |tr| theme_import_transform(tr.comments.clone()),
@@ -276,13 +278,16 @@ stylex_test!(
             default: 'red',
             '@supports (color: red)': {
               default: 'red',
-              ':active': {
+              ':last-child': {
                 default: 'red',
-                ':first-child': {
+                ':hover': {
                   default: 'red',
                   ':focus': {
                     default: 'red',
-                    ':hover': { default: 'red', ':last-child': c.x },
+                    ':first-child': {
+                      default: 'red',
+                      ':active': c.x,
+                    },
                   },
                 },
               },

@@ -204,7 +204,7 @@
       "id": "077eb7f1",
       "property": "backgroundColor",
       "value": "rgb(0,0,",
-      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/string_named_import_specifiers.rs:422"
+      "origin": "crates/stylex-transform/tests/validation_stylex_create_test/string_named_import_specifiers.rs:427"
     },
     {
       "id": "835e815e",

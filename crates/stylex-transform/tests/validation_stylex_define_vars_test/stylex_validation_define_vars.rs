@@ -329,18 +329,20 @@ stylex_test_panic!(
 
 // A folded function map read where a variable's value belongs. `keyframes` is
 // registered for a `defineVars` call too, so the identifier step folds a
-// reference to it -- but the fold is materialized only at the create call's
-// style-value consumer, so this position still aborts on a value with no
-// expression form.
+// reference to it, and the static object evaluator materializes the fold as the
+// object it stands for -- which reaches this consumer as an object with no
+// `default` key, and is refused for that.
 //
-// The reference implementation reads `Default value is not defined for "a"
-// variable.` here, because it folds the plain object `{ fn }` and an object with
-// no `default` key is a variable with no default. Measured, and pinned as it
-// stands: materializing at this consumer too is a decision about every
-// `defineVars` value, not about this fold.
+// The reference implementation folds the same object and reads `Default value is
+// not defined for a variable.`, because it looks for a `default` key before it
+// looks at what the value holds. This one looks at the value first and refuses
+// the function the fold carries. Both refuse the same input for something the
+// same object lacks; which check speaks first is a `defineVars` ordering
+// question, not a question about the fold, and it is measured in
+// `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.
 stylex_test_panic!(
-  a_folded_function_map_read_as_a_variable_value_is_refused,
-  "Only static values are allowed inside of a defineVars() call.",
+  a_folded_function_map_read_as_a_variable_value_is_refused_for_its_function,
+  "Function values in defineVars() must be zero-argument and return a static value supported by defineVars().",
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_filename(swc_core::common::FileName::Real("vars.stylex.js".into()))
     .with_unstable_module_resolution(ModuleResolution::haste(None))),

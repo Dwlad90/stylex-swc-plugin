@@ -296,7 +296,15 @@ pub(in super::super) fn evaluate(
                 Expr::Arrow(arrow_func_expr) => Expr::Arrow(arrow_func_expr.clone()),
                 _ => deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE),
               },
-              _ => deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE),
+              // A folded function map or function config, materialized as the
+              // object it stands for so it reaches whatever validates this
+              // position -- the same object the dynamic style's value position
+              // builds, from the same function. Everything else with no
+              // expression form is a refusal.
+              value => match function_fold_to_object(&value) {
+                Some(object) => Expr::from(object),
+                None => deopt_unsupported!(path, state, ILLEGAL_PROP_VALUE),
+              },
             };
 
             props.push(create_ident_key_value_prop(

@@ -739,8 +739,8 @@
       "label": "the stylex namespace import read as a static style value",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({ a: { height: stylex } });\n",
       "origin": "the identifier audit for issue #1266, the same fold at the static consumer",
-      "note": "No shadowing: the namespace import itself, read where a value belongs. A static namespace is evaluated by `nodes/object_expression.rs`, which deopts rather than materializing, so this reads `A style value can only contain an array, string or number.` where upstream reads `Invalid pseudo or at-rule.` Owned by `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.",
-      "expected": "both-reject-divergent"
+      "note": "No shadowing: the namespace import itself, read where a value belongs. The static object evaluator materializes the fold as the object it stands for, so this refusal is namespace validation's and reads `Invalid pseudo or at-rule.`, the sentence upstream gives. It used to read `A style value can only contain an array, string or number.`",
+      "expected": "both-reject"
     },
     {
       "id": "modules-1266-param-shadows-a-named-function-map-import",
@@ -795,8 +795,8 @@
       "label": "a named `keyframes` import read as a static style value",
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: keyframes } });\n",
       "origin": "the identifier audit for issue #1266, the same fold at the static consumer",
-      "note": "No shadowing: the import itself, read where a value belongs. The static object evaluator deopts rather than materializing, so this reads `A style value can only contain an array, string or number.` where upstream reads `Invalid pseudo or at-rule.` -- the same divergence `modules-1266-the-namespace-import-read-as-a-static-value` holds, now reached through a function config too. It used to read `Function not found`, which named nothing a caller could act on. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.",
-      "expected": "both-reject-divergent"
+      "note": "No shadowing: the import itself, read where a value belongs. Materialized as the `{ fn }` wrapper upstream registers it as, so namespace validation refuses the key and both compilers read `Invalid pseudo or at-rule.` It used to read `A style value can only contain an array, string or number.`, and before that `Function not found`, which named nothing a caller could act on.",
+      "expected": "both-reject"
     },
     {
       "id": "modules-1266-param-shadows-the-types-import",
@@ -1351,6 +1351,46 @@
       "label": "a namespace read by a key an unfoldable array method decides",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nconst WIDE_VIEWS = ['grid', 'list'];\n\nconst styles = stylex.create({\n  base: { color: 'black' },\n  regularGrid: { display: 'grid' },\n  wideGrid: { display: 'flex' },\n});\n\nexport function View({ hView }) {\n  let gridType = 'regular';\n\n  if (hView && WIDE_VIEWS.includes(hView)) {\n    gridType = 'wide';\n  }\n\n  const grid = `${gridType}Grid`;\n\n  return <div sx={[styles.base, styles[grid]]} />;\n}\n",
       "origin": "issue #1265, a reported shape reading a namespace by a computed key"
+    },
+    {
+      "id": "modules-1266-a-folded-function-map-inside-a-fallback-array",
+      "label": "a folded function map inside a fallback array",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: ['1px', keyframes] } });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "An array element rather than a value, refused with the array's own sentence in both compilers.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-folded-function-map-at-eight-condition-levels",
+      "label": "a folded function map read eight condition levels deep",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({\n  a: {\n    height: {\n      ':hover': {\n        ':focus': {\n          ':active': {\n            '@media (min-width: 1px)': {\n              '@supports (display: flex)': {\n                ':nth-child(2)': { ':first-child': { ':last-child': keyframes } },\n              },\n            },\n          },\n        },\n      },\n    },\n  },\n});\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "Depth changes nothing: the object the fold stands for is the value at whatever depth it was written, and the condition tree above it is walked before the value is read.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-folded-function-map-on-a-custom-property-and-a-prefixed-property",
+      "label": "a folded function map on a custom property and on a vendor-prefixed property",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({\n  a: { '--foo': keyframes },\n  b: { WebkitLineClamp: keyframes },\n});\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "Neither property name is read before the value is, so both reach the same refusal a plain longhand does.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-folded-function-map-under-a-malformed-condition-key",
+      "label": "a folded function map under condition keys that are malformed",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({\n  a: { height: { '@media (min-width: 1px': keyframes } },\n  b: { height: { \"[data-x='\": keyframes } },\n});\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "An unclosed at-rule parenthesis and an unclosed attribute-selector quote. Neither is refused as syntax before the walk reaches the value, which is the point: the fold is what stops the build, in both compilers.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-folded-function-map-under-a-lone-surrogate-key",
+      "label": "a folded function map under a condition key that is a lone surrogate",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: { '\\ud800': keyframes } } });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "Upstream holds the key as a JavaScript string and never writes it down, so it reaches the fold and refuses for it. This compiler refuses the key's encoding first: no Rust string holds a lone surrogate, and emitting a replacement character would write a selector the source does not describe -- the rule an object spread of a string and `charCodeAt` already answer this way.",
+      "expected": "both-reject-divergent"
     }
   ]
 }

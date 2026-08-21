@@ -2174,17 +2174,31 @@ stylex_test_panic!(
 );
 
 // The fold read where a static value belongs -- no shadowing, the import itself.
-// The reference implementation refuses this as a namespace; this compiler
-// refuses it as an illegal value, which is the static object evaluator's own
-// divergence and not this seam's. Pinned so a change to it is visible: it used
-// to read `Function not found`, which named nothing a caller could act on.
+// The static object evaluator materializes the fold the same way the dynamic
+// consumer does, so the refusal is namespace validation's and reads the
+// reference implementation's sentence. It used to read `A style value can only
+// contain an array, string or number.`, and before that `Function not found`,
+// which named nothing a caller could act on.
 stylex_test_panic!(
-  a_named_keyframes_import_read_as_a_static_value_is_an_illegal_value,
-  "A style value can only contain an array, string or number.",
+  a_named_keyframes_import_read_as_a_static_value_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
   r#"
     import { create, keyframes } from '@stylexjs/stylex';
 
     export const styles = create({ a: { height: keyframes } });
+  "#
+);
+
+// The namespace import in the same position. It folds to the whole function map
+// rather than to one config, which is the other half of what the static
+// evaluator now materializes.
+stylex_test_panic!(
+  the_namespace_import_read_as_a_static_value_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: { height: stylex } });
   "#
 );
 
@@ -2294,5 +2308,242 @@ stylex_test_panic!(
     import * as stylex from '@stylexjs/stylex';
 
     export const styles = stylex.create({ dyn: (stylex) => ({ height: stylex.when }) });
+  "#
+);
+
+// --------------------------------------------------------------------------
+// The fold read where a style value belongs, in every position the static
+// object evaluator can reach it, and in the ones it cannot. Every sentence
+// below was measured against `@stylexjs/babel-plugin` 0.19.0 under the parity
+// harness's configuration; the ones that differ from upstream's say so.
+// --------------------------------------------------------------------------
+
+// Depth: the object the fold materializes to is the value at whatever depth it
+// was written, so the condition tree above it changes nothing about the refusal.
+stylex_test_panic!(
+  a_static_fold_under_a_condition_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: { height: { default: { ':hover': stylex } } } });
+  "#
+);
+
+stylex_test_panic!(
+  a_static_fold_eight_conditions_deep_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({
+      a: {
+        height: {
+          ':hover': {
+            ':focus': {
+              ':active': {
+                '@media (min-width: 1px)': {
+                  '@supports (display: flex)': {
+                    ':nth-child(2)': { ':first-child': { ':last-child': keyframes } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  "#
+);
+
+// The property the fold is written on. A custom property and a vendor-prefixed
+// one both reach namespace validation the same way a plain longhand does --
+// neither name is read before the value is.
+stylex_test_panic!(
+  a_static_fold_on_a_custom_property_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { '--foo': keyframes } });
+  "#
+);
+
+stylex_test_panic!(
+  a_static_fold_on_a_vendor_prefixed_property_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { WebkitLineClamp: keyframes } });
+  "#
+);
+
+// A shorthand, and a shorthand that expands into longhands. The expansion
+// happens after the value is evaluated, so the fold is refused before either
+// longhand exists.
+stylex_test_panic!(
+  a_static_fold_on_a_shorthand_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { margin: keyframes } });
+  "#
+);
+
+stylex_test_panic!(
+  a_static_fold_on_an_expanding_shorthand_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { borderWidth: keyframes } });
+  "#
+);
+
+// A malformed condition key holding the fold. Neither an unclosed at-rule
+// parenthesis nor an unclosed attribute-selector quote is refused as syntax
+// before the walk reaches the value, which is the point: the fold is what stops
+// the build, and both compilers stop on it.
+stylex_test_panic!(
+  a_static_fold_under_an_unclosed_media_query_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: { '@media (min-width: 1px': keyframes } } });
+  "#
+);
+
+stylex_test_panic!(
+  a_static_fold_under_an_unclosed_quote_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: { "[data-x='": keyframes } } });
+  "#
+);
+
+stylex_test_panic!(
+  a_static_fold_under_an_astral_condition_key_is_refused_for_the_fold,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: { '\u{1F3A8}': keyframes } } });
+  "#
+);
+
+// A condition key that is a lone surrogate. Upstream reads `Invalid pseudo or
+// at-rule.` -- it holds the key as a JavaScript string and never has to write
+// it down. This compiler refuses the key's encoding before the fold is reached,
+// which is the same rule `char_code_at` and an object spread of a string
+// already answer: no Rust string can hold a lone surrogate, and emitting a
+// replacement character would write a selector the source does not describe.
+stylex_test_panic!(
+  a_static_fold_under_a_lone_surrogate_key_is_refused_for_the_key,
+  "String value contains invalid UTF-8 encoding.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: { '\u{d800}': keyframes } } });
+  "#
+);
+
+// Position, not depth: a property that would have compiled beside the fold does
+// not save the namespace, and neither does the fold being one of many.
+stylex_test_panic!(
+  a_static_fold_beside_a_good_property_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { color: 'red', height: keyframes } });
+  "#
+);
+
+stylex_test_panic!(
+  twelve_static_folds_in_one_create_are_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({
+      n0: { height: keyframes },
+      n1: { height: keyframes },
+      n2: { height: keyframes },
+      n3: { height: keyframes },
+      n4: { height: keyframes },
+      n5: { height: keyframes },
+      n6: { height: keyframes },
+      n7: { height: keyframes },
+      n8: { height: keyframes },
+      n9: { height: keyframes },
+      n10: { height: keyframes },
+      n11: { height: keyframes },
+    });
+  "#
+);
+
+// The fold reached through a binding rather than written in place. The
+// identifier step folds the reference wherever it resolves it, so the value
+// position sees the same object.
+stylex_test_panic!(
+  a_static_fold_read_through_a_binding_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    const held = keyframes;
+
+    export const styles = create({ a: { height: held } });
+  "#
+);
+
+// The remaining names of the family in the static value position. A bare `when`
+// import is the marker object, so its keys are the marker names; `positionTry`
+// and `firstThatWorks` are the `{ fn }` wrapper -- and one key is enough for
+// namespace validation either way.
+stylex_test_panic!(
+  a_bare_when_import_read_as_a_static_value_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, when } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: when } });
+  "#
+);
+
+stylex_test_panic!(
+  a_named_position_try_import_read_as_a_static_value_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, positionTry } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: positionTry } });
+  "#
+);
+
+stylex_test_panic!(
+  a_named_first_that_works_import_read_as_a_static_value_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, firstThatWorks } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: firstThatWorks } });
+  "#
+);
+
+// The fold inside a fallback array. An array element is refused with the
+// array's own sentence, which upstream gives too.
+stylex_test_panic!(
+  a_static_fold_inside_a_fallback_array_is_refused_as_an_array_element,
+  "A style array value can only contain strings or numbers.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: ['1px', keyframes] } });
   "#
 );

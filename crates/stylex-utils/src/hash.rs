@@ -4,7 +4,7 @@ use std::{
   mem::discriminant,
 };
 
-use xxhash_rust::xxh3::Xxh3;
+use xxhash_rust::xxh3::Xxh3Default;
 
 use swc_core::{
   common::{DUMMY_SP, SyntaxContext},
@@ -187,15 +187,23 @@ pub fn stable_hash<T: Hash>(t: &T) -> u64 {
 /// every class in every project. `DefaultHasher` was never stable across Rust
 /// releases either, so nothing could have depended on it and been correct.
 ///
+/// `Xxh3Default` rather than `Xxh3`: the latter carries a seed and a 192-byte
+/// custom secret, and copies the secret into every instance. One instance is
+/// built per key, which makes that copy the largest fixed cost of a small key.
+/// The two digest identically at the default seed and secret, and no consumer
+/// needs a seed.
+///
 /// Only `write` is implemented. Every typed `Hasher` method defaults to routing
 /// through it, so the stream is identical whatever a `Hash` implementation calls.
 struct WideHasher {
-  state: Xxh3,
+  state: Xxh3Default,
 }
 
 impl WideHasher {
   fn new() -> Self {
-    Self { state: Xxh3::new() }
+    Self {
+      state: Xxh3Default::new(),
+    }
   }
 
   fn finish_wide(&self) -> u128 {
@@ -208,16 +216,26 @@ impl Hasher for WideHasher {
     self.state.update(bytes);
   }
 
-  /// The low half, for the `Hasher` contract. Nothing here reads it --
-  /// [`WideHasher::finish_wide`] is what the key is built from -- and a caller
-  /// that took this would be back to 64 bits without saying so.
+  /// xxh3's 64-bit digest, present only because `Hasher` requires it.
+  ///
+  /// It is **not** the low half of [`WideHasher::finish_wide`]: xxh3's 64-bit and
+  /// 128-bit digests are separate constructions over the same stream, so the two
+  /// answers are unrelated numbers. Nothing here reads this, and a caller that
+  /// reached for the familiar `finish` would get a different, narrower key
+  /// without being told -- which is the whole hazard the width exists to remove.
+  /// Pinned in `wide_hasher_tests`.
   fn finish(&self) -> u64 {
     self.state.digest()
   }
 }
 
-/// [`stable_hash`] over 128 bits, for the fallback arms of the structural key.
-fn stable_hash_wide<T: Hash>(t: &T) -> u128 {
+/// [`stable_hash`] over 128 bits.
+///
+/// For the fallback arms of the structural key, and for any other cache whose
+/// reads act on a hash hit without confirming it -- the span cache in
+/// `stylex-transform`'s code-frame lookup is the other one, and a collision
+/// there is a wrong `file:line` in the output rather than a slow path.
+pub fn stable_hash_wide<T: Hash>(t: &T) -> u128 {
   let mut hasher = WideHasher::new();
   t.hash(&mut hasher);
   hasher.finish_wide()

@@ -1031,6 +1031,69 @@ mod key_cost_scaling_tests {
   }
 }
 
+/// The hasher behind the structural key.
+#[cfg(test)]
+mod wide_hasher_tests {
+  use std::hash::Hasher;
+
+  use super::super::{WideHasher, stable_hash_unspanned, stable_hash_wide};
+  use super::parse_expr;
+
+  #[test]
+  fn finish_is_a_different_number_from_either_half_of_the_wide_one() {
+    // `Hasher::finish` exists because the trait requires it, and it is xxh3's
+    // 64-bit digest -- a separate construction from the 128-bit one over the
+    // same stream, so it matches neither half of it. That is the trap worth
+    // pinning: a caller reaching for the familiar `finish` gets a narrower key
+    // *and* a different one, while the two consumers that act on a bare hit are
+    // relying on the full width.
+    let mut hasher = WideHasher::new();
+    hasher.write(b"stylex");
+
+    let wide = hasher.finish_wide();
+    let narrow = u128::from(hasher.finish());
+
+    assert_ne!(narrow, wide & u128::from(u64::MAX));
+    assert_ne!(narrow, wide >> 64);
+
+    // Deterministic, though: the same stream answers the same way twice, which
+    // is what makes it safe for the trait's other users even if it is wrong for
+    // this one.
+    let mut again = WideHasher::new();
+    again.write(b"stylex");
+
+    assert_eq!(hasher.finish(), again.finish());
+    assert_eq!(wide, again.finish_wide());
+  }
+
+  #[test]
+  fn a_wide_hash_uses_the_whole_width() {
+    // Not a distribution test -- one value cannot be one -- but the high half
+    // being non-zero on ordinary input is what says the pair is wired up at all.
+    // A `finish_wide` that forgot to shift, or an `Xxh3Default` swapped for
+    // something 64-bit, reports here.
+    let key = stable_hash_unspanned(&parse_expr("styles.root"));
+
+    assert_ne!(key >> 64, 0);
+    assert_ne!(key & u128::from(u64::MAX), 0);
+  }
+
+  #[test]
+  fn the_wide_hash_is_deterministic_across_hashers() {
+    // Two instances of the hasher are seeded identically, so the same bytes
+    // land on the same key -- the property every cache keyed by this depends on,
+    // and the one an accidentally seeded or randomized hasher would break.
+    assert_eq!(
+      stable_hash_wide(&"styles.root"),
+      stable_hash_wide(&"styles.root")
+    );
+    assert_ne!(
+      stable_hash_wide(&"styles.root"),
+      stable_hash_wide(&"styles.base")
+    );
+  }
+}
+
 /// The structural key at its edges: the boundary that selects its fallback arm,
 /// the shapes that have no in-place hashing at all, and the inputs a parser can
 /// hand it that no author would write.

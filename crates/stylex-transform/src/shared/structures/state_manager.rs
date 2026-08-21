@@ -283,15 +283,15 @@ impl CallExpressionState {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct CacheState {
   css_property_seen: FxHashMap<String, String>,
-  span_cache: FxHashMap<u64, Span>,
+  span_cache: FxHashMap<u128, Span>,
 }
 
 impl CacheState {
-  fn cached_span(&self, cache_key: u64) -> Option<Span> {
+  fn cached_span(&self, cache_key: u128) -> Option<Span> {
     self.span_cache.get(&cache_key).copied()
   }
 
-  fn insert_span(&mut self, cache_key: u64, span: Span) {
+  fn insert_span(&mut self, cache_key: u128, span: Span) {
     self.span_cache.insert(cache_key, span);
   }
 }
@@ -595,11 +595,11 @@ impl StateManager {
     self.call_expressions.is_member_callee(member)
   }
 
-  pub(crate) fn cached_span(&self, cache_key: u64) -> Option<Span> {
+  pub(crate) fn cached_span(&self, cache_key: u128) -> Option<Span> {
     self.cache.cached_span(cache_key)
   }
 
-  pub(crate) fn insert_cached_span(&mut self, cache_key: u64, span: Span) {
+  pub(crate) fn insert_cached_span(&mut self, cache_key: u128, span: Span) {
     self.cache.insert_span(cache_key, span);
   }
 

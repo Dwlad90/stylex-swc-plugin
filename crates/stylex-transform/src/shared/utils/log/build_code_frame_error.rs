@@ -3,9 +3,7 @@ use log::{debug, warn};
 use std::{
   cell::Cell,
   cmp::Reverse,
-  collections::hash_map::DefaultHasher,
   fs,
-  hash::{Hash, Hasher},
   panic::{self, AssertUnwindSafe, UnwindSafe},
   path::Path,
   sync::{Arc, Once, OnceLock},
@@ -39,6 +37,7 @@ use crate::shared::{
 };
 use rustc_hash::FxHashSet;
 use stylex_regex::regex::URL_REGEX;
+use stylex_utils::hash::stable_hash_wide;
 
 pub(crate) struct CodeFrame {
   source_map: Arc<SourceMap>,
@@ -116,24 +115,27 @@ impl CodeFrame {
   /// The closure is only called on a miss, so a caller whose source is expensive
   /// to produce -- a clone of the module's text, or a read of the file -- pays
   /// for it once per module rather than once per lookup.
+  ///
+  /// The guard is a linear scan of the source map's file list, which grows by one
+  /// entry per module a process transforms. That is the trade this makes: a
+  /// string compare per registered module, against the copy of the module's text
+  /// it replaces. A long-lived process transforming five thousand modules pays
+  /// fifty thousand name comparisons where it used to accumulate fifty thousand
+  /// source files.
   fn register_source_once(
     &self,
     file_name: &FileName,
     source: impl FnOnce() -> Result<String, Error>,
-  ) -> bool {
+  ) -> Result<(), Error> {
     if self.source_map.get_source_file(file_name).is_some() {
-      return true;
+      return Ok(());
     }
 
-    match source() {
-      Ok(source) => {
-        self
-          .source_map
-          .new_source_file(file_name.clone().into(), source);
-        true
-      },
-      Err(_) => false,
-    }
+    self
+      .source_map
+      .new_source_file(file_name.clone().into(), source()?);
+
+    Ok(())
   }
 
   pub(crate) fn get_span_line_number(&self, span: Span) -> usize {
@@ -258,30 +260,14 @@ fn get_span_from_source_code_impl(
 
   let code_frame = CodeFrame::new();
 
-  if !ensure_memoized_frame_source_code(
+  let span = with_memoized_module(
     wrapped_expression,
     target_expression,
     state,
     &file_name,
     &code_frame,
-  ) {
-    return Err(anyhow::anyhow!(
-      "Failed to parse source file: {}",
-      state.get_filename()
-    ));
-  }
-
-  // Scoped for the same reason as the key lookup's walk.
-  let span = {
-    let Some((module, _)) = state.get_seen_module_source_code() else {
-      return Err(anyhow::anyhow!(
-        "Failed to parse source file: {}",
-        state.get_filename()
-      ));
-    };
-
-    find_expression_span(module, target_expression)
-  };
+    |module| find_expression_span(module, target_expression),
+  )?;
 
   // Cache the result for future lookups
   state.insert_cached_span(cache_key, span);
@@ -289,12 +275,15 @@ fn get_span_from_source_code_impl(
   Ok((code_frame, span))
 }
 
-/// Computes a cache key for an expression based on its type and structure
-fn compute_cache_key(expr: &Expr) -> u64 {
-  let mut hasher = DefaultHasher::new();
-  std::mem::discriminant(expr).hash(&mut hasher);
-  expr.hash(&mut hasher);
-  hasher.finish()
+/// Computes a cache key for an expression based on its type and structure.
+///
+/// 128 bits, because the read side acts on a hit alone: `cached_span` returns a
+/// span and the caller turns it straight into a `file:line`. Unlike the
+/// evaluator's memo, a collision here is *directly observable* -- a style
+/// annotated with another style's line number -- so the width is the only thing
+/// standing behind it.
+fn compute_cache_key(expr: &Expr) -> u128 {
+  stable_hash_wide(&(std::mem::discriminant(expr), expr))
 }
 
 /// Finds the span of a style namespace by its **key** inside the parsed
@@ -345,43 +334,29 @@ fn get_key_span_from_source_code_impl(
 
   let code_frame = CodeFrame::new();
   let wrapped_expression = Expr::Call(call_expr.clone());
+  let target_lo = first_object_arg_span(call_expr)
+    .or_else(|| (!call_expr.span.is_dummy()).then_some(call_expr.span.lo));
 
-  if !ensure_memoized_frame_source_code(
+  let span = with_memoized_module(
     &wrapped_expression,
     &wrapped_expression,
     state,
     &file_name,
     &code_frame,
-  ) {
-    return Err(anyhow::anyhow!(
-      "Failed to parse source file: {}",
-      state.get_filename()
-    ));
-  }
+    |module| {
+      let mut finder = KeySpanFinder {
+        namespace_key,
+        sibling_keys: &sibling_keys,
+        namespace_value_keys: &namespace_value_keys,
+        target_lo,
+        best: None,
+        ambiguous_best: false,
+      };
+      module.visit_with(&mut finder);
 
-  // Scoped so the immutable borrow of the memoized program ends before the span
-  // is written back to the state.
-  let span = {
-    let Some((module, _)) = state.get_seen_module_source_code() else {
-      return Err(anyhow::anyhow!(
-        "Failed to parse source file: {}",
-        state.get_filename()
-      ));
-    };
-
-    let mut finder = KeySpanFinder {
-      namespace_key,
-      sibling_keys: &sibling_keys,
-      namespace_value_keys: &namespace_value_keys,
-      target_lo: first_object_arg_span(call_expr)
-        .or_else(|| (!call_expr.span.is_dummy()).then_some(call_expr.span.lo)),
-      best: None,
-      ambiguous_best: false,
-    };
-    module.visit_with(&mut finder);
-
-    finder.resolved_span()
-  };
+      finder.resolved_span()
+    },
+  )?;
 
   state.insert_cached_span(cache_key, span);
 
@@ -440,34 +415,45 @@ fn collect_object_lit_keys(object: &ObjectLit) -> impl Iterator<Item = Atom> + '
   })
 }
 
+/// The same, for a namespace-key lookup. 128 bits for the same reason as
+/// [`compute_cache_key`].
+///
+/// Hashed as one tuple rather than field by field, so the wide hasher is built
+/// once and the pieces cannot drift out of the key by being added to the
+/// function and forgotten in the digest.
 fn compute_key_span_cache_key(
   call_expr: &CallExpr,
   namespace_key: &str,
   sibling_keys: &FxHashSet<Atom>,
   namespace_value_keys: &FxHashSet<Atom>,
-) -> u64 {
-  let mut hasher = DefaultHasher::new();
-  "stylex-key-span:v2".hash(&mut hasher);
-  call_expr.callee.hash(&mut hasher);
-  call_expr.span.lo.0.hash(&mut hasher);
-  call_expr.span.hi.0.hash(&mut hasher);
-  if let Some(arg) = call_expr.args.first()
-    && let Expr::Object(object) = arg.expr.as_ref()
-  {
-    object.span.lo.0.hash(&mut hasher);
-    object.span.hi.0.hash(&mut hasher);
-  }
-  namespace_key.hash(&mut hasher);
-
+) -> u128 {
+  // Sorted, because a `FxHashSet`'s iteration order is not part of the identity
+  // being keyed -- two calls with the same keys in a different order are the
+  // same lookup.
   let mut sorted_keys: Vec<&Atom> = sibling_keys.iter().collect();
   sorted_keys.sort();
-  sorted_keys.hash(&mut hasher);
 
   let mut sorted_value_keys: Vec<&Atom> = namespace_value_keys.iter().collect();
   sorted_value_keys.sort();
-  sorted_value_keys.hash(&mut hasher);
 
-  hasher.finish()
+  let object_span = call_expr
+    .args
+    .first()
+    .and_then(|arg| match arg.expr.as_ref() {
+      Expr::Object(object) => Some((object.span.lo.0, object.span.hi.0)),
+      _ => None,
+    });
+
+  stable_hash_wide(&(
+    "stylex-key-span:v3",
+    &call_expr.callee,
+    call_expr.span.lo.0,
+    call_expr.span.hi.0,
+    object_span,
+    namespace_key,
+    sorted_keys,
+    sorted_value_keys,
+  ))
 }
 
 struct KeySpanCandidate {
@@ -597,7 +583,7 @@ fn load_code_frame_from_cache_for_state(
   // of the module to it on every call -- and the debug-data path calls this once
   // per style. On a 200 KB module with 1 257 styles that was a quarter of a
   // gigabyte of duplicated source and the largest single cost in a `dev` build.
-  if code_frame.register_source_once(file_name, || {
+  code_frame.register_source_once(file_name, || {
     state
       .get_seen_module_source_code()
       .and_then(|(_, source_code)| source_code.as_ref().cloned())
@@ -606,14 +592,9 @@ fn load_code_frame_from_cache_for_state(
         read_source_file(file_name)
           .map_err(|error| anyhow::anyhow!("Failed to read source file: {}", error))
       })
-  }) {
-    return Ok(code_frame);
-  }
+  })?;
 
-  Err(anyhow::anyhow!(
-    "Failed to read source file: {}",
-    state.get_filename()
-  ))
+  Ok(code_frame)
 }
 
 /// Finds the span of a target expression within a program AST
@@ -641,57 +622,66 @@ fn find_expression_span(module: &Module, target_expression: &Expr) -> Span {
 /// Gets or parses the source code as a Program AST, with memoization.
 /// Returns a cleaned and normalized Program that can be used for expression
 /// finding.
-/// Ensures the state holds a parsed, normalized program for the module's source,
-/// and that `code_frame`'s source map knows the file.
+/// Runs `visit` against the module's parsed, normalized source, parsing and
+/// memoizing it first if that has not happened yet.
 ///
-/// Returns whether it succeeded rather than the program itself. The program stays
-/// where it is and callers borrow it out of the state, because this is called
-/// once per style in a `dev` build and handing back `Program::Module(module.clone())`
-/// made every one of those a deep clone of the whole module -- the single largest
-/// cost in a `dev` transform, and quadratic in file size, since a bigger module
-/// is both more clones and a bigger clone.
-fn ensure_memoized_frame_source_code(
+/// Shaped as a closure rather than as "return me the program" for two reasons.
+/// The program lives in the state, which is borrowed mutably here, so it cannot
+/// be handed back and still leave the caller free to write the resolved span
+/// back afterwards -- the closure's borrow ends when this returns. And the
+/// previous shape *did* hand it back, as `Program::Module(module.clone())`: a
+/// deep clone of the whole module, once per style in a `dev` build, which made
+/// the annotation cost grow about quadratically with file size. A bigger module
+/// was both more clones and a bigger clone.
+fn with_memoized_module<T>(
   wrapped_expression: &Expr,
   target_expression: &Expr,
   state: &mut StateManager,
   file_name: &FileName,
   code_frame: &CodeFrame,
-) -> bool {
+  visit: impl FnOnce(&Module) -> T,
+) -> Result<T, Error> {
   if let Some((_, source_code)) = state.get_seen_module_source_code()
     && let Some(source_code) = source_code
   {
     // Registered once, not once per lookup -- see `register_source_once`.
-    code_frame.register_source_once(file_name, || Ok(source_code.to_owned()));
+    code_frame.register_source_once(file_name, || Ok(source_code.to_owned()))?;
+  } else {
+    let source_code = get_source_code(wrapped_expression, state, file_name, code_frame)
+      .ok_or_else(|| anyhow::anyhow!("Failed to read source file: {}", state.get_filename()))?;
 
-    return true;
+    let source_file = code_frame
+      .source_map
+      .new_source_file(Arc::new(file_name.clone()), source_code.clone());
+
+    let program = parse_and_normalize_program(
+      &source_file,
+      code_frame,
+      state.get_filename(),
+      target_expression,
+    )
+    .ok_or_else(|| anyhow::anyhow!("Failed to parse source file: {}", state.get_filename()))?;
+
+    state.set_seen_module_source_code(
+      match program.as_module() {
+        Some(module) => module,
+        None => stylex_panic!("Expected a module program for source code caching."),
+      },
+      Some(source_code),
+    );
   }
 
-  let Some(source_code) = get_source_code(wrapped_expression, state, file_name, code_frame) else {
-    return false;
-  };
-
-  let source_file = code_frame
-    .source_map
-    .new_source_file(Arc::new(file_name.clone()), source_code.clone());
-
-  let Some(program) = parse_and_normalize_program(
-    &source_file,
-    code_frame,
-    state.get_filename(),
-    target_expression,
-  ) else {
-    return false;
-  };
-
-  state.set_seen_module_source_code(
-    match program.as_module() {
-      Some(module) => module,
-      None => stylex_panic!("Expected a module program for source code caching."),
-    },
-    Some(source_code),
-  );
-
-  true
+  match state.get_seen_module_source_code() {
+    Some((module, _)) => Ok(visit(module)),
+    // The branch above either found a memoized module or stored one, so this is
+    // unreachable in practice. It stays an error rather than a panic because the
+    // getter's type cannot say so, and a diagnostic aid must never be the reason
+    // a build stops.
+    None => Err(anyhow::anyhow!(
+      "Failed to parse source file: {}",
+      state.get_filename()
+    )),
+  }
 }
 
 /// Gets the source code with the following priority:

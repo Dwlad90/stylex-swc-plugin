@@ -48,22 +48,33 @@ inside a `useMemo` (2 of 33 keys on the `use-memo` fixture). Priced either side 
 the boundary, the arm costs 8.5 µs against 2.7 for one extra property — 3.2×,
 once, on 0.04% of keys. The per-level walk on the other 99.96% is the cost.
 
-**Its width was load-bearing and too narrow.** Five things consume this hash, and
-they do not agree about how much it has to mean:
+**Its width was load-bearing and too narrow.** Seven things key off a hash of an
+expression, and they do not agree about how much the hash has to mean:
 
 - the evaluator's `seen` memo returns a cached fold on a **hash hit alone**;
 - `InsertionSlot::BeforeDecl` splices a declaration's style metadata on a
   **hash hit alone**;
+- the code-frame `span_cache` returns a cached span on a **hash hit alone** —
+  twice over, once keyed by `compute_cache_key` and once by
+  `compute_key_span_cache_key`;
 - the JSX-spread replacement map and the queued-decl dedup narrow a bucket by
   hash and then confirm with `eq_ignore_span`;
 - `all_call_expressions` confirms on read too, but a collision can evict the
   wrong entry when a call is replaced.
 
-So for two consumers the key _is_ the equality test. At 64 bits and ten thousand
-distinct expressions in a file that is a collision every `1e-12` files, and the
-symptom is a wrong folded value or a misplaced injection — silently, in the
-output, with no diagnostic. The key is now **128 bits**, which puts it past
-`1e-31`.
+So for four of the seven the key _is_ the equality test. At 64 bits and ten
+thousand distinct expressions in a file that is a collision every `1e-12` files,
+and they fail with different volumes: a wrong folded value or a misplaced
+injection is silent, while a wrong cached span is **directly visible in the
+output** as a style annotated with another style's `file:line`. All four are now
+**128 bits**, which puts them past `1e-31`.
+
+The span cache arrived at this decision late — it was missed on the first count
+of consumers and found in review, which is why this section says seven rather
+than five. It keys a _positional_ hash rather than the structural one, because it
+caches "where was this written" and two identical expressions at different
+positions must not share an entry. That is why it has its own key derivation and
+did not come along for free.
 
 What the key does _not_ have to be is any particular number: no consumer persists
 it, none derives a class name from it, and output order comes from source order
@@ -91,8 +102,8 @@ compare against. It remains the right answer for a consumer whose hits are rare;
 is enough faster than SipHash that the wider key is also the _cheaper_ one:
 against the 64-bit SipHash it replaced, one key is 30-43% faster and a deep fold
 30% faster, with the end-to-end transform of the corpus file unchanged (26.0 ms
-to 25.9). It costs one direct dependency, `xxhash-rust` (BSD-2-Clause, already on
-the licence allow-list). Nothing depended on the old values, and `DefaultHasher`
+to 25.9). It costs one direct dependency, `xxhash-rust` (BSL-1.0, already on the licence
+allow-list). Nothing depended on the old values, and `DefaultHasher`
 was never stable across Rust releases anyway, so nothing could have depended on
 it and been correct.
 

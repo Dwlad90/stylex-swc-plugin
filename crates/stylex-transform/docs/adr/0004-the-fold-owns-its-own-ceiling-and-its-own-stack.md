@@ -108,10 +108,14 @@ verdict; the gate that decides a regression is `bench:revisions` plus
 
 **Depth is quadratic, and the ceiling is what bounds it.** The memo key is a
 structural hash of the whole subtree, recomputed per level, so fold cost grows
-about quadratically with depth. At the default that is a small constant; it only
-became worth knowing because this ADR made deep input reachable at all. Recorded
-separately rather than fixed here -- the hash is deliberately span-insensitive
-and structural, so changing it is a correctness question, not a refactor.
+about quadratically with depth -- 3.4x to 3.8x per doubling, converging on 4x,
+and at 240 levels the keys are ~95% of the fold. At the default that is a small
+constant; it only became worth knowing because this ADR made deep input
+reachable at all. Decided separately rather than fixed here -- the hash is
+deliberately span-insensitive and structural and two of its consumers act on a
+hash hit alone, so changing it is a correctness question, not a refactor. Both
+the measurement and the verdict are
+[0005](./0005-the-memo-key-is-a-whole-subtree-hash.md).
 
 **The residue is not the fold's.** A deep enough expression still aborts, in the
 stages that recurse over it without a ceiling — measured in a debug build on a

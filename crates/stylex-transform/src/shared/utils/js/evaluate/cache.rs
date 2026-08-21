@@ -79,6 +79,16 @@ fn evaluate_cached_within_budget(
   traversal_state: &mut StateManager,
   fns: &FunctionMap,
 ) -> Option<EvaluateResultValue> {
+  // Walks the whole remaining subtree, at every level, and is therefore nearly
+  // all of what folding a deep expression costs -- the memo that exists to avoid
+  // repeated work pays for the subtree to decide whether it can avoid it. Left
+  // that way deliberately: the numbers, and why a cheaper key is a correctness
+  // question rather than a refactor, are
+  // `docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md`.
+  //
+  // The lookup below is one of the two consumers of this key that acts on a hash
+  // hit without confirming it, which is the half of that decision this file
+  // owns.
   let cleaned_path_hash = stable_hash_unspanned(path);
 
   let existing = traversal_state.seen.get(&cleaned_path_hash);

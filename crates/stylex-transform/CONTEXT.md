@@ -285,6 +285,14 @@ A memoized evaluation, keyed by the
 [structural hash](../stylex-utils/CONTEXT.md) of the expression. `resolved`
 distinguishes a completed evaluation from one
 currently in progress, which is how cyclic references terminate.
+
+The key covers the whole remaining subtree and is taken again at every level, so
+what the memo costs grows about quadratically with depth -- and is nearly all of
+what folding a deep expression costs. Why it stays that way, and what an
+incremental key would take, is
+[docs/adr/0005](./docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md). This is
+also one of the two consumers that acts on a hash hit without confirming
+equality.
 _Avoid_: cache entry, memo
 
 **Evaluation depth**:

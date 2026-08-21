@@ -25,8 +25,8 @@ use swc_core::{
   ecma::{
     ast::{
       ArrayLit, BlockStmtOrExpr, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident,
-      ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, Number, ObjectLit,
-      OptChainBase, Pat, Prop, PropName, PropOrSpread, TplElement, VarDeclarator,
+      ImportSpecifier, KeyValueProp, Lit, MemberProp, ModuleExportName, ObjectLit, OptChainBase,
+      Pat, Prop, PropName, PropOrSpread, TplElement, VarDeclarator,
     },
     utils::ident::IdentLike,
   },
@@ -57,7 +57,7 @@ use crate::shared::{
     js::native_functions::{evaluate_filter, evaluate_join, evaluate_map},
   },
 };
-use stylex_ast::ast::convertors::normalize_expr;
+use stylex_ast::ast::convertors::{is_js_undefined, normalize_expr};
 use stylex_ast::ast::factories::{
   create_array_expression, create_arrow_expression, create_expr_or_spread,
   create_ident_key_value_prop, create_key_value_prop, create_object_expression, create_object_lit,
@@ -505,6 +505,10 @@ mod array_hole_tests;
 #[cfg(test)]
 #[path = "tests/member_length_tests.rs"]
 mod member_length_tests;
+
+#[cfg(test)]
+#[path = "tests/array_index_tests.rs"]
+mod array_index_tests;
 
 #[cfg(test)]
 #[path = "tests/unsupported_shape_tests.rs"]

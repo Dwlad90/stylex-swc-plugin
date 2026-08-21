@@ -20,7 +20,7 @@ pub(in super::super) fn evaluate(
   let should_short_circuit = match &base_result {
     Some(EvaluateResultValue::Expr(base_expr)) => {
       matches!(base_expr, Expr::Lit(Lit::Null(_)))
-        || (matches!(base_expr, Expr::Ident(ident) if ident.sym == *"undefined"))
+        || (matches!(base_expr, Expr::Ident(ident) if is_js_undefined(ident)))
     },
     None => true,
     // For other result types (Object, Array, FunctionConfig, etc.), don't short-circuit

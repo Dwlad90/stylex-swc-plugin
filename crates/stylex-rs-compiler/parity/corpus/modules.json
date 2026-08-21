@@ -1330,17 +1330,17 @@
       "id": "modules-an-index-read-off-an-array-in-a-static-namespace",
       "label": "an index read off an array in a static namespace",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nconst A = ['1px'];\n\nexport const styles = stylex.create({\n  s: { height: A[0] },\n});\n",
-      "expected": "acceptance-divergent",
+      "expected": "identical",
       "origin": "ticket 27, found while measuring the array fold",
-      "note": "Acceptance divergent. An array literal a fold produced is indexed here; an array the evaluator holds as its own value is not, and refuses with `Unsupported index: 0`. Named at the site as its own scope."
+      "note": "Identical since ticket 27. Both array receivers read an index now -- an array a fold produced and an array the evaluator holds as its own value -- so the element folds where `Unsupported index: 0` used to stop the build."
     },
     {
       "id": "modules-an-index-read-off-an-array-in-a-dynamic-style",
       "label": "an index read off an array inside a dynamic style",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nconst A = ['1px'];\nconst B = [A[0], '2px'];\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: B }),\n});\n",
-      "expected": "structurally-divergent",
+      "expected": "identical",
       "origin": "ticket 27, found while measuring the array fold",
-      "note": "The same missing fold as the row above, wearing a second verdict: inside a dynamic style's body a refusal is not an error, so the value falls to the runtime as `var(--x-height)` where upstream folds two static fallbacks."
+      "note": "Identical since ticket 27. The same fold as the row above, in the position where the missing one was not an error but a silent difference: the value fell to the runtime as `var(--x-height)` where upstream folded two static fallbacks."
     },
     {
       "id": "modules-1265-double-negation-left-operand",
@@ -1469,8 +1469,8 @@
       "label": "a member the folded function map has no entry for",
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: keyframes.nope } });\n",
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
-      "note": "Upstream reads `undefined` off the object it folded and refuses it as a value; this compiler cannot name the property being accessed and says so. Both refuse; the member read off a fold is its own seam and is not what the static consumer decided.",
-      "expected": "both-reject-divergent"
+      "note": "Both reject, with the same sentence since ticket 30. The reference implementation reads `undefined` off the object its `identifiers` entry is and refuses that as a value; this compiler reads the same `undefined` off the object the fold stands for, so neither refusal names a shape the other does not have.",
+      "expected": "both-reject"
     },
     {
       "id": "modules-1266-an-index-read-off-a-folded-function-map",
@@ -1478,7 +1478,7 @@
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: keyframes[0] } });\n",
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
       "note": "The same seam as the row above, reached by an index rather than by a name.",
-      "expected": "both-reject-divergent"
+      "expected": "both-reject"
     },
     {
       "id": "modules-1266-a-folded-function-map-concatenated-with-a-string",
@@ -1503,6 +1503,14 @@
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
       "note": "Both compilers refuse, and both refuse it for what the object the fold stands for lacks: upstream looks for a `default` key and reads `Default value is not defined for a variable.`, and this compiler names the variable in that same sentence. A wording difference in one message rather than a question about the fold. `defineVars` and `defineConsts` ask the same question one call over and cannot be asked here -- both hash the filename, which is fixed for every subject in this set, so they refuse for the filename before the value is read; they are measured in the Rust suites instead.",
       "expected": "both-reject-divergent"
+    },
+    {
+      "id": "modules-1266-an-index-read-past-the-end",
+      "label": "an index read past the end of an array",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nconst FALLBACKS = ['1px'];\n\nexport const styles = stylex.create({\n  s: { height: FALLBACKS[7] ?? '2px' },\n});\n",
+      "origin": "ticket 27, the answer an index past the end has to give",
+      "expected": "identical",
+      "note": "An index past the end is `undefined` rather than a refusal, so a fallback beside it wins and the declaration folds. Answering nothing at all is what sent the whole declaration to the runtime instead."
     }
   ]
 }

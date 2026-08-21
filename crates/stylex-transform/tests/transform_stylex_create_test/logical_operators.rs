@@ -214,13 +214,12 @@ stylex_test_panic!(
 // instead, which is the shape that kept `token.missing ?? fallback` from
 // folding.
 //
-// The reference implementation fails the same input, wording it `A style value
-// can only contain an array, string or number.`; which of the two refusals an
-// `undefined` value earns is a pre-existing difference in the style-value
-// check, not something the operator decides.
+// The sentence is the reference implementation's, byte for byte: `undefined` is
+// a value the evaluator is confident about, and a value position refuses it for
+// not being a style value rather than reporting that nothing was static.
 stylex_test_panic!(
   a_bare_missing_property_is_rejected_as_a_style_value,
-  "Only static values are allowed inside of a stylex() call.",
+  "A style value can only contain an array, string or number.",
   r#"
     import * as stylex from '@stylexjs/stylex';
     const color = { primary: 'red' };

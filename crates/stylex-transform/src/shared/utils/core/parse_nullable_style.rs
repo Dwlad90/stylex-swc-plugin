@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use indexmap::IndexMap;
+use stylex_ast::ast::convertors::is_js_undefined;
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 use swc_core::ecma::ast::{Expr, Lit, MemberProp, ObjectLit};
 
@@ -86,7 +87,7 @@ pub(crate) fn parse_nullable_style(
       }
     },
     Expr::Ident(ident) => {
-      if ident.sym == "undefined" {
+      if is_js_undefined(ident) {
         StyleObject::Nullable
       } else {
         StyleObject::Other

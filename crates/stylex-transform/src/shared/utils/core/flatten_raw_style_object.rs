@@ -26,7 +26,9 @@ use crate::shared::{
     common::get_var_decl_by_ident,
   },
 };
-use stylex_ast::ast::convertors::{get_expr_from_var_decl, get_key_values_from_object};
+use stylex_ast::ast::convertors::{
+  get_expr_from_var_decl, get_key_values_from_object, is_js_undefined,
+};
 use stylex_constants::constants::messages::{
   ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE, INVALID_MEDIA_QUERY_SYNTAX, non_static_value,
 };
@@ -275,6 +277,14 @@ pub(crate) fn flatten_raw_style_object_logic(
 
           flattened.extend(inner_flattened);
         },
+        // `undefined` is a value this evaluator is confident about rather than
+        // a name it failed to resolve: it is what a key an object does not
+        // carry, an index past the end of an array, and a member read off a
+        // folded function map all answer. A style value position refuses it
+        // for not being a style value, which is the sentence the reference
+        // implementation gives it -- where saying nothing is static reads as a
+        // report about resolution, and names neither the value nor the input.
+        _ if is_js_undefined(ident) => stylex_panic!("{}", ILLEGAL_PROP_VALUE),
         _ => {
           stylex_panic!("{}", non_static_value("stylex"));
         },

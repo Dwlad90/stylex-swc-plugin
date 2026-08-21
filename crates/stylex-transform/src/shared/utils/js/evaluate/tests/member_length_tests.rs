@@ -290,14 +290,15 @@ fn a_numeric_looking_key_that_is_not_an_index_answers_undefined() {
 /// A refusal names the index, so a build error says which read could not be
 /// folded rather than only which node kind it was.
 ///
-/// Swept across the three receiver kinds, because one property test per receiver
-/// is how they drifted into three diagnostics for one author mistake. All three
-/// now say the same thing about the same index.
+/// A string is the one receiver left that refuses an index: its element is a
+/// single UTF-16 code unit, which can be an unpaired surrogate no Rust string
+/// holds. Both array receivers read one now, so the sweep that used to run
+/// across three receivers runs across the two that answer `undefined` in
+/// `an_index_past_the_end_answers_undefined` instead.
 #[test]
 fn a_refusal_names_the_index_it_could_not_read() {
   assert_deopt_names_property("\"abc\"[7]", "7");
-  assert_deopt_names_property("[1, 2][\"7\"]", "7");
-  assert_deopt_names_property("Object.keys({ a: 1 })[\"7\"]", "7");
+  assert_deopt_names_property("\"abc\"[0]", "0");
 }
 
 /// `length` is a string and array property only. A number, a boolean, a

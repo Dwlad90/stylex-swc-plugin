@@ -18,13 +18,12 @@ enum ArrayLikeLookup {
   /// `length`, which is counted rather than looked up.
   Length,
   /// An index, carrying the key as written. Whether one can be read depends on
-  /// the receiver, so the arms decide: the array literal a fold produced reads
-  /// one, and neither a string nor an evaluated array does. A string index is a
-  /// single UTF-16 code unit, which can be an unpaired surrogate no Rust string
-  /// holds; an evaluated array is the scope `array_expression` owns.
+  /// the receiver, so the arms decide: both array receivers read one, and a
+  /// string does not -- a string index is a single UTF-16 code unit, which can
+  /// be an unpaired surrogate no Rust string holds.
   ///
-  /// An index past the end is `undefined` upstream and a refusal here, because
-  /// knowing it is past the end is the same work as reading one.
+  /// An index past the end answers `undefined`, the language's own reading and
+  /// the one a key an object does not carry already gets.
   Index(String),
   /// A property the receiver does not carry, carrying its key. `undefined` in
   /// the language, which is the answer the object arm below already gives for a
@@ -55,6 +54,67 @@ fn classify_lookup(property: Option<&EvaluateResultValue>) -> ArrayLikeLookup {
 /// Whether a key names an array index: a non-empty run of ASCII digits.
 fn is_array_index(key: &str) -> bool {
   !key.is_empty() && key.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+/// The slot an index key names, or `None` where the key names no slot.
+///
+/// A key of nothing but digits is not automatically a slot: the language reads
+/// an index only where the key is the canonical spelling of the number, so
+/// `list["0"]` is the first element and `list["00"]` is a property no array
+/// carries. A key that overflows `usize` is past the end of any array this
+/// evaluator holds, which is the same answer.
+fn index_slot(key: &str) -> Option<usize> {
+  key
+    .parse::<usize>()
+    .ok()
+    .filter(|slot| slot.to_string() == key)
+}
+
+/// The value a folded function map's object form carries under `key`.
+///
+/// Reads the object `function_fold_to_object` just built rather than an object
+/// an author wrote, which is why it is not the general object reader above: no
+/// spread, getter, setter or computed key can appear in it, so there is no
+/// shape here that has to refuse.
+fn fold_entry_value(object: &ObjectLit, key: &str) -> Option<Expr> {
+  object.props.iter().find_map(|prop| match prop {
+    PropOrSpread::Prop(prop) => match prop.as_ref() {
+      Prop::KeyValue(key_value) if convert_key_value_to_str(key_value) == key => {
+        Some(*key_value.value.clone())
+      },
+      _ => None,
+    },
+    PropOrSpread::Spread(_) => None,
+  })
+}
+
+/// A member read off a value whose only form is the object a fold stands for.
+///
+/// The reference implementation's `identifiers` entry *is* a JavaScript object,
+/// so a member read off it resolves a key the entry carries and reads
+/// `undefined` off one it does not -- and `undefined` is what the position that
+/// wanted a value then refuses, with the sentence that names the input. This
+/// evaluator holds the entry as a configuration with no expression form, and
+/// used to report that it could not name the property, which is a sentence
+/// about this compiler rather than about what was written.
+fn read_fold_member(
+  value: &EvaluateResultValue,
+  property: Option<&EvaluateResultValue>,
+  path: &Expr,
+  state: &mut EvaluationState,
+) -> Option<EvaluateResultValue> {
+  let Some(object) = function_fold_to_object(value) else {
+    deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+  };
+
+  let Some(key) = property.and_then(|prop| prop.as_string_key()) else {
+    deopt_unsupported!(path, state, UNEXPECTED_MEMBER_LOOKUP);
+  };
+
+  Some(match fold_entry_value(&object, &key) {
+    Some(expr) => EvaluateResultValue::Expr(expr),
+    None => js_undefined(),
+  })
 }
 
 /// Refuses a lookup a string or an array cannot answer, naming the index where
@@ -273,41 +333,38 @@ pub(in super::super) fn evaluate(
               ArrayLikeLookup::Index(_) => {},
             }
 
-            let EvaluateResultValue::Expr(expr) = eval_res else {
-              deopt_unsupported!(path, state, PROPERTY_NOT_FOUND);
-            };
-
-            // An index that reads as a number but was not written as one —
-            // `list["0"]` — is the same element in the language, and reading it
-            // is the scope the note below leaves open. Refused through the same
-            // function as the other receivers so the diagnostic names the index
-            // rather than describing the member expression.
-            let Expr::Lit(Lit::Num(Number { value, .. })) = expr else {
+            let ArrayLikeLookup::Index(key) = &lookup else {
               return refuse_lookup(path, state, &lookup);
             };
 
-            let value = value as usize;
+            // A spread stands for however many elements its value holds, so no
+            // slot after it is the one the source names. Refused rather than
+            // counted, for the reason `written_slot_count` gives — though
+            // evaluating an array refuses every spread first, so no receiver
+            // carrying one arrives here.
+            if written_slot_count(elems).is_none() {
+              deopt_unsupported!(path, state, SPREAD_ELEMENT);
+            }
 
-            // An index past the end is `undefined` in the language, and the
-            // object arm below now folds the matching case — a key the object
-            // does not carry. This arm is deliberately left answering no value
-            // instead, because no StyleX source reaches it: an array binding
-            // evaluates to the `Vec` variant, whose arm below reads `length`
-            // and nothing else, so indexing one refuses whether the index is
-            // in range or not. Making the two agree is a matter of teaching
-            // `Vec` to be indexed, which is its own scope.
-            let property = elems.get(value)?;
+            // An index past the end is `undefined` in the language, which is
+            // the answer a key an object does not carry already gets. The
+            // `Vec` arm below reads its own elements the same way, so the two
+            // array receivers agree about what an index answers.
+            let Some(element) = index_slot(key).and_then(|slot| elems.get(slot)) else {
+              return Some(js_undefined());
+            };
 
-            // An array hole reads as `undefined`, which this arm does not
-            // represent — see the note above on why it refuses rather than
-            // answering one.
-            let Some(expr) = property.as_ref() else {
+            // An array hole is `undefined` too, but this evaluator does not
+            // hold one: `array_expression` refuses a written hole ahead of
+            // this, and only a fold's own output can carry one. Refused rather
+            // than answered, because a hole reaching here would mean a fold
+            // produced a slot it could not fill and answering `undefined`
+            // would hide that.
+            let Some(element) = element.as_ref() else {
               deopt_unsupported!(path, state, MEMBER_NOT_RESOLVED);
             };
 
-            let expr = expr.expr.clone();
-
-            Some(EvaluateResultValue::Expr(*expr))
+            Some(EvaluateResultValue::Expr(*element.expr.clone()))
           },
           Expr::Object(ObjectLit { props, .. }) => {
             let Some(eval_res) = property else {
@@ -428,7 +485,7 @@ pub(in super::super) fn evaluate(
           // answers — so `"abc".foo.length` has to refuse rather than answer
           // `undefined` a second time. Checked here rather than in the arms
           // that produce it, because this is the arm that would swallow it.
-          Expr::Ident(nested_ident) if nested_ident.sym.as_ref() == "undefined" => {
+          Expr::Ident(nested_ident) if is_js_undefined(nested_ident) => {
             deopt(path, state, UNEXPECTED_MEMBER_LOOKUP)
           },
           Expr::Ident(nested_ident) => evaluate_cached(
@@ -446,17 +503,19 @@ pub(in super::super) fn evaluate(
           ),
         },
         EvaluateResultValue::FunctionConfigMap(fc_map) => {
-          let key = match property {
-            Some(EvaluateResultValue::Expr(Expr::Ident(ident))) => ident,
-            _ => deopt_unsupported!(path, state, MEMBER_NOT_RESOLVED),
-          };
-
-          if let Some(fc) = fc_map.get(&key.sym) {
+          // The entry the map carries, in the map's own form. `stylex.when` as
+          // a callee is read through this, so a hit must not be materialized
+          // into an object the call step cannot call.
+          if let Some(EvaluateResultValue::Expr(Expr::Ident(ident))) = &property
+            && let Some(fc) = fc_map.get(&ident.sym)
+          {
             return Some(EvaluateResultValue::FunctionConfig(fc.clone()));
           }
 
           // Check if this is an env property access on a stylex import.
-          if key.sym.as_ref() == STYLEX_ENV {
+          if let Some(EvaluateResultValue::Expr(Expr::Ident(ident))) = &property
+            && ident.sym.as_ref() == STYLEX_ENV
+          {
             if traversal_state.options.env.is_empty() {
               deopt_unsupported!(
                 path,
@@ -470,15 +529,23 @@ pub(in super::super) fn evaluate(
             ));
           }
 
-          deopt_unsupported!(
+          // A key the map has no entry for is `undefined`, read off the object
+          // the fold stands for, rather than a report that this compiler could
+          // not name the property.
+          read_fold_member(
+            &EvaluateResultValue::FunctionConfigMap(fc_map),
+            property.as_ref(),
             path,
             state,
-            format!(
-              "The property '{}' was not found in the function configuration.",
-              key.sym
-            )
-            .as_str()
-          );
+          )
+        },
+        // One entry of the same map, reached through a named import rather
+        // than through the namespace. `keyframes.fn` is the one key the entry
+        // carries and every other name is `undefined` -- both of which the
+        // position that wanted a value refuses, which is what the reference
+        // implementation does with the object it holds there.
+        EvaluateResultValue::FunctionConfig(_) => {
+          read_fold_member(&object, property.as_ref(), path, state)
         },
         // An array literal evaluates to this variant rather than to an
         // `ArrayLit`, so it is where `["a", "b"].length` is answered. Only
@@ -497,10 +564,19 @@ pub(in super::super) fn evaluate(
             Some(count) => Some(EvaluateResultValue::Expr(create_number_expr(count as f64))),
             None => deopt(path, state, SPREAD_ELEMENT),
           },
-          ArrayLikeLookup::Missing(_) => Some(js_undefined()),
-          lookup @ (ArrayLikeLookup::Index(_) | ArrayLikeLookup::Unreadable) => {
-            refuse_lookup(path, state, &lookup)
+          // An index reads the element it names, and answers `undefined` past
+          // the end. The slots are counted from the receiver first, so an
+          // index is read only where the count is the language's — the same
+          // guard `length` above takes, and for the same reason.
+          ArrayLikeLookup::Index(key) => match written_slot_count_of(&member.obj, &items) {
+            None => deopt(path, state, SPREAD_ELEMENT),
+            Some(_) => Some(match index_slot(&key).and_then(|slot| items.get(slot)) {
+              Some(item) => item.clone(),
+              None => js_undefined(),
+            }),
           },
+          ArrayLikeLookup::Missing(_) => Some(js_undefined()),
+          lookup @ ArrayLikeLookup::Unreadable => refuse_lookup(path, state, &lookup),
         },
         EvaluateResultValue::ThemeRef(mut theme_ref) => {
           let key = match property {

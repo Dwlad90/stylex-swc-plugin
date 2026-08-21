@@ -57,7 +57,7 @@ pub(in super::super) fn evaluate(
         Expr::Lit(Lit::Null(_)) => "object",
         Expr::Fn(_) => "function",
         Expr::Class(_) => "function",
-        Expr::Ident(ident) if ident.sym == *"undefined" => "undefined",
+        Expr::Ident(ident) if is_js_undefined(ident) => "undefined",
         Expr::Object(_) => "object",
         Expr::Array(_) => "object",
         // Every other expression kind is one `typeof` would answer for at

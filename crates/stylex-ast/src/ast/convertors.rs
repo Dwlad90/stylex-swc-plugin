@@ -191,6 +191,21 @@ pub fn create_bool_expr(value: bool) -> Expr {
   Expr::Lit(create_boolean_lit(value))
 }
 
+/// Whether an identifier is the language's `undefined`.
+///
+/// One predicate, because `undefined` is a *value* here rather than a name that
+/// failed to resolve -- `js_undefined()` is what a key an object does not carry,
+/// an index past the end of an array and a member read off a fold all answer, so
+/// several steps have to recognise it on the way back out. Four private copies
+/// of this test is how they could come to disagree about which of them is
+/// looking at a value and which at an unresolved reference.
+///
+/// A binding named `undefined` that shadows the global never arrives: the
+/// evaluator refuses a shadowed `undefined` ahead of any of these readers.
+pub fn is_js_undefined(ident: &Ident) -> bool {
+  ident.sym.as_ref() == "undefined"
+}
+
 pub fn create_ident_expr(value: &str) -> Expr {
   Expr::Ident(create_ident(value))
 }

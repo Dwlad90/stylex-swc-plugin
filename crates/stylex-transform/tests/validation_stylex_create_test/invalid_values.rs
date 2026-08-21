@@ -2670,12 +2670,14 @@ stylex_test_panic!(
   "#
 );
 
-// A member read off the fold that the fold has no entry for. Upstream answers
-// `undefined` and refuses it as a value; this compiler cannot name the property
-// and says so. Both refuse; the sentence is this compiler's own.
+// A member read off the fold that the fold has no entry for. The reference
+// implementation reads `undefined` off the object its `identifiers` entry is,
+// and refuses that as a value; this compiler now reads the same `undefined` off
+// the object the fold stands for, so both refuse with the same sentence about
+// the input rather than one about a shape this compiler holds.
 stylex_test_panic!(
   a_missing_member_read_off_a_static_fold_is_refused,
-  "Could not determine the property being accessed.",
+  "A style value can only contain an array, string or number.",
   r#"
     import { create, keyframes } from '@stylexjs/stylex';
 
@@ -2685,11 +2687,38 @@ stylex_test_panic!(
 
 stylex_test_panic!(
   an_index_read_off_a_static_fold_is_refused,
-  "Could not determine the property being accessed.",
+  "A style value can only contain an array, string or number.",
   r#"
     import { create, keyframes } from '@stylexjs/stylex';
 
     export const styles = create({ a: { height: keyframes[0] } });
+  "#
+);
+
+// The one key the entry does carry. The reference implementation holds
+// `{ fn: keyframes }` there, so `keyframes.fn` resolves to a function and the
+// value position refuses it for not being a style value -- the same sentence a
+// key it does not carry earns, by the other route.
+stylex_test_panic!(
+  the_fn_key_read_off_a_static_fold_is_refused,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: keyframes.fn } });
+  "#
+);
+
+// The namespace fold, read at a key it has no entry for. `stylex.when` resolves
+// through the map's own form and must keep doing so, which is what
+// `validation_when_functions_test` guards; every other name reads `undefined`.
+stylex_test_panic!(
+  a_missing_member_read_off_the_namespace_fold_is_refused,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: { height: stylex.nope } });
   "#
 );
 

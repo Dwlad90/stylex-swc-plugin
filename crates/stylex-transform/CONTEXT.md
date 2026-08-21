@@ -280,6 +280,20 @@ zero sorts before every authored node, so comparing one answers a fact about its
 having been built.
 _Avoid_: generated node, dummy node, fake node
 
+**Key span index**:
+Where every style namespace key of the module's _own parsed source_ is written,
+collected in one walk and held beside that memoized source on the
+[state manager](#state-manager). What the `file:line` annotation on `$$css` is
+resolved from: the annotation asks for the authored position of every namespace
+of every `stylex.create` call, and answering each by walking the source made a
+`dev` build quadratic in the size of a file that is one long list of styles. A
+key two namespaces spell is several candidates, ranked by how much of the
+compiled call each reproduces; a tie resolves to nothing, because a wrong
+`file:line` is worse than none. Distinct from the state manager's span cache,
+which memoizes the _answers_ this index is asked for, keyed by the lookup rather
+than by the key.
+_Avoid_: namespace key index, key map, position table
+
 **Seen value**:
 A memoized evaluation, keyed by the
 [structural hash](../stylex-utils/CONTEXT.md) of the expression. `resolved`

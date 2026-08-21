@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 use stylex_utils::collections::FxIndexMap;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{BindingIdent, Expr, Ident, Program},
+  ecma::ast::{BindingIdent, Expr, Ident, Module},
 };
 
 use crate::shared::enums::data_structures::{
@@ -16,6 +16,7 @@ pub(crate) use stylex_types::structures::style_key::{ClassName, RuleKey};
 
 use super::{
   functions::{FunctionConfig, FunctionConfigType},
+  key_span_index::KeySpanIndex,
   state_manager::StateManager,
 };
 use stylex_structures::{inline_style::InlineStyle, named_import_source::ImportSources};
@@ -64,6 +65,12 @@ pub(crate) struct InjectImportIdents {
 
 #[derive(Clone, Debug)]
 pub(crate) struct SeenModuleSource {
-  pub(crate) program: Program,
+  /// The module's own source, parsed. A module rather than a `Program`, because
+  /// the source being memoized here is always parsed as one and every reader
+  /// wants it as one.
+  pub(crate) module: Module,
   pub(crate) source_code: Option<String>,
+  /// Where every namespace key of `module` is written, built on the first
+  /// debug-path lookup that needs it and dropped with the module it indexes.
+  pub(crate) key_span_index: Option<KeySpanIndex>,
 }

@@ -6,9 +6,10 @@
 //! writes it into `$$css` as `file:line`. Resolving one position means locating
 //! the namespace key inside the module's own parsed source, which is the most
 //! expensive thing a `dev` transform does -- it was about 85% of one and grew
-//! roughly with the square of the file size until the per-lookup deep clone
-//! behind it was removed. Nothing in this repo measured that, so the improvement
-//! was unguarded and the next change to the path would have reported as nothing.
+//! roughly with the square of the file size until the per-lookup deep clone and
+//! then the per-key walk behind it were removed. Nothing in this repo measured
+//! that, so each improvement was unguarded and the next change to the path would
+//! have reported as nothing.
 //!
 //! Two things are pinned here, and the second is the reason the sizes come in a
 //! series rather than one at a time:
@@ -16,10 +17,12 @@
 //! - the absolute cost of a `dev` transform, against the same file transformed
 //!   with `dev` off -- the penalty a developer waits on, and the number a change
 //!   to the debug path moves;
-//! - the *shape* of that cost against file size. The remaining whole-program
-//!   `KeySpanFinder` walk is still one visit per namespace key, so it is
-//!   genuinely `O(namespaces x file size)`. A return to a superlinear curve shows
-//!   up here as a rising cost per create, where a flat curve keeps it level.
+//! - the *shape* of that cost against file size. Locating a namespace key used
+//!   to be one whole-program walk per key, which is `O(namespaces x file size)`
+//!   -- genuinely quadratic in a file that is one long list of styles. It is now
+//!   answered from an index built in one walk per module, and a return to the
+//!   old shape shows up here as a rising cost per create, where a flat curve
+//!   keeps it level.
 //!
 //! What is timed is one `Program::apply` of the StyleX pass. Parsing the module
 //! is setup and the clone the pass consumes is batched out, so the number is the
@@ -67,16 +70,23 @@ const COMPILED_KEY: &str = "$$css";
 /// the smaller ones are cut from it, so all three are the same styles in the
 /// same order and differ only in how many.
 ///
-/// Four times the size across the series is enough to read a linear curve apart
-/// from a quadratic one: the per-create cost of a quadratic path quadruples
-/// across it, where a linear one stays level.
+/// Four times the size across the series reads a rising per-create cost apart
+/// from a level one, which is what a quadratic term looks like once it is large
+/// enough to dominate.
+///
+/// It is not large enough at these sizes, and that is worth stating rather
+/// than implying: while the per-key walk was still there, the per-create cost
+/// across this series was 235, 212 and 251 µs -- flat, because the quadratic
+/// term was only about a seventh of a 100-create transform. What guards the
+/// path here is the paired `dev` and `prod` legs at one size: putting the walk
+/// back takes dev/100 from 9.1 ms to 25.1 ms against an unchanged prod/100.
+/// Reading the *curve* takes files four to sixteen times this one, which the
+/// committed fixture deliberately does not hold; those measurements live in the
+/// tracker instead.
 ///
 /// The series stops at 100 because that is the smallest slice that showed the
-/// effect it was cut to show. Removing the per-lookup deep clone sped these
-/// sizes up by 1.5x at 50 creates and 2.3x at 100, so 50 was too small to have
-/// caught the regression it was chasing and 200 and 400 only cost every run
-/// more time to say what 100 already says. Those are the *speedup* from that
-/// one fix, not the `dev` penalty this bench reports, which is 3-4x.
+/// effect it was cut to show, and 200 and 400 would only cost every run more
+/// time to say what 100 already says.
 const CREATE_COUNTS: [usize; 3] = [25, 50, 100];
 
 /// The marker every element of the fixture's array begins with. Matched as a

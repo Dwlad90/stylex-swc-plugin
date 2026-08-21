@@ -16,8 +16,8 @@ use swc_core::{
     ast::{
       CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl, ImportDefaultSpecifier,
       ImportNamedSpecifier, ImportPhase, ImportSpecifier, JSXAttrOrSpread, Lit, MemberExpr,
-      MemberProp, Module, ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, Program,
-      PropName, Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
+      MemberProp, Module, ModuleDecl, ModuleExportName, ModuleItem, NamedExport, Pat, PropName,
+      Stmt, Str, VarDecl, VarDeclKind, VarDeclarator,
     },
     visit::{Visit, VisitMut, VisitMutWith, VisitWith},
   },
@@ -60,6 +60,7 @@ use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_utils::hash::{stable_hash_unspanned, stable_hash_unspanned_call};
 
 use super::{
+  key_span_index::KeySpanIndex,
   seen_value::SeenValue,
   types::{InjectImportIdents, SeenModuleSource, StylesObjectMap},
 };
@@ -225,20 +226,34 @@ pub(crate) struct ModuleSourceState {
 }
 
 impl ModuleSourceState {
-  fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
-    if let Some(seen_module_source) = self.seen_module_source_code.as_ref().map(|b| b.as_ref())
-      && let Program::Module(module) = &seen_module_source.program
-    {
-      return Some((module, &seen_module_source.source_code));
+  /// The memoized module's [`KeySpanIndex`], built on the first lookup that
+  /// needs it.
+  ///
+  /// Lazy because only a `debug` build asks for it, and built once because the
+  /// debug path asks once per style namespace: the walk it replaces was the
+  /// largest cost in a `dev` transform.
+  fn key_span_index(&mut self) -> Option<&KeySpanIndex> {
+    let seen_module_source = self.seen_module_source_code.as_mut()?;
+
+    if seen_module_source.key_span_index.is_none() {
+      seen_module_source.key_span_index = Some(KeySpanIndex::build(&seen_module_source.module));
     }
 
-    None
+    seen_module_source.key_span_index.as_ref()
+  }
+
+  fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
+    let seen_module_source = self.seen_module_source_code.as_deref()?;
+
+    Some((&seen_module_source.module, &seen_module_source.source_code))
   }
 
   fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
     self.seen_module_source_code = Some(Box::new(SeenModuleSource {
-      program: Program::Module(module.clone()),
+      module: module.clone(),
       source_code,
+      // Built from the module above, so it cannot outlive it.
+      key_span_index: None,
     }));
   }
 }
@@ -866,6 +881,11 @@ impl StateManager {
   /// Gets the source code program if it exists and is not yet normalized
   pub(crate) fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
     self.module_source.get_seen_module_source_code()
+  }
+
+  /// The memoized module's key span index, built on first use
+  pub(crate) fn key_span_index(&mut self) -> Option<&KeySpanIndex> {
+    self.module_source.key_span_index()
   }
 
   /// Sets the source code module (marks as not yet normalized)

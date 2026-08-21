@@ -2,7 +2,6 @@ use anyhow::Error;
 use log::{debug, warn};
 use std::{
   cell::Cell,
-  cmp::Reverse,
   fs,
   panic::{self, AssertUnwindSafe, UnwindSafe},
   path::Path,
@@ -14,7 +13,7 @@ use swc_config::is_module::IsModule;
 use swc_core::{
   atoms::Atom,
   common::{
-    BytePos, DUMMY_SP, EqIgnoreSpan, FileName, Mark, SourceMap, Span, Spanned, SyntaxContext,
+    DUMMY_SP, EqIgnoreSpan, FileName, Mark, SourceMap, Span, Spanned, SyntaxContext,
     errors::{Handler, *},
     util::take::Take,
   },
@@ -29,13 +28,9 @@ use swc_core::{
 };
 
 use crate::shared::{
-  structures::state_manager::StateManager,
-  utils::ast::{
-    convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
-    helpers::namespace_name_from_prop_key,
-  },
+  structures::{key_span_index::NamespaceKeyQuery, state_manager::StateManager},
+  utils::ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
 };
-use rustc_hash::FxHashSet;
 use stylex_regex::regex::URL_REGEX;
 use stylex_utils::hash::stable_hash_wide;
 
@@ -317,14 +312,8 @@ fn get_key_span_from_source_code_impl(
   namespace_key: &str,
   state: &mut StateManager,
 ) -> Result<(CodeFrame, Span), Error> {
-  let sibling_keys = collect_object_arg_keys(call_expr);
-  let namespace_value_keys = collect_namespace_value_keys(call_expr, namespace_key);
-  let cache_key = compute_key_span_cache_key(
-    call_expr,
-    namespace_key,
-    &sibling_keys,
-    &namespace_value_keys,
-  );
+  let query = NamespaceKeyQuery::from_compiled_call(call_expr, namespace_key);
+  let cache_key = compute_key_span_cache_key(call_expr, &query);
   let file_name = FileName::Custom(state.get_filename().to_owned());
 
   if let Some(cached_span) = state.cached_span(cache_key) {
@@ -334,85 +323,26 @@ fn get_key_span_from_source_code_impl(
 
   let code_frame = CodeFrame::new();
   let wrapped_expression = Expr::Call(call_expr.clone());
-  let target_lo = first_object_arg_span(call_expr)
-    .or_else(|| (!call_expr.span.is_dummy()).then_some(call_expr.span.lo));
 
-  let span = with_memoized_module(
+  memoize_module(
     &wrapped_expression,
     &wrapped_expression,
     state,
     &file_name,
     &code_frame,
-    |module| {
-      let mut finder = KeySpanFinder {
-        namespace_key,
-        sibling_keys: &sibling_keys,
-        namespace_value_keys: &namespace_value_keys,
-        target_lo,
-        best: None,
-        ambiguous_best: false,
-      };
-      module.visit_with(&mut finder);
-
-      finder.resolved_span()
-    },
   )?;
+
+  // One index over the whole module, not one walk per namespace key: the debug
+  // path asks this question once per style, and the walk it replaces made a
+  // `dev` build quadratic in the size of a file that is one long list of them.
+  let span = match state.key_span_index() {
+    Some(index) => index.resolve(&query),
+    None => return Err(missing_memoized_module(state)),
+  };
 
   state.insert_cached_span(cache_key, span);
 
   Ok((code_frame, span))
-}
-
-/// Collects the literal property keys of a call's first object argument.
-fn collect_object_arg_keys(call_expr: &CallExpr) -> FxHashSet<Atom> {
-  match call_expr.args.first().map(|arg| arg.expr.as_ref()) {
-    Some(Expr::Object(object)) => collect_object_lit_keys(object).collect(),
-    _ => FxHashSet::default(),
-  }
-}
-
-fn first_object_arg_span(call_expr: &CallExpr) -> Option<BytePos> {
-  call_expr
-    .args
-    .first()
-    .and_then(|arg| match arg.expr.as_ref() {
-      Expr::Object(object) if !object.span.is_dummy() => Some(object.span.lo),
-      _ => None,
-    })
-}
-
-fn collect_namespace_value_keys(call_expr: &CallExpr, namespace_key: &str) -> FxHashSet<Atom> {
-  let mut keys = FxHashSet::default();
-
-  if let Some(arg) = call_expr.args.first()
-    && let Expr::Object(object) = arg.expr.as_ref()
-  {
-    for prop in &object.props {
-      if let PropOrSpread::Prop(prop) = prop
-        && let Prop::KeyValue(key_value) = prop.as_ref()
-        && namespace_name_from_prop_key(&key_value.key)
-          .is_some_and(|name| name.as_ref() == namespace_key)
-        && let Expr::Object(namespace_value) = key_value.value.as_ref()
-      {
-        keys.extend(collect_object_lit_keys(namespace_value));
-        break;
-      }
-    }
-  }
-
-  keys
-}
-
-fn collect_object_lit_keys(object: &ObjectLit) -> impl Iterator<Item = Atom> + '_ {
-  object.props.iter().filter_map(|prop| {
-    if let PropOrSpread::Prop(prop) = prop
-      && let Prop::KeyValue(key_value) = prop.as_ref()
-    {
-      namespace_name_from_prop_key(&key_value.key)
-    } else {
-      None
-    }
-  })
 }
 
 /// The same, for a namespace-key lookup. 128 bits for the same reason as
@@ -421,19 +351,14 @@ fn collect_object_lit_keys(object: &ObjectLit) -> impl Iterator<Item = Atom> + '
 /// Hashed as one tuple rather than field by field, so the wide hasher is built
 /// once and the pieces cannot drift out of the key by being added to the
 /// function and forgotten in the digest.
-fn compute_key_span_cache_key(
-  call_expr: &CallExpr,
-  namespace_key: &str,
-  sibling_keys: &FxHashSet<Atom>,
-  namespace_value_keys: &FxHashSet<Atom>,
-) -> u128 {
+fn compute_key_span_cache_key(call_expr: &CallExpr, query: &NamespaceKeyQuery) -> u128 {
   // Sorted, because a `FxHashSet`'s iteration order is not part of the identity
   // being keyed -- two calls with the same keys in a different order are the
   // same lookup.
-  let mut sorted_keys: Vec<&Atom> = sibling_keys.iter().collect();
+  let mut sorted_keys: Vec<&Atom> = query.sibling_keys.iter().collect();
   sorted_keys.sort();
 
-  let mut sorted_value_keys: Vec<&Atom> = namespace_value_keys.iter().collect();
+  let mut sorted_value_keys: Vec<&Atom> = query.namespace_value_keys.iter().collect();
   sorted_value_keys.sort();
 
   let object_span = call_expr
@@ -450,125 +375,10 @@ fn compute_key_span_cache_key(
     call_expr.span.lo.0,
     call_expr.span.hi.0,
     object_span,
-    namespace_key,
+    query.namespace_key,
     sorted_keys,
     sorted_value_keys,
   ))
-}
-
-struct KeySpanCandidate {
-  namespace_value_overlap: usize,
-  overlap: usize,
-  distance_from_target: Option<u32>,
-  span: Span,
-}
-
-impl KeySpanCandidate {
-  /// Ranking key: higher is better. A smaller distance to the target wins,
-  /// hence the `Reverse`.
-  fn rank(&self) -> (usize, usize, Reverse<Option<u32>>) {
-    (
-      self.namespace_value_overlap,
-      self.overlap,
-      Reverse(self.distance_from_target),
-    )
-  }
-}
-
-/// Visitor that finds call-expression object arguments and returns the property
-/// span for `namespace_key`. The sibling-key overlap is a tie-breaker for
-/// compiled calls with dummy spans.
-struct KeySpanFinder<'a> {
-  namespace_key: &'a str,
-  sibling_keys: &'a FxHashSet<Atom>,
-  namespace_value_keys: &'a FxHashSet<Atom>,
-  target_lo: Option<BytePos>,
-  best: Option<KeySpanCandidate>,
-  ambiguous_best: bool,
-}
-
-impl Visit for KeySpanFinder<'_> {
-  noop_visit_type!();
-
-  fn visit_call_expr(&mut self, call: &CallExpr) {
-    if let Some(arg) = call.args.first()
-      && let Expr::Object(object) = arg.expr.as_ref()
-      && let Some(candidate) = self.candidate_from_object(call, object)
-    {
-      self.record_candidate(candidate);
-    }
-
-    call.visit_children_with(self);
-  }
-}
-
-impl KeySpanFinder<'_> {
-  fn candidate_from_object(&self, call: &CallExpr, object: &ObjectLit) -> Option<KeySpanCandidate> {
-    let mut key_span = None;
-    let mut namespace_value_overlap = 0;
-    let mut overlap = 0;
-
-    for prop in &object.props {
-      if let PropOrSpread::Prop(prop) = prop
-        && let Prop::KeyValue(key_value) = prop.as_ref()
-        && let Some(name) = namespace_name_from_prop_key(&key_value.key)
-      {
-        if self.sibling_keys.contains(&name) {
-          overlap += 1;
-        }
-
-        if name.as_ref() == self.namespace_key {
-          key_span = Some(key_value.key.span());
-
-          if let Expr::Object(namespace_value) = key_value.value.as_ref() {
-            namespace_value_overlap = collect_object_lit_keys(namespace_value)
-              .filter(|name| self.namespace_value_keys.contains(name))
-              .count();
-          }
-        }
-      }
-    }
-
-    key_span.map(|span| KeySpanCandidate {
-      namespace_value_overlap,
-      overlap,
-      distance_from_target: self.target_lo.map(|target_lo| {
-        let candidate_lo = if !object.span.is_dummy() {
-          object.span.lo
-        } else {
-          call.span.lo
-        };
-
-        candidate_lo.0.abs_diff(target_lo.0)
-      }),
-      span,
-    })
-  }
-
-  fn record_candidate(&mut self, candidate: KeySpanCandidate) {
-    match self.best.as_ref() {
-      None => {
-        self.best = Some(candidate);
-        self.ambiguous_best = false;
-      },
-      Some(best) if candidate.rank() > best.rank() => {
-        self.best = Some(candidate);
-        self.ambiguous_best = false;
-      },
-      Some(best) if candidate.rank() == best.rank() => {
-        self.ambiguous_best = true;
-      },
-      Some(_) => {},
-    }
-  }
-
-  fn resolved_span(self) -> Span {
-    if self.ambiguous_best {
-      DUMMY_SP
-    } else {
-      self.best.map_or(DUMMY_SP, |candidate| candidate.span)
-    }
-  }
 }
 
 /// Loads a CodeFrame with the source file for error display.
@@ -641,6 +451,44 @@ fn with_memoized_module<T>(
   code_frame: &CodeFrame,
   visit: impl FnOnce(&Module) -> T,
 ) -> Result<T, Error> {
+  memoize_module(
+    wrapped_expression,
+    target_expression,
+    state,
+    file_name,
+    code_frame,
+  )?;
+
+  match state.get_seen_module_source_code() {
+    Some((module, _)) => Ok(visit(module)),
+    None => Err(missing_memoized_module(state)),
+  }
+}
+
+/// The error for "the module should have been memoized by now".
+///
+/// Both callers reach it only after [`memoize_module`] returned `Ok`, which
+/// either found a memoized module or stored one, so neither is reachable in
+/// practice. It stays an error rather than a panic because the getters' types
+/// cannot say so, and a diagnostic aid must never be the reason a build stops.
+fn missing_memoized_module(state: &StateManager) -> Error {
+  anyhow::anyhow!("Failed to parse source file: {}", state.get_filename())
+}
+
+/// Parses and memoizes the module's own source on the state, and registers that
+/// source with `code_frame`, unless a previous lookup already did.
+///
+/// Separate from [`with_memoized_module`] because the namespace-key lookup does
+/// not want the module itself: it wants the key span index built from it, which
+/// the state hands out and which cannot be borrowed out of a closure holding the
+/// module.
+fn memoize_module(
+  wrapped_expression: &Expr,
+  target_expression: &Expr,
+  state: &mut StateManager,
+  file_name: &FileName,
+  code_frame: &CodeFrame,
+) -> Result<(), Error> {
   if let Some((_, source_code)) = state.get_seen_module_source_code()
     && let Some(source_code) = source_code
   {
@@ -671,17 +519,7 @@ fn with_memoized_module<T>(
     );
   }
 
-  match state.get_seen_module_source_code() {
-    Some((module, _)) => Ok(visit(module)),
-    // The branch above either found a memoized module or stored one, so this is
-    // unreachable in practice. It stays an error rather than a panic because the
-    // getter's type cannot say so, and a diagnostic aid must never be the reason
-    // a build stops.
-    None => Err(anyhow::anyhow!(
-      "Failed to parse source file: {}",
-      state.get_filename()
-    )),
-  }
+  Ok(())
 }
 
 /// Gets the source code with the following priority:

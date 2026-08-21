@@ -190,7 +190,18 @@ fn insert_compiled_entry(
   package_json_seen: &mut FxHashMap<String, PackageJsonExtended>,
   functions: &FunctionMap,
 ) {
-  let raw_short_filename = create_short_filename(filename, state, package_json_seen);
+  // Cached per path: the debug path asks for the same filename once per style
+  // namespace, and shortening one reads the package boundaries around it.
+  let raw_short_filename = match state.cached_short_filename(filename) {
+    Some(short_filename) => short_filename.to_owned(),
+    None => {
+      let short_filename = create_short_filename(filename, state, package_json_seen);
+
+      state.insert_cached_short_filename(filename.to_owned(), short_filename.clone());
+
+      short_filename
+    },
+  };
   let short_filename_expr = if let Some(ref f) = state.options.debug_file_path {
     f.call(vec![create_string_expr(&raw_short_filename)])
   } else {

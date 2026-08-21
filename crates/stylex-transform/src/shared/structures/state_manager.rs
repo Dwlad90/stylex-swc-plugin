@@ -299,6 +299,7 @@ impl CallExpressionState {
 pub(crate) struct CacheState {
   css_property_seen: FxHashMap<String, String>,
   span_cache: FxHashMap<u128, Span>,
+  short_filename_cache: FxHashMap<String, String>,
 }
 
 impl CacheState {
@@ -308,6 +309,19 @@ impl CacheState {
 
   fn insert_span(&mut self, cache_key: u128, span: Span) {
     self.span_cache.insert(cache_key, span);
+  }
+
+  fn cached_short_filename(&self, absolute_path: &str) -> Option<&str> {
+    self
+      .short_filename_cache
+      .get(absolute_path)
+      .map(String::as_str)
+  }
+
+  fn insert_short_filename(&mut self, absolute_path: String, short_filename: String) {
+    self
+      .short_filename_cache
+      .insert(absolute_path, short_filename);
   }
 }
 
@@ -616,6 +630,26 @@ impl StateManager {
 
   pub(crate) fn insert_cached_span(&mut self, cache_key: u128, span: Span) {
     self.cache.insert_span(cache_key, span);
+  }
+
+  /// The `file:line` annotation's short filename for `absolute_path`, if a
+  /// previous style in this file already asked for it.
+  ///
+  /// Shortening a path means reading the package boundaries around it and around
+  /// the working directory, and the debug path asks once per style namespace
+  /// with the same path every time -- it was half of a `dev` transform.
+  pub(crate) fn cached_short_filename(&self, absolute_path: &str) -> Option<&str> {
+    self.cache.cached_short_filename(absolute_path)
+  }
+
+  pub(crate) fn insert_cached_short_filename(
+    &mut self,
+    absolute_path: String,
+    short_filename: String,
+  ) {
+    self
+      .cache
+      .insert_short_filename(absolute_path, short_filename);
   }
 
   pub(crate) fn add_class_name_declaration(&mut self, ident: Ident) {

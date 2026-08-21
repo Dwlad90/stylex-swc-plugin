@@ -21,11 +21,8 @@
 //! rather than in milliseconds. This file is what says whether the bytes matter.
 //!
 //! Every fold here runs inside `GLOBALS.set`, because the fold can reach the
-//! code-frame path and that path calls `Mark::new()`, which panics outside a
-//! `GLOBALS` scope. The panic is swallowed by the diagnostic panic boundary, so
-//! a bench without `GLOBALS` reports a number either way -- it just times a
-//! panic and its unwind instead of the work. `guidelines/PERFORMANCE.md` states
-//! this as a rule for every bench that touches the transform.
+//! code-frame path and that path calls `Mark::new()`. Why that is not optional
+//! is in `guidelines/PERFORMANCE.md` under "Writing a bench".
 
 use std::hint::black_box;
 

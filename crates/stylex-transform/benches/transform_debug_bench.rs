@@ -21,6 +21,13 @@
 //!   genuinely `O(namespaces x file size)`. A return to a superlinear curve shows
 //!   up here as a rising cost per create, where a flat curve keeps it level.
 //!
+//! What is timed is one `Program::apply` of the StyleX pass. Parsing the module
+//! is setup and the clone the pass consumes is batched out, so the number is the
+//! transform rather than a whole compile: no lex, no codegen, no CSS emission.
+//! The `file:line` lookup *does* re-read and re-parse the module from disk on
+//! its first miss, once per transform, because that is what the compiler does
+//! too -- it is part of what the annotation costs, not harness overhead.
+//!
 //! **Every benchmark here runs inside `GLOBALS.set`, and so must anything else
 //! that touches the transform.** `into_pass` and the code-frame path both call
 //! `Mark::new()`, which panics outside a `GLOBALS` scope. Inside the transform
@@ -47,11 +54,14 @@ use swc_core::{
     sync::Lrc,
   },
   ecma::{
-    ast::{EsVersion, Program, Str},
+    ast::{EsVersion, Expr, KeyValueProp, Lit, Program, PropName},
     parser::{Parser, Syntax, TsSyntax, lexer::Lexer},
     visit::{Visit, VisitWith},
   },
 };
+
+/// The `$$css` marker the debug annotation is written into.
+const COMPILED_KEY: &str = "$$css";
 
 /// The create counts measured. The committed fixture holds the largest of them;
 /// the smaller ones are cut from it, so all three are the same styles in the
@@ -59,10 +69,14 @@ use swc_core::{
 ///
 /// Four times the size across the series is enough to read a linear curve apart
 /// from a quadratic one: the per-create cost of a quadratic path quadruples
-/// across it, where a linear one stays level. The series stops at 100 because
-/// that is the smallest slice that still showed the effect it was cut to show --
-/// 2.3x, against 1.5x at 50 -- and a bigger fixture would only cost every run
-/// more time to say the same thing.
+/// across it, where a linear one stays level.
+///
+/// The series stops at 100 because that is the smallest slice that showed the
+/// effect it was cut to show. Removing the per-lookup deep clone sped these
+/// sizes up by 1.5x at 50 creates and 2.3x at 100, so 50 was too small to have
+/// caught the regression it was chasing and 200 and 400 only cost every run
+/// more time to say what 100 already says. Those are the *speedup* from that
+/// one fix, not the `dev` penalty this bench reports, which is 3-4x.
 const CREATE_COUNTS: [usize; 3] = [25, 50, 100];
 
 /// The marker every element of the fixture's array begins with. Matched as a
@@ -169,9 +183,9 @@ fn assert_slice_is_well_formed(source: &str, creates: usize) {
   let module = parse(&FileName::Anon, source);
 
   assert!(
-    !module
+    module
       .as_module()
-      .is_none_or(|module| module.body.is_empty()),
+      .is_some_and(|module| !module.body.is_empty()),
     "a {creates}-create slice parsed to an empty module"
   );
 }
@@ -184,7 +198,13 @@ struct Slice {
   program: Program,
 }
 
-fn slice(source: &str, creates: usize) -> Slice {
+/// Cuts `creates` elements out of `source`, writes the result to disk, and
+/// parses it.
+///
+/// Named for the write, because there is one: the position lookup re-reads the
+/// module by the filename the transform was given, so a slice that exists only
+/// in memory resolves nothing.
+fn materialize_slice(source: &str, creates: usize) -> Slice {
   let sliced = slice_source(source, creates);
 
   assert_slice_is_well_formed(&sliced, creates);
@@ -256,23 +276,41 @@ fn transform(path: &Path, program: Program, dev: bool) -> Program {
   program.apply(pass)
 }
 
-/// Counts `$$css` annotations of the `file:line` form in a transformed program.
+/// Counts `$$css` properties whose value is a resolved `file:line`.
 ///
 /// A position that cannot be resolved degrades to `$$css: true` rather than
 /// failing, so counting the resolved ones is the only way to tell a measured
 /// lookup from a measured refusal.
+///
+/// Keyed on the property rather than on the string, so an unrelated literal
+/// that happens to end in `:<digits>` -- a `grid-area`, a `background`
+/// shorthand, a `url()` with a port -- cannot stand in for an annotation.
 #[derive(Default)]
 struct AnnotationCounter {
   resolved: usize,
 }
 
 impl Visit for AnnotationCounter {
-  fn visit_str(&mut self, value: &Str) {
-    // `None` for a string holding an unpaired surrogate, which no annotation
-    // this counts can be: they are built from a file path and a line number.
-    if value.value.as_str().is_some_and(is_file_line_annotation) {
+  fn visit_key_value_prop(&mut self, prop: &KeyValueProp) {
+    if is_compiled_key(&prop.key)
+      && let Expr::Lit(Lit::Str(value)) = prop.value.as_ref()
+      // `None` for a string holding an unpaired surrogate, which no annotation
+      // this counts can be: they are built from a file path and a line number.
+      && value.value.as_str().is_some_and(is_file_line_annotation)
+    {
       self.resolved += 1;
     }
+
+    prop.visit_children_with(self);
+  }
+}
+
+/// Whether `key` is the `$$css` marker, quoted or not.
+fn is_compiled_key(key: &PropName) -> bool {
+  match key {
+    PropName::Ident(ident) => ident.sym.as_ref() == COMPILED_KEY,
+    PropName::Str(value) => value.value.as_str() == Some(COMPILED_KEY),
+    _ => false,
   }
 }
 
@@ -335,7 +373,7 @@ fn debug_path_benchmarks(c: &mut Criterion) {
     let source = read_fixture();
     let slices: Vec<Slice> = CREATE_COUNTS
       .into_iter()
-      .map(|creates| slice(&source, creates))
+      .map(|creates| materialize_slice(&source, creates))
       .collect();
 
     for slice in &slices {

@@ -18,15 +18,12 @@ export const DEFAULT_PAIRED_TIME_BUDGET_MS = 300;
  * unless it says otherwise.
  *
  * `dev: false` stays the default here rather than becoming a variant of this
- * function, because a `dev` build is a different measurement rather than a
- * louder one: it turns on the `file:line` annotation on `$$css`, which
- * resolves every namespace's authored position and costs several times the
- * whole production transform. Flipping it here would move every trend series
- * in the repo onto a shape nobody had been watching, and the two shapes
- * cannot be compared against each other. A fixture that wants the `dev` shape
- * asks for it with `"dev": true` in `fixtures.v1.json`, arriving here through
- * `fixtureStylexOptions`, so both configurations are watched under their own
- * names.
+ * function. A `dev` build costs 3-4x a production one on the same file, so
+ * flipping it here would move every trend series in the repo onto a shape
+ * nobody had been watching, and the two cannot be compared against each other
+ * afterwards -- see `guidelines/PERFORMANCE.md`. A fixture that wants the
+ * `dev` shape asks for it with `"dev": true` in `fixtures.v1.json`, arriving
+ * here through `fixtureStylexOptions`.
  */
 export function createStylexOptions(packageDir: string): StyleXOptions {
   return {

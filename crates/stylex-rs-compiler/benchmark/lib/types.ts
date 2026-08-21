@@ -30,13 +30,9 @@ export interface FixtureDescriptor {
   batchSize: number;
   /**
    * Overrides `dev` for this fixture alone. Absent means the shared
-   * production shape from `createStylexOptions`.
-   *
-   * A `dev` build is a different measurement, not a louder one: it turns on
-   * the `file:line` annotation on `$$css`, which resolves every style
-   * namespace's authored position and costs several times the whole
-   * production transform. Both shapes are worth watching, so a fixture opts
-   * in rather than the shared options switching under every fixture at once.
+   * production shape from `createStylexOptions`, which is what all but one
+   * fixture wants; `guidelines/PERFORMANCE.md` says why the two shapes are
+   * watched separately rather than switched between.
    */
   dev?: boolean;
 }

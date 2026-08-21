@@ -54,6 +54,19 @@ describe('loadAllFixtures', () => {
     }
   });
 
+  // The `dev` fixture is a slice of `apps/rollup-large-example/lotsOfStyles.js`
+  // shared with `crates/stylex-transform/benches/transform_debug_bench.rs`, and
+  // its name is part of a trend series. Re-cutting it at a different size would
+  // silently reshape that series under an unchanged name, so the size the name
+  // claims is pinned here.
+  test('the dev fixture still holds the number of creates its name claims', () => {
+    const fixture = fixtures.find(candidate => candidate.dev === true);
+    const creates = fixture?.code.match(/stylex\.create\(/g)?.length;
+
+    expect(fixture?.name).toContain('100 creates');
+    expect(creates).toBe(100);
+  });
+
   test('resolves the options a fixture is measured under from its override', () => {
     const base = createStylexOptions(packageDir);
     const devFixture = fixtures.find(fixture => fixture.dev === true);

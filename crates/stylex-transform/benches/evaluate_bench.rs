@@ -204,13 +204,9 @@ fn load_fixtures() -> Vec<EvaluateFixture> {
 }
 
 /// Runs inside `GLOBALS.set` because `evaluate` can reach the code-frame path,
-/// and that path calls `Mark::new()`, which panics outside a `GLOBALS` scope.
-///
-/// The panic would not surface: the code frame is a diagnostic aid behind a
-/// panic boundary, so a bench without `GLOBALS` still reports a number -- it
-/// just times a panic and its unwind instead of the lookup, and hides any
-/// regression in the lookup behind it. `guidelines/PERFORMANCE.md` states this
-/// as a rule for every bench that touches the transform.
+/// which calls `Mark::new()`. Why that is not optional, and why a bench without
+/// it still reports a number, is in `guidelines/PERFORMANCE.md` under "Writing
+/// a bench".
 fn evaluate_benchmarks(c: &mut Criterion) {
   let globals = Globals::default();
 

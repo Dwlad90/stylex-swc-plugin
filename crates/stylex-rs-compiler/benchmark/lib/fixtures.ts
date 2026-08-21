@@ -9,10 +9,8 @@
  * lifted above sub-millisecond noise by batching; do not add an
  * absolute-delta floor as a shortcut.
  *
- * A fixture may opt into a `dev` build with `"dev": true`. That is a
- * different measurement rather than a louder one -- see
- * `FixtureDescriptor.dev` -- so it is per fixture, never a switch in the
- * shared options.
+ * A fixture may opt into a `dev` build with `"dev": true`. That is per
+ * fixture, never a switch in the shared options -- see `FixtureDescriptor.dev`.
  *
  * Only fixtures that actually produce StyleX rules belong here. The
  * transform test corpus also contains negative fixtures that compile to
@@ -69,7 +67,8 @@ export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor
       // Assigned only when the manifest declared it, so an undeclared `dev`
       // stays absent rather than becoming an own `dev: undefined` property:
       // "the manifest did not say" and "the manifest said nothing in
-      // particular" must not read the same to a consumer.
+      // particular" must not read the same to a consumer. Same shape as
+      // `parseManifestEntry`.
       if (fixture.dev !== undefined) descriptor.dev = fixture.dev;
       return descriptor;
     });
@@ -124,14 +123,20 @@ function parseManifestEntry(input: unknown, index: number): FixtureManifestEntry
   if (input.dev !== undefined && typeof input.dev !== 'boolean') {
     throw new Error(`${context}.dev must be a boolean when present`);
   }
-  return {
+  const entry: FixtureManifestEntry = {
     name: input.name,
     file: input.file,
     category: input.category,
     weight: input.weight,
     batchSize: Number(input.batchSize),
-    ...(input.dev === undefined ? {} : { dev: input.dev }),
   };
+
+  // Copied the same way `loadAllFixtures` copies it onto the descriptor, and
+  // for the same reason: an undeclared `dev` must stay absent rather than
+  // become an own `dev: undefined` property.
+  if (input.dev !== undefined) entry.dev = input.dev;
+
+  return entry;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

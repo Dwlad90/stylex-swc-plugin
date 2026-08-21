@@ -49,6 +49,18 @@ use stylex_css::utils::pseudo::is_pseudo_selector;
 use stylex_structures::inline_style::InlineStyle;
 use stylex_utils::hash::create_hash;
 
+/// The key-value properties of an evaluated object, which is what a namespace
+/// carries. A spread or a method has no key and value of its own and is dropped,
+/// as it was before an object could arrive here from more than one place.
+fn key_value_props_of(object: &ObjectLit) -> Vec<KeyValueProp> {
+  object
+    .props
+    .iter()
+    .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
+    .cloned()
+    .collect()
+}
+
 /// Prepends a key name to an existing error reason to provide context
 /// about which property path triggered the evaluation failure.
 fn prepend_key_to_reason(key: &str, reason: Option<String>) -> Option<String> {
@@ -262,13 +274,19 @@ pub fn evaluate_stylex_create_arg(
                       Some(v) => v,
                       None => stylex_panic!("{}", EVAL_RESULT_EXPECTED),
                     } {
-                      EvaluateResultValue::Expr(Expr::Object(obj_expr)) => obj_expr
-                        .props
-                        .iter()
-                        .filter_map(|prop| prop.as_prop().and_then(|prop| prop.as_key_value()))
-                        .cloned()
-                        .collect::<Vec<_>>(),
-                      _ => stylex_panic!("{}", ILLEGAL_NAMESPACE_VALUE),
+                      EvaluateResultValue::Expr(Expr::Object(obj_expr)) => {
+                        key_value_props_of(obj_expr)
+                      },
+                      // A folded function map written where a namespace
+                      // belongs, materialized as the object it stands for so
+                      // namespace validation refuses its keys -- which is what
+                      // the reference implementation refuses, having folded the
+                      // same reference to a plain object. Everything else with
+                      // no object form is a namespace this cannot read.
+                      value => match function_fold_to_object(value) {
+                        Some(object) => key_value_props_of(&object),
+                        None => stylex_panic!("{}", ILLEGAL_NAMESPACE_VALUE),
+                      },
                     };
 
                     result_value.insert(key_expr.clone(), value_to_insert);

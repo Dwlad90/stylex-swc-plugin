@@ -2630,3 +2630,28 @@ stylex_test!(
 // refusal both compilers reach or a divergence recorded in
 // `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.
 // --------------------------------------------------------------------------
+
+// The fold written where a whole namespace belongs. The namespace's own object
+// carries `when`, whose value is an object, so validation reads its keys as
+// conditions and refuses them -- and a `{ fn }` wrapper carries a function,
+// which is refused as a value. Both are the sentences upstream gives, which it
+// gives for the same two shapes.
+stylex_test_panic!(
+  the_namespace_import_written_as_a_namespace_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: stylex });
+  "#
+);
+
+stylex_test_panic!(
+  a_named_keyframes_import_written_as_a_namespace_is_refused_for_its_function,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: keyframes });
+  "#
+);

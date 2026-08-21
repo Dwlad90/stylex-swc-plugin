@@ -1415,6 +1415,22 @@
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
       "note": "The one shape a spread of the fold compiles, and the guard on the two rows above: the wrapper key is written over by a property that follows, so nothing the fold contributed survives to be refused.",
       "expected": "identical"
+    },
+    {
+      "id": "modules-1266-the-namespace-import-written-as-a-namespace",
+      "label": "the stylex namespace import written where a whole namespace belongs",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({ a: stylex });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "The namespace position, not the value position: the fold is materialized there too, so validation reads the `when` object's keys as conditions and refuses them. It used to read `A StyleX namespace must be an object.`",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-named-function-map-import-written-as-a-namespace",
+      "label": "a named `keyframes` import written where a whole namespace belongs",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: keyframes });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "The same position one entry down: the `{ fn }` wrapper's function reaches namespace validation as a property value and is refused for not being a style value, which is upstream's sentence for it.",
+      "expected": "both-reject"
     }
   ]
 }

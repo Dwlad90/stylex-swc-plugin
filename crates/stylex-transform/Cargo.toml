@@ -68,5 +68,9 @@ testing.workspace = true
 harness = false
 name = "evaluate_bench"
 
+[[bench]]
+harness = false
+name = "evaluate_depth_bench"
+
 [lints]
 workspace = true

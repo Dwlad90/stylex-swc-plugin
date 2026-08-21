@@ -72,5 +72,9 @@ name = "evaluate_bench"
 harness = false
 name = "evaluate_depth_bench"
 
+[[bench]]
+harness = false
+name = "transform_debug_bench"
+
 [lints]
 workspace = true

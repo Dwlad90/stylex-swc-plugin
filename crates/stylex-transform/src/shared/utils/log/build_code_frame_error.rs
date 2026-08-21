@@ -110,6 +110,32 @@ impl CodeFrame {
     diagnostic
   }
 
+  /// Registers `source` for `file_name` unless the shared source map already
+  /// holds it, and reports whether the file is available afterwards.
+  ///
+  /// The closure is only called on a miss, so a caller whose source is expensive
+  /// to produce -- a clone of the module's text, or a read of the file -- pays
+  /// for it once per module rather than once per lookup.
+  fn register_source_once(
+    &self,
+    file_name: &FileName,
+    source: impl FnOnce() -> Result<String, Error>,
+  ) -> bool {
+    if self.source_map.get_source_file(file_name).is_some() {
+      return true;
+    }
+
+    match source() {
+      Ok(source) => {
+        self
+          .source_map
+          .new_source_file(file_name.clone().into(), source);
+        true
+      },
+      Err(_) => false,
+    }
+  }
+
   pub(crate) fn get_span_line_number(&self, span: Span) -> usize {
     self.source_map.lookup_char_pos(span.lo).line
   }
@@ -231,16 +257,31 @@ fn get_span_from_source_code_impl(
   }
 
   let code_frame = CodeFrame::new();
-  let program = get_memoized_frame_source_code(
+
+  if !ensure_memoized_frame_source_code(
     wrapped_expression,
     target_expression,
     state,
     &file_name,
     &code_frame,
-  )
-  .ok_or_else(|| anyhow::anyhow!("Failed to parse source file: {}", state.get_filename()))?;
+  ) {
+    return Err(anyhow::anyhow!(
+      "Failed to parse source file: {}",
+      state.get_filename()
+    ));
+  }
 
-  let span = find_expression_span(program, target_expression);
+  // Scoped for the same reason as the key lookup's walk.
+  let span = {
+    let Some((module, _)) = state.get_seen_module_source_code() else {
+      return Err(anyhow::anyhow!(
+        "Failed to parse source file: {}",
+        state.get_filename()
+      ));
+    };
+
+    find_expression_span(module, target_expression)
+  };
 
   // Cache the result for future lookups
   state.insert_cached_span(cache_key, span);
@@ -304,27 +345,43 @@ fn get_key_span_from_source_code_impl(
 
   let code_frame = CodeFrame::new();
   let wrapped_expression = Expr::Call(call_expr.clone());
-  let program = get_memoized_frame_source_code(
+
+  if !ensure_memoized_frame_source_code(
     &wrapped_expression,
     &wrapped_expression,
     state,
     &file_name,
     &code_frame,
-  )
-  .ok_or_else(|| anyhow::anyhow!("Failed to parse source file: {}", state.get_filename()))?;
+  ) {
+    return Err(anyhow::anyhow!(
+      "Failed to parse source file: {}",
+      state.get_filename()
+    ));
+  }
 
-  let mut finder = KeySpanFinder {
-    namespace_key,
-    sibling_keys: &sibling_keys,
-    namespace_value_keys: &namespace_value_keys,
-    target_lo: first_object_arg_span(call_expr)
-      .or_else(|| (!call_expr.span.is_dummy()).then_some(call_expr.span.lo)),
-    best: None,
-    ambiguous_best: false,
+  // Scoped so the immutable borrow of the memoized program ends before the span
+  // is written back to the state.
+  let span = {
+    let Some((module, _)) = state.get_seen_module_source_code() else {
+      return Err(anyhow::anyhow!(
+        "Failed to parse source file: {}",
+        state.get_filename()
+      ));
+    };
+
+    let mut finder = KeySpanFinder {
+      namespace_key,
+      sibling_keys: &sibling_keys,
+      namespace_value_keys: &namespace_value_keys,
+      target_lo: first_object_arg_span(call_expr)
+        .or_else(|| (!call_expr.span.is_dummy()).then_some(call_expr.span.lo)),
+      best: None,
+      ambiguous_best: false,
+    };
+    module.visit_with(&mut finder);
+
+    finder.resolved_span()
   };
-  program.visit_with(&mut finder);
-
-  let span = finder.resolved_span();
 
   state.insert_cached_span(cache_key, span);
 
@@ -534,26 +591,35 @@ fn load_code_frame_from_cache_for_state(
   state: &StateManager,
 ) -> Result<CodeFrame, Error> {
   let code_frame = CodeFrame::new();
-  let source = state
-    .get_seen_module_source_code()
-    .and_then(|(_, source_code)| source_code.as_ref().cloned())
-    .map(Ok)
-    .unwrap_or_else(|| {
-      read_source_file(file_name)
-        .map_err(|error| anyhow::anyhow!("Failed to read source file: {}", error))
-    })?;
 
-  code_frame
-    .source_map
-    .new_source_file(file_name.clone().into(), source);
+  // Registered at most once. The source map behind every `CodeFrame` is a
+  // process-global `OnceLock`, so re-registering here would append another copy
+  // of the module to it on every call -- and the debug-data path calls this once
+  // per style. On a 200 KB module with 1 257 styles that was a quarter of a
+  // gigabyte of duplicated source and the largest single cost in a `dev` build.
+  if code_frame.register_source_once(file_name, || {
+    state
+      .get_seen_module_source_code()
+      .and_then(|(_, source_code)| source_code.as_ref().cloned())
+      .map(Ok)
+      .unwrap_or_else(|| {
+        read_source_file(file_name)
+          .map_err(|error| anyhow::anyhow!("Failed to read source file: {}", error))
+      })
+  }) {
+    return Ok(code_frame);
+  }
 
-  Ok(code_frame)
+  Err(anyhow::anyhow!(
+    "Failed to read source file: {}",
+    state.get_filename()
+  ))
 }
 
 /// Finds the span of a target expression within a program AST
-fn find_expression_span(program: Program, target_expression: &Expr) -> Span {
+fn find_expression_span(module: &Module, target_expression: &Expr) -> Span {
   let mut finder = ExpressionFinder::new(target_expression);
-  program.visit_with(&mut finder);
+  module.visit_with(&mut finder);
 
   if let Some(span) = finder.get_span() {
     return span;
@@ -563,7 +629,7 @@ fn find_expression_span(program: Program, target_expression: &Expr) -> Span {
   let mut converted_target = target_expression.clone();
   converted_target.visit_mut_with(&mut TplConverter {});
   let mut fallback_finder = ExpressionFinder::new(&converted_target);
-  program.visit_with(&mut fallback_finder);
+  module.visit_with(&mut fallback_finder);
 
   // The target expression's own span belongs to the caller's source map, not
   // the code-frame one, so its byte offsets are meaningless here and can even
@@ -575,34 +641,47 @@ fn find_expression_span(program: Program, target_expression: &Expr) -> Span {
 /// Gets or parses the source code as a Program AST, with memoization.
 /// Returns a cleaned and normalized Program that can be used for expression
 /// finding.
-fn get_memoized_frame_source_code(
+/// Ensures the state holds a parsed, normalized program for the module's source,
+/// and that `code_frame`'s source map knows the file.
+///
+/// Returns whether it succeeded rather than the program itself. The program stays
+/// where it is and callers borrow it out of the state, because this is called
+/// once per style in a `dev` build and handing back `Program::Module(module.clone())`
+/// made every one of those a deep clone of the whole module -- the single largest
+/// cost in a `dev` transform, and quadratic in file size, since a bigger module
+/// is both more clones and a bigger clone.
+fn ensure_memoized_frame_source_code(
   wrapped_expression: &Expr,
   target_expression: &Expr,
   state: &mut StateManager,
   file_name: &FileName,
   code_frame: &CodeFrame,
-) -> Option<Program> {
-  if let Some((cached_program, source_code)) = state.get_seen_module_source_code()
+) -> bool {
+  if let Some((_, source_code)) = state.get_seen_module_source_code()
     && let Some(source_code) = source_code
   {
-    code_frame
-      .source_map
-      .new_source_file(Arc::new(file_name.clone()), source_code.to_owned());
-    return Some(Program::Module(cached_program.clone()));
+    // Registered once, not once per lookup -- see `register_source_once`.
+    code_frame.register_source_once(file_name, || Ok(source_code.to_owned()));
+
+    return true;
   }
 
-  let source_code = get_source_code(wrapped_expression, state, file_name, code_frame)?;
+  let Some(source_code) = get_source_code(wrapped_expression, state, file_name, code_frame) else {
+    return false;
+  };
 
   let source_file = code_frame
     .source_map
     .new_source_file(Arc::new(file_name.clone()), source_code.clone());
 
-  let program = parse_and_normalize_program(
+  let Some(program) = parse_and_normalize_program(
     &source_file,
     code_frame,
     state.get_filename(),
     target_expression,
-  )?;
+  ) else {
+    return false;
+  };
 
   state.set_seen_module_source_code(
     match program.as_module() {
@@ -612,7 +691,7 @@ fn get_memoized_frame_source_code(
     Some(source_code),
   );
 
-  Some(program)
+  true
 }
 
 /// Gets the source code with the following priority:

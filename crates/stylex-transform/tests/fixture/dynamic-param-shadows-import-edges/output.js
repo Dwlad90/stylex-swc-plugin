@@ -75,15 +75,15 @@ _inject2({
     priority: 3510
 });
 _inject2({
-    ltr: "@supports (display: grid){@media (min-width: 600px){.zIndex-xd94ota.zIndex-xd94ota.zIndex-xd94ota:focus:hover:active{z-index:var(--x-1e2zpja)}}}",
+    ltr: "@supports (display: grid){@media (min-width: 600px){.zIndex-x1gxqx9w.zIndex-x1gxqx9w.zIndex-x1gxqx9w:active:focus:hover{z-index:var(--x-1e2zpja)}}}",
     priority: 3680
 });
 _inject2({
-    ltr: "@supports (display: grid){@media (prefers-color-scheme: dark){@media (min-width: 600px){.zIndex-xfmfnbh.zIndex-xfmfnbh.zIndex-xfmfnbh.zIndex-xfmfnbh:focus:hover:active{z-index:var(--x-gg2yv0)}}}}",
+    ltr: "@supports (display: grid){@media (prefers-color-scheme: dark){@media (min-width: 600px){.zIndex-xqw1h1y.zIndex-xqw1h1y.zIndex-xqw1h1y.zIndex-xqw1h1y:active:focus:hover{z-index:var(--x-gg2yv0)}}}}",
     priority: 3880
 });
 _inject2({
-    ltr: "@supports (display: grid){@media (prefers-color-scheme: dark){@media (min-width: 600px){.zIndex-x1b7ijjw.zIndex-x1b7ijjw.zIndex-x1b7ijjw.zIndex-x1b7ijjw:focus:hover:active:first-child{z-index:var(--x-hsbtju)}}}}",
+    ltr: "@supports (display: grid){@media (prefers-color-scheme: dark){@media (min-width: 600px){.zIndex-x15stwyu.zIndex-x15stwyu.zIndex-x15stwyu.zIndex-x15stwyu:active:first-child:focus:hover{z-index:var(--x-hsbtju)}}}}",
     priority: 3932
 });
 _inject2({
@@ -261,7 +261,7 @@ export const styles = {
         ],
     deeplyNested: (zIndex)=>[
             {
-                zIndex: (zIndex != null ? "zIndex-xkrcnwa " : zIndex) + (zIndex != null ? "zIndex-x141uv47 " : zIndex) + (zIndex != null ? "zIndex-x140siia " : zIndex) + (zIndex != null ? "zIndex-xlzq18l " : zIndex) + (zIndex != null ? "zIndex-x103ewrf " : zIndex) + (zIndex != null ? "zIndex-xd94ota " : zIndex) + (zIndex != null ? "zIndex-xfmfnbh " : zIndex) + (zIndex != null ? "zIndex-x1b7ijjw" : zIndex),
+                zIndex: (zIndex != null ? "zIndex-xkrcnwa " : zIndex) + (zIndex != null ? "zIndex-x141uv47 " : zIndex) + (zIndex != null ? "zIndex-x140siia " : zIndex) + (zIndex != null ? "zIndex-xlzq18l " : zIndex) + (zIndex != null ? "zIndex-x103ewrf " : zIndex) + (zIndex != null ? "zIndex-x1gxqx9w " : zIndex) + (zIndex != null ? "zIndex-xqw1h1y " : zIndex) + (zIndex != null ? "zIndex-x15stwyu" : zIndex),
                 $$css: "tests/fixture/dynamic-param-shadows-import-edges/input.stylex.js:31"
             },
             {

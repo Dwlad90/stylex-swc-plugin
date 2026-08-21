@@ -102,6 +102,16 @@ not a pseudo class. Narrower than conditional key, which also admits at-rules
 and attribute selectors.
 _Avoid_: nested key, colon key
 
+**Pseudo run**:
+A maximal stretch of a selector's pseudo list holding no pseudo element — the
+unit `sort_pseudos` sorts. A pseudo element pins its own position and closes the
+run before it, because it names which part of the element the rule targets
+rather than a state the element is in; everything else, pseudo classes and
+attribute selectors alike, joins the run it sits in. A run is sorted whole at
+whatever length it reached, which is why the same set of keys hashes one class
+name however the author nested them.
+_Avoid_: pseudo group, sort group, pseudo pair
+
 **Conditional key**:
 A key that opens a nested block rather than declaring a property: a pseudo
 selector, an at-rule (`@media ...`), or an attribute selector
@@ -113,5 +123,8 @@ _Avoid_: condition key, nested key, at-or-pseudo
 **Nested CSS rule**:
 The final rule string, built by wrapping a declaration in its at-rules and
 pseudo selectors. Pseudos and at-rules are each sorted first (`sort_pseudos`,
-`sort_at_rules`), so the same set always nests in the same order.
+`sort_at_rules`), so the same set always nests in the same order. The sorted
+pseudo list is what the class-name hash reads; the printed selector spells the
+pseudo classes in that order and every pseudo element after all of them, so the
+two are not the same sequence wherever an element sits mid-list.
 _Avoid_: selector, wrapped rule, block

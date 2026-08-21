@@ -1,5 +1,14 @@
 use crate::utils::pre_rule::{sort_at_rules, sort_pseudos};
 
+/// The keys a case is written with, as `sort_pseudos` takes them.
+///
+/// Only here to keep a case's keys readable as the list it is: the cases below
+/// are about the *order* keys come back in, and threading `String::from` through
+/// each one buries that under conversion noise.
+fn keys(keys: &[&str]) -> Vec<String> {
+  keys.iter().map(|key| (*key).to_string()).collect()
+}
+
 // ── sort_pseudos ─────────────────────────────────────────────────────
 
 #[test]
@@ -74,6 +83,82 @@ fn sort_pseudos_interleaved() {
     result,
     vec![":hover", "::before", ":active", ":focus", "::after"]
   );
+}
+
+#[test]
+fn sort_pseudos_three_pseudo_classes_sort_as_one_run() {
+  let result = sort_pseudos(&[":hover".into(), ":focus".into(), ":active".into()]);
+  // One run of three, sorted whole -- not a sorted pair with the third
+  // appended, which would read `:focus:hover:active`.
+  assert_eq!(result, vec![":active", ":focus", ":hover"]);
+}
+
+#[test]
+fn sort_pseudos_three_pseudo_classes_agree_in_every_nesting_order() {
+  let sorted = vec![":active", ":focus", ":hover"];
+
+  for permutation in [
+    [":hover", ":focus", ":active"],
+    [":hover", ":active", ":focus"],
+    [":focus", ":hover", ":active"],
+    [":focus", ":active", ":hover"],
+    [":active", ":hover", ":focus"],
+    [":active", ":focus", ":hover"],
+  ] {
+    assert_eq!(
+      sort_pseudos(&keys(&permutation)),
+      sorted,
+      "nesting order {:?} sorted differently",
+      permutation
+    );
+  }
+}
+
+#[test]
+fn sort_pseudos_a_long_run_sorts_whole() {
+  let input = keys(&[
+    ":last-child",
+    ":nth-child(2)",
+    ":hover",
+    ":focus",
+    ":first-child",
+    ":active",
+    ":disabled",
+  ]);
+
+  assert_eq!(
+    sort_pseudos(&input),
+    vec![
+      ":active",
+      ":disabled",
+      ":first-child",
+      ":focus",
+      ":hover",
+      ":last-child",
+      ":nth-child(2)"
+    ]
+  );
+}
+
+#[test]
+fn sort_pseudos_an_element_splits_a_run_in_two() {
+  let input = keys(&[":hover", ":focus", ":active", "::before", ":c", ":b", ":a"]);
+
+  // Each side of the element sorts on its own; the element itself never moves,
+  // because it names a position rather than a state.
+  assert_eq!(
+    sort_pseudos(&input),
+    vec![":active", ":focus", ":hover", "::before", ":a", ":b", ":c"]
+  );
+}
+
+#[test]
+fn sort_pseudos_an_attribute_selector_joins_the_run() {
+  let input = keys(&[":hover", "[data-x]", ":active"]);
+
+  // An attribute selector is not a pseudo element, so it sorts with the run it
+  // sits in -- and `[` sorts after `:`.
+  assert_eq!(sort_pseudos(&input), vec![":active", ":hover", "[data-x]"]);
 }
 
 // ── sort_at_rules ────────────────────────────────────────────────────

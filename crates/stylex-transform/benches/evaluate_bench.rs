@@ -15,7 +15,7 @@ use stylex_transform::shared::{
   },
 };
 use swc_core::{
-  common::{FileName, SourceMap, input::StringInput},
+  common::{FileName, GLOBALS, Globals, SourceMap, input::StringInput},
   ecma::{
     ast::{
       CallExpr, Callee, Decl, ExportDecl, Expr, ImportDecl, MemberProp, Module, ModuleDecl,
@@ -203,30 +203,42 @@ fn load_fixtures() -> Vec<EvaluateFixture> {
     .collect()
 }
 
+/// Runs inside `GLOBALS.set` because `evaluate` can reach the code-frame path,
+/// and that path calls `Mark::new()`, which panics outside a `GLOBALS` scope.
+///
+/// The panic would not surface: the code frame is a diagnostic aid behind a
+/// panic boundary, so a bench without `GLOBALS` still reports a number -- it
+/// just times a panic and its unwind instead of the lookup, and hides any
+/// regression in the lookup behind it. `guidelines/PERFORMANCE.md` states this
+/// as a rule for every bench that touches the transform.
 fn evaluate_benchmarks(c: &mut Criterion) {
-  let mut group = c.benchmark_group("EvaluatePerfFixtures");
-  let fixtures = load_fixtures();
-  let functions = FunctionMap::default();
+  let globals = Globals::default();
 
-  for fixture in fixtures {
-    group.bench_function(fixture.name, |b| {
-      b.iter(|| {
-        let mut state = StateManager::new(StyleXOptions::default());
-        fill_top_level_expressions(black_box(&fixture.module), black_box(&mut state));
-        fill_top_level_var_declarations(black_box(&fixture.module), black_box(&mut state));
+  GLOBALS.set(&globals, || {
+    let mut group = c.benchmark_group("EvaluatePerfFixtures");
+    let fixtures = load_fixtures();
+    let functions = FunctionMap::default();
 
-        for expression in &fixture.expressions {
-          black_box(evaluate(
-            black_box(expression),
-            black_box(&mut state),
-            black_box(&functions),
-          ));
-        }
-      })
-    });
-  }
+    for fixture in fixtures {
+      group.bench_function(fixture.name, |b| {
+        b.iter(|| {
+          let mut state = StateManager::new(StyleXOptions::default());
+          fill_top_level_expressions(black_box(&fixture.module), black_box(&mut state));
+          fill_top_level_var_declarations(black_box(&fixture.module), black_box(&mut state));
 
-  group.finish();
+          for expression in &fixture.expressions {
+            black_box(evaluate(
+              black_box(expression),
+              black_box(&mut state),
+              black_box(&functions),
+            ));
+          }
+        })
+      });
+    }
+
+    group.finish();
+  });
 }
 
 criterion_group!(evaluate_benches, evaluate_benchmarks);

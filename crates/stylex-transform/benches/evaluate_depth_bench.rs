@@ -19,6 +19,13 @@
 //! The counted, machine-independent half of the same measurement lives in
 //! `stylex_utils`' `key_cost_scaling_tests`, which pins the node walk in bytes
 //! rather than in milliseconds. This file is what says whether the bytes matter.
+//!
+//! Every fold here runs inside `GLOBALS.set`, because the fold can reach the
+//! code-frame path and that path calls `Mark::new()`, which panics outside a
+//! `GLOBALS` scope. The panic is swallowed by the diagnostic panic boundary, so
+//! a bench without `GLOBALS` reports a number either way -- it just times a
+//! panic and its unwind instead of the work. `guidelines/PERFORMANCE.md` states
+//! this as a rule for every bench that touches the transform.
 
 use std::hint::black_box;
 
@@ -31,7 +38,7 @@ use stylex_transform::shared::{
 };
 use stylex_utils::hash::stable_hash_unspanned;
 use swc_core::{
-  common::{FileName, SourceMap, input::StringInput, sync::Lrc},
+  common::{FileName, GLOBALS, Globals, SourceMap, input::StringInput, sync::Lrc},
   ecma::{
     ast::{Decl, EsVersion, Expr, Lit, Module, ModuleItem, Stmt},
     parser::{EsSyntax, Parser, Syntax, lexer::Lexer},
@@ -161,34 +168,38 @@ fn assert_folds_to_depth(tower: &Tower, depth: usize) {
 
 /// The fold, end to end: what a nested expression actually costs.
 fn fold_benchmarks(c: &mut Criterion) {
-  let mut group = c.benchmark_group("EvaluateDepth");
-  let functions = FunctionMap::default();
+  let globals = Globals::default();
 
-  for depth in DEPTHS {
-    let tower = tower(depth);
+  GLOBALS.set(&globals, || {
+    let mut group = c.benchmark_group("EvaluateDepth");
+    let functions = FunctionMap::default();
 
-    assert_folds_to_depth(&tower, depth);
+    for depth in DEPTHS {
+      let tower = tower(depth);
 
-    // Batched rather than plain `iter`, so building the state manager is not
-    // measured. A fold cannot reuse one: `seen` memoizes what it folded, so a
-    // second iteration against the same state would hit the memo and time
-    // nothing.
-    group.bench_function(format!("arithmetic/{depth}"), |b| {
-      b.iter_batched(
-        || state(&tower.module),
-        |mut state| {
-          black_box(evaluate(
-            black_box(&tower.expr),
-            black_box(&mut state),
-            black_box(&functions),
-          ))
-        },
-        BatchSize::SmallInput,
-      )
-    });
-  }
+      assert_folds_to_depth(&tower, depth);
 
-  group.finish();
+      // Batched rather than plain `iter`, so building the state manager is not
+      // measured. A fold cannot reuse one: `seen` memoizes what it folded, so a
+      // second iteration against the same state would hit the memo and time
+      // nothing.
+      group.bench_function(format!("arithmetic/{depth}"), |b| {
+        b.iter_batched(
+          || state(&tower.module),
+          |mut state| {
+            black_box(evaluate(
+              black_box(&tower.expr),
+              black_box(&mut state),
+              black_box(&functions),
+            ))
+          },
+          BatchSize::SmallInput,
+        )
+      });
+    }
+
+    group.finish();
+  });
 }
 
 /// One memo key over the whole tower -- the per-level cost the fold above pays

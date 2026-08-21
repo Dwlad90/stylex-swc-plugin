@@ -62,6 +62,33 @@ Measured on one machine at these values: 0/22 false positives same-vs-same,
 18/20 warned on a 1.08-1.19x regression (the 2 misses were truly under 1.10),
 20/20 flagged at 1.5-2.3x.
 
+## Writing a bench
+
+**A bench that touches the transform must run inside `GLOBALS.set`.**
+`parse_and_normalize_program` and `StyleXTransformBuilder::into_pass` both call
+`Mark::new()`, which panics outside a `GLOBALS` scope. The panic does not
+surface: the code frame is a diagnostic aid behind a panic boundary, so the
+bench still reports a number -- it times a panic and its unwind instead of the
+work, and reports a regression in the swallowed path as an improvement. That
+mistake inflated one attribution of the debug path by 3.6x before it was
+caught. Set it once around the whole benchmark function, as
+`crates/stylex-transform/benches/*` do.
+
+Assert what the bench is measuring, in the bench. A refusal, a deopt, a
+swallowed panic and a cache hit are all fast, and a curve that flattens because
+the work stopped happening is indistinguishable from a win. Every bench in
+`crates/stylex-transform/benches` panics unless its subject produced the output
+it exists to time -- a fold that reached the expected value, a `dev` transform
+that resolved one `file:line` per style.
+
+Both configurations are worth watching, and they are watched separately. `dev`
+implies `debug`, and `debug` turns on the `file:line` annotation on `$$css`,
+which costs several times the whole production transform; the two cannot be
+compared against each other. `benchmark/lib/config.ts` therefore keeps
+`dev: false` as the shared shape, and a fixture opts into the other one with
+`"dev": true` in `benchmark/fixtures.v1.json`. Never flip the shared option: it
+moves every trend series in the repo at once.
+
 ## Budget
 
 While `benchmark/budget.json` is `pending-calibration` it holds no ceilings:

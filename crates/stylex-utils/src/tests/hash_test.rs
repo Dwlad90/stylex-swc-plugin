@@ -432,7 +432,7 @@ mod hash_f64_tests {
 #[cfg(test)]
 mod unspanned_fast_path_tests {
   use super::super::{
-    create_hash, stable_hash, stable_hash_unspanned, stable_hash_unspanned_call, to_base36,
+    create_hash, stable_hash_unspanned, stable_hash_unspanned_call, stable_hash_wide, to_base36,
   };
   use swc_core::{
     common::{DUMMY_SP, SyntaxContext},
@@ -743,7 +743,10 @@ mod unspanned_fast_path_tests {
     ];
 
     for expr in unsupported {
-      assert_eq!(stable_hash_unspanned(&expr), stable_hash(&drop_span(expr)));
+      assert_eq!(
+        stable_hash_unspanned(&expr),
+        stable_hash_wide(&drop_span(expr))
+      );
     }
   }
 
@@ -1051,7 +1054,7 @@ mod key_edge_case_tests {
     },
   };
 
-  use super::super::{MAX_UNSPANNED_HASH_COLLECTION_LEN, stable_hash, stable_hash_unspanned};
+  use super::super::{MAX_UNSPANNED_HASH_COLLECTION_LEN, stable_hash_unspanned, stable_hash_wide};
   use super::{arithmetic_tower, hashed_in_place, key_cost, number, parse_expr};
 
   fn array_of(len: usize) -> Expr {
@@ -1121,7 +1124,7 @@ mod key_edge_case_tests {
     for expr in [array_of(limit + 1), object_of(limit + 1)] {
       assert_eq!(
         stable_hash_unspanned(&expr),
-        stable_hash(&drop_span(expr.clone())),
+        stable_hash_wide(&drop_span(expr.clone())),
         "the fallback arm is what the public contract promises for an \
          over-limit collection"
       );
@@ -1204,7 +1207,7 @@ mod key_edge_case_tests {
       );
       assert_eq!(
         stable_hash_unspanned(&expr),
-        stable_hash(&drop_span(expr.clone()))
+        stable_hash_wide(&drop_span(expr.clone()))
       );
     }
   }

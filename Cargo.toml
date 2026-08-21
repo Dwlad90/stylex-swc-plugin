@@ -92,6 +92,9 @@ swc_ecma_parser = { version = "43.0.0" }
 swc_sourcemap = { version = "10.0.2" }
 testing = "25.0.0"
 thiserror = "2.0.18"
+# The structural key's hasher. 128-bit output in one pass, where two salted
+# `DefaultHasher` states cost two -- see `stylex-utils/src/hash.rs`.
+xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 # convert_case = { version = "0.11.0" }
 # .cargo/config defines few alias to build plugin.
 # cargo build-wasi generates wasm-wasi32 binary

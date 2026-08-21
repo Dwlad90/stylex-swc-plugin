@@ -73,18 +73,20 @@ interpolating `JSON.stringify`, so a value quoted differently here is a
 divergence an author sees even when both compilers refuse the same input.
 
 **Structural hash**:
-`stable_hash_unspanned`, a hash of an AST expression that ignores spans, so two
-syntactically identical expressions in different source positions collide on
-purpose. Two callers use it to narrow a candidate set and then confirm with
-`eq_ignore_span`; two others — the evaluator's memo and the before-declaration
-injection slot — act on a hash hit alone, so for those the 64 bits do decide
-equality.
+`stable_hash_unspanned`, a **128-bit** xxh3 hash of an AST expression that ignores
+spans, so two syntactically identical expressions in different source positions
+collide on purpose. Three callers use it to narrow a candidate set and then
+confirm with `eq_ignore_span`; two others — the evaluator's memo and the
+before-declaration injection slot — act on a hash hit alone, so for those the
+key _is_ the equality test, and its width is what stands between a collision and
+a wrong folded value.
 
 Not observable: no consumer persists the value, none derives a class name from
-it, and output order comes from source order rather than from hash order. What
-_is_ observable is the collision behaviour of the two callers that do not
-confirm, and the cost: the hash walks the whole subtree, and the evaluator takes
-one per level, which is why folding a deep expression is quadratic
+it, and output order comes from source order rather than from hash order — which
+is what makes the algorithm changeable at all. What _is_ observable is the
+collision behaviour of the two callers that do not confirm, and the cost: the
+hash walks the whole subtree, and the evaluator takes one per level, which is why
+folding a deep expression is quadratic
 ([stylex-transform ADR 0005](../stylex-transform/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md)).
 _Avoid_: ast hash, expression id
 

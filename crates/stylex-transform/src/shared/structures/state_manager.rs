@@ -116,7 +116,7 @@ pub(crate) enum InsertionSlot {
   /// by the stable hash of the originating var-decl initializer.
   /// Emitted immediately before the matching declarator. Replaces the
   /// legacy `styles_to_inject` map.
-  BeforeDecl(u64),
+  BeforeDecl(u128),
 }
 
 #[derive(Debug, Clone)]
@@ -245,7 +245,7 @@ impl ModuleSourceState {
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct CallExpressionState {
-  all_call_expressions: FxHashMap<u64, Callee>,
+  all_call_expressions: FxHashMap<u128, Callee>,
 }
 
 impl CallExpressionState {
@@ -353,7 +353,7 @@ pub(crate) struct StyleInjectionState {
   /// per-bucket `Vec` small (typically 1–2 entries), so
   /// `Vec::contains` short-circuits early on PartialEq mismatches.
   /// Replaces the legacy `styles_to_inject` field's dual role.
-  queued_decl_items: IndexMap<u64, Vec<ModuleItem>>,
+  queued_decl_items: IndexMap<u128, Vec<ModuleItem>>,
 }
 
 impl StyleInjectionState {
@@ -437,7 +437,7 @@ pub struct StateManager {
   /// hoists its result out of a nested position must not hoist here.
   pub(crate) pattern_bound_top_level_calls: FxHashSet<Span>,
   pub(crate) call_expressions: CallExpressionState,
-  pub(crate) seen: FxHashMap<u64, Rc<SeenValue>>,
+  pub(crate) seen: FxHashMap<u128, Rc<SeenValue>>,
   /// How many expression levels the evaluator is currently inside.
   ///
   /// Lives here rather than on `EvaluationState` because the evaluator's
@@ -458,7 +458,7 @@ pub struct StateManager {
   /// attributes to a structurally-different spread — the hash only narrows the
   /// candidate set; equality decides. Buckets are size-1 in the absence of a
   /// collision, so the extra check is a single comparison.
-  pub(crate) jsx_spread_attr_exprs_map: FxHashMap<u64, Vec<(Expr, Vec<JSXAttrOrSpread>)>>,
+  pub(crate) jsx_spread_attr_exprs_map: FxHashMap<u128, Vec<(Expr, Vec<JSXAttrOrSpread>)>>,
 
   // `stylex.create` calls
   pub(crate) style_map: FxHashMap<String, Rc<StylesObjectMap>>,
@@ -1791,7 +1791,7 @@ pub(crate) fn flush_pending_insertions(
   let mut before_imports: Vec<ModuleItem> = Vec::new();
   let mut theme_imports: Vec<ModuleItem> = Vec::new();
   let mut after_imports: Vec<ModuleItem> = Vec::new();
-  let mut before_decl: FxHashMap<u64, Vec<ModuleItem>> = FxHashMap::default();
+  let mut before_decl: FxHashMap<u128, Vec<ModuleItem>> = FxHashMap::default();
 
   for PendingInsertion { slot, item } in pending {
     match slot {
@@ -1894,8 +1894,8 @@ pub(crate) fn flush_pending_insertions(
 /// Stable hashes of every relevant var-decl initializer reachable from
 /// `item`, matching the keys [`StateManager::queue_insertion`] uses
 /// under [`InsertionSlot::BeforeDecl`].
-fn decl_init_hashes(item: &ModuleItem) -> Vec<u64> {
-  let mut hashes: Vec<u64> = Vec::new();
+fn decl_init_hashes(item: &ModuleItem) -> Vec<u128> {
+  let mut hashes: Vec<u128> = Vec::new();
 
   let var_decls: Option<Vec<&VarDeclarator>> = match item {
     ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export_decl)) => export_decl

@@ -12,62 +12,89 @@ O(subtree) to decide whether it can avoid it.
 **That cost is not a term in the fold's cost; it is nearly all of it.** Measured
 in release on one tower of `(MY_CONST + 1)`, output held constant:
 
-| depth | fold    | vs previous | one key | vs previous |
-| ----- | ------- | ----------- | ------- | ----------- |
-| 30    | 24.8 µs | —           | 1.17 µs | —           |
-| 60    | 83.9 µs | 3.4×        | 2.32 µs | 2.0×        |
-| 120   | 306 µs  | 3.6×        | 4.62 µs | 2.0×        |
-| 240   | 1164 µs | 3.8×        | 9.15 µs | 2.0×        |
+| depth | fold     | vs previous | one key | vs previous |
+| ----- | -------- | ----------- | ------- | ----------- |
+| 30    | 18.9 µs  | —           | 0.67 µs | —           |
+| 60    | 63.1 µs  | 3.3×        | 1.59 µs | 2.4×        |
+| 120   | 220.8 µs | 3.5×        | 3.15 µs | 2.0×        |
+| 240   | 823.7 µs | 3.7×        | 6.44 µs | 2.0×        |
 
-One key is exactly linear in the depth beneath it; the fold buys one per level,
-so its curve converges on 4× per doubling. Priced per byte off the 240-level key
-and summed over the levels the fold descends, the keys account for ~1.10 ms of
-the 1.16 ms the fold takes — ~95%, with the arms, the frames and the arithmetic
+One key is linear in the depth beneath it; the fold buys one per level, so its
+curve converges on 4× per doubling. Priced per byte off the 240-level key and
+summed over the levels the fold descends, the keys account for ~777 µs of the
+824 µs the fold takes — ~94%, with the arms, the frames and the arithmetic
 sharing the rest.
 
-**The key stays as it is.** Three things decide that, and the third is the one
-that matters.
+**The key stays a whole-subtree hash, and got wider.** Three things decide the
+first half, and the third is what decided the second.
 
 **It is bounded.** `maxEvaluationDepth` defaults to 32
 ([0004](./0004-the-fold-owns-its-own-ceiling-and-its-own-stack.md)), so the
 quadratic term is a small constant unless a project raises it. Nothing in this
-workspace's fixtures spends more than a handful of levels; the deepest real
-input measured — a 6 800-line slice of `lotsOfStyles.js` — averages 14.5 nodes
-per key over 7 755 keys.
+workspace's fixtures spends more than a handful of levels; the deepest real input
+measured — a 6 885-line slice of `lotsOfStyles.js` — averages 14.5 nodes per key
+over 7 755 keys, and the whole key walk for that file is ~2 ms of a 26 ms
+transform.
 
 **The clone is not the problem.** `stable_hash_unspanned` hands shapes its
-in-place walk does not cover to `stable_hash(&drop_span(path.clone()))`, a deep
-clone and a second walk. Instrumented over a real corpus — that slice, the
+in-place walk does not cover to `stable_hash_wide(&drop_span(path.clone()))`, a
+deep clone and a second walk. Instrumented over a real corpus — that slice, the
 dynamic-styles file, both perf themes, the six benchmark fixtures and every
-transform fixture input — the arm is taken **6 times in 15 103 keys, 0.04%**,
-and never once on a deep expression. Where it is taken it is selected by a
-shape, not by a depth: an object literal past the 128-entry limit (2 of 1 121
-keys on `colorThemes.js`, a theme with a 130-colour palette) and a block-bodied
-arrow inside a `useMemo` (2 of 33 keys on the `use-memo` fixture). Priced either
-side of the boundary, the arm costs 12.3 µs against 4.9 for one extra property —
-2.5×, once, on 0.04% of keys. The per-level walk on the other 99.96% is the
-cost.
+transform fixture input — the arm is taken **6 times in 15 103 keys, 0.04%**, and
+never once on a deep expression. Where it is taken it is selected by a shape, not
+by a depth: an object literal past the 128-entry limit (2 of 1 121 keys on
+`colorThemes.js`, a theme with a 130-colour palette) and a block-bodied arrow
+inside a `useMemo` (2 of 33 keys on the `use-memo` fixture). Priced either side of
+the boundary, the arm costs 8.5 µs against 2.7 for one extra property — 3.2×,
+once, on 0.04% of keys. The per-level walk on the other 99.96% is the cost.
 
-**A cheaper key is a correctness question.** Four things consume this hash, and
+**Its width was load-bearing and too narrow.** Five things consume this hash, and
 they do not agree about how much it has to mean:
 
 - the evaluator's `seen` memo returns a cached fold on a **hash hit alone**;
 - `InsertionSlot::BeforeDecl` splices a declaration's style metadata on a
   **hash hit alone**;
 - the JSX-spread replacement map and the queued-decl dedup narrow a bucket by
-  hash and then confirm with `eq_ignore_span`.
+  hash and then confirm with `eq_ignore_span`;
+- `all_call_expressions` confirms on read too, but a collision can evict the
+  wrong entry when a call is replaced.
 
-So the key is load-bearing for two consumers and only a bucket for two others. A
-key with more collisions is a wrong fold and a misplaced injection, not a slower
-one. It must also stay span-insensitive, because a synthesized expression has to
-land on the entry its parsed twin landed on.
+So for two consumers the key _is_ the equality test. At 64 bits and ten thousand
+distinct expressions in a file that is a collision every `1e-12` files, and the
+symptom is a wrong folded value or a misplaced injection — silently, in the
+output, with no diagnostic. The key is now **128 bits**, which puts it past
+`1e-31`.
 
-What the key does _not_ have to be is any particular number: no consumer
-persists it, none derives a class name from it, and output order comes from
-source order rather than from hash order. An incremental key is free to produce
-entirely different values.
+What the key does _not_ have to be is any particular number: no consumer persists
+it, none derives a class name from it, and output order comes from source order
+rather than from hash order. That is what made the width a contained decision
+rather than a rename of every class in every project.
 
 ## Considered options
+
+**Two salted `DefaultHasher` states, for the width.** The obvious way to get 128
+bits out of the standard library, and the version that was built and measured
+first: one walk feeding two SipHash states with different prefixes, so the
+expensive half — descending the tree — is not duplicated. Rejected on the number.
+It cost **+49% on the key and +5.8% on a whole production transform** of the
+400-`create` corpus file (26.0 ms to 27.5 ms, 25 runs each), and paying that
+forever to remove a failure that arrives once per `1e4` years is the wrong trade.
+
+**Confirm the hit with `eq_ignore_span` instead of widening.** What the other two
+consumers do. Rejected for the evaluator's memo: a confirm costs a subtree
+compare on _every hit_ — the same order as the walk just paid — and `seen` would
+have to hold a deep clone of every memoized expression to have something to
+compare against. It remains the right answer for a consumer whose hits are rare;
+`InsertionSlot::BeforeDecl` would qualify, and is covered by the width instead.
+
+**xxh3, taken 128 bits wide.** What shipped. A single pass emits 128 bits, and it
+is enough faster than SipHash that the wider key is also the _cheaper_ one:
+against the 64-bit SipHash it replaced, one key is 30-43% faster and a deep fold
+30% faster, with the end-to-end transform of the corpus file unchanged (26.0 ms
+to 25.9). It costs one direct dependency, `xxhash-rust` (BSD-2-Clause, already on
+the licence allow-list). Nothing depended on the old values, and `DefaultHasher`
+was never stable across Rust releases anyway, so nothing could have depended on
+it and been correct.
 
 **Compose the key from its children's, on the way back up.** The obvious fix,
 and it does not work on its own: a hash composed from child hashes still visits
@@ -128,6 +155,12 @@ are not what grows. An explicit work stack removes O(1) per node and leaves the
 O(n) key on every one of them.
 
 ## Consequences
+
+**The width is not pinned by a test, because a collision cannot be constructed
+on demand.** What is pinned is that the key is 128 bits wide and that both arms
+agree on it — the fallback cases in `stylex_utils`' `hash_test.rs` compare
+`stable_hash_unspanned` against `stable_hash_wide`, so an arm that quietly
+narrowed to 64 would fail to compile rather than fail to notice.
 
 **The curve is pinned twice, in two units.** `benches/evaluate_depth_bench.rs`
 measures the fold and one key across four doublings, and

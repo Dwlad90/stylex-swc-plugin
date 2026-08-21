@@ -292,7 +292,7 @@ what folding a deep expression costs. Why it stays that way, and what an
 incremental key would take, is
 [docs/adr/0005](./docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md). This is
 also one of the two consumers that acts on a hash hit without confirming
-equality.
+equality, which is why that key is 128 bits wide.
 _Avoid_: cache entry, memo
 
 **Evaluation depth**:

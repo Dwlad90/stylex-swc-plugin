@@ -2852,6 +2852,7 @@ dependencies = [
  "stylex_regex",
  "swc_core",
  "swc_ecma_parser",
+ "xxhash-rust",
 ]
 
 [[package]]
@@ -4087,6 +4088,12 @@ checksum = "05f360fc0b24296329c78fda852a1e9ae82de9cf7b27dae4b7f62f118f77b9ed"
 dependencies = [
  "tap",
 ]
+
+[[package]]
+name = "xxhash-rust"
+version = "0.8.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aee1b19627c7c60102ab80d3a9cbe18de90bfe03bfa6c3715447681f0e8c8af6"
 
 [[package]]
 name = "yansi"

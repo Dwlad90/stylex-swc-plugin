@@ -17,14 +17,20 @@ const LENGTH: &str = "length";
 enum ArrayLikeLookup {
   /// `length`, which is counted rather than looked up.
   Length,
-  /// An index, carrying the key as written. Whether one can be read depends on
+  /// An index, carrying the slot it names. Whether one can be *read* depends on
   /// the receiver, so the arms decide: both array receivers read one, and a
   /// string does not -- a string index is a single UTF-16 code unit, which can
   /// be an unpaired surrogate no Rust string holds.
   ///
+  /// A key that names no slot is `Missing` and not an out-of-range `Index`, so
+  /// this variant means "a slot was asked for" everywhere it is matched. Which
+  /// keys those are is `index_slot`'s question and is settled before an arm
+  /// sees one -- deciding it a second time inside an arm is how the receivers
+  /// could come to disagree about `list["00"]`.
+  ///
   /// An index past the end answers `undefined`, the language's own reading and
   /// the one a key an object does not carry already gets.
-  Index(String),
+  Index(usize),
   /// A property the receiver does not carry, carrying its key. `undefined` in
   /// the language, which is the answer the object arm below already gives for a
   /// key an object does not hold, and what lets `token.missing ?? fallback`
@@ -46,14 +52,11 @@ fn classify_lookup(property: Option<&EvaluateResultValue>) -> ArrayLikeLookup {
   match property.and_then(|prop| prop.as_string_key()) {
     None => ArrayLikeLookup::Unreadable,
     Some(key) if key == LENGTH => ArrayLikeLookup::Length,
-    Some(key) if is_array_index(&key) => ArrayLikeLookup::Index(key),
-    Some(key) => ArrayLikeLookup::Missing(key),
+    Some(key) => match index_slot(&key) {
+      Some(slot) => ArrayLikeLookup::Index(slot),
+      None => ArrayLikeLookup::Missing(key),
+    },
   }
-}
-
-/// Whether a key names an array index: a non-empty run of ASCII digits.
-fn is_array_index(key: &str) -> bool {
-  !key.is_empty() && key.bytes().all(|byte| byte.is_ascii_digit())
 }
 
 /// The slot an index key names, or `None` where the key names no slot.
@@ -61,13 +64,41 @@ fn is_array_index(key: &str) -> bool {
 /// A key of nothing but digits is not automatically a slot: the language reads
 /// an index only where the key is the canonical spelling of the number, so
 /// `list["0"]` is the first element and `list["00"]` is a property no array
-/// carries. A key that overflows `usize` is past the end of any array this
-/// evaluator holds, which is the same answer.
+/// carries. A key that overflows `usize` names no slot this evaluator could
+/// hold either, and reads `undefined` for the same reason an out-of-range one
+/// does.
+///
+/// Written as a digit test rather than as `parse::<f64>()`, which accepts
+/// `"NaN"` and `"inf"` and would call all three indices -- refusing a fold the
+/// reference implementation makes. The leading-zero test is the canonical
+/// spelling, without the allocation that formatting the parsed number back
+/// would cost on every index read.
 fn index_slot(key: &str) -> Option<usize> {
-  key
-    .parse::<usize>()
-    .ok()
-    .filter(|slot| slot.to_string() == key)
+  let is_canonical_digits = !key.is_empty()
+    && key.bytes().all(|byte| byte.is_ascii_digit())
+    && (key.len() == 1 || !key.starts_with('0'));
+
+  is_canonical_digits
+    .then(|| key.parse::<usize>().ok())
+    .flatten()
+}
+
+/// What an array answers for a slot it was asked for.
+///
+/// One function, because "past the end is `undefined`" is a rule about the
+/// language and not about either receiver -- an array literal a fold produced
+/// and an array the evaluator holds as its own value must give the same answer,
+/// and two copies of the bounds check agree only by inspection. How an element
+/// is read back is what does differ between them, so each supplies that.
+fn index_answer<T>(
+  elements: &[T],
+  slot: usize,
+  read: impl FnOnce(&T) -> Option<EvaluateResultValue>,
+) -> Option<EvaluateResultValue> {
+  match elements.get(slot) {
+    Some(element) => read(element),
+    None => Some(js_undefined()),
+  }
 }
 
 /// The value a folded function map's object form carries under `key`.
@@ -117,18 +148,18 @@ fn read_fold_member(
   })
 }
 
-/// Refuses a lookup a string or an array cannot answer, naming the index where
-/// the evaluator could read one.
+/// Refuses a lookup the receiver cannot answer, naming the index where the
+/// evaluator could read one.
 ///
-/// One function so the receiver kinds cannot disagree about what an author who
-/// wrote `[1, 2][0]` and one who wrote `"ab"[0]` are told — three copies of the
-/// property test had drifted into three diagnostics for one mistake. The
-/// unnameable case is the refusal the reference implementation gives at this
-/// point, `errMsgs.UNEXPECTED_MEMBER_LOOKUP`.
+/// A string is the only receiver that still refuses an index -- both array
+/// receivers read one -- so what this keeps single is the *wording*: `"ab"[0]`
+/// and `"ab".length` name what was asked for rather than describing the member
+/// expression. The unnameable case is the refusal the reference implementation
+/// gives at this point, `errMsgs.UNEXPECTED_MEMBER_LOOKUP`.
 ///
-/// Reads the key off the classification rather than re-deriving it from the
-/// property: deciding what a lookup asks for is `classify_lookup`'s job, and
-/// asking twice is how the two could come to disagree.
+/// Reads what was asked for off the classification rather than re-deriving it
+/// from the property: deciding what a lookup asks for is `classify_lookup`'s
+/// job, and asking twice is how the two could come to disagree.
 fn refuse_lookup(
   path: &Expr,
   state: &mut EvaluationState,
@@ -136,9 +167,8 @@ fn refuse_lookup(
 ) -> Option<EvaluateResultValue> {
   match lookup {
     ArrayLikeLookup::Length => deopt(path, state, &unreadable_index(LENGTH)),
-    ArrayLikeLookup::Index(key) | ArrayLikeLookup::Missing(key) => {
-      deopt(path, state, &unreadable_index(key))
-    },
+    ArrayLikeLookup::Index(slot) => deopt(path, state, &unreadable_index(&slot.to_string())),
+    ArrayLikeLookup::Missing(key) => deopt(path, state, &unreadable_index(key)),
     ArrayLikeLookup::Unreadable => deopt(path, state, UNEXPECTED_MEMBER_LOOKUP),
   }
 }
@@ -333,7 +363,7 @@ pub(in super::super) fn evaluate(
               ArrayLikeLookup::Index(_) => {},
             }
 
-            let ArrayLikeLookup::Index(key) = &lookup else {
+            let ArrayLikeLookup::Index(slot) = lookup else {
               return refuse_lookup(path, state, &lookup);
             };
 
@@ -346,25 +376,19 @@ pub(in super::super) fn evaluate(
               deopt_unsupported!(path, state, SPREAD_ELEMENT);
             }
 
-            // An index past the end is `undefined` in the language, which is
-            // the answer a key an object does not carry already gets. The
-            // `Vec` arm below reads its own elements the same way, so the two
-            // array receivers agree about what an index answers.
-            let Some(element) = index_slot(key).and_then(|slot| elems.get(slot)) else {
-              return Some(js_undefined());
-            };
+            index_answer(elems, slot, |element| {
+              // An array hole is `undefined` in the language, but this
+              // evaluator does not hold one: `array_expression` refuses a
+              // written hole ahead of this, and only a fold's own output can
+              // carry one. Refused rather than answered, because a hole
+              // reaching here would mean a fold produced a slot it could not
+              // fill, and answering `undefined` would hide that.
+              let Some(element) = element.as_ref() else {
+                deopt_unsupported!(path, state, MEMBER_NOT_RESOLVED);
+              };
 
-            // An array hole is `undefined` too, but this evaluator does not
-            // hold one: `array_expression` refuses a written hole ahead of
-            // this, and only a fold's own output can carry one. Refused rather
-            // than answered, because a hole reaching here would mean a fold
-            // produced a slot it could not fill and answering `undefined`
-            // would hide that.
-            let Some(element) = element.as_ref() else {
-              deopt_unsupported!(path, state, MEMBER_NOT_RESOLVED);
-            };
-
-            Some(EvaluateResultValue::Expr(*element.expr.clone()))
+              Some(EvaluateResultValue::Expr(*element.expr.clone()))
+            })
           },
           Expr::Object(ObjectLit { props, .. }) => {
             let Some(eval_res) = property else {
@@ -503,18 +527,25 @@ pub(in super::super) fn evaluate(
           ),
         },
         EvaluateResultValue::FunctionConfigMap(fc_map) => {
+          // The name the member expression asks for, read once and through the
+          // same reading the fold below takes. Three readers ask for this key,
+          // and a spelling only one of them recognised would answer a different
+          // value from the others: `stylex["when"]` has to resolve the entry
+          // `stylex.when` does, not the object the fold stands for.
+          let name = property.as_ref().and_then(|prop| prop.as_string_key());
+
           // The entry the map carries, in the map's own form. `stylex.when` as
           // a callee is read through this, so a hit must not be materialized
           // into an object the call step cannot call.
-          if let Some(EvaluateResultValue::Expr(Expr::Ident(ident))) = &property
-            && let Some(fc) = fc_map.get(&ident.sym)
+          if let Some(name) = &name
+            && let Some(fc) = fc_map.get(&Atom::from(name.as_str()))
           {
             return Some(EvaluateResultValue::FunctionConfig(fc.clone()));
           }
 
           // Check if this is an env property access on a stylex import.
-          if let Some(EvaluateResultValue::Expr(Expr::Ident(ident))) = &property
-            && ident.sym.as_ref() == STYLEX_ENV
+          if let Some(name) = &name
+            && name == STYLEX_ENV
           {
             if traversal_state.options.env.is_empty() {
               deopt_unsupported!(
@@ -568,12 +599,9 @@ pub(in super::super) fn evaluate(
           // the end. The slots are counted from the receiver first, so an
           // index is read only where the count is the language's — the same
           // guard `length` above takes, and for the same reason.
-          ArrayLikeLookup::Index(key) => match written_slot_count_of(&member.obj, &items) {
+          ArrayLikeLookup::Index(slot) => match written_slot_count_of(&member.obj, &items) {
             None => deopt(path, state, SPREAD_ELEMENT),
-            Some(_) => Some(match index_slot(&key).and_then(|slot| items.get(slot)) {
-              Some(item) => item.clone(),
-              None => js_undefined(),
-            }),
+            Some(_) => index_answer(&items, slot, |item| Some(item.clone())),
           },
           ArrayLikeLookup::Missing(_) => Some(js_undefined()),
           lookup @ ArrayLikeLookup::Unreadable => refuse_lookup(path, state, &lookup),

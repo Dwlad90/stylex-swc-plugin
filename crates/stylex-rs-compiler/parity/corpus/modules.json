@@ -1535,6 +1535,22 @@
       "origin": "issue #1266, ticket 21",
       "expected": "identical",
       "note": "A spread of the bare function contributes nothing, where a spread of a wrapped entry contributes its `fn` key. The placeholder is the same function in both, so this is the registration speaking and not two different placeholders."
+    },
+    {
+      "id": "modules-1266-when-read-off-the-namespace-by-either-spelling",
+      "label": "when read off the namespace by a name and by a string key",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  container: {\n    backgroundColor: {\n      default: 'blue',\n      [stylex.when.ancestor(':hover')]: 'red',\n      [stylex['when'].siblingBefore(':focus')]: 'green',\n    },\n  },\n});\n",
+      "origin": "issue #1266, ticket 30, the hit the fold must not swallow",
+      "expected": "identical",
+      "note": "The hit on the namespace fold that must not be materialized: `when` resolves to the map's own form so the call step can call it, where a miss reads `undefined` off the object the fold stands for. Both spellings name one property in the language, and the map lookup is what decides whether they agree -- `stylex[\"when\"]` used to skip the map entirely."
+    },
+    {
+      "id": "modules-1266-a-nested-folded-function-map-in-a-create-theme-override",
+      "label": "a folded function map nested under an at-rule in a createTheme override",
+      "source": "import { createTheme, keyframes } from '@stylexjs/stylex';\nimport { vars } from 'otherVars.stylex.js';\n\nexport const theme = createTheme(vars, {\n  a: { default: '1px', '@media (min-width: 600px)': keyframes },\n});\n",
+      "origin": "issue #1266, ticket 31, the level the reorder had to reach",
+      "expected": "both-reject",
+      "note": "The missing-`default` check reaches every level of a value, not only the top one, as the reference implementation's recursion does. Checking only the top level left a fold one level down reading the sentence about zero-argument functions, which is the defect the reorder is for."
     }
   ]
 }

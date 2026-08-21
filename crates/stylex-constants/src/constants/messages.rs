@@ -236,6 +236,11 @@ pub fn expected_call_expression(fn_name: &str) -> String {
   )
 }
 
+/// The same rule where the variable has no name to read -- a computed key the
+/// evaluator cannot name. The reference implementation's second reader of this
+/// rule words it without a name too.
+pub static MISSING_DEFAULT_VALUE_UNNAMED: &str = "Default value is not defined for variable.";
+
 /// A variable whose value is an object carrying no `default` key.
 ///
 /// Byte-identical to the reference implementation's, which names the top-level

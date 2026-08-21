@@ -3,8 +3,9 @@ use stylex_ast::ast::convertors::normalize_expr;
 use stylex_constants::constants::{
   api_names::STYLEX_DEFINE_VARS,
   messages::{
-    cyclic_define_vars_reference, invalid_define_vars_function_value, missing_default_value,
-    non_static_value, unknown_define_vars_reference,
+    MISSING_DEFAULT_VALUE_UNNAMED, cyclic_define_vars_reference,
+    invalid_define_vars_function_value, missing_default_value, non_static_value,
+    unknown_define_vars_reference,
   },
 };
 use stylex_macros::stylex_panic;
@@ -24,7 +25,7 @@ use crate::shared::{
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
     ast::helpers::{namespace_name_from_prop_key, prop_as_key_value, prop_contains_arrow},
-    core::define_vars_utils::{object_carries_a_default, object_is_a_css_type},
+    core::define_vars_utils::any_level_needs_a_default,
     js::evaluate::evaluate,
     log::build_code_frame_error::build_code_frame_error,
   },
@@ -288,12 +289,16 @@ pub(super) fn normalize_define_vars_functions(
         // author reads. Looking at the values first answered a folded function
         // map, which materializes as `{ fn: … }`, with a sentence about
         // zero-argument functions where they wrote a name.
-        if let Some(obj) = other.as_object()
-          && !object_is_a_css_type(obj)
-          && !object_carries_a_default(obj)
-          && let Some(key) = namespace_name_from_prop_key(&kv.key)
-        {
-          stylex_panic!("{}", missing_default_value(&key));
+        if any_level_needs_a_default(other) {
+          // A key with no name to read is refused all the same, on the sentence
+          // that names no variable -- which is the one the reference
+          // implementation's second reader of this rule gives. Falling through
+          // to the value check instead would put the shape back behind the
+          // contents for exactly the keys nothing can name.
+          match namespace_name_from_prop_key(&kv.key) {
+            Some(key) => stylex_panic!("{}", missing_default_value(&key)),
+            None => stylex_panic!("{}", MISSING_DEFAULT_VALUE_UNNAMED),
+          }
         }
 
         // Reject nested arrows that appear inside non-arrow top-level values.

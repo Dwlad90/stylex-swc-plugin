@@ -112,7 +112,7 @@ pub(crate) fn collect_vars_by_at_rules(
         .push(format!("--{}:{};", hash_name, val));
     },
     Expr::Object(obj) => {
-      if !object_carries_a_default(obj) {
+      if object_needs_a_default(obj) {
         stylex_panic!("{}", missing_default_value(key));
       }
 
@@ -148,34 +148,68 @@ pub(crate) fn collect_vars_by_at_rules(
   }
 }
 
-/// Whether an object written as a variable's value is a CSS type rather than a
-/// value map.
+/// Whether an object written as a variable's value is refused for having no
+/// `default`.
 ///
-/// A CSS type carries its own `value` under a `syntax`, so it is not a map of
-/// at-rules and has no `default` key of its own to look for -- the reference
-/// implementation tests for one ahead of the missing-default check for the same
-/// reason. The pair of keys is the test, because either alone appears on
-/// ordinary value maps.
-pub(crate) fn object_is_a_css_type(obj: &ObjectLit) -> bool {
-  let keys: Vec<String> = get_key_values_from_object(obj)
-    .iter()
-    .map(convert_key_value_to_str)
-    .collect();
-
-  keys.iter().any(|key| key == "syntax") && keys.iter().any(|key| key == "value")
-}
-
-/// Whether an object written as a variable's value carries the `default` key.
+/// Two questions, answered off one walk of the object's keys because the caller
+/// always asks both and `get_key_values_from_object` allocates the list it
+/// returns:
+///
+/// - A **CSS type** carries its own `value` under a `syntax`, so it is not a map
+///   of at-rules and has no `default` of its own to look for. The reference
+///   implementation tests for one ahead of the missing-default check for the
+///   same reason. The pair of keys is the test, because either alone appears on
+///   ordinary value maps. `get_css_value` in `utils/common.rs` owns pulling the
+///   pair back apart; this only has to recognise that it is one, which is why
+///   the test is here and not a second extraction.
+/// - Anything else is refused unless it carries `default`.
 ///
 /// Shared with the step that expands a variable's value, which asks the same
 /// question one stage earlier: an object with no `default` is refused for the
 /// shape it is before anything looks at what it holds, which is the order the
 /// reference implementation checks in. Asked through one function so the two
 /// stages cannot come to disagree about what carrying a default means.
-pub(crate) fn object_carries_a_default(obj: &ObjectLit) -> bool {
+/// The variable's value, and every object nested inside it, asked the question
+/// above.
+///
+/// The reference implementation recurses: `normalizeDefineVarsValue` checks a
+/// level for `default` and then walks into every branch of it, so a fold buried
+/// under an at-rule is refused for the same missing key the top level would be.
+/// Checking only the top level left that one level down still reading the
+/// sentence about zero-argument functions, which is the whole defect.
+///
+/// Stops at the first level that needs one, because that is the level the
+/// refusal is about -- and stops descending into a CSS type, whose `value` is
+/// its own shape and not a map of at-rules.
+pub(crate) fn any_level_needs_a_default(value: &Expr) -> bool {
+  let Some(obj) = value.as_object() else {
+    return false;
+  };
+
+  if object_needs_a_default(obj) {
+    return true;
+  }
+
   get_key_values_from_object(obj)
     .iter()
-    .any(|key_value| convert_key_value_to_str(key_value) == "default")
+    .any(|key_value| any_level_needs_a_default(&key_value.value))
+}
+
+pub(crate) fn object_needs_a_default(obj: &ObjectLit) -> bool {
+  let mut carries_syntax = false;
+  let mut carries_value = false;
+  let mut carries_default = false;
+
+  for key_value in get_key_values_from_object(obj).iter() {
+    match convert_key_value_to_str(key_value).as_str() {
+      "syntax" => carries_syntax = true,
+      "value" => carries_value = true,
+      "default" => carries_default = true,
+      _ => {},
+    }
+  }
+
+  !(carries_default || (carries_syntax && carries_value))
 }
 
 fn get_nitial_value_of_css_type(values: &IndexMap<String, ValueWithDefault>) -> String {

@@ -371,6 +371,26 @@ stylex_test_panic!(
   "#
 );
 
+// A fold buried under an at-rule, rather than written at the top level. The
+// reference implementation recurses through every branch of a value, so the
+// level that lacks a `default` is refused wherever it sits; checking only the
+// top level left this one reading the sentence about zero-argument functions,
+// which is the defect the reorder is for.
+stylex_test_panic!(
+  a_nested_folded_function_map_is_refused_for_its_missing_default,
+  "Default value is not defined for a variable.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b
+    .with_filename(swc_core::common::FileName::Real("vars.stylex.js".into()))
+    .with_unstable_module_resolution(ModuleResolution::haste(None))),
+  r#"
+    import { defineVars, keyframes } from '@stylexjs/stylex';
+
+    export const vars = defineVars({
+      a: { default: '1px', '@media (min-width: 600px)': keyframes },
+    });
+  "#
+);
+
 // An empty object carries no `default` either, and is refused for that rather
 // than compiling to a variable with no value.
 stylex_test_panic!(

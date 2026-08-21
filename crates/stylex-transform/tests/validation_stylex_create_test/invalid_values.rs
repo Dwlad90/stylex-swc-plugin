@@ -2536,6 +2536,31 @@ stylex_test_panic!(
   "#
 );
 
+// The fold written where a whole namespace belongs. The namespace's own object
+// carries `when`, whose value is an object, so validation reads its keys as
+// conditions and refuses them -- and a `{ fn }` wrapper carries a function,
+// which is refused as a value. Both are the sentences upstream gives, which it
+// gives for the same two shapes.
+stylex_test_panic!(
+  the_namespace_import_written_as_a_namespace_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: stylex });
+  "#
+);
+
+stylex_test_panic!(
+  a_named_keyframes_import_written_as_a_namespace_is_refused_for_its_function,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: keyframes });
+  "#
+);
+
 // The fold inside a fallback array. An array element is refused with the
 // array's own sentence, which upstream gives too.
 stylex_test_panic!(
@@ -2631,27 +2656,64 @@ stylex_test!(
 // `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.
 // --------------------------------------------------------------------------
 
-// The fold written where a whole namespace belongs. The namespace's own object
-// carries `when`, whose value is an object, so validation reads its keys as
-// conditions and refuses them -- and a `{ fn }` wrapper carries a function,
-// which is refused as a value. Both are the sentences upstream gives, which it
-// gives for the same two shapes.
+// The fold as a computed key. Upstream coerces the object it folded to and emits
+// a rule for a property named `[object object]`; this compiler refuses the key.
+// Both compilers write nonsense and disagree about which, and agreeing here
+// means reproducing a coercion neither intends.
 stylex_test_panic!(
-  the_namespace_import_written_as_a_namespace_is_refused_as_a_namespace,
-  "Invalid pseudo or at-rule.",
+  the_namespace_import_read_as_a_static_computed_key_is_refused,
+  "A style value can only contain an array, string or number.",
   r#"
     import * as stylex from '@stylexjs/stylex';
 
-    export const styles = stylex.create({ a: stylex });
+    export const styles = stylex.create({ a: { [stylex]: '1px' } });
+  "#
+);
+
+// A member read off the fold that the fold has no entry for. Upstream answers
+// `undefined` and refuses it as a value; this compiler cannot name the property
+// and says so. Both refuse; the sentence is this compiler's own.
+stylex_test_panic!(
+  a_missing_member_read_off_a_static_fold_is_refused,
+  "Could not determine the property being accessed.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: keyframes.nope } });
   "#
 );
 
 stylex_test_panic!(
-  a_named_keyframes_import_written_as_a_namespace_is_refused_for_its_function,
+  an_index_read_off_a_static_fold_is_refused,
+  "Could not determine the property being accessed.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: keyframes[0] } });
+  "#
+);
+
+// The fold in an operand position rather than a value position. Upstream
+// coerces it -- to `[object Object]` in a template or a concatenation, and to
+// `true` as a condition -- and emits. This compiler refuses both. The
+// concatenation is the same coercion the template one is, recorded on the
+// template row of that issue.
+stylex_test_panic!(
+  a_static_fold_concatenated_with_a_string_is_refused,
+  "Unsupported expression: BinaryExpression",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { height: keyframes + '' } });
+  "#
+);
+
+stylex_test_panic!(
+  a_static_fold_read_as_a_condition_is_refused,
   "A style value can only contain an array, string or number.",
   r#"
     import { create, keyframes } from '@stylexjs/stylex';
 
-    export const styles = create({ a: keyframes });
+    export const styles = create({ a: { height: keyframes ? '1px' : '2px' } });
   "#
 );

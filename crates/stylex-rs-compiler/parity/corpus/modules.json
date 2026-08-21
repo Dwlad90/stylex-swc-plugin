@@ -819,7 +819,7 @@
       "label": "a shadowed namespace parameter read as a computed key",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({ [stylex]: '1px' }),\n});\n",
       "origin": "the identifier audit for issue #1266, the same coercion in the key position",
-      "note": "Upstream coerces the fold and emits a rule for a property named `[object object]`; this compiler refuses the value. The key position of the entry above, kept apart because one accepts and one refuses and a single module could only report the refusal.",
+      "note": "Upstream coerces the fold and emits a rule for a property named `[object object]`; this compiler refuses the value. The key position of the entry above, kept apart because one accepts and one refuses and a single module could only report the refusal. The static position reads the same way -- `create({ a: { [stylex]: '1px' } })` -- so the divergence is the coercion's and not the dynamic body's; recorded as a decided divergence in the issue that owns the fold.",
       "expected": "acceptance-divergent"
     },
     {
@@ -1353,6 +1353,46 @@
       "origin": "issue #1265, a reported shape reading a namespace by a computed key"
     },
     {
+      "id": "modules-1266-a-folded-function-map-spread-into-a-style-object",
+      "label": "a folded function map spread into a style object",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { ...keyframes, color: 'red' } });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "The fold's keys are own enumerable properties of the plain object upstream folds it to, so a spread copies them onto the style object -- where the function the wrapper key carries is refused as a value. This used to contribute nothing and compile `{color:red}`, a style object the author did not write, where upstream refuses.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-the-namespace-import-spread-into-a-style-object",
+      "label": "the stylex namespace import spread into a style object",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({ a: { ...stylex, color: 'red' } });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "The namespace's object carries one key, `when`, whose value is the object of the marker functions, so a spread of it puts an object where a style value belongs and validation reads its keys as conditions. The other half of the row above, and the reason the fold materializes one level down rather than flat.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-folded-function-map-spread-then-overridden",
+      "label": "a folded function map spread, then every key it contributed written over",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { ...keyframes, fn: 'red' } });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "The one shape a spread of the fold compiles, and the guard on the two rows above: the wrapper key is written over by a property that follows, so nothing the fold contributed survives to be refused.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-1266-the-namespace-import-written-as-a-namespace",
+      "label": "the stylex namespace import written where a whole namespace belongs",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({ a: stylex });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "The namespace position, not the value position: the fold is materialized there too, so validation reads the `when` object's keys as conditions and refuses them. It used to read `A StyleX namespace must be an object.`",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-named-function-map-import-written-as-a-namespace",
+      "label": "a named `keyframes` import written where a whole namespace belongs",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: keyframes });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "The same position one entry down: the `{ fn }` wrapper's function reaches namespace validation as a property value and is refused for not being a style value, which is upstream's sentence for it.",
+      "expected": "both-reject"
+    },
+    {
       "id": "modules-1266-a-folded-function-map-inside-a-fallback-array",
       "label": "a folded function map inside a fallback array",
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: ['1px', keyframes] } });\n",
@@ -1393,44 +1433,68 @@
       "expected": "both-reject-divergent"
     },
     {
-      "id": "modules-1266-a-folded-function-map-spread-into-a-style-object",
-      "label": "a folded function map spread into a style object",
-      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { ...keyframes, color: 'red' } });\n",
+      "id": "modules-1266-a-folded-function-map-in-a-keyframes-step",
+      "label": "a folded function map read as a keyframes step value",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const name = stylex.keyframes({ from: { height: stylex } });\n",
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
-      "note": "The fold's keys are own enumerable properties of the plain object upstream folds it to, so a spread copies them onto the style object -- where the function the wrapper key carries is refused as a value. This used to contribute nothing and compile `{color:red}`, a style object the author did not write, where upstream refuses.",
-      "expected": "both-reject"
+      "note": "Upstream folds the same reference, drops the declaration and emits `@keyframes …{from{}}` -- the step survives, empty, and nothing says why. Refused here, as every shape with no value form in this position is. A decided divergence, on the terms the theme-reference row in the same position was decided.",
+      "expected": "acceptance-divergent"
     },
     {
-      "id": "modules-1266-the-namespace-import-spread-into-a-style-object",
-      "label": "the stylex namespace import spread into a style object",
-      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({ a: { ...stylex, color: 'red' } });\n",
+      "id": "modules-1266-a-folded-function-map-in-a-position-try",
+      "label": "a folded function map read as a positionTry fallback value",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const name = stylex.positionTry({ positionAnchor: '--a', top: stylex });\n",
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
-      "note": "The namespace's object carries one key, `when`, whose value is the object of the marker functions, so a spread of it puts an object where a style value belongs and validation reads its keys as conditions. The other half of the row above, and the reason the fold materializes one level down rather than flat.",
-      "expected": "both-reject"
+      "note": "The same decided divergence as the keyframes step: upstream emits the at-rule with the declaration missing.",
+      "expected": "acceptance-divergent"
     },
     {
-      "id": "modules-1266-a-folded-function-map-spread-then-overridden",
-      "label": "a folded function map spread, then every key it contributed written over",
-      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { ...keyframes, fn: 'red' } });\n",
+      "id": "modules-1266-a-folded-function-map-in-a-view-transition-class",
+      "label": "a folded function map read as a viewTransitionClass declaration value",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const cls = stylex.viewTransitionClass({ group: { height: stylex } });\n",
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
-      "note": "The one shape a spread of the fold compiles, and the guard on the two rows above: the wrapper key is written over by a property that follows, so nothing the fold contributed survives to be refused.",
-      "expected": "identical"
+      "note": "The same decided divergence again: upstream emits the selector with an empty body.",
+      "expected": "acceptance-divergent"
     },
     {
-      "id": "modules-1266-the-namespace-import-written-as-a-namespace",
-      "label": "the stylex namespace import written where a whole namespace belongs",
-      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({ a: stylex });\n",
+      "id": "modules-1266-a-missing-member-read-off-a-folded-function-map",
+      "label": "a member the folded function map has no entry for",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: keyframes.nope } });\n",
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
-      "note": "The namespace position, not the value position: the fold is materialized there too, so validation reads the `when` object's keys as conditions and refuses them. It used to read `A StyleX namespace must be an object.`",
-      "expected": "both-reject"
+      "note": "Upstream reads `undefined` off the object it folded and refuses it as a value; this compiler cannot name the property being accessed and says so. Both refuse; the member read off a fold is its own seam and is not what the static consumer decided.",
+      "expected": "both-reject-divergent"
     },
     {
-      "id": "modules-1266-a-named-function-map-import-written-as-a-namespace",
-      "label": "a named `keyframes` import written where a whole namespace belongs",
-      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: keyframes });\n",
+      "id": "modules-1266-an-index-read-off-a-folded-function-map",
+      "label": "an index read off a folded function map",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: keyframes[0] } });\n",
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
-      "note": "The same position one entry down: the `{ fn }` wrapper's function reaches namespace validation as a property value and is refused for not being a style value, which is upstream's sentence for it.",
-      "expected": "both-reject"
+      "note": "The same seam as the row above, reached by an index rather than by a name.",
+      "expected": "both-reject-divergent"
+    },
+    {
+      "id": "modules-1266-a-folded-function-map-concatenated-with-a-string",
+      "label": "a folded function map concatenated with a string",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: keyframes + '' } });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "The string coercion of the fold, in an operand rather than in a template: upstream emits `height:[object Object]`, which is what JavaScript gives for an object, and this compiler refuses the operand. Both write or refuse nonsense; agreeing means reproducing a coercion neither compiler intends.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-folded-function-map-read-as-a-condition",
+      "label": "a folded function map read as a ternary condition",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: keyframes ? '1px' : '2px' } });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "The truthiness of the fold rather than its value. Upstream reads an object as truthy and emits the left branch; this compiler refuses the conditional. Recorded beside the coercion row, for the same reason.",
+      "expected": "acceptance-divergent"
+    },
+    {
+      "id": "modules-1266-a-folded-function-map-in-a-create-theme-override",
+      "label": "a folded function map read as a createTheme override value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { vars } from './vars.stylex.js';\n\nexport const theme = stylex.createTheme(vars, { a: stylex });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "Both compilers refuse, and both refuse it for what the object the fold stands for lacks: upstream looks for a `default` key and reads `Default value is not defined for a variable.`, and this compiler names the variable in that same sentence. A wording difference in one message rather than a question about the fold. `defineVars` and `defineConsts` ask the same question one call over and cannot be asked here -- both hash the filename, which is fixed for every subject in this set, so they refuse for the filename before the value is read; they are measured in the Rust suites instead.",
+      "expected": "both-reject-divergent"
     }
   ]
 }

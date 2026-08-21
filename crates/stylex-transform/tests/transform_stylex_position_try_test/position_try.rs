@@ -188,3 +188,17 @@ stylex_test_panic!(
     export const name = stylex.positionTry({ top: zIndex });
   "#
 );
+
+// A folded function map read as a fallback value. The reference implementation
+// emits the at-rule with the declaration missing; refused here, for the reason
+// a theme reference in this position is. A decided divergence, recorded as
+// `modules-1266-a-folded-function-map-in-a-position-try`.
+stylex_test_panic!(
+  a_folded_function_map_read_as_a_position_try_value_is_refused,
+  "Only static values are allowed inside of a positionTry() call.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const name = stylex.positionTry({ positionAnchor: '--a', top: stylex });
+  "#
+);

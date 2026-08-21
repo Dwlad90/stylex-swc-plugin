@@ -177,3 +177,18 @@ stylex_test_panic!(
     export const cls = stylex.viewTransitionClass({ group: { zIndex: zIndex } });
   "#
 );
+
+// A folded function map read as a declaration value in one of the four parts.
+// The reference implementation emits the selector with an empty body; refused
+// here, for the reason a theme reference in this position is. A decided
+// divergence, recorded as
+// `modules-1266-a-folded-function-map-in-a-view-transition-class`.
+stylex_test_panic!(
+  a_folded_function_map_read_as_a_part_declaration_value_is_refused,
+  "Only static values are allowed inside of a viewTransitionClass() call.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const cls = stylex.viewTransitionClass({ group: { height: stylex } });
+  "#
+);

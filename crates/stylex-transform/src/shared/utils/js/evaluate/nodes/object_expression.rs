@@ -105,8 +105,18 @@ fn spread_own_properties(value: EvaluateResultValue, operand: &Expr) -> Option<V
     EvaluateResultValue::Expr(
       Expr::Lit(Lit::Num(_) | Lit::Bool(_) | Lit::Null(_)) | Expr::Arrow(_) | Expr::Fn(_),
     )
-    | EvaluateResultValue::Callback(_)
-    | EvaluateResultValue::FunctionConfig(_) => Some(vec![]),
+    | EvaluateResultValue::Callback(_) => Some(vec![]),
+
+    // A folded function map or function config is a plain object upstream, not a
+    // function, so its keys are own enumerable properties and a spread of it
+    // contributes every one. Answering empty here spread nothing and compiled a
+    // style object the author did not write -- where the reference
+    // implementation spreads the keys and refuses the first value that is not a
+    // style value.
+    value
+    @ (EvaluateResultValue::FunctionConfig(_) | EvaluateResultValue::FunctionConfigMap(_)) => {
+      function_fold_to_object(&value).map(|object| object.props)
+    },
     // The global primitives that are spelled as identifiers rather than as
     // literals. Only these three: any other bare identifier either resolved to
     // a value handled above or never resolved at all, and the latter has

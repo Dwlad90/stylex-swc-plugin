@@ -2547,3 +2547,86 @@ stylex_test_panic!(
     export const styles = create({ a: { height: ['1px', keyframes] } });
   "#
 );
+
+// The fold as a spread operand. Its keys are own enumerable properties of the
+// object the reference implementation folds it to, so a spread copies them onto
+// the style object -- where a `{ fn }` wrapper's function is refused as a value
+// and the namespace's `when` object is refused as a condition. This used to
+// contribute nothing and compile a style object the author did not write.
+stylex_test_panic!(
+  a_static_fold_spread_into_a_style_object_is_refused_for_its_function,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { ...keyframes, color: 'red' } });
+  "#
+);
+
+stylex_test_panic!(
+  a_static_fold_spread_alone_is_refused_for_its_function,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { ...keyframes } });
+  "#
+);
+
+stylex_test_panic!(
+  a_static_fold_spread_twice_is_refused_for_its_function,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { ...keyframes, ...keyframes } });
+  "#
+);
+
+stylex_test_panic!(
+  a_bare_when_import_spread_into_a_style_object_is_refused_for_its_function,
+  "A style value can only contain an array, string or number.",
+  r#"
+    import { create, when } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { ...when, color: 'red' } });
+  "#
+);
+
+stylex_test_panic!(
+  the_namespace_import_spread_into_a_style_object_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: { ...stylex, color: 'red' } });
+  "#
+);
+
+stylex_test_panic!(
+  a_static_fold_spread_under_a_condition_is_refused_as_a_namespace,
+  "Invalid pseudo or at-rule.",
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { color: { ...keyframes, default: 'red' } } });
+  "#
+);
+
+// The one shape a spread of the fold compiles: every key it contributed is
+// written over by a property that follows. Both compilers emit the same
+// declaration, from a property named after the wrapper key.
+stylex_test!(
+  a_static_fold_spread_then_overridden_declares_the_overriding_value,
+  r#"
+    import { create, keyframes } from '@stylexjs/stylex';
+
+    export const styles = create({ a: { ...keyframes, fn: 'red' } });
+  "#
+);
+
+// --------------------------------------------------------------------------
+// The neighbours of this seam, measured and pinned as they stand. Each is a
+// refusal both compilers reach or a divergence recorded in
+// `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.
+// --------------------------------------------------------------------------

@@ -1391,6 +1391,30 @@
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
       "note": "Upstream holds the key as a JavaScript string and never writes it down, so it reaches the fold and refuses for it. This compiler refuses the key's encoding first: no Rust string holds a lone surrogate, and emitting a replacement character would write a selector the source does not describe -- the rule an object spread of a string and `charCodeAt` already answer this way.",
       "expected": "both-reject-divergent"
+    },
+    {
+      "id": "modules-1266-a-folded-function-map-spread-into-a-style-object",
+      "label": "a folded function map spread into a style object",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { ...keyframes, color: 'red' } });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "The fold's keys are own enumerable properties of the plain object upstream folds it to, so a spread copies them onto the style object -- where the function the wrapper key carries is refused as a value. This used to contribute nothing and compile `{color:red}`, a style object the author did not write, where upstream refuses.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-the-namespace-import-spread-into-a-style-object",
+      "label": "the stylex namespace import spread into a style object",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({ a: { ...stylex, color: 'red' } });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "The namespace's object carries one key, `when`, whose value is the object of the marker functions, so a spread of it puts an object where a style value belongs and validation reads its keys as conditions. The other half of the row above, and the reason the fold materializes one level down rather than flat.",
+      "expected": "both-reject"
+    },
+    {
+      "id": "modules-1266-a-folded-function-map-spread-then-overridden",
+      "label": "a folded function map spread, then every key it contributed written over",
+      "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { ...keyframes, fn: 'red' } });\n",
+      "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
+      "note": "The one shape a spread of the fold compiles, and the guard on the two rows above: the wrapper key is written over by a property that follows, so nothing the fold contributed survives to be refused.",
+      "expected": "identical"
     }
   ]
 }

@@ -9,9 +9,25 @@
 import type { BenchOptions } from 'tinybench';
 
 import type { StyleXOptions } from '../../dist/index.js';
+import type { FixtureDescriptor } from './types.js';
 
 export const DEFAULT_PAIRED_TIME_BUDGET_MS = 300;
 
+/**
+ * The shared, production-shaped options every fixture is measured under
+ * unless it says otherwise.
+ *
+ * `dev: false` stays the default here rather than becoming a variant of this
+ * function, because a `dev` build is a different measurement rather than a
+ * louder one: it turns on the `file:line` annotation on `$$css`, which
+ * resolves every namespace's authored position and costs several times the
+ * whole production transform. Flipping it here would move every trend series
+ * in the repo onto a shape nobody had been watching, and the two shapes
+ * cannot be compared against each other. A fixture that wants the `dev` shape
+ * asks for it with `"dev": true` in `fixtures.v1.json`, arriving here through
+ * `fixtureStylexOptions`, so both configurations are watched under their own
+ * names.
+ */
 export function createStylexOptions(packageDir: string): StyleXOptions {
   return {
     dev: false,
@@ -21,6 +37,21 @@ export function createStylexOptions(packageDir: string): StyleXOptions {
       rootDir: packageDir,
     },
   };
+}
+
+/**
+ * `options` as one fixture is measured under, applying its own `dev` override
+ * when it declares one.
+ *
+ * Used by the runner for both the sanity check and the timed run, so a
+ * fixture cannot be validated under one configuration and timed under
+ * another.
+ */
+export function fixtureStylexOptions(
+  fixture: Pick<FixtureDescriptor, 'dev'>,
+  options: StyleXOptions
+): StyleXOptions {
+  return fixture.dev === undefined ? options : { ...options, dev: fixture.dev };
 }
 
 export interface PairedBenchConfigs {

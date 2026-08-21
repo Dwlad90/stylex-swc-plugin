@@ -11,11 +11,17 @@
  * for every fixture *before* timing begins. Existing correctness tests
  * are responsible for intentional output differences — this guard only
  * stops a broken no-op subject from appearing fast.
+ *
+ * A fixture may override `dev` for itself (`FixtureDescriptor.dev`). The
+ * override is resolved in one place, `fixtureStylexOptions`, and used by
+ * both the sanity check and the timed run, so a fixture can never be
+ * validated under one configuration and timed under another.
  */
 
 import { Bench, type BenchOptions } from 'tinybench';
 
 import type { StyleXOptions } from '../../dist/index.js';
+import { fixtureStylexOptions } from './config.js';
 import {
   bootstrapMedianRatio,
   extractLatencySamples,
@@ -100,7 +106,7 @@ function sanityCheck(
 ): void {
   for (const fixture of fixtures) {
     for (const subject of subjects) {
-      const rules = subject.run(fixture, stylexOptions);
+      const rules = subject.run(fixture, fixtureStylexOptions(fixture, stylexOptions));
       if (!Number.isFinite(rules) || rules <= 0) {
         throw new Error(
           `Sanity check failed: subject "${subject.descriptor.label}" produced ${String(
@@ -118,6 +124,9 @@ async function runSingleRound(
   options: RunOptions
 ): Promise<Record<string, RawLatencySamples>> {
   const benchOptions = fixture.weight === 'heavy' ? options.heavyBench : options.standardBench;
+  // Resolved once per round rather than per iteration: a fixture's `dev`
+  // override must not put an object allocation inside the timed loop.
+  const stylexOptions = fixtureStylexOptions(fixture, options.stylexOptions);
   const bench = new Bench({
     name: `${fixture.name} (round)`,
     ...benchOptions,
@@ -128,7 +137,7 @@ async function runSingleRound(
     bench.add(label, () => {
       // Batching lifts sub-millisecond fixtures above timer noise.
       for (let i = 0; i < fixture.batchSize; i++) {
-        subject.run(fixture, options.stylexOptions);
+        subject.run(fixture, stylexOptions);
       }
     });
   }

@@ -156,6 +156,14 @@
       "batchSize": 1
     },
     {
+      "name": "Debug data - lotsOfStyles.js (100 creates, dev)",
+      "file": "crates/stylex-transform/benches/fixtures/lotsOfStyles100.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "dev": true
+    },
+    {
       "name": "Rollup plugin - lotsOfStyles.js",
       "file": "apps/rollup-large-example/lotsOfStyles.js",
       "category": "rollup",

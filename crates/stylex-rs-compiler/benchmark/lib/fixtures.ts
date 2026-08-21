@@ -9,6 +9,11 @@
  * lifted above sub-millisecond noise by batching; do not add an
  * absolute-delta floor as a shortcut.
  *
+ * A fixture may opt into a `dev` build with `"dev": true`. That is a
+ * different measurement rather than a louder one -- see
+ * `FixtureDescriptor.dev` -- so it is per fixture, never a switch in the
+ * shared options.
+ *
  * Only fixtures that actually produce StyleX rules belong here. The
  * transform test corpus also contains negative fixtures that compile to
  * zero rules (`button-props`, which never imports `stylex`); registering
@@ -39,6 +44,7 @@ interface FixtureManifestEntry {
   category: FixtureCategory;
   weight: FixtureWeight;
   batchSize: number;
+  dev?: boolean;
 }
 
 export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor[] {
@@ -52,7 +58,7 @@ export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor
     .filter(fixture => requested.has(fixture.category))
     .map(fixture => {
       const filePath = path.join(options.workspaceRoot, fixture.file);
-      return {
+      const descriptor: FixtureDescriptor = {
         name: fixture.name,
         filePath,
         code: fs.readFileSync(filePath, 'utf-8'),
@@ -60,6 +66,12 @@ export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor
         category: fixture.category,
         batchSize: fixture.batchSize,
       };
+      // Assigned only when the manifest declared it, so an undeclared `dev`
+      // stays absent rather than becoming an own `dev: undefined` property:
+      // "the manifest did not say" and "the manifest said nothing in
+      // particular" must not read the same to a consumer.
+      if (fixture.dev !== undefined) descriptor.dev = fixture.dev;
+      return descriptor;
     });
 
   if (!options.filter || options.filter.length === 0) return all;
@@ -106,12 +118,19 @@ function parseManifestEntry(input: unknown, index: number): FixtureManifestEntry
   if (!Number.isSafeInteger(input.batchSize) || Number(input.batchSize) <= 0) {
     throw new Error(`${context}.batchSize must be a positive integer`);
   }
+  // Rejected rather than coerced: `"false"` and `0` are both truthy-adjacent
+  // mistakes that would silently benchmark the wrong configuration, and a
+  // fixture's shape is not something to guess at.
+  if (input.dev !== undefined && typeof input.dev !== 'boolean') {
+    throw new Error(`${context}.dev must be a boolean when present`);
+  }
   return {
     name: input.name,
     file: input.file,
     category: input.category,
     weight: input.weight,
     batchSize: Number(input.batchSize),
+    ...(input.dev === undefined ? {} : { dev: input.dev }),
   };
 }
 

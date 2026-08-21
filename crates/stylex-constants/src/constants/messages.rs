@@ -236,6 +236,16 @@ pub fn expected_call_expression(fn_name: &str) -> String {
   )
 }
 
+/// A variable whose value is an object carrying no `default` key.
+///
+/// Byte-identical to the reference implementation's, which names the top-level
+/// variable and not the nested key the recursion is standing on. The name used
+/// to be quoted here, which is the whole of what a build error read differently
+/// between the two compilers for this input.
+pub fn missing_default_value(key: &str) -> String {
+  format!("Default value is not defined for {} variable.", key)
+}
+
 pub fn invalid_define_vars_function_value() -> String {
   "Function values in defineVars() must be zero-argument and return a static value supported by defineVars().".to_string()
 }

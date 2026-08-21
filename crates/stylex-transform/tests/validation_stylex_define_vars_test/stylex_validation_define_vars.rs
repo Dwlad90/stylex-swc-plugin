@@ -333,16 +333,75 @@ stylex_test_panic!(
 // object it stands for -- which reaches this consumer as an object with no
 // `default` key, and is refused for that.
 //
-// The reference implementation folds the same object and reads `Default value is
-// not defined for a variable.`, because it looks for a `default` key before it
-// looks at what the value holds. This one looks at the value first and refuses
-// the function the fold carries. Both refuse the same input for something the
-// same object lacks; which check speaks first is a `defineVars` ordering
-// question, not a question about the fold, and it is measured in
-// `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.
+// The sentence is the reference implementation's, byte for byte: an object with
+// no `default` key is refused for the shape it is, before anything looks at
+// what it holds. Looking at the values first answered a name the author wrote
+// with a sentence about zero-argument functions, because the object a folded
+// function map materializes to carries one in every value slot.
+// The plain shape of the same rule, with no fold involved: an object value
+// carrying at-rules and no `default`. The sentence names the top-level variable
+// and not the nested key the recursion is standing on, which is what upstream
+// names too.
 stylex_test_panic!(
-  a_folded_function_map_read_as_a_variable_value_is_refused_for_its_function,
+  an_object_value_with_no_default_key_is_refused,
+  "Default value is not defined for cornerRadius variable.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      cornerRadius: { '@media (min-width: 600px)': '8px' },
+    });
+  "#
+);
+
+// The same object one level down. The top-level key is what is named, because
+// that is the variable an author would go looking for.
+stylex_test_panic!(
+  a_nested_object_value_with_no_default_key_names_the_top_level_variable,
+  "Default value is not defined for cornerRadius variable.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      cornerRadius: {
+        default: '4px',
+        '@media (min-width: 600px)': { '@supports (display: grid)': '8px' },
+      },
+    });
+  "#
+);
+
+// An empty object carries no `default` either, and is refused for that rather
+// than compiling to a variable with no value.
+stylex_test_panic!(
+  an_empty_object_value_is_refused_for_its_missing_default,
+  "Default value is not defined for cornerRadius variable.",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({ cornerRadius: {} });
+  "#
+);
+
+// A zero-argument arrow is still expanded and still refused for its parameters
+// where it has them, so the reorder did not move the function check off the
+// shapes it owns.
+stylex_test_panic!(
+  a_parameterized_arrow_beside_an_object_value_still_reads_the_function_sentence,
   "Function values in defineVars() must be zero-argument and return a static value supported by defineVars().",
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const vars = stylex.defineVars({
+      cornerRadius: { default: '4px' },
+      other: (value) => value,
+    });
+  "#
+);
+
+stylex_test_panic!(
+  a_folded_function_map_read_as_a_variable_value_is_refused_for_its_missing_default,
+  "Default value is not defined for a variable.",
   |tr| stylex_transform(tr.comments.clone(), |b| b
     .with_filename(swc_core::common::FileName::Real("vars.stylex.js".into()))
     .with_unstable_module_resolution(ModuleResolution::haste(None))),

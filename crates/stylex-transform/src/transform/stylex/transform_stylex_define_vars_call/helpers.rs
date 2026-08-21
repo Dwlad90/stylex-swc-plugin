@@ -3,8 +3,8 @@ use stylex_ast::ast::convertors::normalize_expr;
 use stylex_constants::constants::{
   api_names::STYLEX_DEFINE_VARS,
   messages::{
-    cyclic_define_vars_reference, invalid_define_vars_function_value, non_static_value,
-    unknown_define_vars_reference,
+    cyclic_define_vars_reference, invalid_define_vars_function_value, missing_default_value,
+    non_static_value, unknown_define_vars_reference,
   },
 };
 use stylex_macros::stylex_panic;
@@ -24,6 +24,7 @@ use crate::shared::{
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{
     ast::helpers::{namespace_name_from_prop_key, prop_as_key_value, prop_contains_arrow},
+    core::define_vars_utils::{object_carries_a_default, object_is_a_css_type},
     js::evaluate::evaluate,
     log::build_code_frame_error::build_code_frame_error,
   },
@@ -281,6 +282,20 @@ pub(super) fn normalize_define_vars_functions(
         stylex_panic!("{}", invalid_define_vars_function_value());
       },
       other => {
+        // An object with no `default` key is refused for the shape it is,
+        // before anything looks at what it holds -- the order the reference
+        // implementation checks in, and the one that decides which sentence an
+        // author reads. Looking at the values first answered a folded function
+        // map, which materializes as `{ fn: … }`, with a sentence about
+        // zero-argument functions where they wrote a name.
+        if let Some(obj) = other.as_object()
+          && !object_is_a_css_type(obj)
+          && !object_carries_a_default(obj)
+          && let Some(key) = namespace_name_from_prop_key(&kv.key)
+        {
+          stylex_panic!("{}", missing_default_value(&key));
+        }
+
         // Reject nested arrows that appear inside non-arrow top-level values.
         assert_no_nested_arrows(other);
         other.clone()

@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use indexmap::IndexMap;
 use stylex_macros::stylex_panic;
-use swc_core::ecma::ast::{Expr, Lit};
+use swc_core::ecma::ast::{Expr, Lit, ObjectLit};
 
 use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
@@ -12,7 +12,7 @@ use crate::shared::{
 use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_constants::constants::{
   common::SPLIT_TOKEN,
-  messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT},
+  messages::{EXPECTED_CSS_VAR, VALUES_MUST_BE_OBJECT, missing_default_value},
 };
 use stylex_enums::value_with_default::ValueWithDefault;
 use stylex_types::structures::injectable_style::InjectableStyle;
@@ -112,15 +112,11 @@ pub(crate) fn collect_vars_by_at_rules(
         .push(format!("--{}:{};", hash_name, val));
     },
     Expr::Object(obj) => {
-      let key_values = get_key_values_from_object(obj);
-
-      if !key_values.iter().any(|key_value| {
-        let key = convert_key_value_to_str(key_value);
-
-        key == "default"
-      }) {
-        stylex_panic!(r#"Default value is not defined for "{}" variable."#, key);
+      if !object_carries_a_default(obj) {
+        stylex_panic!("{}", missing_default_value(key));
       }
+
+      let key_values = get_key_values_from_object(obj);
 
       for key_value in key_values.iter() {
         let at_rule = convert_key_value_to_str(key_value);
@@ -135,8 +131,12 @@ pub(crate) fn collect_vars_by_at_rules(
 
         let value = key_value.value.clone();
 
+        // The variable's own name travels down the recursion, not the at-rule
+        // the level is standing on: an author looking for `cornerRadius` is
+        // told about `cornerRadius` however deep the object nests, which is
+        // the name the reference implementation carries down here too.
         collect_vars_by_at_rules(
-          &at_rule,
+          key,
           &FlatCompiledStylesValue::Tuple(hash_name.clone(), value, None),
           collection,
           &extended_at_rules,
@@ -146,6 +146,36 @@ pub(crate) fn collect_vars_by_at_rules(
     },
     _ => {},
   }
+}
+
+/// Whether an object written as a variable's value is a CSS type rather than a
+/// value map.
+///
+/// A CSS type carries its own `value` under a `syntax`, so it is not a map of
+/// at-rules and has no `default` key of its own to look for -- the reference
+/// implementation tests for one ahead of the missing-default check for the same
+/// reason. The pair of keys is the test, because either alone appears on
+/// ordinary value maps.
+pub(crate) fn object_is_a_css_type(obj: &ObjectLit) -> bool {
+  let keys: Vec<String> = get_key_values_from_object(obj)
+    .iter()
+    .map(convert_key_value_to_str)
+    .collect();
+
+  keys.iter().any(|key| key == "syntax") && keys.iter().any(|key| key == "value")
+}
+
+/// Whether an object written as a variable's value carries the `default` key.
+///
+/// Shared with the step that expands a variable's value, which asks the same
+/// question one stage earlier: an object with no `default` is refused for the
+/// shape it is before anything looks at what it holds, which is the order the
+/// reference implementation checks in. Asked through one function so the two
+/// stages cannot come to disagree about what carrying a default means.
+pub(crate) fn object_carries_a_default(obj: &ObjectLit) -> bool {
+  get_key_values_from_object(obj)
+    .iter()
+    .any(|key_value| convert_key_value_to_str(key_value) == "default")
 }
 
 fn get_nitial_value_of_css_type(values: &IndexMap<String, ValueWithDefault>) -> String {

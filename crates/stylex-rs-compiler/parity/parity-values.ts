@@ -74,6 +74,7 @@ const VERDICT_LABELS: Record<Verdict, string> = {
   divergent: chalk.red('divergent'),
   'structurally-divergent': chalk.magenta('structurally divergent'),
   'both-reject': chalk.gray('both reject'),
+  'both-reject-divergent': chalk.cyan('both reject (diverged)'),
   'acceptance-divergent': chalk.yellow('acceptance divergent'),
 };
 
@@ -90,6 +91,11 @@ const VERDICT_LABELS: Record<Verdict, string> = {
  * rather than about parity, and the summary reports it on its own line where a
  * count is the useful form. Listing it as a mismatch would overload the word
  * for the one verdict that is not a disagreement.
+ *
+ * `both-reject-divergent` does not. Two refusals worded differently are the
+ * only thing that separates it from `both-reject`, and that difference is the
+ * whole of what an author whose build stopped is handed — so it is a mismatch
+ * to chase, and its two sentences are what the entry prints.
  */
 const AGREED: ReadonlySet<Verdict> = new Set<Verdict>([
   'identical',
@@ -118,7 +124,11 @@ function expectation(entry: ReportEntry): 'expected' | 'changed' | 'unset' {
 
 function describe(entry: ReportEntry, side: 'rust' | 'babel'): string {
   const outcome = entry[side];
-  if (outcome.status === 'error') return chalk.gray(`rejected: ${outcome.message}`);
+  // The normalized sentence rather than the raw message: the raw one carries a
+  // code frame on one side and a repaired rule on the other, which is many
+  // lines of where-it-happened around the one line that says what the compiler
+  // objected to. The raw message is in `--json` for whoever needs it.
+  if (outcome.status === 'error') return chalk.gray(`rejected: ${outcome.sentence}`);
   const declarations = outcome.declarations.map(declaration => `{${declaration}}`).join(' ');
   // The style objects are printed only when they are what differ. On a value
   // divergence they are noise, and on a divergence that shows in the CSS the
@@ -168,6 +178,7 @@ async function run(): Promise<void> {
     divergent: 0,
     'structurally-divergent': 0,
     'both-reject': 0,
+    'both-reject-divergent': 0,
     'acceptance-divergent': 0,
   } satisfies Report['summary'];
   for (const entry of entries) {
@@ -214,6 +225,7 @@ async function run(): Promise<void> {
       `  structurally divergent ${summary['structurally-divergent']}   ${chalk.gray('(different properties emitted; out of scope)')}\n` +
       `  acceptance divergent   ${summary['acceptance-divergent']}   ${chalk.gray('(one compiler rejected)')}\n` +
       `  both reject            ${summary['both-reject']}\n` +
+      `  both reject (diverged) ${summary['both-reject-divergent']}   ${chalk.gray('(both refused, for reasons worded differently)')}\n` +
       `  expected               ${summary.expected}   ${chalk.gray('(divergences already looked at)')}\n` +
       `  changed                ${summary.changed}   ${chalk.gray('(no longer the recorded verdict)')}`
   );

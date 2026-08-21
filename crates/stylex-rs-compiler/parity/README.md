@@ -49,7 +49,8 @@ information for a person to read, not a failure.
 | `divergent`              | Both emitted the same properties but spelled a value differently — and therefore hashed a different class name. This is what the harness is for.                                                                                                                                                     |
 | `structurally divergent` | Both accepted but emitted different properties, or a different number of them. The divergence is in shorthand expansion or property validation, not in value normalization.                                                                                                                          |
 | `acceptance divergent`   | One accepted and the other rejected.                                                                                                                                                                                                                                                                 |
-| `both reject`            | Both rejected. Messages may differ; only the outcome is compared.                                                                                                                                                                                                                                    |
+| `both reject`            | Both rejected, and complained about the same thing. What is compared is the sentence each wrote, with the text saying _where_ it happened removed — see **Comparing two refusals** below.                                                                                                            |
+| `both reject (diverged)` | Both rejected, for reasons they word differently. A refused build hands the author nothing but the message, so two compilers stopping one for opposite reasons have diverged in the only behaviour a refused input has.                                                                              |
 
 Both compilers receive the same module text and the same option object,
 constructed once in `lib/compare.ts`. Option drift would surface as a
@@ -76,6 +77,34 @@ This is deliberately not a comparison of emitted JavaScript. The two compilers
 print code differently — which consumed declarations they leave standing, how an
 injection is wrapped, JSX spacing — so comparing the text would report a
 divergence on every entry and say nothing about StyleX.
+
+### Comparing two refusals
+
+A verdict that asked only _whether_ both compilers rejected read two refusals
+for opposite reasons as agreement, and that is most of what a corpus of
+degenerate values holds. What blocked comparing the messages was never the
+comparison but the decoration each compiler wraps its complaint in:
+
+```text
+[StyleX] a > color > Invalid pseudo or at-rule.
+/abs/path/to/value.js: Invalid pseudo or at-rule.
+```
+
+Neither wrapper can be hard-coded away — this compiler's carries the
+evaluator's key path, which is the authored object's own keys, and upstream's
+carries an absolute file path — so `lib/refusal.ts` derives it, from the marker
+this compiler brands every diagnostic with and from the filename the harness
+itself handed both compilers. It strips only what says _where_: the marker and
+the breadcrumbs, the `-->` location line, the repaired rule text a CSS refusal
+carries, and upstream's code frame. What survives is the complaint, newlines
+included — several diagnostics are two lines in both compilers, and the second
+carries the advice.
+
+Every rule is pinned in `__tests__/refusal.test.ts`, including a refusal with no
+prefix at all and one whose complaint contains a colon. The reduced sentence is
+carried on the outcome as `sentence`, beside the message as it was thrown: the
+verdict compares the sentence, the human report prints it, and `--json` keeps
+the raw message as the evidence for both.
 
 The upstream version is held by the lockfile, not by an exact range in the
 catalog. The subject block prints the version actually resolved, so a report is
@@ -145,7 +174,8 @@ is a parameter, which is the Rust suites.
 
 Most entries in that set carry an `expected` verdict, each with the `note` that
 says why: some where upstream aborts and this compiler does not, some where
-both reject, one where upstream folds an indexed read this compiler refuses,
+both reject, a few where both reject and word it differently, one where upstream
+folds an indexed read this compiler refuses,
 one where upstream reads a condition key as a property name and emits a key
 named after a pseudo-class (a defect this compiler is not going to
 reproduce), and the
@@ -230,8 +260,8 @@ that are not valid CSS — degenerate inputs to the whitespace-repair unit tests
 keys that are pseudo-selectors rather than properties. They are kept: they cost
 two compiler runs each, and filtering them by guesswork risks dropping a real
 divergence. They land in the `structurally divergent`, `acceptance divergent`,
-and `both reject` buckets, which is why those are counted apart from
-`divergent`.
+`both reject` and `both reject (diverged)` buckets, which is why those are
+counted apart from `divergent`.
 
 ## Checking a future upstream release
 

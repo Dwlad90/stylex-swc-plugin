@@ -17,6 +17,7 @@ import stylexBabelPluginModule from '@stylexjs/babel-plugin';
 
 import type { StyleXOptions } from '../../dist/index.js';
 import { arrayAt, isRecord, stringAt } from './guards.js';
+import { refusalSentence } from './refusal.js';
 import { SEPARATOR } from './separator.js';
 import { styleObjectsOf } from './style-object.js';
 import { moduleFor } from './subject.js';
@@ -98,13 +99,13 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
   const filename = path.join(packageDir, 'parity/__fixture__/value.js');
 
   const runRust = (code: string): CompilerOutcome =>
-    outcomeOf((): CompilerRun => {
+    outcomeOf(filename, (): CompilerRun => {
       const result = transform(filename, code, stylexOptions);
       return { rules: result.metadata.stylex, emitted: result.code };
     });
 
   const runBabel = (code: string): CompilerOutcome =>
-    outcomeOf((): CompilerRun => {
+    outcomeOf(filename, (): CompilerRun => {
       const result = babel.transformSync(code, {
         filename,
         babelrc: false,
@@ -137,13 +138,20 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
   };
 }
 
-function outcomeOf(run: () => CompilerRun): CompilerOutcome {
+/**
+ * `filename` is the one both compilers were handed, and it is here because a
+ * refusal is normalized where it is caught: `refusalSentence` derives the
+ * reference implementation's message prefix from that path, and a caller that
+ * normalized later would have to be trusted to pass the same one.
+ */
+function outcomeOf(filename: string, run: () => CompilerRun): CompilerOutcome {
   let rules: unknown[];
   let emitted: string;
   try {
     ({ rules, emitted } = run());
   } catch (error: unknown) {
-    return { status: 'error', message: messageOf(error) };
+    const message = messageOf(error);
+    return { status: 'error', message, sentence: refusalSentence(message, filename) };
   }
 
   const classNames: string[] = [];
@@ -198,7 +206,23 @@ function messageOf(error: unknown): string {
 }
 
 function verdictFor(rust: CompilerOutcome, babelOutcome: CompilerOutcome): Verdict {
-  if (rust.status === 'error' && babelOutcome.status === 'error') return 'both-reject';
+  // Two refusals are compared by what they complain about, not only by the
+  // fact of refusing: an author whose build stops reads the message, so two
+  // compilers stopping it for reasons they word differently have diverged in
+  // the half of the behaviour a refused input has. `lib/refusal.ts` carries
+  // the normalization the comparison rests on.
+  if (rust.status === 'error' && babelOutcome.status === 'error') {
+    // A sentence that reduced to nothing is not something two refusals can be
+    // agreed to share -- a messageless throw on both sides would otherwise read
+    // as agreement about a complaint neither made. There the raw messages are
+    // the only evidence left, so they are what is compared.
+    const comparable = rust.sentence !== '' && babelOutcome.sentence !== '';
+    const agreed = comparable
+      ? rust.sentence === babelOutcome.sentence
+      : rust.message === babelOutcome.message;
+
+    return agreed ? 'both-reject' : 'both-reject-divergent';
+  }
   if (rust.status === 'error' || babelOutcome.status === 'error') return 'acceptance-divergent';
   const sameCss =
     rust.classNames.join(SEPARATOR) === babelOutcome.classNames.join(SEPARATOR) &&

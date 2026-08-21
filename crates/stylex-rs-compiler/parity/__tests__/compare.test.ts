@@ -7,7 +7,7 @@ function accepted(styleObjects: string[]): CompilerOutcome {
   return { status: 'ok', classNames: [], rules: [], rtlRules: [], declarations: [], styleObjects };
 }
 
-const REJECTED: CompilerOutcome = { status: 'error', message: 'refused' };
+const REJECTED: CompilerOutcome = { status: 'error', message: 'refused', sentence: 'refused' };
 
 /**
  * The verdict and the report both need this answer — the verdict to decide

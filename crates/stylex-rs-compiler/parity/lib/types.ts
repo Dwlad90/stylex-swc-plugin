@@ -132,7 +132,22 @@ export type CompilerOutcome =
        */
       styleObjects: string[];
     }
-  | { status: 'error'; message: string };
+  | {
+      status: 'error';
+      /** The refusal as the compiler wrote it, decoration and all. */
+      message: string;
+      /**
+       * The complaint inside that message, with the decoration that says
+       * *where* removed — see `lib/refusal.ts`.
+       *
+       * Carried beside the raw message rather than derived where it is needed:
+       * the verdict compares it and the report prints it, and a report that
+       * normalized a second time is how the two would come to disagree about
+       * what the compilers said. The raw message stays because it is the
+       * evidence for the sentence.
+       */
+      sentence: string;
+    };
 
 export type Verdict =
   /** Both compilers accepted the value and agreed byte for byte. */
@@ -162,8 +177,20 @@ export type Verdict =
    * to keep it from inflating the divergence set this effort is scoped to.
    */
   | 'structurally-divergent'
-  /** Both rejected the value. Messages may differ; only the outcome matters. */
+  /** Both rejected the value, with the same complaint. */
   | 'both-reject'
+  /**
+   * Both rejected the value, for reasons they spell differently.
+   *
+   * Counted apart from `both-reject` because two compilers refusing one input
+   * with opposite complaints is a divergence an author feels — the message is
+   * the whole of what a refused build hands them — and a verdict that asked
+   * only *whether* both refused reported it as agreement. What is compared is
+   * the sentence each wrote once the decoration saying where it happened is
+   * off; `lib/refusal.ts` says what counts as decoration and why neither
+   * compiler's can be hard-coded.
+   */
+  | 'both-reject-divergent'
   /** One accepted and the other rejected. */
   | 'acceptance-divergent';
 
@@ -180,6 +207,7 @@ export const VERDICTS: Record<Verdict, true> = {
   divergent: true,
   'structurally-divergent': true,
   'both-reject': true,
+  'both-reject-divergent': true,
   'acceptance-divergent': true,
 };
 

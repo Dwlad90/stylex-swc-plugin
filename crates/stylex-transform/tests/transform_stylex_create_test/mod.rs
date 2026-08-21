@@ -9,6 +9,7 @@ mod global_builtin_calls;
 mod legacy_deprecated;
 mod logical_operators;
 mod media_query_canonicalization;
+mod nested_pseudo_ordering;
 mod non_ascii_hash_parity;
 mod operator_interaction;
 mod static_styles;

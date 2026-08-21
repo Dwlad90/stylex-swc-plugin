@@ -595,8 +595,8 @@
       "label": "a theme import whose export name carries a lone surrogate",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"\\ud83d\" as ls } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: ls.x },\n});\n",
       "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
-      "note": "An export name that is well-formed UTF-16 and not well-formed Unicode -- the one string an export name can hold that has no encoding a hash can read. Both refuse; upstream refuses it in the parser and this compiler where the name is decoded, so the sentences differ and the outcome does not.",
-      "expected": "both-reject"
+      "note": "An export name that is well-formed UTF-16 and not well-formed Unicode -- the one string an export name can hold that has no encoding a hash can read. Both refuse, and not for the same reason: upstream refuses it in the parser (`An export name cannot include a lone surrogate`) and this compiler where the name is decoded (`String value contains invalid UTF-8 encoding.`). A refusal neither compiler can act on differently, recorded as the wording divergence it is.",
+      "expected": "both-reject-divergent"
     },
     {
       "id": "modules-1266-a-string-named-specifier-with-an-astral-export-name",
@@ -667,7 +667,7 @@
       "label": "a createTheme second argument named after an import's aliased-away name",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"buttonTokens\" as bt } from 'buttonTokens.stylex.js';\n\nexport const variables = stylex.createTheme(bt, buttonTokens);\n",
       "origin": "code review of the imported-name fallback deletion, the second consumer of the import lookup",
-      "note": "The evaluator is not the only reader of the import lookup: `createTheme`'s second-argument check asks it whether an identifier is an import. Deleting the imported-name fallback changes which arm answers here -- the reference was refused as an import before and is refused as an unbound, non-static value now -- so the message changes while the verdict does not. Recorded because a message change is invisible to the harness, and the entry is what says the verdict was measured rather than assumed.",
+      "note": "The evaluator is not the only reader of the import lookup: `createTheme`'s second-argument check asks it whether an identifier is an import. Deleting the imported-name fallback changes which arm answers here -- the reference was refused as an import before and is refused as an unbound, non-static value now -- so the message this compiler gives changed while the verdict did not. It reads `both-reject` because the new message is upstream's own, which is the thing worth recording: the arm that answers moved and the author-visible sentence did not.",
       "expected": "both-reject"
     },
     {
@@ -675,7 +675,7 @@
       "label": "a dynamic parameter shadowing the stylex namespace import",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({ height: stylex }),\n});\n",
       "origin": "the identifier audit for issue #1266, the reference implementation's own scope-blindness",
-      "note": "`functions.identifiers` is keyed by name and consulted ahead of any binding, on both compilers and deliberately -- an arrow parameter is injected into that same map. So `stylex` in the body is the map registered for the namespace import, `{ when }`, and not the parameter, and namespace validation refuses `when` as a key that is neither a pseudo nor an at-rule nor `default`. Both refuse; this compiler used to refuse at the style-value consumer with a sentence about a static expression, because the map carried no expression form. The exact text is asserted in `validation_stylex_create_test::invalid_values`, which is where a message can be pinned -- `both-reject` compares acceptance, not wording.",
+      "note": "`functions.identifiers` is keyed by name and consulted ahead of any binding, on both compilers and deliberately -- an arrow parameter is injected into that same map. So `stylex` in the body is the map registered for the namespace import, `{ when }`, and not the parameter, and namespace validation refuses `when` as a key that is neither a pseudo nor an at-rule nor `default`. Both refuse; this compiler used to refuse at the style-value consumer with a sentence about a static expression, because the map carried no expression form. The exact text is asserted in `validation_stylex_create_test::invalid_values` too, where it is read against a spelled-out expectation rather than against the other compiler.",
       "expected": "both-reject"
     },
     {
@@ -731,7 +731,7 @@
       "label": "a shadowed namespace parameter inside an array style value",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({ height: [stylex, '1px'] }),\n});\n",
       "origin": "the identifier audit for issue #1266, the fold reached through an array",
-      "note": "Both refuse with `A style array value can only contain strings or numbers.` -- the array-specific sentence, because the fold happens inside an array. The parameter folds to the namespace import's function map, which has no array-element form, and it took two changes to reach this message: materializing the map at the style-value position, and folding an evaluated array there at all. Until the second, this compiler read `Style value must evaluate to a static expression.` for the array rather than anything about the map. `both-reject` compares acceptance and not wording, so the text is asserted in `transform_stylex_create_test::array_style_values::an_array_holding_a_shadowed_namespace_parameter_is_refused`.",
+      "note": "Both refuse with `A style array value can only contain strings or numbers.` -- the array-specific sentence, because the fold happens inside an array. The parameter folds to the namespace import's function map, which has no array-element form, and it took two changes to reach this message: materializing the map at the style-value position, and folding an evaluated array there at all. Until the second, this compiler read `Style value must evaluate to a static expression.` for the array rather than anything about the map. The text is asserted in `transform_stylex_create_test::array_style_values::an_array_holding_a_shadowed_namespace_parameter_is_refused` as well, against a spelled-out expectation rather than against the other compiler.",
       "expected": "both-reject"
     },
     {
@@ -740,14 +740,14 @@
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({ a: { height: stylex } });\n",
       "origin": "the identifier audit for issue #1266, the same fold at the static consumer",
       "note": "No shadowing: the namespace import itself, read where a value belongs. A static namespace is evaluated by `nodes/object_expression.rs`, which deopts rather than materializing, so this reads `A style value can only contain an array, string or number.` where upstream reads `Invalid pseudo or at-rule.` Owned by `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.",
-      "expected": "both-reject"
+      "expected": "both-reject-divergent"
     },
     {
       "id": "modules-1266-param-shadows-a-named-function-map-import",
       "label": "a dynamic parameter shadowing a named import that is a function-map entry",
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const fade = keyframes({ from: { opacity: 0 } });\n\nexport const styles = create({\n  dyn: (keyframes) => ({ height: keyframes }),\n});\n",
       "origin": "the identifier audit for issue #1266, the function-map entries that are not maps",
-      "note": "Upstream folds `{ fn: keyframes }` and refuses it as a namespace, and this compiler now folds the same object and refuses on the same key `fn`. It used to register `keyframes` as a config the identifier step had no value form for and deopted -- and a deopt inside a dynamic style is the inline-style path, so this emitted `height:var(--x-height)` for a module upstream refuses. The keyframes call is here because this row was written while a shadowing parameter as the specifier's only occurrence still lost the specifier to type stripping; that is fixed for a JavaScript input and `modules-1266-param-shadows-a-named-import-referenced-nowhere-else` now measures the bare shape. The call stays: it is the shape where the entry is also read as a callee, which is why the fold is built at the style-value consumer rather than where the identifier resolves. `both-reject` cannot report the wording, which is pinned in `validation_stylex_create_test::invalid_values`. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/16-a-shadowed-function-import-emits-css-upstream-refuses.md`.",
+      "note": "Upstream folds `{ fn: keyframes }` and refuses it as a namespace, and this compiler now folds the same object and refuses on the same key `fn`. It used to register `keyframes` as a config the identifier step had no value form for and deopted -- and a deopt inside a dynamic style is the inline-style path, so this emitted `height:var(--x-height)` for a module upstream refuses. The keyframes call is here because this row was written while a shadowing parameter as the specifier's only occurrence still lost the specifier to type stripping; that is fixed for a JavaScript input and `modules-1266-param-shadows-a-named-import-referenced-nowhere-else` now measures the bare shape. The call stays: it is the shape where the entry is also read as a callee, which is why the fold is built at the style-value consumer rather than where the identifier resolves. `both-reject` says the two refusals share a sentence, and `validation_stylex_create_test::invalid_values` pins that sentence against a spelled-out expectation as well. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/16-a-shadowed-function-import-emits-css-upstream-refuses.md`.",
       "expected": "both-reject"
     },
     {
@@ -788,7 +788,7 @@
       "source": "import { create, when, defaultMarker } from '@stylexjs/stylex';\n\nexport const other = create({\n  a: { color: { [when.ancestor(':hover')]: 'red', default: defaultMarker() } },\n});\n\nexport const styles = create({\n  dyn: (defaultMarker) => ({ height: defaultMarker }),\n});\n",
       "origin": "the identifier audit for issue #1266, the entry that is a function and not an object",
       "note": "The one entry of the family upstream registers as a function, so it refuses with `A style value can only contain an array, string or number.` rather than as a namespace. Here the entry is an index map with no value form and the build stops on a sentence about that shape instead. Reaching upstream's sentence needs the namespace validator to refuse a value it currently passes over, which is wider than this seam. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/21-a-shadowed-default-marker-param-reports-an-internal-shape.md`.",
-      "expected": "both-reject"
+      "expected": "both-reject-divergent"
     },
     {
       "id": "modules-1266-a-named-function-map-import-read-as-a-static-value",
@@ -796,7 +796,7 @@
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: keyframes } });\n",
       "origin": "the identifier audit for issue #1266, the same fold at the static consumer",
       "note": "No shadowing: the import itself, read where a value belongs. The static object evaluator deopts rather than materializing, so this reads `A style value can only contain an array, string or number.` where upstream reads `Invalid pseudo or at-rule.` -- the same divergence `modules-1266-the-namespace-import-read-as-a-static-value` holds, now reached through a function config too. It used to read `Function not found`, which named nothing a caller could act on. Owned by `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.",
-      "expected": "both-reject"
+      "expected": "both-reject-divergent"
     },
     {
       "id": "modules-1266-param-shadows-the-types-import",
@@ -827,7 +827,7 @@
       "label": "a theme import read as a style value with no member access",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  w: { zIndex: zIndex },\n});\n",
       "origin": "code review of the folded-map consumer, the shape the fall-through inventory missed",
-      "note": "The shape the row was filed for: it compiled to nothing here -- no rule, no error, no warning -- because the object evaluator answered a theme reference with `no value` and the caller read that as `no property`. Both compilers refuse it now, with the reference implementation's sentence. `both-reject` compares the outcome and not the text, so the wording is pinned in `validation_stylex_create_test::theme_reference_style_values`.",
+      "note": "The shape the row was filed for: it compiled to nothing here -- no rule, no error, no warning -- because the object evaluator answered a theme reference with `no value` and the caller read that as `no property`. Both compilers refuse it now, and `both-reject` says they refuse it with the same sentence. `validation_stylex_create_test::theme_reference_style_values` pins that sentence against a spelled-out expectation as well.",
       "expected": "both-reject"
     },
     {
@@ -899,7 +899,7 @@
       "label": "a member read off a namespace import of a file that is not a theme file",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport * as colors from './colors.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: colors.primary },\n});\n",
       "origin": "the identifier audit for issue #1266, the namespace arm reached without a theme file behind it",
-      "note": "Nothing about the refusal is specific to a theme file, and the specifier is answered before any path is resolved. This read as `Could not resolve the path to the imported file.` before -- the wrong reason for the right refusal, and the same wrong reason the default-import case read before its own step landed. Both refuse either way, so the entry guards the reason rather than the verdict; the sentence is pinned in `validation_stylex_create_test::invalid_values`.",
+      "note": "Nothing about the refusal is specific to a theme file, and the specifier is answered before any path is resolved. This read as `Could not resolve the path to the imported file.` before -- the wrong reason for the right refusal, and the same wrong reason the default-import case read before its own step landed. Both refuse either way, and with one sentence, which is the half of the reason the verdict can carry; `validation_stylex_create_test::invalid_values` pins that sentence against a spelled-out expectation as well.",
       "expected": "both-reject"
     },
     {
@@ -915,7 +915,7 @@
       "label": "a theme import read as a style value inside a dynamic style",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  dyn: (a) => ({ zIndex: zIndex, color: a }),\n});\n",
       "origin": "code review of the folded-map consumer, the same shape at the dynamic consumer",
-      "note": "The other consumer of a style value: it refused where the static one dropped, but with a sentence about a static expression rather than about the value. Both consumers read the reference implementation's sentence now, so this row holds the outcome and the wording is pinned in `validation_stylex_create_test::theme_reference_style_values`.",
+      "note": "The other consumer of a style value: it refused where the static one dropped, but with a sentence about a static expression rather than about the value. Both consumers read the reference implementation's sentence now, which is what the verdict here says; `validation_stylex_create_test::theme_reference_style_values` pins it against a spelled-out expectation as well.",
       "expected": "both-reject"
     },
     {
@@ -1067,8 +1067,8 @@
       "label": "a shadowed dynamic parameter spread into the style object",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { zIndex: zIndex._10 },\n  dyn: (zIndex) => ({ ...zIndex }),\n});\n",
       "origin": "issue #1266, the parameter in the one position that is not a value",
-      "note": "A spread asks the evaluator to enumerate the parameter's keys rather than to fold it to a value, which is the position with no inline-style fall-through to deopt into. Recorded because the abort this effort fixed came from a resolved value having no expression form, and a spread is where that same value is asked for a shape instead. The two refusals are not the same sentence -- `Referenced constant is not defined.` here against `Only static values are allowed inside of a create() call.` upstream -- so this row holds the outcome and not the text.",
-      "expected": "both-reject"
+      "note": "A spread asks the evaluator to enumerate the parameter's keys rather than to fold it to a value, which is the position with no inline-style fall-through to deopt into. Recorded because the abort this effort fixed came from a resolved value having no expression form, and a spread is where that same value is asked for a shape instead. The two refusals are not the same sentence -- `Referenced constant is not defined.` here against `Only static values are allowed inside of a create() call.` upstream -- which is what the recorded verdict says: a spread names a position, and upstream complains about the call it sits in where this compiler complains about the binding it cannot resolve.",
+      "expected": "both-reject-divergent"
     },
     {
       "id": "modules-1266-a-theme-object-in-a-fallback-array",

@@ -1,3 +1,132 @@
+//! Shared helpers for the cases below.
+//!
+//! `parse_expr` and the tower builder are used by more than one of the modules
+//! in this file, and the counting hasher is how two of them ask a question the
+//! public entry point does not answer: how much of the tree the walk touched,
+//! and whether it took its fallback arm.
+
+#[cfg(test)]
+use std::hash::Hasher;
+
+#[cfg(test)]
+use swc_core::{
+  common::{DUMMY_SP, FileName, SourceMap, SyntaxContext, sync::Lrc},
+  ecma::ast::{BinExpr, BinaryOp, Expr, Ident, Lit, Number},
+};
+#[cfg(test)]
+use swc_ecma_parser::{EsSyntax, Parser, StringInput, Syntax, lexer::Lexer};
+
+/// A [`Hasher`] that records how much the walk fed it and hashes nothing.
+///
+/// Bytes rather than nodes, because the walk writes through the `Hash`
+/// implementations of `Atom`, `SyntaxContext` and the operator enums as well as
+/// its own discriminants, and all of that is work the key pays for. It is
+/// proportional to the node count for a fixed shape, which is all the cases
+/// below compare.
+///
+/// `finish` is never called: the walk only writes, and the real
+/// `stable_hash_unspanned` finishes its own hasher. It answers zero rather than
+/// a digest so that a case reading it would notice.
+#[cfg(test)]
+#[derive(Default)]
+struct ByteCounter {
+  bytes: u64,
+}
+
+#[cfg(test)]
+impl Hasher for ByteCounter {
+  fn write(&mut self, bytes: &[u8]) {
+    self.bytes += bytes.len() as u64;
+  }
+
+  fn finish(&self) -> u64 {
+    0
+  }
+}
+
+/// The bytes one whole-subtree hash of `expr` spends -- what a single memo
+/// lookup costs the fold at one level.
+///
+/// Panics if the walk declines the shape, because a declined shape is measuring
+/// the deep clone instead of the walk. Use [`hashed_in_place`] to ask which arm
+/// runs.
+#[cfg(test)]
+fn key_cost(expr: &Expr) -> u64 {
+  let mut counter = ByteCounter::default();
+
+  assert!(
+    super::hash_expr_unspanned(expr, &mut counter),
+    "measuring the cost of a shape the in-place walk declines"
+  );
+
+  counter.bytes
+}
+
+/// Whether the in-place walk covered `expr`, or handed it to the deep-clone
+/// fallback.
+///
+/// The arm is not observable from the hash -- both arms are span-insensitive and
+/// neither reports which ran -- so the cases that care ask the walk directly.
+#[cfg(test)]
+fn hashed_in_place(expr: &Expr) -> bool {
+  let mut counter = ByteCounter::default();
+
+  super::hash_expr_unspanned(expr, &mut counter)
+}
+
+#[cfg(test)]
+fn number(value: f64) -> Expr {
+  Expr::Lit(Lit::Num(Number {
+    span: DUMMY_SP,
+    value,
+    raw: None,
+  }))
+}
+
+/// `MY_CONST` under `depth` levels of `+ 1` -- the shape the evaluation-depth
+/// cases are measured against, and the one the fold descends a straight left
+/// spine of.
+#[cfg(test)]
+fn arithmetic_tower(depth: usize) -> Expr {
+  let mut expr = Expr::Ident(Ident::new(
+    "MY_CONST".into(),
+    DUMMY_SP,
+    SyntaxContext::empty(),
+  ));
+
+  for _ in 0..depth {
+    expr = Expr::Bin(BinExpr {
+      span: DUMMY_SP,
+      op: BinaryOp::Add,
+      left: Box::new(expr),
+      right: Box::new(number(1.0)),
+    });
+  }
+
+  expr
+}
+
+#[cfg(test)]
+fn parse_expr(source: &str) -> Expr {
+  let cm: Lrc<SourceMap> = Default::default();
+  let fm = cm.new_source_file(FileName::Anon.into(), source.to_string());
+  let lexer = Lexer::new(
+    Syntax::Es(EsSyntax {
+      jsx: true,
+      ..Default::default()
+    }),
+    Default::default(),
+    StringInput::from(&*fm),
+    None,
+  );
+  let mut parser = Parser::new_from(lexer);
+
+  match parser.parse_expr() {
+    Ok(expr) => *expr,
+    Err(error) => panic!("failed to parse expression `{source}`: {error:?}"),
+  }
+}
+
 #[cfg(test)]
 mod create_hash_tests {
   use crate::hash::{create_hash, create_key_hash};
@@ -306,7 +435,7 @@ mod unspanned_fast_path_tests {
     create_hash, stable_hash, stable_hash_unspanned, stable_hash_unspanned_call, to_base36,
   };
   use swc_core::{
-    common::{DUMMY_SP, FileName, SourceMap, SyntaxContext, input::StringInput, sync::Lrc},
+    common::{DUMMY_SP, SyntaxContext},
     ecma::{
       ast::{
         ArrayLit, ArrowExpr, AssignProp, AwaitExpr, BigInt, BinExpr, BinaryOp, BlockStmtOrExpr,
@@ -320,7 +449,8 @@ mod unspanned_fast_path_tests {
       utils::drop_span,
     },
   };
-  use swc_ecma_parser::{EsSyntax, Parser, Syntax, lexer::Lexer};
+
+  use super::parse_expr;
 
   #[test]
   fn base36_handles_zero_directly() {
@@ -671,26 +801,6 @@ mod unspanned_fast_path_tests {
     );
   }
 
-  fn parse_expr(source: &str) -> Expr {
-    let cm: Lrc<SourceMap> = Default::default();
-    let fm = cm.new_source_file(FileName::Anon.into(), source.to_string());
-    let lexer = Lexer::new(
-      Syntax::Es(EsSyntax {
-        jsx: true,
-        ..Default::default()
-      }),
-      Default::default(),
-      StringInput::from(&*fm),
-      None,
-    );
-    let mut parser = Parser::new_from(lexer);
-
-    match parser.parse_expr() {
-      Ok(expr) => *expr,
-      Err(error) => panic!("failed to parse expression `{source}`: {error:?}"),
-    }
-  }
-
   fn ident(sym: &str) -> Expr {
     Expr::Ident(ident_pat(sym))
   }
@@ -765,5 +875,516 @@ mod unspanned_fast_path_tests {
 
   fn prop(prop: Prop) -> PropOrSpread {
     PropOrSpread::Prop(Box::new(prop))
+  }
+}
+
+/// What one memo key costs, and why the evaluator's cost is quadratic in the
+/// depth of the expression it folds.
+///
+/// [`stable_hash_unspanned`](super::stable_hash_unspanned) is the key of the
+/// evaluator's memo, and the evaluator asks for one at *every* level of a nested
+/// expression. The key is a hash of the whole remaining subtree, so a fold that
+/// descends `n` levels hashes `n + (n-1) + (n-2)` … nodes: the memo that exists
+/// to avoid repeated work pays for the subtree to decide whether it can avoid
+/// it.
+///
+/// These cases pin that curve, deterministically rather than by timing. The
+/// walk's cost is counted in the bytes it feeds its hasher, which is
+/// proportional to the nodes it visits and does not vary with the machine, the
+/// build profile, or the load. A change to the key that keeps the curve reports
+/// as the same numbers; one that flattens it -- an incremental key composed from
+/// its children's, the open question these cases exist to measure -- reports as
+/// a changed law, which is exactly what a future reader needs to see. Nothing
+/// here asserts a *hash value*: only how much of the tree the walk touched.
+///
+/// Why the key is not being flattened is
+/// `stylex-transform/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md`.
+#[cfg(test)]
+mod key_cost_scaling_tests {
+  use super::{arithmetic_tower, key_cost};
+  use swc_core::{
+    common::DUMMY_SP,
+    ecma::ast::{ArrayLit, Expr, ExprOrSpread},
+  };
+
+  /// The bytes one key spends on `MY_CONST` alone -- the tower's leaf, and the
+  /// only part of a key that does not grow with depth.
+  const LEAF: u64 = 21;
+
+  /// The bytes each `+ 1` above it adds to that key: the `BinExpr`
+  /// discriminant, its operator, and the `Number` on the right.
+  ///
+  /// Both constants are the measured layout rather than a derived one. They move
+  /// if SWC changes what a `BinExpr` or a `Number` hashes as, and a reader
+  /// comparing against a new pair learns that the layout changed rather than
+  /// that the curve did -- the curve is the law two cases below, which is stated
+  /// in terms of them.
+  const PER_LEVEL: u64 = 48;
+
+  /// Every key the fold buys while folding a tower of `depth`, summed.
+  ///
+  /// The fold hashes the node it is about to evaluate and then descends into
+  /// that node's operands, so for this shape the levels that pay are the left
+  /// spine: the whole tower, then the tower one shorter, and so on. Each `+ 1`
+  /// on the right is a leaf, hashed as part of its parent's subtree and never
+  /// asked for a key of its own.
+  fn spine_key_cost(depth: usize) -> u64 {
+    let mut total = 0;
+    let mut level = arithmetic_tower(depth);
+
+    loop {
+      total += key_cost(&level);
+
+      let Expr::Bin(bin) = level else {
+        break;
+      };
+
+      level = *bin.left;
+    }
+
+    total
+  }
+
+  #[test]
+  fn one_key_costs_the_whole_remaining_subtree() {
+    // Linear in depth, and exactly linear: a level of `(x + 1)` adds a fixed
+    // number of bytes to every key taken above it.
+    for depth in [0, 1, 2, 8, 64, 256] {
+      assert_eq!(
+        key_cost(&arithmetic_tower(depth)),
+        LEAF + PER_LEVEL * depth as u64,
+        "one memo key over a {depth}-level tower"
+      );
+    }
+  }
+
+  #[test]
+  fn the_fold_pays_for_that_key_once_per_level() {
+    // The sum of a linear cost over a linear number of levels, which is the
+    // quadratic the ticket measured in milliseconds (2.6x to 3.8x per doubling,
+    // converging on 4x). Counted in bytes it has a closed form, so it is
+    // asserted as an equality rather than as a ratio: summing `LEAF +
+    // PER_LEVEL * k` for k in 0..=depth is `(depth + 1) * (LEAF + PER_LEVEL /
+    // 2 * depth)`.
+    //
+    // An incremental key would break this equality, which is the point: the
+    // replacement should be a new law, not a deleted case.
+    for depth in [0, 1, 16, 32, 64, 128, 256] {
+      let expected = (depth as u64 + 1) * (LEAF + PER_LEVEL / 2 * depth as u64);
+
+      assert_eq!(
+        spine_key_cost(depth),
+        expected,
+        "the keys bought while folding a {depth}-level tower"
+      );
+    }
+
+    // Read as a curve, that law is a doubling of depth for a quadrupling of
+    // cost, approached from below.
+    for depth in [16usize, 32, 64, 128] {
+      let ratio = spine_key_cost(depth * 2) as f64 / spine_key_cost(depth) as f64;
+
+      assert!(
+        (3.5..4.0).contains(&ratio),
+        "{depth} -> {} levels multiplied the key cost by {ratio}, not by ~4",
+        depth * 2
+      );
+    }
+  }
+
+  /// Two elements in an array, with the towers' own cost taken out: the
+  /// `ArrayLit` discriminant, the slot count, and an `Option` tag per slot.
+  /// Measured, and asserted below to be independent of what the slots hold.
+  const TWO_ELEMENT_ARRAY: u64 = 20;
+
+  #[test]
+  fn two_copies_of_one_subtree_cost_twice() {
+    // There is no memo *on the key itself*, which is the whole of the open
+    // question: the walk has no way to recognise a subtree it has already
+    // hashed, so an expression holding two structurally-identical towers pays
+    // the walk at each of them. An incremental key with a cache would make the
+    // second copy nearly free, and this is the case that would report it.
+    fn pair_of(depth: usize) -> Expr {
+      Expr::Array(ArrayLit {
+        span: DUMMY_SP,
+        elems: (0..2)
+          .map(|_| {
+            Some(ExprOrSpread {
+              spread: None,
+              expr: Box::new(arithmetic_tower(depth)),
+            })
+          })
+          .collect(),
+      })
+    }
+
+    for depth in [0, 4, 32, 128] {
+      assert_eq!(
+        key_cost(&pair_of(depth)),
+        key_cost(&arithmetic_tower(depth)) * 2 + TWO_ELEMENT_ARRAY,
+        "two copies of a {depth}-level tower"
+      );
+    }
+  }
+}
+
+/// The structural key at its edges: the boundary that selects its fallback arm,
+/// the shapes that have no in-place hashing at all, and the inputs a parser can
+/// hand it that no author would write.
+///
+/// Every case here asks one of two questions about
+/// [`stable_hash_unspanned`](super::stable_hash_unspanned): does it stay
+/// span-insensitive, and does it answer at all rather than panicking. Nothing
+/// asserts a hash *value* -- no consumer of this key persists it, and none of
+/// them derives a class name from it, so a case pinning a number would pin
+/// something no output depends on.
+#[cfg(test)]
+mod key_edge_case_tests {
+  use swc_core::{
+    common::{BytePos, DUMMY_SP, GLOBALS, Globals, Mark, Span, SyntaxContext},
+    ecma::{
+      ast::{
+        ArrayLit, BinExpr, BinaryOp, Expr, ExprOrSpread, Ident, Invalid, KeyValueProp, ObjectLit,
+        Prop, PropName, PropOrSpread,
+      },
+      utils::drop_span,
+    },
+  };
+
+  use super::super::{MAX_UNSPANNED_HASH_COLLECTION_LEN, stable_hash, stable_hash_unspanned};
+  use super::{arithmetic_tower, hashed_in_place, key_cost, number, parse_expr};
+
+  fn array_of(len: usize) -> Expr {
+    Expr::Array(ArrayLit {
+      span: DUMMY_SP,
+      elems: (0..len)
+        .map(|index| {
+          Some(ExprOrSpread {
+            spread: None,
+            expr: Box::new(number(index as f64)),
+          })
+        })
+        .collect(),
+    })
+  }
+
+  fn object_of(len: usize) -> Expr {
+    Expr::Object(ObjectLit {
+      span: DUMMY_SP,
+      props: (0..len)
+        .map(|index| {
+          PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+            key: PropName::Str(format!("key{index}").into()),
+            value: Box::new(number(index as f64)),
+          })))
+        })
+        .collect(),
+    })
+  }
+
+  /// `object_of(len)` with one more property, holding `value`.
+  fn object_of_holding(len: usize, value: Expr) -> Expr {
+    let Expr::Object(object) = object_of(len) else {
+      panic!("object_of builds an object");
+    };
+
+    let mut props = object.props;
+    props.push(PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+      key: PropName::Str("nested".into()),
+      value: Box::new(value),
+    }))));
+
+    Expr::Object(ObjectLit {
+      span: DUMMY_SP,
+      props,
+    })
+  }
+
+  #[test]
+  fn the_collection_boundary_selects_the_arm_and_nothing_else() {
+    // One element either side of the limit decides which arm runs, and both
+    // arms have to answer the same question the same way. The limit is read
+    // from the constant rather than spelled, so raising it moves these cases
+    // with it.
+    let limit = MAX_UNSPANNED_HASH_COLLECTION_LEN;
+
+    assert!(hashed_in_place(&array_of(limit)));
+    assert!(hashed_in_place(&object_of(limit)));
+    assert!(!hashed_in_place(&array_of(limit + 1)));
+    assert!(!hashed_in_place(&object_of(limit + 1)));
+
+    // An empty collection is the other end of the same boundary, and is the
+    // shape a `stylex.create({})` argument actually has.
+    assert!(hashed_in_place(&array_of(0)));
+    assert!(hashed_in_place(&object_of(0)));
+
+    for expr in [array_of(limit + 1), object_of(limit + 1)] {
+      assert_eq!(
+        stable_hash_unspanned(&expr),
+        stable_hash(&drop_span(expr.clone())),
+        "the fallback arm is what the public contract promises for an \
+         over-limit collection"
+      );
+    }
+  }
+
+  #[test]
+  fn an_over_limit_collection_nested_pays_the_fallback_at_every_level() {
+    // The arm is selected per level, not per expression: a chain of over-limit
+    // objects hands *each* level to the deep clone, which is the one shape
+    // where the clone -- rather than the walk -- is the dominant cost of a
+    // fold. Nothing in this workspace's fixtures reaches it; how rarely a real
+    // project does is recorded in `docs/adr/0005` in `stylex-transform`.
+    let limit = MAX_UNSPANNED_HASH_COLLECTION_LEN;
+    let mut chain = object_of(limit + 1);
+
+    for level in 0..4 {
+      // Every level of the chain is over the limit, so hashing the outermost
+      // declines *and* would decline at each level it descended to -- checked
+      // by walking back down the chain below.
+      chain = object_of_holding(limit + 1, chain);
+
+      let mut inner = &chain;
+      let mut descended = 0;
+
+      while let Expr::Object(object) = inner {
+        assert!(
+          !hashed_in_place(inner),
+          "level {descended} of a {level}-deep chain was hashed in place"
+        );
+
+        let Some(PropOrSpread::Prop(last)) = object.props.last() else {
+          break;
+        };
+        let Prop::KeyValue(entry) = last.as_ref() else {
+          break;
+        };
+
+        inner = entry.value.as_ref();
+        descended += 1;
+      }
+
+      assert_eq!(
+        descended,
+        level + 2,
+        "the chain should be one level deeper than the last iteration"
+      );
+    }
+  }
+
+  #[test]
+  fn a_shape_with_no_in_place_hashing_still_answers() {
+    // Every arm the walk declines, reached through the public entry point. The
+    // claim is only that it answers -- span-insensitively, without panicking --
+    // because a caller cannot see which arm ran and must not have to care.
+    let declined = vec![
+      parse_expr("function named() {}"),
+      parse_expr("class Foo { #field = 1; }"),
+      parse_expr("({ get value() { return 1; } })"),
+      parse_expr("({ set value(next) {} })"),
+      parse_expr("({ method() {} })"),
+      parse_expr("(value) => { return value; }"),
+      parse_expr("([first]) => first"),
+      parse_expr("({ key }) => key"),
+      parse_expr("(...rest) => rest"),
+      parse_expr("(value = 1) => value"),
+      parse_expr("(target = 1)"),
+      parse_expr("<div a=\"b\">text</div>"),
+      parse_expr("<></>"),
+      // A parser is entitled to hand the evaluator a node standing for source
+      // it could not make sense of; hashing one must not be the thing that
+      // panics.
+      Expr::Invalid(Invalid { span: DUMMY_SP }),
+    ];
+
+    for expr in declined {
+      assert!(
+        !hashed_in_place(&expr),
+        "expected the fallback arm for {expr:?}"
+      );
+      assert_eq!(
+        stable_hash_unspanned(&expr),
+        stable_hash(&drop_span(expr.clone()))
+      );
+    }
+  }
+
+  #[test]
+  fn a_non_ascii_source_hashes_the_same_wherever_it_is_written() {
+    // The same spelling at a different position is one key, whatever alphabet
+    // it is written in. An astral-plane scalar and a combining sequence are here
+    // because the walk hashes an `Atom`, whose `Hash` is over bytes -- so the
+    // case is about the walk not truncating rather than about the encoding.
+    for source in [
+      "'🎉'",
+      "'e\u{0301}'",
+      "'\u{00e9}'",
+      "({ 'ключ': 'значение' })",
+      "ünïcödé",
+      "({ 日本語: 1 })",
+      "`${'🎉'} tail`",
+    ] {
+      let here = parse_expr(source);
+      let there = parse_expr(&format!("      {source}"));
+
+      assert_eq!(
+        stable_hash_unspanned(&here),
+        stable_hash_unspanned(&there),
+        "{source} hashed differently for being written six columns over"
+      );
+    }
+  }
+
+  #[test]
+  fn a_precomposed_and_a_decomposed_spelling_are_different_keys() {
+    // `é` and `e` + a combining acute are the same grapheme and different
+    // bytes. The key is over bytes, so they are different keys -- which is the
+    // correct answer for a *cache*, where two spellings that a browser treats
+    // differently must not share an entry, and is worth pinning because the
+    // opposite (normalizing) would be a plausible-looking change.
+    assert_ne!(
+      stable_hash_unspanned(&parse_expr("'\u{00e9}'")),
+      stable_hash_unspanned(&parse_expr("'e\u{0301}'"))
+    );
+  }
+
+  #[test]
+  fn a_span_is_never_part_of_the_key() {
+    // The property the whole key exists for, asserted at the extremes of the
+    // span rather than at a plausible position: the same node with a
+    // synthesized span, and with a span at the end of the addressable range.
+    // Two structurally-identical expressions have to land on one memo entry
+    // however far apart they were written.
+    fn one_level_at(span: Span) -> Expr {
+      Expr::Bin(BinExpr {
+        span,
+        op: BinaryOp::Add,
+        left: Box::new(Expr::Ident(Ident::new(
+          "MY_CONST".into(),
+          span,
+          SyntaxContext::empty(),
+        ))),
+        right: Box::new(number(1.0)),
+      })
+    }
+
+    assert_eq!(
+      stable_hash_unspanned(&one_level_at(DUMMY_SP)),
+      stable_hash_unspanned(&one_level_at(Span::new(
+        BytePos(u32::MAX - 1),
+        BytePos(u32::MAX)
+      )))
+    );
+
+    // The parsed form of the same source is span-insensitive too, at both ends
+    // of a line.
+    assert_eq!(
+      stable_hash_unspanned(&parse_expr("MY_CONST + 1")),
+      stable_hash_unspanned(&parse_expr("                    MY_CONST + 1"))
+    );
+  }
+
+  #[test]
+  fn a_literal_the_parser_wrote_and_one_the_compiler_built_are_different_keys() {
+    // Span-insensitive is not source-insensitive. A `Number` and a `Str` each
+    // carry the *raw* text they were written as, `None` for a literal nothing
+    // wrote, and the key covers it -- so `1` read out of a file and `1` the
+    // compiler synthesized do not share a memo entry even though they fold to
+    // the same value.
+    //
+    // Pinned rather than fixed. It costs a duplicated entry for a value that
+    // was already folded, never a wrong one, and the raw text is exactly what
+    // distinguishes `1` from `1.0` -- a key that dropped it would merge inputs
+    // whose *authored* form is what a diagnostic quotes back.
+    assert_ne!(
+      stable_hash_unspanned(&parse_expr("1")),
+      stable_hash_unspanned(&number(1.0))
+    );
+
+    // Same value, two spellings, two keys -- the same rule read from the other
+    // direction, for a number and for a string.
+    assert_ne!(
+      stable_hash_unspanned(&parse_expr("1")),
+      stable_hash_unspanned(&parse_expr("1.0"))
+    );
+    assert_ne!(
+      stable_hash_unspanned(&parse_expr("0x10")),
+      stable_hash_unspanned(&parse_expr("16"))
+    );
+    assert_ne!(
+      stable_hash_unspanned(&parse_expr(r"'\u0041\u0042'")),
+      stable_hash_unspanned(&parse_expr("'AB'"))
+    );
+  }
+
+  #[test]
+  fn a_syntax_context_is_part_of_the_key() {
+    // The counterpart to the case above: what the key *must* keep. Two
+    // references spelled the same in different scopes are different bindings,
+    // and a memo that merged them would answer for a shadowed parameter with an
+    // imported binding's value -- the failure the shadowing work exists to
+    // prevent.
+    let globals = Globals::default();
+
+    let outer = Expr::Ident(Ident::new("value".into(), DUMMY_SP, SyntaxContext::empty()));
+    let inner = GLOBALS.set(&globals, || {
+      Expr::Ident(Ident::new(
+        "value".into(),
+        DUMMY_SP,
+        SyntaxContext::empty().apply_mark(Mark::new()),
+      ))
+    });
+
+    assert_ne!(stable_hash_unspanned(&outer), stable_hash_unspanned(&inner));
+  }
+
+  #[test]
+  fn a_deep_expression_hashes_the_whole_depth_without_running_out_of_stack() {
+    // The key recurses, so its own limit is the thread's stack rather than the
+    // evaluator's ceiling -- the ceiling bounds how deep a *fold* goes, and a
+    // caller is free to hand this function anything the parser produced. 1024
+    // levels is past every ceiling in this workspace and past the depth at
+    // which the stages around the fold give out, so a key that could not answer
+    // here would be the shallower limit of the two.
+    //
+    // Answering is not enough: the key has to have *reached* the bottom. One
+    // level shorter is a different key, and the byte count is the whole
+    // subtree's, which together say the walk did not stop early.
+    let deep = arithmetic_tower(1024);
+    let shallower = arithmetic_tower(1023);
+
+    assert_ne!(
+      stable_hash_unspanned(&deep),
+      stable_hash_unspanned(&shallower)
+    );
+    assert_eq!(
+      key_cost(&deep) - key_cost(&shallower),
+      key_cost(&arithmetic_tower(1)) - key_cost(&arithmetic_tower(0))
+    );
+  }
+
+  #[test]
+  fn width_costs_linearly_and_takes_the_arm_once() {
+    // Width is not depth. Under the limit the walk is linear in the number of
+    // elements, and over it the collection takes the fallback arm *once* for
+    // the whole collection rather than once per element -- so 100_000 elements
+    // cost one clone and one walk, not 100_000 of either. A fallback moved
+    // inside the element loop would report here as elements that decline the
+    // walk on their own.
+    let half = key_cost(&array_of(MAX_UNSPANNED_HASH_COLLECTION_LEN / 2));
+    let full = key_cost(&array_of(MAX_UNSPANNED_HASH_COLLECTION_LEN));
+
+    assert!(
+      (1.9..2.1).contains(&((full - 2) as f64 / (half - 2) as f64)),
+      "doubling the width cost {full} rather than about twice {half}"
+    );
+
+    let wide = array_of(100_000);
+    assert!(!hashed_in_place(&wide));
+
+    // Each element on its own is a shape the walk covers, which is what makes
+    // the decline above a property of the collection's length alone.
+    assert!(hashed_in_place(&number(0.0)));
+    assert_eq!(stable_hash_unspanned(&wide), stable_hash_unspanned(&wide));
   }
 }

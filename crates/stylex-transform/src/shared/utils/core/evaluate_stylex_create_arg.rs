@@ -15,7 +15,7 @@ use crate::shared::{
   enums::data_structures::evaluate_result_value::EvaluateResultValue,
   structures::{
     evaluate_result::EvaluateResult,
-    functions::{FunctionMap, FunctionType},
+    functions::FunctionMap,
     state_manager::StateManager,
     types::{DynamicFns, TInlineStyles},
   },
@@ -25,7 +25,9 @@ use crate::shared::{
       expand_shorthand_prop,
     },
     css::common::get_number_suffix,
-    js::evaluate::{evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr},
+    js::evaluate::{
+      evaluate, evaluate_obj_key, evaluate_result_vec_to_array_expr, function_fold_to_object,
+    },
     log::build_code_frame_error::build_code_frame_error_and_panic_at,
     validators::validate_dynamic_style_params,
   },
@@ -36,7 +38,6 @@ use stylex_ast::ast::factories::{
   create_expr_or_spread, create_key_value_prop, create_object_expression,
 };
 use stylex_constants::constants::{
-  api_names::FUNCTION_CONFIG_FN_KEY,
   length_units::LENGTH_UNITS,
   messages::{
     EVAL_RESULT_EXPECTED, ILLEGAL_NAMESPACE_VALUE, ILLEGAL_PROP_ARRAY_VALUE, ILLEGAL_PROP_VALUE,
@@ -54,47 +55,24 @@ fn prepend_key_to_reason(key: &str, reason: Option<String>) -> Option<String> {
   reason.map(|r| format!("{} > {}", key, r))
 }
 
-/// The object a folded function map stands for: its keys, with `null`
-/// placeholders validation never reads. Ordered, because the object's first key
-/// is the one a refusal names.
-fn object_from_keys<'a>(keys: impl Iterator<Item = &'a str>) -> Expr {
-  create_object_expression(
-    keys
-      .map(|key| create_key_value_prop(key, create_null_expr()))
-      .collect(),
-  )
-}
-
 /// The expression a style value carries, materializing a folded function map as
 /// the object it stands for.
 ///
 /// The fold has no expression form, so this position used to abort with a
-/// message about a static expression instead. An object built from its keys asks
-/// namespace validation the question the reference implementation asks of the
-/// plain object it folds to. The `null` values are never read -- validation
-/// refuses on the key, and a key that did read as a condition would declare
-/// nothing.
+/// message about a static expression instead. `function_fold_to_object`
+/// owns which folds have an object form and why, and the static object
+/// evaluator asks it the same question -- a value read where a style value
+/// belongs is refused by the same sentence whether or not a dynamic style holds
+/// it.
 ///
-/// Built here and not where the identifier resolves, because `stylex.when` as a
-/// callee reads the map through its own form and has to keep finding it there.
-/// `FunctionConfigType::Map`, the config-table spelling, needs no arm of its own:
-/// `nodes/identifier.rs` is the only reader that answers it as an
-/// `EvaluateResultValue`, and it answers the result spelling.
-///
-/// A single function config is the same question one entry down. The reference
-/// implementation registers `keyframes`, `firstThatWorks` and `positionTry` as
-/// the object `{ fn }`, so a reference to one folds to an object whose only key
-/// is `fn` -- refused as a namespace, which is what those names get here too. A
-/// marker map behind `FunctionType::DefaultMarker` is a bare `when` import: the
-/// reference implementation registers the marker object itself, so the keys are
-/// the marker names rather than `fn`.
-///
-/// A theme reference has no expression form either, and is not a fold this can
-/// materialize: it stands for a `defineVars` group, whose keys live in another
-/// file. The reference implementation folds it to an object its namespace
-/// validation refuses because it is not a plain object, so it is refused here
-/// with that same message rather than materialized -- the static position
-/// refuses it the same way, in `nodes/object_expression.rs`.
+/// A theme reference has no expression form either, and is not a fold that
+/// function can materialize: it stands for a `defineVars` group, whose keys live
+/// in another file. The reference implementation folds it to an object its
+/// namespace validation refuses because it is not a plain object, so it is
+/// refused here with that same message rather than materialized -- the static
+/// position refuses it the same way, in `nodes/object_expression.rs`. Named
+/// ahead of the fold arm because that arm answers `None` for it and the message
+/// differs.
 ///
 /// An array is folded the way the static position folds one, through the same
 /// function, and refused with the array-specific message when an element has no
@@ -129,16 +107,12 @@ fn materialize_style_value(
         build_code_frame_error_and_panic_at(value_path, ILLEGAL_PROP_ARRAY_VALUE, traversal_state)
       },
     },
-    Some(EvaluateResultValue::FunctionConfigMap(func_map)) => {
-      object_from_keys(func_map.keys().map(|key| key.as_str()))
-    },
-    Some(EvaluateResultValue::FunctionConfig(func)) => match &func.fn_ptr {
-      FunctionType::DefaultMarker(marker_map) => {
-        object_from_keys(marker_map.keys().map(|key| key.as_str()))
+    value => match value.as_ref().and_then(function_fold_to_object) {
+      Some(object) => Expr::from(object),
+      None => {
+        build_code_frame_error_and_panic_at(value_path, VALUE_NOT_EXPRESSION, traversal_state)
       },
-      _ => object_from_keys(std::iter::once(FUNCTION_CONFIG_FN_KEY)),
     },
-    _ => build_code_frame_error_and_panic_at(value_path, VALUE_NOT_EXPRESSION, traversal_state),
   }
 }
 

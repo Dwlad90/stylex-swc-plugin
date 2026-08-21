@@ -14,7 +14,7 @@ pub(crate) use nodes::binary_expression::binary_expr_to_num_or_str;
 
 // Import error handling macros from shared utilities
 use crate::{deopt_unsupported, expr_to_str_or_deopt, stylex_panic_with_context};
-use stylex_constants::constants::api_names::STYLEX_ENV;
+use stylex_constants::constants::api_names::{FUNCTION_CONFIG_FN_KEY, STYLEX_ENV};
 
 use indexmap::IndexMap;
 use log::{debug, warn};
@@ -47,7 +47,7 @@ use crate::shared::{
     ast::convertors::{
       convert_atom_to_str_ref, convert_atom_to_string, convert_expr_to_bool, convert_expr_to_str,
       convert_key_value_to_str, convert_lit_to_string, create_big_int_expr, create_bool_expr,
-      create_number_expr, create_string_expr, expand_shorthand_prop, expr_to_num,
+      create_null_expr, create_number_expr, create_string_expr, expand_shorthand_prop, expr_to_num,
       extract_tpl_cooked_value,
     },
     common::{
@@ -59,8 +59,9 @@ use crate::shared::{
 };
 use stylex_ast::ast::convertors::normalize_expr;
 use stylex_ast::ast::factories::{
-  create_array_expression, create_expr_or_spread, create_ident_key_value_prop,
-  create_object_expression, create_object_lit, create_string_lit,
+  create_array_expression, create_arrow_expression, create_expr_or_spread,
+  create_ident_key_value_prop, create_key_value_prop, create_object_expression, create_object_lit,
+  create_string_lit,
 };
 use stylex_constants::constants::{
   evaluation_errors::{
@@ -149,6 +150,84 @@ pub(crate) fn evaluate_result_vec_to_array_expr(items: &[EvaluateResultValue]) -
   }
 
   Some(create_array_expression(elems))
+}
+
+/// An object of the given keys, each carrying a function.
+///
+/// Ordered, because the object's first key is the one a refusal names. The
+/// placeholder is a function because that is what the entry holds: the reference
+/// implementation maps every one of these names to a function, or to an object
+/// of them. A position that refuses on the key never reads the value -- but a
+/// spread copies the entry onto the style object, where a function is refused
+/// for not being a style value and `null` would be an absent value that
+/// declares nothing.
+fn object_of_functions<'a>(keys: impl Iterator<Item = &'a str>) -> ObjectLit {
+  create_object_lit(
+    keys
+      .map(|key| create_key_value_prop(key, create_arrow_expression(create_null_expr())))
+      .collect(),
+  )
+}
+
+/// The object one entry of a folded function map stands for.
+///
+/// Two shapes, and the reference implementation's registration is what decides
+/// which: a marker map is the `when` surface, registered as the object of the
+/// marker functions themselves, so its keys are the marker names. Every other
+/// entry is registered as the wrapper `{ fn }`, so its one key is `fn`.
+fn fold_entry_to_object(config: &FunctionConfig) -> ObjectLit {
+  match &config.fn_ptr {
+    FunctionType::DefaultMarker(marker_map) => {
+      object_of_functions(marker_map.keys().map(String::as_str))
+    },
+    _ => object_of_functions(std::iter::once(FUNCTION_CONFIG_FN_KEY)),
+  }
+}
+
+/// The object form of a folded function map, for the positions that need one.
+///
+/// A fold has no expression form, so a position that wants one used to refuse
+/// with a message about the value's shape. An object built from the fold's keys
+/// asks whatever validates that position the question the reference
+/// implementation asks of the plain object it folds to: its `identifiers` is a
+/// JavaScript object, so every entry carries keys and there is nothing to
+/// materialize.
+///
+/// Built here rather than at any one consumer, because a style value, a
+/// namespace, a spread
+/// operand and a `defineVars` value all ask it and the answer has to be the
+/// same object every time -- the sentence a build stops on is derived from the
+/// first key and from what that key carries. Not built where the identifier
+/// resolves, because `stylex.when` as a callee reads the map through its own
+/// form and has to keep finding it there.
+///
+/// `FunctionConfigType::Map`, the config-table spelling, needs no arm of its
+/// own: `nodes/identifier.rs` is the only reader that answers it as an
+/// `EvaluateResultValue`, and it answers the result spelling. An index map has
+/// no arm either -- it is `defaultMarker`, which the reference implementation
+/// registers as a bare function rather than as an object -- so it refuses in
+/// every position rather than materializing, and the sentence it refuses with
+/// names this compiler's shape rather than the input.
+///
+/// An `ObjectLit` and not an `Expr`, because every answer is an object and a
+/// caller that had to unwrap one back down would turn an impossible mismatch
+/// into a refusal an author could read.
+///
+/// `None` is every other evaluated value, including the ones with no expression
+/// form that are not folds of a function -- a theme reference stands for a
+/// `defineVars` group whose keys live in another file, and is refused rather
+/// than invented.
+pub(crate) fn function_fold_to_object(value: &EvaluateResultValue) -> Option<ObjectLit> {
+  match value {
+    EvaluateResultValue::FunctionConfigMap(func_map) => Some(create_object_lit(
+      func_map
+        .iter()
+        .map(|(key, config)| create_key_value_prop(key, Expr::from(fold_entry_to_object(config))))
+        .collect(),
+    )),
+    EvaluateResultValue::FunctionConfig(config) => Some(fold_entry_to_object(config)),
+    _ => None,
+  }
 }
 
 /// Helper function to evaluate unary numeric operations (Plus, Minus, Tilde).
@@ -430,3 +509,7 @@ mod member_length_tests;
 #[cfg(test)]
 #[path = "tests/unsupported_shape_tests.rs"]
 mod unsupported_shape_tests;
+
+#[cfg(test)]
+#[path = "tests/function_fold_object_tests.rs"]
+mod function_fold_object_tests;

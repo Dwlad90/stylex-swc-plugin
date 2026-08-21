@@ -195,25 +195,29 @@ Deliberate on both compilers: an arrow parameter is injected into that same map
 so a nested `create()` can see it, which is why the map cannot be keyed by
 binding.
 
-The fold carries no expression form, so a style-value position **materializes**
-it as the object it stands for -- its keys, with placeholder values validation
-never reads -- and namespace validation refuses the keys as neither pseudo nor
-at-rule nor `default`. Materialized at the value position and never where the
-identifier resolves, because `when` is read off the same map as a callee and
-needs its own form there.
+The fold carries no expression form, so every position that needs one
+**materializes** it as the object it stands for -- its keys, each carrying a
+function -- and validation then refuses whichever half it reads: a style value
+and a namespace refuse the key as neither pseudo nor at-rule nor `default`, and a
+spread copies the key onto the style object where the function is refused for not
+being a style value. One function answers for all of them, so the sentence a
+build stops on cannot depend on which position asked. Materialized in one place
+rather than at any consumer, and never where the identifier resolves, because
+`when` is read off the same map as a callee and needs its own form there.
 
 Which keys depends on what the name was registered as, and the answer mirrors
 the reference implementation's registration rather than this compiler's types. A
-map entry stands for its own keys. A single **function config** -- `keyframes`,
-`firstThatWorks`, `positionTry` -- stands for `{ fn }`, the one key a callable
-carries upstream. A config holding a marker map, which is a bare `when` import,
-stands for the marker names. An evaluated array is materialized too, through the
-same fold a static namespace uses, and what it holds is then decided by namespace
+map stands for one key per entry, each carrying that entry's own object. A single
+**function config** -- `keyframes`, `firstThatWorks`, `positionTry` -- stands for
+`{ fn }`, the one key a callable carries upstream. A config holding a marker map,
+which is a bare `when` import or the `when` entry of the namespace's map, stands
+for the marker names. An evaluated array is materialized too, through the same
+fold a static namespace uses, and what it holds is then decided by namespace
 validation rather than at the value position -- an element that is not a string or
 a number is refused there, with the message the reference implementation gives.
-Every other evaluated shape with no expression form is refused at the value
-position rather than materialized, a [theme reference](#theme-reference) among
-them.
+Every other evaluated shape with no expression form is refused rather than
+materialized, a [theme reference](#theme-reference) among them, as is
+`defaultMarker` -- an index map here, and a bare function upstream.
 _Avoid_: shadowed namespace, identifier map hit, function config fold
 
 **Theme reference**:

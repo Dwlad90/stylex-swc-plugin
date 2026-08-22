@@ -241,7 +241,8 @@ pub(super) fn resolve_reference(
   // Each step probes its own set and each is spelled with the probe first, so
   // the guard's scan of the declaration list runs only for a name some write
   // was actually recorded against — and step 4 costs nothing once step 3 has
-  // refused.
+  // refused. The scan itself is shared: the two steps ask the same question of
+  // the same list, so it is answered once, behind the cheaper probe of the two.
   //
   // The guard is narrower than upstream's, and deliberately unchanged here:
   // upstream asks whether a *binding* exists, where this asks whether a
@@ -255,16 +256,21 @@ pub(super) fn resolve_reference(
   // mappers; those are regenerated per evaluation and can never hold a stale
   // value.
 
+  let written =
+    traversal_state.has_binding_reassignment(ident) || traversal_state.has_binding_mutation(ident);
+  let declared_at =
+    written.then(|| get_var_decl_from(traversal_state, ident).map(|decl| decl.span));
+
   // ── 3. a reassigned binding is not a constant (656-658) ───────────────────
   if traversal_state.has_binding_reassignment(ident)
-    && let Some(declared_at) = get_var_decl_from(traversal_state, ident).map(|decl| decl.span)
+    && let Some(Some(declared_at)) = declared_at
   {
     return deopt(&reported_at(ident, declared_at, path), state, NON_CONSTANT);
   }
 
   // ── 4. a binding mutated in place is not a constant (660-662) ─────────────
   if traversal_state.has_binding_mutation(ident)
-    && let Some(declared_at) = get_var_decl_from(traversal_state, ident).map(|decl| decl.span)
+    && let Some(Some(declared_at)) = declared_at
   {
     return deopt(&reported_at(ident, declared_at, path), state, NON_CONSTANT);
   }

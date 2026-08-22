@@ -54,6 +54,11 @@ pub(in super::super) fn evaluate(
                 }
               });
 
+              // Once per invocation of the callback, not once per callback, so
+              // what this copies is worth keeping small. The parsed module and
+              // its key-span index are behind an `Rc` for that reason -- both are
+              // read-only once memoized, and copying them here is what made a
+              // dynamic style's cost scale with the size of the file it sits in.
               let mut local_state = traversal_state.clone();
 
               let result = evaluate_with_functions(

@@ -1,5 +1,6 @@
 use crate::transform::stylex::visitor_utils::insert_stylex_identifier_entry;
 use rustc_hash::{FxHashMap, FxHashSet};
+use std::cell::OnceCell;
 use std::{option::Option, path::Path, rc::Rc, sync::Arc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
 
@@ -223,7 +224,7 @@ impl ImportState {
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ModuleSourceState {
-  seen_module_source_code: Option<Box<SeenModuleSource>>,
+  seen_module_source_code: Option<Rc<SeenModuleSource>>,
 }
 
 impl ModuleSourceState {
@@ -233,14 +234,14 @@ impl ModuleSourceState {
   /// Lazy because only a `debug` build asks for it, and built once because the
   /// debug path asks once per style namespace: the walk it replaces was the
   /// largest cost in a `dev` transform.
-  fn key_span_index(&mut self) -> Option<&KeySpanIndex> {
-    let seen_module_source = self.seen_module_source_code.as_mut()?;
+  fn key_span_index(&self) -> Option<&KeySpanIndex> {
+    let seen_module_source = self.seen_module_source_code.as_deref()?;
 
-    if seen_module_source.key_span_index.is_none() {
-      seen_module_source.key_span_index = Some(KeySpanIndex::build(&seen_module_source.module));
-    }
-
-    seen_module_source.key_span_index.as_ref()
+    Some(
+      seen_module_source
+        .key_span_index
+        .get_or_init(|| KeySpanIndex::build(&seen_module_source.module)),
+    )
   }
 
   fn get_seen_module_source_code(&self) -> Option<(&Module, &Option<String>)> {
@@ -250,11 +251,11 @@ impl ModuleSourceState {
   }
 
   fn set_seen_module_source_code(&mut self, module: &Module, source_code: Option<String>) {
-    self.seen_module_source_code = Some(Box::new(SeenModuleSource {
+    self.seen_module_source_code = Some(Rc::new(SeenModuleSource {
       module: module.clone(),
       source_code,
       // Built from the module above, so it cannot outlive it.
-      key_span_index: None,
+      key_span_index: OnceCell::new(),
     }));
   }
 }
@@ -965,7 +966,7 @@ impl StateManager {
   }
 
   /// The memoized module's key span index, built on first use
-  pub(crate) fn key_span_index(&mut self) -> Option<&KeySpanIndex> {
+  pub(crate) fn key_span_index(&self) -> Option<&KeySpanIndex> {
     self.module_source.key_span_index()
   }
 

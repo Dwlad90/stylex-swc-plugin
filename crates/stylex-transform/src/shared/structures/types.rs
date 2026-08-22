@@ -1,3 +1,4 @@
+use std::cell::OnceCell;
 use std::rc::Rc;
 
 use indexmap::IndexMap;
@@ -78,5 +79,11 @@ pub(crate) struct SeenModuleSource {
   pub(crate) source_code: Option<String>,
   /// Where every namespace key of `module` is written, built on the first
   /// debug-path lookup that needs it and dropped with the module it indexes.
-  pub(crate) key_span_index: Option<KeySpanIndex>,
+  ///
+  /// A `OnceCell` so the whole struct can live behind an `Rc` and still fill
+  /// this in on first use. The `Rc` is what keeps a `StateManager` clone from
+  /// copying the parsed module, which matters because a dynamic style's callback
+  /// clones the state once per invocation; the shared cell means the index is
+  /// also built once for every clone rather than once per clone.
+  pub(crate) key_span_index: OnceCell<KeySpanIndex>,
 }

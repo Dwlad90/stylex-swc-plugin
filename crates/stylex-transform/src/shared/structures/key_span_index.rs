@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, rc::Rc};
+use std::{cell::OnceCell, cmp::Reverse, rc::Rc};
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
@@ -9,6 +9,8 @@ use swc_core::{
     visit::{Visit, VisitWith, noop_visit_type},
   },
 };
+
+use stylex_utils::hash::stable_hash_wide;
 
 use crate::shared::utils::ast::helpers::{
   collect_object_lit_keys, namespace_name_from_prop_key, prop_as_key_value,
@@ -229,67 +231,111 @@ pub(crate) struct NamespaceKeyQuery<'a> {
   pub(crate) target_lo: Option<BytePos>,
 }
 
-/// The half of a lookup that belongs to the *call* rather than to one of its
-/// namespaces.
+/// Everything a key-span lookup needs that belongs to the *call* rather than to
+/// one of its namespaces.
 ///
-/// Every namespace of one `stylex.create` shares its sibling keys and its
-/// proximity anchor, and the debug path asks for a span once per namespace — so
-/// building them per namespace made each call quadratic in its own namespace
-/// count, on top of the walk the index already replaced. Built once per call and
-/// borrowed by each lookup instead.
-pub(crate) struct CallKeys {
-  /// The namespace keys of the call's object argument.
-  pub(crate) sibling_keys: Rc<FxHashSet<Atom>>,
-  /// Where the call's object argument starts, for the proximity tie-break.
-  pub(crate) target_lo: Option<BytePos>,
+/// Every namespace of one `stylex.create` shares its sibling keys, its proximity
+/// anchor, the cache-key digest built from those, and the wrapped expression the
+/// value-matching fallback needs. Building any of them per namespace makes the
+/// call quadratic in its own namespace count, which is what this exists to
+/// prevent.
+///
+/// One type rather than four parameters, and that is the load-bearing part: they
+/// all have to describe the *same* call. Passed separately, a caller could hand
+/// over a digest built from one call beside the keys of another, and the result
+/// is a wrong span written into the cache under a key that looks right. Held
+/// together, the invariant is the constructor's rather than the caller's.
+pub(crate) struct CallLookup<'a> {
+  call_expr: &'a CallExpr,
+  /// The call's object argument, resolved once. Read by every namespace's query,
+  /// which is why it is not re-walked per namespace.
+  object_arg: Option<&'a ObjectLit>,
+  /// The namespace keys of that object argument.
+  sibling_keys: Rc<FxHashSet<Atom>>,
+  /// Where the object argument starts, for the proximity tie-break.
+  target_lo: Option<BytePos>,
+  /// The call's half of the span cache key.
+  digest: u128,
+  /// The call wrapped as an expression, built on first use.
+  ///
+  /// Only the value-matching fallback and a cache miss need it, and it is a deep
+  /// clone of the whole call -- so a call whose namespaces all resolve through
+  /// the input source map, or all hit the span cache, never pays for it.
+  wrapped: OnceCell<Expr>,
 }
 
-impl CallKeys {
-  pub(crate) fn from_call(call_expr: &CallExpr) -> Self {
+impl<'a> CallLookup<'a> {
+  pub(crate) fn new(call_expr: &'a CallExpr) -> Self {
     let object_arg = first_object_arg(call_expr);
+    let sibling_keys: Rc<FxHashSet<Atom>> = Rc::new(
+      object_arg
+        .map(|object| collect_object_lit_keys(object).collect())
+        .unwrap_or_default(),
+    );
 
     Self {
-      sibling_keys: Rc::new(
-        object_arg
-          .map(|object| collect_object_lit_keys(object).collect())
-          .unwrap_or_default(),
-      ),
+      call_expr,
+      object_arg,
+      digest: call_digest(call_expr, object_arg, &sibling_keys),
+      sibling_keys,
       target_lo: object_arg
         .and_then(object_lo)
         .or_else(|| (!call_expr.span.is_dummy()).then_some(call_expr.span.lo)),
+      wrapped: OnceCell::new(),
     }
   }
 
-  /// The sibling keys in a stable order, for a cache key that must not depend on
-  /// a hash set's iteration order.
-  ///
-  /// Sorted once per call, beside the set it sorts, because the digest it feeds
-  /// is the same digest for every namespace of that call.
-  pub(crate) fn sorted_sibling_keys(&self) -> Vec<&Atom> {
-    let mut sorted: Vec<&Atom> = self.sibling_keys.iter().collect();
-    sorted.sort();
-    sorted
+  /// The call's half of a span cache key, mixed with each namespace's half.
+  pub(crate) fn digest(&self) -> u128 {
+    self.digest
+  }
+
+  /// The call as an expression, cloned on the first caller that needs one.
+  pub(crate) fn wrapped(&self) -> &Expr {
+    self
+      .wrapped
+      .get_or_init(|| Expr::Call(self.call_expr.clone()))
+  }
+
+  /// A lookup for one of this call's namespaces.
+  pub(crate) fn query(&self, namespace_key: &'a str) -> NamespaceKeyQuery<'a> {
+    NamespaceKeyQuery {
+      namespace_key,
+      sibling_keys: Rc::clone(&self.sibling_keys),
+      // The one genuinely per-namespace signal: the keys of *this* namespace's
+      // own value object.
+      namespace_value_keys: self
+        .object_arg
+        .map(|object| namespace_value_keys(object, namespace_key))
+        .unwrap_or_default(),
+      target_lo: self.target_lo,
+    }
   }
 }
 
-impl<'a> NamespaceKeyQuery<'a> {
-  /// A lookup for one namespace of a call whose shared half is already built.
-  pub(crate) fn for_namespace(
-    call_keys: &'a CallKeys,
-    call_expr: &CallExpr,
-    namespace_key: &'a str,
-  ) -> Self {
-    Self {
-      namespace_key,
-      sibling_keys: Rc::clone(&call_keys.sibling_keys),
-      // The one genuinely per-namespace signal: the keys of *this* namespace's
-      // own value object.
-      namespace_value_keys: first_object_arg(call_expr)
-        .map(|object| namespace_value_keys(object, namespace_key))
-        .unwrap_or_default(),
-      target_lo: call_keys.target_lo,
-    }
-  }
+/// The call's contribution to a span cache key.
+///
+/// Kept beside the state it hashes so the two cannot drift: a field added to
+/// [`CallLookup`] that belongs in the key is added here, and nowhere else asks.
+fn call_digest(
+  call_expr: &CallExpr,
+  object_arg: Option<&ObjectLit>,
+  sibling_keys: &FxHashSet<Atom>,
+) -> u128 {
+  // Sorted, because a `FxHashSet`'s iteration order is not part of the identity
+  // being keyed -- two calls with the same keys in a different order are the
+  // same call.
+  let mut sorted_sibling_keys: Vec<&Atom> = sibling_keys.iter().collect();
+  sorted_sibling_keys.sort();
+
+  stable_hash_wide(&(
+    "stylex-call-siblings:v1",
+    &call_expr.callee,
+    call_expr.span.lo.0,
+    call_expr.span.hi.0,
+    object_arg.map(|object| (object.span.lo.0, object.span.hi.0)),
+    sorted_sibling_keys,
+  ))
 }
 
 /// The call's first argument, when it is an object literal -- the only shape

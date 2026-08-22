@@ -15,10 +15,10 @@ use swc_core::ecma::ast::{
 };
 
 use crate::shared::{
-  structures::{key_span_index::CallKeys, state_manager::StateManager},
+  structures::{key_span_index::CallLookup, state_manager::StateManager},
   utils::log::build_code_frame_error::{
-    CodeFrame, build_code_frame_error_and_panic, compute_call_siblings_digest,
-    get_key_span_from_source_code, get_span_from_source_code, print_module,
+    CodeFrame, build_code_frame_error_and_panic, get_key_span_from_source_code,
+    get_span_from_source_code, print_module,
   },
 };
 use stylex_ast::ast::{
@@ -207,32 +207,21 @@ fn print_module_ignores_foreign_spans_over_multibyte_sources() {
   );
 }
 
-/// When an earlier loader rewrites style values (e.g. compile-time macros),
-/// the compiled AST no longer textually matches the file on disk, so
-/// value-expression matching cannot locate a source position. Namespace keys
-/// are untouched by such transforms, so the key-based lookup must still
-/// resolve the real line number.
-/// `get_key_span_from_source_code` with the per-call half built for it, which is
+/// `get_key_span_from_source_code` over a freshly built [`CallLookup`], which is
 /// what the production caller hoists out of its namespace loop.
 fn key_span_for(
   call_expr: &CallExpr,
   namespace_key: &str,
   state: &mut StateManager,
 ) -> Result<(CodeFrame, Span), anyhow::Error> {
-  let wrapped = Expr::Call(call_expr.clone());
-  let call_keys = CallKeys::from_call(call_expr);
-  let digest = compute_call_siblings_digest(call_expr, &call_keys);
-
-  get_key_span_from_source_code(
-    &wrapped,
-    call_expr,
-    &call_keys,
-    digest,
-    namespace_key,
-    state,
-  )
+  get_key_span_from_source_code(&CallLookup::new(call_expr), namespace_key, state)
 }
 
+/// When an earlier loader rewrites style values (e.g. compile-time macros),
+/// the compiled AST no longer textually matches the file on disk, so
+/// value-expression matching cannot locate a source position. Namespace keys
+/// are untouched by such transforms, so the key-based lookup must still
+/// resolve the real line number.
 #[test]
 fn key_lookup_finds_line_when_values_differ_from_source() {
   let source = "\

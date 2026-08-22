@@ -13,15 +13,13 @@ use swc_core::{
 use crate::shared::{
   enums::data_structures::flat_compiled_styles_value::FlatCompiledStylesValue,
   structures::{
-    functions::FunctionMap, key_span_index::CallKeys, state_manager::StateManager,
+    functions::FunctionMap, key_span_index::CallLookup, state_manager::StateManager,
     types::StylesObjectMap,
   },
   utils::{
     ast::convertors::{convert_expr_to_str, create_string_expr},
     js::evaluate::evaluate_obj_key,
-    log::build_code_frame_error::{
-      compute_call_siblings_digest, get_key_span_from_source_code, get_span_from_source_code,
-    },
+    log::build_code_frame_error::{get_key_span_from_source_code, get_span_from_source_code},
   },
 };
 use stylex_ast::ast::convertors::get_key_values_from_object;
@@ -73,14 +71,14 @@ pub(crate) fn add_source_map_data(
     },
   };
 
-  // Everything below that belongs to the *call* rather than to one of its
-  // namespaces, built once. The loop runs per namespace and each of these was
-  // being rebuilt inside it, which made a `create` call quadratic in its own
-  // namespace count: the wrapper is a deep clone, and the sibling keys are
-  // collected, sorted and hashed.
-  let wrapped_call_expr = Expr::Call(call_expr.clone());
-  let call_keys = CallKeys::from_call(call_expr);
-  let siblings_digest = compute_call_siblings_digest(call_expr, &call_keys);
+  // Everything a namespace lookup needs that belongs to the *call*, built once.
+  // The loop below runs per namespace, and each of these was being rebuilt
+  // inside it -- which made a `create` call quadratic in its own namespace count.
+  // The wrapped expression it carries is a deep clone of the call, so it is
+  // built on the first namespace that actually needs one and not at all for a
+  // call whose namespaces all resolve through the input source map or the span
+  // cache.
+  let lookup = CallLookup::new(call_expr);
 
   for (key, value) in obj {
     let mut inner_map = IndexMap::new();
@@ -114,16 +112,9 @@ pub(crate) fn add_source_map_data(
         // when the compiled values no longer match the file content. Fall
         // back to matching the value expression when the key cannot be
         // located (e.g. computed keys).
-        let source_code_frame_and_span = match get_key_span_from_source_code(
-          &wrapped_call_expr,
-          call_expr,
-          &call_keys,
-          siblings_digest,
-          key,
-          state,
-        ) {
+        let source_code_frame_and_span = match get_key_span_from_source_code(&lookup, key, state) {
           Ok((code_frame, span)) if !span.eq(&DUMMY_SP) => Ok((code_frame, span)),
-          _ => get_span_from_source_code(&wrapped_call_expr, &style_node_path.value, state),
+          _ => get_span_from_source_code(lookup.wrapped(), &style_node_path.value, state),
         };
 
         match source_code_frame_and_span {

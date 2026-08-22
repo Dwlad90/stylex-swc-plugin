@@ -86,9 +86,16 @@ pub(super) enum ObjectMethodReceiver {
   /// Read as an object carrying these properties.
   Object(ObjectLit),
   /// Not an object, so it contributes no own keys. `Object.keys(5)` is `[]`.
+  ///
+  /// A primitive only. `null` and `undefined` are the two values with no own
+  /// keys *and* no object to ask -- `Object.keys(null)` throws rather than
+  /// answering `[]` -- so they are `Unreadable` below, not this.
   NoOwnKeys,
-  /// An element has no expression form, so the receiver cannot be read at all
-  /// and the caller refuses rather than answering a short list.
+  /// The receiver cannot be read at all, so the caller refuses rather than
+  /// answering a list. Two reasons reach it, and they refuse alike: an element
+  /// with no expression form, where answering would write a shorter list into
+  /// the stylesheet than the source describes, and a nullish receiver, where
+  /// `ToObject` throws and there is no list to write at all.
   Unreadable,
 }
 
@@ -105,6 +112,25 @@ pub(super) fn normalize_object_method_receiver(
   traversal_state: &mut StateManager,
   functions: Rc<FunctionMap>,
 ) -> ObjectMethodReceiver {
+  // `null` and `undefined` have no `ToObject`, so `Object.keys` of either
+  // throws rather than answering the empty list. Named ahead of every arm
+  // below because both fall through them -- `undefined` is an identifier and
+  // `null` a literal, neither is an object, and the receiver would have read
+  // as "no own keys" and folded to `[]`. That is CSS the source does not
+  // describe, written where the reference implementation stops the build.
+  if cached_arg.as_ref().is_some_and(evaluate_result_is_nullish) {
+    return ObjectMethodReceiver::Unreadable;
+  }
+
+  // A fold of a function map is read through the same object form the spread
+  // arm and the member read already read it through. Without this arm it fell
+  // to "not an object", and `Object.keys(stylex)` answered `[]` -- the one
+  // answer that is neither a refusal nor the truth, since the same compiler
+  // spreads those keys correctly one function away.
+  if let Some(object) = cached_arg.as_ref().and_then(function_fold_to_object) {
+    return ObjectMethodReceiver::Object(object);
+  }
+
   if let Some(object) = normalize_js_object_method_args(cached_arg) {
     return ObjectMethodReceiver::Object(object);
   }

@@ -1613,8 +1613,8 @@
       "label": "a folded function map read as a ternary condition",
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: keyframes ? '1px' : '2px' } });\n",
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
-      "note": "The truthiness of the fold rather than its value. Upstream reads an object as truthy and emits the left branch; this compiler refuses the conditional. Recorded beside the coercion row, for the same reason.",
-      "expected": "acceptance-divergent"
+      "note": "The truthiness of the fold rather than its value. Upstream reads an object as truthy and emits the left branch, and this compiler now does too -- it used to refuse the conditional, because the truthiness question required the test to have an expression form and a fold has none. Recorded beside the coercion row, which is the half that still diverges: the fold has no *string* form and is refused in a template or a concatenation.",
+      "expected": "identical"
     },
     {
       "id": "modules-1266-a-folded-function-map-in-a-create-theme-override",
@@ -1671,6 +1671,46 @@
       "origin": "issue #1266, ticket 31, the level the reorder had to reach",
       "expected": "both-reject",
       "note": "The missing-`default` check reaches every level of a value, not only the top one, as the reference implementation's recursion does. Checking only the top level left a fold one level down reading the sentence about zero-argument functions, which is the defect the reorder is for."
+    },
+    {
+      "id": "modules-1266-a-ternary-reads-the-one-truthiness-table",
+      "label": "every falsy value as a ternary test, beside the same value under `||`",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  notANumber: { height: NaN ? '1px' : '2px' },\n  dividedByZero: { height: (0 / 0) ? '1px' : '2px' },\n  negative: { height: -1 ? '1px' : '2px' },\n  negativeZero: { height: -0 ? '1px' : '2px' },\n  tildeOfMinusOne: { height: ~(-1) ? '1px' : '2px' },\n  logical: { height: NaN || '2px' },\n  negated: { height: !NaN ? '1px' : '2px' },\n});\n",
+      "origin": "issue #1266, ticket 39, the two truthiness tables",
+      "expected": "identical",
+      "note": "A ternary read its test through a second truthiness table beside the coercion crate's, and the copy had drifted: its numeric arm asked `n.value != 0.0`, the one comparison `NaN` answers true. So `NaN ? a : b` chose the consequent while `NaN || x` chose `x`, on the same value -- which is why the logical row sits in the same entry. The negative and tilde rows are the second table's unary arms, which read an arithmetic operator as a negation."
+    },
+    {
+      "id": "modules-1266-a-value-with-no-expression-form-as-a-ternary-test",
+      "label": "an array, an object, a function and a fold as a ternary test",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { keyframes } from '@stylexjs/stylex';\n\nconst EMPTY = [];\nconst ARROW = () => 1;\n\nexport const styles = stylex.create({\n  inlineArray: { height: [] ? '1px' : '2px' },\n  boundArray: { height: EMPTY ? '1px' : '2px' },\n  object: { height: {} ? '1px' : '2px' },\n  arrow: { height: ARROW ? '1px' : '2px' },\n  fold: { height: keyframes ? '1px' : '2px' },\n  undef: { height: undefined ? '1px' : '2px' },\n  voided: { height: void 0 ? '1px' : '2px' },\n  negatedArray: { height: ![] ? '1px' : '2px' },\n});\n",
+      "origin": "issue #1266, ticket 39, found while deleting the second table",
+      "expected": "identical",
+      "note": "The truthiness question asked of a value the evaluator holds in a shape with no expression form: an array is its own vector and a fold is a function map. Each stands for an object, every object is truthy, and both askers used to require an expression form and refuse the build instead -- on tests the language has no doubt about."
+    },
+    {
+      "id": "modules-1266-object-own-keys-of-a-fold",
+      "label": "`Object.keys`, `values` and `entries` of the folded namespace map",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  keys: { fontFamily: `x${Object.keys(stylex)}y` },\n  values: { fontWeight: `x${Object.values(stylex)}y` },\n  entries: { content: `x${Object.entries(stylex)}y` },\n  counted: { width: Object.keys(stylex).length },\n});\n",
+      "origin": "issue #1266, ticket 40, the third reader of the fold",
+      "expected": "divergent",
+      "note": "The receiver normalizer had no arm for a folded function map, so it read as \"not an object\" and `Object.keys(stylex)` answered `[]` -- neither a refusal nor the truth, while the spread arm answered the keys correctly one function away. All three readers now go through `function_fold_to_object`. The residual divergence is what the fold *holds*: upstream's namespace carries `env` beside `when` and this one carries `when` alone, which the spread reader has always shown too. Recorded as divergent so the day the fold gains `env` reports as a changed verdict."
+    },
+    {
+      "id": "modules-1266-object-own-keys-of-a-nullish-receiver",
+      "label": "`Object.keys` of `null`, in a template and behind a length read",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  interpolated: { fontFamily: `x${Object.keys(null)}y` },\n  counted: { width: Object.keys(null).length },\n});\n",
+      "origin": "issue #1266, ticket 40, found while measuring the three methods",
+      "expected": "acceptance-divergent",
+      "note": "`null` and `undefined` have no `ToObject`, so the language throws where every other non-object receiver answers `[]`. The receiver classification used to fold them to the empty list and now refuses them, which is what the evaluation snapshots show -- the call is left standing rather than folded. Still acceptance divergent, because the refusal does not survive the readers downstream of it: a template interpolation of a value with no string form contributes nothing, so the first row emits `xy`, and a length read off an unfoldable answers `0`, so the second emits `width:0`. Both are CSS the source does not describe, and neither is this classification's to fix. Filed as its own ticket; recorded here so the day the refusal propagates reports as a changed verdict."
+    },
+    {
+      "id": "modules-1266-object-keys-of-an-array-with-a-hole",
+      "label": "`Object.keys` of an array carrying a hole",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  hole: { fontFamily: `x${Object.keys([, 'p'])}y` },\n});\n",
+      "origin": "issue #1266, ticket 40, found while measuring every receiver",
+      "expected": "acceptance-divergent",
+      "note": "Divergent in this compiler's favour. `Object.keys([, 'p'])` is `['1']` -- a hole has no key of its own -- and that is what this answers. Upstream aborts the module with `Unexpected error:`, reading the hole as a node and failing on it."
     }
   ]
 }

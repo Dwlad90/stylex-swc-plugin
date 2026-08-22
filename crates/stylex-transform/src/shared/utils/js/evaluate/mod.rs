@@ -45,7 +45,7 @@ use crate::shared::{
   },
   utils::{
     ast::convertors::{
-      convert_atom_to_str_ref, convert_atom_to_string, convert_expr_to_bool, convert_expr_to_str,
+      convert_atom_to_str_ref, convert_atom_to_string, convert_expr_to_str,
       convert_key_value_to_str, convert_lit_to_string, create_big_int_expr, create_bool_expr,
       create_null_expr, create_number_expr, create_string_expr, expand_shorthand_prop, expr_to_num,
       extract_tpl_cooked_value,

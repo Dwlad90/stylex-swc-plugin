@@ -2781,10 +2781,14 @@ stylex_test_panic!(
 );
 
 // The fold in an operand position rather than a value position. Upstream
-// coerces it -- to `[object Object]` in a template or a concatenation, and to
-// `true` as a condition -- and emits. This compiler refuses both. The
-// concatenation is the same coercion the template one is, recorded on the
-// template row of that issue.
+// coerces it to `[object Object]` in a template or a concatenation and emits;
+// this compiler refuses. The concatenation is the same coercion the template
+// one is, recorded on the template row of that issue.
+//
+// The *condition* position used to be refused here beside it and no longer is:
+// a fold stands for an object, an object is truthy, and both compilers now take
+// the consequent. Recorded as
+// `truthiness_table::a_fold_is_truthy_as_a_condition`.
 stylex_test_panic!(
   a_static_fold_concatenated_with_a_string_is_refused,
   "Unsupported expression: BinaryExpression",
@@ -2795,12 +2799,16 @@ stylex_test_panic!(
   "#
 );
 
+// The key list of a fold is a value both compilers can read and neither can
+// spread: a spread element in a style value refuses in each, with the same
+// sentence. Recorded because the list itself now folds -- it used to be the
+// empty one, and a spread of nothing would have refused for the wrong reason.
 stylex_test_panic!(
-  a_static_fold_read_as_a_condition_is_refused,
-  "A style value can only contain an array, string or number.",
+  a_spread_key_list_of_a_fold_is_refused,
+  "Unsupported expression: SpreadElement",
   r#"
-    import { create, keyframes } from '@stylexjs/stylex';
+    import * as stylex from '@stylexjs/stylex';
 
-    export const styles = create({ a: { height: keyframes ? '1px' : '2px' } });
+    export const styles = stylex.create({ a: { content: `x${[...Object.keys(stylex)]}y` } });
   "#
 );

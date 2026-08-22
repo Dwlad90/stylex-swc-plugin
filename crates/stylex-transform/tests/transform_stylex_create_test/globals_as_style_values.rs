@@ -210,15 +210,19 @@ stylex_test!(
 // `NaN` is falsy, so both rows choose `'2px'`, and getting there took a
 // one-line fix outside this file.
 //
-// A ternary reads its test through `convert_expr_to_bool`, a second truthiness
-// table beside `coercions::to_js_boolean` whose numeric arm asked
+// A ternary used to read its test through `convert_expr_to_bool`, a second
+// truthiness table beside `coercions::to_js_boolean` whose numeric arm asked
 // `n.value != 0.0` -- the one comparison `NaN` answers true. The arithmetic row
 // shows the second table was already wrong before the globals answered numbers.
 // The named row shows why it could not be left: while `NaN` resolved to an
 // identifier the ternary *refused the build*, so answering the number turned a
-// refusal into silently wrong CSS. A loud wrong answer is survivable and a
-// quiet one is not, so the arm was corrected here rather than deferred with the
-// rest of that table, which is ticket 39.
+// refusal into silently wrong CSS.
+//
+// The second table is gone now and both askers read the one bridge over the
+// coercion; the file that holds the rest of that question is
+// `truthiness_table`. This stays here because it is the row that made the drift
+// visible, and because it is the pair of spellings this file exists to keep
+// together.
 stylex_test!(
   a_nan_test_in_a_ternary_takes_the_falsy_branch,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

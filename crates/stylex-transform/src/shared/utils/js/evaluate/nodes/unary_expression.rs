@@ -31,19 +31,35 @@ pub(in super::super) fn evaluate(
     return None;
   }
 
-  // An operand with no expression form has no compile-time value to apply the
+  // An operand that folded to nothing has no compile-time value to apply the
   // operator to. `typeof someObject.method` is ordinary JavaScript, so this
   // refuses the fold rather than aborting the build.
-  let Some(EvaluateResultValue::Expr(arg)) = arg else {
+  let Some(arg) = arg else {
+    deopt_unsupported!(&create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
+  };
+
+  // `!` is answered off the evaluated value rather than off an expression form
+  // of it, and through the one `ToBoolean` bridge the logical operators read.
+  // An operand with no expression form still has a truthiness -- the
+  // evaluator's own array and function-map spellings all stand for objects,
+  // which are truthy -- so `![]` folds where reading it as an expression
+  // refused. The bridge's refusal is the operand whose *kind* cannot be read,
+  // and that deopts.
+  if unary.op == UnaryOp::Bang {
+    let Some(value) = evaluate_result_to_js_boolean(&arg) else {
+      deopt_unsupported!(&create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
+    };
+
+    return Some(EvaluateResultValue::Expr(create_bool_expr(!value)));
+  }
+
+  // Every operator below reads a primitive out of the operand, which only the
+  // expression form carries.
+  let EvaluateResultValue::Expr(arg) = arg else {
     deopt_unsupported!(&create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
   };
 
   match unary.op {
-    UnaryOp::Bang => {
-      let value = convert_expr_to_bool(&arg, traversal_state, fns);
-
-      Some(EvaluateResultValue::Expr(create_bool_expr(!value)))
-    },
     UnaryOp::Plus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| v),
     UnaryOp::Minus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| -v),
     UnaryOp::Tilde => {

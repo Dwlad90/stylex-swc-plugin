@@ -312,60 +312,6 @@ pub fn transform_bin_expr_to_number(
   evaluate_bin_expr(op, left, right)
 }
 
-#[inline]
-pub fn convert_expr_to_bool(
-  expr: &Expr,
-  state: &mut StateManager,
-  functions: &FunctionMap,
-) -> bool {
-  match expr {
-    Expr::Lit(lit) => match lit {
-      Lit::Bool(b) => b.value,
-      // `NaN` is falsy, and it is the one number that says otherwise when asked
-      // this way: every comparison against `NaN` is false *except* the
-      // inequality, so `n.value != 0.0` calls it true. `coercions::to_js_boolean`
-      // names it for the same reason, and the two tables have to agree --
-      // `NaN || x` reads that one and a ternary reads this one, on the same
-      // value. Ticket 39 is about removing the second table; until then it must
-      // at least not be wrong here, because the branch a ternary picks is CSS
-      // that gets emitted rather than a build that stops.
-      Lit::Num(n) => n.value != 0.0 && !n.value.is_nan(),
-      Lit::Str(s) => !s.value.is_empty(),
-      Lit::Null(_) => false,
-      _ => stylex_unimplemented!(
-        "Conversion {} expression to boolean",
-        get_expr_node_kind(expr)
-      ),
-    },
-    Expr::Ident(ident) => convert_expr_to_bool(
-      &convert_ident_to_expr(ident, state, functions),
-      state,
-      functions,
-    ),
-    Expr::Array(_) => true,
-    Expr::Object(_) => true,
-    Expr::Fn(_) | Expr::Class(_) => true,
-    Expr::Unary(unary) => match unary.op {
-      UnaryOp::Void => false,
-      UnaryOp::TypeOf => true,
-      UnaryOp::Bang => !convert_expr_to_bool(&unary.arg, state, functions),
-      UnaryOp::Minus => !convert_expr_to_bool(&unary.arg, state, functions),
-      UnaryOp::Plus => !convert_expr_to_bool(&unary.arg, state, functions),
-      UnaryOp::Tilde => !convert_expr_to_bool(&unary.arg, state, functions),
-      _ => stylex_unimplemented!(
-        "Conversion {} expression to boolean",
-        get_expr_node_kind(expr)
-      ),
-    },
-    _ => {
-      stylex_unimplemented!(
-        "Conversion {} expression to boolean",
-        get_expr_node_kind(expr)
-      )
-    },
-  }
-}
-
 /// Reads a literal as an authored style value, keeping the JS type distinction
 /// that decides whether a unit suffix is appended later.
 ///

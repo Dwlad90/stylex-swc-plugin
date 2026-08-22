@@ -4,6 +4,93 @@ use stylex_ast::ast::convertors::get_key_values_from_object;
 use stylex_ast::ast::factories::create_arrow_expression_with_params;
 use stylex_css::utils::pseudo::is_pseudo_selector;
 
+/// The class-name expression one compiled property contributes, and whether it
+/// stayed static.
+struct PropClassNames {
+  /// The concatenation the property's value becomes.
+  joined: Expr,
+  /// False once any class name in the list became conditional, which is what
+  /// decides whether the property is emitted on the static object or the
+  /// conditional one.
+  is_static: bool,
+}
+
+/// Assemble one compiled property's class names into the expression it emits.
+///
+/// Lifted out of `apply_dynamic_style_functions`, which reached about thirty
+/// columns deep by the time it got here. The inputs are what the question
+/// actually needs -- the property's own class list, the dynamic styles that might
+/// claim one of them, the path map that says which does, the nullish fallbacks,
+/// and the injected rules to read a fallback out of -- and nothing about the call
+/// or the transform, which is why it can be read on its own.
+fn class_names_for_prop(
+  class_list: &[String],
+  dynamic_styles: &[DynamicStyle],
+  orig_class_paths: &IndexMap<String, String>,
+  nullish_var_expressions: &FxHashMap<String, Expr>,
+  injected_styles: &InjectableStylesMap,
+) -> PropClassNames {
+  let mut is_static = true;
+  let mut expr_list = Vec::with_capacity(class_list.len());
+
+  // Pre-calculate class strings with spaces to avoid repeated allocations
+  let class_strings: Vec<String> = class_list
+    .iter()
+    .enumerate()
+    .map(|(index, cls)| {
+      if index == class_list.len() - 1 {
+        cls.clone()
+      } else {
+        let mut spaced = String::with_capacity(cls.len() + 1);
+        spaced.push_str(cls);
+        spaced.push(' ');
+        spaced
+      }
+    })
+    .collect();
+
+  for (index, cls) in class_list.iter().enumerate() {
+    let expr = dynamic_styles
+      .iter()
+      .find(|dynamic_style| orig_class_paths.get(cls) == Some(&dynamic_style.path))
+      .map(|dynamic_style| dynamic_style.expression.clone());
+
+    let expr = if expr.is_none() && !nullish_var_expressions.is_empty() {
+      injected_styles
+        .get(cls.as_str())
+        .and_then(|style| extract_expr_from_rule(style.rule_text(), &nullish_var_expressions))
+    } else {
+      expr
+    };
+
+    let cls_with_space = &class_strings[index];
+
+    if let Some(expr) = expr.filter(|e| !is_safe_to_skip_null_check(e)) {
+      is_static = false;
+      expr_list.push(create_cond_expr(
+        create_bin_expr(BinaryOp::NotEq, expr.clone(), create_null_expr()),
+        create_string_expr(cls_with_space),
+        expr,
+      ));
+    } else {
+      expr_list.push(create_string_expr(cls_with_space));
+    }
+  }
+
+  let joined = if expr_list.is_empty() {
+    create_string_expr("")
+  } else {
+    expr_list
+      .into_iter()
+      .reduce(|acc, curr| create_bin_expr(BinaryOp::Add, acc, curr))
+      .unwrap_or_else(|| {
+        { stylex_panic!("Expected at least one expression to reduce in class name concatenation.") }
+      })
+  };
+
+  PropClassNames { joined, is_static }
+}
+
 pub(super) fn apply_dynamic_style_functions<C>(
   transform: &mut StyleXTransform<C>,
   call: &CallExpr,
@@ -126,78 +213,15 @@ where
                             // fallback below spells it `""`. Skipping the
                             // property instead dropped the key, and a key that is
                             // not there unsets nothing.
-                            let mut is_static = true;
-                            let mut expr_list = Vec::with_capacity(class_list.len());
-
-                            // Pre-calculate class strings with spaces to avoid repeated allocations
-                            let class_strings: Vec<String> = class_list
-                              .iter()
-                              .enumerate()
-                              .map(|(index, cls)| {
-                                if index == class_list.len() - 1 {
-                                  cls.clone()
-                                } else {
-                                  let mut spaced = String::with_capacity(cls.len() + 1);
-                                  spaced.push_str(cls);
-                                  spaced.push(' ');
-                                  spaced
-                                }
-                              })
-                              .collect();
-
-                            for (index, cls) in class_list.iter().enumerate() {
-                              let expr = dynamic_styles
-                                .iter()
-                                .find(|dynamic_style| {
-                                  orig_class_paths.get(cls) == Some(&dynamic_style.path)
-                                })
-                                .map(|dynamic_style| dynamic_style.expression.clone());
-
-                              let expr = if expr.is_none() && !nullish_var_expressions.is_empty()
-                              {
-                                injected_styles.get(cls.as_str()).and_then(|style| {
-                                  extract_expr_from_rule(
-                                    style.rule_text(),
-                                    &nullish_var_expressions,
-                                  )
-                                })
-                              } else {
-                                expr
-                              };
-
-                              let cls_with_space = &class_strings[index];
-
-                              if let Some(expr) = expr.filter(|e| !is_safe_to_skip_null_check(e))
-                              {
-                                is_static = false;
-                                expr_list.push(create_cond_expr(
-                                  create_bin_expr(
-                                    BinaryOp::NotEq,
-                                    expr.clone(),
-                                    create_null_expr(),
-                                  ),
-                                  create_string_expr(cls_with_space),
-                                  expr,
-                                ));
-                              } else {
-                                expr_list.push(create_string_expr(cls_with_space));
-                              }
-                            }
-
-                            let joined = if expr_list.is_empty() {
-                              create_string_expr("")
-                            } else {
-                              expr_list
-                                .into_iter()
-                                .reduce(|acc, curr| create_bin_expr(BinaryOp::Add, acc, curr))
-                                .unwrap_or_else(|| {
-                                  {
-                                    stylex_panic!(
-                                      "Expected at least one expression to reduce in class name concatenation."
-                                    )
-                                  }
-                                })
-                            };
+                            let assembled = class_names_for_prop(
+                              &class_list,
+                              &dynamic_styles,
+                              &orig_class_paths,
+                              &nullish_var_expressions,
+                              injected_styles,
+                            );
+                            let is_static = assembled.is_static;
+                            let joined = assembled.joined;
 
                             if is_static {
                               static_props.push(create_prop_from_name(

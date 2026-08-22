@@ -537,27 +537,46 @@ pub(in super::super) fn evaluate(
           // The entry the map carries, in the map's own form. `stylex.when` as
           // a callee is read through this, so a hit must not be materialized
           // into an object the call step cannot call.
+          //
+          // Each variant answers as the value it stands for, which is the same
+          // reading `nodes/identifier.rs` gives the same entry reached without a
+          // member step. The two have to agree: `stylex.env` and a bare `env`
+          // from a named import are one object in the language.
           if let Some(name) = &name
-            && let Some(fc) = fc_map.get(&Atom::from(name.as_str()))
+            && let Some(entry) = fc_map.get(&Atom::from(name.as_str()))
           {
-            return Some(EvaluateResultValue::FunctionConfig(fc.clone()));
-          }
+            match entry {
+              FunctionConfigType::Regular(config) => {
+                return Some(EvaluateResultValue::FunctionConfig(config.clone()));
+              },
+              FunctionConfigType::EnvObject(env_map) => {
+                // The name is a key of the namespace however the compiler is
+                // configured, so an unset option is reported as the option
+                // being unset rather than as a property nobody can find --
+                // which would send an author looking in their source.
+                if env_map.is_empty() {
+                  deopt_unsupported!(
+                    path,
+                    state,
+                    "The stylex.env object is not configured. Check that the 'env' option is set in your StyleX configuration."
+                  );
+                }
 
-          // Check if this is an env property access on a stylex import.
-          if let Some(name) = &name
-            && name == STYLEX_ENV
-          {
-            if traversal_state.options.env.is_empty() {
-              deopt_unsupported!(
-                path,
-                state,
-                "The stylex.env object is not configured. Check that the 'env' option is set in your StyleX configuration."
-              );
+                return Some(EvaluateResultValue::EnvObject(env_map.clone()));
+              },
+              FunctionConfigType::Map(nested) => {
+                return Some(EvaluateResultValue::FunctionConfigMap(nested.clone()));
+              },
+              // `defaultMarker`'s shape, which reaches the namespace through
+              // `member_expressions` rather than through this map and so has no
+              // entry here today. Spelled out rather than left to a catch-all
+              // for the reason `nodes/identifier.rs` spells its own out: a
+              // shape that starts arriving here should be decided, not silently
+              // answered as whichever neighbour compiled.
+              FunctionConfigType::IndexMap(_) => {
+                deopt_unsupported!(path, state, &unsupported_expression("IndexMap"));
+              },
             }
-
-            return Some(EvaluateResultValue::EnvObject(
-              traversal_state.options.env.clone(),
-            ));
           }
 
           // A key the map has no entry for is `undefined`, read off the object

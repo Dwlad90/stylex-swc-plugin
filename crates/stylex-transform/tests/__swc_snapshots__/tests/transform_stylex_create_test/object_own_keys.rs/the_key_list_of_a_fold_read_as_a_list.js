@@ -6,7 +6,7 @@ _inject2({
     priority: 3000
 });
 _inject2({
-    ltr: ".x1i1rx1s{width:1px}",
+    ltr: ".xfo62xy{width:2px}",
     priority: 4000
 });
 _inject2({
@@ -19,7 +19,7 @@ export const styles = {
         $$css: true
     },
     counted: {
-        kzqmXN: "x1i1rx1s",
+        kzqmXN: "xfo62xy",
         $$css: true
     },
     pastTheEnd: {

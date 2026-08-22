@@ -41,12 +41,12 @@ fn stylex_transform(
 
 // ── A fold as the receiver ──────────────────────────────────────────
 
-// The namespace fold, through all three methods. Upstream answers `when,env` for
-// the keys where this answers `when`: `env` is registered as a member read
-// rather than as an entry of the fold, so it is absent from the map every one of
-// the three readers reads -- including the spread, which answered `when` alone
-// before this file existed. The divergence is the fold's contents, not this
-// classification, and is filed separately.
+// The namespace fold, through all three methods, and identical to upstream in
+// all three. Getting the last of it took two changes: the classification this
+// file is named for, and then `env` into the fold itself -- it was registered as
+// a member read only, so the keys list was one short of the member reads that
+// already worked. That is why the values row reads two objects and the entries
+// row two pairs.
 stylex_test!(
   the_three_methods_over_the_namespace_fold,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
@@ -93,9 +93,9 @@ stylex_test!(
   "#
 );
 
-// The keys of a fold read as a list rather than joined: an index off it, its
-// length, and the list spread into another array. A classification that answered
-// `[]` gave every one of these a different answer too, and none of them refused.
+// The keys of a fold read as a list rather than joined: an index off it and its
+// length. A classification that answered `[]` gave both of these a different
+// answer too, and neither refused.
 stylex_test!(
   the_key_list_of_a_fold_read_as_a_list,
   |tr| stylex_transform(tr.comments.clone(), |b| b),

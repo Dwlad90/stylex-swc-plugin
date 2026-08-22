@@ -117,7 +117,7 @@ where
           &mut identifiers,
           name,
           STYLEX_TYPES.into(),
-          types_fn.clone(),
+          FunctionConfigType::Regular(types_fn.clone()),
         );
       }
 

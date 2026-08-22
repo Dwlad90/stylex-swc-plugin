@@ -924,15 +924,15 @@
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  wrapped: { fontFamily: `x${Object(stylex)}y` },\n});\n",
       "expected": "identical",
       "origin": "ticket 23, the second bridge that classifies the fold",
-      "note": "The other consumer of the classification ticket 23 corrected: the object bridge reads `ToObject`, where a function needs a wrapper and an object is its own identity. Reading the folded map as the object it is makes this agree as well, and it is recorded because the plain interpolation row would read `identical` whichever way this arm went."
+      "note": "Agrees now, and the two halves of getting there are worth keeping apart. The receiver normalizer had no arm for a folded map, so it read as \"not an object\" and answered the empty list -- the spread arm one function away answered the keys. That was ticket 40. The list was then still one key short, because `env` was registered only in the namespace's member expressions and not in the fold the keys are read from; ticket 41 widened the fold's value type so it could hold one. The row only became visible at all when the template evaluator stopped dropping every interpolation it could not spell."
     },
     {
       "id": "modules-object-keys-of-a-folded-map",
       "label": "`Object.keys` of the folded namespace map, interpolated",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  a: { fontFamily: `x${Object.keys(stylex)}y` },\n});\n",
-      "expected": "divergent",
+      "expected": "identical",
       "origin": "ticket 40, found while measuring ticket 23",
-      "note": "Divergent, and older than the change that exposed it: the receiver normalizer behind `Object.keys` has no arm for a folded map, so it reads as \"not an object\" and answers the empty list -- neither a refusal nor the truth. The spread arm one function away answers the keys. The row only became visible when the template evaluator stopped dropping every interpolation it could not spell, which swallowed both halves before. Filed as ticket 40."
+      "note": "Agrees now, and the two halves of getting there are worth keeping apart. The receiver normalizer had no arm for a folded map, so it read as \"not an object\" and answered the empty list -- the spread arm one function away answered the keys. That was ticket 40. The list was then still one key short, because `env` was registered only in the namespace's member expressions and not in the fold the keys are read from; ticket 41 widened the fold's value type so it could hold one. The row only became visible at all when the template evaluator stopped dropping every interpolation it could not spell."
     },
     {
       "id": "modules-1266-a-theme-namespace-import-read-as-a-style-value",
@@ -1693,8 +1693,8 @@
       "label": "`Object.keys`, `values` and `entries` of the folded namespace map",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  keys: { fontFamily: `x${Object.keys(stylex)}y` },\n  values: { fontWeight: `x${Object.values(stylex)}y` },\n  entries: { content: `x${Object.entries(stylex)}y` },\n  counted: { width: Object.keys(stylex).length },\n});\n",
       "origin": "issue #1266, ticket 40, the third reader of the fold",
-      "expected": "divergent",
-      "note": "The receiver normalizer had no arm for a folded function map, so it read as \"not an object\" and `Object.keys(stylex)` answered `[]` -- neither a refusal nor the truth, while the spread arm answered the keys correctly one function away. All three readers now go through `function_fold_to_object`. The residual divergence is what the fold *holds*: upstream's namespace carries `env` beside `when` and this one carries `when` alone, which the spread reader has always shown too. Recorded as divergent so the day the fold gains `env` reports as a changed verdict."
+      "expected": "identical",
+      "note": "The receiver normalizer had no arm for a folded function map, so it read as \"not an object\" and `Object.keys(stylex)` answered `[]` -- neither a refusal nor the truth, while the spread arm answered the keys correctly one function away. All three readers go through `function_fold_to_object` now, and the fold carries `env` beside `when`, so the keys, the values and the entries all agree with upstream. `env` reaching the fold took widening the map's value type: it is an object of the `env` option's entries, not a function config, and only the member-expression map beside the fold could hold one."
     },
     {
       "id": "modules-1266-object-own-keys-of-a-nullish-receiver",

@@ -115,16 +115,20 @@ where
       &mut identifiers,
       name,
       STYLEX_WHEN.into(),
-      FunctionConfig {
+      FunctionConfigType::Regular(FunctionConfig {
         fn_ptr: FunctionType::DefaultMarker(Arc::clone(LazyLock::force(&STYLEX_WHEN_MAP))),
         takes_path: false,
-      },
+      }),
     );
   }
 
   transform
     .state
     .apply_stylex_env(&mut identifiers, &mut member_expressions);
+
+  transform
+    .state
+    .register_env_in_namespace_fold(&mut identifiers);
 
   Box::new(FunctionMap {
     identifiers,

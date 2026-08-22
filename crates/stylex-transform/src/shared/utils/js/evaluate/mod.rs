@@ -14,7 +14,7 @@ pub(crate) use nodes::binary_expression::binary_expr_to_num_or_str;
 
 // Import error handling macros from shared utilities
 use crate::{deopt_unsupported, expr_to_str_or_deopt, stylex_panic_with_context};
-use stylex_constants::constants::api_names::{FUNCTION_CONFIG_FN_KEY, STYLEX_ENV};
+use stylex_constants::constants::api_names::FUNCTION_CONFIG_FN_KEY;
 
 use indexmap::IndexMap;
 use log::{debug, warn};
@@ -191,12 +191,27 @@ pub(crate) fn fold_placeholder_function() -> Expr {
 /// which: a marker map is the `when` surface, registered as the object of the
 /// marker functions themselves, so its keys are the marker names. Every other
 /// entry is registered as the wrapper `{ fn }`, so its one key is `fn`.
-fn fold_entry_to_object(config: &FunctionConfig) -> ObjectLit {
-  match &config.fn_ptr {
-    FunctionType::DefaultMarker(marker_map) => {
-      object_of_functions(marker_map.keys().map(String::as_str))
+fn fold_entry_to_object(entry: &FunctionConfigType) -> ObjectLit {
+  match entry {
+    FunctionConfigType::Regular(config) => match &config.fn_ptr {
+      FunctionType::DefaultMarker(marker_map) => {
+        object_of_functions(marker_map.keys().map(String::as_str))
+      },
+      _ => object_of_functions(std::iter::once(FUNCTION_CONFIG_FN_KEY)),
     },
-    _ => object_of_functions(std::iter::once(FUNCTION_CONFIG_FN_KEY)),
+    // The `env` option's object, whose keys are the names it was configured
+    // with. Its values are the option's own -- a string, a number, a function --
+    // and none of them is read here: every position that reads this object reads
+    // it through the `EnvObject` result variant, and the only question asked of
+    // the *fold's* object form is which keys it has.
+    FunctionConfigType::EnvObject(env_map) => {
+      object_of_functions(env_map.keys().map(String::as_str))
+    },
+    // A map nested inside a map, which the API surface does not have today. Its
+    // keys are the inner map's, which is the answer that stays true if it ever
+    // does.
+    FunctionConfigType::Map(nested) => object_of_functions(nested.keys().map(Atom::as_str)),
+    FunctionConfigType::IndexMap(styles) => object_of_functions(styles.keys().map(String::as_str)),
   }
 }
 
@@ -241,7 +256,9 @@ pub(crate) fn function_fold_to_object(value: &EvaluateResultValue) -> Option<Obj
         .map(|(key, config)| create_key_value_prop(key, Expr::from(fold_entry_to_object(config))))
         .collect(),
     )),
-    EvaluateResultValue::FunctionConfig(config) => Some(fold_entry_to_object(config)),
+    EvaluateResultValue::FunctionConfig(config) => Some(fold_entry_to_object(
+      &FunctionConfigType::Regular(config.clone()),
+    )),
     _ => None,
   }
 }

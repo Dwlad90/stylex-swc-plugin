@@ -15,9 +15,7 @@ use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 pub(crate) use stylex_types::structures::style_key::{ClassName, RuleKey};
 
 use super::{
-  functions::{FunctionConfig, FunctionConfigType},
-  key_span_index::KeySpanIndex,
-  state_manager::StateManager,
+  functions::FunctionConfigType, key_span_index::KeySpanIndex, state_manager::StateManager,
 };
 use stylex_structures::{inline_style::InlineStyle, named_import_source::ImportSources};
 
@@ -47,7 +45,15 @@ pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>
 /// `createTheme` call sets its evaluation up, holds a handful of entries keyed by
 /// API name, and is dropped with it -- nothing builds one per declaration or
 /// walks one in a loop.
-pub(crate) type FunctionConfigMap = FxIndexMap<Atom, FunctionConfig>;
+/// The value is a [`FunctionConfigType`] and not a bare [`FunctionConfig`]
+/// because this map holds the StyleX API surface reachable off one namespace,
+/// and that surface is not all functions: `when` is a config, and `env` is an
+/// object of values and functions from the `env` option. The member-expression
+/// map beside this one has always held the wider type, and the two describe the
+/// same surface -- a value that could be in one and not the other is how
+/// `Object.keys` of the namespace came to answer a list its own member reads
+/// contradict.
+pub(crate) type FunctionConfigMap = FxIndexMap<Atom, FunctionConfigType>;
 
 pub(crate) type StylesObjectMap = IndexMap<String, Rc<FlatCompiledStyles>>;
 pub(crate) type InjectableStylesMap = IndexMap<RuleKey, Rc<InjectableStyleKind>>;

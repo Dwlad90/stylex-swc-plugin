@@ -202,6 +202,16 @@ Deliberate on both compilers: an arrow parameter is injected into that same map
 so a nested `create()` can see it, which is why the map cannot be keyed by
 binding.
 
+The map holds the StyleX API surface reachable off one namespace, which is not
+all functions: `when` is a config and `env` is an object of the `env` option's
+entries. So its value type is the wider one the member-expression map beside it
+has always held. A value in one and not the other is how `Object.keys` of the
+namespace came to answer a list its own member reads contradict. `env` is
+registered into the fold only where a `create` call sets its evaluation up: the
+other calls that build a function map leave the namespace name unregistered on
+purpose, so a bare `stylex` written where a static value belongs refuses rather
+than materializing and dropping the declaration.
+
 The fold carries no expression form, so every position that needs one
 **materializes** it as the object it stands for -- its keys, each carrying a
 function -- and validation then refuses whichever half it reads: a style value

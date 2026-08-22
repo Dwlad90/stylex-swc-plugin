@@ -44,7 +44,7 @@ pub(crate) fn insert_stylex_identifier_entry(
   identifiers: &mut FunctionMapIdentifiers,
   name: &ImportSources,
   key: Atom,
-  entry: FunctionConfig,
+  entry: FunctionConfigType,
 ) {
   let identifier = identifiers
     .entry(name.get_import_str().into())
@@ -106,7 +106,7 @@ pub(crate) fn build_eval_config(state: &mut StateManager) -> FunctionMap {
       &mut identifiers,
       name,
       STYLEX_TYPES.into(),
-      types_fn.clone(),
+      FunctionConfigType::Regular(types_fn.clone()),
     );
   }
 

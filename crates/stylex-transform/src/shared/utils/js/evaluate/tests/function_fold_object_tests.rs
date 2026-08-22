@@ -8,7 +8,10 @@
 //! transform test.
 
 use super::*;
-use crate::shared::structures::{functions::StylexWhenFn, types::FunctionConfigMap};
+use crate::shared::structures::{
+  functions::{FunctionConfigType, StylexWhenFn},
+  types::FunctionConfigMap,
+};
 
 /// A config that is a plain function upstream, standing for `keyframes`,
 /// `firstThatWorks` or `positionTry`. Which function it holds never reaches the
@@ -116,8 +119,11 @@ fn a_marker_config_carries_the_marker_names_and_not_the_wrapper_key() {
 #[test]
 fn a_map_carries_one_key_per_entry_and_each_entry_its_own_object() {
   let mut map = FunctionConfigMap::default();
-  map.insert("when".into(), marker_config());
-  map.insert("keyframes".into(), plain_config());
+  map.insert("when".into(), FunctionConfigType::Regular(marker_config()));
+  map.insert(
+    "keyframes".into(),
+    FunctionConfigType::Regular(plain_config()),
+  );
 
   let object = function_fold_to_object(&EvaluateResultValue::FunctionConfigMap(map))
     .expect("a function map has an object form");

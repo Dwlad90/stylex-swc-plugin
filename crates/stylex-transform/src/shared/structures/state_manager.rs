@@ -1,3 +1,4 @@
+use crate::transform::stylex::visitor_utils::insert_stylex_identifier_entry;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{option::Option, path::Path, rc::Rc, sync::Arc};
 use stylex_macros::{stylex_panic, stylex_unimplemented};
@@ -909,6 +910,39 @@ impl StateManager {
           Box::new(super::functions::FunctionConfigType::EnvObject(env.clone())),
         );
       }
+    }
+  }
+
+  /// Registers `env` as an entry of the namespace's own fold, which is the map
+  /// that answers what properties the namespace *has* — its own keys, a spread
+  /// of it, and the member read that walks it.
+  ///
+  /// Apart from [`Self::apply_stylex_env`], and called only where a `create`
+  /// call sets its evaluation up, because this is the one registration that
+  /// makes a *bare* namespace reference resolve. The other calls that build a
+  /// function map — `keyframes`, `positionTry`, `viewTransitionClass`,
+  /// `defineConsts` — deliberately leave the namespace name unregistered so a
+  /// bare `stylex` written where a static value belongs refuses rather than
+  /// materializing into an object and dropping the declaration silently. Adding
+  /// the entry there too flipped four of those refusals into silent drops.
+  ///
+  /// Registered whether or not the option is set. `env` is a key of the StyleX
+  /// namespace however the compiler is configured, so an unset option is
+  /// reported by the member step as the option being unset; an absent entry
+  /// would be reported as a property nobody can find and send an author looking
+  /// in their source. It is also what keeps the namespace's key list the same
+  /// list on every configuration.
+  pub(crate) fn register_env_in_namespace_fold(
+    &self,
+    identifiers: &mut super::types::FunctionMapIdentifiers,
+  ) {
+    for name in self.stylex_imports() {
+      insert_stylex_identifier_entry(
+        identifiers,
+        name,
+        STYLEX_ENV.into(),
+        super::functions::FunctionConfigType::EnvObject(self.options.env.clone()),
+      );
     }
   }
 

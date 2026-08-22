@@ -8,6 +8,7 @@
 //! depends on what a project generates, not on anything the compiler can know.
 
 use std::env;
+use std::sync::OnceLock;
 
 /// The ceiling when nothing configures one.
 ///
@@ -29,16 +30,26 @@ pub const MAX_EVALUATION_DEPTH_ENV: &str = "STYLEX_MAX_EVALUATION_DEPTH";
 
 /// The ceiling to use, given whatever the caller configured.
 ///
-/// Reads the environment on every call rather than caching it. Called once per
-/// options value rather than once per folded node, so the lookup does not show
-/// up -- and a cached answer would seal the environment's contribution behind
-/// whichever call happened first, which is exactly the reading that cannot then
-/// be tested.
+/// The environment is read once per process, not once per call. "Once per call"
+/// sounded free -- a lookup per options value rather than per folded node -- and
+/// it measured at about a microsecond per transform on a `node` process, whose
+/// environment `getenv` walks and string-compares entry by entry. That is a
+/// fixed cost on every file, so it showed up as roughly 3% on a small module and
+/// was invisible on a large one, which is exactly the shape of regression a
+/// benchmark corpus of small fixtures reports and a profile does not localize.
+///
+/// Caching it costs nothing a build can observe: the variable is read from the
+/// environment the process was started with, and nothing in a build mutates its
+/// own environment between files. What it does cost is that a test cannot set
+/// the variable and see the answer change -- which is why the rule below takes
+/// the value as an argument and is tested there, rather than through a
+/// process-global write that would leak into every other test in the binary.
 pub fn resolve_max_evaluation_depth(configured: Option<usize>) -> usize {
-  resolve_from(
-    configured,
-    env::var(MAX_EVALUATION_DEPTH_ENV).ok().as_deref(),
-  )
+  static FROM_ENV: OnceLock<Option<String>> = OnceLock::new();
+
+  let from_env = FROM_ENV.get_or_init(|| env::var(MAX_EVALUATION_DEPTH_ENV).ok());
+
+  resolve_from(configured, from_env.as_deref())
 }
 
 /// The precedence, with the environment passed in rather than read.
@@ -169,7 +180,8 @@ mod tests {
 
   // The public entry point reads the real environment, which this process does
   // not set, so it agrees with the same question asked without one. Present so
-  // the `env::var` line is executed rather than only reasoned about.
+  // the `env::var` line is executed rather than only reasoned about, and that the
+  // value it caches is the one a fresh read returns.
   #[test]
   fn the_public_resolver_reads_the_process_environment() {
     assert_eq!(

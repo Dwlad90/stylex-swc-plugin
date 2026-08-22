@@ -15,8 +15,8 @@ describe('loadAllFixtures', () => {
   const fixtures = loadAllFixtures({ packageDir, workspaceRoot });
 
   test('loads the complete versioned registry', () => {
-    expect(fixtures).toHaveLength(55);
-    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(55);
+    expect(fixtures).toHaveLength(62);
+    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(62);
   });
 
   // The runner refuses to time a subject that produces no rules, so a
@@ -87,11 +87,66 @@ describe('loadAllFixtures', () => {
     expect(overridden.length).toBeGreaterThan(0);
 
     for (const fixture of overridden) {
-      const resolved = fixtureStylexOptions(fixture, base);
+      // The whole declared map at once, rather than key by key: the claim is
+      // that the resolved options contain every override the fixture asked for,
+      // and asserting it this way needs no narrowing of a key read off the map.
+      expect(fixtureStylexOptions(fixture, base), fixture.name).toMatchObject(fixture.options!);
+    }
+  });
 
-      for (const [key, value] of Object.entries(fixture.options!)) {
-        expect(resolved[key as keyof typeof resolved], `${fixture.name}.${key}`).toBe(value);
-      }
+  // The assertion that makes a feature fixture worth having: the option shape it
+  // declares has to change what the compiler emits. Seven entries did not when
+  // this was written -- `enableMediaQueryOrder`, `legacyDisableLayers`,
+  // `propertyValidationMode: throw` and `treeshakeCompensation: false` changed
+  // not one byte on any fixture in the corpus, and a `(dev)` twin of a token file
+  // emitted the same module as its production run. Each was reported as a
+  // measurement of a development feature and was a second measurement of the
+  // production shape.
+  //
+  // Asserted against the real binding rather than against the option object,
+  // because the question is what the compiler does with the option, not whether
+  // the harness passed it along.
+  test('every option override changes what the compiler emits', async () => {
+    const { transform } = await import('../../dist/index.js');
+    const base = createStylexOptions(packageDir);
+
+    for (const fixture of fixtures) {
+      if (fixture.dev === undefined && fixture.options === undefined) continue;
+
+      const production = transform(fixture.filePath, fixture.code, base);
+      const shaped = transform(fixture.filePath, fixture.code, fixtureStylexOptions(fixture, base));
+
+      // The map is compared too, because `sourceMap` changes nothing else: the
+      // whole of its work lands in a field the emitted module does not carry.
+      expect(
+        shaped.code === production.code &&
+          JSON.stringify(shaped.metadata) === JSON.stringify(production.metadata) &&
+          JSON.stringify(shaped.map) === JSON.stringify(production.map),
+        `${fixture.name} emits exactly what its production run emits, so its ` +
+          `options price nothing`
+      ).toBe(false);
+    }
+  });
+
+  // The data prop is attached where styles are *read*, not where they are
+  // defined, so a fixture that only calls `create` cannot measure it however
+  // many debug options it names. That is how the first version of this corpus
+  // came to have two entries named for the data prop and no `stylex.props` call
+  // anywhere in it.
+  test('the data prop fixtures emit the data prop', async () => {
+    const { transform } = await import('../../dist/index.js');
+    const base = createStylexOptions(packageDir);
+    const named = fixtures.filter(fixture => fixture.name.includes('data prop'));
+
+    expect(named.length).toBeGreaterThan(0);
+
+    for (const fixture of named) {
+      const shaped = transform(fixture.filePath, fixture.code, fixtureStylexOptions(fixture, base));
+      const emitted = shaped.code
+        .split('\n')
+        .filter(line => line.includes('data-style-src') && !line.trimStart().startsWith('*'));
+
+      expect(emitted.length, fixture.name).toBeGreaterThan(0);
     }
   });
 

@@ -4,6 +4,10 @@
  * and numbers that do not, leading zeros, timing values, `calc` nesting, colour
  * functions old and new, gradients, `url()`, custom properties, `var()` with
  * fallbacks, content strings with escapes, and the font stacks that get quoted.
+ *
+ * The `fontSize` is spelled in pixels on purpose: it is what
+ * `enableFontSizePxToRem` converts, and a fixture registered for that option
+ * with no `px` font size in it would price the option at exactly nothing.
  */
 
 import * as stylex from '@stylexjs/stylex';
@@ -18,7 +22,7 @@ export const styles = stylex.create({
     transitionDuration: '0.25s',
     transitionDelay: '.5s',
     marginTop: '-0.5em',
-    fontSize: '1.0625rem',
+    fontSize: 17,
     letterSpacing: '.02em',
   },
   functions: {

@@ -98,6 +98,28 @@ are an allowlist in `benchmark/lib/types.ts`; a manifest naming anything else
 fails to load rather than being measured under the shared shape while claiming
 otherwise.
 
+**A fixture's options must change what the compiler emits.** `fixtures.test.ts`
+fails an entry whose emitted module, metadata and source map are identical to
+its production run, and that test found seven entries measuring nothing:
+`enableMediaQueryOrder`, `legacyDisableLayers`, `propertyValidationMode: throw`
+and `treeshakeCompensation: false` changed not one byte on any fixture in the
+corpus; `sourceMap: True` changed nothing, because this compiler emits a map in
+its production shape already; a `(dev)` twin of a token file emitted the same
+module as its production run; and `enableFontSizePxToRem` was pointed at a
+fixture whose only font size was already in `rem`. Each of them reported a
+development feature and measured the production shape. The allowlist in
+`benchmark/lib/types.ts` therefore holds only keys a fixture uses, and
+`aliases`, `definedStylexCssVariables` and `importSources` are absent for the
+same reason — the last one because it made the transform _faster_ by emitting
+less, which is the "fast because the work stopped happening" trap this file
+opens with.
+
+**The data prop is emitted where styles are read.** `data-style-src` needs a
+`stylex.props` or `stylex.attrs` call site; a fixture that only calls `create`
+cannot measure it however many debug options it names.
+`perf_fixtures/props-and-attrs.js` is that call site, and a test asserts the
+entries named for the data prop actually emit one.
+
 **Register a feature fixture in pairs.** One number for a development shape says
 nothing about what the feature costs; the pair does. A `Feature - x` entry and a
 `Feature - x (dev)` entry point at the same file and differ only in the option

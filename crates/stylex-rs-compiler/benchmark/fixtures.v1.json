@@ -321,29 +321,6 @@
       "batchSize": 1
     },
     {
-      "name": "Feature - token definitions (dev)",
-      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/tokens.stylex.js",
-      "category": "perf",
-      "weight": "standard",
-      "batchSize": 1,
-      "options": {
-        "dev": true
-      }
-    },
-    {
-      "name": "Feature - debug data prop and class names",
-      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/dynamic-styles.js",
-      "category": "perf",
-      "weight": "standard",
-      "batchSize": 1,
-      "options": {
-        "debug": true,
-        "enableDebugDataProp": true,
-        "enableDebugClassNames": true,
-        "enableDevClassNames": true
-      }
-    },
-    {
       "name": "Feature - debug annotations over many namespaces",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
       "category": "perf",
@@ -409,8 +386,49 @@
       }
     },
     {
+      "name": "Feature - props and attrs",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - props and attrs (dev)",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true
+      }
+    },
+    {
+      "name": "Feature - debug data prop",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "debug": true,
+        "enableDebugDataProp": true
+      }
+    },
+    {
+      "name": "Feature - debug and dev class names",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true,
+        "debug": true,
+        "enableDebugClassNames": true,
+        "enableDevClassNames": true
+      }
+    },
+    {
       "name": "Feature - inlined conditional merge off",
-      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
       "category": "perf",
       "weight": "standard",
       "batchSize": 1,
@@ -419,43 +437,98 @@
       }
     },
     {
-      "name": "Feature - media query ordering",
-      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/media-queries.js",
+      "name": "Feature - runtime injection",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
       "category": "perf",
       "weight": "standard",
       "batchSize": 1,
       "options": {
-        "enableMediaQueryOrder": true
+        "runtimeInjection": true
       }
     },
     {
-      "name": "Feature - layers disabled",
+      "name": "Feature - readable test class names",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
       "category": "perf",
       "weight": "standard",
       "batchSize": 1,
       "options": {
-        "legacyDisableLayers": true
+        "test": true
       }
     },
     {
-      "name": "Feature - property validation throws",
-      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/css-values.js",
-      "category": "perf",
-      "weight": "standard",
-      "batchSize": 1,
-      "options": {
-        "propertyValidationMode": "throw"
-      }
-    },
-    {
-      "name": "Feature - treeshake compensation off",
+      "name": "Feature - stylex side effects injected",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/theme-tokens.js",
       "category": "perf",
       "weight": "standard",
       "batchSize": 1,
       "options": {
-        "treeshakeCompensation": false
+        "injectStylexSideEffects": true
+      }
+    },
+    {
+      "name": "Feature - source maps inline",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "sourceMap": "Inline"
+      }
+    },
+    {
+      "name": "Feature - source maps without columns",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "sourceMap": "True",
+        "emitSourceMapColumns": false
+      }
+    },
+    {
+      "name": "Feature - source maps without source text",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "sourceMap": "True",
+        "inlineSourcesContent": false
+      }
+    },
+    {
+      "name": "Feature - chained input source map",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true,
+        "inputSourceMapFrom": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.input.map.json"
+      }
+    },
+    {
+      "name": "Feature - chained input source map with output map",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true,
+        "sourceMap": "True",
+        "inputSourceMapFrom": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.input.map.json"
+      }
+    },
+    {
+      "name": "Feature - class name prefix",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "classNamePrefix": "bench-"
       }
     }
   ]

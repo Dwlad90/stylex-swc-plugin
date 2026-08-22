@@ -24,7 +24,7 @@ import path from 'node:path';
 
 import {
   BOOLEAN_OPTION_KEYS,
-  PROPERTY_VALIDATION_MODES,
+  SOURCE_MAP_SETTINGS,
   STYLE_RESOLUTIONS,
   type BooleanOptionKey,
   type FixtureCategory,
@@ -45,6 +45,9 @@ export interface LoadFixturesOptions extends FixtureRegistryPaths {
   filter?: readonly string[];
 }
 
+/** The manifest key that names a file whose contents become `inputSourceMap`. */
+const INPUT_SOURCE_MAP_KEY = 'inputSourceMapFrom';
+
 interface FixtureManifestEntry {
   name: string;
   file: string;
@@ -62,7 +65,7 @@ export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor
       : (['transform', 'perf', 'rollup'] as const)
   );
 
-  const all = loadManifest(options.packageDir)
+  const all = loadManifest(options.packageDir, options.workspaceRoot)
     .filter(fixture => requested.has(fixture.category))
     .map(fixture => {
       const filePath = path.join(options.workspaceRoot, fixture.file);
@@ -88,14 +91,16 @@ export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor
   return all.filter(fixture => options.filter!.some(needle => fixture.name.includes(needle)));
 }
 
-function loadManifest(packageDir: string): readonly FixtureManifestEntry[] {
+function loadManifest(packageDir: string, workspaceRoot: string): readonly FixtureManifestEntry[] {
   const manifestPath = path.join(packageDir, 'benchmark', 'fixtures.v1.json');
   const input = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as unknown;
   if (!isRecord(input) || input.schemaVersion !== 1 || !Array.isArray(input.fixtures)) {
     throw new Error('Benchmark fixture manifest must use schema version 1');
   }
 
-  const fixtures = input.fixtures.map((fixture, index) => parseManifestEntry(fixture, index));
+  const fixtures = input.fixtures.map((fixture, index) =>
+    parseManifestEntry(fixture, index, workspaceRoot)
+  );
   if (
     fixtures.length === 0 ||
     new Set(fixtures.map(fixture => fixture.name)).size !== fixtures.length
@@ -105,7 +110,11 @@ function loadManifest(packageDir: string): readonly FixtureManifestEntry[] {
   return fixtures;
 }
 
-function parseManifestEntry(input: unknown, index: number): FixtureManifestEntry {
+function parseManifestEntry(
+  input: unknown,
+  index: number,
+  workspaceRoot: string
+): FixtureManifestEntry {
   const context = `Benchmark fixture manifest entry ${String(index)}`;
   if (!isRecord(input)) throw new Error(`${context} must be an object`);
   if (typeof input.name !== 'string' || input.name.length === 0) {
@@ -147,7 +156,7 @@ function parseManifestEntry(input: unknown, index: number): FixtureManifestEntry
   // become an own `dev: undefined` property.
   if (input.dev !== undefined) entry.dev = input.dev;
   if (input.options !== undefined) {
-    entry.options = parseOptionOverrides(input.options, `${context}.options`);
+    entry.options = parseOptionOverrides(input.options, `${context}.options`, workspaceRoot);
   }
 
   return entry;
@@ -161,7 +170,11 @@ function parseManifestEntry(input: unknown, index: number): FixtureManifestEntry
  * while claiming to price the debug one, and the number it reports would look
  * entirely reasonable.
  */
-function parseOptionOverrides(input: unknown, context: string): FixtureOptionOverrides {
+function parseOptionOverrides(
+  input: unknown,
+  context: string,
+  workspaceRoot: string
+): FixtureOptionOverrides {
   if (!isRecord(input)) throw new Error(`${context} must be an object`);
 
   const overrides: FixtureOptionOverrides = {};
@@ -175,23 +188,40 @@ function parseOptionOverrides(input: unknown, context: string): FixtureOptionOve
       continue;
     }
 
-    // The two enum-valued keys are spelled out, because each has its own set of
-    // accepted values and a shared branch could not say which.
+    // The keys whose value is not a boolean are spelled out rather than
+    // tabulated, because a table would have to hold each one's accepted values
+    // against a key whose value type differs from every other key's.
     if (key === 'styleResolution') {
       overrides.styleResolution = requireOneOf(value, STYLE_RESOLUTIONS, `${context}.${key}`);
       continue;
     }
-    if (key === 'propertyValidationMode') {
-      overrides.propertyValidationMode = requireOneOf(
-        value,
-        PROPERTY_VALIDATION_MODES,
-        `${context}.${key}`
-      );
+    if (key === 'sourceMap') {
+      overrides.sourceMap = requireSourceMapSetting(value, `${context}.${key}`);
+      continue;
+    }
+    // Named for the file it reads, not for the option it fills, because that is
+    // what the manifest actually holds -- and a reader who greps for
+    // `inputSourceMap` should land on this branch rather than wonder where a
+    // whole source map came from.
+    if (key === INPUT_SOURCE_MAP_KEY) {
+      if (typeof value !== 'string' || value.length === 0) {
+        throw new Error(`${context}.${key} must be a relative path to a source map`);
+      }
+      overrides.inputSourceMap = readInputSourceMap(value, workspaceRoot, `${context}.${key}`);
+      continue;
+    }
+    if (key === 'classNamePrefix') {
+      if (typeof value !== 'string' || value.length === 0) {
+        throw new Error(`${context}.${key} must be a non-empty string`);
+      }
+      overrides.classNamePrefix = value;
       continue;
     }
 
     throw new Error(
-      `${context}.${key} is not a benchmarkable option — add it to BOOLEAN_OPTION_KEYS if it should be`
+      `${context}.${key} is not a benchmarkable option — the accepted keys are ` +
+        `${BOOLEAN_OPTION_KEYS.join(', ')}, styleResolution, sourceMap, ` +
+        `classNamePrefix, ${INPUT_SOURCE_MAP_KEY}`
     );
   }
 
@@ -203,6 +233,44 @@ function isBooleanOptionKey(key: string): key is BooleanOptionKey {
   // caller only ever indexes with a key this returned true for.
   const keys: readonly string[] = BOOLEAN_OPTION_KEYS;
   return keys.includes(key);
+}
+
+/**
+ * `value` narrowed onto the type `sourceMap` takes, or an error.
+ *
+ * A predicate rather than an assertion, for the reason `SOURCE_MAP_SETTINGS`
+ * gives: the type is an ambient `const enum` this module cannot name a member
+ * of, and the strings below are what the napi boundary actually receives.
+ */
+function requireSourceMapSetting(
+  value: unknown,
+  context: string
+): NonNullable<FixtureOptionOverrides['sourceMap']> {
+  if (!isSourceMapSetting(value)) {
+    throw new Error(`${context} must be one of ${SOURCE_MAP_SETTINGS.join(', ')}`);
+  }
+
+  return value;
+}
+
+/**
+ * The contents of a committed source map, read as the string the transform
+ * expects. Relative to the workspace root, like every other path a fixture
+ * entry names, and refused if it is absolute or climbs out.
+ */
+function readInputSourceMap(file: string, workspaceRoot: string, context: string): string {
+  if (path.isAbsolute(file) || file.split(/[\\/]/).includes('..')) {
+    throw new Error(`${context} must be a relative path inside the workspace`);
+  }
+
+  return fs.readFileSync(path.join(workspaceRoot, file), 'utf8');
+}
+
+function isSourceMapSetting(
+  value: unknown
+): value is NonNullable<FixtureOptionOverrides['sourceMap']> {
+  const settings: readonly string[] = SOURCE_MAP_SETTINGS;
+  return typeof value === 'string' && settings.includes(value);
 }
 
 /** `value` when it is one of `accepted`, else an error naming what was allowed. */

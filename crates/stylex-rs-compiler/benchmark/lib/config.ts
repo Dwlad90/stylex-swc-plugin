@@ -37,8 +37,8 @@ export function createStylexOptions(packageDir: string): StyleXOptions {
 }
 
 /**
- * `options` as one fixture is measured under, applying its own `dev` override
- * when it declares one.
+ * `options` as one fixture is measured under, with whatever the fixture itself
+ * declares applied over them.
  *
  * Used by the runner for both the sanity check and the timed run, so a
  * fixture cannot be validated under one configuration and timed under

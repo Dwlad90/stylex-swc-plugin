@@ -8,6 +8,8 @@
  * Bump `RAW_STATS_SCHEMA_VERSION` on any breaking change to the shape below.
  */
 
+import type { StyleXOptions } from '../../dist/index.js';
+
 export const RAW_STATS_SCHEMA_VERSION = 1 as const;
 
 export type FixtureWeight = 'standard' | 'heavy';
@@ -22,12 +24,16 @@ export type FixtureCategory = 'transform' | 'perf' | 'rollup';
  * a key here when a fixture needs it, and the loader will start accepting it.
  *
  * Everything here is a *development or compatibility* feature — the work a
- * production build does not do. That is what these exist to price.
+ * production build does not do — and every key is used by a fixture. Both halves
+ * are load-bearing: a key nothing uses is an option nobody has shown this
+ * compiler even reacts to, and four of them turned out not to change a byte of
+ * output on any fixture in the corpus. `fixtures.test.ts` fails an entry whose
+ * options leave the emitted module identical to its production run, which is how
+ * that was found.
  */
 export const BOOLEAN_OPTION_KEYS = [
   'dev',
   'debug',
-  'test',
   'enableDebugClassNames',
   'enableDebugDataProp',
   'enableDevClassNames',
@@ -37,15 +43,28 @@ export const BOOLEAN_OPTION_KEYS = [
   'enableLogicalStylesPolyfill',
   'enableLegacyValueFlipping',
   'enableLTRRTLComments',
-  'enableMediaQueryOrder',
-  'legacyDisableLayers',
   'useRealFileForSource',
-  'treeshakeCompensation',
+  'runtimeInjection',
+  'injectStylexSideEffects',
+  'test',
   'inlineSourcesContent',
   'emitSourceMapColumns',
 ] as const;
 
 export type BooleanOptionKey = (typeof BOOLEAN_OPTION_KEYS)[number];
+
+/**
+ * The three settings `sourceMap` accepts, spelled as the strings that *are* its
+ * runtime representation.
+ *
+ * The generated typings declare `SourceMaps` as an ambient `const enum`, and
+ * `isolatedModules` forbids referencing one of its members as a value — so the
+ * enum cannot be constructed here at all. What can be done, and is, is to narrow
+ * a string from the manifest onto that type with a predicate: the napi boundary
+ * passes these through as strings, which `Feature - source maps` measures
+ * end to end, so the narrowing is checked by a benchmark rather than assumed.
+ */
+export const SOURCE_MAP_SETTINGS = ['True', 'False', 'Inline'] as const;
 
 export const STYLE_RESOLUTIONS = [
   'application-order',
@@ -53,20 +72,24 @@ export const STYLE_RESOLUTIONS = [
   'legacy-expand-shorthands',
 ] as const;
 
-export const PROPERTY_VALIDATION_MODES = ['throw', 'warn', 'silent'] as const;
-
-/**
- * A fixture's own measurement conditions, as the manifest declares them.
- *
- * `sourceMap` is deliberately absent: the generated typings spell it as a
- * `const enum`, whose members cannot be constructed from a JSON string without
- * asserting a type nobody checked. A fixture that needs source-map emission
- * priced wants that enum plumbed properly first.
- */
+/** A fixture's own measurement conditions, as the manifest declares them. */
 export type FixtureOptionOverrides = Partial<
   Record<BooleanOptionKey, boolean> & {
     styleResolution: (typeof STYLE_RESOLUTIONS)[number];
-    propertyValidationMode: (typeof PROPERTY_VALIDATION_MODES)[number];
+    sourceMap: NonNullable<StyleXOptions['sourceMap']>;
+    classNamePrefix: string;
+    /**
+     * A source map produced by earlier tooling, which the transform chains its
+     * own annotations onto. Declared in the manifest as `inputSourceMapFrom`, a
+     * path to a committed `.map.json`, and read into this field by the loader:
+     * the map is data too large and too derived to inline into a fixture entry,
+     * and too load-bearing to leave to whatever happens to be on disk.
+     *
+     * A map that no longer matches its fixture is ignored by the transform with
+     * a warning, which the "every option override changes what the compiler
+     * emits" test then fails — so a stale map cannot sit here quietly.
+     */
+    inputSourceMap: string;
   }
 >;
 

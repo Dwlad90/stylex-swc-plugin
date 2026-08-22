@@ -108,19 +108,18 @@ describe('the option overrides', () => {
       enableDebugClassNames: false,
       enableMinifiedKeys: false,
       useRealFileForSource: true,
-      treeshakeCompensation: false,
+      runtimeInjection: true,
+      injectStylexSideEffects: true,
+      test: true,
     };
 
     expect(load(withEntry({ options }))[0]?.options).toEqual(options);
   });
 
-  test('loads the two enum-valued keys', () => {
+  test('loads the enum-valued key', () => {
     expect(
       load(withEntry({ options: { styleResolution: 'legacy-expand-shorthands' } }))[0]?.options
     ).toEqual({ styleResolution: 'legacy-expand-shorthands' });
-    expect(load(withEntry({ options: { propertyValidationMode: 'throw' } }))[0]?.options).toEqual({
-      propertyValidationMode: 'throw',
-    });
   });
 
   test('stays absent when the manifest does not mention it', () => {
@@ -154,8 +153,18 @@ describe('the option overrides', () => {
     expect(() => load(withEntry({ options: { styleResolution: 'application' } }))).toThrow(
       /must be one of application-order, property-specificity, legacy-expand-shorthands/
     );
-    expect(() => load(withEntry({ options: { propertyValidationMode: 'quiet' } }))).toThrow(
-      /must be one of throw, warn, silent/
+  });
+
+  // A key the compiler knows but no fixture uses is not accepted: an option this
+  // corpus has never shown the compiler reacting to has no business arriving
+  // through a manifest, and four such keys were removed after they turned out to
+  // change nothing. `fixtures.test.ts` is the other half of that rule.
+  test('refuses a real StyleX option the allowlist leaves out', () => {
+    expect(() => load(withEntry({ options: { propertyValidationMode: 'throw' } }))).toThrow(
+      /propertyValidationMode is not a benchmarkable option/
+    );
+    expect(() => load(withEntry({ options: { legacyDisableLayers: true } }))).toThrow(
+      /legacyDisableLayers is not a benchmarkable option/
     );
   });
 

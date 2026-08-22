@@ -549,21 +549,58 @@ Errors are color-coded for readability:
 | Unimplemented feature      | `[UNIMPLEMENTED]` | Magenta label |
 | Internal unreachable state | `[UNREACHABLE]`   | Blue label    |
 
+## Class names that moved
+
+A class name is a hash of the dashed property, the value, and the _modifier_
+string — the sorted pseudo keys joined, then the sorted at-rules joined. Two
+changes in this release correct how that pseudo list is sorted, so some class
+names differ from the previous release. They now agree with
+`@stylexjs/babel-plugin` 0.19.0, which is the point: markup built by one
+compiler named a class the other's stylesheet never defined.
+
+**Who is affected.** Only styles whose sorted pseudo list changes:
+
+- **Three or more pseudo keys in one run**, nested in an order that is not
+  already alphabetical. The sort used to close a run once it held a pair, so a
+  third key was appended after an already-sorted pair instead of joining the
+  sort. Two keys agreed from either nesting order, which is why nothing caught
+  this earlier. `:hover > :focus > :active` named a different class before and
+  names `x12rlomf` now, from any of the six nesting orders.
+- **Two or more keys whose order differs between byte order and collation
+  order.** The comparator used raw bytes and now reproduces `localeCompare`, so
+  keys are weighed with symbols below digits below letters, and letters weighed
+  without their case, whatever their bytes. Real pseudo-classes are lowercase
+  ASCII words and sort the same either way; an attribute selector such as
+  `[data-B]` beside `[data-a]` does not.
+
+Everything else — a single pseudo key, two lowercase pseudo-classes, a plain
+declaration, an at-rule — hashes exactly as it did.
+
+**What to do.** Nothing, if your CSS is generated at build time and shipped
+together with the markup that references it. If any of these are true, rebuild
+and re-publish both halves together:
+
+- extracted CSS committed to the repository or cached on a CDN separately from
+  the JS bundle
+- snapshot tests asserting class names or rule text
+- visual-regression baselines — rerun `test:visual` and accept the diffs
+
 ## Deliberate divergences from `@stylexjs/babel-plugin`
 
-Four values that upstream accepts are rejected here. Each rejection changes only
+Five values that upstream accepts are rejected here. Each rejection changes only
 _which programs compile_, never the bytes of an accepted one — so none of them
 can move a class name, which is the compatibility contract that matters. They
 are listed here because until now they lived only in module docstrings, and a
 build that fails on a value the reference compiler accepts is the kind of
 surprise worth being able to look up.
 
-| Rejected                                                                 | Upstream              | Why                                                                                                                                                                                                 |
-| ------------------------------------------------------------------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `var(foo)` — a custom-property reference with no `--` prefix             | emits it verbatim     | It resolves to nothing in a browser, with no diagnostic from anywhere. The rejection names the reference. Only top-level references are checked.                                                    |
-| A value carrying an unterminated `/*` comment                            | emits it              | The scanner invents the missing terminator, so the declaration would silently swallow whatever followed.                                                                                            |
-| A `{`, `}` or `;` outside a string or comment in a custom-property value | emits it              | The same swallowing problem, one level up: the declaration would absorb the rest of the rule.                                                                                                       |
-| A value nested more than 64 levels deep                                  | throws a `RangeError` | Spelling and dropping a token tree recurse, so past some depth the process aborts with no diagnostic at all. 64 is far above any real value and the failure is a named message rather than a crash. |
+| Rejected                                                                               | Upstream                         | Why                                                                                                                                                                                                                                                       |
+| -------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `var(foo)` — a custom-property reference with no `--` prefix                           | emits it verbatim                | It resolves to nothing in a browser, with no diagnostic from anywhere. The rejection names the reference. Only top-level references are checked.                                                                                                          |
+| A value carrying an unterminated `/*` comment                                          | emits it                         | The scanner invents the missing terminator, so the declaration would silently swallow whatever followed.                                                                                                                                                  |
+| A `{`, `}` or `;` outside a string or comment in a custom-property value               | emits it                         | The same swallowing problem, one level up: the declaration would absorb the rest of the rule.                                                                                                                                                             |
+| A value nested more than 64 levels deep                                                | throws a `RangeError`            | Spelling and dropping a token tree recurse, so past some depth the process aborts with no diagnostic at all. 64 is far above any real value and the failure is a named message rather than a crash.                                                       |
+| An expression nested more than [`maxEvaluationDepth`](#maxevaluationdepth) levels deep | folds until the JS engine throws | The fold recurses, and upstream's only bound is the interpreter stack — whose failure is a process abort with no file, no message and no chance to finish the build. The default is sized for authored styles; a generated token file can need it raised. |
 
 ### A TypeScript module reads an unreferenced import as a type
 

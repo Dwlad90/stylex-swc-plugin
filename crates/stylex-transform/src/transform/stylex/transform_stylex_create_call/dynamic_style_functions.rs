@@ -58,7 +58,7 @@ fn class_names_for_prop(
     let expr = if expr.is_none() && !nullish_var_expressions.is_empty() {
       injected_styles
         .get(cls.as_str())
-        .and_then(|style| extract_expr_from_rule(style.rule_text(), &nullish_var_expressions))
+        .and_then(|style| extract_expr_from_rule(style.rule_text(), nullish_var_expressions))
     } else {
       expr
     };
@@ -84,7 +84,7 @@ fn class_names_for_prop(
       .into_iter()
       .reduce(|acc, curr| create_bin_expr(BinaryOp::Add, acc, curr))
       .unwrap_or_else(|| {
-        { stylex_panic!("Expected at least one expression to reduce in class name concatenation.") }
+        stylex_panic!("Expected at least one expression to reduce in class name concatenation.")
       })
   };
 

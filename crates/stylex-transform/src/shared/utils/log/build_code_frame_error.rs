@@ -305,6 +305,13 @@ fn get_span_from_source_code_impl(
 /// because a refusal is not always the end of a build: a dynamic style's value
 /// falls through to an inline style, and a later diagnostic about something else
 /// must not be pointed at this binding.
+///
+/// The key is [`compute_cache_key`], which hashes the expression *including its
+/// span* -- so what reaches the frame has to be the node the refusal was raised
+/// on, and not a copy of it. It is: a refusal stores the expression on the
+/// evaluation state and every caller hands that same value to the frame. A
+/// mismatch is not silent corruption but a silent no-op, and the diagnostic
+/// falls back to naming the read, which is what it named before any of this.
 pub(crate) fn frame_declaration_of(name: &Atom, fault_expression: &Expr, state: &mut StateManager) {
   state.frame_declaration(compute_cache_key(fault_expression), name.clone());
 }

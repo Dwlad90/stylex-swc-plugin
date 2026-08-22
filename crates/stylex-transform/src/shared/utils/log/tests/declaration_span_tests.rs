@@ -443,3 +443,62 @@ fn an_empty_name_declares_nothing() {
 fn a_reserved_word_declares_nothing() {
   declares_nothing("const holder = { class: 1 };\n", "class");
 }
+
+/// The inner declaration written *first*: the chain resolves bindings
+/// module-wide, so the module-level binding is the one a refusal is about, and
+/// framing a block-scoped namesake that happens to come earlier in the file
+/// would send the reader to a declaration the refusal was never about.
+#[test]
+fn a_module_level_declaration_wins_over_an_earlier_block_scoped_namesake() {
+  let source = "\
+function unrelated() {
+  const c = 'blue';
+  return c;
+}
+const c = 'red';
+";
+
+  assert_eq!(declaration_line(source, "c"), 5);
+}
+
+/// The module's own binding is preferred whichever shape declares it, so each
+/// way a module can bind a name is asked with an inner namesake written above it.
+#[test]
+fn every_module_level_shape_wins_over_an_inner_namesake() {
+  let inner = "function unrelated() { const c = 'blue'; return c; }\n";
+
+  for (module_level, expected) in [
+    ("const c = 'red';\n", "c = 'red'"),
+    ("export const c = 'red';\n", "c = 'red'"),
+    ("function c() {}\n", "function c() {}"),
+    ("export function c() {}\n", "function c() {}"),
+    ("class c {}\n", "class c {}"),
+    ("export default function c() {}\n", "function c() {}"),
+    ("import { c } from './vars.stylex.js';\n", "c"),
+    ("import c from './vars.stylex.js';\n", "c"),
+    ("import * as c from './vars.stylex.js';\n", "* as c"),
+    ("const { c } = theme;\n", "{ c } = theme"),
+  ] {
+    let source = format!("{inner}{module_level}");
+
+    assert_eq!(
+      declaration_text(&source, "c"),
+      expected,
+      "the module-level declaration must win in:\n{source}"
+    );
+  }
+}
+
+/// With nothing at module level, the nested declaration is still the answer —
+/// the preference is an ordering, not a filter.
+#[test]
+fn a_nested_declaration_is_still_found_when_the_module_declares_nothing() {
+  let source = "\
+function unrelated() {
+  const c = 'blue';
+  return c;
+}
+";
+
+  assert_eq!(declaration_line(source, "c"), 2);
+}

@@ -10,26 +10,21 @@
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 import * as babel from '@babel/core';
-import stylexBabelPluginModule from '@stylexjs/babel-plugin';
 
 import type { StyleXOptions } from '../../dist/index.js';
-import { arrayAt, isRecord, stringAt } from './guards.js';
+import { baseStyleXOptions, loadBabelPlugin, loadRustCompiler, messageOf } from './compilers.js';
+import { arrayAt, stringAt } from './guards.js';
 import { refusalSentence } from './refusal.js';
 import { SEPARATOR } from './separator.js';
 import { styleObjectsOf } from './style-object.js';
 import { moduleFor } from './subject.js';
 import type { CompilerOutcome, LoadedCorpusEntry, ReportEntry, Verdict } from './types.js';
 
+// `resolveManifest` below reads a package's manifest by resolution rather than
+// by path, which needs CommonJS resolution from this module's own location.
 const require = createRequire(import.meta.url);
-
-type TransformFn = (
-  filename: string,
-  code: string,
-  options: StyleXOptions
-) => { metadata: { stylex: unknown[] }; code: string };
 
 export interface SubjectVersions {
   rust: { version: string; resolvedFrom: string };
@@ -64,33 +59,12 @@ export interface CreateComparerOptions {
 export async function createComparer(options: CreateComparerOptions): Promise<Comparer> {
   const { packageDir } = options;
 
-  const distEntry = path.join(packageDir, 'dist/index.js');
-  const loaded: unknown = await import(pathToFileURL(distEntry).href);
-  const transform = isRecord(loaded) ? loaded.transform : undefined;
-  if (!isTransform(transform)) {
-    throw new Error(
-      `${distEntry} does not export a transform function — run \`pnpm build\` in this package first.`
-    );
-  }
+  const { transform, distEntry } = await loadRustCompiler(packageDir);
+  const { plugin: stylexBabelPlugin, pluginEntry: babelPluginEntry } = loadBabelPlugin();
 
-  // The plugin is published both as a default export and as the module object
-  // itself, depending on how the consumer resolves it; either is accepted.
-  const pluginModule: unknown = stylexBabelPluginModule;
-  const stylexBabelPlugin =
-    (isRecord(pluginModule) ? pluginModule.default : undefined) ?? pluginModule;
-  if (!isPluginTarget(stylexBabelPlugin)) {
-    throw new Error('@stylexjs/babel-plugin did not export a Babel plugin function');
-  }
-
-  const babelPluginEntry = require.resolve('@stylexjs/babel-plugin');
-
-  // `haste` module resolution keeps both compilers from needing a real
-  // node_modules layout for the fixture, and `dev: false` keeps debug class
-  // names — which encode a file path — out of the comparison.
   const stylexOptions: StyleXOptions = {
-    dev: false,
+    ...baseStyleXOptions(packageDir),
     enableFontSizePxToRem: options.enableFontSizePxToRem,
-    unstable_moduleResolution: { type: 'haste', rootDir: packageDir },
   };
 
   // A fixed filename: `haste` resolution and class hashing both read it, so
@@ -200,11 +174,6 @@ function declarationOf(rule: string): string {
   return rule.slice(open + 1, close);
 }
 
-function messageOf(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
-}
-
 function verdictFor(rust: CompilerOutcome, babelOutcome: CompilerOutcome): Verdict {
   // Two refusals are compared by what they complain about, not only by the
   // fact of refusing: an author whose build stops reads the message, so two
@@ -309,12 +278,4 @@ function readVersion(manifestPath: string): string {
   } catch {
     return 'unknown';
   }
-}
-
-function isTransform(value: unknown): value is TransformFn {
-  return typeof value === 'function';
-}
-
-function isPluginTarget(value: unknown): value is babel.PluginTarget {
-  return typeof value === 'function';
 }

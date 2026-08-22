@@ -17,12 +17,12 @@ use super::*;
 
 use swc_core::atoms::Atom;
 use swc_core::common::{BytePos, DUMMY_SP, GLOBALS, Globals, Span, SyntaxContext};
-
-use crate::shared::utils::log::build_code_frame_error::framed_declaration_of;
 use swc_core::ecma::ast::{
   BindingIdent, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
   ImportSpecifier, ImportStarAsSpecifier, ModuleExportName, Str,
 };
+
+use crate::shared::utils::log::build_code_frame_error::framed_declaration_of;
 
 use stylex_constants::constants::evaluation_errors::{
   IMPORT_FILE_EVAL_ERROR, IMPORT_PATH_RESOLUTION_ERROR, NON_CONSTANT, UNDEFINED_CONST,

@@ -30,16 +30,84 @@ use swc_core::{
 /// `let` / `const`, the whole declaration for a hoisted `function` or `class`,
 /// and the local specifier for an import.
 ///
-/// The *first* declaration in source order wins. A name declared twice is a name
-/// shadowed in an inner scope, and this chain resolves bindings module-wide with
-/// no scope of its own — so there is no second binding for it to prefer, and
-/// picking the outer one keeps the answer the same whichever reference asked.
+/// A **module-level** declaration wins over one nested inside a function or a
+/// block, whichever comes first in the file. The chain that raised the refusal
+/// resolves bindings module-wide with no scope of its own, so the module's own
+/// binding is the one it read — and framing an inner namesake that happens to be
+/// written earlier would send the reader to a declaration the refusal was never
+/// about. Among declarations at the same level the first in source order wins,
+/// which is the only order a module-wide resolution can be said to have.
 pub(crate) fn find_declaration_span(module: &Module, name: &Atom) -> Span {
+  if let Some(span) = module_level_declaration(module, name) {
+    return span;
+  }
+
   let mut finder = DeclarationFinder { name, found: None };
 
   module.visit_with(&mut finder);
 
   finder.found.unwrap_or(DUMMY_SP)
+}
+
+/// The declaration of `name` among the module's *own* statements, without
+/// descending into anything that opens a scope.
+///
+/// Spelled as a walk over `module.body` rather than as a mode on the visitor,
+/// because the question is about the shape of a module and not about a node:
+/// these are the four ways a module binds a name, and reading them in one place
+/// is what says so.
+fn module_level_declaration(module: &Module, name: &Atom) -> Option<Span> {
+  module.body.iter().find_map(|item| match item {
+    ModuleItem::Stmt(Stmt::Decl(declaration)) => declared_by(declaration, name),
+    ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(export)) => declared_by(&export.decl, name),
+    ModuleItem::ModuleDecl(ModuleDecl::Import(import)) => import
+      .specifiers
+      .iter()
+      .find_map(|specifier| import_specifier_declaring(specifier, name)),
+    // `export default function f() {}` binds `f` as well as exporting it.
+    ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultDecl(export)) => match &export.decl {
+      DefaultDecl::Fn(function) => {
+        named_span(function.ident.as_ref(), function.function.span, name)
+      },
+      DefaultDecl::Class(class) => named_span(class.ident.as_ref(), class.class.span, name),
+      DefaultDecl::TsInterfaceDecl(_) => None,
+    },
+    _ => None,
+  })
+}
+
+/// The span within `declaration` that binds `name`, if it binds it at all.
+fn declared_by(declaration: &Decl, name: &Atom) -> Option<Span> {
+  match declaration {
+    Decl::Var(variable) => variable
+      .decls
+      .iter()
+      .find(|declarator| binds_name(&declarator.name, name))
+      .map(|declarator| declarator.span),
+    Decl::Fn(function) => (&function.ident.sym == name).then_some(function.function.span),
+    Decl::Class(class) => (&class.ident.sym == name).then_some(class.class.span),
+    // A type, an interface, an enum or a `using` declaration. None of the first
+    // three binds a value; a `using` binding is left to the walk below, which
+    // reaches it as a binding identifier.
+    _ => None,
+  }
+}
+
+/// The specifier of an `import` statement that binds `name` locally.
+fn import_specifier_declaring(specifier: &ImportSpecifier, name: &Atom) -> Option<Span> {
+  let (local, span) = match specifier {
+    ImportSpecifier::Named(named) => (&named.local, named.span),
+    ImportSpecifier::Default(default) => (&default.local, default.span),
+    ImportSpecifier::Namespace(namespace) => (&namespace.local, namespace.span),
+  };
+
+  (&local.sym == name).then_some(span)
+}
+
+/// `span`, if `ident` is `name` — the `export default` arms' shared shape, where
+/// the name is optional and the span belongs to the declaration around it.
+fn named_span(ident: Option<&Ident>, span: Span, name: &Atom) -> Option<Span> {
+  ident.filter(|ident| &ident.sym == name).map(|_| span)
 }
 
 /// The first node that declares `name`, if the walk has reached one.

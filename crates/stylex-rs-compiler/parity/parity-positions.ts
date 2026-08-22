@@ -23,15 +23,20 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import * as babel from '@babel/core';
-import stylexBabelPluginModule from '@stylexjs/babel-plugin';
 import chalk from 'chalk';
 
 import type { StyleXOptions } from '../dist/index.js';
-import { isRecord } from './lib/guards.js';
+import {
+  baseStyleXOptions,
+  loadBabelPlugin,
+  loadRustCompiler,
+  messageOf,
+} from './lib/compilers.js';
+import { arrayAt, isRecord, stringAt } from './lib/guards.js';
 import {
   babelPosition,
   formatPosition,
@@ -56,14 +61,13 @@ const corpusPath = path.join(parityDir, 'corpus/positions.json');
 const FIXTURE = path.join(packageDir, 'parity/__fixture__/positions.js');
 
 /**
- * Handed identically to both compilers, and the same shape the value harness
- * uses: `haste` resolution so neither needs a `node_modules` layout beside the
- * fixture, and `dev: false` so no debug annotation reads a path.
+ * Handed identically to both compilers: the shared base every harness compiles
+ * with, plus `runtimeInjection: false`, since a refusal is reached before
+ * anything would be injected.
  */
 const STYLEX_OPTIONS: StyleXOptions = {
-  dev: false,
+  ...baseStyleXOptions(packageDir),
   runtimeInjection: false,
-  unstable_moduleResolution: { type: 'haste', rootDir: packageDir },
 };
 
 interface PositionEntry {
@@ -113,29 +117,75 @@ Options:
   process.exit(0);
 }
 
+/**
+ * The corpus, narrowed rather than asserted — the trade `lib/corpus.ts` makes
+ * for the value sets: an entry missing a field fails here, naming the file,
+ * instead of surfacing mid-run as a subject that is not there.
+ */
 function loadEntries(): PositionEntry[] {
   const raw: unknown = JSON.parse(fs.readFileSync(corpusPath, 'utf8'));
-  if (typeof raw !== 'object' || raw === null || !Array.isArray((raw as PositionSet).entries)) {
+  const entries = arrayAt(raw, 'entries');
+  if (stringAt(raw, 'set') === undefined || entries === undefined) {
     throw new Error(
       `Corpus file malformed: ${corpusPath} — expected { set, description, entries }`
     );
   }
 
-  return (raw as PositionSet).entries;
+  return entries.map((entry, index) => positionEntryFrom(entry, index));
 }
 
-interface PositionSet {
-  set: string;
-  description: string;
-  entries: PositionEntry[];
+function positionEntryFrom(raw: unknown, index: number): PositionEntry {
+  const id = stringAt(raw, 'id');
+  const label = stringAt(raw, 'label');
+  const source = stringAt(raw, 'source');
+  const origin = stringAt(raw, 'origin');
+  if (id === undefined || label === undefined || source === undefined || origin === undefined) {
+    throw new Error(
+      `Corpus entry ${index} malformed in ${corpusPath} — expected { id, label, source, origin }.`
+    );
+  }
+
+  const note = stringAt(raw, 'note');
+  const expected = expectedVerdictFrom(raw, id);
+
+  return {
+    id,
+    label,
+    source,
+    origin,
+    ...(note === undefined ? {} : { note }),
+    ...(expected === undefined ? {} : { expected }),
+  };
 }
 
-/** The message a thrown value carries, however it was thrown. */
-function messageOf(error: unknown): string {
-  if (error instanceof Error) return error.message;
+/**
+ * The pinned verdict, or `undefined` where an entry pins none.
+ *
+ * Throws on a string that is not a verdict rather than dropping it, for the
+ * reason `verdictAt` gives in `lib/guards.ts`: an expectation the loader
+ * silently ignored reads as a divergence someone had already looked at, which is
+ * the opposite of what the field is for.
+ */
+function expectedVerdictFrom(raw: unknown, id: string): PositionVerdict | undefined {
+  const found = stringAt(raw, 'expected');
+  if (found === undefined) return undefined;
 
-  return typeof error === 'string' ? error : JSON.stringify(error);
+  const verdict = POSITION_VERDICTS.find(candidate => candidate === found);
+  if (verdict === undefined) {
+    throw new Error(
+      `Corpus entry ${id} names an unknown expected verdict: ${found} — expected one of ${POSITION_VERDICTS.join(', ')}.`
+    );
+  }
+
+  return verdict;
 }
+
+const POSITION_VERDICTS: readonly PositionVerdict[] = [
+  'identical',
+  'divergent',
+  'no-position',
+  'not-refused',
+];
 
 /**
  * Runs one subject through both compilers and prints what each threw.
@@ -153,29 +203,15 @@ async function runSubject(id: string): Promise<void> {
 
   const outcome: SubjectOutcome = {};
 
-  const distEntry = path.join(packageDir, 'dist/index.js');
-  const loaded: unknown = await import(pathToFileURL(distEntry).href);
-  const transform = isRecord(loaded) ? loaded.transform : undefined;
-  if (typeof transform !== 'function') {
-    throw new Error(
-      `${distEntry} does not export a transform function — run \`pnpm build\` in this package first.`
-    );
-  }
+  const { transform } = await loadRustCompiler(packageDir);
 
   try {
-    (transform as RustTransform)(FIXTURE, entry.source, STYLEX_OPTIONS);
+    transform(FIXTURE, entry.source, STYLEX_OPTIONS);
   } catch (error: unknown) {
     outcome.rustMessage = messageOf(error);
   }
 
-  // Published both as a default export and as the module object itself,
-  // depending on how the consumer resolves it; either is accepted, as in the
-  // value harness.
-  const pluginModule: unknown = stylexBabelPluginModule;
-  const plugin = (isRecord(pluginModule) ? pluginModule.default : undefined) ?? pluginModule;
-  if (typeof plugin !== 'function') {
-    throw new Error('@stylexjs/babel-plugin did not export a Babel plugin function');
-  }
+  const { plugin } = loadBabelPlugin();
 
   try {
     babel.transformSync(entry.source, {
@@ -183,7 +219,7 @@ async function runSubject(id: string): Promise<void> {
       babelrc: false,
       configFile: false,
       parserOpts: { sourceType: 'module', plugins: ['jsx'] },
-      plugins: [[plugin as babel.PluginTarget, STYLEX_OPTIONS]],
+      plugins: [[plugin, STYLEX_OPTIONS]],
     });
   } catch (error: unknown) {
     outcome.babelMessage = messageOf(error);
@@ -193,12 +229,6 @@ async function runSubject(id: string): Promise<void> {
   // already on stderr, which the parent reads separately.
   process.stdout.write(JSON.stringify(outcome));
 }
-
-type RustTransform = (
-  filename: string,
-  code: string,
-  options: StyleXOptions
-) => { metadata: { stylex: unknown[] }; code: string };
 
 // ── the parent half: one child per subject, then the report ─────────────────
 
@@ -229,9 +259,29 @@ function runInChild(id: string): Promise<ChildResult> {
         return;
       }
 
-      resolve({ outcome: JSON.parse(stdout) as SubjectOutcome, stderr });
+      resolve({ outcome: outcomeFrom(stdout, id), stderr });
     });
   });
+}
+
+/**
+ * What the child printed, narrowed. A subject neither compiler refused carries
+ * neither message, so both fields being absent is a valid outcome and only the
+ * surrounding shape is checked.
+ */
+function outcomeFrom(stdout: string, id: string): SubjectOutcome {
+  const raw: unknown = JSON.parse(stdout);
+  if (!isRecord(raw)) {
+    throw new Error(`Subject ${id} printed no outcome object: ${stdout}`);
+  }
+
+  const rustMessage = stringAt(raw, 'rustMessage');
+  const babelMessage = stringAt(raw, 'babelMessage');
+
+  return {
+    ...(rustMessage === undefined ? {} : { rustMessage }),
+    ...(babelMessage === undefined ? {} : { babelMessage }),
+  };
 }
 
 async function report(): Promise<void> {

@@ -638,3 +638,37 @@ export const styles = create({ x: { color: c } });
     "prose is not a declaration; the read is the answer"
   );
 }
+
+/// The record belongs to the expression the refusal was raised on, span
+/// included, because that is what the key hashes. A copy of the same identifier
+/// carrying a different position does not inherit it — which is a no-op rather
+/// than a wrong answer, and the reason the production path hands the frame the
+/// node the refusal stored rather than rebuilding one.
+#[test]
+fn a_recorded_declaration_belongs_to_the_expression_it_was_raised_on() {
+  let source = "\
+let c = 'red';
+c = 'blue';
+export const styles = create({ x: { color: c } });
+";
+  let path = write_fixture("framed_declaration_identity.tsx", source);
+  let mut state = state_for_fixture(&path);
+
+  let raised_on = reference("c");
+  frame_declaration_of(&Atom::from("c"), &raised_on, &mut state);
+
+  assert_eq!(framed_line(&raised_on, &mut state), Some(1));
+
+  let rebuilt = Expr::Ident(Ident::new(
+    "c".into(),
+    Span::new(BytePos(11), BytePos(12)),
+    SyntaxContext::empty(),
+  ));
+
+  assert_eq!(
+    framed_line(&rebuilt, &mut state),
+    Some(3),
+    "a copy of the identifier does not inherit the record; it frames the read, \
+     which is what every refusal framed before any of this"
+  );
+}

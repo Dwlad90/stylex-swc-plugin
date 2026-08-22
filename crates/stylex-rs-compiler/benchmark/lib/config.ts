@@ -43,12 +43,25 @@ export function createStylexOptions(packageDir: string): StyleXOptions {
  * Used by the runner for both the sanity check and the timed run, so a
  * fixture cannot be validated under one configuration and timed under
  * another.
+ *
+ * A fixture's `options` map carries every other condition it asks for — the
+ * development and compatibility features a production build does not pay for.
+ * Applied over `dev` so one fixture's shape is read in one place.
  */
 export function fixtureStylexOptions(
-  fixture: Pick<FixtureDescriptor, 'dev'>,
+  fixture: Pick<FixtureDescriptor, 'dev' | 'options'>,
   options: StyleXOptions
 ): StyleXOptions {
-  return fixture.dev === undefined ? options : { ...options, dev: fixture.dev };
+  if (fixture.dev === undefined && fixture.options === undefined) return options;
+
+  // `options` last, so a fixture that names `dev` in both places is measured
+  // under the one it spelled out in its option map. The two cannot disagree
+  // silently: `fixture-manifest.test.ts` asserts no entry does that.
+  return {
+    ...options,
+    ...(fixture.dev === undefined ? {} : { dev: fixture.dev }),
+    ...fixture.options,
+  };
 }
 
 export interface PairedBenchConfigs {

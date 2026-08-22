@@ -99,6 +99,75 @@ describe('the dev override', () => {
   });
 });
 
+describe('the option overrides', () => {
+  test('loads every boolean feature key it accepts', () => {
+    const options = {
+      dev: true,
+      debug: true,
+      enableDebugDataProp: true,
+      enableDebugClassNames: false,
+      enableMinifiedKeys: false,
+      useRealFileForSource: true,
+      treeshakeCompensation: false,
+    };
+
+    expect(load(withEntry({ options }))[0]?.options).toEqual(options);
+  });
+
+  test('loads the two enum-valued keys', () => {
+    expect(
+      load(withEntry({ options: { styleResolution: 'legacy-expand-shorthands' } }))[0]?.options
+    ).toEqual({ styleResolution: 'legacy-expand-shorthands' });
+    expect(load(withEntry({ options: { propertyValidationMode: 'throw' } }))[0]?.options).toEqual({
+      propertyValidationMode: 'throw',
+    });
+  });
+
+  test('stays absent when the manifest does not mention it', () => {
+    const [fixture] = load(withEntry({}));
+
+    expect(fixture?.options).toBeUndefined();
+    expect(Object.hasOwn(fixture!, 'options')).toBe(false);
+  });
+
+  // A misspelled key is the failure this exists for: measured under the
+  // production shape while named for the debug one, and the number it reports
+  // would look entirely reasonable.
+  test('refuses a key it does not know', () => {
+    expect(() => load(withEntry({ options: { enableDebugDataProps: true } }))).toThrow(
+      /enableDebugDataProps is not a benchmarkable option/
+    );
+  });
+
+  test.each([
+    ['a string', 'true'],
+    ['a number', 1],
+    ['null', null],
+    ['an object', {}],
+  ])('refuses a boolean key given %s', (_label, value) => {
+    expect(() => load(withEntry({ options: { dev: value } }))).toThrow(
+      /options\.dev must be a boolean/
+    );
+  });
+
+  test('refuses an unaccepted enum value', () => {
+    expect(() => load(withEntry({ options: { styleResolution: 'application' } }))).toThrow(
+      /must be one of application-order, property-specificity, legacy-expand-shorthands/
+    );
+    expect(() => load(withEntry({ options: { propertyValidationMode: 'quiet' } }))).toThrow(
+      /must be one of throw, warn, silent/
+    );
+  });
+
+  test.each([
+    ['a string', 'dev'],
+    ['an array', []],
+    ['null', null],
+  ])('refuses an options map that is %s', (_label, options) => {
+    expect(() => load(withEntry({ options }))).toThrow(/options must be an object/);
+  });
+});
+
 describe('the manifest as a whole', () => {
   test.each([
     ['a missing schema version', { fixtures: [VALID_ENTRY] }],

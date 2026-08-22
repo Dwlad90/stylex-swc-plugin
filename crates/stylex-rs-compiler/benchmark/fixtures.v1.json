@@ -176,6 +176,287 @@
       "category": "rollup",
       "weight": "heavy",
       "batchSize": 1
+    },
+    {
+      "name": "Feature - dynamic styles",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/dynamic-styles.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - dynamic styles (dev)",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/dynamic-styles.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true
+      }
+    },
+    {
+      "name": "Feature - nested conditions",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - nested conditions (dev)",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true
+      }
+    },
+    {
+      "name": "Feature - media queries",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/media-queries.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - media queries (dev)",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/media-queries.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true
+      }
+    },
+    {
+      "name": "Feature - keyframes and animations",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/keyframes-animations.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - keyframes and animations (dev)",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/keyframes-animations.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true
+      }
+    },
+    {
+      "name": "Feature - theme tokens",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/theme-tokens.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - theme tokens (dev)",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/theme-tokens.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true
+      }
+    },
+    {
+      "name": "Feature - logical and RTL",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/logical-rtl.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - logical and RTL (dev)",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/logical-rtl.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true
+      }
+    },
+    {
+      "name": "Feature - CSS value normalization",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/css-values.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - CSS value normalization (dev)",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/css-values.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true
+      }
+    },
+    {
+      "name": "Feature - view transitions",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/view-transitions.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - view transitions (dev)",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/view-transitions.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true
+      }
+    },
+    {
+      "name": "Feature - token definitions",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/tokens.stylex.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1
+    },
+    {
+      "name": "Feature - token definitions (dev)",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/tokens.stylex.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true
+      }
+    },
+    {
+      "name": "Feature - debug data prop and class names",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/dynamic-styles.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "debug": true,
+        "enableDebugDataProp": true,
+        "enableDebugClassNames": true,
+        "enableDevClassNames": true
+      }
+    },
+    {
+      "name": "Feature - debug annotations over many namespaces",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "debug": true,
+        "enableDebugDataProp": true
+      }
+    },
+    {
+      "name": "Feature - unminified debug keys",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/theme-tokens.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true,
+        "enableMinifiedKeys": false
+      }
+    },
+    {
+      "name": "Feature - source text read from disk",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/css-values.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "dev": true,
+        "useRealFileForSource": true
+      }
+    },
+    {
+      "name": "Feature - legacy shorthand expansion",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/logical-rtl.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "styleResolution": "legacy-expand-shorthands"
+      }
+    },
+    {
+      "name": "Feature - logical polyfill and RTL comments",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/logical-rtl.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "enableLogicalStylesPolyfill": true,
+        "enableLegacyValueFlipping": true,
+        "enableLTRRTLComments": true
+      }
+    },
+    {
+      "name": "Feature - font size px to rem",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/css-values.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "enableFontSizePxToRem": true
+      }
+    },
+    {
+      "name": "Feature - inlined conditional merge off",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "enableInlinedConditionalMerge": false
+      }
+    },
+    {
+      "name": "Feature - media query ordering",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/media-queries.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "enableMediaQueryOrder": true
+      }
+    },
+    {
+      "name": "Feature - layers disabled",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "legacyDisableLayers": true
+      }
+    },
+    {
+      "name": "Feature - property validation throws",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/css-values.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "propertyValidationMode": "throw"
+      }
+    },
+    {
+      "name": "Feature - treeshake compensation off",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/theme-tokens.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
+        "treeshakeCompensation": false
+      }
     }
   ]
 }

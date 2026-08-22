@@ -13,6 +13,63 @@ export const RAW_STATS_SCHEMA_VERSION = 1 as const;
 export type FixtureWeight = 'standard' | 'heavy';
 export type FixtureCategory = 'transform' | 'perf' | 'rollup';
 
+/**
+ * The StyleX option keys a fixture may override, each carrying a boolean.
+ *
+ * An allowlist rather than `Partial<StyleXOptions>`, because a manifest is data
+ * from a file: a key nobody validated would be a silently ignored measurement
+ * condition, and two fixtures could then differ in a way no reader can see. Add
+ * a key here when a fixture needs it, and the loader will start accepting it.
+ *
+ * Everything here is a *development or compatibility* feature — the work a
+ * production build does not do. That is what these exist to price.
+ */
+export const BOOLEAN_OPTION_KEYS = [
+  'dev',
+  'debug',
+  'test',
+  'enableDebugClassNames',
+  'enableDebugDataProp',
+  'enableDevClassNames',
+  'enableMinifiedKeys',
+  'enableFontSizePxToRem',
+  'enableInlinedConditionalMerge',
+  'enableLogicalStylesPolyfill',
+  'enableLegacyValueFlipping',
+  'enableLTRRTLComments',
+  'enableMediaQueryOrder',
+  'legacyDisableLayers',
+  'useRealFileForSource',
+  'treeshakeCompensation',
+  'inlineSourcesContent',
+  'emitSourceMapColumns',
+] as const;
+
+export type BooleanOptionKey = (typeof BOOLEAN_OPTION_KEYS)[number];
+
+export const STYLE_RESOLUTIONS = [
+  'application-order',
+  'property-specificity',
+  'legacy-expand-shorthands',
+] as const;
+
+export const PROPERTY_VALIDATION_MODES = ['throw', 'warn', 'silent'] as const;
+
+/**
+ * A fixture's own measurement conditions, as the manifest declares them.
+ *
+ * `sourceMap` is deliberately absent: the generated typings spell it as a
+ * `const enum`, whose members cannot be constructed from a JSON string without
+ * asserting a type nobody checked. A fixture that needs source-map emission
+ * priced wants that enum plumbed properly first.
+ */
+export type FixtureOptionOverrides = Partial<
+  Record<BooleanOptionKey, boolean> & {
+    styleResolution: (typeof STYLE_RESOLUTIONS)[number];
+    propertyValidationMode: (typeof PROPERTY_VALIDATION_MODES)[number];
+  }
+>;
+
 export interface FixtureDescriptor {
   /** Stable identifier used across runs (never derived from mutable paths). */
   name: string;
@@ -33,8 +90,19 @@ export interface FixtureDescriptor {
    * production shape from `createStylexOptions`, which is what all but one
    * fixture wants; `guidelines/PERFORMANCE.md` says why the two shapes are
    * watched separately rather than switched between.
+   *
+   * Kept beside [`FixtureDescriptor.options`] rather than folded into it: the
+   * fixtures that predate the option map spell `dev` this way, and their trend
+   * series are named after those entries.
    */
   dev?: boolean;
+  /**
+   * Every other measurement condition this fixture asks for, applied over the
+   * shared options and after `dev`. A fixture measuring a development feature
+   * names it here, so the option shape and the trend series it feeds are one
+   * entry in one file.
+   */
+  options?: FixtureOptionOverrides;
 }
 
 export interface SubjectDescriptor {

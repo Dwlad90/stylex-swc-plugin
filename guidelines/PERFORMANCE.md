@@ -89,6 +89,24 @@ compared against each other. `benchmark/lib/config.ts` therefore keeps
 `"dev": true` in `benchmark/fixtures.v1.json`. Never flip the shared option: it
 moves every trend series in the repo at once.
 
+Every other development or compatibility feature is priced the same way, through
+an `"options"` map on the fixture that asks for it -- the debug data prop and
+debug class names, unminified keys, reading the source off disk, legacy
+shorthand expansion, the logical-property polyfill and RTL comments,
+`px`-to-`rem`, media query ordering, and the two enum-valued options. The keys
+are an allowlist in `benchmark/lib/types.ts`; a manifest naming anything else
+fails to load rather than being measured under the shared shape while claiming
+otherwise.
+
+**Register a feature fixture in pairs.** One number for a development shape says
+nothing about what the feature costs; the pair does. A `Feature - x` entry and a
+`Feature - x (dev)` entry point at the same file and differ only in the option
+map, and `fixtures.test.ts` fails a `(dev)` entry with no production twin. Size
+is not a feature: `apps/rollup-large-example/lotsOfStyles.js` is one `create`
+call repeated thousands of times, so it prices throughput and nothing else. A
+new fixture earns its place by exercising a capability none of the others
+reach.
+
 ## Budget
 
 While `benchmark/budget.json` is `pending-calibration` it holds no ceilings:

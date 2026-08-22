@@ -15,8 +15,8 @@ describe('loadAllFixtures', () => {
   const fixtures = loadAllFixtures({ packageDir, workspaceRoot });
 
   test('loads the complete versioned registry', () => {
-    expect(fixtures).toHaveLength(25);
-    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(25);
+    expect(fixtures).toHaveLength(55);
+    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(55);
   });
 
   // The runner refuses to time a subject that produces no rules, so a
@@ -36,11 +36,12 @@ describe('loadAllFixtures', () => {
     }
   });
 
-  // `dev` is the only per-fixture option override, and the reason it exists
-  // is that the shared options must stay production-shaped -- see
-  // `createStylexOptions`. A fixture silently losing its `dev: true` would
-  // leave the debug path measured by nothing at all in this harness.
-  test('carries a declared dev override and leaves every other fixture alone', () => {
+  // The shared options must stay production-shaped -- see `createStylexOptions`
+  // -- so a fixture that measures anything else says so itself. The legacy
+  // `dev` field is one fixture's, and every later one asks through `options`;
+  // a fixture silently losing either would leave a development feature measured
+  // by nothing at all in this harness.
+  test('carries the one legacy dev override and leaves every other fixture alone', () => {
     const dev = fixtures.filter(fixture => fixture.dev === true);
 
     expect(dev.map(fixture => fixture.name)).toEqual([
@@ -51,6 +52,64 @@ describe('loadAllFixtures', () => {
       if (!dev.includes(fixture)) {
         expect(fixture.dev, fixture.name).toBeUndefined();
       }
+    }
+  });
+
+  // Every feature fixture is registered twice, production and development, and
+  // the pair is the measurement: one number alone says nothing about what the
+  // feature costs. A `(dev)` entry that lost its override would quietly become a
+  // second production run reported under a development name.
+  test('every fixture named for the dev shape is measured under it', () => {
+    const named = fixtures.filter(fixture => fixture.name.endsWith('(dev)'));
+    const base = createStylexOptions(packageDir);
+
+    expect(named.length).toBeGreaterThan(0);
+
+    for (const fixture of named) {
+      expect(fixtureStylexOptions(fixture, base).dev, fixture.name).toBe(true);
+
+      const production = fixtures.find(
+        candidate => candidate.name === fixture.name.replace(' (dev)', '')
+      );
+      expect(production, `${fixture.name} has no production twin`).toBeDefined();
+      expect(production?.filePath).toBe(fixture.filePath);
+      expect(fixtureStylexOptions(production!, base).dev).toBe(false);
+    }
+  });
+
+  // Each override reaches the options the fixture is timed under. A key the
+  // loader accepted but the merge dropped would leave the fixture measuring the
+  // shared shape under a name that claims otherwise.
+  test('every declared option override reaches the options a fixture runs with', () => {
+    const base = createStylexOptions(packageDir);
+    const overridden = fixtures.filter(fixture => fixture.options !== undefined);
+
+    expect(overridden.length).toBeGreaterThan(0);
+
+    for (const fixture of overridden) {
+      const resolved = fixtureStylexOptions(fixture, base);
+
+      for (const [key, value] of Object.entries(fixture.options!)) {
+        expect(resolved[key as keyof typeof resolved], `${fixture.name}.${key}`).toBe(value);
+      }
+    }
+  });
+
+  // The features are what these fixtures exist for, so each one is registered
+  // once. A second fixture measuring the same option shape on the same file
+  // would report two numbers for one thing and hide a third nobody covered.
+  test('no two fixtures measure the same file under the same options', () => {
+    const seen = new Map<string, string>();
+
+    for (const fixture of fixtures) {
+      const shape = `${fixture.filePath}::${JSON.stringify({
+        dev: fixture.dev,
+        options: fixture.options,
+      })}`;
+      const previous = seen.get(shape);
+
+      expect(previous, `${fixture.name} duplicates ${String(previous)}`).toBeUndefined();
+      seen.set(shape, fixture.name);
     }
   });
 
@@ -107,6 +166,7 @@ describe('loadAllFixtures', () => {
   test('produces at least one fixture of each expected group', () => {
     expect(fixtures.some(fixture => fixture.name.startsWith('Performance -'))).toBe(true);
     expect(fixtures.some(fixture => fixture.name.startsWith('Rollup plugin -'))).toBe(true);
+    expect(fixtures.some(fixture => fixture.name.startsWith('Feature -'))).toBe(true);
     expect(fixtures.some(fixture => !fixture.name.includes(' - '))).toBe(true);
   });
 

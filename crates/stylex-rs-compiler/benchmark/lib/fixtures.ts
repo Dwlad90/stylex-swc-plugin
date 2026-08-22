@@ -22,7 +22,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { FixtureCategory, FixtureDescriptor, FixtureWeight } from './types.js';
+import {
+  BOOLEAN_OPTION_KEYS,
+  PROPERTY_VALIDATION_MODES,
+  STYLE_RESOLUTIONS,
+  type BooleanOptionKey,
+  type FixtureCategory,
+  type FixtureDescriptor,
+  type FixtureOptionOverrides,
+  type FixtureWeight,
+} from './types.js';
 
 export interface FixtureRegistryPaths {
   packageDir: string;
@@ -43,6 +52,7 @@ interface FixtureManifestEntry {
   weight: FixtureWeight;
   batchSize: number;
   dev?: boolean;
+  options?: FixtureOptionOverrides;
 }
 
 export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor[] {
@@ -70,6 +80,7 @@ export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor
       // particular" must not read the same to a consumer. Same shape as
       // `parseManifestEntry`.
       if (fixture.dev !== undefined) descriptor.dev = fixture.dev;
+      if (fixture.options !== undefined) descriptor.options = fixture.options;
       return descriptor;
     });
 
@@ -135,8 +146,77 @@ function parseManifestEntry(input: unknown, index: number): FixtureManifestEntry
   // for the same reason: an undeclared `dev` must stay absent rather than
   // become an own `dev: undefined` property.
   if (input.dev !== undefined) entry.dev = input.dev;
+  if (input.options !== undefined) {
+    entry.options = parseOptionOverrides(input.options, `${context}.options`);
+  }
 
   return entry;
+}
+
+/**
+ * One fixture's option overrides, narrowed key by key.
+ *
+ * An unknown key is an error rather than a key dropped: a manifest that names
+ * `enableDebugDataProps` would otherwise be measured under the production shape
+ * while claiming to price the debug one, and the number it reports would look
+ * entirely reasonable.
+ */
+function parseOptionOverrides(input: unknown, context: string): FixtureOptionOverrides {
+  if (!isRecord(input)) throw new Error(`${context} must be an object`);
+
+  const overrides: FixtureOptionOverrides = {};
+
+  for (const [key, value] of Object.entries(input)) {
+    if (isBooleanOptionKey(key)) {
+      if (typeof value !== 'boolean') {
+        throw new Error(`${context}.${key} must be a boolean`);
+      }
+      overrides[key] = value;
+      continue;
+    }
+
+    // The two enum-valued keys are spelled out, because each has its own set of
+    // accepted values and a shared branch could not say which.
+    if (key === 'styleResolution') {
+      overrides.styleResolution = requireOneOf(value, STYLE_RESOLUTIONS, `${context}.${key}`);
+      continue;
+    }
+    if (key === 'propertyValidationMode') {
+      overrides.propertyValidationMode = requireOneOf(
+        value,
+        PROPERTY_VALIDATION_MODES,
+        `${context}.${key}`
+      );
+      continue;
+    }
+
+    throw new Error(
+      `${context}.${key} is not a benchmarkable option — add it to BOOLEAN_OPTION_KEYS if it should be`
+    );
+  }
+
+  return overrides;
+}
+
+function isBooleanOptionKey(key: string): key is BooleanOptionKey {
+  // Widened to compare, not asserted: the predicate is what narrows, and the
+  // caller only ever indexes with a key this returned true for.
+  const keys: readonly string[] = BOOLEAN_OPTION_KEYS;
+  return keys.includes(key);
+}
+
+/** `value` when it is one of `accepted`, else an error naming what was allowed. */
+function requireOneOf<T extends string>(
+  value: unknown,
+  accepted: readonly T[],
+  context: string
+): T {
+  const found = accepted.find(candidate => candidate === value);
+  if (found === undefined) {
+    throw new Error(`${context} must be one of ${accepted.join(', ')}`);
+  }
+
+  return found;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

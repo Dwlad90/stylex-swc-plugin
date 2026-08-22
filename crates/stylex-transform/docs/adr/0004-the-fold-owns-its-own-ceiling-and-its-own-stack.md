@@ -120,4 +120,23 @@ the measurement and the verdict are
 **The residue is not the fold's.** A deep enough expression still aborts, in the
 stages that recurse over it without a ceiling — measured in a debug build on a
 2 MiB thread at 1024 levels with no `stylex` call involved at all, and at 608
-with one. That is a separate limit with a separate owner.
+with one. That is a separate limit with a separate owner, and it has since been
+attributed to one:
+
+- **In release, both numbers are 768 and the stage is SWC's parser.** The abort
+  arrives before the module is parsed, so nothing the transform does after that
+  is ever the constraint. The two cases converge, which means the gap above —
+  where a refusal at 576 is a diagnostic and an abort at 608 is not — is a
+  debug-build phenomenon. Release is not uniformly roomier: the no-`stylex` case
+  _loses_ 256 levels against the debug build, because inlining merges a
+  recursive-descent parser's callee frames into its caller.
+- **In debug, the `stylex` case is our printer**, reached through the code
+  frame's `get_source_code`, which prints the memoized module when no source
+  text was stored beside it. Not the deep clone a refusal records: `deopt` was
+  changed to record nothing and the whole table came back unmoved, so the clone
+  and its drop glue cost no headroom at all.
+
+Raising the release floor means growing the stack around the _parse_, which
+happens in the host rather than anywhere this crate can reach. Named rather than
+filed: the default ceiling refuses at 32, and a build that reaches 768 levels of
+nesting has a generator loose in it.

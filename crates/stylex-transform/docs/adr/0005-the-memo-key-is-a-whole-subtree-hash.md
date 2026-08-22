@@ -197,4 +197,7 @@ never a wrong one, and the raw text is what distinguishes `1` from `1.0` and
 **The key's own limit is the thread's stack, not the ceiling.** It recurses over
 whatever it is handed, and it is handed expressions before the fold's counter has
 an opinion. 1024 levels is pinned as answering; past that it belongs to the same
-residue as the other unbounded stages around the fold.
+residue as the other unbounded stages around the fold — which has since been
+attributed, in [0004](./0004-the-fold-owns-its-own-ceiling-and-its-own-stack.md),
+to SWC's parser in release and to the code frame's printer in debug. The key is
+not among them.

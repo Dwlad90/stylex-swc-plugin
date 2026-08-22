@@ -142,12 +142,26 @@ describe('names the elision must not have swallowed either way', () => {
 });
 
 describe('a TypeScript module keeps the elision', () => {
-  // A decided divergence, and the reason the two halves answer differently: in
-  // TypeScript a specifier with no value reference may name a type, and a type
-  // has no module to import at runtime, so removing it is the language's own
-  // rule rather than this compiler's choice. The reference implementation never
-  // strips before it reads and therefore refuses these. Pinned so the gap is
-  // measured rather than assumed, and so closing it later reads as a change.
+  // A decided divergence, and the decision is *keep it* -- recorded in the
+  // README under "Deliberate divergences", which is where a person surprised by
+  // it will look. In TypeScript a specifier with no value reference may name a
+  // type, and a type has no module to import at runtime, so removing it is the
+  // language's own rule rather than this compiler's choice. The reference
+  // implementation never strips before it reads and therefore refuses these.
+  //
+  // Closing the gap was costed and rejected. It needs the elided specifiers of
+  // a StyleX import source put back into the AST between the strip and the
+  // visitor, and that also puts back the type-only-by-inference ones:
+  // `@stylexjs/stylex` exports `StyleXStyles`, `Theme`, `VarGroup` and a dozen
+  // more as types only, so `import { StyleXStyles } from '@stylexjs/stylex'`
+  // written without the `type` keyword would emit an import of a binding the
+  // runtime module does not export. `a type-only-by-inference specifier is
+  // still elided` below is that shape, pinned as the reason.
+  //
+  // The second reason is what closing it would cost an author: `.tsx` is most
+  // of the StyleX written anywhere, and making it refuse turns working builds
+  // into failing ones over a parameter name -- to reproduce an upstream answer
+  // that is the less defensible of the two, since a parameter is a parameter.
   test.each(TYPESCRIPT_EXTENSIONS)(
     'the reported module still compiles in a .%s file',
     extension => {
@@ -159,6 +173,21 @@ describe('a TypeScript module keeps the elision', () => {
     expect(compile("import { unused } from './m';\nexport const x = 1;\n", 'ts')).not.toContain(
       'unused'
     );
+  });
+
+  test('a type-only-by-inference specifier is still elided', () => {
+    // The shape that makes re-inserting elided StyleX specifiers unsafe, and so
+    // the reason this divergence is kept rather than closed. `StyleXStyles` is
+    // an `export type` in `@stylexjs/stylex` and absent from the runtime
+    // module, so putting this specifier back would emit an import that fails to
+    // link. It is written without the `type` keyword on purpose: that is how it
+    // is written in practice, and it is what makes the inference load-bearing.
+    const code = compile(
+      "import { StyleXStyles } from '@stylexjs/stylex';\nexport const x = 1;\n",
+      'ts'
+    );
+
+    expect(code).not.toContain('StyleXStyles');
   });
 
   test('an extension no toolchain agrees on is answered as TypeScript', () => {

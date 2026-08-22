@@ -565,6 +565,45 @@ surprise worth being able to look up.
 | A `{`, `}` or `;` outside a string or comment in a custom-property value | emits it              | The same swallowing problem, one level up: the declaration would absorb the rest of the rule.                                                                                                       |
 | A value nested more than 64 levels deep                                  | throws a `RangeError` | Spelling and dropping a token tree recurse, so past some depth the process aborts with no diagnostic at all. 64 is far above any real value and the failure is a named message rather than a crash. |
 
+### A TypeScript module reads an unreferenced import as a type
+
+One divergence goes the other way: a shape upstream rejects, this compiler
+compiles — and only in a TypeScript file.
+
+```ts
+import { create, keyframes } from '@stylexjs/stylex';
+
+export const styles = create({ dyn: keyframes => ({ height: keyframes }) });
+```
+
+| file           | upstream                     | here                                |
+| -------------- | ---------------------------- | ----------------------------------- |
+| `page.js`      | `Invalid pseudo or at-rule.` | `Invalid pseudo or at-rule.`        |
+| `page.ts/.tsx` | `Invalid pseudo or at-rule.` | `.x16ye13r{height:var(--x-height)}` |
+
+The parameter shadows the import. In JavaScript both compilers read `keyframes`
+as the imported StyleX API and refuse; in TypeScript the type-stripping pass
+runs first and removes an import specifier nothing references _as a value_,
+because such a specifier may name a type and a type has no module to import at
+runtime. That is `tsc`'s own rule, and `verbatim_module_syntax` — which turns it
+off, and is what a `.js` file is compiled with — cannot be turned on here
+without emitting imports of bindings that do not exist at runtime:
+`@stylexjs/stylex` exports `StyleXStyles`, `Theme`, `VarGroup` and a dozen more
+as types only, and `import { StyleXStyles } from '@stylexjs/stylex'` written
+without the `type` keyword is ubiquitous.
+
+So the parameter is just a parameter, and `height: keyframes` is an ordinary
+dynamic value. Upstream reaches the other answer because Babel runs plugins
+ahead of presets, so its StyleX plugin sees the import before
+`@babel/preset-typescript` removes it — plugin ordering rather than a considered
+TypeScript semantics.
+
+**This is intended, and it will not be closed.** Making `.ts` refuse would turn
+working `.tsx` builds into failing ones over a parameter name, to reproduce an
+upstream answer that is the less defensible of the two. Nothing about it can
+move a class name for a module that compiles under both. It is pinned in
+`__test__/importElision.spec.ts` under _a TypeScript module keeps the elision_.
+
 Everything else is parity, and the parity harness under
 [`parity/`](./parity/README.md) is what keeps that claim honest — it runs a
 corpus of declarations through both compilers and reports any that disagree.

@@ -2890,3 +2890,38 @@ stylex_test_panic!(
     export const styles = stylex.create({ a: { fontFamily: `x${Object.entries(firstThatWorks)}y` } });
   "#
 );
+
+// `stylex.env` read with no `env` option set. The name is a key of the StyleX
+// namespace whichever way the compiler is configured, so the member step finds
+// it and has to say that the *option* is missing rather than that the property
+// is — a sentence about an unknown property would send an author looking in
+// their source instead of their config.
+//
+// Pinned because it is a branch of the namespace lookup and nothing held it: the
+// configured half of `env` has thirty-odd cases in
+// `transform_stylex_create_test::env` and the unconfigured half had none.
+stylex_test_panic!(
+  the_env_object_read_without_the_env_option_is_refused,
+  "The stylex.env object is not configured.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: { color: stylex.env.theme } });
+  "#
+);
+
+// Called rather than read, where the sentence above is *lost*: the member step
+// refuses, and the call step then refuses the callee it was handed without
+// carrying the reason, so the author is told a call expression is unsupported
+// and hears nothing about the option. Pinned as it behaves rather than as it
+// ought to, so the reading is recorded rather than assumed -- and so a change
+// that improves it reports as a moved snapshot rather than passing quietly.
+stylex_test_panic!(
+  an_env_call_without_the_env_option_reports_only_the_call,
+  "Unsupported expression: CallExpression",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: { color: stylex.env.getTheme() } });
+  "#
+);

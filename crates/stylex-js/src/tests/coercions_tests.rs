@@ -1122,3 +1122,33 @@ fn the_predicate_and_the_string_coercion_read_the_same_set() {
     assert_eq!(to_js_string(&ident_expr(name)), None, "{}", name);
   }
 }
+
+/// Every value here was read out of `node -e 'console.log(x | 0)'`, which is
+/// `ToInt32` spelled the shortest way, rather than derived from the
+/// specification text.
+#[test]
+fn to_int32_wraps_into_the_signed_32_bit_range() {
+  // The reason this function exists: a 64-bit negation answers -4294967297 for
+  // `~[4294967296]`, where JavaScript answers -1.
+  assert_eq!(to_int32(4_294_967_296.0), 0);
+  assert_eq!(to_int32(2_147_483_648.0), -2_147_483_648);
+  assert_eq!(to_int32(-2_147_483_649.0), 2_147_483_647);
+  assert_eq!(to_int32(3_000_000_000.0), -1_294_967_296);
+  assert_eq!(to_int32(1e21), -559_939_584);
+
+  // Truncation is toward zero, not flooring.
+  assert_eq!(to_int32(1.9), 1);
+  assert_eq!(to_int32(-1.9), -1);
+
+  // The values with no integer to wrap all answer zero rather than refusing.
+  assert_eq!(to_int32(f64::NAN), 0);
+  assert_eq!(to_int32(f64::INFINITY), 0);
+  assert_eq!(to_int32(f64::NEG_INFINITY), 0);
+  assert_eq!(to_int32(0.0), 0);
+  assert_eq!(to_int32(-0.0), 0);
+
+  // Inside the range, it is the identity on integers.
+  assert_eq!(to_int32(2_147_483_647.0), 2_147_483_647);
+  assert_eq!(to_int32(-2_147_483_648.0), -2_147_483_648);
+  assert_eq!(to_int32(-1.0), -1);
+}

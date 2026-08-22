@@ -126,3 +126,22 @@ stylex_test!(
     });
   "#
 );
+
+// `~` coerces with `ToInt32` before negating, so the negation is 32-bit. Every
+// value here is upstream's: `~[4294967296]` is `-1` because the operand wraps to
+// zero first, and a 64-bit negation would answer `-4294967297`. These operands
+// are reachable only because the number bridge above made them so, which is why
+// they are pinned here rather than beside the small ones.
+stylex_test!(
+  tilde_wraps_its_operand_into_thirty_two_bits,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      wrapsToZero: { zIndex: ~[4294967296] },
+      wrapsToMin: { zIndex: ~[2147483648] },
+      bigNumber: { zIndex: ~4294967296 },
+      farPastTheRange: { zIndex: ~[1e21] },
+    });
+  "#
+);

@@ -88,8 +88,12 @@ pub(in super::super) fn evaluate(
   match unary.op {
     UnaryOp::Plus => evaluate_unary_numeric_of(unary, &arg, state, traversal_state, fns, |v| v),
     UnaryOp::Minus => evaluate_unary_numeric_of(unary, &arg, state, traversal_state, fns, |v| -v),
+    // `~` applies `ToInt32` first, so the negation happens in 32 bits: JS says
+    // `~[4294967296]` is `-1`, where a 64-bit negation says `-4294967297`. The
+    // operands that reach the wrap are the ones the number bridge newly made
+    // reachable, an array or an object whose string form is a large number.
     UnaryOp::Tilde => evaluate_unary_numeric_of(unary, &arg, state, traversal_state, fns, |v| {
-      (!(v as i64)) as f64
+      f64::from(!coercions::to_int32(v))
     }),
     _ => deopt(
       &create_unary_expr(unary),

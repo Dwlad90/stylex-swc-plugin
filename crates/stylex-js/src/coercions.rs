@@ -513,6 +513,33 @@ pub fn to_array_length(count: f64) -> Option<usize> {
     .then_some(count as usize)
 }
 
+/// `ToInt32` over a number, the coercion the bitwise operators apply to their
+/// operands before operating on them.
+///
+/// Truncates toward zero, then wraps into the signed 32-bit range -- so `~` and
+/// friends see the same operand JavaScript gives them, and a value past 2^31
+/// wraps rather than growing. `~[4294967296]` is `-1` and not `-4294967297`,
+/// which is what a 64-bit negation answers.
+///
+/// Total, because `ToInt32` is: a `NaN`, an infinity and a zero of either sign
+/// all answer `0`, as the specification says, rather than refusing.
+pub fn to_int32(value: f64) -> i32 {
+  const WRAP: f64 = 4_294_967_296.0;
+  const SIGN_BOUNDARY: f64 = 2_147_483_648.0;
+
+  if !value.is_finite() || value == 0.0 {
+    return 0;
+  }
+
+  let wrapped = value.trunc().rem_euclid(WRAP);
+
+  if wrapped >= SIGN_BOUNDARY {
+    (wrapped - WRAP) as i32
+  } else {
+    wrapped as i32
+  }
+}
+
 /// Which outcome `ToObject` takes over a value.
 ///
 /// Reported rather than carried out, because not every outcome produces a value

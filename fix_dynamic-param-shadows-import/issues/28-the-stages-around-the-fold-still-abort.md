@@ -1,6 +1,6 @@
 # 28 — The stages around the fold still abort on a deep expression
 
-Status: `needs-triage`
+Status: `resolved`
 Blocked by: None
 
 **What was measured.** 20 gave the evaluator a ceiling and a stack of its own, so
@@ -42,8 +42,100 @@ refused.
 to remove, since it is the one that costs ~400 levels of headroom on an input
 that was otherwise going to be reported cleanly.
 
-- [ ] Attribute the abort in the `create()` row to a stage — the clone, its
+- [x] Attribute the abort in the `create()` row to a stage — the clone, its
       drop, the code frame, or the printer
-- [ ] Decide whether a refusal needs to own the expression it refused
-- [ ] Re-measure both rows in a release build, since the frames are smaller and
+- [x] Decide whether a refusal needs to own the expression it refused
+- [x] Re-measure both rows in a release build, since the frames are smaller and
       the numbers in this table are the floor rather than the limit
+
+## Answer
+
+Attributed, decided, and re-measured. No code changed: the stage that aborts is
+SWC's parser in release and our printer in debug, and the clone the ticket
+suspected turned out to cost nothing.
+
+### How it was measured
+
+A throwaway `depth_probe` example in `stylex-transform`, run once per depth as
+its own process, because a stack overflow is an abort rather than a catchable
+panic. It spawns a 2 MiB thread, writes the module to a real file so the
+code-frame path reads source from disk exactly as a build does, then parses,
+applies the StyleX pass and prints -- with `eprintln!` markers between the
+stages, which reach the terminal before the abort because stderr is unbuffered.
+Deleted after the measurement; it is fifty lines and reproducible from this
+description.
+
+The debug table reproduced exactly as filed: `bare` answers at 768 and aborts
+at 1024, `create` refuses at 576 and aborts at 608.
+
+### The stage, in debug
+
+Not the clone, and not any of the other three candidates. The markers place the
+abort inside `get_source_code`, at
+`print_module(code_frame, module.clone(), ...)` -- **the printer**, reached
+because `state.get_seen_module_source_code()` answers `Some((module, None))`, a
+memoized module with no source text beside it, so the code frame prints the
+module rather than reading the file. The clone in front of it *completes*: a
+marker between the clone and the print prints, and the abort follows.
+
+The order the four candidates fell in:
+
+| stage | reached | overflows |
+| --- | --- | --- |
+| `deopt`'s `path.clone()` and its drop | yes | no |
+| `Expr::Call(call.clone())` at the assert, and its drop | yes | no |
+| `compute_cache_key`, the derived `Hash` over the subtree | yes | no |
+| `module.clone()` in `get_source_code` | yes | no |
+| `print_module` over that clone | yes | **yes** |
+| `find_expression_span`, `emit_error` | never reached at 608 | — |
+
+### Whether a refusal needs to own the expression it refused
+
+It does not need to *for headroom*, which is the only reason this ticket asked.
+`deopt` was changed to record `None` instead of `path.clone()` and the whole
+table was re-measured: **576 still refuses and 608 still aborts, unmoved.** The
+recursive drop the ticket flagged as "the one that costs ~400 levels" costs
+none of them. So the ~400-level gap between the two rows is not the refusal
+paying for a copy of what it refused; it is the code frame printing a module.
+
+The clone stays. It is what every diagnostic call site points at -- the fallback
+`unwrap_or_else(|| *first_arg.to_owned())` is a whole `create()` argument where
+the deopt path is the operand that actually failed -- and removing it buys
+nothing this ticket was opened to buy.
+
+### Release, and the surprise in it
+
+Re-measured in release, same 2 MiB thread, both rows:
+
+| input | 512 | 576 | 640 | 704 | 768 | 1024+ |
+| --- | --- | --- | --- | --- | --- | --- |
+| deep expression, no `stylex` call | ok | ok | ok | ok | **aborts** | aborts |
+| deep expression inside `stylex.create()` | refuses | refuses | refuses | refuses | **aborts** | aborts |
+
+**The two rows converge, and the stage is the parser in both** -- the abort
+lands before the `parsed` marker. The gap the ticket describes, where a refusal
+at 576 is a diagnostic and an abort at 608 is not, **does not exist in a release
+build**: everything the transform does after parsing fits inside what the parser
+already needed.
+
+Release is not uniformly roomier, which is the part worth recording against the
+ticket's expectation that "the frames are smaller and the numbers in this table
+are the floor". The `create` row gains 128 levels (576 to 704) and the `bare`
+row **loses** 256 (1024 to 768). Inlining does not only shrink frames; in a
+recursive descent parser it merges callee locals into the caller, and SWC's
+expression parser is where that lands.
+
+### What is left, and who owns it
+
+One stage, and it is not this crate's: **SWC's parser is the floor at 768 levels
+in release.** Raising it means growing the stack around the *parse*, and the
+parse happens in the host -- `stylex-rs-compiler`'s napi entry, the SWC plugin,
+each test harness -- rather than anywhere `stylex-transform` can reach. That is
+a change to every call site for an input no project writes, against a ceiling
+`maxEvaluationDepth` already refuses at 32, so it is named here rather than
+filed: a build that reaches 768 levels of nesting has a generator loose in it.
+
+Our printer stays unbounded and stays second in line. It is only the binding
+constraint in a debug build, where it costs the `create` row 160 levels against
+the parser's own limit, and it is reached only when a diagnostic has to print a
+memoized module because no source text was stored beside it.

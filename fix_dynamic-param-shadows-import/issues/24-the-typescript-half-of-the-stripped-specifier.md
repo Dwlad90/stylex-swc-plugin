@@ -1,6 +1,6 @@
 # 24 — The TypeScript half of the stripped specifier
 
-Status: `needs-triage`
+Status: `wontfix`
 Blocked by: None
 
 **What was found:** [22](./22-the-stripped-specifier-the-fold-never-sees.md)
@@ -72,8 +72,90 @@ wrong emit at worst.
 
 Measure that before choosing, the way 22 measured its three.
 
-- [ ] The re-insertion mechanism is measured against the whole suite
-- [ ] A decision is recorded: close the gap, or record the `.ts` answer as
+- [x] The re-insertion mechanism is measured against the whole suite
+- [x] A decision is recorded: close the gap, or record the `.ts` answer as
       intended and say so in the compiler's docs rather than only in a test
-- [ ] `__test__/importElision.spec.ts::a TypeScript module keeps the elision`
+- [x] `__test__/importElision.spec.ts::a TypeScript module keeps the elision`
       says whichever it turns out to be
+
+## Answer
+
+The `.ts` answer is recorded as intended, in the compiler's docs rather than
+only in a test. The re-insertion mechanism was costed rather than built, because
+costing it turned up a hazard that disqualifies it before a suite run could say
+anything, and a second reason that argues against closing the gap at all.
+
+### The mechanism fails on what it re-inserts
+
+Re-inserting the elided specifiers of a StyleX import source keeps one source of
+truth, which is what recommended it over the two options 22 ruled out. It also
+re-inserts the *type-only-by-inference* ones, and those are the common case
+rather than an edge:
+
+```ts
+import { StyleXStyles } from '@stylexjs/stylex';
+```
+
+`@stylexjs/stylex` 0.19.0 exports `StyleXStyles`, `StaticStyles`,
+`StaticStylesWithout`, `StyleXStylesWithout`, `StyleXClassNameFor`, `StyleXVar`,
+`StyleXArray`, `Theme`, `VarGroup`, `PositionTry`, `CSSProperties`,
+`CompiledStyles`, `InlineStyles`, `Keyframes`, `MapNamespaces` and `Types` under
+`export type` — confirmed absent from `lib/es/stylex.js`. Written without the
+`type` keyword, which is how it is written in practice, such a specifier is
+elided by inference and is **indistinguishable at the AST from the `keyframes`
+the ticket is about**. Re-inserting it emits an import of a binding the runtime
+module does not export: a link error under ESM, `undefined` under CJS interop.
+
+Verified against the built `dist/*.node`, not reasoned:
+
+| input | file | result |
+| --- | --- | --- |
+| `import { StyleXStyles } from '@stylexjs/stylex'` | `.ts` | elided |
+| the same line | `.js` | kept |
+| the reported shape | `.ts` | `x16ye13r`, `--x-height` |
+
+The first row is the shape the re-insertion would put back. Now pinned as
+`importElision.spec.ts::a type-only-by-inference specifier is still elided`, so
+a future reader who wants the mechanism has to make that case fail first.
+
+A re-elide pass after the visitor — removing exactly what the re-insertion added
+and nothing else — would repair it, and it is a second mechanism guarding the
+first. It was not built, because of the reason below.
+
+### Closing the gap costs more than the gap does
+
+The ticket weighed "a build that fails on `page.js` and succeeds on `page.ts` is
+a surprising thing to ship". True, and the direction of the surprise matters:
+`.ts` is the half that **succeeds**. Closing the gap means making it fail.
+
+`.tsx` is most of the StyleX written anywhere, so that is every module whose
+dynamic-style parameter happens to share a name with a StyleX API export or a
+theme import — and it would be to reproduce an upstream answer that is the less
+defensible of the two. A parameter is a parameter; `height: keyframes` is an
+ordinary dynamic value and `var(--x-height)` is the right reading of it.
+Upstream refuses only because Babel runs plugins ahead of presets, so its StyleX
+plugin sees an import `@babel/preset-typescript` is about to remove. That is
+plugin ordering, and this ticket already said so.
+
+And the compatibility contract is intact either way: the divergence changes only
+*which programs compile*, never the bytes of one that compiles under both. No
+class name moves.
+
+### Where it is written down
+
+- `crates/stylex-transform/docs/adr/0007-a-typescript-module-reads-an-unreferenced-import-as-a-type.md`
+  — the decision, the ruled-out mechanisms, and what would reopen it.
+- `crates/stylex-rs-compiler/README.md`, under *Deliberate divergences from
+  `@stylexjs/babel-plugin`* — where a person surprised by it will actually look.
+  That section listed four values upstream accepts and this compiler rejects;
+  this is the one that goes the other way, and it is labelled as such rather
+  than folded into the table.
+- `__test__/importElision.spec.ts::a TypeScript module keeps the elision` now
+  says *intended* rather than *measured*, and carries both reasons in its
+  comment plus the type-only case that makes the first one concrete.
+
+### What would reopen it
+
+An upstream change that stops reading a stripped import, or a StyleX release
+that exports its types as values — either dissolves half of this. A fresh
+reading of the `.js`/`.ts` asymmetry would not.

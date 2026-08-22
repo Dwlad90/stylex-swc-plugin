@@ -1,0 +1,1560 @@
+diff --git i/crates/stylex-transform/src/shared/structures/state_manager.rs w/crates/stylex-transform/src/shared/structures/state_manager.rs
+index 0dd4f88e4..4f4b1b209 100644
+--- i/crates/stylex-transform/src/shared/structures/state_manager.rs
++++ w/crates/stylex-transform/src/shared/structures/state_manager.rs
+@@ -58,7 +58,7 @@
+   style_vars_to_keep::StyleVarsToKeep, top_level_expression::TopLevelExpression,
+ };
+ use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
+-use stylex_utils::hash::{stable_hash_unspanned, stable_hash_unspanned_call};
++use stylex_utils::hash::{ExprHashCache, stable_hash_unspanned, stable_hash_unspanned_call};
+ 
+ use super::{
+   key_span_index::KeySpanIndex,
+@@ -468,6 +468,20 @@ pub struct StateManager {
+   pub(crate) pattern_bound_top_level_calls: FxHashSet<Span>,
+   pub(crate) call_expressions: CallExpressionState,
+   pub(crate) seen: FxHashMap<u128, Rc<SeenValue>>,
++  /// Digests of the expression nodes the memo's keys are composed from, scoped
++  /// to the level of the descent that owns them.
++  ///
++  /// Sits beside [`Self::seen`] and answers a different question: `seen` maps a
++  /// key to a fold, this maps a *node* to the key's ingredient. It lives here
++  /// for the same reason [`Self::evaluation_depth`] does -- the confidence forks
++  /// and the native stack does not, and the scope the entries are valid in is
++  /// the stack's.
++  ///
++  /// `evaluate_cached` brackets every level with a mark and a truncate, so this
++  /// is empty again whenever the evaluator is not inside a fold. See
++  /// [`ExprHashCache`] for why an address is a usable identity only under that
++  /// discipline.
++  pub(crate) expr_hash_cache: ExprHashCache,
+   /// How many expression levels the evaluator is currently inside.
+   ///
+   /// Lives here rather than on `EvaluationState` because the evaluator's
+@@ -580,6 +594,7 @@ pub fn new(stylex_options: StyleXOptions) -> Self {
+       export_id: None,
+ 
+       seen: FxHashMap::default(),
++      expr_hash_cache: ExprHashCache::new(),
+       evaluation_depth: 0,
+       cache: CacheState::default(),
+       module_source: ModuleSourceState::default(),
+diff --git i/crates/stylex-transform/src/shared/utils/js/evaluate/cache.rs w/crates/stylex-transform/src/shared/utils/js/evaluate/cache.rs
+index 3fbe82a6d..3bc001831 100644
+--- i/crates/stylex-transform/src/shared/utils/js/evaluate/cache.rs
++++ w/crates/stylex-transform/src/shared/utils/js/evaluate/cache.rs
+@@ -50,6 +50,27 @@ pub(crate) fn evaluate_cached(
+     return deopt(path, state, &expression_too_deep(ceiling));
+   }
+ 
++  // A fold that ended in a panic -- a StyleX diagnostic raised from a position
++  // requiring a static value -- unwound past every truncation below it, leaving
++  // entries that name frames which no longer exist. Nothing else can recover
++  // from that, because the addresses those entries carry are the only evidence
++  // they were ever valid. The outermost level is the one place it is knowable
++  // that no scope is open, so it is the one place the cache can be cleared.
++  if traversal_state.evaluation_depth == 0 {
++    traversal_state.expr_hash_cache.clear();
++  }
++
++  // The scope this level owns. Every digest recorded from here until the
++  // matching truncate belongs to a node reachable from `path`, and `path`
++  // outlives this call -- so nothing dead is kept, and a node synthesized at a
++  // sibling level cannot inherit a freed node's entry.
++  //
++  // Deeper levels take their own marks inside this one, so descending into a
++  // node already hashed as part of `path`'s subtree costs a lookup rather than
++  // a walk. That is the whole of the deep-expression case, and it is why the
++  // mark is taken *before* the key below is computed rather than after.
++  let cache_mark = traversal_state.expr_hash_cache.mark();
++
+   traversal_state.evaluation_depth += 1;
+ 
+   // A panic unwinding out of the fold -- a StyleX diagnostic, which is how a
+@@ -61,6 +82,7 @@ pub(crate) fn evaluate_cached(
+   });
+ 
+   traversal_state.evaluation_depth -= 1;
++  traversal_state.expr_hash_cache.truncate(cache_mark);
+ 
+   result
+ }
+@@ -79,19 +101,21 @@ fn evaluate_cached_within_budget(
+   traversal_state: &mut StateManager,
+   fns: &FunctionMap,
+ ) -> Option<EvaluateResultValue> {
+-  // Walks the whole remaining subtree, at every level, and is therefore nearly
+-  // all of what folding a deep expression costs -- the memo that exists to avoid
+-  // repeated work pays for the subtree to decide whether it can avoid it. Left
+-  // that way deliberately: the numbers, and why an incremental key is a
+-  // correctness question rather than a refactor, are
+-  // `docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md`.
++  // Still covers the whole remaining subtree -- a key that read less of the tree
++  // would collide more -- but it is composed from its children's digests rather
++  // than streamed from their bytes, and the cache the mark above scopes holds
++  // those digests. So the descent pays for each node once in total rather than
++  // once per level above it: `docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md`
++  // measured the quadratic and
++  // `docs/adr/0006-the-memo-key-is-composed-and-its-cache-is-scoped.md` records
++  // what removed it.
+   //
+   // The lookup below acts on the key *alone* -- no `eq_ignore_span` confirms it,
+   // unlike the JSX-spread bucket -- so the key's width is what stands between a
+   // collision and a wrong folded value. It is 128 bits for that reason. A
+   // confirm here would cost a subtree compare on every hit and a stored clone of
+   // every memoized expression, which is the trade the ADR records rejecting.
+-  let cleaned_path_hash = stable_hash_unspanned(path);
++  let cleaned_path_hash = stable_hash_unspanned_cached(path, &mut traversal_state.expr_hash_cache);
+ 
+   let existing = traversal_state.seen.get(&cleaned_path_hash);
+ 
+diff --git i/crates/stylex-transform/src/shared/utils/js/evaluate/mod.rs w/crates/stylex-transform/src/shared/utils/js/evaluate/mod.rs
+index 8d73c5dff..70675cbf9 100644
+--- i/crates/stylex-transform/src/shared/utils/js/evaluate/mod.rs
++++ w/crates/stylex-transform/src/shared/utils/js/evaluate/mod.rs
+@@ -92,7 +92,7 @@
+ };
+ use stylex_structures::{named_import_source::ImportSources, stylex_env::EnvEntry};
+ use stylex_utils::{
+-  collection::sort_numbers_factory, hash::stable_hash_unspanned, string::char_code_at_f64,
++  collection::sort_numbers_factory, hash::stable_hash_unspanned_cached, string::char_code_at_f64,
+   swc::get_expr_node_kind,
+ };
+ 
+diff --git i/crates/stylex-utils/src/hash.rs w/crates/stylex-utils/src/hash.rs
+index 6af9919af..f7229e54c 100644
+--- i/crates/stylex-utils/src/hash.rs
++++ w/crates/stylex-utils/src/hash.rs
+@@ -4,7 +4,8 @@
+   mem::discriminant,
+ };
+ 
+-use xxhash_rust::xxh3::Xxh3Default;
++use rustc_hash::FxHashMap;
++use xxhash_rust::xxh3::{Xxh3Default, xxh3_128};
+ 
+ use swc_core::{
+   common::{DUMMY_SP, SyntaxContext},
+@@ -229,6 +230,103 @@ fn finish(&self) -> u64 {
+   }
+ }
+ 
++/// The per-node hasher the composed key is built with.
++///
++/// One of these is opened for every expression node, which rules out
++/// [`WideHasher`]: `Xxh3Default` is a *streaming* state -- 64 bytes of
++/// accumulators and a 256-byte staging buffer, zeroed on construction -- and
++/// paying for that per node rather than per key is what a composed walk cannot
++/// afford. Measured on the depth benchmark, the streaming state made one key
++/// 5x more expensive and turned the whole change into a regression for every
++/// depth under ~40, which is all of them under the shipped ceiling of 32.
++///
++/// So a node collects its bytes and hashes them in one shot. What it collects is
++/// small and bounded for almost every shape -- a discriminant, a scalar field or
++/// two, and 16 bytes per child -- so [`INLINE`](Self::INLINE) bytes of stack
++/// cover it without touching the allocator. A wide collection (an object or an
++/// array literal, up to the 128 entries the walk covers at all) spills into a
++/// `Vec`, which allocates only once it is needed and never for a node that fits.
++///
++/// The digest is xxh3's 128-bit one-shot over exactly those bytes, which is the
++/// same construction [`WideHasher::finish_wide`] streams -- identical output for
++/// an identical byte sequence, so the two are interchangeable in strength and
++/// differ only in what they cost to open.
++struct NodeHasher {
++  inline: [u8; Self::INLINE],
++  len: usize,
++  /// Empty unless the node wrote more than [`INLINE`](Self::INLINE) bytes, at
++  /// which point it holds *all* of them -- the inline prefix is copied in, so
++  /// finishing reads one contiguous run either way.
++  spill: Vec<u8>,
++}
++
++impl NodeHasher {
++  /// Sized to cover a node with three children and its own scalar fields without
++  /// spilling: `3 * 16` for the digests and 16 bytes of discriminant, operator,
++  /// context and flags. No expression node in `Expr` has more than three fixed
++  /// children (`CondExpr`), so only the variable-length shapes -- arrays,
++  /// objects, argument lists, template literals, sequences -- reach the spill.
++  const INLINE: usize = 64;
++
++  #[inline]
++  #[inline]
++  fn new() -> Self {
++    Self {
++      inline: [0u8; Self::INLINE],
++      len: 0,
++      spill: Vec::new(),
++    }
++  }
++
++  #[inline]
++  #[inline]
++  fn finish_wide(&self) -> u128 {
++    if self.spill.is_empty() {
++      xxh3_128(&self.inline[..self.len])
++    } else {
++      xxh3_128(&self.spill)
++    }
++  }
++}
++
++impl Hasher for NodeHasher {
++  #[inline]
++  fn write(&mut self, bytes: &[u8]) {
++    if !self.spill.is_empty() {
++      self.spill.extend_from_slice(bytes);
++      return;
++    }
++
++    match self.inline.get_mut(self.len..self.len + bytes.len()) {
++      Some(slot) => {
++        slot.copy_from_slice(bytes);
++        self.len += bytes.len();
++      },
++      None => {
++        // First overflow: carry the prefix across so the spill holds the whole
++        // stream. An empty `bytes` cannot reach here -- a zero-length slice
++        // always fits -- so the spill never becomes non-empty while holding
++        // nothing, which is what `write` reads to decide which half is live.
++        self.spill.reserve(self.len + bytes.len());
++        self.spill.extend_from_slice(&self.inline[..self.len]);
++        self.spill.extend_from_slice(bytes);
++      },
++    }
++  }
++
++  /// Present only because `Hasher` requires it, and never read: the composed
++  /// walk finishes through [`NodeHasher::finish_wide`]. It answers xxh3's
++  /// 64-bit one-shot, which is a different construction from the 128-bit one
++  /// rather than a half of it -- the same trap [`WideHasher::finish`] documents.
++  fn finish(&self) -> u64 {
++    if self.spill.is_empty() {
++      xxhash_rust::xxh3::xxh3_64(&self.inline[..self.len])
++    } else {
++      xxhash_rust::xxh3::xxh3_64(&self.spill)
++    }
++  }
++}
++
+ /// [`stable_hash`] over 128 bits.
+ ///
+ /// For the fallback arms of the structural key, and for any other cache whose
+@@ -241,6 +339,158 @@ pub fn stable_hash_wide<T: Hash>(t: &T) -> u128 {
+   hasher.finish_wide()
+ }
+ 
++/// A digest cache for the structural key, keyed by node address and scoped to
++/// the level that owns the nodes.
++///
++/// The key is composed rather than streamed ([`expr_digest`]), so a node's
++/// digest is a function of its children's. That alone still visits every node,
++/// because nothing identifies a node well enough to reuse a digest across two
++/// calls -- SWC's `Expr` carries no node id, and its span is not an identity
++/// (the evaluator folds expressions it synthesized, which all carry
++/// `DUMMY_SP`). The address is an identity, but only while the node is alive:
++/// a node synthesized at one level and dropped when that level returns leaves
++/// its address free for the next level's, and a stale hit there is a wrong key
++/// and then a wrong fold.
++///
++/// So the address is scoped. A caller takes a [`mark`](Self::mark) before
++/// hashing and [`truncate`](Self::truncate)s back to it afterwards; every entry
++/// recorded in between belongs to a node reachable from the expression that
++/// call was handed, which outlives the call. Nothing dead is kept and nothing
++/// live is dropped, and a node synthesized at a sibling level cannot inherit a
++/// freed node's entry.
++///
++/// The evaluator brackets each level of its descent that way, which is what
++/// makes descending into a node already hashed as part of its parent's subtree
++/// O(1) -- the whole of the deep-expression case. Nothing else needs a cache:
++/// a single [`stable_hash_unspanned`] visits every node exactly once, so
++/// [`ExprHashCache::disabled`] is what it uses and no map is ever populated.
++///
++/// A declined shape is cached as `None`, so a subtree the in-place walk does
++/// not cover is not re-walked once per level on its way to the deep-clone
++/// fallback.
++#[derive(Debug)]
++pub struct ExprHashCache {
++  /// Whether reads and writes are honoured at all. A disabled cache is the
++  /// zero-allocation path for a one-shot hash, where every lookup would miss.
++  enabled: bool,
++  digests: FxHashMap<usize, Option<u128>>,
++  /// The addresses in `digests`, in insertion order -- what makes a scope
++  /// unwindable by length.
++  log: Vec<usize>,
++  /// Nodes whose digest was computed rather than reused.
++  ///
++  /// Counted whether or not the cache is enabled, because it is the unit the
++  /// key's cost is stated in: `key_cost_scaling_tests` asserts the curve
++  /// against it, deterministically and without timing anything.
++  visits: u64,
++}
++
++impl Default for ExprHashCache {
++  fn default() -> Self {
++    Self {
++      enabled: true,
++      digests: FxHashMap::default(),
++      log: Vec::new(),
++      visits: 0,
++    }
++  }
++}
++
++/// A cloned cache starts empty.
++///
++/// The entries are addresses of nodes the *original* holder's stack keeps
++/// alive; a copy that outlives that stack would hold entries for freed nodes,
++/// and the discipline that makes an address an identity is a property of one
++/// scope rather than of the value. `StateManager` derives `Clone`, so this is
++/// reached by cloning the evaluator's state, and the only sound answer there is
++/// to start over.
++impl Clone for ExprHashCache {
++  fn clone(&self) -> Self {
++    Self {
++      enabled: self.enabled,
++      digests: FxHashMap::default(),
++      log: Vec::new(),
++      visits: 0,
++    }
++  }
++}
++
++impl ExprHashCache {
++  /// A cache that retains what it is told, for a caller that scopes it.
++  pub fn new() -> Self {
++    Self::default()
++  }
++
++  /// A cache that retains nothing, for a one-shot hash where every lookup would
++  /// miss. It allocates nothing: neither `FxHashMap` nor `Vec` touches the
++  /// allocator until something is inserted, and nothing ever is.
++  pub fn disabled() -> Self {
++    Self {
++      enabled: false,
++      ..Self::default()
++    }
++  }
++
++  /// The current scope boundary, to be handed back to [`truncate`](Self::truncate).
++  pub fn mark(&self) -> usize {
++    self.log.len()
++  }
++
++  /// Forgets every entry recorded since `mark`.
++  ///
++  /// Cheap for the caller to get wrong in only one direction: truncating too
++  /// eagerly loses reuse, never soundness, because an entry is dropped while
++  /// its node is still alive. Truncating too late is what the discipline
++  /// exists to prevent.
++  pub fn truncate(&mut self, mark: usize) {
++    for address in self.log.drain(mark..) {
++      self.digests.remove(&address);
++    }
++  }
++
++  /// Forgets everything.
++  ///
++  /// For the one case `truncate` cannot reach: a panic unwinding out of a fold
++  /// skips the truncation on every level it passes, so the entries left behind
++  /// name frames that no longer exist. The next fold clears before it reads.
++  pub fn clear(&mut self) {
++    self.digests.clear();
++    self.log.clear();
++  }
++
++  /// How many nodes have had a digest computed rather than reused, since the
++  /// cache was built or [`reset_visits`](Self::reset_visits) was called.
++  pub fn visits(&self) -> u64 {
++    self.visits
++  }
++
++  /// Restarts the [`visits`](Self::visits) count without disturbing the entries.
++  pub fn reset_visits(&mut self) {
++    self.visits = 0;
++  }
++
++  fn get(&self, address: usize) -> Option<Option<u128>> {
++    if !self.enabled {
++      return None;
++    }
++
++    self.digests.get(&address).copied()
++  }
++
++  fn insert(&mut self, address: usize, digest: Option<u128>) {
++    if !self.enabled {
++      return;
++    }
++
++    // Only a genuinely new address joins the log. An address already present
++    // would otherwise be logged twice, and the first `truncate` past it would
++    // remove an entry the second log slot still claims to own.
++    if self.digests.insert(address, digest).is_none() {
++      self.log.push(address);
++    }
++  }
++}
++
+ /// Hashes an expression into a stable structural key for the evaluator cache,
+ /// treating spans as insignificant for the common expression shapes.
+ ///
+@@ -251,16 +501,32 @@ pub fn stable_hash_wide<T: Hash>(t: &T) -> u128 {
+ /// collections) fall back to hashing a span-stripped clone so the public
+ /// contract stays span-insensitive for every expression shape.
+ ///
++/// The key is *composed*: a node's digest mixes its children's digests rather
++/// than their bytes, so a digest already computed can be reused. Reusing one
++/// needs a cache, and a cache needs a scope -- [`ExprHashCache`] carries both.
++/// This entry point has neither, which is right for a caller that asks once:
++/// it visits every node exactly once, so a cache would be pure overhead.
++/// A caller that descends -- the evaluator, once per level -- wants
++/// [`stable_hash_unspanned_cached`].
++///
+ /// 128 bits wide, because two of its consumers act on a hit without confirming
+ /// it -- see [`WideHasher`] for what that buys and why it is not two hashes.
+ #[inline]
+ pub fn stable_hash_unspanned(path: &Expr) -> u128 {
+-  let mut hasher = WideHasher::new();
++  stable_hash_unspanned_cached(path, &mut ExprHashCache::disabled())
++}
+ 
+-  if hash_expr_unspanned(path, &mut hasher) {
+-    hasher.finish_wide()
+-  } else {
+-    stable_hash_wide(&drop_span(path.clone()))
++/// [`stable_hash_unspanned`], reusing and recording digests in `cache`.
++///
++/// The caller owns the scope discipline the cache depends on: take a
++/// [`mark`](ExprHashCache::mark) before the call and
++/// [`truncate`](ExprHashCache::truncate) back to it once the expression may
++/// stop being alive. [`ExprHashCache`] says why.
++#[inline]
++pub fn stable_hash_unspanned_cached(path: &Expr, cache: &mut ExprHashCache) -> u128 {
++  match expr_digest(path, cache) {
++    Some(digest) => digest,
++    None => stable_hash_wide(&drop_span(path.clone())),
+   }
+ }
+ 
+@@ -274,13 +540,18 @@ pub fn stable_hash_unspanned(path: &Expr) -> u128 {
+ /// `Expr::Call` is only materialized on the rare fallback path (a call whose
+ /// argument has a shape the in-place hasher does not cover), keeping the key
+ /// identical in every case.
++///
++/// Uncached: its callers hold a call they are about to look up once, not a
++/// descent through one. It still populates nothing and reads nothing, so it
++/// cannot disturb a scope another caller is holding.
+ #[inline]
+ pub fn stable_hash_unspanned_call(call: &CallExpr) -> u128 {
+-  let mut hasher = WideHasher::new();
++  let mut hasher = NodeHasher::new();
++  let cache = &mut ExprHashCache::disabled();
+ 
+   // `discriminant` over the `Expr::Call` variant is independent of the call's
+   // contents, so a throwaway stack value (no heap allocation) yields the same
+-  // discriminant `hash_expr_unspanned` writes for a real `Expr::Call`.
++  // discriminant `expr_digest` writes for a real `Expr::Call`.
+   let call_variant = Expr::Call(CallExpr {
+     span: DUMMY_SP,
+     ctxt: SyntaxContext::empty(),
+@@ -290,7 +561,7 @@ pub fn stable_hash_unspanned_call(call: &CallExpr) -> u128 {
+   });
+   discriminant(&call_variant).hash(&mut hasher);
+ 
+-  if hash_call_expr_unspanned(call, &mut hasher) {
++  if hash_call_expr_unspanned(call, &mut hasher, cache) {
+     hasher.finish_wide()
+   } else {
+     stable_hash_wide(&drop_span(Expr::Call(call.clone())))
+@@ -303,32 +574,87 @@ pub fn create_short_hash(value: &str) -> String {
+   to_base62(hash)
+ }
+ 
+-fn hash_expr_unspanned<H: Hasher>(expr: &Expr, state: &mut H) -> bool {
+-  discriminant(expr).hash(state);
++/// The digest of one expression node, composed from its children's.
++///
++/// This is the level the cache is keyed at, and the only place a node's address
++/// is read. A hit answers without descending; a miss opens a hasher of its own,
++/// writes the variant discriminant and whatever the arm contributes, and
++/// finishes -- so a child contributes 16 bytes to its parent rather than its
++/// whole subtree.
++///
++/// `None` is "the in-place walk does not cover this shape", which propagates to
++/// the top and selects the deep-clone fallback. It is cached too: a declined
++/// subtree is otherwise re-walked once per level on its way to the same answer.
++fn expr_digest(expr: &Expr, cache: &mut ExprHashCache) -> Option<u128> {
++  let address = std::ptr::from_ref(expr) as usize;
++
++  if let Some(digest) = cache.get(address) {
++    return digest;
++  }
++
++  cache.visits += 1;
++
++  let mut hasher = NodeHasher::new();
++  discriminant(expr).hash(&mut hasher);
++
++  let digest = if hash_expr_body_unspanned(expr, &mut hasher, cache) {
++    Some(hasher.finish_wide())
++  } else {
++    None
++  };
++
++  cache.insert(address, digest);
++
++  digest
++}
++
++/// Writes a child expression's digest into its parent's hasher.
++///
++/// The parent sees a fixed 16 bytes per child whatever the child holds, which is
++/// what makes a node's own cost independent of its subtree's size.
++fn hash_child<H: Hasher>(expr: &Expr, state: &mut H, cache: &mut ExprHashCache) -> bool {
++  match expr_digest(expr, cache) {
++    Some(digest) => {
++      digest.hash(state);
++      true
++    },
++    None => false,
++  }
++}
+ 
++/// Everything an expression contributes to its digest *except* the variant
++/// discriminant, which [`expr_digest`] writes before dispatching here.
++///
++/// Kept separate so [`stable_hash_unspanned_call`] can reproduce the
++/// `Expr::Call` layout without an owned `Expr` to dispatch on.
++fn hash_expr_body_unspanned<H: Hasher>(
++  expr: &Expr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   match expr {
+     Expr::This(this_expr) => hash_this_expr_unspanned(this_expr, state),
+-    Expr::Array(array) => hash_array_lit_unspanned(array, state),
+-    Expr::Object(object) => hash_object_lit_unspanned(object, state),
+-    Expr::Unary(unary) => hash_unary_expr_unspanned(unary, state),
+-    Expr::Update(update) => hash_update_expr_unspanned(update, state),
+-    Expr::Bin(bin) => hash_bin_expr_unspanned(bin, state),
+-    Expr::Member(member) => hash_member_expr_unspanned(member, state),
+-    Expr::SuperProp(super_prop) => hash_super_prop_expr_unspanned(super_prop, state),
+-    Expr::Cond(cond) => hash_cond_expr_unspanned(cond, state),
+-    Expr::Call(call) => hash_call_expr_unspanned(call, state),
+-    Expr::New(new_expr) => hash_new_expr_unspanned(new_expr, state),
+-    Expr::Seq(seq) => hash_seq_expr_unspanned(seq, state),
++    Expr::Array(array) => hash_array_lit_unspanned(array, state, cache),
++    Expr::Object(object) => hash_object_lit_unspanned(object, state, cache),
++    Expr::Unary(unary) => hash_unary_expr_unspanned(unary, state, cache),
++    Expr::Update(update) => hash_update_expr_unspanned(update, state, cache),
++    Expr::Bin(bin) => hash_bin_expr_unspanned(bin, state, cache),
++    Expr::Member(member) => hash_member_expr_unspanned(member, state, cache),
++    Expr::SuperProp(super_prop) => hash_super_prop_expr_unspanned(super_prop, state, cache),
++    Expr::Cond(cond) => hash_cond_expr_unspanned(cond, state, cache),
++    Expr::Call(call) => hash_call_expr_unspanned(call, state, cache),
++    Expr::New(new_expr) => hash_new_expr_unspanned(new_expr, state, cache),
++    Expr::Seq(seq) => hash_seq_expr_unspanned(seq, state, cache),
+     Expr::Ident(ident) => hash_ident_unspanned(ident, state),
+     Expr::Lit(lit) => hash_lit_unspanned(lit, state),
+-    Expr::Tpl(tpl) => hash_tpl_unspanned(tpl, state),
+-    Expr::TaggedTpl(tagged_tpl) => hash_tagged_tpl_unspanned(tagged_tpl, state),
+-    Expr::Arrow(arrow) => hash_arrow_expr_unspanned(arrow, state),
+-    Expr::Yield(yield_expr) => hash_yield_expr_unspanned(yield_expr, state),
++    Expr::Tpl(tpl) => hash_tpl_unspanned(tpl, state, cache),
++    Expr::TaggedTpl(tagged_tpl) => hash_tagged_tpl_unspanned(tagged_tpl, state, cache),
++    Expr::Arrow(arrow) => hash_arrow_expr_unspanned(arrow, state, cache),
++    Expr::Yield(yield_expr) => hash_yield_expr_unspanned(yield_expr, state, cache),
+     Expr::MetaProp(meta_prop) => hash_meta_prop_expr_unspanned(meta_prop, state),
+-    Expr::Await(await_expr) => hash_await_expr_unspanned(await_expr, state),
+-    Expr::Paren(paren) => hash_paren_expr_unspanned(paren, state),
+-    Expr::OptChain(opt_chain) => hash_opt_chain_expr_unspanned(opt_chain, state),
++    Expr::Await(await_expr) => hash_await_expr_unspanned(await_expr, state, cache),
++    Expr::Paren(paren) => hash_paren_expr_unspanned(paren, state, cache),
++    Expr::OptChain(opt_chain) => hash_opt_chain_expr_unspanned(opt_chain, state, cache),
+     Expr::Assign(_)
+     | Expr::Fn(_)
+     | Expr::Class(_)
+@@ -352,71 +678,116 @@ fn hash_this_expr_unspanned<H: Hasher>(_this_expr: &ThisExpr, _state: &mut H) ->
+   true
+ }
+ 
+-fn hash_array_lit_unspanned<H: Hasher>(array: &ArrayLit, state: &mut H) -> bool {
++fn hash_array_lit_unspanned<H: Hasher>(
++  array: &ArrayLit,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   if array.elems.len() > MAX_UNSPANNED_HASH_COLLECTION_LEN {
+     return false;
+   }
+ 
+-  hash_slice_option_with(&array.elems, state, hash_expr_or_spread_unspanned)
++  hash_slice_option_with(&array.elems, state, cache, hash_expr_or_spread_unspanned)
+ }
+ 
+-fn hash_object_lit_unspanned<H: Hasher>(object: &ObjectLit, state: &mut H) -> bool {
++fn hash_object_lit_unspanned<H: Hasher>(
++  object: &ObjectLit,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   if object.props.len() > MAX_UNSPANNED_HASH_COLLECTION_LEN {
+     return false;
+   }
+ 
+-  hash_slice_with(&object.props, state, hash_prop_or_spread_unspanned)
++  hash_slice_with(&object.props, state, cache, hash_prop_or_spread_unspanned)
+ }
+ 
+-fn hash_unary_expr_unspanned<H: Hasher>(unary: &UnaryExpr, state: &mut H) -> bool {
++fn hash_unary_expr_unspanned<H: Hasher>(
++  unary: &UnaryExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   unary.op.hash(state);
+-  hash_expr_unspanned(&unary.arg, state)
++  hash_child(&unary.arg, state, cache)
+ }
+ 
+-fn hash_update_expr_unspanned<H: Hasher>(update: &UpdateExpr, state: &mut H) -> bool {
++fn hash_update_expr_unspanned<H: Hasher>(
++  update: &UpdateExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   update.op.hash(state);
+   update.prefix.hash(state);
+-  hash_expr_unspanned(&update.arg, state)
++  hash_child(&update.arg, state, cache)
+ }
+ 
+-fn hash_bin_expr_unspanned<H: Hasher>(bin: &BinExpr, state: &mut H) -> bool {
++fn hash_bin_expr_unspanned<H: Hasher>(
++  bin: &BinExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   bin.op.hash(state);
+-  hash_expr_unspanned(&bin.left, state) && hash_expr_unspanned(&bin.right, state)
++  hash_child(&bin.left, state, cache) && hash_child(&bin.right, state, cache)
+ }
+ 
+-fn hash_member_expr_unspanned<H: Hasher>(member: &MemberExpr, state: &mut H) -> bool {
+-  hash_expr_unspanned(&member.obj, state) && hash_member_prop_unspanned(&member.prop, state)
++fn hash_member_expr_unspanned<H: Hasher>(
++  member: &MemberExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
++  hash_child(&member.obj, state, cache) && hash_member_prop_unspanned(&member.prop, state, cache)
+ }
+ 
+-fn hash_super_prop_expr_unspanned<H: Hasher>(super_prop: &SuperPropExpr, state: &mut H) -> bool {
+-  hash_super_unspanned(&super_prop.obj, state) && hash_super_prop_unspanned(&super_prop.prop, state)
++fn hash_super_prop_expr_unspanned<H: Hasher>(
++  super_prop: &SuperPropExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
++  hash_super_unspanned(&super_prop.obj, state)
++    && hash_super_prop_unspanned(&super_prop.prop, state, cache)
+ }
+ 
+-fn hash_cond_expr_unspanned<H: Hasher>(cond: &CondExpr, state: &mut H) -> bool {
+-  hash_expr_unspanned(&cond.test, state)
+-    && hash_expr_unspanned(&cond.cons, state)
+-    && hash_expr_unspanned(&cond.alt, state)
++fn hash_cond_expr_unspanned<H: Hasher>(
++  cond: &CondExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
++  hash_child(&cond.test, state, cache)
++    && hash_child(&cond.cons, state, cache)
++    && hash_child(&cond.alt, state, cache)
+ }
+ 
+-fn hash_call_expr_unspanned<H: Hasher>(call: &CallExpr, state: &mut H) -> bool {
++fn hash_call_expr_unspanned<H: Hasher>(
++  call: &CallExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   call.ctxt.hash(state);
+ 
+-  hash_callee_unspanned(&call.callee, state)
+-    && hash_slice_with(&call.args, state, hash_expr_or_spread_unspanned)
++  hash_callee_unspanned(&call.callee, state, cache)
++    && hash_slice_with(&call.args, state, cache, hash_expr_or_spread_unspanned)
+     && hash_none(&call.type_args, state)
+ }
+ 
+-fn hash_new_expr_unspanned<H: Hasher>(new_expr: &NewExpr, state: &mut H) -> bool {
++fn hash_new_expr_unspanned<H: Hasher>(
++  new_expr: &NewExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   new_expr.ctxt.hash(state);
+ 
+-  hash_expr_unspanned(&new_expr.callee, state)
+-    && hash_option_slice_with(&new_expr.args, state, hash_expr_or_spread_unspanned)
++  hash_child(&new_expr.callee, state, cache)
++    && hash_option_slice_with(&new_expr.args, state, cache, hash_expr_or_spread_unspanned)
+     && hash_none(&new_expr.type_args, state)
+ }
+ 
+-fn hash_seq_expr_unspanned<H: Hasher>(seq: &SeqExpr, state: &mut H) -> bool {
+-  hash_slice_with(&seq.exprs, state, |expr, state| {
+-    hash_expr_unspanned(expr, state)
++fn hash_seq_expr_unspanned<H: Hasher>(
++  seq: &SeqExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
++  hash_slice_with(&seq.exprs, state, cache, |expr, state, cache| {
++    hash_child(expr, state, cache)
+   })
+ }
+ 
+@@ -434,35 +805,49 @@ fn hash_lit_unspanned<H: Hasher>(lit: &Lit, state: &mut H) -> bool {
+   }
+ }
+ 
+-fn hash_tpl_unspanned<H: Hasher>(tpl: &Tpl, state: &mut H) -> bool {
+-  hash_slice_with(&tpl.exprs, state, |expr, state| {
+-    hash_expr_unspanned(expr, state)
+-  }) && hash_slice_with(&tpl.quasis, state, hash_tpl_element_unspanned)
++fn hash_tpl_unspanned<H: Hasher>(tpl: &Tpl, state: &mut H, cache: &mut ExprHashCache) -> bool {
++  hash_slice_with(&tpl.exprs, state, cache, |expr, state, cache| {
++    hash_child(expr, state, cache)
++  }) && hash_slice_with(&tpl.quasis, state, cache, |quasi, state, _cache| {
++    hash_tpl_element_unspanned(quasi, state)
++  })
+ }
+ 
+-fn hash_tagged_tpl_unspanned<H: Hasher>(tagged_tpl: &TaggedTpl, state: &mut H) -> bool {
++fn hash_tagged_tpl_unspanned<H: Hasher>(
++  tagged_tpl: &TaggedTpl,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   tagged_tpl.ctxt.hash(state);
+ 
+-  hash_expr_unspanned(&tagged_tpl.tag, state)
++  hash_child(&tagged_tpl.tag, state, cache)
+     && hash_none(&tagged_tpl.type_params, state)
+-    && hash_tpl_unspanned(&tagged_tpl.tpl, state)
++    && hash_tpl_unspanned(&tagged_tpl.tpl, state, cache)
+ }
+ 
+-fn hash_arrow_expr_unspanned<H: Hasher>(arrow: &ArrowExpr, state: &mut H) -> bool {
++fn hash_arrow_expr_unspanned<H: Hasher>(
++  arrow: &ArrowExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   arrow.ctxt.hash(state);
+   arrow.is_async.hash(state);
+   arrow.is_generator.hash(state);
+ 
+-  hash_slice_with(&arrow.params, state, hash_pat_unspanned)
+-    && hash_block_stmt_or_expr_unspanned(&arrow.body, state)
++  hash_slice_with(&arrow.params, state, cache, hash_pat_unspanned)
++    && hash_block_stmt_or_expr_unspanned(&arrow.body, state, cache)
+     && hash_none(&arrow.type_params, state)
+     && hash_none(&arrow.return_type, state)
+ }
+ 
+-fn hash_yield_expr_unspanned<H: Hasher>(yield_expr: &YieldExpr, state: &mut H) -> bool {
++fn hash_yield_expr_unspanned<H: Hasher>(
++  yield_expr: &YieldExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   yield_expr.delegate.hash(state);
+-  hash_option_with(&yield_expr.arg, state, |expr, state| {
+-    hash_expr_unspanned(expr, state)
++  hash_option_with(&yield_expr.arg, state, cache, |expr, state, cache| {
++    hash_child(expr, state, cache)
+   })
+ }
+ 
+@@ -471,17 +856,29 @@ fn hash_meta_prop_expr_unspanned<H: Hasher>(meta_prop: &MetaPropExpr, state: &mu
+   true
+ }
+ 
+-fn hash_await_expr_unspanned<H: Hasher>(await_expr: &AwaitExpr, state: &mut H) -> bool {
+-  hash_expr_unspanned(&await_expr.arg, state)
++fn hash_await_expr_unspanned<H: Hasher>(
++  await_expr: &AwaitExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
++  hash_child(&await_expr.arg, state, cache)
+ }
+ 
+-fn hash_paren_expr_unspanned<H: Hasher>(paren: &ParenExpr, state: &mut H) -> bool {
+-  hash_expr_unspanned(&paren.expr, state)
++fn hash_paren_expr_unspanned<H: Hasher>(
++  paren: &ParenExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
++  hash_child(&paren.expr, state, cache)
+ }
+ 
+-fn hash_opt_chain_expr_unspanned<H: Hasher>(opt_chain: &OptChainExpr, state: &mut H) -> bool {
++fn hash_opt_chain_expr_unspanned<H: Hasher>(
++  opt_chain: &OptChainExpr,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   opt_chain.optional.hash(state);
+-  hash_opt_chain_base_unspanned(&opt_chain.base, state)
++  hash_opt_chain_base_unspanned(&opt_chain.base, state, cache)
+ }
+ 
+ fn hash_ident_unspanned<H: Hasher>(ident: &Ident, state: &mut H) -> bool {
+@@ -541,81 +938,106 @@ fn hash_tpl_element_unspanned<H: Hasher>(tpl_element: &TplElement, state: &mut H
+   true
+ }
+ 
+-fn hash_expr_or_spread_unspanned<H: Hasher>(expr_or_spread: &ExprOrSpread, state: &mut H) -> bool {
++fn hash_expr_or_spread_unspanned<H: Hasher>(
++  expr_or_spread: &ExprOrSpread,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   expr_or_spread.spread.is_some().hash(state);
+-  hash_expr_unspanned(&expr_or_spread.expr, state)
++  hash_child(&expr_or_spread.expr, state, cache)
+ }
+ 
+-fn hash_prop_or_spread_unspanned<H: Hasher>(prop_or_spread: &PropOrSpread, state: &mut H) -> bool {
++fn hash_prop_or_spread_unspanned<H: Hasher>(
++  prop_or_spread: &PropOrSpread,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   discriminant(prop_or_spread).hash(state);
+ 
+   match prop_or_spread {
+-    PropOrSpread::Spread(spread) => hash_expr_unspanned(&spread.expr, state),
+-    PropOrSpread::Prop(prop) => hash_prop_unspanned(prop, state),
++    PropOrSpread::Spread(spread) => hash_child(&spread.expr, state, cache),
++    PropOrSpread::Prop(prop) => hash_prop_unspanned(prop, state, cache),
+   }
+ }
+ 
+-fn hash_prop_unspanned<H: Hasher>(prop: &Prop, state: &mut H) -> bool {
++fn hash_prop_unspanned<H: Hasher>(prop: &Prop, state: &mut H, cache: &mut ExprHashCache) -> bool {
+   discriminant(prop).hash(state);
+ 
+   match prop {
+     Prop::Shorthand(ident) => hash_ident_unspanned(ident, state),
+     Prop::KeyValue(key_value) => {
+-      hash_prop_name_unspanned(&key_value.key, state)
+-        && hash_expr_unspanned(&key_value.value, state)
++      hash_prop_name_unspanned(&key_value.key, state, cache)
++        && hash_child(&key_value.value, state, cache)
+     },
+     Prop::Assign(assign) => {
+-      hash_ident_unspanned(&assign.key, state) && hash_expr_unspanned(&assign.value, state)
++      hash_ident_unspanned(&assign.key, state) && hash_child(&assign.value, state, cache)
+     },
+     Prop::Getter(_) | Prop::Setter(_) | Prop::Method(_) => false,
+   }
+ }
+ 
+-fn hash_prop_name_unspanned<H: Hasher>(prop_name: &PropName, state: &mut H) -> bool {
++fn hash_prop_name_unspanned<H: Hasher>(
++  prop_name: &PropName,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   discriminant(prop_name).hash(state);
+ 
+   match prop_name {
+     PropName::Ident(ident) => hash_ident_name_unspanned(ident, state),
+     PropName::Str(str_lit) => hash_str_unspanned(str_lit, state),
+     PropName::Num(number) => hash_number_unspanned(number, state),
+-    PropName::Computed(computed) => hash_computed_prop_name_unspanned(computed, state),
++    PropName::Computed(computed) => hash_computed_prop_name_unspanned(computed, state, cache),
+     PropName::BigInt(big_int) => hash_big_int_unspanned(big_int, state),
+   }
+ }
+ 
+-fn hash_member_prop_unspanned<H: Hasher>(member_prop: &MemberProp, state: &mut H) -> bool {
++fn hash_member_prop_unspanned<H: Hasher>(
++  member_prop: &MemberProp,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   discriminant(member_prop).hash(state);
+ 
+   match member_prop {
+     MemberProp::Ident(ident) => hash_ident_name_unspanned(ident, state),
+     MemberProp::PrivateName(private_name) => hash_private_name_unspanned(private_name, state),
+-    MemberProp::Computed(computed) => hash_computed_prop_name_unspanned(computed, state),
++    MemberProp::Computed(computed) => hash_computed_prop_name_unspanned(computed, state, cache),
+   }
+ }
+ 
+ fn hash_computed_prop_name_unspanned<H: Hasher>(
+   computed: &ComputedPropName,
+   state: &mut H,
++  cache: &mut ExprHashCache,
+ ) -> bool {
+-  hash_expr_unspanned(&computed.expr, state)
++  hash_child(&computed.expr, state, cache)
+ }
+ 
+-fn hash_super_prop_unspanned<H: Hasher>(super_prop: &SuperProp, state: &mut H) -> bool {
++fn hash_super_prop_unspanned<H: Hasher>(
++  super_prop: &SuperProp,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   discriminant(super_prop).hash(state);
+ 
+   match super_prop {
+     SuperProp::Ident(ident) => hash_ident_name_unspanned(ident, state),
+-    SuperProp::Computed(computed) => hash_computed_prop_name_unspanned(computed, state),
++    SuperProp::Computed(computed) => hash_computed_prop_name_unspanned(computed, state, cache),
+   }
+ }
+ 
+-fn hash_callee_unspanned<H: Hasher>(callee: &Callee, state: &mut H) -> bool {
++fn hash_callee_unspanned<H: Hasher>(
++  callee: &Callee,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   discriminant(callee).hash(state);
+ 
+   match callee {
+     Callee::Super(super_expr) => hash_super_unspanned(super_expr, state),
+     Callee::Import(import) => hash_import_unspanned(import, state),
+-    Callee::Expr(expr) => hash_expr_unspanned(expr, state),
++    Callee::Expr(expr) => hash_child(expr, state, cache),
+   }
+ }
+ 
+@@ -631,89 +1053,110 @@ fn hash_import_unspanned<H: Hasher>(import: &Import, state: &mut H) -> bool {
+ fn hash_block_stmt_or_expr_unspanned<H: Hasher>(
+   block_stmt_or_expr: &BlockStmtOrExpr,
+   state: &mut H,
++  cache: &mut ExprHashCache,
+ ) -> bool {
+   discriminant(block_stmt_or_expr).hash(state);
+ 
+   match block_stmt_or_expr {
+-    BlockStmtOrExpr::Expr(expr) => hash_expr_unspanned(expr, state),
++    BlockStmtOrExpr::Expr(expr) => hash_child(expr, state, cache),
+     BlockStmtOrExpr::BlockStmt(_) => false,
+   }
+ }
+ 
+-fn hash_pat_unspanned<H: Hasher>(pat: &Pat, state: &mut H) -> bool {
++fn hash_pat_unspanned<H: Hasher>(pat: &Pat, state: &mut H, cache: &mut ExprHashCache) -> bool {
+   discriminant(pat).hash(state);
+ 
+   match pat {
+     Pat::Ident(ident) => {
+       hash_ident_unspanned(&ident.id, state) && hash_none(&ident.type_ann, state)
+     },
+-    Pat::Expr(expr) => hash_expr_unspanned(expr, state),
++    Pat::Expr(expr) => hash_child(expr, state, cache),
+     Pat::Array(_) | Pat::Rest(_) | Pat::Object(_) | Pat::Assign(_) | Pat::Invalid(_) => false,
+   }
+ }
+ 
+-fn hash_opt_chain_base_unspanned<H: Hasher>(base: &OptChainBase, state: &mut H) -> bool {
++fn hash_opt_chain_base_unspanned<H: Hasher>(
++  base: &OptChainBase,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   discriminant(base).hash(state);
+ 
+   match base {
+-    OptChainBase::Member(member) => hash_member_expr_unspanned(member, state),
+-    OptChainBase::Call(call) => hash_opt_call_unspanned(call, state),
++    OptChainBase::Member(member) => hash_member_expr_unspanned(member, state, cache),
++    OptChainBase::Call(call) => hash_opt_call_unspanned(call, state, cache),
+   }
+ }
+ 
+-fn hash_opt_call_unspanned<H: Hasher>(call: &OptCall, state: &mut H) -> bool {
++fn hash_opt_call_unspanned<H: Hasher>(
++  call: &OptCall,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++) -> bool {
+   call.ctxt.hash(state);
+ 
+-  hash_expr_unspanned(&call.callee, state)
+-    && hash_slice_with(&call.args, state, hash_expr_or_spread_unspanned)
++  hash_child(&call.callee, state, cache)
++    && hash_slice_with(&call.args, state, cache, hash_expr_or_spread_unspanned)
+     && hash_none(&call.type_args, state)
+ }
+ 
+-fn hash_slice_with<T, H: Hasher, F>(values: &[T], state: &mut H, mut hash_value: F) -> bool
++fn hash_slice_with<T, H: Hasher, F>(
++  values: &[T],
++  state: &mut H,
++  cache: &mut ExprHashCache,
++  mut hash_value: F,
++) -> bool
+ where
+-  F: FnMut(&T, &mut H) -> bool,
++  F: FnMut(&T, &mut H, &mut ExprHashCache) -> bool,
+ {
+   values.len().hash(state);
+ 
+-  values.iter().all(|value| hash_value(value, state))
++  values.iter().all(|value| hash_value(value, state, cache))
+ }
+ 
+ fn hash_slice_option_with<T, H: Hasher, F>(
+   values: &[Option<T>],
+   state: &mut H,
++  cache: &mut ExprHashCache,
+   mut hash_value: F,
+ ) -> bool
+ where
+-  F: FnMut(&T, &mut H) -> bool,
++  F: FnMut(&T, &mut H, &mut ExprHashCache) -> bool,
+ {
+   values.len().hash(state);
+ 
+   values
+     .iter()
+-    .all(|value| hash_option_with(value, state, &mut hash_value))
++    .all(|value| hash_option_with(value, state, cache, &mut hash_value))
+ }
+ 
+ fn hash_option_slice_with<T, H: Hasher, F>(
+   values: &Option<Vec<T>>,
+   state: &mut H,
++  cache: &mut ExprHashCache,
+   mut hash_value: F,
+ ) -> bool
+ where
+-  F: FnMut(&T, &mut H) -> bool,
++  F: FnMut(&T, &mut H, &mut ExprHashCache) -> bool,
+ {
+-  hash_option_with(values, state, |values, state| {
+-    hash_slice_with(values, state, &mut hash_value)
++  hash_option_with(values, state, cache, |values, state, cache| {
++    hash_slice_with(values, state, cache, &mut hash_value)
+   })
+ }
+ 
+-fn hash_option_with<T, H: Hasher, F>(value: &Option<T>, state: &mut H, mut hash_value: F) -> bool
++fn hash_option_with<T, H: Hasher, F>(
++  value: &Option<T>,
++  state: &mut H,
++  cache: &mut ExprHashCache,
++  mut hash_value: F,
++) -> bool
+ where
+-  F: FnMut(&T, &mut H) -> bool,
++  F: FnMut(&T, &mut H, &mut ExprHashCache) -> bool,
+ {
+   value.is_some().hash(state);
+ 
+   match value {
+-    Some(value) => hash_value(value, state),
++    Some(value) => hash_value(value, state, cache),
+     None => true,
+   }
+ }
+diff --git i/crates/stylex-utils/src/tests/hash_test.rs w/crates/stylex-utils/src/tests/hash_test.rs
+index e8b2e22c7..d1ce475f9 100644
+--- i/crates/stylex-utils/src/tests/hash_test.rs
++++ w/crates/stylex-utils/src/tests/hash_test.rs
+@@ -1,12 +1,9 @@
+ //! Shared helpers for the cases below.
+ //!
+ //! `parse_expr` and the tower builder are used by more than one of the modules
+-//! in this file, and the counting hasher is how two of them ask a question the
+-//! public entry point does not answer: how much of the tree the walk touched,
+-//! and whether it took its fallback arm.
+-
+-#[cfg(test)]
+-use std::hash::Hasher;
++//! in this file, and the visit counter on `ExprHashCache` is how two of them ask
++//! a question the public entry point does not answer: how much of the tree the
++//! walk touched, and whether it took its fallback arm.
+ 
+ #[cfg(test)]
+ use swc_core::{
+@@ -16,50 +13,28 @@
+ #[cfg(test)]
+ use swc_ecma_parser::{EsSyntax, Parser, StringInput, Syntax, lexer::Lexer};
+ 
+-/// A [`Hasher`] that records how much the walk fed it and hashes nothing.
+-///
+-/// Bytes rather than nodes, because the walk writes through the `Hash`
+-/// implementations of `Atom`, `SyntaxContext` and the operator enums as well as
+-/// its own discriminants, and all of that is work the key pays for. It is
+-/// proportional to the node count for a fixed shape, which is all the cases
+-/// below compare.
++/// The nodes one whole-subtree hash of `expr` visits -- what a single memo
++/// lookup costs the fold at one level, with nothing cached beneath it.
+ ///
+-/// `finish` is never called: the walk only writes, and the real
+-/// `stable_hash_unspanned` finishes its own hasher. It answers zero rather than
+-/// a digest so that a case reading it would notice.
+-#[cfg(test)]
+-#[derive(Default)]
+-struct ByteCounter {
+-  bytes: u64,
+-}
+-
+-#[cfg(test)]
+-impl Hasher for ByteCounter {
+-  fn write(&mut self, bytes: &[u8]) {
+-    self.bytes += bytes.len() as u64;
+-  }
+-
+-  fn finish(&self) -> u64 {
+-    0
+-  }
+-}
+-
+-/// The bytes one whole-subtree hash of `expr` spends -- what a single memo
+-/// lookup costs the fold at one level.
++/// Nodes rather than bytes, which is what the key became when it stopped being
++/// a stream. Each expression node opens a hasher of its own and writes a fixed
++/// 16 bytes into its parent, so bytes and nodes are now the same measurement up
++/// to a constant, and nodes are the one the cache is stated in. It does not
++/// vary with the machine, the build profile, or the load.
+ ///
+ /// Panics if the walk declines the shape, because a declined shape is measuring
+ /// the deep clone instead of the walk. Use [`hashed_in_place`] to ask which arm
+ /// runs.
+ #[cfg(test)]
+ fn key_cost(expr: &Expr) -> u64 {
+-  let mut counter = ByteCounter::default();
++  let mut cache = super::ExprHashCache::disabled();
+ 
+   assert!(
+-    super::hash_expr_unspanned(expr, &mut counter),
++    super::expr_digest(expr, &mut cache).is_some(),
+     "measuring the cost of a shape the in-place walk declines"
+   );
+ 
+-  counter.bytes
++  cache.visits()
+ }
+ 
+ /// Whether the in-place walk covered `expr`, or handed it to the deep-clone
+@@ -69,9 +44,7 @@ fn key_cost(expr: &Expr) -> u64 {
+ /// neither reports which ran -- so the cases that care ask the walk directly.
+ #[cfg(test)]
+ fn hashed_in_place(expr: &Expr) -> bool {
+-  let mut counter = ByteCounter::default();
+-
+-  super::hash_expr_unspanned(expr, &mut counter)
++  super::expr_digest(expr, &mut super::ExprHashCache::disabled()).is_some()
+ }
+ 
+ #[cfg(test)]
+@@ -881,50 +854,60 @@ fn prop(prop: Prop) -> PropOrSpread {
+   }
+ }
+ 
+-/// What one memo key costs, and why the evaluator's cost is quadratic in the
+-/// depth of the expression it folds.
++/// What one memo key costs, what a whole fold's worth of them costs, and what
++/// the cache takes off the second number.
+ ///
+ /// [`stable_hash_unspanned`](super::stable_hash_unspanned) is the key of the
+ /// evaluator's memo, and the evaluator asks for one at *every* level of a nested
+-/// expression. The key is a hash of the whole remaining subtree, so a fold that
+-/// descends `n` levels hashes `n + (n-1) + (n-2)` … nodes: the memo that exists
+-/// to avoid repeated work pays for the subtree to decide whether it can avoid
+-/// it.
++/// expression. One key still covers the whole remaining subtree -- that has not
++/// changed and cannot: a key that read less of the tree would collide more, and
++/// two consumers act on a hit without confirming it. What changed is that the
++/// key is now *composed* from its children's rather than streamed from their
++/// bytes, so a digest already computed can be reused, and
++/// [`ExprHashCache`](super::ExprHashCache) is what reuses it.
++///
++/// The two halves do not work alone, and these cases say so separately:
++///
++/// - [`one_key_costs_the_whole_remaining_subtree`] -- one key, nothing cached
++///   beneath it, still visits every node. Composition alone flattens nothing.
++/// - [`the_fold_pays_for_that_key_once_per_level_without_a_cache`] -- the sum of
++///   that over the levels a fold descends, which is the quadratic
++///   `docs/adr/0005` measured and `0006` removes.
++/// - [`the_scoped_cache_makes_the_whole_fold_linear`] -- the same descent with
++///   the cache the evaluator holds, where the second level down meets a digest
++///   the first level already computed.
+ ///
+-/// These cases pin that curve, deterministically rather than by timing. The
+-/// walk's cost is counted in the bytes it feeds its hasher, which is
+-/// proportional to the nodes it visits and does not vary with the machine, the
+-/// build profile, or the load. A change to the key that keeps the curve reports
+-/// as the same numbers; one that flattens it -- an incremental key composed from
+-/// its children's, the open question these cases exist to measure -- reports as
+-/// a changed law, which is exactly what a future reader needs to see. Nothing
+-/// here asserts a *hash value*: only how much of the tree the walk touched.
++/// The cost is counted in expression nodes whose digest was computed rather than
++/// reused, which is deterministic and does not vary with the machine, the build
++/// profile, or the load. Nothing here asserts a *hash value*: only how much of
++/// the tree the walk touched.
+ ///
+-/// Why the key is not being flattened is
+-/// `stylex-transform/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md`.
++/// Why the key is composed, and why the cache is scoped rather than global, is
++/// `stylex-transform/docs/adr/0006-the-memo-key-is-composed-and-its-cache-is-scoped.md`.
+ #[cfg(test)]
+ mod key_cost_scaling_tests {
+   use super::{arithmetic_tower, key_cost};
++  use crate::hash::{ExprHashCache, stable_hash_unspanned_cached};
+   use swc_core::{
+     common::DUMMY_SP,
+     ecma::ast::{ArrayLit, Expr, ExprOrSpread},
+   };
+ 
+-  /// The bytes one key spends on `MY_CONST` alone -- the tower's leaf, and the
++  /// The nodes one key spends on `MY_CONST` alone -- the tower's leaf, and the
+   /// only part of a key that does not grow with depth.
+-  const LEAF: u64 = 21;
++  const LEAF: u64 = 1;
+ 
+-  /// The bytes each `+ 1` above it adds to that key: the `BinExpr`
+-  /// discriminant, its operator, and the `Number` on the right.
++  /// The expression nodes each `+ 1` above it adds to that key: the `BinExpr`
++  /// itself and the `Number` on its right.
+   ///
+-  /// Both constants are the measured layout rather than a derived one. They move
+-  /// if SWC changes what a `BinExpr` or a `Number` hashes as, and a reader
+-  /// comparing against a new pair learns that the layout changed rather than
+-  /// that the curve did -- the curve is the law two cases below, which is stated
+-  /// in terms of them.
+-  const PER_LEVEL: u64 = 48;
+-
+-  /// Every key the fold buys while folding a tower of `depth`, summed.
++  /// Both constants are the measured shape rather than a derived one. They move
++  /// if SWC changes what a `BinExpr` is made of, and a reader comparing against
++  /// a new pair learns that the shape changed rather than that the curve did --
++  /// the curve is the law in the cases below, which is stated in terms of them.
++  const PER_LEVEL: u64 = 2;
++
++  /// Every key the fold buys while folding a tower of `depth`, summed, with no
++  /// cache between the levels.
+   ///
+   /// The fold hashes the node it is about to evaluate and then descends into
+   /// that node's operands, so for this shape the levels that pay are the left
+@@ -948,10 +931,39 @@ fn spine_key_cost(depth: usize) -> u64 {
+     total
+   }
+ 
++  /// The same descent, bracketed the way the evaluator brackets it: a mark on
++  /// the way in and a truncate on the way out, at every level.
++  ///
++  /// This is the model of `evaluate_cached`, deliberately including the
++  /// truncation -- a version that only ever inserted would also come out linear
++  /// and would be measuring something the evaluator does not do.
++  fn cached_spine_key_cost(depth: usize) -> u64 {
++    fn descend(level: &Expr, cache: &mut ExprHashCache) {
++      let mark = cache.mark();
++
++      stable_hash_unspanned_cached(level, cache);
++
++      if let Expr::Bin(bin) = level {
++        descend(&bin.left, cache);
++      }
++
++      cache.truncate(mark);
++    }
++
++    let tower = arithmetic_tower(depth);
++    let mut cache = ExprHashCache::new();
++
++    descend(&tower, &mut cache);
++
++    cache.visits()
++  }
++
+   #[test]
+   fn one_key_costs_the_whole_remaining_subtree() {
+     // Linear in depth, and exactly linear: a level of `(x + 1)` adds a fixed
+-    // number of bytes to every key taken above it.
++    // number of nodes to every key taken above it. Composing the key from its
++    // children's digests did not change this and was never going to -- a key
++    // has to read the subtree it claims to identify.
+     for depth in [0, 1, 2, 8, 64, 256] {
+       assert_eq!(
+         key_cost(&arithmetic_tower(depth)),
+@@ -962,23 +974,22 @@ fn one_key_costs_the_whole_remaining_subtree() {
+   }
+ 
+   #[test]
+-  fn the_fold_pays_for_that_key_once_per_level() {
+-    // The sum of a linear cost over a linear number of levels, which is the
+-    // quadratic the ticket measured in milliseconds (2.6x to 3.8x per doubling,
+-    // converging on 4x). Counted in bytes it has a closed form, so it is
+-    // asserted as an equality rather than as a ratio: summing `LEAF +
++  fn the_fold_pays_for_that_key_once_per_level_without_a_cache() {
++    // The sum of a linear cost over a linear number of levels: summing `LEAF +
+     // PER_LEVEL * k` for k in 0..=depth is `(depth + 1) * (LEAF + PER_LEVEL /
+     // 2 * depth)`.
+     //
+-    // An incremental key would break this equality, which is the point: the
+-    // replacement should be a new law, not a deleted case.
++    // This is the cost the evaluator used to pay unconditionally, and still
++    // pays for any subtree its cache does not reach -- a declined shape's
++    // deep-clone fallback, or a level entered from an expression no ancestor
++    // hashed.
+     for depth in [0, 1, 16, 32, 64, 128, 256] {
+       let expected = (depth as u64 + 1) * (LEAF + PER_LEVEL / 2 * depth as u64);
+ 
+       assert_eq!(
+         spine_key_cost(depth),
+         expected,
+-        "the keys bought while folding a {depth}-level tower"
++        "the keys bought while folding a {depth}-level tower with no cache"
+       );
+     }
+ 
+@@ -995,18 +1006,50 @@ fn the_fold_pays_for_that_key_once_per_level() {
+     }
+   }
+ 
+-  /// Two elements in an array, with the towers' own cost taken out: the
+-  /// `ArrayLit` discriminant, the slot count, and an `Option` tag per slot.
+-  /// Measured, and asserted below to be independent of what the slots hold.
+-  const TWO_ELEMENT_ARRAY: u64 = 20;
++  #[test]
++  fn the_scoped_cache_makes_the_whole_fold_linear() {
++    // The whole claim, in one equality: a fold that descends `depth` levels
++    // visits exactly the nodes of the tower, once each, rather than once per
++    // level above them. The first level's key computes every digest beneath it;
++    // every level after that meets its own node already done.
++    //
++    // Equal to `key_cost` of the top level alone -- the descent past it is free.
++    for depth in [0, 1, 16, 32, 64, 128, 256, 512] {
++      assert_eq!(
++        cached_spine_key_cost(depth),
++        LEAF + PER_LEVEL * depth as u64,
++        "the keys bought while folding a {depth}-level tower with the scoped cache"
++      );
++    }
++
++    // Read as a curve: a doubling of depth for a doubling of cost, where the
++    // uncached descent above quadruples.
++    for depth in [16usize, 32, 64, 128] {
++      let ratio = cached_spine_key_cost(depth * 2) as f64 / cached_spine_key_cost(depth) as f64;
++
++      assert!(
++        (1.9..2.1).contains(&ratio),
++        "{depth} -> {} levels multiplied the cached key cost by {ratio}, not by ~2",
++        depth * 2
++      );
++    }
++  }
++
++  /// The `ArrayLit` node itself. Measured, and asserted below to be independent
++  /// of what its slots hold.
++  const TWO_ELEMENT_ARRAY: u64 = 1;
+ 
+   #[test]
+   fn two_copies_of_one_subtree_cost_twice() {
+-    // There is no memo *on the key itself*, which is the whole of the open
+-    // question: the walk has no way to recognise a subtree it has already
+-    // hashed, so an expression holding two structurally-identical towers pays
+-    // the walk at each of them. An incremental key with a cache would make the
+-    // second copy nearly free, and this is the case that would report it.
++    // Two structurally-identical towers are two distinct nodes at two distinct
++    // addresses, and the cache is keyed by address rather than by structure --
++    // deliberately, because structure is what the key is computing. So the
++    // second copy is walked in full.
++    //
++    // Keying by structure would be circular; keying by address is what makes
++    // the *descent* free, which is the case the fold actually spends its time
++    // in. Pinned so a future reader does not read the cache as doing more than
++    // it does.
+     fn pair_of(depth: usize) -> Expr {
+       Expr::Array(ArrayLit {
+         span: DUMMY_SP,
+@@ -1031,6 +1074,170 @@ fn pair_of(depth: usize) -> Expr {
+   }
+ }
+ 
++/// The discipline that makes a node's address a usable identity.
++///
++/// An address identifies a node only while the node is alive. The cache is
++/// sound because every entry in it was recorded inside a scope that is still
++/// open, for a node reachable from the expression that scope was handed -- and
++/// that expression outlives the scope. These cases pin the two halves of that:
++/// that a scope forgets exactly what it recorded, and that a node allocated
++/// over a freed one does not inherit its digest.
++#[cfg(test)]
++mod cache_scope_tests {
++  use super::{arithmetic_tower, parse_expr};
++  use crate::hash::{ExprHashCache, stable_hash_unspanned, stable_hash_unspanned_cached};
++  use swc_core::ecma::ast::Expr;
++
++  #[test]
++  fn a_scope_forgets_exactly_what_it_recorded() {
++    let outer = arithmetic_tower(4);
++    let inner = arithmetic_tower(4);
++
++    let mut cache = ExprHashCache::new();
++
++    stable_hash_unspanned_cached(&outer, &mut cache);
++    let after_outer = cache.mark();
++
++    stable_hash_unspanned_cached(&inner, &mut cache);
++    assert!(
++      cache.mark() > after_outer,
++      "hashing a second tower recorded nothing"
++    );
++
++    cache.truncate(after_outer);
++    assert_eq!(cache.mark(), after_outer);
++
++    // What the outer scope recorded is still there: re-hashing it costs nothing.
++    cache.reset_visits();
++    stable_hash_unspanned_cached(&outer, &mut cache);
++    assert_eq!(
++      cache.visits(),
++      0,
++      "the surviving scope's entries were dropped"
++    );
++
++    // What the truncated scope recorded is gone: re-hashing it pays in full.
++    cache.reset_visits();
++    stable_hash_unspanned_cached(&inner, &mut cache);
++    assert_eq!(cache.visits(), 9, "the truncated scope's entries survived");
++  }
++
++  #[test]
++  fn a_node_allocated_over_a_freed_one_does_not_inherit_its_digest() {
++    // The failure mode the scope exists to prevent, driven directly: hash a
++    // heap-allocated expression, drop it, and allocate a different one of the
++    // same size, which a size-class allocator will very often place at the same
++    // address. Without the truncation the second read would answer the first
++    // one's digest.
++    //
++    // The address reuse is not guaranteed, so the case asserts the answer
++    // rather than the collision -- it is a real regression test when the
++    // addresses coincide and a tautology when they do not, and it reports which
++    // it was.
++    let mut cache = ExprHashCache::new();
++
++    let mark = cache.mark();
++    let first: Box<Expr> = Box::new(parse_expr("a + 1"));
++    let first_address = std::ptr::from_ref::<Expr>(&first) as usize;
++    stable_hash_unspanned_cached(&first, &mut cache);
++    cache.truncate(mark);
++    drop(first);
++
++    let second: Box<Expr> = Box::new(parse_expr("b + 2"));
++    let second_address = std::ptr::from_ref::<Expr>(&second) as usize;
++
++    assert_eq!(
++      stable_hash_unspanned_cached(&second, &mut cache),
++      stable_hash_unspanned(&second),
++      "the second expression answered a digest that was not its own \
++       (addresses {first_address:#x} and {second_address:#x})"
++    );
++  }
++
++  #[test]
++  fn clearing_drops_every_scope_at_once() {
++    // What a panic unwinding out of the fold leaves behind: marks taken and
++    // never truncated. `clear` is the only thing that can recover from it,
++    // because the frames that owned those addresses are gone.
++    let tower = arithmetic_tower(4);
++    let mut cache = ExprHashCache::new();
++
++    cache.mark();
++    stable_hash_unspanned_cached(&tower, &mut cache);
++    assert!(cache.mark() > 0);
++
++    cache.clear();
++    assert_eq!(cache.mark(), 0);
++
++    cache.reset_visits();
++    stable_hash_unspanned_cached(&tower, &mut cache);
++    assert_eq!(
++      cache.visits(),
++      9,
++      "a cleared cache answered from an old entry"
++    );
++  }
++
++  #[test]
++  fn a_disabled_cache_records_nothing_and_answers_the_same() {
++    let tower = arithmetic_tower(8);
++    let mut disabled = ExprHashCache::disabled();
++
++    assert_eq!(
++      stable_hash_unspanned_cached(&tower, &mut disabled),
++      stable_hash_unspanned(&tower)
++    );
++    assert_eq!(disabled.mark(), 0, "a disabled cache recorded an entry");
++
++    // And it still pays in full on a second read, which is what makes it the
++    // right choice for a caller that only asks once.
++    disabled.reset_visits();
++    stable_hash_unspanned_cached(&tower, &mut disabled);
++    assert_eq!(disabled.visits(), 17);
++  }
++
++  #[test]
++  fn a_cloned_cache_starts_empty() {
++    // `StateManager` derives `Clone`, so the evaluator's cache is cloned with
++    // it. The copy's entries would name nodes the *original* holder's stack
++    // keeps alive, and nothing keeps them alive for the copy.
++    let tower = arithmetic_tower(4);
++    let mut cache = ExprHashCache::new();
++
++    stable_hash_unspanned_cached(&tower, &mut cache);
++    assert!(cache.mark() > 0);
++
++    let mut copy = cache.clone();
++    assert_eq!(copy.mark(), 0);
++
++    copy.reset_visits();
++    stable_hash_unspanned_cached(&tower, &mut copy);
++    assert_eq!(
++      copy.visits(),
++      9,
++      "a cloned cache answered from the original's entries"
++    );
++  }
++
++  #[test]
++  fn a_declined_shape_is_remembered_as_declined() {
++    // A shape the in-place walk does not cover answers `None` at every level on
++    // its way to the deep-clone fallback. Caching the refusal is what stops a
++    // fold from re-walking it once per level for the same answer.
++    let declined = parse_expr("function () { return 1; }");
++    let mut cache = ExprHashCache::new();
++
++    let first = stable_hash_unspanned_cached(&declined, &mut cache);
++
++    cache.reset_visits();
++    let second = stable_hash_unspanned_cached(&declined, &mut cache);
++
++    assert_eq!(first, second);
++    assert_eq!(cache.visits(), 0, "a declined shape was walked twice");
++    assert_eq!(first, stable_hash_unspanned(&declined));
++  }
++}
++
+ /// The hasher behind the structural key.
+ #[cfg(test)]
+ mod wide_hasher_tests {

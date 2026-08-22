@@ -26,6 +26,7 @@ import {
   BOOLEAN_OPTION_KEYS,
   SOURCE_MAP_SETTINGS,
   STYLE_RESOLUTIONS,
+  type SourceMapSetting,
   type BooleanOptionKey,
   type FixtureCategory,
   type FixtureDescriptor,
@@ -45,9 +46,6 @@ export interface LoadFixturesOptions extends FixtureRegistryPaths {
   filter?: readonly string[];
 }
 
-/** The manifest key that names a file whose contents become `inputSourceMap`. */
-const INPUT_SOURCE_MAP_KEY = 'inputSourceMapFrom';
-
 interface FixtureManifestEntry {
   name: string;
   file: string;
@@ -65,7 +63,7 @@ export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor
       : (['transform', 'perf', 'rollup'] as const)
   );
 
-  const all = loadManifest(options.packageDir, options.workspaceRoot)
+  const all = loadManifest(options.packageDir)
     .filter(fixture => requested.has(fixture.category))
     .map(fixture => {
       const filePath = path.join(options.workspaceRoot, fixture.file);
@@ -91,16 +89,14 @@ export function loadAllFixtures(options: LoadFixturesOptions): FixtureDescriptor
   return all.filter(fixture => options.filter!.some(needle => fixture.name.includes(needle)));
 }
 
-function loadManifest(packageDir: string, workspaceRoot: string): readonly FixtureManifestEntry[] {
+function loadManifest(packageDir: string): readonly FixtureManifestEntry[] {
   const manifestPath = path.join(packageDir, 'benchmark', 'fixtures.v1.json');
   const input = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as unknown;
   if (!isRecord(input) || input.schemaVersion !== 1 || !Array.isArray(input.fixtures)) {
     throw new Error('Benchmark fixture manifest must use schema version 1');
   }
 
-  const fixtures = input.fixtures.map((fixture, index) =>
-    parseManifestEntry(fixture, index, workspaceRoot)
-  );
+  const fixtures = input.fixtures.map((fixture, index) => parseManifestEntry(fixture, index));
   if (
     fixtures.length === 0 ||
     new Set(fixtures.map(fixture => fixture.name)).size !== fixtures.length
@@ -110,11 +106,7 @@ function loadManifest(packageDir: string, workspaceRoot: string): readonly Fixtu
   return fixtures;
 }
 
-function parseManifestEntry(
-  input: unknown,
-  index: number,
-  workspaceRoot: string
-): FixtureManifestEntry {
+function parseManifestEntry(input: unknown, index: number): FixtureManifestEntry {
   const context = `Benchmark fixture manifest entry ${String(index)}`;
   if (!isRecord(input)) throw new Error(`${context} must be an object`);
   if (typeof input.name !== 'string' || input.name.length === 0) {
@@ -156,7 +148,7 @@ function parseManifestEntry(
   // become an own `dev: undefined` property.
   if (input.dev !== undefined) entry.dev = input.dev;
   if (input.options !== undefined) {
-    entry.options = parseOptionOverrides(input.options, `${context}.options`, workspaceRoot);
+    entry.options = parseOptionOverrides(input.options, `${context}.options`);
   }
 
   return entry;
@@ -170,11 +162,7 @@ function parseManifestEntry(
  * while claiming to price the debug one, and the number it reports would look
  * entirely reasonable.
  */
-function parseOptionOverrides(
-  input: unknown,
-  context: string,
-  workspaceRoot: string
-): FixtureOptionOverrides {
+function parseOptionOverrides(input: unknown, context: string): FixtureOptionOverrides {
   if (!isRecord(input)) throw new Error(`${context} must be an object`);
 
   const overrides: FixtureOptionOverrides = {};
@@ -199,17 +187,6 @@ function parseOptionOverrides(
       overrides.sourceMap = requireSourceMapSetting(value, `${context}.${key}`);
       continue;
     }
-    // Named for the file it reads, not for the option it fills, because that is
-    // what the manifest actually holds -- and a reader who greps for
-    // `inputSourceMap` should land on this branch rather than wonder where a
-    // whole source map came from.
-    if (key === INPUT_SOURCE_MAP_KEY) {
-      if (typeof value !== 'string' || value.length === 0) {
-        throw new Error(`${context}.${key} must be a relative path to a source map`);
-      }
-      overrides.inputSourceMap = readInputSourceMap(value, workspaceRoot, `${context}.${key}`);
-      continue;
-    }
     if (key === 'classNamePrefix') {
       if (typeof value !== 'string' || value.length === 0) {
         throw new Error(`${context}.${key} must be a non-empty string`);
@@ -221,7 +198,7 @@ function parseOptionOverrides(
     throw new Error(
       `${context}.${key} is not a benchmarkable option — the accepted keys are ` +
         `${BOOLEAN_OPTION_KEYS.join(', ')}, styleResolution, sourceMap, ` +
-        `classNamePrefix, ${INPUT_SOURCE_MAP_KEY}`
+        `classNamePrefix`
     );
   }
 
@@ -236,41 +213,27 @@ function isBooleanOptionKey(key: string): key is BooleanOptionKey {
 }
 
 /**
- * `value` narrowed onto the type `sourceMap` takes, or an error.
+ * The `sourceMap` value a manifest string names, or an error.
  *
- * A predicate rather than an assertion, for the reason `SOURCE_MAP_SETTINGS`
- * gives: the type is an ambient `const enum` this module cannot name a member
- * of, and the strings below are what the napi boundary actually receives.
+ * A lookup into the package's own `SourceMaps` export, so what comes back is
+ * already the type the option takes: the *key* is what gets narrowed, and a key
+ * of a real object is something a runtime check can actually establish.
  */
 function requireSourceMapSetting(
   value: unknown,
   context: string
 ): NonNullable<FixtureOptionOverrides['sourceMap']> {
-  if (!isSourceMapSetting(value)) {
-    throw new Error(`${context} must be one of ${SOURCE_MAP_SETTINGS.join(', ')}`);
+  const settings = Object.keys(SOURCE_MAP_SETTINGS);
+  const named = settings.find(setting => setting === value);
+  if (named === undefined || !isSourceMapSetting(named)) {
+    throw new Error(`${context} must be one of ${settings.join(', ')}`);
   }
 
-  return value;
+  return SOURCE_MAP_SETTINGS[named];
 }
 
-/**
- * The contents of a committed source map, read as the string the transform
- * expects. Relative to the workspace root, like every other path a fixture
- * entry names, and refused if it is absolute or climbs out.
- */
-function readInputSourceMap(file: string, workspaceRoot: string, context: string): string {
-  if (path.isAbsolute(file) || file.split(/[\\/]/).includes('..')) {
-    throw new Error(`${context} must be a relative path inside the workspace`);
-  }
-
-  return fs.readFileSync(path.join(workspaceRoot, file), 'utf8');
-}
-
-function isSourceMapSetting(
-  value: unknown
-): value is NonNullable<FixtureOptionOverrides['sourceMap']> {
-  const settings: readonly string[] = SOURCE_MAP_SETTINGS;
-  return typeof value === 'string' && settings.includes(value);
+function isSourceMapSetting(key: string): key is SourceMapSetting {
+  return Object.hasOwn(SOURCE_MAP_SETTINGS, key);
 }
 
 /** `value` when it is one of `accepted`, else an error naming what was allowed. */

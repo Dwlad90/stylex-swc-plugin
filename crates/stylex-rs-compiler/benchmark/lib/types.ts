@@ -8,7 +8,21 @@
  * Bump `RAW_STATS_SCHEMA_VERSION` on any breaking change to the shape below.
  */
 
-import type { StyleXOptions } from '../../dist/index.js';
+import { SourceMaps, type StyleXOptions } from '../../dist/index.js';
+
+/**
+ * The settings `sourceMap` accepts, read off the package's own export.
+ *
+ * The generated typings declare `SourceMaps` as an ambient `const enum`, which
+ * `isolatedModules` forbids naming a member of — so `dist/index.js` re-exports it
+ * as a frozen object typed as that enum, for exactly this. Taking the values
+ * from there means a manifest string is turned into an option value by a lookup
+ * whose result is already the right type, rather than by a predicate asserting a
+ * type no runtime check can establish.
+ */
+export const SOURCE_MAP_SETTINGS = SourceMaps;
+
+export type SourceMapSetting = keyof typeof SOURCE_MAP_SETTINGS;
 
 export const RAW_STATS_SCHEMA_VERSION = 1 as const;
 
@@ -40,9 +54,7 @@ export const BOOLEAN_OPTION_KEYS = [
   'enableMinifiedKeys',
   'enableFontSizePxToRem',
   'enableInlinedConditionalMerge',
-  'enableLogicalStylesPolyfill',
   'enableLegacyValueFlipping',
-  'enableLTRRTLComments',
   'useRealFileForSource',
   'runtimeInjection',
   'injectStylexSideEffects',
@@ -52,19 +64,6 @@ export const BOOLEAN_OPTION_KEYS = [
 ] as const;
 
 export type BooleanOptionKey = (typeof BOOLEAN_OPTION_KEYS)[number];
-
-/**
- * The three settings `sourceMap` accepts, spelled as the strings that *are* its
- * runtime representation.
- *
- * The generated typings declare `SourceMaps` as an ambient `const enum`, and
- * `isolatedModules` forbids referencing one of its members as a value — so the
- * enum cannot be constructed here at all. What can be done, and is, is to narrow
- * a string from the manifest onto that type with a predicate: the napi boundary
- * passes these through as strings, which `Feature - source maps` measures
- * end to end, so the narrowing is checked by a benchmark rather than assumed.
- */
-export const SOURCE_MAP_SETTINGS = ['True', 'False', 'Inline'] as const;
 
 export const STYLE_RESOLUTIONS = [
   'application-order',
@@ -78,18 +77,6 @@ export type FixtureOptionOverrides = Partial<
     styleResolution: (typeof STYLE_RESOLUTIONS)[number];
     sourceMap: NonNullable<StyleXOptions['sourceMap']>;
     classNamePrefix: string;
-    /**
-     * A source map produced by earlier tooling, which the transform chains its
-     * own annotations onto. Declared in the manifest as `inputSourceMapFrom`, a
-     * path to a committed `.map.json`, and read into this field by the loader:
-     * the map is data too large and too derived to inline into a fixture entry,
-     * and too load-bearing to leave to whatever happens to be on disk.
-     *
-     * A map that no longer matches its fixture is ignored by the transform with
-     * a warning, which the "every option override changes what the compiler
-     * emits" test then fails — so a stale map cannot sit here quietly.
-     */
-    inputSourceMap: string;
   }
 >;
 

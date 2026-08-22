@@ -1,8 +1,0 @@
-{
-  "version": 3,
-  "sources": [
-    "/Users/vladislavbuinovski/Projects/Facebook/stylex-swc-plugin.git/bugfix/crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js"
-  ],
-  "names": [],
-  "mappings": "AAAA;;;;;;;;;;;CAWC,GAED,YAAY,YAAY,mBAAmB;AAE3C,MAAM;;;;;;;;;;;;;;;;;;;YAMI;;wBAAa,4BAAA;;;;2GAAA;;;;AAGvB,OAAO,SAAS,IAAI,EAAE,MAAM,EAAE,UAAU,EAAE,KAAK,EAAE,KAAK,EAAE;IACtD,QACG,iCAAmC;MAClC,CAAC,4CAAuD;MACxD,CAAC;;;;;;;QAAmC,eAA4B;MAChE,CAAC,oDAAwD;MACzD,CAAC,MAAM,GAAG,OAAO,KAAK,CAAC;QAAC,OAAO,IAAI;QAAE;YAAC,OAAO,OAAO;YAAE,OAAO,QAAQ;SAAC;KAAC,CAAC,GAAI;MAC5E,CAAC;;;;;;;QAAsB,mBAAiD;MACxE,CAAC,MAAM,GAAG,OAAO,KAAK,CAAC,OAAO,QAAQ,EAAE,OAAO,KAAK,CAAC,OAAO,GAAI;MAChE,CAAC,gDAAsD;MACvD,CAAC;;;;;;;QAAsB,CAAA,MAAM,MAAM,GAAG,CAAA,UAAsC;IAC9E,EAAE;AAEN"
-}

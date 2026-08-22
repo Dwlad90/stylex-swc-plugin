@@ -321,14 +321,13 @@
       "batchSize": 1
     },
     {
-      "name": "Feature - debug annotations over many namespaces",
+      "name": "Feature - debug class names over many namespaces",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/nested-conditions.js",
       "category": "perf",
       "weight": "standard",
       "batchSize": 1,
       "options": {
-        "debug": true,
-        "enableDebugDataProp": true
+        "debug": true
       }
     },
     {
@@ -343,14 +342,14 @@
       }
     },
     {
-      "name": "Feature - source text read from disk",
+      "name": "Feature - source text not read from disk",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/css-values.js",
       "category": "perf",
       "weight": "standard",
       "batchSize": 1,
       "options": {
         "dev": true,
-        "useRealFileForSource": true
+        "useRealFileForSource": false
       }
     },
     {
@@ -364,15 +363,13 @@
       }
     },
     {
-      "name": "Feature - logical polyfill and RTL comments",
+      "name": "Feature - legacy value flipping",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/logical-rtl.js",
       "category": "perf",
       "weight": "standard",
       "batchSize": 1,
       "options": {
-        "enableLogicalStylesPolyfill": true,
-        "enableLegacyValueFlipping": true,
-        "enableLTRRTLComments": true
+        "enableLegacyValueFlipping": true
       }
     },
     {
@@ -409,8 +406,18 @@
       "weight": "standard",
       "batchSize": 1,
       "options": {
+        "debug": true
+      }
+    },
+    {
+      "name": "Feature - debug without the data prop",
+      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
+      "category": "perf",
+      "weight": "standard",
+      "batchSize": 1,
+      "options": {
         "debug": true,
-        "enableDebugDataProp": true
+        "enableDebugDataProp": false
       }
     },
     {
@@ -483,7 +490,6 @@
       "weight": "standard",
       "batchSize": 1,
       "options": {
-        "sourceMap": "True",
         "emitSourceMapColumns": false
       }
     },
@@ -494,31 +500,7 @@
       "weight": "standard",
       "batchSize": 1,
       "options": {
-        "sourceMap": "True",
         "inlineSourcesContent": false
-      }
-    },
-    {
-      "name": "Feature - chained input source map",
-      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
-      "category": "perf",
-      "weight": "standard",
-      "batchSize": 1,
-      "options": {
-        "dev": true,
-        "inputSourceMapFrom": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.input.map.json"
-      }
-    },
-    {
-      "name": "Feature - chained input source map with output map",
-      "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.js",
-      "category": "perf",
-      "weight": "standard",
-      "batchSize": 1,
-      "options": {
-        "dev": true,
-        "sourceMap": "True",
-        "inputSourceMapFrom": "crates/stylex-rs-compiler/benchmark/perf_fixtures/props-and-attrs.input.map.json"
       }
     },
     {

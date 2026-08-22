@@ -15,8 +15,8 @@ describe('loadAllFixtures', () => {
   const fixtures = loadAllFixtures({ packageDir, workspaceRoot });
 
   test('loads the complete versioned registry', () => {
-    expect(fixtures).toHaveLength(62);
-    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(62);
+    expect(fixtures).toHaveLength(61);
+    expect(new Set(fixtures.map(fixture => fixture.name)).size).toBe(61);
   });
 
   // The runner refuses to time a subject that produces no rules, so a
@@ -128,6 +128,45 @@ describe('loadAllFixtures', () => {
     }
   });
 
+  // Per *key*, not per entry. The test above passes as soon as one key in a map
+  // moves the output, which let an entry named for a chained input source map
+  // price `dev: true` and carry an inert map alongside it — the map made no
+  // difference at all, and a garbage one made none either. Dropping a key and
+  // requiring the output to change is what says every key earns its place.
+  //
+  // Dropping rather than isolating, because keys legitimately combine:
+  // `enableDebugDataProp` does nothing without `debug`, and
+  // `emitSourceMapColumns` nothing without `sourceMap`. Asked this way, a key
+  // that only matters alongside another still has to matter.
+  test('every option key in a map contributes something', async () => {
+    const { transform } = await import('../../dist/index.js');
+    const base = createStylexOptions(packageDir);
+
+    for (const fixture of fixtures) {
+      const declared = fixture.options;
+      if (declared === undefined) continue;
+
+      const full = transform(fixture.filePath, fixture.code, fixtureStylexOptions(fixture, base));
+
+      for (const key of Object.keys(declared)) {
+        const withoutKey = Object.fromEntries(
+          Object.entries(declared).filter(([candidate]) => candidate !== key)
+        );
+        const reduced = transform(fixture.filePath, fixture.code, {
+          ...fixtureStylexOptions({ ...fixture, options: {} }, base),
+          ...withoutKey,
+        });
+
+        expect(
+          full.code === reduced.code &&
+            JSON.stringify(full.metadata) === JSON.stringify(reduced.metadata) &&
+            JSON.stringify(full.map) === JSON.stringify(reduced.map),
+          `${fixture.name} emits the same thing without ${key}, so that key ` + `prices nothing`
+        ).toBe(false);
+      }
+    }
+  });
+
   // The data prop is attached where styles are *read*, not where they are
   // defined, so a fixture that only calls `create` cannot measure it however
   // many debug options it names. That is how the first version of this corpus
@@ -136,7 +175,10 @@ describe('loadAllFixtures', () => {
   test('the data prop fixtures emit the data prop', async () => {
     const { transform } = await import('../../dist/index.js');
     const base = createStylexOptions(packageDir);
-    const named = fixtures.filter(fixture => fixture.name.includes('data prop'));
+    const named = fixtures.filter(
+      fixture =>
+        fixture.name.includes('data prop') && fixture.options?.enableDebugDataProp !== false
+    );
 
     expect(named.length).toBeGreaterThan(0);
 

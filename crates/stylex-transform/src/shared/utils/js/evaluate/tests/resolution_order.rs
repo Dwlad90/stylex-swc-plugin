@@ -1442,19 +1442,24 @@ fn an_import_aliased_to_a_global_name_resolves_as_the_import() {
   }
 }
 
-/// The write probes' guard asks for a `VarDeclarator`, where upstream asks
-/// whether a binding exists at all — so a hoisted `function` or `class` that is
-/// reassigned falls past both probes and is refused for its declaration kind
-/// instead. Both compilers refuse; the texts differ. Pinned so the narrowing is
-/// a measured difference rather than a thing to rediscover.
+/// The write probes ask whether the module *declares* the binding a write was
+/// recorded against, which is upstream's own guard (`binding &&`, 656 and 660) —
+/// so a written-to `function` or `class` is refused for the write, ahead of the
+/// declaration-kind refusals at 685-690. Measured on 0.19.0, which answers
+/// `Referenced value is not a constant.` for both.
+///
+/// The kind refusals still answer for a declaration nobody wrote to, which
+/// `a_class_or_function_declaration_is_refused_as_unsupported` pins: the probe
+/// comes first and the guard second, so a binding with no write never reaches
+/// this step at all.
 #[test]
-fn a_reassigned_function_declaration_is_refused_for_its_kind_not_the_write() {
+fn a_written_declaration_of_any_kind_is_refused_for_the_write() {
   assert_refused_with(
     &ModuleState::default()
       .declares_a_function()
       .reassigned()
       .evaluate_a_later_reference(),
-    &unsupported_expression("FunctionDeclaration"),
+    NON_CONSTANT,
   );
 
   assert_refused_with(
@@ -1462,6 +1467,45 @@ fn a_reassigned_function_declaration_is_refused_for_its_kind_not_the_write() {
       .declares_a_class()
       .mutated()
       .evaluate_a_later_reference(),
-    &unsupported_expression("ClassDeclaration"),
+    NON_CONSTANT,
   );
+}
+
+/// A binding the module declares without a `VarDeclarator` behind it — a
+/// destructured name, a parameter, a `catch` binding — is refused for a write
+/// just the same. The old guard looked for a declarator and missed every one of
+/// them, sending a destructured reassignment to the tail refusal to be called an
+/// undefined constant. Measured on 0.19.0:
+/// `let { primary } = …; primary = 'blue'` is `Referenced value is not a
+/// constant.` there, framed at the declarator.
+#[test]
+fn a_binding_with_no_declarator_is_refused_for_a_write() {
+  assert_refused_with(
+    &ModuleState::default()
+      .bound_as_a_parameter()
+      .reassigned()
+      .evaluate_a_later_reference(),
+    NON_CONSTANT,
+  );
+
+  assert_refused_with(
+    &ModuleState::default()
+      .bound_as_a_parameter()
+      .mutated()
+      .evaluate_a_later_reference(),
+    NON_CONSTANT,
+  );
+}
+
+/// And a write recorded against a binding this module does not declare answers
+/// nothing: the guard is what keeps a write to some other module's name from
+/// refusing a global. `Infinity` is written to somewhere, and nothing here binds
+/// it, so the global stands.
+#[test]
+fn a_write_to_a_name_the_module_does_not_declare_refuses_nothing() {
+  let result = ModuleState::default()
+    .reassigned()
+    .evaluate("Infinity", LATER_REFERENCE_SPAN);
+
+  assert_folded_to_the_global(&result, "Infinity");
 }

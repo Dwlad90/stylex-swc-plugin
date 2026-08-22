@@ -14,7 +14,9 @@
 //! matches the message and a code frame is written separately — so they are
 //! pinned in two other places: the frame's own suite, over fixtures whose lines
 //! are asserted, and `parity/corpus/positions.json`, which compares them against
-//! `@stylexjs/babel-plugin` 0.19.0.
+//! `@stylexjs/babel-plugin` 0.19.0. Every message asserted below was measured
+//! against 0.19.0 too, so a case that changes here is a case that stopped
+//! agreeing with upstream.
 
 use crate::utils::prelude::*;
 use swc_core::ecma::transforms::testing::test_transform;
@@ -274,16 +276,14 @@ stylex_test_panic!(
 
 // ── refusals whose declaration is not a plain declarator ────────────────────
 
-// A binding declared by destructuring and then reassigned is refused, but for
-// a different reason than upstream gives: the write probes are guarded by a
-// `VarDeclarator` lookup that matches an identifier pattern only, so this falls
-// through to the tail refusal. Pinned because it is the one shape where the two
-// compilers word a refusal differently — `parity/corpus/positions.json` carries
-// the measurement against 0.19.0, which says
-// `Referenced value is not a constant.`
+// A write is refused for the write, whatever kind of declaration the binding
+// came from. Upstream asks whether a *binding* was written to, so every one of
+// these answers `Referenced value is not a constant.` there; each was measured
+// against 0.19.0, and `parity/corpus/positions.json` carries the positions.
+
 stylex_test_panic!(
-  a_destructured_binding_that_is_reassigned_falls_through_to_the_tail_refusal,
-  "Referenced constant is not defined",
+  a_destructured_binding_that_is_reassigned_is_refused_for_the_write,
+  "Referenced value is not a constant",
   r#"
     import * as stylex from '@stylexjs/stylex';
 
@@ -294,6 +294,64 @@ stylex_test_panic!(
   "#
 );
 
+stylex_test_panic!(
+  a_destructured_binding_whose_value_is_mutated_is_refused_for_the_write,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const { theme } = { theme: { color: 'red' } };
+    theme.color = 'blue';
+
+    const styles = stylex.create({ x: { color: theme.color } });
+  "#
+);
+
+stylex_test_panic!(
+  an_array_destructured_binding_that_is_reassigned_is_refused_for_the_write,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    let [first] = ['red'];
+    first = 'blue';
+
+    const styles = stylex.create({ x: { color: first } });
+  "#
+);
+
+// A reassigned `function` or `class` is refused for the write rather than for
+// its declaration kind, because the write question is asked first -- upstream's
+// 657 precedes the kind refusals at 685-690, and so does this chain's step 3.
+stylex_test_panic!(
+  a_reassigned_function_declaration_is_refused_for_the_write,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    function paint() { return 'red'; }
+    paint = 'blue';
+
+    const styles = stylex.create({ x: { color: paint } });
+  "#
+);
+
+stylex_test_panic!(
+  a_reassigned_class_declaration_is_refused_for_the_write,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    class Paint {}
+    Paint = 'blue';
+
+    const styles = stylex.create({ x: { color: Paint } });
+  "#
+);
+
+// A binding of a kind with no write recorded against it keeps its own refusal:
+// the write steps are a probe first and a declaration question second, so a
+// `function` nobody wrote to is still refused for being a `function`.
 // A hoisted `function` read as a value, with the reference below it, is refused
 // for its declaration kind — the refusal upstream reaches through the resolved
 // declaration, which is why its frame names the `function` line.

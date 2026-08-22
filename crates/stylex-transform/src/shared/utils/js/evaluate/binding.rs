@@ -228,40 +228,36 @@ pub(super) fn resolve_reference(
 
   // A binding whose value can differ from its declaration initializer at this
   // use site — rebound or mutated — makes inlining that initializer bake in a
-  // stale value. Both steps below are a hash probe guarded by a declaration
-  // lookup, and both are asked before the cloning lookup further down, which
-  // deep-clones the `VarDeclarator` it finds and throws the clone away on the
-  // refusal path.
+  // stale value. Both steps below are a hash probe guarded by the question
+  // upstream guards them with (`binding &&`, 0.19.0 lines 656 and 660): does
+  // this module declare the binding the write was recorded against.
   //
-  // Each step probes its own set and each is spelled with the probe first, so
-  // the guard's scan of the declaration list runs only for a name some write
-  // was actually recorded against — and step 4 costs nothing once step 3 has
-  // refused. The scan itself is shared: the two steps ask the same question of
-  // the same list, so it is answered once, behind the cheaper probe of the two.
+  // Asked of the *binding* rather than of a `VarDeclarator`, which is the wider
+  // question and the right one. Every kind of declaration can be written to, and
+  // a write makes the initializer stale whichever kind it was — so a name bound
+  // by destructuring, or a reassigned `function` or `class`, is refused for the
+  // write here rather than falling through to a refusal about something else.
+  // Measured on 0.19.0: `let { primary } = …; primary = 'blue'` answers
+  // `Referenced value is not a constant.` there, where the declarator-shaped
+  // guard used to reach the tail refusal and say the constant was not defined,
+  // and a reassigned `function` used to be refused for being a `function`.
   //
-  // The guard is narrower than upstream's, and deliberately unchanged here:
-  // upstream asks whether a *binding* exists, where this asks whether a
-  // `VarDeclarator` does. A `function` or `class` binding that is reassigned
-  // therefore reaches step 8 and is refused for its declaration kind instead of
-  // for the write. Both refuse; only the text differs, and closing that is a
-  // change to a message rather than a move.
+  // `declares_binding` is a hash probe keyed by full `Id`, so the guard costs no
+  // scan of the declaration list at all — where the lookup it replaces walked
+  // one — and a write to a shadowing binding still cannot refuse the binding it
+  // shadows. Each step is spelled with its own probe first so step 4 costs
+  // nothing once step 3 has refused.
   //
-  // Existence is confirmed with the borrowing `get_var_decl_from`, which —
-  // unlike `get_var_decl_by_ident` — does not also match injected function
-  // mappers; those are regenerated per evaluation and can never hold a stale
-  // value.
-
-  let written =
-    traversal_state.has_binding_reassignment(ident) || traversal_state.has_binding_mutation(ident);
-  let declared = written && get_var_decl_from(traversal_state, ident).is_some();
+  // Both are asked before the cloning lookup further down, which deep-clones the
+  // `VarDeclarator` it finds and throws the clone away on the refusal path.
 
   // ── 3. a reassigned binding is not a constant (656-658) ───────────────────
-  if declared && traversal_state.has_binding_reassignment(ident) {
+  if traversal_state.has_binding_reassignment(ident) && traversal_state.declares_binding(ident) {
     return deopt_at_declaration(path, &ident.sym, state, traversal_state, NON_CONSTANT);
   }
 
   // ── 4. a binding mutated in place is not a constant (660-662) ─────────────
-  if declared && traversal_state.has_binding_mutation(ident) {
+  if traversal_state.has_binding_mutation(ident) && traversal_state.declares_binding(ident) {
     return deopt_at_declaration(path, &ident.sym, state, traversal_state, NON_CONSTANT);
   }
 

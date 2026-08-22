@@ -58,9 +58,21 @@
       "id": "positions-destructured-reassigned-binding",
       "label": "a reassigned binding declared by destructuring",
       "source": "import * as stylex from '@stylexjs/stylex';\nlet { a, c } = theme;\nc = 'blue';\nexport const styles = stylex.create({ x: { color: c } });\n",
-      "origin": "measured while closing the position divergence",
-      "note": "A divergence in which refusal is reached, showing up here as a position. This compiler's write probes are guarded by a `VarDeclarator` lookup that matches an identifier pattern only, so a destructured binding misses both and falls to the tail refusal, which frames the read and says `Referenced constant is not defined.` Upstream asks whether a *binding* was written to, reaches NON_CONSTANT, and frames the declarator. Recorded rather than fixed: it is a divergence in the message, and the position follows the message.",
-      "expected": "divergent"
+      "origin": "evaluate-path.js:657 - deopt(binding.path, NON_CONSTANT), reached through a binding with no declarator",
+      "note": "The shape that showed the write probes were guarded by a declarator lookup rather than by upstream's `binding &&`: a destructured binding had no declarator, so a write to it fell past both probes to the tail refusal, which framed the read and called the constant undefined. Both compilers now refuse for the write and frame the declarator."
+    },
+    {
+      "id": "positions-reassigned-function-declaration",
+      "label": "a reassigned function declaration",
+      "source": "import * as stylex from '@stylexjs/stylex';\nfunction paint() { return 'red'; }\npaint = 'blue';\nexport const styles = stylex.create({ x: { color: paint } });\n",
+      "origin": "evaluate-path.js:657 - deopt(binding.path, NON_CONSTANT), ahead of the kind refusals at 685-690",
+      "note": "The write is asked about before the declaration kind is, so this is refused for the write on both sides rather than for being a function."
+    },
+    {
+      "id": "positions-mutated-destructured-binding",
+      "label": "a destructured binding whose value is mutated in place",
+      "source": "import * as stylex from '@stylexjs/stylex';\nconst { theme } = { theme: { color: 'red' } };\ntheme.color = 'blue';\nexport const styles = stylex.create({ x: { color: theme.color } });\n",
+      "origin": "evaluate-path.js:661 - deopt(binding.path, NON_CONSTANT)"
     }
   ]
 }

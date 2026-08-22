@@ -278,7 +278,12 @@ under a name that still points at it — because the
 [chain](#reference-resolution-chain) probes them as the two sequential steps the
 reference implementation probes. One walk fills both, and crossing a member hop
 is what makes a write the second kind. Keyed by full SWC `Id`, so a write to a
-shadowing binding never deopts the one it shadows.
+shadowing binding never deopts the one it shadows, and a write to a name this
+module does not declare never deopts a global that spells it. What a write is
+refused against is the _binding_, not a declarator: destructured names,
+parameters, `catch` bindings and hoisted `function` / `class` declarations are
+all bindings a write makes stale, and each is refused for the write rather than
+for whatever a later step would have found.
 _Avoid_: dirty binding, stale binding
 
 **Early reference**:

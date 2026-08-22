@@ -271,13 +271,29 @@ fn length_settles_a_tie_before_case_does() {
 }
 
 #[test]
-fn a_letter_outranks_the_block_between_the_two_ascii_cases() {
-  // `[ \ ] ^ _ ` ` sit between `Z` and `a` in ASCII. Weighing the letter rather
-  // than its byte lifts every letter above them, in either case.
-  for between in ["[", "\\", "]", "^", "_", "`"] {
-    precedes(&format!(":{between}"), ":Z");
-    precedes(&format!(":{between}"), ":z");
+fn every_symbol_outranks_every_letter_whatever_its_byte() {
+  // The primary pass is a table, not a byte comparison, and this is where the
+  // two part company hardest: `{ | } ~` are above `z` by byte and below every
+  // letter by weight. `[ \ ] ^ _ ` ` happen to agree with their bytes; both
+  // groups are here so a reader cannot mistake the agreeing half for the rule.
+  for symbol in [
+    "[", "\\", "]", "^", "_", "`", "{", "|", "}", "~", "@", "$", "+", "<", "=", ">",
+  ] {
+    precedes(&format!(":{symbol}"), ":Z");
+    precedes(&format!(":{symbol}"), ":z");
+    precedes(&format!(":{symbol}"), ":0");
   }
+}
+
+#[test]
+fn the_symbols_are_not_in_byte_order_among_themselves() {
+  // `_` before `-` is the pair that says the table is doing the work: their
+  // bytes are 0x5F and 0x2D, so a byte comparison puts them the other way. `$`
+  // trailing every other symbol is the same statement at the far end.
+  precedes(":_a", ":-a");
+  precedes(":~", ":$");
+  precedes(":,", ":;");
+  precedes("[data_x]", "[data-x]");
 }
 
 #[test]
@@ -285,6 +301,11 @@ fn a_digit_outranks_nothing_a_letter_outranks() {
   precedes(":1", ":A");
   precedes(":1", ":a");
   precedes(":0", ":9");
+  // And every symbol outranks every digit, which byte order gets right below
+  // `0x30` and wrong above it.
+  precedes(":;", ":1");
+  precedes(":@", ":1");
+  precedes(":?", ":1");
 }
 
 #[test]
@@ -309,7 +330,12 @@ fn the_ordering_is_transitive_across_the_cases_and_the_block() {
   // then a letter in each case. A comparator whose passes disagreed would break
   // the chain somewhere in the middle and `sort_unstable_by` would be free to
   // produce anything.
-  let ascending = [":", ":!", ":0", ":9", ":a", ":A", ":b", ":B", ":z", ":Z"];
+  // The bare colon leads on length rather than on weight -- it is a prefix of
+  // every other key here, and length settles a tie before anything else does.
+  let ascending = [
+    ":", ":_", ":-", ":,", ":;", ":!", ":?", ":.", ":@", ":~", ":$", ":0", ":9", ":a", ":A", ":b",
+    ":B", ":z", ":Z",
+  ];
 
   for (index, earlier) in ascending.iter().enumerate() {
     for later in &ascending[index + 1..] {
@@ -320,26 +346,36 @@ fn the_ordering_is_transitive_across_the_cases_and_the_block() {
 
 #[test]
 fn a_sort_over_the_whole_ordering_is_the_ordering() {
-  let mut shuffled = keys(&[":Z", ":a", ":!", ":B", ":0", ":A", ":z", ":9", ":b", ":"]);
+  let mut shuffled = keys(&[
+    ":Z", ":a", ":~", ":!", ":B", ":0", ":A", ":z", ":_", ":9", ":b", ":",
+  ]);
   shuffled.sort_unstable_by(|a, b| pseudo_comparator(a, b));
 
   assert_eq!(
     shuffled,
-    keys(&[":", ":!", ":0", ":9", ":a", ":A", ":b", ":B", ":z", ":Z"])
+    keys(&[
+      ":", ":_", ":!", ":~", ":0", ":9", ":a", ":A", ":b", ":B", ":z", ":Z"
+    ])
   );
 }
 
 #[test]
-fn nothing_outside_ascii_is_weighed() {
+fn nothing_outside_printable_ascii_is_weighed() {
   // The documented divergence, asserted as it stands rather than as it should
   // be. Root collation gives `ä` the primary weight of `a` and weighs an emoji
-  // below every letter; here every byte at or above `0x80` sorts above every
-  // ASCII character, which is one rule producing both disagreements.
+  // below every letter; here every byte the table does not name sorts above
+  // every one it does, which is one rule producing all of these.
   precedes(":z", ":ä");
   precedes(":hover", ":\u{1F389}");
   // And its two cases are two unrelated keys rather than a tie: `Ä` is `0xC3
   // 0x84` and `ä` is `0xC3 0xA4`, so the byte decides where the case would.
   precedes(":Ä", ":ä");
+  // A control character is in the same class, and it is the reason an unnamed
+  // byte keeps its own weight rather than sharing one: two of them must not
+  // compare `Equal`, which `sort_unstable_by` would be free to resolve either
+  // way.
+  precedes(":\u{0001}", ":\u{0002}");
+  precedes(":hover", ":\u{007f}");
 }
 
 #[test]

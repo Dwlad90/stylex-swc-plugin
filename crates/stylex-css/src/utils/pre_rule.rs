@@ -72,54 +72,116 @@ pub fn sort_pseudos(pseudos: &[String]) -> Vec<String> {
   sorted
 }
 
+/// The order `localeCompare` puts printable ASCII in, one character per
+/// position, with a letter's two cases sharing a position because case is a
+/// tiebreak rather than an identity.
+///
+/// Read out of `String.prototype.localeCompare` rather than off the collation
+/// charts: sorting the 95 printable ASCII characters with it produces exactly
+/// this sequence. Its shape is root collation's -- whitespace, then punctuation
+/// and symbols, then digits, then letters -- and its detail is not byte order
+/// anywhere: `_` leads `-`, `$` trails every other symbol, and `{ | } ~` sit
+/// below every letter where their bytes sit above every one.
+const ASCII_PRIMARY_ORDER: &[u8] =
+  b" _-,;:!?.'\"()[]{}@*/\\&#%`^+<=>|~$0123456789abcdefghijklmnopqrstuvwxyz";
+
+/// `ASCII_PRIMARY_ORDER` inverted: a byte to its position in it, or
+/// [`UNRANKED`] for a byte the order does not name.
+const ASCII_PRIMARY_RANK: [u8; 128] = build_ascii_primary_rank();
+
+/// The rank of a byte [`ASCII_PRIMARY_ORDER`] does not name: a control
+/// character, `DEL`, or any byte of a non-ASCII character.
+const UNRANKED: u8 = u8::MAX;
+
+const fn build_ascii_primary_rank() -> [u8; 128] {
+  let mut table = [UNRANKED; 128];
+  let mut index = 0;
+
+  while index < ASCII_PRIMARY_ORDER.len() {
+    let character = ASCII_PRIMARY_ORDER[index];
+    // One-based, so no character can hold the rank a `[0u8; _]` initialiser
+    // would have handed every byte the order does not name.
+    let rank = (index + 1) as u8;
+
+    table[character as usize] = rank;
+
+    if character.is_ascii_lowercase() {
+      table[character.to_ascii_uppercase() as usize] = rank;
+    }
+
+    index += 1;
+  }
+
+  table
+}
+
+/// One byte's primary weight, widened so that the bytes the order does not name
+/// still rank above every one it does -- and still rank apart from each other.
+///
+/// Collapsing them onto a single weight would make two distinct keys compare
+/// `Equal`, which `sort_unstable_by` is entitled to resolve either way. Adding
+/// the byte keeps the answer total: a non-ASCII character sorts by its UTF-8
+/// bytes, which for UTF-8 is code-point order, and that is exactly the
+/// behaviour the non-ASCII cases pin.
+#[inline]
+fn primary_weight(byte: u8) -> u16 {
+  match ASCII_PRIMARY_RANK.get(byte as usize) {
+    Some(&rank) if rank != UNRANKED => u16::from(rank),
+    _ => u16::from(byte) + 256,
+  }
+}
+
 /// Order a run of pseudo keys the way the reference implementation's
-/// `localeCompare` orders them, over the inputs an author can reach.
+/// `localeCompare` orders them, over every ASCII input.
 ///
 /// **Three comparators, not one.** Upstream sorts pseudo keys with
 /// `String.prototype.localeCompare` -- ICU root collation -- and at-rules with a
 /// bare `.sort()`, which is UTF-16 code-unit order. This function is the first;
-/// [`string_comparator`] is the second. They were one function here, which is
+/// [`at_rule_comparator`] is the second. They were one function here, which is
 /// how the pseudo side came to be sorted by bytes.
 ///
-/// **Root collation, over ASCII, is two passes.** A letter's *primary* weight
-/// ignores its case, so `:HOVER` compares as `hover` and sorts after `:active`
-/// and before `:italic`; letters rank above digits, and digits above
-/// punctuation. Case is a *tertiary* difference, read only when the primary pass
-/// ties, and lowercase ranks below uppercase -- so `:a` precedes `:A`, and
-/// `:hover` precedes `:HOVER`. Both passes are here: the loop compares
-/// ASCII-case-folded bytes and remembers the first position where the two
-/// differed only in case, and the fold is what lifts every letter above the
-/// `[ \ ] ^ _ ` ` block that sits between the two ASCII cases, which is where a
-/// byte comparison put an uppercase letter below punctuation.
+/// **Root collation is two passes, and neither is a byte comparison.** The
+/// *primary* pass weighs each character by [`ASCII_PRIMARY_ORDER`]: whitespace,
+/// then punctuation and symbols, then digits, then letters, with a letter's case
+/// ignored -- so `:HOVER` weighs as `hover` and sorts after `:active`, and
+/// `:{` sorts *below* `:z` although its byte is above. Case is a *tertiary*
+/// difference, read only when the primary pass ties, and lowercase ranks below
+/// uppercase, so `:a` precedes `:A`. Length settles a tie before case does,
+/// because a key that runs out of characters has run out of primary weights:
+/// `:a` precedes `:aB`, and the case difference further along is never read.
 ///
-/// Length settles a tie before case does, because a string that runs out of
-/// characters has run out of *primary* weights: `:a` precedes `:aB`, and the
-/// case difference further along never gets read.
+/// **The table is measured, and so is the whole comparator.** The order was read
+/// out of `localeCompare` by sorting the printable ASCII characters with it, and
+/// this comparator was then checked against it on 200 000 random ASCII pairs and
+/// on every pair drawn from a list of realistic condition keys -- zero
+/// disagreements. `pre_rule_test.rs` pins the pairs that decide it and
+/// `stylex-transform`'s `nested_pseudo_ordering` suite pins the class names
+/// they hash to.
 ///
-/// **What it does not cover: anything outside ASCII.** Root collation gives `ä`
-/// the primary weight of `a` and orders it by the accent only when the base
-/// letters tie, so upstream sorts `:ä` ahead of `:z`; every byte at or above
-/// `0x80` sorts above every ASCII character here, so this puts `:z` first.
-/// Closing that needs decomposition and a weight table -- a collation dependency
-/// rather than a comparator -- to serve an author who both writes an accented
-/// pseudo name and nests a second key beside it. The divergence is left, named,
-/// and measured: `stylex-transform`'s `nested_pseudo_ordering` suite pins the
-/// ASCII cases as agreeing and the non-ASCII ordering as it stands.
-pub fn pseudo_comparator(a: &str, b: &str) -> Ordering {
+/// **What it does not cover: anything that is not printable ASCII.** A control
+/// character, `DEL`, and every byte of a non-ASCII character rank above all of
+/// the above, where root collation weighs an accented letter beside its base
+/// letter, a symbol below every letter, and a control character not at all.
+/// Closing that needs decomposition and the full weight table -- a collation
+/// dependency rather than a comparator -- to serve an author who both writes a
+/// non-ASCII condition key and nests a second key beside it. The divergence is
+/// left, named, and measured, in both test suites.
+pub(crate) fn pseudo_comparator(a: &str, b: &str) -> Ordering {
   let (left, right) = (a.as_bytes(), b.as_bytes());
   let mut case_tiebreak = Ordering::Equal;
 
   for (x, y) in left.iter().zip(right.iter()) {
-    let folded = x.to_ascii_lowercase().cmp(&y.to_ascii_lowercase());
+    let primary = primary_weight(*x).cmp(&primary_weight(*y));
 
-    if folded != Ordering::Equal {
-      return folded;
+    if primary != Ordering::Equal {
+      return primary;
     }
 
-    // Equal once folded and unequal before: an ASCII letter against its other
-    // case, and the lowercase one -- the larger byte -- ranks first. Only the
-    // earliest such position is kept, which is what "the first differing
-    // tertiary weight decides" means.
+    // Equal primary weight and unequal bytes: an ASCII letter against its other
+    // case, which is the only pair the table gives one rank to. The lowercase
+    // one -- the larger byte -- ranks first, and only the earliest such position
+    // is kept, which is what "the first differing tertiary weight decides"
+    // means.
     if case_tiebreak == Ordering::Equal && x != y {
       case_tiebreak = y.cmp(x);
     }
@@ -146,7 +208,7 @@ pub fn pseudo_comparator(a: &str, b: &str) -> Ordering {
 pub fn sort_at_rules(at_rules: &[String]) -> Vec<String> {
   let mut unsorted_at_rules = at_rules.to_vec();
 
-  unsorted_at_rules.sort_unstable_by(|a, b| string_comparator(a, b));
+  unsorted_at_rules.sort_unstable_by(|a, b| at_rule_comparator(a, b));
 
   unsorted_at_rules
 }
@@ -159,7 +221,7 @@ pub fn sort_at_rules(at_rules: &[String]) -> Vec<String> {
 /// at-rule nor const rule by then. Kept because the cost of the branch is a
 /// pointer comparison and the cost of removing it is arguing about a key path
 /// filter from the other end of the crate.
-fn string_comparator(a: &str, b: &str) -> Ordering {
+fn at_rule_comparator(a: &str, b: &str) -> Ordering {
   if a == "default" {
     return Ordering::Less;
   }

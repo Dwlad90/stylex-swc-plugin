@@ -45,9 +45,9 @@ original defect.
 The third candidate — re-inserting the elided specifiers of a **StyleX import
 source only** back into the AST after the strip and before the visitor — keeps
 one source of truth, and fails on what it re-inserts. `@stylexjs/stylex` exports
-`StyleXStyles`, `StaticStyles`, `Theme`, `VarGroup`, `CSSProperties`, `Keyframes`
-and a dozen more as `export type`, absent from the runtime module. Written
-without the `type` keyword, which is how it is written in practice:
+`StyleXStyles`, `StaticStyles`, `Theme`, `VarGroup`, `CSSProperties` and
+`Keyframes` among a dozen more as `export type`, absent from the runtime module.
+Written without the `type` keyword, which is how it is written in practice:
 
 ```ts
 import { StyleXStyles } from '@stylexjs/stylex';
@@ -78,11 +78,11 @@ never the bytes of one that compiles under both. That is the compatibility
 contract, and it is intact: a module that compiles on both sides compiles to the
 same CSS and the same class names.
 
-**The `.js` half agrees byte for byte.** Sixteen inputs were measured through the
-napi pipeline across the family — `keyframes`, `firstThatWorks`, `positionTry`,
-a bare `when`, an alias, a non-ASCII alias, the namespace import, and every
-hostile shape beside the fold — and the `.js` half matches upstream on all of
-them.
+**The `.js` half agrees byte for byte.** Sixteen inputs were measured through
+the napi pipeline across the family — `keyframes`, `firstThatWorks`,
+`positionTry`, a bare `when`, an alias, a non-ASCII alias, the namespace import,
+and every hostile shape beside the fold — and the `.js` half matches upstream on
+all of them.
 
 ## Consequences
 

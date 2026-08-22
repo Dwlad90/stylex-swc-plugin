@@ -28,14 +28,19 @@
 //!
 //! The comparator is the *second* thing this file measures, and it is a separate
 //! mechanism from the run grouping above: it is visible at two keys, where no
-//! grouping question exists at all. Upstream compares with `localeCompare`,
-//! which reads a letter's case as a tiebreak rather than as its identity;
-//! `pseudo_comparator` is the ASCII half of that ordering, and the cases at the
-//! end are what pin the half it covers and the half it does not. Every ASCII
-//! case agrees with 0.19.0; the three non-ASCII cases are recorded as they stand
-//! and named as divergent, which is issue 32 of this effort. Every class name
-//! quoted below as upstream's was read out of `@stylexjs/babel-plugin` 0.19.0
-//! under the parity harness's options, not inferred.
+//! grouping question exists at all. Upstream compares with `localeCompare`;
+//! `pseudo_comparator` reproduces that ordering over printable ASCII, from a
+//! weight table read out of `localeCompare` itself rather than from byte order.
+//! Every printable-ASCII case below agrees with 0.19.0 -- letters weighed
+//! without their case, symbols below digits below letters whatever their bytes,
+//! and the symbols not in byte order among themselves. What is *not* weighed is
+//! everything else: a control character, `DEL`, and every non-ASCII character
+//! rank above all of it, and the cases at the end are recorded as they stand and
+//! named as divergent. That is issue 32 of this effort.
+//!
+//! Every class name quoted below as upstream's was read out of
+//! `@stylexjs/babel-plugin` 0.19.0 under the parity harness's options, not
+//! inferred.
 
 use crate::utils::{prelude::*, transform::stringify_js, transform::ts_syntax};
 
@@ -628,7 +633,9 @@ stylex_test!(
 // `:_leading` first, which is where upstream puts it. `[data-x]` is settled at
 // the first character by `:` against `[` and lands last under either
 // comparator, which is what makes it the control here.
-// `.x1f04poe:_leading:Z[data-x]`, measured.
+// `.x1f04poe:_leading:Z[data-x]`, measured. The general form of the same
+// statement -- every symbol below every letter, whatever its byte -- is
+// `a_symbol_whose_byte_is_above_z_still_sorts_below_it` below.
 stylex_test!(
   an_uppercase_letter_sorts_above_the_block_between_the_cases,
   r#"
@@ -672,6 +679,73 @@ stylex_test!(
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
       w: { color: { '[DATA-x]': { '[data-X]': { ':hover': 'red' } } } },
+    });
+  "#
+);
+
+// A symbol whose byte is above `z`. The primary pass is a table rather than a
+// byte comparison, so `~` weighs below every letter although `0x7E` is above
+// every one -- `:~:z`, `x8m0m4e`-shaped, and it is what upstream names too. A
+// byte comparison spelled this `:z:~`, which was the pre-existing divergence
+// this half of the comparator closes.
+stylex_test!(
+  a_symbol_whose_byte_is_above_z_still_sorts_below_it,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':z': { ':~': 'red' } } },
+    });
+  "#
+);
+
+// The same statement against the digits: `@` is `0x40` and `1` is `0x31`, so a
+// byte comparison put the digit first. Every symbol weighs below every digit.
+stylex_test!(
+  a_symbol_whose_byte_is_above_a_digit_still_sorts_below_it,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':1': { ':@': 'red' } } },
+    });
+  "#
+);
+
+// The symbols are not in byte order among themselves either. `_` is `0x5F` and
+// `-` is `0x2D`, so a byte comparison puts the hyphen first; the table puts the
+// underscore first, which is what upstream does. Reachable by an author without
+// trying: two attribute selectors on sibling data attributes.
+stylex_test!(
+  two_attribute_selectors_differing_by_underscore_and_hyphen,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { '[data-x]': { '[data_x]': 'red' } } },
+    });
+  "#
+);
+
+// An attribute selector carrying a matcher, which is ordinary CSS and puts a
+// symbol at the position that decides the comparison.
+stylex_test!(
+  an_attribute_matcher_sorts_by_its_symbol_weight,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { '[ay]': { '[a~=b]': { '[a|=c]': 'red' } } } },
+    });
+  "#
+);
+
+// A control character, which the table does not name. It ranks above every
+// character the table does name, where root collation does not weigh it at all
+// -- the same rule as the non-ASCII keys below, and the reason an unnamed byte
+// keeps a weight of its own rather than sharing one.
+stylex_test!(
+  a_control_character_pseudo_name_is_not_weighed,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':hover': { ':\u{0001}': 'red' } } },
     });
   "#
 );

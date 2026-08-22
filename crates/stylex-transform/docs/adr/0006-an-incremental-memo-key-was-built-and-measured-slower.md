@@ -24,11 +24,11 @@ hold, which is what makes a child's digest reusable.
 **The cache is keyed by address and scoped to a level.** `evaluate_cached`
 recorded the cache's length on the way in and truncated back to it on the way
 out. The invariant that makes an address a usable identity, which is the part
-0005 could not have without building it: _every entry was recorded inside a level
-still on the stack, for a node reachable from the `path` that level was handed,
-and `path` outlives that level's call._ So no entry names a freed node, and no
-live node's entry is dropped while a level that could reuse it is still running.
-It held. The scope discipline is not why this was rejected.
+0005 could not have without building it: _every entry was recorded inside a
+level still on the stack, for a node reachable from the `path` that level was
+handed, and `path` outlives that level's call._ So no entry names a freed node,
+and no live node's entry is dropped while a level that could reuse it is still
+running. It held. The scope discipline is not why this was rejected.
 
 Two details that only appear once it is built. A cloned `StateManager` has to
 start with an empty cache, because the copy's entries name nodes the original
@@ -52,8 +52,8 @@ beneath it.
 **The curve flattened exactly as predicted, and the constant went the other way
 by more.** The fold is −81% at 240 and −36% at 60, and **+10% at 30** — the last
 depth before the crossover, and the only column under the shipped ceiling of 32.
-One key, uncached, costs **5.7×** more, because the walk went from one hasher per
-key to one per node.
+One key, uncached, costs **5.7×** more, because the walk went from one hasher
+per key to one per node.
 
 That per-node cost is close to its floor rather than an implementation defect.
 The first version opened an `Xxh3Default` per node — a streaming state with 64
@@ -61,10 +61,10 @@ bytes of accumulators and a 256-byte staging buffer, zeroed on construction —
 and cost +40% on the fold at depth 30. Replacing it with a stack-buffered
 one-shot `xxh3_128` recovered most of that (22.8 µs → 19.8), and shrinking the
 buffer to 64 bytes and inlining the three hot methods recovered the rest of what
-was available (40.9 µs → 37.0 on the 240 key). A 128-bit finalization per node is
-~13 ns measured in isolation, against ~13.5 ns for a whole node of the streamed
-walk. **Doubling the uncached per-node cost is what composition is, and no
-implementation gets under it.**
+was available (40.9 µs → 37.0 on the 240 key). A 128-bit finalization per node
+is ~13 ns measured in isolation, against ~13.5 ns for a whole node of the
+streamed walk. **Doubling the uncached per-node cost is what composition is, and
+no implementation gets under it.**
 
 ## Why that settles it
 
@@ -92,8 +92,8 @@ fixtures, in µs:
 Every fixture regressed. Nothing the repo measures on real input got faster, and
 the two that regressed worst are the ones this effort's own defect was filed
 against. `bench:revisions` and `bench:verdict` were not run: the gate they apply
-is a 10% warn and a 20% fail, and six of eight fixtures are already past the fail
-threshold on a cheaper harness.
+is a 10% warn and a 20% fail, and six of eight fixtures are already past the
+fail threshold on a cheaper harness.
 
 The quadratic 0005 measured is real and this removes it. It is also, on the
 evidence, **not a term any project pays** — the ceiling bounds it at 32 levels,
@@ -113,24 +113,24 @@ head start.
 **A cheaper mixing function per node** — a couple of multiply-xor rounds instead
 of a 128-bit hash. Would close most of the constant. Rejected on 0005's own
 grounds: four consumers act on a hash hit _alone_, so a weaker mix is a wrong
-fold rather than a slower one, and a wrong cached span is directly visible in the
-output as a style annotated with another style's `file:line`.
+fold rather than a slower one, and a wrong cached span is directly visible in
+the output as a style annotated with another style's `file:line`.
 
 **Keep the composed key only for the evaluator, and stream for everyone else** —
 `stable_hash_unspanned`'s other consumers never descend, so they gain nothing
 from composition and pay all of it. Two walks over one source is achievable by
 parameterising the arms. It leaves two different structural keys for the same
 expression alive in one process, distinguishable only by which function was
-called, and it does not fix the fold's own +10% at depth 30 — which is the number
-that matters, because that is where the fold runs.
+called, and it does not fix the fold's own +10% at depth 30 — which is the
+number that matters, because that is where the fold runs.
 
 ## Consequences
 
 **`key_cost_scaling_tests` stays as it is.** It counts the bytes the walk feeds
-one hasher, and it still describes the shipped key: linear per key, quadratic per
-fold. Under a composed walk it would have had to be restated in nodes, because
-there is a hasher per node and no single byte stream to count. The restatement is
-in the patch below if it is ever needed.
+one hasher, and it still describes the shipped key: linear per key, quadratic
+per fold. Under a composed walk it would have had to be restated in nodes,
+because there is a hasher per node and no single byte stream to count. The
+restatement is in the patch below if it is ever needed.
 
 **The work is kept, not just described.** The full diff — the composed walk, the
 scoped cache, the `StateManager` field, the `evaluate_cached` bracket, and the

@@ -112,6 +112,32 @@ whatever length it reached, which is why the same set of keys hashes one class
 name however the author nested them.
 _Avoid_: pseudo group, sort group, pseudo pair
 
+**Primary weight**:
+What a character contributes to the order a pseudo run sorts in, before case is
+looked at. `pseudo_comparator` reads it from `ASCII_PRIMARY_ORDER`, a table of
+printable ASCII taken from the ordering `localeCompare` itself produces:
+whitespace, then symbols, then digits, then letters, with a letter's two cases
+sharing one weight. It is not byte order — `{` weighs below `z` although its
+byte is above, and `_` weighs below `-`. A character the table does not name —
+a control character, `DEL`, any byte of a non-ASCII character — has no primary
+weight and sorts above every character that has one.
+_Avoid_: collation weight, sort key, rank, primary key
+
+**Case tiebreak**:
+The comparison `pseudo_comparator` falls back to when two keys tie on every
+primary weight and on length: the first position where they differ, with the
+lowercase spelling first. Root collation calls this a _tertiary_ difference;
+the name here says what it does rather than which level it is.
+_Avoid_: tertiary weight, case fold, secondary comparison
+
+**At-rule comparator**:
+The comparator `sort_at_rules` uses, and deliberately not the one a pseudo run
+uses: plain byte order with `default` pulled to the front. The reference
+implementation sorts pseudo keys with `localeCompare` and at-rules with a bare
+`.sort()`, so the two comparators disagree on purpose and a locale-aware at-rule
+sort would be a new divergence rather than a fix.
+_Avoid_: string comparator, the comparator, sort_at_rules' comparator
+
 **Conditional key**:
 A key that opens a nested block rather than declaring a property: a pseudo
 selector, an at-rule (`@media ...`), or an attribute selector

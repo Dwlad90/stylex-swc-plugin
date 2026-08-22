@@ -245,6 +245,14 @@ declaration list. Keyed by `Id` is what keeps it sound — a write recorded
 against a shadowing binding cannot refuse the binding it shadows, and a write to
 a name this module does not declare cannot refuse a global that spells it.
 
+It is not literally upstream's question. Upstream asks its scope chain, so a
+binding out of scope at the reference answers nothing there, where this asks a
+module-wide set. The syntax context inside the `Id` is what closes the gap: the
+resolver gives a shadowing binding its own, and the write sets are keyed the same
+way, so a reference only ever meets writes recorded against the binding it names.
+Wider by construction, equal on every shape measured, and wrong in the direction
+that refuses rather than the one that folds.
+
 **The mutation probe over-approximates, and knowingly — where it protects
 something.** `add_target_root_write` walks a member chain to its root, so
 `obj.a.b = 1` and `state.items.push(…)` both reach `obj` and `state`. Upstream's

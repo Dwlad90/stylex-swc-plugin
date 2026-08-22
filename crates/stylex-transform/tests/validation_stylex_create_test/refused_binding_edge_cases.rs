@@ -349,6 +349,46 @@ stylex_test_panic!(
   "#
 );
 
+// A `catch` binding is a binding like any other, and a write to one is refused
+// for the write on both sides. Measured on 0.19.0, which agrees.
+stylex_test_panic!(
+  a_written_catch_binding_is_refused_for_the_write,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    try {
+      risky();
+    } catch (fallback) {
+      fallback = 'blue';
+      const styles = stylex.create({ x: { color: fallback } });
+      use(styles);
+    }
+  "#
+);
+
+// The same binding with no write against it diverges, and it is worth pinning
+// where the divergence comes from: upstream's `binding.path` for a `catch`
+// parameter is the whole `catch` clause, whose end sits past a read inside the
+// block, so its position comparison calls the read early. Nothing here holds a
+// span for the clause -- a `catch` binding leaves no declarator behind -- so the
+// reference falls to the tail refusal instead. Measured on 0.19.0:
+// `Referenced value is used before declaration.` there.
+stylex_test_panic!(
+  an_unwritten_catch_binding_falls_to_the_tail_refusal,
+  "Referenced constant is not defined",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    try {
+      risky();
+    } catch (fallback) {
+      const styles = stylex.create({ x: { color: fallback } });
+      use(styles);
+    }
+  "#
+);
+
 // A write two member hops away from the binding is not a mutation of it to
 // upstream: `isMutated` asks that the reference's own parent be the member the
 // assignment writes to (0.19.0, the `parentPath.node.object === path.node`

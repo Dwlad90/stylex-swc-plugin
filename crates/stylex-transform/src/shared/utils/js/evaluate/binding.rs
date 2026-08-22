@@ -248,6 +248,22 @@ pub(super) fn resolve_reference(
   // shadows. Each step is spelled with its own probe first so step 4 costs
   // nothing once step 3 has refused.
   //
+  // It is not *literally* upstream's question, and the difference is worth
+  // knowing. Upstream asks its scope chain (`path.scope.getBinding(name)`), so a
+  // binding out of scope at the reference answers nothing there; this asks a
+  // module-wide set, so it answers for a binding declared anywhere. What keeps
+  // the two together is the syntax context inside the `Id`: the resolver gives a
+  // shadowing binding its own, and the write sets are keyed the same way, so a
+  // reference only meets writes recorded against the binding it actually names.
+  // Wider by construction, equal in practice, and it fails towards refusing.
+  //
+  // Neither probe can be answered by an injected function mapper the way a
+  // declarator lookup could: `get_var_decl_by_ident` also matches the mappers
+  // `create_var_declarator` builds, which are regenerated per evaluation and can
+  // never hold a stale value, while these sets hold only what the module's own
+  // pre-scan saw written. The mappers are answered before this chain is entered
+  // at all, by `nodes::identifier::evaluate` reading `functions.identifiers`.
+  //
   // Both are asked before the cloning lookup further down, which deep-clones the
   // `VarDeclarator` it finds and throws the clone away on the refusal path.
 

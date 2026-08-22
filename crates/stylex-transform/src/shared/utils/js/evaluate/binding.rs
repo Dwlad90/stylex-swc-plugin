@@ -57,6 +57,32 @@ fn reads_before_its_declaration(reference: &Ident, declaration: Span) -> bool {
   !reference.span.is_dummy() && !declaration.is_dummy() && reference.span.lo < declaration.hi
 }
 
+/// The reference, re-pointed at the declaration that answered for it.
+///
+/// Every step below but the last deopts on `binding.path` upstream — the
+/// *declaration* — and only the initializer read at line 687 deopts on the
+/// reference. So the code frame a refusal prints names the line the binding was
+/// declared on, not the line it was read from, and that is the line a reader has
+/// to go and change. Measured on 0.19.0: for
+/// `create({x:{color:c}})` above `const c = 'red'`, upstream's frame points at
+/// the `const`.
+///
+/// A name at a position is all the frame needs, so the reference's own ident is
+/// re-spanned rather than the declaration being reconstructed as an expression.
+/// A dummy declaration span is left alone: a synthesized declaration has no line
+/// to point at, and the reference's own position is a better answer than byte
+/// zero.
+fn reported_at(reference: &Ident, declaration: Span, path: &Expr) -> Expr {
+  if declaration.is_dummy() {
+    return path.clone();
+  }
+
+  Expr::Ident(Ident {
+    span: declaration,
+    ..reference.clone()
+  })
+}
+
 /// Resolve `reference` to the binding it names, and fold that binding to a
 /// value — or refuse.
 ///
@@ -114,7 +140,13 @@ pub(super) fn resolve_reference(
       // the rest of the chain and lands on `UNDEFINED_CONST`, which deopts a
       // second time. The first refusal wins on both sides, so the fall-through
       // is unobservable; returning here says so.
-      ImportSpecifier::Default(_) => return deopt(path, state, IMPORT_FILE_EVAL_ERROR),
+      ImportSpecifier::Default(default) => {
+        return deopt(
+          &reported_at(ident, default.span, path),
+          state,
+          IMPORT_FILE_EVAL_ERROR,
+        );
+      },
 
       ImportSpecifier::Named(named) => Some(
         named
@@ -225,16 +257,16 @@ pub(super) fn resolve_reference(
 
   // ── 3. a reassigned binding is not a constant (656-658) ───────────────────
   if traversal_state.has_binding_reassignment(ident)
-    && get_var_decl_from(traversal_state, ident).is_some()
+    && let Some(declared_at) = get_var_decl_from(traversal_state, ident).map(|decl| decl.span)
   {
-    return deopt(path, state, NON_CONSTANT);
+    return deopt(&reported_at(ident, declared_at, path), state, NON_CONSTANT);
   }
 
   // ── 4. a binding mutated in place is not a constant (660-662) ─────────────
   if traversal_state.has_binding_mutation(ident)
-    && get_var_decl_from(traversal_state, ident).is_some()
+    && let Some(declared_at) = get_var_decl_from(traversal_state, ident).map(|decl| decl.span)
   {
-    return deopt(path, state, NON_CONSTANT);
+    return deopt(&reported_at(ident, declared_at, path), state, NON_CONSTANT);
   }
 
   let declarator = get_var_decl_by_ident(ident, traversal_state, &state.functions);
@@ -246,7 +278,11 @@ pub(super) fn resolve_reference(
   if let Some(declarator) = declarator.as_ref()
     && reads_before_its_declaration(ident, declarator.span)
   {
-    return deopt(path, state, USED_BEFORE_DECLARATION);
+    return deopt(
+      &reported_at(ident, declarator.span, path),
+      state,
+      USED_BEFORE_DECLARATION,
+    );
   }
 
   // And of a hoisted `function` or `class`, which upstream asks here too — its
@@ -254,15 +290,20 @@ pub(super) fn resolve_reference(
   // so a reference above one of these is early rather than unsupported. Only the
   // reference above is taken from this step; one below still falls through to
   // step 8 and keeps its kind's wording.
-  if traversal_state
+  if let Some(declared_at) = traversal_state
     .class_name_declarations()
     .iter()
     .chain(traversal_state.function_name_declarations())
-    .any(|declared| {
-      declared.eq_ignore_span(ident) && reads_before_its_declaration(ident, declared.span)
+    .find(|declared| {
+      (*declared).eq_ignore_span(ident) && reads_before_its_declaration(ident, declared.span)
     })
+    .map(|declared| declared.span)
   {
-    return deopt(path, state, USED_BEFORE_DECLARATION);
+    return deopt(
+      &reported_at(ident, declared_at, path),
+      state,
+      USED_BEFORE_DECLARATION,
+    );
   }
 
   // ── 6. a binding carrying a folded value (668-669) ────────────────────────
@@ -311,6 +352,13 @@ pub(super) fn resolve_reference(
   // reason written on `global_identifier_to_value`: two of the three names are
   // numbers, and a consumer reading the expression's shape cannot see that
   // through an identifier. Only the shadowing question is decided here.
+  //
+  // Reported against the reference, where upstream reports against the binding
+  // (line 673) as the steps above now do. The declaration is not available to
+  // report against: `declared_bindings` answers whether a name is bound, keyed
+  // by `Id` with no position, and giving it one would put a `Span` beside every
+  // binding in the module to move a line number in one diagnostic. Left as the
+  // chain's one remaining position divergence rather than paid for.
   if let Some(value) = global_identifier_to_value(ident) {
     return if traversal_state.declares_binding(ident) {
       deopt(path, state, UNINITIALIZED_CONST)

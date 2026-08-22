@@ -173,3 +173,35 @@ spelled out syntactically in the module are recorded; `const a = []; mutate(a);`
 is not one. Deopting on every identifier passed as an argument would disable
 evaluation for nearly every StyleX module, so it stays a known unsoundness,
 accepted rather than overlooked, and it is accepted identically by both probes.
+
+**A refusal reports against the declaration, as upstream does.** Upstream deopts
+on `binding.path` at lines 626, 647, 653, 657, 661, 665 and 673, and on the
+reference only at 687. So its code frame names the line the binding was
+_declared_ on, which is the line a reader has to go and change; only the
+initializer read names the read. Steps 2, 3, 4 and 5 report against the
+declaration here for the same reason, re-spanning the reference's own ident
+rather than reconstructing the declaration as an expression, since a name at a
+position is all a frame needs.
+
+Step 7 is the one that does not, and cannot cheaply: the question it asks is
+`declared_bindings`, which answers whether a name is bound and is keyed by `Id`
+with no position at all. Giving it one would put a `Span` beside every binding in
+the module in order to move a line number in a single diagnostic. Recorded as the
+chain's remaining position divergence rather than paid for.
+
+Nothing in the transform suites could see any of this. A `stylex_test_panic!`
+matches the message and the frame is written separately, and the parity corpus
+compares verdicts and messages rather than positions — which is why the
+divergence survived until the two implementations were read side by side. The
+guard is therefore a unit test on the node each refusal carries
+(`a_refusal_reports_against_the_declaration_not_the_read`), with its counterpart
+pinning that the initializer read still points at the reference.
+
+**The mutation probe over-approximates, and knowingly.** `add_target_root_write`
+walks a member chain to its root, so `obj.a.b = 1` and `state.items.push(…)` both
+mark `obj` mutated. Upstream's `isMutated` requires `parentPath.node.object ===
+path.node` — a single hop — so upstream marks neither. Both directions of the
+error are refusals rather than wrong CSS, and this one refuses _more_, which is
+the safe direction: tightening it to one hop would let a mutated binding fold.
+Kept as it is, and the two probes agree with each other, which is what the split
+was for.

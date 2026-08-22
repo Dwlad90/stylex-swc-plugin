@@ -16,7 +16,7 @@
 use super::*;
 
 use swc_core::atoms::Atom;
-use swc_core::common::{BytePos, DUMMY_SP, GLOBALS, Globals, Span, SyntaxContext};
+use swc_core::common::{BytePos, DUMMY_SP, GLOBALS, Globals, Span, Spanned, SyntaxContext};
 use swc_core::ecma::ast::{
   BindingIdent, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
   ImportSpecifier, ImportStarAsSpecifier, ModuleExportName, Str,
@@ -477,6 +477,28 @@ impl ModuleState {
   fn evaluate_a_later_reference(self) -> Box<EvaluateResult> {
     self.evaluate("c", LATER_REFERENCE_SPAN)
   }
+}
+
+/// The span a refusal reports against — the node whose line the code frame
+/// prints.
+///
+/// Upstream deopts on `binding.path` for every step but the last, so the frame
+/// names the *declaration* rather than the read. Nothing in the transform suites
+/// can see this: a `stylex_test_panic!` matches the message, and the frame is
+/// written separately, which is why the divergence survived until it was read
+/// off the two implementations side by side.
+#[track_caller]
+fn assert_reported_at(result: &EvaluateResult, expected: Span) {
+  let reported = result
+    .deopt
+    .as_ref()
+    .expect("a refusal carries the node it reports against");
+
+  assert_eq!(
+    reported.span(),
+    expected,
+    "refusal reported against the wrong node"
+  );
 }
 
 #[track_caller]
@@ -980,6 +1002,48 @@ fn an_early_reference_to_a_hoisted_declaration_is_early_rather_than_unsupported(
       .declares_a_class()
       .evaluate("c", span_at(1, 2)),
     USED_BEFORE_DECLARATION,
+  );
+}
+
+/// Which node each refusal reports against, and so which line its code frame
+/// prints. Upstream deopts on `binding.path` at 626, 647, 653, 657, 661, 665 and
+/// 673, and on the reference only at 687 — so a reader is sent to the
+/// declaration, which is the line they have to change. Steps 3, 4 and 5 have the
+/// declaration in hand and are pinned here.
+#[test]
+fn a_refusal_reports_against_the_declaration_not_the_read() {
+  assert_reported_at(
+    &ModuleState::default()
+      .declared_with(create_string_expr("red"))
+      .evaluate("c", span_at(1, 2)),
+    DECLARATOR_SPAN,
+  );
+
+  assert_reported_at(
+    &ModuleState::default()
+      .declared_with(create_string_expr("red"))
+      .reassigned()
+      .evaluate_a_later_reference(),
+    DECLARATOR_SPAN,
+  );
+
+  assert_reported_at(
+    &ModuleState::default()
+      .declared_with(create_string_expr("red"))
+      .mutated()
+      .evaluate_a_later_reference(),
+    DECLARATOR_SPAN,
+  );
+}
+
+/// The last step is the one upstream reports against the reference, so it stays
+/// there. Pinned beside the case above so a change that repoints everything has
+/// to answer for this one too.
+#[test]
+fn the_initializer_read_still_reports_against_the_reference() {
+  assert_reported_at(
+    &ModuleState::default().evaluate("c", LATER_REFERENCE_SPAN),
+    LATER_REFERENCE_SPAN,
   );
 }
 

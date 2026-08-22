@@ -161,7 +161,8 @@ pub fn unsupported_expression(type_: &str) -> String {
 /// so, and says how much it was willing to do.
 pub fn expression_too_deep(limit: usize) -> String {
   format!(
-    "Expression is too deeply nested to evaluate at compile time.\nAt most {} levels of nested evaluation are supported.\n\n",
+    "Expression is too deeply nested to evaluate at compile time.\n\
+     At most {} levels of nested evaluation are supported.\n\n",
     limit
   )
 }

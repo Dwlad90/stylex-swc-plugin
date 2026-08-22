@@ -140,3 +140,39 @@ Raising the release floor means growing the stack around the _parse_, which
 happens in the host rather than anywhere this crate can reach. Named rather than
 filed: the default ceiling refuses at 32, and a build that reaches 768 levels of
 nesting has a generator loose in it.
+
+## The ceiling refuses input the reference implementation folds
+
+Worth saying plainly, because every other divergence recorded for this compiler
+runs the other way -- a value upstream rejects that this one also rejects, or a
+shape this one refuses because emitting it would be wrong. This is the one that
+refuses a program `@stylexjs/babel-plugin` 0.19.0 compiles.
+
+Upstream has no depth bound at all. Its only limit is the JavaScript engine's
+stack, which is thousands of levels deep, and its failure mode is a `RangeError`
+that surfaces as a build error. So for any expression between 32 fold levels and
+whatever the engine's real limit is, upstream folds and this refuses.
+
+The default stays at 32 anyway. What that number is sized for is styles a person
+wrote, and it is not close to being in their way: after the four levels a
+`create` call spends reaching a property value, 32 leaves about 29 levels of
+arithmetic or 28 links of a member chain, and nothing in this repository's
+fixtures outside the depth suite itself spends more than a handful.
+
+What it _is_ in the way of is generated code -- a token file with a long member
+chain, or a `calc` assembled from tens of terms. The supported answer for those
+is the escape hatch rather than a higher default: `maxEvaluationDepth` per
+project, `STYLEX_MAX_EVALUATION_DEPTH` per machine, in that precedence. Both are
+documented in the compiler's README beside the other options, and the refusal
+names the ceiling it crossed so the message itself points at the knob.
+
+The alternative -- defaulting near the measured debug floor, a few hundred
+levels -- was considered and not taken. It would buy parity on inputs no
+hand-written stylesheet produces, and give up the property that makes the low
+ceiling worth having: at 32 the fold is nowhere near the stack, so the ceiling is
+a _diagnostic_ rather than a guess about how much headroom is left, and the two
+numbers cannot drift apart as the arms around the fold change size.
+
+One consequence is load-bearing and recorded at the code rather than here: a low
+ceiling is crossed by real input, and each crossing used to poison the memo for
+shallow siblings. See the budget check in `shared/utils/js/evaluate/cache.rs`.

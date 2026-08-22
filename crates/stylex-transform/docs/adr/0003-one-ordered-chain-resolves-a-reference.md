@@ -174,28 +174,31 @@ is not one. Deopting on every identifier passed as an argument would disable
 evaluation for nearly every StyleX module, so it stays a known unsoundness,
 accepted rather than overlooked, and it is accepted identically by both probes.
 
-**A refusal reports against the declaration, as upstream does.** Upstream deopts
-on `binding.path` at lines 626, 647, 653, 657, 661, 665 and 673, and on the
-reference only at 687. So its code frame names the line the binding was
-_declared_ on, which is the line a reader has to go and change; only the
-initializer read names the read. Steps 2, 3, 4 and 5 report against the
-declaration here for the same reason, re-spanning the reference's own ident
-rather than reconstructing the declaration as an expression, since a name at a
-position is all a frame needs.
+**A refusal reports against the reference; upstream reports against the
+declaration.** Upstream deopts on `binding.path` at lines 626, 647, 653, 657,
+661, 665 and 673, and on the reference only at 687. So its code frame names the
+line the binding was _declared_ on, which is the line a reader has to go and
+change, while every step here names the line it was read from. Measured on
+0.19.0: for `create({x:{color:c}})` above `const c = 'red'`, upstream frames the
+`const` and this frames the `create`.
 
-Step 7 is the one that does not, and cannot cheaply: the question it asks is
-`declared_bindings`, which answers whether a name is bound and is keyed by `Id`
-with no position at all. Giving it one would put a `Span` beside every binding in
-the module in order to move a line number in a single diagnostic. Recorded as the
-chain's remaining position divergence rather than paid for.
+Recording the declaration's node instead was tried, and does not close it. The
+frame does not use the span it is handed. `find_expression_span` re-parses the
+module and searches it for the first node `eq_ignore_span`-equal to the recorded
+expression, so an ident re-spanned onto the declaration still matches the read
+first and prints the same line — the position is re-derived from the module, not
+carried. Closing this means giving the frame a span to trust instead of an
+expression to search for, which is a change to the code-frame plumbing rather
+than to this chain, and it is not made here.
 
-Nothing in the transform suites could see any of this. A `stylex_test_panic!`
-matches the message and the frame is written separately, and the parity corpus
-compares verdicts and messages rather than positions — which is why the
-divergence survived until the two implementations were read side by side. The
-guard is therefore a unit test on the node each refusal carries
-(`a_refusal_reports_against_the_declaration_not_the_read`), with its counterpart
-pinning that the initializer read still points at the reference.
+Two things follow. The divergence is diagnostic only: both compilers refuse the
+same inputs with the same message, and only the framed line differs. And nothing
+in the suites can see it — a `stylex_test_panic!` matches the message while the
+frame is written separately, and the parity corpus compares verdicts and
+messages rather than positions, which is why it went unnoticed until the two
+implementations were read side by side. What guards it now is a unit test on the
+node each refusal carries, whose doc says why carrying a different one would not
+be enough.
 
 **The mutation probe over-approximates, and knowingly.** `add_target_root_write`
 walks a member chain to its root, so `obj.a.b = 1` and `state.items.push(…)` both

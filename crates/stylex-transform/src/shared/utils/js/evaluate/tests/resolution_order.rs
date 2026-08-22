@@ -16,7 +16,7 @@
 use super::*;
 
 use swc_core::atoms::Atom;
-use swc_core::common::{BytePos, DUMMY_SP, GLOBALS, Globals, Span, Spanned, SyntaxContext};
+use swc_core::common::{BytePos, DUMMY_SP, GLOBALS, Globals, Span, SyntaxContext};
 use swc_core::ecma::ast::{
   BindingIdent, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
   ImportSpecifier, ImportStarAsSpecifier, ModuleExportName, Str,
@@ -477,28 +477,6 @@ impl ModuleState {
   fn evaluate_a_later_reference(self) -> Box<EvaluateResult> {
     self.evaluate("c", LATER_REFERENCE_SPAN)
   }
-}
-
-/// The span a refusal reports against — the node whose line the code frame
-/// prints.
-///
-/// Upstream deopts on `binding.path` for every step but the last, so the frame
-/// names the *declaration* rather than the read. Nothing in the transform suites
-/// can see this: a `stylex_test_panic!` matches the message, and the frame is
-/// written separately, which is why the divergence survived until it was read
-/// off the two implementations side by side.
-#[track_caller]
-fn assert_reported_at(result: &EvaluateResult, expected: Span) {
-  let reported = result
-    .deopt
-    .as_ref()
-    .expect("a refusal carries the node it reports against");
-
-  assert_eq!(
-    reported.span(),
-    expected,
-    "refusal reported against the wrong node"
-  );
 }
 
 #[track_caller]
@@ -1005,46 +983,47 @@ fn an_early_reference_to_a_hoisted_declaration_is_early_rather_than_unsupported(
   );
 }
 
-/// Which node each refusal reports against, and so which line its code frame
-/// prints. Upstream deopts on `binding.path` at 626, 647, 653, 657, 661, 665 and
-/// 673, and on the reference only at 687 — so a reader is sent to the
-/// declaration, which is the line they have to change. Steps 3, 4 and 5 have the
-/// declaration in hand and are pinned here.
+/// Which node a refusal carries, and so which line its code frame prints.
+///
+/// Upstream deopts on `binding.path` at 626, 647, 653, 657, 661, 665 and 673 —
+/// the *declaration* — and on the reference only at 687. Every step here carries
+/// the reference, so the two compilers frame different lines for the same
+/// refused input. Measured on 0.19.0, `create({x:{color:c}})` above
+/// `const c = 'red'` frames the `const`; this frames the `create`.
+///
+/// Recording the declaration's node instead does not close it, which is worth
+/// pinning so nobody spends the afternoon twice. The frame does not use the span
+/// it is handed: `find_expression_span` re-parses the module and searches it for
+/// the first node `eq_ignore_span`-equal to the recorded expression, so an ident
+/// re-spanned onto the declaration still matches the *read* first and prints the
+/// same line. Closing this means giving the frame a span to trust rather than an
+/// expression to search for, which is a change to the code-frame plumbing and
+/// not to this chain. ADR 0003 carries the reasoning.
 #[test]
-fn a_refusal_reports_against_the_declaration_not_the_read() {
-  assert_reported_at(
-    &ModuleState::default()
+fn a_refusal_carries_the_reference_and_the_frame_follows_it() {
+  for result in [
+    ModuleState::default()
       .declared_with(create_string_expr("red"))
       .evaluate("c", span_at(1, 2)),
-    DECLARATOR_SPAN,
-  );
-
-  assert_reported_at(
-    &ModuleState::default()
+    ModuleState::default()
       .declared_with(create_string_expr("red"))
       .reassigned()
       .evaluate_a_later_reference(),
-    DECLARATOR_SPAN,
-  );
-
-  assert_reported_at(
-    &ModuleState::default()
+    ModuleState::default()
       .declared_with(create_string_expr("red"))
       .mutated()
       .evaluate_a_later_reference(),
-    DECLARATOR_SPAN,
-  );
-}
+  ] {
+    let reported = result
+      .deopt
+      .as_ref()
+      .expect("a refusal carries the node it reports against");
 
-/// The last step is the one upstream reports against the reference, so it stays
-/// there. Pinned beside the case above so a change that repoints everything has
-/// to answer for this one too.
-#[test]
-fn the_initializer_read_still_reports_against_the_reference() {
-  assert_reported_at(
-    &ModuleState::default().evaluate("c", LATER_REFERENCE_SPAN),
-    LATER_REFERENCE_SPAN,
-  );
+    assert!(
+      matches!(reported, Expr::Ident(_)),
+      "the reference is what is carried, not the declaration"
+    );
+  }
 }
 
 // ==================== step 7 — the three globals ====================

@@ -1,6 +1,6 @@
 # 21 — A shadowed `defaultMarker` param reports an internal shape
 
-Status: `needs-triage`
+Status: `resolved`
 Blocked by: None
 
 **What was found:** `defaultMarker` is the one function-map entry the reference
@@ -87,8 +87,56 @@ measuring before the wider `validate_namespace` question: a bare function in a
 style value is already refused with upstream's exact text, as the spread of a
 `{ fn }` wrapper now shows.
 
-- [ ] The terminal arm of `validate_namespace` is decided, here or with 18
-- [ ] The example refuses with the reference implementation's exact text
-- [ ] The pinned sentence is updated rather than deleted
-- [ ] The static position's sentence is decided with the dynamic one, not apart
+- [x] The terminal arm of `validate_namespace` is decided, here or with 18 --
+      decided as *not this ticket's*: nothing had to be taught to refuse a value
+      it was passing over, so the arm is untouched and the question stays with
+      [18](./18-a-theme-object-read-as-a-style-value-is-dropped.md)
+- [x] The example refuses with the reference implementation's exact text
+- [x] The pinned sentence is updated rather than deleted
+- [x] The static position's sentence is decided with the dynamic one, not apart
       from it
+
+## Resolved
+
+The registration was the whole of it, and the wider `validate_namespace`
+question turned out not to be this ticket's after all -- it is untouched, and
+stays with [18](./18-a-theme-object-read-as-a-style-value-is-dropped.md).
+
+A reference to `defaultMarker` folds to a **function** now, where every other
+entry of the family folds to the object `{ fn }` -- which is exactly how the
+reference implementation registers the two: `identifiers[name] = () =>
+stylexDefaultMarker(state.options)` against `identifiers[name] = { fn: … }`. So
+a style value refuses this one for not being a style value and refuses a wrapped
+one for being a map of conditions with an invalid pseudo. Both sentences are
+upstream's; which one an entry earns is decided by how it is registered, and
+nothing had to be taught to refuse a value it was passing over.
+
+The placeholder is the same function in both, extracted as
+`fold_placeholder_function`, so the two cannot come to refuse for shapes that
+differ by more than the wrapper.
+
+Both positions closed together, as the ticket asked:
+
+| | before | now, and upstream's |
+| --- | --- | --- |
+| the shadowing parameter | `[UNIMPLEMENTED] IndexMap values are not supported in this context.` | `A style value can only contain an array, string or number.` |
+| the static read | `a > height > Referenced value is not a constant.` | the same |
+
+Two neighbours measured with them:
+
+- **A spread** of the bare function contributes nothing, where a spread of a
+  wrapped entry contributes its `fn` key. `identical` to upstream.
+- **`stylex.defaultMarker`** -- the namespace read rather than the named import
+  -- is `undefined` in both compilers: the name is registered for a *call* and
+  not as something the namespace object holds. Refused as a value in both.
+
+`get_var_decl_by_ident`'s index-map arm is left as the broken-invariant guard it
+is: reaching it now means the identifier step did not answer first, which is a
+different fault from the one this ticket reported.
+
+Measured: `modules-1266-param-shadows-a-named-default-marker-import` reads
+`both-reject` where it read `both-reject (diverged)`, and the three new rows
+read `both-reject`, `both-reject` and `identical`. Pinned in
+`validation_stylex_create_test::invalid_values` across all four positions and in
+`crates/stylex-rs-compiler/__test__/importElision.spec.ts`, whose `defaultMarker`
+case now names upstream's sentence rather than the index map.

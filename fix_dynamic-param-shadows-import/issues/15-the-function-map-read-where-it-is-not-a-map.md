@@ -114,7 +114,10 @@ Neither half is about the fold alone:
 - The **template** half is the template evaluator dropping *any* interpolation
   with no literal form, so a theme reference goes the same way. Filed whole as
   [23](./23-an-interpolation-with-no-string-form-contributes-nothing.md), which
-  closes that row when it lands.
+  closed that row: the template evaluator reads `ToString` now, and the fold
+  coerces as the object it is upstream, so `height:[object Object]px` agrees.
+  The other three readings in the table above are unchanged and still this
+  ticket's.
 - The **computed key** half is not the dynamic position's: the static namespace
   reads the same way, measured, so the key coercion is what diverges and not the
   body it was written in.

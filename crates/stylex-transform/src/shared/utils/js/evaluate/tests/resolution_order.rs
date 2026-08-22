@@ -1471,13 +1471,19 @@ fn a_written_declaration_of_any_kind_is_refused_for_the_write() {
   );
 }
 
-/// A binding the module declares without a `VarDeclarator` behind it — a
-/// destructured name, a parameter, a `catch` binding — is refused for a write
-/// just the same. The old guard looked for a declarator and missed every one of
-/// them, sending a destructured reassignment to the tail refusal to be called an
-/// undefined constant. Measured on 0.19.0:
+/// A binding the module declares without a `VarDeclarator` behind it is refused
+/// for a write just the same. The old guard looked for a declarator and so
+/// missed every kind of binding that has none — a destructured name, a
+/// parameter, a `catch` binding — sending a destructured reassignment to the
+/// tail refusal to be called an undefined constant. Measured on 0.19.0:
 /// `let { primary } = …; primary = 'blue'` is `Referenced value is not a
 /// constant.` there, framed at the declarator.
+///
+/// Asked here of a parameter, because that is the one such binding this
+/// harness can assemble: it records a binding with no declarator behind it,
+/// which is the whole of what the guard now asks. The destructured shapes are
+/// exercised where they can be written as source, in
+/// `validation_stylex_create_test::refused_binding_edge_cases`.
 #[test]
 fn a_binding_with_no_declarator_is_refused_for_a_write() {
   assert_refused_with(

@@ -261,6 +261,28 @@ pub(super) fn resolve_reference(
     return deopt_at_declaration(path, &ident.sym, state, traversal_state, NON_CONSTANT);
   }
 
+  // The same step, for the writes upstream does not count as mutations at all:
+  // `isMutated` asks that the reference's own parent be the member the write
+  // lands on, so `obj.a.b = 1` is no mutation of `obj` there and its initializer
+  // folds — with whatever the initializer said, which is now stale. This
+  // compiler refuses instead, and that is a deliberate divergence rather than a
+  // mirror: `docs/adr/0003` argues it, and it only ever refuses input upstream
+  // compiles.
+  //
+  // What the extra reach is *not* allowed to do is change an answer that already
+  // agreed. A deeper write is therefore asked of a `VarDeclarator` rather than of
+  // the binding: a declarator is the only shape whose initializer this chain
+  // would inline, so it is the only shape where a stale value could reach the
+  // stylesheet. A `function`, a `class` or a destructured binding keeps the
+  // refusal it had before — measured on 0.19.0, `function paint() {}` beside
+  // `paint.a.b = 1` is `Unsupported expression: FunctionDeclaration` on both
+  // sides, where refusing it for the write here would have diverged.
+  if traversal_state.has_deep_binding_mutation(ident)
+    && get_var_decl_from(traversal_state, ident).is_some()
+  {
+    return deopt_at_declaration(path, &ident.sym, state, traversal_state, NON_CONSTANT);
+  }
+
   let declarator = get_var_decl_by_ident(ident, traversal_state, &state.functions);
 
   // ── 5. a reference above its own declaration is early (664-666) ───────────

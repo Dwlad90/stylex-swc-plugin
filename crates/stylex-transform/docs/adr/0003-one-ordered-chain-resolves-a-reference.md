@@ -229,26 +229,40 @@ name resolves to.
 steps are guarded by upstream's own question — `binding &&`, at 656 and 660 —
 which is whether the module declares the binding the write was recorded against.
 An earlier version asked instead whether a `VarDeclarator` existed, and that is
-narrower than the language: a name bound by destructuring, a parameter, a `catch`
-binding and a hoisted `function` or `class` all have no declarator, so a write to
-one fell past both steps. What answered then was whichever later step the
-reference reached — the tail refusal calling a destructured binding an undefined
-constant, or the kind refusal calling a reassigned `function` a `function` —
-which named something true about the reference and nothing about the problem.
+narrower than the language: a name bound by destructuring, a parameter, a
+`catch` binding and a hoisted `function` or `class` all have no declarator, so a
+write to one fell past both steps. What answered then was whichever later step
+the reference reached — the tail refusal calling a destructured binding an
+undefined constant, or the kind refusal calling a reassigned `function` a
+`function` — which named something true about the reference, and nothing about
+the problem.
 Measured on 0.19.0, all five shapes answer `Referenced value is not a constant.`
 there, framed at the declaration, and now do here.
 
 The guard also became cheaper than the lookup it replaced: `declares_binding` is
 a hash probe keyed by full `Id`, where the declarator lookup walked the
-declaration list. Keyed by `Id` is what keeps it sound — a write recorded against
-a shadowing binding cannot refuse the binding it shadows, and a write to a name
-this module does not declare cannot refuse a global that spells it.
+declaration list. Keyed by `Id` is what keeps it sound — a write recorded
+against a shadowing binding cannot refuse the binding it shadows, and a write to
+a name this module does not declare cannot refuse a global that spells it.
 
-**The mutation probe over-approximates, and knowingly.** `add_target_root_write`
-walks a member chain to its root, so `obj.a.b = 1` and `state.items.push(…)` both
-mark `obj` mutated. Upstream's `isMutated` requires `parentPath.node.object ===
-path.node` — a single hop — so upstream marks neither. Both directions of the
-error are refusals rather than wrong CSS, and this one refuses _more_, which is
-the safe direction: tightening it to one hop would let a mutated binding fold.
-Kept as it is, and the two probes agree with each other, which is what the split
-was for.
+**The mutation probe over-approximates, and knowingly — where it protects
+something.** `add_target_root_write` walks a member chain to its root, so
+`obj.a.b = 1` and `state.items.push(…)` both reach `obj` and `state`. Upstream's
+`isMutated` asks that the reference's _own_ parent be the member the write lands
+on, so it sees no mutation in either, folds the initializer, and bakes in a value
+that has since changed. Refusing instead is a divergence this keeps: it only ever
+refuses input upstream compiles, never the other way round.
+
+What it may not do is change an answer that already agreed, and left to itself it
+did. A write below the first hop is recorded as its own kind — a **deep
+mutation** — and the chain asks it of a `VarDeclarator` rather than of the
+binding. A declarator is the only shape whose initializer this chain would
+inline, so it is the only shape where a stale value can reach the stylesheet;
+everything else already refuses for its own reason and now keeps that reason.
+Measured on 0.19.0: `function paint() {}` beside `paint.a.b = 1` is
+`Unsupported expression: FunctionDeclaration` on both sides, where refusing it
+for the write would have diverged, and `const theme = {…}; theme.colors.primary =
+'blue'` is still refused here and still folded there.
+
+One hop stays exactly upstream's question, and the two probes agree with each
+other on it, which is what the split was for.

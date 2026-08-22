@@ -349,9 +349,76 @@ stylex_test_panic!(
   "#
 );
 
-// A binding of a kind with no write recorded against it keeps its own refusal:
-// the write steps are a probe first and a declaration question second, so a
-// `function` nobody wrote to is still refused for being a `function`.
+// A write two member hops away from the binding is not a mutation of it to
+// upstream: `isMutated` asks that the reference's own parent be the member the
+// assignment writes to (0.19.0, the `parentPath.node.object === path.node`
+// branch), and `paint.a.b = 1` puts a member in between. This compiler walks the
+// chain to its root and refuses anyway, which is the safe direction and a
+// deliberate divergence -- but the extra reach is confined to bindings whose
+// initializer could actually be inlined, so a `function` or a `class` is still
+// refused for its kind, as upstream refuses it.
+stylex_test_panic!(
+  a_deep_member_write_leaves_a_function_declaration_refused_for_its_kind,
+  "Unsupported expression: FunctionDeclaration",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    function paint() { return 'red'; }
+    paint.a.b = 1;
+
+    const styles = stylex.create({ x: { color: paint } });
+  "#
+);
+
+stylex_test_panic!(
+  a_deep_member_write_leaves_a_class_declaration_refused_for_its_kind,
+  "Unsupported expression: ClassDeclaration",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    class Paint {}
+    Paint.a.b = 1;
+
+    const styles = stylex.create({ x: { color: Paint } });
+  "#
+);
+
+// One hop *is* a mutation on both sides, so the same binding kinds are refused
+// for the write there.
+stylex_test_panic!(
+  a_single_member_write_refuses_a_function_declaration_for_the_write,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    function paint() { return 'red'; }
+    paint.a = 1;
+
+    const styles = stylex.create({ x: { color: paint } });
+  "#
+);
+
+// And the extra reach still refuses where it protects something: a declarator
+// whose initializer would otherwise be inlined at the use site, stale.
+stylex_test_panic!(
+  a_deep_member_write_still_refuses_a_declarator_binding,
+  "Referenced value is not a constant",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const theme = { colors: { primary: 'red' } };
+    theme.colors.primary = 'blue';
+
+    const styles = stylex.create({ x: { color: theme.colors.primary } });
+  "#
+);
+
+// ── refusals that are not about a write ─────────────────────────────────────
+//
+// The write steps are a probe first and a declaration question second, so a
+// binding nobody wrote to never reaches them and keeps its own refusal. Each of
+// the three below is that: no write is recorded anywhere in the module.
+
 // A hoisted `function` read as a value, with the reference below it, is refused
 // for its declaration kind — the refusal upstream reaches through the resolved
 // declaration, which is why its frame names the `function` line.

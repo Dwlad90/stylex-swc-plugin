@@ -59,7 +59,33 @@ enum WriteKind {
   Reassignment,
   /// The binding keeps pointing at the same value and that value changes:
   /// `obj.x = 1`, `arr.push(…)`, `delete obj.x`, `Object.assign(obj, …)`.
+  ///
+  /// One member hop from the binding, which is the shape the reference
+  /// implementation's `isMutated` recognises: it asks that the reference's own
+  /// parent be the member the write lands on.
   Mutation,
+  /// The same, reached through more than one hop: `obj.a.b = 1`,
+  /// `obj.items.push(…)`. Upstream calls this no mutation of `obj` at all, and
+  /// folds the initializer. Recorded apart rather than folded into
+  /// [`Self::Mutation`] so the chain can refuse it exactly where refusing
+  /// protects something — see `StateManager::has_deep_binding_mutation`.
+  DeepMutation,
+}
+
+/// The write kind after crossing one more member hop on the way to the binding
+/// at the root of a chain.
+///
+/// The first hop makes a write a mutation of the object the reference names, and
+/// that is the shape the reference implementation's `isMutated` recognises. A
+/// second hop takes it past what upstream looks at: for `obj.a.b = 1` the
+/// reference's parent is `obj.a`, whose own parent is another member rather than
+/// the assignment, so upstream sees no mutation of `obj`. Every hop after the
+/// first is therefore the same answer as the second, and the kind stops moving.
+fn crossed_a_member_hop(kind: WriteKind) -> WriteKind {
+  match kind {
+    WriteKind::Reassignment => WriteKind::Mutation,
+    WriteKind::Mutation | WriteKind::DeepMutation => WriteKind::DeepMutation,
+  }
 }
 
 /// A lexical scope on the collector's stack, identified by the source span it
@@ -98,6 +124,10 @@ struct ModuleBindingsCollector {
   /// Bindings whose referenced value is mutated in place anywhere in the
   /// module. See [`StateManager::binding_mutations`].
   binding_mutations: FxHashSet<Id>,
+  /// Bindings whose referenced value is mutated further down a member chain
+  /// than the reference implementation looks. See
+  /// [`StateManager::binding_deep_mutations`].
+  binding_deep_mutations: FxHashSet<Id>,
   /// Stack of enclosing lexical scopes, outermost (module) first.
   scope_stack: Vec<ScopeFrame>,
   /// `VarDeclKind` of the `VarDecl` currently being visited, if any — needed
@@ -131,6 +161,7 @@ impl ModuleBindingsCollector {
       local_rebinding_scopes: FxHashMap::default(),
       binding_reassignments: FxHashSet::default(),
       binding_mutations: FxHashSet::default(),
+      binding_deep_mutations: FxHashSet::default(),
       // Seed a module-level function scope spanning the whole source so
       // top-level bindings enclose every `sx` site.
       scope_stack: vec![ScopeFrame {
@@ -209,6 +240,7 @@ impl ModuleBindingsCollector {
     let target = match kind {
       WriteKind::Reassignment => &mut self.binding_reassignments,
       WriteKind::Mutation => &mut self.binding_mutations,
+      WriteKind::DeepMutation => &mut self.binding_deep_mutations,
     };
 
     target.insert(ident.to_id());
@@ -245,13 +277,13 @@ impl ModuleBindingsCollector {
           return;
         },
         Expr::Member(inner) => {
-          kind = WriteKind::Mutation;
+          kind = crossed_a_member_hop(kind);
           current = inner.obj.as_ref();
         },
         Expr::Paren(paren) => current = paren.expr.as_ref(),
         Expr::OptChain(opt_chain) => match opt_chain.base.as_ref() {
           OptChainBase::Member(inner) => {
-            kind = WriteKind::Mutation;
+            kind = crossed_a_member_hop(kind);
             current = inner.obj.as_ref();
           },
           // `f()?.x = 1` writes into a call result, which owns no binding.
@@ -711,6 +743,7 @@ where
 
       self.state.binding_reassignments = collector.binding_reassignments;
       self.state.binding_mutations = collector.binding_mutations;
+      self.state.binding_deep_mutations = collector.binding_deep_mutations;
       self.state.declared_bindings = collector.declared_bindings;
       self.state.existing_import_sources = collector.import_sources;
       self.state.bound_names = collector.bound_names;
@@ -738,6 +771,7 @@ where
 
     self.state.binding_reassignments = collector.binding_reassignments;
     self.state.binding_mutations = collector.binding_mutations;
+    self.state.binding_deep_mutations = collector.binding_deep_mutations;
     self.state.declared_bindings = collector.declared_bindings;
   }
 

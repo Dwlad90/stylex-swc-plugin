@@ -472,6 +472,17 @@ pub struct StateManager {
   /// refuse with the same text, so the split buys a step-for-step mapping to
   /// the reference implementation rather than a difference in outcome.
   pub(crate) binding_mutations: FxHashSet<Id>,
+  /// Bindings whose referenced value is written to further down a member chain
+  /// than the reference implementation's `isMutated` looks: `obj.a.b = 1`
+  /// records `obj` here where `obj.a = 1` records it in
+  /// [`Self::binding_mutations`].
+  ///
+  /// Kept apart because the two answer different questions. A write upstream
+  /// calls a mutation refuses the reference outright, as upstream refuses it. A
+  /// deeper one refuses only where refusing protects something — a declarator
+  /// whose initializer would otherwise be inlined at the use site, stale — since
+  /// upstream folds these and this compiler deliberately does not.
+  pub(crate) binding_deep_mutations: FxHashSet<Id>,
   /// Every **declared binding** in the module, keyed by full `Id` — the crate
   /// glossary defines the term and why the `Id` is what makes it scope-aware.
   /// Read through [`Self::declares_binding`].
@@ -624,6 +635,7 @@ impl StateManager {
       declarations_state: DeclarationState::default(),
       binding_reassignments: FxHashSet::default(),
       binding_mutations: FxHashSet::default(),
+      binding_deep_mutations: FxHashSet::default(),
       declared_bindings: FxHashSet::default(),
       top_level_expressions: vec![],
       pattern_bound_top_level_calls: FxHashSet::default(),
@@ -757,6 +769,13 @@ impl StateManager {
   /// anywhere in the module. See [`StateManager::binding_mutations`].
   pub(crate) fn has_binding_mutation(&self, ident: &Ident) -> bool {
     self.binding_mutations.contains(&ident.to_id())
+  }
+
+  /// Whether the value `ident`'s binding references is written to further down a
+  /// member chain than upstream's `isMutated` looks. See
+  /// [`StateManager::binding_deep_mutations`].
+  pub(crate) fn has_deep_binding_mutation(&self, ident: &Ident) -> bool {
+    self.binding_deep_mutations.contains(&ident.to_id())
   }
 
   /// Whether this module declares a binding `ident` refers to. Asked of a

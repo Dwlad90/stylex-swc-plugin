@@ -58,21 +58,28 @@
       "id": "positions-destructured-reassigned-binding",
       "label": "a reassigned binding declared by destructuring",
       "source": "import * as stylex from '@stylexjs/stylex';\nlet { a, c } = theme;\nc = 'blue';\nexport const styles = stylex.create({ x: { color: c } });\n",
-      "origin": "evaluate-path.js:657 - deopt(binding.path, NON_CONSTANT), reached through a binding with no declarator",
+      "origin": "evaluate-path.js:657 — deopt(binding.path, NON_CONSTANT), reached through a binding with no declarator",
       "note": "The shape that showed the write probes were guarded by a declarator lookup rather than by upstream's `binding &&`: a destructured binding had no declarator, so a write to it fell past both probes to the tail refusal, which framed the read and called the constant undefined. Both compilers now refuse for the write and frame the declarator."
     },
     {
       "id": "positions-reassigned-function-declaration",
       "label": "a reassigned function declaration",
       "source": "import * as stylex from '@stylexjs/stylex';\nfunction paint() { return 'red'; }\npaint = 'blue';\nexport const styles = stylex.create({ x: { color: paint } });\n",
-      "origin": "evaluate-path.js:657 - deopt(binding.path, NON_CONSTANT), ahead of the kind refusals at 685-690",
+      "origin": "evaluate-path.js:657 — deopt(binding.path, NON_CONSTANT), ahead of the kind refusals at 685-690",
       "note": "The write is asked about before the declaration kind is, so this is refused for the write on both sides rather than for being a function."
+    },
+    {
+      "id": "positions-deep-member-write-on-a-function",
+      "label": "a function declaration written to two hops down",
+      "source": "import * as stylex from '@stylexjs/stylex';\nfunction paint() { return 'red'; }\npaint.a.b = 1;\nexport const styles = stylex.create({ x: { color: paint } });\n",
+      "origin": "evaluate-path.js:687 — the kind refusal, because `isMutated` does not count a write below the first member hop",
+      "note": "The guard on the write steps decides which refusal this is. Widening it to the binding once made this say the value was not constant, where upstream says it is a function; the deep-write kind is what keeps the two agreeing, here on the message and on the line."
     },
     {
       "id": "positions-mutated-destructured-binding",
       "label": "a destructured binding whose value is mutated in place",
       "source": "import * as stylex from '@stylexjs/stylex';\nconst { theme } = { theme: { color: 'red' } };\ntheme.color = 'blue';\nexport const styles = stylex.create({ x: { color: theme.color } });\n",
-      "origin": "evaluate-path.js:661 - deopt(binding.path, NON_CONSTANT)"
+      "origin": "evaluate-path.js:661 — deopt(binding.path, NON_CONSTANT)"
     }
   ]
 }

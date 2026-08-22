@@ -60,7 +60,7 @@ fn resolved_module_in(code: &str, syntax: Syntax) -> Module {
   }
 }
 
-/// Names of the bindings the collector recorded as written under either kind,
+/// Names of the bindings the collector recorded as written under any kind,
 /// ignoring syntax contexts (asserted separately where shadowing is what's
 /// under test). Most shapes here are about *whether* a write is seen at all,
 /// which the union answers; `splits_…` below pins which set each lands in.
@@ -76,6 +76,7 @@ fn written_ids(code: &str) -> FxHashSet<Id> {
     collector
       .binding_reassignments
       .union(&collector.binding_mutations)
+      .chain(collector.binding_deep_mutations.iter())
       .cloned()
       .collect()
   })
@@ -90,6 +91,14 @@ fn reassigned_names(code: &str) -> FxHashSet<String> {
 fn mutated_names(code: &str) -> FxHashSet<String> {
   names(collect(code, |collector| {
     collector.binding_mutations.clone()
+  }))
+}
+
+/// Names recorded as written further down a chain than upstream's `isMutated`
+/// looks — one hop is a mutation, two or more is this.
+fn deeply_mutated_names(code: &str) -> FxHashSet<String> {
+  names(collect(code, |collector| {
+    collector.binding_deep_mutations.clone()
   }))
 }
 
@@ -138,6 +147,11 @@ fn assert_reassigned(code: &str, expected: &[&str]) {
 #[track_caller]
 fn assert_mutated(code: &str, expected: &[&str]) {
   assert_names(mutated_names(code), expected, code);
+}
+
+#[track_caller]
+fn assert_deeply_mutated(code: &str, expected: &[&str]) {
+  assert_names(deeply_mutated_names(code), expected, code);
 }
 
 #[track_caller]
@@ -279,16 +293,45 @@ fn splits_a_rebound_name_into_the_reassignment_set() {
 /// mutates where `n++` reassigns, out of the one walk that serves both.
 #[test]
 fn splits_a_write_through_a_member_into_the_mutation_set() {
-  assert_mutated("const o = { a: { b: 1 } }; o.a.b = 2;", &["o"]);
+  assert_mutated("const o = { n: 1 }; o.n = 2;", &["o"]);
   assert_mutated("const o = { n: 1 }; o.n++;", &["o"]);
   assert_mutated("const o = { n: 1 }; (o.n)++;", &["o"]);
-  assert_mutated("const o = { a: {} }; delete o.a.b;", &["o"]);
+  assert_mutated("const o = { a: {} }; delete o.a;", &["o"]);
   assert_mutated("const o = {}; ({ x: o.x } = { x: 1 });", &["o"]);
-  assert_mutated("const o = { a: [] }; o.a[0] = 1;", &["o"]);
+  assert_mutated("const o = { a: [] }; o[0] = 1;", &["o"]);
 
-  assert_reassigned("const o = { a: { b: 1 } }; o.a.b = 2;", &[]);
+  assert_reassigned("const o = { n: 1 }; o.n = 2;", &[]);
   assert_reassigned("const o = { n: 1 }; o.n++;", &[]);
   assert_reassigned("const o = {}; ({ x: o.x } = { x: 1 });", &[]);
+}
+
+/// A second member hop takes the write past what `isMutated` looks at: it asks
+/// that the reference's own parent be the member the write lands on, and
+/// `o.a.b = 2` puts another member in between. Recorded apart so the chain can
+/// keep refusing it — which upstream does not — without changing the refusal a
+/// binding of a kind that folds nothing already had.
+#[test]
+fn splits_a_write_below_the_first_member_into_the_deep_mutation_set() {
+  for (source, root) in [
+    ("const o = { a: { b: 1 } }; o.a.b = 2;", "o"),
+    ("const o = { a: {} }; delete o.a.b;", "o"),
+    ("const o = { a: [] }; o.a[0] = 1;", "o"),
+    ("const state = { items: [] }; state.items.push(1);", "state"),
+    ("const o = { a: {} }; Object.assign(o.a, {});", "o"),
+    ("const o = { a: { b: 1 } }; o.a.b++;", "o"),
+  ] {
+    assert_deeply_mutated(source, &[root]);
+    assert_mutated(source, &[]);
+    assert_reassigned(source, &[]);
+  }
+}
+
+/// And one hop stays one hop however many wrappers sit around it, so a
+/// parenthesised or `as`-cast single write is not mistaken for a deep one.
+#[test]
+fn wrappers_around_a_single_hop_do_not_deepen_it() {
+  assert_mutated("const o = { n: 1 }; ((o).n) = 2;", &["o"]);
+  assert_deeply_mutated("const o = { n: 1 }; ((o).n) = 2;", &[]);
 }
 
 /// A mutating method mutates its receiver, and `Object.assign` mutates its
@@ -299,13 +342,14 @@ fn splits_a_write_through_a_member_into_the_mutation_set() {
 fn splits_a_mutated_receiver_and_an_assign_target_into_the_mutation_set() {
   assert_mutated("const items = []; items.push(1);", &["items"]);
   assert_mutated("const items = []; items?.push(1);", &["items"]);
-  assert_mutated(
-    "const state = { items: [] }; state.items.push(1);",
-    &["state"],
-  );
   assert_mutated("const o = {}; Object.assign(o, { a: 1 });", &["o"]);
   assert_mutated("const o = {}; Object.assign((o), { a: 1 });", &["o"]);
-  assert_mutated("const o = { a: {} }; Object.assign(o.a, {});", &["o"]);
+
+  // A receiver reached through a member of its own is one hop further down,
+  // which `splits_a_write_below_the_first_member_into_the_deep_mutation_set`
+  // pins: the method mutates `state.items`, and `state` only holds it.
+  assert_mutated("const state = { items: [] }; state.items.push(1);", &[]);
+  assert_mutated("const o = { a: {} }; Object.assign(o.a, {});", &[]);
 
   assert_reassigned("const items = []; items.push(1);", &[]);
   assert_reassigned("const o = {}; Object.assign(o, { a: 1 });", &[]);

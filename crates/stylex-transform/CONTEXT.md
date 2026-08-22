@@ -284,7 +284,15 @@ refused against is the _binding_, not a declarator: destructured names,
 parameters, `catch` bindings and hoisted `function` / `class` declarations are
 all bindings a write makes stale, and each is refused for the write rather than
 for whatever a later step would have found.
-_Avoid_: dirty binding, stale binding
+
+A third kind sits behind those two. A write more than one member hop from the
+binding — `obj.a.b = 1` — is a **deep mutation**, which the reference
+implementation does not count as a mutation of `obj` at all: it folds the
+initializer and bakes in a value that has since changed. This refuses instead,
+but only for a binding whose initializer the chain would actually inline, so a
+`function`, a `class` or a destructured name keeps the refusal it already had
+rather than being told its value is not constant.
+_Avoid_: dirty binding, stale binding, nested mutation, transitive write
 
 **Early reference**:
 A reference that begins before the declarator naming it ends, so the program

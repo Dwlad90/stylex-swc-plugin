@@ -263,42 +263,6 @@ pub(crate) fn function_fold_to_object(value: &EvaluateResultValue) -> Option<Obj
   }
 }
 
-/// Helper function to evaluate unary numeric operations (Plus, Minus, Tilde).
-/// This reduces code duplication for operations that convert an expression to a
-/// number, apply a transformation, and return the result as an expression.
-///
-/// # Arguments
-/// * `arg` - The expression argument to the unary operator
-/// * `state` - The evaluation state
-/// * `traversal_state` - The state manager for traversal context
-/// * `fns` - The function map for evaluating function calls
-/// * `transform` - A function to transform the numeric value
-///
-/// # Example
-/// ```ignore
-/// UnaryOp::Plus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| v),
-/// UnaryOp::Minus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| -v),
-/// ```
-#[inline]
-fn evaluate_unary_numeric(
-  arg: &Expr,
-  state: &mut EvaluationState,
-  traversal_state: &mut StateManager,
-  fns: &FunctionMap,
-  transform: impl FnOnce(f64) -> f64,
-) -> Option<EvaluateResultValue> {
-  // An operand with no numeric reading is an expression this evaluator does not
-  // fold, not a broken invariant: `-{}` and `~[1, 2]` are ordinary JavaScript.
-  let value = match expr_to_num(arg, state, traversal_state, fns) {
-    Ok(value) => value,
-    Err(error) => deopt_unsupported!(arg, state, error.to_string().as_str()),
-  };
-
-  Some(EvaluateResultValue::Expr(create_number_expr(transform(
-    value,
-  ))))
-}
-
 pub(crate) fn evaluate_obj_key(
   prop_kv: &KeyValueProp,
   state: &mut StateManager,

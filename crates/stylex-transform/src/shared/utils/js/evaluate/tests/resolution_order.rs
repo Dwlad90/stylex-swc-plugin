@@ -447,15 +447,20 @@ impl ModuleState {
         traversal_state.binding_mutations.insert(reference.to_id());
       }
 
+      // Registered at `DECLARATOR_SPAN` rather than at the reference's own
+      // span, as every other declaration here is: the chain asks a hoisted
+      // declaration the same position question it asks a declarator, so a
+      // declaration sharing the reference's span would read as an early
+      // reference and no case here is about position.
       if self.class_declaration {
-        traversal_state.add_class_name_declaration(reference.clone());
+        traversal_state.add_class_name_declaration(ident_at(name, DECLARATOR_SPAN));
         traversal_state
           .declared_bindings
           .insert(module_binding.clone());
       }
 
       if self.function_declaration {
-        traversal_state.add_function_name_declaration(reference.clone());
+        traversal_state.add_function_name_declaration(ident_at(name, DECLARATOR_SPAN));
         traversal_state.declared_bindings.insert(module_binding);
       }
 
@@ -951,6 +956,31 @@ fn an_early_reference_answers_before_the_initializer_read() {
     .evaluate("c", span_at(1, 2));
 
   assert_refused_with(&result, USED_BEFORE_DECLARATION);
+}
+
+/// A hoisted `function` or `class` is asked the same question, because upstream
+/// asks it of whatever the binding is — its position comparison at line 664 runs
+/// ahead of the declaration-kind refusals at 685-690. Measured on 0.19.0: a
+/// reference above `function f() {}` is
+/// `Referenced value is used before declaration.` there, where this compiler
+/// used to answer `Unsupported expression: FunctionDeclaration` and so named the
+/// wrong problem. The reference *below* one keeps that kind's wording, which
+/// `a_class_or_function_declaration_is_refused_as_unsupported` pins.
+#[test]
+fn an_early_reference_to_a_hoisted_declaration_is_early_rather_than_unsupported() {
+  assert_refused_with(
+    &ModuleState::default()
+      .declares_a_function()
+      .evaluate("c", span_at(1, 2)),
+    USED_BEFORE_DECLARATION,
+  );
+
+  assert_refused_with(
+    &ModuleState::default()
+      .declares_a_class()
+      .evaluate("c", span_at(1, 2)),
+    USED_BEFORE_DECLARATION,
+  );
 }
 
 // ==================== step 7 — the three globals ====================

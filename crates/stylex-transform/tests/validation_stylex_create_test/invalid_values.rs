@@ -1067,6 +1067,50 @@ stylex_test!(
   "#
 );
 
+// A hoisted `function` or `class` gets the same refusal, and this is the pair
+// that says why it has to. The reference implementation compares the position of
+// *any* binding before it refuses one for its declaration kind, so a reference
+// above `function f() {}` is early there; only a reference below it is
+// "Unsupported expression: FunctionDeclaration". Both texts measured on
+// @stylexjs/babel-plugin 0.19.0.
+stylex_test_panic!(
+  a_reference_above_a_hoisted_function_is_early,
+  "Referenced value is used before declaration",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { color: f } });
+
+    function f() {}
+  "#
+);
+
+stylex_test_panic!(
+  a_reference_above_a_hoisted_class_is_early,
+  "Referenced value is used before declaration",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const styles = stylex.create({ x: { color: C } });
+
+    class C {}
+  "#
+);
+
+// Below it, the declaration kind is what the reference cannot read, and the
+// wording says so rather than talking about position.
+stylex_test_panic!(
+  a_reference_below_a_hoisted_function_names_its_kind,
+  "Unsupported expression: FunctionDeclaration",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    function g() {}
+
+    const styles = stylex.create({ x: { color: g } });
+  "#
+);
+
 // A shorthand is expanded into synthesized longhand properties, and the value
 // they carry is the reference as authored — so the position is still there to
 // compare and the refusal still lands. The reference implementation refuses

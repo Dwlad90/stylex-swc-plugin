@@ -8,6 +8,7 @@
 //! why the order is the reference implementation's rather than this compiler's.
 
 use super::*;
+use swc_core::common::{EqIgnoreSpan, Span};
 
 /// Whether a reference reads a binding the program does not hold yet, because
 /// the declarator naming it ends after the reference begins.
@@ -27,14 +28,23 @@ use super::*;
 /// also folds in do not, because `nodes::identifier::evaluate` answers for every
 /// name in `functions.identifiers` before this chain is entered.
 ///
-/// Only a `VarDeclarator` is ever asked. A hoisted `function` or `class`
-/// declaration holds its value from the top of the scope, so a reference above
-/// one is not early; those reach `check_ident_declaration` instead and are
-/// refused there, as they are upstream.
-fn reads_before_its_declaration(reference: &Ident, declarator: &VarDeclarator) -> bool {
-  !reference.span.is_dummy()
-    && !declarator.span.is_dummy()
-    && reference.span.lo < declarator.span.hi
+/// Asked of a hoisted `function` or `class` declaration as well as of a
+/// `VarDeclarator`, because upstream asks it of whatever the binding is: the
+/// comparison at line 664 runs before the declaration-kind refusals at 685-690,
+/// so a reference *above* a `function` is refused for being early and only a
+/// reference below it is refused for its kind. Measured on 0.19.0:
+///
+/// ```text
+/// create({ a: { color: f() } }); function f() {}   Referenced value is used before declaration.
+/// function g() {} create({ a: { color: g() } })    Unsupported expression: FunctionDeclaration
+/// ```
+///
+/// A hoisted declaration is compared against the end of its *name* rather than
+/// the end of its body, which is what upstream's `binding.path.node.end` is. The
+/// two part company only for a reference from inside the declaration's own body,
+/// which no style value reaches.
+fn reads_before_its_declaration(reference: &Ident, declaration: Span) -> bool {
+  !reference.span.is_dummy() && !declaration.is_dummy() && reference.span.lo < declaration.hi
 }
 
 /// Resolve `reference` to the binding it names, and fold that binding to a
@@ -52,7 +62,7 @@ fn reads_before_its_declaration(reference: &Ident, declarator: &VarDeclarator) -
 /// 2. a default-import specifier (652-654)
 /// 3. a reassigned binding is not a constant (656-658)
 /// 4. a binding mutated in place is not a constant (660-662)
-/// 5. a reference above its own declarator is early (664-666)
+/// 5. a reference above its own declaration is early (664-666)
 /// 6. a binding carrying a folded value (668-669) — absent, see below
 /// 7. `undefined` / `Infinity` / `NaN` (670-683)
 /// 8. the declarator's initializer, else the class / function refusals
@@ -164,7 +174,7 @@ pub(super) fn resolve_reference(
       }
 
       // Upstream gives `IMPORT_FILE_EVAL_ERROR` a second time here, where a
-      // resolution came back *unconfident* (0.19.0 line 6360). Deliberately
+      // resolution came back *unconfident* (0.19.0 line 647). Deliberately
       // absent, and unreachable rather than skipped: upstream reaches that
       // branch only out of `evaluateImportedFile`, which parses the imported
       // module and folds the named export out of it. This compiler has no such
@@ -219,12 +229,28 @@ pub(super) fn resolve_reference(
 
   let declarator = get_var_decl_by_ident(ident, traversal_state, &state.functions);
 
-  // ── 5. a reference above its own declarator is early (664-666) ────────────
+  // ── 5. a reference above its own declaration is early (664-666) ───────────
   //
   // Asked of the declarator already looked up, so the answer costs a
   // comparison rather than a second scan of the declaration list.
   if let Some(declarator) = declarator.as_ref()
-    && reads_before_its_declaration(ident, declarator)
+    && reads_before_its_declaration(ident, declarator.span)
+  {
+    return deopt(path, state, USED_BEFORE_DECLARATION);
+  }
+
+  // And of a hoisted `function` or `class`, which upstream asks here too — its
+  // position comparison precedes the declaration-kind refusals step 8 reaches,
+  // so a reference above one of these is early rather than unsupported. Only the
+  // reference above is taken from this step; one below still falls through to
+  // step 8 and keeps its kind's wording.
+  if traversal_state
+    .class_name_declarations()
+    .iter()
+    .chain(traversal_state.function_name_declarations())
+    .any(|declared| {
+      declared.eq_ignore_span(ident) && reads_before_its_declaration(ident, declared.span)
+    })
   {
     return deopt(path, state, USED_BEFORE_DECLARATION);
   }

@@ -143,6 +143,17 @@ impl KeySpanIndex {
       }
     }
 
+    // Iterated out of a hash map, and each candidate list is still in a
+    // deterministic order: `in_this_object` is keyed by name, so one object
+    // contributes at most one candidate per name and the shuffled order is the
+    // order *different* names are appended to *different* lists in. Within one
+    // name the order is the visit order, which is the source order.
+    //
+    // What that buys is that `resolve` may rank candidates without a tiebreak
+    // on position. It does not rely on it -- a tie there sets `ambiguous` and a
+    // strict improvement clears it, in any order -- so keep it that way: a
+    // "first best wins" shortcut would make the answer depend on this order,
+    // and this order is only stable per name, not across the map.
     for (name, candidate) in in_this_object {
       self.by_key.entry(name).or_default().push(candidate);
     }

@@ -33,7 +33,7 @@ pub(crate) type FunctionMapIdentifiers = FxHashMap<Atom, Box<FunctionConfigType>
 ///
 /// Ordered rather than hashed, and the one place that decision lives.
 ///
-/// JS-parity: `visitors/stylex-create.js:206` --
+/// JS-parity: `visitors/stylex-create.js:206` (0.19.0) --
 /// `identifiers[name] = { ...(identifiers[name] ?? {}), when: stylexWhen }`. It
 /// is a plain object, so its keys are read in insertion order, and the object a
 /// style-value position materializes from it decides which key

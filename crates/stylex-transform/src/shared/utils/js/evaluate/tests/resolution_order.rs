@@ -485,7 +485,14 @@ fn assert_refused_with(result: &EvaluateResult, reason: &str) {
   assert_eq!(result.reason.as_deref(), Some(reason));
 }
 
-/// The global stood as itself — the answer step 7 gives a name nothing bound.
+/// The global stood — the answer step 7 gives a name nothing bound.
+///
+/// What it stands *as* differs by name, and the difference is the point: `NaN`
+/// and `Infinity` are numbers the grammar has no literal for, so the step
+/// answers the number, and only `undefined` answers the identifier because
+/// nothing else spells it. The expectations are written out here rather than
+/// read back from the resolver, so this states the contract instead of
+/// agreeing with whatever the code currently does.
 #[track_caller]
 fn assert_folded_to_the_global(result: &EvaluateResult, name: &str) {
   assert!(
@@ -494,9 +501,17 @@ fn assert_folded_to_the_global(result: &EvaluateResult, name: &str) {
     name, result.reason
   );
 
-  match &result.value {
-    Some(EvaluateResultValue::Expr(Expr::Ident(ident))) => assert_eq!(ident.sym, *name),
-    other => panic!("expected the global `{}`, got {:?}", name, other),
+  match (name, &result.value) {
+    ("undefined", Some(EvaluateResultValue::Expr(Expr::Ident(ident)))) => {
+      assert_eq!(ident.sym, *name)
+    },
+    ("NaN", Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(number))))) => {
+      assert!(number.value.is_nan(), "expected NaN, got {}", number.value)
+    },
+    ("Infinity", Some(EvaluateResultValue::Expr(Expr::Lit(Lit::Num(number))))) => {
+      assert_eq!(number.value, f64::INFINITY)
+    },
+    (_, other) => panic!("expected the global `{}`, got {:?}", name, other),
   }
 }
 

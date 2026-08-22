@@ -270,11 +270,20 @@ pub(super) fn resolve_reference(
   // been refused, never a refusal of something that should fold — and closing
   // it means evaluating an imported file in its own right, which this compiler
   // does not do at all yet.
-  if is_global_spelled_as_an_identifier(ident) {
+  //
+  // What the global answers *with* is the value, not the name. `NaN` and
+  // `Infinity` are numbers the grammar has no literal for, and a consumer that
+  // reads the expression's shape rather than coercing it -- style-value
+  // validation is the one that does -- sees an identifier and refuses. Handing
+  // back the name made `height: [NaN, '2px']` refuse an array the reference
+  // implementation accepts, while `height: [0/0, '2px']`, the same value
+  // reached by arithmetic, folded and agreed. `undefined` has no other
+  // spelling and answers itself.
+  if let Some(value) = global_spelled_as_an_identifier_as_a_value(ident) {
     return if traversal_state.declares_binding(ident) {
       deopt(path, state, UNINITIALIZED_CONST)
     } else {
-      Some(EvaluateResultValue::Expr(Expr::from(ident.clone())))
+      Some(EvaluateResultValue::Expr(value))
     };
   }
 

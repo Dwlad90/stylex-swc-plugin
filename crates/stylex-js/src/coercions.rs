@@ -7,8 +7,10 @@
 //! one.
 
 use stylex_utils::number;
+use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{
-  BigIntValue, BlockStmtOrExpr, Expr, Ident, Lit, ObjectLit, Prop, PropName, PropOrSpread, UnaryOp,
+  BigIntValue, BlockStmtOrExpr, Expr, Ident, Lit, Number, ObjectLit, Prop, PropName, PropOrSpread,
+  UnaryOp,
 };
 
 /// What `ToString` produces for an object that still takes the
@@ -116,6 +118,49 @@ fn surviving_global(ident: &Ident) -> Option<SurvivingGlobal> {
 /// name would be added in one place.
 pub fn is_global_spelled_as_an_identifier(ident: &Ident) -> bool {
   surviving_global(ident).is_some()
+}
+
+/// The value one of the three globals *is*, written the way the language would
+/// write it if it could.
+///
+/// `NaN` and `Infinity` are numbers that the grammar has no literal for, so
+/// they are authored as identifiers and reach the evaluator as identifiers —
+/// but a consumer that asks what a value *is* rather than what it coerces to
+/// has to be told a number, or it reads the name as an unresolved reference and
+/// refuses. `undefined` has no other spelling, so it answers itself and the
+/// caller is no worse off than before.
+///
+/// The distinction matters exactly where a consumer inspects the expression's
+/// shape instead of coercing it. Style-value validation is the one that does:
+/// it admits a number and refuses an identifier, so `height: [NaN, '2px']`
+/// refused an array the reference implementation accepts — while `height:
+/// [0/0, '2px']`, the same value reached by arithmetic, folded and agreed.
+///
+/// `None` for every other name, so a caller can use this as the set as well.
+pub fn global_spelled_as_an_identifier_as_a_value(ident: &Ident) -> Option<Expr> {
+  match surviving_global(ident)? {
+    // No literal spells it, so the name stands. Every coercion above reads the
+    // identifier form, so nothing downstream is worse off for it.
+    SurvivingGlobal::Undefined => Some(Expr::Ident(ident.clone())),
+    SurvivingGlobal::NaN => Some(number_spelled_as(f64::NAN, "NaN")),
+    SurvivingGlobal::Infinity => Some(number_spelled_as(f64::INFINITY, "Infinity")),
+  }
+}
+
+/// A number carrying the text it was authored with.
+///
+/// Only the two globals need it, and they need it because neither has a
+/// numeric literal to print: asked to write a `Number` node holding `NaN`, the
+/// emitter falls back to `0 / 0`, and `Infinity` to a numeral no author wrote.
+/// Both evaluate to the right value, so this is about the text rather than the
+/// semantics -- but the text is what a reader diffs and what the reference
+/// implementation prints, so the name is kept.
+fn number_spelled_as(value: f64, raw: &str) -> Expr {
+  Expr::Lit(Lit::Num(Number {
+    span: DUMMY_SP,
+    value,
+    raw: Some(raw.into()),
+  }))
 }
 
 /// ECMA-262 `ToString`, over an already-evaluated expression.

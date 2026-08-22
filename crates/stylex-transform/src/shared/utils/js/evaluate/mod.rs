@@ -85,7 +85,9 @@ use stylex_enums::{
   value_with_default::ValueWithDefault,
 };
 use stylex_js::coercions;
-use stylex_js::coercions::is_global_spelled_as_an_identifier;
+use stylex_js::coercions::{
+  global_spelled_as_an_identifier_as_a_value, is_global_spelled_as_an_identifier,
+};
 use stylex_js::helpers::{
   get_callee_name, get_method_name, is_id_prop, is_invalid_method, is_mutating_array_method,
   is_mutating_object_method, is_mutation_expr, is_valid_callee,

@@ -7,6 +7,7 @@ mod dynamic_styles;
 mod env;
 mod evaluation_depth_budget;
 mod global_builtin_calls;
+mod globals_as_style_values;
 mod legacy_deprecated;
 mod logical_operators;
 mod media_query_canonicalization;

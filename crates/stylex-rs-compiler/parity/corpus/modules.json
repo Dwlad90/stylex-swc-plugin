@@ -507,16 +507,48 @@
       "label": "the global `NaN` in a module where an unrelated scope binds the name",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  a: { width: NaN },\n});\n\nexport function scale(NaN) {\n  return NaN;\n}\n",
       "origin": "the identifier audit for issue #1266, the guard on the globals step",
-      "note": "The binding question is asked of the reference's full `Id`, so a binding of the same name in a scope that does not enclose the reference is not the binding it names, and the global stands. Both compilers agree on that much and then diverge downstream on the global itself: upstream emits `width:NaNpx`, where this compiler refuses the non-numeric identifier as a style value. That downstream divergence is what this entry is expected to read, and it is the same one `modules-1266-the-unshadowed-globals-in-a-style-value` records without any binding in the module -- so a regression in the binding question would change this entry's verdict while leaving that one's alone.",
-      "expected": "acceptance-divergent"
+      "note": "The binding question is asked of the reference's full `Id`, so a binding of the same name in a scope that does not enclose the reference is not the binding it names, and the global stands. What the global stands *as* is the number since ticket 26, so the downstream divergence this entry used to carry is gone and both compilers emit `width:NaNpx`. A regression in the binding question would refuse here while `modules-1266-the-unshadowed-globals-in-a-style-value` kept agreeing.",
+      "expected": "identical"
     },
     {
       "id": "modules-1266-the-unshadowed-globals-in-a-style-value",
       "label": "the globals `NaN` and `Infinity` in a style value, bound nowhere",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  a: { width: NaN },\n  b: { height: Infinity },\n});\n",
       "origin": "the identifier audit for issue #1266, the other half of the globals step",
-      "note": "With nothing bound, the step answers the global, which is what keeps this a divergence about the value rather than about the binding: upstream emits `width:NaNpx` and `height:Infinitypx`, where this compiler refuses a non-numeric identifier as a style value. Unchanged by the globals step and recorded so that it stays unchanged -- a regression that made the step refuse an unbound global would show up here as a message change rather than silently.",
-      "expected": "acceptance-divergent"
+      "note": "With nothing bound, the step answers the global -- as the number it is, since ticket 26. `width:NaNpx` and `height:Infinitypx` on both compilers. Neither declaration is one a browser accepts, and agreeing on that is the point: a class name is a hash of the declaration text, so the two spelling it differently is the outcome that breaks a build mixing them. A regression that made the step answer the identifier again would refuse the value here rather than emit a different one.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-the-globals-beside-the-arithmetic-that-reaches-them",
+      "label": "the globals beside the arithmetic that produces the same numbers",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  notANumber: { height: NaN },\n  dividedByZero: { height: 0 / 0 },\n  infinite: { height: Infinity },\n  overflowed: { height: 1 / 0 },\n  negativelyInfinite: { height: -Infinity },\n  negativelyOverflowed: { height: -1 / 0 },\n});\n",
+      "expected": "identical",
+      "origin": "ticket 26, the globals the array check read as identifiers",
+      "note": "The pair that settled ticket 26. Each spelling sits next to the arithmetic reaching the same number, and the arithmetic half agreed all along -- which is what showed the refusal was about how the value was written rather than about the value. A regression separating the two halves reports here."
+    },
+    {
+      "id": "modules-an-array-with-an-infinity-element",
+      "label": "a fallback array carrying `Infinity`, in a static namespace",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s: { height: [Infinity, '2px'] },\n});\n",
+      "expected": "identical",
+      "origin": "ticket 26, the globals the array check read as identifiers",
+      "note": "The other half of ticket 26's table, and the half whose upstream answer is the harder one to like: `Infinity` is spelled into a declaration of its own ahead of the one that works. In a fallback chain that is harmless -- the browser discards the declaration it cannot parse and reads the next -- and the class name is a hash of both, so agreeing is what matters."
+    },
+    {
+      "id": "modules-an-array-with-only-a-nan-element",
+      "label": "a fallback array whose only element is `NaN`",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s: { height: [NaN] },\n});\n",
+      "expected": "identical",
+      "origin": "ticket 26, the globals the array check read as identifiers",
+      "note": "Where the two globals part company, and the parting is upstream's: `NaN` is dropped as an absent value, so the chain declares nothing and the key survives carrying `null`, while `Infinity` in the same position declares its one unusable rule. No rule text shows this, so the verdict rests on the style-object shape."
+    },
+    {
+      "id": "modules-a-nan-test-in-a-ternary",
+      "label": "a ternary whose test is `NaN`, and the same test reached by arithmetic",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  named: { height: NaN ? '1px' : '2px' },\n  computed: { height: (0 / 0) ? '1px' : '2px' },\n  logical: { height: NaN || '2px' },\n});\n",
+      "expected": "structurally-divergent",
+      "origin": "ticket 39, found by ticket 26's edge cases",
+      "note": "Structurally divergent -- the two branches carry different values, so the wrong branch changes which rules exist and not only how one is spelled. Not about the globals: a ternary reads its test through `convert_expr_to_bool`, a second truthiness table beside `coercions::to_js_boolean` whose numeric arm asks `n.value != 0.0` and so calls `NaN` truthy. The `computed` row reaches the same table by arithmetic and diverges identically, so this pre-dates the globals answering numbers; the `logical` row reads the coercion and agrees. Filed as ticket 39."
     },
     {
       "id": "modules-1266-read-by-a-string-named-imports-imported-name",
@@ -1314,9 +1346,9 @@
       "id": "modules-1266-an-array-with-a-nan-element-in-a-dynamic-style",
       "label": "an array style value carrying `NaN` inside a dynamic style",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [NaN, '2px'] }),\n});\n",
-      "expected": "acceptance-divergent",
+      "expected": "identical",
       "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
-      "note": "Acceptance divergent, and not about the dynamic position: the static namespace refuses the same array for the same reason. `NaN` reaches the array check as an identifier rather than as a number, and upstream drops the element instead. Filed as its own ticket."
+      "note": "Identical since ticket 26, and never about the dynamic position: the static namespace read the same array the same way. `NaN` reached the array check as an identifier where the check admits a number, so it refused an array `height: [0/0, '2px']` -- the same value by arithmetic -- already folded."
     },
     {
       "id": "modules-an-absent-value-in-a-dynamic-style",

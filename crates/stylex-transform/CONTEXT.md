@@ -313,6 +313,20 @@ which memoizes the _answers_ this index is asked for, keyed by the lookup rather
 than by the key.
 _Avoid_: namespace key index, key map, position table
 
+**Call lookup**:
+The half of a key-span lookup that belongs to the `stylex.create` _call_ rather
+than to one of its namespaces: the sibling keys every namespace of that call
+ranks against, the proximity anchor, the span cache key's call-side digest, and
+the call wrapped as an expression for the value-matching fallback. Built once per
+call, because building any of it per namespace makes the call quadratic in its
+own namespace count — the same shape the [key span index](#key-span-index)
+removed one level up. One type rather than four arguments so that they cannot
+describe different calls: a digest paired with another call's keys is a wrong
+span cached under a key that looks right. The wrapper inside it is a deep clone,
+so it is built on the first namespace that needs one and never for a call whose
+namespaces all hit the span cache.
+_Avoid_: call keys, sibling context, lookup context
+
 **Seen value**:
 A memoized evaluation, keyed by the
 [structural hash](../stylex-utils/CONTEXT.md) of the expression. `resolved`

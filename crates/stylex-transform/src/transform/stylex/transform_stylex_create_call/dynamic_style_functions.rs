@@ -213,15 +213,13 @@ where
                             // fallback below spells it `""`. Skipping the
                             // property instead dropped the key, and a key that is
                             // not there unsets nothing.
-                            let assembled = class_names_for_prop(
+                            let PropClassNames { joined, is_static } = class_names_for_prop(
                               &class_list,
                               &dynamic_styles,
                               &orig_class_paths,
                               &nullish_var_expressions,
                               injected_styles,
                             );
-                            let is_static = assembled.is_static;
-                            let joined = assembled.joined;
 
                             if is_static {
                               static_props.push(create_prop_from_name(

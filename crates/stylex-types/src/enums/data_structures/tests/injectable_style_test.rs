@@ -50,42 +50,54 @@ fn test_from_const_kind() {
 /// kinds answer the same way. The empty-`ltr` case is the one it exists for: a
 /// direction-specific rule is spelled with an empty `ltr` and the text in `rtl`,
 /// so a caller reading `ltr` alone would get nothing back.
+/// The four directional shapes `rule_text` has to answer for, as `(ltr, rtl)`
+/// beside the rule each should produce.
+///
+/// The interesting one is the third: a direction-specific rule is spelled with
+/// an empty `ltr` and the text in `rtl`, so a caller reading `ltr` alone gets
+/// nothing back. The fourth carries nothing either way, which is the empty
+/// string rather than a panic or a `None` the caller would have to handle.
+const DIRECTIONAL_CASES: [(&str, Option<&str>, &str); 4] = [
+  ("color:red", None, "color:red"),
+  ("color:red", Some("color:blue"), "color:red"),
+  ("", Some("color:blue"), "color:blue"),
+  ("", None, ""),
+];
+
+fn regular_kind(ltr: &str, rtl: Option<&str>) -> InjectableStyleKind {
+  InjectableStyleKind::Regular(InjectableStyle {
+    ltr: ltr.to_string(),
+    rtl: rtl.map(str::to_string),
+    priority: Some(1.0),
+  })
+}
+
+fn const_kind(ltr: &str, rtl: Option<&str>) -> InjectableStyleKind {
+  InjectableStyleKind::Const(InjectableConstStyle {
+    ltr: ltr.to_string(),
+    rtl: rtl.map(str::to_string),
+    priority: Some(1.0),
+    const_key: "--k".to_string(),
+    const_value: "v".to_string(),
+  })
+}
+
+/// `rule_text` picks whichever direction actually carries the rule, and both
+/// kinds answer the same way -- which is the property that let the two duplicated
+/// match arms it replaced be one function.
 #[test]
 fn rule_text_prefers_ltr_and_falls_back_to_rtl() {
-  let regular = |ltr: &str, rtl: Option<&str>| {
-    InjectableStyleKind::Regular(InjectableStyle {
-      ltr: ltr.to_string(),
-      rtl: rtl.map(str::to_string),
-      priority: Some(1.0),
-    })
-  };
-  let konst = |ltr: &str, rtl: Option<&str>| {
-    InjectableStyleKind::Const(InjectableConstStyle {
-      ltr: ltr.to_string(),
-      rtl: rtl.map(str::to_string),
-      priority: Some(1.0),
-      const_key: "--k".to_string(),
-      const_value: "v".to_string(),
-    })
-  };
-
-  for build in [
-    &regular as &dyn Fn(&str, Option<&str>) -> InjectableStyleKind,
-    &konst as &dyn Fn(&str, Option<&str>) -> InjectableStyleKind,
-  ] {
-    // `ltr` wins whenever it carries anything, even with an `rtl` beside it.
-    assert_eq!(build("color:red", None).rule_text(), "color:red");
+  for (ltr, rtl, expected) in DIRECTIONAL_CASES {
     assert_eq!(
-      build("color:red", Some("color:blue")).rule_text(),
-      "color:red"
+      regular_kind(ltr, rtl).rule_text(),
+      expected,
+      "Regular({ltr:?}, {rtl:?})"
     );
-
-    // An empty `ltr` is how a direction-specific rule is spelled.
-    assert_eq!(build("", Some("color:blue")).rule_text(), "color:blue");
-
-    // Neither direction carries anything, which is the empty string rather
-    // than a panic or a `None` the caller would have to handle.
-    assert_eq!(build("", None).rule_text(), "");
+    assert_eq!(
+      const_kind(ltr, rtl).rule_text(),
+      expected,
+      "Const({ltr:?}, {rtl:?})"
+    );
   }
 }
 

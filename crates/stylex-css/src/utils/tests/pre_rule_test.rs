@@ -2,6 +2,7 @@ use crate::utils::pre_rule::{
   ASCII_PRIMARY_ORDER, ASCII_PRIMARY_RANK, UNRANKED, build_ascii_primary_rank, sort_at_rules,
   sort_pseudos,
 };
+use stylex_utils::collections::FxHashSet;
 
 /// The keys a case is written with, as `sort_pseudos` takes them.
 ///
@@ -588,7 +589,7 @@ fn a_letter_shares_its_rank_with_the_other_case() {
 #[test]
 fn every_unnamed_byte_stays_unranked() {
   let table = build_ascii_primary_rank();
-  let named: std::collections::HashSet<u8> = ASCII_PRIMARY_ORDER
+  let named: FxHashSet<u8> = ASCII_PRIMARY_ORDER
     .iter()
     .flat_map(|&byte| {
       if byte.is_ascii_lowercase() {
@@ -623,7 +624,7 @@ fn every_unnamed_byte_stays_unranked() {
 /// the sequence its own doc says it inverts.
 #[test]
 fn the_order_names_each_character_once() {
-  let mut seen = std::collections::HashSet::new();
+  let mut seen = FxHashSet::default();
 
   for &character in ASCII_PRIMARY_ORDER {
     assert!(

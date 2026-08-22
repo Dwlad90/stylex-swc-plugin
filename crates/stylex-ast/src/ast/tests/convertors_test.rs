@@ -681,3 +681,70 @@ fn get_expr_from_var_decl_panics_without_initializer() {
   };
   get_expr_from_var_decl(&decl);
 }
+
+// ── is_js_undefined ─────────────────────────────────────────────────
+
+/// The one predicate several evaluator steps share for "this is the *value*
+/// `undefined`", rather than a name that failed to resolve. A key an object does
+/// not carry, an index past the end of an array and a member read off a fold all
+/// answer with it, and each of those readers has to recognise it on the way back
+/// out — so the test is here, beside the predicate, rather than in whichever
+/// caller happens to exist.
+#[test]
+fn is_js_undefined_recognises_only_the_exact_name() {
+  assert!(is_js_undefined(&create_ident("undefined")));
+
+  for other in [
+    "undefined_",
+    "_undefined",
+    "Undefined",
+    "UNDEFINED",
+    "undef",
+    "void",
+    "null",
+    "NaN",
+    "",
+  ] {
+    assert!(
+      !is_js_undefined(&create_ident(other)),
+      "`{}` is not the value `undefined`",
+      other
+    );
+  }
+}
+
+/// The predicate reads the name and nothing else, so the ident a caller hands it
+/// answers the same whatever span or syntax context it carries. That is what
+/// makes it safe to share between readers that got their ident from different
+/// places -- one from the source, one synthesized, one out of a resolved module
+/// where every binding carries a mark.
+#[test]
+fn is_js_undefined_ignores_span_and_context() {
+  use swc_core::common::{BytePos, GLOBALS, Globals, Mark, Span, SyntaxContext};
+
+  // A `Mark` can only be minted inside a `GLOBALS` scope, so the resolved-ident
+  // half of this case has to run in one.
+  GLOBALS.set(&Globals::new(), || {
+    let synthesized = create_ident("undefined");
+
+    let mut relocated = create_ident("undefined");
+    relocated.span = Span::new(BytePos(10), BytePos(19));
+
+    let mut marked = create_ident("undefined");
+    marked.ctxt = SyntaxContext::empty().apply_mark(Mark::new());
+
+    for candidate in [&synthesized, &relocated, &marked] {
+      assert!(
+        is_js_undefined(candidate),
+        "the name is all that is read: {:?}",
+        candidate
+      );
+    }
+
+    // And a shadowing binding is still not the value, however it is spelled --
+    // the chain refuses one before any of these readers is asked.
+    let mut shadowing = create_ident("undefined2");
+    shadowing.ctxt = SyntaxContext::empty().apply_mark(Mark::new());
+    assert!(!is_js_undefined(&shadowing));
+  });
+}

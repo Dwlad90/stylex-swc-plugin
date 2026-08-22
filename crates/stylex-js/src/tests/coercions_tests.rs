@@ -1152,3 +1152,90 @@ fn to_int32_wraps_into_the_signed_32_bit_range() {
   assert_eq!(to_int32(-2_147_483_648.0), -2_147_483_648);
   assert_eq!(to_int32(-1.0), -1);
 }
+
+// ── global_identifier_to_value ───────────────────────────────────────
+
+/// The two numeric globals answer with the numbers they *are*, and `undefined`
+/// answers with itself.
+///
+/// The split is not cosmetic. A consumer that inspects the expression's shape
+/// rather than coercing it — style-value validation is the one that does, since
+/// it admits a number and refuses an identifier — sees `NaN` as a number here,
+/// so `height: [NaN, '2px']` is accepted exactly as `height: [0/0, '2px']` is.
+/// `undefined` has no numeric reading to answer with, so it stands.
+#[test]
+fn global_identifier_to_value_answers_numbers_for_the_two_numeric_globals() {
+  match global_identifier_to_value(&ident("NaN")) {
+    Some(Expr::Lit(Lit::Num(number))) => {
+      assert!(number.value.is_nan(), "NaN is the value, not the name");
+      assert_eq!(
+        number.raw.as_deref(),
+        Some("NaN"),
+        "and it keeps the text it was authored with"
+      );
+    },
+    other => panic!("expected NaN to answer a number, got {:?}", other),
+  }
+
+  match global_identifier_to_value(&ident("Infinity")) {
+    Some(Expr::Lit(Lit::Num(number))) => {
+      assert_eq!(number.value, f64::INFINITY);
+      assert_eq!(number.raw.as_deref(), Some("Infinity"));
+    },
+    other => panic!("expected Infinity to answer a number, got {:?}", other),
+  }
+}
+
+/// `undefined` has no literal spelling, so the identifier is the answer. The
+/// span comes back with it, which is what lets a caller report against the
+/// reference it read.
+#[test]
+fn global_identifier_to_value_answers_undefined_with_itself() {
+  match global_identifier_to_value(&ident("undefined")) {
+    Some(Expr::Ident(answered)) => assert_eq!(answered.sym.as_ref(), "undefined"),
+    other => panic!("expected undefined to answer itself, got {:?}", other),
+  }
+}
+
+/// `None` for every other name, which is what lets a caller use this as the set
+/// as well as the coercion — and it agrees with the predicate that publishes
+/// the set on its own.
+#[test]
+fn global_identifier_to_value_declines_every_other_name() {
+  for name in ["Number", "nan", "NAN", "infinity", "undefined_", "x", ""] {
+    assert!(
+      global_identifier_to_value(&ident(name)).is_none(),
+      "`{}` is not one of the three globals",
+      name
+    );
+    assert!(
+      !is_global_spelled_as_an_identifier(&ident(name)),
+      "`{}` must agree with the predicate over the same set",
+      name
+    );
+  }
+
+  for name in ["undefined", "NaN", "Infinity"] {
+    assert!(
+      global_identifier_to_value(&ident(name)).is_some(),
+      "`{}` is one of the three",
+      name
+    );
+    assert!(is_global_spelled_as_an_identifier(&ident(name)));
+  }
+}
+
+/// The `raw` text is the point of `number_spelled_as`, not the value: asked to
+/// print a `Number` node holding `NaN` with no raw text, the emitter writes
+/// `0 / 0`, and `Infinity` becomes a numeral no author wrote. Both evaluate
+/// correctly either way, so this pins the text a reader diffs.
+#[test]
+fn the_numeric_globals_carry_the_text_they_were_authored_with() {
+  let raw_of = |name: &str| match global_identifier_to_value(&ident(name)) {
+    Some(Expr::Lit(Lit::Num(number))) => number.raw.map(|raw| raw.to_string()),
+    other => panic!("expected a number for `{}`, got {:?}", name, other),
+  };
+
+  assert_eq!(raw_of("NaN").as_deref(), Some("NaN"));
+  assert_eq!(raw_of("Infinity").as_deref(), Some("Infinity"));
+}

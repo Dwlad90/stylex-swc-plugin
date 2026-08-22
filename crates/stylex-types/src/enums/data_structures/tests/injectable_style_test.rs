@@ -43,3 +43,68 @@ fn test_from_const_kind() {
     _ => panic!("Expected Const variant"),
   }
 }
+
+// ── rule_text ───────────────────────────────────────────────────────
+
+/// `rule_text` picks whichever direction actually carries the rule, and both
+/// kinds answer the same way. The empty-`ltr` case is the one it exists for: a
+/// direction-specific rule is spelled with an empty `ltr` and the text in `rtl`,
+/// so a caller reading `ltr` alone would get nothing back.
+#[test]
+fn rule_text_prefers_ltr_and_falls_back_to_rtl() {
+  let regular = |ltr: &str, rtl: Option<&str>| {
+    InjectableStyleKind::Regular(InjectableStyle {
+      ltr: ltr.to_string(),
+      rtl: rtl.map(str::to_string),
+      priority: Some(1.0),
+    })
+  };
+  let konst = |ltr: &str, rtl: Option<&str>| {
+    InjectableStyleKind::Const(InjectableConstStyle {
+      ltr: ltr.to_string(),
+      rtl: rtl.map(str::to_string),
+      priority: Some(1.0),
+      const_key: "--k".to_string(),
+      const_value: "v".to_string(),
+    })
+  };
+
+  for build in [
+    &regular as &dyn Fn(&str, Option<&str>) -> InjectableStyleKind,
+    &konst as &dyn Fn(&str, Option<&str>) -> InjectableStyleKind,
+  ] {
+    // `ltr` wins whenever it carries anything, even with an `rtl` beside it.
+    assert_eq!(build("color:red", None).rule_text(), "color:red");
+    assert_eq!(
+      build("color:red", Some("color:blue")).rule_text(),
+      "color:red"
+    );
+
+    // An empty `ltr` is how a direction-specific rule is spelled.
+    assert_eq!(build("", Some("color:blue")).rule_text(), "color:blue");
+
+    // Neither direction carries anything, which is the empty string rather
+    // than a panic or a `None` the caller would have to handle.
+    assert_eq!(build("", None).rule_text(), "");
+  }
+}
+
+/// The two kinds are interchangeable to this reader, which is the property that
+/// let the two duplicated match arms it replaced be one function.
+#[test]
+fn rule_text_does_not_depend_on_the_kind() {
+  let regular = InjectableStyleKind::Regular(InjectableStyle {
+    ltr: String::new(),
+    rtl: Some("margin-right:4px".to_string()),
+    priority: Some(3000.0),
+  });
+  let konst = InjectableStyleKind::Const(InjectableConstStyle {
+    ltr: String::new(),
+    rtl: Some("margin-right:4px".to_string()),
+    priority: Some(3000.0),
+    const_key: "--spacing".to_string(),
+    const_value: "4px".to_string(),
+  });
+
+  assert_eq!(regular.rule_text(), konst.rule_text());
+}

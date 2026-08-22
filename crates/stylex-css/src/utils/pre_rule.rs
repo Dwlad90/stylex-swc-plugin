@@ -82,18 +82,26 @@ pub fn sort_pseudos(pseudos: &[String]) -> Vec<String> {
 /// and symbols, then digits, then letters -- and its detail is not byte order
 /// anywhere: `_` leads `-`, `$` trails every other symbol, and `{ | } ~` sit
 /// below every letter where their bytes sit above every one.
-const ASCII_PRIMARY_ORDER: &[u8] =
+pub(super) const ASCII_PRIMARY_ORDER: &[u8] =
   b" _-,;:!?.'\"()[]{}@*/\\&#%`^+<=>|~$0123456789abcdefghijklmnopqrstuvwxyz";
 
 /// `ASCII_PRIMARY_ORDER` inverted: a byte to its position in it, or
 /// [`UNRANKED`] for a byte the order does not name.
-const ASCII_PRIMARY_RANK: [u8; 128] = build_ascii_primary_rank();
+pub(super) const ASCII_PRIMARY_RANK: [u8; 128] = build_ascii_primary_rank();
 
 /// The rank of a byte [`ASCII_PRIMARY_ORDER`] does not name: a control
 /// character, `DEL`, or any byte of a non-ASCII character.
-const UNRANKED: u8 = u8::MAX;
+pub(super) const UNRANKED: u8 = u8::MAX;
 
-const fn build_ascii_primary_rank() -> [u8; 128] {
+/// Invert [`ASCII_PRIMARY_ORDER`] into a lookup table.
+///
+/// Visible to this module's tests, and callable at runtime as well as in a
+/// `const`, so the invariants the table rests on can be asserted rather than
+/// argued: a rank is one-based so nothing collides with a zero fill, a letter's
+/// two cases share one, and every byte the order does not name stays
+/// [`UNRANKED`]. Every class name carrying a pseudo selector is hashed off this
+/// ordering, so those three are load-bearing rather than tidy.
+pub(super) const fn build_ascii_primary_rank() -> [u8; 128] {
   let mut table = [UNRANKED; 128];
   let mut index = 0;
 

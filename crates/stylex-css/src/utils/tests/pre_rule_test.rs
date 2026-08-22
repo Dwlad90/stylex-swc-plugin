@@ -1,4 +1,7 @@
-use crate::utils::pre_rule::{sort_at_rules, sort_pseudos};
+use crate::utils::pre_rule::{
+  ASCII_PRIMARY_ORDER, ASCII_PRIMARY_RANK, UNRANKED, build_ascii_primary_rank, sort_at_rules,
+  sort_pseudos,
+};
 
 /// The keys a case is written with, as `sort_pseudos` takes them.
 ///
@@ -505,4 +508,138 @@ fn a_run_of_a_thousand_keys_sorts_whole() {
   written = sort_pseudos(&written);
 
   assert_eq!(written, expected);
+}
+
+// ── the primary weight table ─────────────────────────────────────────
+//
+// `ASCII_PRIMARY_RANK` is built by a `const fn`, so the table a release binary
+// carries is computed by the compiler and nothing at runtime re-derives it.
+// These cases call the builder themselves, which is both what exercises it and
+// what lets its three invariants be asserted rather than argued. Every class
+// name carrying a pseudo selector is hashed off this ordering, so all three are
+// load-bearing.
+
+/// The table the compiler baked in is the table the builder produces. Anything
+/// else would mean the `const` and the function had drifted apart, which is the
+/// one failure a reader of either could not see.
+#[test]
+fn the_baked_table_matches_a_freshly_built_one() {
+  assert_eq!(build_ascii_primary_rank(), ASCII_PRIMARY_RANK);
+}
+
+/// A rank is the character's one-based position in the order. One-based is the
+/// invariant: a zero rank would be indistinguishable from the fill value an
+/// unnamed byte would carry if the table were zero-initialised, and two
+/// characters sharing a weight makes `sort_unstable_by` free to order them
+/// either way.
+#[test]
+fn every_named_character_ranks_at_its_one_based_position() {
+  let table = build_ascii_primary_rank();
+
+  for (index, &character) in ASCII_PRIMARY_ORDER.iter().enumerate() {
+    let rank = table[character as usize];
+
+    assert_eq!(
+      rank,
+      (index + 1) as u8,
+      "`{}` should rank at its position in the order",
+      character as char
+    );
+    assert_ne!(
+      rank, 0,
+      "no rank is zero, so none collides with a zero fill"
+    );
+    assert_ne!(
+      rank, UNRANKED,
+      "`{}` is named by the order, so it is ranked",
+      character as char
+    );
+  }
+}
+
+/// A letter's two cases share one primary rank, because case is a *tertiary*
+/// difference in root collation rather than an identity. That is what makes
+/// `:HOVER` weigh as `hover` and sort after `:active`.
+#[test]
+fn a_letter_shares_its_rank_with_the_other_case() {
+  let table = build_ascii_primary_rank();
+
+  for lower in b'a'..=b'z' {
+    let upper = lower.to_ascii_uppercase();
+
+    assert_eq!(
+      table[lower as usize], table[upper as usize],
+      "`{}` and `{}` share a primary rank",
+      lower as char, upper as char
+    );
+    assert_ne!(table[lower as usize], UNRANKED);
+  }
+
+  // Digits have no other case, so nothing was folded onto them.
+  for digit in b'0'..=b'9' {
+    assert_ne!(table[digit as usize], UNRANKED);
+  }
+}
+
+/// Every byte the order does not name stays `UNRANKED`, which is what sends it
+/// through the widening branch of `primary_weight` and above every ranked
+/// character. The order names the 95 printable ASCII characters minus the
+/// uppercase letters it folds, so what is left is the controls and `DEL`.
+#[test]
+fn every_unnamed_byte_stays_unranked() {
+  let table = build_ascii_primary_rank();
+  let named: std::collections::HashSet<u8> = ASCII_PRIMARY_ORDER
+    .iter()
+    .flat_map(|&byte| {
+      if byte.is_ascii_lowercase() {
+        vec![byte, byte.to_ascii_uppercase()]
+      } else {
+        vec![byte]
+      }
+    })
+    .collect();
+
+  for byte in 0u8..128 {
+    if named.contains(&byte) {
+      assert_ne!(table[byte as usize], UNRANKED, "byte {} is named", byte);
+    } else {
+      assert_eq!(
+        table[byte as usize], UNRANKED,
+        "byte {} is not named by the order",
+        byte
+      );
+    }
+  }
+
+  // The controls and `DEL` are what that leaves, and they are the inputs the
+  // comparator's non-ASCII cases lean on being unranked.
+  for byte in (0u8..0x20).chain(std::iter::once(0x7f)) {
+    assert_eq!(table[byte as usize], UNRANKED);
+  }
+}
+
+/// The order names each character once. A duplicate would give one character two
+/// ranks, silently dropping the earlier -- and would make the table disagree with
+/// the sequence its own doc says it inverts.
+#[test]
+fn the_order_names_each_character_once() {
+  let mut seen = std::collections::HashSet::new();
+
+  for &character in ASCII_PRIMARY_ORDER {
+    assert!(
+      seen.insert(character),
+      "`{}` appears twice in the order",
+      character as char
+    );
+    assert!(
+      character.is_ascii() && !character.is_ascii_uppercase(),
+      "the order names printable non-uppercase ASCII only, not `{}`",
+      character as char
+    );
+  }
+
+  // 95 printable ASCII characters, less the 26 uppercase letters folded onto
+  // their lowercase, is 69.
+  assert_eq!(seen.len(), 69);
+  assert_eq!(ASCII_PRIMARY_ORDER.len(), 69);
 }

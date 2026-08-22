@@ -2812,3 +2812,47 @@ stylex_test_panic!(
     export const styles = stylex.create({ a: { content: `x${[...Object.keys(stylex)]}y` } });
   "#
 );
+
+// `null` and `undefined` have no `ToObject`, so `Object.keys` of either throws
+// rather than answering `[]`. It folded to the empty list before, quietly, in
+// every position a key list can be read from.
+//
+// The sentence is the `TypeError` the language raises, word for word, and is the
+// reason this is a case of its own rather than an arm of the unreadable-receiver
+// refusal: the reference implementation reaches it by calling `Object.keys` and
+// letting the runtime throw, so the two agree on the message only if this is the
+// runtime's. Told instead that their *array* holds something illegal -- which is
+// what the shared refusal said -- an author would go looking in the wrong place.
+stylex_test_panic!(
+  object_keys_of_null_is_refused,
+  "Cannot convert undefined or null to object",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: { fontFamily: `x${Object.keys(null)}y` } });
+  "#
+);
+
+stylex_test_panic!(
+  object_values_of_undefined_behind_a_length_read_is_refused,
+  "Cannot convert undefined or null to object",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: { width: Object.values(undefined).length } });
+  "#
+);
+
+// Reached through a binding rather than written at the call, so the refusal does
+// not depend on the receiver being a literal the evaluator can see.
+stylex_test_panic!(
+  object_entries_of_a_nullish_binding_is_refused,
+  "Cannot convert undefined or null to object",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+
+    const NOTHING = null;
+
+    export const styles = stylex.create({ a: { content: `x${Object.entries(NOTHING)}y` } });
+  "#
+);

@@ -74,6 +74,14 @@ pub static ILLEGAL_PROP_ARRAY_VALUE: &str =
 
 pub static ILLEGAL_NAMESPACE_VALUE: &str = "A StyleX namespace must be an object.";
 
+/// `ToObject` of `null` or `undefined`, which the language has no answer for.
+///
+/// Word for word the `TypeError` the language raises, because the reference
+/// implementation reaches this by calling `Object.keys` on the value and
+/// letting the runtime throw -- so the sentence an author sees is the same one
+/// on both sides only if this is the runtime's, not one of ours.
+pub static NULLISH_TO_OBJECT: &str = "Cannot convert undefined or null to object";
+
 pub static INVALID_PSEUDO: &str = "Invalid pseudo selector, not on the whitelist.";
 
 pub static INVALID_PSEUDO_OR_AT_RULE: &str = "Invalid pseudo or at-rule.";

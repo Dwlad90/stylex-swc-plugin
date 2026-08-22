@@ -91,12 +91,15 @@ pub(super) enum ObjectMethodReceiver {
   /// keys *and* no object to ask -- `Object.keys(null)` throws rather than
   /// answering `[]` -- so they are `Unreadable` below, not this.
   NoOwnKeys,
-  /// The receiver cannot be read at all, so the caller refuses rather than
-  /// answering a list. Two reasons reach it, and they refuse alike: an element
-  /// with no expression form, where answering would write a shorter list into
-  /// the stylesheet than the source describes, and a nullish receiver, where
-  /// `ToObject` throws and there is no list to write at all.
+  /// An element has no expression form, so the receiver cannot be read at all
+  /// and the caller refuses rather than answering a short list.
   Unreadable,
+  /// `null` or `undefined`, which has no `ToObject` for the question to be
+  /// asked of. Apart from `Unreadable` only for the sentence it refuses with:
+  /// the language raises a `TypeError` naming the receiver, and an author told
+  /// their *array* holds something it cannot would go looking in the wrong
+  /// place.
+  Nullish,
 }
 
 /// Reads the receiver of `Object.keys`, `Object.values` or `Object.entries`,
@@ -119,7 +122,7 @@ pub(super) fn normalize_object_method_receiver(
   // as "no own keys" and folded to `[]`. That is CSS the source does not
   // describe, written where the reference implementation stops the build.
   if cached_arg.as_ref().is_some_and(evaluate_result_is_nullish) {
-    return ObjectMethodReceiver::Unreadable;
+    return ObjectMethodReceiver::Nullish;
   }
 
   // A fold of a function map is read through the same object form the spread

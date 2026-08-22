@@ -1701,8 +1701,8 @@
       "label": "`Object.keys` of `null`, in a template and behind a length read",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  interpolated: { fontFamily: `x${Object.keys(null)}y` },\n  counted: { width: Object.keys(null).length },\n});\n",
       "origin": "issue #1266, ticket 40, found while measuring the three methods",
-      "expected": "acceptance-divergent",
-      "note": "`null` and `undefined` have no `ToObject`, so the language throws where every other non-object receiver answers `[]`. The receiver classification used to fold them to the empty list and now refuses them, which is what the evaluation snapshots show -- the call is left standing rather than folded. Still acceptance divergent, because the refusal does not survive the readers downstream of it: a template interpolation of a value with no string form contributes nothing, so the first row emits `xy`, and a length read off an unfoldable answers `0`, so the second emits `width:0`. Both are CSS the source does not describe, and neither is this classification's to fix. Filed as its own ticket; recorded here so the day the refusal propagates reports as a changed verdict."
+      "expected": "both-reject",
+      "note": "`null` and `undefined` have no `ToObject`, so the language throws where every other non-object receiver answers `[]`. This folded to the empty list before -- CSS the source does not describe, written quietly in both rows -- and refuses now, with the `TypeError` the language raises rather than a sentence about arrays. Both rows refuse on both sides with the same sentence, which is the whole of what a refused build hands an author."
     },
     {
       "id": "modules-1266-object-keys-of-an-array-with-a-hole",

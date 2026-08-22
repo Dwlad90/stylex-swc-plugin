@@ -471,6 +471,9 @@ pub(in super::super) fn evaluate(
                       ObjectMethodReceiver::Unreadable => {
                         deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE)
                       },
+                      ObjectMethodReceiver::Nullish => {
+                        deopt_unsupported!(path, state, NULLISH_TO_OBJECT)
+                      },
                     };
 
                     if let Some(object) = object {
@@ -520,6 +523,9 @@ pub(in super::super) fn evaluate(
                       ObjectMethodReceiver::Unreadable => {
                         deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE)
                       },
+                      ObjectMethodReceiver::Nullish => {
+                        deopt_unsupported!(path, state, NULLISH_TO_OBJECT)
+                      },
                     };
 
                     if let Some(object) = object {
@@ -564,6 +570,9 @@ pub(in super::super) fn evaluate(
                       ObjectMethodReceiver::NoOwnKeys => None,
                       ObjectMethodReceiver::Unreadable => {
                         deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE)
+                      },
+                      ObjectMethodReceiver::Nullish => {
+                        deopt_unsupported!(path, state, NULLISH_TO_OBJECT)
                       },
                     };
 

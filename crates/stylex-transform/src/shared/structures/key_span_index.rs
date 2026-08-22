@@ -222,28 +222,72 @@ fn overlap(authored: &[Atom], compiled: &FxHashSet<Atom>) -> usize {
 pub(crate) struct NamespaceKeyQuery<'a> {
   pub(crate) namespace_key: &'a str,
   /// The namespace keys of the call's object argument, this one included.
-  pub(crate) sibling_keys: FxHashSet<Atom>,
+  pub(crate) sibling_keys: Rc<FxHashSet<Atom>>,
   /// The keys of this namespace's own value object.
   pub(crate) namespace_value_keys: FxHashSet<Atom>,
   /// Where the call's object argument starts, for the proximity tie-break.
   pub(crate) target_lo: Option<BytePos>,
 }
 
-impl<'a> NamespaceKeyQuery<'a> {
-  pub(crate) fn from_compiled_call(call_expr: &CallExpr, namespace_key: &'a str) -> Self {
+/// The half of a lookup that belongs to the *call* rather than to one of its
+/// namespaces.
+///
+/// Every namespace of one `stylex.create` shares its sibling keys and its
+/// proximity anchor, and the debug path asks for a span once per namespace — so
+/// building them per namespace made each call quadratic in its own namespace
+/// count, on top of the walk the index already replaced. Built once per call and
+/// borrowed by each lookup instead.
+pub(crate) struct CallKeys {
+  /// The namespace keys of the call's object argument.
+  pub(crate) sibling_keys: Rc<FxHashSet<Atom>>,
+  /// Where the call's object argument starts, for the proximity tie-break.
+  pub(crate) target_lo: Option<BytePos>,
+}
+
+impl CallKeys {
+  pub(crate) fn from_call(call_expr: &CallExpr) -> Self {
     let object_arg = first_object_arg(call_expr);
 
     Self {
-      namespace_key,
-      sibling_keys: object_arg
-        .map(|object| collect_object_lit_keys(object).collect())
-        .unwrap_or_default(),
-      namespace_value_keys: object_arg
-        .map(|object| namespace_value_keys(object, namespace_key))
-        .unwrap_or_default(),
+      sibling_keys: Rc::new(
+        object_arg
+          .map(|object| collect_object_lit_keys(object).collect())
+          .unwrap_or_default(),
+      ),
       target_lo: object_arg
         .and_then(object_lo)
         .or_else(|| (!call_expr.span.is_dummy()).then_some(call_expr.span.lo)),
+    }
+  }
+
+  /// The sibling keys in a stable order, for a cache key that must not depend on
+  /// a hash set's iteration order.
+  ///
+  /// Sorted once per call, beside the set it sorts, because the digest it feeds
+  /// is the same digest for every namespace of that call.
+  pub(crate) fn sorted_sibling_keys(&self) -> Vec<&Atom> {
+    let mut sorted: Vec<&Atom> = self.sibling_keys.iter().collect();
+    sorted.sort();
+    sorted
+  }
+}
+
+impl<'a> NamespaceKeyQuery<'a> {
+  /// A lookup for one namespace of a call whose shared half is already built.
+  pub(crate) fn for_namespace(
+    call_keys: &'a CallKeys,
+    call_expr: &CallExpr,
+    namespace_key: &'a str,
+  ) -> Self {
+    Self {
+      namespace_key,
+      sibling_keys: Rc::clone(&call_keys.sibling_keys),
+      // The one genuinely per-namespace signal: the keys of *this* namespace's
+      // own value object.
+      namespace_value_keys: first_object_arg(call_expr)
+        .map(|object| namespace_value_keys(object, namespace_key))
+        .unwrap_or_default(),
+      target_lo: call_keys.target_lo,
     }
   }
 }

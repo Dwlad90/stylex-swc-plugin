@@ -54,6 +54,10 @@ mod key_span_index {
 
   /// A lookup for `key`, spelled out rather than read off a compiled call, so a
   /// test says which signals it is giving the index.
+  ///
+  /// The sibling keys are shared rather than owned by the query -- they belong to
+  /// the *call*, and production builds them once per call and hands each
+  /// namespace a handle. A case builds its own, since it is testing one lookup.
   fn query<'a>(
     key: &'a str,
     siblings: &[&str],
@@ -62,7 +66,7 @@ mod key_span_index {
   ) -> NamespaceKeyQuery<'a> {
     NamespaceKeyQuery {
       namespace_key: key,
-      sibling_keys: keys(siblings),
+      sibling_keys: std::rc::Rc::new(keys(siblings)),
       namespace_value_keys: keys(value_keys),
       target_lo,
     }

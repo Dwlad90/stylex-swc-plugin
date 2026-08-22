@@ -28,7 +28,10 @@ use swc_core::{
 };
 
 use crate::shared::{
-  structures::{key_span_index::NamespaceKeyQuery, state_manager::StateManager},
+  structures::{
+    key_span_index::{CallKeys, NamespaceKeyQuery},
+    state_manager::StateManager,
+  },
   utils::ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
 };
 use stylex_regex::regex::URL_REGEX;
@@ -296,24 +299,37 @@ fn compute_cache_key(expr: &Expr) -> u128 {
 ///
 /// Returns a dummy span when the key cannot be located.
 pub(crate) fn get_key_span_from_source_code(
+  wrapped_call: &Expr,
   call_expr: &CallExpr,
+  call_keys: &CallKeys,
+  siblings_digest: u128,
   namespace_key: &str,
   state: &mut StateManager,
 ) -> Result<(CodeFrame, Span), Error> {
   // Same panic boundary as `get_span_from_source_code`: locating a span is
   // best-effort and must never abort the compilation.
   locate_span_with_panic_boundary(|| {
-    get_key_span_from_source_code_impl(call_expr, namespace_key, state)
+    get_key_span_from_source_code_impl(
+      wrapped_call,
+      call_expr,
+      call_keys,
+      siblings_digest,
+      namespace_key,
+      state,
+    )
   })
 }
 
 fn get_key_span_from_source_code_impl(
+  wrapped_call: &Expr,
   call_expr: &CallExpr,
+  call_keys: &CallKeys,
+  siblings_digest: u128,
   namespace_key: &str,
   state: &mut StateManager,
 ) -> Result<(CodeFrame, Span), Error> {
-  let query = NamespaceKeyQuery::from_compiled_call(call_expr, namespace_key);
-  let cache_key = compute_key_span_cache_key(call_expr, &query);
+  let query = NamespaceKeyQuery::for_namespace(call_keys, call_expr, namespace_key);
+  let cache_key = compute_key_span_cache_key(siblings_digest, &query);
   let file_name = FileName::Custom(state.get_filename().to_owned());
 
   if let Some(cached_span) = state.cached_span(cache_key) {
@@ -322,15 +338,10 @@ fn get_key_span_from_source_code_impl(
   }
 
   let code_frame = CodeFrame::new();
-  let wrapped_expression = Expr::Call(call_expr.clone());
 
-  memoize_module(
-    &wrapped_expression,
-    &wrapped_expression,
-    state,
-    &file_name,
-    &code_frame,
-  )?;
+  // The caller's already-wrapped call, not a second deep clone of it: this ran
+  // once per namespace and the wrapper is the same expression for all of them.
+  memoize_module(wrapped_call, wrapped_call, state, &file_name, &code_frame)?;
 
   // One index over the whole module, not one walk per namespace key: the debug
   // path asks this question once per style, and the walk it replaces made a
@@ -351,16 +362,13 @@ fn get_key_span_from_source_code_impl(
 /// Hashed as one tuple rather than field by field, so the wide hasher is built
 /// once and the pieces cannot drift out of the key by being added to the
 /// function and forgotten in the digest.
-fn compute_key_span_cache_key(call_expr: &CallExpr, query: &NamespaceKeyQuery) -> u128 {
-  // Sorted, because a `FxHashSet`'s iteration order is not part of the identity
-  // being keyed -- two calls with the same keys in a different order are the
-  // same lookup.
-  let mut sorted_keys: Vec<&Atom> = query.sibling_keys.iter().collect();
-  sorted_keys.sort();
-
-  let mut sorted_value_keys: Vec<&Atom> = query.namespace_value_keys.iter().collect();
-  sorted_value_keys.sort();
-
+/// The half of a key-span cache key that belongs to the *call*.
+///
+/// Built once per `stylex.create` and mixed into each namespace's key, because
+/// the callee, the spans and the sorted sibling keys are the same for every
+/// namespace of one call -- and sorting the siblings per namespace is what made
+/// the debug path quadratic in a call's own namespace count.
+pub(crate) fn compute_call_siblings_digest(call_expr: &CallExpr, call_keys: &CallKeys) -> u128 {
   let object_span = call_expr
     .args
     .first()
@@ -370,14 +378,30 @@ fn compute_key_span_cache_key(call_expr: &CallExpr, query: &NamespaceKeyQuery) -
     });
 
   stable_hash_wide(&(
-    "stylex-key-span:v3",
+    "stylex-call-siblings:v1",
     &call_expr.callee,
     call_expr.span.lo.0,
     call_expr.span.hi.0,
     object_span,
+    // Sorted, because a `FxHashSet`'s iteration order is not part of the
+    // identity being keyed -- two calls with the same keys in a different order
+    // are the same call.
+    call_keys.sorted_sibling_keys(),
+  ))
+}
+
+/// The per-namespace half, mixed with the digest above.
+///
+fn compute_key_span_cache_key(siblings_digest: u128, query: &NamespaceKeyQuery) -> u128 {
+  let mut sorted_value_keys: Vec<&Atom> = query.namespace_value_keys.iter().collect();
+  sorted_value_keys.sort();
+
+  stable_hash_wide(&(
+    "stylex-key-span:v4",
+    siblings_digest,
     query.namespace_key,
-    sorted_keys,
     sorted_value_keys,
+    query.target_lo.map(|lo| lo.0),
   ))
 }
 

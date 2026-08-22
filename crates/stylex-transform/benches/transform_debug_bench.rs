@@ -98,6 +98,18 @@ const COMPILED_KEY: &str = "$$css";
 /// time to say what 100 already says.
 const CREATE_COUNTS: [usize; 3] = [25, 50, 100];
 
+/// The second axis: namespaces inside **one** `stylex.create` call.
+///
+/// `CREATE_COUNTS` varies how many calls a file holds, and each call in the
+/// committed fixture carries a handful of namespaces -- so it measures the
+/// per-file curve and says nothing about the per-call one. The debug path builds
+/// a lookup per namespace and each lookup needs the *call's* sibling keys, so
+/// anything rebuilt per namespace is quadratic in this number and invisible to
+/// the other axis. 128 is far past any authored call and is the point of the
+/// series: the shape between 8 and 128 is what says the per-call work is
+/// hoisted.
+const NAMESPACE_COUNTS: [usize; 3] = [8, 32, 128];
+
 /// The marker every element of the fixture's array begins with. Matched as a
 /// substring rather than as a whole line so reindenting the fixture cannot
 /// silently change what gets cut, and every cut is checked afterwards by
@@ -248,6 +260,64 @@ fn materialize_slice(source: &str, creates: usize) -> Slice {
 
   Slice {
     creates,
+    path,
+    program,
+  }
+}
+
+/// One `stylex.create` call carrying `count` distinct namespaces.
+///
+/// Generated rather than cut from the fixture, which no authored file supplies:
+/// the committed one is a long list of small calls, which is the other axis.
+/// Every key and every value is distinct, because a repeated key makes its
+/// lookup *ambiguous* and an ambiguous lookup returns early -- which would time
+/// the refusal instead of the resolution, the same flat-and-meaningless curve
+/// `assert_annotates_every_namespace` exists to rule out.
+fn generated_namespaces_source(count: usize) -> String {
+  let mut source = String::from("import * as stylex from '@stylexjs/stylex';\n\n");
+
+  source.push_str("export const styles = stylex.create({\n");
+
+  for index in 0..count {
+    // Distinct values as well as distinct keys, and more than one property per
+    // namespace, so a candidate is ranked on its value keys the way an authored
+    // namespace is rather than on its key alone.
+    source.push_str(&format!(
+      "  ns{index}: {{\n    color: 'rgb({index}, 0, 0)',\n    paddingTop: {index}, \n           marginBottom: {index},\n  }},\n"
+    ));
+  }
+
+  source.push_str("});\n");
+
+  source
+}
+
+/// The same write-then-parse as [`materialize_slice`], for the generated source.
+fn materialize_namespaces(count: usize) -> Slice {
+  let source = generated_namespaces_source(count);
+
+  let dir = slice_dir();
+
+  if let Err(error) = fs::create_dir_all(&dir) {
+    panic!("Failed to create {}: {}", dir.display(), error);
+  }
+
+  // Distinct from the `lotsOfStyles*` names for the reason those are distinct
+  // from each other: the code-frame source map is process-global and keyed by
+  // file name.
+  let path = dir.join(format!("oneCreate{count}Namespaces.js"));
+
+  if let Err(error) = fs::write(&path, &source) {
+    panic!("Failed to write {}: {}", path.display(), error);
+  }
+
+  let program = parse(&FileName::Real(path.clone()), &source);
+
+  Slice {
+    // One call, `count` namespaces. `creates` is what
+    // `assert_annotates_every_namespace` compares the annotation count against,
+    // and the annotation is per namespace, so this is the number it needs.
+    creates: count,
     path,
     program,
   }
@@ -419,5 +489,64 @@ fn debug_path_benchmarks(c: &mut Criterion) {
   });
 }
 
-criterion_group!(transform_debug_benches, debug_path_benchmarks);
+/// The per-call curve, which the file-size axis cannot see.
+///
+/// Read the `dev` leg across 8, 32 and 128: per-namespace cost that stays flat
+/// means the call's shared half -- its sibling keys, their sorted digest, and the
+/// wrapper the fallback needs -- is built once per call. A cost that grows with
+/// the count means something in there went back to being rebuilt per namespace.
+/// The `prod` leg is the control, since none of that work happens with the debug
+/// path off.
+///
+/// What it measured when it was written, as debug overhead per namespace
+/// (`dev` minus `prod`, divided by the count):
+///
+/// ```text
+///   namespaces   per-call work rebuilt   hoisted
+///            8              16.1 µs      15.1 µs
+///           32              15.3 µs       7.1 µs
+///          128              43.9 µs       6.3 µs
+/// ```
+///
+/// The left column is the curve this axis exists to catch: flat to 32 and then
+/// climbing, because the sibling set was collected, sorted and hashed once per
+/// namespace and the call's wrapper deep-cloned with it. The right column falls
+/// instead, which is the fixed per-call cost being amortized over more
+/// namespaces. At 128 the whole debug overhead is 5.6 ms against 0.8 ms.
+fn namespace_count_benchmarks(c: &mut Criterion) {
+  let globals = Globals::default();
+
+  GLOBALS.set(&globals, || {
+    let slices: Vec<Slice> = NAMESPACE_COUNTS
+      .into_iter()
+      .map(materialize_namespaces)
+      .collect();
+
+    for slice in &slices {
+      assert_annotates_every_namespace(slice);
+    }
+
+    let mut group = c.benchmark_group("TransformDebugNamespacesPerCall");
+
+    for slice in &slices {
+      for (label, dev) in [("dev", true), ("prod", false)] {
+        group.bench_function(format!("{label}/{}", slice.creates), |b| {
+          b.iter_batched(
+            || slice.program.clone(),
+            |program| black_box(transform(black_box(&slice.path), program, black_box(dev))),
+            BatchSize::SmallInput,
+          )
+        });
+      }
+    }
+
+    group.finish();
+  });
+}
+
+criterion_group!(
+  transform_debug_benches,
+  debug_path_benchmarks,
+  namespace_count_benchmarks
+);
 criterion_main!(transform_debug_benches);

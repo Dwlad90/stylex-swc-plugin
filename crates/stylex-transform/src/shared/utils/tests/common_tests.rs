@@ -1913,7 +1913,7 @@ mod get_var_decl_by_ident_function_map_tests {
     let mut fns = FunctionMap::default();
     fns.identifiers.insert(
       "envObj".into(),
-      Box::new(FunctionConfigType::EnvObject(IndexMap::new())),
+      Box::new(FunctionConfigType::EnvObject(IndexMap::new().into())),
     );
     let ident = create_ident("envObj");
     let result = get_var_decl_by_ident(&ident, &mut state, &fns);

@@ -35,7 +35,7 @@ pub enum EvaluateResultValue {
   FunctionConfigMap(FunctionConfigMap),
   ThemeRef(ThemeRef),
   /// An env object from the `env` config option.
-  EnvObject(IndexMap<String, EnvEntry>),
+  EnvObject(Rc<IndexMap<String, EnvEntry>>),
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]

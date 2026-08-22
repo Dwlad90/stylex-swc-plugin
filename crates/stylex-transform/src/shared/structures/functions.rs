@@ -123,7 +123,12 @@ pub enum FunctionConfigType {
   IndexMap(FlatCompiledStyles),
   /// An env object from the `env` config option. Contains both values and
   /// functions.
-  EnvObject(IndexMap<String, stylex_structures::stylex_env::EnvEntry>),
+  /// The `env` option's object, shared rather than copied.
+  ///
+  /// Registered once per `stylex` import name per `create` call, so a copy here
+  /// is a copy per style object. It is read-only after options construction,
+  /// which is what makes the sharing sound.
+  EnvObject(Rc<IndexMap<String, stylex_structures::stylex_env::EnvEntry>>),
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]

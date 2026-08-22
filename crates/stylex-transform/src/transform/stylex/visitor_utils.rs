@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use rustc_hash::FxHashMap;
 use swc_core::{
   atoms::Atom,
@@ -17,7 +19,7 @@ use crate::shared::{
   utils::validators::is_target_call,
 };
 use stylex_constants::constants::api_names::{
-  STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_TYPES, STYLEX_UNSTABLE_CONDITIONAL,
+  STYLEX_ENV, STYLEX_KEYFRAMES, STYLEX_POSITION_TRY, STYLEX_TYPES, STYLEX_UNSTABLE_CONDITIONAL,
 };
 use stylex_structures::named_import_source::ImportSources;
 
@@ -52,6 +54,45 @@ pub(crate) fn insert_stylex_identifier_entry(
 
   if let Some(identifier_map) = identifier.as_map_mut() {
     identifier_map.insert(key, entry);
+  }
+}
+
+/// Registers `env` as an entry of the namespace's own fold, which is the map
+/// that answers what properties the namespace *has* — its own keys, a spread
+/// of it, and the member read that walks it.
+///
+/// Beside [`insert_stylex_identifier_entry`] rather than on `StateManager`,
+/// because it reads one field of the state and writes the caller's map: living on
+/// the state meant `shared::structures` importing out of `transform::stylex` to
+/// reach the helper, which is the dependency the other way round from every
+/// other pair in this crate.
+///
+/// Apart from `StateManager::apply_stylex_env`, and called only where a `create`
+/// call sets its evaluation up, because this is the one registration that
+/// makes a *bare* namespace reference resolve. The other calls that build a
+/// function map — `keyframes`, `positionTry`, `viewTransitionClass`,
+/// `defineConsts` — deliberately leave the namespace name unregistered so a
+/// bare `stylex` written where a static value belongs refuses rather than
+/// materializing into an object and dropping the declaration silently. Adding
+/// the entry there too flipped four of those refusals into silent drops.
+///
+/// Registered whether or not the option is set. `env` is a key of the StyleX
+/// namespace however the compiler is configured, so an unset option is
+/// reported by the member step as the option being unset; an absent entry
+/// would be reported as a property nobody can find and send an author looking
+/// in their source. It is also what keeps the namespace's key list the same
+/// list on every configuration.
+pub(crate) fn register_env_in_namespace_fold(
+  state: &StateManager,
+  identifiers: &mut FunctionMapIdentifiers,
+) {
+  for name in state.stylex_imports() {
+    insert_stylex_identifier_entry(
+      identifiers,
+      name,
+      STYLEX_ENV.into(),
+      FunctionConfigType::EnvObject(Rc::clone(&state.env_shared)),
+    );
   }
 }
 

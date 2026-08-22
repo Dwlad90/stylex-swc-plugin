@@ -1,5 +1,7 @@
 use super::*;
-use crate::transform::stylex::visitor_utils::insert_stylex_identifier_entry;
+use crate::transform::stylex::visitor_utils::{
+  insert_stylex_identifier_entry, register_env_in_namespace_fold,
+};
 
 pub(crate) fn build_runtime_function_map<C>(transform: &mut StyleXTransform<C>) -> Box<FunctionMap>
 where
@@ -126,9 +128,7 @@ where
     .state
     .apply_stylex_env(&mut identifiers, &mut member_expressions);
 
-  transform
-    .state
-    .register_env_in_namespace_fold(&mut identifiers);
+  register_env_in_namespace_fold(&transform.state, &mut identifiers);
 
   Box::new(FunctionMap {
     identifiers,

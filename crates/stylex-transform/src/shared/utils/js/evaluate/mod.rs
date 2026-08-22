@@ -106,11 +106,11 @@ use super::check_declaration::{DeclarationType, check_ident_declaration};
 #[inline]
 fn resolve_env_entry_to_result(
   entry: &EnvEntry,
-  parent_map: &IndexMap<String, EnvEntry>,
+  parent_map: &Rc<IndexMap<String, EnvEntry>>,
 ) -> Option<EvaluateResultValue> {
   match entry {
     EnvEntry::Expr(expr) => Some(EvaluateResultValue::Expr(expr.clone())),
-    EnvEntry::Function(_) => Some(EvaluateResultValue::EnvObject(parent_map.clone())),
+    EnvEntry::Function(_) => Some(EvaluateResultValue::EnvObject(Rc::clone(parent_map))),
   }
 }
 

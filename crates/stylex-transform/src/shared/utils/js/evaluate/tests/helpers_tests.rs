@@ -58,7 +58,7 @@ fn the_nullish_bridge_answers_no_for_the_evaluator_s_own_variants() {
     IndexMap::default()
   )));
   assert!(!evaluate_result_is_nullish(
-    &EvaluateResultValue::EnvObject(IndexMap::default())
+    &EvaluateResultValue::EnvObject(IndexMap::default().into())
   ));
   assert!(!evaluate_result_is_nullish(
     &EvaluateResultValue::FunctionConfigMap(FunctionConfigMap::default())

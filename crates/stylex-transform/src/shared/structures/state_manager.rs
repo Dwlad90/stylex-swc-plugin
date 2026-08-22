@@ -1,4 +1,3 @@
-use crate::transform::stylex::visitor_utils::insert_stylex_identifier_entry;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::OnceCell;
 use std::{option::Option, path::Path, rc::Rc, sync::Arc};
@@ -490,6 +489,14 @@ pub struct StateManager {
   /// new top-level fold begins, so the conservatism lasts exactly as long as the
   /// unwind that earned it.
   pub(crate) depth_refused: bool,
+  /// The `env` option's object, shared with every function map that registers
+  /// it.
+  ///
+  /// Built once per file. `env` is registered per `stylex` import name per
+  /// `create` call, and in three places, so handing out a copy made the cost of
+  /// a configured `env` scale with the number of style objects in the file. It
+  /// is read-only after options construction.
+  pub(crate) env_shared: Rc<IndexMap<String, stylex_structures::stylex_env::EnvEntry>>,
   pub(crate) cache: CacheState,
   /// Maps a JSX spread expression to the JSX attributes that replace it.
   ///
@@ -573,6 +580,7 @@ impl Default for StateManager {
 impl StateManager {
   pub fn new(stylex_options: StyleXOptions) -> Self {
     let options = StyleXStateOptions::from(stylex_options);
+    let env_shared = options.env.clone();
 
     Self {
       plugin_pass: PluginPass::default(),
@@ -595,6 +603,7 @@ impl StateManager {
       seen: FxHashMap::default(),
       evaluation_depth: 0,
       depth_refused: false,
+      env_shared: Rc::new(env_shared),
       cache: CacheState::default(),
       module_source: ModuleSourceState::default(),
 
@@ -903,7 +912,7 @@ impl StateManager {
       return;
     }
 
-    let env = self.options.env.clone();
+    let env = Rc::clone(&self.env_shared);
 
     // For namespace imports (e.g., `import stylex from '@stylexjs/stylex'`),
     // add `env` to member_expressions so `stylex.env.x` resolves.
@@ -924,39 +933,6 @@ impl StateManager {
           Box::new(super::functions::FunctionConfigType::EnvObject(env.clone())),
         );
       }
-    }
-  }
-
-  /// Registers `env` as an entry of the namespace's own fold, which is the map
-  /// that answers what properties the namespace *has* — its own keys, a spread
-  /// of it, and the member read that walks it.
-  ///
-  /// Apart from [`Self::apply_stylex_env`], and called only where a `create`
-  /// call sets its evaluation up, because this is the one registration that
-  /// makes a *bare* namespace reference resolve. The other calls that build a
-  /// function map — `keyframes`, `positionTry`, `viewTransitionClass`,
-  /// `defineConsts` — deliberately leave the namespace name unregistered so a
-  /// bare `stylex` written where a static value belongs refuses rather than
-  /// materializing into an object and dropping the declaration silently. Adding
-  /// the entry there too flipped four of those refusals into silent drops.
-  ///
-  /// Registered whether or not the option is set. `env` is a key of the StyleX
-  /// namespace however the compiler is configured, so an unset option is
-  /// reported by the member step as the option being unset; an absent entry
-  /// would be reported as a property nobody can find and send an author looking
-  /// in their source. It is also what keeps the namespace's key list the same
-  /// list on every configuration.
-  pub(crate) fn register_env_in_namespace_fold(
-    &self,
-    identifiers: &mut super::types::FunctionMapIdentifiers,
-  ) {
-    for name in self.stylex_imports() {
-      insert_stylex_identifier_entry(
-        identifiers,
-        name,
-        STYLEX_ENV.into(),
-        super::functions::FunctionConfigType::EnvObject(self.options.env.clone()),
-      );
     }
   }
 

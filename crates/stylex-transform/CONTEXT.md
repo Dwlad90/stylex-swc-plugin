@@ -190,7 +190,9 @@ and the sequence is the only thing left for them to disagree by. One step is
 deliberately absent and says so at its position rather than being missing. The
 questions the rest ask are an [import specifier kind](#import-specifier-kind), a
 [declared binding](#declared-binding), a [binding write](#binding-write) and an
-[early reference](#early-reference).
+[early reference](#early-reference). The order, and why it is upstream's rather
+than this compiler's, is
+[ADR 0003](./docs/adr/0003-one-ordered-chain-resolves-a-reference.md).
 _Avoid_: identifier lookup, binding resolver, evaluate fallback
 
 **Folded function map**:

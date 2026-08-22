@@ -65,5 +65,5 @@ If your output contradicts an existing ADR, surface it explicitly rather than
 silently overriding, and name the file you mean -- a root ADR and a
 context-scoped one can disagree, and either may be the newer decision:
 
-> _Contradicts `crates/stylex-transform/docs/adr/0007-...` -- but worth
+> _Contradicts `crates/stylex-rs-compiler/docs/adr/0001-...` -- but worth
 > reopening because..._

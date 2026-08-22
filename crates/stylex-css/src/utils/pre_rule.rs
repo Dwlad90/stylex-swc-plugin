@@ -215,12 +215,19 @@ pub fn sort_at_rules(at_rules: &[String]) -> Vec<String> {
 
 /// Sorts strings by their bytes, with `default` always first.
 ///
-/// The `default` arm has no counterpart upstream, whose `sortAtRules` passes no
-/// comparator at all. It is unreachable from [`sort_at_rules`]: the key path is
-/// filtered to `@`-prefixed keys before it arrives, and `default` is neither
-/// at-rule nor const rule by then. Kept because the cost of the branch is a
-/// pointer comparison and the cost of removing it is arguing about a key path
-/// filter from the other end of the crate.
+/// The `default` arm does have a counterpart upstream — it is just on the other
+/// comparator. `stringComparator` (`shared/utils/rule-utils.js:51-56`, 0.19.0)
+/// pulls `default` to the front, and `sortPseudos` (`:38`) is what passes it;
+/// `sortAtRules` (`:46`) passes no comparator at all. So the placement here is
+/// upstream's mirrored onto the wrong function.
+///
+/// Inert on both sides, which is why it is left where it is rather than moved:
+/// the arm is unreachable from [`sort_at_rules`], whose key path is filtered to
+/// `@`-prefixed keys before it arrives, and equally unreachable from
+/// [`sort_pseudos`], whose keys are filtered to `:` and `[`. `default` is
+/// neither by the time either is called. Moving it would be a change to
+/// unreachable code, and asserting the move changed nothing is the same work as
+/// reading this comment.
 fn at_rule_comparator(a: &str, b: &str) -> Ordering {
   if a == "default" {
     return Ordering::Less;

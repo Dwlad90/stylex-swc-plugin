@@ -356,6 +356,12 @@ pub fn transform(
             // inferring that an unreferenced import specifier must have been a
             // type. Every explicitly type-only form is still stripped, so this
             // is safe for the JavaScript input it is turned on for.
+            //
+            // Leaving it off for a TypeScript file is a deliberate divergence
+            // from the reference implementation rather than an omission, and it
+            // is the reason a `.ts` module can compile a shape a `.js` module
+            // refuses. The measurement and the decision are
+            // `docs/adr/0001-a-typescript-module-reads-an-unreferenced-import-as-a-type.md`.
             TypescriptConfig {
               verbatim_module_syntax: is_javascript_input(&file_path),
               ..Default::default()

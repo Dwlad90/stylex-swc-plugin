@@ -6,6 +6,10 @@
 //! `evaluate-path.js` 0.19.0 line range it mirrors, so the two can be read side
 //! by side; `docs/adr/0003-one-ordered-chain-resolves-a-reference.md` records
 //! why the order is the reference implementation's rather than this compiler's.
+//!
+//! JS-parity: `utils/evaluate-path.js:595-690` (0.19.0) — the whole file mirrors
+//! that range, so the marker sits here once rather than on each of the eight
+//! steps, which carry their own line ranges in the banner that opens them.
 
 use super::*;
 use swc_core::common::{EqIgnoreSpan, Span};
@@ -24,9 +28,15 @@ use swc_core::common::{EqIgnoreSpan, Span};
 /// synthesized node carries no authored position, so it sits at byte zero,
 /// before every authored declarator's end, and would be refused for having no
 /// position rather than for being early. `expand_shorthand_prop` is the producer
-/// that reaches here — the injected function mappers `get_var_decl_by_ident`
-/// also folds in do not, because `nodes::identifier::evaluate` answers for every
-/// name in `functions.identifiers` before this chain is entered.
+/// that reaches here.
+///
+/// The injected function mappers `get_var_decl_by_ident` also folds are not
+/// expected to, because `nodes::identifier::evaluate` answers for every name in
+/// `functions.identifiers` before this chain is entered — and that expectation
+/// is not what keeps them safe. `create_var_declarator` gives every mapper's
+/// declarator `DUMMY_SP`, so one arriving here is not compared at all; the guard
+/// above is the reason, not the ordering. `used_before_declaration.rs`'s
+/// `an_authored_reference_against_a_synthesized_declarator_folds` is that case.
 ///
 /// Asked of a hoisted `function` or `class` declaration as well as of a
 /// `VarDeclarator`, because upstream asks it of whatever the binding is: the

@@ -135,8 +135,11 @@ The comparator `sort_at_rules` uses, and deliberately not the one a pseudo run
 uses: plain byte order with `default` pulled to the front. The reference
 implementation sorts pseudo keys with `localeCompare` and at-rules with a bare
 `.sort()`, so the two comparators disagree on purpose and a locale-aware at-rule
-sort would be a new divergence rather than a fix.
-_Avoid_: string comparator, the comparator, sort_at_rules' comparator
+sort would be a new divergence rather than a fix. Upstream's counterpart to the
+`default`-first arm is `stringComparator`, which `sortPseudos` passes and
+`sortAtRules` does not — so that arm sits on the wrong comparator here, inertly,
+for the reasons its own doc comment gives.
+_Avoid_: the comparator, sort_at_rules' comparator
 
 **Conditional key**:
 A key that opens a nested block rather than declaring a property: a pseudo

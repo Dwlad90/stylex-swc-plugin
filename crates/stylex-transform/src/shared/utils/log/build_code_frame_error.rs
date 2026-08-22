@@ -513,6 +513,11 @@ fn memoize_module(
     state.set_seen_module_source_code(
       match program.as_module() {
         Some(module) => module,
+        // Unreachable: `parse_and_normalize_program` parses with
+        // `IsModule::Bool(true)`, so a successful parse is always a module.
+        // Kept as a panic rather than dropped because it guards an invariant of
+        // that call rather than an input, and the day the call learns a second
+        // mode this is where it should stop.
         None => stylex_panic!("Expected a module program for source code caching."),
       },
       Some(source_code),

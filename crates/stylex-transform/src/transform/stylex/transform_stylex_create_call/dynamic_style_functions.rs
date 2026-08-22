@@ -156,29 +156,10 @@ where
                               let expr = if expr.is_none() && !nullish_var_expressions.is_empty()
                               {
                                 injected_styles.get(cls.as_str()).and_then(|style| {
-                                  let rule = match style.as_ref() {
-                                    InjectableStyleKind::Regular(s) => {
-                                      let ltr = s.ltr.as_str();
-                                      let rtl = s.rtl.as_deref().unwrap_or_default();
-
-                                      if ltr.is_empty() {
-                                        rtl
-                                      } else {
-                                        ltr
-                                      }
-                                    },
-                                    InjectableStyleKind::Const(s) => {
-                                      let ltr = s.ltr.as_str();
-                                      let rtl = s.rtl.as_deref().unwrap_or_default();
-
-                                      if ltr.is_empty() {
-                                        rtl
-                                      } else {
-                                        ltr
-                                      }
-                                    },
-                                  };
-                                  extract_expr_from_rule(rule, &nullish_var_expressions)
+                                  extract_expr_from_rule(
+                                    style.rule_text(),
+                                    &nullish_var_expressions,
+                                  )
                                 })
                               } else {
                                 expr

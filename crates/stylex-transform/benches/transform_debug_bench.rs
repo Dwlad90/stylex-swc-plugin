@@ -39,6 +39,11 @@
 //! instead of the work, and reports a regression in the swallowed path as an
 //! improvement. That mistake inflated an earlier attribution of this very path
 //! by 3.6x. See `guidelines/PERFORMANCE.md`.
+//!
+//! That 3.6x was measured once, while finding the mistake, and is not
+//! reproducible from this repository -- reproducing it means deleting the
+//! `GLOBALS` scope below, which is the bug. It is recorded as what went wrong,
+//! not as a number to check against.
 
 use std::{
   fs,
@@ -81,8 +86,12 @@ const COMPILED_KEY: &str = "$$css";
 /// path here is the paired `dev` and `prod` legs at one size: putting the walk
 /// back takes dev/100 from 9.1 ms to 25.1 ms against an unchanged prod/100.
 /// Reading the *curve* takes files four to sixteen times this one, which the
-/// committed fixture deliberately does not hold; those measurements live in the
-/// tracker instead.
+/// committed fixture deliberately does not hold. Those measurements were taken
+/// against generated files that are not in this repository, and the tracker they
+/// were written up in is never committed -- so the 9.1/25.1 ms pair above is a
+/// development observation rather than a number a later reader can re-run. What
+/// *is* re-runnable is the paired dev and prod legs, which is why they are what
+/// guards the path.
 ///
 /// The series stops at 100 because that is the smallest slice that showed the
 /// effect it was cut to show, and 200 and 400 would only cost every run more

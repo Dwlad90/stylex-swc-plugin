@@ -82,11 +82,8 @@ use stylex_structures::{
   dynamic_style::DynamicStyle, order_pair::OrderPair, stylex_state_options::StyleXStateOptions,
   top_level_expression::TopLevelExpression, uid_generator::UidGenerator,
 };
+use stylex_types::structures::injectable_style::InjectableStyle;
 use stylex_types::traits::WhenMarkerValue;
-use stylex_types::{
-  enums::data_structures::injectable_style::InjectableStyleKind,
-  structures::injectable_style::InjectableStyle,
-};
 
 /// Resolves the value that occupies the second slot of a `when` call: the
 /// custom marker when one was passed, and the StyleX options otherwise.

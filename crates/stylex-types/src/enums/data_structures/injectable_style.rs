@@ -16,6 +16,27 @@ pub enum InjectableStyleBaseKind {
   Const(InjectableStyleConstBase),
 }
 
+impl InjectableStyleKind {
+  /// The rule text this style contributes, whichever direction carries it.
+  ///
+  /// Both kinds hold an `ltr` and an optional `rtl`, and a directional rule is
+  /// spelled with an empty `ltr` — so a reader wanting "the rule" has to pick,
+  /// and picking is the same two lines at every site. Answered here so the kinds
+  /// stay this module's business.
+  pub fn rule_text(&self) -> &str {
+    let (ltr, rtl) = match self {
+      Self::Regular(style) => (style.ltr.as_str(), style.rtl.as_deref()),
+      Self::Const(style) => (style.ltr.as_str(), style.rtl.as_deref()),
+    };
+
+    if ltr.is_empty() {
+      rtl.unwrap_or_default()
+    } else {
+      ltr
+    }
+  }
+}
+
 impl From<InjectableStyleKind> for InjectableStyleBaseKind {
   fn from(style: InjectableStyleKind) -> Self {
     match style {

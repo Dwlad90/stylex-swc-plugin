@@ -1001,3 +1001,77 @@ fn the_refusal_message_is_the_one_the_other_cases_match() {
     stylex_constants::constants::evaluation_errors::expression_too_deep(320).starts_with(TOO_DEEP)
   );
 }
+
+// ──────────────────────────────────────────────
+// The budget and the memo
+//
+// A depth refusal is the only refusal that depends on *where* a subtree sits
+// rather than on what it says. The memo is keyed by a structural hash that
+// carries no depth, so the two have to be kept apart: a subtree that refused
+// because it was reached too deep must not answer for the same subtree written
+// shallowly. The cases below are the ones that go wrong when they are not.
+// ──────────────────────────────────────────────
+
+/// The shared subtree. Ten levels folds well inside every ceiling here, and the
+/// innermost ten levels of a taller `arithmetic` tower are structurally this
+/// exact expression -- which is what puts both readings on one memo key.
+const SHARED_DEPTH: usize = 10;
+
+/// A dynamic style is where a refusal degrades instead of aborting: the value
+/// becomes a custom property and the build carries on. That is what makes a
+/// depth refusal *observable* beside a static namespace rather than ending the
+/// compile before the static one is reached.
+fn shared_subtree_in_both_orders(deep_first: bool) -> String {
+  let deep = format!(
+    "deep: (w) => ({{ zIndex: {} }}),",
+    nest("(", " + 1)", "MY_CONST", 40)
+  );
+  let shallow = format!("shallow: {{ zIndex: {} }},", arithmetic(SHARED_DEPTH));
+
+  let body = if deep_first {
+    format!("{}\n{}", deep, shallow)
+  } else {
+    format!("{}\n{}", shallow, deep)
+  };
+
+  fold(&create("const MY_CONST = 5;", &body))
+}
+
+// A namespace that folds on its own folds wherever it is written. Before the
+// memo learned to leave a depth refusal out, the ancestors of the refusal were
+// recorded as unresolved under a key carrying no depth, so they answered for the
+// shallow reading of the same subtree: writing the deep namespace first refused
+// `shallow` outright, and a style that compiles perfectly well alone failed the
+// build because of a sibling.
+#[test]
+fn a_depth_refusal_does_not_refuse_a_shallow_reading_of_the_same_subtree() {
+  for (deep_first, order) in [(true, "deep first"), (false, "shallow first")] {
+    let output = shared_subtree_in_both_orders(deep_first);
+
+    assert!(
+      output.contains(".x52sccv{z-index:15}"),
+      "{order}: the shallow namespace folds on its own, but did not: {output}"
+    );
+  }
+}
+
+// The other direction is not symmetric, and deliberately so. The ceiling counts
+// the levels the fold descends, and a memo hit descends none -- so writing the
+// shallow namespace first warms the inner subtree and lets the deep one fold to
+// `z-index:45`, where alone it refuses and becomes a custom property. Charging a
+// hit for the height it skips was measured and refused two of the member-chain
+// boundaries above, because the height a subtree records is the deepest the fold
+// went anywhere under it rather than along the path a later read takes. Left as
+// it is because it only ever folds *more*: upstream has no ceiling, so every
+// case this decides differently is one upstream folds as well.
+#[test]
+fn a_warm_inner_subtree_lets_a_deeper_expression_fold() {
+  assert!(
+    shared_subtree_in_both_orders(false).contains("z-index:45"),
+    "the deep namespace folds once its inner subtree is warm"
+  );
+  assert!(
+    shared_subtree_in_both_orders(true).contains(".xr3buco{z-index:var(--x-zIndex)}"),
+    "and refuses when it is the first thing folded"
+  );
+}

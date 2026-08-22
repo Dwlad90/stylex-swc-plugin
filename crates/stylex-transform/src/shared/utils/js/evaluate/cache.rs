@@ -2,7 +2,6 @@ use super::*;
 use stylex_constants::constants::evaluation_errors::expression_too_deep;
 
 /// Grow the stack when less than this is left.
-/// Grow the stack when less than this is left.
 ///
 /// One level of the fold is not one frame and the arms are not the same size:
 /// a nested `Math.max` call descends through argument collection and the callee
@@ -34,10 +33,30 @@ pub(crate) fn evaluate_cached(
   // Returning here leaves *this* node out of `seen`, which is deliberate: the
   // memo is keyed by a structural hash that says nothing about the depth the
   // fold reached the node at, so recording "no" against the subtree that earned
-  // it would answer for the same subtree written shallowly. The ancestors above
-  // it are still marked unresolved, exactly as they are for any other refusal --
-  // that is the in-progress marker cycles terminate on, and a depth refusal is
-  // not special enough to change it.
+  // it would answer for the same subtree written shallowly.
+  //
+  // The ancestors have to be left out for the same reason, which is what
+  // `depth_refused` is for. Leaving them in was a bug: the entry a memo write
+  // makes is post-order -- after `_evaluate` returns, not before it recurses --
+  // so it is not the in-progress marker a cycle terminates on and nothing needs
+  // it to be there. What it did instead was answer for a shallow reading of any
+  // subtree the refusal happened inside, so a dynamic style deep enough to
+  // refuse decided whether the *next* namespace folded, and property order
+  // decided the emitted CSS.
+  //
+  // What the ceiling counts, given that, is the levels the fold *descends*, not
+  // the levels an expression is written with: a hit answers without descending,
+  // so a subtree already folded elsewhere costs one level rather than its own
+  // height, and an expression can fold beside a sibling that warmed its inner
+  // subtree where it would refuse alone. Charging a hit for the height it skips
+  // was built and measured: the height a subtree records is the deepest the fold
+  // went *anywhere* under it, which for the object of a member chain is the
+  // whole object literal rather than the one member a read plucks out of it, so
+  // the charge refused two of the member-chain boundaries this suite pins. Left
+  // as it is because the asymmetry only ever folds *more* -- upstream has no
+  // ceiling at all, so every case it decides differently is a case upstream
+  // folds too, and no working input becomes a build error.
+  //
   // The ceiling is read off the per-file options rather than threaded down the
   // recursion: every arm already carries the state manager, and a ceiling passed
   // through the arms instead would be a parameter each of them ignores. Where the
@@ -46,7 +65,15 @@ pub(crate) fn evaluate_cached(
   // `stylex_structures::evaluation_depth`.
   let ceiling = traversal_state.options.max_evaluation_depth;
 
+  if traversal_state.evaluation_depth == 0 {
+    // A new top-level fold. Whatever the previous one refused, its unwind is
+    // over, so the frames of this one are free to record their own answers.
+    traversal_state.depth_refused = false;
+  }
+
   if traversal_state.evaluation_depth >= ceiling {
+    traversal_state.depth_refused = true;
+
     return deopt(path, state, &expression_too_deep(ceiling));
   }
 
@@ -110,22 +137,31 @@ fn evaluate_cached_within_budget(
     None => {
       let val = _evaluate(path, state, traversal_state, fns);
 
-      let seen_value = if state.confident {
-        SeenValue {
-          value: val.clone(),
-          resolved: true,
-        }
-      } else {
-        SeenValue {
-          value: None,
-          resolved: false,
-        }
-      };
-
-      traversal_state
-        .seen
-        .entry(cleaned_path_hash)
-        .or_insert_with(|| Rc::new(seen_value));
+      if state.confident {
+        traversal_state
+          .seen
+          .entry(cleaned_path_hash)
+          .or_insert_with(|| {
+            Rc::new(SeenValue {
+              value: val.clone(),
+              resolved: true,
+            })
+          });
+      } else if !traversal_state.depth_refused {
+        // Recorded so the same refusal is not re-walked, but only where the
+        // refusal was about the subtree itself. A depth refusal is about where
+        // the subtree sat, and this key cannot say where that was -- see the
+        // budget check in `evaluate_cached`.
+        traversal_state
+          .seen
+          .entry(cleaned_path_hash)
+          .or_insert_with(|| {
+            Rc::new(SeenValue {
+              value: None,
+              resolved: false,
+            })
+          });
+      }
 
       val
     },

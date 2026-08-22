@@ -477,6 +477,18 @@ pub struct StateManager {
   /// frames it is counting are still live, which is precisely the accounting
   /// the budget exists to keep honest.
   pub(crate) evaluation_depth: usize,
+  /// Whether the fold in progress refused because it ran out of budget.
+  ///
+  /// Beside `evaluation_depth` for the same reason, and for one more: it guards
+  /// `seen`, which lives here too. A depth refusal is the only refusal that
+  /// depends on *where* a subtree sits rather than on what it says, and `seen`
+  /// is keyed by a structural hash carrying no depth. So the frames unwinding
+  /// out of one must not record their refusal -- a subtree that refused because
+  /// it was reached too deep would otherwise answer for the same subtree written
+  /// shallowly, and property order would decide the emitted CSS. Cleared when a
+  /// new top-level fold begins, so the conservatism lasts exactly as long as the
+  /// unwind that earned it.
+  pub(crate) depth_refused: bool,
   pub(crate) cache: CacheState,
   /// Maps a JSX spread expression to the JSX attributes that replace it.
   ///
@@ -581,6 +593,7 @@ impl StateManager {
 
       seen: FxHashMap::default(),
       evaluation_depth: 0,
+      depth_refused: false,
       cache: CacheState::default(),
       module_source: ModuleSourceState::default(),
 

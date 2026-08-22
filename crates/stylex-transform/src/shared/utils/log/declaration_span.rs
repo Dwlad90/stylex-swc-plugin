@@ -121,6 +121,45 @@ impl Visit for DeclarationFinder<'_> {
     declaration.visit_children_with(self);
   }
 
+  /// A named function *expression*, which binds its own name inside its own
+  /// scope: `const run = function c() { return c; }`. Framed at the expression,
+  /// as upstream's `binding.path` is, so a refusal about that inner name lands on
+  /// the function rather than on the declarator that holds it.
+  fn visit_fn_expr(&mut self, expression: &FnExpr) {
+    if self.done() {
+      return;
+    }
+
+    if expression
+      .ident
+      .as_ref()
+      .is_some_and(|ident| self.names_it(ident))
+    {
+      self.record(expression.function.span);
+      return;
+    }
+
+    expression.visit_children_with(self);
+  }
+
+  /// A named class expression, for the same reason.
+  fn visit_class_expr(&mut self, expression: &ClassExpr) {
+    if self.done() {
+      return;
+    }
+
+    if expression
+      .ident
+      .as_ref()
+      .is_some_and(|ident| self.names_it(ident))
+    {
+      self.record(expression.class.span);
+      return;
+    }
+
+    expression.visit_children_with(self);
+  }
+
   /// `import { token }` / `import { token as alias }` — the specifier, which is
   /// what upstream's `binding.path` is: one import statement declares several
   /// names, and only the specifier says which of them was refused. Measured on

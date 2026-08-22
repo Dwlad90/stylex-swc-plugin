@@ -1,6 +1,7 @@
 mod invalid_properties;
 mod invalid_values;
 mod property_validation_mode_test;
+mod refused_binding_edge_cases;
 mod string_named_import_specifiers;
 mod style_declarations;
 mod style_rules;

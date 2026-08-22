@@ -497,3 +497,144 @@ export const styles = create({ x: { color: c, background: other } });
     "the unrelated read keeps its own position"
   );
 }
+
+/// A source the parser cannot read at all: the declaration search never gets a
+/// module to look in, and the lookup has to degrade to "location unknown"
+/// instead of aborting a build that is already failing for another reason.
+#[test]
+fn an_unparseable_source_frames_nothing_and_does_not_abort() {
+  let path = write_fixture(
+    "framed_declaration_unparseable.tsx",
+    "let c = 'red'; c = 'blue'; export const styles = create({ x: { color: c } }\n",
+  );
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  let result = GLOBALS.set(&Globals::default(), || {
+    get_span_from_source_code(&target, &target, &mut state)
+  });
+
+  // Either answer is acceptable -- an error, or no position -- and what is not
+  // is a panic, or a span whose offsets belong to a module that failed to parse.
+  if let Ok((_code_frame, span)) = result {
+    assert!(
+      span.is_dummy(),
+      "an unparseable source cannot resolve a position, got {span:?}"
+    );
+  }
+}
+
+/// A file the compiler was told about but which is not on disk. There is no
+/// module to search, so the frame registers a synthesized one holding just the
+/// expression it was handed — and the declaration lookup finds no declaration in
+/// it and falls back to that expression, rather than reporting a position from a
+/// file nobody read.
+#[test]
+fn a_missing_source_file_falls_back_to_the_expression_it_was_handed() {
+  let mut state = StateManager::default();
+  state.plugin_pass.filename = FileName::Real("/nonexistent/framed_declaration.tsx".into());
+  let target = reference("c");
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  assert_eq!(
+    framed_line(&target, &mut state),
+    Some(1),
+    "the synthesized module is one line long, and the read is what is on it"
+  );
+}
+
+/// Windows line endings, because a line number is a count of `\n` and a `\r`
+/// left in front of one is the classic off-by-one.
+#[test]
+fn a_declaration_in_a_crlf_source_is_framed_on_its_own_line() {
+  let path = write_fixture(
+    "framed_declaration_crlf.tsx",
+    "let c = 'red';\r\nc = 'blue';\r\nexport const styles = create({ x: { color: c } });\r\n",
+  );
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  assert_eq!(framed_line(&target, &mut state), Some(1));
+}
+
+/// A byte-order mark ahead of the first declaration: it is one to three bytes of
+/// nothing, and a position that counted it as source text would land a column
+/// early.
+#[test]
+fn a_declaration_after_a_byte_order_mark_is_framed_on_its_own_line() {
+  let path = write_fixture(
+    "framed_declaration_bom.tsx",
+    "\u{feff}let c = 'red';\nc = 'blue';\nexport const styles = create({ x: { color: c } });\n",
+  );
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  assert_eq!(framed_line(&target, &mut state), Some(1));
+}
+
+/// A declaration past a long run of multi-byte characters, which is where a byte
+/// offset used as a character offset lands inside a character and panics the
+/// source-map lookup. The frame catches that panic; this asserts it never has to.
+#[test]
+fn a_declaration_after_multibyte_text_is_framed_on_its_own_line() {
+  let source = format!(
+    "// {}\nlet c = 'red';\nc = 'blue';\nexport const styles = create({{ x: {{ color: c }} }});\n",
+    "λ".repeat(700)
+  );
+  let path = write_fixture("framed_declaration_multibyte.tsx", &source);
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  assert_eq!(framed_line(&target, &mut state), Some(2));
+}
+
+/// A module long enough that the walk passes thousands of unrelated
+/// declarations before the one being asked about.
+#[test]
+fn a_declaration_at_the_end_of_a_long_source_is_framed() {
+  let mut source = String::new();
+  for index in 0..3_000 {
+    source.push_str(&format!("const n{index} = {index};\n"));
+  }
+  source.push_str("let c = 'red';\nc = 'blue';\n");
+  source.push_str("export const styles = create({ x: { color: c } });\n");
+
+  let path = write_fixture("framed_declaration_long.tsx", &source);
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  assert_eq!(framed_line(&target, &mut state), Some(3_001));
+}
+
+/// A name that appears in the source only inside a string or a comment declares
+/// nothing, so the lookup falls back to the read rather than pointing at prose.
+#[test]
+fn a_name_only_mentioned_in_text_falls_back_to_the_read() {
+  let source = "\
+// c is discussed here and nowhere declared
+const note = 'c = 42';
+export const styles = create({ x: { color: c } });
+";
+  let path = write_fixture("framed_declaration_mentioned.tsx", source);
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  assert_eq!(
+    framed_line(&target, &mut state),
+    Some(3),
+    "prose is not a declaration; the read is the answer"
+  );
+}

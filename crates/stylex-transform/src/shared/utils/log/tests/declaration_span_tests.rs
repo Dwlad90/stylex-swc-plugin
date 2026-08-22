@@ -355,3 +355,91 @@ fn a_type_only_name_declares_no_value() {
   declares_nothing("type c = string;\n", "c");
   declares_nothing("interface c { a: string }\n", "c");
 }
+
+/// One statement declaring several names frames the one asked about, not the
+/// statement.
+#[test]
+fn one_statement_of_several_declarators_frames_the_one_asked_about() {
+  let source = "const a = 1, c = 2, d = 3;\n";
+
+  assert_eq!(declaration_text(source, "c"), "c = 2");
+}
+
+/// A `for` header's own binding, which is a declarator inside a statement rather
+/// than a statement of its own.
+#[test]
+fn a_loop_header_declarator_is_framed_at_the_declarator() {
+  assert_eq!(
+    declaration_text("for (let c = 0; c < 2; c++) {}\n", "c"),
+    "c = 0"
+  );
+}
+
+/// A label shares no namespace with a binding, so it declares nothing.
+#[test]
+fn a_label_is_not_a_declaration() {
+  declares_nothing("c: for (;;) { break c; }\n", "c");
+}
+
+/// A method's name is a property, not a binding.
+#[test]
+fn a_method_name_is_not_a_declaration() {
+  declares_nothing("const api = { c() { return 1; } };\n", "c");
+  declares_nothing("class K { c() { return 1; } }\n", "c");
+}
+
+/// A class field is a property too, `#private` included.
+#[test]
+fn a_class_field_is_not_a_declaration() {
+  declares_nothing("class K { c = 1; }\n", "c");
+}
+
+/// A name bound by a named function *expression* is a binding in that
+/// expression's own scope, and it is where the name resolves.
+#[test]
+fn a_named_function_expression_binds_its_own_name() {
+  assert_eq!(
+    declaration_text("const run = function c() { return c; };\n", "c"),
+    "function c() { return c; }"
+  );
+  assert_eq!(
+    declaration_text("const held = class c { };\n", "c"),
+    "class c { }"
+  );
+}
+
+/// A declaration inside a template literal's interpolation is still a
+/// declaration, and one written after a template literal is still found — a
+/// template's text is not source the walk can be lost in.
+#[test]
+fn a_declaration_around_a_template_literal_is_found() {
+  let interpolated = "const text = `${(() => { const c = 'red'; return c; })()}`;\n";
+  let after = "const text = `const c = 'not this one';`;\nconst c = 'red';\n";
+
+  assert_eq!(declaration_text(interpolated, "c"), "c = 'red'");
+  assert_eq!(declaration_line(after, "c"), 2);
+}
+
+/// Windows line endings: a line number is a count of `\n`, and a `\r` in front
+/// of one must not shift the position it reports.
+#[test]
+fn a_declaration_in_a_crlf_module_keeps_its_line() {
+  let source = "const first = 1;\r\nconst c = 'red';\r\n";
+
+  assert_eq!(declaration_line(source, "c"), 2);
+  assert_eq!(declaration_text(source, "c"), "c = 'red'");
+}
+
+/// An empty name cannot be declared, and asking for one must answer rather than
+/// match the first binding it meets.
+#[test]
+fn an_empty_name_declares_nothing() {
+  declares_nothing("const c = 'red';\n", "");
+}
+
+/// A name that is a reserved word cannot be a binding either, and the fixture
+/// that spells it is a property access rather than a declaration.
+#[test]
+fn a_reserved_word_declares_nothing() {
+  declares_nothing("const holder = { class: 1 };\n", "class");
+}

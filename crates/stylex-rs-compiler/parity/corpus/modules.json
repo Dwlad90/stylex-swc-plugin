@@ -843,8 +843,8 @@
       "label": "a shadowed namespace parameter coerced to a string in a template",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (stylex) => ({ height: `${stylex}px` }),\n});\n",
       "origin": "the identifier audit for issue #1266, the fold read where a string is expected",
-      "note": "Both compilers emit nonsense and disagree about which: upstream gives `height:[object Object]px`, which is what JS gives for an object in a template, and this compiler coerces the fold to the empty string and gives `height:px`. Recorded rather than fixed -- agreeing here means reproducing a coercion neither compiler intends. In `.scratch/fix_dynamic-param-shadows-import/issues/15-the-function-map-read-where-it-is-not-a-map.md`.",
-      "expected": "divergent"
+      "note": "Identical since ticket 23. `height:[object Object]px` on both compilers -- nonsense, agreed on, which is the only useful answer when a class name is a hash of the declaration text. Two things had to move: the template evaluator reads `ToString` instead of asking whether the interpolation is a literal it recognizes, and the folded function map coerces as the object it is upstream rather than as a function, which is how the spread arm had read it all along.",
+      "expected": "identical"
     },
     {
       "id": "modules-1266-shadowed-namespace-in-a-computed-key",
@@ -883,8 +883,32 @@
       "label": "a theme import coerced to a string in a style value",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  w: { zIndex: `${zIndex}` },\n});\n",
       "origin": "code review of the folded-map consumer, the one row upstream emits on",
-      "note": "The one shape in this family where the reference implementation emits rather than refuses: it coerces the group through its own `toString` and ships `z-index:x1q8i56t` -- the var-group hash as a z-index, meaningless CSS that hashes a class name all the same. Measured and deliberately not mirrored: an interpolation with no string form contributes nothing here, and the seam is the template evaluator rather than the style-value arm -- it drops every such interpolation, not only a theme reference. Filed as issue 23 of this effort.",
-      "expected": "structurally-divergent"
+      "note": "Identical since ticket 23. A `defineVars` group carries its own `toString`, which answers the var-group hash rather than the object default, and the coercion bridge already knew that -- the template evaluator was not reading it. `z-index:x1q8i56t` on both compilers: meaningless CSS that hashes a class name all the same, which is exactly why the two have to spell it alike.",
+      "expected": "identical"
+    },
+    {
+      "id": "modules-the-primitives-interpolated-in-a-template",
+      "label": "every primitive with no literal spelling, interpolated in a template",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  nullValue: { fontFamily: `a${null}b` },\n  undefinedValue: { fontFamily: `a${undefined}b` },\n  booleanTrue: { fontFamily: `a${true}b` },\n  booleanFalse: { fontFamily: `a${false}b` },\n  notANumber: { fontFamily: `a${NaN}b` },\n  infinite: { fontFamily: `a${Infinity}b` },\n});\n",
+      "expected": "identical",
+      "origin": "ticket 23, the interpolation that used to contribute nothing",
+      "note": "The six shapes that used to contribute the empty string. Each declared a value the author did not write -- `font-family:ab` reads like a template nobody interpolated -- and hashed a class name to match, which is the silent half of the defect: no rule was missing, the wrong one was there."
+    },
+    {
+      "id": "modules-an-object-and-an-array-interpolated-in-a-template",
+      "label": "an object and an array interpolated in a template",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  object: { fontFamily: `a${{ x: 1 }}b` },\n  array: { fontFamily: `a${[1, 2]}b` },\n  arrayOfObjects: { fontFamily: `a${[{}, {}]}b` },\n});\n",
+      "expected": "identical",
+      "origin": "ticket 23, the interpolation that used to contribute nothing",
+      "note": "The object default and the comma join, both the language's answers and neither one an author means. Included because the array's join is a recursion -- an array of objects has to reach the object default through it -- and a coercion that handled only the flat case would pass the row above and fail here."
+    },
+    {
+      "id": "modules-a-function-interpolated-in-a-template",
+      "label": "a function interpolated in a template",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  fn: { fontFamily: `a${() => 1}b` },\n});\n",
+      "expected": "acceptance-divergent",
+      "origin": "ticket 23, the interpolation that used to contribute nothing",
+      "note": "Acceptance divergent, deliberately. A function's `ToString` is its source text and this evaluator keeps none, so it refuses. Upstream answers -- with the source of its *own* evaluator closure, an internal artifact of the compiler that gets hashed into a class name and written into a stylesheet. Reproducing that would bake a defect in; a refusal is loud where a wrong class name is silent."
     },
     {
       "id": "modules-1266-a-theme-namespace-import-read-as-a-style-value",

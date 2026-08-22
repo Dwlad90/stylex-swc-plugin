@@ -294,11 +294,13 @@ pub(super) fn evaluate_result_to_js_object(
     | EvaluateResultValue::Map(_)
     | EvaluateResultValue::Entries(_)
     | EvaluateResultValue::EnvObject(_)
-    | EvaluateResultValue::ThemeRef(_) => Some(coercions::ObjectCoercion::Identity),
+    | EvaluateResultValue::ThemeRef(_)
+    // The namespace object, for the reason given on the string bridge above.
+    | EvaluateResultValue::FunctionConfigMap(_) => Some(coercions::ObjectCoercion::Identity),
 
-    EvaluateResultValue::Callback(_)
-    | EvaluateResultValue::FunctionConfig(_)
-    | EvaluateResultValue::FunctionConfigMap(_) => Some(coercions::ObjectCoercion::Function),
+    EvaluateResultValue::Callback(_) | EvaluateResultValue::FunctionConfig(_) => {
+      Some(coercions::ObjectCoercion::Function)
+    },
   }
 }
 
@@ -395,9 +397,20 @@ fn evaluate_result_to_string_of(
     | EvaluateResultValue::Entries(_)
     | EvaluateResultValue::EnvObject(_) => Some(coercions::OBJECT_TO_STRING.to_string()),
 
-    EvaluateResultValue::Callback(_)
-    | EvaluateResultValue::FunctionConfig(_)
-    | EvaluateResultValue::FunctionConfigMap(_) => function_form.render(),
+    // A folded *map* of function configs is the namespace object, and a plain
+    // object upstream rather than a function -- `import * as stylex` binds an
+    // object whose properties happen to be functions, so `String(stylex)` is
+    // the object default. `nodes::object_expression` already reads it that way
+    // when spreading it; this arm used to disagree, and a template that
+    // interpolated the fold refused where upstream wrote `[object Object]`.
+    EvaluateResultValue::FunctionConfigMap(_) => Some(coercions::OBJECT_TO_STRING.to_string()),
+
+    // A single config, and a callback, are functions. `String(fn)` is its
+    // source text and this evaluator keeps none, so the form decides -- refuse,
+    // or answer `NaN` where a number was wanted.
+    EvaluateResultValue::Callback(_) | EvaluateResultValue::FunctionConfig(_) => {
+      function_form.render()
+    },
 
     // Unreachable for the reason given on `evaluate_result_to_js_object`, and
     // refused on the same terms. The `Vec` arm above is where a `Null` that

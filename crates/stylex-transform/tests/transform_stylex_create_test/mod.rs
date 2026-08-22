@@ -17,3 +17,4 @@ mod operator_interaction;
 mod static_styles;
 mod string_coercion;
 mod string_concatenation;
+mod template_interpolation;

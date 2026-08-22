@@ -161,7 +161,7 @@ describe('loadAllFixtures', () => {
           full.code === reduced.code &&
             JSON.stringify(full.metadata) === JSON.stringify(reduced.metadata) &&
             JSON.stringify(full.map) === JSON.stringify(reduced.map),
-          `${fixture.name} emits the same thing without ${key}, so that key ` + `prices nothing`
+          `${fixture.name} emits the same thing without ${key}, so it prices nothing`
         ).toBe(false);
       }
     }

@@ -216,3 +216,257 @@ fn sort_at_rules_multiple_media() {
   assert_eq!(result[0], "@media (max-width: 600px)");
   assert_eq!(result[1], "@media (min-width: 800px)");
 }
+
+// ── pseudo_comparator ────────────────────────────────────────────────
+//
+// The comparator a run is sorted with. `sort_pseudos` above is about which keys
+// sort together; these are about the order they come back in, taken directly so
+// a case does not have to build a run to ask a question about two strings.
+//
+// Every ordering asserted here was read out of `@stylexjs/babel-plugin` 0.19.0
+// under the parity harness's options, including the ones marked as divergent --
+// those were measured too, and disagree.
+
+use crate::utils::pre_rule::pseudo_comparator;
+use std::cmp::Ordering;
+
+/// `a` before `b`, and `b` after `a` -- both directions, because a comparator
+/// that answered `Less` to each of a pair would sort by insertion order and
+/// pass every one-directional case.
+fn precedes(a: &str, b: &str) {
+  assert_eq!(pseudo_comparator(a, b), Ordering::Less, "{a} before {b}");
+  assert_eq!(pseudo_comparator(b, a), Ordering::Greater, "{b} after {a}");
+}
+
+#[test]
+fn a_letter_outranks_its_case() {
+  // The primary pass: `HOVER` weighs as `hover`, so it lands between `active`
+  // and `italic` rather than below both of them.
+  precedes(":active", ":HOVER");
+  precedes(":HOVER", ":italic");
+}
+
+#[test]
+fn case_decides_only_when_the_letters_tie() {
+  precedes(":a", ":A");
+  precedes(":hover", ":HOVER");
+  precedes(":hOver", ":HOver");
+}
+
+#[test]
+fn the_case_tiebreak_reads_the_first_differing_position() {
+  // `:aBc` and `:AbC` differ in case at all three letters. Position one decides
+  // and the rest are never read, which is what makes this a tiebreak rather
+  // than a count.
+  precedes(":aBc", ":AbC");
+  precedes(":aBC", ":Abc");
+}
+
+#[test]
+fn length_settles_a_tie_before_case_does() {
+  // A key that runs out of characters has run out of letters to weigh, so the
+  // case difference further along is never reached.
+  precedes(":a", ":aB");
+  precedes(":a", ":ab");
+}
+
+#[test]
+fn a_letter_outranks_the_block_between_the_two_ascii_cases() {
+  // `[ \ ] ^ _ ` ` sit between `Z` and `a` in ASCII. Weighing the letter rather
+  // than its byte lifts every letter above them, in either case.
+  for between in ["[", "\\", "]", "^", "_", "`"] {
+    precedes(&format!(":{between}"), ":Z");
+    precedes(&format!(":{between}"), ":z");
+  }
+}
+
+#[test]
+fn a_digit_outranks_nothing_a_letter_outranks() {
+  precedes(":1", ":A");
+  precedes(":1", ":a");
+  precedes(":0", ":9");
+}
+
+#[test]
+fn equal_keys_compare_equal() {
+  // Not reachable through `sort_pseudos` -- a repeated condition key is refused
+  // before the sort -- but a comparator that answered anything else here would
+  // make the sort's result depend on the input order.
+  assert_eq!(pseudo_comparator(":hover", ":hover"), Ordering::Equal);
+  assert_eq!(pseudo_comparator("", ""), Ordering::Equal);
+  assert_eq!(pseudo_comparator(":ä", ":ä"), Ordering::Equal);
+}
+
+#[test]
+fn an_empty_key_precedes_every_other() {
+  precedes("", ":");
+  precedes(":", ":a");
+}
+
+#[test]
+fn the_ordering_is_transitive_across_the_cases_and_the_block() {
+  // The three levels the comparator has, chained: punctuation, then digits,
+  // then a letter in each case. A comparator whose passes disagreed would break
+  // the chain somewhere in the middle and `sort_unstable_by` would be free to
+  // produce anything.
+  let ascending = [":", ":!", ":0", ":9", ":a", ":A", ":b", ":B", ":z", ":Z"];
+
+  for (index, earlier) in ascending.iter().enumerate() {
+    for later in &ascending[index + 1..] {
+      precedes(earlier, later);
+    }
+  }
+}
+
+#[test]
+fn a_sort_over_the_whole_ordering_is_the_ordering() {
+  let mut shuffled = keys(&[":Z", ":a", ":!", ":B", ":0", ":A", ":z", ":9", ":b", ":"]);
+  shuffled.sort_unstable_by(|a, b| pseudo_comparator(a, b));
+
+  assert_eq!(
+    shuffled,
+    keys(&[":", ":!", ":0", ":9", ":a", ":A", ":b", ":B", ":z", ":Z"])
+  );
+}
+
+#[test]
+fn nothing_outside_ascii_is_weighed() {
+  // The documented divergence, asserted as it stands rather than as it should
+  // be. Root collation gives `ä` the primary weight of `a` and weighs an emoji
+  // below every letter; here every byte at or above `0x80` sorts above every
+  // ASCII character, which is one rule producing both disagreements.
+  precedes(":z", ":ä");
+  precedes(":hover", ":\u{1F389}");
+  // And its two cases are two unrelated keys rather than a tie: `Ä` is `0xC3
+  // 0x84` and `ä` is `0xC3 0xA4`, so the byte decides where the case would.
+  precedes(":Ä", ":ä");
+}
+
+#[test]
+fn a_run_of_case_differing_keys_sorts_whole() {
+  // Through `sort_pseudos` rather than the comparator, so the two are known to
+  // be wired together.
+  assert_eq!(
+    sort_pseudos(&keys(&[":HOVER", ":active", ":Focus"])),
+    keys(&[":active", ":Focus", ":HOVER"])
+  );
+}
+
+#[test]
+fn a_pseudo_element_still_pins_its_position_under_the_new_comparator() {
+  assert_eq!(
+    sort_pseudos(&keys(&[":HOVER", "::before", ":Active", ":hover"])),
+    keys(&[":HOVER", "::before", ":Active", ":hover"])
+  );
+}
+
+// ── the at-rule comparator is a different one ────────────────────────
+
+#[test]
+fn at_rules_sort_by_their_bytes_rather_than_by_their_letters() {
+  // Upstream sorts pseudo keys with `localeCompare` and at-rules with a bare
+  // `.sort()`, so this is the one that must *not* fold case: `M` below `m` is
+  // the compatible answer here and the wrong one one function up.
+  let result = sort_at_rules(&keys(&[
+    "@media (min-width: 1px)",
+    "@media (MIN-WIDTH: 1px)",
+  ]));
+
+  assert_eq!(
+    result,
+    keys(&["@media (MIN-WIDTH: 1px)", "@media (min-width: 1px)"])
+  );
+}
+
+#[test]
+fn the_two_comparators_answer_the_same_pair_differently() {
+  // Stated as one assertion so the split cannot be quietly undone: whichever
+  // comparator either function reaches for, they are not the same one.
+  assert_eq!(pseudo_comparator(":a", ":A"), Ordering::Less);
+  assert_eq!(sort_at_rules(&keys(&[":a", ":A"])), keys(&[":A", ":a"]));
+}
+
+#[test]
+fn a_non_ascii_at_rule_sorts_by_its_code_points() {
+  // UTF-8 bytes and UTF-16 code units are both code-point order through the
+  // basic multilingual plane, so the encoding difference between the two
+  // compilers is not reachable here.
+  assert_eq!(
+    sort_at_rules(&keys(&["@supports (--z: 1)", "@supports (--\u{00fc}: 1)"])),
+    keys(&["@supports (--z: 1)", "@supports (--\u{00fc}: 1)"])
+  );
+}
+
+#[test]
+fn default_leads_the_at_rules_from_either_side() {
+  // Unreachable from a key path, which filters to `@`-prefixed keys before
+  // `sort_at_rules` is called, and asserted anyway: the branch exists and a
+  // reader deleting it should have to delete a case that says what it did.
+  assert_eq!(
+    sort_at_rules(&keys(&["@media (min-width: 1px)", "default"])),
+    keys(&["default", "@media (min-width: 1px)"])
+  );
+  assert_eq!(
+    sort_at_rules(&keys(&["default", "@media (min-width: 1px)"])),
+    keys(&["default", "@media (min-width: 1px)"])
+  );
+}
+
+// ── degenerate and hostile inputs ────────────────────────────────────
+
+#[test]
+fn a_malformed_key_sorts_where_its_characters_put_it() {
+  // Neither compiler validates a condition key as CSS. An unclosed bracket,
+  // paren or quote is a string to sort like any other, and the case that would
+  // be alarming is one where it moved.
+  assert_eq!(
+    sort_pseudos(&keys(&[":hover", "[data-x", ":not(.a", "[data-x=\"y]"])),
+    keys(&[":hover", ":not(.a", "[data-x", "[data-x=\"y]"])
+  );
+}
+
+#[test]
+fn a_key_of_nothing_but_combining_marks_sorts_above_ascii() {
+  // A combining acute with no base character. It is not ASCII, so it is not
+  // weighed -- the same rule as every other non-ASCII key, applied to one that
+  // is not a letter at all. Divergent: upstream weighs a lone mark below every
+  // letter and spells this `:\u{0301}:hover`, `xcdw69q`.
+  precedes(":hover", ":\u{0301}");
+}
+
+#[test]
+fn a_lone_surrogate_cannot_reach_the_comparator() {
+  // A `String` cannot hold one, so the shape a JavaScript condition key could
+  // carry and this comparator could not is unreachable by construction rather
+  // than by a check. Stated as the replacement character, which is what a
+  // decoder hands over instead -- and which upstream also sorts last, so this
+  // is one non-ASCII key the two agree on.
+  precedes(":hover", ":\u{FFFD}");
+}
+
+#[test]
+fn a_very_long_key_compares_on_its_first_difference() {
+  // Linear in the shorter key and short-circuiting, so a long key costs nothing
+  // it does not have to. Two five-thousand-character keys differing at position
+  // one is the shape that would be slow if it were not.
+  let left = format!(":a{}", "z".repeat(5_000));
+  let right = format!(":b{}", "z".repeat(5_000));
+
+  precedes(&left, &right);
+}
+
+#[test]
+fn a_run_of_a_thousand_keys_sorts_whole() {
+  // Wider than the nesting ceiling admits, so it is not reachable through a
+  // stylesheet -- but `sort_pseudos` is a public function over a slice, and a
+  // width limit is not one of the things it has.
+  let mut written: Vec<String> = (0..1_000)
+    .rev()
+    .map(|index| format!(":p{index:04}"))
+    .collect();
+  let expected: Vec<String> = (0..1_000).map(|index| format!(":p{index:04}")).collect();
+
+  written = sort_pseudos(&written);
+
+  assert_eq!(written, expected);
+}

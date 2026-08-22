@@ -24,13 +24,18 @@
 //! Every case in this file was measured against `@stylexjs/babel-plugin` 0.19.0
 //! under the parity harness's options and agrees with it on class names and rule
 //! text -- including the degenerate keys, which neither compiler validates as
-//! CSS and both spell into a selector unchanged. The two exceptions are the
-//! case-differing keys at the end, which diverge for a reason the grouping does
-//! not reach: the *comparator*. Upstream compares with `localeCompare`, which
-//! orders `:HOVER` after `:active`; this compiler compares bytes, which orders
-//! it before. That is a second, independent divergence in the same function,
-//! pre-existing and visible at two keys as well as three, and it is measured
-//! here rather than routed around -- issue 32 of this effort owns it.
+//! CSS and both spell into a selector unchanged.
+//!
+//! The comparator is the *second* thing this file measures, and it is a separate
+//! mechanism from the run grouping above: it is visible at two keys, where no
+//! grouping question exists at all. Upstream compares with `localeCompare`,
+//! which reads a letter's case as a tiebreak rather than as its identity;
+//! `pseudo_comparator` is the ASCII half of that ordering, and the cases at the
+//! end are what pin the half it covers and the half it does not. Every ASCII
+//! case agrees with 0.19.0; the three non-ASCII cases are recorded as they stand
+//! and named as divergent, which is issue 32 of this effort. Every class name
+//! quoted below as upstream's was read out of `@stylexjs/babel-plugin` 0.19.0
+//! under the parity harness's options, not inferred.
 
 use crate::utils::{prelude::*, transform::stringify_js, transform::ts_syntax};
 
@@ -353,18 +358,13 @@ stylex_test!(
   "#
 );
 
-// An uppercase pseudo name -- the one shape in this file where the two
-// compilers disagree, and the grouping is not why. Nothing lowercases a
-// condition key, and the comparison is over bytes, where every uppercase letter
-// sorts below every lowercase one: `:HOVER:active:focus` here against
-// `:active:focus:HOVER` upstream, `x17ymi95` against `xnnn07p`. The run is
-// grouped identically on both sides; what differs is `localeCompare` against a
-// byte comparison, which `two_pseudo_names_differing_only_in_case` below shows
-// at two keys, where no grouping question exists at all. Recorded so the
-// divergence has a name and a place, and reports as a changed verdict the day
-// the comparator moves.
+// An uppercase pseudo name. Nothing lowercases a condition key, so `:HOVER`
+// reaches the comparator spelled as the author wrote it -- and it sorts by the
+// letters, not by their bytes: `:active:focus:HOVER`, `xnnn07p`, which is what
+// the reference implementation names it. A byte comparison put every uppercase
+// letter below every lowercase one and spelled this `:HOVER:active:focus`.
 stylex_test!(
-  an_uppercase_pseudo_name_sorts_by_its_bytes,
+  an_uppercase_pseudo_name_sorts_by_its_letters,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
@@ -547,15 +547,221 @@ fn a_repeated_pseudo_class_is_refused_before_the_sort() {
 }
 
 // Two keys, one of them uppercase. Nothing here is three deep and nothing here
-// is a run this ticket's grouping changed: the pair diverges too, in either
-// nesting order, which is what makes the comparator a separate mechanism from
-// the grouping. Kept beside the three-key case so the two are read together.
+// is a run the grouping fix changed: the pair moved too, in either nesting
+// order, which is what makes the comparator a separate mechanism from the
+// grouping. `:active:HOVER`, `xyhlusd`, agreeing with the reference
+// implementation. Kept beside the three-key case so the two are read together.
 stylex_test!(
   two_pseudo_names_differing_only_in_case,
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
       w: { color: { ':HOVER': { ':active': 'red' } } },
+    });
+  "#
+);
+
+// ──────────────────────────────────────────────
+// The comparator
+//
+// `pseudo_comparator` is the ASCII half of the ordering `localeCompare`
+// reaches: a letter's case is a tiebreak rather than its identity, and the
+// tiebreak puts lowercase first. These cases pin both passes, the boundary
+// between them, and the half that is not covered.
+// ──────────────────────────────────────────────
+
+// The tiebreak alone: two keys whose letters are identical and whose cases are
+// not. Nothing separates them until the case pass, and lowercase leads.
+stylex_test!(
+  one_pseudo_name_in_each_case_sorts_lowercase_first,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':HOVER': { ':hover': 'red' } } },
+    });
+  "#
+);
+
+// A single uppercase letter against its lowercase self, which is the smallest
+// input the tiebreak has.
+stylex_test!(
+  a_single_letter_in_each_case_sorts_lowercase_first,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':A': { ':a': 'red' } } },
+    });
+  "#
+);
+
+// The tiebreak reads the *first* position where the cases differ, not the last
+// and not a count of them. `:aBc` and `:AbC` agree on every letter and differ
+// in case at all three; position one decides, so the key that is lowercase
+// there leads.
+stylex_test!(
+  the_case_tiebreak_is_decided_by_the_first_position,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':AbC': { ':aBc': 'red' } } },
+    });
+  "#
+);
+
+// Length settles a tie before case does, because a key that runs out of
+// characters has run out of letters to weigh: `:a` leads `:aB` even though the
+// case difference further along would have put `:aB` first if it were read.
+stylex_test!(
+  a_shorter_key_leads_its_own_prefix_extension,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':aB': { ':a': 'red' } } },
+    });
+  "#
+);
+
+// An uppercase letter against a character from the block that sits between the
+// two ASCII cases -- `[`, `\`, `]`, `^`, `_`, backtick. `:Z` and `:_leading`
+// are what decide it, and a byte comparison put `:Z` first because `Z` is
+// `0x5A` and `_` is `0x5F`; weighing the letter rather than its byte puts
+// `:_leading` first, which is where upstream puts it. `[data-x]` is settled at
+// the first character by `:` against `[` and lands last under either
+// comparator, which is what makes it the control here.
+// `.x1f04poe:_leading:Z[data-x]`, measured.
+stylex_test!(
+  an_uppercase_letter_sorts_above_the_block_between_the_cases,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':Z': { '[data-x]': { ':_leading': 'red' } } } },
+    });
+  "#
+);
+
+// Digits rank below letters in either pass and in either case, so an uppercase
+// letter does not fall below one.
+stylex_test!(
+  a_digit_sorts_below_an_uppercase_letter,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':A': { ':1': 'red' } } },
+    });
+  "#
+);
+
+// A mixed-case functional pseudo-class. The parenthesis and its contents are
+// part of the key's text and weigh with it, so the argument decides when the
+// name does not.
+stylex_test!(
+  a_mixed_case_functional_pseudo_class_sorts_by_its_whole_text,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':NOT(.b)': { ':not(.a)': { ':Is(.c)': 'red' } } } },
+    });
+  "#
+);
+
+// A mixed-case attribute selector, which is not a pseudo class and sorts in the
+// run all the same.
+stylex_test!(
+  a_mixed_case_attribute_selector_sorts_by_its_letters,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { '[DATA-x]': { '[data-X]': { ':hover': 'red' } } } },
+    });
+  "#
+);
+
+// The half the comparator does not cover, recorded as it stands rather than
+// routed around. Root collation gives `ä` the primary weight of `a`, so
+// upstream orders `:ä` ahead of `:z` and names `x1enrlzn`; every byte at or
+// above `0x80` sorts above every ASCII character here, so this puts `:z` first
+// and names `x143q076`. Closing it needs decomposition and a weight table
+// rather than a comparator -- issue 32 records the trade. This case reports as
+// a changed verdict the day that is paid for.
+stylex_test!(
+  an_accented_pseudo_name_sorts_above_ascii_rather_than_beside_its_base_letter,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':ä': { ':z': 'red' } } },
+    });
+  "#
+);
+
+// Case folding is ASCII-only, so a non-ASCII letter's two cases are two
+// distinct keys with nothing to tie them: `:Ä` and `:ä` sort by their bytes and
+// name `x1th3k6m`, where upstream ties them on the letter, separates them on
+// the case, puts the lowercase one first and names `xgvn8d`. Divergent for the
+// same reason as the case above and pinned beside it.
+stylex_test!(
+  a_non_ascii_letter_in_each_case_is_not_folded,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':ä': { ':Ä': 'red' } } },
+    });
+  "#
+);
+
+// An emoji, which is the third face of the same divergence and not an encoding
+// question at all. Root collation weighs a symbol *below* every letter, so
+// upstream spells this `:\u{1F389}:hover`, `x1jqz5xw`; every byte at or above
+// `0x80` sorts above every ASCII character here, so it lands last --
+// `:hover:\u{1F389}`, `x17d4qyr`. Divergent, measured, and kept beside the
+// accented names so the rule reads as one: what is not ASCII is not weighed.
+stylex_test!(
+  a_supplementary_character_pseudo_name_sorts_below_ascii_upstream,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { ':\u{1F389}': { ':hover': 'red' } } },
+    });
+  "#
+);
+
+// ──────────────────────────────────────────────
+// The at-rule comparator, which is a third one
+//
+// Upstream sorts pseudo keys with `localeCompare` and at-rules with a bare
+// `.sort()`. So the at-rules keep the plain comparison: making them
+// locale-aware would be a new divergence rather than a fix, and these are what
+// says so.
+// ──────────────────────────────────────────────
+
+// Two at-rules differing only in case. `A` sorts below `a` here, which is the
+// opposite of what the pseudo comparator does with the same pair -- and it is
+// what upstream's bare `.sort()` does, so the two comparators disagree on
+// purpose.
+stylex_test!(
+  at_rules_differing_only_in_case_sort_by_their_code_units,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: { color: { '@media (MIN-WIDTH: 1px)': 'red', '@media (min-width: 1px)': 'blue' } },
+    });
+  "#
+);
+
+// A non-ASCII at-rule. UTF-8 bytes and UTF-16 code units are both code-point
+// order through the basic multilingual plane, so the two encodings agree and so
+// do the two compilers.
+stylex_test!(
+  a_non_ascii_at_rule_sorts_by_its_code_points,
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      w: {
+        color: {
+          '@supports (--ü: 1)': 'red',
+          '@supports (--z: 1)': 'blue',
+          '@media (min-width: 1px)': 'green',
+        },
+      },
     });
   "#
 );

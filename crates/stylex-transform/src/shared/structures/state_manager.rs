@@ -489,14 +489,6 @@ pub struct StateManager {
   /// new top-level fold begins, so the conservatism lasts exactly as long as the
   /// unwind that earned it.
   pub(crate) depth_refused: bool,
-  /// The `env` option's object, shared with every function map that registers
-  /// it.
-  ///
-  /// Built once per file. `env` is registered per `stylex` import name per
-  /// `create` call, and in three places, so handing out a copy made the cost of
-  /// a configured `env` scale with the number of style objects in the file. It
-  /// is read-only after options construction.
-  pub(crate) env_shared: Rc<IndexMap<String, stylex_structures::stylex_env::EnvEntry>>,
   pub(crate) cache: CacheState,
   /// Maps a JSX spread expression to the JSX attributes that replace it.
   ///
@@ -580,7 +572,6 @@ impl Default for StateManager {
 impl StateManager {
   pub fn new(stylex_options: StyleXOptions) -> Self {
     let options = StyleXStateOptions::from(stylex_options);
-    let env_shared = options.env.clone();
 
     Self {
       plugin_pass: PluginPass::default(),
@@ -603,7 +594,6 @@ impl StateManager {
       seen: FxHashMap::default(),
       evaluation_depth: 0,
       depth_refused: false,
-      env_shared: Rc::new(env_shared),
       cache: CacheState::default(),
       module_source: ModuleSourceState::default(),
 
@@ -912,7 +902,7 @@ impl StateManager {
       return;
     }
 
-    let env = Rc::clone(&self.env_shared);
+    let env = Rc::clone(&self.options.env);
 
     // For namespace imports (e.g., `import stylex from '@stylexjs/stylex'`),
     // add `env` to member_expressions so `stylex.env.x` resolves.

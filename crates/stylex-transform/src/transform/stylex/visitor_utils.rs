@@ -91,7 +91,7 @@ pub(crate) fn register_env_in_namespace_fold(
       identifiers,
       name,
       STYLEX_ENV.into(),
-      FunctionConfigType::EnvObject(Rc::clone(&state.env_shared)),
+      FunctionConfigType::EnvObject(Rc::clone(&state.options.env)),
     );
   }
 }

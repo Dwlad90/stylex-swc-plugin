@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -55,8 +57,15 @@ pub struct CoreStyleXOptions {
   /// [`crate::evaluation_depth`]. Held as a plain number here because by the
   /// time options exist the question of where it came from is settled.
   pub max_evaluation_depth: usize,
+  /// The `env` option's object, shared rather than copied.
+  ///
+  /// Registered per `stylex` import name per `create` call, from three places,
+  /// so a copy per registration made a configured `env` cost its own size once
+  /// per style object. It is read-only once options are built, which is what
+  /// makes one shared handle sound -- and holding the handle here rather than
+  /// snapshotting it elsewhere is what keeps there being one of it.
   #[serde(skip)]
-  pub env: IndexMap<String, EnvEntry>,
+  pub env: Rc<IndexMap<String, EnvEntry>>,
   #[serde(skip)]
   pub debug_file_path: Option<JSFunction>,
 }
@@ -88,7 +97,7 @@ impl Default for CoreStyleXOptions {
       unstable_module_resolution: CheckModuleResolution::default(),
       sx_prop_name: Some("sx".to_string()),
       max_evaluation_depth: resolve_max_evaluation_depth(None),
-      env: IndexMap::new(),
+      env: Rc::new(IndexMap::new()),
       debug_file_path: None,
     }
   }
@@ -224,7 +233,7 @@ impl CoreStyleXOptions {
   }
 
   pub fn with_env(mut self, env: IndexMap<String, EnvEntry>) -> Self {
-    self.env = env;
+    self.env = Rc::new(env);
     self
   }
 

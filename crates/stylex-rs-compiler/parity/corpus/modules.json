@@ -1306,9 +1306,9 @@
       "id": "modules-1266-an-array-of-nulls-in-a-dynamic-style",
       "label": "an array style value whose every element is absent, inside a dynamic style",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: [null, null] }),\n});\n",
-      "expected": "structurally-divergent",
+      "expected": "identical",
       "origin": "ticket 14, the array style values a dynamic style's body used to abort on",
-      "note": "Structurally divergent, and not about arrays: upstream keeps the property as an absence marker (`kZKoxP: \"\"`) where this compiler omits the key, which `height: null` alone shows in a dynamic style's body just as loudly. Recorded here because the fold is what made the shape reachable. Filed as its own ticket."
+      "note": "Identical since ticket 25. Not about arrays: an array whose every element is absent collapses to the same shape `height: null` alone reaches, and what used to diverge was the dynamic split dropping a property whose class list is empty. Kept here because the fold is what made the shape reachable."
     },
     {
       "id": "modules-1266-an-array-with-a-nan-element-in-a-dynamic-style",
@@ -1322,9 +1322,49 @@
       "id": "modules-an-absent-value-in-a-dynamic-style",
       "label": "an absent style value inside a dynamic style",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: null }),\n});\n",
-      "expected": "structurally-divergent",
+      "expected": "identical",
       "origin": "ticket 25, found while measuring the array fold",
-      "note": "Structurally divergent. Upstream keeps the property as an absence marker (`kZKoxP: \"\"`), which is what unsets an earlier declaration when two styles merge; this compiler omits the key. The static position agrees with upstream, so the divergence is the dynamic body's alone. The array shape that collapses to this is recorded beside the array rows."
+      "note": "Identical since ticket 25. The dynamic split now keeps a property whose class list is empty, spelled `kZKoxP: \"\"` as upstream spells it, which is what unsets an earlier declaration of the same property when two styles merge. No rule text shows this, so the verdict rests on the style-object shape."
+    },
+    {
+      "id": "modules-an-absent-value-beside-a-declaration-in-a-dynamic-style",
+      "label": "an absent style value beside a declaring one, inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: null, color: 'red' }),\n});\n",
+      "expected": "identical",
+      "origin": "ticket 25, the absence marker a dynamic style used to drop",
+      "note": "The absence is kept for its own sake rather than as a side effect of an otherwise empty object: a rule is emitted here, and the absent key sits beside the one carrying its class name."
+    },
+    {
+      "id": "modules-an-absent-value-beside-a-dynamic-one",
+      "label": "an absent style value beside one that reads the parameter",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: null, width: h }),\n});\n",
+      "expected": "identical",
+      "origin": "ticket 25, the absence marker a dynamic style used to drop",
+      "note": "The two halves of the split, both occupied: the absent key is static and the parameter-reading one is conditional, so the emitted array carries three members rather than two."
+    },
+    {
+      "id": "modules-an-empty-string-array-in-a-dynamic-style",
+      "label": "an array of empty strings inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: ['', ''] }),\n});\n",
+      "expected": "identical",
+      "origin": "ticket 25, the absence marker a dynamic style used to drop",
+      "note": "The other spelling of an absence, reaching the same shape by a different route -- an empty string is a value rather than a hole, and normalizes to nothing."
+    },
+    {
+      "id": "modules-an-absent-condition-value-in-a-dynamic-style",
+      "label": "an absent style value written under a condition, inside a dynamic style",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({ height: { ':hover': null } }),\n});\n",
+      "expected": "identical",
+      "origin": "ticket 25, the absence marker a dynamic style used to drop",
+      "note": "The condition contributes no class name either, so the property's list is empty for the same reason and the key survives at the top level."
+    },
+    {
+      "id": "modules-an-empty-dynamic-style-body",
+      "label": "a dynamic style whose body declares nothing at all",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  dyn: (h) => ({}),\n});\n",
+      "expected": "identical-empty",
+      "origin": "ticket 25, the absence marker a dynamic style used to drop",
+      "note": "The boundary the marker must not cross. With no property there is no key to keep, so the static half stays absent and the arrow keeps its bare object -- an absence marker invented here would be a key the source does not describe."
     },
     {
       "id": "modules-an-index-read-off-an-array-in-a-static-namespace",

@@ -620,3 +620,160 @@ stylex_test!(
     });
   "#
 );
+
+// ── Inside a dynamic style's body ───────────────────────────────────
+//
+// A dynamic style splits its compiled object into a static half and a
+// conditional half, and the split reads each property's class list. An absent
+// value has no class name, so its list is empty -- and the property still owns
+// its key, spelled as the empty string rather than as `null`. The spelling is
+// the split's, not a second absence marker: a key whose class list is empty
+// joins to `""`, exactly as it does upstream.
+//
+// The distinction the empty string preserves is the same one the static half
+// preserves with `null`: a key that is present unsets an earlier declaration of
+// the same property when two styles merge, and a key that is absent leaves it
+// standing. Dropping the property is therefore not a smaller output, it is a
+// different one -- and no rule text shows it, which is why every case here is
+// read off the emitted style object.
+//
+// Every output below was measured against `@stylexjs/babel-plugin@0.19.0` and
+// agrees with it.
+
+stylex_test!(
+  a_null_in_a_dynamic_style_keeps_its_key,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      dyn: (h) => ({ height: null }),
+    });
+  "#
+);
+
+// An array whose every element is absent collapses to the same shape -- the
+// fallback chain declares nothing, so the chain's key is the only thing left.
+stylex_test!(
+  an_array_of_nulls_in_a_dynamic_style_keeps_its_key,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      dyn: (h) => ({ height: [null, null] }),
+    });
+  "#
+);
+
+// An empty string is the other spelling of an absence, and reaches the same
+// place by a different route: it is a value, not a hole, and it normalizes to
+// nothing.
+stylex_test!(
+  an_array_of_empty_strings_in_a_dynamic_style_keeps_its_key,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      dyn: (h) => ({ height: ['', ''] }),
+    });
+  "#
+);
+
+// The absence beside a declaration that does emit. Both keys are static, so
+// both land in the hoisted half and the parameter is never read -- which is the
+// case that shows the absent key is kept for its own sake rather than as a
+// side effect of the object being empty.
+stylex_test!(
+  a_null_beside_a_declaration_in_a_dynamic_style,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      dyn: (h) => ({ height: null, color: 'red' }),
+    });
+  "#
+);
+
+// The absence beside a declaration that reads the parameter. The absent key is
+// static and the dynamic one is conditional, so the split puts them in
+// different halves and the emitted array carries three members.
+stylex_test!(
+  a_null_beside_a_dynamic_declaration_splits_across_both_halves,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      dyn: (h) => ({ height: null, width: h }),
+    });
+  "#
+);
+
+// An absence written under a condition rather than on the property. The
+// condition contributes no class name either, so the property's list is empty
+// for the same reason and the key survives at the top level.
+stylex_test!(
+  a_null_under_a_pseudo_in_a_dynamic_style_keeps_its_key,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      dyn: (h) => ({ height: { ':hover': null } }),
+    });
+  "#
+);
+
+// A condition tree where one branch declares and the other does not. The
+// property's class list is non-empty, so this is the ordinary path -- included
+// because it is the neighbour that must not move.
+stylex_test!(
+  a_null_default_beside_a_declaring_pseudo_in_a_dynamic_style,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      dyn: (h) => ({ height: { default: null, ':hover': '1px' } }),
+    });
+  "#
+);
+
+// A body with no properties at all. There is no key to keep, so the static half
+// stays absent and the arrow keeps its bare object -- the boundary the rule
+// above must not cross.
+stylex_test!(
+  an_empty_dynamic_style_body_emits_no_static_half,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      dyn: (h) => ({}),
+    });
+  "#
+);
+
+// A shorthand the specificity table refuses expands to nothing, so an absence
+// written on it leaves no key behind in a dynamic style either -- the rejection
+// happens before the value is looked at, exactly as it does in a static
+// namespace.
+stylex_test!(
+  a_null_rejecting_shorthand_in_a_dynamic_style_leaves_no_key,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      dyn: (h) => ({ borderTop: null }),
+    });
+  "#
+);
+
+// Under a resolution that expands it, the absence reaches every longhand the
+// shorthand expands to, and every one of them keeps its key.
+stylex_test!(
+  a_null_shorthand_in_a_dynamic_style_unsets_every_longhand,
+  |tr| stylex_transform(tr.comments.clone(), |b| b
+    .with_style_resolution(StyleResolution::ApplicationOrder)),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      dyn: (h) => ({ margin: null }),
+    });
+  "#
+);

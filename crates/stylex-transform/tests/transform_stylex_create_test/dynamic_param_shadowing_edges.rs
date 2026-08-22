@@ -368,8 +368,12 @@ stylex_test_panic!(
 // Nothing to emit
 // ──────────────────────────────────────────────
 
-// An empty object, and a property whose value is `null`. Both leave the dynamic
-// style with no declaration to carry, and the import beside it is still read.
+// An empty object, and a property whose value is `null`. Neither carries a
+// declaration, and the import beside them is still read -- but they part
+// company over the key: an empty object has no property to keep, while a
+// `null` keeps its key carrying the empty string, which is how a style unsets
+// an earlier declaration of the same property. `absent_style_values` owns that
+// rule; here it is only shown to survive a shadowing parameter.
 stylex_test!(
   a_shadowing_param_with_nothing_to_emit,
   |tr| theme_import_transform(tr.comments.clone()),

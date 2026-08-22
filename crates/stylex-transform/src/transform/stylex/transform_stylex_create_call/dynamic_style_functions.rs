@@ -118,110 +118,116 @@ where
                               })
                               .unwrap_or_default();
 
-                            if !class_list.is_empty() {
-                              let mut is_static = true;
-                              let mut expr_list = Vec::with_capacity(class_list.len());
+                            // No guard on an empty class list. A property whose
+                            // compiled value carries no class name -- an absent
+                            // value, which is how a style unsets an earlier
+                            // declaration of the same property when two styles
+                            // merge -- still owns its key, and the `joined`
+                            // fallback below spells it `""`. Skipping the
+                            // property instead dropped the key, and a key that is
+                            // not there unsets nothing.
+                            let mut is_static = true;
+                            let mut expr_list = Vec::with_capacity(class_list.len());
 
-                              // Pre-calculate class strings with spaces to avoid repeated allocations
-                              let class_strings: Vec<String> = class_list
-                                .iter()
-                                .enumerate()
-                                 .map(|(index, cls)| {
-                                   if index == class_list.len() - 1 {
-                                     cls.clone()
-                                   } else {
-                                     let mut spaced = String::with_capacity(cls.len() + 1);
-                                     spaced.push_str(cls);
-                                     spaced.push(' ');
-                                     spaced
-                                   }
-                                 })
-                                .collect();
-
-                              for (index, cls) in class_list.iter().enumerate() {
-                                let expr = dynamic_styles
-                                  .iter()
-                                  .find(|dynamic_style| {
-                                    orig_class_paths.get(cls) == Some(&dynamic_style.path)
-                                  })
-                                  .map(|dynamic_style| dynamic_style.expression.clone());
-
-                                let expr = if expr.is_none() && !nullish_var_expressions.is_empty()
-                                {
-                                  injected_styles.get(cls.as_str()).and_then(|style| {
-                                    let rule = match style.as_ref() {
-                                      InjectableStyleKind::Regular(s) => {
-                                        let ltr = s.ltr.as_str();
-                                        let rtl = s.rtl.as_deref().unwrap_or_default();
-
-                                        if ltr.is_empty() {
-                                          rtl
-                                        } else {
-                                          ltr
-                                        }
-                                      },
-                                      InjectableStyleKind::Const(s) => {
-                                        let ltr = s.ltr.as_str();
-                                        let rtl = s.rtl.as_deref().unwrap_or_default();
-
-                                        if ltr.is_empty() {
-                                          rtl
-                                        } else {
-                                          ltr
-                                        }
-                                      },
-                                    };
-                                    extract_expr_from_rule(rule, &nullish_var_expressions)
-                                  })
+                            // Pre-calculate class strings with spaces to avoid repeated allocations
+                            let class_strings: Vec<String> = class_list
+                              .iter()
+                              .enumerate()
+                              .map(|(index, cls)| {
+                                if index == class_list.len() - 1 {
+                                  cls.clone()
                                 } else {
-                                  expr
-                                };
-
-                                let cls_with_space = &class_strings[index];
-
-                                if let Some(expr) = expr.filter(|e| !is_safe_to_skip_null_check(e))
-                                {
-                                  is_static = false;
-                                  expr_list.push(create_cond_expr(
-                                    create_bin_expr(
-                                      BinaryOp::NotEq,
-                                      expr.clone(),
-                                      create_null_expr(),
-                                    ),
-                                    create_string_expr(cls_with_space),
-                                    expr,
-                                  ));
-                                } else {
-                                  expr_list.push(create_string_expr(cls_with_space));
+                                  let mut spaced = String::with_capacity(cls.len() + 1);
+                                  spaced.push_str(cls);
+                                  spaced.push(' ');
+                                  spaced
                                 }
-                              }
+                              })
+                              .collect();
 
-                              let joined = if expr_list.is_empty() {
-                                create_string_expr("")
+                            for (index, cls) in class_list.iter().enumerate() {
+                              let expr = dynamic_styles
+                                .iter()
+                                .find(|dynamic_style| {
+                                  orig_class_paths.get(cls) == Some(&dynamic_style.path)
+                                })
+                                .map(|dynamic_style| dynamic_style.expression.clone());
+
+                              let expr = if expr.is_none() && !nullish_var_expressions.is_empty()
+                              {
+                                injected_styles.get(cls.as_str()).and_then(|style| {
+                                  let rule = match style.as_ref() {
+                                    InjectableStyleKind::Regular(s) => {
+                                      let ltr = s.ltr.as_str();
+                                      let rtl = s.rtl.as_deref().unwrap_or_default();
+
+                                      if ltr.is_empty() {
+                                        rtl
+                                      } else {
+                                        ltr
+                                      }
+                                    },
+                                    InjectableStyleKind::Const(s) => {
+                                      let ltr = s.ltr.as_str();
+                                      let rtl = s.rtl.as_deref().unwrap_or_default();
+
+                                      if ltr.is_empty() {
+                                        rtl
+                                      } else {
+                                        ltr
+                                      }
+                                    },
+                                  };
+                                  extract_expr_from_rule(rule, &nullish_var_expressions)
+                                })
                               } else {
-                                expr_list
-                                  .into_iter()
-                                  .reduce(|acc, curr| create_bin_expr(BinaryOp::Add, acc, curr))
-                                  .unwrap_or_else(|| {
-                                    {
-                                      stylex_panic!(
-                                        "Expected at least one expression to reduce in class name concatenation."
-                                      )
-                                    }
-                                  })
+                                expr
                               };
 
-                              if is_static {
-                                static_props.push(create_prop_from_name(
-                                  obj_prop.key.clone(),
-                                  joined,
+                              let cls_with_space = &class_strings[index];
+
+                              if let Some(expr) = expr.filter(|e| !is_safe_to_skip_null_check(e))
+                              {
+                                is_static = false;
+                                expr_list.push(create_cond_expr(
+                                  create_bin_expr(
+                                    BinaryOp::NotEq,
+                                    expr.clone(),
+                                    create_null_expr(),
+                                  ),
+                                  create_string_expr(cls_with_space),
+                                  expr,
                                 ));
                               } else {
-                                conditional_props.push(create_prop_from_name(
-                                  obj_prop.key.clone(),
-                                  joined,
-                                ));
+                                expr_list.push(create_string_expr(cls_with_space));
                               }
+                            }
+
+                            let joined = if expr_list.is_empty() {
+                              create_string_expr("")
+                            } else {
+                              expr_list
+                                .into_iter()
+                                .reduce(|acc, curr| create_bin_expr(BinaryOp::Add, acc, curr))
+                                .unwrap_or_else(|| {
+                                  {
+                                    stylex_panic!(
+                                      "Expected at least one expression to reduce in class name concatenation."
+                                    )
+                                  }
+                                })
+                            };
+
+                            if is_static {
+                              static_props.push(create_prop_from_name(
+                                obj_prop.key.clone(),
+                                joined,
+                              ));
+                            } else {
+                              conditional_props.push(create_prop_from_name(
+                                obj_prop.key.clone(),
+                                joined,
+                              ));
                             }
                           } else {
                             static_props.push(PropOrSpread::Prop(Box::new(Prop::from(

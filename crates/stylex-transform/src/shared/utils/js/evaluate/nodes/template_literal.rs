@@ -36,10 +36,14 @@ pub(in super::super) fn evaluate_quasis(
     };
 
     let Some(evaluated_expr) = evaluate_cached(expr, state, traversal_state, fns) else {
-      // The evaluator refused the interpolation and has already recorded why.
-      // The loop's own guard reads `state.confident` on the next turn; this
-      // returns rather than waiting for it, because the interpolation whose
-      // text is missing is this one.
+      // The evaluator gave no value for the interpolation, so the template has
+      // no text. Returning here rather than falling through to the loop's
+      // `state.confident` guard on the next turn is not an optimization: the
+      // guard would let this turn finish and append the *next* quasi first, and
+      // the whole point of the change around this line is that a missing
+      // interpolation must never leave a shorter string standing. Whether the
+      // evaluator also cleared `confident` is its business and is not assumed
+      // here -- either way this template has no compile-time text.
       return None;
     };
 

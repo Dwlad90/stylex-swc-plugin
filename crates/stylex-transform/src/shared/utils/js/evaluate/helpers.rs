@@ -295,7 +295,9 @@ pub(super) fn evaluate_result_to_js_object(
     | EvaluateResultValue::Entries(_)
     | EvaluateResultValue::EnvObject(_)
     | EvaluateResultValue::ThemeRef(_)
-    // The namespace object, for the reason given on the string bridge above.
+    // The namespace object, and so `ToObject`'s identity rather than a wrapper.
+    // Classified on `evaluate_result_to_string_of`'s arm for the same variant,
+    // which is where the reason is written down.
     | EvaluateResultValue::FunctionConfigMap(_) => Some(coercions::ObjectCoercion::Identity),
 
     EvaluateResultValue::Callback(_) | EvaluateResultValue::FunctionConfig(_) => {
@@ -397,17 +399,20 @@ fn evaluate_result_to_string_of(
     | EvaluateResultValue::Entries(_)
     | EvaluateResultValue::EnvObject(_) => Some(coercions::OBJECT_TO_STRING.to_string()),
 
-    // A folded *map* of function configs is the namespace object, and a plain
-    // object upstream rather than a function -- `import * as stylex` binds an
-    // object whose properties happen to be functions, so `String(stylex)` is
-    // the object default. `nodes::object_expression` already reads it that way
-    // when spreading it; this arm used to disagree, and a template that
-    // interpolated the fold refused where upstream wrote `[object Object]`.
+    // A folded *map* of function configs is the namespace object, and an object
+    // upstream rather than a function: `import * as stylex` binds an object
+    // whose properties happen to be functions, so `String(stylex)` is the
+    // object default. This is the canonical statement of that classification;
+    // `evaluate_result_to_js_object` reads the same fact and points here, and
+    // `the_two_bridges_agree_a_function_map_is_an_object` fails if they part
+    // again -- which they had, and a template interpolating the fold refused
+    // where the reference implementation wrote `[object Object]`.
     EvaluateResultValue::FunctionConfigMap(_) => Some(coercions::OBJECT_TO_STRING.to_string()),
 
-    // A single config, and a callback, are functions. `String(fn)` is its
-    // source text and this evaluator keeps none, so the form decides -- refuse,
-    // or answer `NaN` where a number was wanted.
+    // A single config and a callback *are* functions, and a function has no
+    // compile-time string: `String(fn)` is its source text and this evaluator
+    // keeps none, so the form decides -- refuse, or answer `NaN` where a number
+    // was wanted.
     EvaluateResultValue::Callback(_) | EvaluateResultValue::FunctionConfig(_) => {
       function_form.render()
     },

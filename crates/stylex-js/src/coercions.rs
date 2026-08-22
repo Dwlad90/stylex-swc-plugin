@@ -137,7 +137,7 @@ pub fn is_global_spelled_as_an_identifier(ident: &Ident) -> bool {
 /// [0/0, '2px']`, the same value reached by arithmetic, folded and agreed.
 ///
 /// `None` for every other name, so a caller can use this as the set as well.
-pub fn global_spelled_as_an_identifier_as_a_value(ident: &Ident) -> Option<Expr> {
+pub fn global_identifier_to_value(ident: &Ident) -> Option<Expr> {
   match surviving_global(ident)? {
     // No literal spells it, so the name stands. Every coercion above reads the
     // identifier form, so nothing downstream is worse off for it.

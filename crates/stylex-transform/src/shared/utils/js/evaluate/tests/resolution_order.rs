@@ -487,12 +487,11 @@ fn assert_refused_with(result: &EvaluateResult, reason: &str) {
 
 /// The global stood — the answer step 7 gives a name nothing bound.
 ///
-/// What it stands *as* differs by name, and the difference is the point: `NaN`
-/// and `Infinity` are numbers the grammar has no literal for, so the step
-/// answers the number, and only `undefined` answers the identifier because
-/// nothing else spells it. The expectations are written out here rather than
-/// read back from the resolver, so this states the contract instead of
-/// agreeing with whatever the code currently does.
+/// What it stands *as* differs by name: the step answers `NaN` and `Infinity`
+/// with the numbers they are, and only `undefined` with the identifier.
+/// `coercions::global_identifier_to_value` says why. The expectations are
+/// written out here rather than read back from the resolver, so this states
+/// the contract instead of agreeing with whatever the code currently does.
 #[track_caller]
 fn assert_folded_to_the_global(result: &EvaluateResult, name: &str) {
   assert!(

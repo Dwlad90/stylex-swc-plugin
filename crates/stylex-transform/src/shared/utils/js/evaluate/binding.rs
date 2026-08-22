@@ -271,15 +271,11 @@ pub(super) fn resolve_reference(
   // it means evaluating an imported file in its own right, which this compiler
   // does not do at all yet.
   //
-  // What the global answers *with* is the value, not the name. `NaN` and
-  // `Infinity` are numbers the grammar has no literal for, and a consumer that
-  // reads the expression's shape rather than coercing it -- style-value
-  // validation is the one that does -- sees an identifier and refuses. Handing
-  // back the name made `height: [NaN, '2px']` refuse an array the reference
-  // implementation accepts, while `height: [0/0, '2px']`, the same value
-  // reached by arithmetic, folded and agreed. `undefined` has no other
-  // spelling and answers itself.
-  if let Some(value) = global_spelled_as_an_identifier_as_a_value(ident) {
+  // What the step answers *with* is the value rather than the name, for the
+  // reason written on `global_identifier_to_value`: two of the three names are
+  // numbers, and a consumer reading the expression's shape cannot see that
+  // through an identifier. Only the shadowing question is decided here.
+  if let Some(value) = global_identifier_to_value(ident) {
     return if traversal_state.declares_binding(ident) {
       deopt(path, state, UNINITIALIZED_CONST)
     } else {

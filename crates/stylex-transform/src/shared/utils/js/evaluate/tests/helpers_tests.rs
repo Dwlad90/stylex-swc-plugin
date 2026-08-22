@@ -1,5 +1,6 @@
 use super::*;
 use crate::shared::structures::types::FunctionConfigMap;
+use std::rc::Rc;
 use stylex_ast::ast::convertors::{create_ident_expr, create_null_expr};
 use swc_core::{
   common::DUMMY_SP,
@@ -62,4 +63,51 @@ fn the_nullish_bridge_answers_no_for_the_evaluator_s_own_variants() {
   assert!(!evaluate_result_is_nullish(
     &EvaluateResultValue::FunctionConfigMap(FunctionConfigMap::default())
   ));
+}
+
+/// The two coercions that have to tell an object from a function once said
+/// different things about a folded function map, and a template that
+/// interpolated the namespace refused because of it. They are separate
+/// exhaustive matches by design -- so that a new variant cannot be added
+/// without classifying it in both -- and this is what stops the two
+/// classifications from drifting apart again.
+#[test]
+fn the_two_bridges_agree_a_function_map_is_an_object() {
+  let map = EvaluateResultValue::FunctionConfigMap(FunctionConfigMap::default());
+
+  assert_eq!(
+    evaluate_result_to_js_string(&map).as_deref(),
+    Some(coercions::OBJECT_TO_STRING),
+    "the string bridge must give a function map the object default"
+  );
+
+  assert!(
+    matches!(
+      evaluate_result_to_js_object(&map),
+      Some(coercions::ObjectCoercion::Identity)
+    ),
+    "the object bridge must read a function map as an object, not wrap it"
+  );
+}
+
+/// The other two variants of the family are functions, and both bridges have to
+/// say so. `Refuse` is the form the style-value consumers use, and a function
+/// under it has no string at all.
+#[test]
+fn the_two_bridges_agree_a_callback_is_a_function() {
+  let callback = EvaluateResultValue::Callback(Rc::new(|_args, _fns| create_null_expr()));
+
+  assert_eq!(
+    evaluate_result_to_js_string(&callback),
+    None,
+    "a function has no compile-time string under the refusing form"
+  );
+
+  assert!(
+    matches!(
+      evaluate_result_to_js_object(&callback),
+      Some(coercions::ObjectCoercion::Function)
+    ),
+    "the object bridge must wrap a function"
+  );
 }

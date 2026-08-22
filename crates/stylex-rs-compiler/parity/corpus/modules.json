@@ -527,6 +527,14 @@
       "note": "The pair that settled ticket 26. Each spelling sits next to the arithmetic reaching the same number, and the arithmetic half agreed all along -- which is what showed the refusal was about how the value was written rather than about the value. A regression separating the two halves reports here."
     },
     {
+      "id": "modules-an-array-with-a-nan-element",
+      "label": "a fallback array carrying `NaN`, in a static namespace",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s: { height: [NaN, '2px'] },\n});\n",
+      "expected": "identical",
+      "origin": "ticket 26, the globals the array check read as identifiers",
+      "note": "Ticket 26's headline row, in the position the ticket led with. The dynamic counterpart is recorded with the array family; this is the static one, and the two agreeing is what says the refusal was never about the position. `NaN` is dropped as an absent value, so one declaration survives."
+    },
+    {
       "id": "modules-an-array-with-an-infinity-element",
       "label": "a fallback array carrying `Infinity`, in a static namespace",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  s: { height: [Infinity, '2px'] },\n});\n",
@@ -546,9 +554,9 @@
       "id": "modules-a-nan-test-in-a-ternary",
       "label": "a ternary whose test is `NaN`, and the same test reached by arithmetic",
       "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  named: { height: NaN ? '1px' : '2px' },\n  computed: { height: (0 / 0) ? '1px' : '2px' },\n  logical: { height: NaN || '2px' },\n});\n",
-      "expected": "structurally-divergent",
+      "expected": "identical",
       "origin": "ticket 39, found by ticket 26's edge cases",
-      "note": "Structurally divergent -- the two branches carry different values, so the wrong branch changes which rules exist and not only how one is spelled. Not about the globals: a ternary reads its test through `convert_expr_to_bool`, a second truthiness table beside `coercions::to_js_boolean` whose numeric arm asks `n.value != 0.0` and so calls `NaN` truthy. The `computed` row reaches the same table by arithmetic and diverges identically, so this pre-dates the globals answering numbers; the `logical` row reads the coercion and agrees. Filed as ticket 39."
+      "note": "`NaN` is falsy, so both rows take `'2px'`, and both compilers agree. It took a correction outside ticket 26's seam: a ternary reads its test through `convert_expr_to_bool`, a second truthiness table beside `coercions::to_js_boolean` whose numeric arm asked `n.value != 0.0` -- the one comparison `NaN` answers true. The arithmetic row shows that table was already wrong; the named row shows why it could not be deferred, since answering the global as a number turned a build refusal into silently wrong CSS. The rest of that table is ticket 39."
     },
     {
       "id": "modules-1266-read-by-a-string-named-imports-imported-name",
@@ -909,6 +917,22 @@
       "expected": "acceptance-divergent",
       "origin": "ticket 23, the interpolation that used to contribute nothing",
       "note": "Acceptance divergent, deliberately. A function's `ToString` is its source text and this evaluator keeps none, so it refuses. Upstream answers -- with the source of its *own* evaluator closure, an internal artifact of the compiler that gets hashed into a class name and written into a stylesheet. Reproducing that would bake a defect in; a refusal is loud where a wrong class name is silent."
+    },
+    {
+      "id": "modules-the-folded-map-wrapped-in-object",
+      "label": "the folded namespace map wrapped in `Object()` and interpolated",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  wrapped: { fontFamily: `x${Object(stylex)}y` },\n});\n",
+      "expected": "identical",
+      "origin": "ticket 23, the second bridge that classifies the fold",
+      "note": "The other consumer of the classification ticket 23 corrected: the object bridge reads `ToObject`, where a function needs a wrapper and an object is its own identity. Reading the folded map as the object it is makes this agree as well, and it is recorded because the plain interpolation row would read `identical` whichever way this arm went."
+    },
+    {
+      "id": "modules-object-keys-of-a-folded-map",
+      "label": "`Object.keys` of the folded namespace map, interpolated",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  a: { fontFamily: `x${Object.keys(stylex)}y` },\n});\n",
+      "expected": "divergent",
+      "origin": "ticket 40, found while measuring ticket 23",
+      "note": "Divergent, and older than the change that exposed it: the receiver normalizer behind `Object.keys` has no arm for a folded map, so it reads as \"not an object\" and answers the empty list -- neither a refusal nor the truth. The spread arm one function away answers the keys. The row only became visible when the template evaluator stopped dropping every interpolation it could not spell, which swallowed both halves before. Filed as ticket 40."
     },
     {
       "id": "modules-1266-a-theme-namespace-import-read-as-a-style-value",

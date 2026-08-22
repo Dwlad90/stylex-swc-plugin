@@ -117,10 +117,14 @@ fn spread_own_properties(value: EvaluateResultValue, operand: &Expr) -> Option<V
     @ (EvaluateResultValue::FunctionConfig(_) | EvaluateResultValue::FunctionConfigMap(_)) => {
       function_fold_to_object(&value).map(|object| object.props)
     },
-    // The global primitives that are spelled as identifiers rather than as
-    // literals. Only these three: any other bare identifier either resolved to
-    // a value handled above or never resolved at all, and the latter has
-    // already refused before reaching here.
+    // A global primitive still spelled as an identifier. In practice that is
+    // `undefined` alone: the resolution chain answers `NaN` and `Infinity` with
+    // the numbers they are, so those arrive as `Lit::Num` and are answered by
+    // the arm above. The predicate stays the whole set rather than the one
+    // name, because an identifier reaching here from somewhere the chain did
+    // not resolve -- a binding in an imported file, which this compiler does
+    // not evaluate -- may still be any of the three, and all three have no own
+    // enumerable properties either way.
     EvaluateResultValue::Expr(Expr::Ident(ident)) if is_global_spelled_as_an_identifier(&ident) => {
       Some(vec![])
     },

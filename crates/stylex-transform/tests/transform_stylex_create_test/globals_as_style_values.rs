@@ -207,29 +207,29 @@ stylex_test!(
   "#
 );
 
-// The one shape in this file that does *not* agree, recorded apart so the
-// file's claim stays true.
+// `NaN` is falsy, so both rows choose `'2px'`, and getting there took a
+// one-line fix outside this file.
 //
-// `NaN` is falsy, so both rows should choose `'2px'`, and both choose `'1px'`.
-// The reason is neither of these values and not this file's subject: a ternary
-// reads its test through `convert_expr_to_bool`, a second truthiness table
-// beside `coercions::to_js_boolean`, whose numeric arm asks `n.value != 0.0`
-// and so calls `NaN` truthy -- the one comparison against `NaN` that answers
-// true. The logical operator a row above reads the coercion instead and gets it
-// right, which is what says this is the table and not the value.
-//
-// Written with both spellings because that is the evidence: `0 / 0` reaches the
-// same table by arithmetic and diverges identically, so the divergence pre-dates
-// the globals answering numbers and was only made reachable by a second
-// spelling. Filed as ticket 39.
+// A ternary reads its test through `convert_expr_to_bool`, a second truthiness
+// table beside `coercions::to_js_boolean` whose numeric arm asked
+// `n.value != 0.0` -- the one comparison `NaN` answers true. The arithmetic row
+// shows the second table was already wrong before the globals answered numbers.
+// The named row shows why it could not be left: while `NaN` resolved to an
+// identifier the ternary *refused the build*, so answering the number turned a
+// refusal into silently wrong CSS. A loud wrong answer is survivable and a
+// quiet one is not, so the arm was corrected here rather than deferred with the
+// rest of that table, which is ticket 39.
 stylex_test!(
-  a_nan_test_in_a_ternary_diverges_through_a_second_truthiness_table,
+  a_nan_test_in_a_ternary_takes_the_falsy_branch,
   |tr| stylex_transform(tr.comments.clone(), |b| b),
   r#"
     import * as stylex from '@stylexjs/stylex';
     export const styles = stylex.create({
       named: { height: NaN ? '1px' : '2px' },
       computed: { height: (0 / 0) ? '1px' : '2px' },
+      negative: { height: -1 ? '1px' : '2px' },
+      zero: { height: 0 ? '1px' : '2px' },
+      infinite: { height: Infinity ? '1px' : '2px' },
     });
   "#
 );

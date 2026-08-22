@@ -238,3 +238,19 @@ stylex_test!(
     });
   "#
 );
+
+// `Object()` applied to the fold, which is the other consumer of the same
+// classification: the object bridge reads `ToObject`, where a function needs a
+// wrapper and an object is its own identity. Reading the map as an object makes
+// this agree too, and it is pinned because the string bridge's test above would
+// pass whichever way this arm went.
+stylex_test!(
+  the_folded_namespace_map_wrapped_in_object_takes_the_same_default,
+  |tr| stylex_transform(tr.comments.clone(), |b| b),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    export const styles = stylex.create({
+      wrapped: { fontFamily: `x${Object(stylex)}y` },
+    });
+  "#
+);

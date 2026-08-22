@@ -321,7 +321,15 @@ pub fn convert_expr_to_bool(
   match expr {
     Expr::Lit(lit) => match lit {
       Lit::Bool(b) => b.value,
-      Lit::Num(n) => n.value != 0.0,
+      // `NaN` is falsy, and it is the one number that says otherwise when asked
+      // this way: every comparison against `NaN` is false *except* the
+      // inequality, so `n.value != 0.0` calls it true. `coercions::to_js_boolean`
+      // names it for the same reason, and the two tables have to agree --
+      // `NaN || x` reads that one and a ternary reads this one, on the same
+      // value. Ticket 39 is about removing the second table; until then it must
+      // at least not be wrong here, because the branch a ternary picks is CSS
+      // that gets emitted rather than a build that stops.
+      Lit::Num(n) => n.value != 0.0 && !n.value.is_nan(),
       Lit::Str(s) => !s.value.is_empty(),
       Lit::Null(_) => false,
       _ => stylex_unimplemented!(

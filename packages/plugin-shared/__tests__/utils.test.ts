@@ -151,6 +151,53 @@ export const styles = stylex.create({ default: { color: 'red' } });
     expect(metadata.stylex.length).toBeGreaterThan(0);
   });
 
+  // `maxEvaluationDepth` reaches the compiler through the same `rsOptions` spread
+  // every other option does, so a wrapper does not enumerate it and nothing here
+  // had exercised that. The pair below is what proves the option survives
+  // `normalizeRsOptions` and lands on the transform: one source, two verdicts,
+  // decided only by the option.
+  //
+  // 40 levels is between the compiler's default ceiling of 32 and the raised one,
+  // and every level adds `+ 1` so the folded value can only be reached by the
+  // full descent -- a tower folding to the same answer at any height would pass
+  // whether 40 levels were evaluated or one.
+  const deeplyNested = (levels: number) => {
+    let expression = 'BASE';
+
+    for (let index = 0; index < levels; index += 1) {
+      expression = `(${expression} + 1)`;
+    }
+
+    return `import stylex from '@stylexjs/stylex';
+
+const BASE = 5;
+
+export const styles = stylex.create({ default: { zIndex: ${expression} } });
+`;
+  };
+
+  test('rsOptions.maxEvaluationDepth raises the compiler ceiling', () => {
+    const { code, metadata } = generateStyleXOutput(
+      resourcePath,
+      deeplyNested(40),
+      { ...rsOptions, maxEvaluationDepth: 256 },
+      undefined,
+      false
+    );
+
+    expect(code).not.toContain('stylex.create');
+    // 5 + 40, so the value is one only the whole descent produces.
+    expect(metadata.stylex.map(([, rule]) => rule.ltr).join('')).toContain('z-index:45');
+  });
+
+  test('the same source refuses at the default ceiling', () => {
+    // The guard on the case above: without it, a `maxEvaluationDepth` that was
+    // silently dropped would look identical to one that worked.
+    expect(() =>
+      generateStyleXOutput(resourcePath, deeplyNested(40), { ...rsOptions }, undefined, false)
+    ).toThrow(/too deeply nested/);
+  });
+
   test('an explicit rsOptions.sourceMap wins over the bundler setting', () => {
     const { map } = generateStyleXOutput(
       resourcePath,

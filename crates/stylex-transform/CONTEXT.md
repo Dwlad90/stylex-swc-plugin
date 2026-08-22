@@ -141,18 +141,19 @@ from a literal, a spread or a computed key.
 _Avoid_: property order, insertion order, key sorting
 
 **Object method receiver**:
-What the argument of `Object.keys`/`values`/`entries` reads as. Three answers
-rather than two, because an absent object spells two opposite things: a receiver
-that is not an object contributes no own keys and folds to `[]`, as
-`Object.keys(5)` does, while a receiver that cannot be read at all refuses.
-Answering `[]` for the second would write a shorter list into the stylesheet than
-the source describes. Two reasons reach the refusal and it does not distinguish
-them: an element with no expression form, and a nullish receiver, which has no
-`ToObject` for the question to be asked of. A [folded function
-map](#folded-function-map) is a receiver like any other and reads through its
-object form, because a value classified as "not an object" by one of the three
-readers of own keys and as an object by the other two is how `Object.keys` came
-to answer `[]` for a map the same compiler spreads correctly.
+What the argument of `Object.keys`/`values`/`entries` reads as. Four answers, not
+two, because an absent object spells three different things: a receiver that is
+not an object contributes no own keys and folds to `[]`, as `Object.keys(5)`
+does; one holding an element with no expression form refuses, since answering
+`[]` would write a shorter list into the stylesheet than the source describes;
+and a nullish receiver refuses under the sentence the language itself raises,
+which complains about the receiver rather than about the list. The last two
+differ in nothing but that sentence, and the sentence is the whole of what a
+refused build hands an author. A [folded function map](#folded-function-map) is a
+receiver like any other and reads through its object form, because a value
+classified as "not an object" by one of the three readers of own keys and as an
+object by the other two is how `Object.keys` came to answer `[]` for a map the
+same compiler spreads correctly.
 _Avoid_: object argument, keys source
 
 **Winning operand**:

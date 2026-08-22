@@ -465,15 +465,11 @@ pub(in super::super) fn evaluate(
                       &arg.expr,
                       traversal_state,
                       Rc::clone(&state.functions),
-                    ) {
-                      ObjectMethodReceiver::Object(object) => Some(object),
-                      ObjectMethodReceiver::NoOwnKeys => None,
-                      ObjectMethodReceiver::Unreadable => {
-                        deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE)
-                      },
-                      ObjectMethodReceiver::Nullish => {
-                        deopt_unsupported!(path, state, NULLISH_TO_OBJECT)
-                      },
+                    )
+                    .into_own_keys()
+                    {
+                      Ok(object) => object,
+                      Err(reason) => deopt_unsupported!(path, state, reason),
                     };
 
                     if let Some(object) = object {
@@ -517,15 +513,11 @@ pub(in super::super) fn evaluate(
                       &arg.expr,
                       traversal_state,
                       Rc::clone(&state.functions),
-                    ) {
-                      ObjectMethodReceiver::Object(object) => Some(object),
-                      ObjectMethodReceiver::NoOwnKeys => None,
-                      ObjectMethodReceiver::Unreadable => {
-                        deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE)
-                      },
-                      ObjectMethodReceiver::Nullish => {
-                        deopt_unsupported!(path, state, NULLISH_TO_OBJECT)
-                      },
+                    )
+                    .into_own_keys()
+                    {
+                      Ok(object) => object,
+                      Err(reason) => deopt_unsupported!(path, state, reason),
                     };
 
                     if let Some(object) = object {
@@ -565,15 +557,11 @@ pub(in super::super) fn evaluate(
                       &arg.expr,
                       traversal_state,
                       Rc::clone(&state.functions),
-                    ) {
-                      ObjectMethodReceiver::Object(object) => Some(object),
-                      ObjectMethodReceiver::NoOwnKeys => None,
-                      ObjectMethodReceiver::Unreadable => {
-                        deopt_unsupported!(path, state, ILLEGAL_PROP_ARRAY_VALUE)
-                      },
-                      ObjectMethodReceiver::Nullish => {
-                        deopt_unsupported!(path, state, NULLISH_TO_OBJECT)
-                      },
+                    )
+                    .into_own_keys()
+                    {
+                      Ok(object) => object,
+                      Err(reason) => deopt_unsupported!(path, state, reason),
                     };
 
                     let mut entries: IndexMap<Lit, Box<Expr>> = IndexMap::new();

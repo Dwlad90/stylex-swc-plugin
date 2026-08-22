@@ -1711,6 +1711,14 @@
       "origin": "issue #1266, ticket 40, found while measuring every receiver",
       "expected": "acceptance-divergent",
       "note": "Divergent in this compiler's favour. `Object.keys([, 'p'])` is `['1']` -- a hole has no key of its own -- and that is what this answers. Upstream aborts the module with `Unexpected error:`, reading the hole as a node and failing on it."
+    },
+    {
+      "id": "modules-1266-object-values-of-a-single-config",
+      "label": "`Object.values` and `Object.entries` of a single folded config",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport { keyframes, firstThatWorks } from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  values: { fontFamily: `x${Object.values(keyframes)}y` },\n});\n",
+      "origin": "issue #1266, ticket 40, the half of the single-config receiver that does not fold",
+      "expected": "acceptance-divergent",
+      "note": "`Object.keys` of a single config folds and agrees -- both compilers answer `fn` -- and the value at that key is the function the config wraps. A function's `ToString` is its source text, and this evaluator keeps none, so it refuses. Divergent deliberately: upstream answers the source text of its own implementation, which hashes a class name off text no author wrote and no two versions of the compiler spell alike. A refusal is loud where that is silent. Kept as a row so the choice is measured rather than assumed, and so the day either side moves it reports."
     }
   ]
 }

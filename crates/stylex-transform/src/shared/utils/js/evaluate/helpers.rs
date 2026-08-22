@@ -77,19 +77,21 @@ pub(super) fn normalize_js_object_method_args(
 
 /// What an `Object.keys`/`values`/`entries` receiver reads as.
 ///
-/// Three answers rather than two, because "no own keys" and "cannot be read"
-/// are both spelled by an absent object and mean opposite things:
+/// Four answers, because "no own keys" and the two ways of having no list at
+/// all are each spelled by an absent object and mean different things:
 /// `Object.keys(5)` is `[]` in JavaScript and folds, while a receiver holding
 /// an element with no expression form has to refuse — answering `[]` there
-/// would write a shorter list into the stylesheet than the source describes.
+/// would write a shorter list into the stylesheet than the source describes —
+/// and a nullish receiver has to refuse under a different sentence, because
+/// the language's own complaint is about the receiver rather than the list.
 pub(super) enum ObjectMethodReceiver {
   /// Read as an object carrying these properties.
   Object(ObjectLit),
   /// Not an object, so it contributes no own keys. `Object.keys(5)` is `[]`.
   ///
-  /// A primitive only. `null` and `undefined` are the two values with no own
-  /// keys *and* no object to ask -- `Object.keys(null)` throws rather than
-  /// answering `[]` -- so they are `Unreadable` below, not this.
+  /// A primitive with a wrapper only. `null` and `undefined` are the two values
+  /// with no own keys *and* no object to ask -- `Object.keys(null)` throws
+  /// rather than answering `[]` -- so they are `Nullish` below, not this.
   NoOwnKeys,
   /// An element has no expression form, so the receiver cannot be read at all
   /// and the caller refuses rather than answering a short list.
@@ -100,6 +102,28 @@ pub(super) enum ObjectMethodReceiver {
   /// their *array* holds something it cannot would go looking in the wrong
   /// place.
   Nullish,
+}
+
+impl ObjectMethodReceiver {
+  /// The own-key-carrying object this receiver reads as, or the sentence to
+  /// refuse with.
+  ///
+  /// `Ok(None)` is a receiver with no own keys, which folds to the empty list.
+  ///
+  /// Here rather than at the call sites for the reason
+  /// [`normalize_object_method_receiver`] is one function rather than three:
+  /// `Object.keys`, `values` and `entries` each read a receiver and each has to
+  /// refuse the same one for the same reason. Spelled out per site, adding an
+  /// answer to the classification meant three identical edits and three chances
+  /// to make two of them.
+  pub(super) fn into_own_keys(self) -> Result<Option<ObjectLit>, &'static str> {
+    match self {
+      Self::Object(object) => Ok(Some(object)),
+      Self::NoOwnKeys => Ok(None),
+      Self::Unreadable => Err(ILLEGAL_PROP_ARRAY_VALUE),
+      Self::Nullish => Err(NULLISH_TO_OBJECT),
+    }
+  }
 }
 
 /// Reads the receiver of `Object.keys`, `Object.values` or `Object.entries`,

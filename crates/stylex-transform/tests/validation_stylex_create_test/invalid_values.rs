@@ -2856,3 +2856,37 @@ stylex_test_panic!(
     export const styles = stylex.create({ a: { content: `x${Object.entries(NOTHING)}y` } });
   "#
 );
+
+// `Object.values` and `Object.entries` of a *single* fold, where `Object.keys`
+// of the same receiver folds. The keys are names -- `fn`, which both compilers
+// spell alike -- and the value at that key is the function the config wraps. A
+// function's `ToString` is its source text, and this evaluator keeps none, so
+// there is nothing to write.
+//
+// Divergent, deliberately: upstream answers the source text of its *own*
+// implementation, and interpolating a compiler's internals into a stylesheet
+// hashes a class name off text no author wrote and no version of the compiler
+// spells the same way. A refusal is loud where that is silent. Recorded as
+// `modules-1266-object-values-of-a-single-config`, and pinned here rather than
+// in `object_own_keys` because the passing half of that receiver lives there.
+stylex_test_panic!(
+  object_values_of_a_single_config_is_refused,
+  "Expected a string value but received a non-string expression.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { keyframes } from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: { fontFamily: `x${Object.values(keyframes)}y` } });
+  "#
+);
+
+stylex_test_panic!(
+  object_entries_of_a_single_config_is_refused,
+  "Expected a string value but received a non-string expression.",
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import { firstThatWorks } from '@stylexjs/stylex';
+
+    export const styles = stylex.create({ a: { fontFamily: `x${Object.entries(firstThatWorks)}y` } });
+  "#
+);

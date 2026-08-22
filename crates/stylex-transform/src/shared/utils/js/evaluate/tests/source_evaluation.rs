@@ -210,6 +210,25 @@ pub(crate) fn assert_folds_to_number(source: &str, expected: f64) {
   }
 }
 
+/// Asserts the source folds to `NaN`.
+///
+/// Its own assertion because `NaN != NaN`, so the equality
+/// [`assert_folds_to_number`] makes can never hold for it.
+#[track_caller]
+pub(crate) fn assert_folds_to_nan(source: &str) {
+  match assert_folds(source) {
+    Expr::Lit(Lit::Num(num)) => {
+      assert!(
+        num.value.is_nan(),
+        "expected `{}` to fold to NaN, got {}",
+        source,
+        num.value
+      )
+    },
+    other => panic!("expected `{}` to fold to a number, got {:?}", source, other),
+  }
+}
+
 /// The same, with the depth ceiling raised for a source whose subject is depth.
 #[track_caller]
 pub(crate) fn assert_folds_to_number_with_ceiling(

@@ -533,18 +533,26 @@ stylex_test_panic!(
 // The label reaches the author from the numeric coercion too, which reports
 // through a `Result` rather than through the evaluation state.
 //
-// The other of the two that diverge, and the wider one: the reference
-// implementation does not reject this at all — it folds `-({})` to `NaN` and
-// emits `width:NaNpx`. Refusing rather than writing `NaN` into a stylesheet is
-// the judgement recorded in issue 02, not something this change introduced;
-// what is pinned here is only that the refusal names the operand.
+// `-({})` used to be the case pinned here, refused on the judgement that `NaN`
+// should not be written into a stylesheet even though the reference
+// implementation folds it and emits `width:NaNpx`. That judgement was not one
+// this compiler kept anywhere else: `height:NaNpx`, `color:NaNpx`, `opacity:NaN`
+// and `font-family:aNaNb` are all asserted elsewhere in this suite, one of them
+// specifically to say that a `NaN` reached by arithmetic agrees with upstream.
+// The refusal was `expr_to_num` bailing on an `ObjectExpression` rather than a
+// policy, so it folds now, and the fold is pinned in
+// `transform_stylex_create_test::unary_operand_kinds`.
+//
+// A builtin argument still reaches the author through the same `Result`, so what
+// this pins -- that the refusal names the shape it could not read -- is kept on
+// the case that still refuses.
 stylex_test_panic!(
-  a_negated_object_names_the_operand,
+  an_unreadable_builtin_argument_names_the_operand,
   "Expression is not a number: ObjectExpression",
   r#"
     import * as stylex from '@stylexjs/stylex';
 
-    const styles = stylex.create({ x: { width: -({}) } });
+    const styles = stylex.create({ x: { width: Math.abs({}) } });
   "#
 );
 

@@ -21,8 +21,19 @@ pub(in super::super) fn evaluate(
 
   let argument = &unary.arg;
 
-  if unary.op == UnaryOp::TypeOf && (argument.is_fn_expr() || argument.is_class()) {
-    return Some(EvaluateResultValue::Expr(create_string_expr("function")));
+  // Answered without folding the operand: `typeof` never evaluates a function,
+  // and folding one would answer for its body rather than for its kind. All
+  // three spellings, because an arrow is neither of the other two -- it used to
+  // fall through, fold to a callback, and then be refused for having no
+  // expression form, where the language says `"function"`. Read through the
+  // parentheses a function expression in a value position has to be written
+  // with, which the fold unwraps but this check runs ahead of.
+  if unary.op == UnaryOp::TypeOf {
+    let bare = normalize_expr(argument);
+
+    if bare.is_fn_expr() || bare.is_class() || bare.is_arrow() {
+      return Some(EvaluateResultValue::Expr(create_string_expr("function")));
+    }
   }
 
   let arg = evaluate_cached(argument, state, traversal_state, fns);
@@ -53,45 +64,108 @@ pub(in super::super) fn evaluate(
     return Some(EvaluateResultValue::Expr(create_bool_expr(!value)));
   }
 
-  // Every operator below reads a primitive out of the operand, which only the
-  // expression form carries.
-  let EvaluateResultValue::Expr(arg) = arg else {
-    deopt_unsupported!(&create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
-  };
+  // `typeof` reads the operand's *kind*, which every evaluated value has,
+  // rather than a primitive out of it -- so it is answered off the value like
+  // `!` is, and before the expression-form guard below.
+  if unary.op == UnaryOp::TypeOf {
+    let Some(arg_type) = type_of(&arg) else {
+      deopt_unsupported!(
+        &create_unary_expr(unary),
+        state,
+        // A kind this evaluator has no reading of. Named as the expression it
+        // could not read where there is one to name, so the message says which
+        // shape stopped it rather than only that something did.
+        &match &arg {
+          EvaluateResultValue::Expr(expr) => unsupported_expression(get_expr_node_kind(expr)),
+          _ => ILLEGAL_PROP_VALUE.to_string(),
+        }
+      );
+    };
+
+    return Some(EvaluateResultValue::Expr(create_string_expr(arg_type)));
+  }
 
   match unary.op {
-    UnaryOp::Plus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| v),
-    UnaryOp::Minus => evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| -v),
-    UnaryOp::Tilde => {
-      evaluate_unary_numeric(&arg, state, traversal_state, fns, |v| (!(v as i64)) as f64)
-    },
-    UnaryOp::TypeOf => {
-      let arg_type = match &arg {
-        Expr::Lit(Lit::Str(_)) => "string",
-        Expr::Lit(Lit::Bool(_)) => "boolean",
-        Expr::Lit(Lit::Num(_)) => "number",
-        Expr::Lit(Lit::Null(_)) => "object",
-        Expr::Fn(_) => "function",
-        Expr::Class(_) => "function",
-        Expr::Ident(ident) if is_js_undefined(ident) => "undefined",
-        Expr::Object(_) => "object",
-        Expr::Array(_) => "object",
-        // Every other expression kind is one `typeof` would answer for at
-        // runtime and this evaluator has no reading of, so it refuses rather
-        // than guessing a type name.
-        _ => deopt_unsupported!(
-          &create_unary_expr(unary),
-          state,
-          &unsupported_expression(get_expr_node_kind(&arg))
-        ),
-      };
-
-      Some(EvaluateResultValue::Expr(create_string_expr(arg_type)))
-    },
+    UnaryOp::Plus => evaluate_unary_numeric_of(unary, &arg, state, traversal_state, fns, |v| v),
+    UnaryOp::Minus => evaluate_unary_numeric_of(unary, &arg, state, traversal_state, fns, |v| -v),
+    UnaryOp::Tilde => evaluate_unary_numeric_of(unary, &arg, state, traversal_state, fns, |v| {
+      (!(v as i64)) as f64
+    }),
     _ => deopt(
       &create_unary_expr(unary),
       state,
       &unsupported_operator(unary.op.as_str()),
     ),
   }
+}
+
+/// The type name `typeof` answers for an evaluated value, or `None` where the
+/// value's kind cannot be read.
+///
+/// The expression arm is the primitive table; every variant the evaluator has of
+/// its own stands for an object or a function upstream, which is the same
+/// classification the `ToObject` bridge makes, so it is asked rather than
+/// restated.
+fn type_of(value: &EvaluateResultValue) -> Option<&'static str> {
+  let EvaluateResultValue::Expr(expr) = value else {
+    return match evaluate_result_to_js_object(value)? {
+      coercions::ObjectCoercion::Function => Some("function"),
+      _ => Some("object"),
+    };
+  };
+
+  match expr {
+    Expr::Lit(Lit::Str(_)) => Some("string"),
+    Expr::Lit(Lit::Bool(_)) => Some("boolean"),
+    Expr::Lit(Lit::Num(_)) => Some("number"),
+    Expr::Lit(Lit::Null(_)) => Some("object"),
+    Expr::Fn(_) => Some("function"),
+    Expr::Class(_) => Some("function"),
+    Expr::Arrow(_) => Some("function"),
+    Expr::Ident(ident) if is_js_undefined(ident) => Some("undefined"),
+    Expr::Object(_) => Some("object"),
+    Expr::Array(_) => Some("object"),
+    // Every other expression kind is one `typeof` would answer for at runtime
+    // and this evaluator has no reading of, so it refuses rather than guessing
+    // a type name.
+    _ => None,
+  }
+}
+
+/// `ToNumber` over an evaluated operand, then the operator's arithmetic.
+///
+/// Two readings, in this order because each can do what the other cannot.
+/// `expr_to_num` resolves an identifier through its binding and folds a binary
+/// expression, neither of which is a coercion; the number bridge reaches an
+/// object or an array through its primitive string form, which `expr_to_num`
+/// bails on. Requiring only the first refused `-({})`, `+({})`, `~({})` and
+/// `-[1, 2, 3]`, all four of which upstream folds.
+fn evaluate_unary_numeric_of(
+  unary: &UnaryExpr,
+  arg: &EvaluateResultValue,
+  state: &mut EvaluationState,
+  traversal_state: &mut StateManager,
+  fns: &FunctionMap,
+  transform: impl FnOnce(f64) -> f64,
+) -> Option<EvaluateResultValue> {
+  let value = match arg {
+    EvaluateResultValue::Expr(expr) => match expr_to_num(expr, state, traversal_state, fns) {
+      Ok(value) => Some(value),
+      // Kept as the refusal's wording where the bridge has nothing to add, so
+      // an operand with no numeric reading still names its own shape.
+      Err(error) => match evaluate_result_to_js_number(arg) {
+        Some(value) => Some(value),
+        None => deopt_unsupported!(&create_unary_expr(unary), state, error.to_string().as_str()),
+      },
+    },
+    _ => evaluate_result_to_js_number(arg),
+  };
+
+  let Some(value) = value else {
+    deopt_unsupported!(&create_unary_expr(unary), state, ILLEGAL_PROP_VALUE);
+  };
+
+  Some(EvaluateResultValue::Expr(create_number_expr(transform(
+    value,
+  ))))
 }

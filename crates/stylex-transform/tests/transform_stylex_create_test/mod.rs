@@ -20,3 +20,4 @@ mod string_coercion;
 mod string_concatenation;
 mod template_interpolation;
 mod truthiness_table;
+mod unary_operand_kinds;

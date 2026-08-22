@@ -304,10 +304,21 @@ fn an_expression_kind_with_no_fold_refuses() {
 }
 
 #[test]
-fn a_unary_operator_over_a_value_with_no_numeric_reading_refuses() {
-  for source in ["-({})", "+({})", "~({})", "-[1, 2, 3]"] {
-    assert_deopts(source);
-  }
+fn a_unary_operator_reads_a_number_out_of_an_operand_with_no_expression_form() {
+  // These used to refuse, on the reasoning that `-` and `~` read a primitive
+  // "which only the expression form carries". They read `ToNumber`, which has
+  // its own bridge and reaches an object or an array through its primitive
+  // string form exactly as the language does. Every value below is
+  // `@stylexjs/babel-plugin@0.19.0`'s: it folds all four, to `z-index:NaN` for
+  // the three whose string form is not numeric and to `z-index:-1` for `~({})`,
+  // whose `ToNumber` is `NaN` and whose `~NaN` is `-1`.
+  assert_folds_to_nan("-({})");
+  assert_folds_to_nan("+({})");
+  assert_folds_to_nan("-[1, 2, 3]");
+  assert_folds_to_number("~({})", -1.0);
+  assert_folds_to_number("-[1]", -1.0);
+  assert_folds_to_number("+[]", 0.0);
+  assert_folds_to_number("~[]", -1.0);
 
   assert_folds_to_number("-5", -5.0);
   assert_folds_to_number("+\"5\"", 5.0);
@@ -577,12 +588,13 @@ fn names_the_value_a_refusal_arrived_with() {
 /// had to move with the panic/deopt split.
 #[test]
 fn names_an_expression_with_no_numeric_reading() {
-  for source in ["-({})", "Math.abs({})", "+({})", "~({})"] {
-    assert_deopt_reason(
-      source,
-      "[StyleX] Expression is not a number: ObjectExpression",
-    );
-  }
+  // The unary operators used to be here too. They read `ToNumber` now, which an
+  // object has, so they fold rather than refuse -- as upstream does. A builtin
+  // argument is still refused, and still names the shape it could not read.
+  assert_deopt_reason(
+    "Math.abs({})",
+    "[StyleX] Expression is not a number: ObjectExpression",
+  );
 }
 
 /// A logical operator names the operand that refused, not the operator. The

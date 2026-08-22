@@ -55,7 +55,10 @@ fn every_unfoldable_shape_survives_every_logical_operand_position() {
     "Object.fromEntries(1)",
     "({}).hasOwnProperty(\"a\")",
     "tag`x`",
-    "-({})",
+    // A unary operator over an operand that does not fold. `-({})` used to sit
+    // here, but it folds to `NaN` now, through the same `ToNumber` upstream
+    // reaches it by -- so the unfoldable part has to be the operand.
+    "-this",
     "({ ...unknownThing })",
   ];
 

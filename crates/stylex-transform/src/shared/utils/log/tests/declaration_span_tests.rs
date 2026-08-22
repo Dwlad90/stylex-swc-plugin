@@ -1,0 +1,357 @@
+//! What [`find_declaration_span`] answers for each shape a name can be declared
+//! in, and for the shapes that declare nothing.
+//!
+//! Each case asserts the *text* the span covers rather than a byte offset, so a
+//! failure reads as "it underlined the wrong thing" and the expectation can be
+//! compared against `@stylexjs/babel-plugin`'s own code frame, which is what
+//! these positions exist to agree with.
+
+use super::*;
+
+use swc_core::{
+  common::{FileName, SourceMap, sync::Lrc},
+  ecma::{
+    ast::EsVersion,
+    parser::{Parser, StringInput, Syntax, TsSyntax, lexer::Lexer},
+  },
+};
+
+fn parse(source: &str) -> Module {
+  let source_map: Lrc<SourceMap> = Default::default();
+  let source_file = source_map.new_source_file(FileName::Anon.into(), source.to_owned());
+  let lexer = Lexer::new(
+    Syntax::Typescript(TsSyntax {
+      tsx: true,
+      ..Default::default()
+    }),
+    EsVersion::EsNext,
+    StringInput::from(&*source_file),
+    None,
+  );
+
+  match Parser::new_from(lexer).parse_module() {
+    Ok(module) => module,
+    Err(error) => panic!("failed to parse the fixture: {:?}", error),
+  }
+}
+
+/// The source text `name`'s declaration span covers.
+///
+/// Each fixture is parsed into a source map of its own, whose first byte is
+/// `BytePos(1)`, so a span's offset into the fixture is one less than its `lo`.
+#[track_caller]
+fn declaration_text(source: &str, name: &str) -> String {
+  let span = find_declaration_span(&parse(source), &Atom::from(name));
+
+  assert!(
+    !span.is_dummy(),
+    "nothing was found declaring `{name}` in:\n{source}"
+  );
+
+  let start = span.lo.0 as usize - 1;
+  let end = span.hi.0 as usize - 1;
+
+  match source.get(start..end) {
+    Some(text) => text.to_owned(),
+    None => panic!("the span {span:?} is not a character range of the fixture"),
+  }
+}
+
+/// The 1-based line `name`'s declaration is framed at, which is what a code
+/// frame prints and what the two compilers are compared on.
+#[track_caller]
+fn declaration_line(source: &str, name: &str) -> usize {
+  let span = find_declaration_span(&parse(source), &Atom::from(name));
+
+  assert!(
+    !span.is_dummy(),
+    "nothing was found declaring `{name}` in:\n{source}"
+  );
+
+  source[..span.lo.0 as usize - 1].matches('\n').count() + 1
+}
+
+#[track_caller]
+fn declares_nothing(source: &str, name: &str) {
+  let span = find_declaration_span(&parse(source), &Atom::from(name));
+
+  assert!(
+    span.is_dummy(),
+    "`{name}` is not declared in the fixture, but a span was found for it:\n{source}"
+  );
+}
+
+// ── the four shapes upstream's `binding.path` can be ────────────────────────
+
+/// Upstream frames the declarator, not the `const` keyword: measured on 0.19.0,
+/// a refused `const c = 'red'` carries a caret over `c = 'red'`.
+#[test]
+fn a_variable_is_framed_at_its_declarator() {
+  for keyword in ["const", "let", "var"] {
+    let source = format!("{keyword} c = 'red';\n");
+
+    assert_eq!(declaration_text(&source, "c"), "c = 'red'");
+  }
+}
+
+#[test]
+fn a_variable_with_no_initializer_is_framed_at_its_name() {
+  assert_eq!(declaration_text("let c;\n", "c"), "c");
+}
+
+/// Upstream's caret covers the whole `function f() {}`, so this does too.
+#[test]
+fn a_function_declaration_is_framed_whole() {
+  assert_eq!(
+    declaration_text("function f() { return 1; }\n", "f"),
+    "function f() { return 1; }"
+  );
+}
+
+#[test]
+fn a_class_declaration_is_framed_whole() {
+  assert_eq!(declaration_text("class K {}\n", "K"), "class K {}");
+}
+
+/// An import is framed at the specifier rather than at the whole `import`
+/// statement, which is what upstream's `binding.path` is: one statement declares
+/// several names, and only the specifier says which of them was refused.
+/// Measured on 0.19.0 for the named and default shapes.
+#[test]
+fn an_import_is_framed_at_its_specifier() {
+  let named = "import { token } from './vars.stylex.js';\n";
+  let aliased = "import { token as alias } from './vars.stylex.js';\n";
+  let default_import = "import vars from './vars.stylex.js';\n";
+  let namespace = "import * as vars from './vars.stylex.js';\n";
+
+  assert_eq!(declaration_text(named, "token"), "token");
+  assert_eq!(declaration_text(aliased, "alias"), "token as alias");
+  assert_eq!(declaration_text(default_import, "vars"), "vars");
+  assert_eq!(declaration_text(namespace, "vars"), "* as vars");
+}
+
+/// A statement importing several names frames the one that was refused, not the
+/// first one it declares.
+#[test]
+fn one_import_statement_frames_the_specifier_that_was_refused() {
+  let source = "import { first, second, third } from './vars.stylex.js';\n";
+
+  assert_eq!(declaration_text(source, "second"), "second");
+}
+
+// ── every other binding position ────────────────────────────────────────────
+
+#[test]
+fn a_destructured_name_is_framed_at_the_declarator_that_binds_it() {
+  let object = "const { a, c } = theme;\n";
+  let renamed = "const { token: c } = theme;\n";
+  let array = "const [first, c] = pair;\n";
+  let rest = "const { a, ...c } = theme;\n";
+  let nested = "const { outer: { c } } = theme;\n";
+  let defaulted = "const { c = 'red' } = theme;\n";
+
+  assert_eq!(declaration_text(object, "c"), "{ a, c } = theme");
+  assert_eq!(declaration_text(renamed, "c"), "{ token: c } = theme");
+  assert_eq!(declaration_text(array, "c"), "[first, c] = pair");
+  assert_eq!(declaration_text(rest, "c"), "{ a, ...c } = theme");
+  assert_eq!(declaration_text(nested, "c"), "{ outer: { c } } = theme");
+  assert_eq!(declaration_text(defaulted, "c"), "{ c = 'red' } = theme");
+}
+
+#[test]
+fn a_parameter_is_framed_at_the_parameter() {
+  assert_eq!(declaration_text("const f = (c) => c;\n", "c"), "c");
+  assert_eq!(declaration_text("function f(c) { return c; }\n", "c"), "c");
+}
+
+#[test]
+fn a_catch_binding_is_framed_at_the_binding() {
+  assert_eq!(declaration_text("try { f(); } catch (c) {}\n", "c"), "c");
+}
+
+#[test]
+fn a_loop_binding_is_framed_at_the_binding() {
+  assert_eq!(
+    declaration_text("for (const c of values) { f(c); }\n", "c"),
+    "c"
+  );
+}
+
+/// A class *expression* is not a `ClassDecl`, so the name it binds is the
+/// declarator's, and that is what gets framed.
+#[test]
+fn a_class_expression_is_framed_at_its_declarator() {
+  assert_eq!(
+    declaration_text("const K = class {};\n", "K"),
+    "K = class {}"
+  );
+}
+
+// ── what declares nothing ───────────────────────────────────────────────────
+
+#[test]
+fn a_name_the_module_only_reads_declares_nothing() {
+  declares_nothing("export const styles = create({ x: { color: c } });\n", "c");
+}
+
+#[test]
+fn an_object_key_is_not_a_declaration() {
+  declares_nothing("const theme = { c: 'red' };\n", "c");
+}
+
+#[test]
+fn a_member_assignment_target_is_not_a_declaration() {
+  declares_nothing("[holder.c] = pair;\n", "c");
+}
+
+/// A default value is an expression, and an expression can hold bindings of its
+/// own. The declarator binds `a`; the arrow's parameter is not what `c` names,
+/// so `c` resolves to the parameter itself rather than to the declarator.
+#[test]
+fn a_default_values_own_parameter_does_not_claim_the_declarator() {
+  let source = "const { a = (c) => c } = theme;\n";
+
+  assert_eq!(declaration_text(source, "a"), "{ a = (c) => c } = theme");
+  assert_eq!(declaration_text(source, "c"), "c");
+}
+
+#[test]
+fn an_empty_module_declares_nothing() {
+  declares_nothing("", "c");
+}
+
+#[test]
+fn a_module_of_only_comments_declares_nothing() {
+  declares_nothing("// c is discussed but never declared\n", "c");
+}
+
+// ── which declaration wins ──────────────────────────────────────────────────
+
+/// The chain resolves bindings module-wide with no scope of its own, so a name
+/// declared twice has no second binding for it to prefer. The first in source
+/// order is the answer, which keeps it the same whichever reference asked.
+#[test]
+fn the_first_declaration_in_source_order_wins() {
+  let source = "\
+const c = 'red';
+function inner() {
+  const c = 'blue';
+  return c;
+}
+";
+
+  assert_eq!(declaration_line(source, "c"), 1);
+}
+
+#[test]
+fn a_declaration_below_the_read_is_still_found() {
+  let source = "\
+export const styles = create({ x: { color: c } });
+const c = 'red';
+";
+
+  assert_eq!(declaration_line(source, "c"), 2);
+}
+
+#[test]
+fn a_deeply_nested_declaration_is_found() {
+  let source = "\
+function outer() {
+  if (true) {
+    for (;;) {
+      switch (1) {
+        default: {
+          try {
+            const c = 'red';
+          } finally {
+          }
+        }
+      }
+    }
+  }
+}
+";
+
+  assert_eq!(declaration_line(source, "c"), 7);
+}
+
+// ── inputs that are unusual rather than wrong ───────────────────────────────
+
+/// Byte offsets are what a span carries, and a multi-byte character makes a
+/// count of characters and a count of bytes different numbers. The span has to
+/// be a character range of the source or slicing it panics.
+#[test]
+fn a_declaration_after_multibyte_characters_keeps_a_character_range() {
+  let source = "\
+const σ = 'λλλλ';
+const c = 'red';
+";
+
+  assert_eq!(declaration_text(source, "c"), "c = 'red'");
+  assert_eq!(declaration_line(source, "c"), 2);
+}
+
+#[test]
+fn a_name_spelled_with_non_ascii_characters_is_found() {
+  assert_eq!(declaration_text("const λ = 'red';\n", "λ"), "λ = 'red'");
+}
+
+/// An escaped identifier is the same name to the language, and the parser
+/// resolves the escape before this sees it — so the declaration is found, and
+/// framed over the text as it is written.
+#[test]
+fn an_escaped_identifier_is_the_name_it_spells() {
+  assert_eq!(
+    declaration_text("const \\u0063 = 'red';\n", "c"),
+    "\\u0063 = 'red'"
+  );
+}
+
+#[test]
+fn a_name_that_only_differs_by_case_is_not_the_declaration() {
+  declares_nothing("const C = 'red';\n", "c");
+}
+
+/// A name is not a substring match: `color` does not declare `col`.
+#[test]
+fn a_longer_name_containing_the_one_asked_for_declares_nothing() {
+  declares_nothing("const color = 'red';\n", "col");
+}
+
+/// The last declaration of a long module is still reached, and reached without
+/// the walk growing a stack frame per statement it passes.
+#[test]
+fn a_declaration_at_the_end_of_a_long_module_is_found() {
+  let mut source = String::new();
+  for index in 0..5_000 {
+    source.push_str(&format!("const n{index} = {index};\n"));
+  }
+  source.push_str("const c = 'red';\n");
+
+  assert_eq!(declaration_line(&source, "c"), 5_001);
+}
+
+/// A pattern nested a thousand deep is recursion this walks rather than
+/// iterates, so it is pinned: the answer is the declarator, and getting there
+/// does not overflow the stack.
+#[test]
+fn a_deeply_nested_pattern_is_walked_to_the_bottom() {
+  let depth = 500;
+  let source = format!(
+    "const {}c{} = theme;\n",
+    "{ outer: ".repeat(depth),
+    " }".repeat(depth)
+  );
+
+  assert_eq!(declaration_line(&source, "c"), 1);
+}
+
+/// A name declared only inside TypeScript syntax the transform strips is not a
+/// value binding. The production module reaching this is already stripped, and
+/// a fixture that is not agrees: a type parameter is not a declaration a code
+/// frame should be pointed at.
+#[test]
+fn a_type_only_name_declares_no_value() {
+  declares_nothing("type c = string;\n", "c");
+  declares_nothing("interface c { a: string }\n", "c");
+}

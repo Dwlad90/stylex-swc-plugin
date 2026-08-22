@@ -541,6 +541,21 @@ All StyleX errors follow this format in the terminal:
 [Stack trace]: internal/source/location #shown only when STYLEX_DEBUG >= info
 ```
 
+A refusal about a _binding_ points at the line that binding was declared on,
+not at the line the style read it from — the declaration is the line you have to
+change, and it is the line `@stylexjs/babel-plugin` names for the same input:
+
+```js
+let color = 'red'; //         <-- the frame points here
+color = 'blue';
+export const styles = create({ box: { color } }); // not here
+```
+
+That covers a reassigned or mutated binding, a read above its own declaration, a
+`function` or `class` used as a value, a default or unresolvable theme import,
+and a global name a module took over. A reference that names nothing points at
+the read, since there is no declaration to name.
+
 Errors are color-coded for readability:
 
 | Category                   | Label             | Color         |

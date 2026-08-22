@@ -313,6 +313,19 @@ which memoizes the _answers_ this index is asked for, keyed by the lookup rather
 than by the key.
 _Avoid_: namespace key index, key map, position table
 
+**Framed declaration**:
+The binding a refusal is _about_, recorded so its code frame names the line that
+binding was declared on rather than the line it was read from — which is what
+`@stylexjs/babel-plugin` frames, and the line an author has to go and change. A
+name is recorded rather than a position: a span from this compiler's parse
+indexes this compiler's source map, while the frame's positions live in the one
+it built for the file, so the name is resolved against the module the frame
+re-parsed. Recorded per refused expression, because a refused dynamic style falls
+through to an inline style instead of stopping the build, and a later diagnostic
+must not inherit an earlier refusal's position. A name that module does not
+declare falls back to locating the read.
+_Avoid_: deopt span, declaration span cache, reported position
+
 **Call lookup**:
 The half of a key-span lookup that belongs to the `stylex.create` _call_ rather
 than to one of its namespaces: the sibling keys every namespace of that call

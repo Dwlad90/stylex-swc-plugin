@@ -32,7 +32,10 @@ use crate::shared::{
     key_span_index::{CallLookup, NamespaceKeyQuery},
     state_manager::StateManager,
   },
-  utils::ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
+  utils::{
+    ast::convertors::{convert_concat_to_tpl_expr, convert_simple_tpl_to_str_expr},
+    log::declaration_span::find_declaration_span,
+  },
 };
 use stylex_regex::regex::URL_REGEX;
 use stylex_utils::hash::stable_hash_wide;
@@ -247,7 +250,15 @@ fn get_span_from_source_code_impl(
   target_expression: &Expr,
   state: &mut StateManager,
 ) -> Result<(CodeFrame, Span), Error> {
-  let cache_key = compute_cache_key(target_expression);
+  // A refusal about a binding is reported against that binding's declaration --
+  // see `frame_declaration_of` -- and the two answers for one expression are
+  // different positions, so they are cached under different keys.
+  let framed_declaration = framed_declaration_of(target_expression, state);
+  let cache_key = match framed_declaration.as_ref() {
+    Some(name) => compute_declaration_cache_key(compute_cache_key(target_expression), name),
+    None => compute_cache_key(target_expression),
+  };
+
   let file_name = FileName::Custom(state.get_filename().to_owned());
 
   // Check cache first - avoid expensive AST operations if we've seen this before
@@ -264,13 +275,53 @@ fn get_span_from_source_code_impl(
     state,
     &file_name,
     &code_frame,
-    |module| find_expression_span(module, target_expression),
+    |module| match framed_declaration.as_ref() {
+      // A name the module does not declare after all falls back to the
+      // expression: the declaration search reads the *re-parsed* module, whose
+      // text can be the compiled module printed back out rather than the file
+      // the reference was resolved against.
+      Some(name) => match find_declaration_span(module, name) {
+        declaration if declaration.is_dummy() => find_expression_span(module, target_expression),
+        declaration => declaration,
+      },
+      None => find_expression_span(module, target_expression),
+    },
   )?;
 
   // Cache the result for future lookups
   state.insert_cached_span(cache_key, span);
 
   Ok((code_frame, span))
+}
+
+/// Records that the refusal raised on `fault_expression` is about the binding
+/// `name`, so [`get_span_from_source_code`] frames that binding's declaration.
+///
+/// The declaration's own span cannot be handed over instead. It indexes the
+/// compiler's source map, and the frame's positions are in its own -- see
+/// `declaration_span`, which is where the name is turned back into a position.
+///
+/// Recorded against the expression rather than as a single "current refusal",
+/// because a refusal is not always the end of a build: a dynamic style's value
+/// falls through to an inline style, and a later diagnostic about something else
+/// must not be pointed at this binding.
+pub(crate) fn frame_declaration_of(name: &Atom, fault_expression: &Expr, state: &mut StateManager) {
+  state.frame_declaration(compute_cache_key(fault_expression), name.clone());
+}
+
+/// The binding a refusal on `fault_expression` was recorded against, if one was.
+///
+/// The read side of [`frame_declaration_of`], and the only one: hashing the
+/// expression is what the two have to agree on, so neither spells the key. A
+/// build that refused nothing answers without hashing at all.
+pub(crate) fn framed_declaration_of(fault_expression: &Expr, state: &StateManager) -> Option<Atom> {
+  if !state.has_framed_declarations() {
+    return None;
+  }
+
+  state
+    .framed_declaration(compute_cache_key(fault_expression))
+    .cloned()
 }
 
 /// Computes a cache key for an expression based on its type and structure.
@@ -282,6 +333,16 @@ fn get_span_from_source_code_impl(
 /// standing behind it.
 fn compute_cache_key(expr: &Expr) -> u128 {
   stable_hash_wide(&(std::mem::discriminant(expr), expr))
+}
+
+/// The key for the *declaration* answer about an expression, mixed from the
+/// expression's own key and the name being framed.
+///
+/// Separate from [`compute_cache_key`] so the two answers for one expression
+/// cannot overwrite each other: the same read is annotated at its own position
+/// on the debug path and at its binding's declaration when it is refused.
+fn compute_declaration_cache_key(expression_key: u128, name: &Atom) -> u128 {
+  stable_hash_wide(&("stylex-declaration-span:v1", expression_key, name))
 }
 
 /// Finds the span of a style namespace by its **key** inside the parsed

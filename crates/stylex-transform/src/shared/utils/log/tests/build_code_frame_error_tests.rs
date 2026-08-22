@@ -8,6 +8,7 @@ use std::{
   },
 };
 
+use swc_core::atoms::Atom;
 use swc_core::common::{BytePos, DUMMY_SP, FileName, GLOBALS, Globals, Span, SyntaxContext};
 use swc_core::ecma::ast::{
   CallExpr, Callee, Expr, ExprOrSpread, Ident, ImportDecl, ImportNamedSpecifier, ImportSpecifier,
@@ -17,8 +18,8 @@ use swc_core::ecma::ast::{
 use crate::shared::{
   structures::{key_span_index::CallLookup, state_manager::StateManager},
   utils::log::build_code_frame_error::{
-    CodeFrame, build_code_frame_error_and_panic, get_key_span_from_source_code,
-    get_span_from_source_code, print_module,
+    CodeFrame, build_code_frame_error_and_panic, frame_declaration_of,
+    get_key_span_from_source_code, get_span_from_source_code, print_module,
   },
 };
 use stylex_ast::ast::{
@@ -368,5 +369,131 @@ fn panic_reports_real_message_for_multibyte_source() {
     !message.contains("char boundary"),
     "panic must not be replaced by a char-boundary slicing panic, got: {}",
     message
+  );
+}
+
+/// A refused reference, and the ident the evaluator hands the frame for it.
+fn reference(name: &str) -> Expr {
+  Expr::Ident(Ident::new(name.into(), DUMMY_SP, SyntaxContext::empty()))
+}
+
+#[track_caller]
+fn framed_line(target: &Expr, state: &mut StateManager) -> Option<usize> {
+  let result = GLOBALS.set(&Globals::default(), || {
+    get_span_from_source_code(target, target, state)
+  });
+
+  match result {
+    Ok((code_frame, span)) => code_frame.try_get_span_line_number(span),
+    Err(error) => panic!("failed to get source span: {error}"),
+  }
+}
+
+/// A refusal about a binding is framed at the binding's declaration, which is
+/// the line the author has to go and change and the line
+/// `@stylexjs/babel-plugin` prints. Measured on 0.19.0: for a reassigned
+/// `let c = 'red'` on line 1, upstream frames line 1 and not the read on line 3.
+///
+/// This is the whole point of the plumbing, and the only assertion that can see
+/// it: a `stylex_test_panic!` matches the message, and the position is written
+/// separately.
+#[test]
+fn a_refusal_about_a_binding_is_framed_at_its_declaration() {
+  let source = "\
+let c = 'red';
+c = 'blue';
+export const styles = create({ x: { color: c } });
+";
+  let path = write_fixture("framed_declaration.tsx", source);
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  assert_eq!(
+    framed_line(&target, &mut state),
+    Some(3),
+    "the read is framed while nothing says otherwise"
+  );
+
+  let mut state = state_for_fixture(&path);
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  assert_eq!(
+    framed_line(&target, &mut state),
+    Some(1),
+    "a refusal about `c` must be framed at the declaration of `c`"
+  );
+}
+
+/// The two answers about one expression are cached apart. Asking for the read's
+/// own position after a refusal recorded a declaration — the order the debug
+/// path and a refusal can arrive in within one module — must not hand back the
+/// declaration's line, or a style would be annotated with another line's number.
+#[test]
+fn the_declaration_and_the_read_are_cached_apart() {
+  let source = "\
+let c = 'red';
+c = 'blue';
+export const styles = create({ x: { color: c } });
+";
+  let path = write_fixture("framed_declaration_cache.tsx", source);
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  assert_eq!(framed_line(&target, &mut state), Some(1));
+  // Cached now, and asked again the same way.
+  assert_eq!(framed_line(&target, &mut state), Some(1));
+
+  let other = reference("unrelated");
+  assert_eq!(
+    framed_line(&other, &mut state),
+    None,
+    "an expression with no declaration recorded and no match in the source \
+     must resolve nothing rather than inherit a cached position"
+  );
+}
+
+/// The declaration search reads the module the frame re-parsed, which is not
+/// always the module the reference was resolved against. A name it does not
+/// declare falls back to locating the expression, rather than reporting no
+/// position at all.
+#[test]
+fn a_name_the_source_does_not_declare_falls_back_to_the_read() {
+  let source = "export const styles = create({ x: { color: c } });\n";
+  let path = write_fixture("framed_declaration_missing.tsx", source);
+  let mut state = state_for_fixture(&path);
+  let target = reference("c");
+
+  frame_declaration_of(&Atom::from("c"), &target, &mut state);
+
+  assert_eq!(
+    framed_line(&target, &mut state),
+    Some(1),
+    "the read's own line is a better answer than none"
+  );
+}
+
+/// Recording one refusal's declaration must not move an unrelated diagnostic. A
+/// dynamic style's refused value falls through to an inline style rather than
+/// stopping the build, so a second, unrelated position can be asked for
+/// afterwards.
+#[test]
+fn a_recorded_declaration_does_not_move_an_unrelated_diagnostic() {
+  let source = "\
+let c = 'red';
+c = 'blue';
+const other = 'blue';
+export const styles = create({ x: { color: c, background: other } });
+";
+  let path = write_fixture("framed_declaration_unrelated.tsx", source);
+  let mut state = state_for_fixture(&path);
+
+  frame_declaration_of(&Atom::from("c"), &reference("c"), &mut state);
+
+  assert_eq!(
+    framed_line(&reference("other"), &mut state),
+    Some(4),
+    "the unrelated read keeps its own position"
   );
 }

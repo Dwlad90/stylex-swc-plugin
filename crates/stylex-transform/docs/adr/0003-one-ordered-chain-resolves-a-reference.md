@@ -174,31 +174,56 @@ is not one. Deopting on every identifier passed as an argument would disable
 evaluation for nearly every StyleX module, so it stays a known unsoundness,
 accepted rather than overlooked, and it is accepted identically by both probes.
 
-**A refusal reports against the reference; upstream reports against the
-declaration.** Upstream deopts on `binding.path` at lines 626, 647, 653, 657,
-661, 665 and 673, and on the reference only at 687. So its code frame names the
-line the binding was _declared_ on, which is the line a reader has to go and
-change, while every step here names the line it was read from. Measured on
-0.19.0: for `create({x:{color:c}})` above `const c = 'red'`, upstream frames the
-`const` and this frames the `create`.
+**A refusal reports against the declaration, as upstream does.** Upstream deopts
+on `binding.path` at lines 626, 647, 653, 657, 661, 665 and 673, and on the
+reference only at 687. So its code frame names the line the binding was
+_declared_ on, which is the line a reader has to go and change; only the tail
+refusal names the read. Every step here does the same, and the declaration-kind
+refusal at the tail does too — upstream reaches that one through
+`evaluateCached(path.resolve())`, whose argument is the declaration, which is why
+its frame prints the `function` line rather than the read.
 
-Recording the declaration's node instead was tried, and does not close it. The
-frame does not use the span it is handed. `find_expression_span` re-parses the
-module and searches it for the first node `eq_ignore_span`-equal to the recorded
-expression, so an ident re-spanned onto the declaration still matches the read
-first and prints the same line — the position is re-derived from the module, not
-carried. Closing this means giving the frame a span to trust instead of an
-expression to search for, which is a change to the code-frame plumbing rather
-than to this chain, and it is not made here.
+What is recorded is the binding's **name**, not its position. A `Span` from this
+compiler's parse indexes this compiler's source map; the code frame owns another,
+built from the text it registered for the file, so the same byte offset means
+something else in each. `utils::log::declaration_span` therefore finds the
+declaration in the module the frame already re-parsed — the same trade
+`key_span_index` makes for namespace keys, and it survives an earlier loader
+having rewritten the values. An ident re-spanned onto the declaration does not
+work, and was tried: `find_expression_span` searches for the first node
+`eq_ignore_span`-equal to the recorded expression, and `eq_ignore_span` ignores
+spans by definition, so the read still matches first.
 
-Two things follow. The divergence is diagnostic only: both compilers refuse the
-same inputs with the same message, and only the framed line differs. And nothing
-in the suites can see it — a `stylex_test_panic!` matches the message while the
-frame is written separately, and the parity corpus compares verdicts and
-messages rather than positions, which is why it went unnoticed until the two
-implementations were read side by side. What guards it now is a unit test on the
-node each refusal carries, whose doc says why carrying a different one would not
-be enough.
+The name is recorded against the refused expression rather than as one "current
+refusal", because a refusal is not always the end of a build: a dynamic style's
+refused value falls through to an inline style, so a later diagnostic about
+something else must not inherit this binding's position.
+
+Measured against 0.19.0, this compiler now frames the same line _and column_ for
+every shape:
+
+| Input                                         | Both frame                    |
+| --------------------------------------------- | ----------------------------- |
+| `let c = 'red'; c = 'blue'` read below        | `2:5` — `c = 'red'`           |
+| `const o = {…}; o.c = 'blue'` read below      | `2:7` — the declarator        |
+| a read above `const c = 'red'`                | `3:7` — the declarator        |
+| `import vars from './vars.stylex.js'`         | `2:8` — `vars`                |
+| `import { token } from 'no-such-package/…'`   | `2:10` — `token`              |
+| `let NaN;` read as `zIndex`                   | `2:5` — `NaN`                 |
+| `function f() {}` / `class K {}` read below   | `2:1` — the whole declaration |
+| a namespace-imported token (the tail refusal) | the read                      |
+
+A name the re-parsed module does not declare falls back to locating the
+expression: the frame's text is not always the text the reference was resolved
+against, and the read's own line is a better answer than none.
+
+Nothing in the transform suites could see any of this. A `stylex_test_panic!`
+matches the message and the frame is written separately, and the parity corpus
+compares verdicts and messages with the text that says _where_ removed — which
+is why the divergence survived until the two implementations were read side by
+side. The guards are therefore split in two: `resolution_order.rs` pins which
+binding each refusal names, and the code frame's own suite pins the line that
+name resolves to.
 
 **The mutation probe over-approximates, and knowingly.** `add_target_root_write`
 walks a member chain to its root, so `obj.a.b = 1` and `state.items.push(…)` both

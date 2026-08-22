@@ -65,6 +65,15 @@ fn reads_before_its_declaration(reference: &Ident, declaration: Span) -> bool {
 /// differ only in which one a diagnostic points at, and each step keeps the one
 /// it reported against before this chain had a home of its own.
 ///
+/// Every step but the last reports against the *declaration*, which is what
+/// upstream's `deopt(binding.path, …)` does at 626, 647, 653, 657, 661, 665 and
+/// 673 — so a refused build sends the reader to the line they have to change
+/// rather than to a read that is correct as written. `deopt_at_declaration`
+/// records the binding's name for the code frame to resolve; the reasoning for
+/// recording a name rather than a span is on `utils::log::declaration_span`. The
+/// tail refusal at 687 stays on the reference, as upstream's does, because a
+/// reference that resolved to itself has no declaration to name.
+///
 /// The steps, in `evaluate-path.js` 0.19.0 order:
 ///
 /// 1. an import specifier resolves to a theme reference (599-650) — a *named*
@@ -114,7 +123,15 @@ pub(super) fn resolve_reference(
       // the rest of the chain and lands on `UNDEFINED_CONST`, which deopts a
       // second time. The first refusal wins on both sides, so the fall-through
       // is unobservable; returning here says so.
-      ImportSpecifier::Default(_) => return deopt(path, state, IMPORT_FILE_EVAL_ERROR),
+      ImportSpecifier::Default(_) => {
+        return deopt_at_declaration(
+          path,
+          &ident.sym,
+          state,
+          traversal_state,
+          IMPORT_FILE_EVAL_ERROR,
+        );
+      },
 
       ImportSpecifier::Named(named) => Some(
         named
@@ -161,7 +178,13 @@ pub(super) fn resolve_reference(
           evaluate_theme_ref(&value, imported_name, traversal_state)
         },
         ImportPathResolution::Unresolved => {
-          return deopt(path, state, IMPORT_PATH_RESOLUTION_ERROR);
+          return deopt_at_declaration(
+            path,
+            &ident.sym,
+            state,
+            traversal_state,
+            IMPORT_PATH_RESOLUTION_ERROR,
+          );
         },
       };
 
@@ -234,12 +257,12 @@ pub(super) fn resolve_reference(
 
   // ── 3. a reassigned binding is not a constant (656-658) ───────────────────
   if declared && traversal_state.has_binding_reassignment(ident) {
-    return deopt(path, state, NON_CONSTANT);
+    return deopt_at_declaration(path, &ident.sym, state, traversal_state, NON_CONSTANT);
   }
 
   // ── 4. a binding mutated in place is not a constant (660-662) ─────────────
   if declared && traversal_state.has_binding_mutation(ident) {
-    return deopt(path, state, NON_CONSTANT);
+    return deopt_at_declaration(path, &ident.sym, state, traversal_state, NON_CONSTANT);
   }
 
   let declarator = get_var_decl_by_ident(ident, traversal_state, &state.functions);
@@ -251,7 +274,13 @@ pub(super) fn resolve_reference(
   if let Some(declarator) = declarator.as_ref()
     && reads_before_its_declaration(ident, declarator.span)
   {
-    return deopt(path, state, USED_BEFORE_DECLARATION);
+    return deopt_at_declaration(
+      path,
+      &ident.sym,
+      state,
+      traversal_state,
+      USED_BEFORE_DECLARATION,
+    );
   }
 
   // And of a hoisted `function` or `class`, which upstream asks here too — its
@@ -267,7 +296,13 @@ pub(super) fn resolve_reference(
       declared.eq_ignore_span(ident) && reads_before_its_declaration(ident, declared.span)
     })
   {
-    return deopt(path, state, USED_BEFORE_DECLARATION);
+    return deopt_at_declaration(
+      path,
+      &ident.sym,
+      state,
+      traversal_state,
+      USED_BEFORE_DECLARATION,
+    );
   }
 
   // ── 6. a binding carrying a folded value (668-669) ────────────────────────
@@ -317,15 +352,21 @@ pub(super) fn resolve_reference(
   // numbers, and a consumer reading the expression's shape cannot see that
   // through an identifier. Only the shadowing question is decided here.
   //
-  // Reported against the reference, where upstream reports against the binding
-  // (line 673) as the steps above now do. The declaration is not available to
-  // report against: `declared_bindings` answers whether a name is bound, keyed
-  // by `Id` with no position, and giving it one would put a `Span` beside every
-  // binding in the module to move a line number in one diagnostic. Left as the
-  // chain's one remaining position divergence rather than paid for.
+  // Reported against the declaration, as upstream reports it (line 673) and as
+  // every step above does. `declared_bindings` has no position to hand over --
+  // it answers whether a name is bound, keyed by `Id` -- and it does not need
+  // one: what a refusal records is the binding's *name*, which the code frame
+  // resolves against the module it re-parses. Measured on 0.19.0: `let NaN;`
+  // above a `zIndex: NaN` frames the `NaN` in the declaration on both sides.
   if let Some(value) = global_identifier_to_value(ident) {
     return if traversal_state.declares_binding(ident) {
-      deopt(path, state, UNINITIALIZED_CONST)
+      deopt_at_declaration(
+        path,
+        &ident.sym,
+        state,
+        traversal_state,
+        UNINITIALIZED_CONST,
+      )
     } else {
       Some(EvaluateResultValue::Expr(value))
     };
@@ -337,19 +378,22 @@ pub(super) fn resolve_reference(
     return evaluate_cached(&init, state, traversal_state, fns);
   }
 
+  // Cloned out of the state, because the refusal below writes to it: a
+  // declaration-kind refusal records the binding whose declaration its frame
+  // names, and the borrow checker cannot hold the declaration lists open across
+  // that write. Two `Vec<Ident>` of the module's `class` and `function` names,
+  // paid for only on the refusal path.
+  let class_names = traversal_state.class_name_declarations().to_vec();
+  let function_names = traversal_state.function_name_declarations().to_vec();
+
   check_ident_declaration(
     ident,
     &[
-      (
-        DeclarationType::Class,
-        traversal_state.class_name_declarations(),
-      ),
-      (
-        DeclarationType::Function,
-        traversal_state.function_name_declarations(),
-      ),
+      (DeclarationType::Class, class_names.as_slice()),
+      (DeclarationType::Function, function_names.as_slice()),
     ],
     state,
+    traversal_state,
     normalized_path,
   )
 }

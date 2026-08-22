@@ -17,6 +17,8 @@ use super::*;
 
 use swc_core::atoms::Atom;
 use swc_core::common::{BytePos, DUMMY_SP, GLOBALS, Globals, Span, SyntaxContext};
+
+use crate::shared::utils::log::build_code_frame_error::framed_declaration_of;
 use swc_core::ecma::ast::{
   BindingIdent, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportPhase,
   ImportSpecifier, ImportStarAsSpecifier, ModuleExportName, Str,
@@ -383,6 +385,20 @@ impl ModuleState {
   /// Evaluates a bare reference to `name` at `reference_span` against this
   /// module.
   fn evaluate(self, name: &str, reference_span: Span) -> Box<EvaluateResult> {
+    self.evaluate_against_the_module(name, reference_span).0
+  }
+
+  /// The same, keeping the module state the evaluation wrote to.
+  ///
+  /// Where a refusal is *reported* is recorded there rather than on the result --
+  /// a code frame is given the binding to frame, not the position, because a
+  /// position from this parse means nothing in the frame's own source map -- so a
+  /// case about the reported position has to read the state back.
+  fn evaluate_against_the_module(
+    self,
+    name: &str,
+    reference_span: Span,
+  ) -> (Box<EvaluateResult>, StateManager) {
     GLOBALS.set(&Globals::new(), || {
       let mut traversal_state = StateManager::new(StyleXOptions::default());
       let reference = ident_in(
@@ -469,7 +485,9 @@ impl ModuleState {
         ..FunctionMap::default()
       };
 
-      evaluate(&Expr::Ident(reference), &mut traversal_state, &functions)
+      let result = evaluate(&Expr::Ident(reference), &mut traversal_state, &functions);
+
+      (result, traversal_state)
     })
   }
 
@@ -983,47 +1001,106 @@ fn an_early_reference_to_a_hoisted_declaration_is_early_rather_than_unsupported(
   );
 }
 
-/// Which node a refusal carries, and so which line its code frame prints.
+/// Which line a refusal's code frame prints — the declaration's, not the read's.
 ///
 /// Upstream deopts on `binding.path` at 626, 647, 653, 657, 661, 665 and 673 —
-/// the *declaration* — and on the reference only at 687. Every step here carries
-/// the reference, so the two compilers frame different lines for the same
-/// refused input. Measured on 0.19.0, `create({x:{color:c}})` above
-/// `const c = 'red'` frames the `const`; this frames the `create`.
+/// the *declaration* — and on the reference only at 687, so its frame names the
+/// line a reader has to go and change. Measured on 0.19.0 and matched to the
+/// column: a reassigned `let c = 'red'` on line 1 read from line 3 frames
+/// `1:5`, which is where the declarator starts.
 ///
-/// Recording the declaration's node instead does not close it, which is worth
-/// pinning so nobody spends the afternoon twice. The frame does not use the span
-/// it is handed: `find_expression_span` re-parses the module and searches it for
-/// the first node `eq_ignore_span`-equal to the recorded expression, so an ident
-/// re-spanned onto the declaration still matches the *read* first and prints the
-/// same line. Closing this means giving the frame a span to trust rather than an
-/// expression to search for, which is a change to the code-frame plumbing and
-/// not to this chain. ADR 0003 carries the reasoning.
+/// What a refusal carries is still the reference, and that is not an oversight.
+/// The frame re-derives every position from the module it re-parses, so a span
+/// from this compiler's parse would be read against the wrong source map; the
+/// binding's *name* is recorded instead, and `utils::log::declaration_span`
+/// turns it back into a position there. This asserts the name, since the
+/// position it becomes belongs to the frame's own suite.
 #[test]
-fn a_refusal_carries_the_reference_and_the_frame_follows_it() {
-  for result in [
-    ModuleState::default()
-      .declared_with(create_string_expr("red"))
-      .evaluate("c", span_at(1, 2)),
-    ModuleState::default()
-      .declared_with(create_string_expr("red"))
-      .reassigned()
-      .evaluate_a_later_reference(),
-    ModuleState::default()
-      .declared_with(create_string_expr("red"))
-      .mutated()
-      .evaluate_a_later_reference(),
-  ] {
-    let reported = result
-      .deopt
-      .as_ref()
-      .expect("a refusal carries the node it reports against");
+fn a_refusal_names_the_binding_whose_declaration_is_framed() {
+  // Each case pairs the name the reference spells with the refusal it triggers.
+  // The framed binding is that same name in every case: what moves is the
+  // position it resolves to, and the position is the frame's own suite.
+  let refusals = [
+    (
+      "an early read",
+      "c",
+      ModuleState::default()
+        .declared_with(create_string_expr("red"))
+        .evaluate_against_the_module("c", span_at(1, 2)),
+    ),
+    (
+      "a reassigned binding",
+      "c",
+      ModuleState::default()
+        .declared_with(create_string_expr("red"))
+        .reassigned()
+        .evaluate_against_the_module("c", LATER_REFERENCE_SPAN),
+    ),
+    (
+      "a mutated binding",
+      "c",
+      ModuleState::default()
+        .declared_with(create_string_expr("red"))
+        .mutated()
+        .evaluate_against_the_module("c", LATER_REFERENCE_SPAN),
+    ),
+    (
+      "a declared global",
+      "NaN",
+      ModuleState::default()
+        .declared_with(create_string_expr("red"))
+        .evaluate_against_the_module("NaN", LATER_REFERENCE_SPAN),
+    ),
+    (
+      "a default import",
+      "c",
+      ModuleState::default()
+        .imported_as(ImportedAs::Default)
+        .evaluate_against_the_module("c", LATER_REFERENCE_SPAN),
+    ),
+    (
+      "a declaration kind",
+      "c",
+      ModuleState::default()
+        .declares_a_function()
+        .evaluate_against_the_module("c", LATER_REFERENCE_SPAN),
+    ),
+  ];
 
-    assert!(
-      matches!(reported, Expr::Ident(_)),
-      "the reference is what is carried, not the declaration"
+  for (label, name, (result, state)) in refusals {
+    let reported = match result.deopt.as_ref() {
+      Some(reported) => reported,
+      None => panic!("{label}: a refusal carries the node it was raised on"),
+    };
+
+    assert_eq!(
+      framed_declaration_of(reported, &state).as_deref(),
+      Some(name),
+      "{label}: the refusal must frame the declaration of the binding it is about"
     );
   }
+}
+
+/// The tail of the chain is upstream's one refusal on the reference (`:687`):
+/// the name resolved to itself, so there is no declaration to name. Measured on
+/// 0.19.0, a namespace-imported token frames the read.
+#[test]
+fn the_last_refusal_frames_the_read_as_upstream_does() {
+  let (result, state) =
+    ModuleState::default().evaluate_against_the_module("c", LATER_REFERENCE_SPAN);
+
+  assert_refused_with(&result, UNDEFINED_CONST);
+
+  let reported = match result.deopt.as_ref() {
+    Some(reported) => reported,
+    None => panic!("a refusal carries the node it was raised on"),
+  };
+
+  assert_eq!(
+    framed_declaration_of(reported, &state),
+    None,
+    "nothing declares the name, so the read is the position"
+  );
 }
 
 // ==================== step 7 — the three globals ====================

@@ -301,6 +301,14 @@ pub(crate) struct CacheState {
   css_property_seen: FxHashMap<String, String>,
   span_cache: FxHashMap<u128, Span>,
   short_filename_cache: FxHashMap<String, String>,
+  /// Per refused expression, the binding whose declaration its code frame
+  /// should point at instead of the expression itself.
+  ///
+  /// Keyed by the expression, not held as one slot, because a refusal is not
+  /// always the end of the build: a dynamic style's value falls through to an
+  /// inline style, so a later, unrelated diagnostic must not inherit an earlier
+  /// refusal's declaration.
+  framed_declarations: FxHashMap<u128, Atom>,
 }
 
 impl CacheState {
@@ -310,6 +318,18 @@ impl CacheState {
 
   fn insert_span(&mut self, cache_key: u128, span: Span) {
     self.span_cache.insert(cache_key, span);
+  }
+
+  fn frame_declaration(&mut self, cache_key: u128, name: Atom) {
+    self.framed_declarations.insert(cache_key, name);
+  }
+
+  fn framed_declaration(&self, cache_key: u128) -> Option<&Atom> {
+    self.framed_declarations.get(&cache_key)
+  }
+
+  fn has_framed_declarations(&self) -> bool {
+    !self.framed_declarations.is_empty()
   }
 
   fn cached_short_filename(&self, absolute_path: &str) -> Option<&str> {
@@ -644,6 +664,27 @@ impl StateManager {
 
   pub(crate) fn insert_cached_span(&mut self, cache_key: u128, span: Span) {
     self.cache.insert_span(cache_key, span);
+  }
+
+  /// Records that the refusal raised on the expression behind `cache_key` is
+  /// about the binding `name`, so its code frame is written against that
+  /// binding's declaration rather than against the read.
+  pub(crate) fn frame_declaration(&mut self, cache_key: u128, name: Atom) {
+    self.cache.frame_declaration(cache_key, name);
+  }
+
+  /// The binding a refusal on the expression behind `cache_key` is about, if one
+  /// was recorded.
+  pub(crate) fn framed_declaration(&self, cache_key: u128) -> Option<&Atom> {
+    self.cache.framed_declaration(cache_key)
+  }
+
+  /// Whether any refusal recorded a declaration to frame.
+  ///
+  /// False for every build that refuses nothing, which is every successful one,
+  /// so the annotation path answers the question without hashing an expression.
+  pub(crate) fn has_framed_declarations(&self) -> bool {
+    self.cache.has_framed_declarations()
   }
 
   /// The `file:line` annotation's short filename for `absolute_path`, if a

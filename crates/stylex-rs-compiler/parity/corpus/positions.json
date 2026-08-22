@@ -1,0 +1,66 @@
+{
+  "set": "positions",
+  "description": "Refusals whose reported position is the thing under test: one per branch of the reference-resolution chain, plus the tail refusal that points at the read. Every one of these is refused by both compilers with the same sentence, so the only thing left to disagree about is where each sends the reader. The unresolvable-import branch is deliberately absent: under the `haste` resolution this harness hands both compilers, neither reaches it -- both refuse the value for its shape instead, and upstream's refusal there carries no code frame at all. That branch is measured in the Rust suite rather than here.",
+  "entries": [
+    {
+      "id": "positions-reassigned-binding",
+      "label": "a reassigned binding",
+      "source": "import * as stylex from '@stylexjs/stylex';\nlet c = 'red';\nc = 'blue';\nexport const styles = stylex.create({ x: { color: c } });\n",
+      "origin": "evaluate-path.js:657 — deopt(binding.path, NON_CONSTANT)",
+      "note": "The caret covers the declarator, `c = 'red'`, not the `let`."
+    },
+    {
+      "id": "positions-mutated-binding",
+      "label": "a binding mutated in place",
+      "source": "import * as stylex from '@stylexjs/stylex';\nconst o = { c: 'red' };\no.c = 'blue';\nexport const styles = stylex.create({ x: { color: o.c } });\n",
+      "origin": "evaluate-path.js:661 — deopt(binding.path, NON_CONSTANT)"
+    },
+    {
+      "id": "positions-read-above-its-declaration",
+      "label": "a read above its own declaration",
+      "source": "import * as stylex from '@stylexjs/stylex';\nexport const styles = stylex.create({ x: { color: c } });\nconst c = 'red';\n",
+      "origin": "evaluate-path.js:665 — deopt(binding.path, USED_BEFORE_DECLARATION)",
+      "note": "The declaration is below the read, so the two positions cannot be confused for one another."
+    },
+    {
+      "id": "positions-default-theme-import",
+      "label": "a default import of a theme file",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport vars from './vars.stylex.js';\nexport const styles = stylex.create({ x: { color: vars } });\n",
+      "origin": "evaluate-path.js:653 — deopt(binding.path, IMPORT_FILE_EVAL_ERROR)"
+    },
+    {
+      "id": "positions-uninitialized-global-name",
+      "label": "a module binding that took a global's name",
+      "source": "import * as stylex from '@stylexjs/stylex';\nlet NaN;\nexport const styles = stylex.create({ x: { zIndex: NaN } });\n",
+      "origin": "evaluate-path.js:673 — deopt(binding.path, UNINITIALIZED_CONST)"
+    },
+    {
+      "id": "positions-function-declaration-as-a-value",
+      "label": "a hoisted function read as a value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nfunction f() {}\nexport const styles = stylex.create({ x: { color: f } });\n",
+      "origin": "evaluate-path.js:687 — evaluateCached(path.resolve()), whose argument is the declaration",
+      "note": "The caret covers the whole `function f() {}` on both sides."
+    },
+    {
+      "id": "positions-class-declaration-as-a-value",
+      "label": "a hoisted class read as a value",
+      "source": "import * as stylex from '@stylexjs/stylex';\nclass K {}\nexport const styles = stylex.create({ x: { color: K } });\n",
+      "origin": "evaluate-path.js:687 — evaluateCached(path.resolve()), whose argument is the declaration"
+    },
+    {
+      "id": "positions-namespace-theme-import",
+      "label": "a namespace-imported token, which points at the read",
+      "source": "import * as stylex from '@stylexjs/stylex';\nimport * as vars from './vars.stylex.js';\nexport const styles = stylex.create({ x: { color: vars.token } });\n",
+      "origin": "evaluate-path.js:687 — deopt(path, UNDEFINED_CONST), the one refusal on the reference",
+      "note": "The reference resolved to itself, so there is no declaration to name and both compilers frame the read."
+    },
+    {
+      "id": "positions-destructured-reassigned-binding",
+      "label": "a reassigned binding declared by destructuring",
+      "source": "import * as stylex from '@stylexjs/stylex';\nlet { a, c } = theme;\nc = 'blue';\nexport const styles = stylex.create({ x: { color: c } });\n",
+      "origin": "measured while closing the position divergence",
+      "note": "A divergence in which refusal is reached, showing up here as a position. This compiler's write probes are guarded by a `VarDeclarator` lookup that matches an identifier pattern only, so a destructured binding misses both and falls to the tail refusal, which frames the read and says `Referenced constant is not defined.` Upstream asks whether a *binding* was written to, reaches NON_CONSTANT, and frames the declarator. Recorded rather than fixed: it is a divergence in the message, and the position follows the message.",
+      "expected": "divergent"
+    }
+  ]
+}

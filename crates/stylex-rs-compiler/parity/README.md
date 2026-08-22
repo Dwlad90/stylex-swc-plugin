@@ -111,10 +111,46 @@ catalog. The subject block prints the version actually resolved, so a report is
 attributable either way — but after a `pnpm update`, read that block before
 comparing against an older report.
 
+### Comparing where a refusal points
+
+Stripping the text that says _where_ is what makes two messages comparable, and
+it leaves the position unmeasured — so a diagnostic naming a line that is correct
+as written reads as agreement here. A refused build hands an author two things,
+and that is the second one.
+
+`pnpm parity:positions` compares it, over `corpus/positions.json`: one subject
+per branch of the reference-resolution chain, each refused by both compilers with
+the same sentence so that the position is all that is left to disagree about.
+Verdicts are `identical`, `divergent`, `no-position` — one side stopped without
+saying where — and `not-refused`. An entry may pin a known divergence with
+`expected`, and the run exits non-zero when an entry's verdict is not what it
+expects, in either direction.
+
+```sh
+pnpm run --filter=@stylexswc/rs-compiler build     # the harness reads dist/
+pnpm run --filter=@stylexswc/rs-compiler parity:positions
+```
+
+Each subject runs in a **child process**, because the two positions arrive in
+different channels: upstream throws its `@babel/code-frame` excerpt inside the
+message, while this compiler writes a code frame to stderr and throws the
+sentence alone. Node cannot redirect its own file descriptor 2 and a native write
+goes straight to it, so capturing that frame means being the parent of the
+process that wrote it. `lib/position.ts` parses both, and every shape either
+compiler produces is pinned in `__tests__/position.test.ts` — a parser that
+silently misreads a frame would turn the whole set green.
+
+The subject is written to `parity/__fixture__/positions.js` while the run lasts,
+because this compiler locates a refusal in the file it names rather than in the
+string it was handed. That path is git-ignored.
+
 ## The corpus
 
 Four checked-in JSON files under `corpus/`, loaded in this order, with
-duplicate subjects collapsed onto the first entry seen:
+duplicate subjects collapsed onto the first entry seen. `positions.json` is a
+fifth, read only by `parity:positions` — its subjects ask where a refusal points
+rather than what either compiler emitted, so running them through the value
+comparison would report nine refusals nobody wrote them to measure:
 
 - **`reported.json`** — the six divergences reported in issue #1256, one entry
   per illustrating value. Hand-written.

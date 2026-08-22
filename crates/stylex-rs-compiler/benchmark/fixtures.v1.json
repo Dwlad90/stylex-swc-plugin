@@ -342,14 +342,14 @@
       }
     },
     {
-      "name": "Feature - source text not read from disk",
+      "name": "Feature - source text read from disk",
       "file": "crates/stylex-rs-compiler/benchmark/perf_fixtures/css-values.js",
       "category": "perf",
       "weight": "standard",
       "batchSize": 1,
       "options": {
         "dev": true,
-        "useRealFileForSource": false
+        "useRealFileForSource": true
       }
     },
     {
@@ -406,7 +406,8 @@
       "weight": "standard",
       "batchSize": 1,
       "options": {
-        "debug": true
+        "debug": true,
+        "enableDebugDataProp": true
       }
     },
     {

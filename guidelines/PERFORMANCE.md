@@ -98,25 +98,27 @@ are an allowlist in `benchmark/lib/types.ts`; a manifest naming anything else
 fails to load rather than being measured under the shared shape while claiming
 otherwise.
 
-**Every key in a fixture's option map must contribute.** The per-entry check
-below is not enough: an entry passes it as soon as _one_ key moves the output,
-which let an entry named for a chained input source map price `dev: true` while
-carrying a map that made no difference at all — nor did a garbage one.
-`fixtures.test.ts` therefore drops one key at a time and requires the output to
-change. Dropping rather than isolating, because keys legitimately combine:
-`enableDebugDataProp` does nothing without `debug`, and `emitSourceMapColumns`
-nothing without a map.
+**Every key in a fixture's option map must change what the compiler emits.** The
+per-entry check below is not enough: an entry passes it as soon as _one_ key
+moves the output, which let an entry named for a chained input source map price
+`dev: true` while carrying a map that made no difference at all — nor did a
+garbage one. `fixtures.test.ts` therefore varies one key at a time.
 
-That check is also how the defaults get found. `enableDebugDataProp` and
-`useRealFileForSource` are already **on** under `debug` and `dev`, so the
-priceable direction for both is `false`, and the pair on one file is what prices
-the annotation or the disk read. Of `enableLogicalStylesPolyfill`,
-`enableLegacyValueFlipping` and `enableLTRRTLComments`, only the middle one
-changes anything on the RTL fixture, so it is the only one registered. The
-chained-input-map path is left unmeasured rather than faked: a map generated
-from the fixture itself maps to the same positions, so the transform emits the
-same module, and pricing it needs a map from an earlier tool that really moved
-the code.
+A boolean key is **flipped**, not dropped, and that is the whole of what the
+check asks. Dropping would reject a key that restates a default —
+`enableDebugDataProp` is already on under `debug`, `useRealFileForSource` under
+`dev` — and an entry is entitled to name the option it exists to measure rather
+than leave a reader to know the defaults. What must not pass is an option the
+compiler does not react to at all, which is what flipping catches. A key whose
+value is not a boolean has no flip and is dropped instead, which is how the
+inert input source map was found.
+
+Of `enableLogicalStylesPolyfill`, `enableLegacyValueFlipping` and
+`enableLTRRTLComments`, only the middle one changes anything on the RTL fixture,
+so it is the only one registered. The chained-input-map path is left unmeasured
+rather than faked: a map generated from the fixture itself maps to the same
+positions, so the transform emits the same module, and pricing it needs a map
+from an earlier tool that really moved the code.
 
 **A fixture's options must change what the compiler emits.** `fixtures.test.ts`
 fails an entry whose emitted module, metadata and source map are identical to

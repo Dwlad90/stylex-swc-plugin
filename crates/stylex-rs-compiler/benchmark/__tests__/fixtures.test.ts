@@ -130,15 +130,21 @@ describe('loadAllFixtures', () => {
 
   // Per *key*, not per entry. The test above passes as soon as one key in a map
   // moves the output, which let an entry named for a chained input source map
-  // price `dev: true` and carry an inert map alongside it — the map made no
-  // difference at all, and a garbage one made none either. Dropping a key and
-  // requiring the output to change is what says every key earns its place.
+  // price `dev: true` while carrying a map that made no difference at all --
+  // nor did a garbage one.
   //
-  // Dropping rather than isolating, because keys legitimately combine:
-  // `enableDebugDataProp` does nothing without `debug`, and
-  // `emitSourceMapColumns` nothing without `sourceMap`. Asked this way, a key
-  // that only matters alongside another still has to matter.
-  test('every option key in a map contributes something', async () => {
+  // A boolean key is *flipped* rather than dropped, and that distinction is the
+  // whole of what this asks. Dropping it would reject a key that restates a
+  // default -- `enableDebugDataProp` is already on under `debug`, and
+  // `useRealFileForSource` under `dev` -- and an entry is entitled to name the
+  // option it exists to measure rather than leave a reader to know the defaults.
+  // What must not happen is an option the compiler does not react to: flipping
+  // it says exactly that, and it is what keeps the four dead keys and the inert
+  // input source map out. Keys that only matter together still pass, since
+  // flipping one leaves the rest in place.
+  //
+  // A key whose value is not a boolean has no flip, so it is dropped instead.
+  test('every option key in a map changes what the compiler emits', async () => {
     const { transform } = await import('../../dist/index.js');
     const base = createStylexOptions(packageDir);
 
@@ -146,22 +152,23 @@ describe('loadAllFixtures', () => {
       const declared = fixture.options;
       if (declared === undefined) continue;
 
-      const full = transform(fixture.filePath, fixture.code, fixtureStylexOptions(fixture, base));
+      const asDeclared = fixtureStylexOptions(fixture, base);
+      const full = transform(fixture.filePath, fixture.code, asDeclared);
 
-      for (const key of Object.keys(declared)) {
-        const withoutKey = Object.fromEntries(
-          Object.entries(declared).filter(([candidate]) => candidate !== key)
-        );
-        const reduced = transform(fixture.filePath, fixture.code, {
-          ...fixtureStylexOptions({ ...fixture, options: {} }, base),
-          ...withoutKey,
-        });
+      for (const [key, value] of Object.entries(declared)) {
+        const varied =
+          typeof value === 'boolean'
+            ? { ...asDeclared, [key]: !value }
+            : Object.fromEntries(
+                Object.entries(asDeclared).filter(([candidate]) => candidate !== key)
+              );
+        const other = transform(fixture.filePath, fixture.code, varied);
 
         expect(
-          full.code === reduced.code &&
-            JSON.stringify(full.metadata) === JSON.stringify(reduced.metadata) &&
-            JSON.stringify(full.map) === JSON.stringify(reduced.map),
-          `${fixture.name} emits the same thing without ${key}, so it prices nothing`
+          full.code === other.code &&
+            JSON.stringify(full.metadata) === JSON.stringify(other.metadata) &&
+            JSON.stringify(full.map) === JSON.stringify(other.map),
+          `${fixture.name} emits the same thing whichever way ${key} is set`
         ).toBe(false);
       }
     }

@@ -55,7 +55,7 @@
       "outputLogs": "errors-only"
     },
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "build"],
       "outputs": ["**/__swc_snapshots__", "**/__snapshots__"],
       "outputLogs": "errors-only"
     },

@@ -133,9 +133,13 @@ pub(super) fn resolve_reference(
       //
       // Resolving one here instead — by synthesizing the reference's own local
       // alias as the export name — is what this arm gives up, and giving it up
-      // is a decision rather than a mirror. ADR 0003 argues it from the
-      // measurement, and `modules-1266-a-namespace-theme-import` is where that
-      // measurement is executed rather than described.
+      // is a decision rather than a mirror: it refuses input that compiled
+      // before. `docs/adr/0007-a-namespace-import-of-a-theme-file-resolves-
+      // nothing.md` argues it from the measurement that removed the trade — the
+      // same token read through both import kinds in one module emitted two
+      // custom properties, one of which nothing defines — and
+      // `modules-1266-a-namespace-theme-import` is where that measurement is
+      // executed rather than described.
       ImportSpecifier::Namespace(_) => None,
     };
 

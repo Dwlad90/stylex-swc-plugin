@@ -1227,6 +1227,29 @@ stylex_test_panic!(
   "#
 );
 
+// The one namespace shape whose *sentence* is not the terminal one. A namespace
+// specifier resolves nothing, so it falls through the chain -- and an alias
+// spelled like one of the three globals meets the globals step (670-683) on the
+// way, which sits ahead of the initializer read. A binding exists for the name,
+// so that step refuses first, with a different message from every other
+// namespace read.
+//
+// Measured on @stylexjs/babel-plugin 0.19.0, which answers
+// `Referenced constant is not initialized.` here and
+// `Referenced constant is not defined.` for every other namespace spelling. Both
+// compilers agree on both sentences, for the same reason in the same order.
+stylex_test_panic!(
+  a_namespace_alias_spelled_like_a_global_is_not_initialized,
+  "Referenced constant is not initialized.",
+  |tr| theme_import_transform(tr.comments.clone()),
+  r#"
+    import * as stylex from '@stylexjs/stylex';
+    import * as NaN from 'colors.stylex.js';
+
+    export const styles = stylex.create({ wrapper: { color: NaN.primary } });
+  "#
+);
+
 // The spelling an author reaching for a namespace import would write: the group
 // named, then the variable. It was refused before this change too, and by a
 // different sentence -- the alias-hashed theme reference answered a string for

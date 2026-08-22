@@ -585,6 +585,38 @@ and re-publish both halves together:
 - snapshot tests asserting class names or rule text
 - visual-regression baselines — rerun `test:visual` and accept the diffs
 
+## A namespace import of a theme file no longer resolves
+
+```js
+import * as tokens from './colors.stylex.js';
+export const styles = stylex.create({ wrapper: { color: tokens.primary } });
+```
+
+This compiled before and is refused now, with
+`Referenced constant is not defined.` — which is what
+`@stylexjs/babel-plugin` 0.19.0 has always answered for it.
+
+**Why the break is worth taking.** What it compiled _to_ was a
+`var(--…)` naming a custom property the theme file never defines, because the
+export name was synthesized from the local alias rather than read from the
+module. A `var()` nothing defines renders as nothing and reports as nothing, so
+these styles were already absent at runtime — the change turns a silent nothing
+into a build error that names the reference. Read the same token through both
+import kinds in one module and the old behaviour emitted two different custom
+properties for it.
+
+**The fix is a named import,** which both compilers resolve:
+
+```js
+import { colors } from './colors.stylex.js';
+export const styles = stylex.create({ wrapper: { color: colors.primary } });
+```
+
+One spelling gets a different message. `import * as NaN from './colors.stylex.js'`
+answers `Referenced constant is not initialized.`, because an alias spelled like
+one of the three globals meets the globals check before the import is read.
+Upstream answers the same, for the same reason.
+
 ## Deliberate divergences from `@stylexjs/babel-plugin`
 
 Five values that upstream accepts are rejected here. Each rejection changes only

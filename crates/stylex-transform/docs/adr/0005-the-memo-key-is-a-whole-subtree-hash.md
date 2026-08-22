@@ -136,6 +136,13 @@ node" across all forty of its arms, changes every key's value, and adds a
 lifetime discipline the fold has to maintain, all for a term the default ceiling
 already bounds at 32 levels. Filed as its own work rather than done here.
 
+Since built and measured, and still rejected — now on the merits.
+[0006](./0006-an-incremental-memo-key-was-built-and-measured-slower.md) has the
+numbers: the curve flattens as predicted (−81% on the fold at 240 levels) and the
+per-node constant doubles, which costs +10% at 30 levels and 14–42% on every
+fixture `evaluate_bench` measures. The scope discipline held; the shape of
+StyleX's input is what does not suit it.
+
 **Key by node identity instead of by structure, as the reference
 implementation does.** `@stylexjs/babel-plugin` 0.19.0 declares
 `seen: Map<t.Node, Result>` and looks up `seen.get(node)`

@@ -11,10 +11,13 @@
 //! That curve is what these benchmarks pin. The default ceiling bounds depth at
 //! 32, so nothing a project writes reaches the interesting part of it -- these
 //! raise the ceiling well past the default on purpose, because the subject is
-//! the shape of the curve rather than the time any real input spends. A future
-//! key composed incrementally from its children's hashes reports here as a
+//! the shape of the curve rather than the time any real input spends. A key
+//! composed incrementally from its children's hashes reports here as a
 //! flattened curve; one that keeps the whole-subtree walk reports as the same
-//! one.
+//! one. That comparison has been run: the composed key flattens this curve and
+//! costs 14-42% on every fixture `evaluate_bench` measures, which is
+//! `docs/adr/0006-an-incremental-memo-key-was-built-and-measured-slower.md` and
+//! is why this group still reports the quadratic.
 //!
 //! The counted, machine-independent half of the same measurement lives in
 //! `stylex_utils`' `key_cost_scaling_tests`, which pins the node walk in bytes

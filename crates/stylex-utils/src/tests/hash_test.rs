@@ -896,12 +896,17 @@ mod unspanned_fast_path_tests {
 /// proportional to the nodes it visits and does not vary with the machine, the
 /// build profile, or the load. A change to the key that keeps the curve reports
 /// as the same numbers; one that flattens it -- an incremental key composed from
-/// its children's, the open question these cases exist to measure -- reports as
-/// a changed law, which is exactly what a future reader needs to see. Nothing
-/// here asserts a *hash value*: only how much of the tree the walk touched.
+/// its children's -- reports as a changed law, which is exactly what a future
+/// reader needs to see. Nothing here asserts a *hash value*: only how much of
+/// the tree the walk touched.
 ///
-/// Why the key is not being flattened is
+/// Why the key is a whole-subtree hash is
 /// `stylex-transform/docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md`.
+/// The incremental key was built against these cases and measured slower on
+/// every real fixture, which is
+/// `stylex-transform/docs/adr/0006-an-incremental-memo-key-was-built-and-measured-slower.md`;
+/// a reader restating this module in nodes rather than bytes should start from
+/// the patch that ADR points at.
 #[cfg(test)]
 mod key_cost_scaling_tests {
   use super::{arithmetic_tower, key_cost};

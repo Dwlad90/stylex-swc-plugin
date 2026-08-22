@@ -82,9 +82,11 @@ fn evaluate_cached_within_budget(
   // Walks the whole remaining subtree, at every level, and is therefore nearly
   // all of what folding a deep expression costs -- the memo that exists to avoid
   // repeated work pays for the subtree to decide whether it can avoid it. Left
-  // that way deliberately: the numbers, and why an incremental key is a
-  // correctness question rather than a refactor, are
-  // `docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md`.
+  // that way deliberately: the numbers are
+  // `docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md`, and the incremental
+  // key that would remove the quadratic was built, measured 14-42% slower on
+  // every real fixture, and not kept --
+  // `docs/adr/0006-an-incremental-memo-key-was-built-and-measured-slower.md`.
   //
   // The lookup below acts on the key *alone* -- no `eq_ignore_span` confirms it,
   // unlike the JSX-spread bucket -- so the key's width is what stands between a

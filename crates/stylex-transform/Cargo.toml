@@ -74,6 +74,10 @@ name = "evaluate_depth_bench"
 
 [[bench]]
 harness = false
+name = "module_path_bench"
+
+[[bench]]
+harness = false
 name = "transform_debug_bench"
 
 [lints]

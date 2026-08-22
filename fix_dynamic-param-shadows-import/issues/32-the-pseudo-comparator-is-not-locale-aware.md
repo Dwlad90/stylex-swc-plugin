@@ -163,3 +163,46 @@ at-rule has a use for either. Measured on `@supports (--ü: 1)` against
 The `default`-first branch in `string_comparator` is confirmed unreachable from
 a key path and kept, with a case that says what it did so a reader deleting it
 has to delete the statement too.
+
+### Correction: the first pass of this fix under-covered ASCII
+
+The account above says the comparator is "the ASCII half of root collation" and
+that everything still divergent is non-ASCII. **That was wrong**, and a review
+caught it before the work was called done. Case folding fixes the letters and
+nothing else: root collation ranks symbols below digits below letters, and a
+folded byte comparison only agrees with that for symbols whose byte is below
+`0x30`. Measured against Babel 0.19.0, nine of twelve probe pairs diverged --
+`:z` / `:~`, `:1` / `:@`, `:_a` / `:-a`, `[data-x]` / `[data_x]`,
+`[a~=b]` / `[ay]` among them. Attribute selectors join the sortable run, so
+`[data-x]` beside `[data_x]` is reachable without trying.
+
+**The fix now carries a weight table**, `ASCII_PRIMARY_ORDER`, read out of
+`localeCompare` itself by sorting the 95 printable ASCII characters with it:
+
+```
+" _-,;:!?.'\"()[]{}@*/\\&#%`^+<=>|~$0123456789" + letters, a letter's two cases
+sharing one rank
+```
+
+Not byte order anywhere: `_` leads `-`, `$` trails every other symbol, and
+`{ | } ~` weigh below every letter although their bytes are above every one.
+Case stays a tiebreak on top of it, and length still settles ahead of case.
+
+**Validated rather than reasoned.** The model was checked against
+`localeCompare` on **200 000 random ASCII pairs** and on every pair drawn from a
+list of realistic condition keys: **zero disagreements**. The four transform
+cases added for it -- `:~`/`:z`, `:@`/`:1`, `[data_x]`/`[data-x]`, and three
+attribute matchers -- were each read back out of Babel and agree byte for byte
+on the class name.
+
+**What is left is smaller and stated correctly**: every character the table does
+not name -- a control character, `DEL`, and every byte of a non-ASCII character
+-- ranks above every character it does. Five measured divergences, all one rule.
+`nothing_outside_printable_ascii_is_weighed` and the cases at the end of
+`nested_pseudo_ordering` pin them.
+
+The lesson worth keeping: "the ASCII half" was a plausible-sounding boundary
+that had not been probed at its edges. The pairs that broke it took one script
+to find, and the reason none of the existing suite caught it is that every
+degenerate key already pinned there differs from its neighbour at a character
+below `0x30`, where byte order and root collation happen to agree.

@@ -37,18 +37,18 @@ subtree is O(1), which is the whole of the tower case.
 - [x] Add the scoped cache and prove the scope discipline: a case where a level
       synthesizes an expression, a sibling level allocates over it, and the two
       must not share a key
-- [x] Confirm the collision resistance did not drop. Two consumers act on a hash
+- [ ] Confirm the collision resistance did not drop. Two consumers act on a hash
       hit alone (34), so a mixing function weaker than the current SipHash walk
       is a wrong fold rather than a slower one
 - [x] Re-measure `benches/evaluate_depth_bench.rs` — both groups. The curve
       flattening is the whole claim
-- [x] Re-measure the JSX-spread bucket, carried over from 29: it keys off the
+- [ ] Re-measure the JSX-spread bucket, carried over from 29: it keys off the
       same hash and is not reached through `evaluate_cached`, so it gains the new
       values without the new cache and has to be shown not to have lost anything
 - [x] Update `key_cost_scaling_tests`, whose asserted ~4× ratio is a statement
       about the current key. It should become a statement about the new one, not
       be deleted
-- [x] Re-run `bench:revisions` plus `bench:verdict` on a real project, since the
+- [ ] Re-run `bench:revisions` plus `bench:verdict` on a real project, since the
       point of the change is a curve nothing in this workspace's fixtures reaches
 
 ## Answer
@@ -115,3 +115,34 @@ what that gate is for. If the decision is ever reopened, run it then.
 input shape that is deep rather than wide -- not a fresh reading of the same
 quadratic. The variant to build in that case is named in the ADR: compose only
 when the ceiling is raised past the crossover, and stream otherwise.
+
+### Three boxes left unticked, and why
+
+They were ticked in the first pass and are wrong; a review caught it. An `[x]`
+beside work that was not done is the one thing a later reader will trust
+wrongly, so they are back to `[ ]` with the reason recorded here.
+
+- **Confirm the collision resistance did not drop.** ADR 0006 argues that
+  composition mixes 128-bit digests with the same xxh3 construction, and argues
+  *against* a cheaper mix. Neither is a confirmation. Nothing was measured, and
+  nothing needed to be once the change was not landing.
+- **Re-measure the JSX-spread bucket.** Not done. It keys off the same hash and
+  is not reached through `evaluate_cached`, so it would have gained the new
+  values without the new cache -- which is exactly why 29 carried it here, and
+  it is the box that would matter most if this were ever revisited.
+- **Re-run `bench:revisions` plus `bench:verdict` on a real project.** Not run,
+  for the reason in the Answer above: six of eight fixtures are already past
+  that gate's 20% fail threshold on a cheaper harness that agrees with it in
+  direction. Sound as a reason to stop; not a reason to call the box done.
+
+All three belong to a change that was reverted, so nothing ships behind them.
+They are the work a future attempt inherits.
+
+### One correction to the archived patch
+
+`33-composed-key.patch` contains doc comments pointing at
+`0006-the-memo-key-is-composed-and-its-cache-is-scoped.md` -- the ADR name the
+change would have shipped under had it landed. The file that exists is
+`0006-an-incremental-memo-key-was-built-and-measured-slower.md`. The patch is an
+artefact of the attempt rather than something that applies cleanly today; anyone
+re-applying it should expect to rewrite those references.

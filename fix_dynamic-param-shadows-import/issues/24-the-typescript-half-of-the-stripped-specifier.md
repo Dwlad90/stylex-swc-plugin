@@ -72,7 +72,7 @@ wrong emit at worst.
 
 Measure that before choosing, the way 22 measured its three.
 
-- [x] The re-insertion mechanism is measured against the whole suite
+- [ ] The re-insertion mechanism is measured against the whole suite
 - [x] A decision is recorded: close the gap, or record the `.ts` answer as
       intended and say so in the compiler's docs rather than only in a test
 - [x] `__test__/importElision.spec.ts::a TypeScript module keeps the elision`
@@ -84,6 +84,15 @@ The `.ts` answer is recorded as intended, in the compiler's docs rather than
 only in a test. The re-insertion mechanism was costed rather than built, because
 costing it turned up a hazard that disqualifies it before a suite run could say
 anything, and a second reason that argues against closing the gap at all.
+
+### The first box is left unticked
+
+It asked for the mechanism to be *measured against the whole suite*, and it was
+not: it was costed, and the costing disqualified it before a suite run could say
+anything. That is a good reason to stop and not a reason to call the box done,
+so it stays `[ ]`. The decision the second box asks for is genuinely recorded,
+and it does not depend on the suite run -- the second reason below stands on its
+own even if the mechanism were made safe.
 
 ### The mechanism fails on what it re-inserts
 

@@ -556,13 +556,25 @@ const EPSILON: f64 = 0.01;
 
 /// The interval a single constraint imposes on its dimension.
 ///
-/// The arithmetic is `f64` even though `Length` stores `f32`, because the
-/// nudge is what makes a negated bound exclusive: at widths past roughly
-/// 2^24 an `f32` cannot represent `value - 0.01` as anything but `value`, so
-/// the exclusion silently disappears and a contradiction such as
+/// The bounds this returns are not a private comparison aid: `merge_dimension`
+/// intersects them and emits the survivors as the query's own `min-` and
+/// `max-` values, so whatever arithmetic happens here is read back out as
+/// text and hashed into a class name. That is why the width matters twice
+/// over -- once for which comparisons the merge sees, and once for the digits
+/// an author reads in the stylesheet.
+///
+/// The nudge is what makes a negated bound exclusive, and it is the half that
+/// is easiest to lose: at widths past roughly 2^24, single precision cannot
+/// represent `value - 0.01` as anything but `value`, so the exclusion
+/// disappears and a contradiction such as
 /// `(min-width: 1e7px) and (not (min-width: 1e7px))` reads back as the
-/// satisfiable `width == 1e7px`. Emission narrows to `f32` again, so this only
-/// affects which comparisons the merge sees, never the printed value.
+/// satisfiable `width == 1e7px`. The other half is ordinary fractional
+/// authoring: `28.81 - 0.01` is `28.799999999999997`, which is the number a
+/// double holds and the number the official compiler emits.
+///
+/// `Length` holds an `f64`, so both halves come from the type rather than
+/// from a conversion here. This function is where the reasoning lives, not
+/// where the width is established.
 fn constraint_interval(bound: Bound, length: &Length, negated: bool) -> (f64, f64) {
   let value = length.value;
 

@@ -2519,9 +2519,11 @@ fn parenthesized_expression_main_branch_missing_close_paren() {
 // ---------------------------------------------------------------------------
 
 /// The 0.01 nudge that makes a negated bound exclusive has to survive the
-/// merge. `Length` stores an `f32`, where `1e7 - 0.01` rounds straight back to
-/// `1e7`, so an `f32` merge reads this contradiction as the satisfiable
-/// `width == 1e7px` and emits a rule that matches.
+/// merge. In single precision `1e7 - 0.01` rounds straight back to `1e7`, so
+/// the exclusion disappears and this contradiction reads as the satisfiable
+/// `width == 1e7px`, emitting a rule that matches. `Length` holds an `f64`
+/// now, so the nudge survives by the type rather than by the merge widening
+/// it for the length of a comparison.
 #[test]
 fn negated_bound_at_a_width_f32_cannot_nudge_is_still_a_contradiction() {
   let parsed = MediaQuery::parser()
@@ -2531,8 +2533,8 @@ fn negated_bound_at_a_width_f32_cannot_nudge_is_still_a_contradiction() {
   assert_eq!(parsed.to_string(), "@media not all");
 }
 
-/// The nudge still prints as authored at the widths people write, so widening
-/// the merge to `f64` does not move any existing bound.
+/// The nudge still prints as authored at the widths people write, so the
+/// widening moves no bound that was already correct.
 #[test]
 fn nudged_bounds_keep_their_authored_precision() {
   let parsed = MediaQuery::parser()
@@ -2652,18 +2654,6 @@ fn an_authored_bound_is_emitted_with_the_digits_it_was_written_with() {
     parsed.to_string(),
     "@media (min-width: 1.2345678901234567rem)"
   );
-}
-
-/// The nudge that makes a negated bound exclusive still survives at a width
-/// where `f32` could not represent it, now because the value itself is a
-/// double rather than because the comparison temporarily widened one.
-#[test]
-fn a_negated_bound_past_the_f32_nudge_limit_is_still_a_contradiction() {
-  let parsed = MediaQuery::parser()
-    .parse_to_end("@media (min-width: 10000000px) and (not (min-width: 10000000px))")
-    .unwrap();
-
-  assert_eq!(parsed.to_string(), "@media not all");
 }
 
 /// A merged bound derived from two authored fractional constraints, so that

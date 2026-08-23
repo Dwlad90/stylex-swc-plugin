@@ -541,21 +541,6 @@ All StyleX errors follow this format in the terminal:
 [Stack trace]: internal/source/location #shown only when STYLEX_DEBUG >= info
 ```
 
-A refusal about a _binding_ points at the line that binding was declared on,
-not at the line the style read it from — the declaration is the line you have to
-change, and it is the line `@stylexjs/babel-plugin` names for the same input:
-
-```js
-let color = 'red'; //         <-- the frame points here
-color = 'blue';
-export const styles = create({ box: { color } }); // not here
-```
-
-That covers a reassigned or mutated binding, a read above its own declaration, a
-`function` or `class` used as a value, a default or unresolvable theme import,
-and a global name a module took over. A reference that names nothing points at
-the read, since there is no declaration to name.
-
 Errors are color-coded for readability:
 
 | Category                   | Label             | Color         |
@@ -563,134 +548,6 @@ Errors are color-coded for readability:
 | Regular error              | _(none)_          | Red prefix    |
 | Unimplemented feature      | `[UNIMPLEMENTED]` | Magenta label |
 | Internal unreachable state | `[UNREACHABLE]`   | Blue label    |
-
-## Class names that moved
-
-A class name is a hash of the dashed property, the value, and the _modifier_
-string — the sorted pseudo keys joined, then the sorted at-rules joined. Two
-changes in this release correct how that pseudo list is sorted, so some class
-names differ from the previous release. They now agree with
-`@stylexjs/babel-plugin` 0.19.0, which is the point: markup built by one
-compiler named a class the other's stylesheet never defined.
-
-**Who is affected.** Only styles whose sorted pseudo list changes:
-
-- **Three or more pseudo keys in one run**, nested in an order that is not
-  already alphabetical. The sort used to close a run once it held a pair, so a
-  third key was appended after an already-sorted pair instead of joining the
-  sort. Two keys agreed from either nesting order, which is why nothing caught
-  this earlier. `:hover > :focus > :active` named a different class before and
-  names `x12rlomf` now, from any of the six nesting orders.
-- **Two or more keys whose order differs between byte order and collation
-  order.** The comparator used raw bytes and now reproduces `localeCompare`, so
-  keys are weighed with symbols below digits below letters, and letters weighed
-  without their case, whatever their bytes. Real pseudo-classes are lowercase
-  ASCII words and sort the same either way; an attribute selector such as
-  `[data-B]` beside `[data-a]` does not.
-
-Everything else — a single pseudo key, two lowercase pseudo-classes, a plain
-declaration, an at-rule — hashes exactly as it did.
-
-**What to do.** Nothing, if your CSS is generated at build time and shipped
-together with the markup that references it. If any of these are true, rebuild
-and re-publish both halves together:
-
-- extracted CSS committed to the repository or cached on a CDN separately from
-  the JS bundle
-- snapshot tests asserting class names or rule text
-- visual-regression baselines — rerun `test:visual` and accept the diffs
-
-## A namespace import of a theme file no longer resolves
-
-```js
-import * as tokens from './colors.stylex.js';
-export const styles = stylex.create({ wrapper: { color: tokens.primary } });
-```
-
-This compiled before and is refused now, with
-`Referenced constant is not defined.` — which is what
-`@stylexjs/babel-plugin` 0.19.0 has always answered for it.
-
-**Why the break is worth taking.** What it compiled _to_ was a
-`var(--…)` naming a custom property the theme file never defines, because the
-export name was synthesized from the local alias rather than read from the
-module. A `var()` nothing defines renders as nothing and reports as nothing, so
-these styles were already absent at runtime — the change turns a silent nothing
-into a build error that names the reference. Read the same token through both
-import kinds in one module and the old behaviour emitted two different custom
-properties for it.
-
-**The fix is a named import,** which both compilers resolve:
-
-```js
-import { colors } from './colors.stylex.js';
-export const styles = stylex.create({ wrapper: { color: colors.primary } });
-```
-
-One spelling gets a different message. `import * as NaN from './colors.stylex.js'`
-answers `Referenced constant is not initialized.`, because an alias spelled like
-one of the three globals meets the globals check before the import is read.
-Upstream answers the same, for the same reason.
-
-## Deliberate divergences from `@stylexjs/babel-plugin`
-
-Five values that upstream accepts are rejected here. Each rejection changes only
-_which programs compile_, never the bytes of an accepted one — so none of them
-can move a class name, which is the compatibility contract that matters. They
-are listed here because until now they lived only in module docstrings, and a
-build that fails on a value the reference compiler accepts is the kind of
-surprise worth being able to look up.
-
-| Rejected                                                                               | Upstream                         | Why                                                                                                                                                                                                                                                       |
-| -------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `var(foo)` — a custom-property reference with no `--` prefix                           | emits it verbatim                | It resolves to nothing in a browser, with no diagnostic from anywhere. The rejection names the reference. Only top-level references are checked.                                                                                                          |
-| A value carrying an unterminated `/*` comment                                          | emits it                         | The scanner invents the missing terminator, so the declaration would silently swallow whatever followed.                                                                                                                                                  |
-| A `{`, `}` or `;` outside a string or comment in a custom-property value               | emits it                         | The same swallowing problem, one level up: the declaration would absorb the rest of the rule.                                                                                                                                                             |
-| A value nested more than 64 levels deep                                                | throws a `RangeError`            | Spelling and dropping a token tree recurse, so past some depth the process aborts with no diagnostic at all. 64 is far above any real value and the failure is a named message rather than a crash.                                                       |
-| An expression nested more than [`maxEvaluationDepth`](#maxevaluationdepth) levels deep | folds until the JS engine throws | The fold recurses, and upstream's only bound is the interpreter stack — whose failure is a process abort with no file, no message and no chance to finish the build. The default is sized for authored styles; a generated token file can need it raised. |
-
-### A TypeScript module reads an unreferenced import as a type
-
-One divergence goes the other way: a shape upstream rejects, this compiler
-compiles — and only in a TypeScript file.
-
-```ts
-import { create, keyframes } from '@stylexjs/stylex';
-
-export const styles = create({ dyn: keyframes => ({ height: keyframes }) });
-```
-
-| file           | upstream                     | here                                |
-| -------------- | ---------------------------- | ----------------------------------- |
-| `page.js`      | `Invalid pseudo or at-rule.` | `Invalid pseudo or at-rule.`        |
-| `page.ts/.tsx` | `Invalid pseudo or at-rule.` | `.x16ye13r{height:var(--x-height)}` |
-
-The parameter shadows the import. In JavaScript both compilers read `keyframes`
-as the imported StyleX API and refuse; in TypeScript the type-stripping pass
-runs first and removes an import specifier nothing references _as a value_,
-because such a specifier may name a type and a type has no module to import at
-runtime. That is `tsc`'s own rule, and `verbatim_module_syntax` — which turns it
-off, and is what a `.js` file is compiled with — cannot be turned on here
-without emitting imports of bindings that do not exist at runtime:
-`@stylexjs/stylex` exports `StyleXStyles`, `Theme`, `VarGroup` and a dozen more
-as types only, and `import { StyleXStyles } from '@stylexjs/stylex'` written
-without the `type` keyword is ubiquitous.
-
-So the parameter is just a parameter, and `height: keyframes` is an ordinary
-dynamic value. Upstream reaches the other answer because Babel runs plugins
-ahead of presets, so its StyleX plugin sees the import before
-`@babel/preset-typescript` removes it — plugin ordering rather than a considered
-TypeScript semantics.
-
-**This is intended, and it will not be closed.** Making `.ts` refuse would turn
-working `.tsx` builds into failing ones over a parameter name, to reproduce an
-upstream answer that is the less defensible of the two. Nothing about it can
-move a class name for a module that compiles under both. It is pinned in
-`__test__/importElision.spec.ts` under _a TypeScript module keeps the elision_.
-
-Everything else is parity, and the parity harness under
-[`parity/`](./parity/README.md) is what keeps that claim honest — it runs a
-corpus of declarations through both compilers and reports any that disagree.
 
 ## FAQ
 
@@ -700,10 +557,6 @@ Yes, by design. It implements the same transform, is validated against the
 official StyleX test suite, and produces compatible output. It also adds
 compiler-only capabilities: `include`/`exclude` filtering, SWC WASM plugin
 chaining, `inputSourceMap` chaining, and structured metadata output.
-
-Four values are deliberately rejected where upstream accepts them; see
-[Deliberate divergences](#deliberate-divergences-from-stylexjsbabel-plugin).
-None of them changes the output of a value that compiles.
 
 ### Do I need Rust installed to use it?
 

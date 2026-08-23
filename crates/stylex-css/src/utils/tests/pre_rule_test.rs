@@ -747,6 +747,143 @@ fn a_run_of_a_thousand_keys_sorts_whole() {
   assert_eq!(written, expected);
 }
 
+// ── the collator path, at its edges ──────────────────────────────────
+//
+// The branch is the newest thing in this file, and its fast path is the one
+// almost every key path takes -- so the cases that reach the collator are the
+// ones a change here is least likely to exercise by accident. Each of these
+// picks a shape the fast path cannot produce.
+
+#[test]
+fn an_empty_key_compares_against_a_non_ascii_one() {
+  // The empty key takes the fast path against another ASCII key and the collator
+  // against this one, which is the smallest pair that crosses the branch. Empty
+  // is not reachable through a key path -- a condition key is filtered to `:`
+  // and `[` before it arrives -- and `sort_pseudos` is a function over a slice.
+  precedes("", ":\u{00e4}");
+  assert_eq!(pseudo_comparator("", ""), Ordering::Equal);
+}
+
+#[test]
+fn a_key_of_nothing_but_ignorables_weighs_as_the_empty_key() {
+  // Two soft hyphens carry no weight at any level, so the key is empty as far as
+  // the ordering is concerned -- which is a thing no dense per-code-point rank
+  // can say, and the reason this file no longer has one for these characters.
+  assert_eq!(pseudo_comparator("\u{00ad}\u{00ad}", ""), Ordering::Equal);
+  precedes("\u{00ad}\u{00ad}", ":a");
+}
+
+#[test]
+fn an_astral_character_sorts_by_its_scalar_and_not_by_its_surrogates() {
+  // A supplementary character is one scalar in Rust and a surrogate pair in
+  // JavaScript, and the pseudo comparator is the one place that difference could
+  // show: the at-rule comparator's own documentation says the two encodings part
+  // company only above `U+FFFF`. It does not show, because root collation weighs
+  // neither -- it weighs the character. Both answers below were read from a run
+  // of the reference compiler over the same two keys.
+  //
+  // The pair is chosen so that neither encoding's raw order is the answer: an
+  // emoji's high surrogate is below `U+E000` while its scalar is above, so a
+  // UTF-16 comparison and a code-point comparison disagree here, and collation
+  // agrees with neither for a reason of its own -- a symbol weighs below a
+  // private-use character because it is a symbol.
+  precedes(":\u{1F389}", ":\u{E000}");
+  // And the top of the range is not special: the highest scalar there is sorts
+  // after a letter, the same as any other unassigned character.
+  precedes(":a", ":\u{10FFFF}");
+}
+
+#[test]
+fn a_very_long_non_ascii_key_compares_on_its_first_difference() {
+  // The collator's counterpart to the long-ASCII-key case above: two keys that
+  // differ in the first character must not cost the length of either.
+  // `ä` weighs as `a`, so the first character decides and the 5 000 identical
+  // ones after it are never read. Two accents of the same letter would make this
+  // a test of the secondary pass instead, which is the case above.
+  let tail = "\u{00fc}".repeat(5_000);
+  let left = format!(":\u{00e4}{tail}");
+  let right = format!(":b{tail}");
+
+  precedes(&left, &right);
+}
+
+#[test]
+fn a_run_of_a_thousand_non_ascii_keys_sorts_whole() {
+  // Every comparison in this run goes through the collator, which is the shape
+  // that would be slow if a collator were built per call rather than once.
+  let mut written: Vec<String> = (0..1_000)
+    .rev()
+    .map(|index| format!(":p\u{00e9}{index:04}"))
+    .collect();
+  let expected: Vec<String> = (0..1_000)
+    .map(|index| format!(":p\u{00e9}{index:04}"))
+    .collect();
+
+  written = sort_pseudos(&written);
+
+  assert_eq!(written, expected);
+}
+
+#[test]
+fn keys_from_different_scripts_sort_by_script_rather_than_by_code_point() {
+  // Root collation puts Latin before Greek before Cyrillic, which is neither
+  // code-point order for every pair nor anything the ASCII table could express.
+  // The case is here because a mixed-script run is the shape where a comparator
+  // that fell back to bytes for "anything unfamiliar" would look correct on each
+  // pair and wrong on the run -- and `ä` leading `d` is what says the accented
+  // letter is weighed rather than merely placed after the Latin block.
+  let sorted = sort_pseudos(&keys(&[":\u{0434}", ":\u{03b4}", ":d", ":\u{00e4}"]));
+
+  assert_eq!(sorted, keys(&[":\u{00e4}", ":d", ":\u{03b4}", ":\u{0434}"]));
+}
+
+#[test]
+fn a_precomposed_key_and_its_decomposition_weigh_the_same() {
+  // `é` written as one scalar and as `e` plus a combining acute are the same
+  // string to root collation, because it decomposes before weighing. A byte
+  // comparison called them two unrelated keys, and a per-code-point rank would
+  // too -- this is the decomposition half of what the dependency bought.
+  assert_eq!(
+    pseudo_comparator(":\u{00e9}", ":e\u{0301}"),
+    Ordering::Equal
+  );
+}
+
+#[test]
+fn the_collator_path_is_transitive_over_a_hostile_run() {
+  // Every shape above in one run, sorted, then every adjacent pair re-asked.
+  // A comparator that answered inconsistently across the branch would sort
+  // without complaint and leave a run this check reports.
+  let mut hostile = keys(&[
+    ":\u{00e4}",
+    ":\u{0301}",
+    ":\u{00ad}",
+    ":\u{1F389}",
+    ":\u{0001}",
+    ":z",
+    ":A",
+    ":e\u{0301}",
+    ":\u{00e9}",
+    ":\u{10FFFF}",
+    ":\u{FFFD}",
+    "[data-\u{00e9}tat]",
+    ":",
+    "",
+    ":\u{0434}",
+  ]);
+  hostile.sort_by(|a, b| pseudo_comparator(a, b));
+
+  for window in hostile.windows(2) {
+    assert_ne!(
+      pseudo_comparator(&window[0], &window[1]),
+      Ordering::Greater,
+      "out of order at {:?} before {:?}",
+      window[0],
+      window[1]
+    );
+  }
+}
+
 // ── the primary weight table ─────────────────────────────────────────
 //
 // `ASCII_PRIMARY_RANK` is built by a `const fn`, so the table a release binary

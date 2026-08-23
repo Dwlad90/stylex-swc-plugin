@@ -95,6 +95,28 @@ describe('runRounds paired roles', () => {
     expect(fixtures[0]?.paired).toBeUndefined();
   });
 
+  // The failure this covers cost a CI diagnosis: a paired run's base subject is
+  // an older build, and when it refused a fixture the log carried only the
+  // compiler's message and a stack. Naming the fixture and the subject is what
+  // turns that into a manifest question.
+  test('names the fixture and the subject when a subject cannot compile it', async () => {
+    const refuses = createSubject(
+      { label: 'base', version: '1.0.0', resolvedFrom: '/base' },
+      () => {
+        throw new Error('[StyleX] Style value must evaluate to a static expression.');
+      }
+    );
+
+    const failure = await run([refuses, subject('candidate')]).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).toBe(
+      'Sanity check failed: subject "base" could not compile fixture "card"'
+    );
+    // The compiler's own message is what says *why*, so it must survive.
+    expect(((failure as Error).cause as Error).message).toMatch(/static expression/);
+  });
+
   test('roles-only output survives a raw-stats round trip', async () => {
     const { fixtures } = await run([subject('base'), subject('candidate')]);
     const file = {

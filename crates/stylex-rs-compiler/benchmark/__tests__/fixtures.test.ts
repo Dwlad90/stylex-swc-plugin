@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vitest';
 import { createStylexOptions, fixtureStylexOptions } from '../lib/config.js';
 import { loadAllFixtures } from '../lib/fixtures.js';
 import { loadSubject } from '../lib/subjects.js';
+import { BOOLEAN_OPTION_KEYS } from '../lib/types.js';
 
 const benchmarkDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.resolve(benchmarkDir, '../..');
@@ -13,6 +14,23 @@ const workspaceRoot = path.resolve(packageDir, '../..');
 
 describe('loadAllFixtures', () => {
   const fixtures = loadAllFixtures({ packageDir, workspaceRoot });
+
+  // The other half of the allowlist rule. `fixture-manifest.test.ts` proves an
+  // unknown key is refused; nothing proved that an accepted key is used, which
+  // is how four options nobody had shown this compiler reacting to survived in
+  // the list. A key whose fixture is later deleted now fails here instead of
+  // sitting there looking measured.
+  test('every allowlisted option key is measured by a fixture', () => {
+    const used = new Set(fixtures.flatMap(fixture => Object.keys(fixture.options ?? {})));
+    const unused = [
+      ...BOOLEAN_OPTION_KEYS,
+      'styleResolution',
+      'sourceMap',
+      'classNamePrefix',
+    ].filter(key => !used.has(key));
+
+    expect(unused, 'allowlisted but no fixture measures them').toEqual([]);
+  });
 
   test('loads the complete versioned registry', () => {
     expect(fixtures).toHaveLength(61);

@@ -538,6 +538,102 @@ const styles = stylex.create({ root: { color: 'red' } });
     );
   }
 
+  /// `CallLookup` reads its anchor off the object argument, and falls back to
+  /// the call's own position when the object has none. Every other case builds
+  /// its query by hand, so neither the fallback nor the `is_dummy` guard beside
+  /// it was ever taken.
+  #[test]
+  fn a_lookup_takes_its_anchor_from_the_object_then_from_the_call() {
+    let source = "const styles = stylex.create({ root: { color: 'red' } });\n";
+    let module = parse(source);
+    let calls = create_calls(&module);
+
+    let call = match calls.first() {
+      Some(call) => call,
+      None => panic!("the fixture no longer holds a call"),
+    };
+
+    let from_object = CallLookup::new(call, module.span.lo)
+      .query("root")
+      .target_offset;
+
+    let mut positionless = call.clone();
+    positionless.span = DUMMY_SP;
+    positionless.args.clear();
+
+    let from_nothing = CallLookup::new(&positionless, module.span.lo)
+      .query("root")
+      .target_offset;
+
+    assert!(
+      from_object.is_some_and(|offset| offset > 0),
+      "an object argument's own position is the anchor"
+    );
+    assert_eq!(
+      from_nothing, None,
+      "a call with neither an object argument nor a position of its own anchors \
+       nothing, rather than anchoring at byte zero -- which would sort before \
+       every authored position instead of meaning \"unknown\""
+    );
+  }
+
+  /// `stylex.create(someVar)` has no object argument to read sibling keys from,
+  /// so the lookup offers nothing and the index answers nothing. Reached through
+  /// `CallLookup` rather than a hand-built query, which is the path production
+  /// takes.
+  #[test]
+  fn a_call_with_no_object_argument_resolves_to_nothing() {
+    let module = parse("const styles = stylex.create(someVar);\n");
+    let calls = create_calls(&module);
+
+    let call = match calls.first() {
+      Some(call) => call,
+      None => panic!("the fixture no longer holds a call"),
+    };
+
+    let lookup = CallLookup::new(call, module.span.lo);
+    let span = KeySpanIndex::build(&module).resolve(&lookup.query("root"));
+
+    assert_eq!(span, DUMMY_SP);
+  }
+
+  /// A module with the whole program on one line, which is what a bundler hands
+  /// a downstream transform. Nothing else here feeds one, and it is the shape
+  /// where the line number carries no information at all -- so the column, and
+  /// with it the proximity tie-break, is the only thing separating two
+  /// candidates.
+  #[test]
+  fn a_single_line_module_still_separates_its_candidates() {
+    let source = "import*as stylex from'x';const a=stylex.create({root:{color:'red'}}),\
+b=stylex.create({root:{color:'blue'}});";
+    let module = parse(source);
+
+    let second_object_offset = match source.rfind("({") {
+      Some(offset) => offset as u32 + 2,
+      None => panic!("the fixture no longer holds two calls"),
+    };
+
+    let index = KeySpanIndex::build(&module);
+
+    let second = index.resolve(&query(
+      "root",
+      &["root"],
+      &["color"],
+      Some(second_object_offset),
+    ));
+    let first = index.resolve(&query("root", &["root"], &["color"], Some(30)));
+
+    assert!(!first.is_dummy() && !second.is_dummy(), "both must resolve");
+    assert_ne!(
+      first, second,
+      "the two candidates share a line, so only the anchor tells them apart"
+    );
+    assert!(
+      second.lo > first.lo,
+      "the anchor nearer the end of the line resolves to the later candidate"
+    );
+  }
+
   #[test]
   fn rank_prefers_value_overlap_then_sibling_overlap_then_proximity() {
     // Namespace-value overlap dominates every other signal.

@@ -17,6 +17,7 @@ import path from 'node:path';
 
 import { afterAll, describe, expect, test } from 'vitest';
 
+import { SourceMaps } from '../../dist/index.js';
 import { loadAllFixtures } from '../lib/fixtures.js';
 
 const roots: string[] = [];
@@ -153,6 +154,42 @@ describe('the option overrides', () => {
     expect(() => load(withEntry({ options: { styleResolution: 'application' } }))).toThrow(
       /must be one of application-order, property-specificity, legacy-expand-shorthands/
     );
+  });
+
+  // The two string-valued keys the enum case above does not reach. Both turn a
+  // manifest *string* into an option *value*, which is the step where a
+  // plausible-looking spelling gets silently accepted and the fixture is then
+  // measured under a shape nobody asked for.
+  // The names are the keys of the package's own `SourceMaps` export, so the
+  // lowercase spellings a manifest author reaches for first are refused.
+  test.each([
+    ['a lowercase name', 'inline'],
+    ['an unknown name', 'External'],
+    ['a boolean', true],
+  ])('refuses sourceMap given %s', (_label, value) => {
+    expect(() => load(withEntry({ options: { sourceMap: value } }))).toThrow(/sourceMap/);
+  });
+
+  test('loads a sourceMap setting the package exports', () => {
+    expect(load(withEntry({ options: { sourceMap: 'Inline' } }))[0]?.options?.sourceMap).toBe(
+      SourceMaps.Inline
+    );
+  });
+
+  test.each([
+    ['empty', ''],
+    ['a number', 1],
+    ['null', null],
+  ])('refuses classNamePrefix given %s', (_label, value) => {
+    expect(() => load(withEntry({ options: { classNamePrefix: value } }))).toThrow(
+      /classNamePrefix/
+    );
+  });
+
+  test('loads a non-empty classNamePrefix', () => {
+    expect(load(withEntry({ options: { classNamePrefix: 'bx' } }))[0]?.options).toEqual({
+      classNamePrefix: 'bx',
+    });
   });
 
   // A key the compiler knows but no fixture uses is not accepted: an option this

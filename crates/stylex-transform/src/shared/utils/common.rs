@@ -141,17 +141,10 @@ pub(crate) fn get_var_decl_from<'a>(
   state: &'a StateManager,
   ident: &'a Ident,
 ) -> Option<&'a VarDeclarator> {
-  state
-    .declarations
-    .iter()
-    .find(|var_declarator| matches_ident_with_var_decl_name(ident, var_declarator))
-}
-
-fn matches_ident_with_var_decl_name(ident: &Ident, var_declarator: &&VarDeclarator) -> bool {
-  matches!(
-    &var_declarator.name,
-    Pat::Ident(var_decl_ident) if var_decl_ident.id.eq_ignore_span(ident)
-  )
+  // One hash probe rather than a scan of every declarator the module holds. The
+  // `Vec` keeps its source order, which `find_top_level_expr` and the insertion
+  // queue both read; the index only says where in it to look.
+  state.declaration_of(ident)
 }
 
 /// The binding an import specifier introduces, whichever of the three kinds it
@@ -474,7 +467,7 @@ pub fn fill_state_declarations(state: &mut StateManager, decl: &VarDeclarator) {
     .iter()
     .any(|existing| existing.span == decl.span && existing.eq_ignore_span(decl))
   {
-    state.declarations.push(decl.clone());
+    state.push_declaration(decl.clone());
   }
 }
 

@@ -306,9 +306,10 @@ where
                           Some(ident) => ident.clone(),
                           None => stylex_panic!("Expected an identifier for the hoisted style variable."),
                         };
-                        transform.state.declarations.push(
-                          create_string_var_declarator(hoist_ident_expr, "hoisted variable"),
-                        );
+                        transform.state.push_declaration(create_string_var_declarator(
+                          hoist_ident_expr,
+                          "hoisted variable",
+                        ));
 
                         array_elements.push(Some(hoist_ident));
                       }

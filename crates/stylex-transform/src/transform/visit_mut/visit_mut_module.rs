@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use swc_core::{
   common::{BytePos, Span, comments::Comments},
   ecma::{
@@ -745,10 +747,10 @@ where
       let mut collector = ModuleBindingsCollector::for_sx();
       module.visit_with(&mut collector);
 
-      self.state.binding_reassignments = collector.binding_reassignments;
-      self.state.binding_mutations = collector.binding_mutations;
-      self.state.binding_deep_mutations = collector.binding_deep_mutations;
-      self.state.declared_bindings = collector.declared_bindings;
+      self.state.binding_reassignments = Rc::new(collector.binding_reassignments);
+      self.state.binding_mutations = Rc::new(collector.binding_mutations);
+      self.state.binding_deep_mutations = Rc::new(collector.binding_deep_mutations);
+      self.state.declared_bindings = Rc::new(collector.declared_bindings);
       self.state.existing_import_sources = collector.import_sources;
       self.state.bound_names = collector.bound_names;
       self.state.local_rebinding_scopes = collector.local_rebinding_scopes;
@@ -773,10 +775,10 @@ where
     let mut collector = ModuleBindingsCollector::writes_only();
     module.visit_with(&mut collector);
 
-    self.state.binding_reassignments = collector.binding_reassignments;
-    self.state.binding_mutations = collector.binding_mutations;
-    self.state.binding_deep_mutations = collector.binding_deep_mutations;
-    self.state.declared_bindings = collector.declared_bindings;
+    self.state.binding_reassignments = Rc::new(collector.binding_reassignments);
+    self.state.binding_mutations = Rc::new(collector.binding_mutations);
+    self.state.binding_deep_mutations = Rc::new(collector.binding_deep_mutations);
+    self.state.declared_bindings = Rc::new(collector.declared_bindings);
   }
 
   /// Run the producer transformation pass.

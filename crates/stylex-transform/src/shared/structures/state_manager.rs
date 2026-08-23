@@ -463,6 +463,17 @@ pub struct StateManager {
 
   pub(crate) declarations_state: DeclarationState,
   pub(crate) declarations: Vec<VarDeclarator>,
+  /// Position in [`Self::declarations`] of the declarator binding each named
+  /// `Id`, so a reference resolves with one hash probe instead of a scan of
+  /// every declarator in the module.
+  ///
+  /// Only `Pat::Ident` declarators appear, because that is the only shape
+  /// `get_var_decl_from` ever matched. First writer wins, which is the same
+  /// answer the `find` it replaces gave. Safe as an index rather than a map
+  /// because `declarations` is append-only -- nothing removes, reorders or
+  /// truncates it, and the in-place edits reach `init` rather than `name`, so a
+  /// recorded position stays the position of the same binding.
+  pub(crate) declaration_index: FxHashMap<Id, usize>,
   /// Bindings rebound after their declaration — an assignment, update,
   /// destructuring or loop target. The reference implementation's constant
   /// violations, probed as its own step of the reference-resolution chain.
@@ -470,7 +481,14 @@ pub struct StateManager {
   /// binding never deopts the outer one. Populated by the `Discover` pre-scan
   /// ([`ModuleBindingsCollector`]), in the same walk that fills
   /// [`Self::binding_mutations`].
-  pub(crate) binding_reassignments: FxHashSet<Id>,
+  ///
+  /// Behind an `Rc` for the reason the memoized module is. All four sets are
+  /// filled once by the `Discover` pre-scan and read-only afterwards, and
+  /// `StateManager` derives `Clone` -- which a dynamic style's callback performs
+  /// once per invocation. `declared_bindings` alone holds every binding the
+  /// module declares, so copying the four of them made a callback's cost scale
+  /// with the size of the file it happens to sit in.
+  pub(crate) binding_reassignments: Rc<FxHashSet<Id>>,
   /// Bindings whose referenced value is mutated in place — `obj.x = 1`,
   /// `arr.push(…)`, `delete obj.x`, `Object.assign(obj, …)`. The reference
   /// implementation's `isMutated`, probed as the step after
@@ -478,7 +496,14 @@ pub struct StateManager {
   /// the declaration initializer an unsound stand-in at the use site and both
   /// refuse with the same text, so the split buys a step-for-step mapping to
   /// the reference implementation rather than a difference in outcome.
-  pub(crate) binding_mutations: FxHashSet<Id>,
+  ///
+  /// Behind an `Rc` for the reason the memoized module is. All four sets are
+  /// filled once by the `Discover` pre-scan and read-only afterwards, and
+  /// `StateManager` derives `Clone` -- which a dynamic style's callback performs
+  /// once per invocation. `declared_bindings` alone holds every binding the
+  /// module declares, so copying the four of them made a callback's cost scale
+  /// with the size of the file it happens to sit in.
+  pub(crate) binding_mutations: Rc<FxHashSet<Id>>,
   /// Bindings whose referenced value is written to further down a member chain
   /// than the reference implementation's `isMutated` looks: `obj.a.b = 1`
   /// records `obj` here where `obj.a = 1` records it in
@@ -489,14 +514,28 @@ pub struct StateManager {
   /// deeper one refuses only where refusing protects something — a declarator
   /// whose initializer would otherwise be inlined at the use site, stale — since
   /// upstream folds these and this compiler deliberately does not.
-  pub(crate) binding_deep_mutations: FxHashSet<Id>,
+  ///
+  /// Behind an `Rc` for the reason the memoized module is. All four sets are
+  /// filled once by the `Discover` pre-scan and read-only afterwards, and
+  /// `StateManager` derives `Clone` -- which a dynamic style's callback performs
+  /// once per invocation. `declared_bindings` alone holds every binding the
+  /// module declares, so copying the four of them made a callback's cost scale
+  /// with the size of the file it happens to sit in.
+  pub(crate) binding_deep_mutations: Rc<FxHashSet<Id>>,
   /// Every **declared binding** in the module, keyed by full `Id` — the crate
   /// glossary defines the term and why the `Id` is what makes it scope-aware.
   /// Read through [`Self::declares_binding`].
   ///
   /// Populated by the `Discover` pre-scan ([`ModuleBindingsCollector`]) in
   /// either of its modes, in the same walk that fills the two write sets above.
-  pub(crate) declared_bindings: FxHashSet<Id>,
+  ///
+  /// Behind an `Rc` for the reason the memoized module is. All four sets are
+  /// filled once by the `Discover` pre-scan and read-only afterwards, and
+  /// `StateManager` derives `Clone` -- which a dynamic style's callback performs
+  /// once per invocation. `declared_bindings` alone holds every binding the
+  /// module declares, so copying the four of them made a callback's cost scale
+  /// with the size of the file it happens to sit in.
+  pub(crate) declared_bindings: Rc<FxHashSet<Id>>,
   pub(crate) top_level_expressions: Vec<TopLevelExpression>,
   /// Spans of the calls that initialise a top-level declarator bound to a
   /// pattern rather than a name — `export const { foo } = stylex.create(…);`.
@@ -649,11 +688,12 @@ impl StateManager {
       named_exports: FxHashSet::default(),
 
       declarations: vec![],
+      declaration_index: FxHashMap::default(),
       declarations_state: DeclarationState::default(),
-      binding_reassignments: FxHashSet::default(),
-      binding_mutations: FxHashSet::default(),
-      binding_deep_mutations: FxHashSet::default(),
-      declared_bindings: FxHashSet::default(),
+      binding_reassignments: Rc::default(),
+      binding_mutations: Rc::default(),
+      binding_deep_mutations: Rc::default(),
+      declared_bindings: Rc::default(),
       top_level_expressions: vec![],
       pattern_bound_top_level_calls: FxHashSet::default(),
       call_expressions: CallExpressionState::default(),
@@ -704,6 +744,29 @@ impl StateManager {
 
   /// The binding a refusal on the expression behind `cache_key` is about, if one
   /// was recorded.
+  /// Appends a declarator and records where it went.
+  ///
+  /// The one way to grow [`Self::declarations`], so the index beside it cannot
+  /// fall behind: a caller that pushed directly would leave the binding it added
+  /// invisible to every lookup.
+  pub(crate) fn push_declaration(&mut self, declarator: VarDeclarator) {
+    if let Pat::Ident(binding) = &declarator.name {
+      self
+        .declaration_index
+        .entry(binding.id.to_id())
+        .or_insert(self.declarations.len());
+    }
+
+    self.declarations.push(declarator);
+  }
+
+  /// The declarator binding `ident`, by hash probe rather than by scan.
+  pub(crate) fn declaration_of(&self, ident: &Ident) -> Option<&VarDeclarator> {
+    let position = *self.declaration_index.get(&ident.to_id())?;
+
+    self.declarations.get(position)
+  }
+
   pub(crate) fn framed_declaration(&self, cache_key: u128) -> Option<&Atom> {
     self.cache.framed_declaration(cache_key)
   }

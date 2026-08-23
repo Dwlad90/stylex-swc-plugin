@@ -13,6 +13,8 @@
 //! `IMPORT_PATH_RESOLUTION_ERROR`. That refusal is used throughout as the marker
 //! for "step 1 answered", never as a claim about path resolution.
 
+use std::rc::Rc;
+
 use super::*;
 
 use swc_core::atoms::Atom;
@@ -408,7 +410,7 @@ impl ModuleState {
       );
 
       for index in 0..self.padding {
-        traversal_state.declarations.push(declarator_at(
+        traversal_state.push_declaration(declarator_at(
           &format!("unrelated{}", index),
           DECLARATOR_SPAN,
           Some(create_string_expr("blue")),
@@ -426,41 +428,32 @@ impl ModuleState {
           .push(imported_as.declaration_of(name));
 
         if imported_as.binds_the_subject() {
-          traversal_state
-            .declared_bindings
-            .insert(module_binding.clone());
+          Rc::make_mut(&mut traversal_state.declared_bindings).insert(module_binding.clone());
         }
       }
 
       if let Some(init) = self.declarator {
-        traversal_state
-          .declarations
-          .push(declarator_at(name, DECLARATOR_SPAN, init));
-        traversal_state
-          .declared_bindings
-          .insert(module_binding.clone());
+        traversal_state.push_declaration(declarator_at(name, DECLARATOR_SPAN, init));
+        Rc::make_mut(&mut traversal_state.declared_bindings).insert(module_binding.clone());
       }
 
       match self.parameter {
         Some(ParameterScope::Own) => {
-          traversal_state.declared_bindings.insert(reference.to_id());
+          Rc::make_mut(&mut traversal_state.declared_bindings).insert(reference.to_id());
         },
         Some(ParameterScope::Unrelated) => {
-          traversal_state
-            .declared_bindings
+          Rc::make_mut(&mut traversal_state.declared_bindings)
             .insert((Atom::from(name), shadowing_context()));
         },
         None => {},
       }
 
       if self.reassigned {
-        traversal_state
-          .binding_reassignments
-          .insert(reference.to_id());
+        Rc::make_mut(&mut traversal_state.binding_reassignments).insert(reference.to_id());
       }
 
       if self.mutated {
-        traversal_state.binding_mutations.insert(reference.to_id());
+        Rc::make_mut(&mut traversal_state.binding_mutations).insert(reference.to_id());
       }
 
       // Registered at `DECLARATOR_SPAN` rather than at the reference's own
@@ -470,14 +463,12 @@ impl ModuleState {
       // reference and no case here is about position.
       if self.class_declaration {
         traversal_state.add_class_name_declaration(ident_at(name, DECLARATOR_SPAN));
-        traversal_state
-          .declared_bindings
-          .insert(module_binding.clone());
+        Rc::make_mut(&mut traversal_state.declared_bindings).insert(module_binding.clone());
       }
 
       if self.function_declaration {
         traversal_state.add_function_name_declaration(ident_at(name, DECLARATOR_SPAN));
-        traversal_state.declared_bindings.insert(module_binding);
+        Rc::make_mut(&mut traversal_state.declared_bindings).insert(module_binding);
       }
 
       let functions = FunctionMap {

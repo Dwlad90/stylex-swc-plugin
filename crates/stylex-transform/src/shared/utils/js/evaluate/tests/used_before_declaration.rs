@@ -60,9 +60,7 @@ fn evaluate_reference(
   GLOBALS.set(&globals, || {
     let mut traversal_state = StateManager::new(StyleXOptions::default());
 
-    traversal_state
-      .declarations
-      .push(declarator_at(name, declarator_span));
+    traversal_state.push_declaration(declarator_at(name, declarator_span));
 
     let reference = Expr::Ident(ident_at(name, reference_span));
 

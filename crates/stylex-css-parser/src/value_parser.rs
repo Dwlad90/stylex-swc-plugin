@@ -31,12 +31,14 @@ pub fn format_quoted_string(string: &str) -> String {
 /// `1e21px` as twenty-two digits, and `-0px` as `+-0px`, which is not a CSS
 /// value at all. Each of those is a different class name.
 ///
-/// `fallback` is used only when there is no numeric literal to find -- which
-/// the token type says cannot happen.
-fn authored_number<'a>(input: &'a str, token_offset: SourcePosition, fallback: &'a str) -> &'a str {
+/// A numeric token always has a literal to find, so the `"0"` is unreachable
+/// rather than a policy: it is there because the span is looked up by offset
+/// and the lookup is typed as fallible, not because a caller might want a
+/// different answer. Every caller wanted the same one, so none passes it.
+fn authored_number(input: &str, token_offset: SourcePosition) -> &str {
   let from_token = &input[token_offset.byte_index()..];
 
-  leading_number(from_token).unwrap_or(fallback)
+  leading_number(from_token).unwrap_or("0")
 }
 
 fn parse_css_inner<'a>(
@@ -108,16 +110,16 @@ fn parse_css_inner<'a>(
       // prepends one: doing both is what produced `+-0px`, since a negative
       // zero satisfies `value >= 0.`.
       Token::Number { .. } => {
-        iter_result.push_str(authored_number(input, token_offset, "0"));
+        iter_result.push_str(authored_number(input, token_offset));
       },
       Token::Percentage { .. } => {
-        iter_result.push_str(authored_number(input, token_offset, "0"));
+        iter_result.push_str(authored_number(input, token_offset));
         iter_result.push('%');
       },
       // The unit comes from the token rather than the source, so an escaped
       // one is emitted as what it escapes to -- `1\70x` is `1px`.
       Token::Dimension { ref unit, .. } => {
-        iter_result.push_str(authored_number(input, token_offset, "0"));
+        iter_result.push_str(authored_number(input, token_offset));
         iter_result.push_str(unit.as_ref());
       },
       Token::UnquotedUrl(_) | Token::BadUrl(_) | Token::BadString(_) => {

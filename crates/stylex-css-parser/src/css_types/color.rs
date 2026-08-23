@@ -33,33 +33,76 @@ fn rgb_number_parser() -> TokenParser<u8> {
     .map(|v| v as u8, Some("to_u8"))
 }
 
-/// Reads the `/ <alpha-value>` tail the modern colour spaces share. Rewinds to
-/// where it started and answers `None` when there is no slash, so a caller can
-/// ask without having to look first. `lch`, `oklch`, and `oklab` each carried a
-/// byte-identical copy of this before it was named.
-fn parse_optional_slash_alpha(input: &mut TokenList) -> Result<Option<f64>, CssParseError> {
-  let checkpoint = input.current_index;
+/// Reads the alpha channel of `rgba()` and `hsla()`, which both write it as a
+/// bare fraction or a percentage of one. Unlike the shared alpha parser the
+/// modern spaces use, these two refuse a value outside `0..=1` rather than
+/// carrying it through -- a difference in the legacy grammar, not in the width
+/// of the number.
+fn parse_bounded_alpha_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
+  let token = tokens
+    .consume_next_token_infallible()
+    .ok_or(CssParseError::ParseError {
+      message: "Expected alpha value token".to_string(),
+    })?;
 
-  if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
-    input.consume_next_token_infallible();
-  }
-
-  match input.peek_infallible() {
-    Some(SimpleToken::Delim('/')) => {
-      input.consume_next_token_infallible();
-
-      if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
-        input.consume_next_token_infallible();
-      }
-
-      match alpha_as_number().run.as_ref()(input) {
-        Ok(alpha) => Ok(Some(alpha)),
-        Err(error) => Err(error),
+  match token {
+    SimpleToken::Number(value) => {
+      if (0.0..=1.0).contains(&value) {
+        Ok(value)
+      } else {
+        Err(CssParseError::ParseError {
+          message: format!("Alpha number must be 0.0-1.0, got {}", value),
+        })
       }
     },
-    // No slash, so no alpha -- and the whitespace skipped above is put back.
+    SimpleToken::Percentage(value) => {
+      // An alpha is a fraction, and the token carries the authored percent.
+      let value = value / 100.0;
+      if (0.0..=1.0).contains(&value) {
+        Ok(value)
+      } else {
+        Err(CssParseError::ParseError {
+          message: format!(
+            "Alpha percentage must be 0%-100% (stored as 0.0-1.0), got {}",
+            value
+          ),
+        })
+      }
+    },
+    _ => Err(CssParseError::ParseError {
+      message: format!(
+        "Expected Number or Percentage token for alpha, got {:?}",
+        token
+      ),
+    }),
+  }
+}
+
+/// Reads the `/ <alpha-value>` tail the modern colour spaces share, rewinding
+/// to where it started and answering `None` when there is no slash. The rewind
+/// puts back the whitespace it skipped looking for the slash, so a caller that
+/// asks and gets `None` still has to consume that whitespace itself.
+fn parse_optional_slash_alpha(tokens: &mut TokenList) -> Result<Option<f64>, CssParseError> {
+  let checkpoint = tokens.current_index;
+
+  if let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+    tokens.consume_next_token_infallible();
+  }
+
+  match tokens.peek_infallible() {
+    Some(SimpleToken::Delim('/')) => {
+      tokens.consume_next_token_infallible();
+
+      if let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
+        tokens.consume_next_token_infallible();
+      }
+
+      // A slash was written, so a malformed alpha after it is an error rather
+      // than an absent alpha: no rewind on this arm.
+      alpha_as_number().run.as_ref()(tokens).map(Some)
+    },
     _ => {
-      input.set_current_index(checkpoint);
+      tokens.set_current_index(checkpoint);
       Ok(None)
     },
   }
@@ -1011,7 +1054,7 @@ impl Rgba {
         Self::consume_comma_with_optional_whitespace(tokens)?;
 
         // Parse alpha value
-        let a = Self::parse_alpha_value_token(tokens)?;
+        let a = parse_bounded_alpha_token(tokens)?;
 
         // Skip optional whitespace before closing paren
         while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
@@ -1122,7 +1165,7 @@ impl Rgba {
         }
 
         // Parse alpha value
-        let a = Self::parse_alpha_value_token(tokens)?;
+        let a = parse_bounded_alpha_token(tokens)?;
 
         // Expect closing paren
         let close_token =
@@ -1164,47 +1207,6 @@ impl Rgba {
       Err(CssParseError::ParseError {
         message: format!("Expected Number token, got {:?}", token),
       })
-    }
-  }
-
-  /// Helper: Parse alpha value token (0.0-1.0 or 0%-100%)
-  fn parse_alpha_value_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
-    let token = tokens
-      .consume_next_token_infallible()
-      .ok_or(CssParseError::ParseError {
-        message: "Expected alpha value token".to_string(),
-      })?;
-
-    match token {
-      SimpleToken::Number(value) => {
-        if (0.0..=1.0).contains(&value) {
-          Ok(value)
-        } else {
-          Err(CssParseError::ParseError {
-            message: format!("Alpha number must be 0.0-1.0, got {}", value),
-          })
-        }
-      },
-      SimpleToken::Percentage(value) => {
-        // An alpha is a fraction, and the token carries the authored percent.
-        let value = value / 100.0;
-        if (0.0..=1.0).contains(&value) {
-          Ok(value)
-        } else {
-          Err(CssParseError::ParseError {
-            message: format!(
-              "Alpha percentage must be 0%-100% (stored as 0.0-1.0), got {}",
-              value
-            ),
-          })
-        }
-      },
-      _ => Err(CssParseError::ParseError {
-        message: format!(
-          "Expected Number or Percentage token for alpha, got {:?}",
-          token
-        ),
-      }),
     }
   }
 
@@ -1575,7 +1577,7 @@ impl Hsla {
         Self::consume_comma_with_optional_whitespace(tokens)?;
 
         // Parse alpha value
-        let a = Self::parse_hsla_alpha_token(tokens)?;
+        let a = parse_bounded_alpha_token(tokens)?;
 
         // Expect closing paren
         let close_token =
@@ -1680,7 +1682,7 @@ impl Hsla {
         }
 
         // Parse alpha value
-        let a = Self::parse_hsla_alpha_token(tokens)?;
+        let a = parse_bounded_alpha_token(tokens)?;
 
         // Expect closing paren
         let close_token =
@@ -1749,47 +1751,6 @@ impl Hsla {
       Err(CssParseError::ParseError {
         message: format!("Expected Percentage token, got {:?}", token),
       })
-    }
-  }
-
-  /// Helper: Parse HSLA alpha value token (0.0-1.0 or 0%-100%)
-  fn parse_hsla_alpha_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
-    let token = tokens
-      .consume_next_token_infallible()
-      .ok_or(CssParseError::ParseError {
-        message: "Expected alpha value token".to_string(),
-      })?;
-
-    match token {
-      SimpleToken::Number(value) => {
-        if (0.0..=1.0).contains(&value) {
-          Ok(value)
-        } else {
-          Err(CssParseError::ParseError {
-            message: format!("Alpha number must be 0.0-1.0, got {}", value),
-          })
-        }
-      },
-      SimpleToken::Percentage(value) => {
-        // An alpha is a fraction, and the token carries the authored percent.
-        let value = value / 100.0;
-        if (0.0..=1.0).contains(&value) {
-          Ok(value)
-        } else {
-          Err(CssParseError::ParseError {
-            message: format!(
-              "Alpha percentage must be 0%-100% (stored as 0.0-1.0), got {}",
-              value
-            ),
-          })
-        }
-      },
-      _ => Err(CssParseError::ParseError {
-        message: format!(
-          "Expected Number or Percentage token for alpha, got {:?}",
-          token
-        ),
-      }),
     }
   }
 

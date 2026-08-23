@@ -242,9 +242,13 @@ mod boundaries_and_refusals {
   #[test]
   fn a_subnormal_alpha_is_not_flushed_to_zero() {
     let printed = printed!("rgba(255, 0, 0, 5e-324)");
-    let alpha = printed
-      .trim_start_matches("rgba(255, 0, 0, ")
-      .trim_end_matches(')');
+    let alpha = match printed
+      .strip_prefix("rgba(255, 0, 0, ")
+      .and_then(|rest| rest.strip_suffix(')'))
+    {
+      Some(alpha) => alpha,
+      None => panic!("unexpected shape: {printed}"),
+    };
 
     // The value, not the digit count: the smallest subnormal double, read back
     // out of the text it was printed as.
@@ -576,9 +580,13 @@ mod modern_space_boundaries_and_refusals {
   #[test]
   fn a_subnormal_modern_alpha_is_not_flushed_to_zero() {
     let printed = printed!("oklch(0.7 0.1 200deg / 5e-324)");
-    let alpha = printed
-      .trim_start_matches("oklch(0.7 0.1 200deg / ")
-      .trim_end_matches(')');
+    let alpha = match printed
+      .strip_prefix("oklch(0.7 0.1 200deg / ")
+      .and_then(|rest| rest.strip_suffix(')'))
+    {
+      Some(alpha) => alpha,
+      None => panic!("unexpected shape: {printed}"),
+    };
 
     assert_eq!(alpha.parse::<f64>(), Ok(5e-324), "{printed}");
   }
@@ -725,6 +733,48 @@ mod modern_space_boundaries_and_refusals {
       Color::parse()
         .parse_to_end("lab(52.2345 40.1645 59.9971 / 0.5)")
         .is_err()
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// What the optional-alpha rewind does to the whitespace before it
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod the_optional_alpha_rewind {
+  use super::*;
+
+  /// The reader for the `/ <alpha-value>` tail rewinds when it finds no slash,
+  /// which puts back the whitespace it skipped looking for one. The closing
+  /// paren check that follows does not skip whitespace itself, so a space
+  /// before the paren is refused. Pinned as the behaviour it actually is --
+  /// this is not a divergence the widening introduced, and it is the one thing
+  /// the rewind is observable through.
+  #[test]
+  fn a_space_before_the_closing_paren_is_refused_after_a_rewind() {
+    for input in [
+      "lch(50 100 180 )",
+      "oklch(0.7 0.1 200deg )",
+      "oklab(0.5 0.1 0.1 )",
+    ] {
+      assert!(
+        Color::parse().parse_to_end(input).is_err(),
+        "{input:?} should be refused"
+      );
+    }
+  }
+
+  /// With a slash present the whitespace is consumed rather than put back, so
+  /// the same shape parses -- which is what shows the refusal above belongs to
+  /// the rewind and not to the paren check alone.
+  #[test]
+  fn the_same_space_is_accepted_when_an_alpha_follows_it() {
+    assert_eq!(
+      printed!("lch(50 100 180 / 0.123456789012345)"),
+      // An `lch` hue with no unit stays a bare number, where `oklch` reads one
+      // as degrees.
+      "lch(50 100 180 / 0.123456789012345)"
     );
   }
 }

@@ -1943,15 +1943,6 @@ fn rgba_parse_rgba_number_token_non_number_returns_error() {
 }
 
 #[test]
-fn rgba_parse_alpha_value_token_eof_returns_error() {
-  let mut tl = TokenList {
-    tokens: vec![],
-    current_index: 0,
-  };
-  assert!(Rgba::parse_alpha_value_token(&mut tl).is_err());
-}
-
-#[test]
 fn rgba_consume_comma_with_optional_whitespace_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
@@ -2083,40 +2074,43 @@ fn hsla_parse_hsla_percentage_token_non_percentage() {
   assert!(Hsla::parse_hsla_percentage_token(&mut tl).is_err());
 }
 
+// `rgba()` and `hsla()` read their alpha through one function, so these four
+// used to be five -- the EOF case was written once per type.
+
 #[test]
-fn hsla_parse_hsla_alpha_token_eof_returns_error() {
+fn parse_bounded_alpha_token_eof_returns_error() {
   let mut tl = TokenList {
     tokens: vec![],
     current_index: 0,
   };
-  assert!(Hsla::parse_hsla_alpha_token(&mut tl).is_err());
+  assert!(parse_bounded_alpha_token(&mut tl).is_err());
 }
 
 #[test]
-fn hsla_parse_hsla_alpha_token_out_of_range() {
+fn parse_bounded_alpha_token_out_of_range() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Number(2.0)],
     current_index: 0,
   };
-  assert!(Hsla::parse_hsla_alpha_token(&mut tl).is_err());
+  assert!(parse_bounded_alpha_token(&mut tl).is_err());
 }
 
 #[test]
-fn hsla_parse_hsla_alpha_token_out_of_range_percentage() {
+fn parse_bounded_alpha_token_out_of_range_percentage() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Percentage(200.0)],
     current_index: 0,
   };
-  assert!(Hsla::parse_hsla_alpha_token(&mut tl).is_err());
+  assert!(parse_bounded_alpha_token(&mut tl).is_err());
 }
 
 #[test]
-fn hsla_parse_hsla_alpha_token_invalid_type() {
+fn parse_bounded_alpha_token_invalid_type() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Ident("none".to_string())],
     current_index: 0,
   };
-  assert!(Hsla::parse_hsla_alpha_token(&mut tl).is_err());
+  assert!(parse_bounded_alpha_token(&mut tl).is_err());
 }
 
 #[test]

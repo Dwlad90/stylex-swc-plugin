@@ -432,7 +432,7 @@ fn contrast_parse_public_error_eof() {
 
 #[test]
 fn contrast_parse_public_happy_path() {
-  // Use 0.5 (exact in f32/f64) to avoid display imprecision.
+  // Use 0.5, which a double holds exactly, to avoid display imprecision.
   let result = ContrastFilterFunction::parse()
     .parse_to_end("contrast(0.5)")
     .unwrap();
@@ -499,7 +499,7 @@ fn grayscale_parse_tokens_number_variant() {
 
 #[test]
 fn grayscale_parse_tokens_percentage_variant() {
-  // SimpleToken::Percentage(50.0) = 50% (unit_value convention).
+  // SimpleToken::Percentage(50.0) is the authored percent, not a fraction.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("grayscale".to_string()),
     SimpleToken::Percentage(50.0),
@@ -767,7 +767,7 @@ fn invert_parse_tokens_number_variant() {
 
 #[test]
 fn invert_parse_tokens_percentage_variant() {
-  // SimpleToken::Percentage(100.0) = 100% (unit_value convention).
+  // SimpleToken::Percentage(100.0) is the authored percent, not a fraction.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("invert".to_string()),
     SimpleToken::Percentage(100.0),
@@ -903,7 +903,7 @@ fn opacity_parse_tokens_number_variant() {
 
 #[test]
 fn opacity_parse_tokens_percentage_variant() {
-  // SimpleToken::Percentage(75.0) = 75% (unit_value convention).
+  // SimpleToken::Percentage(75.0) is the authored percent, not a fraction.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("opacity".to_string()),
     SimpleToken::Percentage(75.0),
@@ -1044,7 +1044,7 @@ fn saturate_parse_tokens_number_variant() {
 
 #[test]
 fn saturate_parse_tokens_percentage_variant() {
-  // SimpleToken::Percentage(150.0) = 150% (unit_value convention).
+  // SimpleToken::Percentage(150.0) is the authored percent, not a fraction.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("saturate".to_string()),
     SimpleToken::Percentage(150.0),
@@ -1181,7 +1181,7 @@ fn sepia_parse_tokens_number_variant() {
 #[test]
 fn sepia_parse_tokens_percentage_variant() {
   // Covers `NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0` arm.
-  // SimpleToken::Percentage(50.0) = 50% (unit_value convention).
+  // SimpleToken::Percentage(50.0) is the authored percent, not a fraction.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("sepia".to_string()),
     SimpleToken::Percentage(50.0),
@@ -1271,7 +1271,7 @@ fn sepia_parse_public_error_eof() {
 
 #[test]
 fn sepia_parse_public_happy_path() {
-  // Use 0.5 (exact in f32) to avoid display imprecision from f32→f64 conversion.
+  // Use 0.5, which a double holds exactly, to avoid display imprecision.
   let result = SepiaFilterFunction::parse()
     .parse_to_end("sepia(0.5)")
     .unwrap();

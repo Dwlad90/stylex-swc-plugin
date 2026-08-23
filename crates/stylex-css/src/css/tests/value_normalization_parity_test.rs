@@ -26,6 +26,10 @@
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
+use stylex_constants::constants::messages::{
+  LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_UNCLOSED_FUNCTION, LINT_UNCLOSED_STRING,
+};
+
 use super::support::{check, default_options, panic_message, rem_enabled_options, same, unchanged};
 use crate::css::common::{MAX_VALUE_NESTING_DEPTH, normalize_css_property_value};
 
@@ -527,6 +531,189 @@ fn rejects_a_value_carrying_an_opening_brace() {
   assert!(
     message.contains("* { color: red { }"),
     "expected the rejection to quote the generated rule, got: {message}"
+  );
+}
+
+// ── Which of two true complaints an author is handed ─────────────────
+
+/// The complaint `property: value` is refused with.
+///
+/// Every case below refuses, and what each one asserts is *which* sentence came
+/// back — so a helper that only caught the panic would pass on all of them
+/// whatever the order became.
+fn refusal_of(property: &str, value: &str) -> String {
+  let options = default_options();
+  let result = catch_unwind(AssertUnwindSafe(|| {
+    normalize_css_property_value(property, value, &options)
+  }));
+
+  panic_message(result)
+}
+
+/// Asserts that `property: value` is refused with a message containing
+/// `expected` and not one containing `instead_of`.
+///
+/// Both halves matter here: the point of the ordering is that one true
+/// complaint is handed over rather than another, and an assertion that only
+/// checked the winner would pass on a message carrying both.
+fn refuses_with(property: &str, value: &str, expected: &str, instead_of: &str) {
+  let message = refusal_of(property, value);
+
+  assert!(
+    message.contains(expected),
+    "expected `{property}: {value}` to be refused with `{expected}`, got: {message}"
+  );
+  assert!(
+    !message.contains(instead_of),
+    "expected `{property}: {value}` not to be refused with `{instead_of}`, got: {message}"
+  );
+}
+
+/// A value that is both rule-breaking and unclosed is refused for being
+/// unclosed, because that is the complaint the reference compiler writes.
+///
+/// The build stops either way and no emitted value depends on which sentence
+/// fires, so the whole of what this buys is the sentence an author whose build
+/// was refused reads: the same one from both compilers. The harness verdict for
+/// all of these moves from `both reject (diverged)` to `both reject`.
+#[test]
+fn hands_over_the_complaint_the_reference_compiler_also_writes() {
+  for value in [
+    "red;calc(1px",
+    "red;background:blue;calc(",
+    "red {calc(1px",
+    "red }calc(1px",
+    "calc(;a",
+  ] {
+    refuses_with(
+      "color",
+      value,
+      LINT_UNCLOSED_FUNCTION,
+      LINT_RULE_BREAKING_TOKEN,
+    );
+  }
+
+  for value in [r#"red;"a"#, "red;'a", r#"red {"a"#] {
+    refuses_with(
+      "color",
+      value,
+      LINT_UNCLOSED_STRING,
+      LINT_RULE_BREAKING_TOKEN,
+    );
+  }
+}
+
+/// A value whose *only* fault is the token still reads the token complaint,
+/// which is the half of the reorder that must not have been traded away.
+///
+/// The last row is the one worth reading twice. A backslash in front of the
+/// semicolon is an escape to the reference compiler, which emits
+/// `font-family:A\;B`, and is not one to the scan here — so the token guard
+/// speaks, and speaking later has not quieted it.
+///
+/// The rule text the message quotes is asserted too: it is built from the raw
+/// value before anything parses it, and moving where the guard fires must not
+/// have moved what it quotes.
+#[test]
+fn still_refuses_a_value_whose_only_fault_is_the_token() {
+  for (property, value) in [
+    ("color", "red; margin: 10px"),
+    ("color", "red;background:blue"),
+    ("color", "red {"),
+    ("color", "red }"),
+    ("width", "calc(1px);height:2px"),
+    ("--x", "red;a"),
+    ("fontFamily", r"A\;B"),
+  ] {
+    refuses_with(
+      property,
+      value,
+      LINT_RULE_BREAKING_TOKEN,
+      LINT_UNCLOSED_FUNCTION,
+    );
+  }
+
+  assert!(
+    refusal_of("width", "calc(1px);height:2px").contains("* { width: calc(1px);height:2px }"),
+    "expected the rejection to quote the generated rule unchanged"
+  );
+}
+
+/// The token still outranks the unprefixed custom property, which is this
+/// compiler's own rejection and has no second opinion to agree with.
+///
+/// The reference compiler accepts `var(x)`, so nothing is gained by letting it
+/// speak first and a curated row that reads `declaration-terminating token`
+/// would stop reading it.
+#[test]
+fn keeps_the_token_ahead_of_a_rejection_the_reference_compiler_does_not_make() {
+  refuses_with("color", "var(x);a", LINT_RULE_BREAKING_TOKEN, "Unprefixed");
+}
+
+/// The two guards that read the raw bytes still speak before the token, and
+/// they have to: both exist because the value cannot safely be parsed at all.
+///
+/// A comment left open swallows every rule emitted after it, and a value nested
+/// past the recursion budget takes the process down without a diagnostic rather
+/// than panicking — so neither can wait for a pass that runs on a parsed value.
+#[test]
+fn keeps_the_guards_that_run_before_parsing_ahead_of_the_token() {
+  refuses_with(
+    "color",
+    "red;/* x",
+    LINT_UNCLOSED_COMMENT,
+    LINT_UNCLOSED_FUNCTION,
+  );
+
+  let mut deep = String::from("1px");
+  for _ in 0..=MAX_VALUE_NESTING_DEPTH {
+    deep = format!("calc({deep})");
+  }
+  refuses_with(
+    "width",
+    &format!("{deep};a"),
+    "nested more deeply",
+    LINT_RULE_BREAKING_TOKEN,
+  );
+}
+
+/// A token inside a string or a comment was never a fault, and moving the guard
+/// did not make it one — the scan that answers the question is the same one.
+#[test]
+fn still_accepts_a_token_that_cannot_escape_its_declaration() {
+  check(
+    &[
+      unchanged("content", "\";\""),
+      unchanged("content", "\"{}\""),
+      unchanged("color", "red /* ; */"),
+      unchanged("backgroundImage", "url(data:image/svg+xml;base64,AA)"),
+      unchanged("color", "red;;"),
+    ],
+    &default_options(),
+  );
+}
+
+/// Non-ASCII and escaped text around the two faults changes neither which
+/// complaint fires nor the bytes it quotes back.
+#[test]
+fn orders_the_guards_the_same_way_around_unicode_and_escapes() {
+  refuses_with(
+    "fontFamily",
+    "日本語;calc(1px",
+    LINT_UNCLOSED_FUNCTION,
+    LINT_RULE_BREAKING_TOKEN,
+  );
+  refuses_with(
+    "fontFamily",
+    r"\2014;calc(",
+    LINT_UNCLOSED_FUNCTION,
+    LINT_RULE_BREAKING_TOKEN,
+  );
+  refuses_with(
+    "fontFamily",
+    "🙂;sans-serif",
+    LINT_RULE_BREAKING_TOKEN,
+    LINT_UNCLOSED_FUNCTION,
   );
 }
 

@@ -1,13 +1,13 @@
 use std::borrow::Cow;
 
 use crate::css::{
-  generate_ltr::generate_ltr, generate_rtl::generate_rtl, normalize_value::normalize_value,
+  generate_ltr::generate_ltr, generate_rtl::generate_rtl, normalize_value::normalize_value_guarded,
 };
 use crate::utils::pseudo::{is_pseudo_class, is_pseudo_element, is_pseudo_selector};
 use stylex_constants::constants::{
   long_hand_logical::LONG_HAND_LOGICAL,
   long_hand_physical::LONG_HAND_PHYSICAL,
-  messages::{LINT_RULE_BREAKING_TOKEN, LINT_UNCLOSED_COMMENT, LINT_VALUE_NESTED_TOO_DEEPLY},
+  messages::{LINT_UNCLOSED_COMMENT, LINT_VALUE_NESTED_TOO_DEEPLY},
   number_properties::NUMBER_PROPERTY_SUFFIXIES,
   priorities::{AT_RULE_PRIORITIES, PSEUDO_CLASS_PRIORITIES, PSEUDO_ELEMENT_PRIORITY},
   shorthands_of_longhands::SHORTHANDS_OF_LONGHANDS,
@@ -486,18 +486,6 @@ struct ValueStructure {
   max_nesting_depth: usize,
 }
 
-impl ValueStructure {
-  /// Returns `true` when the value can be spelled into the generated stylesheet
-  /// without being able to escape its own declaration.
-  ///
-  /// Every accepted value now reaches the stylesheet as the author's own bytes,
-  /// rewritten only where a value pass names them, so this is asked of all of
-  /// them rather than of a bypass.
-  fn is_inert(&self) -> bool {
-    !self.has_rule_breaking_token && !self.has_unclosed_comment
-  }
-}
-
 /// How deeply a value may nest functions before it is rejected.
 ///
 /// Parsing and normalizing a value each recurse once per nesting level, and
@@ -678,21 +666,32 @@ pub(crate) fn build_error_css_rule(css_property: &str, css_property_value: &str)
 /// Rewrites a declaration value into the canonical text the class name is
 /// hashed from.
 ///
-/// Two structural guards stand in front of [`normalize_value`], and they are
-/// the only things here that are not normalization. Both reject a value that
-/// could not be spelled into the generated stylesheet whatever it normalized
-/// to: one that would terminate its own rule, and one nested deeper than the
-/// compiler's recursion budget. The unclosed function, the unclosed string and
-/// the unprefixed custom property are *not* among them — they are the first
-/// three passes of [`normalize_value`], and reporting them from here as well
-/// would give the same input two different diagnostics depending on which check
-/// happened to be spelled first.
+/// Three structural guards stand around [`normalize_value_guarded`], and they
+/// are the only things here that are not normalization. All three reject a
+/// value that could not be spelled into the generated stylesheet whatever it
+/// normalized to: one that never closed a comment, one nested deeper than the
+/// compiler's recursion budget, and one that would terminate its own rule. The
+/// unclosed function, the unclosed string and the unprefixed custom property
+/// are *not* among them — they are passes of [`normalize_value_guarded`], and
+/// reporting them from here as well would give the same input two different
+/// diagnostics depending on which check happened to be spelled first.
 ///
-/// Everything else is [`normalize_value`], for every value, with no second
-/// path. A value using syntax the compiler has never heard of takes exactly the
-/// same route as `color: red`, which is what makes the absence of an opinion
-/// about hex spelling, letter case, quote characters and whitespace positions
-/// observable in the output.
+/// Two of the three fire here and the third does not, which is the ordering
+/// this function exists to state. The comment and the nesting guards read the
+/// raw bytes and must run before the value is parsed at all — parsing recurses
+/// once per level, and past the budget it aborts the process rather than
+/// failing. The declaration-terminating token has no such constraint, so it is
+/// handed to [`normalize_value_guarded`] to fire *after* the two rejections the
+/// reference compiler also makes: a value that is both unclosed and
+/// rule-breaking then stops both compilers with the same complaint, and an
+/// author whose build was refused reads the same sentence whichever compiler
+/// refused it.
+///
+/// Everything else is [`normalize_value_guarded`], for every value, with no
+/// second path. A value using syntax the compiler has never heard of takes
+/// exactly the same route as `color: red`, which is what makes the absence of
+/// an opinion about hex spelling, letter case, quote characters and whitespace
+/// positions observable in the output.
 pub fn normalize_css_property_value(
   css_property: &str,
   css_property_value: &str,
@@ -700,20 +699,9 @@ pub fn normalize_css_property_value(
 ) -> String {
   let structure = scan_value_structure(css_property_value);
 
-  // A comment left open swallows every rule emitted after this declaration, and
-  // a stray `{`, `}` or `;` splices arbitrary CSS into the stylesheet: the value
-  // reaches the output verbatim, so `height: "1px solid } color: red"` would
-  // escape its own declaration.
-  if !structure.is_inert() {
-    if structure.has_unclosed_comment {
-      stylex_panic!("{}", LINT_UNCLOSED_COMMENT);
-    }
-
-    stylex_panic!(
-      "{}, css rule: {}",
-      LINT_RULE_BREAKING_TOKEN,
-      build_reported_css_rule(css_property, css_property_value)
-    );
+  // A comment left open swallows every rule emitted after this declaration.
+  if structure.has_unclosed_comment {
+    stylex_panic!("{}", LINT_UNCLOSED_COMMENT);
   }
 
   if structure.max_nesting_depth > MAX_VALUE_NESTING_DEPTH {
@@ -726,7 +714,19 @@ pub fn normalize_css_property_value(
     );
   }
 
-  normalize_value(css_property_value, css_property, options)
+  // A stray `{`, `}` or `;` splices arbitrary CSS into the stylesheet: the value
+  // reaches the output verbatim, so `height: "1px solid } color: red"` would
+  // escape its own declaration. Built here and fired there — see the header.
+  let rule_breaking_report = structure
+    .has_rule_breaking_token
+    .then(|| build_reported_css_rule(css_property, css_property_value));
+
+  normalize_value_guarded(
+    css_property_value,
+    css_property,
+    options,
+    rule_breaking_report.as_deref(),
+  )
 }
 
 /// Returns the numeric suffix for a CSS property (`"px"`, `"ms"`, `""`, etc.).

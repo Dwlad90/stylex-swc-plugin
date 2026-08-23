@@ -76,11 +76,6 @@ function everyFamily(): ReportEntry[] {
       refused("Cannot read properties of undefined (reading 'type')")
     ),
     subject('structurally-divergent', ACCEPTED, accepted(['[:', 'o:']), undefined),
-    subject(
-      'both-reject-divergent',
-      refused('Rule contains a `{`, `}` or `;` outside of a string or comment'),
-      refused('Rule contains an unclosed string')
-    ),
   ];
 }
 
@@ -197,8 +192,8 @@ describe('what a run concludes', () => {
   });
 
   test('a partial corpus is not asked which families it missed', () => {
-    // What `--set` and `--filter` hand in. Asking there would report six of
-    // seven families as unreached on every filtered run, which teaches a reader
+    // What `--set` and `--filter` hand in. Asking there would report all but
+    // one family as unreached on every filtered run, which teaches a reader
     // to skip the line that matters on the unfiltered one.
     const verdicts = conclude([subject('identical', ACCEPTED, ACCEPTED)], { whole: false });
 
@@ -217,7 +212,7 @@ describe('what a run concludes', () => {
       { whole: true }
     );
 
-    expect(verdicts.summary.total).toBe(10);
+    expect(verdicts.summary.total).toBe(9);
     expect(verdicts.summary.identical).toBe(2);
     expect(verdicts.summary['identical-empty']).toBe(1);
     expect(verdicts.summary['acceptance-divergent']).toBe(5);

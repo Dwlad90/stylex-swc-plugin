@@ -735,14 +735,16 @@
       "property": "color",
       "value": "red;calc(1px",
       "origin": "hand-written: two faults, and which guard speaks first",
-      "note": "Both compilers refuse; the value is both rule-breaking and unclosed, and each names the fault its own guard reached first. Curated here because the generated corpus reaches this shape in bulk and nothing in the curated set did."
+      "note": "Both compilers refuse, and now for the same reason: the value is both rule-breaking and unclosed, and the declaration-terminating token guard runs after the two rejections the reference compiler also makes. Recorded as agreement so a reordering back reports as a changed verdict rather than as silence.",
+      "expected": "both-reject"
     },
     {
       "id": "edge-rule-breaking-token-before-an-unclosed-string",
       "property": "color",
       "value": "red;\"a",
       "origin": "hand-written: two faults, and which guard speaks first",
-      "note": "The same disagreement carried by an unclosed string rather than an unclosed function, so the family is not pinned by one guard's wording alone."
+      "note": "The same agreement carried by an unclosed string rather than an unclosed function, so it is not pinned by one guard alone.",
+      "expected": "both-reject"
     },
     {
       "id": "edge-rule-breaking-token-inside-a-function",

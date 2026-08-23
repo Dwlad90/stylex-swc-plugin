@@ -86,21 +86,6 @@ const REFUSALS = {
 } as const;
 
 /**
- * The complaints the reference compiler writes that this compiler's own
- * injection guard is known to preempt.
- *
- * Enumerated rather than left as "whatever the reference compiler said": a
- * family that claimed any second complaint would keep pinning the row when the
- * reference compiler starts refusing for a reason nobody here has looked at,
- * and the point of the family is that the *only* disagreement is which of two
- * already-understood guards spoke first.
- */
-const PREEMPTED_REFERENCE_REFUSALS: ReadonlySet<string> = new Set([
-  'Rule contains an unclosed function',
-  'Rule contains an unclosed string',
-]);
-
-/**
  * How the reference compiler fails when it reads a node that is not there.
  *
  * Its own `TypeError`, not a diagnostic: several degenerate values reach a
@@ -136,14 +121,20 @@ function refusedWith(entry: ReportEntry, refusal: string): boolean {
  *
  * Ordered most-populated first, because the order is what a reader scans: the
  * two guards at the top account for the overwhelming majority of rows in both
- * harnesses, and the four below them are single-digit in the curated corpus.
+ * harnesses, and the three below them are single-digit in the curated corpus.
  *
  * The order is also precedence — the first family to claim a row keeps it — and
  * one pair overlaps. A value that is rule-breaking here *and* crashes the
- * reference compiler could read as either `reference TypeError` or `first
- * refusal to fire`, and the crash wins by sitting above it: a crash is not a
- * guard that spoke first, so agreement would mean reproducing it rather than
- * reordering anything.
+ * reference compiler could read as either `reference TypeError` or
+ * `declaration-terminating token`, and the crash wins by sitting above it:
+ * agreement on a crash would mean reproducing it, which is the stronger reason
+ * of the two and the one a reader should be handed.
+ *
+ * A family is gone from this list once nothing reaches it. The refusal a value
+ * carrying two faults used to earn here was one such: this compiler now runs
+ * its declaration-terminating token guard after the two rejections the
+ * reference compiler also makes, so those rows read agreement and there is
+ * nothing left for a family to claim.
  */
 export const REFUSAL_FAMILIES: readonly RefusalFamily[] = [
   {
@@ -175,25 +166,6 @@ export const REFUSAL_FAMILIES: readonly RefusalFamily[] = [
       'every rule injected after it. The reference compiler emits it.',
     verdicts: ['acceptance-divergent'],
     claims: entry => refusedWith(entry, REFUSALS.unclosedComment),
-  },
-  {
-    name: 'first refusal to fire',
-    reason:
-      'Both compilers refuse, and disagree only about which of several true complaints the ' +
-      'author is handed: this compiler asks about a declaration-terminating token before the ' +
-      'guards it shares with the reference compiler, so a value that is both unclosed and ' +
-      'rule-breaking is reported as rule-breaking here. Agreement is reachable — it would mean ' +
-      "ordering a local guard by the reference compiler's — and is tracked separately; the " +
-      'build stops either way, so no output depends on it.',
-    verdicts: ['both-reject-divergent'],
-    claims: entry => {
-      const reference = sentenceOf(entry, 'babel');
-      return (
-        refusedWith(entry, REFUSALS.ruleBreakingToken) &&
-        reference !== undefined &&
-        PREEMPTED_REFERENCE_REFUSALS.has(reference)
-      );
-    },
   },
   {
     name: 'unprefixed custom property',

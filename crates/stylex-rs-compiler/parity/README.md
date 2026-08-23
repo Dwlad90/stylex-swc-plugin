@@ -200,7 +200,6 @@ why no count is written here — a number in this file went stale twice before:
 | declaration-terminating token     | Emitting a `;`, `{` or `}` closes the declaration being generated.       |
 | reference TypeError               | The reference compiler crashes; agreement means reproducing the crash.   |
 | unclosed comment                  | Emitting `/*` comments out every rule injected after it.                 |
-| first refusal to fire             | Both refuse; only which of several true complaints is reported differs.  |
 | unprefixed custom property        | The `--` prefix is a StyleX rule, so there is no CSS behaviour to match. |
 | nesting past the recursion budget | Agreement means recursing until the stack aborts the process.            |
 | style key off `Object.prototype`  | The reference compiler reaches an inherited method, not a CSS property.  |
@@ -209,8 +208,18 @@ A family reads a verdict, or a set of them where the reason survives this
 compiler's own behaviour changing around it: a reference crash is a reference
 crash whether this side accepted the value or refused it for a fault of its own,
 and those read different verdicts. The declaration order is also precedence, and
-that pair is where it matters — a crash sits above `first refusal to fire`,
-because a crash is not a guard that spoke first.
+the crash is where it matters — it sits above `declaration-terminating token`,
+because agreement on a crash would mean reproducing it, which is the stronger of
+the two reasons and the one a reader should be handed.
+
+The list shrinks as well as grows. A family that named which of two true
+complaints an author was handed is gone: the declaration-terminating token guard
+now runs _after_ the two rejections the reference compiler also makes — an
+unclosed function and an unclosed string — so a value carrying both faults is
+refused with the same sentence on both sides and reads `both reject`. Nothing
+was traded for it: a value whose only fault is the token still reads that
+complaint, and the token still outranks the unprefixed custom property, which
+the reference compiler has no opinion about.
 
 A family is pinned by reason and never by count, so a corpus that grows does not
 churn expectations. What is checked instead is that every family still claims

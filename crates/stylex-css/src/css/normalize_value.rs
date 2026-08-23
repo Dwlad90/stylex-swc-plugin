@@ -22,6 +22,15 @@
 //! appended only when its option is on — so that the number it produces keeps
 //! its leading zero.
 //!
+//! The caller's own injection guard runs *between* the first two detectors and
+//! the third, which is where the sequence stops being an internal ordering and
+//! becomes a compatibility one. An unclosed function and an unclosed string are
+//! the two rejections the reference compiler also makes, so a value carrying
+//! one of them and a declaration-terminating token is refused by both compilers
+//! for the same reason rather than for whichever guard each spelled first. The
+//! token guard still outranks the unprefixed custom property, which is this
+//! compiler's rejection alone and has no second opinion to agree with.
+//!
 //! ## What is not here
 //!
 //! No pass understands hex colours, letter case or quote characters, so none of
@@ -34,6 +43,8 @@
 //! what the reference compiler produces too.
 
 use postcss_value_parser::{ValueParser, stringify};
+use stylex_constants::constants::messages::LINT_RULE_BREAKING_TOKEN;
+use stylex_macros::stylex_panic;
 use stylex_structures::stylex_state_options::StyleXStateOptions;
 
 use crate::css::normalizers::{
@@ -59,10 +70,16 @@ use crate::css::normalizers::{
 /// sites.
 type Pass = fn(&mut ValueParser, &str);
 
-/// The passes that always run, in the order they run in.
-const PASSES: [Pass; 9] = [
-  detect_unclosed_fns,
-  detect_unclosed_strings,
+/// The rejections the reference compiler also makes, in the order they run in.
+///
+/// Held apart from the rest so the caller's injection guard has a named place
+/// to run: after these, before everything below. Both are rejections and
+/// neither rewrites a token, so the split costs the sequence nothing but the
+/// ability to say where the boundary is.
+const SHARED_REJECTIONS: [Pass; 2] = [detect_unclosed_fns, detect_unclosed_strings];
+
+/// The passes that always run once the shared rejections have had their say.
+const PASSES: [Pass; 7] = [
   detect_unprefixed_custom_properties,
   normalize_whitespace,
   normalize_timings,
@@ -78,7 +95,32 @@ const PASSES: [Pass; 9] = [
 /// function, an unclosed string, an unprefixed custom-property reference, and
 /// on a value that scans to no tokens at all.
 pub fn normalize_value(value: &str, key: &str, options: &StyleXStateOptions) -> String {
+  normalize_value_guarded(value, key, options, None)
+}
+
+/// Normalizes `value`, with the caller's injection guard folded into the
+/// sequence at the position the module header describes.
+///
+/// `rule_breaking_report` is the rule text a declaration-terminating token is
+/// reported against, or `None` where the value carries no such token. The text
+/// rather than the fact, because building it is the caller's vocabulary — the
+/// guard reads the raw value, which nothing here has kept — and because a
+/// `Some` is then the whole of the condition this function has to test.
+pub(crate) fn normalize_value_guarded(
+  value: &str,
+  key: &str,
+  options: &StyleXStateOptions,
+  rule_breaking_report: Option<&str>,
+) -> String {
   let mut ast = ValueParser::new(value);
+
+  for pass in SHARED_REJECTIONS {
+    pass(&mut ast, key);
+  }
+
+  if let Some(rule) = rule_breaking_report {
+    stylex_panic!("{}, css rule: {}", LINT_RULE_BREAKING_TOKEN, rule);
+  }
 
   for pass in PASSES {
     pass(&mut ast, key);

@@ -135,8 +135,16 @@ describe('what a family claims', () => {
       'style key off Object.prototype'
     );
   });
+});
 
+describe('what a family leaves as news', () => {
   test('two refusals where only which guard spoke first differs', () => {
+    // The family that used to claim this is gone, because the row is gone: the
+    // declaration-terminating token guard now runs after the two rejections the
+    // reference compiler also makes, so a value carrying both faults earns the
+    // same complaint on both sides and never reaches a divergent verdict. Were
+    // the guard reordered back, the row would return as news — which is louder
+    // than a family quietly re-claiming it.
     expect(
       nameOf(
         subject(
@@ -145,11 +153,9 @@ describe('what a family claims', () => {
           refused('Rule contains an unclosed function')
         )
       )
-    ).toBe('first refusal to fire');
+    ).toBeUndefined();
   });
-});
 
-describe('what a family leaves as news', () => {
   test('a verdict a family produces, reached by a refusal it does not name', () => {
     // The narrowness that matters: `acceptance-divergent` is the verdict of four
     // families, and a row that reads it for a fifth reason is news.

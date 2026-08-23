@@ -9,10 +9,12 @@
  * arithmetic on a parameter, and a parameter interpolated into a template.
  *
  * A parameter that *shadows an imported binding* is deliberately not among them:
- * `tests/fixture/dynamic-param-shadows-import{,-edges}` are registered for that
- * shape already, and one more copy of it would price nothing new — while making
- * this fixture refuse to compile on any revision without the fix, which is
- * exactly the comparison a benchmark fixture should stay out of.
+ * `tests/fixture/dynamic-param-shadows-import{,-edges}` cover that shape as
+ * transform fixtures, and one more copy of it would price nothing new — while
+ * making this fixture refuse to compile on any revision without the fix, which
+ * is exactly the comparison a benchmark fixture should stay out of. Those two
+ * are deliberately absent from `fixtures.v1.json` for that same reason; see
+ * `guidelines/PERFORMANCE.md`.
  */
 
 import * as stylex from '@stylexjs/stylex';

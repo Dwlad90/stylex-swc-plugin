@@ -147,8 +147,16 @@ fn a_number_after_multibyte_text_is_read_from_its_own_bytes() {
 /// `styleResolution: 'legacy-expand-shorthands'` these values reach the
 /// stylesheet, and each respelling was a different class name.
 ///
-/// Every expectation here is what `@stylexjs/babel-plugin@0.19.0` emits for the
-/// same shorthand, captured from a side-by-side run.
+/// The expectations here are this function's own output, which is an
+/// intermediate rather than an emitted rule: later passes strip a leading zero
+/// and fold a negative zero, so `000.5px` and `-0px` leave here intact and
+/// reach a stylesheet as `.5px` and `0px`. What the official compiler emits is
+/// asserted where that is observable -- the end-to-end snapshot in
+/// `stylex-transform`'s `legacy_deprecated.rs`, whose class names were captured
+/// from a side-by-side run against `@stylexjs/babel-plugin@0.19.0`.
+///
+/// What is comparable at this seam is the digits and their spelling, and those
+/// are the assertions below.
 #[cfg(test)]
 mod an_authored_number_is_echoed {
   use super::*;

@@ -38,7 +38,7 @@ fn extract_number_token_panics_for_non_number() {
   AlphaValue::extract_number_token(SimpleToken::Percentage(0.5));
 }
 
-// ── parse_alpha_token_in_unit_range ──────────────────────────────────────────
+// ── parse_alpha_in_unit_range ────────────────────────────────────────────────
 
 // `rgba()` and `hsla()` both read their alpha through this one function, so it
 // is tested once here rather than once per colour type.

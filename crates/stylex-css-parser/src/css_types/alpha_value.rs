@@ -6,7 +6,11 @@ Handles alpha values for colors - numbers (0.0-1.0) and percentages (0%-100%).
 
 use stylex_macros::stylex_unreachable;
 
-use crate::{token_parser::TokenParser, token_types::SimpleToken};
+use crate::{
+  CssParseError,
+  token_parser::TokenParser,
+  token_types::{SimpleToken, TokenList},
+};
 use std::fmt::{self, Display};
 
 /// Alpha value for CSS colors
@@ -77,20 +81,22 @@ pub fn alpha_as_number() -> TokenParser<f64> {
   AlphaValue::parser().map(|alpha| alpha.value, Some("alpha_to_number"))
 }
 
-/// Reads an alpha token that must already lie in `0..=1`, which is what
-/// `rgba()` and `hsla()` require: they refuse a value outside the range rather
-/// than carrying it through, where `alpha_as_number` above accepts whatever was
-/// written. A difference in the legacy grammar, not in the width of the number.
+/// Reads an alpha and refuses one outside `0..=1`, which is what `rgba()` and
+/// `hsla()` require: they reject an out-of-range alpha rather than carrying it
+/// through, where `alpha_as_number` above accepts whatever was written. A
+/// difference in the legacy grammar, not in the width of the number.
+///
+/// The range is checked against the alpha, not against the token: `50%` is a
+/// percentage token holding `50`, and it is the `0.5` it divides down to that
+/// has to be in range.
 ///
 /// Kept as a token reader rather than a `TokenParser` because the two range
 /// arms carry different messages -- one names the fraction, the other the
 /// percentage -- which a single combinator predicate could not say.
-pub fn parse_alpha_token_in_unit_range(
-  tokens: &mut crate::token_types::TokenList,
-) -> Result<f64, crate::CssParseError> {
+pub(crate) fn parse_alpha_in_unit_range(tokens: &mut TokenList) -> Result<f64, CssParseError> {
   let token = tokens
     .consume_next_token_infallible()
-    .ok_or(crate::CssParseError::ParseError {
+    .ok_or(CssParseError::ParseError {
       message: "Expected alpha value token".to_string(),
     })?;
 
@@ -99,7 +105,7 @@ pub fn parse_alpha_token_in_unit_range(
       if (0.0..=1.0).contains(&value) {
         Ok(value)
       } else {
-        Err(crate::CssParseError::ParseError {
+        Err(CssParseError::ParseError {
           message: format!("Alpha number must be 0.0-1.0, got {}", value),
         })
       }
@@ -110,7 +116,7 @@ pub fn parse_alpha_token_in_unit_range(
       if (0.0..=1.0).contains(&value) {
         Ok(value)
       } else {
-        Err(crate::CssParseError::ParseError {
+        Err(CssParseError::ParseError {
           message: format!(
             "Alpha percentage must be 0%-100% (stored as 0.0-1.0), got {}",
             value
@@ -118,7 +124,7 @@ pub fn parse_alpha_token_in_unit_range(
         })
       }
     },
-    _ => Err(crate::CssParseError::ParseError {
+    _ => Err(CssParseError::ParseError {
       message: format!(
         "Expected Number or Percentage token for alpha, got {:?}",
         token

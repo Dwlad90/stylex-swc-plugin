@@ -49,7 +49,7 @@ fn an_alpha_token_at_end_of_input_is_refused() {
     tokens: vec![],
     current_index: 0,
   };
-  assert!(parse_alpha_token_in_unit_range(&mut tokens).is_err());
+  assert!(parse_alpha_in_unit_range(&mut tokens).is_err());
 }
 
 #[test]
@@ -58,7 +58,7 @@ fn a_number_above_one_is_refused() {
     tokens: vec![SimpleToken::Number(2.0)],
     current_index: 0,
   };
-  assert!(parse_alpha_token_in_unit_range(&mut tokens).is_err());
+  assert!(parse_alpha_in_unit_range(&mut tokens).is_err());
 }
 
 #[test]
@@ -67,7 +67,7 @@ fn a_percentage_above_one_hundred_is_refused() {
     tokens: vec![SimpleToken::Percentage(200.0)],
     current_index: 0,
   };
-  assert!(parse_alpha_token_in_unit_range(&mut tokens).is_err());
+  assert!(parse_alpha_in_unit_range(&mut tokens).is_err());
 }
 
 #[test]
@@ -76,7 +76,7 @@ fn a_token_that_is_not_a_number_or_a_percentage_is_refused() {
     tokens: vec![SimpleToken::Ident("none".to_string())],
     current_index: 0,
   };
-  assert!(parse_alpha_token_in_unit_range(&mut tokens).is_err());
+  assert!(parse_alpha_in_unit_range(&mut tokens).is_err());
 }
 
 #[test]
@@ -91,7 +91,7 @@ fn an_alpha_inside_the_range_is_read_at_full_width() {
       tokens: vec![token.clone()],
       current_index: 0,
     };
-    match parse_alpha_token_in_unit_range(&mut tokens) {
+    match parse_alpha_in_unit_range(&mut tokens) {
       Ok(alpha) => assert_eq!(alpha, expected, "for {token:?}"),
       Err(error) => panic!("expected {token:?} to be read: {error:?}"),
     }

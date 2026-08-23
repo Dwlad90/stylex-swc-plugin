@@ -10,7 +10,7 @@ use crate::{
   CssParseError,
   css_types::{
     Angle, Percentage,
-    alpha_value::{alpha_as_number, parse_alpha_token_in_unit_range},
+    alpha_value::{alpha_as_number, parse_alpha_in_unit_range},
   },
   token_parser::{TokenParser, tokens},
   token_types::{SimpleToken, TokenList},
@@ -1012,7 +1012,7 @@ impl Rgba {
         Self::consume_comma_with_optional_whitespace(tokens)?;
 
         // Parse alpha value
-        let a = parse_alpha_token_in_unit_range(tokens)?;
+        let a = parse_alpha_in_unit_range(tokens)?;
 
         // Skip optional whitespace before closing paren
         while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
@@ -1123,7 +1123,7 @@ impl Rgba {
         }
 
         // Parse alpha value
-        let a = parse_alpha_token_in_unit_range(tokens)?;
+        let a = parse_alpha_in_unit_range(tokens)?;
 
         // Expect closing paren
         let close_token =
@@ -1535,7 +1535,7 @@ impl Hsla {
         Self::consume_comma_with_optional_whitespace(tokens)?;
 
         // Parse alpha value
-        let a = parse_alpha_token_in_unit_range(tokens)?;
+        let a = parse_alpha_in_unit_range(tokens)?;
 
         // Expect closing paren
         let close_token =
@@ -1640,7 +1640,7 @@ impl Hsla {
         }
 
         // Parse alpha value
-        let a = parse_alpha_token_in_unit_range(tokens)?;
+        let a = parse_alpha_in_unit_range(tokens)?;
 
         // Expect closing paren
         let close_token =

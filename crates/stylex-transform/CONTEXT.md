@@ -102,11 +102,11 @@ _Avoid_: property access, index check, member kind
 The element count the language reports for an array, read from the literal as
 written rather than from what evaluating it produced. A written [hole](#hole) is
 why the count comes from the AST at all: it occupies a slot the language counts
-and refuses the array it is in, so the count is answered from the source ahead of
-the receiver being evaluated. A spread never reaches the count: evaluating the
-array refuses it first, as a [spread refusal](#spread-refusal). The receiver is
-unwrapped before it is read, because a parenthesis is not a different receiver.
-_Avoid_: array length, element count, size
+and refuses the array it is in, so the count is answered from the source ahead
+of the receiver being evaluated. A spread never reaches the count: evaluating
+the array refuses it first, as a [spread refusal](#spread-refusal). The receiver
+is unwrapped before it is read, because a parenthesis is not a different
+receiver. _Avoid_: array length, element count, size
 
 **Spread refusal**:
 The single answer every spread in a value position earns —
@@ -127,9 +127,9 @@ one is not an error and adds nothing; a string and an array have their indices.
 Two readings are refused rather than answered, both because this evaluator
 cannot write them down: an astral string, whose code units are lone surrogates
 no Rust string holds, and a value held in a representation of the evaluator's
-own. An array carrying a written [hole](#hole) never reaches the question — it is
-refused for the hole, before the spread reads it.
-_Avoid_: spread properties, object keys, assigned properties
+own. An array carrying a written [hole](#hole) never reaches the question — it
+is refused for the hole, before the spread reads it. _Avoid_: spread properties,
+object keys, assigned properties
 
 **Own key order**:
 The order an object's properties are enumerated in, and so the order their
@@ -141,20 +141,19 @@ from a literal, a spread or a computed key.
 _Avoid_: property order, insertion order, key sorting
 
 **Object method receiver**:
-What the argument of `Object.keys`/`values`/`entries` reads as. Four answers, not
-two, because an absent object spells three different things: a receiver that is
-not an object contributes no own keys and folds to `[]`, as `Object.keys(5)`
+What the argument of `Object.keys`/`values`/`entries` reads as. Four answers,
+not two, because an absent object spells three different things: a receiver that
+is not an object contributes no own keys and folds to `[]`, as `Object.keys(5)`
 does; one holding an element with no expression form refuses, since answering
 `[]` would write a shorter list into the stylesheet than the source describes;
 and a nullish receiver refuses under the sentence the language itself raises,
 which complains about the receiver rather than about the list. The last two
 differ in nothing but that sentence, and the sentence is the whole of what a
-refused build hands an author. A [folded function map](#folded-function-map) is a
-receiver like any other and reads through its object form, because a value
+refused build hands an author. A [folded function map](#folded-function-map) is
+a receiver like any other and reads through its object form, because a value
 classified as "not an object" by one of the three readers of own keys and as an
 object by the other two is how `Object.keys` came to answer `[]` for a map the
-same compiler spreads correctly.
-_Avoid_: object argument, keys source
+same compiler spreads correctly. _Avoid_: object argument, keys source
 
 **Winning operand**:
 The side of `||`, `&&` or `??` the fold keeps, returned as the value it already
@@ -184,21 +183,21 @@ _Avoid_: stringable operand, non-numeric operand
 **Reference resolution chain**:
 The one ordered question the evaluator asks of an identifier it could not fold
 from the injected function map: which binding does this name, and what does that
-binding fold to. Eight steps in the reference implementation's order, each citing
-the line range it mirrors, because both compilers agree on every step's verdict
-and the sequence is the only thing left for them to disagree by. One step is
-deliberately absent and says so at its position rather than being missing. The
-questions the rest ask are an [import specifier kind](#import-specifier-kind), a
-[declared binding](#declared-binding), a [binding write](#binding-write) and an
-[early reference](#early-reference). The order, and why it is upstream's rather
-than this compiler's, is
-[ADR 0003](./docs/adr/0003-one-ordered-chain-resolves-a-reference.md).
-_Avoid_: identifier lookup, binding resolver, evaluate fallback
+binding fold to. Eight steps in the reference implementation's order, each
+citing the line range it mirrors, because both compilers agree on every step's
+verdict and the sequence is the only thing left for them to disagree by. One
+step is deliberately absent and says so at its position rather than being
+missing. The questions the rest ask are an [import specifier
+kind](#import-specifier-kind), a [declared binding](#declared-binding), a
+[binding write](#binding-write) and an [early reference](#early-reference). The
+order, and why it is upstream's rather than this compiler's, is [ADR
+0003](./docs/adr/0003-one-ordered-chain-resolves-a-reference.md). _Avoid_:
+identifier lookup, binding resolver, evaluate fallback
 
 **Folded function map**:
 What a reference resolves to when its name is a key of the injected function
 map, which is consulted ahead of the [chain](#reference-resolution-chain) and
-keyed by name rather than by binding -- so a dynamic style's parameter spelling
+keyed by name rather than by binding — so a dynamic style's parameter spelling
 `stylex` folds to the namespace import's map and not to the parameter.
 Deliberate on both compilers: an arrow parameter is injected into that same map
 so a nested `create()` can see it, which is why the map cannot be keyed by
@@ -217,38 +216,38 @@ than materializing and dropping the declaration.
 The fold carries no expression form, so every position that needs one
 **materializes** it as the object it stands for -- its keys, each carrying a
 function -- and validation then refuses whichever half it reads: a style value
-and a namespace refuse the key as neither pseudo nor at-rule nor `default`, and a
-spread copies the key onto the style object where the function is refused for not
-being a style value. One function answers for all of them, so the sentence a
+and a namespace refuse the key as neither pseudo nor at-rule nor `default`, and
+a spread copies the key onto the style object where the function is refused for
+not being a style value. One function answers for all of them, so the sentence a
 build stops on cannot depend on which position asked. Materialized in one place
 rather than at any consumer, and never where the identifier resolves, because
 `when` is read off the same map as a callee and needs its own form there.
 
 Which keys depends on what the name was registered as, and the answer mirrors
 the reference implementation's registration rather than this compiler's types. A
-map stands for one key per entry, each carrying that entry's own object. A single
-**function config** -- `keyframes`, `firstThatWorks`, `positionTry` -- stands for
-`{ fn }`, the one key a callable carries upstream. A config holding a marker map,
-which is a bare `when` import or the `when` entry of the namespace's map, stands
-for the marker names. An evaluated array is materialized too, through the same
-fold a static namespace uses, and what it holds is then decided by namespace
-validation rather than at the value position -- an element that is not a string or
-a number is refused there, with the message the reference implementation gives.
-Every other evaluated shape with no expression form is refused rather than
-materialized, a [theme reference](#theme-reference) among them, as is
-`defaultMarker` -- an index map here, and a bare function upstream.
+map stands for one key per entry, each carrying that entry's own object. A
+single **function config** -- `keyframes`, `firstThatWorks`, `positionTry` --
+stands for `{ fn }`, the one key a callable carries upstream. A config holding a
+marker map, which is a bare `when` import or the `when` entry of the namespace's
+map, stands for the marker names. An evaluated array is materialized too,
+through the same fold a static namespace uses, and what it holds is then decided
+by namespace validation rather than at the value position -- an element that is
+not a string or a number is refused there, with the message the reference
+implementation gives. Every other evaluated shape with no expression form is
+refused rather than materialized, a [theme reference](#theme-reference) among
+them, as is `defaultMarker` -- an index map here, and a bare function upstream.
 _Avoid_: shadowed namespace, identifier map hit, function config fold
 
 **Theme reference**:
 What an import of a `defineVars` group resolves to: the group as a whole, named
 by the hash of the file that declares it. It carries no expression form and
 cannot be materialized the way a [folded function map](#folded-function-map) is,
-because the keys it would need live in the other file -- so the CSS a style value
-needs comes from a _member_ read off it (`zIndex.ten` is `var(--x1ew7r74)`), and
-the group read without one is refused wherever a value belongs. Refused, not
-dropped: answering "no value" there compiled the object as if the declaration had
-not been written.
-_Avoid_: theme object, vars object, defineVars value
+because the keys it would need live in the other file -- so the CSS a style
+value needs comes from a _member_ read off it (`zIndex.ten` is
+`var(--x1ew7r74)`), and the group read without one is refused wherever a value
+belongs. Refused, not dropped: answering "no value" there compiled the object as
+if the declaration had not been written. _Avoid_: theme object, vars object,
+defineVars value
 
 **Import specifier kind**:
 Which of `{ c }`, `c` or `* as c` bound the name a reference reads, answered by
@@ -333,25 +332,25 @@ binding was declared on rather than the line it was read from — which is what
 name is recorded rather than a position: a span from this compiler's parse
 indexes this compiler's source map, while the frame's positions live in the one
 it built for the file, so the name is resolved against the module the frame
-re-parsed. Recorded per refused expression, because a refused dynamic style falls
-through to an inline style instead of stopping the build, and a later diagnostic
-must not inherit an earlier refusal's position. A name that module does not
-declare falls back to locating the read.
-_Avoid_: deopt span, declaration span cache, reported position
+re-parsed. Recorded per refused expression, because a refused dynamic style
+falls through to an inline style instead of stopping the build, and a later
+diagnostic must not inherit an earlier refusal's position. A name that module
+does not declare falls back to locating the read. _Avoid_: deopt span,
+declaration span cache, reported position
 
 **Call lookup**:
 The half of a key-span lookup that belongs to the `stylex.create` _call_ rather
 than to one of its namespaces: the sibling keys every namespace of that call
 ranks against, the proximity anchor, the span cache key's call-side digest, and
-the call wrapped as an expression for the value-matching fallback. Built once per
-call, because building any of it per namespace makes the call quadratic in its
-own namespace count — the same shape the [key span index](#key-span-index)
+the call wrapped as an expression for the value-matching fallback. Built once
+per call, because building any of it per namespace makes the call quadratic in
+its own namespace count — the same shape the [key span index](#key-span-index)
 removed one level up. One type rather than four arguments so that they cannot
 describe different calls: a digest paired with another call's keys is a wrong
 span cached under a key that looks right. The wrapper inside it is a deep clone,
 so it is built on the first namespace that needs one and never for a call whose
-namespaces all hit the span cache.
-_Avoid_: call keys, sibling context, lookup context
+namespaces all hit the span cache. _Avoid_: call keys, sibling context, lookup
+context
 
 **Seen value**:
 A memoized evaluation, keyed by the
@@ -363,10 +362,9 @@ The key covers the whole remaining subtree and is taken again at every level, so
 what the memo costs grows about quadratically with depth -- and is nearly all of
 what folding a deep expression costs. Why it stays that way, and what an
 incremental key would take, is
-[docs/adr/0005](./docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md). This is
-also one of the two consumers that acts on a hash hit without confirming
-equality, which is why that key is 128 bits wide.
-_Avoid_: cache entry, memo
+[docs/adr/0005](./docs/adr/0005-the-memo-key-is-a-whole-subtree-hash.md). This
+is also one of the two consumers that acts on a hash hit without confirming
+equality, which is why that key is 128 bits wide. _Avoid_: cache entry, memo
 
 **Evaluation depth**:
 How many levels of the fold are currently standing, counted on the
@@ -377,9 +375,9 @@ is a [refused fold](#refused-fold), not an abort. The fold also grows its own
 stack, so the ceiling is a policy rather than whatever a 2 MiB thread survived.
 
 Always in **fold levels**, never in levels of source nesting -- a member read
-spends two, a spread spends two, an array element spends one for the array, and a
-parenthesis spends none. A number quoted in source terms is wrong for some other
-shape, which is why every boundary is measured rather than derived.
+spends two, a spread spends two, an array element spends one for the array, and
+a parenthesis spends none. A number quoted in source terms is wrong for some
+other shape, which is why every boundary is measured rather than derived.
 
 The ceiling itself is `maxEvaluationDepth`, resolved in
 [stylex-structures](../stylex-structures/CONTEXT.md) from the option, then the

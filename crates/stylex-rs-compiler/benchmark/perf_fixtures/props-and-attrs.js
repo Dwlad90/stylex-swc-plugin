@@ -11,8 +11,8 @@
  * `sourceMap: True` measures nothing. What a fixture can still change is
  * inlining the map into the module, dropping the embedded source text, dropping
  * the column mappings, and chaining onto a map an earlier tool produced — which
- * is the slowest of them, and the last one is what `.input.map.json` beside this
- * file exists for.
+ * is the slowest of them. That last one has no fixture: it would need an input
+ * map beside this file, and none was written, so nothing here measures it.
  *
  * Nine call sites cover what the merge branches on: one style, several, a
  * conditional, an array, a nested array, a runtime condition the fold cannot

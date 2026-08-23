@@ -82,6 +82,13 @@ const JAVASCRIPT_EXTENSIONS: [&str; 4] = ["js", "jsx", "mjs", "cjs"];
 /// An extension this does not recognise — none at all, or one no toolchain
 /// agrees on — is answered as TypeScript, which is the conservative half: it
 /// keeps the elision, and an elision only ever removes something.
+///
+/// Out of scope: TypeScript *syntax* inside a file named as JavaScript. With
+/// the elision off, `type A = number; export { A };` in a `.js` file drops the
+/// alias and keeps the export, leaving a module that cannot link. That input is
+/// already malformed — this pipeline happens to parse it — and the spelling a
+/// real toolchain produces, `export type { A }`, is stripped unconditionally by
+/// the specifier walk regardless of this answer.
 fn is_javascript_input(path: &Path) -> bool {
   path
     .extension()

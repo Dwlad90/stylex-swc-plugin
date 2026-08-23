@@ -3,8 +3,10 @@
  * inline/block axes, the physical properties that have an RTL counterpart, and
  * the shorthands whose four sides are reordered rather than renamed.
  *
- * Measured under the polyfill and legacy-flipping options as well as plain, so
- * the cost of emitting a second direction shows up as its own number.
+ * Measured under the legacy shorthand-expansion and legacy value-flipping
+ * options as well as plain, so the cost of emitting a second direction shows up
+ * as its own number. Not under `enableLogicalStylesPolyfill`: it was measured
+ * and changes nothing on this fixture, so no manifest entry names it.
  */
 
 import * as stylex from '@stylexjs/stylex';

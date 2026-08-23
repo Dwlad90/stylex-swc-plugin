@@ -363,17 +363,24 @@ const compileAtDepth = (source: string, maxEvaluationDepth?: number) =>
     unstable_moduleResolution: { type: 'commonJS' },
   });
 
+/// The CSS a compile injected. `$$css` is present for any successful compile, so
+/// it says the module compiled and nothing about what the tower folded to --
+/// which is the thing a ceiling silently ceasing to apply would change.
+const injectedCss = (result: ReturnType<typeof compileAtDepth>) =>
+  result.metadata.stylex.map(([, rule]) => rule.ltr).join('');
+
 test('maxEvaluationDepth: a raised ceiling folds what the default refuses', () => {
   const source = deepFixture(100);
 
   expect(() => compileAtDepth(source)).toThrow(/too deeply nested/);
-  expect(compileAtDepth(source, 320).code).toContain('$$css');
+  // `MY_CONST` is 5 and the fixture adds 1 a hundred times.
+  expect(injectedCss(compileAtDepth(source, 320))).toContain('z-index:105');
 });
 
 test('maxEvaluationDepth: a lowered ceiling refuses what the default folds', () => {
   const source = deepFixture(10);
 
-  expect(compileAtDepth(source).code).toContain('$$css');
+  expect(injectedCss(compileAtDepth(source))).toContain('z-index:15');
   expect(() => compileAtDepth(source, 4)).toThrow(
     /At most 4 levels of nested evaluation are supported/
   );
@@ -396,13 +403,13 @@ test('maxEvaluationDepth: a negative ceiling falls back to the default', () => {
 // compiler's own limit, so what it must not do is refuse a tower the default
 // refuses only because the ceiling wrapped underneath it.
 test('maxEvaluationDepth: a ceiling past the 32-bit range is clamped, not wrapped', () => {
-  expect(compileAtDepth(deepFixture(100), 2 ** 32).code).toContain('$$css');
+  expect(injectedCss(compileAtDepth(deepFixture(100), 2 ** 32))).toContain('z-index:105');
 });
 
 // The default the compiler owns, observed through the boundary rather than read
 // from the Rust constant: 29 levels fold and 30 do not.
 test("maxEvaluationDepth: the default ceiling is the compiler's own", () => {
-  expect(compileAtDepth(deepFixture(29)).code).toContain('$$css');
+  expect(injectedCss(compileAtDepth(deepFixture(29)))).toContain('z-index:34');
   expect(() => compileAtDepth(deepFixture(30))).toThrow(
     /At most 32 levels of nested evaluation are supported/
   );

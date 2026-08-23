@@ -66,7 +66,6 @@ expression before refusing it, resolved from the configured option, then the
 what a project that configured the option compiles to; zero and anything
 non-numeric are read as unset rather than honoured, because a ceiling of zero
 refuses the folds the compiler runs to do its own work. Counted in evaluation
-steps, not in levels of source nesting — the
-[evaluation depth](../stylex-transform/CONTEXT.md) it bounds is defined where it
-is spent.
+steps, not in levels of source nesting — the [evaluation
+depth](../stylex-transform/CONTEXT.md) it bounds is defined where it is spent.
 _Avoid_: recursion limit, max depth, nesting limit

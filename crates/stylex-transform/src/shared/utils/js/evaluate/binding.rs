@@ -14,6 +14,13 @@
 use super::*;
 use swc_core::common::{EqIgnoreSpan, Span};
 
+// A note on what the unit tests beside this file do and do not cover. The
+// resolved-import arm is exercised only by `validation_stylex_create_test`,
+// which runs a real transform: `resolution_order.rs` builds a `StateManager`
+// with no filename, so every import there resolves `Unresolved` and the arm is
+// reached but never taken. A reader adding a case about a *resolved* import
+// belongs in the transform tests rather than here.
+
 /// Whether a reference reads a binding the program does not hold yet, because
 /// the declarator naming it ends after the reference begins.
 ///
@@ -51,8 +58,12 @@ use swc_core::common::{EqIgnoreSpan, Span};
 ///
 /// A hoisted declaration is compared against the end of its *name* rather than
 /// the end of its body, which is what upstream's `binding.path.node.end` is. The
-/// two part company only for a reference from inside the declaration's own body,
-/// which no style value reaches.
+/// two part company for a reference from inside the declaration's own body:
+/// `function f() { return create({ a: { color: f } }) }` sits after the name
+/// ends and before the function does, so upstream calls it early where this
+/// falls through to step 8's `FunctionDeclaration` refusal. Both refuse, so only
+/// the sentence differs; closing it means recording a declaration's whole span
+/// beside its name, which `declarations_state` does not carry.
 fn reads_before_its_declaration(reference: &Ident, declaration: Span) -> bool {
   !reference.span.is_dummy() && !declaration.is_dummy() && reference.span.lo < declaration.hi
 }
@@ -293,12 +304,6 @@ pub(super) fn resolve_reference(
   // refusal it had before — measured on 0.19.0, `function paint() {}` beside
   // `paint.a.b = 1` is `Unsupported expression: FunctionDeclaration` on both
   // sides, where refusing it for the write here would have diverged.
-  if traversal_state.has_deep_binding_mutation(ident)
-    && get_var_decl_from(traversal_state, ident).is_some()
-  {
-    return deopt_at_declaration(path, &ident.sym, state, traversal_state, NON_CONSTANT);
-  }
-
   let declarator = get_var_decl_by_ident(ident, traversal_state, &state.functions);
 
   // ── 5. a reference above its own declaration is early (664-666) ───────────
@@ -337,6 +342,24 @@ pub(super) fn resolve_reference(
       traversal_state,
       USED_BEFORE_DECLARATION,
     );
+  }
+
+  // Placed here rather than beside step 4, where the paragraph above it sits,
+  // because it is the one step upstream does not have — and the rule that
+  // paragraph states is that the extra reach must not change an answer the two
+  // compilers already agree on. Asked before step 5 it did exactly that for one
+  // shape: `const theme = {…}` declared below a `create` that reads
+  // `theme.a.b`, with `theme.a.b = 'blue'` after it. Upstream counts no
+  // mutation there, so its position comparison wins and it says the reference
+  // is used before its declaration; asked first, this said the value is not
+  // constant. Both refuse and both frame the same declaration, so no build
+  // changes — but the sentence the author reads was wrong about why.
+  //
+  // Asked of the `declarator` above rather than of the binding, for the reason
+  // the paragraph above gives, and reusing it rather than scanning the
+  // declaration list a second time.
+  if declarator.is_some() && traversal_state.has_deep_binding_mutation(ident) {
+    return deopt_at_declaration(path, &ident.sym, state, traversal_state, NON_CONSTANT);
   }
 
   // ── 6. a binding carrying a folded value (668-669) ────────────────────────

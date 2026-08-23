@@ -83,6 +83,12 @@ const LATER_REFERENCE_SPAN: Span = Span {
   lo: BytePos(30),
   hi: BytePos(31),
 };
+/// A reference span before the declarator's end, for the cases that *are* about
+/// position.
+const EARLY_REFERENCE_SPAN: Span = Span {
+  lo: BytePos(12),
+  hi: BytePos(13),
+};
 
 fn declarator_at(name: &str, span: Span, init: Option<Expr>) -> VarDeclarator {
   VarDeclarator {
@@ -281,6 +287,7 @@ struct ModuleState {
   declarator: Option<Option<Expr>>,
   reassigned: bool,
   mutated: bool,
+  deeply_mutated: bool,
   class_declaration: bool,
   function_declaration: bool,
   /// Declarators of *other* names, pushed ahead of the one under test, so a
@@ -338,6 +345,11 @@ impl ModuleState {
 
   fn mutated(mut self) -> Self {
     self.mutated = true;
+    self
+  }
+
+  fn deeply_mutated(mut self) -> Self {
+    self.deeply_mutated = true;
     self
   }
 
@@ -456,6 +468,10 @@ impl ModuleState {
         Rc::make_mut(&mut traversal_state.binding_mutations).insert(reference.to_id());
       }
 
+      if self.deeply_mutated {
+        Rc::make_mut(&mut traversal_state.binding_deep_mutations).insert(reference.to_id());
+      }
+
       // Registered at `DECLARATOR_SPAN` rather than at the reference's own
       // span, as every other declaration here is: the chain asks a hoisted
       // declaration the same position question it asks a declarator, so a
@@ -485,6 +501,12 @@ impl ModuleState {
   /// The common case: a reference to `c`, positioned after every declarator.
   fn evaluate_a_later_reference(self) -> Box<EvaluateResult> {
     self.evaluate("c", LATER_REFERENCE_SPAN)
+  }
+
+  /// A reference positioned *inside* the declarator's span, which is what the
+  /// early-reference step answers.
+  fn evaluate_an_early_reference(self) -> Box<EvaluateResult> {
+    self.evaluate("c", EARLY_REFERENCE_SPAN)
   }
 }
 
@@ -909,6 +931,53 @@ fn a_reassigned_binding_is_not_a_constant() {
     .evaluate_a_later_reference();
 
   assert_refused_with(&result, NON_CONSTANT);
+}
+
+/// The write upstream does not count at all — `obj.a.b = 1`, where its
+/// `isMutated` asks that the reference's own parent be the member the write
+/// lands on. This compiler refuses it, because the declarator's initializer
+/// would otherwise be inlined at the use site and it is stale.
+#[test]
+fn a_deeply_mutated_declarator_is_not_a_constant() {
+  let result = ModuleState::default()
+    .declared_with(create_string_expr("red"))
+    .deeply_mutated()
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, NON_CONSTANT);
+}
+
+/// And it is asked *behind* the early-reference step, not beside the two write
+/// probes.
+///
+/// This is the one step upstream does not have, and the rule the block states
+/// is that the extra reach must not change an answer the two compilers already
+/// agree on. A reference above its own declaration is early on both sides;
+/// asked first, the deep-write probe answered "not a constant" instead and the
+/// author read the wrong reason for the same refusal.
+#[test]
+fn an_early_reference_to_a_deeply_mutated_binding_is_still_early() {
+  let result = ModuleState::default()
+    .declared_with(create_string_expr("red"))
+    .deeply_mutated()
+    .evaluate_an_early_reference();
+
+  assert_refused_with(&result, USED_BEFORE_DECLARATION);
+}
+
+/// A deep write against something that is not a declarator keeps the refusal it
+/// had. Only a declarator's initializer can be inlined, so only a declarator is
+/// worth diverging from upstream for — measured on 0.19.0, `function paint() {}`
+/// beside `paint.a.b = 1` is the same `FunctionDeclaration` refusal on both
+/// sides.
+#[test]
+fn a_deeply_mutated_function_keeps_its_declaration_kind_refusal() {
+  let result = ModuleState::default()
+    .declares_a_function()
+    .deeply_mutated()
+    .evaluate_a_later_reference();
+
+  assert_refused_with(&result, &unsupported_expression("FunctionDeclaration"));
 }
 
 /// The second probe answers on its own, which is the whole point of splitting

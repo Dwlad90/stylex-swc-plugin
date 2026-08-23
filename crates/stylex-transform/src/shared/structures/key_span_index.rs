@@ -201,9 +201,14 @@ impl Visit for KeySpanIndex {
 /// The ordering is derived, so the field order *is* the precedence: how much of
 /// the namespace's own value the candidate reproduces, then how many of the
 /// call's other namespace keys it spells, then how close it is written to the
-/// compiled call. The distance is `Reverse`d so a nearer candidate wins, which
-/// also means no measured distance outranks every measured one -- a call with no
-/// position of its own cannot be placed, so it cannot be placed badly either.
+/// compiled call. The distance is `Reverse`d so a nearer candidate wins.
+///
+/// `None` sorts below `Some`, so `Reverse(None)` outranks every measured
+/// distance -- the opposite of what an earlier reading of this said. It never
+/// decides anything, because the `Option` comes from the *query* rather than
+/// from the candidate and so is uniform across one `resolve`: a call with no
+/// position of its own leaves every candidate tied here, and the two overlap
+/// fields above decide alone.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct CandidateRank {
   /// Whether the candidate was written as an argument to the call being placed.
@@ -405,21 +410,23 @@ fn object_lo(object: &ObjectLit) -> Option<BytePos> {
 /// The first such property wins, unlike the index side's last -- this reads the
 /// compiled call, where the namespace was built from a map and cannot repeat.
 fn namespace_value_keys(object: &ObjectLit, namespace_key: &str) -> FxHashSet<Atom> {
+  // `find` then match, rather than one `find_map`: the closure there answered
+  // `None` both for a property that does not name the namespace and for one
+  // that names it without an object value, so a *later* property of the same
+  // name could still be matched -- which is not "the first such property wins".
   object
     .props
     .iter()
-    .find_map(|prop| {
-      let key_value = prop_as_key_value(prop)?;
-
-      let names_the_namespace = namespace_name_from_prop_key(&key_value.key)
-        .is_some_and(|name| name.as_ref() == namespace_key);
-
-      match key_value.value.as_ref() {
-        Expr::Object(value) if names_the_namespace => {
-          Some(collect_object_lit_keys(value).collect())
-        },
-        _ => None,
-      }
+    .find(|prop| {
+      prop_as_key_value(prop).is_some_and(|key_value| {
+        namespace_name_from_prop_key(&key_value.key)
+          .is_some_and(|name| name.as_ref() == namespace_key)
+      })
+    })
+    .and_then(prop_as_key_value)
+    .and_then(|key_value| match key_value.value.as_ref() {
+      Expr::Object(value) => Some(collect_object_lit_keys(value).collect()),
+      _ => None,
     })
     .unwrap_or_default()
 }

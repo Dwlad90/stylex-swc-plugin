@@ -121,6 +121,17 @@ impl StylesPreRule {
     sort_at_rules(&unsorted_at_rules)
   }
 
+  /// The `var(--…)` keys of a key path.
+  ///
+  /// Sorted here, which is a divergence and predates this file's current shape:
+  /// upstream's `get constRules()` returns the filtered path **unsorted**, and
+  /// only `convertStyleToClassName` sorts, for the hash. `generateCSSRule`
+  /// receives the unsorted list and nests the declaration in that order, so two
+  /// `var(--…)` keys written out of alphabetical order nest one way here and the
+  /// other way in Babel. The class name is unaffected — both sides re-sort the
+  /// combined list before hashing — so the emitted rule differs in nesting order
+  /// alone. Left as it is rather than changed alongside unrelated work; the sort
+  /// is also redundant with the one the caller does.
   fn get_const_rules(key_path: &Option<Vec<String>>) -> Vec<String> {
     let unsorted_const_rules = Self::select_key_path(key_path, |key| key.starts_with("var(--"));
 

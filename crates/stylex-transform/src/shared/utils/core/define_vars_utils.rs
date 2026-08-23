@@ -190,9 +190,36 @@ pub(crate) fn any_level_needs_a_default(value: &Expr) -> bool {
     return true;
   }
 
+  // A CSS type's `value` is its own shape rather than a map of at-rules, so the
+  // descent stops here. The doc above said so before the code did: the `.any`
+  // below used to walk every key of a `syntax`/`value` pair, `syntax` included.
+  if is_css_type_object(obj) {
+    return false;
+  }
+
   get_key_values_from_object(obj)
     .iter()
     .any(|key_value| any_level_needs_a_default(&key_value.value))
+}
+
+/// Whether `obj` is a CSS type — the `syntax` and `value` pair.
+///
+/// Kept beside [`object_needs_a_default`], which asks the same question with a
+/// third key added, so the two cannot drift into disagreeing about what a CSS
+/// type looks like.
+fn is_css_type_object(obj: &ObjectLit) -> bool {
+  let mut carries_syntax = false;
+  let mut carries_value = false;
+
+  for key_value in get_key_values_from_object(obj).iter() {
+    match convert_key_value_to_str(key_value).as_str() {
+      "syntax" => carries_syntax = true,
+      "value" => carries_value = true,
+      _ => {},
+    }
+  }
+
+  carries_syntax && carries_value
 }
 
 pub(crate) fn object_needs_a_default(obj: &ObjectLit) -> bool {

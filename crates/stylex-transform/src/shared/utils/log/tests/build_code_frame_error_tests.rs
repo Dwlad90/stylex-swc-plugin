@@ -29,10 +29,36 @@ use stylex_ast::ast::{
 
 static TEST_FILE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
+/// A fixture file and the directory holding it, removed when the test ends.
+///
+/// The directories are collision-free across processes and threads, but nothing
+/// used to remove them, so a full run left one behind per fixture case. Derefs
+/// to the path so a caller reads as though it held one.
+struct TempFixture {
+  dir: PathBuf,
+  path: PathBuf,
+}
+
+impl std::ops::Deref for TempFixture {
+  type Target = Path;
+
+  fn deref(&self) -> &Path {
+    &self.path
+  }
+}
+
+impl Drop for TempFixture {
+  fn drop(&mut self) {
+    // Best effort: a fixture left behind is untidy, not a failure, and panicking
+    // here would replace a real assertion message with this one.
+    let _ = fs::remove_dir_all(&self.dir);
+  }
+}
+
 /// Writes a fixture whose content contains multi-byte characters, so any byte
 /// offset taken from a foreign source map is likely to land inside a character
 /// instead of on a char boundary.
-fn write_multibyte_fixture(name: &str) -> PathBuf {
+fn write_multibyte_fixture(name: &str) -> TempFixture {
   let id = TEST_FILE_COUNTER.fetch_add(1, Ordering::Relaxed);
   let dir = std::env::temp_dir().join(format!(
     "stylex_code_frame_error_tests_{}_{}",
@@ -55,10 +81,10 @@ fn write_multibyte_fixture(name: &str) -> PathBuf {
     panic!("failed to write temp fixture: {error}");
   }
 
-  path
+  TempFixture { dir, path }
 }
 
-fn write_fixture(name: &str, source: &str) -> PathBuf {
+fn write_fixture(name: &str, source: &str) -> TempFixture {
   let id = TEST_FILE_COUNTER.fetch_add(1, Ordering::Relaxed);
   let dir = std::env::temp_dir().join(format!(
     "stylex_code_frame_error_tests_{}_{}",
@@ -76,7 +102,7 @@ fn write_fixture(name: &str, source: &str) -> PathBuf {
     panic!("failed to write temp fixture: {error}");
   }
 
-  path
+  TempFixture { dir, path }
 }
 
 fn compiled_create_call() -> CallExpr {

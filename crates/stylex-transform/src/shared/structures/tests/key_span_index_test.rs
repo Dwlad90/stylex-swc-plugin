@@ -549,10 +549,11 @@ const styles = stylex.create({ root: { color: 'red' } });
     // Smaller distance to the target wins a full overlap tie.
     assert!(rank(1, 3, Some(5)) > rank(1, 3, Some(6)));
 
-    // No target position outranks any measured distance (Option: None < Some).
-    assert!(rank(1, 3, None) > rank(1, 3, Some(0)));
-
-    // Identical signals rank equal, which a lookup reports as ambiguous.
-    assert_eq!(rank(1, 3, Some(5)), rank(1, 3, Some(5)));
+    // Deliberately not asserted here: that `Reverse(None)` outranks every
+    // measured distance, and that identical signals rank equal. The first is an
+    // ordering no input reaches, because the `Option` comes from the query and
+    // is uniform across one `resolve`; the second is `x == x` under a derived
+    // `PartialEq`. What a lookup does with a tie is
+    // `two_equally_good_candidates_resolve_to_nothing`.
   }
 }

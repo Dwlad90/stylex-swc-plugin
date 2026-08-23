@@ -143,6 +143,15 @@ pub(super) const fn build_ascii_primary_rank() -> [u8; 128] {
 /// the byte keeps the answer total: a non-ASCII character sorts by its UTF-8
 /// bytes, which for UTF-8 is code-point order, and that is exactly the
 /// behaviour the non-ASCII cases pin.
+///
+/// It is also a **known divergence**, and the consequence is worth stating
+/// plainly: root collation places an accented letter beside its base letter,
+/// where this places every non-ASCII byte above all of printable ASCII. So a
+/// key path nesting `[data-état]` beside `[data-f]` sorts one way here and the
+/// other way in Babel — and since the sorted path feeds the class-name hash,
+/// the two compilers emit *different class names* for the same source. That is
+/// a mixed-toolchain hazard rather than an ordering curiosity, and it is what
+/// decides whether taking on a real collation dependency is ever worth it.
 #[inline]
 fn primary_weight(byte: u8) -> u16 {
   match ASCII_PRIMARY_RANK.get(byte as usize) {

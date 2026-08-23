@@ -921,9 +921,9 @@ fn scale3d_parse_error_wrong_close_token() {
 // Scale3d with percentage values (covers number_or_percentage_to_f64 Percentage arm).
 #[test]
 fn scale3d_parse_percentage_values() {
-  // cssparser stores percentage as unit_value: 50% = 0.5 in SimpleToken::Percentage.
-  // token_to_percentage does (value * 100.0) as f32 → 50.0 stored in Percentage::value.
-  // number_or_percentage_to_f64 then does p.value / 100.0 → 0.5.
+  // SimpleToken::Percentage carries the authored percent, so 50% is 50, and
+  // Percentage::value holds it unscaled. number_or_percentage_to_f64 then
+  // divides by 100 where a fraction is wanted → 0.5.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("scale3d".to_string()),
     SimpleToken::Percentage(50.0), // 50% → stored as 0.5 unit_value → result 0.5

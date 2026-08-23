@@ -2269,11 +2269,14 @@ fn oklab_parse_oklab_lab_value_invalid_type() {
   assert!(Oklab::parse_oklab_lab_value(&mut tl).is_err());
 }
 
-// ── Lch::parse_optional_alpha direct call variants ───────────────────────────
+// ── parse_optional_slash_alpha direct call variants ──────────────────────────
+
+// `lch`, `oklch`, and `oklab` each carried a byte-identical copy of this
+// reader, so these two tests used to be six -- one pair per type. One function
+// needs one pair; the per-type behaviour is covered end to end below.
 
 #[test]
-fn lch_parse_optional_alpha_with_whitespace_before_slash() {
-  // Whitespace before slash in token list
+fn parse_optional_slash_alpha_reads_an_alpha_after_whitespace_and_a_slash() {
   let mut tl = TokenList {
     tokens: vec![
       SimpleToken::Whitespace,
@@ -2283,71 +2286,26 @@ fn lch_parse_optional_alpha_with_whitespace_before_slash() {
     ],
     current_index: 0,
   };
-  // The alpha_as_number parser runs on the remaining tokens
-  let result = Lch::parse_optional_alpha(&mut tl);
-  // It may succeed or fail depending on alpha_as_number implementation details,
-  // but we exercise the whitespace-consuming path
-  let _ = result;
+
+  match parse_optional_slash_alpha(&mut tl) {
+    Ok(alpha) => assert_eq!(alpha, Some(0.5)),
+    Err(error) => panic!("expected the alpha to be read: {error:?}"),
+  }
 }
 
 #[test]
-fn lch_parse_optional_alpha_no_slash_returns_none() {
+fn parse_optional_slash_alpha_rewinds_when_there_is_no_slash() {
   let mut tl = TokenList {
     tokens: vec![SimpleToken::Number(0.5)],
     current_index: 0,
   };
-  let result = Lch::parse_optional_alpha(&mut tl).unwrap();
-  assert_eq!(result, None);
-}
 
-// ── Oklch::parse_optional_alpha variants ─────────────────────────────────────
-
-#[test]
-fn oklch_parse_optional_alpha_with_whitespace_before_slash() {
-  let mut tl = TokenList {
-    tokens: vec![
-      SimpleToken::Whitespace,
-      SimpleToken::Delim('/'),
-      SimpleToken::Whitespace,
-      SimpleToken::Number(0.8),
-    ],
-    current_index: 0,
-  };
-  let _ = Oklch::parse_optional_alpha(&mut tl);
-}
-
-#[test]
-fn oklch_parse_optional_alpha_no_slash_returns_none() {
-  let mut tl = TokenList {
-    tokens: vec![SimpleToken::Number(0.5)],
-    current_index: 0,
-  };
-  assert_eq!(Oklch::parse_optional_alpha(&mut tl).unwrap(), None);
-}
-
-// ── Oklab::parse_optional_alpha variants ─────────────────────────────────────
-
-#[test]
-fn oklab_parse_optional_alpha_with_whitespace_before_slash() {
-  let mut tl = TokenList {
-    tokens: vec![
-      SimpleToken::Whitespace,
-      SimpleToken::Delim('/'),
-      SimpleToken::Whitespace,
-      SimpleToken::Number(0.3),
-    ],
-    current_index: 0,
-  };
-  let _ = Oklab::parse_optional_alpha(&mut tl);
-}
-
-#[test]
-fn oklab_parse_optional_alpha_no_slash_returns_none() {
-  let mut tl = TokenList {
-    tokens: vec![SimpleToken::Number(0.5)],
-    current_index: 0,
-  };
-  assert_eq!(Oklab::parse_optional_alpha(&mut tl).unwrap(), None);
+  match parse_optional_slash_alpha(&mut tl) {
+    Ok(alpha) => assert_eq!(alpha, None),
+    Err(error) => panic!("expected no alpha rather than an error: {error:?}"),
+  }
+  // The token it looked at is still there for the caller.
+  assert_eq!(tl.current_index, 0);
 }
 
 // ── Hsla space_slash_parser: whitespace before/after slash ───────────────────

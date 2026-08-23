@@ -237,13 +237,18 @@ mod boundaries_and_refusals {
   /// A subnormal alpha survives as a non-zero value, where single precision
   /// flushed anything below ~1.2e-38 to zero outright. Rust's own formatting
   /// spells it as a 300-odd digit decimal where JavaScript spells it
-  /// `5e-324`; the value is right here and the spelling is not, which is the
-  /// gap the shared formatter closes rather than the widening.
+  /// `5e-324`, so the assertion reads the value back out of the text rather
+  /// than pinning a spelling the shared formatter is about to change.
   #[test]
   fn a_subnormal_alpha_is_not_flushed_to_zero() {
     let printed = printed!("rgba(255, 0, 0, 5e-324)");
-    assert!(printed.len() > 300, "{}", printed.len());
-    assert!(printed.contains('5'), "{printed}");
+    let alpha = printed
+      .trim_start_matches("rgba(255, 0, 0, ")
+      .trim_end_matches(')');
+
+    // The value, not the digit count: the smallest subnormal double, read back
+    // out of the text it was printed as.
+    assert_eq!(alpha.parse::<f64>(), Ok(5e-324), "{printed}");
   }
 
   /// An alpha below single precision's smallest normal, spelled the way an
@@ -566,13 +571,16 @@ mod modern_space_boundaries_and_refusals {
   /// A subnormal alpha survives as a non-zero value, where single precision
   /// flushed anything below ~1.2e-38 to zero. As with the legacy spaces,
   /// Rust's own formatting spells it as a long decimal where JavaScript
-  /// spells it `5e-324`; the value is right and the spelling is the shared
-  /// formatter's gap.
+  /// spells it `5e-324`, so the assertion reads the value back out of the text
+  /// rather than pinning a spelling the shared formatter is about to change.
   #[test]
   fn a_subnormal_modern_alpha_is_not_flushed_to_zero() {
     let printed = printed!("oklch(0.7 0.1 200deg / 5e-324)");
-    assert!(printed.len() > 300, "{}", printed.len());
-    assert!(printed.contains('5'), "{printed}");
+    let alpha = printed
+      .trim_start_matches("oklch(0.7 0.1 200deg / ")
+      .trim_end_matches(')');
+
+    assert_eq!(alpha.parse::<f64>(), Ok(5e-324), "{printed}");
   }
 
   /// A channel at the extremes of the double range is finite, where single

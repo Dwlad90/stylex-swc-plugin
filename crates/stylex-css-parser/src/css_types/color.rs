@@ -33,6 +33,38 @@ fn rgb_number_parser() -> TokenParser<u8> {
     .map(|v| v as u8, Some("to_u8"))
 }
 
+/// Reads the `/ <alpha-value>` tail the modern colour spaces share. Rewinds to
+/// where it started and answers `None` when there is no slash, so a caller can
+/// ask without having to look first. `lch`, `oklch`, and `oklab` each carried a
+/// byte-identical copy of this before it was named.
+fn parse_optional_slash_alpha(input: &mut TokenList) -> Result<Option<f64>, CssParseError> {
+  let checkpoint = input.current_index;
+
+  if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
+    input.consume_next_token_infallible();
+  }
+
+  match input.peek_infallible() {
+    Some(SimpleToken::Delim('/')) => {
+      input.consume_next_token_infallible();
+
+      if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
+        input.consume_next_token_infallible();
+      }
+
+      match alpha_as_number().run.as_ref()(input) {
+        Ok(alpha) => Ok(Some(alpha)),
+        Err(error) => Err(error),
+      }
+    },
+    // No slash, so no alpha -- and the whitespace skipped above is put back.
+    _ => {
+      input.set_current_index(checkpoint);
+      Ok(None)
+    },
+  }
+}
+
 /// Returns true when `token` is a Function token with the given name. Returns
 /// false for all other token kinds (defensive fallback — guarded by
 /// tokens::function() in callers).
@@ -1905,7 +1937,7 @@ impl Lch {
         let h = Self::parse_lch_hue_token(tokens)?;
 
         // Parse optional alpha: / <alpha-value>
-        let alpha = Self::parse_optional_alpha(tokens)?;
+        let alpha = parse_optional_slash_alpha(tokens)?;
 
         // Expect closing paren
         let close_token =
@@ -1925,42 +1957,6 @@ impl Lch {
       },
       "lch_parser",
     )
-  }
-
-  /// Parse optional alpha: / <alpha-value>
-  fn parse_optional_alpha(
-    input: &mut crate::token_types::TokenList,
-  ) -> Result<Option<f64>, CssParseError> {
-    // Check if there's a slash for alpha
-    let checkpoint = input.current_index;
-
-    // Skip optional whitespace
-    if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
-      input.consume_next_token_infallible();
-    }
-
-    match input.peek_infallible() {
-      Some(SimpleToken::Delim('/')) => {
-        input.consume_next_token_infallible(); // consume '/'
-
-        // Skip optional whitespace after slash
-        if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
-          input.consume_next_token_infallible();
-        }
-
-        // Parse alpha value using enhanced alpha parser
-        let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
-        match alpha_parser.run.as_ref()(input) {
-          Ok(alpha) => Ok(Some(alpha)),
-          Err(e) => Err(e),
-        }
-      },
-      _ => {
-        // No alpha, rewind to checkpoint
-        input.set_current_index(checkpoint);
-        Ok(None)
-      },
-    }
   }
 
   /// Helper: Parse LCH lightness token (percentage or number)
@@ -2108,7 +2104,7 @@ impl Oklch {
         let h = Self::parse_oklch_hue(input)?;
 
         // Parse optional alpha: / <alpha-value>
-        let alpha = Self::parse_optional_alpha(input)?;
+        let alpha = parse_optional_slash_alpha(input)?;
 
         // Parse closing paren
         match input.consume_next_token_infallible() {
@@ -2155,42 +2151,6 @@ impl Oklch {
       _ => Err(CssParseError::ParseError {
         message: "Expected hue: angle, number, or 'none'".to_string(),
       }),
-    }
-  }
-
-  /// Parse optional alpha: / <alpha-value>
-  fn parse_optional_alpha(
-    input: &mut crate::token_types::TokenList,
-  ) -> Result<Option<f64>, CssParseError> {
-    // Check if there's a slash for alpha
-    let checkpoint = input.current_index;
-
-    // Skip optional whitespace
-    if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
-      input.consume_next_token_infallible();
-    }
-
-    match input.peek_infallible() {
-      Some(SimpleToken::Delim('/')) => {
-        input.consume_next_token_infallible(); // consume '/'
-
-        // Skip optional whitespace after slash
-        if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
-          input.consume_next_token_infallible();
-        }
-
-        // Parse alpha value using enhanced alpha parser
-        let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
-        match alpha_parser.run.as_ref()(input) {
-          Ok(alpha) => Ok(Some(alpha)),
-          Err(e) => Err(e),
-        }
-      },
-      _ => {
-        // No alpha, rewind to checkpoint
-        input.set_current_index(checkpoint);
-        Ok(None)
-      },
     }
   }
 }
@@ -2265,7 +2225,7 @@ impl Oklab {
         let b = Self::parse_oklab_lab_value(input)?;
 
         // Parse optional alpha: / <alpha-value>
-        let alpha = Self::parse_optional_alpha(input)?;
+        let alpha = parse_optional_slash_alpha(input)?;
 
         // Parse closing paren
         match input.consume_next_token_infallible() {
@@ -2293,42 +2253,6 @@ impl Oklab {
       _ => Err(CssParseError::ParseError {
         message: "Expected number or 'none'".to_string(),
       }),
-    }
-  }
-
-  /// Parse optional alpha: / <alpha-value>
-  fn parse_optional_alpha(
-    input: &mut crate::token_types::TokenList,
-  ) -> Result<Option<f64>, CssParseError> {
-    // Check if there's a slash for alpha
-    let checkpoint = input.current_index;
-
-    // Skip optional whitespace
-    if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
-      input.consume_next_token_infallible();
-    }
-
-    match input.peek_infallible() {
-      Some(SimpleToken::Delim('/')) => {
-        input.consume_next_token_infallible(); // consume '/'
-
-        // Skip optional whitespace after slash
-        if let Some(SimpleToken::Whitespace) = input.peek_infallible() {
-          input.consume_next_token_infallible();
-        }
-
-        // Parse alpha value using enhanced alpha parser
-        let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
-        match alpha_parser.run.as_ref()(input) {
-          Ok(alpha) => Ok(Some(alpha)),
-          Err(e) => Err(e),
-        }
-      },
-      _ => {
-        // No alpha, rewind to checkpoint
-        input.set_current_index(checkpoint);
-        Ok(None)
-      },
     }
   }
 }

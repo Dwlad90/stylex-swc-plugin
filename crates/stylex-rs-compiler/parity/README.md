@@ -33,13 +33,14 @@ It exits non-zero for exactly one reason: an entry whose recorded `expected`
 verdict no longer holds. A divergence with no expectation recorded against it is
 information for a person to read, not a failure.
 
-| Flag                    | Effect                                            |
-| ----------------------- | ------------------------------------------------- |
-| `--only-mismatches`     | print only the entries that disagree              |
-| `--set <name>`          | limit to one corpus set; repeatable               |
-| `--filter <substring>`  | limit to entries whose subject text contains it   |
-| `--json <path>`         | also write the full machine-readable report       |
-| `--font-size-px-to-rem` | enable the font-size conversion in both compilers |
+| Flag                     | Effect                                            |
+| ------------------------ | ------------------------------------------------- |
+| `--only-mismatches`      | print only the entries that disagree              |
+| `--set <name>`           | limit to one corpus set; repeatable               |
+| `--filter <substring>`   | limit to entries whose subject text contains it   |
+| `--json <path>`          | also write the full machine-readable report       |
+| `--font-size-px-to-rem`  | enable the font-size conversion in both compilers |
+| `--style-resolution <n>` | which resolution both compilers run under         |
 
 ## Reading a verdict
 
@@ -57,6 +58,25 @@ Both compilers receive the same module text and the same option object,
 constructed once in `lib/compare.ts`. Option drift would surface as a
 normalization divergence and send the reader chasing the wrong thing, so
 options are never spelled out per subject.
+
+`--style-resolution` is the one option a run is expected to vary, because what
+differs between the three is which longhands a shorthand becomes and what order
+they land in — property expansion rather than value spelling, and a class name
+and a style object's key order both depend on it. Absent the flag a run uses
+`property-specificity`, which is what both compilers fall back to on their own
+and therefore what every recorded verdict was taken under; the subject block
+prints it either way, since a report that does not say which resolution it
+measured cannot be compared with another one. A name that is not one of the
+three is refused rather than defaulted.
+
+All three have been run over the whole corpus. `application-order` was the one
+that had never been: it reported seven rows where both compilers emitted the
+same CSS and the same set of style-object keys in a different order, from five
+shorthands that spread another shorthand's expansion into the middle of their own
+list and appended it instead. That is fixed, and the position of every one of
+those spreads is now pinned in `application_order.rs` — the corpus found it, but
+a unit test is where it belongs, since nothing runs the corpus under a
+non-default resolution.
 
 Right-to-left rule text is compared but never printed. An RTL-only difference
 is a value difference all the same, and without comparing it a verdict would
@@ -384,10 +404,10 @@ alphabet then multiplied.
 It differs from `pnpm parity` in three ways worth knowing before reading a
 number from it.
 
-- **It pins the style resolution.** Value splitting runs only under
-  `legacy-expand-shorthands`; under the other two a `padding` reaches the
-  stylesheet whole. A run left on the default compares two compilers that both
-  never called the code, and reports agreement.
+- **It pins the style resolution** rather than taking it as a flag. Value
+  splitting runs only under `legacy-expand-shorthands`; under the other two a
+  `padding` reaches the stylesheet whole. A run left on the default compares two
+  compilers that both never called the code, and reports agreement.
 - **It reports its alphabet, not a score.** What a run can claim is the token
   classes it crossed. The class list, the joiner list and the property list are
   printed above the counts precisely so that a reader compares the two rather

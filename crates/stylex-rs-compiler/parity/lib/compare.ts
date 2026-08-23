@@ -56,12 +56,16 @@ export interface CreateComparerOptions {
   enableFontSizePxToRem: boolean;
   /**
    * Which style resolution both compilers run under. Omitted leaves each
-   * compiler on its own default, which is what the value corpus is read at.
+   * compiler on its own default, which both spell `property-specificity`.
    *
-   * A harness passes it when the code it is aiming at only runs under one
-   * resolution: shorthand value splitting is reached only by
-   * `legacy-expand-shorthands`, and a harness that left this alone would
-   * compare two compilers that both never called it and report agreement.
+   * Both harnesses pass it, for the same reason stated two ways. The generated
+   * one pins `legacy-expand-shorthands` because that is the only resolution
+   * shorthand value splitting is reached under, and a run left on the default
+   * would compare two compilers that both never called it and report agreement.
+   * The value harness takes it as a flag, because which longhands a shorthand
+   * becomes and what order they land in differ between all three — a class name
+   * depends on that, and a report that does not say which resolution it measured
+   * cannot be compared with another one.
    */
   styleResolution?: StyleXOptions['styleResolution'];
 }

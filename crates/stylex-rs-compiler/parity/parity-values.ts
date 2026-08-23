@@ -24,6 +24,7 @@
  *   pnpm parity --filter calc                # entries whose subject contains it
  *   pnpm parity --json parity/results/x.json # machine-readable report
  *   pnpm parity --font-size-px-to-rem        # both compilers with the option on
+ *   pnpm parity --style-resolution <name>    # which resolution both run under
  */
 
 import fs from 'node:fs';
@@ -33,6 +34,7 @@ import { parseArgs } from 'node:util';
 
 import chalk from 'chalk';
 
+import type { StyleXOptions } from '../dist/index.js';
 import { createComparer, styleObjectsAgree } from './lib/compare.js';
 import { loadCorpus } from './lib/corpus.js';
 import { REFUSAL_FAMILIES } from './lib/refusal-families.js';
@@ -45,6 +47,28 @@ const parityDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.resolve(parityDir, '..');
 const workspaceRoot = path.resolve(packageDir, '../..');
 
+/**
+ * The resolutions a consumer can pick, and the one a run uses when the flag is
+ * absent.
+ *
+ * `property-specificity` is not an arbitrary default: it is what both compilers
+ * fall back to on their own, so every verdict recorded in the corpus was taken
+ * under it. Naming it here rather than leaving the option out makes a report say
+ * which resolution it measured without moving a single expectation — the option
+ * object now carries the value both compilers were already using.
+ *
+ * What differs between the three is which longhands a shorthand becomes and what
+ * order they land in, which a class name depends on. That is a different failure
+ * surface from value spelling, and `--style-resolution` is how it gets measured.
+ */
+const STYLE_RESOLUTIONS = [
+  'application-order',
+  'property-specificity',
+  'legacy-expand-shorthands',
+] as const satisfies readonly NonNullable<StyleXOptions['styleResolution']>[];
+
+const DEFAULT_STYLE_RESOLUTION: (typeof STYLE_RESOLUTIONS)[number] = 'property-specificity';
+
 const { values: cliOptions } = parseArgs({
   args: process.argv.slice(2).filter(arg => arg !== '--'),
   options: {
@@ -53,6 +77,7 @@ const { values: cliOptions } = parseArgs({
     filter: { type: 'string' },
     json: { type: 'string' },
     'font-size-px-to-rem': { type: 'boolean', default: false },
+    'style-resolution': { type: 'string', default: DEFAULT_STYLE_RESOLUTION },
     help: { type: 'boolean', short: 'h', default: false },
   },
 });
@@ -68,6 +93,10 @@ Options:
       --filter <substring>      limit to entries whose subject text contains it
       --json <path>             also write the full machine-readable report
       --font-size-px-to-rem     enable the font-size conversion in both compilers
+      --style-resolution <name>
+                                which resolution both compilers run under
+                                (${STYLE_RESOLUTIONS.join('|')});
+                                default ${DEFAULT_STYLE_RESOLUTION}
   -h, --help                    show this help
 `);
   process.exit(0);
@@ -82,6 +111,30 @@ const VERDICT_LABELS: Record<Verdict, string> = {
   'both-reject-divergent': chalk.cyan('both reject (diverged)'),
   'acceptance-divergent': chalk.yellow('acceptance divergent'),
 };
+
+/**
+ * The resolution a run was asked for, refused rather than defaulted when it is
+ * not one of the three.
+ *
+ * A misspelled name silently falling back would report a run under the default
+ * while the reader believed it was under something else — and the whole point of
+ * the flag is that a report says which resolution produced it.
+ */
+function styleResolutionFrom(named: string | undefined): (typeof STYLE_RESOLUTIONS)[number] {
+  if (named === undefined) return DEFAULT_STYLE_RESOLUTION;
+
+  const found = STYLE_RESOLUTIONS.find(candidate => candidate === named);
+  if (found === undefined) {
+    console.error(
+      chalk.red(
+        `Unknown style resolution: ${named} — expected one of ${STYLE_RESOLUTIONS.join(', ')}.`
+      )
+    );
+    process.exit(1);
+  }
+
+  return found;
+}
 
 function describe(entry: ReportEntry, side: 'rust' | 'babel'): string {
   const outcome = entry[side];
@@ -118,6 +171,7 @@ async function run(): Promise<void> {
   const comparer = await createComparer({
     packageDir,
     enableFontSizePxToRem: cliOptions['font-size-px-to-rem'],
+    styleResolution: styleResolutionFrom(cliOptions['style-resolution']),
   });
 
   console.log(
@@ -125,6 +179,7 @@ async function run(): Promise<void> {
       `  @stylexswc/rs-compiler   v${comparer.versions.rust.version}\n` +
       `  @stylexjs/babel-plugin   v${comparer.versions.babel.version}\n` +
       `  @babel/core              v${comparer.versions.babelCore}\n` +
+      `  style resolution         ${comparer.options.styleResolution ?? DEFAULT_STYLE_RESOLUTION}\n` +
       `  options                  ${JSON.stringify(comparer.options)}\n`
   );
 

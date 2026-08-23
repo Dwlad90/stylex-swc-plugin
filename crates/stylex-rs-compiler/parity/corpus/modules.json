@@ -635,8 +635,7 @@
       "label": "a theme import whose export name carries a lone surrogate",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { \"\\ud83d\" as ls } from 'vars.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { color: ls.x },\n});\n",
       "origin": "the identifier audit for issue #1266, the string-named specifier read by its own local binding",
-      "note": "An export name that is well-formed UTF-16 and not well-formed Unicode -- the one string an export name can hold that has no encoding a hash can read. Both refuse, and not for the same reason: upstream refuses it in the parser (`An export name cannot include a lone surrogate`) and this compiler where the name is decoded (`String value contains invalid UTF-8 encoding.`). A refusal neither compiler can act on differently, recorded as the wording divergence it is.",
-      "expected": "both-reject-divergent"
+      "note": "An export name that is well-formed UTF-16 and not well-formed Unicode -- the one string an export name can hold that has no encoding a hash can read. Both refuse, and not for the same reason: upstream refuses it in the parser (`An export name cannot include a lone surrogate`) and this compiler where the name is decoded (`String value contains invalid UTF-8 encoding.`). Claimed by the `lone surrogate in a name` family rather than by an expectation here: what stops the two sentences agreeing is not the order the passes run in but the absence of a representation, and a family is where a reason like that is stated once for every row that reaches it."
     },
     {
       "id": "modules-1266-a-string-named-specifier-with-an-astral-export-name",
@@ -1163,8 +1162,8 @@
       "label": "a shadowed dynamic parameter spread into the style object",
       "source": "import * as stylex from '@stylexjs/stylex';\nimport { zIndex } from 'zIndex.stylex.js';\n\nexport const styles = stylex.create({\n  wrapper: { zIndex: zIndex._10 },\n  dyn: (zIndex) => ({ ...zIndex }),\n});\n",
       "origin": "issue #1266, the parameter in the one position that is not a value",
-      "note": "A spread asks the evaluator to enumerate the parameter's keys rather than to fold it to a value, which is the position with no inline-style fall-through to deopt into. Recorded because the abort this effort fixed came from a resolved value having no expression form, and a spread is where that same value is asked for a shape instead. The two refusals are not the same sentence -- `Referenced constant is not defined.` here against `Only static values are allowed inside of a create() call.` upstream -- which is what the recorded verdict says: a spread names a position, and upstream complains about the call it sits in where this compiler complains about the binding it cannot resolve.",
-      "expected": "both-reject-divergent"
+      "note": "A spread asks the evaluator to enumerate the parameter's keys rather than to fold it to a value, which is the position with no inline-style fall-through to deopt into. Recorded because the abort this effort fixed came from a resolved value having no expression form, and a spread is where that same value is asked for a shape instead. The two refusals used to word themselves differently -- `Referenced constant is not defined.` here against `Only static values are allowed inside of a create() call.` upstream -- and now do not. A spread names a position that admits no dynamic value at all, so the complaint is the whole of what an author is handed and naming the binding answered a question nobody asked. Pinned at `both-reject` so the two sentences cannot drift apart again.",
+      "expected": "both-reject"
     },
     {
       "id": "modules-1266-a-theme-object-in-a-fallback-array",
@@ -1565,8 +1564,7 @@
       "label": "a folded function map under a condition key that is a lone surrogate",
       "source": "import { create, keyframes } from '@stylexjs/stylex';\n\nexport const styles = create({ a: { height: { '\\ud800': keyframes } } });\n",
       "origin": "the identifier audit for issue #1266, the fold materialized at the static consumer",
-      "note": "Upstream holds the key as a JavaScript string and never writes it down, so it reaches the fold and refuses for it. This compiler refuses the key's encoding first: no Rust string holds a lone surrogate, and emitting a replacement character would write a selector the source does not describe -- the rule an object spread of a string and `charCodeAt` already answer this way.",
-      "expected": "both-reject-divergent"
+      "note": "Upstream holds the key as a JavaScript string and never writes it down, so it reaches the fold and refuses for it. This compiler refuses the key's encoding first: no Rust string holds a lone surrogate, and emitting a replacement character would write a selector the source does not describe -- the rule an object spread of a string and `charCodeAt` already answer this way. Claimed by the `lone surrogate in a name` family, which states that reason once for both rows that reach it."
     },
     {
       "id": "modules-1266-a-folded-function-map-in-a-keyframes-step",

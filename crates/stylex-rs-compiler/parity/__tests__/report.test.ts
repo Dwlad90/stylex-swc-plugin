@@ -75,6 +75,11 @@ function everyFamily(): ReportEntry[] {
       ACCEPTED,
       refused("Cannot read properties of undefined (reading 'type')")
     ),
+    subject(
+      'both-reject-divergent',
+      refused('String value contains invalid UTF-8 encoding.'),
+      refused('Invalid pseudo or at-rule.')
+    ),
     subject('structurally-divergent', ACCEPTED, accepted(['[:', 'o:']), undefined),
   ];
 }
@@ -84,7 +89,7 @@ function everyFamily(): ReportEntry[] {
 // helper for one row.
 function completeCorpus(): ReportEntry[] {
   const rows = everyFamily();
-  const inherited = rows[5];
+  const inherited = rows[6];
   if (inherited?.kind === 'declaration') inherited.property = 'toString';
   return rows;
 }
@@ -212,10 +217,11 @@ describe('what a run concludes', () => {
       { whole: true }
     );
 
-    expect(verdicts.summary.total).toBe(9);
+    expect(verdicts.summary.total).toBe(REFUSAL_FAMILIES.length + 3);
     expect(verdicts.summary.identical).toBe(2);
     expect(verdicts.summary['identical-empty']).toBe(1);
     expect(verdicts.summary['acceptance-divergent']).toBe(5);
+    expect(verdicts.summary['both-reject-divergent']).toBe(1);
     expect(
       verdicts.summary.expected +
         verdicts.summary.changed +

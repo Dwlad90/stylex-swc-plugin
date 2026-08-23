@@ -222,6 +222,7 @@ why no count is written here — a number in this file went stale twice before:
 | reference TypeError               | The reference compiler crashes; agreement means reproducing the crash.   |
 | unclosed comment                  | Emitting `/*` comments out every rule injected after it.                 |
 | unprefixed custom property        | The `--` prefix is a StyleX rule, so there is no CSS behaviour to match. |
+| lone surrogate in a name          | No Rust string holds one, so there is nothing to refuse it later with.   |
 | nesting past the recursion budget | Agreement means recursing until the stack aborts the process.            |
 | style key off `Object.prototype`  | The reference compiler reaches an inherited method, not a CSS property.  |
 
@@ -242,6 +243,18 @@ refused with the same sentence on both sides and reads `both reject`. Nothing
 was traded for it: a value whose only fault is the token still reads that
 complaint, and the token still outranks the unprefixed custom property, which
 the reference compiler has no opinion about.
+
+It grows the same way, out of rows that were sitting as expectations. Two
+subjects where both compilers refuse a lone surrogate — in a theme export name
+and in a condition key — read `both reject (diverged)` and always will: this
+compiler refuses at the point the name is decoded, because no Rust string holds
+a lone surrogate at all, which is before the pass the reference compiler refuses
+it in. That is not an ordering that could be swapped to buy the same sentence,
+so it belongs here, stated as what agreement would cost, rather than in two
+`expected` rows that read like unfinished work. Their neighbour did not: a
+dynamic parameter spread into a style object was refused here for the binding
+and upstream for the call it sits in, both true, and the compiler now names the
+call as well — so that row reads `both reject`.
 
 A family is pinned by reason and never by count, so a corpus that grows does not
 churn expectations. What is checked instead is that every family still claims
@@ -291,7 +304,7 @@ is a parameter, which is the Rust suites.
 
 Most entries in that set carry an `expected` verdict, each with the `note` that
 says why: some where upstream aborts and this compiler does not, some where
-both reject, a few where both reject and word it differently, one where upstream
+both reject, one where upstream
 folds an indexed read this compiler refuses,
 one where upstream reads a condition key as a property name and emits a key
 named after a pseudo-class (a defect this compiler is not going to

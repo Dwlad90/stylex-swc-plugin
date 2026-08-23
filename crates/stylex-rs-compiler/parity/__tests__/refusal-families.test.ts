@@ -123,6 +123,47 @@ describe('what a family claims', () => {
     ).toBe('reference TypeError');
   });
 
+  test('a name this compiler cannot decode, refused before the pass upstream refuses it in', () => {
+    // The two shapes it accounts for: an export name, which upstream refuses in
+    // its parser, and a condition key, which upstream carries as a JavaScript
+    // string and refuses at the fold. Both read `both-reject-divergent`, since
+    // both compilers refuse and word it differently.
+    expect(
+      nameOf(
+        subject(
+          'both-reject-divergent',
+          refused('String value contains invalid UTF-8 encoding.'),
+          refused("An export name cannot include a lone surrogate, found '\\ud83d'. (2:9)")
+        )
+      )
+    ).toBe('lone surrogate in a name');
+
+    expect(
+      nameOf(
+        subject(
+          'both-reject-divergent',
+          refused('String value contains invalid UTF-8 encoding.'),
+          refused('Invalid pseudo or at-rule.')
+        )
+      )
+    ).toBe('lone surrogate in a name');
+  });
+
+  test('the same undecodable name where the reference compiler accepted it', () => {
+    // The reason is the absence of a representation, which does not depend on
+    // what the reference compiler did with the name — so the family reads the
+    // acceptance verdict too, the way `reference TypeError` reads both.
+    expect(
+      nameOf(
+        subject(
+          'acceptance-divergent',
+          refused('String value contains invalid UTF-8 encoding.'),
+          ACCEPTED
+        )
+      )
+    ).toBe('lone surrogate in a name');
+  });
+
   test('a style key spelled like a name every object inherits', () => {
     // The shape the inherited method produces: one declaration here, and one per
     // character of what the method returned there.
@@ -215,6 +256,22 @@ describe('what a family leaves as news', () => {
     // row nobody has read.
     expect(
       nameOf(subject('structurally-divergent', ACCEPTED, ACCEPTED, 'toString'))
+    ).toBeUndefined();
+  });
+
+  test('the reference compiler refusing an encoding, where this compiler did not', () => {
+    // The undecodable-name family says which compiler could not hold the string,
+    // and it is this one. The reference compiler complaining about an encoding
+    // while this compiler accepts the value is the opposite divergence, and
+    // nothing here has looked at it.
+    expect(
+      nameOf(
+        subject(
+          'acceptance-divergent',
+          ACCEPTED,
+          refused('String value contains invalid UTF-8 encoding.')
+        )
+      )
     ).toBeUndefined();
   });
 
@@ -321,6 +378,11 @@ describe('a broken expectation reports loudly', () => {
         refused("Cannot read properties of undefined (reading 'type')")
       ),
       subject('structurally-divergent', ACCEPTED, accepted(['[:', 'o:']), 'toString'),
+      subject(
+        'both-reject-divergent',
+        refused('String value contains invalid UTF-8 encoding.'),
+        refused('Invalid pseudo or at-rule.')
+      ),
       subject(
         'both-reject-divergent',
         refused('Rule contains a `{`, `}` or `;` outside of a string or comment'),

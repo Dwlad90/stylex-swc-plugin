@@ -330,13 +330,17 @@ stylex_test!(
   "#
 );
 
-// Spread and a computed key both refuse. Babel refuses them too, with
-// `Only static values are allowed inside of a create() call.` where we say
-// `Referenced constant is not defined.` -- the outcome agrees, the text does
-// not. Pinned here so the refusal cannot quietly turn into an emission.
+// Spread and a computed key both refuse, and they no longer word it the same
+// way, because they are not the same question.
+//
+// A spread asks for the value's keys, which is a position that admits no
+// dynamic value at all -- so the complaint is the whole of what an author gets,
+// and the useful one names the position rather than the binding. The official
+// compiler says exactly that, and this now matches it word for word. A computed
+// key can still be resolved, so it keeps naming the binding it could not.
 stylex_test_panic!(
   a_shadowing_param_spread_into_the_style,
-  "Referenced constant is not defined",
+  "Only static values are allowed inside of a create() call",
   |tr| theme_import_transform(tr.comments.clone()),
   r#"
     import * as stylex from '@stylexjs/stylex';

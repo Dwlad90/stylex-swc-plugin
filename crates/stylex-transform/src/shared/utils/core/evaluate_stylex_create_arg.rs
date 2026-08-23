@@ -331,7 +331,30 @@ fn evaluate_partial_object_recursively(
       PropOrSpread::Spread(spread) => {
         let result = evaluate(&spread.expr, traversal_state, functions);
         if !result.confident {
-          return result;
+          // The reason is dropped, and only here. A spread asks the evaluator
+          // to enumerate the value's keys rather than to fold it to a value, so
+          // there is no inline-style fall-through to deopt into and the build
+          // stops -- which means the complaint is the whole of what the author
+          // is handed. The useful one names the position: a `create()` argument
+          // that is not static, which is what the reference compiler says.
+          // Naming the binding instead answers a question nobody asked, since
+          // there is nothing an author can do with a resolvable binding in a
+          // position that admits no dynamic value at all.
+          //
+          // Dropping it rather than writing a sentence here is what keeps the
+          // call named correctly: the caller supplies `non_static_value` for
+          // whichever call it is, and this function cannot know that. Every
+          // other refusal in the reference chain still reports the reason it
+          // recorded, and the deopt path is kept either way, so the code frame
+          // still points where it did.
+          return Box::new(EvaluateResult {
+            confident: false,
+            deopt: result.deopt,
+            reason: None,
+            value: None,
+            inline_styles: None,
+            fns: None,
+          });
         }
         {
           stylex_unimplemented!("{}", SPREAD_NOT_SUPPORTED);

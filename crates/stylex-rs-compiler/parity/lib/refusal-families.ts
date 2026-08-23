@@ -83,6 +83,7 @@ const REFUSALS = {
   unclosedComment: 'Rule contains an unclosed comment',
   unprefixedCustomProperty: 'Unprefixed custom properties:',
   nestedTooDeeply: 'Rule contains a value nested more deeply than the compiler supports',
+  invalidUtf8: 'String value contains invalid UTF-8 encoding.',
 } as const;
 
 /**
@@ -176,6 +177,22 @@ export const REFUSAL_FAMILIES: readonly RefusalFamily[] = [
       'value StyleX does not define — there is no CSS behaviour for the two to agree about.',
     verdicts: ['acceptance-divergent'],
     claims: entry => refusedWith(entry, REFUSALS.unprefixedCustomProperty),
+  },
+  {
+    name: 'lone surrogate in a name',
+    reason:
+      'Agreement would mean carrying a string the language cannot spell. A lone surrogate is ' +
+      'well-formed UTF-16 and not well-formed Unicode, so it has no encoding a Rust string ' +
+      'holds: this compiler refuses at the point the name is decoded, which is before the pass ' +
+      'the reference compiler refuses it in — the parser for an export name, the value fold for ' +
+      'a condition key. That is not an ordering that could be swapped to buy the same sentence; ' +
+      'it is the absence of a representation. Substituting a replacement character would be ' +
+      'worse than refusing, since it writes a name the source does not describe.',
+    // Both verdicts, for the reason `reference TypeError` above gives: the
+    // absence of a representation is the same fact whether the reference
+    // compiler refused the name for a fault of its own or accepted it.
+    verdicts: ['both-reject-divergent', 'acceptance-divergent'],
+    claims: entry => refusedWith(entry, REFUSALS.invalidUtf8),
   },
   {
     name: 'nesting past the recursion budget',

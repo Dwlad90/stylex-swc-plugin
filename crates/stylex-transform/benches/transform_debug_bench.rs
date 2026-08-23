@@ -27,9 +27,14 @@
 //! What is timed is one `Program::apply` of the StyleX pass. Parsing the module
 //! is setup and the clone the pass consumes is batched out, so the number is the
 //! transform rather than a whole compile: no lex, no codegen, no CSS emission.
-//! The `file:line` lookup *does* re-read and re-parse the module from disk on
-//! its first miss, once per transform, because that is what the compiler does
-//! too -- it is part of what the annotation costs, not harness overhead.
+//! What is *not* timed is registering the module's source for position lookup.
+//! `register_source_once` short-circuits on a process-global `OnceLock` keyed by
+//! file name, and the guard run above the group has already filled it, so the
+//! read is paid once for the whole run rather than once per iteration. In a real
+//! `dev` build it is usually not a disk read either: the memoized parsed source
+//! is preferred, and `use_real_file_for_source` is off here as it is there. What
+//! the legs price is the per-namespace lookup against an already-registered
+//! source, which is where the quadratic lived.
 //!
 //! **Every benchmark here runs inside `GLOBALS.set`, and so must anything else
 //! that touches the transform.** `into_pass` and the code-frame path both call

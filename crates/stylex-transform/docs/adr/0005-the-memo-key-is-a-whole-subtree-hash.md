@@ -48,6 +48,12 @@ inside a `useMemo` (2 of 33 keys on the `use-memo` fixture). Priced either side 
 the boundary, the arm costs 8.5 µs against 2.7 for one extra property — 3.2×,
 once, on 0.04% of keys. The per-level walk on the other 99.96% is the cost.
 
+That pair only means anything while the two legs take different arms, and the
+boundary is a private constant the bench cannot read — raise it and the gap
+collapses to nothing, which reads exactly like a win. `key_fallback_benchmarks`
+now asserts which arm each leg takes before timing it, so the figure above
+cannot quietly stop being about the boundary.
+
 **Its width was load-bearing and too narrow.** Seven things key off a hash of an
 expression, and they do not agree about how much the hash has to mean:
 

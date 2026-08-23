@@ -76,18 +76,39 @@ back. The deep spine the cache is built for is the shape the ceiling forbids —
 `maxEvaluationDepth` defaults to 32, and the crossover is above it.
 
 `benches/evaluate_bench.rs`, over the six perf fixtures and the two transform
-fixtures, in µs:
+fixtures, in µs.
 
-| fixture                              | 0005  | composed | change   |
-| ------------------------------------ | ----- | -------- | -------- |
-| `create-complex.js`                  | 41.61 | 57.30    | **+38%** |
-| `dynamic-param-shadows-import-edges` | 13.98 | 19.88    | **+42%** |
-| `dynamic-param-shadows-import`       | 3.00  | 3.88     | +29%     |
-| `create-basic.js`                    | 10.91 | 13.56    | +24%     |
-| `sizes.stylex.js`                    | 19.82 | 23.37    | +18%     |
-| `colors.stylex.js`                   | 35.13 | 40.50    | +15%     |
-| `createTheme-basic.js`               | 30.31 | 34.43    | +14%     |
-| `createTheme-complex.js`             | 3 244 | 3 318    | +2%      |
+Two caveats found afterwards, in review, and recorded here rather than in the
+commit that found them. Neither changes the decision — every leg regressed, and
+both harnesses paid the same overheads on both sides — but the absolute numbers
+below are not what a reader would assume.
+
+- The loop built its `StateManager` and walked the module twice **inside**
+  `b.iter`, so every figure includes setup the fold does not pay. This is the
+  same defect `module_path_bench` was fixed for, where removing it moved a
+  published figure from +29 ns to +9.1 ns. The bench now batches that setup out.
+- Three legs fold **nothing** confidently — `create-complex.js` and both
+  `dynamic-param-shadows-import` fixtures — because they import a theme, and
+  resolving one needs a filename a bench cannot supply (`set_plugin_pass` is
+  `pub(crate)`). Those three rows price the refusal path, not a fold. They still
+  exercise the reference chain the shadowing fixtures were added for, since it
+  runs per reference, but they are not measuring what the column header says.
+
+The counts are now pinned in `EXPECTED_CONFIDENT_FOLDS`, so a leg that stops
+folding what it used to fails the bench rather than reporting a win.
+
+| fixture                                | 0005  | composed | change   |
+| -------------------------------------- | ----- | -------- | -------- |
+| `create-complex.js` †                  | 41.61 | 57.30    | **+38%** |
+| `dynamic-param-shadows-import-edges` † | 13.98 | 19.88    | **+42%** |
+| `dynamic-param-shadows-import` †       | 3.00  | 3.88     | +29%     |
+| `create-basic.js`                      | 10.91 | 13.56    | +24%     |
+| `sizes.stylex.js`                      | 19.82 | 23.37    | +18%     |
+| `colors.stylex.js`                     | 35.13 | 40.50    | +15%     |
+| `createTheme-basic.js`                 | 30.31 | 34.43    | +14%     |
+| `createTheme-complex.js`               | 3 244 | 3 318    | +2%      |
+
+† Folds nothing confidently; prices the refusal path. See the caveats above.
 
 Every fixture regressed. Nothing the repo measures on real input got faster, and
 the two that regressed worst are the ones this effort's own defect was filed
@@ -132,12 +153,14 @@ per fold. Under a composed walk it would have had to be restated in nodes,
 because there is a hasher per node and no single byte stream to count. The
 restatement is in the patch below if it is ever needed.
 
-**The work is kept, not just described.** The full diff — the composed walk, the
-scoped cache, the `StateManager` field, the `evaluate_cached` bracket, and the
-tests that pin the scope discipline — is
-`.scratch/fix_dynamic-param-shadows-import/issues/33-composed-key.patch` on the
-tracker's `scratch` branch. It applies to the commit that added this file. The
-next person to ask this question should measure a variant, not rebuild the base.
+**The work is described, and the base has to be rebuilt.** The composed walk,
+the scoped cache, the `StateManager` field, the `evaluate_cached` bracket and the
+tests that pin the scope discipline are all described above and in the rejected
+options below. An earlier revision of this file pointed at a patch under
+`.scratch/`, which is a symlink outside the repository and never committed — so
+it was never reachable for the reader this paragraph is addressed to. The next
+person to ask this question should expect to rebuild the base before measuring a
+variant.
 
 **0005's `for now` is spent.** Its rejected-options section now points here.
 Reopening this needs a new reason — a project on a raised ceiling, or an input

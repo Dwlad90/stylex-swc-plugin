@@ -580,13 +580,20 @@ fn seen_module_source_group(c: &mut Criterion, fixtures: &[Fixture]) {
   // debug tree, where every other group in this file is still worth running.
   let debug_assertions_on = cfg!(debug_assertions);
 
-  assert!(
-    !debug_assertions_on,
-    "this group is only meaningful in a build with debug assertions off: the \
-     memoized-source clone it exists to price is forced on under \
-     `cfg!(debug_assertions)`, so both settings would clone and the difference \
-     against `ModuleWalk` would read as zero"
-  );
+  if debug_assertions_on {
+    // Skipped rather than asserted. A panic here unwinds out of
+    // `module_path_benchmarks` and takes the three groups below with it, which
+    // is the outcome the note above says a `const` assertion was avoided to
+    // prevent -- the runtime one had exactly the same effect. The group's
+    // absence from the report is the signal.
+    eprintln!(
+      "skipping `SeenModuleSource`: the memoized-source clone it exists to price is \
+       forced on under `cfg!(debug_assertions)`, so both settings would clone and \
+       the difference against `ModuleWalk` would read as zero"
+    );
+
+    return;
+  }
 
   let mut group = c.benchmark_group("SeenModuleSource");
 
@@ -689,7 +696,7 @@ fn structural_key_group(c: &mut Criterion) {
   group.finish();
 }
 
-/// Candidate three: `StateManager` construction and drop.
+/// Candidate three: `StateManager` construction.
 ///
 /// Fixed per transform rather than proportional to the module, so it cannot
 /// explain a cost that holds its percentage from a 72 µs module to a 1.4 ms one.

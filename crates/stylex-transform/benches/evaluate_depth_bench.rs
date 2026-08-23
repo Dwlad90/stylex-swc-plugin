@@ -36,12 +36,13 @@ use stylex_transform::shared::{
   structures::{functions::FunctionMap, state_manager::StateManager},
   utils::{common::fill_state_declarations, js::evaluate::evaluate},
 };
-use stylex_utils::hash::stable_hash_unspanned;
+use stylex_utils::hash::{stable_hash_unspanned, stable_hash_wide};
 use swc_core::{
   common::{FileName, GLOBALS, Globals, SourceMap, input::StringInput, sync::Lrc},
   ecma::{
     ast::{Decl, EsVersion, Expr, Lit, Module, ModuleItem, Stmt},
     parser::{EsSyntax, Parser, Syntax, lexer::Lexer},
+    utils::drop_span,
   },
 };
 
@@ -243,6 +244,30 @@ fn key_fallback_benchmarks(c: &mut Criterion) {
     };
 
     let object = tower_expr(&parse(&source));
+
+    // The gap between the two legs is the arm's price, and only while they take
+    // different arms. The boundary is a private constant this bench cannot read,
+    // so raising it past 129 -- a plausible tuning change, since the arm is
+    // taken on a 130-colour palette -- would leave both legs on the fast arm and
+    // report the collapse as a flat pair, which reads exactly like a win.
+    //
+    // The fallback is `stable_hash_wide(&drop_span(clone))`, so a leg whose key
+    // equals that value took it. That is the same identity `stylex_utils`' own
+    // tests pin the two arms with.
+    let took_fallback =
+      stable_hash_unspanned(&object) == stable_hash_wide(&drop_span(object.clone()));
+
+    assert_eq!(
+      took_fallback,
+      props > 128,
+      "an object of {props} properties {} the fallback arm, so this group is no \
+       longer pricing the boundary between the two",
+      if took_fallback {
+        "took"
+      } else {
+        "did not take"
+      }
+    );
 
     group.bench_function(format!("object/{props}"), |b| {
       b.iter(|| black_box(stable_hash_unspanned(black_box(&object))))

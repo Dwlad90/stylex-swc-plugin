@@ -5,7 +5,7 @@ use std::{
   sync::Arc,
 };
 
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use stylex_structures::stylex_options::StyleXOptions;
 use stylex_transform::shared::{
   structures::{functions::FunctionMap, state_manager::StateManager},
@@ -203,6 +203,77 @@ fn load_fixtures() -> Vec<EvaluateFixture> {
     .collect()
 }
 
+/// The state one iteration folds against.
+fn fixture_state(fixture: &EvaluateFixture) -> StateManager {
+  let mut state = StateManager::new(StyleXOptions::default());
+
+  fill_top_level_expressions(&fixture.module, &mut state);
+  fill_top_level_var_declarations(&fixture.module, &mut state);
+
+  state
+}
+
+/// How many of each fixture's expressions fold confidently, as measured.
+///
+/// Pinned rather than merely required to be non-zero, because three of these
+/// legs fold *nothing* and there is no way for this harness to change that: the
+/// fixtures import a theme, resolving one needs a real filename, and
+/// `set_plugin_pass` is `pub(crate)` so a bench cannot supply one. Those legs
+/// price the refusal path rather than a fold, which is worth knowing when
+/// reading their numbers -- see `guidelines/PERFORMANCE.md`.
+///
+/// What the pin does buy is the guarantee the guard exists for. A leg that stops
+/// folding what it used to, because a refusal moved earlier, is now a failed
+/// bench rather than a faster one.
+const EXPECTED_CONFIDENT_FOLDS: &[(&str, usize)] = &[
+  ("colors.stylex.js", 1),
+  ("sizes.stylex.js", 1),
+  ("create-basic.js", 1),
+  ("create-complex.js", 0),
+  ("createTheme-basic.js", 1),
+  ("createTheme-complex.js", 3),
+  ("dynamic-param-shadows-import", 0),
+  ("dynamic-param-shadows-import-edges", 0),
+];
+
+/// Panics unless the fixture folds exactly what it is recorded as folding.
+///
+/// A refusal is fast, and a leg that got quick because the work stopped
+/// happening is indistinguishable from a win. Every other bench in this
+/// directory carries a guard like this one; this file had none, which is how two
+/// fixtures that fold nothing came to be added and their numbers published.
+fn assert_folds_as_expected(fixture: &EvaluateFixture, functions: &FunctionMap) {
+  let mut state = fixture_state(fixture);
+
+  let confident = fixture
+    .expressions
+    .iter()
+    .filter(|expression| evaluate(expression, &mut state, functions).confident)
+    .count();
+
+  let expected = EXPECTED_CONFIDENT_FOLDS
+    .iter()
+    .find(|(name, _)| *name == fixture.name)
+    .map(|(_, expected)| *expected);
+
+  match expected {
+    Some(expected) => assert_eq!(
+      confident,
+      expected,
+      "the `{}` leg folds {confident} of its {} expressions where it folded \
+       {expected}; a leg that stopped folding is timing a refusal, and one that \
+       started is no longer comparable with the numbers already published",
+      fixture.name,
+      fixture.expressions.len()
+    ),
+    None => panic!(
+      "the `{}` leg is not recorded in `EXPECTED_CONFIDENT_FOLDS`, so nothing \
+       says what it measures",
+      fixture.name
+    ),
+  }
+}
+
 /// Runs inside `GLOBALS.set` because `evaluate` can reach the code-frame path,
 /// which calls `Mark::new()`. Why that is not optional, and why a bench without
 /// it still reports a number, is in `guidelines/PERFORMANCE.md` under "Writing
@@ -216,20 +287,29 @@ fn evaluate_benchmarks(c: &mut Criterion) {
     let functions = FunctionMap::default();
 
     for fixture in fixtures {
-      group.bench_function(fixture.name, |b| {
-        b.iter(|| {
-          let mut state = StateManager::new(StyleXOptions::default());
-          fill_top_level_expressions(black_box(&fixture.module), black_box(&mut state));
-          fill_top_level_var_declarations(black_box(&fixture.module), black_box(&mut state));
+      assert_folds_as_expected(&fixture, &functions);
 
-          for expression in &fixture.expressions {
-            black_box(evaluate(
-              black_box(expression),
-              black_box(&mut state),
-              black_box(&functions),
-            ));
-          }
-        })
+      // Batched, because the state cannot be reused: `seen` memoizes what it
+      // folded, so a second iteration against one state would time the memo.
+      // Building it is setup rather than work under measurement -- it allocates
+      // the options, walks the module twice, and reads the evaluation-depth
+      // environment behind a `OnceLock`, none of which is `evaluate`. Timing it
+      // was the defect `module_path_bench` was already fixed for, and it dilutes
+      // every ratio this group reports.
+      group.bench_function(fixture.name.clone(), |b| {
+        b.iter_batched(
+          || fixture_state(&fixture),
+          |mut state| {
+            for expression in &fixture.expressions {
+              black_box(evaluate(
+                black_box(expression),
+                black_box(&mut state),
+                black_box(&functions),
+              ));
+            }
+          },
+          BatchSize::SmallInput,
+        )
       });
     }
 

@@ -16,6 +16,79 @@ use crate::shared::utils::ast::helpers::{
   collect_object_lit_keys, namespace_name_from_prop_key, prop_as_key_value,
 };
 
+/// How far into its own file a position sits.
+///
+/// The one thing the proximity tie-break may compare, and the reason it is a
+/// type rather than a `u32`. Two `BytePos` in this compiler can name the same
+/// character and hold different numbers: the key-span index is built from a
+/// module re-parsed into the code frame's shared, process-global `SourceMap`,
+/// while the call it places is read out of the per-transform one. A `SourceMap`
+/// gives each file a start position after the previous file's end, so the two
+/// agree only for the first file a process compiles -- and subtracting one from
+/// the other silently ranked by "earliest in the file" from the second file on.
+///
+/// There is no way to build one of these except from a position *and* the base
+/// of the module it belongs to, and no way to read the number back out. So the
+/// subtraction cannot be forgotten at a new call site, and a raw `BytePos`
+/// cannot reach [`FileOffset::distance`] at all -- which is the shape of the
+/// bug this replaces a comment about.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub(crate) struct FileOffset(u32);
+
+/// Where a module starts, in the source map it was parsed into.
+///
+/// A type of its own for the same reason [`FileOffset`] is, and to close the
+/// half the offset alone left open: both arguments of `FileOffset::of` were
+/// `BytePos`, so swapping them compiled and answered zero for every candidate.
+/// It also has no `Default` -- a base nobody set would be `BytePos(0)`, which
+/// turns the offset straight back into the raw position this all exists to stop
+/// being compared.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct ModuleBase(BytePos);
+
+impl ModuleBase {
+  pub(crate) fn of(module: &Module) -> Self {
+    Self(module.span.lo)
+  }
+}
+
+impl FileOffset {
+  /// Where `position` sits relative to `base`, the start of the module holding
+  /// it.
+  ///
+  /// Saturating rather than panicking, because this is a diagnostic path and a
+  /// build must not stop over a code frame. A position that precedes its own
+  /// module's base is a caller error rather than a negative offset, though, so
+  /// it is loud in a test build: clamping every candidate to zero is exactly
+  /// the "rank by earliest in the file" failure this type exists to prevent.
+  fn of(position: BytePos, base: ModuleBase) -> Self {
+    debug_assert!(
+      position >= base.0,
+      "a position at {:?} precedes the base of the module holding it, {:?}",
+      position,
+      base.0
+    );
+
+    Self(position.0.saturating_sub(base.0.0))
+  }
+
+  /// How far apart two offsets are. Defined only between offsets, which is what
+  /// makes a cross-`SourceMap` comparison unspellable.
+  fn distance(self, other: Self) -> u32 {
+    self.0.abs_diff(other.0)
+  }
+
+  /// An offset stated directly, for the cases that spell a query out rather
+  /// than reading one off a call.
+  ///
+  /// Test-only, and deliberately so: production has a `BytePos` and a base, and
+  /// the whole point of the type is that it must supply both.
+  #[cfg(test)]
+  pub(crate) fn at(offset: u32) -> Self {
+    Self(offset)
+  }
+}
+
 /// Every authored position a style namespace key could be resolved to, in the
 /// parsed source of one module, collected in a single walk.
 ///
@@ -30,13 +103,13 @@ use crate::shared::utils::ast::helpers::{
 ///
 /// Built from the memoized parsed source and discarded with it, so a candidate
 /// span always belongs to the module the caller is resolving against.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub(crate) struct KeySpanIndex {
   by_key: FxHashMap<Atom, Vec<IndexedCandidate>>,
   /// Where the indexed module starts, so a candidate's position can be recorded
   /// as an offset into its own file rather than into a source map the query side
   /// does not share.
-  base: BytePos,
+  base: ModuleBase,
 }
 
 /// One object literal that spells a given key: where the key is written, and
@@ -51,9 +124,8 @@ struct IndexedCandidate {
   /// Every namespace key of the containing object argument, shared between that
   /// object's candidates because they all rank against the same siblings.
   sibling_keys: Rc<Vec<Atom>>,
-  /// Where the candidate's call is written, as an offset into its own file, for
-  /// the distance tie-break.
-  candidate_offset: u32,
+  /// Where the candidate's call is written, for the distance tie-break.
+  candidate_offset: FileOffset,
   /// The callee the candidate's object was written as an argument to, shared
   /// between that object's candidates.
   ///
@@ -69,8 +141,8 @@ struct IndexedCandidate {
 impl KeySpanIndex {
   pub(crate) fn build(module: &Module) -> Self {
     let mut index = Self {
-      base: module.span.lo,
-      ..Self::default()
+      by_key: FxHashMap::default(),
+      base: ModuleBase::of(module),
     };
 
     module.visit_with(&mut index);
@@ -145,7 +217,7 @@ impl KeySpanIndex {
     }
 
     let candidate_lo = object_lo(object).unwrap_or(call.span.lo);
-    let candidate_offset = candidate_lo.0.saturating_sub(self.base.0);
+    let candidate_offset = FileOffset::of(candidate_lo, self.base);
     let callee = Rc::new(call.callee.clone());
     let mut in_this_object: FxHashMap<Atom, IndexedCandidate> = FxHashMap::default();
 
@@ -228,17 +300,13 @@ impl IndexedCandidate {
         .is_some_and(|callee| self.callee.as_ref().eq_ignore_span(callee)),
       namespace_value_overlap: overlap(&self.namespace_value_keys, &query.namespace_value_keys),
       sibling_overlap: overlap(&self.sibling_keys, &query.sibling_keys),
-      // Both sides are offsets into their own file, never raw `BytePos`. This
-      // index is built from a module re-parsed into the code frame's shared,
-      // process-global source map, and the query is read off the compiled call
-      // in the compiler's per-transform one -- so the absolute numbers sit in
-      // different coordinate systems and only the offsets compare. Subtracting
-      // one from the other made every file after the first in a process rank by
-      // "earliest in the file" instead of "nearest the call".
+      // Both sides are [`FileOffset`], which is the only thing that can be
+      // compared here and the only thing either side can hold -- see that type
+      // for what happens when a raw `BytePos` is compared instead.
       distance_from_target: Reverse(
         query
           .target_offset
-          .map(|target_offset| self.candidate_offset.abs_diff(target_offset)),
+          .map(|target_offset| self.candidate_offset.distance(target_offset)),
       ),
     }
   }
@@ -267,9 +335,8 @@ pub(crate) struct NamespaceKeyQuery<'a> {
   pub(crate) sibling_keys: Rc<FxHashSet<Atom>>,
   /// The keys of this namespace's own value object.
   pub(crate) namespace_value_keys: FxHashSet<Atom>,
-  /// Where the call's object argument starts, as an offset into its own file,
-  /// for the proximity tie-break.
-  pub(crate) target_offset: Option<u32>,
+  /// Where the call's object argument starts, for the proximity tie-break.
+  pub(crate) target_offset: Option<FileOffset>,
   /// The callee of the call being placed, so an object argument to a different
   /// function cannot answer for it.
   pub(crate) callee: Option<&'a Callee>,
@@ -296,9 +363,8 @@ pub(crate) struct CallLookup<'a> {
   object_arg: Option<&'a ObjectLit>,
   /// The namespace keys of that object argument.
   sibling_keys: Rc<FxHashSet<Atom>>,
-  /// Where the object argument starts, as an offset into the module it was
-  /// parsed from, for the proximity tie-break.
-  target_offset: Option<u32>,
+  /// Where the object argument starts, for the proximity tie-break.
+  target_offset: Option<FileOffset>,
   /// The call's half of the span cache key.
   digest: u128,
   /// The call wrapped as an expression, built on first use.
@@ -313,7 +379,13 @@ impl<'a> CallLookup<'a> {
   /// `module_base` is where the module holding `call_expr` starts, which is what
   /// turns the call's `BytePos` into an offset the index can be compared
   /// against. The two are positioned in different source maps -- see `rank`.
-  pub(crate) fn new(call_expr: &'a CallExpr, module_base: BytePos) -> Self {
+  ///
+  /// Optional, and absent means "no proximity signal" rather than "measured
+  /// from zero". A base defaulting to `BytePos(0)` would make the offset the raw
+  /// position again -- silently, and only on the configurations that never set
+  /// one -- which is the bug this whole type exists to prevent. Without a base
+  /// every candidate simply ties on distance and the overlap fields decide.
+  pub(crate) fn new(call_expr: &'a CallExpr, module_base: Option<ModuleBase>) -> Self {
     let object_arg = first_object_arg(call_expr);
     let sibling_keys: Rc<FxHashSet<Atom>> = Rc::new(
       object_arg
@@ -326,10 +398,12 @@ impl<'a> CallLookup<'a> {
       object_arg,
       digest: call_digest(call_expr, object_arg, &sibling_keys),
       sibling_keys,
-      target_offset: object_arg
-        .and_then(object_lo)
-        .or_else(|| (!call_expr.span.is_dummy()).then_some(call_expr.span.lo))
-        .map(|lo| lo.0.saturating_sub(module_base.0)),
+      target_offset: module_base.and_then(|base| {
+        object_arg
+          .and_then(object_lo)
+          .or_else(|| (!call_expr.span.is_dummy()).then_some(call_expr.span.lo))
+          .map(|lo| FileOffset::of(lo, base))
+      }),
       wrapped: OnceCell::new(),
     }
   }

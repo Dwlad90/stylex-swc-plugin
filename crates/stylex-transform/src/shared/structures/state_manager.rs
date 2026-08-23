@@ -12,7 +12,7 @@ use stylex_path_resolver::{
 };
 use swc_core::{
   atoms::Atom,
-  common::{BytePos, DUMMY_SP, EqIgnoreSpan, FileName, SourceFile, Span, SyntaxContext},
+  common::{DUMMY_SP, EqIgnoreSpan, FileName, SourceFile, Span, SyntaxContext},
   ecma::{
     ast::{
       CallExpr, Callee, Decl, Expr, ExprStmt, Id, Ident, ImportDecl, ImportDefaultSpecifier,
@@ -62,7 +62,7 @@ use stylex_types::enums::data_structures::injectable_style::InjectableStyleKind;
 use stylex_utils::hash::{stable_hash_unspanned, stable_hash_unspanned_call};
 
 use super::{
-  key_span_index::KeySpanIndex,
+  key_span_index::{KeySpanIndex, ModuleBase},
   seen_value::SeenValue,
   types::{InjectImportIdents, SeenModuleSource, StylesObjectMap},
 };
@@ -231,7 +231,12 @@ pub(crate) struct ModuleSourceState {
   /// Recorded because a key-span lookup compares a compiled call's position
   /// against candidates indexed from a module re-parsed into a *different* map.
   /// Only offsets into the file compare; this is the base they are taken from.
-  input_module_base: BytePos,
+  ///
+  /// `None` until the module walk records it, and deliberately not a `BytePos`
+  /// defaulting to zero: that would turn every offset back into the raw
+  /// position, silently, on any path that reached a lookup without setting one.
+  /// Absent costs the proximity tie-break and nothing else.
+  input_module_base: Option<ModuleBase>,
 }
 
 impl ModuleSourceState {
@@ -1081,13 +1086,13 @@ impl StateManager {
 
   /// Where the module being transformed starts, for turning a compiled call's
   /// position into a file offset. See [`ModuleSourceState::input_module_base`].
-  pub(crate) fn input_module_base(&self) -> BytePos {
+  pub(crate) fn input_module_base(&self) -> Option<ModuleBase> {
     self.module_source.input_module_base
   }
 
   /// Records that base, once, as the module walk begins.
-  pub(crate) fn set_input_module_base(&mut self, base: BytePos) {
-    self.module_source.input_module_base = base;
+  pub(crate) fn set_input_module_base(&mut self, base: ModuleBase) {
+    self.module_source.input_module_base = Some(base);
   }
 
   /// Sets the source code module (marks as not yet normalized)

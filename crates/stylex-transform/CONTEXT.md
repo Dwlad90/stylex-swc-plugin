@@ -338,6 +338,30 @@ diagnostic must not inherit an earlier refusal's position. A name that module
 does not declare falls back to locating the read. _Avoid_: deopt span,
 declaration span cache, reported position
 
+**File offset**:
+How far into its own file a position sits, and the only thing the
+[key span index](#key-span-index)'s proximity tie-break may compare. Two
+`BytePos` in this compiler can name the same character and hold different
+numbers: the index is built from a module re-parsed into the code frame's
+shared, process-global source map, while the call it places is read out of the
+per-transform one, and a source map gives each file a start position after the
+previous file's end. So the two agree only for the first file a process
+compiles. A file offset can only be built from a position and the
+[module base](#module-base) it belongs to, and exposes no way to read the number
+back out, so the subtraction cannot be skipped at a new call site.
+_Avoid_: byte position, column, index
+
+**Module base**:
+Where the module being transformed starts, in the source map it was parsed into
+— the thing a position is measured against to become a
+[file offset](#file-offset). Its own type for two reasons: both arguments would
+otherwise be `BytePos`, so swapping them compiles and answers zero for every
+candidate; and it must have no default, because a base nobody recorded would be
+byte zero, which turns every offset straight back into the raw position. Absent
+rather than defaulted, so a lookup that never got one loses the proximity
+tie-break instead of silently ranking by "earliest in the file".
+_Avoid_: module start, origin, offset base
+
 **Call lookup**:
 The half of a key-span lookup that belongs to the `stylex.create` _call_ rather
 than to one of its namespaces: the sibling keys every namespace of that call

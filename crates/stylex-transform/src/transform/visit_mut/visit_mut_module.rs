@@ -14,6 +14,7 @@ use swc_core::{
   },
 };
 
+use crate::shared::structures::key_span_index::ModuleBase;
 use crate::{
   StyleXTransform,
   shared::{
@@ -701,11 +702,16 @@ where
   }
 
   pub(crate) fn visit_mut_module_impl(&mut self, module: &mut Module) {
+    // Recorded unconditionally, unlike the memo below it. A key-span lookup
+    // compares this module's positions against candidates indexed from a
+    // re-parse into the code frame's own source map, and only offsets into the
+    // file compare -- but `memoize_module` will re-parse and memoize on demand,
+    // so that lookup is reachable on configurations this branch skips. Left
+    // inside it, the base went unset exactly there and every offset silently
+    // became the raw position again.
+    self.state.set_input_module_base(ModuleBase::of(module));
+
     if cfg!(debug_assertions) || !self.state.options.use_real_file_for_source {
-      // Recorded alongside the memo, because a key-span lookup compares this
-      // module's positions against candidates indexed from a re-parse into the
-      // code frame's own source map. Only offsets into the file compare.
-      self.state.set_input_module_base(module.span.lo);
       self.state.set_seen_module_source_code(module, None);
     }
 

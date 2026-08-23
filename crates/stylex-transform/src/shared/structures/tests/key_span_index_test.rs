@@ -16,7 +16,7 @@ mod key_span_index {
   };
 
   use crate::shared::structures::key_span_index::{
-    CallLookup, CandidateRank, KeySpanIndex, NamespaceKeyQuery,
+    CallLookup, CandidateRank, FileOffset, KeySpanIndex, ModuleBase, NamespaceKeyQuery,
   };
 
   fn parse(source: &str) -> Module {
@@ -76,11 +76,14 @@ mod key_span_index {
     value_keys: &[&str],
     target_offset: Option<u32>,
   ) -> NamespaceKeyQuery<'a> {
+    // Stated directly: these fixtures parse into a source map of their own,
+    // whose first byte is `BytePos(1)`, so a byte index into the fixture text is
+    // already the offset production would compute against the module's base.
     NamespaceKeyQuery {
       namespace_key: key,
       sibling_keys: std::rc::Rc::new(keys(siblings)),
       namespace_value_keys: keys(value_keys),
-      target_offset,
+      target_offset: target_offset.map(FileOffset::at),
       // Spelled-out queries name no callee, so every candidate ties on that
       // field and the cases here stay about the signals they vary. The
       // callee-aware path is `a_call_to_another_function_does_not_answer_...`.
@@ -418,13 +421,13 @@ const second = stylex.create({ root: { color: 'red' } });
     let calls = create_calls(&module);
 
     assert_ne!(
-      CallLookup::new(&calls[0], module.span.lo).digest(),
-      CallLookup::new(&calls[1], module.span.lo).digest(),
+      CallLookup::new(&calls[0], Some(ModuleBase::of(&module))).digest(),
+      CallLookup::new(&calls[1], Some(ModuleBase::of(&module))).digest(),
       "two calls written at different positions must key apart"
     );
     assert_eq!(
-      CallLookup::new(&calls[0], module.span.lo).digest(),
-      CallLookup::new(&calls[0], module.span.lo).digest(),
+      CallLookup::new(&calls[0], Some(ModuleBase::of(&module))).digest(),
+      CallLookup::new(&calls[0], Some(ModuleBase::of(&module))).digest(),
       "one call must digest the same however often it is asked"
     );
   }
@@ -553,7 +556,7 @@ const styles = stylex.create({ root: { color: 'red' } });
       None => panic!("the fixture no longer holds a call"),
     };
 
-    let from_object = CallLookup::new(call, module.span.lo)
+    let from_object = CallLookup::new(call, Some(ModuleBase::of(&module)))
       .query("root")
       .target_offset;
 
@@ -561,12 +564,12 @@ const styles = stylex.create({ root: { color: 'red' } });
     positionless.span = DUMMY_SP;
     positionless.args.clear();
 
-    let from_nothing = CallLookup::new(&positionless, module.span.lo)
+    let from_nothing = CallLookup::new(&positionless, Some(ModuleBase::of(&module)))
       .query("root")
       .target_offset;
 
     assert!(
-      from_object.is_some_and(|offset| offset > 0),
+      from_object.is_some_and(|offset| offset != FileOffset::at(0)),
       "an object argument's own position is the anchor"
     );
     assert_eq!(
@@ -591,7 +594,7 @@ const styles = stylex.create({ root: { color: 'red' } });
       None => panic!("the fixture no longer holds a call"),
     };
 
-    let lookup = CallLookup::new(call, module.span.lo);
+    let lookup = CallLookup::new(call, Some(ModuleBase::of(&module)));
     let span = KeySpanIndex::build(&module).resolve(&lookup.query("root"));
 
     assert_eq!(span, DUMMY_SP);
@@ -631,6 +634,40 @@ b=stylex.create({root:{color:'blue'}});";
     assert!(
       second.lo > first.lo,
       "the anchor nearer the end of the line resolves to the later candidate"
+    );
+  }
+
+  /// A lookup built without a base offers no proximity signal, rather than
+  /// measuring from zero.
+  ///
+  /// This is the difference between `Option<ModuleBase>` and a `BytePos` that
+  /// defaults to zero, and it is not hypothetical: the base used to be recorded
+  /// only on the configurations that also memoize the module, while the lookup
+  /// is reachable on the ones that do not, because the code frame re-parses on
+  /// demand. Defaulted to zero, every offset there was silently the raw position
+  /// again -- which is the original bug, restored by absence rather than by
+  /// arithmetic. Absent, the candidates simply tie on distance.
+  #[test]
+  fn a_lookup_without_a_base_offers_no_proximity_signal() {
+    let module = parse("const styles = stylex.create({ root: { color: 'red' } });\n");
+    let calls = create_calls(&module);
+
+    let call = match calls.first() {
+      Some(call) => call,
+      None => panic!("the fixture no longer holds a call"),
+    };
+
+    assert_eq!(
+      CallLookup::new(call, None).query("root").target_offset,
+      None,
+      "no base means no measurable distance, not a distance measured from zero"
+    );
+    assert!(
+      CallLookup::new(call, Some(ModuleBase::of(&module)))
+        .query("root")
+        .target_offset
+        .is_some(),
+      "and a base is what makes one measurable"
     );
   }
 

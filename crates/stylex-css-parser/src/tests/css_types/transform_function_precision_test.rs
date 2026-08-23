@@ -232,12 +232,29 @@ mod malformed_and_extreme_input {
     refused!("(1, 2, 3, 4, 5, 6)");
   }
 
-  /// A custom property reference is not a number, and a unicode-escaped
-  /// function name is not one of these functions.
+  /// A custom property reference is not a number.
   #[test]
-  fn a_variable_or_an_escaped_name_is_refused() {
+  fn a_variable_argument_is_refused() {
     refused!("matrix(var(--a), 2, 3, 4, 5, 6)");
     refused!("scaleX(var(--s))");
+  }
+
+  /// A properly escaped function name names the same function -- `\6d ` is
+  /// `m`, and the trailing space terminates the escape -- so the transform
+  /// parses and prints at full precision.
+  #[test]
+  fn an_escaped_function_name_still_names_the_function() {
+    assert_eq!(
+      printed!("\\6d atrix(1.0000005, 2, 3, 4, 5, 6)"),
+      "matrix(1.0000005, 2, 3, 4, 5, 6)"
+    );
+  }
+
+  /// An escape that runs into the next character is a different identifier:
+  /// `\6da` is one code point, not `m` followed by `a`, because `a` is a hex
+  /// digit and the escape swallows it.
+  #[test]
+  fn a_misread_escape_names_no_function() {
     refused!("\\6datrix(1, 2, 3, 4, 5, 6)");
   }
 

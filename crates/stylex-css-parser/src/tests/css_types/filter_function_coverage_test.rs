@@ -198,7 +198,7 @@ fn brightness_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn brightness_parse_tokens_number_variant() {
-  // Exercises the `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Exercises the `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("brightness".to_string()),
     SimpleToken::Number(0.75),
@@ -344,7 +344,7 @@ fn contrast_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn contrast_parse_tokens_number_variant() {
-  // Covers `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Covers `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("contrast".to_string()),
     SimpleToken::Number(1.5),
@@ -487,7 +487,7 @@ fn grayscale_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn grayscale_parse_tokens_number_variant() {
-  // Covers `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Covers `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("grayscale".to_string()),
     SimpleToken::Number(0.75),
@@ -755,7 +755,7 @@ fn invert_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn invert_parse_tokens_number_variant() {
-  // Covers `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Covers `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("invert".to_string()),
     SimpleToken::Number(0.5),
@@ -891,7 +891,7 @@ fn opacity_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn opacity_parse_tokens_number_variant() {
-  // Covers `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Covers `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("opacity".to_string()),
     SimpleToken::Number(0.25),
@@ -1032,7 +1032,7 @@ fn saturate_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn saturate_parse_tokens_number_variant() {
-  // Covers `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Covers `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("saturate".to_string()),
     SimpleToken::Number(1.5),
@@ -1168,7 +1168,7 @@ fn sepia_parse_tokens_whitespace_before_value() {
 
 #[test]
 fn sepia_parse_tokens_number_variant() {
-  // Covers `NumberOrPercentage::Number(n) => n.value as f64` arm.
+  // Covers `NumberOrPercentage::Number(n) => n.value` arm.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("sepia".to_string()),
     SimpleToken::Number(0.8),
@@ -1180,7 +1180,7 @@ fn sepia_parse_tokens_number_variant() {
 
 #[test]
 fn sepia_parse_tokens_percentage_variant() {
-  // Covers `NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0` arm.
+  // Covers `NumberOrPercentage::Percentage(p) => p.value / 100.0` arm.
   // SimpleToken::Percentage(50.0) is the authored percent, not a fraction.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("sepia".to_string()),

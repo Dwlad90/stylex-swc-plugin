@@ -832,3 +832,41 @@ mod test_css_type_color {
     }
   }
 }
+
+#[cfg(test)]
+mod the_optional_alpha_rewind {
+  use super::*;
+
+  /// The reader for the `/ <alpha-value>` tail rewinds when it finds no slash,
+  /// which puts back the whitespace it skipped looking for one. The closing
+  /// paren check that follows does not skip whitespace itself, so a space
+  /// before the paren is refused. Pinned because the rewind is otherwise
+  /// unobservable, and because a reader that stopped rewinding would change
+  /// this without any other test noticing.
+  #[test]
+  fn a_space_before_the_closing_paren_is_refused_after_a_rewind() {
+    for input in [
+      "lch(50 100 180 )",
+      "oklch(0.7 0.1 200deg )",
+      "oklab(0.5 0.1 0.1 )",
+    ] {
+      assert!(
+        Color::parse().parse_to_end(input).is_err(),
+        "{input:?} should be refused"
+      );
+    }
+  }
+
+  /// With a slash present the whitespace is consumed rather than put back, so
+  /// the same shape parses -- which is what shows the refusal above belongs to
+  /// the rewind and not to the paren check alone.
+  #[test]
+  fn the_same_space_is_accepted_when_an_alpha_follows_it() {
+    match Color::parse().parse_to_end("lch(50 100 180 / 0.5)") {
+      // An `lch` hue with no unit stays a bare number, where `oklch` reads one
+      // as degrees.
+      Ok(color) => assert_eq!(color.to_string(), "lch(50 100 180 / 0.5)"),
+      Err(error) => panic!("expected the alpha form to parse: {error:?}"),
+    }
+  }
+}

@@ -77,6 +77,56 @@ pub fn alpha_as_number() -> TokenParser<f64> {
   AlphaValue::parser().map(|alpha| alpha.value, Some("alpha_to_number"))
 }
 
+/// Reads an alpha token that must already lie in `0..=1`, which is what
+/// `rgba()` and `hsla()` require: they refuse a value outside the range rather
+/// than carrying it through, where `alpha_as_number` above accepts whatever was
+/// written. A difference in the legacy grammar, not in the width of the number.
+///
+/// Kept as a token reader rather than a `TokenParser` because the two range
+/// arms carry different messages -- one names the fraction, the other the
+/// percentage -- which a single combinator predicate could not say.
+pub fn parse_alpha_token_in_unit_range(
+  tokens: &mut crate::token_types::TokenList,
+) -> Result<f64, crate::CssParseError> {
+  let token = tokens
+    .consume_next_token_infallible()
+    .ok_or(crate::CssParseError::ParseError {
+      message: "Expected alpha value token".to_string(),
+    })?;
+
+  match token {
+    SimpleToken::Number(value) => {
+      if (0.0..=1.0).contains(&value) {
+        Ok(value)
+      } else {
+        Err(crate::CssParseError::ParseError {
+          message: format!("Alpha number must be 0.0-1.0, got {}", value),
+        })
+      }
+    },
+    SimpleToken::Percentage(value) => {
+      // An alpha is a fraction, and the token carries the authored percent.
+      let value = value / 100.0;
+      if (0.0..=1.0).contains(&value) {
+        Ok(value)
+      } else {
+        Err(crate::CssParseError::ParseError {
+          message: format!(
+            "Alpha percentage must be 0%-100% (stored as 0.0-1.0), got {}",
+            value
+          ),
+        })
+      }
+    },
+    _ => Err(crate::CssParseError::ParseError {
+      message: format!(
+        "Expected Number or Percentage token for alpha, got {:?}",
+        token
+      ),
+    }),
+  }
+}
+
 #[cfg(test)]
 #[path = "../tests/css_types/alpha_value_tests.rs"]
 mod tests;

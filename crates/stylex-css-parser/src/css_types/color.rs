@@ -8,7 +8,10 @@ use stylex_macros::stylex_unreachable;
 
 use crate::{
   CssParseError,
-  css_types::{Angle, Percentage, alpha_value::alpha_as_number},
+  css_types::{
+    Angle, Percentage,
+    alpha_value::{alpha_as_number, parse_alpha_token_in_unit_range},
+  },
   token_parser::{TokenParser, tokens},
   token_types::{SimpleToken, TokenList},
 };
@@ -31,51 +34,6 @@ fn rgb_number_parser() -> TokenParser<u8> {
     .map(extract_number_from_token, Some("extract_number"))
     .where_fn(|v| *v >= 0.0 && *v <= 255.0, Some("0..255"))
     .map(|v| v as u8, Some("to_u8"))
-}
-
-/// Reads the alpha channel of `rgba()` and `hsla()`, which both write it as a
-/// bare fraction or a percentage of one. Unlike the shared alpha parser the
-/// modern spaces use, these two refuse a value outside `0..=1` rather than
-/// carrying it through -- a difference in the legacy grammar, not in the width
-/// of the number.
-fn parse_bounded_alpha_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
-  let token = tokens
-    .consume_next_token_infallible()
-    .ok_or(CssParseError::ParseError {
-      message: "Expected alpha value token".to_string(),
-    })?;
-
-  match token {
-    SimpleToken::Number(value) => {
-      if (0.0..=1.0).contains(&value) {
-        Ok(value)
-      } else {
-        Err(CssParseError::ParseError {
-          message: format!("Alpha number must be 0.0-1.0, got {}", value),
-        })
-      }
-    },
-    SimpleToken::Percentage(value) => {
-      // An alpha is a fraction, and the token carries the authored percent.
-      let value = value / 100.0;
-      if (0.0..=1.0).contains(&value) {
-        Ok(value)
-      } else {
-        Err(CssParseError::ParseError {
-          message: format!(
-            "Alpha percentage must be 0%-100% (stored as 0.0-1.0), got {}",
-            value
-          ),
-        })
-      }
-    },
-    _ => Err(CssParseError::ParseError {
-      message: format!(
-        "Expected Number or Percentage token for alpha, got {:?}",
-        token
-      ),
-    }),
-  }
 }
 
 /// Reads the `/ <alpha-value>` tail the modern colour spaces share, rewinding
@@ -1054,7 +1012,7 @@ impl Rgba {
         Self::consume_comma_with_optional_whitespace(tokens)?;
 
         // Parse alpha value
-        let a = parse_bounded_alpha_token(tokens)?;
+        let a = parse_alpha_token_in_unit_range(tokens)?;
 
         // Skip optional whitespace before closing paren
         while let Some(SimpleToken::Whitespace) = tokens.peek_infallible() {
@@ -1165,7 +1123,7 @@ impl Rgba {
         }
 
         // Parse alpha value
-        let a = parse_bounded_alpha_token(tokens)?;
+        let a = parse_alpha_token_in_unit_range(tokens)?;
 
         // Expect closing paren
         let close_token =
@@ -1577,7 +1535,7 @@ impl Hsla {
         Self::consume_comma_with_optional_whitespace(tokens)?;
 
         // Parse alpha value
-        let a = parse_bounded_alpha_token(tokens)?;
+        let a = parse_alpha_token_in_unit_range(tokens)?;
 
         // Expect closing paren
         let close_token =
@@ -1682,7 +1640,7 @@ impl Hsla {
         }
 
         // Parse alpha value
-        let a = parse_bounded_alpha_token(tokens)?;
+        let a = parse_alpha_token_in_unit_range(tokens)?;
 
         // Expect closing paren
         let close_token =

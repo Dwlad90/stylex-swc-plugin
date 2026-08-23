@@ -104,12 +104,21 @@ function isDeclarationKey(property: string): boolean {
  * reference compiler is the whole point of the harness. `unchanged` has no
  * arguments after the value at all: it is the case whose expectation *is* the
  * input, which is the majority shape and the reason it exists.
+ *
+ * `refusal_of` and `refuses_with` are the same shape for a value that is
+ * refused rather than spelled: property, value, and then the complaint it is
+ * expected to earn. The complaint is an expectation like any other and is left
+ * where it was written; the pair in front of it is a declaration the suites
+ * cover, and a corpus that skipped them would be blind to exactly the
+ * degenerate values a refusal test exists to carry.
  */
 const PROPERTY_VALUE_CALLS = [
   'normalize_css_property_value',
   'unchanged',
   'same',
   'diverges',
+  'refusal_of',
+  'refuses_with',
 ] as const;
 
 /**

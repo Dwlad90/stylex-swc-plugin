@@ -616,22 +616,29 @@ fn hands_over_the_complaint_the_reference_compiler_also_writes() {
 /// have moved what it quotes.
 #[test]
 fn still_refuses_a_value_whose_only_fault_is_the_token() {
-  for (property, value) in [
-    ("color", "red; margin: 10px"),
-    ("color", "red;background:blue"),
-    ("color", "red {"),
-    ("color", "red }"),
-    ("width", "calc(1px);height:2px"),
-    ("--x", "red;a"),
-    ("fontFamily", r"A\;B"),
-  ] {
-    refuses_with(
-      property,
-      value,
-      LINT_RULE_BREAKING_TOKEN,
-      LINT_UNCLOSED_FUNCTION,
-    );
-  }
+  // Spelled out rather than looped over a table of pairs: the parity corpus is
+  // harvested from these sources by recognizing a property literal next to a
+  // value literal, and a pair inside a table is a shape the scan does not read
+  // — so a table here would keep these values out of the corpus that measures
+  // them.
+  let token = LINT_RULE_BREAKING_TOKEN;
+  refuses_with("color", "red; margin: 10px", token, LINT_UNCLOSED_FUNCTION);
+  refuses_with(
+    "color",
+    "red;background:blue",
+    token,
+    LINT_UNCLOSED_FUNCTION,
+  );
+  refuses_with("color", "red {", token, LINT_UNCLOSED_FUNCTION);
+  refuses_with("color", "red }", token, LINT_UNCLOSED_FUNCTION);
+  refuses_with(
+    "width",
+    "calc(1px);height:2px",
+    token,
+    LINT_UNCLOSED_FUNCTION,
+  );
+  refuses_with("--x", "red;a", token, LINT_UNCLOSED_FUNCTION);
+  refuses_with("fontFamily", r"A\;B", token, LINT_UNCLOSED_FUNCTION);
 
   assert!(
     refusal_of("width", "calc(1px);height:2px").contains("* { width: calc(1px);height:2px }"),

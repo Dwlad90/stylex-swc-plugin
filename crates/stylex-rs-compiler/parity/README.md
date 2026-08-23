@@ -208,10 +208,11 @@ why no count is written here — a number in this file went stale twice before:
 A family reads a verdict, or a set of them where the reason survives this
 compiler's own behaviour changing around it: a reference crash is a reference
 crash whether this side accepted the value or refused it for a fault of its own,
-and those read different verdicts. The declaration order is also precedence, and
-the crash is where it matters — it sits above `declaration-terminating token`,
-because agreement on a crash would mean reproducing it, which is the stronger of
-the two reasons and the one a reader should be handed.
+and those read different verdicts. The declaration order is also precedence — the
+first family to claim a row keeps it — and no pair overlaps as the table stands.
+It is still stated because a family added below an existing one inherits that
+precedence silently, so where the next one goes is a decision rather than a
+detail.
 
 The list shrinks as well as grows. A family that named which of two true
 complaints an author was handed is gone: the declaration-terminating token guard
@@ -313,6 +314,7 @@ carry CSS values.
 | 4     | `"*{color:red}"`                                                | the same, minified                                             |
 | 5     | a `stylex.create` object in a transform fixture                 | every declaration in it                                        |
 | 6     | `unchanged("color", "red")`, `same("color", "#ff0000", "#f00")` | the property and the **input** only                            |
+| 6a    | `refuses_with("color", "red {", MESSAGE, OTHER)`                | the same, for a value expected to be refused                   |
 | 7     | `rejects("width", &["*(", "/.5 *("], MESSAGE, &opts)`           | the property and every value in the slice                      |
 
 Shapes 6 and 7 are the two worth knowing about, because what they _omit_ is

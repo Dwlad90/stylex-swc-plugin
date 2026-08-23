@@ -111,7 +111,10 @@ repeatable `--category` (`transform|perf|rollup`) and `--fixture` substring.
 ## Parity harness
 
 Also in `crates/stylex-rs-compiler`; run `build` first (it reads `dist/`).
-Not a test and not wired into CI. Full docs:
+Not a test and not wired into CI -- except `parity:harvest:check`, which scans
+Rust sources rather than running either compiler, needs no `dist/`, and runs
+ahead of this package's `vitest` suite so a corpus that has fallen behind the
+Rust tests fails rather than waiting to be noticed. Full docs:
 `crates/stylex-rs-compiler/parity/README.md`.
 
 - `parity`: runs a corpus of CSS declarations through this compiler and through
@@ -120,7 +123,10 @@ Not a test and not wired into CI. Full docs:
   (`reported|edge|harvested`), `--filter <substring>`, `--json <path>`,
   `--font-size-px-to-rem`.
 - `parity:harvest`: regenerates `parity/corpus/harvested.json` from the Rust
-  test suites. `--check` fails instead of writing when it is out of date.
+  test suites. `--check` fails instead of writing when it is out of date, and
+  runs as the first half of this package's `test` script. Regenerating also
+  invalidates `crates/postcss-value-parser/src/tests/cases.rs`, whose row order
+  is the corpus order -- run that package's `generate:value-parser-cases` next.
 
 ## Coverage
 

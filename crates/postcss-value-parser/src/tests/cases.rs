@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 943 values: the differential harness's whole corpus, plus
+/// 951 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -726,6 +726,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "green",
     output: "green",
     ast: "word \"green\" 0..5",
+  },
+  ParserCase {
+    input: "red;a",
+    output: "red;a",
+    ast: "word \"red;a\" 0..5",
   },
   ParserCase {
     input: "#ff0000",
@@ -1488,9 +1493,19 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"red\" 0..3\nspace \" \" 3..4\ncomment \" ; \" 4..11",
   },
   ParserCase {
+    input: "red }",
+    output: "red }",
+    ast: "word \"red\" 0..3\nspace \" \" 3..4\nword \"}\" 4..5",
+  },
+  ParserCase {
     input: "red; /* x */",
     output: "red; /* x */",
     ast: "word \"red;\" 0..4\nspace \" \" 4..5\ncomment \" x \" 5..12",
+  },
+  ParserCase {
+    input: "red;/* x",
+    output: "red;/* x",
+    ast: "word \"red;\" 0..4\ncomment \" x\" 4..8 unclosed",
   },
   ParserCase {
     input: "red;background:blue",
@@ -1706,6 +1721,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "var(someVariableName)",
     output: "var(someVariableName)",
     ast: "function \"var\" 0..21 before=\"\" after=\"\" nodes=1\n  word \"someVariableName\" 4..20",
+  },
+  ParserCase {
+    input: "var(x);a",
+    output: "var(x);a",
+    ast: "function \"var\" 0..6 before=\"\" after=\"\" nodes=1\n  word \"x\" 4..5\nword \";a\" 6..8",
   },
   ParserCase {
     input: "yellow",
@@ -2023,9 +2043,19 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"-apple-system\" 0..13\ndiv \",\" 13..15 before=\"\" after=\" \"\nword \"BlinkMacSystemFont\" 15..33\ndiv \",\" 33..35 before=\"\" after=\" \"\nstring \"Segoe UI\" 35..45 quote=\"\\\"\"\ndiv \",\" 45..47 before=\"\" after=\" \"\nword \"Roboto\" 47..53\ndiv \",\" 53..55 before=\"\" after=\" \"\nword \"sans-serif\" 55..65",
   },
   ParserCase {
+    input: "A\\;B",
+    output: "A\\;B",
+    ast: "word \"A\\\\;B\" 0..4",
+  },
+  ParserCase {
     input: "My\\\\ Font, sans-serif",
     output: "My\\\\ Font, sans-serif",
     ast: "word \"My\\\\\\\\\" 0..4\nspace \" \" 4..5\nword \"Font\" 5..9\ndiv \",\" 9..11 before=\"\" after=\" \"\nword \"sans-serif\" 11..21",
+  },
+  ParserCase {
+    input: "\\2014;calc(",
+    output: "\\2014;calc(",
+    ast: "function \"\\\\2014;calc\" 0..11 before=\"\" after=\"\" unclosed nodes=0",
   },
   ParserCase {
     input: "\\\\😀",
@@ -2068,9 +2098,19 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"日本語\" 0..9",
   },
   ParserCase {
+    input: "日本語;calc(1px",
+    output: "日本語;calc(1px",
+    ast: "function \"日本語;calc\" 0..18 before=\"\" after=\"\" unclosed nodes=1\n  word \"1px\" 15..18",
+  },
+  ParserCase {
     input: "😀",
     output: "😀",
     ast: "word \"😀\" 0..4",
+  },
+  ParserCase {
+    input: "🙂;sans-serif",
+    output: "🙂;sans-serif",
+    ast: "word \"🙂;sans-serif\" 0..15",
   },
   ParserCase {
     input: "1.25rem",
@@ -4849,7 +4889,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 676 words paired with their number/unit split, `None` standing for a
+/// 679 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -5027,6 +5067,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("--foo", None),
   ("--token", None),
   ("green", None),
+  ("red;a", None),
   ("#ff0000", None),
   ("unset", None),
   ("16px", Some(("16", "px"))),
@@ -5175,6 +5216,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("--日本語", None),
   ("bar", None),
   ("someVariableName", None),
+  (";a", None),
   ("•", None),
   ("日本語#fff", None),
   ("abc", None),
@@ -5204,6 +5246,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("-apple-system", None),
   ("BlinkMacSystemFont", None),
   ("Roboto", None),
+  ("A\\;B", None),
   ("My\\\\", None),
   ("Font", None),
   ("\\\\😀", None),
@@ -5215,6 +5258,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("✓", None),
   ("日本語", None),
   ("😀", None),
+  ("🙂;sans-serif", None),
   ("1.25rem", Some(("1.25", "rem"))),
   ("14px", Some(("14", "px"))),
   ("1em", Some(("1", "em"))),
@@ -5332,7 +5376,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("1+2", Some(("1", "+2"))),
   ("em", None),
   ("1px-.5px", Some(("1", "px-.5px"))),
-  (";a", None),
   ("42", Some(("42", ""))),
   ("{deep}", None),
   ("fontFamily", None),

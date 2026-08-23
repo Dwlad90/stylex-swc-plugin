@@ -64,6 +64,26 @@ another decides which of two diagnostics an author gets.
 _Avoid_: normalizer (that is the narrower term for the ported ones), step,
 stage, visitor
 
+**Structural guard**:
+A rejection that reads the raw bytes of a value rather than the token list, and
+so is not a value pass. Three exist: the unclosed comment, the nesting budget
+and the declaration-terminating token. The first two must speak before the
+value is parsed at all -- parsing recurses once per nesting level, and past the
+budget the process aborts without a diagnostic -- so they run ahead of every
+pass. The third has no such constraint and is deliberately placed _inside_ the
+sequence, after the two rejections the reference compiler also makes, so that a
+value carrying two faults earns the same complaint from both compilers.
+_Avoid_: validation, sanity check, precheck, injection check
+
+**Shared rejection**:
+A value pass that rejects for something the reference compiler rejects for too
+-- the unclosed function and the unclosed string, and only those. Named because
+the boundary is where a structural guard is allowed to fire: a rejection this
+compiler makes alone can be preempted freely, and one the reference compiler
+also makes cannot, or the two hand an author different sentences for the same
+value.
+_Avoid_: common guard, upstream check, shared validator
+
 **Reference verdict**:
 What the parity harness recorded when it ran a declaration through both this
 compiler and the reference compiler — `identical`, or a divergence, and in the

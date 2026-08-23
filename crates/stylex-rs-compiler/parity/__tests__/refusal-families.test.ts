@@ -138,7 +138,7 @@ describe('what a family claims', () => {
 });
 
 describe('what a family leaves as news', () => {
-  test('two refusals where only which guard spoke first differs', () => {
+  test('two refusals no family claims, now that neither guard speaks first', () => {
     // The family that used to claim this is gone, because the row is gone: the
     // declaration-terminating token guard now runs after the two rejections the
     // reference compiler also makes, so a value carrying both faults earns the

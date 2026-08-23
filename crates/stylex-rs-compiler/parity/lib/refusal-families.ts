@@ -121,16 +121,17 @@ function refusedWith(entry: ReportEntry, refusal: string): boolean {
  *
  * Ordered most-populated first, because the order is what a reader scans: the
  * two guards at the top account for the overwhelming majority of rows in both
- * harnesses, and the three below them are single-digit in the curated corpus.
+ * harnesses, and the four below them are single-digit in the curated corpus.
  *
- * The order is also precedence — the first family to claim a row keeps it — and
- * one pair overlaps. A value that is rule-breaking here *and* crashes the
- * reference compiler could read as either `reference TypeError` or
- * `declaration-terminating token`, and the crash wins by sitting above it:
- * agreement on a crash would mean reproducing it, which is the stronger reason
- * of the two and the one a reader should be handed.
+ * The order is also precedence — the first family to claim a row keeps it. No
+ * pair overlaps as the list stands: the one that did was a value both
+ * rule-breaking here and crashing the reference compiler, which `reference
+ * TypeError` won by sitting above the family that has since been removed. The
+ * precedence is kept stated because a family added below an existing one
+ * inherits it silently, and a reader adding the next family needs to know that
+ * where they put it is a decision.
  *
- * A family is gone from this list once nothing reaches it. The refusal a value
+ * A family leaves this list once nothing reaches it. The refusal a value
  * carrying two faults used to earn here was one such: this compiler now runs
  * its declaration-terminating token guard after the two rejections the
  * reference compiler also makes, so those rows read agreement and there is

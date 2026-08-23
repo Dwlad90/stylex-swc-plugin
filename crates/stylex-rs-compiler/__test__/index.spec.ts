@@ -2,6 +2,7 @@
 // an absent property and one set to `undefined` as different. `toEqual` does
 // not, so it would accept a compiler result that grew or lost an
 // undefined-valued field. See the note in `normalizeRsOptions.spec.ts`.
+import { execFileSync } from 'node:child_process';
 import * as path from 'path';
 
 import { expect, test } from 'vitest';
@@ -9,6 +10,9 @@ import { expect, test } from 'vitest';
 import { transform, normalizeRsOptions } from '../dist/index.js';
 
 const cwd = process.cwd();
+
+/// Resolved once so a child process requires the same binding this suite does.
+const compilerEntry = path.resolve(__dirname, '../dist/index.js');
 
 test('sync function from native code', () => {
   const fixture = `
@@ -404,6 +408,84 @@ test('maxEvaluationDepth: a negative ceiling falls back to the default', () => {
 // refuses only because the ceiling wrapped underneath it.
 test('maxEvaluationDepth: a ceiling past the 32-bit range is clamped, not wrapped', () => {
   expect(injectedCss(compileAtDepth(deepFixture(100), 2 ** 32))).toContain('z-index:105');
+});
+
+// The environment variable the README documents as a process-wide escape hatch,
+// exercised where it actually lives. It is read once per process behind a
+// `OnceLock`, so it cannot be observed from a test that shares this process --
+// which is why the Rust side could only ever assert the precedence rule, and did
+// so against a variable name nothing proved was the one being read.
+//
+// A child per case, because the read is cached for the life of the process.
+const compileInChildWithEnv = (source: string, env: Record<string, string>) => {
+  const script = `
+    const { transform } = require(${JSON.stringify(compilerEntry)});
+    const source = ${JSON.stringify(source)};
+    try {
+      const result = transform('page.tsx', source, {
+        dev: false,
+        unstable_moduleResolution: { type: 'commonJS' },
+      });
+      process.stdout.write(JSON.stringify({ ok: true, code: result.code }));
+    } catch (error) {
+      process.stdout.write(JSON.stringify({ ok: false, message: String(error) }));
+    }
+  `;
+
+  const printed = execFileSync(process.execPath, ['-e', script], {
+    env: { ...process.env, ...env },
+    encoding: 'utf8',
+  });
+
+  return JSON.parse(printed) as { ok: boolean; code?: string; message?: string };
+};
+
+test('STYLEX_MAX_EVALUATION_DEPTH raises the ceiling for the whole process', () => {
+  const source = deepFixture(100);
+
+  expect(compileInChildWithEnv(source, {}).message).toMatch(
+    /At most 32 levels of nested evaluation are supported/
+  );
+  expect(compileInChildWithEnv(source, { STYLEX_MAX_EVALUATION_DEPTH: '320' }).ok).toBe(true);
+});
+
+// Precedence, across the boundary rather than as a unit rule: a configured
+// option beats the environment, so a stray value in a CI environment cannot
+// change what a project that configured one compiles to.
+test('an explicit maxEvaluationDepth wins over the environment', () => {
+  const script = `
+    const { transform } = require(${JSON.stringify(compilerEntry)});
+    try {
+      transform('page.tsx', ${JSON.stringify(deepFixture(100))}, {
+        dev: false,
+        maxEvaluationDepth: 8,
+        unstable_moduleResolution: { type: 'commonJS' },
+      });
+      process.stdout.write('folded');
+    } catch (error) {
+      process.stdout.write(String(error));
+    }
+  `;
+
+  const printed = execFileSync(process.execPath, ['-e', script], {
+    env: { ...process.env, STYLEX_MAX_EVALUATION_DEPTH: '320' },
+    encoding: 'utf8',
+  });
+
+  expect(printed).toMatch(/At most 8 levels of nested evaluation are supported/);
+});
+
+// An unusable value is read as unset rather than failing the build, because the
+// variable is an escape hatch and one that broke a build when mistyped would be
+// a worse one.
+test.each([
+  ['zero', '0'],
+  ['a word', 'nope'],
+  ['negative', '-1'],
+])('STYLEX_MAX_EVALUATION_DEPTH given %s falls back to the default', (_label, value) => {
+  expect(
+    compileInChildWithEnv(deepFixture(100), { STYLEX_MAX_EVALUATION_DEPTH: value }).message
+  ).toMatch(/At most 32 levels of nested evaluation are supported/);
 });
 
 // The default the compiler owns, observed through the boundary rather than read

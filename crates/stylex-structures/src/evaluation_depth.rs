@@ -74,9 +74,10 @@ fn read_env() -> Option<String> {
 ///
 /// Split out so the *rule* is testable without a process-global write: setting
 /// an environment variable from a test leaks into every other test in the
-/// binary, and precedence does not need a side channel to be verified. Which
-/// variable seeds the cache is a separate question, and the one test that does
-/// write the environment asks only that -- see `read_env`.
+/// binary, is `unsafe` in this edition, and precedence does not need a side
+/// channel to be verified. Which variable seeds the cache is a separate
+/// question, answered end to end from the JavaScript side -- see the note in
+/// this module's tests.
 fn resolve_from(configured: Option<usize>, from_env: Option<&str>) -> usize {
   let resolved = match configured {
     Some(depth) if depth > 0 => depth,
@@ -240,29 +241,15 @@ mod tests {
     );
   }
 
-  // `cargo nextest run` gives each test its own process, which is what makes the
-  // write below safe; it is the only environment write in the crate, and it is
-  // undone before the test returns. Written against `read_env` rather than the
-  // public resolver because the cache is filled once per process, so a test that
-  // went through it would answer differently depending on test order.
-  //
-  // Without this the variable's *name* was never exercised: the assertion it
-  // replaces read `env::var(MAX_EVALUATION_DEPTH_ENV)` on both sides, so it held
-  // for any spelling, including one nothing sets.
-  #[test]
-  fn the_cached_read_takes_the_documented_variable() {
-    // SAFETY: this test owns its process under nextest, and nothing else in this
-    // binary reads the environment.
-    unsafe { env::set_var(MAX_EVALUATION_DEPTH_ENV, "  256 ") };
-
-    assert_eq!(read_env().as_deref(), Some("  256 "));
-    assert_eq!(resolve_from(None, read_env().as_deref()), 256);
-
-    // SAFETY: as above.
-    unsafe { env::remove_var(MAX_EVALUATION_DEPTH_ENV) };
-
-    assert_eq!(read_env(), None);
-  }
+  // Which variable seeds the cache is *not* asserted here, and deliberately not.
+  // Proving it needs a process whose environment differs from this one's, and
+  // writing the environment from a test is `unsafe` in this edition -- against
+  // `guidelines/stack/RUST.md` -- for a read that is cached once per process and
+  // so unobservable from the test that wrote it anyway. It is proved end to end
+  // instead, in `crates/stylex-rs-compiler/__test__/index.spec.ts`, by compiling
+  // in a child process with the variable set: that covers the name, the parse,
+  // the precedence against a configured option, and the fallback for an unusable
+  // value, none of which a unit test on this side can reach.
 
   // The public entry point agrees with the rule asked directly, so the cached
   // read is wired to the same precedence every other case here pins.

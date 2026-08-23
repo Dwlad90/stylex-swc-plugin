@@ -797,9 +797,31 @@ impl StateManager {
 
   /// The declarator binding `ident`, by hash probe rather than by scan.
   pub(crate) fn declaration_of(&self, ident: &Ident) -> Option<&VarDeclarator> {
-    let position = *self.declaration_index.get(&ident.to_id())?;
+    let found = self
+      .declaration_index
+      .get(&ident.to_id())
+      .and_then(|position| self.declarations.get(*position));
 
-    self.declarations.get(position)
+    // The index and the list have to agree, and only [`Self::push_declaration`]
+    // keeps them agreeing. The field is `pub(crate)`, so nothing in the type
+    // system stops a future caller pushing straight to it and leaving the
+    // binding it added invisible here -- which is what three test builders did
+    // the day the index was added. Checking the answer against the scan it
+    // replaced turns that back into a loud test failure rather than a reference
+    // that quietly stops resolving. Compiled out of release, where the scan is
+    // the cost the index exists to avoid.
+    debug_assert!(
+      found.is_some()
+        == self.declarations.iter().any(|declarator| matches!(
+          &declarator.name,
+          Pat::Ident(binding) if binding.id.eq_ignore_span(ident)
+        )),
+      "`declaration_index` disagrees with `declarations` about `{}`; something \
+       grew the list without going through `push_declaration`",
+      ident.sym
+    );
+
+    found
   }
 
   /// The binding a refusal on the expression behind `cache_key` is about, if one

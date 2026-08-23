@@ -188,6 +188,25 @@ jobs:
           - id: check-artifacts
             name: Check artifacts
             command: pnpm run check:artifacts --filter "{./packages/*}" --filter "{./crates/*}"
+          # The oracle every expectation in the CSS-value corpus was derived
+          # from, and until now nothing ran it. It sits here rather than in a
+          # hook because it needs a built `dist/` and a Node toolchain -- a real
+          # cost to put in front of every commit, and this job already has both.
+          # It fails on exactly two things, and both get quieter the longer
+          # nobody looks: an expectation that stopped holding, and a refusal
+          # family no row reached. Measured at ~2.5s and ~8s on an Apple Silicon
+          # laptop, so it adds nothing worth weighing against the matrix around
+          # it. The generated sweep next door is forty times the first of those
+          # and runs on the nightly schedule instead -- see `parity-sweep`.
+          - id: parity
+            name: CSS value parity
+            # The build restores from the `build-public-packages` cache; both
+            # harnesses load the compiler from `dist/`, not from the Rust
+            # sources, so a report without it is about nothing.
+            command: |
+              pnpm run build --filter=@stylexswc/rs-compiler
+              pnpm run --filter=@stylexswc/rs-compiler parity
+              pnpm run --filter=@stylexswc/rs-compiler parity:positions
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
@@ -228,6 +247,52 @@ jobs:
 
       - name: ${{ matrix.check.name }}
         run: ${{ matrix.check.command }}
+
+      - name: Save turbo build cache
+        if: always()
+        uses: ./.github/actions/turbo-save
+        with:
+          cache-key: ${{ steps.turbo-cache.outputs.cache-key }}
+
+  # The generated half of the parity corpus, on the nightly schedule only.
+  #
+  # It crosses an alphabet with itself -- ~154k subjects, two compiler runs each,
+  # measured at ~97s against the curated harness's ~2.5s. Forty times the cost
+  # buys nothing per commit: a value-splitter defect shows up when a value pass
+  # or the alphabet changes, and a sweep once a night reports that as surely as
+  # one per pull request would. It fails on the one number a reader acts on, the
+  # divergent rows no refusal family accounts for.
+  parity-sweep:
+    name: Shorthand split sweep
+    if: github.event_name == 'schedule' && github.ref_name == 'develop'
+    runs-on: ubuntu-24.04-arm
+    needs:
+      - build-public-packages
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+          fetch-depth: 0
+          fetch-tags: false
+
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          rust-target: 'wasm32-wasip1'
+
+      - name: Cache turbo build setup
+        id: turbo-cache
+        uses: ./.github/actions/turbo
+        with:
+          cache-scope: parity-sweep
+          restore-cache-scope: build-public-packages
+
+      - name: Build the compiler
+        run: pnpm run build --filter=@stylexswc/rs-compiler
+
+      - name: Run the shorthand split sweep
+        run: pnpm run --filter=@stylexswc/rs-compiler fuzz:shorthand
 
       - name: Save turbo build cache
         if: always()
@@ -653,6 +718,10 @@ jobs:
       - playwright-image
       - visual-tests
       - benchmark
+      # Runs on the nightly schedule only, so it reports `skipped` on every pull
+      # request -- which the loop below accepts. It is listed so a failing sweep
+      # fails the gate rather than sitting green beside it.
+      - parity-sweep
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Verify validation jobs
@@ -661,7 +730,7 @@ jobs:
         run: |
           echo "$NEEDS_JSON" | jq .
 
-          for job in basic-checks checks build-public-packages playwright-image visual-tests benchmark; do
+          for job in basic-checks checks build-public-packages playwright-image visual-tests benchmark parity-sweep; do
             result=$(echo "$NEEDS_JSON" | jq -r --arg job "$job" '.[$job].result')
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               echo "::error::Validation job '$job' finished with status '$result'."

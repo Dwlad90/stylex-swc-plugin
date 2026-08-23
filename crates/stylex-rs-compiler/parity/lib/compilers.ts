@@ -8,15 +8,16 @@
  * other, and report the difference as a divergence between the compilers.
  */
 
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import type * as babel from '@babel/core';
+import * as babel from '@babel/core';
 import stylexBabelPluginModule from '@stylexjs/babel-plugin';
 
 import type { StyleXOptions } from '../../dist/index.js';
-import { isRecord } from './guards.js';
+import { isRecord, stringAt } from './guards.js';
 
 const require = createRequire(import.meta.url);
 
@@ -77,6 +78,86 @@ export function baseStyleXOptions(packageDir: string): StyleXOptions {
     dev: false,
     unstable_moduleResolution: { type: 'haste', rootDir: packageDir },
   };
+}
+
+/**
+ * Which build of each compiler a run measured.
+ *
+ * Every harness prints it, because a report that does not name its subjects
+ * cannot be compared with an older one -- and the upstream version is held by
+ * the lockfile rather than by an exact range in the catalog, so it moves under a
+ * `pnpm update` without anything in this directory changing. That is also what
+ * makes it the first thing to read when a CI run starts failing on a corpus
+ * nobody touched.
+ */
+export interface SubjectVersions {
+  rust: { version: string; resolvedFrom: string };
+  babel: { version: string; resolvedFrom: string };
+  babelCore: string;
+}
+
+/**
+ * Read once here rather than per harness, for the reason the rest of this file
+ * exists: three harnesses each resolving their own version strings is three
+ * places for a report to become unattributable one at a time.
+ */
+export function resolveVersions(
+  packageDir: string,
+  distEntry: string,
+  babelPluginEntry: string
+): SubjectVersions {
+  return {
+    rust: {
+      version: readVersion(path.join(packageDir, 'package.json')),
+      resolvedFrom: distEntry,
+    },
+    babel: {
+      version: readVersion(resolveManifest('@stylexjs/babel-plugin')),
+      resolvedFrom: babelPluginEntry,
+    },
+    babelCore: babel.version,
+  };
+}
+
+/** The subject block every harness prints above its report. */
+export function subjectBlock(versions: SubjectVersions, extra: [string, string][] = []): string {
+  const rows: [string, string][] = [
+    ['@stylexswc/rs-compiler', `v${versions.rust.version}`],
+    ['@stylexjs/babel-plugin', `v${versions.babel.version}`],
+    ['@babel/core', `v${versions.babelCore}`],
+    ...extra,
+  ];
+
+  return rows.map(([name, value]) => `  ${name.padEnd(24)} ${value}`).join('\n');
+}
+
+/**
+ * Where a package's manifest is, resolved as a package export rather than
+ * guessed at as `dirname(entry)/../package.json` — that guess is right only
+ * while the entry point sits exactly one directory below the manifest, and
+ * `readVersion` answers `unknown` rather than complaining when it is wrong, so
+ * a report would quietly stop naming which upstream it was measured against.
+ *
+ * Falls back to that guess rather than propagating. A package whose `exports`
+ * map omits `./package.json` raises `ERR_PACKAGE_PATH_NOT_EXPORTED` here, and
+ * a version string the report prints for the reader is not worth failing a
+ * measurement run over — `readVersion` degrades a wrong path to `unknown`,
+ * which is the outcome this is trying to make rare, not one it must prevent.
+ */
+function resolveManifest(packageName: string): string {
+  try {
+    return require.resolve(`${packageName}/package.json`);
+  } catch {
+    return path.join(path.dirname(require.resolve(packageName)), '../package.json');
+  }
+}
+
+function readVersion(manifestPath: string): string {
+  try {
+    return stringAt(JSON.parse(fs.readFileSync(manifestPath, 'utf8')), 'version') ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
 }
 
 /** The message a thrown value carries, however it was thrown. */

@@ -35,6 +35,8 @@ import {
   loadBabelPlugin,
   loadRustCompiler,
   messageOf,
+  resolveVersions,
+  subjectBlock,
 } from './lib/compilers.js';
 import { arrayAt, isRecord, stringAt } from './lib/guards.js';
 import {
@@ -297,6 +299,17 @@ async function report(): Promise<void> {
     process.exit(1);
   }
 
+  // Printed before the first child runs, so a failing run is attributable even
+  // when it dies partway: the upstream plugin is held by the lockfile rather than
+  // by an exact range, so it moves under a `pnpm update` without anything in this
+  // directory changing, and the versions are the first thing to read when a run
+  // starts failing on a corpus nobody touched.
+  const { distEntry } = await loadRustCompiler(packageDir);
+  const { pluginEntry } = loadBabelPlugin();
+  console.log(
+    `${chalk.bold('Subjects')}\n${subjectBlock(resolveVersions(packageDir, distEntry, pluginEntry))}\n`
+  );
+
   const results: PositionReportEntry[] = [];
 
   for (const entry of entries) {
@@ -361,7 +374,20 @@ async function report(): Promise<void> {
   // longer holds. A position that silently starts diverging is exactly what this
   // set exists to catch, and one that silently starts agreeing is a pinned
   // divergence nobody unpinned.
-  if (unexpected > 0) process.exitCode = 1;
+  //
+  // The advice is printed rather than left implicit because the person who reads
+  // this first will not be the person who wrote the corpus.
+  if (unexpected > 0) {
+    console.log(
+      chalk.gray(
+        '\nEach ✗ above prints both positions and both first lines. Read them, then either fix\n' +
+          "the diagnostic that moved or update the subject's `expected` in corpus/positions.json\n" +
+          "-- once you know which of the two moved. If neither compiler's own version changed,\n" +
+          'it was this one: the subject block above names both.'
+      )
+    );
+    process.exitCode = 1;
+  }
 }
 
 const VERDICT_LABELS: Record<PositionVerdict, string> = {

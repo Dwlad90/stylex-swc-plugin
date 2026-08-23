@@ -13,8 +13,12 @@
  * token classes it crossed, never "the splitter is correct" -- so it prints the
  * alphabet beside the count, and a reader compares the two.
  *
- * It is not wired into CI, for the same reason the value harness is not: a
- * divergence is information, and reading it is a person's job.
+ * It runs on the nightly schedule rather than on every pull request. Measured on
+ * this repository the curated harness takes ~2.5s and this one ~97s -- roughly
+ * forty times as much, because it crosses an alphabet -- and what it is looking
+ * for does not arrive one commit at a time: a splitter defect shows up when a
+ * value pass or the alphabet itself changes, and a sweep once a night catches
+ * that as surely as one per PR would. See the README for where both are wired.
  *
  * Most of the divergent rows are not that information. They are the deliberate
  * refusals `lib/refusal-families.ts` names, reached in bulk because an alphabet
@@ -44,6 +48,7 @@ import { parseArgs } from 'node:util';
 import chalk from 'chalk';
 
 import { createComparer } from './lib/compare.js';
+import { subjectBlock } from './lib/compilers.js';
 import { entry } from './lib/declaration.js';
 import { REFUSAL_FAMILIES, familyOf, groupByFamily } from './lib/refusal-families.js';
 import type { CompilerOutcome, LoadedCorpusEntry, ReportEntry } from './lib/types.js';
@@ -310,6 +315,13 @@ for (const result of results) {
   byVerdict.set(result.verdict, (byVerdict.get(result.verdict) ?? 0) + 1);
 }
 
+// Named before the numbers, and on stdout rather than only in `--json`, because
+// a run that fails has to be attributable: the upstream plugin is held by the
+// lockfile rather than by an exact range, so it moves under a `pnpm update`
+// without anything in this directory changing.
+console.log(chalk.bold('\nSubjects'));
+console.log(subjectBlock(comparer.versions));
+
 console.log(chalk.bold('\nAlphabet'));
 console.log(
   `  ${FRAGMENTS.length} token classes x ${JOINERS.length} joiners x ${properties.length} properties`
@@ -384,6 +396,24 @@ if (cliOptions.json != null) {
     )}\n`
   );
   console.log(chalk.dim(`\nwrote ${target}`));
+}
+
+// Non-zero on the one number a reader acts on, for the reason the curated
+// harness exits non-zero on a changed expectation: a check that cannot fail is a
+// log, and this one runs unattended. Every divergent row belongs to a family as
+// it stands, so the count is zero and any other value is news.
+if (unexpected.length > 0) {
+  console.log(
+    chalk.gray(
+      `\n${unexpected.length} divergent row${unexpected.length === 1 ? '' : 's'} no refusal family accounts for.\n` +
+        'Run `pnpm fuzz:shorthand --show 40` for the rows, or `--json <path>` for all of them\n' +
+        'with the pinned ones beside them as evidence. Then either fix the split, or -- if the\n' +
+        'divergence is one this compiler makes on purpose -- add a family in\n' +
+        'parity/lib/refusal-families.ts, which is where a reason is stated rather than a row\n' +
+        'pinned. If neither version in the subject block above moved, it was this compiler.'
+    )
+  );
+  process.exitCode = 1;
 }
 
 console.log('');

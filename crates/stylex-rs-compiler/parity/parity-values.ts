@@ -10,7 +10,9 @@
  * a declaration cannot ask — see `ModuleEntry` in `lib/types.ts`.
  *
  * It lives outside the Rust test suite so `cargo test` never needs a Node
- * toolchain, and it is not wired into CI. Reading a verdict is still a person's
+ * toolchain, and runs in CI's `checks` matrix on every pull request rather than
+ * in a hook -- it needs that built `dist/`, which the matrix already has and a
+ * pre-commit hook would have to pay for. Reading a verdict is still a person's
  * job — a divergence is information, not a failure — with two exceptions, both
  * of which are an expectation that has stopped measuring anything: an entry
  * whose recorded `expected` verdict no longer holds, and a refusal family no
@@ -36,6 +38,7 @@ import chalk from 'chalk';
 
 import type { StyleXOptions } from '../dist/index.js';
 import { createComparer, styleObjectsAgree } from './lib/compare.js';
+import { subjectBlock } from './lib/compilers.js';
 import { loadCorpus } from './lib/corpus.js';
 import { REFUSAL_FAMILIES } from './lib/refusal-families.js';
 import { AGREED, conclude, fails } from './lib/report.js';
@@ -176,11 +179,10 @@ async function run(): Promise<void> {
 
   console.log(
     `${chalk.bold('Subjects')}\n` +
-      `  @stylexswc/rs-compiler   v${comparer.versions.rust.version}\n` +
-      `  @stylexjs/babel-plugin   v${comparer.versions.babel.version}\n` +
-      `  @babel/core              v${comparer.versions.babelCore}\n` +
-      `  style resolution         ${comparer.options.styleResolution ?? DEFAULT_STYLE_RESOLUTION}\n` +
-      `  options                  ${JSON.stringify(comparer.options)}\n`
+      `${subjectBlock(comparer.versions, [
+        ['style resolution', comparer.options.styleResolution ?? DEFAULT_STYLE_RESOLUTION],
+        ['options', JSON.stringify(comparer.options)],
+      ])}\n`
   );
 
   const entries = corpus.map(entry => comparer.compare(entry));

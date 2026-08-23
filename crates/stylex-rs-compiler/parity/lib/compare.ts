@@ -7,30 +7,25 @@
  * rather than spelled out per subject.
  */
 
-import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import * as babel from '@babel/core';
 
 import type { StyleXOptions } from '../../dist/index.js';
-import { baseStyleXOptions, loadBabelPlugin, loadRustCompiler, messageOf } from './compilers.js';
+import {
+  baseStyleXOptions,
+  loadBabelPlugin,
+  loadRustCompiler,
+  messageOf,
+  resolveVersions,
+} from './compilers.js';
+import type { SubjectVersions } from './compilers.js';
 import { arrayAt, stringAt } from './guards.js';
 import { refusalSentence } from './refusal.js';
 import { SEPARATOR } from './separator.js';
 import { styleObjectsOf } from './style-object.js';
 import { moduleFor } from './subject.js';
 import type { CompilerOutcome, LoadedCorpusEntry, ReportEntry, Verdict } from './types.js';
-
-// `resolveManifest` below reads a package's manifest by resolution rather than
-// by path, which needs CommonJS resolution from this module's own location.
-const require = createRequire(import.meta.url);
-
-export interface SubjectVersions {
-  rust: { version: string; resolvedFrom: string };
-  babel: { version: string; resolvedFrom: string };
-  babelCore: string;
-}
 
 export interface Comparer {
   options: StyleXOptions;
@@ -107,17 +102,7 @@ export async function createComparer(options: CreateComparerOptions): Promise<Co
 
   return {
     options: stylexOptions,
-    versions: {
-      rust: {
-        version: readVersion(path.join(packageDir, 'package.json')),
-        resolvedFrom: distEntry,
-      },
-      babel: {
-        version: readVersion(resolveManifest('@stylexjs/babel-plugin')),
-        resolvedFrom: babelPluginEntry,
-      },
-      babelCore: babel.version,
-    },
+    versions: resolveVersions(packageDir, distEntry, babelPluginEntry),
     compare(entry) {
       const code = moduleFor(entry);
       const rust = runRust(code);
@@ -264,33 +249,4 @@ function propertyNamesOf(outcome: CompilerOutcome): string {
     .map(declaration => declaration.slice(0, declaration.indexOf(':')).trim())
     .toSorted()
     .join(SEPARATOR);
-}
-
-/**
- * Where a package's manifest is, resolved as a package export rather than
- * guessed at as `dirname(entry)/../package.json` — that guess is right only
- * while the entry point sits exactly one directory below the manifest, and
- * `readVersion` answers `unknown` rather than complaining when it is wrong, so
- * a report would quietly stop naming which upstream it was measured against.
- *
- * Falls back to that guess rather than propagating. A package whose `exports`
- * map omits `./package.json` raises `ERR_PACKAGE_PATH_NOT_EXPORTED` here, and
- * a version string the report prints for the reader is not worth failing a
- * measurement run over — `readVersion` degrades a wrong path to `unknown`,
- * which is the outcome this is trying to make rare, not one it must prevent.
- */
-function resolveManifest(packageName: string): string {
-  try {
-    return require.resolve(`${packageName}/package.json`);
-  } catch {
-    return path.join(path.dirname(require.resolve(packageName)), '../package.json');
-  }
-}
-
-function readVersion(manifestPath: string): string {
-  try {
-    return stringAt(JSON.parse(fs.readFileSync(manifestPath, 'utf8')), 'version') ?? 'unknown';
-  } catch {
-    return 'unknown';
-  }
 }

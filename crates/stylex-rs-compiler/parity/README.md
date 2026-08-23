@@ -11,12 +11,52 @@ by one and client bundles by the other, cached HTML, an incremental migration,
 snapshot tests written against either) breaks silently when they disagree: the
 markup names a class the stylesheet does not define, and nothing errors.
 
-This is a developer tool, not a test. It lives outside the Rust test suite so
-`cargo test` never needs a Node toolchain. The runner is not wired into CI — it
-needs a built `dist/` and a Node toolchain — but the harvester's own unit tests
-are, under this package's `vitest` suite, and `parity:harvest:check` runs ahead
-of that suite, so a corpus that has fallen behind the Rust tests fails rather
-than waiting for someone to think of it.
+It lives outside the Rust test suite so `cargo test` never needs a Node
+toolchain, and the harvester's own unit tests run under this package's `vitest`
+suite with `parity:harvest:check` ahead of them, so a corpus that has fallen
+behind the Rust tests fails rather than waiting for someone to think of it.
+
+## Where it runs
+
+Nothing ran the comparison itself for a long time — the staleness check above is
+a scan of Rust sources, and the part that actually consults the reference
+compiler ran only when a person remembered. That is how the corpus came to be 41
+declarations behind without anyone noticing.
+
+| Harness                | Runs                                   | Cost  |
+| ---------------------- | -------------------------------------- | ----- |
+| `parity`               | `checks` matrix, every pull request    | ~2.5s |
+| `parity:positions`     | the same step                          | ~8s   |
+| `fuzz:shorthand`       | `parity-sweep`, the nightly schedule   | ~97s  |
+| `parity:harvest:check` | ahead of this package's `vitest` suite | <1s   |
+
+Both timings are wall clock on an Apple Silicon laptop with a warm build.
+
+**Why CI and not a hook.** Both comparison harnesses need a built `dist/` and a
+Node toolchain, which is a real cost to put in front of every commit — that
+argues against a pre-commit hook, not against running them at all. The `checks`
+matrix already has both: it restores the `build-public-packages` Turbo cache and
+replays the build from it, so the marginal cost of the step is the ~10s the two
+harnesses take. The staleness check is the one that _is_ cheap enough to sit in
+front of a test script, and it does, because it needs neither.
+
+**Why the sweep is nightly.** The generated harness crosses an alphabet with
+itself — ~154k subjects, two compiler runs each — which is roughly forty times
+the curated one. That buys nothing per commit: a value-splitter defect shows up
+when a value pass or the alphabet changes, and a sweep once a night reports it as
+surely as one per pull request would. It is listed in the `pr-validation` gate so
+a failing sweep fails rather than sitting green beside it.
+
+**What a failing run says.** Each harness prints the versions it resolved before
+anything else, because the reference plugin is held by the lockfile rather than
+by an exact range in the catalog — it moves under a `pnpm update` without
+anything in this directory changing, so a report that does not name it cannot be
+compared with an older one, and it is the first thing to check when a run starts
+failing on a corpus nobody touched. Each also prints, on the way out, what to do
+about the thing it failed on: which file holds the expectation, and which of the
+two possibilities — the compiler moved, or the expectation stopped measuring
+anything — the reader has to tell apart. The person who reads a red run first
+will not be the person who wrote the corpus.
 
 ## Running it
 

@@ -41,6 +41,12 @@ pub fn split_value_parts(css_string: &str) -> Vec<String> {
   // Handing the value on whole rather than refusing here keeps the diagnostic
   // where it is documented: normalization asks the same question of the same
   // scan and rejects, so the author gets the nesting-depth message either way.
+  //
+  // It costs a second byte scan of every shorthand value, since normalization
+  // scans again for its own reasons. Paid rather than avoided: the alternative
+  // is a depth count kept here that has to agree with the one the diagnostic is
+  // raised from, and a splitter that declined at a depth normalization accepts
+  // would refuse a value nobody rejected.
   if nests_too_deeply(trimmed) {
     return vec![trimmed.to_string()];
   }

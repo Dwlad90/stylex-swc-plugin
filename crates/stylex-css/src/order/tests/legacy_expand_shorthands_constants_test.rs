@@ -1,4 +1,6 @@
-use crate::order::constants::legacy_expand_shorthands_order::{Aliases, Shorthands};
+use crate::order::constants::legacy_expand_shorthands_order::{
+  Aliases, Shorthands, is_list_style_type,
+};
 use stylex_structures::order_pair::OrderPair;
 
 // ── Shorthands::get ─────────────────────────────────────────────────
@@ -821,6 +823,40 @@ fn a_trailing_auto_has_nothing_to_qualify() {
     intrinsic_size("300px auto"),
     ("300px".to_string(), "auto".to_string())
   );
+}
+
+#[test]
+fn auto_joins_an_empty_part_too() {
+  // Upstream's guard here asks whether the part is absent, which no part of a
+  // split value is. Skipping an empty one instead lost the axis: an
+  // unterminated comment contributes an empty part, and `auto /*` sized only
+  // the width where upstream sizes both.
+  assert_eq!(
+    intrinsic_size("auto /*"),
+    ("auto ".to_string(), "auto ".to_string())
+  );
+}
+
+#[test]
+fn a_lone_quote_is_not_a_quoted_list_style_type() {
+  // `/^".*?"$/` needs two characters, and one quote cannot be both of them --
+  // stripping the prefix consumes the only one, so the suffix strip finds
+  // nothing. Asserted directly because it is not observable through the
+  // expansion: an unclassifiable part becomes the type anyway, so a wrong
+  // answer here would emit the same declaration by a different route.
+  assert!(!is_list_style_type("\""));
+  assert!(!is_list_style_type("'"));
+  assert!(is_list_style_type("\"\""));
+  assert!(is_list_style_type("''"));
+  // Both quote characters are accepted, which is the change this went with.
+  assert!(is_list_style_type("'a'"));
+  assert!(is_list_style_type("\"a\""));
+  // A line terminator inside the quotes fails upstream's `.`, so it fails here.
+  assert!(!is_list_style_type("\"a\nb\""));
+  // And the identifier alternative is lowercase and hyphens only.
+  assert!(is_list_style_type("lower-alpha"));
+  assert!(!is_list_style_type("Disc"));
+  assert!(!is_list_style_type(""));
 }
 
 #[test]

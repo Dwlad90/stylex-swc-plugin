@@ -30,6 +30,12 @@ pub fn value_parts(value: Option<&TRawValue>) -> Vec<TRawValue> {
     return vec![TRawValue::Number(*number)];
   }
 
+  // An absent value yields no parts, where upstream yields one null part. Both
+  // reach the same output -- an expansion reading a part that is not there
+  // spells the empty string, and a declaration whose value is empty is not
+  // emitted, which is what a null part produces too -- so this is a difference
+  // in how the absence is spelled and not in what comes out.
+
   let value = value.map(TRawValue::as_css_text).unwrap_or_default();
 
   split_value_parts(value.as_ref())

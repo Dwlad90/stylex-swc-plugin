@@ -333,10 +333,18 @@ pnpm fuzz:shorthand --json parity/results/<name>.json    # full report
 
 A row it reports is not yet a defect: the alphabet deliberately includes values
 that are not valid CSS, and the same buckets that are counted apart in the
-curated report are counted apart here for the same reason. A value carrying a
-`;` is the largest such group — this compiler refuses one and the reference
-compiler does not, which is a deliberate refusal documented with the guard that
-raises it, not a splitting bug.
+curated report are counted apart here for the same reason. Two groups are
+deliberate refusals rather than bugs, and between them they account for every
+`acceptance divergent` row the harness currently prints:
+
+- **A value carrying a `;`** — the largest group by far. This compiler refuses
+  one and the reference compiler does not, because the value reaches the
+  stylesheet as the author's own bytes and a `;` would terminate the declaration
+  the compiler is generating.
+- **A value nested past 64 levels** — refused for the recursion budget, which is
+  a stack the reference implementation does not have to answer for.
+
+Neither has anything to do with where a value is cut.
 
 ## Checking a future upstream release
 

@@ -34,6 +34,17 @@ import { createComparer } from './lib/compare.js';
 import { entry } from './lib/declaration.js';
 import type { CompilerOutcome, LoadedCorpusEntry, ReportEntry } from './lib/types.js';
 
+/**
+ * One member of the alphabet: what the report claims coverage of, and the
+ * characters it is spelled with here.
+ */
+interface AlphabetEntry {
+  /** The class, as the report names it. */
+  readonly label: string;
+  /** One spelling of that class, as the generator emits it. */
+  readonly text: string;
+}
+
 const parityDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.resolve(parityDir, '..');
 
@@ -47,7 +58,7 @@ const packageDir = path.resolve(parityDir, '..');
  * information -- except where the spelling *is* the class, which is why the
  * separators and the spacings are enumerated one by one.
  */
-const FRAGMENTS: { label: string; text: string }[] = [
+const FRAGMENTS: readonly AlphabetEntry[] = [
   { label: 'dimension', text: '1px' },
   { label: 'dimension, trailing-zero digits', text: '1.50px' },
   { label: 'dimension, exponent notation', text: '1e2px' },
@@ -75,6 +86,11 @@ const FRAGMENTS: { label: string; text: string }[] = [
   { label: 'unclosed string', text: '"a' },
   { label: 'url token, unquoted', text: 'url(a.png)' },
   { label: 'comment', text: '/*c*/' },
+  // Its own class rather than a spelling of the one above: an unterminated
+  // comment contributes an *empty* part, and an expansion that folds parts
+  // treats an empty one differently from a comment with text in it. A fold bug
+  // that only this class reaches went unfound while the alphabet lacked it.
+  { label: 'comment, unterminated', text: '/*' },
   { label: 'importance annotation', text: '!important' },
   { label: 'bang alone', text: '!' },
   { label: 'unicode range', text: 'U+0-7F' },
@@ -91,7 +107,7 @@ const FRAGMENTS: { label: string; text: string }[] = [
  * the top level and characters inside a function, and the spacings around them
  * are what an author gets back.
  */
-const JOINERS: { label: string; text: string }[] = [
+const JOINERS: readonly AlphabetEntry[] = [
   { label: 'single space', text: ' ' },
   { label: 'doubled space', text: '  ' },
   { label: 'newline', text: '\n' },
@@ -125,7 +141,7 @@ const PROPERTIES = [
   'insetInline',
   'listStyle',
   'containIntrinsicSize',
-];
+] as const;
 
 const { values: cliOptions } = parseArgs({
   args: process.argv.slice(2).filter(arg => arg !== '--'),
@@ -195,7 +211,13 @@ function corpus(): LoadedCorpusEntry[] {
   return entries;
 }
 
-function describe(outcome: CompilerOutcome): string {
+/** One alphabet half, as the line the report prints for it. */
+function labelled(name: string, entries: readonly AlphabetEntry[]): string {
+  return chalk.dim(`  ${name}: ${entries.map(member => member.label).join(', ')}`);
+}
+
+/** What one compiler did with one subject, as a single report cell. */
+function declarationsOf(outcome: CompilerOutcome): string {
   return outcome.status === 'error'
     ? `refused: ${outcome.sentence}`
     : outcome.declarations.join(' | ');
@@ -226,8 +248,8 @@ console.log(chalk.bold('\nAlphabet'));
 console.log(
   `  ${FRAGMENTS.length} token classes x ${JOINERS.length} joiners x ${properties.length} properties`
 );
-console.log(chalk.dim(`  token classes: ${FRAGMENTS.map(f => f.label).join(', ')}`));
-console.log(chalk.dim(`  joiners: ${JOINERS.map(j => j.label).join(', ')}`));
+console.log(labelled('token classes', FRAGMENTS));
+console.log(labelled('joiners', JOINERS));
 console.log(chalk.dim(`  properties: ${properties.join(', ')}`));
 console.log(chalk.dim(`  style resolution: legacy-expand-shorthands`));
 
@@ -247,8 +269,8 @@ if (diverged.length > 0 && show > 0) {
         ? `${result.property}: ${JSON.stringify(result.value)}`
         : result.label;
     console.log(`\n  ${chalk.yellow(label)}  ${chalk.dim(result.verdict)}`);
-    console.log(`    rust  ${describe(result.rust)}`);
-    console.log(`    babel ${describe(result.babel)}`);
+    console.log(`    rust  ${declarationsOf(result.rust)}`);
+    console.log(`    babel ${declarationsOf(result.babel)}`);
   }
 }
 

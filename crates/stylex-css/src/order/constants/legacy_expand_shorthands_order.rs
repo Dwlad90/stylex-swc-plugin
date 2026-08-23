@@ -13,7 +13,7 @@ use stylex_utils::string::json_stringify;
 /// characters are accepted because a part arrives with the character the author
 /// typed: the splitter echoes a string rather than re-quoting it, so a
 /// single-quoted family name is single-quoted here.
-fn is_list_style_type(part: &str) -> bool {
+pub(crate) fn is_list_style_type(part: &str) -> bool {
   is_quoted_with(part, '"') || is_quoted_with(part, '\'') || is_lowercase_ident(part)
 }
 
@@ -32,9 +32,7 @@ fn is_quoted_with(part: &str, quote: char) -> bool {
     return false;
   };
 
-  // A lone quote character satisfies both `strip` calls on the same byte, which
-  // would read `"` as an empty quoted string.
-  part.len() >= 2 && !inner.contains(['\n', '\r', '\u{2028}', '\u{2029}'])
+  !inner.contains(['\n', '\r', '\u{2028}', '\u{2029}'])
 }
 
 /// The `[a-z-]+` alternative.
@@ -229,7 +227,12 @@ impl Shorthands {
         .last()
         .is_some_and(|last_element| last_element.as_css_text() == "auto");
 
-      if follows_auto && !part.as_css_text().is_empty() {
+      // Joined whatever the part says, the empty part included. Upstream's guard
+      // here asks whether the part is *absent*, which no part of a split value
+      // is -- and skipping an empty one instead loses the axis: an unterminated
+      // comment contributes an empty part, so `auto /*` sized only the width
+      // where upstream sizes both.
+      if follows_auto {
         let combined = format!("auto {}", part.as_css_text());
 
         coll.pop();

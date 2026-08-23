@@ -77,21 +77,9 @@ impl SimpleToken {
 /// taken as a prefix. `None` means no number is there to read, and the caller
 /// falls back to widening `cssparser`'s own value.
 pub(crate) fn leading_f64(text: &str) -> Option<f64> {
-  leading_number(text).and_then(|number| number.parse::<f64>().ok())
-}
-
-/// The numeric literal a numeric token was written with, as the author's own
-/// bytes.
-///
-/// The complement of [`leading_f64`], over the same span: that reads the span
-/// as a number, this hands the span back unread. A caller that echoes a value
-/// rather than computing one needs the second, because a double cannot hold a
-/// spelling -- `1.50`, `1E2`, and `1e21` are all numbers a reprint would
-/// respell, and the official compiler respells none of them.
-pub(crate) fn leading_number(text: &str) -> Option<&str> {
   let end = leading_number_len(text)?;
 
-  text.get(..end)
+  text.get(..end)?.parse::<f64>().ok()
 }
 
 /// Length in bytes of the numeric literal at the start of `text`, or `None`

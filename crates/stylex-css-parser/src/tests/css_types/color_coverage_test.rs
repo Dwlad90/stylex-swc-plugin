@@ -193,9 +193,8 @@ fn hash_color_r_g_b_for_8_digit_hex() {
   assert_eq!(c.r(), 0x12);
   assert_eq!(c.g(), 0x34);
   assert_eq!(c.b(), 0x56);
-  // alpha is 0x78 / 255
-  let expected_a = 0x78_u8 as f32 / 255.0;
-  assert!((c.a() - expected_a).abs() < 0.001);
+  // The channel holds a double, so the quotient is exact rather than near.
+  assert_eq!(c.a(), f64::from(0x78_u8) / 255.0);
 }
 
 // ── Rgb parser error branches ─────────────────────────────────────────────────
@@ -1042,8 +1041,7 @@ fn hash_color_8_digit_via_color_parser() {
     assert_eq!(h.r(), 0xFF);
     assert_eq!(h.g(), 0x00);
     assert_eq!(h.b(), 0x00);
-    let expected = 0x80_u8 as f32 / 255.0;
-    assert!((h.a() - expected).abs() < 0.005);
+    assert_eq!(h.a(), f64::from(0x80_u8) / 255.0);
   } else {
     panic!("Expected HashColor");
   }

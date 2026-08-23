@@ -8,7 +8,7 @@ use stylex_macros::stylex_unreachable;
 
 use crate::{
   CssParseError,
-  css_types::{Angle, Percentage},
+  css_types::{Angle, Percentage, alpha_value::alpha_as_number},
   token_parser::{TokenParser, tokens},
   token_types::{SimpleToken, TokenList},
 };
@@ -31,18 +31,6 @@ fn rgb_number_parser() -> TokenParser<u8> {
     .map(extract_number_from_token, Some("extract_number"))
     .where_fn(|v| *v >= 0.0 && *v <= 255.0, Some("0..255"))
     .map(|v| v as u8, Some("to_u8"))
-}
-
-// The colour channels in this module still hold single precision while every
-// other numeric CSS type holds a double, so an alpha is narrowed on its way in.
-// These two are the only places that narrowing happens, and both go when the
-// channels widen -- searching for `narrowed_alpha` finds all of it.
-fn narrowed_alpha(alpha: f64) -> f32 {
-  alpha as f32
-}
-
-fn alpha_as_number() -> TokenParser<f32> {
-  crate::css_types::alpha_value::alpha_as_number().map(narrowed_alpha, Some("narrow_alpha"))
 }
 
 /// Returns true when `token` is a Function token with the given name. Returns
@@ -117,7 +105,7 @@ impl AdvancedColorParsers {
 
   /// [_fn, r, _comma, g, _comma2, b, _comma3, a, _closeParen] => new Rgba(r, g,
   /// b, a)
-  pub fn rgba_comma_full() -> TokenParser<(u8, u8, u8, f32)> {
+  pub fn rgba_comma_full() -> TokenParser<(u8, u8, u8, f64)> {
     function_parser("rgba")
       .flat_map(|_| rgb_number_parser(), Some("r"))
       .flat_map(
@@ -156,7 +144,7 @@ impl AdvancedColorParsers {
   /// Uses rgb() function with space-separated values and slash for alpha: rgb(r
   /// g b / a) [_fn, _preSpace, r, _space, g, _space2, b, _slash, a,
   /// _postSpace, _closeParen] => new Rgba(r, g, b, a)
-  pub fn rgba_space_slash_full() -> TokenParser<(u8, u8, u8, f32)> {
+  pub fn rgba_space_slash_full() -> TokenParser<(u8, u8, u8, f64)> {
     function_parser("rgb") // Note: rgb function, not rgba!
       .flat_map(
         |_| {
@@ -268,7 +256,7 @@ impl AdvancedColorParsers {
       )
   }
 
-  pub fn hsla_comma_full() -> TokenParser<(Angle, Percentage, Percentage, f32)> {
+  pub fn hsla_comma_full() -> TokenParser<(Angle, Percentage, Percentage, f64)> {
     function_parser("hsla")
       .flat_map(|_| Angle::parser(), Some("h"))
       .flat_map(
@@ -667,10 +655,10 @@ impl HashColor {
   }
 
   /// Get alpha component (0.0-1.0)
-  pub fn a(&self) -> f32 {
+  pub fn a(&self) -> f64 {
     if self.value.len() == 8 {
       let alpha_hex = &self.value[6..8];
-      u8::from_str_radix(alpha_hex, 16).unwrap_or(255) as f32 / 255.0
+      f64::from(u8::from_str_radix(alpha_hex, 16).unwrap_or(255)) / 255.0
     } else {
       1.0
     }
@@ -931,11 +919,11 @@ pub struct Rgba {
   pub r: u8,
   pub g: u8,
   pub b: u8,
-  pub a: f32,
+  pub a: f64,
 }
 
 impl Rgba {
-  pub fn new(r: u8, g: u8, b: u8, a: f32) -> Self {
+  pub fn new(r: u8, g: u8, b: u8, a: f64) -> Self {
     Self { r, g, b, a }
   }
 
@@ -1148,7 +1136,7 @@ impl Rgba {
   }
 
   /// Helper: Parse alpha value token (0.0-1.0 or 0%-100%)
-  fn parse_alpha_value_token(tokens: &mut TokenList) -> Result<f32, CssParseError> {
+  fn parse_alpha_value_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
     let token = tokens
       .consume_next_token_infallible()
       .ok_or(CssParseError::ParseError {
@@ -1158,7 +1146,7 @@ impl Rgba {
     match token {
       SimpleToken::Number(value) => {
         if (0.0..=1.0).contains(&value) {
-          Ok(value as f32)
+          Ok(value)
         } else {
           Err(CssParseError::ParseError {
             message: format!("Alpha number must be 0.0-1.0, got {}", value),
@@ -1169,7 +1157,7 @@ impl Rgba {
         // An alpha is a fraction, and the token carries the authored percent.
         let value = value / 100.0;
         if (0.0..=1.0).contains(&value) {
-          Ok(value as f32)
+          Ok(value)
         } else {
           Err(CssParseError::ParseError {
             message: format!(
@@ -1489,17 +1477,17 @@ pub struct Hsla {
   pub h: Angle,      // hue angle (0-360deg)
   pub s: Percentage, // saturation percentage (0-100%)
   pub l: Percentage, // lightness percentage (0-100%)
-  pub a: f32,        // alpha (0.0-1.0)
+  pub a: f64,        // alpha (0.0-1.0)
 }
 
 impl Hsla {
-  pub fn new(h: Angle, s: Percentage, l: Percentage, a: f32) -> Self {
+  pub fn new(h: Angle, s: Percentage, l: Percentage, a: f64) -> Self {
     Self { h, s, l, a }
   }
 
   /// Convenience constructor for backward compatibility with tests
   /// Creates Hsla from primitive values
-  pub fn from_primitives(h: f64, s: f64, l: f64, a: f32) -> Self {
+  pub fn from_primitives(h: f64, s: f64, l: f64, a: f64) -> Self {
     Self {
       h: Angle::new(h, "deg"),
       s: Percentage::new(s),
@@ -1733,7 +1721,7 @@ impl Hsla {
   }
 
   /// Helper: Parse HSLA alpha value token (0.0-1.0 or 0%-100%)
-  fn parse_hsla_alpha_token(tokens: &mut TokenList) -> Result<f32, CssParseError> {
+  fn parse_hsla_alpha_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
     let token = tokens
       .consume_next_token_infallible()
       .ok_or(CssParseError::ParseError {
@@ -1743,7 +1731,7 @@ impl Hsla {
     match token {
       SimpleToken::Number(value) => {
         if (0.0..=1.0).contains(&value) {
-          Ok(value as f32)
+          Ok(value)
         } else {
           Err(CssParseError::ParseError {
             message: format!("Alpha number must be 0.0-1.0, got {}", value),
@@ -1754,7 +1742,7 @@ impl Hsla {
         // An alpha is a fraction, and the token carries the authored percent.
         let value = value / 100.0;
         if (0.0..=1.0).contains(&value) {
-          Ok(value as f32)
+          Ok(value)
         } else {
           Err(CssParseError::ParseError {
             message: format!(
@@ -1811,16 +1799,16 @@ impl Display for Hsla {
 /// LCH color: lch(50% 100 270deg) or lch(50 100 270)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lch {
-  pub l: f32,             // lightness (0-100) - can be percentage, number, or 'none'
-  pub c: f32,             // chroma (0-150) - can be percentage or number
+  pub l: f64,             // lightness (0-100) - can be percentage, number, or 'none'
+  pub c: f64,             // chroma (0-150) - can be percentage or number
   pub h: LchHue,          // hue - can be angle or number
-  pub alpha: Option<f32>, // alpha (0-1) - optional with slash syntax
+  pub alpha: Option<f64>, // alpha (0-1) - optional with slash syntax
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LchHue {
   Angle(Angle),
-  Number(f32),
+  Number(f64),
 }
 
 impl LchHue {
@@ -1828,7 +1816,7 @@ impl LchHue {
     LchHue::Angle(angle)
   }
 
-  pub fn from_number(number: f32) -> Self {
+  pub fn from_number(number: f64) -> Self {
     LchHue::Number(number)
   }
 }
@@ -1844,15 +1832,15 @@ impl std::fmt::Display for LchHue {
 }
 
 impl Lch {
-  pub fn new(l: f32, c: f32, h: LchHue, alpha: Option<f32>) -> Self {
+  pub fn new(l: f64, c: f64, h: LchHue, alpha: Option<f64>) -> Self {
     Self { l, c, h, alpha }
   }
 
-  pub fn new_with_angle(l: f32, c: f32, h: Angle, alpha: Option<f32>) -> Self {
+  pub fn new_with_angle(l: f64, c: f64, h: Angle, alpha: Option<f64>) -> Self {
     Self::new(l, c, LchHue::Angle(h), alpha)
   }
 
-  pub fn new_with_number(l: f32, c: f32, h: f32, alpha: Option<f32>) -> Self {
+  pub fn new_with_number(l: f64, c: f64, h: f64, alpha: Option<f64>) -> Self {
     Self::new(l, c, LchHue::Number(h), alpha)
   }
 
@@ -1942,7 +1930,7 @@ impl Lch {
   /// Parse optional alpha: / <alpha-value>
   fn parse_optional_alpha(
     input: &mut crate::token_types::TokenList,
-  ) -> Result<Option<f32>, CssParseError> {
+  ) -> Result<Option<f64>, CssParseError> {
     // Check if there's a slash for alpha
     let checkpoint = input.current_index;
 
@@ -1963,7 +1951,7 @@ impl Lch {
         // Parse alpha value using enhanced alpha parser
         let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
         match alpha_parser.run.as_ref()(input) {
-          Ok(alpha) => Ok(Some(narrowed_alpha(alpha))),
+          Ok(alpha) => Ok(Some(alpha)),
           Err(e) => Err(e),
         }
       },
@@ -1976,7 +1964,7 @@ impl Lch {
   }
 
   /// Helper: Parse LCH lightness token (percentage or number)
-  fn parse_lch_lightness_token(tokens: &mut TokenList) -> Result<f32, CssParseError> {
+  fn parse_lch_lightness_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
     let token = tokens
       .consume_next_token_infallible()
       .ok_or(CssParseError::ParseError {
@@ -1986,9 +1974,9 @@ impl Lch {
     match token {
       SimpleToken::Percentage(value) => {
         // The token already carries the authored percent: `50%` is `50`.
-        Ok(value as f32)
+        Ok(value)
       },
-      SimpleToken::Number(value) => Ok(value as f32),
+      SimpleToken::Number(value) => Ok(value),
       _ => Err(CssParseError::ParseError {
         message: format!(
           "Expected Number or Percentage token for lightness, got {:?}",
@@ -1999,7 +1987,7 @@ impl Lch {
   }
 
   /// Helper: Parse LCH chroma token (number)
-  fn parse_lch_chroma_token(tokens: &mut TokenList) -> Result<f32, CssParseError> {
+  fn parse_lch_chroma_token(tokens: &mut TokenList) -> Result<f64, CssParseError> {
     let token = tokens
       .consume_next_token_infallible()
       .ok_or(CssParseError::ParseError {
@@ -2007,7 +1995,7 @@ impl Lch {
       })?;
 
     if let SimpleToken::Number(value) = token {
-      Ok(value as f32)
+      Ok(value)
     } else {
       Err(CssParseError::ParseError {
         message: format!("Expected Number token for chroma, got {:?}", token),
@@ -2037,7 +2025,7 @@ impl Lch {
       },
       SimpleToken::Number(value) => {
         // Treat numbers as plain numbers (not degrees)
-        Ok(LchHue::Number(value as f32))
+        Ok(LchHue::Number(value))
       },
       _ => Err(CssParseError::ParseError {
         message: format!(
@@ -2062,14 +2050,14 @@ impl Display for Lch {
 /// OKLCH color: oklch(0.5 0.1 270deg)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Oklch {
-  pub l: f32,             // lightness (0-1)
-  pub c: f32,             // chroma (0-0.4)
+  pub l: f64,             // lightness (0-1)
+  pub c: f64,             // chroma (0-0.4)
   pub h: Angle,           // hue angle
-  pub alpha: Option<f32>, // alpha (0-1)
+  pub alpha: Option<f64>, // alpha (0-1)
 }
 
 impl Oklch {
-  pub fn new(l: f32, c: f32, h: Angle, alpha: Option<f32>) -> Self {
+  pub fn new(l: f64, c: f64, h: Angle, alpha: Option<f64>) -> Self {
     Self { l, c, h, alpha }
   }
 
@@ -2139,9 +2127,9 @@ impl Oklch {
   }
 
   /// Parse OKLCH lightness/chroma value: number | 'none'
-  fn parse_oklch_lc_value(input: &mut crate::token_types::TokenList) -> Result<f32, CssParseError> {
+  fn parse_oklch_lc_value(input: &mut crate::token_types::TokenList) -> Result<f64, CssParseError> {
     match input.consume_next_token_infallible() {
-      Some(SimpleToken::Number(n)) => Ok(n as f32),
+      Some(SimpleToken::Number(n)) => Ok(n),
       Some(SimpleToken::Ident(keyword)) if keyword == "none" => Ok(0.0),
       _ => Err(CssParseError::ParseError {
         message: "Expected number or 'none'".to_string(),
@@ -2173,7 +2161,7 @@ impl Oklch {
   /// Parse optional alpha: / <alpha-value>
   fn parse_optional_alpha(
     input: &mut crate::token_types::TokenList,
-  ) -> Result<Option<f32>, CssParseError> {
+  ) -> Result<Option<f64>, CssParseError> {
     // Check if there's a slash for alpha
     let checkpoint = input.current_index;
 
@@ -2194,7 +2182,7 @@ impl Oklch {
         // Parse alpha value using enhanced alpha parser
         let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
         match alpha_parser.run.as_ref()(input) {
-          Ok(alpha) => Ok(Some(narrowed_alpha(alpha))),
+          Ok(alpha) => Ok(Some(alpha)),
           Err(e) => Err(e),
         }
       },
@@ -2220,14 +2208,14 @@ impl Display for Oklch {
 /// OKLAB color: oklab(0.5 0.1 0.1)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Oklab {
-  pub l: f32,             // lightness (0-1)
-  pub a: f32,             // green-red (-0.4 to 0.4)
-  pub b: f32,             // blue-yellow (-0.4 to 0.4)
-  pub alpha: Option<f32>, // alpha (0-1)
+  pub l: f64,             // lightness (0-1)
+  pub a: f64,             // green-red (-0.4 to 0.4)
+  pub b: f64,             // blue-yellow (-0.4 to 0.4)
+  pub alpha: Option<f64>, // alpha (0-1)
 }
 
 impl Oklab {
-  pub fn new(l: f32, a: f32, b: f32, alpha: Option<f32>) -> Self {
+  pub fn new(l: f64, a: f64, b: f64, alpha: Option<f64>) -> Self {
     Self { l, a, b, alpha }
   }
 
@@ -2298,9 +2286,9 @@ impl Oklab {
   /// Parse OKLAB l/a/b value: number | 'none'
   fn parse_oklab_lab_value(
     input: &mut crate::token_types::TokenList,
-  ) -> Result<f32, CssParseError> {
+  ) -> Result<f64, CssParseError> {
     match input.consume_next_token_infallible() {
-      Some(SimpleToken::Number(n)) => Ok(n as f32),
+      Some(SimpleToken::Number(n)) => Ok(n),
       Some(SimpleToken::Ident(keyword)) if keyword == "none" => Ok(0.0),
       _ => Err(CssParseError::ParseError {
         message: "Expected number or 'none'".to_string(),
@@ -2311,7 +2299,7 @@ impl Oklab {
   /// Parse optional alpha: / <alpha-value>
   fn parse_optional_alpha(
     input: &mut crate::token_types::TokenList,
-  ) -> Result<Option<f32>, CssParseError> {
+  ) -> Result<Option<f64>, CssParseError> {
     // Check if there's a slash for alpha
     let checkpoint = input.current_index;
 
@@ -2332,7 +2320,7 @@ impl Oklab {
         // Parse alpha value using enhanced alpha parser
         let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
         match alpha_parser.run.as_ref()(input) {
-          Ok(alpha) => Ok(Some(narrowed_alpha(alpha))),
+          Ok(alpha) => Ok(Some(alpha)),
           Err(e) => Err(e),
         }
       },

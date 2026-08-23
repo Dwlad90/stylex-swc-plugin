@@ -14,8 +14,9 @@ markup names a class the stylesheet does not define, and nothing errors.
 This is a developer tool, not a test. It lives outside the Rust test suite so
 `cargo test` never needs a Node toolchain. The runner is not wired into CI — it
 needs a built `dist/` and a Node toolchain — but the harvester's own unit tests
-are, under this package's `vitest` suite, and `parity:harvest:check` reports a
-stale corpus without writing one.
+are, under this package's `vitest` suite, and `parity:harvest:check` runs ahead
+of that suite, so a corpus that has fallen behind the Rust tests fails rather
+than waiting for someone to think of it.
 
 ## Running it
 
@@ -348,7 +349,17 @@ Rust test sources
 
 `cases.rs` row order _is_ the corpus order, so anything that reorders the corpus
 rewrites it wholesale. Both steps have a `:check` form that reports staleness
-without writing, and the second runs as part of its package's `test` script.
+without writing, and both now run as part of their package's `test` script —
+this package's runs `parity:harvest:check` before `vitest`, the way
+`postcss-value-parser` already runs its own.
+
+The first link went unguarded long enough for the corpus to fall 41 declarations
+behind the suites, including every float-precision value the effort's own tests
+were written to pin — which is the one place a stale corpus costs the most, since
+the corpus was then not measuring parity on the values someone had just gone to
+the trouble of pinning. The check needs no `dist/` and no compiler run: it scans
+Rust sources, so it is cheap enough to sit in front of a test script and there is
+no reason for it to be somewhere a contributor has to remember.
 
 The scan is a heuristic over Rust sources, so the corpus contains some values
 that are not valid CSS — degenerate inputs to the whitespace-repair unit tests,

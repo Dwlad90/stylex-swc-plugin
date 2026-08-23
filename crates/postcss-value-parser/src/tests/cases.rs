@@ -29,7 +29,7 @@ pub(super) struct StressCase {
   pub output: &'static str,
 }
 
-/// 913 values: the differential harness's whole corpus, plus
+/// 943 values: the differential harness's whole corpus, plus
 /// malformed, truncated and degenerate inputs no author would write.
 pub(super) const PARSER_CASES: &[ParserCase] = &[
   ParserCase {
@@ -678,6 +678,21 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "space \"\\u0001\" 0..1",
   },
   ParserCase {
+    input: "red;calc(1px",
+    output: "red;calc(1px",
+    ast: "function \"red;calc\" 0..12 before=\"\" after=\"\" unclosed nodes=1\n  word \"1px\" 9..12",
+  },
+  ParserCase {
+    input: "red;\"a",
+    output: "red;\"a",
+    ast: "word \"red;\" 0..4\nstring \"a\" 4..6 quote=\"\\\"\" unclosed",
+  },
+  ParserCase {
+    input: "calc(1px;)",
+    output: "calc(1px;)",
+    ast: "function \"calc\" 0..10 before=\"\" after=\"\" nodes=1\n  word \"1px;\" 5..9",
+  },
+  ParserCase {
     input: "red",
     output: "red",
     ast: "word \"red\" 0..3",
@@ -761,6 +776,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "ignore",
     output: "ignore",
     ast: "word \"ignore\" 0..6",
+  },
+  ParserCase {
+    input: "c",
+    output: "c",
+    ast: "word \"c\" 0..1",
   },
   ParserCase {
     input: "radial-gradient(circle, red, blue)",
@@ -931,6 +951,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "url(data:image/png;base64,AAA",
     output: "url(data:image/png;base64,AAA",
     ast: "function \"url\" 0..29 before=\"\" after=\"\" unclosed nodes=1\n  word \"data:image/png;base64,AAA\" 4..29",
+  },
+  ParserCase {
+    input: "url(data:image/svg+xml;base64,AA)",
+    output: "url(data:image/svg+xml;base64,AA)",
+    ast: "function \"url\" 0..33 before=\"\" after=\"\" nodes=1\n  word \"data:image/svg+xml;base64,AA\" 4..32",
   },
   ParserCase {
     input: "url(data:image/svg+xml;utf8,<svg/>)",
@@ -1458,6 +1483,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"red\" 0..3\nspace \" \" 3..4\ncomment \" \\\" \" 4..11",
   },
   ParserCase {
+    input: "red /* ; */",
+    output: "red /* ; */",
+    ast: "word \"red\" 0..3\nspace \" \" 3..4\ncomment \" ; \" 4..11",
+  },
+  ParserCase {
     input: "red; /* x */",
     output: "red; /* x */",
     ast: "word \"red;\" 0..4\nspace \" \" 4..5\ncomment \" x \" 5..12",
@@ -1693,6 +1723,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"日本語#fff\" 0..13",
   },
   ParserCase {
+    input: "\";\"",
+    output: "\";\"",
+    ast: "string \";\" 0..3 quote=\"\\\"\"",
+  },
+  ParserCase {
     input: "\"prev\"",
     output: "\"prev\"",
     ast: "string \"prev\" 0..6 quote=\"\\\"\"",
@@ -1721,6 +1756,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "'•'",
     output: "'•'",
     ast: "string \"•\" 0..5 quote=\"'\"",
+  },
+  ParserCase {
+    input: "abc",
+    output: "abc",
+    ast: "word \"abc\" 0..3",
   },
   ParserCase {
     input: "attr(data-value)",
@@ -2093,6 +2133,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"2px\" 0..3",
   },
   ParserCase {
+    input: "4px",
+    output: "4px",
+    ast: "word \"4px\" 0..3",
+  },
+  ParserCase {
     input: "var(--gap)rem",
     output: "var(--gap)rem",
     ast: "function \"var\" 0..10 before=\"\" after=\"\" nodes=1\n  word \"--gap\" 4..9\nword \"rem\" 10..13",
@@ -2188,6 +2233,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "comment \" unclosed\" 0..11 unclosed",
   },
   ParserCase {
+    input: "0",
+    output: "0",
+    ast: "word \"0\" 0..1",
+  },
+  ParserCase {
     input: "100px",
     output: "100px",
     ast: "word \"100px\" 0..5",
@@ -2253,6 +2303,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"expected\" 0..8\nspace \" \" 8..9\nword \"`{value}`\" 9..18\nspace \" \" 18..19\nword \"to\" 19..21\nspace \" \" 21..22\nword \"be\" 22..24\nspace \" \" 24..25\nword \"rejected\" 25..33",
   },
   ParserCase {
+    input: "false",
+    output: "false",
+    ast: "word \"false\" 0..5",
+  },
+  ParserCase {
     input: "foo * bar",
     output: "foo * bar",
     ast: "word \"foo\" 0..3\nspace \" \" 3..4\nword \"*\" 4..5\nspace \" \" 5..6\nword \"bar\" 6..9",
@@ -2316,11 +2371,6 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "10px 20px",
     output: "10px 20px",
     ast: "word \"10px\" 0..4\nspace \" \" 4..5\nword \"20px\" 5..9",
-  },
-  ParserCase {
-    input: "0",
-    output: "0",
-    ast: "word \"0\" 0..1",
   },
   ParserCase {
     input: "flex-start",
@@ -2408,9 +2458,19 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"1\" 0..1\nspace \" \" 1..2\nword \"2\" 2..3\nspace \" \" 3..4\nword \"3\" 4..5\nspace \" \" 5..6\nword \"4\" 6..7",
   },
   ParserCase {
+    input: "1.2345678901234567px 7%",
+    output: "1.2345678901234567px 7%",
+    ast: "word \"1.2345678901234567px\" 0..20\nspace \" \" 20..21\nword \"7%\" 21..23",
+  },
+  ParserCase {
     input: "10px   20px   30px",
     output: "10px   20px   30px",
     ast: "word \"10px\" 0..4\nspace \"   \" 4..7\nword \"20px\" 7..11\nspace \"   \" 11..14\nword \"30px\" 14..18",
+  },
+  ParserCase {
+    input: "1E2px 1.50px",
+    output: "1E2px 1.50px",
+    ast: "word \"1E2px\" 0..5\nspace \" \" 5..6\nword \"1.50px\" 6..12",
   },
   ParserCase {
     input: "1px\\t2px\\n3px  4px",
@@ -2478,14 +2538,19 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"hidden\" 0..6\nspace \" \" 6..7\nword \"visible\" 7..14",
   },
   ParserCase {
+    input: "+1px +2% 0.5px 000.5px",
+    output: "+1px +2% 0.5px 000.5px",
+    ast: "word \"+1px\" 0..4\nspace \" \" 4..5\nword \"+2%\" 5..8\nspace \" \" 8..9\nword \"0.5px\" 9..14\nspace \" \" 14..15\nword \"000.5px\" 15..22",
+  },
+  ParserCase {
+    input: "-0px 1e21px",
+    output: "-0px 1e21px",
+    ast: "word \"-0px\" 0..4\nspace \" \" 4..5\nword \"1e21px\" 5..11",
+  },
+  ParserCase {
     input: "2",
     output: "2",
     ast: "word \"2\" 0..1",
-  },
-  ParserCase {
-    input: "4px",
-    output: "4px",
-    ast: "word \"4px\" 0..3",
   },
   ParserCase {
     input: "calc((100% - 50px) * 0.5) var(--rightpadding, 20px)",
@@ -2838,6 +2903,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"*\" 0..1\nspace \" \" 1..2\nword \"3\" 2..3",
   },
   ParserCase {
+    input: "* { width: calc(1px);height:2px }",
+    output: "* { width: calc(1px);height:2px }",
+    ast: "word \"*\" 0..1\nspace \" \" 1..2\nword \"{\" 2..3\nspace \" \" 3..4\nword \"width\" 4..9\ndiv \":\" 9..11 before=\"\" after=\" \"\nfunction \"calc\" 11..20 before=\"\" after=\"\" nodes=1\n  word \"1px\" 16..19\nword \";height\" 20..27\ndiv \":\" 27..28 before=\"\" after=\"\"\nword \"2px\" 28..31\nspace \" \" 31..32\nword \"}\" 32..33",
+  },
+  ParserCase {
     input: "*(",
     output: "*(",
     ast: "function \"*\" 0..2 before=\"\" after=\"\" unclosed nodes=0",
@@ -2846,6 +2916,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "*(100%)",
     output: "*(100%)",
     ast: "function \"*\" 0..7 before=\"\" after=\"\" nodes=1\n  word \"100%\" 2..6",
+  },
+  ParserCase {
+    input: "--x",
+    output: "--x",
+    ast: "word \"--x\" 0..3",
   },
   ParserCase {
     input: "/ 7",
@@ -2923,6 +2998,16 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "word \"50%\" 0..3",
   },
   ParserCase {
+    input: "backgroundImage",
+    output: "backgroundImage",
+    ast: "word \"backgroundImage\" 0..15",
+  },
+  ParserCase {
+    input: "boxShadow",
+    output: "boxShadow",
+    ast: "word \"boxShadow\" 0..9",
+  },
+  ParserCase {
     input: "calc(",
     output: "calc(",
     ast: "function \"calc\" 0..5 before=\"\" after=\"\" unclosed nodes=0",
@@ -2968,6 +3053,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"calc\" 0..30 before=\"\" after=\"\" nodes=5\n  word \"100%\" 5..9\n  space \" \" 9..10\n  word \"-\" 10..11\n  space \" \" 11..12\n  function \"calc\" 12..29 before=\"\" after=\"\" nodes=5\n    word \"20px\" 17..21\n    space \" \" 21..22\n    word \"+\" 22..23\n    space \" \" 23..24\n    word \"10px\" 24..28",
   },
   ParserCase {
+    input: "calc(1px);height:2px",
+    output: "calc(1px);height:2px",
+    ast: "function \"calc\" 0..9 before=\"\" after=\"\" nodes=1\n  word \"1px\" 5..8\nword \";height\" 9..16\ndiv \":\" 16..17 before=\"\" after=\"\"\nword \"2px\" 17..20",
+  },
+  ParserCase {
     input: "calc(1px)calc(2px)calc(3px)",
     output: "calc(1px)calc(2px)calc(3px)",
     ast: "function \"calc\" 0..9 before=\"\" after=\"\" nodes=1\n  word \"1px\" 5..8\nfunction \"calc\" 9..18 before=\"\" after=\"\" nodes=1\n  word \"2px\" 14..17\nfunction \"calc\" 18..27 before=\"\" after=\"\" nodes=1\n  word \"3px\" 23..26",
@@ -2976,6 +3066,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "calc(1px-.5px)",
     output: "calc(1px-.5px)",
     ast: "function \"calc\" 0..14 before=\"\" after=\"\" nodes=1\n  word \"1px-.5px\" 5..13",
+  },
+  ParserCase {
+    input: "calc(;a",
+    output: "calc(;a",
+    ast: "function \"calc\" 0..7 before=\"\" after=\"\" unclosed nodes=1\n  word \";a\" 5..7",
   },
   ParserCase {
     input: "calc(a)42",
@@ -2993,9 +3088,29 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     ast: "function \"calc\" 0..21 before=\"\" after=\"\" nodes=5\n  function \"var\" 5..13 before=\"\" after=\"\" nodes=1\n    word \"foo\" 9..12\n  space \" \" 13..14\n  word \"+\" 14..15\n  space \" \" 15..16\n  word \"10px\" 16..20",
   },
   ParserCase {
+    input: "calc({deep})",
+    output: "calc({deep})",
+    ast: "function \"calc\" 0..12 before=\"\" after=\"\" nodes=1\n  word \"{deep}\" 5..11",
+  },
+  ParserCase {
+    input: "calc({value} + 1px)",
+    output: "calc({value} + 1px)",
+    ast: "function \"calc\" 0..19 before=\"\" after=\"\" nodes=5\n  word \"{value}\" 5..12\n  space \" \" 12..13\n  word \"+\" 13..14\n  space \" \" 14..15\n  word \"1px\" 15..18",
+  },
+  ParserCase {
     input: "calc-size(fit-content,size/2)",
     output: "calc-size(fit-content,size/2)",
     ast: "function \"calc-size\" 0..29 before=\"\" after=\"\" nodes=5\n  word \"fit-content\" 10..21\n  div \",\" 21..22 before=\"\" after=\"\"\n  word \"size\" 22..26\n  div \"/\" 26..27 before=\"\" after=\"\"\n  word \"2\" 27..28",
+  },
+  ParserCase {
+    input: "color",
+    output: "color",
+    ast: "word \"color\" 0..5",
+  },
+  ParserCase {
+    input: "fontFamily",
+    output: "fontFamily",
+    ast: "word \"fontFamily\" 0..10",
   },
   ParserCase {
     input: "limit 64, found 5000",
@@ -3016,6 +3131,36 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "min(100%, 500px)",
     output: "min(100%, 500px)",
     ast: "function \"min\" 0..16 before=\"\" after=\"\" nodes=3\n  word \"100%\" 4..8\n  div \",\" 8..10 before=\"\" after=\" \"\n  word \"500px\" 10..15",
+  },
+  ParserCase {
+    input: "opacity",
+    output: "opacity",
+    ast: "word \"opacity\" 0..7",
+  },
+  ParserCase {
+    input: "red {\"a",
+    output: "red {\"a",
+    ast: "word \"red\" 0..3\nspace \" \" 3..4\nword \"{\" 4..5\nstring \"a\" 5..7 quote=\"\\\"\" unclosed",
+  },
+  ParserCase {
+    input: "red {calc(1px",
+    output: "red {calc(1px",
+    ast: "word \"red\" 0..3\nspace \" \" 3..4\nfunction \"{calc\" 4..13 before=\"\" after=\"\" unclosed nodes=1\n  word \"1px\" 10..13",
+  },
+  ParserCase {
+    input: "red }calc(1px",
+    output: "red }calc(1px",
+    ast: "word \"red\" 0..3\nspace \" \" 3..4\nfunction \"}calc\" 4..13 before=\"\" after=\"\" unclosed nodes=1\n  word \"1px\" 10..13",
+  },
+  ParserCase {
+    input: "red;'a",
+    output: "red;'a",
+    ast: "word \"red;\" 0..4\nstring \"a\" 4..6 quote=\"'\" unclosed",
+  },
+  ParserCase {
+    input: "red;background:blue;calc(",
+    output: "red;background:blue;calc(",
+    ast: "word \"red;background\" 0..14\ndiv \":\" 14..15 before=\"\" after=\"\"\nfunction \"blue;calc\" 15..25 before=\"\" after=\"\" unclosed nodes=0",
   },
   ParserCase {
     input: "size/2",
@@ -3291,6 +3436,11 @@ pub(super) const PARSER_CASES: &[ParserCase] = &[
     input: "var(--x)日本語",
     output: "var(--x)日本語",
     ast: "function \"var\" 0..8 before=\"\" after=\"\" nodes=1\n  word \"--x\" 4..7\nword \"日本語\" 8..17",
+  },
+  ParserCase {
+    input: "{deep};a",
+    output: "{deep};a",
+    ast: "word \"{deep};a\" 0..8",
   },
   ParserCase {
     input: "é(1)",
@@ -4699,7 +4849,7 @@ pub(super) const OVERRIDE_CASES: &[OverrideCase] = &[
   },
 ];
 
-/// 657 words paired with their number/unit split, `None` standing for a
+/// 676 words paired with their number/unit split, `None` standing for a
 /// word that does not start with a number. Every word the cases above parse
 /// to, plus splits no parse would ever ask for.
 pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
@@ -4871,6 +5021,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("　", None),
   (" ", None),
   ("1px　2px", Some(("1", "px　2px"))),
+  ("1px;", Some(("1", "px;"))),
   ("#abcdef", None),
   ("foo", None),
   ("--foo", None),
@@ -4907,6 +5058,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("a{b", None),
   ("a}b", None),
   ("data:image/png;base64,AAA", None),
+  ("data:image/svg+xml;base64,AA", None),
   ("data:image/svg+xml;utf8,<svg/>", None),
   ("http://example.com/img.png", None),
   ("https://fonts.googleapis.com/css2?family=Roboto", None),
@@ -5025,6 +5177,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("someVariableName", None),
   ("•", None),
   ("日本語#fff", None),
+  ("abc", None),
   ("data-value", None),
   ("some-attribute", None),
   ("next", None),
@@ -5090,6 +5243,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("`{value}`", None),
   ("be", None),
   ("rejected", None),
+  ("false", None),
   ("--h", None),
   ("0rad", Some(("0", "rad"))),
   ("90deg", Some(("90", "deg"))),
@@ -5104,6 +5258,10 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("-.5px", Some(("-.5", "px"))),
   ("3", Some(("3", ""))),
   ("4", Some(("4", ""))),
+  ("1.2345678901234567px", Some(("1.2345678901234567", "px"))),
+  ("7%", Some(("7", "%"))),
+  ("1E2px", Some(("1E2", "px"))),
+  ("1.50px", Some(("1.50", "px"))),
   ("1px\\t2px\\n3px", Some(("1", "px\\t2px\\n3px"))),
   ("48px", Some(("48", "px"))),
   ("--x16dnrjz", None),
@@ -5115,6 +5273,11 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   (".5px", Some((".5", "px"))),
   ("hidden", None),
   ("visible", None),
+  ("+1px", Some(("+1", "px"))),
+  ("+2%", Some(("+2", "%"))),
+  ("0.5px", Some(("0.5", "px"))),
+  ("000.5px", Some(("000.5", "px"))),
+  ("1e21px", Some(("1e21", "px"))),
   ("--rightpadding", None),
   ("box-none", None),
   ("box-only", None),
@@ -5155,18 +5318,24 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("7", Some(("7", ""))),
   (")3", None),
   (")Q", None),
+  (";height", None),
   ("-2", Some(("-2", ""))),
   ("*3", None),
   ("00\\\\", Some(("00", "\\\\"))),
   ("10%-.5px", Some(("10", "%-.5px"))),
   ("y", None),
   ("1px\\u30002px", Some(("1", "px\\u30002px"))),
+  ("backgroundImage", None),
+  ("boxShadow", None),
   ("3%", Some(("3", "%"))),
   ("/", None),
   ("1+2", Some(("1", "+2"))),
   ("em", None),
   ("1px-.5px", Some(("1", "px-.5px"))),
+  (";a", None),
   ("42", Some(("42", ""))),
+  ("{deep}", None),
+  ("fontFamily", None),
   ("limit", None),
   ("64", Some(("64", ""))),
   ("found", None),
@@ -5180,7 +5349,6 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("PX", None),
   ("Px", None),
   ("Q", None),
-  ("abc", None),
   ("calc", None),
   ("cap", None),
   ("ch", None),
@@ -5222,6 +5390,7 @@ pub(super) const UNIT_CASES: &[(&str, Option<(&str, &str)>)] = &[
   ("vmax", None),
   ("vmin", None),
   ("vw", None),
+  ("{deep};a", None),
   ("scroll-position", None),
   ("\\", None),
   ("a b", None),

@@ -73,25 +73,41 @@ divergence below. The new end-to-end snapshot pins twenty rules whose class
 names are identical to `@stylexjs/babel-plugin@0.19.0`'s for the same source
 and the same `styleResolution`.
 
-**Two divergences found and left, and the first draft of this note wrongly
-said there was one.** Corrected after a review fuzzed the path and found the
-second in 633 of about 3950 cases. Both are lost tokens rather than lost
-spellings -- the shape of finding ticket 04's `lch()` percent belongs to -- and
-neither is a regression.
+**What this ticket closed, and what it did not.** The *numbers* on this path
+echo. The *tokens around them* still do not, and this note has now guessed the
+size of that remainder twice and been wrong twice -- first "one divergence",
+then "two". So it stops counting and records the method instead.
 
-1. The unit comes from the token rather than the source, so an escaped unit is
-   emitted as what it escapes to: `1\70x` becomes `1px` here where the official
-   compiler echoes the escape. Closing it means echoing the unit's span as well
-   as the number's.
-2. Whitespace between tokens is dropped and re-inserted rather than echoed, so
-   `calc(1.50px*2)` comes out as `calc(1.50px * 2)` where the official compiler
-   emits `calc(1.50px*2)` -- a different class name. `join_css` already
-   suppresses the space around a slash and a comma, which is why
-   `calc(100%/3)` matches and `*` does not. Recorded as ticket 12.
+A review fuzzed 8854 shorthand cases against
+`@stylexjs/babel-plugin@0.19.0` and found 372 diffs, in these classes, none of
+them a regression from this ticket and all of them pre-existing:
 
-The lesson for the note, not only for the code: "one divergence found" was a
-claim about *absence*, made from hand-picked probes. The escape case turned up
-because it was looked for; the whitespace case did not, because it was not.
+1. A top-level `/` or `:` is emitted as a value rather than splitting the
+   shorthand, so `padding: '10px/1.5'` emits `padding-inline-end: / ` -- not a
+   CSS declaration at all. Upstream filters those nodes.
+2. A top-level delimiter splits a value upstream keeps whole: `padding: '1px*2'`
+   becomes three parts here and stays `1px*2` there. Also `>`, `~`, `|`, `&`,
+   `!`, `^`, `$`, `=`, `?`.
+3. `!important` is not recognised, so `'1px !important'` emits
+   `padding-bottom:important`.
+4. An escaped identifier is unescaped: `'A\42 C'` becomes `ABC` here and stays
+   `A\42` plus `C` upstream.
+5. Whitespace between tokens is re-spaced rather than echoed, in *both*
+   directions -- `calc(1.50px*2)` gains spaces here, and `calc(100% / 3)` loses
+   them.
+6. A unit's escape is unescaped: `1\70x` becomes `1px` here, where upstream
+   echoes the escape.
+
+Recorded as tickets 12 and 13 rather than absorbed here. Two of the review's
+claims did not reproduce and are recorded as not-bugs: quote style is *not*
+normalised (`content: "'a'"` and `fontFamily: "'a'"` both match), and a
+top-level `+`/`-` is not mis-split (`calc(2px-1px)` matches).
+
+**The lesson, which is the reason for the shape of this note.** "One divergence
+found" and then "two" were both claims about *absence*, made from probes chosen
+by whoever was looking. Each wider alphabet found more. A count is not
+reportable from a fuzz; what is reportable is the alphabet fuzzed and the
+classes it hit.
 
 **A related revert, from the same review.** Ticket 06 had converted
 `SimpleToken::extract_value` to the shared formatter. No ticket asked for it,

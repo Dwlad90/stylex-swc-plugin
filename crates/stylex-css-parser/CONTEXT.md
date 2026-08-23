@@ -24,6 +24,19 @@ A parser for one value type from the CSS grammar — `Color`, `Length`, `Angle`,
 `LengthPercentage`.
 _Avoid_: value parser, primitive
 
+**Double-precision number**:
+Every numeric CSS type in this crate holds an `f64` and prints through
+`stylex_utils::number::to_js_string`, never through `{}`. Both halves are
+required, and for the same reason: the printed spelling reaches the class-name
+hash, so it is observable output rather than a debugging detail. An `f32` field
+rounds `28.81 - 0.01` to `28.8` where the official compiler emits
+`28.799999999999997`, and Rust's own formatting spells `1e21` with twenty-two
+digits, names an overflow `inf`, and keeps the sign on a negative zero — three
+strings the official compiler never writes. A new numeric type inherits both
+rules or reintroduces the divergence. See
+[the shared formatter](../stylex-utils/CONTEXT.md).
+_Avoid_: float, precision, formatting
+
 **Property parser**:
 A parser for one whole property's grammar — `Transform`, `BoxShadow`,
 `BorderRadiusShorthand`. Composed from CSS types.

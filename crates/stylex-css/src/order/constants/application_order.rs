@@ -26,10 +26,10 @@ impl Shorthands {
       OrderPair("animationDirection".into(), None),
       OrderPair("animationFillMode".into(), None),
       OrderPair("animationPlayState".into(), None),
-      OrderPair("animationTimeline".into(), None),
     ];
 
     result.extend(Self::infallible(Shorthands::animation_range(None)));
+    result.push(OrderPair("animationTimeline".into(), None));
 
     Ok(result)
   }
@@ -52,11 +52,11 @@ impl Shorthands {
       OrderPair("backgroundColor".into(), None),
       OrderPair("backgroundImage".into(), None),
       OrderPair("backgroundOrigin".into(), None),
-      OrderPair("backgroundRepeat".into(), None),
-      OrderPair("backgroundSize".into(), None),
     ];
 
     result.extend(Self::infallible(Shorthands::background_position(None)));
+    result.push(OrderPair("backgroundRepeat".into(), None));
+    result.push(OrderPair("backgroundSize".into(), None));
 
     Ok(result)
   }
@@ -628,11 +628,11 @@ impl Shorthands {
       OrderPair("fontSize".into(), None),
       OrderPair("fontStretch".into(), None),
       OrderPair("fontStyle".into(), None),
-      OrderPair("fontWeight".into(), None),
-      OrderPair("lineHeight".into(), None),
     ];
 
     result.extend(Self::infallible(Shorthands::font_variant(None)));
+    result.push(OrderPair("fontWeight".into(), None));
+    result.push(OrderPair("lineHeight".into(), None));
 
     Ok(result)
   }
@@ -660,14 +660,12 @@ impl Shorthands {
     Ok(result)
   }
   fn grid(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
-    let mut result = vec![
-      OrderPair("grid".into(), value),
-      OrderPair("gridAutoRows".into(), None),
-      OrderPair("gridAutoColumns".into(), None),
-      OrderPair("gridAutoFlow".into(), None),
-    ];
+    let mut result = vec![OrderPair("grid".into(), value)];
 
     result.extend(Self::infallible(Shorthands::grid_template(None)));
+    result.push(OrderPair("gridAutoRows".into(), None));
+    result.push(OrderPair("gridAutoColumns".into(), None));
+    result.push(OrderPair("gridAutoFlow".into(), None));
 
     Ok(result)
   }
@@ -1013,8 +1011,8 @@ impl Shorthands {
   fn scroll_margin(value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
     let mut result = vec![OrderPair("scrollMargin".into(), value)];
 
-    result.extend(Self::infallible(Shorthands::scroll_margin_inline(None)));
     result.extend(Self::infallible(Shorthands::scroll_margin_block(None)));
+    result.extend(Self::infallible(Shorthands::scroll_margin_inline(None)));
 
     Ok(result)
   }
@@ -1528,5 +1526,160 @@ mod coverage_tests {
   #[should_panic(expected = "infallible shorthand returned Err")]
   fn infallible_panics_on_unexpected_error() {
     Shorthands::infallible(Err("boom".to_string()));
+  }
+}
+
+/// Where a nested expansion sits inside the one that spreads it.
+///
+/// The pairs a shorthand expands to are emitted in this order, and a style
+/// object's key order is that order: a shorthand emits its own class and a
+/// `null` for every longhand it subsumes, so the whole expansion is written down
+/// verbatim. Five shorthands here spread another shorthand's expansion into the
+/// middle of their own list, and each of those five had the spread appended
+/// instead — the same keys, in the wrong places, which is invisible to any test
+/// that only reads the CSS.
+///
+/// Each expectation below is the order the official compiler emits, read from a
+/// run over the same declaration rather than reasoned about. The remaining
+/// hundred-odd shorthands already agreed and are covered by the corpus.
+#[cfg(test)]
+mod nested_expansion_position_tests {
+  use super::Shorthands;
+
+  /// The property names a shorthand expands to, in emission order.
+  fn expansion_of(name: &str) -> Vec<String> {
+    match Shorthands::get(name) {
+      Some(expand) => match expand(None) {
+        Ok(pairs) => pairs.into_iter().map(|pair| pair.0.to_string()).collect(),
+        Err(error) => panic!("{name} refused its own expansion: {error}"),
+      },
+      None => panic!("{name} is not a shorthand"),
+    }
+  }
+
+  #[test]
+  fn animation_spreads_its_range_before_the_timeline() {
+    assert_eq!(
+      expansion_of("animation"),
+      [
+        "animation",
+        "animationComposition",
+        "animationName",
+        "animationDuration",
+        "animationTimingFunction",
+        "animationDelay",
+        "animationIterationCount",
+        "animationDirection",
+        "animationFillMode",
+        "animationPlayState",
+        "animationRange",
+        // End before start, which is the order upstream spells `animationRange`
+        // in and this compiler already matched.
+        "animationRangeEnd",
+        "animationRangeStart",
+        "animationTimeline",
+      ]
+    );
+  }
+
+  #[test]
+  fn background_spreads_its_position_between_origin_and_repeat() {
+    assert_eq!(
+      expansion_of("background"),
+      [
+        "background",
+        "backgroundAttachment",
+        "backgroundClip",
+        "backgroundColor",
+        "backgroundImage",
+        "backgroundOrigin",
+        "backgroundPosition",
+        "backgroundPositionX",
+        "backgroundPositionY",
+        "backgroundRepeat",
+        "backgroundSize",
+      ]
+    );
+  }
+
+  #[test]
+  fn font_spreads_its_variants_between_style_and_weight() {
+    assert_eq!(
+      expansion_of("font"),
+      [
+        "font",
+        "fontFamily",
+        "fontSize",
+        "fontStretch",
+        "fontStyle",
+        "fontVariant",
+        "fontVariantAlternates",
+        "fontVariantCaps",
+        "fontVariantEastAsian",
+        "fontVariantEmoji",
+        "fontVariantLigatures",
+        "fontVariantNumeric",
+        "fontVariantPosition",
+        "fontWeight",
+        "lineHeight",
+      ]
+    );
+  }
+
+  #[test]
+  fn grid_spreads_its_template_ahead_of_the_auto_axes() {
+    assert_eq!(
+      expansion_of("grid"),
+      [
+        "grid",
+        "gridTemplate",
+        "gridTemplateAreas",
+        "gridTemplateColumns",
+        "gridTemplateRows",
+        "gridAutoRows",
+        "gridAutoColumns",
+        "gridAutoFlow",
+      ]
+    );
+  }
+
+  /// The one whose two spreads were simply the wrong way round. `scrollPadding`
+  /// next door spells the same pair block-then-inline and always did, which is
+  /// what makes this a transposition rather than a rule.
+  #[test]
+  fn scroll_margin_spreads_block_before_inline() {
+    assert_eq!(
+      expansion_of("scrollMargin"),
+      [
+        "scrollMargin",
+        "scrollMarginBlock",
+        "scrollMarginTop",
+        "scrollMarginBottom",
+        "scrollMarginInline",
+        "scrollMarginInlineStart",
+        "scrollMarginInlineEnd",
+        "scrollMarginLeft",
+        "scrollMarginRight",
+      ]
+    );
+  }
+
+  /// The pair that says the transposition above is not the house style.
+  #[test]
+  fn scroll_padding_spreads_block_before_inline_too() {
+    assert_eq!(
+      expansion_of("scrollPadding"),
+      [
+        "scrollPadding",
+        "scrollPaddingBlock",
+        "scrollPaddingTop",
+        "scrollPaddingBottom",
+        "scrollPaddingInline",
+        "scrollPaddingInlineStart",
+        "scrollPaddingInlineEnd",
+        "scrollPaddingLeft",
+        "scrollPaddingRight",
+      ]
+    );
   }
 }

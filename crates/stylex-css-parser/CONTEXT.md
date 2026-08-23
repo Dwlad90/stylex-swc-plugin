@@ -25,7 +25,7 @@ A parser for one value type from the CSS grammar — `Color`, `Length`, `Angle`,
 _Avoid_: value parser, primitive
 
 **Double-precision number**:
-Every numeric CSS type in this crate holds an `f64` and prints through
+A numeric CSS type that holds an `f64` and whose `Display` prints through
 `stylex_utils::number::to_js_string`, never through `{}`. Both halves are
 required, and for the same reason: the printed spelling reaches the class-name
 hash, so it is observable output rather than a debugging detail. An `f32` field
@@ -35,7 +35,22 @@ digits, names an overflow `inf`, and keeps the sign on a negative zero — three
 strings the official compiler never writes. A new numeric type inherits both
 rules or reintroduces the divergence. See
 [the shared formatter](../stylex-utils/CONTEXT.md).
-_Avoid_: float, precision, formatting
+
+Two things are outside the rule rather than exceptions to it. A count is an
+integer — `Fraction`'s parts, a `steps()` count — and JavaScript spells an
+integer the way Rust does. And the **echoed value** below is not
+printed by a `Display` impl at all.
+_Avoid_: single precision, f32 value
+
+**Echoed value**:
+Text this crate passes through from the source rather than reprinting from a
+value it computed — what `value_parser::parse_css` does for the shorthand
+expansion path. The official compiler echoes here too, so the target is the
+author's own bytes: `1E2px` stays `1E2px`, and adopting the number formatter
+would _cause_ a divergence rather than close one. This is the one numeric path
+that must not follow the double-precision rule above, and it does not yet meet
+its own: it still reprints. Do not "fix" it by reaching for the formatter.
+_Avoid_: passthrough, verbatim, raw
 
 **Property parser**:
 A parser for one whole property's grammar — `Transform`, `BoxShadow`,

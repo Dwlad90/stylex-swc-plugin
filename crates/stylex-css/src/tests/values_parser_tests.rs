@@ -475,3 +475,86 @@ fn a_keyword_is_a_single_part() {
   assert_eq!(parts("2rem"), ["2rem"]);
   assert_eq!(parts("var(--x)"), ["var(--x)"]);
 }
+
+// ── An empty part is a part ─────────────────────────────────────────
+//
+// The rule is stated in the module documentation of
+// `crates/stylex-css/src/values/parser.rs`; these pin it. There is no reference
+// answer for any of them: the reference compiler throws
+// `Cannot read properties of undefined (reading 'type')` on a value whose parts
+// include an empty one, so the shape is this compiler's decision and these are
+// assertions about that decision rather than transcriptions of upstream's.
+
+#[test]
+fn a_terminated_comment_with_nothing_in_it_contributes_an_empty_part() {
+  // The other way to reach an empty part, and a different scan from the
+  // unterminated one: the comment closes, so the parts after it survive and the
+  // empty one is not necessarily last.
+  assert_eq!(parts("/**/"), [""]);
+  assert_eq!(parts("1px /**/"), ["1px", ""]);
+  assert_eq!(parts("/**/ 1px"), ["", "1px"]);
+  assert_eq!(parts("1px /**/ 2px"), ["1px", "", "2px"]);
+}
+
+#[test]
+fn an_empty_part_holds_its_position_rather_than_collapsing() {
+  // The whole of the rule, as arity: five parts stay five, and the two empty
+  // ones are at the indices the author put them at. A splitter that dropped
+  // them would hand the third side's value to the second side.
+  assert_eq!(parts("/**/ 1px /**/ 2px /**/"), ["", "1px", "", "2px", ""]);
+  assert_eq!(parts("/**//**/"), ["", ""]);
+  assert_eq!(parts("/**/ /**/ /**/").len(), 3);
+}
+
+#[test]
+fn an_unterminated_comment_swallows_the_rest_and_is_still_one_empty_part() {
+  // The asymmetry between the two ways to reach an empty part: this one can
+  // only ever be the last, because everything after the opener is inside it.
+  assert_eq!(parts("1px /*"), ["1px", ""]);
+  assert_eq!(parts("1px /* 2px"), ["1px", " 2px"]);
+  assert_eq!(parts("/* 1px 2px 3px"), [" 1px 2px 3px"]);
+}
+
+#[test]
+fn a_trailing_importance_annotation_lands_on_an_empty_part_too() {
+  // An empty part is qualified like any other, which reads oddly and is what
+  // the reference compiler does: normalization spells the result `!important`,
+  // and the class name hashed from it agrees.
+  assert_eq!(
+    parts("1px /**/ !important"),
+    ["1px !important", " !important"]
+  );
+  assert_eq!(
+    parts("/**/ /**/ !important"),
+    [" !important", " !important"]
+  );
+}
+
+#[test]
+fn an_importance_annotation_alone_after_an_empty_part_still_qualifies_it() {
+  // Two parts, so the fold runs: the guard that leaves a lone annotation alone
+  // asks about the part count and not about whether the part it would move onto
+  // has any text.
+  assert_eq!(parts("/**/ !important"), [" !important"]);
+  // One part, so there is nothing to qualify and the annotation stays as it was.
+  assert_eq!(parts("!important"), ["!important"]);
+}
+
+#[test]
+fn an_empty_part_is_not_reached_by_a_quoted_empty_string() {
+  // The near miss worth pinning: a value that *looks* empty is not. An empty
+  // string is two characters the author wrote and a part carries both.
+  assert_eq!(parts(r#""""#), [r#""""#]);
+  assert_eq!(parts("''"), ["''"]);
+  assert_eq!(parts(r#"1px """#), ["1px", r#""""#]);
+}
+
+#[test]
+fn a_separator_standing_alone_is_a_part_and_not_an_empty_one() {
+  // A `;` between two fragments ends the part before it; a `;` with whitespace
+  // on both sides is a part of its own, spelled with the character it was
+  // written as.
+  assert_eq!(parts("1px ;"), ["1px", ";"]);
+  assert_eq!(parts("; 1px"), [";", "1px"]);
+  assert_eq!(parts("1px;2px"), ["1px;2px"]);
+}

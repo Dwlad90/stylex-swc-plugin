@@ -21,6 +21,9 @@ pub fn split_value_required(
 /// list itself: the four-sided view repeats a missing side, so a value of one
 /// part arrives there as four copies of it, and a fold over those copies counts
 /// each one.
+///
+/// A part here may be empty and is still a part; what that means to a consumer
+/// is stated once, in [`crate::values::parser`].
 pub fn value_parts(value: Option<&TRawValue>) -> Vec<TRawValue> {
   // A number is returned untouched, so a shorthand hands the authored number
   // to each expanded property and each appends its own unit suffix. Parsing it

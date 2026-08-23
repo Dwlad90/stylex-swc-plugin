@@ -1059,3 +1059,172 @@ fn shorthands_list_style_rejection_quotes_a_long_value_whole() {
     rejection_with_doubled_quotes(&format!("\"{}\"", raw_value))
   );
 }
+
+// ── An empty part reaches every consumer of a part list ─────────────
+//
+// The rule is stated once, in the module documentation of
+// `crates/stylex-css/src/values/parser.rs`: an empty part is present. It
+// occupies its position, counts toward the arity, and is never read as absent.
+// The splitter's own tests pin the parts; these pin what each of the three
+// consumers does with one, because that is where the rule is either kept or
+// quietly broken.
+//
+// None of them is a transcription of upstream. The reference compiler throws
+// `Cannot read properties of undefined (reading 'type')` on every value here, so
+// parity cannot arbitrate the shape and these record the decision instead.
+
+/// The four sides, as the text each would be spelled with.
+fn padding_sides(value: &str) -> Vec<(String, String)> {
+  let func = match Shorthands::get("padding") {
+    Some(func) => func,
+    None => panic!("expected \"padding\" to be a known shorthand"),
+  };
+
+  match func(Some(value.into())) {
+    Ok(pairs) => pairs
+      .iter()
+      .map(|pair| (pair.0.to_string(), pair.value_text().into_owned()))
+      .collect(),
+    Err(err) => panic!("expected padding {value:?} to expand, got {err:?}"),
+  }
+}
+
+#[test]
+fn the_four_sided_view_gives_an_empty_part_the_side_it_landed_on() {
+  // Two parts, so the second repeats into the fourth: `1px` on the block axis
+  // and the empty part on both inline sides. The empty sides still *exist* as
+  // order pairs -- a declaration whose value is empty is dropped later, when the
+  // rule text is written, not here by pretending the side was never mentioned.
+  assert_eq!(
+    padding_sides("1px /*"),
+    [
+      ("paddingTop".to_string(), "1px".to_string()),
+      ("paddingInlineEnd".to_string(), String::new()),
+      ("paddingBottom".to_string(), "1px".to_string()),
+      ("paddingInlineStart".to_string(), String::new()),
+    ]
+  );
+}
+
+#[test]
+fn an_empty_first_part_does_not_slide_the_remaining_sides_up() {
+  // The failure the rule exists to prevent, stated as a side: reading the empty
+  // part as absent would make `1px` the top rather than the inline end, and
+  // every one of the four class names would change.
+  assert_eq!(
+    padding_sides("/**/ 1px"),
+    [
+      ("paddingTop".to_string(), String::new()),
+      ("paddingInlineEnd".to_string(), "1px".to_string()),
+      ("paddingBottom".to_string(), String::new()),
+      ("paddingInlineStart".to_string(), "1px".to_string()),
+    ]
+  );
+}
+
+#[test]
+fn a_value_of_nothing_but_empty_parts_still_expands_to_four_sides() {
+  // Every side empty, and four pairs all the same. The expansion has no opinion
+  // about a value that emits nothing -- that is the rule writer's decision, one
+  // layer down.
+  assert_eq!(
+    padding_sides("/**//**/"),
+    [
+      ("paddingTop".to_string(), String::new()),
+      ("paddingInlineEnd".to_string(), String::new()),
+      ("paddingBottom".to_string(), String::new()),
+      ("paddingInlineStart".to_string(), String::new()),
+    ]
+  );
+}
+
+#[test]
+fn more_parts_than_sides_still_reads_the_first_four() {
+  // The fifth part is discarded, and the four before it are unmoved. Included
+  // because an expansion that consumed parts by draining a list rather than by
+  // position would put the fifth somewhere.
+  assert_eq!(
+    padding_sides("1px 2px 3px 4px 5px"),
+    [
+      ("paddingTop".to_string(), "1px".to_string()),
+      ("paddingInlineEnd".to_string(), "2px".to_string()),
+      ("paddingBottom".to_string(), "3px".to_string()),
+      ("paddingInlineStart".to_string(), "4px".to_string()),
+    ]
+  );
+  // And with an empty part among them, the discarded one is still the fifth.
+  assert_eq!(
+    padding_sides("1px /**/ 3px 4px 5px"),
+    [
+      ("paddingTop".to_string(), "1px".to_string()),
+      ("paddingInlineEnd".to_string(), String::new()),
+      ("paddingBottom".to_string(), "3px".to_string()),
+      ("paddingInlineStart".to_string(), "4px".to_string()),
+    ]
+  );
+}
+
+#[test]
+fn the_intrinsic_size_fold_joins_an_empty_part_from_a_terminated_comment_too() {
+  // The companion to `auto_joins_an_empty_part_too`, which reaches the empty
+  // part through an *un*terminated comment. Both spellings are the same part
+  // shape and the fold must not tell them apart.
+  assert_eq!(
+    intrinsic_size("auto /**/"),
+    ("auto ".to_string(), "auto ".to_string())
+  );
+  // An empty part with no `auto` in front of it is a part of its own, so it
+  // takes the width and `1px` takes the height.
+  assert_eq!(
+    intrinsic_size("/**/ 1px"),
+    (String::new(), "1px".to_string())
+  );
+}
+
+#[test]
+fn the_intrinsic_size_fold_counts_an_empty_part_toward_the_arity() {
+  // Three parts fold to two, and the axis each ends on depends on the empty one
+  // having been counted. A fold that skipped it would size both axes with
+  // `auto 1px`.
+  assert_eq!(
+    intrinsic_size("auto 1px /**/"),
+    ("auto 1px".to_string(), String::new())
+  );
+}
+
+#[test]
+fn list_style_lets_an_empty_part_take_the_slot_it_landed_in() {
+  // An empty part is neither a global keyword nor a position, and
+  // `is_list_style_type` needs at least one character -- mirroring the `+` in
+  // upstream's pattern -- so it falls through to the image site. One of them
+  // therefore expands, and a second image beside it is the ordinary duplicate
+  // refusal rather than a special case.
+  let func = match Shorthands::get("listStyle") {
+    Some(func) => func,
+    None => panic!("expected \"listStyle\" to be a known shorthand"),
+  };
+
+  let pairs = match func(Some("/**/".into())) {
+    Ok(pairs) => pairs,
+    Err(err) => panic!("expected listStyle \"/**/\" to expand, got {err:?}"),
+  };
+  assert_eq!(
+    pairs,
+    vec![
+      OrderPair("listStyleType".into(), None),
+      OrderPair("listStylePosition".into(), None),
+      OrderPair("listStyleImage".into(), Some("".into())),
+    ]
+  );
+}
+
+#[test]
+fn list_style_refuses_an_image_beside_an_empty_part() {
+  // The consequence of the rule at this consumer, and the one place an empty
+  // part changes an outcome rather than an emitted value: it occupies the image
+  // slot, so a real image beside it is a second one.
+  assert_eq!(
+    list_style_err("url(a.png) /**/"),
+    rejection("\"url(a.png) /**/\"")
+  );
+}

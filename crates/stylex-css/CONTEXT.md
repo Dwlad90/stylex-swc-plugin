@@ -26,8 +26,13 @@ One piece of a shorthand's value, as the expansion consuming it sees them —
 `10px` and `20px` in `margin: '10px 20px'`. Where one part ends is decided on
 the [value scanner](../postcss-value-parser/CONTEXT.md)'s node kinds rather than
 on characters, because `/` and `:` end a part at the top level and are ordinary
-characters inside a function. A part is echoed with the author's own characters;
-nothing on this path re-spells one.
+characters inside a function. A part is a `String`, produced only by
+`values::parser::split_value_parts` — deliberately not a type of its own: the
+three rules that hold of a part (it is echoed and never re-spelled, a trailing
+importance annotation belongs to every part, and an empty part is still a part)
+are all enforced by that single producer being the only way to get one, so a
+wrapper would name the concept without adding a guarantee. Those rules, and what
+an empty part means to each consumer, are stated in that module's documentation.
 _Avoid_: token, side, segment, value fragment
 
 **Alias**:

@@ -227,11 +227,12 @@ impl Shorthands {
         .last()
         .is_some_and(|last_element| last_element.as_css_text() == "auto");
 
-      // Joined whatever the part says, the empty part included. Upstream's guard
-      // here asks whether the part is *absent*, which no part of a split value
-      // is -- and skipping an empty one instead loses the axis: an unterminated
-      // comment contributes an empty part, so `auto /*` sized only the width
-      // where upstream sizes both.
+      // Joined whatever the part says, the empty part included, which is the
+      // rule `crate::values::parser` states for every consumer of a part list:
+      // an empty part is present. Upstream's guard here asks whether the part is
+      // *absent*, which no part of a split value is -- and skipping an empty one
+      // instead loses the axis: an unterminated comment contributes an empty
+      // part, so `auto /*` sized only the width where upstream sizes both.
       if follows_auto {
         let combined = format!("auto {}", part.as_css_text());
 
@@ -432,7 +433,12 @@ impl Shorthands {
         }
         list_type = Some(TRawValue::String(part.clone()));
       }
-      // Keep ambiguous values for second pass
+      // Keep ambiguous values for second pass. An empty part arrives here: it is
+      // neither a global keyword nor a position, and `is_list_style_type`
+      // requires at least one character, mirroring the `+` in upstream's
+      // pattern. It then takes the slot it lands in, which is the rule
+      // `crate::values::parser` states -- so `list-style: 'url(a.png) /*'`
+      // refuses for two images rather than quietly discarding one of them.
       else {
         remaining_parts.push(part.clone());
       }

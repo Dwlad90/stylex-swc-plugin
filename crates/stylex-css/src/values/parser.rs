@@ -14,12 +14,66 @@
 //! `calc(100% / 3)` is one. Only a scanner that has already decided what is a
 //! separator and what is inside a function can tell those apart.
 //!
+//! # What holds of every part
+//!
+//! Three rules, stated here because each of them has been got wrong once at a
+//! call site that did not know it:
+//!
+//! 1. **A part is echoed, never re-spelled.** An escape stays an escape, a
+//!    quote keeps the character it was written with, and a number keeps the
+//!    digits it was typed with. That is why there is no number formatting and
+//!    no identifier serialization in this file.
+//! 2. **A trailing importance annotation belongs to every part, not to one.**
+//!    See [`apply_importance`].
+//! 3. **An empty part is a part.** See below.
+//!
+//! All three are enforced by there being one way to get a part —
+//! [`split_value_parts`] — rather than by anything a part carries as a value.
+//! It applies the importance fold before returning, it spells a part only by
+//! echoing what the scanner read, and it never drops one. A part is a `String`
+//! for that reason: a wrapper around it could hold no rule the single producer
+//! is not already the choke point for.
+//!
+//! The fold has one path around it, and it costs nothing: a value nested past
+//! the depth budget returns before the split, as the single part it was handed.
+//! [`apply_importance`] is a no-op on one part — it needs a second to move an
+//! annotation onto — so the value that skips it is the value it would have
+//! returned unchanged.
+//!
+//! # An empty part is a part
+//!
+//! A comment contributes its inner text, and an unterminated comment or an
+//! empty one has none. So `padding: '1px /*'` is two parts, the second empty —
+//! and that second part is *present*. It occupies its position, it counts
+//! toward the arity, and every consumer treats it as the part it is:
+//!
+//! - the four-sided view assigns it to a side, whose declaration then emits
+//!   nothing, because a declaration whose value is empty is not emitted;
+//! - the importance fold moves a trailing annotation onto it like any other
+//!   part;
+//! - `contain-intrinsic-size`'s fold joins it onto a preceding `auto`;
+//! - `list-style` lets it occupy the slot it lands in, and refuses a value
+//!   where that means two images.
+//!
+//! No consumer skips one and none reads one as absent. There is no reference
+//! answer to copy: the reference compiler throws `Cannot read properties of
+//! undefined (reading 'type')` on `padding: '1px /*'`, so parity cannot
+//! arbitrate this shape and the decision is this compiler's to make. It is
+//! settled this way because the reference compiler's own guards over a part list
+//! ask whether a part is *absent* — a missing index — and no part of a split
+//! value is ever absent. Reading empty as absent instead loses whatever the
+//! position meant: it is what made `contain-intrinsic-size: 'auto /*'` size only
+//! the width where the reference compiler sizes both.
+//!
 //! [value scanner]: postcss_value_parser
 
 use crate::css::common::nests_too_deeply;
 use postcss_value_parser::{Node, NodeKind, ValueParser};
 
 /// The parts of `css_string`, in the order the expansion consumes them.
+///
+/// The only way to get a part, which is what makes the three rules in this
+/// module's documentation hold of every one of them.
 ///
 /// Whitespace and separators are structure here, not content: they decide where
 /// a part ends and then contribute nothing to it. Everything else is echoed
@@ -28,6 +82,9 @@ use postcss_value_parser::{Node, NodeKind, ValueParser};
 /// number keeps the digits it was typed with. Nothing here re-spells anything,
 /// which is why there is no number formatting and no identifier serialization
 /// in this file.
+///
+/// A part can be empty, and an empty one is returned rather than dropped — see
+/// *An empty part is a part* above.
 pub fn split_value_parts(css_string: &str) -> Vec<String> {
   let trimmed = js_trim(css_string);
 
@@ -72,6 +129,12 @@ pub fn split_value_parts(css_string: &str) -> Vec<String> {
 /// A lone `!important` with nothing to qualify is left alone — there is no part
 /// to move it onto, and dropping it would silently discard what the author
 /// wrote.
+///
+/// An empty part is qualified like any other: `padding: '1px /**/ !important'`
+/// is three parts, and the annotation lands on the empty one too. That reads
+/// oddly and it is what the reference compiler does — the middle part becomes
+/// ` !important`, which normalization spells `!important`, and both compilers
+/// hash the same class name for it.
 fn apply_importance(parts: Vec<String>) -> Vec<String> {
   let Some(last) = parts.last() else {
     return parts;

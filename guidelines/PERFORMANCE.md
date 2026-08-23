@@ -142,6 +142,20 @@ cannot measure it however many debug options it names.
 `perf_fixtures/props-and-attrs.js` is that call site, and a test asserts the
 entries named for the data prop actually emit one.
 
+**A fixture must compile on the revision before the change, too.**
+`bench:revisions` runs the manifest against two subjects -- this branch's build
+and one built from the merge base -- and sanity-checks every fixture on both
+before timing anything. A fixture whose shape only the fix compiles therefore
+throws on the base subject and takes the whole benchmark leg down before a
+single measurement, which is what registering the two
+`dynamic-param-shadows-import` fixtures did. A shape that only a fix makes
+compilable is a correctness question, so it belongs to
+`crates/stylex-transform/tests/fixture` and stays there;
+`perf_fixtures/dynamic-styles.js` states this rule in its own header and leaves
+that shape out while still pricing the inline-style path. `sanityCheck` names
+the fixture and the subject that refused it, so the next one reads as the
+manifest question it is rather than as a bare compiler stack.
+
 **Register a feature fixture in pairs.** One number for a development shape says
 nothing about what the feature costs; the pair does. A `Feature - x` entry and a
 `Feature - x (dev)` entry point at the same file and differ only in the option

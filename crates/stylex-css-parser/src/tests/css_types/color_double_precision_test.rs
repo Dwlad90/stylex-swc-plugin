@@ -255,30 +255,31 @@ mod boundaries_and_refusals {
     assert_eq!(alpha.parse::<f64>(), Ok(5e-324), "{printed}");
   }
 
-  /// An alpha below single precision's smallest normal, spelled the way an
-  /// author would write it. `1e-7` is the threshold where JavaScript switches
-  /// to exponential form; Rust does not, which is again the formatter's gap.
+  /// An alpha below single precision's smallest normal, and either side of
+  /// the threshold where JavaScript switches to exponential form. The two
+  /// spellings collapse onto one, because the alpha is the same double and the
+  /// shared formatter names a double one way.
   #[test]
   fn a_very_small_alpha_keeps_its_value() {
-    assert_eq!(
-      printed!("rgba(255, 0, 0, 1e-7)"),
-      "rgba(255, 0, 0, 0.0000001)"
-    );
+    assert_eq!(printed!("rgba(255, 0, 0, 1e-7)"), "rgba(255, 0, 0, 1e-7)");
     assert_eq!(
       printed!("rgba(255, 0, 0, 0.0000001)"),
-      "rgba(255, 0, 0, 0.0000001)"
+      "rgba(255, 0, 0, 1e-7)"
+    );
+    assert_eq!(
+      printed!("rgba(255, 0, 0, 0.000001)"),
+      "rgba(255, 0, 0, 0.000001)"
     );
   }
 
   /// The exact bounds of the alpha range are accepted, and a negative zero
-  /// keeps the sign Rust gives it. Pinned so the follow-up that adopts the
-  /// shared formatter -- which drops the sign, as JavaScript does -- has
-  /// something to move.
+  /// loses its sign -- `String(-0)` is `"0"`, so an authored `-0` and an
+  /// authored `0` are one alpha with one spelling.
   #[test]
   fn the_ends_of_the_alpha_range_are_accepted() {
     assert_eq!(printed!("rgba(255, 0, 0, 0)"), "rgba(255, 0, 0, 0)");
     assert_eq!(printed!("rgba(255, 0, 0, 1)"), "rgba(255, 0, 0, 1)");
-    assert_eq!(printed!("rgba(255, 0, 0, -0)"), "rgba(255, 0, 0, -0)");
+    assert_eq!(printed!("rgba(255, 0, 0, -0)"), "rgba(255, 0, 0, 0)");
   }
 
   /// An alpha outside 0..=1 is refused by these parsers rather than clamped,
@@ -599,14 +600,17 @@ mod modern_space_boundaries_and_refusals {
     assert!(!printed.contains("inf"), "{printed}");
   }
 
-  /// A negative zero: JavaScript drops the sign, and the hue already does,
-  /// because it prints through the angle type -- which has adopted the shared
-  /// formatter. The channels still carry theirs until the colour paths adopt
-  /// it too.
+  /// A negative zero on every channel, now that the colour paths print
+  /// through the shared formatter too: JavaScript drops the sign, so nothing
+  /// here keeps it.
   #[test]
-  fn a_negative_zero_hue_drops_its_sign_before_the_channels_do() {
-    assert_eq!(printed!("oklab(-0 -0 -0)"), "oklab(-0 -0 -0)");
-    assert_eq!(printed!("oklch(-0 -0 -0)"), "oklch(-0 -0 0deg)");
+  fn a_negative_zero_channel_drops_its_sign() {
+    assert_eq!(printed!("oklab(-0 -0 -0)"), "oklab(0 0 0)");
+    assert_eq!(printed!("oklch(-0 -0 -0)"), "oklch(0 0 0deg)");
+    // `Lch`'s hue is a number or an angle, and this one is a number, so it
+    // prints without a unit -- unlike `Oklch`'s, which is always an angle.
+    assert_eq!(printed!("lch(-0 -0 -0)"), "lch(0 0 0)");
+    assert_eq!(printed!("oklab(-0 -0 -0 / -0)"), "oklab(0 0 0 / 0)");
   }
 
   /// An alpha outside 0..=1 is carried through on these paths rather than
@@ -735,5 +739,120 @@ mod modern_space_boundaries_and_refusals {
         .parse_to_end("lab(52.2345 40.1645 59.9971 / 0.5)")
         .is_err()
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Channels spell numbers the way JavaScript does
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod a_channel_is_spelled_the_way_javascript_spells_it {
+  use super::*;
+
+  /// Rust's `Display` never switches to exponential form, so a channel past
+  /// either threshold was written as a long decimal where JavaScript writes an
+  /// exponent. Every colour display path now prints through the shared
+  /// ECMA-262 `Number::toString` port, so there is no `{}` left in the crate
+  /// for a future channel to inherit.
+  #[test]
+  fn past_the_upper_threshold() {
+    assert_eq!(
+      printed!("oklab(1e21 1e21 1e21)"),
+      "oklab(1e+21 1e+21 1e+21)"
+    );
+    assert_eq!(
+      printed!("oklch(1e21 1e21 1e21deg)"),
+      "oklch(1e+21 1e+21 1e+21deg)"
+    );
+    assert_eq!(printed!("lch(1e21 1e21 1e21)"), "lch(1e+21 1e+21 1e+21)");
+  }
+
+  /// Below the lower threshold, with the value either side of it so that the
+  /// change of shape is what is asserted rather than one spelling.
+  #[test]
+  fn past_the_lower_threshold() {
+    assert_eq!(
+      printed!("oklab(0.000001 0.0000001 -0.0000001)"),
+      "oklab(0.000001 1e-7 -1e-7)"
+    );
+    assert_eq!(
+      printed!("rgba(255, 0, 0, 0.0000001)"),
+      "rgba(255, 0, 0, 1e-7)"
+    );
+    assert_eq!(
+      printed!("hsla(120deg, 100%, 50%, 0.0000001)"),
+      "hsla(120deg, 100%, 50%, 1e-7)"
+    );
+  }
+
+  /// An optional alpha is a separate display arm from the channels it follows,
+  /// on all three modern spaces, so each carries its own assertion.
+  #[test]
+  fn on_an_optional_alpha_of_every_modern_space() {
+    assert_eq!(
+      printed!("oklab(0.5 0.1 0.1 / 1e-7)"),
+      "oklab(0.5 0.1 0.1 / 1e-7)"
+    );
+    assert_eq!(
+      printed!("oklch(0.7 0.1 200deg / 1e-7)"),
+      "oklch(0.7 0.1 200deg / 1e-7)"
+    );
+    assert_eq!(printed!("lch(50 20 30 / 1e-7)"), "lch(50 20 30 / 1e-7)");
+  }
+
+  /// The extremes of the double range, which Rust's formatting wrote as three
+  /// hundred digits, and an overflow, which it named `inf`.
+  #[test]
+  fn at_the_edges_of_the_double_range() {
+    assert_eq!(
+      printed!("oklab(1.7976931348623157e308 5e-324 -5e-324)"),
+      "oklab(1.7976931348623157e+308 5e-324 -5e-324)"
+    );
+    assert_eq!(
+      printed!("oklab(1e400 -1e400 0)"),
+      "oklab(Infinity -Infinity 0)"
+    );
+  }
+
+  /// A hue written as a bare number rather than an angle is `LchHue`'s other
+  /// arm, and it prints the number directly rather than through the angle
+  /// type, so it needs its own assertion.
+  #[test]
+  fn on_a_bare_number_hue() {
+    assert_eq!(printed!("lch(50 20 1e21)"), "lch(50 20 1e+21)");
+    assert_eq!(printed!("lch(50 20 1e-7)"), "lch(50 20 1e-7)");
+  }
+
+  /// The integer channels are integers, and JavaScript spells an integer the
+  /// way Rust does -- asserted so that adopting the formatter is visibly a
+  /// no-op where the number cannot go exponential.
+  #[test]
+  fn but_an_integer_channel_is_unchanged() {
+    assert_eq!(printed!("rgb(255, 0, 128)"), "rgb(255, 0, 128)");
+    assert_eq!(printed!("rgba(255, 0, 128, 1)"), "rgba(255, 0, 128, 1)");
+  }
+
+  /// A malformed channel is still refused, and a tolerated one still
+  /// tolerated: the formatter sits past the parse, so it cannot have moved
+  /// either line.
+  #[test]
+  fn without_moving_what_is_refused_or_tolerated() {
+    for input in [
+      "oklab(1e21 1e21)",
+      "oklab(1e21, 1e21, 1e21)",
+      "oklch(1e21 1e21 1e21deg /)",
+      "rgba(255, 0, 0, 1e21)",
+      "lab(1e21 1e21 1e21)",
+    ] {
+      assert!(
+        Color::parse().parse_to_end(input).is_err(),
+        "accepted {input:?}"
+      );
+    }
+
+    // Truncated at the closing paren rather than before a channel: tolerated,
+    // as ticket 05 pinned, and the exponential spelling rides along.
+    assert_eq!(printed!("oklab(1e21 1e21 1e21"), "oklab(1e+21 1e+21 1e+21)");
   }
 }

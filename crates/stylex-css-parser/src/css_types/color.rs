@@ -5,6 +5,7 @@ Handles all CSS color formats: named colors, hex, rgb, rgba, hsl, hsla, and mode
 */
 
 use stylex_macros::stylex_unreachable;
+use stylex_utils::number::to_js_string;
 
 use crate::{
   CssParseError,
@@ -1199,7 +1200,14 @@ impl Rgba {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Rgba {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "rgba({}, {}, {}, {})", self.r, self.g, self.b, self.a)
+    write!(
+      f,
+      "rgba({}, {}, {}, {})",
+      self.r,
+      self.g,
+      self.b,
+      to_js_string(self.a)
+    )
   }
 }
 
@@ -1743,7 +1751,14 @@ impl Hsla {
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for Hsla {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "hsla({}, {}, {}, {})", self.h, self.s, self.l, self.a)
+    write!(
+      f,
+      "hsla({}, {}, {}, {})",
+      self.h,
+      self.s,
+      self.l,
+      to_js_string(self.a)
+    )
   }
 }
 
@@ -1777,7 +1792,7 @@ impl std::fmt::Display for LchHue {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       LchHue::Angle(angle) => write!(f, "{}", angle),
-      LchHue::Number(number) => write!(f, "{}", number),
+      LchHue::Number(number) => write!(f, "{}", to_js_string(*number)),
     }
   }
 }
@@ -1956,8 +1971,21 @@ impl Lch {
 impl Display for Lch {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.alpha {
-      Some(alpha) => write!(f, "lch({} {} {} / {})", self.l, self.c, self.h, alpha),
-      None => write!(f, "lch({} {} {})", self.l, self.c, self.h),
+      Some(alpha) => write!(
+        f,
+        "lch({} {} {} / {})",
+        to_js_string(self.l),
+        to_js_string(self.c),
+        self.h,
+        to_js_string(alpha)
+      ),
+      None => write!(
+        f,
+        "lch({} {} {})",
+        to_js_string(self.l),
+        to_js_string(self.c),
+        self.h
+      ),
     }
   }
 }
@@ -2078,8 +2106,21 @@ impl Oklch {
 impl Display for Oklch {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.alpha {
-      Some(alpha) => write!(f, "oklch({} {} {} / {})", self.l, self.c, self.h, alpha),
-      None => write!(f, "oklch({} {} {})", self.l, self.c, self.h),
+      Some(alpha) => write!(
+        f,
+        "oklch({} {} {} / {})",
+        to_js_string(self.l),
+        to_js_string(self.c),
+        self.h,
+        to_js_string(alpha)
+      ),
+      None => write!(
+        f,
+        "oklch({} {} {})",
+        to_js_string(self.l),
+        to_js_string(self.c),
+        self.h
+      ),
     }
   }
 }
@@ -2180,8 +2221,21 @@ impl Oklab {
 impl Display for Oklab {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.alpha {
-      Some(alpha) => write!(f, "oklab({} {} {} / {})", self.l, self.a, self.b, alpha),
-      None => write!(f, "oklab({} {} {})", self.l, self.a, self.b),
+      Some(alpha) => write!(
+        f,
+        "oklab({} {} {} / {})",
+        to_js_string(self.l),
+        to_js_string(self.a),
+        to_js_string(self.b),
+        to_js_string(alpha)
+      ),
+      None => write!(
+        f,
+        "oklab({} {} {})",
+        to_js_string(self.l),
+        to_js_string(self.a),
+        to_js_string(self.b)
+      ),
     }
   }
 }

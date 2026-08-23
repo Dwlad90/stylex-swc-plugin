@@ -106,6 +106,7 @@ function sanityCheck(
 ): void {
   for (const fixture of fixtures) {
     for (const subject of subjects) {
+      const label = subject.descriptor.label;
       let rules: number;
       try {
         rules = subject.run(fixture, fixtureStylexOptions(fixture, stylexOptions));
@@ -116,16 +117,14 @@ function sanityCheck(
         // base is an older build, so what it cannot compile is a question about
         // the manifest rather than about the change under measurement.
         throw new Error(
-          `Sanity check failed: subject "${subject.descriptor.label}" could not ` +
-            `compile fixture "${fixture.name}"`,
+          `Sanity check failed: subject "${label}" could not compile fixture "${fixture.name}"`,
           { cause: error }
         );
       }
       if (!Number.isFinite(rules) || rules <= 0) {
         throw new Error(
-          `Sanity check failed: subject "${subject.descriptor.label}" produced ${String(
-            rules
-          )} StyleX rules for fixture "${fixture.name}"`
+          `Sanity check failed: subject "${label}" produced ${String(rules)} StyleX rules ` +
+            `for fixture "${fixture.name}"`
         );
       }
     }

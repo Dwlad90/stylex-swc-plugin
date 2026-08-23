@@ -218,9 +218,10 @@ stylex_test!(
 // names.
 //
 // Two of the rows below cannot show the echo on their own, and are here for the
-// case either side of them: a later pass strips a leading zero and folds a
-// negative zero, so `0.5px` and `000.5px` both arrive as `.5px`, and `-0px` as
-// `0px`. That last one is still worth pinning — it is where `+-0px` used to
+// case either side of them: `stylex-css`'s `normalizers::leading_zero` re-spells
+// through `to_js_string`, which strips the leading zero and drops a negative
+// zero's sign in one pass, so `0.5px` and `000.5px` both arrive as `.5px`, and
+// `-0px` as `0px`. That last one is still worth pinning — it is where `+-0px` used to
 // appear.
 stylex_test!(
   legacy_expanded_shorthands_echo_the_authored_number,

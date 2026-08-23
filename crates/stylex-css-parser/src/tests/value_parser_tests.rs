@@ -148,9 +148,11 @@ fn a_number_after_multibyte_text_is_read_from_its_own_bytes() {
 /// stylesheet, and each respelling was a different class name.
 ///
 /// The expectations here are this function's own output, which is an
-/// intermediate rather than an emitted rule: later passes strip a leading zero
-/// and fold a negative zero, so `000.5px` and `-0px` leave here intact and
-/// reach a stylesheet as `.5px` and `0px`. What the official compiler emits is
+/// intermediate rather than an emitted rule: one later pass does both the
+/// leading-zero strip and the negative-zero fold -- `stylex-css`'s
+/// `normalizers::leading_zero`, which re-spells through `to_js_string` and so
+/// drops a negative zero's sign on the same line -- so `000.5px` and `-0px`
+/// leave here intact and reach a stylesheet as `.5px` and `0px`. What the official compiler emits is
 /// asserted where that is observable -- the end-to-end snapshot in
 /// `stylex-transform`'s `legacy_deprecated.rs`, whose class names were captured
 /// from a side-by-side run against `@stylexjs/babel-plugin@0.19.0`.

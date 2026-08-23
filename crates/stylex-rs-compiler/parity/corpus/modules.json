@@ -1727,6 +1727,38 @@
       "origin": "issue #1266, ticket 40, the half of the single-config receiver that does not fold",
       "expected": "acceptance-divergent",
       "note": "`Object.keys` of a single config folds and agrees -- both compilers answer `fn` -- and the value at that key is the function the config wraps. A function's `ToString` is its source text, and this evaluator keeps none, so it refuses. Divergent deliberately: upstream answers the source text of its own implementation, which hashes a class name off text no author wrote and no two versions of the compiler spell alike. A refusal is loud where that is silent. Kept as a row so the choice is measured rather than assumed, and so the day either side moves it reports."
+    },
+    {
+      "id": "modules-1267-fractional-rem-breakpoint-chain",
+      "label": "four `@media` breakpoints at fractional `rem`, whose upper bounds are derived",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: {\n    minHeight: {\n      default: '100px',\n      '@media (min-width: 25rem)': '200px',\n      '@media (min-width: 28.81rem)': '300px',\n      '@media (min-width: 32.88rem)': '400px',\n    },\n  },\n});\n",
+      "origin": "issue #1267, the reported reproduction verbatim",
+      "expected": "identical",
+      "note": "The one subject in the corpus that asks the media-query transform to derive a bound rather than to carry a condition key. Last-media-query-wins closes each range at `next - 0.01`, and `28.81 - 0.01` is `28.799999999999997` in double precision and `28.8` in single -- so a narrowing regression moves the query text, the class hash, and this verdict. Recorded `identical` because that is what a run reads: the pinning is what makes a later disagreement loud."
+    },
+    {
+      "id": "modules-1267-strict-range-query-nudged-bounds",
+      "label": "a strict range `@media` query, whose two bounds are nudged",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  a: { color: { default: 'red', '@media (width > 400.5px)': 'blue' } },\n  b: { color: { default: 'red', '@media (400.5px < width < 900.25px)': 'blue' } },\n});\n",
+      "origin": "issue #1267, the range-syntax path into the same arithmetic",
+      "expected": "identical",
+      "note": "Range syntax reaches the nudge by a different path from the breakpoint chain: a strict bound is rewritten to a `min-`/`max-` pair by moving each end 0.01, rather than by looking at the next rule. Both ends are asked here, since a one-sided rewrite would still agree on the other."
+    },
+    {
+      "id": "modules-1267-container-query-fractional-bound",
+      "label": "a `@container` query at a fractional bound",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: {\n    color: {\n      default: 'red',\n      '@container (min-width: 28.81px)': 'blue',\n      '@container (width > 400.5px)': 'green',\n    },\n  },\n});\n",
+      "origin": "issue #1267, the container-query path into the same arithmetic",
+      "expected": "identical",
+      "note": "What a run reads here is that neither compiler transforms a container query at all: both echo `@container (min-width: 28.81px)` and `@container (width > 400.5px)` as authored, where the same two shapes under `@media` become a derived range and a nudged `min-`/`max-` pair. Kept because that is the agreement worth pinning -- the at-rule name is what selects the path, so a change that widened the media rewrite to reach `@container` would move this row and nothing in the media rows."
+    },
+    {
+      "id": "modules-1267-supports-condition-beside-a-derived-bound",
+      "label": "a `@supports` condition nested with a `@media` chain",
+      "source": "import * as stylex from '@stylexjs/stylex';\n\nexport const styles = stylex.create({\n  root: {\n    width: {\n      default: '1px',\n      '@supports (display: grid)': {\n        default: '2px',\n        '@media (min-width: 1.1rem)': '3px',\n        '@media (min-width: 2.2rem)': '4px',\n      },\n    },\n  },\n});\n",
+      "origin": "issue #1267, a derived bound reached below a non-media condition",
+      "expected": "identical",
+      "note": "A `@supports` condition carries no length to normalize, which is the point: it is the wrapper the media chain is derived *inside*, so this asks whether the transform still runs one level down. It does, and inexactly -- the derived bound reads `2.1900000000000004rem`, so the row measures the digits as well as the reach."
     }
   ]
 }

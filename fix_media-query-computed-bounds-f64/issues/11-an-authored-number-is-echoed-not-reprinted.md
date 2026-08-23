@@ -73,12 +73,25 @@ divergence below. The new end-to-end snapshot pins twenty rules whose class
 names are identical to `@stylexjs/babel-plugin@0.19.0`'s for the same source
 and the same `styleResolution`.
 
-**One divergence found and left, pinned rather than fixed.** The unit comes
-from the token rather than the source, so an escaped unit is emitted as what it
-escapes to: `1\70x` becomes `1px` here where the official compiler echoes the
-escape. That is a lost token rather than a lost spelling -- the same shape of
-finding as ticket 04's `lch()` percent -- and closing it means echoing the
-unit's span as well as the number's, which is a different change.
+**Two divergences found and left, and the first draft of this note wrongly
+said there was one.** Corrected after a review fuzzed the path and found the
+second in 633 of about 3950 cases. Both are lost tokens rather than lost
+spellings -- the shape of finding ticket 04's `lch()` percent belongs to -- and
+neither is a regression.
+
+1. The unit comes from the token rather than the source, so an escaped unit is
+   emitted as what it escapes to: `1\70x` becomes `1px` here where the official
+   compiler echoes the escape. Closing it means echoing the unit's span as well
+   as the number's.
+2. Whitespace between tokens is dropped and re-inserted rather than echoed, so
+   `calc(1.50px*2)` comes out as `calc(1.50px * 2)` where the official compiler
+   emits `calc(1.50px*2)` -- a different class name. `join_css` already
+   suppresses the space around a slash and a comma, which is why
+   `calc(100%/3)` matches and `*` does not. Recorded as ticket 12.
+
+The lesson for the note, not only for the code: "one divergence found" was a
+claim about *absence*, made from hand-picked probes. The escape case turned up
+because it was looked for; the whitespace case did not, because it was not.
 
 **A related revert, from the same review.** Ticket 06 had converted
 `SimpleToken::extract_value` to the shared formatter. No ticket asked for it,

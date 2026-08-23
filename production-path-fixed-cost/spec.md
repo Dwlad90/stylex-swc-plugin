@@ -98,25 +98,33 @@ not the cause of the +2.4%.
 ## Localized: none of the three, and not in the crate at all
 
 `01` timed all three candidates on both revisions, with the same bench file
-compiled by both trees. Every one is at parity or **faster** on this branch:
+compiled by both trees. None of them carries it:
 
-| candidate                              | delta on this branch    |
-| -------------------------------------- | ----------------------- |
-| The `Discover` walk, call-heavy module | -19 to -20%             |
-| The `Discover` walk, call-free module  | -0.2%                   |
-| The structural key per call expression | -38 to -56%             |
-| `set_seen_module_source_code`          | unchanged               |
-| `StateManager::new`                    | +29 ns, once per module |
+| candidate                              | delta on this branch     |
+| -------------------------------------- | ------------------------ |
+| The `Discover` walk, call-heavy module | -19%                     |
+| The `Discover` walk, call-free module  | +1.1 to +1.4%, unresolved |
+| The structural key per call expression | -37 to -54%              |
+| `set_seen_module_source_code`          | unchanged                |
+| `StateManager::new`                    | +9.1 ns, once per module |
+
+"Unresolved" is meant literally. Criterion's interval inside one run is a couple
+of tenths of a percent, but two *builds* of the same source disagree by around a
+point -- an earlier pair of full runs read the call-free walk at -0.2% and +0.6%
+where the pair above reads +1.4% and +1.1%. Anything within about a point and a
+half either way is below what this bench can say, which is why the rows worth
+leaning on are the ones an order of magnitude clear of it.
 
 The walk is faster *because* of the hasher this spec had ruled out, and for the
 reason it gave: `add_call_expression` hashes every call expression in every
 module, and xxh3 is much cheaper than `DefaultHasher` on one. `StateManager::new`
-is the only candidate that costs more, and it costs four hundredths of one
-percent of the 72 µs fixture.
+is the only candidate that costs measurably more, and it costs about a
+hundred-thousandth of the 72 µs fixture.
 
 A fourth leg was added to the same bench and says the same thing: the whole pass
 chain a compile runs -- resolver, type stripping, StyleX, hygiene, fixer, printer
--- is 8-13% faster here, including on a module with no StyleX import.
+-- is 7-9% faster here on any module holding call expressions, and unresolved on
+one holding none.
 
 ### The cost is real, and only visible through the built `.node`
 

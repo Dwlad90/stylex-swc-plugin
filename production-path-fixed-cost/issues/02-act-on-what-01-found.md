@@ -41,13 +41,15 @@ is the bar.
 ## Comments
 
 **Nothing to act on in the shape this ticket imagined, and the reason is
-measured.** `01` timed all three candidates on both revisions and every one of
-them is at parity or faster on this branch -- the walk by 19-20%, the structural
-key by 38-56%, the memoized-source clone by nothing at all, with
-`StateManager::new` 29 ns dearer once per transform. The pass chain around the
-transform is faster too. So the three fixes this ticket describes have no
-target: there is no per-node method that grew, `StateManager` construction is
-four hundredths of a percent of the smallest fixture, and the clone is unchanged.
+measured.** `01` timed all three candidates on both revisions and none of them
+carries the cost -- the walk over a module holding calls is 19% faster, the
+structural key 37-54% faster, the memoized-source clone identical, and
+`StateManager::new` 9.1 ns dearer once per transform. Over a module holding no
+calls the walk reads +1.1 to +1.4%, which is inside what two builds of the same
+source disagree by and so is unresolved rather than measured. The pass chain
+around the transform is faster too, on anything holding calls. So the three fixes this ticket describes have no
+target: there is no per-node method that grew, `StateManager` construction is about a
+hundred-thousandth of the smallest fixture, and the clone is unchanged.
 
 What follows is what the chase found instead, so the next reader starts from the
 evidence rather than from the three shapes above.
@@ -88,12 +90,14 @@ with no StyleX import at all regresses", pinned.
 
 The same four shapes, timed **inside the crate** through the whole pass chain,
 are faster on this branch, not slower. A module with no calls and no StyleX
-import is 20.68 µs against 20.72 µs through the StyleX pass, and 140.94 µs
-against 154.16 µs through resolver, type stripping, StyleX, hygiene, fixer and
-printer.
+import reads 20.97 µs against 20.68 µs through the StyleX pass and 138.89 µs
+against 141.34 µs through resolver, type stripping, StyleX, hygiene, fixer and
+printer -- one leg a point up, the other a point and a half down, which is what
+that bench's build-to-build spread looks like rather than a signal.
 
-So: the same source, the same passes, in the same order, is at parity or faster
-when linked into a bench and 1.5-2.0% slower when linked into the `.node`. What
+So: the same source, the same passes, in the same order, cannot be shown to have
+slowed at all when linked into a bench, and is 1.5-2.0% slower on twenty-eight
+consecutive process medians when linked into the `.node`. What
 differs between those two is the napi boundary and the whole-binary layout that
 a fat-LTO, one-codegen-unit build produces, and neither is a call site anything
 can be moved out of.

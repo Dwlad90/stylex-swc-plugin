@@ -61,47 +61,76 @@ because it only touches API that is public on both: `StyleXTransform::test`,
 `stylex_utils::hash::stable_hash_unspanned_call`. Nothing in either tree was
 changed to make it compile.
 
-Four groups, two module sizes for the walk, on an Apple-silicon laptop, full
+Five groups, two module sizes for the walk, on an Apple-silicon laptop, full
 criterion runs (not `--quick`):
 
-| leg                                 | `c83ac5cbd` |    branch |  delta |
-| ----------------------------------- | ----------- | --------- | ------ |
-| `ModuleWalk/calls/1x`               |   142.24 µs | 113.72 µs | −20.1% |
-| `ModuleWalk/calls/4x`               |   561.08 µs | 453.80 µs | −19.1% |
-| `ModuleWalk/no-calls/1x`            |    20.72 µs |  20.68 µs |  −0.2% |
-| `ModuleWalk/no-calls/4x`            |    78.45 µs |  78.94 µs |  +0.6% |
-| `ModuleWalk/imported/1x`            |   209.06 µs | 180.73 µs | −13.6% |
-| `ModuleWalk/imported/4x`            |   789.67 µs | 676.93 µs | −14.3% |
-| `SeenModuleSource` clone, no-calls/1x |   39.93 µs |  38.57 µs |  −3.4% |
-| `SeenModuleSource` clone, no-calls/4x |  154.92 µs | 153.68 µs |  −0.8% |
-| `SeenModuleSource` clone, calls/4x  |   208.33 µs | 204.22 µs |  −2.0% |
-| `StructuralKey/call/shallow`        |    92.77 ns |  55.70 ns | −40.0% |
-| `StructuralKey/call/member`         |    99.90 ns |  61.79 ns | −38.1% |
-| `StructuralKey/call/nested`         |   277.68 ns | 121.89 ns | −56.1% |
-| `StateManager/new`                  |   121.69 ns | 151.18 ns | +24.2% |
-| `FullPipeline/no-calls/1x`          |   154.16 µs | 140.94 µs |  −8.6% |
-| `FullPipeline/calls/1x`             |   295.87 µs | 258.24 µs | −12.7% |
-| `FullPipeline/imported/1x`          |   367.94 µs | 329.73 µs | −10.4% |
+| leg                               | `c83ac5cbd` |    branch |  delta |
+| --------------------------------- | ----------- | --------- | ------ |
+| `ModuleWalk/calls/1x`             |   138.63 µs | 112.00 µs | −19.2% |
+| `ModuleWalk/calls/4x`             |   549.53 µs | 445.18 µs | −19.0% |
+| `ModuleWalk/no-calls/1x`          |    20.68 µs |  20.97 µs |  +1.4% |
+| `ModuleWalk/no-calls/4x`          |    78.70 µs |  79.56 µs |  +1.1% |
+| `ModuleWalk/imported/1x`          |   208.39 µs | 181.58 µs | −12.9% |
+| `ModuleWalk/imported/4x`          |   776.75 µs | 672.27 µs | −13.5% |
+| `SeenModuleSource/kept/calls/1x`  |   189.63 µs | 162.72 µs | −14.2% |
+| `SeenModuleSource/kept/calls/4x`  |   755.04 µs | 652.82 µs | −13.5% |
+| `SeenModuleSource/kept/no-calls/1x` |  59.90 µs |  58.65 µs |  −2.1% |
+| `SeenModuleSource/kept/no-calls/4x` | 234.78 µs | 235.03 µs |  +0.1% |
+| `StructuralKey/call/shallow`      |   100.32 ns |  57.96 ns | −42.2% |
+| `StructuralKey/call/member`       |   101.26 ns |  63.75 ns | −37.0% |
+| `StructuralKey/call/nested`       |   266.17 ns | 122.77 ns | −53.9% |
+| `StateManager/new`                |    70.35 ns |  79.48 ns | +13.0% |
+| `FullPipeline/no-calls/1x`        |   141.34 µs | 138.89 µs |  −1.7% |
+| `FullPipeline/no-calls/4x`        |   545.39 µs | 543.81 µs |  −0.3% |
+| `FullPipeline/calls/1x`           |   281.12 µs | 255.04 µs |  −9.3% |
+| `FullPipeline/calls/4x`           |    1.110 ms |  1.006 ms |  −9.3% |
+| `FullPipeline/imported/1x`        |   349.26 µs | 325.82 µs |  −6.7% |
+| `FullPipeline/imported/4x`        |    1.335 ms |  1.235 ms |  −7.5% |
 
-The `SeenModuleSource` rows are the *difference* between that group's two legs
-(`use_real_file_for_source` off against on), which is what the module clone
-costs. Identical on both revisions to within a couple of points, so the `Rc` and
-the `OnceCell` this branch wrapped it in cost nothing.
+The `SeenModuleSource/kept` rows are the same transform as the matching
+`ModuleWalk` row with the clone left in, so the clone costs the difference
+between them: 39.2 µs against 37.7 µs on `no-calls/1x`, 156.1 µs against
+155.5 µs on `no-calls/4x`, 205.5 µs against 207.6 µs on `calls/4x`. Identical
+on both revisions to within a couple of points, so the `Rc` and the `OnceCell`
+this branch wrapped it in cost nothing.
+
+**What this table can resolve.** Criterion's interval inside one run is a couple
+of tenths of a percent; two *builds* of the same source do not agree that
+closely. An earlier pair of full runs read `no-calls/1x` at −0.2% and
+`no-calls/4x` at +0.6% where this pair reads +1.4% and +1.1%, and
+`FullPipeline/no-calls/1x` at −8.6% where this pair reads −1.7%. Anything inside
+about a point and a half either way is **unresolved here**, not measured at
+parity. What survives that is the call-heavy walk, the structural key, and the
+pass chain over anything holding calls -- all of them faster on the branch by an
+order of magnitude more than the noise.
+
+**Two numbers in an earlier version of this comment were wrong and are
+withdrawn.** `StateManager::new` was published at +29 ns / +24.2%; the bench was
+constructing `StyleXOptions::default()` inside the timed closure, which
+allocates and, on this branch only, reads the evaluation-depth environment. With
+the options hoisted into batched setup it is +9.1 ns / +13.0%. And
+`FullPipeline` was handing the printer a fresh empty `SourceMap` with no
+comments, so it was timing a printer with no source file to resolve against; it
+now gets the fixture's own. Both were caught in review, and both corrections are
+in the committed bench.
 
 Taking them in the order the ticket asked for them:
 
-1. **The `Discover` walk.** Faster, by a lot, and the reason is the third group.
+1. **The `Discover` walk.** Over a module holding calls, faster by a lot, and
+   the reason is the third group.
    `add_call_expression` structurally hashes every call expression in every
-   module, and the structural key is 38-56% cheaper on this branch because
-   `DefaultHasher` became xxh3. A module with no calls at all is unchanged, which
-   is what says the walk itself did not move -- only the per-call work inside it.
+   module, and the structural key is 37-54% cheaper on this branch because
+   `DefaultHasher` became xxh3. A module with no calls at all reads inside the
+   file's own resolution, which is what says the walk itself did not move --
+   only the per-call work inside it.
    The spec's *Ruled out* table has the hasher change in it for the reason "xxh3
    is the faster hasher"; that is now measured rather than reasoned, and the
    direction is right.
 2. **`set_seen_module_source_code`.** No difference. Excluded, as the ticket said
    a null result here would exclude it.
-3. **`StateManager::new`.** 29 ns dearer per transform. Real, and far too small:
-   0.00004% of the 72 µs fixture, less of every other one.
+3. **`StateManager::new`.** 9.1 ns dearer per transform. Real, and far too
+   small: about a hundred-thousandth of the 72 µs fixture, less of every other
+   one.
 
 **A fourth leg was added, and it is the one that matters.** `FullPipeline` runs
 the whole chain `stylex_rs_compiler::transform` builds -- resolver, type

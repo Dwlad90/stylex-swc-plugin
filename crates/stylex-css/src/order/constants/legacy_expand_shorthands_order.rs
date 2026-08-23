@@ -1,4 +1,7 @@
-use crate::values::{common::split_value_required, parser::split_value_parts};
+use crate::values::{
+  common::{split_value_required, value_parts},
+  parser::split_value_parts,
+};
 use stylex_constants::constants::common::{LOGICAL_FLOAT_END_VAR, LOGICAL_FLOAT_START_VAR};
 use stylex_structures::{order_pair::OrderPair, raw_value::TRawValue};
 use stylex_utils::string::json_stringify;
@@ -210,11 +213,17 @@ impl Shorthands {
   }
 
   fn contain_intrinsic_size(raw_value: Option<TRawValue>) -> Result<Vec<OrderPair>, String> {
-    let parts = split_value_required(raw_value.as_ref());
-    let parts = [parts.0, parts.1, parts.2, parts.3];
+    // The parts themselves, not the four-sided view. This expansion folds over
+    // them rather than destructuring them, and the four-sided view repeats a
+    // missing side: `auto` arrived as four copies of itself, and the fold below
+    // joined each copy to the one before it, emitting `auto auto` for both axes.
+    let parts = value_parts(raw_value.as_ref());
 
     let mut coll: Vec<TRawValue> = Vec::with_capacity(parts.len());
 
+    // `auto` is a qualifier here rather than a size: `contain-intrinsic-size:
+    // auto 1px` means "1px, remembered", so the two belong to one axis and the
+    // fold joins them into one part.
     for part in parts {
       let follows_auto = coll
         .last()
@@ -231,8 +240,12 @@ impl Shorthands {
       coll.push(part);
     }
 
-    let width = coll.first().cloned().unwrap_or_default();
-    let height = coll[1].clone();
+    let mut folded = coll.into_iter();
+    let width = folded.next().unwrap_or_default();
+    // A value of one part sizes both axes with it, which is also why this reads
+    // the fold's output rather than indexing it: a single part leaves nothing at
+    // index one.
+    let height = folded.next().unwrap_or_else(|| width.clone());
 
     Ok(vec![
       OrderPair("containIntrinsicWidth".into(), Some(width)),

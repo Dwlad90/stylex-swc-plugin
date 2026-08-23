@@ -745,17 +745,94 @@ fn aliases_get_empty_returns_none() {
   assert!(Aliases::get("").is_none());
 }
 
-// ── Coverage: containIntrinsicSize single-value ─────────────────────
+// ── containIntrinsicSize: the `auto` fold ───────────────────────────
+//
+// `auto` qualifies the size beside it rather than being one -- `auto 1px` means
+// "1px, remembered" -- so the expansion folds the pair into a single part
+// before deciding which axis gets what. Each expectation below was read off
+// `@stylexjs/babel-plugin@0.19.0`; the two that used to disagree with it are
+// named as such.
 
-#[test]
-fn shorthands_get_contain_intrinsic_size_single_value() {
+/// The axes, as the text each would be spelled with.
+fn intrinsic_size(value: &str) -> (String, String) {
   let func = Shorthands::get("containIntrinsicSize").unwrap();
-  let result = func(Some("300px".into())).unwrap();
+  let result = func(Some(value.into())).unwrap();
+
   assert_eq!(result.len(), 2);
   assert_eq!(result[0].0, "containIntrinsicWidth");
-  // Single CSS value is duplicated by split_value_required,
-  // so height equals width.
-  assert_eq!(result[0].1, result[1].1);
+  assert_eq!(result[1].0, "containIntrinsicHeight");
+
+  (
+    result[0].value_text().into_owned(),
+    result[1].value_text().into_owned(),
+  )
+}
+
+#[test]
+fn one_size_sizes_both_axes() {
+  assert_eq!(
+    intrinsic_size("300px"),
+    ("300px".to_string(), "300px".to_string())
+  );
+}
+
+#[test]
+fn two_sizes_take_one_axis_each() {
+  assert_eq!(
+    intrinsic_size("300px 200px"),
+    ("300px".to_string(), "200px".to_string())
+  );
+  // A third size has no axis left to take.
+  assert_eq!(
+    intrinsic_size("1px 2px 3px"),
+    ("1px".to_string(), "2px".to_string())
+  );
+}
+
+#[test]
+fn auto_joins_the_size_after_it_into_one_part() {
+  assert_eq!(
+    intrinsic_size("auto 300px"),
+    ("auto 300px".to_string(), "auto 300px".to_string())
+  );
+  assert_eq!(
+    intrinsic_size("auto 300px auto 200px"),
+    ("auto 300px".to_string(), "auto 200px".to_string())
+  );
+}
+
+#[test]
+fn a_lone_auto_qualifies_nothing_and_sizes_both_axes() {
+  // The fold used to run over the four-sided view, which repeats a missing
+  // side, so this arrived as four copies of `auto` and each copy joined the one
+  // before it: both axes came out `auto auto`.
+  assert_eq!(
+    intrinsic_size("auto"),
+    ("auto".to_string(), "auto".to_string())
+  );
+}
+
+#[test]
+fn a_trailing_auto_has_nothing_to_qualify() {
+  // Same cause, seen from the other end: the repeated fourth side gave the
+  // trailing `auto` a size to swallow that the author never wrote, and the
+  // height came out `auto 300px`.
+  assert_eq!(
+    intrinsic_size("300px auto"),
+    ("300px".to_string(), "auto".to_string())
+  );
+}
+
+#[test]
+fn two_autos_join_each_other() {
+  assert_eq!(
+    intrinsic_size("auto auto"),
+    ("auto auto".to_string(), "auto auto".to_string())
+  );
+  assert_eq!(
+    intrinsic_size("auto auto 300px"),
+    ("auto auto".to_string(), "300px".to_string())
+  );
 }
 
 // ── Coverage: listStyle with non-type tokens ────────────────────────

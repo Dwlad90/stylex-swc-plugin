@@ -14,6 +14,30 @@ pub fn split_value_required(
   (top, right, bottom, left)
 }
 
+/// Every part of `value`, however many there are.
+///
+/// The four-sided view below is the common one, and it is built from this. An
+/// expansion that reduces the parts rather than destructuring them needs the
+/// list itself: the four-sided view repeats a missing side, so a value of one
+/// part arrives there as four copies of it, and a fold over those copies counts
+/// each one.
+pub fn value_parts(value: Option<&TRawValue>) -> Vec<TRawValue> {
+  // A number is returned untouched, so a shorthand hands the authored number
+  // to each expanded property and each appends its own unit suffix. Parsing it
+  // as CSS text would settle the unit here instead, and every expansion would
+  // inherit the shorthand's.
+  if let Some(TRawValue::Number(number)) = value {
+    return vec![TRawValue::Number(*number)];
+  }
+
+  let value = value.map(TRawValue::as_css_text).unwrap_or_default();
+
+  split_value_parts(value.as_ref())
+    .into_iter()
+    .map(TRawValue::String)
+    .collect()
+}
+
 pub fn split_value(
   value: Option<&TRawValue>,
 ) -> (
@@ -22,25 +46,12 @@ pub fn split_value(
   Option<TRawValue>,
   Option<TRawValue>,
 ) {
-  // A number is returned untouched, so a shorthand hands the authored number
-  // to each expanded property and each appends its own unit suffix. Parsing it
-  // as CSS text would settle the unit here instead, and every expansion would
-  // inherit the shorthand's.
-  if let Some(TRawValue::Number(number)) = value {
-    return (TRawValue::Number(*number), None, None, None);
-  }
+  let mut parts = value_parts(value).into_iter();
 
-  let value = value.map(TRawValue::as_css_text).unwrap_or_default();
-  let nodes = split_value_parts(value.as_ref());
-
-  let top = nodes
-    .first()
-    .cloned()
-    .map(TRawValue::String)
-    .unwrap_or_default();
-  let right = nodes.get(1).cloned().map(TRawValue::String);
-  let bottom = nodes.get(2).cloned().map(TRawValue::String);
-  let left = nodes.get(3).cloned().map(TRawValue::String);
+  let top = parts.next().unwrap_or_default();
+  let right = parts.next();
+  let bottom = parts.next();
+  let left = parts.next();
 
   (top, right, bottom, left)
 }

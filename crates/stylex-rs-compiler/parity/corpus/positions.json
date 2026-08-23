@@ -1,6 +1,6 @@
 {
   "set": "positions",
-  "description": "Refusals whose reported position is the thing under test: one per branch of the reference-resolution chain, plus the tail refusal that points at the read. Every one of these is refused by both compilers with the same sentence, so the only thing left to disagree about is where each sends the reader. The unresolvable-import branch is deliberately absent: under the `haste` resolution this harness hands both compilers, neither reaches it -- both refuse the value for its shape instead, and upstream's refusal there carries no code frame at all. That branch is measured in the Rust suite rather than here.",
+  "description": "Refusals whose reported position is the thing under test: one per branch of the reference-resolution chain, plus the tail refusal that points at the read. Every one of these is refused by both compilers with the same sentence, so the only thing left to disagree about is where each sends the reader. The unresolvable-import branch is deliberately absent: under the `haste` resolution this harness hands both compilers, neither reaches it -- both refuse the value for its shape instead, and upstream's refusal there carries no code frame at all. That branch is measured in the Rust suite rather than here. Five CSS refusals sit below the reference-resolution chain, and they answer a question the chain cannot: where a *value* refusal points. All five read `neither-position` -- neither compiler frames a CSS refusal at all -- which is why they are worth carrying even though nothing about them can diverge today. Three of the five CSS guards are deliberately absent: the declaration-terminating token, the unclosed comment and the nesting budget are refusals the reference compiler does not make, so it emits the value and there is no second position to compare. Those three are pinned by refusal family in the value harness, and asking them here would only ever read `not-refused`.",
   "entries": [
     {
       "id": "positions-reassigned-binding",
@@ -87,6 +87,46 @@
       "source": "import * as stylex from '@stylexjs/stylex';\nconst pad = '🎨'; let c = 'red';\nc = 'blue';\nexport const styles = stylex.create({ x: { color: c } });\n",
       "origin": "evaluate-path.js:657 — deopt(binding.path, NON_CONSTANT)",
       "note": "Measured rather than assumed, and the answer is that they agree. Babel's loc.column counts UTF-16 code units, and a code frame column could have counted Unicode scalar values instead -- one astral character before the framed declaration is exactly where the two would part company, and they do not. Kept so the agreement is a fixture rather than a memory. The character sits in a string because it is not a valid identifier and both compilers refuse it as one."
+    },
+    {
+      "id": "positions-css-unclosed-function",
+      "label": "a value whose function is never closed",
+      "source": "import * as stylex from '@stylexjs/stylex';\nexport const styles = stylex.create({\n  x: { color: 'calc(100% - 20px' },\n});\n",
+      "origin": "normalize_value.rs — the first value pass, LINT_UNCLOSED_FUNCTION",
+      "note": "One of the two value guards both compilers reach with the same sentence, which is what makes the position the only thing left to disagree about -- and the answer is that there is nothing to disagree about: neither compiler says where. This one throws the sentence with the repaired rule text appended and writes no code frame to stderr, unlike every evaluator refusal above; the reference compiler prefixes the filename and attaches no code frame either. Pinned at `neither-position` so the day either side starts framing a value refusal reports as a changed verdict.",
+      "expected": "neither-position"
+    },
+    {
+      "id": "positions-css-unclosed-string",
+      "label": "a value whose string is never closed",
+      "source": "import * as stylex from '@stylexjs/stylex';\nexport const styles = stylex.create({\n  x: { color: '\"abc var(foo)' },\n});\n",
+      "origin": "normalize_value.rs — the second value pass, LINT_UNCLOSED_STRING",
+      "note": "The other of the two, written with the quote first so the unclosed string is reached before the function inside it, which is the pass order the sentence names. Silent on both sides, same as its neighbour: the hole is in the guard layer rather than in one guard.",
+      "expected": "neither-position"
+    },
+    {
+      "id": "positions-css-two-faults-token-then-unclosed-function",
+      "label": "a value that is both rule-breaking and unclosed at a function",
+      "source": "import * as stylex from '@stylexjs/stylex';\nexport const styles = stylex.create({\n  x: { color: 'red;calc(1px' },\n});\n",
+      "origin": "common.rs — the declaration-terminating token guard, now running after the two passes the reference compiler also refuses",
+      "note": "The case the two compilers are most likely to name different places in: they arrive at the same sentence from different passes, because the guard order here was changed to buy that agreement rather than because both compilers check in the same order. Nothing would have reported it if the position moved with that reorder, which is why this subject exists -- and what it reports is that there is no position on either side to move.",
+      "expected": "neither-position"
+    },
+    {
+      "id": "positions-css-two-faults-token-then-unclosed-string",
+      "label": "a value that is both rule-breaking and unclosed at a string",
+      "source": "import * as stylex from '@stylexjs/stylex';\nexport const styles = stylex.create({\n  x: { color: 'red;\"a' },\n});\n",
+      "origin": "common.rs — the same guard, reached past the unclosed-string pass",
+      "note": "The second of the pair, because the two faults are settled by different passes and a reorder could move one and not the other.",
+      "expected": "neither-position"
+    },
+    {
+      "id": "positions-css-invalid-condition-key",
+      "label": "a condition key that is neither a pseudo nor an at-rule",
+      "source": "import * as stylex from '@stylexjs/stylex';\nexport const styles = stylex.create({\n  x: { color: { default: 'red', 'hover': 'blue' } },\n});\n",
+      "origin": "the condition-key guard, INVALID_PSEUDO_OR_AT_RULE",
+      "note": "The one CSS refusal in the set that is about a key rather than a value, reached from the style walk rather than from a value pass -- so it is a different way of arriving at a position, and it arrives at the same nothing. Which is the useful half of the answer: the silence is not a property of the value passes but of every CSS refusal either compiler makes.",
+      "expected": "neither-position"
     }
   ]
 }

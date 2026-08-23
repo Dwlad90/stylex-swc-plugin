@@ -184,6 +184,7 @@ const POSITION_VERDICTS: readonly PositionVerdict[] = [
   'identical',
   'divergent',
   'no-position',
+  'neither-position',
   'not-refused',
 ];
 
@@ -338,8 +339,14 @@ async function report(): Promise<void> {
   }
 
   const identical = results.filter(result => result.verdict === 'identical').length;
+  // Counted apart from the agreeing total, for the reason `neither-position`
+  // exists: a subject where both compilers said nothing is agreement about a
+  // hole, and folding it into "point at the same place" would read as a position
+  // that was measured.
+  const silent = results.filter(result => result.verdict === 'neither-position').length;
   console.log(
     `\n${identical}/${results.length} subjects point at the same place; ` +
+      (silent === 0 ? '' : `${silent} point nowhere on either side; `) +
       `${unexpected} unexpected verdict${unexpected === 1 ? '' : 's'}.`
   );
 
@@ -361,6 +368,7 @@ const VERDICT_LABELS: Record<PositionVerdict, string> = {
   identical: chalk.green('identical'),
   divergent: chalk.red('divergent'),
   'no-position': chalk.yellow('one side said nothing about where'),
+  'neither-position': chalk.gray('neither said anything about where'),
   'not-refused': chalk.magenta('not refused by both'),
 };
 

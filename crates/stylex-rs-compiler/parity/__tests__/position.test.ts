@@ -113,8 +113,18 @@ describe('positionVerdict', () => {
     expect(positionVerdict(at(2, 5), undefined, true)).toBe('no-position');
   });
 
+  test('both compilers silent is a hole they share, not a difference between them', () => {
+    // Which is every CSS refusal: neither compiler frames one. Reported apart
+    // from `no-position` because that verdict is a row to act on -- one side
+    // stopped without saying where -- and this one is agreement about a hole.
+    expect(positionVerdict(undefined, undefined, true)).toBe('neither-position');
+  });
+
   test('a subject one compiler compiled is not a position question', () => {
     expect(positionVerdict(at(2, 5), at(2, 5), false)).toBe('not-refused');
+    // Asked before either position is: a subject nobody refused has no position
+    // to be silent about, so it must not read `neither-position`.
+    expect(positionVerdict(undefined, undefined, false)).toBe('not-refused');
   });
 });
 

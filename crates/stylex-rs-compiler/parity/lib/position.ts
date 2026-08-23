@@ -117,8 +117,24 @@ export function rustPosition(stderr: string): ReportedPosition | undefined {
  * `no-position` is kept apart from `divergent` because the two are different
  * failures: one compiler stopped without saying where, which is a hole in a
  * diagnostic rather than a disagreement about a line.
+ *
+ * `neither-position` is kept apart from `no-position` for the same kind of
+ * reason, and it took a CSS subject to find: every value refusal in both
+ * compilers points nowhere at all — this one throws the sentence with the
+ * repaired rule text and writes no frame to stderr, and the reference compiler
+ * prefixes the filename and attaches no code frame either. Reported as one
+ * verdict rather than as `no-position` because the two say opposite things about
+ * the same run: one compiler being silent is a difference between them, and both
+ * being silent is a hole they share. Calling the second the first would report a
+ * divergence in a place there is none, and — since a `no-position` row is a row
+ * to act on — would put five permanent failures in front of the reader.
  */
-export type PositionVerdict = 'identical' | 'divergent' | 'no-position' | 'not-refused';
+export type PositionVerdict =
+  | 'identical'
+  | 'divergent'
+  | 'no-position'
+  | 'neither-position'
+  | 'not-refused';
 
 export function positionVerdict(
   rust: ReportedPosition | undefined,
@@ -126,6 +142,7 @@ export function positionVerdict(
   bothRefused: boolean
 ): PositionVerdict {
   if (!bothRefused) return 'not-refused';
+  if (rust === undefined && babel === undefined) return 'neither-position';
   if (rust === undefined || babel === undefined) return 'no-position';
 
   return rust.line === babel.line && rust.column === babel.column ? 'identical' : 'divergent';

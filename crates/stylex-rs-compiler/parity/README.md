@@ -140,12 +140,36 @@ as written reads as agreement here. A refused build hands an author two things,
 and that is the second one.
 
 `pnpm parity:positions` compares it, over `corpus/positions.json`: one subject
-per branch of the reference-resolution chain, each refused by both compilers with
-the same sentence so that the position is all that is left to disagree about.
-Verdicts are `identical`, `divergent`, `no-position` — one side stopped without
-saying where — and `not-refused`. An entry may pin a known divergence with
-`expected`, and the run exits non-zero when an entry's verdict is not what it
-expects, in either direction.
+per branch of the reference-resolution chain, plus five CSS refusals, each refused
+by both compilers with the same sentence so that the position is all that is left
+to disagree about. Verdicts are `identical`, `divergent`, `no-position` — one side
+stopped without saying where — `neither-position` — neither did — and
+`not-refused`. An entry may pin a known divergence with `expected`, and the run
+exits non-zero when an entry's verdict is not what it expects, in either
+direction.
+
+The CSS subjects are what `neither-position` was added for, and they are the whole
+of that verdict's population. **No CSS refusal in either compiler says where it
+happened.** This one throws the sentence with the repaired rule text appended and
+writes no frame to stderr, unlike every evaluator refusal beside it; the reference
+compiler prefixes the filename and attaches no `@babel/code-frame` excerpt. That
+is agreement about a hole rather than a disagreement about a line, which is why it
+is not folded into `no-position` — a `no-position` row is one to act on, and five
+permanent ones in front of the reader is how a report stops being read. All five
+carry `expected`, so the day either compiler starts framing a value refusal is a
+changed verdict rather than silence.
+
+Three of the five value guards are deliberately not asked here: the
+declaration-terminating token, the unclosed comment and the nesting budget are
+refusals the reference compiler does not make at all — it emits the value — so
+there is no second position to compare and the subject could only ever read
+`not-refused`. Those three are pinned by refusal family in the value harness
+instead. What is asked is the two the reference compiler does refuse, the two-fault
+value where the two compilers reach the same sentence from _different_ passes
+because the guard order here was changed to buy that agreement, and one condition
+key, which arrives at the refusal from the style walk rather than from a value
+pass. The last is the one that makes the finding general: the silence is a property
+of every CSS refusal, not of the value passes.
 
 ```sh
 pnpm run --filter=@stylexswc/rs-compiler build     # the harness reads dist/

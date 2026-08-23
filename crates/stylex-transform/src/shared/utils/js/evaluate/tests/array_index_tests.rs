@@ -59,6 +59,17 @@ fn an_index_written_as_a_whole_float_names_its_slot() {
   assert_folds_to_string("[\"1px\", \"2px\"][1.0]", "2px");
 }
 
+/// Negative zero is `0` as a property key, because `String(-0)` is `"0"`. Rust's
+/// `Display` spells it `"-0"`, which is not a canonical digit key and so read as
+/// an ordinary property name -- the slot went missing and the read folded to
+/// `undefined` where the language answers the first element.
+#[test]
+fn a_negative_zero_index_names_the_first_slot() {
+  assert_folds_to_string("[\"1px\", \"2px\"][-0]", "1px");
+  assert_folds_to_string("(0 ? [] : [\"1px\"])[-0]", "1px");
+  assert_folds_to_number("[10, 20][-0]", 10.0);
+}
+
 /// The second row of the reported shape: an index read feeding another array,
 /// which is where the refusal used to arrive one level in.
 #[test]
@@ -97,6 +108,20 @@ fn a_non_canonical_digit_key_is_not_an_index() {
   assert_folds_to_undefined("[\"1px\"][\"007\"]");
   assert_folds_to_undefined("(0 ? [] : [\"1px\"])[\"00\"]");
   assert_folds_to_undefined("Object.keys({ a: 1 })[\"00\"]");
+}
+
+/// A magnitude the language spells in exponential form is not a slot either way,
+/// so an array answers `undefined` however the key is spelled. Pinned so the
+/// spelling change that fixed negative zero is not read as having moved this.
+///
+/// That the *spelling itself* is the language's rather than Rust's is asked of
+/// `as_string_key` directly, in `evaluate_result_value`'s own tests: no receiver
+/// reachable from here distinguishes `"1e-7"` from `"0.0000001"`, because
+/// neither is a canonical digit key.
+#[test]
+fn an_exponential_index_names_no_slot() {
+  assert_folds_to_undefined("[\"1px\"][1e-7]");
+  assert_folds_to_undefined("[\"1px\"][1e21]");
 }
 
 /// A key that is numeric-looking but names no slot at all -- negative,

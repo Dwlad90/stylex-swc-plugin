@@ -23,6 +23,7 @@ use crate::shared::{
 use stylex_constants::constants::common::COMPILED_KEY;
 use stylex_structures::stylex_env::EnvEntry;
 use stylex_types::traits::WhenMarkerValue;
+use stylex_utils::number::to_js_string;
 
 pub enum EvaluateResultValue {
   Null,
@@ -247,7 +248,12 @@ impl EvaluateResultValue {
       Self::Expr(expr) => match expr {
         Expr::Ident(ident) => Some(ident.sym.to_string()),
         Expr::Lit(Lit::Str(s)) => s.value.as_str().map(str::to_string),
-        Expr::Lit(Lit::Num(n)) => Some(n.value.to_string()),
+        // A property key is `ToPropertyKey`, which is `ToString` -- not Rust's
+        // `Display`. The two part company on `-0` (`"0"` in the language, `"-0"`
+        // here) and on every magnitude that takes exponential form (`"1e-7"`
+        // against `"0.0000001"`), so `list[-0]` read no element and `obj[1e-7]`
+        // found no property.
+        Expr::Lit(Lit::Num(n)) => Some(to_js_string(n.value)),
         Expr::Lit(Lit::BigInt(bi)) => Some(bi.value.to_string()),
         _ => None,
       },
@@ -328,5 +334,50 @@ fn prop_name_as_str(key: &PropName) -> Option<&str> {
     PropName::Ident(ident) => Some(ident.sym.as_str()),
     PropName::Str(str_lit) => str_lit.value.as_str(),
     _ => None,
+  }
+}
+
+#[cfg(test)]
+mod string_key_tests {
+  use swc_core::{
+    common::DUMMY_SP,
+    ecma::ast::{Expr, Lit, Number},
+  };
+
+  use super::EvaluateResultValue;
+
+  fn key_of(value: f64) -> Option<String> {
+    EvaluateResultValue::Expr(Expr::Lit(Lit::Num(Number {
+      span: DUMMY_SP,
+      value,
+      raw: None,
+    })))
+    .as_string_key()
+  }
+
+  /// A property key is `ToPropertyKey`, which is `ToString`. Rust's `Display`
+  /// agrees on the ordinary magnitudes and parts company on three shapes: it
+  /// signs negative zero, and it never switches to exponential form at either
+  /// end of the range.
+  ///
+  /// Only the first of those is reachable through a member read today -- an
+  /// array reads `[-0]` as its first slot, where `"-0"` named no slot at all --
+  /// but all three are the same one-line mistake, and the receiver that
+  /// distinguishes the other two is one new fold away.
+  #[test]
+  fn a_number_key_is_spelled_the_way_the_language_spells_it() {
+    assert_eq!(key_of(-0.0).as_deref(), Some("0"));
+    assert_eq!(key_of(1e-7).as_deref(), Some("1e-7"));
+    assert_eq!(key_of(1e21).as_deref(), Some("1e+21"));
+  }
+
+  /// And agrees with `Display` everywhere else, so the change is confined to the
+  /// spellings above.
+  #[test]
+  fn an_ordinary_number_key_is_unchanged() {
+    assert_eq!(key_of(0.0).as_deref(), Some("0"));
+    assert_eq!(key_of(1.0).as_deref(), Some("1"));
+    assert_eq!(key_of(42.5).as_deref(), Some("42.5"));
+    assert_eq!(key_of(-7.0).as_deref(), Some("-7"));
   }
 }

@@ -749,6 +749,24 @@ impl StateManager {
     None
   }
 
+  /// Takes the four binding sets the `Discover` pre-scan collected.
+  ///
+  /// One method rather than four assignments at each of the two call sites: the
+  /// sets are read as a group by the reference chain, and a site that adopted
+  /// three of them would leave the fourth holding the previous module's answer.
+  pub(crate) fn adopt_binding_writes(
+    &mut self,
+    reassignments: FxHashSet<Id>,
+    mutations: FxHashSet<Id>,
+    deep_mutations: FxHashSet<Id>,
+    declared: FxHashSet<Id>,
+  ) {
+    self.binding_reassignments = Rc::new(reassignments);
+    self.binding_mutations = Rc::new(mutations);
+    self.binding_deep_mutations = Rc::new(deep_mutations);
+    self.declared_bindings = Rc::new(declared);
+  }
+
   /// Appends a declarator and records where it went.
   ///
   /// Every caller that grows [`Self::declarations`] goes through here, so the

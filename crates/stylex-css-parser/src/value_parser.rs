@@ -5,6 +5,8 @@ use cssparser::{
 };
 use stylex_macros::stylex_unreachable;
 
+use crate::token_types::leading_f64;
+
 pub fn format_ident(ident: &str) -> String {
   let mut result = String::with_capacity(ident.len());
   // `serialize_identifier` only fails if the underlying writer fails;
@@ -21,7 +23,24 @@ pub fn format_quoted_string(string: &str) -> String {
   result
 }
 
-fn parse_css_inner<'a>(parser: &mut Parser) -> Result<Vec<String>, ParseError<'a, Vec<String>>> {
+/// The number a numeric token was written with, re-read from the source.
+///
+/// This function echoes an authored value rather than computing one, so the
+/// number it prints has to be the number the author typed. `cssparser` hands
+/// it over as an `f32`, which is not wide enough to say so: it rounds
+/// `1.2345678901234567px` to `1.2345679px` and saturates
+/// `1.7976931348623157e308px` to infinity, printing `infpx` into a stylesheet.
+///
+/// `fallback` is `cssparser`'s own value, widened, and is used only when the
+/// slice holds no number to read -- which the token type says cannot happen.
+fn authored_number(input: &str, token_offset: SourcePosition, fallback: f32) -> f64 {
+  leading_f64(&input[token_offset.byte_index()..]).unwrap_or(fallback as f64)
+}
+
+fn parse_css_inner<'a>(
+  input: &str,
+  parser: &mut Parser,
+) -> Result<Vec<String>, ParseError<'a, Vec<String>>> {
   let mut result: Vec<String> = vec![];
 
   while let Some((token_offset, token)) = {
@@ -43,17 +62,17 @@ fn parse_css_inner<'a>(parser: &mut Parser) -> Result<Vec<String>, ParseError<'a
       Token::Comma => iter_result.push(','),
       Token::ParenthesisBlock => {
         iter_result.push('(');
-        iter_result.push_str(&parse_nested_joined(parser));
+        iter_result.push_str(&parse_nested_joined(input, parser));
         iter_result.push(')');
       },
       Token::SquareBracketBlock => {
         iter_result.push('[');
-        iter_result.push_str(&parse_nested_joined(parser));
+        iter_result.push_str(&parse_nested_joined(input, parser));
         iter_result.push(']');
       },
       Token::CurlyBracketBlock => {
         iter_result.push('{');
-        iter_result.push_str(&parse_nested_joined(parser));
+        iter_result.push_str(&parse_nested_joined(input, parser));
         iter_result.push('}');
       },
       Token::CloseParenthesis => iter_result.push(')'),
@@ -91,7 +110,11 @@ fn parse_css_inner<'a>(parser: &mut Parser) -> Result<Vec<String>, ParseError<'a
         if *has_sign && *value >= 0. {
           iter_result.push('+');
         }
-        let _ = write!(iter_result, "{value}");
+        let _ = write!(
+          iter_result,
+          "{}",
+          authored_number(input, token_offset, *value)
+        );
       },
       Token::Percentage {
         ref has_sign,
@@ -101,7 +124,9 @@ fn parse_css_inner<'a>(parser: &mut Parser) -> Result<Vec<String>, ParseError<'a
         if *has_sign && *unit_value >= 0. {
           iter_result.push('+');
         }
-        let _ = write!(iter_result, "{}", unit_value * 100.0);
+        // The authored percent, not the fraction scaled back up.
+        let percent = authored_number(input, token_offset, unit_value * 100.0);
+        let _ = write!(iter_result, "{percent}");
         iter_result.push('%');
       },
       Token::Dimension {
@@ -113,7 +138,11 @@ fn parse_css_inner<'a>(parser: &mut Parser) -> Result<Vec<String>, ParseError<'a
         if *has_sign && *value >= 0. {
           iter_result.push('+');
         }
-        let _ = write!(iter_result, "{value}");
+        let _ = write!(
+          iter_result,
+          "{}",
+          authored_number(input, token_offset, *value)
+        );
         iter_result.push_str(unit.as_ref());
       },
       Token::UnquotedUrl(_) | Token::BadUrl(_) | Token::BadString(_) => {
@@ -123,7 +152,7 @@ fn parse_css_inner<'a>(parser: &mut Parser) -> Result<Vec<String>, ParseError<'a
       Token::Function(ref name) => {
         iter_result.push_str(name);
         iter_result.push('(');
-        iter_result.push_str(&parse_nested_joined(parser));
+        iter_result.push_str(&parse_nested_joined(input, parser));
         iter_result.push(')');
       },
     }
@@ -147,7 +176,7 @@ fn parse_css_inner_unreachable(_err: ParseError<'_, Vec<String>>) -> Vec<String>
 pub fn parse_css(css_string: &str) -> Vec<String> {
   let mut input = ParserInput::new(css_string);
   let mut parser = Parser::new(&mut input);
-  let nodes = parse_css_inner(&mut parser).unwrap_or_else(parse_css_inner_unreachable);
+  let nodes = parse_css_inner(css_string, &mut parser).unwrap_or_else(parse_css_inner_unreachable);
 
   nodes
     .into_iter()
@@ -175,9 +204,9 @@ pub fn join_css(nodes: &[String]) -> String {
   result
 }
 
-fn parse_nested_joined(parser: &mut Parser) -> String {
+fn parse_nested_joined(input: &str, parser: &mut Parser) -> String {
   let block_css: Vec<String> = parser
-    .parse_nested_block(|parser| parse_css_inner(parser))
+    .parse_nested_block(|parser| parse_css_inner(input, parser))
     .unwrap_or_default();
   join_css(&block_css)
 }

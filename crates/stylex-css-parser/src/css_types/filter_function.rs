@@ -4,10 +4,7 @@ CSS filter function parser.
 
 use crate::{
   CssParseError,
-  css_types::{
-    Angle, Length,
-    common_types::{NumberOrPercentage, number_or_percentage_parser},
-  },
+  css_types::{Angle, Length, common_types::number_or_percentage_parser},
   token_parser::TokenParser,
   token_types::SimpleToken,
 };
@@ -175,10 +172,7 @@ impl BrightnessFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value,
-          NumberOrPercentage::Percentage(p) => p.value / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         if value < 0.0 {
           return Err(CssParseError::ParseError {
@@ -243,10 +237,7 @@ impl ContrastFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value,
-          NumberOrPercentage::Percentage(p) => p.value / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -305,10 +296,7 @@ impl GrayscaleFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value,
-          NumberOrPercentage::Percentage(p) => p.value / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -425,10 +413,7 @@ impl InvertFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value,
-          NumberOrPercentage::Percentage(p) => p.value / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -487,10 +472,7 @@ impl OpacityFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value,
-          NumberOrPercentage::Percentage(p) => p.value / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -549,10 +531,7 @@ impl SaturateFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value,
-          NumberOrPercentage::Percentage(p) => p.value / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {
@@ -611,10 +590,7 @@ impl SepiaFilterFunction {
 
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
-        let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value,
-          NumberOrPercentage::Percentage(p) => p.value / 100.0,
-        };
+        let value = number_or_percentage.as_fraction();
 
         // Skip optional whitespace
         while let Ok(Some(SimpleToken::Whitespace)) = tokens.peek() {

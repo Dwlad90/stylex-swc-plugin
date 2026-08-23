@@ -65,3 +65,70 @@ fn format_ident_handles_underscores_dashes_and_the_empty_name() {
 fn parse_css_panics_on_unquoted_url_values() {
   let _ = parse_css("url(foo)");
 }
+
+// ---------------------------------------------------------------------------
+// Authored numbers are echoed, not re-derived
+// ---------------------------------------------------------------------------
+//
+// `parse_css` echoes an authored value rather than computing one, so the
+// number it prints has to be the number the author typed. `cssparser` hands it
+// over as an `f32`, which is not wide enough to say so, and this function used
+// to print that `f32` straight out. Every expectation below was confirmed
+// against `@stylexjs/babel-plugin@0.19.0` run over the same declaration.
+
+/// Seventeen significant digits and a fraction with no short `f32` spelling.
+/// These printed as `1.2345679px` and `33.333336%`.
+#[test]
+fn a_value_past_single_precision_is_echoed_with_its_own_digits() {
+  assert_eq!(
+    parse_css("1.2345678901234567px 33.333333333333336% 2px"),
+    vec!["1.2345678901234567px", "33.333333333333336%", "2px"]
+  );
+}
+
+/// The worst of it: a magnitude inside the double range but past the single
+/// one saturated to infinity, and `infpx` went into the stylesheet.
+#[test]
+fn a_magnitude_past_the_single_precision_range_is_not_infinity() {
+  let printed = parse_css("1.7976931348623157e308px");
+
+  assert_eq!(printed.len(), 1);
+  assert!(!printed[0].contains("inf"), "{}", printed[0]);
+}
+
+/// A percentage is echoed as authored rather than divided and multiplied back
+/// up, which is what made `7%` a candidate for `7.000000000000001%`.
+#[test]
+fn a_percentage_is_echoed_as_authored() {
+  assert_eq!(parse_css("7% 50% 0.0005%"), vec!["7%", "50%", "0.0005%"]);
+}
+
+/// The values people actually write are unchanged, so the fix is shown to move
+/// only what was wrong.
+#[test]
+fn ordinary_values_are_unchanged() {
+  assert_eq!(
+    parse_css("1.2rem 28.81rem 0.0005px +50% -1.5px 0"),
+    vec!["1.2rem", "28.81rem", "0.0005px", "+50%", "-1.5px", "0"]
+  );
+}
+
+/// Numbers nested inside a function take the recursive path, which threads the
+/// same source offset through a nested parser.
+#[test]
+fn numbers_nested_in_a_function_keep_their_digits() {
+  assert_eq!(
+    parse_css("translate(1.2345678901234567px, 2px)"),
+    vec!["translate(1.2345678901234567px,2px)"]
+  );
+}
+
+/// A number after multibyte text, where a cursor that counted characters
+/// instead of bytes would read from the wrong offset.
+#[test]
+fn a_number_after_multibyte_text_is_read_from_its_own_bytes() {
+  assert_eq!(
+    parse_css("\"héllo — wörld\" 1.2345678901234567px"),
+    vec!["\"héllo — wörld\"", "1.2345678901234567px"]
+  );
+}

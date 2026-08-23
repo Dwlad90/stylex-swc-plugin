@@ -229,6 +229,21 @@ pub enum NumberOrPercentage {
   Percentage(Percentage),
 }
 
+impl NumberOrPercentage {
+  /// This value as a fraction: a bare number as itself, a percentage divided
+  /// by 100.
+  ///
+  /// A percentage token carries the percent that was authored, so every caller
+  /// that wants a fraction has to divide -- and eight of them were writing the
+  /// same two-arm match to do it.
+  pub fn as_fraction(&self) -> f64 {
+    match self {
+      NumberOrPercentage::Number(number) => number.value,
+      NumberOrPercentage::Percentage(percentage) => percentage.value / 100.0,
+    }
+  }
+}
+
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for NumberOrPercentage {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

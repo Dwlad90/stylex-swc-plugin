@@ -33,9 +33,16 @@ fn rgb_number_parser() -> TokenParser<u8> {
     .map(|v| v as u8, Some("to_u8"))
 }
 
-// Bridge: `AlphaValue` holds a double now, the colour channels do not yet.
+// The colour channels in this module still hold single precision while every
+// other numeric CSS type holds a double, so an alpha is narrowed on its way in.
+// These two are the only places that narrowing happens, and both go when the
+// channels widen -- searching for `narrowed_alpha` finds all of it.
+fn narrowed_alpha(alpha: f64) -> f32 {
+  alpha as f32
+}
+
 fn alpha_as_number() -> TokenParser<f32> {
-  crate::css_types::alpha_value::alpha_as_number().map(|alpha| alpha as f32, Some("narrow_alpha"))
+  crate::css_types::alpha_value::alpha_as_number().map(narrowed_alpha, Some("narrow_alpha"))
 }
 
 /// Returns true when `token` is a Function token with the given name. Returns
@@ -1432,8 +1439,7 @@ impl Hsl {
       })?;
 
     if let SimpleToken::Percentage(value) = token {
-      // cssparser stores percentage as already converted (0.5 for 50%)
-      // Convert to our format (50.0 for 50%)
+      // The token already carries the authored percent: `50%` is `50`.
       Ok(Percentage::new(value))
     } else {
       Err(CssParseError::ParseError {
@@ -1717,8 +1723,7 @@ impl Hsla {
       })?;
 
     if let SimpleToken::Percentage(value) = token {
-      // cssparser stores percentage as already converted (0.5 for 50%)
-      // Convert to our format (50.0 for 50%)
+      // The token already carries the authored percent: `50%` is `50`.
       Ok(Percentage::new(value))
     } else {
       Err(CssParseError::ParseError {
@@ -1958,8 +1963,7 @@ impl Lch {
         // Parse alpha value using enhanced alpha parser
         let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
         match alpha_parser.run.as_ref()(input) {
-          // Bridge: this colour's alpha channel is still single precision.
-          Ok(alpha) => Ok(Some(alpha as f32)),
+          Ok(alpha) => Ok(Some(narrowed_alpha(alpha))),
           Err(e) => Err(e),
         }
       },
@@ -2190,8 +2194,7 @@ impl Oklch {
         // Parse alpha value using enhanced alpha parser
         let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
         match alpha_parser.run.as_ref()(input) {
-          // Bridge: this colour's alpha channel is still single precision.
-          Ok(alpha) => Ok(Some(alpha as f32)),
+          Ok(alpha) => Ok(Some(narrowed_alpha(alpha))),
           Err(e) => Err(e),
         }
       },
@@ -2329,8 +2332,7 @@ impl Oklab {
         // Parse alpha value using enhanced alpha parser
         let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
         match alpha_parser.run.as_ref()(input) {
-          // Bridge: this colour's alpha channel is still single precision.
-          Ok(alpha) => Ok(Some(alpha as f32)),
+          Ok(alpha) => Ok(Some(narrowed_alpha(alpha))),
           Err(e) => Err(e),
         }
       },

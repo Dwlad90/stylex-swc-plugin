@@ -5,11 +5,8 @@ CSS transform function parser.
 use crate::{
   CssParseError,
   css_types::{
-    angle::Angle,
-    common_types::{NumberOrPercentage, number_or_percentage_parser},
-    length::Length,
-    length_percentage::LengthPercentage,
-    length_percentage_parser,
+    angle::Angle, common_types::number_or_percentage_parser, length::Length,
+    length_percentage::LengthPercentage, length_percentage_parser,
   },
   token_parser::TokenParser,
   token_types::{SimpleToken, TokenList},
@@ -151,14 +148,6 @@ pub enum Axis {
 pub enum SkewAxis2D {
   X,
   Y,
-}
-
-// Helper to convert NumberOrPercentage to f64 (percentage becomes 0-1 range)
-fn number_or_percentage_to_f64(n: NumberOrPercentage) -> f64 {
-  match n {
-    NumberOrPercentage::Number(n) => n.value,
-    NumberOrPercentage::Percentage(p) => p.value / 100.0,
-  }
 }
 
 // Helper function to create a number parser
@@ -697,8 +686,8 @@ impl Scale {
           });
         }
 
-        let sx_f64 = number_or_percentage_to_f64(sx);
-        let sy_f64 = sy.map(number_or_percentage_to_f64);
+        let sx_f64 = sx.as_fraction();
+        let sy_f64 = sy.map(|value| value.as_fraction());
 
         Ok(Scale::new(sx_f64, sy_f64))
       },
@@ -800,9 +789,9 @@ impl Scale3d {
         }
 
         // Convert to f64 values
-        let sx_f64 = number_or_percentage_to_f64(sx);
-        let sy_f64 = number_or_percentage_to_f64(sy);
-        let sz_f64 = number_or_percentage_to_f64(sz);
+        let sx_f64 = sx.as_fraction();
+        let sy_f64 = sy.as_fraction();
+        let sz_f64 = sz.as_fraction();
 
         Ok(Scale3d::new(sx_f64, sy_f64, sz_f64))
       },
@@ -834,7 +823,7 @@ impl ScaleAxis {
       )
       .flat_map(
         move |(axis, s)| {
-          let s_f64 = number_or_percentage_to_f64(s);
+          let s_f64 = s.as_fraction();
           close.clone().map(
             move |_| ScaleAxis::new(s_f64, axis.clone()),
             Some("to_scaleaxis"),

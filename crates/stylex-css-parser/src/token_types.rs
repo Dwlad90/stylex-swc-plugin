@@ -76,7 +76,7 @@ impl SimpleToken {
 /// `text` starts at the token but runs to the end of the input, so the number is
 /// taken as a prefix. `None` means no number is there to read, and the caller
 /// falls back to widening `cssparser`'s own value.
-fn leading_f64(text: &str) -> Option<f64> {
+pub(crate) fn leading_f64(text: &str) -> Option<f64> {
   let bytes = text.as_bytes();
   let mut end = 0;
   let mut digits = false;
@@ -204,13 +204,20 @@ fn handle_nested_block_result(result: Result<(), cssparser::ParseError<'_, ()>>)
   }
 }
 
+/// The byte offset the next token starts at.
+///
+/// Read *before* the token is consumed. `SourcePosition` indexes the original
+/// input even inside a nested block, and the whitespace-including variant of
+/// `next` leaves the cursor on the token's first byte, so this is where the
+/// numeric variants read their authored digits from.
+fn next_token_offset(parser: &Parser) -> usize {
+  parser.position().byte_index()
+}
+
 /// Recursively tokenize nested content, handling ParenthesisBlock and other
 /// nested structures
 fn tokenize_nested_content(input: &str, parser: &mut Parser, tokens: &mut Vec<SimpleToken>) {
-  // Read before the token is consumed: `SourcePosition` indexes the original
-  // input, and the whitespace-including variant leaves it on the token's first
-  // byte.
-  let mut start = parser.position().byte_index();
+  let mut start = next_token_offset(parser);
   while let Ok(inner_token) = parser.next_including_whitespace_and_comments() {
     match &inner_token {
       // Handle nested ParenthesisBlock recursively
@@ -246,7 +253,7 @@ fn tokenize_nested_content(input: &str, parser: &mut Parser, tokens: &mut Vec<Si
         tokens.push(map_css_token(inner_token, &input[start..]));
       },
     }
-    start = parser.position().byte_index();
+    start = next_token_offset(parser);
   }
 }
 
@@ -255,7 +262,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
   let mut parser = Parser::new(&mut input_buf);
 
   let mut tokens = Vec::new();
-  let mut start = parser.position().byte_index();
+  let mut start = next_token_offset(&parser);
   while let Ok(t) = parser.next_including_whitespace_and_comments() {
     match &t {
       // ENHANCED: Handle Function tokens by expanding their content
@@ -294,7 +301,7 @@ fn tokenize_all(input: &str) -> Vec<SimpleToken> {
         tokens.push(map_css_token(t, &input[start..]));
       },
     }
-    start = parser.position().byte_index();
+    start = next_token_offset(&parser);
   }
   tokens
 }

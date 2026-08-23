@@ -27,23 +27,32 @@ use crate::shared::utils::ast::helpers::{
 /// agree only for the first file a process compiles -- and subtracting one from
 /// the other silently ranked by "earliest in the file" from the second file on.
 ///
-/// There is no way to build one of these except from a position *and* the base
-/// of the module it belongs to, and no way to read the number back out. So the
+/// There is no way to build one of these except from a position *and* the
+/// [`ModuleBase`] it belongs to, and no way to read the number back out. So the
 /// subtraction cannot be forgotten at a new call site, and a raw `BytePos`
-/// cannot reach [`FileOffset::distance`] at all -- which is the shape of the
-/// bug this replaces a comment about.
+/// cannot reach [`FileOffset::distance`] at all.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct FileOffset(u32);
 
-/// Where a module starts, in the source map it was parsed into.
+/// Where a module starts, in the source map it was parsed into — what a
+/// [`FileOffset`] is measured against.
 ///
-/// A type of its own for the same reason [`FileOffset`] is, and to close the
-/// half the offset alone left open: both arguments of `FileOffset::of` were
-/// `BytePos`, so swapping them compiled and answered zero for every candidate.
-/// It also has no `Default` -- a base nobody set would be `BytePos(0)`, which
-/// turns the offset straight back into the raw position this all exists to stop
-/// being compared.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// **The canonical statement of why this is a type, which the rest of the
+/// subsystem links to rather than repeats.** Two things fail if it is a bare
+/// `BytePos`:
+///
+/// - Both arguments of [`FileOffset::of`] would be `BytePos`, so transposing
+///   them compiles and answers zero for every candidate.
+/// - A `BytePos` has a `Default`, and a base nobody recorded is `BytePos(0)` —
+///   which makes the offset the raw position again. Silently, and only on the
+///   configurations that never set one, which is how the bug this subsystem was
+///   fixed for came back the first time it was fixed.
+///
+/// So there is no `Default`, no `From<BytePos>`, and one constructor that takes
+/// the module itself. Where a base may be genuinely unavailable it is spelled
+/// `Option<ModuleBase>`, and absent costs the proximity tie-break rather than
+/// answering from zero.
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct ModuleBase(BytePos);
 
 impl ModuleBase {
@@ -381,10 +390,8 @@ impl<'a> CallLookup<'a> {
   /// against. The two are positioned in different source maps -- see `rank`.
   ///
   /// Optional, and absent means "no proximity signal" rather than "measured
-  /// from zero". A base defaulting to `BytePos(0)` would make the offset the raw
-  /// position again -- silently, and only on the configurations that never set
-  /// one -- which is the bug this whole type exists to prevent. Without a base
-  /// every candidate simply ties on distance and the overlap fields decide.
+  /// from zero" -- see [`ModuleBase`]. Without one every candidate ties on
+  /// distance and the overlap fields decide.
   pub(crate) fn new(call_expr: &'a CallExpr, module_base: Option<ModuleBase>) -> Self {
     let object_arg = first_object_arg(call_expr);
     let sibling_keys: Rc<FxHashSet<Atom>> = Rc::new(

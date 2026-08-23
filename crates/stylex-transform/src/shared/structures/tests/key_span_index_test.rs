@@ -640,13 +640,10 @@ b=stylex.create({root:{color:'blue'}});";
   /// A lookup built without a base offers no proximity signal, rather than
   /// measuring from zero.
   ///
-  /// This is the difference between `Option<ModuleBase>` and a `BytePos` that
-  /// defaults to zero, and it is not hypothetical: the base used to be recorded
-  /// only on the configurations that also memoize the module, while the lookup
-  /// is reachable on the ones that do not, because the code frame re-parses on
-  /// demand. Defaulted to zero, every offset there was silently the raw position
-  /// again -- which is the original bug, restored by absence rather than by
-  /// arithmetic. Absent, the candidates simply tie on distance.
+  /// The difference between `Option<ModuleBase>` and a base defaulting to zero,
+  /// which `ModuleBase`'s own documentation argues. Not hypothetical: the base
+  /// used to be recorded only on the configurations that also memoize the
+  /// module, while the lookup is reachable on the ones that do not.
   #[test]
   fn a_lookup_without_a_base_offers_no_proximity_signal() {
     let module = parse("const styles = stylex.create({ root: { color: 'red' } });\n");

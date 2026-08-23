@@ -355,12 +355,12 @@ _Avoid_: byte position, column, index
 Where the module being transformed starts, in the source map it was parsed into
 — the thing a position is measured against to become a
 [file offset](#file-offset). Its own type for two reasons: both arguments would
-otherwise be `BytePos`, so swapping them compiles and answers zero for every
+otherwise be `BytePos`, so transposing them compiles and answers zero for every
 candidate; and it must have no default, because a base nobody recorded would be
-byte zero, which turns every offset straight back into the raw position. Absent
-rather than defaulted, so a lookup that never got one loses the proximity
-tie-break instead of silently ranking by "earliest in the file".
-_Avoid_: module start, origin, offset base
+byte zero, which turns every offset straight back into the raw position. Where a
+base may be genuinely unavailable it is spelled as absent rather than defaulted,
+so a lookup that never got one loses the proximity tie-break instead of silently
+ranking by "earliest in the file". _Avoid_: module start, origin, offset base
 
 **Call lookup**:
 The half of a key-span lookup that belongs to the `stylex.create` _call_ rather

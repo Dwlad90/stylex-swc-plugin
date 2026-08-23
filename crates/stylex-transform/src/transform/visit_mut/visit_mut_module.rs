@@ -12,12 +12,15 @@ use swc_core::{
   },
 };
 
-use crate::shared::structures::key_span_index::ModuleBase;
 use crate::{
   StyleXTransform,
   shared::{
-    structures::state_manager::{
-      build_decl_use_graph, compute_live_set, flush_pending_insertions, mark_style_vars_to_keep,
+    structures::{
+      key_span_index::ModuleBase,
+      state_manager::{
+        BindingWrites, build_decl_use_graph, compute_live_set, flush_pending_insertions,
+        mark_style_vars_to_keep,
+      },
     },
     utils::{
       ast::convertors::convert_atom_to_string,
@@ -138,6 +141,20 @@ struct ModuleBindingsCollector {
 }
 
 impl ModuleBindingsCollector {
+  /// The binding sets, moved out together.
+  ///
+  /// The one place the collector's four fields are matched to the state's four,
+  /// so a transposition is a single visible mistake here rather than one
+  /// repeated at every call site.
+  fn take_binding_writes(&mut self) -> BindingWrites {
+    BindingWrites {
+      reassignments: std::mem::take(&mut self.binding_reassignments),
+      mutations: std::mem::take(&mut self.binding_mutations),
+      deep_mutations: std::mem::take(&mut self.binding_deep_mutations),
+      declared: std::mem::take(&mut self.declared_bindings),
+    }
+  }
+
   /// Collects everything: the `sx` runtime-binding inputs (import sources,
   /// bound names, rebinding scopes) *and* the evaluator's inputs (the module's
   /// bindings and the writes against them), in one pass.
@@ -751,12 +768,9 @@ where
       let mut collector = ModuleBindingsCollector::for_sx();
       module.visit_with(&mut collector);
 
-      self.state.adopt_binding_writes(
-        collector.binding_reassignments,
-        collector.binding_mutations,
-        collector.binding_deep_mutations,
-        collector.declared_bindings,
-      );
+      self
+        .state
+        .adopt_binding_writes(collector.take_binding_writes());
       self.state.existing_import_sources = collector.import_sources;
       self.state.bound_names = collector.bound_names;
       self.state.local_rebinding_scopes = collector.local_rebinding_scopes;
@@ -781,12 +795,9 @@ where
     let mut collector = ModuleBindingsCollector::writes_only();
     module.visit_with(&mut collector);
 
-    self.state.adopt_binding_writes(
-      collector.binding_reassignments,
-      collector.binding_mutations,
-      collector.binding_deep_mutations,
-      collector.declared_bindings,
-    );
+    self
+      .state
+      .adopt_binding_writes(collector.take_binding_writes());
   }
 
   /// Run the producer transformation pass.

@@ -222,6 +222,22 @@ impl ImportState {
   }
 }
 
+/// The binding sets one `Discover` pre-scan produced, moved to the state
+/// together.
+///
+/// A type rather than four parameters because all four are `FxHashSet<Id>`: see
+/// [`StateManager::adopt_binding_writes`].
+pub(crate) struct BindingWrites {
+  /// See [`StateManager::binding_reassignments`].
+  pub(crate) reassignments: FxHashSet<Id>,
+  /// See [`StateManager::binding_mutations`].
+  pub(crate) mutations: FxHashSet<Id>,
+  /// See [`StateManager::binding_deep_mutations`].
+  pub(crate) deep_mutations: FxHashSet<Id>,
+  /// See [`StateManager::declared_bindings`].
+  pub(crate) declared: FxHashSet<Id>,
+}
+
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ModuleSourceState {
   seen_module_source_code: Option<Rc<SeenModuleSource>>,
@@ -232,10 +248,8 @@ pub(crate) struct ModuleSourceState {
   /// against candidates indexed from a module re-parsed into a *different* map.
   /// Only offsets into the file compare; this is the base they are taken from.
   ///
-  /// `None` until the module walk records it, and deliberately not a `BytePos`
-  /// defaulting to zero: that would turn every offset back into the raw
-  /// position, silently, on any path that reached a lookup without setting one.
-  /// Absent costs the proximity tie-break and nothing else.
+  /// `None` until the module walk records it, and a [`ModuleBase`] rather than
+  /// a `BytePos` — that type carries why.
   input_module_base: Option<ModuleBase>,
 }
 
@@ -749,22 +763,19 @@ impl StateManager {
     None
   }
 
-  /// Takes the four binding sets the `Discover` pre-scan collected.
+  /// Takes the binding sets the `Discover` pre-scan collected.
   ///
-  /// One method rather than four assignments at each of the two call sites: the
-  /// sets are read as a group by the reference chain, and a site that adopted
-  /// three of them would leave the fourth holding the previous module's answer.
-  pub(crate) fn adopt_binding_writes(
-    &mut self,
-    reassignments: FxHashSet<Id>,
-    mutations: FxHashSet<Id>,
-    deep_mutations: FxHashSet<Id>,
-    declared: FxHashSet<Id>,
-  ) {
-    self.binding_reassignments = Rc::new(reassignments);
-    self.binding_mutations = Rc::new(mutations);
-    self.binding_deep_mutations = Rc::new(deep_mutations);
-    self.declared_bindings = Rc::new(declared);
+  /// One argument rather than four of the same type, for the reason
+  /// [`ModuleBase`] is its own type: four positional `FxHashSet<Id>` can be
+  /// transposed at a call site and still compile, and the answer would be a
+  /// reference silently refused for the wrong reason. Named fields make the
+  /// mistake visible where it is written, and the sets travel together anyway --
+  /// the reference chain reads them as a group.
+  pub(crate) fn adopt_binding_writes(&mut self, writes: BindingWrites) {
+    self.binding_reassignments = Rc::new(writes.reassignments);
+    self.binding_mutations = Rc::new(writes.mutations);
+    self.binding_deep_mutations = Rc::new(writes.deep_mutations);
+    self.declared_bindings = Rc::new(writes.declared);
   }
 
   /// Appends a declarator and records where it went.

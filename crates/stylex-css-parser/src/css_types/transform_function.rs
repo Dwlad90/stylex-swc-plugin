@@ -2,6 +2,8 @@
 CSS transform function parser.
 */
 
+use stylex_utils::number::to_js_string;
+
 use crate::{
   CssParseError,
   css_types::{
@@ -1089,16 +1091,6 @@ impl TransformFunction {
   }
 }
 
-fn format_number(n: f64) -> String {
-  let rounded = (n * 1_000_000.0).round() / 1_000_000.0;
-  if rounded.fract() == 0.0 {
-    format!("{}", rounded as i64)
-  } else {
-    let s = format!("{:.6}", rounded);
-    s.trim_end_matches('0').trim_end_matches('.').to_string()
-  }
-}
-
 #[cfg_attr(coverage_nightly, coverage(off))]
 impl Display for TransformFunction {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1106,15 +1098,15 @@ impl Display for TransformFunction {
       TransformFunction::Matrix(m) => write!(
         f,
         "matrix({}, {}, {}, {}, {}, {})",
-        format_number(m.a),
-        format_number(m.b),
-        format_number(m.c),
-        format_number(m.d),
-        format_number(m.tx),
-        format_number(m.ty)
+        to_js_string(m.a),
+        to_js_string(m.b),
+        to_js_string(m.c),
+        to_js_string(m.d),
+        to_js_string(m.tx),
+        to_js_string(m.ty)
       ),
       TransformFunction::Matrix3d(m) => {
-        let args: Vec<String> = m.args.iter().map(|x| format_number(*x)).collect();
+        let args: Vec<String> = m.args.iter().map(|x| to_js_string(*x)).collect();
         write!(f, "matrix3d({})", args.join(", "))
       },
       TransformFunction::Perspective(p) => write!(f, "perspective({})", p.length),
@@ -1136,22 +1128,22 @@ impl Display for TransformFunction {
         _ => write!(
           f,
           "rotate3d({}, {}, {}, {})",
-          format_number(r.x),
-          format_number(r.y),
-          format_number(r.z),
+          to_js_string(r.x),
+          to_js_string(r.y),
+          to_js_string(r.z),
           r.angle
         ),
       },
       TransformFunction::Scale(s) => match &s.sy {
-        Some(sy) => write!(f, "scale({}, {})", format_number(s.sx), format_number(*sy)),
-        None => write!(f, "scale({})", format_number(s.sx)),
+        Some(sy) => write!(f, "scale({}, {})", to_js_string(s.sx), to_js_string(*sy)),
+        None => write!(f, "scale({})", to_js_string(s.sx)),
       },
       TransformFunction::Scale3d(s) => write!(
         f,
         "scale3d({}, {}, {})",
-        format_number(s.sx),
-        format_number(s.sy),
-        format_number(s.sz)
+        to_js_string(s.sx),
+        to_js_string(s.sy),
+        to_js_string(s.sz)
       ),
       TransformFunction::ScaleAxis(s) => write!(
         f,
@@ -1161,7 +1153,7 @@ impl Display for TransformFunction {
           Axis::Y => "Y",
           Axis::Z => "Z",
         },
-        format_number(s.s)
+        to_js_string(s.s)
       ),
       TransformFunction::Skew(s) => match &s.ay {
         Some(ay) => write!(f, "skew({}, {})", s.ax, ay),
@@ -1202,3 +1194,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/css_types/transform_function_coverage_test.rs"]
 mod transform_function_coverage_test;
+
+#[cfg(test)]
+#[path = "../tests/css_types/transform_function_precision_test.rs"]
+mod transform_function_precision_test;

@@ -926,11 +926,11 @@ fn scale3d_parse_percentage_values() {
   // number_or_percentage_to_f64 then does p.value / 100.0 → 0.5.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("scale3d".to_string()),
-    SimpleToken::Percentage(0.5), // 50% → stored as 0.5 unit_value → result 0.5
+    SimpleToken::Percentage(50.0), // 50% → stored as 0.5 unit_value → result 0.5
     SimpleToken::Comma,
-    SimpleToken::Percentage(1.0), // 100% → 1.0
+    SimpleToken::Percentage(100.0), // 100%
     SimpleToken::Comma,
-    SimpleToken::Percentage(0.25), // 25% → 0.25
+    SimpleToken::Percentage(25.0), // 25%
     SimpleToken::RightParen,
   ]);
   let result = (Scale3d::parse().run)(&mut tl).unwrap();
@@ -990,7 +990,7 @@ fn scale_axis_x_percentage_value() {
   // cssparser unit_value: 75% = 0.75, stored → Percentage::value = 75.0, / 100 = 0.75.
   let mut tl = make_token_list(vec![
     SimpleToken::Function("scaleX".to_string()),
-    SimpleToken::Percentage(0.75), // 75% as unit_value
+    SimpleToken::Percentage(75.0), // 75%
     SimpleToken::RightParen,
   ]);
   let result = (ScaleAxis::parse().run)(&mut tl).unwrap();

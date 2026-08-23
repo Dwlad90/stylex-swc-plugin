@@ -13,13 +13,13 @@ pub const TIME_UNITS: &[&str] = &["s", "ms"];
 /// CSS Time value with unit
 #[derive(Debug, Clone, PartialEq)]
 pub struct Time {
-  pub value: f32,
+  pub value: f64,
   pub unit: String, // "s" or "ms"
 }
 
 impl Time {
   /// Create a new Time value
-  pub fn new(value: f32, unit: impl Into<String>) -> Self {
+  pub fn new(value: f64, unit: impl Into<String>) -> Self {
     Self {
       value,
       unit: unit.into(),
@@ -42,10 +42,10 @@ impl Time {
   /// `None` for an unrecognised unit, and `None` for any non-`Dimension` variant
   /// (the latter branch is unreachable through the public parser, which guarantees
   /// a `Dimension` token, but the named function makes it coverable from tests).
-  pub(crate) fn extract_time_token(token: SimpleToken) -> Option<(f32, String)> {
+  pub(crate) fn extract_time_token(token: SimpleToken) -> Option<(f64, String)> {
     if let SimpleToken::Dimension { value, unit } = token {
       if Self::is_valid_unit(&unit) {
-        Some((value as f32, unit))
+        Some((value, unit))
       } else {
         None
       }

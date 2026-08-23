@@ -293,7 +293,7 @@ impl From<Length> for CssValue {
 
 impl From<Percentage> for CssValue {
   fn from(value: Percentage) -> Self {
-    CssValue::Percentage(value.value as f64)
+    CssValue::Percentage(value.value)
   }
 }
 

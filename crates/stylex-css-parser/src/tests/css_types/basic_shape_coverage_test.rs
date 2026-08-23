@@ -35,7 +35,7 @@ fn px(v: f64) -> crate::css_types::length_percentage::LengthPercentage {
   LengthPercentage::Length(Length::new(v, "px".to_string()))
 }
 
-fn pct(v: f32) -> crate::css_types::length_percentage::LengthPercentage {
+fn pct(v: f64) -> crate::css_types::length_percentage::LengthPercentage {
   use crate::css_types::common_types::Percentage;
   use crate::css_types::length_percentage::LengthPercentage;
   LengthPercentage::Percentage(Percentage::new(v))

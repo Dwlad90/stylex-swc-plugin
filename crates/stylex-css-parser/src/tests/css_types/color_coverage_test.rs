@@ -2106,7 +2106,7 @@ fn hsla_parse_hsla_alpha_token_out_of_range() {
 #[test]
 fn hsla_parse_hsla_alpha_token_out_of_range_percentage() {
   let mut tl = TokenList {
-    tokens: vec![SimpleToken::Percentage(2.0)],
+    tokens: vec![SimpleToken::Percentage(200.0)],
     current_index: 0,
   };
   assert!(Hsla::parse_hsla_alpha_token(&mut tl).is_err());
@@ -2169,7 +2169,7 @@ fn lch_parse_lch_chroma_token_eof_returns_error() {
 #[test]
 fn lch_parse_lch_chroma_token_invalid_type() {
   let mut tl = TokenList {
-    tokens: vec![SimpleToken::Percentage(50.0)],
+    tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
   };
   assert!(Lch::parse_lch_chroma_token(&mut tl).is_err());
@@ -2199,7 +2199,7 @@ fn lch_parse_lch_hue_token_invalid_unit() {
 #[test]
 fn lch_parse_lch_hue_token_invalid_type() {
   let mut tl = TokenList {
-    tokens: vec![SimpleToken::Percentage(50.0)],
+    tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
   };
   assert!(Lch::parse_lch_hue_token(&mut tl).is_err());
@@ -2217,7 +2217,7 @@ fn oklch_parse_oklch_lc_value_eof_returns_error() {
 #[test]
 fn oklch_parse_oklch_lc_value_invalid_type() {
   let mut tl = TokenList {
-    tokens: vec![SimpleToken::Percentage(50.0)],
+    tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
   };
   assert!(Oklch::parse_oklch_lc_value(&mut tl).is_err());
@@ -2247,7 +2247,7 @@ fn oklch_parse_oklch_hue_invalid_unit() {
 #[test]
 fn oklch_parse_oklch_hue_invalid_type() {
   let mut tl = TokenList {
-    tokens: vec![SimpleToken::Percentage(50.0)],
+    tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
   };
   assert!(Oklch::parse_oklch_hue(&mut tl).is_err());
@@ -2265,7 +2265,7 @@ fn oklab_parse_oklab_lab_value_eof_returns_error() {
 #[test]
 fn oklab_parse_oklab_lab_value_invalid_type() {
   let mut tl = TokenList {
-    tokens: vec![SimpleToken::Percentage(50.0)],
+    tokens: vec![SimpleToken::Percentage(5000.0)],
     current_index: 0,
   };
   assert!(Oklab::parse_oklab_lab_value(&mut tl).is_err());
@@ -2803,9 +2803,9 @@ fn hsl_comma_parser_eof_before_close_paren() {
       SimpleToken::Function("hsl".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Comma,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Comma,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       // No RightParen!
     ],
     current_index: 0,
@@ -2837,7 +2837,7 @@ fn hsl_space_parser_eof_before_whitespace_after_s() {
       SimpleToken::Function("hsl".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       // No second whitespace
     ],
     current_index: 0,
@@ -2854,9 +2854,9 @@ fn hsl_space_parser_eof_before_close_paren() {
       SimpleToken::Function("hsl".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       // No RightParen!
     ],
     current_index: 0,
@@ -2873,9 +2873,9 @@ fn hsla_comma_parser_eof_before_close_paren() {
       SimpleToken::Function("hsla".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Comma,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Comma,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Comma,
       SimpleToken::Number(0.5),
       // No RightParen!
@@ -2909,7 +2909,7 @@ fn hsla_space_slash_parser_eof_before_whitespace_after_s() {
       SimpleToken::Function("hsl".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       // No second whitespace
     ],
     current_index: 0,
@@ -2926,9 +2926,9 @@ fn hsla_space_slash_parser_eof_before_slash() {
       SimpleToken::Function("hsl".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       // No slash!
     ],
     current_index: 0,
@@ -2945,9 +2945,9 @@ fn hsla_space_slash_parser_eof_before_close_paren() {
       SimpleToken::Function("hsl".to_string()),
       SimpleToken::Number(180.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Whitespace,
-      SimpleToken::Percentage(0.5),
+      SimpleToken::Percentage(50.0),
       SimpleToken::Delim('/'),
       SimpleToken::Number(0.5),
       // No RightParen!

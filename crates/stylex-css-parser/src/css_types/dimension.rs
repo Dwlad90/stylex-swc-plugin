@@ -35,11 +35,11 @@ impl Dimension {
     if Length::is_valid_unit(&unit) {
       Some(Dimension::Length(Length::new(value, unit)))
     } else if Time::is_valid_unit(&unit) {
-      Some(Dimension::Time(Time::new(value as f32, unit)))
+      Some(Dimension::Time(Time::new(value, unit)))
     } else if Frequency::is_valid_unit(&unit) {
-      Some(Dimension::Frequency(Frequency::new(value as f32, unit)))
+      Some(Dimension::Frequency(Frequency::new(value, unit)))
     } else if Resolution::is_valid_unit(&unit) {
-      Some(Dimension::Resolution(Resolution::new(value as f32, unit)))
+      Some(Dimension::Resolution(Resolution::new(value, unit)))
     } else {
       None
     }

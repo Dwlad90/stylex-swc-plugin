@@ -139,13 +139,14 @@ fn map_css_token(token: &CssToken, text: &str) -> SimpleToken {
     CssToken::IDHash(v) | CssToken::Hash(v) => T::Hash(v.as_ref().to_string()),
     CssToken::QuotedString(v) => T::String(v.as_ref().to_string()),
     CssToken::Number { value, .. } => T::Number(leading_f64(text).unwrap_or(*value as f64)),
-    // `unit_value` is the fraction, not the authored percent: `50%` is `0.5`.
-    // Re-reading keeps that shape so every caller's arithmetic is unchanged.
-    CssToken::Percentage { unit_value, .. } => T::Percentage(
-      leading_f64(text)
-        .map(|percent| percent / 100.0)
-        .unwrap_or(*unit_value as f64),
-    ),
+    // The authored percent, not `cssparser`'s `unit_value` fraction: `50%` is
+    // `50`. Multiplying a fraction back up is what made `7%` print as
+    // `7.000000000000001%`, and a percentage is written to be read, not
+    // computed with -- the callers that want a fraction divide, which is the
+    // one place the division belongs.
+    CssToken::Percentage { unit_value, .. } => {
+      T::Percentage(leading_f64(text).unwrap_or(*unit_value as f64 * 100.0))
+    },
     CssToken::Dimension { value, unit, .. } => T::Dimension {
       value: leading_f64(text).unwrap_or(*value as f64),
       unit: unit.as_ref().to_string(),

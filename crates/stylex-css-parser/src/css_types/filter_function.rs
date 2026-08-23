@@ -176,8 +176,8 @@ impl BrightnessFilterFunction {
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
         let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+          NumberOrPercentage::Number(n) => n.value,
+          NumberOrPercentage::Percentage(p) => p.value / 100.0,
         };
 
         if value < 0.0 {
@@ -244,8 +244,8 @@ impl ContrastFilterFunction {
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
         let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+          NumberOrPercentage::Number(n) => n.value,
+          NumberOrPercentage::Percentage(p) => p.value / 100.0,
         };
 
         // Skip optional whitespace
@@ -306,8 +306,8 @@ impl GrayscaleFilterFunction {
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
         let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+          NumberOrPercentage::Number(n) => n.value,
+          NumberOrPercentage::Percentage(p) => p.value / 100.0,
         };
 
         // Skip optional whitespace
@@ -426,8 +426,8 @@ impl InvertFilterFunction {
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
         let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+          NumberOrPercentage::Number(n) => n.value,
+          NumberOrPercentage::Percentage(p) => p.value / 100.0,
         };
 
         // Skip optional whitespace
@@ -488,8 +488,8 @@ impl OpacityFilterFunction {
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
         let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+          NumberOrPercentage::Number(n) => n.value,
+          NumberOrPercentage::Percentage(p) => p.value / 100.0,
         };
 
         // Skip optional whitespace
@@ -550,8 +550,8 @@ impl SaturateFilterFunction {
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
         let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+          NumberOrPercentage::Number(n) => n.value,
+          NumberOrPercentage::Percentage(p) => p.value / 100.0,
         };
 
         // Skip optional whitespace
@@ -612,8 +612,8 @@ impl SepiaFilterFunction {
         // Parse number or percentage and convert to f64
         let number_or_percentage = (number_or_percentage_parser().run)(tokens)?;
         let value = match number_or_percentage {
-          NumberOrPercentage::Number(n) => n.value as f64,
-          NumberOrPercentage::Percentage(p) => p.value as f64 / 100.0,
+          NumberOrPercentage::Number(n) => n.value,
+          NumberOrPercentage::Percentage(p) => p.value / 100.0,
         };
 
         // Skip optional whitespace

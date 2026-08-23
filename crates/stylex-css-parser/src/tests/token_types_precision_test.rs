@@ -56,14 +56,15 @@ mod authored_digits_survive_tokenization {
     assert_eq!(first_number("32.88rem") - 0.01, 32.870000000000005);
   }
 
-  /// A bare number and a percentage take the same path as a dimension.
-  /// `unit_value` is the fraction, so `50%` is `0.5` — the shape every caller's
-  /// arithmetic already assumes.
+  /// A bare number and a percentage take the same path as a dimension, and a
+  /// percentage carries the number that was authored: `50%` is `50`. Scaling a
+  /// fraction back up is what made `7%` print as `7.000000000000001%`.
   #[test]
   fn bare_numbers_and_percentages_are_read_the_same_way() {
     assert_eq!(first_number("1.7976931348623157"), 1.7976931348623157);
-    assert_eq!(first_number("50%"), 0.5);
-    assert_eq!(first_number("33.33%"), 0.3333);
+    assert_eq!(first_number("50%"), 50.0);
+    assert_eq!(first_number("33.33%"), 33.33);
+    assert_eq!(first_number("7%"), 7.0);
   }
 
   /// Enough significant digits that no `f32` could hold them, so a passing

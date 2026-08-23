@@ -12,18 +12,18 @@ use std::fmt::{self, Display};
 /// CSS flex fraction unit (e.g., 1fr)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Flex {
-  pub fraction: f32,
+  pub fraction: f64,
 }
 
 impl Flex {
   /// Create a new Flex value
-  pub fn new(fraction: f32) -> Self {
+  pub fn new(fraction: f64) -> Self {
     Self { fraction }
   }
 
   /// Check if a fraction value is valid for flex
   /// Flex values must be non-negative
-  pub fn is_valid_fraction(fraction: f32) -> bool {
+  pub fn is_valid_fraction(fraction: f64) -> bool {
     fraction >= 0.0
   }
 
@@ -48,7 +48,7 @@ impl Flex {
   /// branch reachable from coverage tests.
   pub(crate) fn extract_dimension_token(token: SimpleToken) -> Flex {
     if let SimpleToken::Dimension { value, unit: _ } = token {
-      Flex::new(value as f32)
+      Flex::new(value)
     } else {
       stylex_unreachable!()
     }

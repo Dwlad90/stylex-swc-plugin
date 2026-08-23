@@ -56,7 +56,7 @@ fn extract_dimension_token_returns_resolution_for_valid_dimension() {
     unit: "dpi".to_string(),
   };
   let result = Resolution::extract_dimension_token(token);
-  assert_eq!(result.value, 300.0_f32);
+  assert_eq!(result.value, 300.0_f64);
   assert_eq!(result.unit, "dpi");
 }
 

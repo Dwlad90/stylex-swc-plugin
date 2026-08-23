@@ -311,7 +311,8 @@ fn parse_css_number_with_explicit_plus_sign() {
 
 #[test]
 fn parse_css_percentage_with_explicit_plus_sign() {
-  // +50% produces Token::Percentage { has_sign: true, unit_value: 0.5 }
+  // +50% produces Token::Percentage { has_sign: true, unit_value: 0.5 }, which
+  // `value_parser` scales back up itself.
   // The branch pushes '+'.
   let result = parse_css("+50%");
   let joined = result.join("");

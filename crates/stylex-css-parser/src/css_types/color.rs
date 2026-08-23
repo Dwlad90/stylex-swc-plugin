@@ -33,8 +33,9 @@ fn rgb_number_parser() -> TokenParser<u8> {
     .map(|v| v as u8, Some("to_u8"))
 }
 
+// Bridge: `AlphaValue` holds a double now, the colour channels do not yet.
 fn alpha_as_number() -> TokenParser<f32> {
-  crate::css_types::alpha_value::alpha_as_number()
+  crate::css_types::alpha_value::alpha_as_number().map(|alpha| alpha as f32, Some("narrow_alpha"))
 }
 
 /// Returns true when `token` is a Function token with the given name. Returns
@@ -1158,8 +1159,8 @@ impl Rgba {
         }
       },
       SimpleToken::Percentage(value) => {
-        // cssparser stores percentage as already converted (0.50 for 50%)
-        // so we don't need to divide by 100
+        // An alpha is a fraction, and the token carries the authored percent.
+        let value = value / 100.0;
         if (0.0..=1.0).contains(&value) {
           Ok(value as f32)
         } else {
@@ -1229,8 +1230,8 @@ impl Hsl {
   }
 
   /// Convenience constructor for backward compatibility with tests
-  /// Creates Hsl from primitive f32 values
-  pub fn from_primitives(h: f32, s: f32, l: f32) -> Self {
+  /// Creates Hsl from primitive values
+  pub fn from_primitives(h: f64, s: f64, l: f64) -> Self {
     Self {
       h: Angle::new(h, "deg"),
       s: Percentage::new(s),
@@ -1402,7 +1403,7 @@ impl Hsl {
       SimpleToken::Dimension { value, unit } => {
         // Parse as angle with unit
         if Angle::is_valid_unit(&unit) {
-          Ok(Angle::new(value as f32, unit))
+          Ok(Angle::new(value, unit))
         } else {
           Err(CssParseError::ParseError {
             message: format!("Invalid angle unit: {}", unit),
@@ -1411,7 +1412,7 @@ impl Hsl {
       },
       SimpleToken::Number(value) => {
         // Treat numbers as degrees (CSS standard for HSL)
-        Ok(Angle::new(value as f32, "deg"))
+        Ok(Angle::new(value, "deg"))
       },
       _ => Err(CssParseError::ParseError {
         message: format!(
@@ -1433,7 +1434,7 @@ impl Hsl {
     if let SimpleToken::Percentage(value) = token {
       // cssparser stores percentage as already converted (0.5 for 50%)
       // Convert to our format (50.0 for 50%)
-      Ok(Percentage::new((value as f32) * 100.0))
+      Ok(Percentage::new(value))
     } else {
       Err(CssParseError::ParseError {
         message: format!("Expected Percentage token, got {:?}", token),
@@ -1491,8 +1492,8 @@ impl Hsla {
   }
 
   /// Convenience constructor for backward compatibility with tests
-  /// Creates Hsla from primitive f32 values
-  pub fn from_primitives(h: f32, s: f32, l: f32, a: f32) -> Self {
+  /// Creates Hsla from primitive values
+  pub fn from_primitives(h: f64, s: f64, l: f64, a: f32) -> Self {
     Self {
       h: Angle::new(h, "deg"),
       s: Percentage::new(s),
@@ -1687,7 +1688,7 @@ impl Hsla {
       SimpleToken::Dimension { value, unit } => {
         // Parse as angle with unit
         if Angle::is_valid_unit(&unit) {
-          Ok(Angle::new(value as f32, unit))
+          Ok(Angle::new(value, unit))
         } else {
           Err(CssParseError::ParseError {
             message: format!("Invalid angle unit: {}", unit),
@@ -1696,7 +1697,7 @@ impl Hsla {
       },
       SimpleToken::Number(value) => {
         // Treat numbers as degrees (CSS standard for HSL/HSLA)
-        Ok(Angle::new(value as f32, "deg"))
+        Ok(Angle::new(value, "deg"))
       },
       _ => Err(CssParseError::ParseError {
         message: format!(
@@ -1718,7 +1719,7 @@ impl Hsla {
     if let SimpleToken::Percentage(value) = token {
       // cssparser stores percentage as already converted (0.5 for 50%)
       // Convert to our format (50.0 for 50%)
-      Ok(Percentage::new((value as f32) * 100.0))
+      Ok(Percentage::new(value))
     } else {
       Err(CssParseError::ParseError {
         message: format!("Expected Percentage token, got {:?}", token),
@@ -1745,7 +1746,8 @@ impl Hsla {
         }
       },
       SimpleToken::Percentage(value) => {
-        // cssparser stores percentage as already converted (0.50 for 50%)
+        // An alpha is a fraction, and the token carries the authored percent.
+        let value = value / 100.0;
         if (0.0..=1.0).contains(&value) {
           Ok(value as f32)
         } else {
@@ -1956,7 +1958,8 @@ impl Lch {
         // Parse alpha value using enhanced alpha parser
         let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
         match alpha_parser.run.as_ref()(input) {
-          Ok(alpha) => Ok(Some(alpha)),
+          // Bridge: this colour's alpha channel is still single precision.
+          Ok(alpha) => Ok(Some(alpha as f32)),
           Err(e) => Err(e),
         }
       },
@@ -1978,8 +1981,8 @@ impl Lch {
 
     match token {
       SimpleToken::Percentage(value) => {
-        // Convert percentage to value (50% = 50.0)
-        Ok((value as f32) * 100.0)
+        // The token already carries the authored percent: `50%` is `50`.
+        Ok(value as f32)
       },
       SimpleToken::Number(value) => Ok(value as f32),
       _ => Err(CssParseError::ParseError {
@@ -2020,7 +2023,7 @@ impl Lch {
       SimpleToken::Dimension { value, unit } => {
         // Parse as angle with unit
         if crate::css_types::Angle::is_valid_unit(&unit) {
-          let angle = crate::css_types::Angle::new(value as f32, unit);
+          let angle = crate::css_types::Angle::new(value, unit);
           Ok(LchHue::Angle(angle))
         } else {
           Err(CssParseError::ParseError {
@@ -2148,14 +2151,14 @@ impl Oklch {
       Some(SimpleToken::Dimension { value, unit }) => {
         // Try to parse as angle
         if Angle::is_valid_unit(&unit) {
-          Ok(Angle::new(value as f32, unit))
+          Ok(Angle::new(value, unit))
         } else {
           Err(CssParseError::ParseError {
             message: format!("Invalid angle unit: {}", unit),
           })
         }
       },
-      Some(SimpleToken::Number(n)) => Ok(Angle::new(n as f32, "deg")),
+      Some(SimpleToken::Number(n)) => Ok(Angle::new(n, "deg")),
       Some(SimpleToken::Ident(keyword)) if keyword == "none" => Ok(Angle::new(0.0, "deg")),
       _ => Err(CssParseError::ParseError {
         message: "Expected hue: angle, number, or 'none'".to_string(),
@@ -2187,7 +2190,8 @@ impl Oklch {
         // Parse alpha value using enhanced alpha parser
         let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
         match alpha_parser.run.as_ref()(input) {
-          Ok(alpha) => Ok(Some(alpha)),
+          // Bridge: this colour's alpha channel is still single precision.
+          Ok(alpha) => Ok(Some(alpha as f32)),
           Err(e) => Err(e),
         }
       },
@@ -2325,7 +2329,8 @@ impl Oklab {
         // Parse alpha value using enhanced alpha parser
         let alpha_parser = crate::css_types::alpha_value::alpha_as_number();
         match alpha_parser.run.as_ref()(input) {
-          Ok(alpha) => Ok(Some(alpha)),
+          // Bridge: this colour's alpha channel is still single precision.
+          Ok(alpha) => Ok(Some(alpha as f32)),
           Err(e) => Err(e),
         }
       },

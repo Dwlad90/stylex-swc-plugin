@@ -160,18 +160,18 @@ impl Display for CssVariable {
 /// CSS percentage value
 #[derive(Debug, Clone, PartialEq)]
 pub struct Percentage {
-  pub value: f32,
+  pub value: f64,
 }
 
 impl Percentage {
-  pub fn new(value: f32) -> Self {
+  pub fn new(value: f64) -> Self {
     Self { value }
   }
 
   fn token_to_percentage(token: SimpleToken) -> Percentage {
     if let SimpleToken::Percentage(value) = token {
-      // cssparser stores percentage as unit_value (already converted: 50% = 0.50)
-      Percentage::new((value * 100.0) as f32)
+      // The token already carries the authored percent: `50%` is `50`.
+      Percentage::new(value)
     } else {
       stylex_unreachable!()
     }
@@ -193,17 +193,17 @@ impl Display for Percentage {
 /// CSS number value
 #[derive(Debug, Clone, PartialEq)]
 pub struct Number {
-  pub value: f32,
+  pub value: f64,
 }
 
 impl Number {
-  pub fn new(value: f32) -> Self {
+  pub fn new(value: f64) -> Self {
     Self { value }
   }
 
   fn token_to_number(token: SimpleToken) -> Number {
     if let SimpleToken::Number(value) = token {
-      Number::new(value as f32)
+      Number::new(value)
     } else {
       stylex_unreachable!()
     }

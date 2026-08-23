@@ -3,10 +3,11 @@ use crate::token_types::SimpleToken;
 
 #[test]
 fn extract_percentage_token_returns_value_for_percentage() {
-  // Happy path: a Percentage token yields an AlphaValue.
-  let token = SimpleToken::Percentage(0.75);
+  // Happy path: a Percentage token yields an AlphaValue. The token carries the
+  // authored percent, and an alpha is the fraction of it.
+  let token = SimpleToken::Percentage(75.0);
   let result = AlphaValue::extract_percentage_token(token);
-  assert_eq!(result.value, 0.75_f32);
+  assert_eq!(result.value, 0.75_f64);
 }
 
 #[test]
@@ -24,7 +25,7 @@ fn extract_number_token_returns_value_for_number() {
   // Happy path: a Number token yields an AlphaValue.
   let token = SimpleToken::Number(0.25);
   let result = AlphaValue::extract_number_token(token);
-  assert_eq!(result.value, 0.25_f32);
+  assert_eq!(result.value, 0.25_f64);
 }
 
 #[test]

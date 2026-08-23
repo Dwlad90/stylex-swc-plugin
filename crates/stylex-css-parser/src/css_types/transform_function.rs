@@ -156,8 +156,8 @@ pub enum SkewAxis2D {
 // Helper to convert NumberOrPercentage to f64 (percentage becomes 0-1 range)
 fn number_or_percentage_to_f64(n: NumberOrPercentage) -> f64 {
   match n {
-    NumberOrPercentage::Number(n) => n.value.into(),
-    NumberOrPercentage::Percentage(p) => (p.value / 100.0).into(),
+    NumberOrPercentage::Number(n) => n.value,
+    NumberOrPercentage::Percentage(p) => p.value / 100.0,
   }
 }
 

@@ -38,7 +38,7 @@ fn extract_dimension_token_returns_angle_for_valid_dimension() {
     unit: "deg".to_string(),
   };
   let result = Angle::extract_dimension_token(token);
-  assert_eq!(result.value, 90.0_f32);
+  assert_eq!(result.value, 90.0_f64);
   assert_eq!(result.unit, "deg");
 }
 

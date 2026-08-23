@@ -17,12 +17,12 @@ use std::fmt::{self, Display};
 /// Dimension with value and unit for calc expressions
 #[derive(Debug, Clone, PartialEq)]
 pub struct CalcDimension {
-  pub value: f32,
+  pub value: f64,
   pub unit: String,
 }
 
 impl CalcDimension {
-  pub fn new(value: f32, unit: impl Into<String>) -> Self {
+  pub fn new(value: f64, unit: impl Into<String>) -> Self {
     Self {
       value,
       unit: unit.into(),
@@ -125,7 +125,7 @@ pub enum CalcValueOrOperator {
 #[derive(Debug, Clone, PartialEq)]
 pub enum CalcValue {
   /// number
-  Number(f32),
+  Number(f64),
   /// `TokenDimension[4]`
   Dimension(CalcDimension),
   /// Percentage
@@ -169,16 +169,13 @@ impl CalcValue {
       })?;
 
     match token {
-      SimpleToken::Number(value) => Ok(CalcValue::Number(value as f32)),
+      SimpleToken::Number(value) => Ok(CalcValue::Number(value)),
       SimpleToken::Dimension { value, unit } => {
-        Ok(CalcValue::Dimension(CalcDimension::new(value as f32, unit)))
+        Ok(CalcValue::Dimension(CalcDimension::new(value, unit)))
       },
       SimpleToken::Percentage(value) => {
-        // cssparser stores percentage as already converted (0.5 for 50%)
-        // Convert to our format (50.0 for 50%)
-        Ok(CalcValue::Percentage(Percentage::new(
-          (value * 100.0) as f32,
-        )))
+        // The token already carries the authored percent: `50%` is `50`.
+        Ok(CalcValue::Percentage(Percentage::new(value)))
       },
       SimpleToken::Ident(name) => {
         // Try to parse as calc constant (pi, e, infinity, -infinity, NaN)

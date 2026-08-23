@@ -12,12 +12,12 @@ use std::fmt::{self, Display};
 /// Alpha value for CSS colors
 #[derive(Debug, Clone, PartialEq)]
 pub struct AlphaValue {
-  pub value: f32, // 0.0 to 1.0
+  pub value: f64, // 0.0 to 1.0
 }
 
 impl AlphaValue {
   /// Create a new AlphaValue
-  pub fn new(value: f32) -> Self {
+  pub fn new(value: f64) -> Self {
     Self { value }
   }
 
@@ -29,9 +29,9 @@ impl AlphaValue {
   /// from coverage tests.
   pub(crate) fn extract_percentage_token(token: SimpleToken) -> AlphaValue {
     if let SimpleToken::Percentage(value) = token {
-      // Handle sign and convert to alpha value (0.0-1.0)
-      // cssparser stores percentage as unit_value (already converted: 50% = 0.50)
-      AlphaValue::new(value as f32)
+      // An alpha is a fraction, and the token carries the authored percent, so
+      // this is where `50%` becomes `0.5`.
+      AlphaValue::new(value / 100.0)
     } else {
       stylex_unreachable!()
     }
@@ -46,7 +46,7 @@ impl AlphaValue {
   pub(crate) fn extract_number_token(token: SimpleToken) -> AlphaValue {
     if let SimpleToken::Number(value) = token {
       // Handle sign and use directly as alpha value
-      AlphaValue::new(value as f32)
+      AlphaValue::new(value)
     } else {
       stylex_unreachable!()
     }
@@ -73,8 +73,8 @@ impl Display for AlphaValue {
 }
 
 /// Helper function to get alpha as number for color parsing
-pub fn alpha_as_number() -> TokenParser<f32> {
-  AlphaValue::parser().map(|alpha| alpha.value, Some("alpha_to_f32"))
+pub fn alpha_as_number() -> TokenParser<f64> {
+  AlphaValue::parser().map(|alpha| alpha.value, Some("alpha_to_number"))
 }
 
 #[cfg(test)]

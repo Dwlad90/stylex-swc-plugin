@@ -80,3 +80,7 @@ pub use transform_function::{
   Axis, Matrix, Matrix3d, Perspective, Rotate, Rotate3d, RotateXYZ, Scale, Scale3d, ScaleAxis,
   Skew, SkewAxis, TransformFunction, Translate, Translate3d, TranslateAxis,
 };
+
+#[cfg(test)]
+#[path = "../tests/css_types/double_precision_test.rs"]
+mod double_precision_test;

@@ -478,12 +478,12 @@ fn cubic_bezier_parse_accepts_missing_closing_paren() {
 #[test]
 fn cubic_bezier_parse_succeeds_with_whitespace() {
   // Exercises the whitespace-skipping loops in the cubic-bezier parser.
-  // Note: the tokenizer uses f32 precision internally so 0.1 is slightly off.
+  // The tokenizer reads the authored digits, so `0.1` is the double `0.1`.
   let result = CubicBezierEasingFunction::parse()
     .parse_to_end("cubic-bezier( 0.25 , 0.1 , 0.25 , 1 )")
     .unwrap();
   assert_eq!(result.points[0], 0.25);
-  assert!((result.points[1] - 0.1_f64).abs() < 1e-6);
+  assert_eq!(result.points[1], 0.1);
   assert_eq!(result.points[2], 0.25);
   assert_eq!(result.points[3], 1.0);
 }

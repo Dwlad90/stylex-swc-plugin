@@ -15,13 +15,13 @@ pub const ANGLE_UNITS: &[&str] = &["deg", "grad", "rad", "turn"];
 /// CSS Angle value with unit
 #[derive(Debug, Clone, PartialEq)]
 pub struct Angle {
-  pub value: f32,
+  pub value: f64,
   pub unit: String, // "deg", "grad", "rad", or "turn"
 }
 
 impl Angle {
   /// Create a new Angle value
-  pub fn new(value: f32, unit: impl Into<String>) -> Self {
+  pub fn new(value: f64, unit: impl Into<String>) -> Self {
     Self {
       value,
       unit: unit.into(),
@@ -58,7 +58,7 @@ impl Angle {
   /// branch reachable from coverage tests.
   pub(crate) fn extract_dimension_token(token: SimpleToken) -> Angle {
     if let SimpleToken::Dimension { value, unit } = token {
-      Angle::new(value as f32, unit)
+      Angle::new(value, unit)
     } else {
       stylex_unreachable!()
     }

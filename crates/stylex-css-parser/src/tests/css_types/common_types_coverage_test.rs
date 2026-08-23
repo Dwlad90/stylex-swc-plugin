@@ -120,10 +120,11 @@ fn css_variable_extract_ident_string_non_ident_returns_empty() {
 
 #[test]
 fn token_to_percentage_happy_path() {
-  // 50% is stored by cssparser as 0.5 (unit value).
-  let token = SimpleToken::Percentage(0.5);
+  // The token carries the authored percent, so `50%` is `50` and the type
+  // holds it unchanged rather than scaling a fraction back up.
+  let token = SimpleToken::Percentage(50.0);
   let pct = Percentage::token_to_percentage(token);
-  assert!((pct.value - 50.0).abs() < 0.001);
+  assert_eq!(pct.value, 50.0);
 }
 
 #[test]

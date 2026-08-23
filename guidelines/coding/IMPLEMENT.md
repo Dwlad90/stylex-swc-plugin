@@ -28,6 +28,14 @@ project.
   readability or functionality..
 - Cycle through the Implementation and Review process as needed until the code
   meets the required standards and all tests pass successfully.
+- Consider performance optimization and code quality checks during the review
+  stage, ensuring that the code adheres to best practices and follows the DRY
+  (Don't Repeat Yourself) principle. Look for opportunities to refactor code
+  to improve efficiency, reduce redundancy, and enhance maintainability.
+- Run /code-review before committing the code to ensure that it adheres to
+  the established coding standards and best practices of the project.
+  Address any issues or suggestions raised during the code review process before
+  finalizing the implementation.
 
 ## Stage 3
 

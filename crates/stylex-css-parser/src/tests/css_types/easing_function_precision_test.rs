@@ -72,8 +72,12 @@ mod precision_past_six_decimals_survives {
     );
   }
 
-  /// Seventeen significant digits a double *can* hold survive the parse and
-  /// the print untouched.
+  /// A control point already spelled as its own shortest form survives the
+  /// parse and the print untouched. Seventeen significant digits on the first
+  /// coordinate, sixteen on the second -- which is not an oversight: above
+  /// 0.5 the gap between doubles is wide enough that sixteen digits name one
+  /// uniquely, so seventeen is not a spelling `String(Number)` ever produces
+  /// there.
   #[test]
   fn a_curve_at_full_double_precision_round_trips() {
     assert_eq!(
@@ -82,10 +86,11 @@ mod precision_past_six_decimals_survives {
     );
   }
 
-  /// Seventeen digits a double *cannot* hold do not round-trip, and the name
-  /// says so: the authored text names a number between two doubles, so what
-  /// prints is the nearer one, spelled shortest. JavaScript agrees on both
-  /// the choice and the spelling.
+  /// Seventeen digits a double cannot hold do not round-trip: the authored
+  /// text names a number between two doubles, so what prints is the nearer
+  /// one, spelled shortest. JavaScript agrees on both the choice and the
+  /// spelling, and the official compiler hashes the authored spelling and the
+  /// printed one to the same class, because they are one double.
   #[test]
   fn a_curve_past_what_a_double_holds_prints_the_double_it_became() {
     assert_eq!(

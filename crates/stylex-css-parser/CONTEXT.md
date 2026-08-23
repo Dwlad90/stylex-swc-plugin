@@ -44,12 +44,13 @@ _Avoid_: single precision, f32 value
 
 **Echoed value**:
 Text emitted with the bytes the author wrote, rather than reprinted from a
-value this crate computed — what `value_parser::parse_css` does for the shorthand
-expansion path. The official compiler echoes here too, so the target is the
-author's own bytes: `1E2px` stays `1E2px`, and adopting the number formatter
-would _cause_ a divergence rather than close one. This is the one numeric path
-that must not follow the double-precision rule above, and it does not yet meet
-its own: it still reprints. Do not "fix" it by reaching for the formatter.
+value this crate computed — what `value_parser::parse_css` does for the
+shorthand expansion path. The official compiler echoes here too, so the target
+is the source text and not any rendering of the number it denotes: `1E2px`
+stays `1E2px`, and a double cannot hold that, because it cannot hold a
+spelling. This is the one numeric path the double-precision rule above does not
+govern, and reaching for the formatter here _causes_ a divergence rather than
+closing one.
 _Avoid_: passthrough, verbatim, raw
 
 **Property parser**:

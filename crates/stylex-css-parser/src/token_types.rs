@@ -6,7 +6,6 @@ use crate::CssResult;
 use cssparser::{Parser, ParserInput, Token as CssToken};
 use log::error;
 use stylex_macros::stylex_panic;
-use stylex_utils::number::to_js_string;
 
 /// Simple token representation
 #[derive(Debug, Clone, PartialEq)]
@@ -45,9 +44,9 @@ impl SimpleToken {
       SimpleToken::Hash(value) => Some(value.clone()),
       SimpleToken::AtKeyword(value) => Some(value.clone()),
       SimpleToken::Comment(value) => Some(value.clone()),
-      SimpleToken::Number(value) => Some(to_js_string(*value)),
-      SimpleToken::Percentage(value) => Some(to_js_string(*value)),
-      SimpleToken::Dimension { value, unit } => Some(format!("{}{}", to_js_string(*value), unit)),
+      SimpleToken::Number(value) => Some(value.to_string()),
+      SimpleToken::Percentage(value) => Some(value.to_string()),
+      SimpleToken::Dimension { value, unit } => Some(format!("{}{}", value, unit)),
       SimpleToken::Delim(ch) => Some(ch.to_string()),
       SimpleToken::Unknown(value) => Some(value.clone()),
       _ => None, // No extractable value for structural tokens
@@ -78,6 +77,26 @@ impl SimpleToken {
 /// taken as a prefix. `None` means no number is there to read, and the caller
 /// falls back to widening `cssparser`'s own value.
 pub(crate) fn leading_f64(text: &str) -> Option<f64> {
+  leading_number(text).and_then(|number| number.parse::<f64>().ok())
+}
+
+/// The numeric literal a numeric token was written with, as the author's own
+/// bytes.
+///
+/// The complement of [`leading_f64`], over the same span: that reads the span
+/// as a number, this hands the span back unread. A caller that echoes a value
+/// rather than computing one needs the second, because a double cannot hold a
+/// spelling -- `1.50`, `1E2`, and `1e21` are all numbers a reprint would
+/// respell, and the official compiler respells none of them.
+pub(crate) fn leading_number(text: &str) -> Option<&str> {
+  let end = leading_number_len(text)?;
+
+  text.get(..end)
+}
+
+/// Length in bytes of the numeric literal at the start of `text`, or `None`
+/// where there is no number to read.
+fn leading_number_len(text: &str) -> Option<usize> {
   let bytes = text.as_bytes();
   let mut end = 0;
   let mut digits = false;
@@ -123,7 +142,7 @@ pub(crate) fn leading_f64(text: &str) -> Option<f64> {
     }
   }
 
-  text[..end].parse::<f64>().ok()
+  Some(end)
 }
 
 // `map_css_token` is total: every `CssToken` maps to a `SimpleToken` (the

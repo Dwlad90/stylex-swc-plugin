@@ -1,11 +1,9 @@
-use std::fmt::Write;
-
 use cssparser::{
   ParseError, Parser, ParserInput, SourcePosition, Token, serialize_identifier, serialize_string,
 };
 use stylex_macros::stylex_unreachable;
 
-use crate::token_types::leading_f64;
+use crate::token_types::leading_number;
 
 pub fn format_ident(ident: &str) -> String {
   let mut result = String::with_capacity(ident.len());
@@ -23,18 +21,22 @@ pub fn format_quoted_string(string: &str) -> String {
   result
 }
 
-/// The number a numeric token was written with, re-read from the source.
+/// The numeric literal a token was written with, as the author's own bytes.
 ///
-/// This function echoes an authored value rather than computing one, so the
-/// number it prints has to be the number the author typed. `cssparser` hands
-/// it over as an `f32`, which is not wide enough to say so: it rounds
-/// `1.2345678901234567px` to `1.2345679px` and saturates
-/// `1.7976931348623157e308px` to infinity, printing `infpx` into a stylesheet.
+/// This function echoes rather than computing, and the official compiler
+/// echoes here too, so the target is the source text and not any rendering of
+/// the number it denotes. Reading the span into an `f64` and printing it back
+/// respells everything the author's spelling and the shortest round-trip
+/// spelling disagree on: `1.50px` came back as `1.5px`, `1E2px` as `100px`,
+/// `1e21px` as twenty-two digits, and `-0px` as `+-0px`, which is not a CSS
+/// value at all. Each of those is a different class name.
 ///
-/// `fallback` is `cssparser`'s own value, widened, and is used only when the
-/// slice holds no number to read -- which the token type says cannot happen.
-fn authored_number(input: &str, token_offset: SourcePosition, fallback: f32) -> f64 {
-  leading_f64(&input[token_offset.byte_index()..]).unwrap_or(fallback as f64)
+/// `fallback` is used only when there is no numeric literal to find -- which
+/// the token type says cannot happen.
+fn authored_number<'a>(input: &'a str, token_offset: SourcePosition, fallback: &'a str) -> &'a str {
+  let from_token = &input[token_offset.byte_index()..];
+
+  leading_number(from_token).unwrap_or(fallback)
 }
 
 fn parse_css_inner<'a>(
@@ -102,47 +104,20 @@ fn parse_css_inner<'a>(
       Token::QuotedString(ref value) => {
         iter_result.push_str(&format_quoted_string(value));
       },
-      Token::Number {
-        ref has_sign,
-        ref value,
-        ..
-      } => {
-        if *has_sign && *value >= 0. {
-          iter_result.push('+');
-        }
-        let _ = write!(
-          iter_result,
-          "{}",
-          authored_number(input, token_offset, *value)
-        );
+      // The authored sign is part of the literal the echo returns, so nothing
+      // prepends one: doing both is what produced `+-0px`, since a negative
+      // zero satisfies `value >= 0.`.
+      Token::Number { .. } => {
+        iter_result.push_str(authored_number(input, token_offset, "0"));
       },
-      Token::Percentage {
-        ref has_sign,
-        ref unit_value,
-        ..
-      } => {
-        if *has_sign && *unit_value >= 0. {
-          iter_result.push('+');
-        }
-        // The authored percent, not the fraction scaled back up.
-        let percent = authored_number(input, token_offset, unit_value * 100.0);
-        let _ = write!(iter_result, "{percent}");
+      Token::Percentage { .. } => {
+        iter_result.push_str(authored_number(input, token_offset, "0"));
         iter_result.push('%');
       },
-      Token::Dimension {
-        ref has_sign,
-        ref value,
-        ref unit,
-        ..
-      } => {
-        if *has_sign && *value >= 0. {
-          iter_result.push('+');
-        }
-        let _ = write!(
-          iter_result,
-          "{}",
-          authored_number(input, token_offset, *value)
-        );
+      // The unit comes from the token rather than the source, so an escaped
+      // one is emitted as what it escapes to -- `1\70x` is `1px`.
+      Token::Dimension { ref unit, .. } => {
+        iter_result.push_str(authored_number(input, token_offset, "0"));
         iter_result.push_str(unit.as_ref());
       },
       Token::UnquotedUrl(_) | Token::BadUrl(_) | Token::BadString(_) => {
